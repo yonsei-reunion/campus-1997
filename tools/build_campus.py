@@ -626,7 +626,7 @@ FIXED[_stp] = True
 _zc = np.where(UWV < -42.64, _US['h0'], np.where(UWV < -40.4, _US['h0'] + (_US['hl'] - _US['h0']) * (UWV + 42.64) / 2.24,
                np.where(UWV < -37.14, _US['hl'], _US['hl'] + (_US['ht'] - _US['hl']) * np.clip((UWV + 37.14) / 2.24, 0, 1))))
 _sz = (np.abs(UWU) < 6.5) & (UWV > -45.5) & (UWV < -33.5)
-Hn[_sz] = np.minimum(Hn[_sz], _zc[_sz] - 0.3)
+Hn[_sz] = np.minimum(Hn[_sz], _zc[_sz] - 0.7)                 # (low enough for the 5 m chords to clear)
 FIXED[_sz] = True
 print('언더우드관 정원 남쪽 계단: road %.2f, landing %.2f, terrace %.2f m' % (_US['h0'], _US['hl'], _US['ht']))
 
@@ -742,6 +742,25 @@ _fe = flight_at('east', _te, _de, _zeo, 0.0, 3.2, landing=0.5, cheek=0.35, maxri
 _fe = flight_at('east', _te, _de, _zeo, yh_plane(*g_en(*_fe['foot'])), 3.2, landing=0.5, cheek=0.35, maxrise=0.16)
 YEONHUI['flights'] += [_fw, _fe]
 for _f in YEONHUI['flights']:            # keep the ground under each flight below its treads
+    if _f['name'] in ('west', 'east', 'south'):
+        # ... and the banks either side of the two flights down from the side drives, past both ends too, no higher
+        # than a little over their treads: the 5 m grid's bank nodes beside them (one cell is as long as the flight)
+        # stood the ground up to 0.7 m over the lower treads and the coped walls
+        _d = np.array(_f['down']); _o = np.array(_f['top'])
+        _al = (X - _o[0]) * _d[0] + (Y - _o[1]) * _d[1]
+        _pe = -(X - _o[0]) * _d[1] + (Y - _o[1]) * _d[0]
+        _Lf = _f['landing'] + _f['n'] * _f['tread']
+        _m = (_al > -3.0) & (_al < _Lf + 3.0) & (np.abs(_pe) < _f['width'] / 2 + 5.5)
+        _line = np.interp(_al[_m], [0.0, _f['landing'], _Lf], [_f['z_top'], _f['z_top'], _f['z_foot']])
+        # (under the flight well down: between grid nodes 5 m apart the ground is a straight chord, flatter than the
+        # flight, so the node under its upper half has to sit low for the chord to clear the lower treads)
+        _under = (np.abs(_pe[_m]) < _f['width'] / 2 + 1.6) & (_al[_m] >= 0.0) & (_al[_m] <= _Lf)
+        # (beside it, the treads 3 m further down: a node's triangles reach that far along the flight)
+        _side = np.interp(_al[_m] + 3.0, [0.0, _f['landing'], _Lf], [_f['z_top'], _f['z_top'], _f['z_foot']]) + 0.1
+        _side = np.where(_al[_m] < 0.3, _f['z_top'] + 0.5, _side)                      # (not the drive at its head)
+        _cap = np.where(_under, _line - 1.6, np.where(_al[_m] > _Lf, _f['z_foot'] + 0.25, _side))
+        Hn[_m] = np.minimum(Hn[_m], _cap)
+        FIXED[_m] = True
     fix_strip([_f['top'], _f['foot']], _f['z_top'] - 0.35, _f['z_foot'] - 0.25, _f['width'] / 2 + 1.6, top=True)
 # the rest of the block (the banks, the lawns between the garden and 한경길, the verges along 교육관 and 성암관) one
 # smooth surface between all that

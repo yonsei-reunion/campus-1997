@@ -1252,6 +1252,55 @@ def hall_steps(mb, y_face, zl, wu, gfn, wall='stone_rubble', mat='stone_step', r
     return y_foot
 
 
+def side_steps(mb, y_face, zl, gfn, sg, hw, y_wall, wall='stone_rubble', mat='stone_step', rec=0.5, fw=2.0, land=1.6,
+               T=0.32, maxrise=0.16):
+    """The front steps of a hall that stands close to the road before it (교육관's east front over the drive, seen from
+    its porch in reference/2003_봄_교육관에서_본_연희관앞정원과_성암관.jpg: the coped side wall of the flight runs down
+    along the wall to the north): a landing land m deep before the door, from beyond the door's other side to hw m
+    past it on the side sg (+1: +x), then one flight fw m wide down along the wall that way, a solid wall between it and
+    the hall's wall at y_wall, a coped side wall on the open side round the landing and the flight, capped posts.
+    Local frame of stone_hall: the door's wall faces -y at y_face, the landing's top zl."""
+    yo = y_face - land                              # the landing's outer edge
+    yw = y_face + rec
+    ya, yb = yo, yo + fw                            # the flight, between its open side and the inner wall
+    x0 = sg * hw                                    # its head
+    for n in range(2, 31):
+        x_foot = x0 + sg * (n - 1) * T
+        zbot = max(gfn(x_foot + sg * 0.6, ya + (yb - ya) * k / 4) for k in range(5)) - 0.03
+        if (zl - zbot) / n <= maxrise:
+            break
+    zbot = min(zbot, zl - 0.3)
+    rise = (zl - zbot) / n
+    gnd = min(-1.2, zbot - 1.0)
+    xl0 = -sg * (hw + 0.2)                          # the landing's far end
+    xa, xb = sorted((xl0, x0))
+    mb.box(((xa + xb) / 2, (yw + yo) / 2, (zl + gnd) / 2), (xb - xa, yw - yo, zl - gnd), mat, skip=('bottom',))
+    for k in range(1, n):
+        top = zl - k * rise
+        mb.box((x0 + sg * (k - 0.5) * T, (ya + yb) / 2, (top + gnd) / 2), (T + 0.02, fw, top - gnd), mat, skip=('bottom',))
+    x_end = x0 + sg * (n - 1) * T
+    W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
+    WALK_FACES.append([W_(xa, yw - 0.05, zl), W_(xb, yw - 0.05, zl), W_(xb, yo, zl), W_(xa, yo, zl)])
+    WALK_FACES.append([W_(x0, ya, zl), W_(x0, yb, zl), W_(x0 + sg * n * T, yb, zbot), W_(x0 + sg * n * T, ya, zbot)])
+    if yb < y_wall - 0.05:                          # the solid wall between the flight and the hall
+        xi = sg * (hw - 0.45)                       # (from the porch's side, closing the corner by it)
+        uw_wall(mb, (xi, (yb + y_wall) / 2), (x_end + sg * 0.1, (yb + y_wall) / 2),
+                lambda f: zl + 0.45 + (zbot + rise + 0.4 - zl - 0.45) * max(0.0, (abs(xi + (x_end - xi) * f) - abs(x0)) / max(1e-3, abs(x_end - x0))),
+                gnd, gfn, t=y_wall - yb, wall=wall, clear=-9, n=6)
+    xs0, xs1 = xl0 - sg * 0.16, x_end + sg * 0.15         # the open side: round the landing, then down beside the flight
+    span = abs(xs1 - xs0)
+    def outer_top(f):
+        x = xs0 + (xs1 - xs0) * f
+        g = sg * (x - x0) / max(1e-3, abs(x_end - x0))
+        return zl + 0.85 if g <= 0 else zl + 0.85 + (zbot + rise + 0.8 - zl - 0.85) * min(1.0, g)
+    uw_wall(mb, (xs0, yo - 0.16), (xs1, yo - 0.16), outer_top, gnd, gfn, t=0.32, wall=wall, clear=-9, n=10)
+    uw_wall(mb, (xl0 - sg * 0.16, yo - 0.32), (xl0 - sg * 0.16, y_wall), lambda f: zl + 0.85, gnd, gfn, t=0.32, wall=wall, clear=-9, n=2)
+    for x_, top in ((xl0 - sg * 0.16, zl + 1.15), (x0, zl + 1.15), (x_end + sg * 0.25, zbot + rise + 1.1)):
+        pedestal(mb, x_, yo - 0.16, top, gnd, wall, w=0.5)
+    note_entrance(mb, span / 2 + 0.6, y_face + 0.5, yo - 1.0, x=(xs0 + xs1) / 2)
+    return yo
+
+
 def flat_portal(mb, W, plinth, fh, wall, bw=7.4, gfn=None):
     """대우관 별관's front door (reference/대우관_별관_정면_현관.jpg): a squared, slightly projecting central bay
     in pale stone, a rectangular glass double door deep in a recess under a flat lintel carrying a round medallion,
@@ -1881,8 +1930,12 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
             oface(mb, [(xi, -W / 2, Hw), (xo, -W / 2, Hw), (xo, -W / 2, ztw), (xi, -W / 2, ztw)], wall, (0, 1, 0))
             oface(mb, [(xi, -W / 2, Hw), (xi, -W / 2, zr), (xi, y_r, zr)], wall, (sg, 0, 0))
     # entrance steps: porch, granite flights with a landing, rubble side walls and capped posts
-    hall_steps(mb, y_face, zd, stairs['width'], gl, wall=wall, wl=stairs['wl'], cheeks=stairs['cheeks'],
-               lamps=stairs['lamps'], rec=door['rec'])
+    if stairs.get('side'):                     # a landing before the door and one flight down along the wall
+        side_steps(mb, y_face, zd, gl, stairs['side'], (porch['s1'] - porch['s0']) / 2 + 0.4 if porch else stairs['width'] / 2 + 0.6,
+                   -W / 2, wall=wall, rec=door['rec'], fw=stairs['width'])
+    else:
+        hall_steps(mb, y_face, zd, stairs['width'], gl, wall=wall, wl=stairs['wl'], cheeks=stairs['cheeks'],
+                   lamps=stairs['lamps'], rec=door['rec'])
     for x0, x1, nl in dormers:
         for sg in (-1, 1):
             shed_dormer(mb, x0, x1, nl, sg, W, hz, pitch)
@@ -2035,7 +2088,8 @@ def gyoyuk():
                       porch=dict(s0=L / 2 - 2.2, s1=L / 2 + 2.2, proj=1.3, top=plinth + 2 * fh + 0.35, hump=False,
                                  wall='stone_trim', win=(1.6, [1.0, 1.0])),
                       dormers=[(-13.7, -5.9, 5), (5.9, 13.7, 5)],
-                      stairs=dict(width=2.6, wl=3.4, rise=0.5), door=dict(w=1.7, arch='pointed', spring=1.6, style='panel', rec=0.5),
+                      stairs=dict(width=2.0, wl=3.4, rise=0.5, side=1),
+                      door=dict(w=1.7, arch='pointed', spring=1.6, style='panel', rec=0.5),
                       extra=lambda mb, iv, f: gyoyuk_north_flight(mb, iv, f, 12.4, 16.2))
 
 
