@@ -1,6 +1,6 @@
 // Small talk on campus: passers-by who meet stop to greet each other and trade a line or two, standing groups chat,
 // people say hello when you come up to them or ask to get by when you block the way. What they say follows the month
-// picked (materials.js SEASONS: spring = 4월 벚꽃, summer = 5월 신록, autumn = 10월 은행잎). The lines float over the
+// picked (materials.js SEASONS: spring = 4월 벚꽃, summer = 5월 신록, autumn = 10월 단풍). The lines float over the
 // speakers' heads as speech bubbles, in the DOM like the building tags (labels.js).
 import * as THREE from 'three';
 

@@ -60,7 +60,7 @@ function tiled(url, tile, srgb) {
 export const SEASONS = {
   spring: { short: '4월 · 벚꽃', grass: [0.17, 0.25, 0.075], date: "'97 4 15" },
   summer: { short: '5월 · 신록', grass: [0.13, 0.22, 0.06], date: "'97 5 21" },
-  autumn: { short: '10월 · 은행잎', grass: [0.21, 0.2, 0.08], date: "'97 10 28" },
+  autumn: { short: '10월 · 단풍', grass: [0.21, 0.2, 0.08], date: "'97 10 28" },
 };
 for (const s of Object.values(SEASONS)) s.label = `1997년 ${s.short}`;
 
