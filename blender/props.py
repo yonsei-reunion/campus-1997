@@ -52,13 +52,18 @@ def flag_white():
     mb = MeshBuilder('flag_white')
     mb.cylinder((0, 0), 0.035, 0.0, 3.5, 'metal_dark', seg=8)
     mb.box((-0.55, 0, 3.32), (1.1, 0.035, 0.035), 'metal_dark')
-    n = 8
+    # the cloth: strips across and rows down it, so that the wind (web/src/flags.js) can bend it; u from the pole,
+    # v up; the folds flatten towards the bar
+    n, m = 8, 8
+    P = lambda x, y, u, v: (x, y * (1 - 0.6 * v), (1.0 - 0.06 * u) * (1 - v) + 3.3 * v)
     for k in range(n):
         u0, u1 = k / n, (k + 1) / n
         x0, x1 = -0.08 - 1.0 * u0, -0.08 - 1.0 * u1
         y0, y1 = 0.09 * math.sin(u0 * 2 * math.pi * 1.5), 0.09 * math.sin(u1 * 2 * math.pi * 1.5)
-        mb.face([(x0, y0, 1.0 - 0.06 * u0), (x1, y1, 1.0 - 0.06 * u1), (x1, y1 * 0.4, 3.3), (x0, y0 * 0.4, 3.3)], 'flag_cloth',
-                uvs=[(u0, 0), (u1, 0), (u1, 1), (u0, 1)])
+        for j in range(m):
+            v0, v1 = j / m, (j + 1) / m
+            mb.face([P(x0, y0, u0, v0), P(x1, y1, u1, v0), P(x1, y1, u1, v1), P(x0, y0, u0, v1)], 'flag_cloth',
+                    uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
     return mb
 
 

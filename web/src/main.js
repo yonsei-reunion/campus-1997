@@ -26,6 +26,8 @@ import { Basketball } from './hoops.js';
 import { startPlaces } from './places.js';
 import { SunMap, bakeSunMap } from './bakedshadow.js';
 import { Blobs } from './blobs.js';
+import { Birds } from './birds.js';
+import { flagWind } from './flags.js';
 import { $, MOBILE, versioned, safeGet, safeSet, mulberry, countBy, polylineLength, closestOnSegment, placeMatrix } from './util.js';
 
 const canvas = $('#view');
@@ -287,6 +289,7 @@ async function main() {
     }
   }
   const banners = makeBanners(campus.banners, lib);
+  flagWind(lib);                    // the white flag's cloth stirs in the wind too (src/flags.js)
   scene.add(banners);
   scene.add(makeBoard(campus.landmarks.find((l) => l.id === 'events'), groundAt));
   // Quaternius CC0 people (blender/characters.py)
@@ -467,6 +470,7 @@ async function main() {
     const h = downRay.intersectObjects(roofs, false)[0];
     return h ? h.point.y : -1e9;
   };
+  const birds = new Birds(scene, { groundAt, surfaceAt, colliders, forest, sunMap, mobile: MOBILE });   // 까치 · 비둘기 (src/birds.js)
   const SEASON_ORDER = ['spring', 'summer', 'autumn'];
   const SEASON_KEYS = { Digit1: 'spring', Digit2: 'summer', Digit3: 'autumn' };
   const bird = new BirdsEye({
@@ -633,6 +637,7 @@ async function main() {
     fall.update(camera);
     crowd.update(dt, tAcc, started ? player : NOBODY, focus);
     crowd.bubbles.update(tAcc, started && !bird.active);
+    birds.update(dt, tAcc, started ? player : NOBODY, crowd.people, focus);
     traffic.update(dt, started ? player : NOBODY, focus);
     gates.update(dt, traffic);
     fountainWater?.update(dt, camera);
