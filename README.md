@@ -148,7 +148,7 @@
 
 - 지도 데이터: © OpenStreetMap contributors, ODbL
 - 고도: AWS Terrain Tiles (Mapzen Terrarium; SRTM 등)
-- 텍스처 · HDRI · 일부 소품(공중전화, 벤치, 휴지통): [Poly Haven](https://polyhaven.com), CC0
+- 텍스처 · HDRI · 일부 소품(공중전화, 휴지통): [Poly Haven](https://polyhaven.com), CC0
 - 인물과 애니메이션: Quaternius [Ultimate Modular Men](https://quaternius.com/packs/ultimatemodularmen.html) · [Ultimate Modular Women](https://quaternius.com/packs/ultimatemodularwomen.html), CC0
 - 글꼴: Noto Sans KR, Jua, Do Hyeon (SIL OFL)
 - 분수 물결 · 빛무늬: [Ultra Water](https://github.com/Humpalumps/Ultra-Water), MIT

@@ -2058,9 +2058,30 @@ _c = (_a + _b) / 2 + _n * 3.0
 for k in (-1, 0, 1):
     _p = _c + _u * 1.2 * k
     P('payphone', float(_p[0]), float(_p[1]), math.atan2(_n[1], _n[0]))
-for (x, y, r) in [(-50, -25, -1.82), (-47, -14, -1.82), (-58, -60, -1.82),
-                  (-20, 35, 1.3), (6, 60, -1.82), (110, 160, 1.3), (-36, -140, -1.82), (-46, -180, -1.82)]:
+for (x, y, r) in [(-50, -25, -1.82), (-47, -14, -1.82), (-58, -60, -1.82)]:
     P('bench', x, y, r)
+# 노천극장 진입 광장 (plazas): on the grass at the east edge of its paving, the long side along it, looking in (it
+# stood across the edge)
+_pz = Polygon([(40, 150), (100, 140), (110, 185), (55, 195)]).buffer(2).exterior
+_q = _pz.interpolate(_pz.project(Point(110, 160)))
+_o = np.array([110 - _q.x, 160 - _q.y]) / _q.distance(Point(110, 160))
+P('bench', _q.x + _o[0] * 0.4, _q.y + _o[1] * 0.4, math.atan2(-_o[1], -_o[0]))
+# 백양관: against its east wall by the south-east corner, looking out over the apron towards 백양로 (it stood across
+# the apron)
+_bk = Polygon(next(b for b in buildings if b['name'] == '백양관')['footprint']).exterior
+_q = _bk.interpolate(_bk.project(Point(-20, 35)))
+_o = np.array([-20 - _q.x, 35 - _q.y]) / _q.distance(Point(-20, 35))
+P('bench', _q.x + _o[0] * 0.6, _q.y + _o[1] * 0.6, math.atan2(_o[1], _o[0]))
+# 백양로: on the sidewalk's outer edge against the planting strip, halfway between two ginkgos, the long side along the
+# road and the seat towards it, as under the cherries by the road to 핀슨관 (2003_봄_백양로끝_핀슨관길_벚나무.jpg); out
+# of the walkers' lines 0.4 and 0.68 of the way across the sidewalk (web/src/main.js).  (They stood across the
+# sidewalk, one of them in its middle.)
+BENCH_DEPTH = 0.62                                   # (blender/props.py bench: its footprint, seat front to back posts)
+for (s0, side) in ((256.0, -1), (298.0, -1), (502.0, 1)):
+    s_ = min((22.0 + 8.5 * (k + 0.5) for k in range(int(L / 8.5))),
+             key=lambda t: abs(t - s0) + (99.0 if in_gap(t, side, 2.0) else 0.0))
+    x, y, a = along_raw(s_, side * (E_WALK - BENCH_DEPTH / 2 - 0.05))
+    P('bench', x, y, a - side * math.pi / 2)
 # garden benches, long side along the walk, seat towards it (BENCH_FACE: which way the bench model looks)
 BENCH_FACE = math.pi
 

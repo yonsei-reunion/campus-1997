@@ -436,6 +436,48 @@ def notice_board():
     return mb
 
 
+def _obox(mb, c, a, b, ha, hb, hn, mat, uofs=0.0):
+    """box centred at c with unit axes a (length), b (width) and n = a x b, half sizes ha, hb, hn; uvs in metres with the
+    grain (v) along a, the broad faces offset by uofs across (so that a plank shows one board of a plank texture)"""
+    a, b, c = Vector(a), Vector(b), Vector(c)
+    n = a.cross(b)
+    P = lambda i, j, k: tuple(c + a * (i * ha) + b * (j * hb) + n * (k * hn))
+    for k in (-1, 1):                                       # broad faces (+n: the top of a seat plank, the front of a back one)
+        q = [(-1, -1), (1, -1), (1, 1), (-1, 1)][::k]
+        mb.face([P(i, j, k) for i, j in q], mat, uvs=[(uofs + j * hb, i * ha) for i, j in q])
+    for j in (-1, 1):                                       # long edges
+        q = [(-1, -1), (-1, 1), (1, 1), (1, -1)][::j]       # (i, k)
+        mb.face([P(i, j, k) for i, k in q], mat, uvs=[(uofs + k * hn, i * ha) for i, k in q])
+    for i in (-1, 1):                                       # end grain
+        q = [(-1, -1), (1, -1), (1, 1), (-1, 1)][::i]       # (j, k)
+        mb.face([P(i, j, k) for j, k in q], mat, uvs=[(uofs + j * hb, k * hn) for j, k in q])
+
+
+def bench():
+    """벤치 (2003_봄_백양로끝_핀슨관길_벚나무.jpg: under the cherries by the road to 핀슨관, beside a three-bin green
+    recycling box; 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg: seen from behind at the top of the steps, three people to a
+    bench): 1.8 m long, a seat of three broad weathered grey planks and a slightly reclined back of three more, on three
+    dark frames (a post at each end and one in the middle shows behind the back).  The seat faces -Y; the origin is the
+    middle of its footprint (0.62 m deep) on the ground."""
+    mb = MeshBuilder('bench')
+    mb.xf = Matrix.Translation((0, -0.025, 0))
+    L, rec = 1.8, math.radians(12)
+    up = Vector((0, math.sin(rec), math.cos(rec)))           # up the back
+    back = Vector((0, math.cos(rec), -math.sin(rec)))        # out of the back, behind it
+    b0 = Vector((0, 0.17, 0.43))                             # the back planks' mid plane at seat height
+    for k, y in enumerate((-0.22, -0.07, 0.08)):             # seat: 13 x 4 cm planks, 2 cm apart, its top 43 cm up
+        _obox(mb, (0, y, 0.41), (1, 0, 0), (0, 1, 0), L / 2, 0.065, 0.02, 'wood_bench', uofs=0.25 + 0.21 * k)
+    for k, d in enumerate((0.12, 0.26, 0.40)):               # back: 12 x 3.5 cm planks, its top 88 cm up
+        _obox(mb, b0 + up * d, (1, 0, 0), up, L / 2, 0.06, 0.0175, 'wood_bench', uofs=0.95 + 0.21 * k)
+    post0 = b0 + back * 0.0425                               # the posts' centre line, behind the back planks
+    for x in (-0.72, 0.0, 0.72):
+        mb.box((x, -0.22, 0.195), (0.05, 0.06, 0.39), 'frame_dark')                 # front leg
+        mb.box((x, -0.025, 0.36), (0.05, 0.49, 0.06), 'frame_dark')                 # seat bearer
+        d0, d1 = -0.43 / up.z, 0.47                                                  # rear leg and back post, one piece
+        _obox(mb, post0 + up * ((d0 + d1) / 2) + Vector((x, 0, 0)), up, (1, 0, 0), (d1 - d0) / 2, 0.025, 0.025, 'frame_dark')
+    return mb
+
+
 def _ellipsoid(mb, c, rx, ry, rz, mat, rnd, seg=12, rings=8, noise=0.06, tag=None):
     tag = tag or 'ell%d' % len(mb.faces)
     P = []

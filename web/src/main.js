@@ -250,7 +250,9 @@ async function main() {
         // Blender models face -Y; campus rotation is the heading in the campus frame
         const col = kind === 'motorbike' ? new THREE.Color().setHSL(rnd(), 0.5, 0.45) : null;
         kit.add(placeMatrix(m4, x, groundAt(x, y), y, rot + (kind === 'motorbike' ? 0 : Math.PI / 2)), col);
-        if (kind !== 'motorbike') colliders.addCircle(x, y, COLLIDE[kind] ?? 0.55);
+        // a bench (1.8 m by 0.62, facing rot): three circles along its length
+        if (kind === 'bench') for (const t of [-0.55, 0, 0.55]) colliders.addCircle(x - Math.sin(rot) * t, y + Math.cos(rot) * t, 0.38);
+        else if (kind !== 'motorbike') colliders.addCircle(x, y, COLLIDE[kind] ?? 0.55);
       }
       kit.commit();
       kit.addTo(scene);
