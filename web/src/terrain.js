@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { loadTex, shrinkImage, pcss } from './materials.js';
 import { MOBILE, mulberry, placeMatrix, versioned } from './util.js';
-import { ATMOS, ATMOS_GLSL } from './materials.js';
+import { ATMOS, ATMOS_GLSL, SKY_DRIFT } from './materials.js';
 import { LITTER_GLSL } from './litter.js';
 
 export class Heightfield {
@@ -294,7 +294,12 @@ export function makeCity(hf, nearHalf, count = 1600) {
   return im;
 }
 
-// the horizon fades into the scene's fog colour for that direction (materials.js ATMOS): seamless with far terrain
+// the horizon fades into the scene's fog colour for that direction (materials.js ATMOS): seamless with far terrain.
+// The photo's clouds drift with the wind (materials.js SKY_DRIFT) as a flat layer: what is seen along d is the point of
+// the photo's layer uDrift upwind of there, so they cross fastest overhead and hardly move at the horizon. The sun's
+// disc and glow are in the photo: the drift fades out from 60 deg off the sun to 2 deg, one bent lookup. (Over a 5 to
+// 30 deg band the cloud beside the sun was torn; two lookups mixed instead of one bent showed every cloud twice.)
+const SKY_FIX = [Math.cos(60 * Math.PI / 180), Math.cos(2 * Math.PI / 180)];
 export function makeSky(skyMeta) {
   const tex = new THREE.TextureLoader().load(versioned('assets/hdri/sky_8k.jpg'), (t) => {
     if (MOBILE) { t.image = shrinkImage(t.image, 4096); t.needsUpdate = true; }   // 8K sky: 90 MB on the GPU
@@ -303,17 +308,27 @@ export function makeSky(skyMeta) {
   tex.wrapS = THREE.RepeatWrapping;
   tex.anisotropy = 4;
   const mat = new THREE.ShaderMaterial({
-    uniforms: { uSky: { value: tex }, uV0: { value: skyMeta.sky_v0 }, uExposure: { value: 1.0 }, ...ATMOS },
+    uniforms: { uSky: { value: tex }, uV0: { value: skyMeta.sky_v0 }, uExposure: { value: 1.0 }, uDrift: SKY_DRIFT,
+      ...ATMOS },
     vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); gl_Position.z = gl_Position.w; }`,
     fragmentShader: `
-      uniform sampler2D uSky; uniform float uV0; uniform float uExposure; varying vec3 vDir;
+      uniform sampler2D uSky; uniform float uV0; uniform float uExposure; uniform vec2 uDrift; varying vec3 vDir;
       ${ATMOS_GLSL}
       void main(){
-        vec3 d = normalize(vDir);
-        float u = atan(d.z, d.x) * 0.15915494 + 0.5;
-        float el = asin(clamp(d.y, -1.0, 1.0));
+        vec3 d = normalize(vDir), s = d;
+        if (d.y > 1e-3) {
+          float k = 1.0 - smoothstep(${SKY_FIX[0].toFixed(6)}, ${SKY_FIX[1].toFixed(6)}, dot(d, uSunW));
+          vec2 p = d.xz / d.y - uDrift * k;
+          s = vec3(p.x, 1.0, p.y) * inversesqrt(1.0 + dot(p, p));
+        }
+        float u = atan(s.z, s.x) * 0.15915494 + 0.5;
+        float el = asin(clamp(s.y, -1.0, 1.0));
         float v = (el * 0.31830989 + 0.5 - uV0) / (1.0 - uV0);
-        vec3 c = texture2D(uSky, vec2(u, clamp(v, 0.002, 0.998))).rgb * uExposure;
+        // the mip level from u's change across the pixel without its jump from 1 to 0 in the west: it drew a line up
+        // the sky there, which the drift would now carry along
+        vec2 gx = vec2(dFdx(u), dFdx(v)), gy = vec2(dFdy(u), dFdy(v));
+        gx.x -= floor(gx.x + 0.5); gy.x -= floor(gy.x + 0.5);
+        vec3 c = textureGrad(uSky, vec2(u, clamp(v, 0.002, 0.998)), gx, gy).rgb * uExposure;
         float hz = smoothstep(-0.02, 0.10, d.y);
         c = mix(y97FogColor(d), c, hz * 0.85 + 0.15 * smoothstep(0.1, 0.4, d.y));
         gl_FragColor = vec4(c, 1.0);

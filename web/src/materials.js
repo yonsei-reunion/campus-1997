@@ -897,8 +897,22 @@ export function setupAtmosphere(sunDir) {
   ATMOS.uCloudTex.value = cloudTexture();
 }
 
+// The clouds of the sky photo (terrain.js makeSky) drift with the same wind. The photo cannot scroll on for ever (its
+// sun and the glow round it stay put, a cloud carried far from the sun would keep the bright rim the sun gave it, one
+// from the horizon would come overhead stretched), so its cloud layer swings to and fro along the wind: SKY_SWING
+// either way (layer height 1: ~14 deg overhead), at an even ~4.7 deg a minute overhead but for a minute at each turn
+// (the shadows' clouds at 1.5 km cross 12 deg a minute there). From the start it goes the way the cloud shadows go
+// for 5 minutes, then back for 7, with them again for 7, and so on.
+export const SKY_DRIFT = { value: new THREE.Vector2() };   // how far the photo's clouds moved: three's XZ, height 1
+const SKY_SWING = 0.25, SKY_PERIOD = 840;                  // s
+let skyT = SKY_PERIOD * 7 / 8;                             // upwind of the photo, moving downwind at full speed
+
 // once a frame: the clouds drift (offsets wrapped to [0, 1) texture units: no precision loss over a long session)
 export function updateAtmosphere(dt) {
+  skyT = (skyT + dt) % SKY_PERIOD;
+  // a triangle wave with rounded turns
+  const swing = Math.asin(0.96 * Math.sin(skyT * 2 * Math.PI / SKY_PERIOD)) / Math.asin(0.96);
+  SKY_DRIFT.value.copy(CLOUD_WIND).normalize().multiplyScalar(SKY_SWING * swing);
   const o = ATMOS.uCloudOff.value;
   // the large tile is read rotated (the mat2 in y97Cloud): its drift in its own axes
   const bx = 0.8 * CLOUD_WIND_B.x - 0.6 * CLOUD_WIND_B.y, by = 0.6 * CLOUD_WIND_B.x + 0.8 * CLOUD_WIND_B.y;
