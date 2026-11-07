@@ -2903,6 +2903,24 @@ def daewoo():
             zg = ground_top(x_, y_)
             cb.box((x_, y_, zg - 0.05), (2 * (r + 0.1) * math.sin(math.pi / n_) + 0.02, 0.22, 0.4), 'stone_trim',
                    rotz=am + math.pi / 2)
+        # inside it the lawn, a low dome a little under the curb at its edge and some 0.4 m over it in the middle
+        # (대우관_2024_정면과_상뜰.jpg), walked on; the tree stands on its crown
+        rings, H = 7, 0.4
+        edge = [ground_top(cx + r * math.cos(2 * math.pi * k / n_), cy + r * math.sin(2 * math.pi * k / n_)) + 0.1
+                for k in range(n_)]
+        z_mid = sum(edge) / n_ + H
+
+        def dome(k, j):
+            f = j / rings                                   # 0 at the crown .. 1 at the curb
+            a = 2 * math.pi * (k % n_) / n_
+            z = z_mid + (edge[k % n_] - z_mid) * f ** 2
+            return (cx + r * f * math.cos(a), cy + r * f * math.sin(a), z)
+        for j in range(rings):
+            for k in range(n_):
+                q = [dome(k, j), dome(k, j + 1), dome(k + 1, j + 1), dome(k + 1, j)] if j else \
+                    [dome(k, 0), dome(k, 1), dome(k + 1, 1)]
+                cb.face(q, 'grass', smooth='sang_lawn')
+                WALK_FACES.append([tuple(p) for p in q])
         out.append(cb)
     # 상뜰's south flight (issue #39; reference/대우관_정면_전경.jpg): from the end of the broad walk down through the trees
     # to the footway towards 연희관, granite, 5.5 m wide like the walk, steel handrails on low kerbs both sides

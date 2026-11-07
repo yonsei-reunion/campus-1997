@@ -1215,9 +1215,9 @@ WD = frame_from(242897922)
 SANG_LAWN = 3.25                                         # (SANG, SG, SANG_DIAMOND: with the 상뜰's levels above)
 daewoo_garden = Point(*SANG).buffer(17).union(Polygon(SANG_DIAMOND).buffer(3.0))
 draw_poly('pavers', Point(*SANG).buffer(7.2))
-draw_poly('pavers', Point(*SANG).buffer(SANG_LAWN), 0)
 draw_line('pavers', [WD(23.5, 0), SANG], 6.0)
 draw_line('pavers', [SG(0.0, -6.5), SANG_DIAMOND[2], (101.2, 405.4)], 6.0)        # the broad walk to the south steps
+draw_poly('pavers', Point(*SANG).buffer(SANG_LAWN + 0.1), 0)    # (the lawn inside the curb: after the walks, not under them)
 # 대우관 뒤: the car park and the drive asphalt, paving round the planter in the recess (DAEWOO_BACK above)
 for _k in ('lot',):
     draw_poly('asphalt', fpoly(WD, DAEWOO_BACK[_k]))
