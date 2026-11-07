@@ -481,6 +481,17 @@ function bakedCopy(m) {
   return v;
 }
 
+// a copy of a material that takes shader edits of its own (patchShader on it) after the original's, looked up at
+// compile time as bakedCopy's are (impostors.js: the forest's near trees)
+export function derivedCopy(m) {
+  const v = m.clone();
+  const mine = () => PATCHES.get(v).slice(1).map((p) => p.key);
+  PATCHES.set(v, [{ get key() { return (PATCHES.get(m) || []).map((p) => p.key).join('|'); },
+    edit: (sh) => { const own = mine(); for (const p of PATCHES.get(m) || []) if (!own.includes(p.key)) p.edit(sh); } }]);
+  if (!PATCHES.has(m)) PATCHES.set(m, []);
+  return v;
+}
+
 function bakeShade(m, uniforms, weather) {
   patchShader(m, weather ? 'bakeW' : 'bake', (sh) => {
     Object.assign(sh.uniforms, uniforms);

@@ -5,7 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { mulberry, placeMatrix, countBy, versioned } from './util.js';
-import { pcss } from './materials.js';
+import { Impostor, renderImpostors, nearTreeMaterial, LOD, FADE } from './impostors.js';
 
 const draco = new DRACOLoader().setDecoderPath('draco/');
 export const gltfLoader = new GLTFLoader().setDRACOLoader(draco);
@@ -123,15 +123,16 @@ function instanced(geo, mat, capacity, castShadow) {
 }
 
 // A "kit" is a loaded GLB whose meshes become InstancedMesh parts sharing one transform list.
+// mat: the material the parts draw with, for each library material (the forest's near trees take their own copies)
 export class InstancedKit {
-  constructor(gltfScene, lib, capacity, { shadows = true, colors = false } = {}) {
+  constructor(gltfScene, lib, capacity, { shadows = true, colors = false, mat = (m) => lib.instanced(m) } = {}) {
     this.parts = [];
     gltfScene.updateMatrixWorld(true);
     gltfScene.traverse((o) => {
       if (!o.isMesh) return;
       const g = o.geometry.clone();
       g.applyMatrix4(o.matrixWorld);
-      this.parts.push(instanced(g, lib.instanced(o.material), capacity, shadows));
+      this.parts.push(instanced(g, mat(o.material), capacity, shadows));
     });
     this.capacity = capacity;
     this.count = 0;
@@ -163,6 +164,8 @@ export class InstancedKit {
 }
 
 // ---------------------------------------------------------------------------- vegetation with impostor LOD
+// Trees within nearDist of the LOD centre (the camera, or the ground point below a bird's-eye view) are the full
+// models, the rest impostors lit by the scene (impostors.js), with a dithered cross-fade over the last FADE metres.
 export class Forest {
   constructor(scene, renderer, lib, kits, trees, groundAt) {
     this.scene = scene;
@@ -179,113 +182,51 @@ export class Forest {
     }
     // near meshes
     this.near = {};
+    this.impostors = {};         // {key: Impostor} (its InstancedMesh: .im)
     const counts = countBy(this.items, (it) => it.key);
     for (const key of Object.keys(kits)) {
       if (!counts[key]) continue;
-      const kit = new InstancedKit(kits[key], lib, counts[key]);
+      const kit = new InstancedKit(kits[key], lib, counts[key], { mat: (m) => nearTreeMaterial(lib, m) });
       kit.addTo(scene);
       this.near[key] = kit;
+      const imp = new Impostor(key, kits[key], counts[key]);
+      scene.add(imp.im);
+      this.impostors[key] = imp;
     }
-    // impostors (billboard crosses rendered at runtime from the real tree models)
-    this.impostors = {};
-    this._buildImpostors(renderer);
+    this.renderImpostors(renderer);
     this.lastUpdate = new THREE.Vector3(1e9, 0, 0);
+    this.lastNear = 0;
     this.nearDist = 230;
   }
 
-  // Impostor cards: two crossed quads (side view) and a horizontal one (seen from above, for the bird's-eye view),
-  // textured with renders of the real tree model.
-  _buildImpostors(renderer) {
-    const size = 256;
-    for (const key of Object.keys(this.near)) {
-      const src = this.kits[key];
-      const box = new THREE.Box3().setFromObject(src);
-      const w = Math.max(box.max.x - box.min.x, box.max.z - box.min.z), h = box.max.y - box.min.y;
-      const half = Math.max(w / 2, h / 4) * 1.02, hw = (w / 2) * 1.02;
-      const rt = new THREE.WebGLRenderTarget(size, size * 2, { samples: 4 });
-      const rtTop = new THREE.WebGLRenderTarget(size, size, { samples: 4 });
-      rt.texture.colorSpace = rtTop.texture.colorSpace = THREE.SRGBColorSpace;
-      const cam = new THREE.OrthographicCamera(-half, half, half * 4, 0, 0.1, 200);
-      cam.position.set(0, box.min.y, 60);
-      cam.lookAt(0, box.min.y, 0);
-      const camTop = new THREE.OrthographicCamera(-hw, hw, hw, -hw, 0.1, 400);
-      camTop.up.set(0, 0, -1);
-      camTop.position.set(0, box.max.y + 50, 0);
-      camTop.lookAt(0, box.min.y, 0);
-      const card = (geo, rtx, name) => {
-        const mat = pcss(new THREE.MeshStandardMaterial({ map: rtx.texture, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 1 }));
-        mat.name = name + key;
-        const im = instanced(geo, mat, this.near[key].capacity, false);
-        this.scene.add(im);
-        return im;
-      };
-      // two crossed quads
-      const qw = half * 2, qh = half * 4;
-      const g1 = new THREE.PlaneGeometry(qw, qh);
-      g1.translate(0, qh / 2 + box.min.y, 0);
-      const g2 = g1.clone();
-      g2.rotateY(Math.PI / 2);
-      const im = card(mergeGeometries([g1, g2]), rt, 'impostor_');
-      const gTop = new THREE.PlaneGeometry(hw * 2, hw * 2);
-      gTop.rotateX(-Math.PI / 2);
-      gTop.translate(0, box.min.y + h * 0.72, 0);
-      const top = card(gTop, rtTop, 'impostor_top_');
-      this.impostors[key] = { im, top, rt, rtTop, src, cam, camTop };
-    }
-    this.renderImpostors(renderer);
-  }
-
-  // (re)draw the impostor textures from the tree models, e.g. after a season change swapped the leaf textures
+  // (re)draw the impostor atlases from the tree models, e.g. after a season change swapped the leaf textures
   renderImpostors(renderer) {
-    const sc = new THREE.Scene();
-    sc.add(new THREE.HemisphereLight(0xdfe8ff, 0x405030, 1.6));
-    const dl = new THREE.DirectionalLight(0xffffff, 2.2);
-    dl.position.set(3, 6, 4);
-    sc.add(dl);
-    const prevTarget = renderer.getRenderTarget();
-    const prevClear = renderer.getClearColor(new THREE.Color()), prevAlpha = renderer.getClearAlpha();
-    const prevTM = renderer.toneMapping;
-    renderer.toneMapping = THREE.NoToneMapping;
-    renderer.setClearColor(0x445533, 0);
-    for (const { src, rt, rtTop, cam, camTop } of Object.values(this.impostors)) {
-      const clone = src.clone(true);
-      sc.add(clone);
-      for (const [target, c] of [[rt, cam], [rtTop, camTop]]) {
-        renderer.setRenderTarget(target);
-        renderer.clear();
-        renderer.render(sc, c);
-      }
-      sc.remove(clone);
-    }
-    renderer.setRenderTarget(prevTarget);
-    renderer.setClearColor(prevClear, prevAlpha);
-    renderer.toneMapping = prevTM;
+    renderImpostors(renderer, Object.values(this.impostors));
   }
 
   update(camPos, force = false) {
-    if (!force && camPos.distanceToSquared(this.lastUpdate) < 64) return;
+    if (!force && this.nearDist === this.lastNear && camPos.distanceToSquared(this.lastUpdate) < 64) return;
     this.lastUpdate.copy(camPos);
-    const nd2 = this.nearDist * this.nearDist;
+    this.lastNear = this.nearDist;
+    // (the cross-fade's centre moves with the sorting: both forms in the FADE metres inside nearDist)
+    LOD.value.set(camPos.x, camPos.z, this.nearDist, FADE);
+    const nearIn = this.nearDist ** 2, impOut = Math.max(0, this.nearDist - FADE) ** 2;
     for (const k in this.near) this.near[k].count = 0;
     const ic = {};
     for (const k in this.impostors) ic[k] = 0;
     for (const it of this.items) {
       const d2 = (it.x - camPos.x) ** 2 + (it.z - camPos.z) ** 2;
-      if (d2 < nd2) {
+      if (d2 < nearIn) {
         const kit = this.near[it.key];
         kit.set(kit.count++, it.m4);
-      } else {
-        const imp = this.impostors[it.key];
-        imp.top.setMatrixAt(ic[it.key], it.m4);
-        imp.im.setMatrixAt(ic[it.key]++, it.m4);
       }
+      if (d2 > impOut) this.impostors[it.key].im.setMatrixAt(ic[it.key]++, it.m4);
     }
     for (const k in this.near) this.near[k].commit(false);
     for (const k in this.impostors) {
-      const { im, top } = this.impostors[k];
-      im.count = top.count = ic[k];
+      const { im } = this.impostors[k];
+      im.count = ic[k];
       im.instanceMatrix.needsUpdate = true;
-      top.instanceMatrix.needsUpdate = true;
     }
   }
 }
