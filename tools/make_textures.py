@@ -177,6 +177,8 @@ def cluster_cell(kind, palette, rnd, flowers=None):
         return ivy_bare_cell(palette, rnd)
     if kind in ('twigs', 'magnolia_bloom'):
         return twig_cell(kind, palette, rnd)
+    if kind == 'cherry_bloom':
+        return blossom_cell(palette, rnd, flowers)
     if kind == 'pine':
         for (x0, y0, x1, y1) in tips * 3:
             for t in np.linspace(0.3, 1.0, 9):
@@ -328,6 +330,71 @@ def twig_cell(kind, palette, rnd):
     return finish(img)
 
 
+def blossom_cell(palette, rnd, flowers):
+    """벚꽃 in full bloom (mid-April, 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg): a spray of dark twigs carrying the
+    blossom in clusters (송이) of a few flowers on long stalks, crowded into one mass in the middle of the card and
+    breaking up into separate clusters toward its edge, so a card has no round outline and the twigs show between the
+    clusters; a few small bronze-green leaves just opening.  palette: the leaves; flowers: (colour, number of
+    flowers, size range[, centre colour])."""
+    S = CELL * SS
+    img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    fcol, fn, fs = flowers[:3]
+    centre = flowers[3] if len(flowers) > 3 else (226, 150, 120)
+    cx, cy = S / 2, S / 2
+    # clusters: a few overlapping in the middle, the rest spread out, smaller toward the edge
+    clusters = []
+    for k in range(rnd.randint(31, 35)):
+        r = 0.39 * (rnd.random() ** 0.6 if k > 5 else rnd.uniform(0, 0.35))
+        a = rnd.uniform(0, 2 * math.pi)
+        rc = rnd.uniform(0.085, 0.125) * (1 - 0.4 * r / 0.39)
+        clusters.append((cx + math.cos(a) * r * S, cy + math.sin(a) * r * S * 0.92, rc * S))
+    # twigs: each cluster hangs from the nearest point already on the spray, which grows from the foot of the card
+    tree = [(cx + rnd.uniform(-0.04, 0.04) * S, S * 0.98)]
+    order = sorted(clusters, key=lambda c: (c[0] - tree[0][0]) ** 2 + (c[1] - tree[0][1]) ** 2)
+    for (x, y, rc) in order:
+        px, py = min(tree, key=lambda q: (q[0] - x) ** 2 + (q[1] - y) ** 2)
+        mx, my = (px + x) / 2 + rnd.uniform(-0.03, 0.03) * S, (py + y) / 2 + rnd.uniform(-0.03, 0.03) * S
+        w = max(3, int(S * 0.009 * (0.6 + 0.4 * (y / S))))
+        col = jitter((74, 58, 50), rnd, 0.1) + (255,)
+        d.line([(px, py), (mx, my), (x, y)], fill=col, width=w, joint='curve')
+        tree += [(mx, my), (x, y)]
+    # leaves first (the flowers cover most of them), then the stalks, then the flowers back to front
+    for (x, y, rc) in clusters:
+        for m in range(rnd.choice((0, 0, 1, 1, 2))):
+            a = rnd.uniform(0, 2 * math.pi)
+            lx, ly = x + math.cos(a) * rc * 0.8, y + math.sin(a) * rc * 0.8
+            draw_leaf(d, shape_ovate(rnd, 0.05, 0.4), lx, ly, a + math.pi / 2 + rnd.uniform(-0.5, 0.5),
+                      rnd.uniform(0.035, 0.05) * S, palette[rnd.randrange(len(palette))], rnd)
+    area = sum(rc * rc for (_, _, rc) in clusters)
+    blooms = []
+    for (x, y, rc) in clusters:
+        for m in range(max(3, round(fn * rc * rc / area))):
+            a = rnd.uniform(0, 2 * math.pi)
+            r = rc * rnd.random() ** 0.6
+            fx, fy = x + math.cos(a) * r, y + math.sin(a) * r
+            d.line([(x, y), (fx, fy)], fill=jitter((96, 104, 60), rnd, 0.1) + (255,), width=max(2, int(S * 0.003)))
+            # a cluster's underside in shade, its top in the sky light
+            shade = 0.93 + 0.07 * max(-1, min(1, (y - fy) / rc))
+            blooms.append((rnd.random(), fx, fy, shade))
+        for m in range(rnd.randint(0, 2)):                     # an unopened bud on the rim
+            a = rnd.uniform(0, 2 * math.pi)
+            bx, by, br = x + math.cos(a) * rc * 1.05, y + math.sin(a) * rc * 1.05, S * 0.006
+            d.line([(x, y), (bx, by)], fill=(96, 104, 60, 255), width=max(2, int(S * 0.003)))
+            d.ellipse([bx - br, by - br * 1.3, bx + br, by + br * 1.3], fill=jitter((236, 160, 182), rnd, 0.06) + (255,))
+    for (_, x, y, shade) in sorted(blooms):
+        sz = rnd.uniform(*fs) * S
+        c = tuple(int(min(255, v * shade)) for v in jitter(fcol, rnd, 0.05))
+        a0 = rnd.uniform(0, 2 * math.pi)
+        for p in range(5):
+            pa = a0 + p * 2 * math.pi / 5
+            px, py = x + math.cos(pa) * sz * 0.5, y + math.sin(pa) * sz * 0.5
+            d.ellipse([px - sz * 0.42, py - sz * 0.42, px + sz * 0.42, py + sz * 0.42], fill=c + (255,))
+        r = sz * 0.2
+        d.ellipse([x - r, y - r, x + r, y + r], fill=jitter(centre, rnd, 0.08) + (255,))
+    return finish(img)
+
+
 def atlas(name, kind, palette, flowers=None, seed=0):
     if ONLY and name not in ONLY:
         return
@@ -347,7 +414,9 @@ atlas('zelkova', 'zelkova', G)
 atlas('zelkova_autumn', 'zelkova', [(190, 110, 40), (170, 90, 35), (200, 140, 50), (150, 110, 40)])
 atlas('zelkova_spring', 'zelkova', [(120, 165, 60), (105, 150, 50), (135, 175, 70)])
 atlas('cherry', 'cherry', [(70, 110, 38), (85, 122, 42), (60, 95, 32)])
-atlas('cherry_spring', 'cherry', [(110, 150, 60), (95, 140, 55)], flowers=((250, 215, 225), 260, (0.035, 0.05)))
+# 4월: the blossom in clusters on bare twigs, a few bronze-green leaves (blossom_cell)
+atlas('cherry_spring', 'cherry_bloom', [(128, 132, 58), (150, 118, 70), (112, 140, 56)],
+      flowers=((250, 218, 228), 1200, (0.024, 0.032)))
 atlas('cherry_autumn', 'cherry', [(190, 80, 40), (210, 110, 40), (160, 70, 40)])
 atlas('maple', 'maple', [(85, 130, 40), (100, 145, 45), (70, 115, 35)])
 atlas('maple_autumn', 'maple', [(200, 40, 25), (220, 70, 30), (180, 30, 25), (230, 110, 30)])

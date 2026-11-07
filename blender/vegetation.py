@@ -9,7 +9,11 @@ SPECIES = {
     #              height  trunk_h  crown_c  rx   rz   cards  card  groups  excurrent  bark
     'ginkgo':  dict(h=9.8, th=2.6, cz=6.0, rx=2.05, rz=4.0, n=125, card=1.35, groups=11, exc=True, bark='bark', taper=0.8),
     'zelkova': dict(h=13.0, th=3.0, cz=9.0, rx=6.0, rz=4.3, n=230, card=2.1, groups=9, exc=False, bark='bark', taper=0.15),
-    'cherry':  dict(h=7.5, th=1.8, cz=5.0, rx=4.3, rz=2.7, n=170, card=1.65, groups=7, exc=False, bark='bark', taper=0.1),
+    # 벚나무: many small cards (a twig's few clusters of blossom each, 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg), not a
+    # few big sheets; edge=(size, keep): toward the crown's rim the cards shrink to `size` and only `keep` of them stay
+    # there (a soft, broken outline); twig: the share of cards a twig reaches out to
+    'cherry':  dict(h=7.5, th=1.8, cz=5.0, rx=4.3, rz=2.7, n=600, card=0.85, groups=7, exc=False, bark='bark', taper=0.1,
+                    edge=(0.6, 0.6), twig=0.16),
     'maple':   dict(h=6.5, th=1.7, cz=4.3, rx=3.2, rz=2.5, n=120, card=1.45, groups=6, exc=False, bark='bark', taper=0.2),
     'oak':     dict(h=12.5, th=3.5, cz=8.2, rx=5.0, rz=4.2, n=190, card=2.0, groups=8, exc=False, bark='bark', taper=0.2),
     'pine':    dict(h=11.0, th=4.2, cz=8.2, rx=4.0, rz=2.9, n=250, card=2.1, groups=9, exc=True, bark='bark_pine', taper=0.35),
@@ -18,8 +22,8 @@ SPECIES = {
     # April atlas into May; the young cherries keep their summer leaves, April's cherry atlas being the blossom).  Natural heights as measured in the photo (zelkova ~9 m, cherry ~5 m).
     'zelkova_young': dict(h=9.0, th=2.3, cz=6.1, rx=2.9, rz=3.2, n=85, card=1.55, groups=6, exc=False, bark='bark',
                           taper=0.15, leaf='leaf_zelkova_young', spread=0.55),
-    'cherry_young':  dict(h=5.4, th=1.4, cz=3.7, rx=2.2, rz=1.8, n=62, card=1.25, groups=5, exc=False, bark='bark',
-                          taper=0.1, leaf='leaf_cherry_young', spread=0.6),
+    'cherry_young':  dict(h=5.4, th=1.4, cz=3.7, rx=2.2, rz=1.8, n=220, card=0.64, groups=5, exc=False, bark='bark',
+                          taper=0.1, leaf='leaf_cherry_young', spread=0.6, edge=(0.6, 0.6), twig=0.16),
     # 메타세쿼이아: the row of tall narrow conifers east of 백양로 just inside the gate (bottom right of the photo):
     # a slim cone of soft light-green sprays from low down, a straight trunk to the tip
     'metasequoia':   dict(h=13.5, th=1.2, cz=7.0, rx=2.3, rz=6.4, n=300, card=1.05, groups=14, exc=True, bark='bark',
@@ -103,6 +107,12 @@ def make_tree(species, seed=0, leaf_mat=None):
         p = Vector((math.cos(a) * rr, math.sin(a) * rr, z))
         if z < sp['th'] + 0.6:
             continue
+        if sp.get('edge'):
+            # the outer fifth of the crown keeps only some of its cards
+            u = (z - sp['cz']) / sp['rz']
+            dn = math.sqrt((rr / r_env) ** 2 * (1 - u * u) + u * u)
+            if rnd.random() > 1 - (1 - sp['edge'][1]) * min(1, max(0, (dn - 0.8) / 0.2)):
+                continue
         cards.append(p)
     # --- trunk
     lean = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), 0)) * (0.06 if species != 'pine' else 0.18)
@@ -163,7 +173,7 @@ def make_tree(species, seed=0, leaf_mat=None):
         tube(mb, pts, [br * (1 - 0.8 * i / 4) for i in range(5)], sp['bark'], 5, rnd, col=(0.8, 0.8, 0.8, 1))
         # twigs to a subset of cards
         for p in g:
-            if rng_tw.random() < 0.35:
+            if rng_tw.random() < sp.get('twig', 0.35):
                 q0 = end.lerp(base, rng_tw.uniform(0, 0.4))
                 tube(mb, [q0, q0.lerp(p, 0.55) + Vector((0, 0, 0.2)), p], [br * 0.3, br * 0.18, 0.012], sp['bark'], 3, rnd, col=(0.85, 0.85, 0.85, 1))
     # --- leaf cards with canopy normals + AO in vertex colour
@@ -182,6 +192,8 @@ def make_tree(species, seed=0, leaf_mat=None):
         tang.normalize()
         bit = tang.cross(nrm).normalized()
         sz = sp['card'] * rnd.uniform(0.8, 1.2) * (1.0 if species != 'pine' else 1.15)
+        if sp.get('edge'):
+            sz *= 1 - (1 - sp['edge'][0]) * min(1, max(0, (shell - 0.7) / 0.3))
         rot = rnd.uniform(-0.6, 0.6)
         ca, sa = math.cos(rot), math.sin(rot)
         t2 = tang * ca + bit * sa
