@@ -85,7 +85,7 @@ export function leafUrl(species, season, young = false) {
 // ---------------------------------------------------------------------------- shader patches
 // A material's shader edits stack (one no longer replaces another), and the program cache key names them all: by
 // default three keys a program by onBeforeCompile's source text, which is the same for every material with one kind
-// of patch whatever values it bakes in (the bark's foliage glow 0 and the leaves' 0.09 could share one program).
+// of patch whatever values it bakes in (the bark's foliage glow 0 and the leaves' 0.05 could share one program).
 const PATCHES = new WeakMap();
 export function patchShader(m, key, edit) {
   if (!PATCHES.has(m)) PATCHES.set(m, []);
@@ -206,8 +206,9 @@ function wallWind(m) {
   });
 }
 
-// Foliage: a touch of wrap lighting / translucency so canopies don't go black, and a dithered fade
-// close to the camera so the third-person camera never looks through a wall of leaves or a trunk; the wind (sway).
+// Foliage: a touch of glow so canopies don't go black (the sky's light through the leaves; the sun's is backlight
+// below), and a dithered fade close to the camera so the third-person camera never looks through a wall of leaves or
+// a trunk; the wind (sway).
 // With TAA on (post.js) the dither runs through its thresholds frame by frame, so the history blends it into a smooth
 // fade instead of a fixed screen-door pattern; 0 otherwise (a still pattern does not crawl).
 export const DITHER = { value: 0 };
@@ -227,6 +228,72 @@ function foliage(m, glow = 0.09, flutter = 0.03) {
         }`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
        totalEmissiveRadiance += diffuseColor.rgb * ${glow.toFixed(3)};`);
+  });
+}
+
+// Leaves: the sunlight through a leaf, seen from its shaded side. A leaf card lit from behind (the sun on the other
+// side of the face that is seen) passes on a share of it, more saturated, mostly forward: strongest looking towards
+// the sun through the canopy. The face is the card's own, from screen derivatives (the leaf normals are bent to the
+// crown's sphere, and one side of a card reads them flipped).
+// The light is the sun as three's light loop left it (directLight after the loop: the shadow map or the baked sun
+// shadow, and the cloud over the pixel already in its colour), so a leaf in the shade of a hall stays dark. Inside a
+// crown the leaves in front pass some of it on, scattered: in the shadow map, the depth of the crown between the leaf
+// and the sun (to the first caster along the ray, one tap) fades it out over a few metres, so the underside of a
+// canopy glows faintly and a leaf a hall shades from metres away does not. Without the map (phones, and beyond its
+// edge) the crown's normal stands in: the farther the leaf is round the crown from the sun, the less reaches it.
+// The leaves' even glow (foliage) is what is left for the sky's light: LEAF_GLOW. The impostor renders (world.js: no
+// fog, a light of their own, cards seen from every side later) keep the glow the leaves had before, LEAF_GLOW_FLAT,
+// so the far trees stay as bright as the near ones on average.
+// uBacklight: x diffuse share, y forward share, z exponent of the forward lobe, w falloff round the crown (no map);
+// uBacklightIn: x share scattered on through the crown, y its falloff (m).
+const LEAF_GLOW = 0.05, LEAF_GLOW_FLAT = 0.09;
+export const BACKLIGHT = { lobe: { value: new THREE.Vector4(0.3, 1.2, 4, 3) }, through: { value: new THREE.Vector2(0.8, 3) } };
+function backlight(m) {
+  patchShader(m, 'backlight', (sh) => {
+    sh.uniforms.uBacklight = BACKLIGHT.lobe;
+    sh.uniforms.uBacklightIn = BACKLIGHT.through;
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        uniform vec4 uBacklight;
+        uniform vec2 uBacklightIn;
+        #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
+        uniform mat4 directionalShadowMatrix[ NUM_DIR_LIGHT_SHADOWS ];   // (the vertex shader's: map depth per metre)
+        #endif`)
+      .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+        #if NUM_DIR_LIGHTS > 0
+        {
+          vec3 blL = directLight.direction;
+          vec3 blF = normalize( cross( dFdx( vViewPosition ), dFdy( vViewPosition ) ) );
+          blF = dot( blF, geometryViewDir ) < 0.0 ? - blF : blF;
+          float blW = saturate( - dot( blF, blL ) )
+            * ( uBacklight.x + uBacklight.y * pow( saturate( - dot( geometryViewDir, blL ) ), uBacklight.z ) );
+          vec3 blSun = directLight.color * exp( - uBacklight.w * saturate( - dot( normalize( vNormal ), blL ) ) );
+          #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
+          vec3 blSc = vDirectionalShadowCoord[ 0 ].xyz / vDirectionalShadowCoord[ 0 ].w;
+          vec2 blE = min( blSc.xy, 1.0 - blSc.xy );
+          float blIn = smoothstep( 0.0, 0.04, min( blE.x, blE.y ) ) * step( blSc.z, 1.0 );
+          if ( blIn > 0.0 ) {
+            mat4 blM = directionalShadowMatrix[ 0 ];
+            float blGap = max( 0.0, blSc.z - unpackRGBAToDepth( texture2D( directionalShadowMap[ 0 ], blSc.xy ) ) )
+              / length( vec3( blM[ 0 ][ 2 ], blM[ 1 ][ 2 ], blM[ 2 ][ 2 ] ) );
+            vec3 blOpen = directionalLights[ 0 ].color;          // the sun before the shadow map
+            #if defined( USE_FOG ) && defined( Y97_ATMOS )
+            blOpen *= y97CloudHere();
+            #endif
+            #ifdef SUN_MODE
+            blOpen *= bakedSun;
+            #endif
+            blSun = mix( blSun, max( directLight.color, blOpen * uBacklightIn.x * exp( - blGap / uBacklightIn.y ) ), blIn );
+          }
+          #endif
+          vec3 blC = diffuseColor.rgb;
+          blC *= mix( vec3( 1.0 ), blC / max( max( blC.r, blC.g ), max( blC.b, 1e-4 ) ), 0.5 );
+          reflectedLight.directDiffuse += blSun * BRDF_Lambert( blC ) * blW;
+        }
+        #endif
+        #ifndef USE_FOG
+        totalEmissiveRadiance += diffuseColor.rgb * ${(LEAF_GLOW_FLAT - LEAF_GLOW).toFixed(3)};
+        #endif`);
   });
 }
 
@@ -560,7 +627,9 @@ export class MaterialLibrary {
       m.userData.young = !!d.young;
       m.userData.tint = d.tint || [1, 1, 1];
       m.userData.tintAutumn = d.tintAutumn || m.userData.tint;
-      foliage(m, 0.09, d.opaque ? 0 : 0.03);                  // (a clipped hedge's solid body does not flutter)
+      // (a clipped hedge's solid body does not flutter, nor does the sun shine through it)
+      foliage(m, d.opaque ? LEAF_GLOW_FLAT : LEAF_GLOW, d.opaque ? 0 : 0.03);
+      if (!d.opaque) backlight(m);
       this.leafMats.push(m);
     } else if (d.rooms) {
       m = windowGlass(d);
