@@ -14,6 +14,11 @@ One float colour attribute, exported as COLOR_0:
      the shadow of a hall or landmark (these and the other GLB's) or, partly, of a tree's crown.  Rays cast to the
      sun; the phones' only sun shadow above the ground (web/src/bakedshadow.js), the desktop draws its shadow map.
 White (1, 1, 1, 1) reads as open, under no ledge and sunlit: what the web app gives a mesh without the attribute.
+A second corner attribute, `_edge` (exported as _EDGE, a VEC4 of floats; Draco keeps EDGE_RANGE / 2^16): the distances
+in metres, along the face, to up to four of its arrises (the convex edges where the next face turns away behind it),
+EDGE_RANGE where it has none.  The distance to a line is linear over a planar face, so the corners carry it exactly
+however large the face; the web app wears the stone and the concrete off within a few centimetres of the nearest
+(web/src/walltone.js edgeWear).
 (The height over the ground, for the soil splashed up the walls, the web app reads from its own terrain.)  Leaf
 faces (the ivy) take none of it: their corners keep the mesh's own corner colour, the wind data of
 landmarks.ivy_patch.
@@ -38,6 +43,8 @@ D_RANGE, U_RANGE = 16.0, 8.0
 REACH = 2.5            # m: how far the streaks under a ledge run down at most (else to the opening below it)
 QUANT = (64, 256, 256, 32)  # levels per channel
 LEDGE_DEPTH = 0.65     # m: deepest upward face that still counts as a ledge (sills, copings, bands, treads)
+EDGE_RANGE = 128.0     # m: an edge channel's value where the face has no arris for it (and its largest distance)
+EDGE_BEND = 0.85       # cos of the least turn between two faces that makes their shared edge an arris (32 deg)
 # halls that were new in 1997 (bid -> share of their materials' weathering, exported as the object's extras):
 # 대우관 was finished in 1996, 제3공학관 and 제2인문관 were going up
 AGE = {'242897922': 0.1, '224955691': 0.15, '246156119': 0.15}
@@ -94,7 +101,7 @@ class _Mesh:
         order = np.argsort(ls, kind='stable')                     # (faces are stored in loop order already)
         return _Mesh(co.reshape(-1, 3).astype(np.float64), ls[order], lv, mi[order], sm[order], uv)
 
-    def write(self, name, mats, col=None):
+    def write(self, name, mats, col=None, edge=None):
         me = bpy.data.meshes.new(name)
         me.vertices.add(len(self.co))
         me.vertices.foreach_set('co', self.co.astype(np.float32).ravel())
@@ -114,6 +121,8 @@ class _Mesh:
             ca.data.foreach_set('color', col.astype(np.float32).ravel())
             me.color_attributes.active_color = ca
             me.color_attributes.render_color_index = me.color_attributes.active_color_index
+        if edge is not None:            # (a quaternion: four floats that the glTF exporter writes as they are)
+            me.attributes.new('_edge', 'QUATERNION', 'CORNER').data.foreach_set('value', edge.astype(np.float32).ravel())
         me.validate(clean_customdata=False)
         me.update()
         return me
@@ -427,6 +436,43 @@ def _coarsest(g, gs=None):
     return best if best is not None else (np.arange(nu + 1), np.arange(nv + 1))
 
 
+def _edges(m, cow, n_eff, wear):
+    """The `_edge` attribute per loop of the original mesh (see the module doc): for each face whose material weathers
+    (wear), the in-plane distances of its corners to its longest arrises, at most four.  Edges are matched by their
+    rounded end points, either winding; an edge is an arris where a face sharing it turns by more than EDGE_BEND and
+    lies behind the open side (n_eff); an edge no other face shares (a T-junction) stays sharp."""
+    out = np.full((len(m.lv), 4), EDGE_RANGE)
+    P = np.round(cow / 0.005).astype(np.int64)
+    key = lambda i, j: (tuple(P[i]), tuple(P[j])) if tuple(P[i]) < tuple(P[j]) else (tuple(P[j]), tuple(P[i]))
+    faces_of, cent = {}, np.zeros((len(m.ls), 3))
+    for f in range(len(m.ls)):
+        vs = m.lv[m.ls[f]:m.ls[f] + m.lt[f]]
+        cent[f] = cow[vs].mean(0)
+        for k in range(len(vs)):
+            faces_of.setdefault(key(vs[k], vs[(k + 1) % len(vs)]), []).append(f)
+    for f in np.where(wear)[0]:
+        a, n = m.ls[f], m.lt[f]
+        vs = m.lv[a:a + n]
+        nf = n_eff[f]
+        found = []
+        for k in range(n):
+            i, j = vs[k], vs[(k + 1) % n]
+            e = cow[j] - cow[i]
+            L = np.linalg.norm(e)
+            if L < 0.02:
+                continue
+            nb = [g for g in faces_of[key(i, j)] if g != f]
+            if not nb or not all(n_eff[g] @ nf < EDGE_BEND and (cent[g] - cow[i]) @ nf < -0.005 for g in nb):
+                continue
+            inward = np.cross(nf, e / L)
+            if (cent[f] - cow[i]) @ inward < 0:
+                inward = -inward
+            found.append((L, cow[i], inward))
+        for c, (_, p0, inward) in enumerate(sorted(found, key=lambda t: -t[0])[:4]):
+            out[a:a + n, c] = np.clip((cow[vs] - p0) @ inward, 0, EDGE_RANGE)
+    return out
+
+
 def _own_colour(me, verts):
     """The leaves take no occlusion or weathering: their corners keep the mesh's own colour instead (the ivy's wind,
     landmarks.ivy_patch), white where it has none.  verts: original vertex ids (a leaf card is never split)."""
@@ -676,6 +722,7 @@ def bake(objs, sun_glb=None):
         n_eff = m.normals(com) * sign[:, None]
         wet = np.array([MATS.get(x.name.split('.')[0], {}).get('weather', 0) > 0 for x in mats] + [False])
         dep, along = _streaks(m, com, n_eff, wet[np.minimum(m.mi, len(mats))])
+        edge = _edges(m, com, n_eff, wet[np.minimum(m.mi, len(mats))])
         # assemble: faces as they were, each grid thinned to what its corners or a coarser grid reproduce
         aov, sunv = np.zeros(len(d.co)), np.zeros(len(d.co))
         aov[d.lv] = ao                                            # (a node is shared only within its grid)
@@ -696,7 +743,7 @@ def bake(objs, sun_glb=None):
         pS = np.zeros(len(d.co))
         pS[d.lv] = suL                                            # (a probe's corners are its own)
         flat_sun = {f: pS[v].mean() for f, v in probe.items()}
-        co, ls, lv, mi, sm, uv, col, sa = [m.co], [], [], [], [], [], [], []
+        co, ls, lv, mi, sm, uv, col, sa, edg = [m.co], [], [], [], [], [], [], [], []
         nl_, nv_ = 0, len(m.co)
         cnt_o = np.ones(len(m.ls), np.int64)
         dl = 0                                                    # running dense loop index
@@ -718,6 +765,7 @@ def bake(objs, sun_glb=None):
                     nu, nv = p['grid']
                     r = p['ao'][[0, nu, p['k'] - 1, nv * (nu + 1)]]
                 col.append(np.column_stack((r, dep[a:a + n], along[a:a + n], np.ones(n))))
+                edg.append(edge[a:a + n])
                 sa.append(np.full(n, flat_sun[f]) if f in flat else sun[dl:dl + n] if p is None
                           else p['sun'][[0, nu, p['k'] - 1, nv * (nu + 1)]])
                 nl_ += n
@@ -740,6 +788,7 @@ def bake(objs, sun_glb=None):
                     uv.append((Ws @ m.uv[a:a + n])[loc])
                 col.append(np.column_stack((p['ao'][sel][loc], (Ws @ dep[a:a + n])[loc], (Ws @ along[a:a + n])[loc],
                                             np.ones(F.size))))
+                edg.append((Ws @ edge[a:a + n])[loc])
                 sa.append(p['sun'][sel][loc])
                 cnt_o[f] = len(F)
                 nv_ += len(sel)
@@ -764,11 +813,13 @@ def bake(objs, sun_glb=None):
         for c, q in enumerate(QUANT):
             col[:, c] = np.round(col[:, c] * q) / q
         leaf = np.array([_is_leaf(mats[i].name) if i < len(mats) else False for i in range(max(len(mats), 1))])
+        edg = np.vstack(edg)
         if leaf.any():
             lf = leaf[np.minimum(out.mi[out.lf], len(leaf) - 1)]
             col[lf] = _own_colour(ob.data, out.lv[lf])
+            edg[lf] = EDGE_RANGE
         old = ob.data
-        ob.data = out.write(old.name, mats, col)
+        ob.data = out.write(old.name, mats, col, edg)
         bpy.data.meshes.remove(old)
         nv0 += len(m.co)
         npatch += len(patches)

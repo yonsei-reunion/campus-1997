@@ -9,7 +9,11 @@
 //     texture, shifted by whole panels (the joints stay where they are, panel by panel the stone or the pour differs);
 //     in an unjointed one (render, rubble, brick) the tile's own large blotches are taken out, so only the broad tone
 //     varies across the wall
-// Patched from MaterialLibrary.get (materials.js) after its own map edit (patchMap), as one edit of the stack.
+//  4. arrises (the halls' and landmarks' baked copies, blender/bake.py `_edge`): within a few centimetres of the nearest
+//     convex edge the stone and the concrete are worn: lighter, rougher, and on desktop the normal leans out over the
+//     edge as on a slightly rounded arris, so it catches the light (never narrower than a pixel: no shimmer far off)
+// Patched from MaterialLibrary.get (materials.js) after its own map edit (patchMap), as one edit of the stack; the
+// arrises from MaterialLibrary.baked.
 import { MOBILE } from './util.js';
 
 // joint lattice in texture uv: [columns, rows, u, v of a joint]; columns 0: courses running the whole width
@@ -139,3 +143,48 @@ export function wallTone(name, d, noise) {
   return { key, edit };
 }
 
+// ---------------------------------------------------------------------------- 4. arrises
+// The attribute `edge` (world.js: the GLB's _EDGE as 16-bit normalized, / EDGE_RANGE): metres along the face to up to
+// four arrises; a mesh without it reads 1 (EDGE_RANGE: none).
+const EDGE_RANGE = 128;
+const EDGE_VERT = /* glsl */`
+attribute vec4 edge;
+varying vec4 vEdge;`;
+// how far the wear reaches at an arris (chipped unevenly along it: 2-6 cm), widened to a pixel's footprint at least
+// with its strength scaled down to match (the same share of the pixel worn); wvEd: m to the nearest arris
+const EDGE_COLOR = /* glsl */`
+float wvEd = min(min(vEdge.x, vEdge.y), min(vEdge.z, vEdge.w)) * ${f(EDGE_RANGE)};
+float wvPx = max(length(dFdx(vViewPosition)), length(dFdy(vViewPosition)));
+float wvR = 0.04 * (0.55 + 0.9 * texture2D(uWallNoise, wvP * 1.3 + 0.7).g);
+float wvWear = (1.0 - smoothstep(0.0, wvR + wvPx, wvEd)) * wvR / (wvR + wvPx);
+diffuseColor.rgb *= 1.0 + 0.18 * wvWear;`;
+const EDGE_ROUGH = /* glsl */`
+roughnessFactor = min(1.0, roughnessFactor + 0.25 * wvWear);`;
+// the lean: up to 0.7 rad at the arris, away from the face towards the edge (minus the in-plane gradient of the
+// distance, from screen derivatives), faded out where the rounding is under two pixels
+const EDGE_NORMAL = /* glsl */`
+{
+  vec3 wvDpx = dFdx(-vViewPosition), wvDpy = dFdy(-vViewPosition);
+  vec3 wvC1 = cross(wvDpy, nonPerturbedNormal), wvC2 = cross(nonPerturbedNormal, wvDpx);
+  float wvDet = dot(wvDpx, wvC1);
+  vec3 wvGr = (dFdx(wvEd) * wvC1 + dFdy(wvEd) * wvC2) / (abs(wvDet) > 1e-14 ? wvDet : 1e-14);
+  float wvLean = 0.7 * (1.0 - smoothstep(0.0, wvR, wvEd)) * smoothstep(1.0, 2.0, wvR / max(wvPx, 1e-5));
+  if (dot(wvGr, wvGr) > 1e-6) normal = normalize(normal * cos(wvLean) - normalize(wvGr) * sin(wvLean));
+}`;
+
+// the arrises' edit for the baked copy of a wall material (its definition d), or null; none: the attribute's value
+// for a mesh without it (defaultAttributeValues)
+export function edgeWear(d) {
+  if (!d || !d.tex || !(d.weather > 0)) return null;
+  const edit = (sh) => {
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>${EDGE_VERT}`)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvEdge = edge;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec4 vEdge;')
+      .replace('#include <color_fragment>', `#include <color_fragment>${EDGE_COLOR}`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>${EDGE_ROUGH}`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>${MOBILE ? '' : EDGE_NORMAL}`);
+  };
+  return { key: 'edgeWear', edit, none: [1, 1, 1, 1] };
+}

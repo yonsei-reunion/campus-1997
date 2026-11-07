@@ -38,6 +38,7 @@ export function bindMaterials(root, lib, keepUnknown = false, baked = false) {
         g.setAttribute('bake', g.attributes.color);
         g.deleteAttribute('color');
       }
+      if (g.attributes._edge) { g.setAttribute('edge', g.attributes._edge); g.deleteAttribute('_edge'); }   // (bake.py)
     }
     o.material = Array.isArray(o.material) ? out : out[0];
   });
@@ -52,6 +53,15 @@ function bakeU16(a, count) {
   return new THREE.BufferAttribute(out, 4, true);
 }
 
+// the distances to the arrises (blender/bake.py _edge, metres) as 16-bit normalized / 128 m (2 mm); 1 (none) where a
+// mesh has none
+function edgeU16(a, count) {
+  if (a && a.array instanceof Uint16Array && a.normalized && a.itemSize === 4) return a;
+  const out = new Uint16Array(count * 4).fill(65535);
+  if (a) for (let i = 0; i < count; i++) for (let c = 0; c < Math.min(4, a.itemSize); c++) out[i * 4 + c] = Math.round(Math.min(Math.max(a.getComponent(i, c) / 128, 0), 1) * 65535);
+  return new THREE.BufferAttribute(out, 4, true);
+}
+
 // Merge every mesh under root into one mesh per (material, chunk).
 export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShadow = true, name = 'static' } = {}) {
   root.updateMatrixWorld(true);
@@ -62,11 +72,13 @@ export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShado
     const g = o.geometry.clone();
     g.applyMatrix4(o.matrixWorld);
     for (const k of Object.keys(g.attributes)) {
-      if (!['position', 'normal', 'uv', 'color', 'bake'].includes(k)) g.deleteAttribute(k);
+      if (!['position', 'normal', 'uv', 'color', 'bake', 'edge'].includes(k)) g.deleteAttribute(k);
     }
     if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
     if (o.material.userData.baked) g.setAttribute('bake', bakeU16(g.attributes.bake, g.attributes.position.count));
     else if (g.attributes.bake) g.deleteAttribute('bake');
+    if (o.material.userData.baked) g.setAttribute('edge', edgeU16(g.attributes.edge, g.attributes.position.count));
+    else if (g.attributes.edge) g.deleteAttribute('edge');
     if (o.material.vertexColors) {
       if (!g.attributes.color) g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 3).fill(1), 3));
       else if (g.attributes.color.itemSize === 4) {

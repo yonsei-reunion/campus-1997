@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { MOBILE, versioned, mulberry } from './util.js';
 import { LITTER_MATS, litterUniforms, litterEdit, litterSeason } from './litter.js';
-import { wallTone } from './walltone.js';
+import { wallTone, edgeWear } from './walltone.js';
 
 const texLoader = new THREE.TextureLoader();
 const cache = new Map();
@@ -534,6 +534,8 @@ export class MaterialLibrary {
       const { uBakeAO, uTerrain, uTerrainGrid } = this.uniforms;
       v.userData.uWeather = { value: weather };
       bakeShade(v, { uBakeAO, uTerrain, uTerrainGrid, uWeather: v.userData.uWeather }, weather > 0);
+      const edge = edgeWear(this.defs[m.name]);               // worn arrises (walltone.js)
+      if (edge) { patchShader(v, edge.key, edge.edit); v.defaultAttributeValues.edge = edge.none; }
       this.bakedMats.set(key, v);
     }
     return v;

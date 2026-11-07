@@ -447,10 +447,13 @@ def export_glb(objs, path, draco=True, colors=False):
         kw['export_vertex_color'] = 'ACTIVE' if colors else 'NONE'
     except Exception:
         pass
+    if colors:      # the halls' `_edge` (blender/bake.py): Draco keeps 16 bits of it, 2 mm over EDGE_RANGE
+        kw.update(export_attributes=True, export_draco_generic_quantization=16)
     try:
         bpy.ops.export_scene.gltf(**kw)
     except TypeError:
-        kw.pop('export_vertex_color', None)
+        for k in ('export_vertex_color', 'export_attributes', 'export_draco_generic_quantization'):
+            kw.pop(k, None)
         bpy.ops.export_scene.gltf(**kw)
     print('exported', path, os.path.getsize(path) // 1024, 'KB')
 
