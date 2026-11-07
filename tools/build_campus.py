@@ -1725,8 +1725,9 @@ for k in range(9):
 # --- the trees of the 2003 spring and autumn photos (reference/2003_*.jpg, taken by the user; reference/고증.md
 # 3.18).  Where they show the old cherries in flower and the October ginkgos, plant them one by one (the trees
 # scattered on those spots step aside):
-#  - 2003_봄_백양로끝_핀슨관길_벚나무.jpg: a row of big old cherries along the south-west side of the drive bending up
-#    from the head of 백양로 towards 핀슨관, benches under them facing the drive, 백양관 lower down behind them
+#  - 2003_봄_백양로끝_핀슨관길_벚나무.jpg: a row of big old cherries along the south side of the road from the 삼거리
+#    at the head of 백양로 towards 핀슨관, which bends north-west and climbs; benches under them facing the road, a
+#    green bin, a pair of stone 해태
 #  - 2003_봄_언더우드관_앞길_벚나무.jpg: from the road before 언더우드관 looking east, a row of them behind a low
 #    hedge where the road ends, on the slope up towards 논지당
 #  - 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg: big cherries on the lawn along the garden's south edge, either side
@@ -1738,21 +1739,23 @@ for k in range(9):
 rng8 = random.Random(1997 + 2003)
 PHOTO03 = []                                                      # (species, x, y, scale)
 PHOTO03_PROPS = []                                                # (name, x, y, rot), added with the props below
-_br = LineString([(40, 122), (34, 123), (28, 124), (24, 125), (20, 127), (14, 131), (9, 137), (4, 144), (2, 150), (-2, 160)])
-_brs, _brb = _br.offset_curve(4.8), _br.offset_curve(3.4)         # (its left: the south-west side)
+# (the camera stood at the 삼거리 at the head of 백양로, by the steps up to 언더우드관 정원, looking west along the road
+# towards 핀슨관 as it bends north-west and climbs; the user placed it there)
+_br = LineString([(38, 168), (20, 175), (-2, 178), (-43, 186)])  # the west fork from the 삼거리 (extra_roads, 8 m)
+_brs, _brb = _br.offset_curve(6.0), _br.offset_curve(4.7)         # (its left: the south side)
 _rows = [(t_[1], t_[2]) for t_ in trees[:N_ROWS]]
 for k in range(8):
-    q_ = _brs.interpolate(12.0 + 6.8 * k)
+    q_ = _brs.interpolate(11.0 + 6.8 * k)                          # (past 백양로's sidewalk at its end)
     if min(math.hypot(q_.x - a_, q_.y - b_) for a_, b_ in _rows) < 4.0:
         continue                                                  # (not into 백양로's ginkgo rows)
     PHOTO03.append(('cherry', q_.x, q_.y, rng8.uniform(1.2, 1.4)))
     if k < 7:                                                     # a bench between this one and the next
-        b_ = _brb.interpolate(15.4 + 6.8 * k)
+        b_ = _brb.interpolate(14.4 + 6.8 * k)
         r_ = _br.interpolate(_br.project(b_))
         if k in (3, 4):
             # the pair of stone 해태 on low plinths at the road's edge, facing each other across the opening of a path
-            # down towards 백양관 (in the photo between the green bin and the benches beyond)
-            h_ = _br.offset_curve(3.9).interpolate(15.4 + 6.8 * k)
+            # (in the photo between the green bin and the benches beyond)
+            h_ = _br.offset_curve(5.0).interpolate(14.4 + 6.8 * k)
             t0_, t1_ = _br.interpolate(_br.project(h_) - 1.0), _br.interpolate(_br.project(h_) + 1.0)
             fwd_ = math.atan2(t1_.y - t0_.y, t1_.x - t0_.x)
             PHOTO03_PROPS.append(('haetae', h_.x, h_.y, fwd_ if k == 3 else fwd_ + math.pi))
@@ -1769,12 +1772,12 @@ PHOTO03 += [('cherry', 49.5, 317.5, 1.3), ('cherry', 106.0, 321.0, 1.05),
 x_, y_ = WY(16.5, -3.8)
 PHOTO03.append(('ginkgo', x_, y_, 0.42))
 #  - the white-stemmed 은백양 by the foot of the steps up to 언더우드관 정원, just east of them (bare in April), and
-#    another behind the first cherries by the drive up to 핀슨관 (the 2003 spring photos)
+#    another behind the first cherries along the road west from the 삼거리, beyond the side road south of them
+#    (the 2003 spring photos)
 #  - 목련: in the north-west corner of 연희관 앞 정원 behind the double lamp (2003_봄_교육관에서_본_*), and before
 #    언더우드관 east of its tower (2024_봄_언더우드관_목련.jpg: the old tree is taken to have stood there in 1997 too)
 PHOTO03.append(('poplar', *WU(5.4, -43.4), 1.0))
-_q = _br.offset_curve(9.0).interpolate(20.0)                      # (west of 백양로, off its carriageway)
-PHOTO03.append(('poplar', _q.x, _q.y, 0.92))
+PHOTO03.append(('poplar', 24.0, 155.5, 0.92))
 PHOTO03 += [('magnolia', 58.0, 339.5, 1.0), ('magnolia', *WU(-3.0, 40.6), 1.05)]
 _n0 = len(trees)
 trees[N_PHOTO_TREES:] = [t_ for t_ in trees[N_PHOTO_TREES:]
