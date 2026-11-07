@@ -1,4 +1,5 @@
-// Post-processing: N8AO ambient occlusion -> TAA -> small bloom -> "1997 film" grade -> tone mapping/sRGB output.
+// Post-processing: N8AO ambient occlusion -> TAA -> eye adaptation -> small bloom -> "1997 film" grade -> tone
+// mapping/sRGB output.
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -14,10 +15,11 @@ const FilmShader = {
   uniforms: {
     tDiffuse: { value: null }, tBloom: { value: null }, uBloom: { value: 0 }, uSharp: { value: 0 },
     uTime: { value: 0 }, uFilm: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) },
+    tEye: { value: null }, uEye: { value: 0 },
   },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
   fragmentShader: `
-    uniform sampler2D tDiffuse, tBloom; uniform float uTime, uFilm, uBloom, uSharp; uniform vec2 uRes; varying vec2 vUv;
+    uniform sampler2D tDiffuse, tBloom, tEye; uniform float uTime, uFilm, uBloom, uSharp, uEye; uniform vec2 uRes; varying vec2 vUv;
     float rnd(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)) + uTime*7.0) * 43758.5453); }
     void main(){
       vec4 c = texture2D(tDiffuse, vUv);
@@ -31,13 +33,15 @@ const FilmShader = {
       }
       // the bloom is added here (linear, before the grade and the tone mapping) instead of in a full-screen pass of its own
       vec3 bl = uBloom > 0.0 ? texture2D(tBloom, vUv).rgb * uBloom : vec3(0.0);
-      c.rgb += bl;
+      // the eye's adaptation (EyeAdapt): a scale of the exposure, before the grade as a camera's would be
+      float ex = uEye > 0.0 ? exp2(texture2D(tEye, vec2(0.5)).r) : 1.0;
+      c.rgb = (c.rgb + bl) * ex;
       // gentle spring haze for everyone
       c.rgb = mix(c.rgb, c.rgb * vec3(1.02, 1.0, 0.97), 0.6);
       if (uFilm > 0.0) {
         vec2 d = (vUv - 0.5);
         // slight lens softness + warm 35mm print look
-        vec3 blur = (texture2D(tDiffuse, vUv + d * 0.004).rgb + texture2D(tDiffuse, vUv - d * 0.004).rgb) * 0.5 + bl;
+        vec3 blur = ((texture2D(tDiffuse, vUv + d * 0.004).rgb + texture2D(tDiffuse, vUv - d * 0.004).rgb) * 0.5 + bl) * ex;
         vec3 g = mix(c.rgb, blur, 0.5);
         float l = dot(g, vec3(0.299, 0.587, 0.114));
         g = mix(vec3(l), g, 0.82);                                 // desaturate
@@ -318,6 +322,101 @@ class TAA extends Pass {
   }
 }
 
+// Eye adaptation (the HQ path with TAA; not on phones): the exposure follows the view's brightness a little, so that
+// under the arcade of 중앙도서관, in the pilotis of 학생회관 or the porch of 백주년기념관 the shade opens up and the
+// sunlit world outside is held back a little, and stepping out into the sun the view settles over a second or so.
+//  - the TAA output's log luminance, 8x8 taps per texel into 32x16, then one mean weighted towards the middle of the
+//    view, all on the GPU: nothing is read back, the film pass reads the exposure from a 1x1 target
+//  - the goal is KEY minus that mean, less a dead zone, eased into +-0.3 EV (+-0.5 in the film mode, a camera's
+//    automatic exposure). KEY is the mean of walking views along 백양로 (-2.1 to -2.9 by the season and the way one
+//    looks, -3.1 under its trees), which so stay as they were, as do most views from above (-2.1 to -2.5).
+//    The pilotis of 학생회관 read -3.1 to -4.6 (up to +0.3 EV), the porch of 백주년기념관 -3.4 (+0.24 EV), the sunlit
+//    arcade of 중앙도서관 looking out over its forecourt -1.7 to -1.9 (about -0.2 EV)
+//  - followed at 0.5 EV/s into the shade and 0.7 EV/s into the light, easing in over the last tenth of an EV
+//  - a jump of the view (a teleport, the bird's-eye view) starts it at its goal
+//  - __y97.post.adapt = false turns it off (the frame is then as without it)
+const EYE_W = 32, EYE_H = 16;
+const EYE_KEY = -2.55, EYE_DEAD = 0.4, EYE_GAIN = 0.75;
+const EyeLumFS = `
+  uniform sampler2D tSrc; varying vec2 vUv;
+  float ll(vec2 uv) { return log2(max(dot(texture2D(tSrc, uv).rgb, vec3(0.2126, 0.7152, 0.0722)), 1e-4)); }
+  void main() {
+    // 8x8 bilinear taps spread evenly over this texel's share of the view
+    float s = 0.0;
+    for (int j = 0; j < 8; j++) for (int i = 0; i < 8; i++)
+      s += ll(vUv + (vec2(float(i), float(j)) - 3.5) / vec2(${EYE_W * 8}.0, ${EYE_H * 8}.0));
+    gl_FragColor = vec4(s / 64.0, 0.0, 0.0, 1.0);
+  }`;
+const EyeFS = `
+  uniform sampler2D tLum, tPrev; uniform float uDt, uKey, uRange, uReset; uniform vec2 uRate; varying vec2 vUv;
+  const float DEAD = ${EYE_DEAD.toFixed(3)}, GAIN = ${EYE_GAIN.toFixed(3)};
+  void main() {
+    // the mean log luminance, weighted towards the middle (the corners count a twentieth, the edges a fifth;
+    // bilinear taps on the corners shared by four texels)
+    float s = 0.0, ws = 0.0;
+    for (int j = 0; j < ${EYE_H / 2}; j++) for (int i = 0; i < ${EYE_W / 2}; i++) {
+      vec2 uv = (vec2(float(i), float(j)) * 2.0 + 1.0) / vec2(${EYE_W}.0, ${EYE_H}.0), d = uv - 0.5;
+      float w = exp(-6.0 * dot(d, d));
+      s += texture2D(tLum, uv).r * w; ws += w;
+    }
+    float L = s / ws;
+    if (isnan(L) || isinf(L)) L = uKey;                    // (never let a stray value stick in the feedback)
+    float e = uKey - L;
+    float goal = sign(e) * uRange * tanh(GAIN * max(abs(e) - DEAD, 0.0) / uRange);
+    float ev = texture2D(tPrev, vec2(0.5)).r;
+    if (uReset > 0.5 || isnan(ev)) ev = goal;
+    else {
+      float de = goal - ev;
+      ev += sign(de) * min(de > 0.0 ? uRate.x : uRate.y, abs(de) * 5.0) * uDt;
+    }
+    gl_FragColor = vec4(clamp(ev, -0.5, 0.5), L, goal, 1.0);
+  }`;
+
+class EyeAdapt extends Pass {
+  constructor() {
+    super();
+    this.needsSwap = false;
+    this.lum = new THREE.WebGLRenderTarget(EYE_W, EYE_H, { type: THREE.HalfFloatType, format: THREE.RedFormat, depthBuffer: false });
+    const one = { type: THREE.FloatType, depthBuffer: false, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter };
+    this.rt = [new THREE.WebGLRenderTarget(1, 1, one), new THREE.WebGLRenderTarget(1, 1, one)];
+    this.cur = 0;
+    this.reset = true;
+    this.src = null;
+    this.onOutput = null;
+    this.matLum = new THREE.ShaderMaterial({
+      uniforms: { tSrc: { value: null } }, vertexShader: quadVS, fragmentShader: EyeLumFS, depthTest: false, depthWrite: false,
+    });
+    this.material = new THREE.ShaderMaterial({
+      uniforms: { tLum: { value: this.lum.texture }, tPrev: { value: null }, uDt: { value: 0 }, uKey: { value: EYE_KEY },
+        uRange: { value: 0.3 }, uReset: { value: 1 }, uRate: { value: new THREE.Vector2(0.5, 0.7) } },
+      vertexShader: quadVS, fragmentShader: EyeFS, depthTest: false, depthWrite: false,
+    });
+    this.quad = new FullScreenQuad(null);
+  }
+  get texture() { return this.rt[this.cur].texture; }
+  render(renderer, writeBuffer, readBuffer) {
+    const u = this.material.uniforms;
+    this.matLum.uniforms.tSrc.value = this.src ?? readBuffer.texture;
+    this.quad.material = this.matLum;
+    renderer.setRenderTarget(this.lum);
+    this.quad.render(renderer);
+    u.tPrev.value = this.rt[this.cur].texture;
+    this.cur = 1 - this.cur;
+    u.uReset.value = this.reset ? 1 : 0;
+    this.reset = false;
+    this.quad.material = this.material;
+    renderer.setRenderTarget(this.rt[this.cur]);
+    this.quad.render(renderer);
+    this.onOutput?.(this.texture);
+  }
+  // [exposure offset EV, the weighted mean log2 luminance, the goal EV] (debugging: a synchronous read)
+  read(renderer) {
+    const b = new Float32Array(4);
+    renderer.readRenderTargetPixels(this.rt[this.cur], 0, 0, 1, 1, b);
+    return [...b.slice(0, 3)];
+  }
+}
+
 export class Post {
   constructor(renderer, scene, camera) {
     const size = renderer.getDrawingBufferSize(new THREE.Vector2());
@@ -342,10 +441,12 @@ export class Post {
     this.smaa = null;
     this.taa = MOBILE ? null : new TAA();
     this.bloom = MOBILE ? null : new Bloom();
+    this.eye = this.taa ? new EyeAdapt() : null;      // (with TAA only: it measures the TAA output)
     this.film = new ShaderPass(FilmShader);
     this.film.uniforms.tBloom.value = this.bloom?.texture ?? null;
     if (this.taa) this.taa.depth = () => this.ao.beautyRenderTarget.depthTexture;   // (N8AO draws the scene)
-    if (this.taa) this.taa.onOutput = (t) => { this.film.uniforms.tDiffuse.value = t; if (this.bloom) this.bloom.src = t; };
+    if (this.taa) this.taa.onOutput = (t) => { this.film.uniforms.tDiffuse.value = t; if (this.bloom) this.bloom.src = t; this.eye.src = t; };
+    if (this.eye) this.eye.onOutput = (t) => { this.film.uniforms.tEye.value = t; };
     this.output = new OutputPass();
     this.camera = camera;
     this.hq = true;
@@ -370,7 +471,7 @@ export class Post {
       this.smaa.setSize(w, h);
       c.addPass(this.smaa);
     }
-    if (taa) { this.taa.setSize(w, h); c.addPass(this.taa); }
+    if (taa) { this.taa.setSize(w, h); c.addPass(this.taa); c.addPass(this.eye); this.eye.reset = true; }
     if (this.hq && this.bloom) { this.bloom.setSize(w, h); c.addPass(this.bloom); }
     if (this.bloom) this.bloom.src = null;            // (set by the TAA pass each frame)
     c.addPass(this.film);
@@ -384,17 +485,36 @@ export class Post {
   }
   setHQ(v) { this.hq = v; this._build(); }
   setAA(v) { this.aa = v; this._build(); }
-  setFilm(v) { this.film.uniforms.uFilm.value = v ? 1 : 0; }
+  setFilm(v) {
+    this.film.uniforms.uFilm.value = v ? 1 : 0;
+    if (this.eye) this.eye.material.uniforms.uRange.value = v ? 0.5 : 0.3;
+  }
+  // the eye adaptation, on by default where there is TAA: __y97.post.adapt = false turns it off
+  get adapt() { return this.eye?.enabled ?? false; }
+  set adapt(v) {
+    if (!this.eye || this.eye.enabled === !!v) return;
+    this.eye.enabled = !!v;
+    this.eye.reset = true;
+  }
   setSize(w, h) {
     this.composer.setSize(w, h);
     this.film.uniforms.uRes.value.set(w * this.composer._pixelRatio, h * this.composer._pixelRatio);
   }
   draw(t) {
-    this.film.uniforms.uTime.value = t;
+    const f = this.film.uniforms;
+    f.uTime.value = t;
+    const eye = this.taaOn && this.eye.enabled;
+    f.uEye.value = eye ? 1 : 0;
     if (this.taaOn) {
       this.taa.begin(this.camera);
+      if (eye) {
+        // (a jump of the view starts the history over, and the adaptation at its goal)
+        if (this.taa.reset) this.eye.reset = true;
+        this.eye.material.uniforms.uDt.value = Math.min(0.1, Math.max(0, t - (this._t ?? t)));
+      }
       this.composer.render();
       this.taa.end(this.camera);
     } else this.composer.render();
+    this._t = t;
   }
 }
