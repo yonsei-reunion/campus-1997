@@ -381,10 +381,10 @@ const BAKE_WEATHER = /* glsl */`
   if (wN.y > 0.6) up = smoothstep(0.6, 0.9, wN.y) * smoothstep(0.35, 0.75, bkNoise(P * 1.9) * 0.6 + bkDetail(P * 7.0) * 0.4);
   // and broad uneven weathering, more of it in the corners the rain and the sun do not reach
   float broad = bkNoise(P * vec3(0.3, 0.8, 0.3)) - 0.5;
-  float grime = clamp(up * 0.7 + broad * 0.35 + (1.0 - vBake.r) * 0.3, 0.0, 1.0);
-  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.47, 0.42, 0.35), base * uWeather);
-  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.34, 0.33, 0.32), streak * uWeather);
-  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.6, 0.59, 0.56), grime * uWeather);
+  float grime = clamp(up * 0.6 + broad * 0.18 + (1.0 - vBake.r) * 0.2, 0.0, 1.0);
+  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.58, 0.53, 0.46), base * uWeather);
+  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.44, 0.43, 0.42), streak * uWeather);
+  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.7, 0.69, 0.66), grime * uWeather);
 }
 #endif`;
 // what aomap_fragment does with an AO map, with the baked value: the indirect light only

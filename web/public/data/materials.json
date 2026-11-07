@@ -35,7 +35,7 @@
   "rough": 0.9
  },
  "stone_trim": {
-  "weather": 0.6,
+  "weather": 0.25,
   "tex": "concrete_wall_008",
   "tile": 1.6,
   "tint": [
@@ -47,7 +47,7 @@
   "rough": 0.8
  },
  "stone_granite": {
-  "weather": 0.3,
+  "weather": 0.12,
   "tex": "granite_tile",
   "tile": 2.0,
   "tint": [
@@ -58,7 +58,7 @@
   "rough": 0.6
  },
  "concrete": {
-  "weather": 0.9,
+  "weather": 0.35,
   "tex": "concrete_wall_008",
   "tile": 4.0,
   "tint": [
@@ -70,7 +70,7 @@
   "rough": 0.85
  },
  "concrete_warm": {
-  "weather": 0.9,
+  "weather": 0.35,
   "tex": "concrete_wall_008",
   "tile": 4.0,
   "tint": [
@@ -82,7 +82,7 @@
   "rough": 0.85
  },
  "concrete_dark": {
-  "weather": 0.4,
+  "weather": 0.3,
   "tex": "brushed_concrete",
   "tile": 3.0,
   "tint": [
@@ -93,7 +93,7 @@
   "rough": 0.9
  },
  "plaster_white": {
-  "weather": 1.0,
+  "weather": 0.4,
   "tex": "white_plaster_02",
   "tile": 3.0,
   "tint": [
@@ -104,7 +104,7 @@
   "rough": 0.85
  },
  "plaster_cream": {
-  "weather": 1.0,
+  "weather": 0.4,
   "tex": "white_plaster_02",
   "tile": 3.0,
   "tint": [
@@ -115,7 +115,7 @@
   "rough": 0.85
  },
  "plaster_grey": {
-  "weather": 0.9,
+  "weather": 0.4,
   "tex": "grey_plaster",
   "tile": 3.0,
   "tint": [
@@ -126,7 +126,7 @@
   "rough": 0.9
  },
  "brick_red": {
-  "weather": 0.4,
+  "weather": 0.3,
   "tex": "red_bricks_02",
   "tile": 1.6,
   "tint": [
@@ -137,7 +137,7 @@
   "rough": 0.85
  },
  "tile_facade": {
-  "weather": 0.5,
+  "weather": 0.3,
   "tex": "rectangular_facade_tiles",
   "tile": 1.5,
   "tint": [
@@ -705,7 +705,7 @@
   "rough": 0.9
  },
  "stone_panel": {
-  "weather": 0.7,
+  "weather": 0.3,
   "tex": "concrete_wall_008",
   "tile": 3.0,
   "tint": [
@@ -717,7 +717,7 @@
   "rough": 0.75
  },
  "stone_ashlar": {
-  "weather": 0.5,
+  "weather": 0.2,
   "tex": "concrete_slab_wall",
   "tile": 3.4,
   "tint": [
@@ -798,7 +798,7 @@
   "metal": 0.75
  },
  "granite_light": {
-  "weather": 0.4,
+  "weather": 0.12,
   "tex": "granite_tile",
   "tile": 1.2,
   "tint": [
@@ -810,7 +810,7 @@
   "rough": 0.7
  },
  "stone_white": {
-  "weather": 0.8,
+  "weather": 0.2,
   "tex": "concrete_slab_wall",
   "tile": 2.2,
   "tint": [
@@ -856,7 +856,7 @@
   ]
  },
  "stone_step": {
-  "weather": 0.25,
+  "weather": 0.15,
   "tex": "granite_tile",
   "tile": 1.1,
   "tint": [
@@ -943,7 +943,7 @@
   "metal": 0.55
  },
  "tile_white": {
-  "weather": 0.5,
+  "weather": 0.3,
   "tex": "white_square_tiles",
   "tile": 1.2,
   "tint": [
@@ -954,7 +954,7 @@
   "rough": 0.45
  },
  "stone_panel_white": {
-  "weather": 0.6,
+  "weather": 0.15,
   "tex": "white_stone_panels",
   "tile": 2.6,
   "tint": [
@@ -1066,7 +1066,7 @@
   "rough": 0.85
  },
  "stone_haetae": {
-  "weather": 0.5,
+  "weather": 0.4,
   "tex": "granite_tile",
   "tile": 0.9,
   "tint": [
