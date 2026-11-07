@@ -2,7 +2,7 @@
 import math, random
 from mathutils import Vector, Matrix
 from common import MeshBuilder
-from landmarks import arch_fill
+from landmarks import arch_fill, rod
 
 
 # ----------------------------------------------------------------------------- 쌍등 가로등 (double-globe lamp, 1997 library photo)
@@ -366,4 +366,115 @@ def motorbike():
     mb.box((0.55, 0, 1.08), (0.06, 0.62, 0.04), 'metal_dark')               # handlebar
     mb.box((0.6, 0, 0.98), (0.12, 0.16, 0.1), 'light_white')
     mb.box((-0.62, 0, 0.82), (0.36, 0.34, 0.1), 'metal_dark')               # rack
+    return mb
+
+
+# ----------------------------------------------------------------------------- 2003 사진의 소품 (reference/고증.md 3.18)
+def bollard():
+    """노랑 · 검정 볼라드 (2003_봄_언더우드관_앞길_벚나무.jpg, rows across the road before 언더우드관): a steel post about
+    0.85 m high and 13 cm across in yellow and black bands, a black domed cap."""
+    mb = MeshBuilder('bollard')
+    r = 0.065
+    z = -0.1
+    for z1, m in ((0.24, 'paint_yellow'), (0.34, 'paint_black'), (0.58, 'paint_yellow'), (0.68, 'paint_black'),
+                  (0.8, 'paint_yellow'), (0.85, 'paint_black')):
+        mb.cylinder((0, 0), r, z, z1, m, seg=12, cap_top=False)
+        z = z1
+    mb.sphere((0, 0, 0.85), r, 'paint_black', seg=12, rings=6, sz=0.55)
+    return mb
+
+
+def tent_kiosk():
+    """녹색 천막 매점 (2003_가을_연희관_정면.jpg, 2003_봄_언더우드관_앞길_벚나무.jpg): a green canvas tent on slim steel
+    poles, 3.2 m by 2.4 m, its gable roof with a short valance; under it a counter at the open front (-Y) with drinks
+    crates and boxes on it and stacked crates behind."""
+    mb = MeshBuilder('tent_kiosk')
+    W, D, he, hr = 3.2, 2.4, 2.15, 2.75
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            mb.cylinder((sx * W / 2, sy * D / 2), 0.025, 0.0, he, 'metal', seg=6, cap_top=False)
+        mb.cylinder((sx * W / 2, 0), 0.025, 0.0, hr, 'metal', seg=6, cap_top=False)
+    for sy in (-1, 1):                                       # the roof slopes and their valances (double-sided cloth)
+        mb.face([(-W / 2 - 0.08, sy * (D / 2 + 0.08), he - 0.04), (W / 2 + 0.08, sy * (D / 2 + 0.08), he - 0.04),
+                 (W / 2 + 0.08, 0, hr), (-W / 2 - 0.08, 0, hr)][::(1 if sy < 0 else -1)], 'canvas_green')
+        mb.face([(-W / 2 - 0.08, sy * (D / 2 + 0.08), he - 0.3), (W / 2 + 0.08, sy * (D / 2 + 0.08), he - 0.3),
+                 (W / 2 + 0.08, sy * (D / 2 + 0.08), he - 0.04), (-W / 2 - 0.08, sy * (D / 2 + 0.08), he - 0.04)][::(1 if sy < 0 else -1)],
+                'canvas_green')
+    for sx in (-1, 1):                                       # the gable ends
+        mb.face([(sx * (W / 2 + 0.08), -D / 2 - 0.08, he - 0.04), (sx * (W / 2 + 0.08), D / 2 + 0.08, he - 0.04),
+                 (sx * (W / 2 + 0.08), 0, hr)][::sx], 'canvas_green')
+    mb.box((0, -D / 2 + 0.45, 0.42), (W - 0.4, 0.6, 0.84), 'wood_dark')               # the counter
+    mb.box((0, -D / 2 + 0.45, 0.86), (W - 0.3, 0.7, 0.04), 'paint_white')
+    for k, (x, m) in enumerate(((-1.0, 'banner_yellow'), (-0.45, 'paint_blue'), (0.3, 'banner_red'), (0.95, 'plastic_grey'))):
+        mb.box((x, -D / 2 + 0.45, 0.88 + 0.13), (0.42, 0.32, 0.26), m)
+    for k, x in enumerate((-1.0, -0.5, 0.6, 1.05)):                                    # crates stacked at the back
+        for j in range(2 if k % 2 else 3):
+            mb.box((x, D / 2 - 0.35, 0.14 + j * 0.29), (0.45, 0.34, 0.27), ('banner_yellow', 'paint_blue', 'banner_red')[(k + j) % 3])
+    return mb
+
+
+def notice_board():
+    """게시판 (2003_봄_언더우드관_앞길_벚나무.jpg, by 언더우드관's west wing): a board pasted with posters and 대자보 on two
+    wooden posts, braced behind like an easel, under a little green roof; the posters face -Y."""
+    mb = MeshBuilder('notice_board')
+    W, z0, z1 = 2.0, 0.75, 2.05
+    for sx in (-1, 1):
+        mb.box((sx * (W / 2 + 0.05), 0, 1.2), (0.09, 0.09, 2.4), 'wood_dark')
+        # the easel brace, leaning from the post back to the ground
+        rod(mb, (sx * (W / 2 + 0.05), 0.04, 1.9), (sx * (W / 2 + 0.05), 0.95, 0.0), 0.035, 'wood_dark', seg=4)
+    mb.box((0, 0.03, (z0 + z1) / 2), (W, 0.05, z1 - z0), 'wood_dark')
+    mb.face([(-W / 2 + 0.04, -0.0, z0 + 0.04), (W / 2 - 0.04, -0.0, z0 + 0.04), (W / 2 - 0.04, -0.0, z1 - 0.04),
+             (-W / 2 + 0.04, -0.0, z1 - 0.04)], 'notice_posters', uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
+    for sy in (-1, 1):                                      # the little roof
+        mb.face([(-W / 2 - 0.2, sy * 0.42, 2.38), (W / 2 + 0.2, sy * 0.42, 2.38), (W / 2 + 0.2, 0, 2.58),
+                 (-W / 2 - 0.2, 0, 2.58)][::(1 if sy < 0 else -1)], 'canvas_green')
+    return mb
+
+
+def _ellipsoid(mb, c, rx, ry, rz, mat, rnd, seg=12, rings=8, noise=0.06, tag=None):
+    tag = tag or 'ell%d' % len(mb.faces)
+    P = []
+    for j in range(rings + 1):
+        th = math.pi * j / rings
+        row = []
+        for i in range(seg):
+            ph = 2 * math.pi * i / seg
+            n = 1 + noise * math.sin(ph * 3 + j * 1.7 + rnd.uniform(0, 0.6)) * math.sin(th * 4)
+            row.append((c[0] + rx * n * math.sin(th) * math.cos(ph), c[1] + ry * n * math.sin(th) * math.sin(ph), c[2] + rz * n * math.cos(th)))
+        P.append(row)
+    for j in range(rings):
+        for i in range(seg):
+            k = (i + 1) % seg
+            mb.face([P[j][i], P[j + 1][i], P[j + 1][k], P[j][k]], mat, smooth=tag)
+
+
+def haetae():
+    """돌 해태상 (2003_봄_백양로끝_핀슨관길_벚나무.jpg: a pair at the edge of the drive up to 핀슨관): a weathered granite
+    해태 about a metre high sitting up on its haunches, forelegs straight, a big curly-maned head with a single knob of a
+    horn, on a plain granite plinth 0.5 m high and 1.8 m long; it looks along -Y."""
+    rnd = random.Random(1997)
+    mb = MeshBuilder('haetae')
+    mb.box((0, 0.05, 0.25), (0.95, 1.8, 0.62), 'stone_haetae', skip=('bottom',))
+    mb.box((0, 0.05, 0.53), (1.02, 1.86, 0.06), 'stone_haetae', skip=('bottom',))
+    z = 0.56
+    m = 'stone_haetae'
+    E = lambda c, rx, ry, rz, **kw: _ellipsoid(mb, (c[0], c[1], c[2] + z), rx, ry, rz, m, rnd, **kw)
+    E((0, 0.36, 0.3), 0.34, 0.46, 0.3)                     # haunches
+    E((0, 0.02, 0.46), 0.3, 0.42, 0.32)                    # the back, low, running forward
+    E((0, -0.3, 0.6), 0.29, 0.27, 0.38)                    # chest, sitting up
+    E((0, -0.5, 0.94), 0.27, 0.27, 0.25)                   # head
+    E((0, -0.74, 0.87), 0.17, 0.14, 0.13)                  # muzzle
+    E((0, -0.8, 0.8), 0.13, 0.08, 0.06, noise=0.02)        # jaw, the mouth line under it
+    for sx in (-1, 1):
+        E((sx * 0.2, -0.47, 1.02), 0.13, 0.17, 0.18)       # curls of the mane round the face
+        E((sx * 0.23, -0.34, 0.82), 0.11, 0.15, 0.15)
+        E((sx * 0.1, -0.72, 0.98), 0.065, 0.06, 0.06, noise=0.0)  # eyes bulging over the muzzle
+        E((sx * 0.16, -0.5, 0.22), 0.1, 0.1, 0.26)         # forelegs
+        E((sx * 0.16, -0.62, 0.04), 0.1, 0.15, 0.06)       # front paws
+        E((sx * 0.29, 0.1, 0.07), 0.12, 0.2, 0.08)         # hind paws
+        E((sx * 0.3, 0.38, 0.3), 0.08, 0.34, 0.24)         # flanks of the haunches
+    E((0, -0.44, 1.17), 0.19, 0.16, 0.09)                  # mane over the crown
+    E((0, -0.52, 1.26), 0.05, 0.05, 0.08, noise=0.0)       # the horn
+    E((0, 0.8, 0.52), 0.1, 0.09, 0.22)                     # tail curled up the back
+    E((0, 0.72, 0.74), 0.12, 0.1, 0.08)
     return mb

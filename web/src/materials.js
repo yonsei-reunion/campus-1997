@@ -68,7 +68,7 @@ for (const s of Object.values(SEASONS)) s.label = `1997년 ${s.short}`;
 const LEAF_VARIANTS = {
   ginkgo: ['spring', 'autumn'], zelkova: ['spring', 'autumn'], cherry: ['spring', 'autumn'],
   maple: ['spring', 'autumn'], oak: ['spring', 'autumn'], pine: [], ivy: ['spring', 'autumn'], boxwood: [],
-  azalea: ['summer'], azalea_red: [],
+  azalea: ['summer'], azalea_red: [], magnolia: ['spring', 'autumn'], poplar: ['spring', 'autumn'], pansy: [],
 };
 
 export function leafUrl(species, season, young = false) {

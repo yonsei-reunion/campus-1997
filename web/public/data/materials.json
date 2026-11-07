@@ -1010,5 +1010,71 @@
   "rough": 0.8,
   "opacity": 0.6,
   "side": "double"
+ },
+ "bark_poplar": {
+  "tex": "bark_poplar",
+  "tile": 1.2,
+  "tint": [
+   1.0,
+   1.0,
+   0.98
+  ],
+  "rough": 0.9
+ },
+ "bark_smooth": {
+  "tex": "bark_smooth",
+  "tile": 1.2,
+  "tint": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "rough": 0.85
+ },
+ "leaf_magnolia": {
+  "leaf": "magnolia"
+ },
+ "leaf_poplar": {
+  "leaf": "poplar"
+ },
+ "leaf_pansy": {
+  "leaf": "pansy"
+ },
+ "hedge_pansy": {
+  "leaf": "pansy",
+  "opaque": true
+ },
+ "canvas_green": {
+  "color": [
+   0.06,
+   0.24,
+   0.17
+  ],
+  "rough": 0.9,
+  "side": "double"
+ },
+ "paint_black": {
+  "color": [
+   0.03,
+   0.03,
+   0.03
+  ],
+  "rough": 0.6
+ },
+ "notice_posters": {
+  "image": "notice_posters.png",
+  "rough": 0.85
+ },
+ "stone_haetae": {
+  "weather": 0.5,
+  "tex": "granite_tile",
+  "tile": 0.9,
+  "tint": [
+   1.62,
+   1.6,
+   1.54
+  ],
+  "sat": 0.3,
+  "rough": 0.85
  }
 }

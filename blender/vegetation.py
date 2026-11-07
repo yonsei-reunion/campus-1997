@@ -24,6 +24,14 @@ SPECIES = {
     # a slim cone of soft light-green sprays from low down, a straight trunk to the tip
     'metasequoia':   dict(h=13.5, th=1.2, cz=7.0, rx=2.3, rz=6.4, n=300, card=1.05, groups=14, exc=True, bark='bark',
                           taper=0.92, leaf='leaf_metasequoia'),
+    # 목련 (2003_봄_교육관에서_본_연희관앞정원과_성암관.jpg, 2024_봄_언더우드관_목련.jpg): a rounded crown on a short smooth
+    # grey trunk that forks low into a few rising limbs; ivory flowers on the bare wood in April (leaf_magnolia_spring)
+    'magnolia': dict(h=8.0, th=1.4, cz=5.1, rx=3.4, rz=2.9, n=160, card=1.55, groups=6, exc=False, bark='bark_smooth',
+                     taper=0.1, lift=0.95),
+    # 은백양 (2003_봄_언더우드관정원_남쪽계단_벚나무.jpg): a tall chalk-white trunk forking at 4-5 m into a few big limbs
+    # that climb steeply into an upright crown; bare in mid-April (leaf_poplar_spring: twigs and buds)
+    'poplar': dict(h=17.0, th=4.4, cz=11.6, rx=4.4, rz=5.4, n=200, card=2.1, groups=5, exc=False, bark='bark_poplar',
+                   taper=0.2, lift=1.35),
 }
 
 
@@ -143,7 +151,7 @@ def make_tree(species, seed=0, leaf_mat=None):
         else:
             anchor_z = top - rnd.uniform(0.1, 0.8)
         base, tr = trunk_at(anchor_z)
-        lift = 0.6 if species != 'pine' else 0.15
+        lift = sp.get('lift', 0.6 if species != 'pine' else 0.15)
         if young:
             lift = 1.0 + sp['spread']           # branches reach up rather than out (a vase, not a dome)
         if species == 'metasequoia':
@@ -294,6 +302,11 @@ def make_shrub(kind, seed=0):
         # one 1.6 m segment of the low clipped hedge along 백양로's planting strip (local x = along the hedge)
         blob(mb, (0, 0, 0.28), 0.92, 0.4, 0.3, 'hedge_boxwood', rnd, noise=0.04)
         fluff(mb, (0, 0, 0.28), 0.9, 0.38, 0.28, 'leaf_boxwood', rnd, n=14, size=0.26)
+    elif kind == 'pansy_bed':
+        # one 1.6 m length of the flower border along the top of the banks by the steps up to 언더우드관 정원 (the
+        # 2003 spring photo: yellow pansies), a low mound of leaves and flowers (local x = along the border)
+        blob(mb, (0, 0, 0.02), 0.98, 0.38, 0.13, 'hedge_pansy', rnd, noise=0.06)
+        fluff(mb, (0, 0, 0.03), 0.92, 0.34, 0.11, 'leaf_pansy', rnd, n=18, size=0.3)
     elif kind == 'azalea_red':
         # 철쭉 in full bloom (red), as in the 정문 flower bed of the May 1997 photo
         blob(mb, (0, 0, 0.4), 0.8, 0.8, 0.42, 'hedge_azalea', rnd, noise=0.14)

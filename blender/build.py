@@ -57,7 +57,8 @@ if want('landmarks'):
             ob['name_ko'] = b['name']
             ob['bid'] = str(b['id'])
             objs.append(ob)
-    for mb in landmarks.amphitheater() + landmarks.basketball_court() + landmarks.fountain() + landmarks.tennis():
+    for mb in landmarks.amphitheater() + landmarks.basketball_court() + landmarks.fountain() + landmarks.tennis() + \
+            landmarks.underwood_steps():
         objs.append(mb.build())
     # statues and the gate are modelled in their own frame (front = -Y) and placed by object transform
     # (a MeshBuilder's xf only affects vertices added after it is set)
@@ -105,7 +106,7 @@ if want('veg'):
             vegetation.apply_canopy_normals(ob, mb.leaf_center, mb.leaf_radii)
             stats[f'{sp}_{v}'] = tri_count([ob])
             export_glb([ob], os.path.join(OUT, 'veg', f'{sp}_{v}.glb'), colors=True)
-    for k in ('topiary_round', 'topiary_cone', 'hedge_blob', 'bush', 'hedge_low', 'azalea_red'):
+    for k in ('topiary_round', 'topiary_cone', 'hedge_blob', 'bush', 'hedge_low', 'azalea_red', 'pansy_bed'):
         reset_scene()
         ob = vegetation.make_shrub(k).build()
         stats[k] = tri_count([ob])
@@ -115,7 +116,8 @@ if want('props'):
     for name, fn in (('lamp_double', props.lamp_double), ('motorbike', props.motorbike), ('lamp_arm', props.lamp_arm),
                      ('flag_white', props.flag_white), ('planter', props.planter), ('stone_marker', props.stone_marker),
                      ('sign_board', props.sign_board), ('guard_booth', props.guard_booth),
-                     ('barrier_arm', props.barrier_arm)):
+                     ('barrier_arm', props.barrier_arm), ('bollard', props.bollard), ('tent_kiosk', props.tent_kiosk),
+                     ('notice_board', props.notice_board), ('haetae', props.haetae)):
         reset_scene()
         ob = fn().build()
         stats[name] = tri_count([ob])

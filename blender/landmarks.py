@@ -2936,12 +2936,13 @@ def yeonhui():
     return out + [mb, iv] + yeonhui_garden(yh)
 
 
-def garden_flight(f, wall='stone_rubble', mat='stone_step'):
+def garden_flight(f, wall='stone_rubble', mat='stone_step', apron=True):
     """An outdoor flight between two levels of the ground, laid out by tools/build_campus.py (flight_at): from the
     middle of its upper edge f['top'] it goes down along f['down'] -- a short landing, then f['n'] risers of granite
     treads on a solid core -- to the ground at its foot.  f['cheek'] > 0: side walls of the wall's stone with a pale
     coping that follow the flight, square capped posts at both ends; f['rails']: steel handrails on posts along both
-    sides (on the side walls when there are any)."""
+    sides (on the side walls when there are any).  f['head']: how far the side walls run on past the top (1.2 m);
+    apron=False: no paved apron round the head (a flight that rises onto a built landing)."""
     mb = MeshBuilder('lm_flight_' + f['name'])
     d = Vector(f['down']).normalized()
     mb.xf = local_frame(f['top'][0], f['top'][1], math.atan2(d.x, -d.y), 0.0)
@@ -2966,7 +2967,7 @@ def garden_flight(f, wall='stone_rubble', mat='stone_step'):
     xs = [-hx + 2 * hx * i / K for i in range(K + 1)]
     ys = [-lnd - 0.2 + (1.2 + L + lnd + 0.2) * j / 6 for j in range(7)]
     W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
-    for i in range(K):
+    for i in range(K if apron else 0):
         for j in range(6):
             (xa, xb), (ya, yb) = (xs[i], xs[i + 1]), (ys[j], ys[j + 1])
             if abs((xa + xb) / 2) < hw + ct and (ya + yb) / 2 < 1.2:
@@ -2978,12 +2979,13 @@ def garden_flight(f, wall='stone_rubble', mat='stone_step'):
             WALK_FACES.append([W_(*p) for p in q])
     if ct:
         hc = 0.55 if not f.get('rails') else 0.18          # (a kerb under handrails, a low wall otherwise)
+        head = f.get('head', 1.2)
         for sg in (-1, 1):
             x0, x1 = sorted((sg * hw, sg * (hw + ct)))
-            sloped_wall(mb, x0, x1, [(1.2, zt + hc), (-lnd, zt + hc), (y_foot + 0.05, zf + rise + hc - 0.05),
+            sloped_wall(mb, x0, x1, [(head, zt + hc), (-lnd, zt + hc), (y_foot + 0.05, zf + rise + hc - 0.05),
                                      (y_foot - 0.25, zf + hc - 0.05)], gnd, wall)
             if not f.get('rails'):
-                pedestal(mb, sg * (hw + ct / 2), 1.0, zt + hc + 0.3, gnd, wall, w=ct + 0.2)
+                pedestal(mb, sg * (hw + ct / 2), head - 0.2, zt + hc + 0.3, gnd, wall, w=ct + 0.2)
                 pedestal(mb, sg * (hw + ct / 2), y_foot - 0.1, zf + hc + 0.25, gnd, wall, w=ct + 0.2)
     if f.get('rails'):
         xr = hw + (ct / 2 if ct else -0.12)
@@ -3025,6 +3027,100 @@ def yeonhui_garden(yh):
             mb.quad((*rin[k], z1), (*rin[k + 1], z1), (*rin[k + 1], z1 - 0.12), (*rin[k], z1 - 0.12), 'concrete')
         mb.face([(x, y, z1 - 0.12) for x, y in rin[:-1]], 'soil')
         out.append(mb)
+    return out
+
+
+def uw_slab(mb, corners, gnd, top, side, walk=False):
+    """A solid block standing on the ground: corners [(x, y, z) x 4] of its top, anticlockwise seen from above, straight
+    sides down to gnd.  walk: its top is walked on (and the shrubs planted on it stand on it)."""
+    corners = list(corners)
+    oface(mb, corners, top, (0, 0, 1))
+    for a, b in zip(corners, corners[1:] + corners[:1]):
+        oface(mb, [(a[0], a[1], gnd), (b[0], b[1], gnd), (b[0], b[1], b[2]), (a[0], a[1], a[2])], side, (b[1] - a[1], a[0] - b[0], 0))
+    if walk:
+        WALK_FACES.append([tuple(mb.xf @ Vector(c)) for c in corners])
+
+
+def uw_wall(mb, p0, p1, ztop, gnd, gl, t=0.4, wall='stone_rubble', cap='stone_trim', clear=0.2, n=8):
+    """A straight rubble wall t thick from p0 to p1 (x, y), coped with pale stone, its top at ztop(f) (f = 0 .. 1 along
+    it) but never less than `clear` over the ground beside it (the 5 m terrain grid can stand a bank above the line
+    the wall was drawn to)."""
+    p0, p1 = Vector((*p0, 0)), Vector((*p1, 0))
+    d = (p1 - p0).normalized()
+    o = Vector((-d.y, d.x, 0)) * (t / 2)
+    zs = []
+    for k in range(n + 1):
+        f = k / n
+        q = p0.lerp(p1, f)
+        zs.append(max(ztop(f), max(gl(*(q + o * 1.6).xy), gl(*(q - o * 1.6).xy), gl(*q.xy)) + clear))
+    for k in range(n):
+        a, b = p0.lerp(p1, k / n), p0.lerp(p1, (k + 1) / n)
+        za, zb = zs[k], zs[k + 1]
+        body = [(*(a - o).xy, za - 0.14), (*(b - o).xy, zb - 0.14), (*(b + o).xy, zb - 0.14), (*(a + o).xy, za - 0.14)]
+        if (b - a).cross(o).z < 0:
+            body = body[::-1]
+        uw_slab(mb, body, gnd, wall, wall)
+        o2 = o * (1 + 0.1 / t)
+        capq = [(*(a - o2).xy, za), (*(b - o2).xy, zb), (*(b + o2).xy, zb), (*(a + o2).xy, za)]
+        if (b - a).cross(o).z < 0:
+            capq = capq[::-1]
+        uw_slab(mb, capq, min(za, zb) - 0.16, cap, cap)
+
+
+def underwood_steps():
+    """언더우드관 정원 남쪽 계단 (tools/build_campus.py UW_STEPS; reference/2003_봄_언더우드관정원_남쪽계단_벚나무.jpg): from
+    the 삼거리 two flights of granite steps rise either side of a sloping lawn bed with a stone tablet to a landing, and
+    a broad flight goes on up the axis to the terrace with the statue.  Rubble side walls with sloping pale copings and
+    square posts, raised lawn beds behind the landing either side of the upper flight (clipped shrubs and pansies:
+    the shrubs list), the grass banks beyond them in the terrain.  Laid out in the garden's frame (x across, y up the
+    axis towards 언더우드관)."""
+    U = CAMPUS.get('underwood_steps')
+    if not U:
+        return []
+    out = []
+    for f in U['flights']:
+        low = f['name'] != 'uw_up'
+        out.append(garden_flight(dict(f, head=0.35) if low else f, apron=not low))
+    F = U['frame']
+    mb = MeshBuilder('lm_uw_steps')
+    mb.xf = local_frame(F['o'][0], F['o'][1], math.atan2(F['u'][1], F['u'][0]), 0.0)
+    gl = local_ground(mb)
+    h0, hl, ht = U['h0'], U['hl'], U['ht']
+    gnd = h0 - 1.6
+    v0, v1 = U['land']                                   # the landing, between the heads of the three flights
+    lu = U['low']['u'] + U['low']['w'] / 2               # (7.7: the lower flights' outer edge)
+    cu = U['up']['w'] / 2 + U['cheek']                   # (3.9: the upper flight's walls' outer face)
+    uw_slab(mb, [(-lu, v0, hl), (lu, v0, hl), (lu, v1, hl), (-lu, v1, hl)], gnd, 'stone_step', 'stone_rubble', walk=True)
+    vt = U['v_top']
+    for sg in (-1, 1):
+        # the raised lawn beds behind the landing, sloping up to the terrace, a coped wall along their front
+        a, b = sorted((sg * cu, sg * lu))
+        top = [(a, v1, hl + 0.55), (b, v1, hl + 0.55), (b, vt, ht - 0.04), (a, vt, ht - 0.04)]
+        uw_slab(mb, top, gnd, 'grass', 'stone_rubble', walk=True)
+        uw_wall(mb, (a, v1 - 0.15), (b, v1 - 0.15), lambda f: hl + 0.72, gnd, gl, t=0.32, clear=-9)
+        # the outer walls: along the landing, then up beside the bed to the terrace (the banks beyond)
+        uw_wall(mb, (sg * (lu + 0.2), v0 + 1.0), (sg * (lu + 0.2), vt + 0.2),
+                lambda f: hl + 0.55 + max(0.0, (f - 0.45) / 0.55) * (ht - hl - 0.25), gnd, gl)
+        pedestal(mb, sg * (lu + 0.2), vt + 0.35, ht + 0.6, gnd, 'stone_rubble', w=0.6)
+    # the bed between the lower flights: lawn sloping up from a low coped wall at the road to the landing, the tablet
+    b0, b1 = U['bed']
+    bu = U['low']['u'] - U['low']['w'] / 2 - U['cheek']  # (3.1: inside the lower flights' walls)
+    uw_slab(mb, [(-bu, b0 + 0.3, h0 + 0.42), (bu, b0 + 0.3, h0 + 0.42), (bu, b1, hl + 0.02), (-bu, b1, hl + 0.02)],
+            gnd, 'grass', 'stone_rubble', walk=True)
+    uw_wall(mb, (-bu, b0 + 0.15), (bu, b0 + 0.15), lambda f: h0 + 0.55, gnd, gl, t=0.3, clear=-9)
+    sl = math.atan2(hl - h0 - 0.4, b1 - b0 - 0.3)        # the tablet lies on the slope, tipped up a little more
+    tilt = sl + math.radians(14)
+    cy, cz = b0 + 1.15, h0 + 0.42 + (hl + 0.02 - h0 - 0.42) * (0.85 / (b1 - b0 - 0.3)) + 0.12
+    hw_, hh_, th_ = 0.75, 0.48, 0.12
+    ey, ez = Vector((0, math.cos(tilt), math.sin(tilt))), Vector((0, -math.sin(tilt), math.cos(tilt)))
+    C = Vector((0, cy, cz))
+    corner = lambda sx, sy, sz: tuple(C + Vector((sx * hw_, 0, 0)) + ey * (sy * hh_) + ez * (sz * th_))
+    for sz, n_ in ((1, (0, 0, 1)), (-1, (0, 0, -1))):
+        oface(mb, [corner(-1, -1, sz), corner(1, -1, sz), corner(1, 1, sz), corner(-1, 1, sz)], 'stone_marker', tuple(ez * sz))
+    for (a_, b_) in (((-1, -1), (1, -1)), ((1, -1), (1, 1)), ((1, 1), (-1, 1)), ((-1, 1), (-1, -1))):
+        q = [corner(a_[0], a_[1], -1), corner(b_[0], b_[1], -1), corner(b_[0], b_[1], 1), corner(a_[0], a_[1], 1)]
+        oface(mb, q, 'stone_marker', tuple(Vector((a_[0] + b_[0], 0, 0)) + ey * (a_[1] + b_[1])))
+    out.append(mb)
     return out
 
 
