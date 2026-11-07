@@ -188,23 +188,24 @@ def cluster_cell(kind, palette, rnd, flowers=None):
                     d.line([(px, py), (px + math.cos(a) * L, py + math.sin(a) * L * 0.8)], fill=c + (255,), width=int(S * 0.004) + 1)
         return finish(img)
     shapes = {'ginkgo': shape_ginkgo, 'zelkova': lambda r: shape_ovate(r, 0.08, 0.36), 'cherry': lambda r: shape_ovate(r, 0.05, 0.4),
-              'maple': shape_maple, 'oak': shape_oak, 'ivy': shape_ivy, 'boxwood': lambda r: shape_ovate(r, 0.0, 0.55, 0.9),
+              'maple': shape_maple, 'oak': shape_oak, 'ivy': shape_ivy, 'ivy_young': shape_ivy, 'boxwood': lambda r: shape_ovate(r, 0.0, 0.55, 0.9),
               'azalea': lambda r: shape_ovate(r, 0.0, 0.33), 'magnolia': shape_obovate, 'poplar': shape_poplar,
               'pansy': lambda r: shape_ovate(r, 0.0, 0.5, 0.8)}
     size_rng = {'ginkgo': (0.055, 0.075), 'zelkova': (0.05, 0.075), 'cherry': (0.06, 0.085), 'maple': (0.06, 0.085),
                 'oak': (0.07, 0.095), 'ivy': (0.06, 0.09), 'boxwood': (0.022, 0.03), 'azalea': (0.04, 0.055),
-                'magnolia': (0.085, 0.115), 'poplar': (0.06, 0.085), 'pansy': (0.03, 0.042)}[kind]
-    n = {'boxwood': 1500, 'azalea': 420, 'ivy': 330, 'magnolia': 150, 'pansy': 900}.get(kind, 230)
+                'magnolia': (0.085, 0.115), 'poplar': (0.06, 0.085), 'pansy': (0.03, 0.042), 'ivy_young': (0.05, 0.078)}[kind]
+    n = {'boxwood': 1500, 'azalea': 420, 'ivy': 330, 'magnolia': 150, 'pansy': 900, 'ivy_young': 230}.get(kind, 230)
     for k in range(n):
         # leaves concentrate in an ellipse (cluster), denser in the middle; ivy: a flatter mat filling the card
-        r = (rnd.random() ** (0.45 if kind == 'ivy' else 0.6)) * (0.47 if kind == 'ivy' else 0.45)
+        mat = kind in ('ivy', 'ivy_young')
+        r = (rnd.random() ** (0.45 if mat else 0.6)) * (0.47 if mat else 0.45)
         a = rnd.uniform(0, 2 * math.pi)
         x = cx + math.cos(a) * r * S
         y = cy + math.sin(a) * r * S * 0.9
         if kind in ('boxwood', 'pansy'):
             x = rnd.uniform(0.02, 0.98) * S
             y = rnd.uniform(0.02, 0.98) * S
-        elif kind == 'ivy':           # a square mat of leaves: overlapping cards close up into a continuous cover
+        elif mat:                     # a square mat of leaves: overlapping cards close up into a continuous cover
             x = rnd.uniform(0.07, 0.93) * S
             y = rnd.uniform(0.07, 0.93) * S
         ang = math.atan2(y - cy, x - cx) + math.pi / 2 + rnd.uniform(-0.8, 0.8)
@@ -367,10 +368,12 @@ atlas('poplar', 'poplar', [(58, 92, 40), (68, 104, 44), (50, 82, 36), (62, 98, 4
 atlas('poplar_spring', 'twigs', [(120, 104, 70), (140, 128, 84), (110, 118, 70)])
 atlas('poplar_autumn', 'poplar', [(222, 190, 70), (204, 170, 60), (186, 152, 58), (196, 172, 72), (170, 150, 70)])
 # 담쟁이 (Boston ivy) on the stone halls: fresh glossy green in late May (underwood_2023.jpg), crimson / orange /
-# wine in late October with a few leaves still green-yellow, bare vines with the first leaves in mid-April
+# wine in late October with a few leaves still green-yellow; in mid-April already green, a little sparser (below)
 atlas('ivy', 'ivy', [(54, 98, 30), (70, 116, 36), (44, 82, 26), (86, 130, 42)])
 atlas('ivy_autumn', 'ivy', [(165, 34, 30), (190, 58, 32), (128, 28, 40), (205, 96, 38), (150, 100, 40), (110, 30, 45)])
-atlas('ivy_spring', 'ivy_bare', [(150, 72, 48), (170, 96, 52), (128, 150, 58), (112, 136, 50)])
+# April: already in leaf, the young leaves a lighter yellow-green, a little smaller and a little sparser than May's,
+# the vines showing between them (the bare-vine cell, ivy_bare_cell, is no longer used)
+atlas('ivy_spring', 'ivy_young', [(84, 132, 42), (100, 146, 50), (72, 118, 36), (112, 152, 56)])
 atlas('boxwood', 'boxwood', [(45, 82, 32), (55, 95, 36), (38, 70, 28)])
 atlas('azalea', 'azalea', [(55, 90, 35), (65, 100, 40)], flowers=((225, 60, 150), 380, (0.045, 0.06)))
 atlas('azalea_summer', 'azalea', [(55, 90, 35), (65, 100, 40)])
