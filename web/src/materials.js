@@ -901,8 +901,9 @@ export function setupAtmosphere(sunDir) {
 // sun and the glow round it stay put, a cloud carried far from the sun would keep the bright rim the sun gave it, one
 // from the horizon would come overhead stretched), so its cloud layer swings to and fro along the wind: SKY_SWING
 // either way (layer height 1: ~14 deg overhead), at an even ~4.7 deg a minute overhead but for a minute at each turn
-// (the shadows' clouds at 1.5 km cross 12 deg a minute there). From the start it goes the way the cloud shadows go
-// for 5 minutes, then back for 7, with them again for 7, and so on.
+// (the shadows' clouds at 1.5 km cross 12 deg a minute there): 5 minutes downwind from the start, then back for 7,
+// downwind again for 7, and so on. The cloud shadows on the ground keep step with it (their tiles can run back): the
+// same way at its rate, ~1.17 times CLOUD_WIND for most of a sweep, so that on average they go as fast as the wind.
 export const SKY_DRIFT = { value: new THREE.Vector2() };   // how far the photo's clouds moved: three's XZ, height 1
 const SKY_SWING = 0.25, SKY_PERIOD = 840;                  // s
 let skyT = SKY_PERIOD * 7 / 8;                             // upwind of the photo, moving downwind at full speed
@@ -911,13 +912,16 @@ let skyT = SKY_PERIOD * 7 / 8;                             // upwind of the phot
 export function updateAtmosphere(dt) {
   skyT = (skyT + dt) % SKY_PERIOD;
   // a triangle wave with rounded turns
-  const swing = Math.asin(0.96 * Math.sin(skyT * 2 * Math.PI / SKY_PERIOD)) / Math.asin(0.96);
+  const ph = skyT * 2 * Math.PI / SKY_PERIOD, sn = Math.sin(ph), A96 = Math.asin(0.96);
+  const swing = Math.asin(0.96 * sn) / A96;
   SKY_DRIFT.value.copy(CLOUD_WIND).normalize().multiplyScalar(SKY_SWING * swing);
+  // the shadows' time: dt times the swing's rate over its mean rate (4 / SKY_PERIOD: there and back, 2 each way)
+  const sdt = dt * (0.96 * Math.cos(ph) / Math.sqrt(1 - 0.9216 * sn * sn) / A96) * Math.PI / 2;
   const o = ATMOS.uCloudOff.value;
   // the large tile is read rotated (the mat2 in y97Cloud): its drift in its own axes
   const bx = 0.8 * CLOUD_WIND_B.x - 0.6 * CLOUD_WIND_B.y, by = 0.6 * CLOUD_WIND_B.x + 0.8 * CLOUD_WIND_B.y;
-  o.x -= CLOUD_WIND.x * dt / CLOUD_TILE; o.y -= CLOUD_WIND.y * dt / CLOUD_TILE;
-  o.z -= bx * dt / CLOUD_TILE_B; o.w -= by * dt / CLOUD_TILE_B;
+  o.x -= CLOUD_WIND.x * sdt / CLOUD_TILE; o.y -= CLOUD_WIND.y * sdt / CLOUD_TILE;
+  o.z -= bx * sdt / CLOUD_TILE_B; o.w -= by * sdt / CLOUD_TILE_B;
   o.set(o.x - Math.floor(o.x), o.y - Math.floor(o.y), o.z - Math.floor(o.z), o.w - Math.floor(o.w));
 }
 
