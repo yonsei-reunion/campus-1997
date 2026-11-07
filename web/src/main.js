@@ -9,6 +9,7 @@ import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materia
 import { Heightfield, makeNearTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky } from './terrain.js';
 import { loadGLB, bindMaterials, mergeStatic, InstancedKit, Forest } from './world.js';
 import { Grass } from './grass.js';
+import { Fall } from './fall.js';
 import { Player, Colliders } from './player.js';
 import { UI } from './ui.js';
 import { Post } from './post.js';
@@ -137,6 +138,7 @@ async function main() {
   sunMap.patch(terrain.material, 0);
   scene.add(terrain);
   const grass = new Grass(renderer, scene, lib, hfNear, campus, sun);     // blades on the lawn round the camera
+  const fall = new Fall(renderer, scene, lib, hfNear, campus, sunMap);   // petals / leaves coming down round it
   scene.add(makeFarTerrain(hfFar, T.near.half));
   scene.add(makeCity(hfFar, T.near.half));
   scene.add(makeFarForest(hfFar, T.near.half));
@@ -393,6 +395,7 @@ async function main() {
     crowd.season = v;
     safeSet('y97-season', v);
     lib.setSeason(v);
+    fall.setSeason(v);
     banners.userData.setSeason(v);
     seasonButtons(v);
     $('#datestamp').textContent = SEASONS[v].date;
@@ -627,6 +630,7 @@ async function main() {
     updateAtmosphere(dt);
     forest.update(focus);
     grass.update(camera.position, tAcc);
+    fall.update(camera);
     crowd.update(dt, tAcc, started ? player : NOBODY, focus);
     crowd.bubbles.update(tAcc, started && !bird.active);
     traffic.update(dt, started ? player : NOBODY, focus);

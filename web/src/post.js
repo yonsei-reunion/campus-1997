@@ -252,6 +252,9 @@ const TaaFS = /* glsl */`
     if (k > 1.0) h = m1 + e / k;
     // a moving view resamples the history every frame (each time a little softer): a larger share of the new frame
     float a = mix(uBlend.x, uBlend.y, smoothstep(0.5, 8.0, length((puv - vUv) / uTexel)));
+    // a speck moving by itself, too small for the neighbourhood to hold (the falling leaves, fall.js), marks itself
+    // with alpha < 1 in the frame: it takes the new frame instead of fading into the history behind it
+    a = max(a, 1.0 - texture2D(tCur, vUv).a);
     gl_FragColor = vec4(itm(rgb(mix(h, c, a))), 1.0);
   }`;
 
