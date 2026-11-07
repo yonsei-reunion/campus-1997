@@ -2430,6 +2430,250 @@ out = dict(
     [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(tennis_poly(pd_, 0.1).exterior.coords)[:-1]] for pd_ in TENNIS['pads']],
 )
 out['baekyangro']['booth'] = BOOTH
+
+
+# ---------------------------------------------------------------------------
+# Decals on the paving (web/src/decals.js): [kind, x, y, heading, scale], the heading along the decal's long side.
+# 백양로's carriageway stays as clean as in the 1997 photos: a manhole now and then in a lane, gully grates along both
+# kerbs and the zebra stripes scuffed where the wheels run (its own frame: blender/road.py smooth_line, 2 m frames).
+# The side roads, aprons and car parks get the wear: manholes down the middle, grates along the edges, saw-cut asphalt
+# patches, oil under where cars stand (every stall, taken or not); the paving cracks and stains, a utility lid here and
+# there on 백양로's sidewalks. Nothing on stairs, courts, building floors or out in the city round the campus.
+def decal_spots():
+    rnd = random.Random(1997 + 45)
+    found = []
+
+    def add(kind, x, y, rot, sc=1.0):
+        found.append([kind, round(float(x), 2), round(float(y), 2), round(float(rot) % (2 * math.pi), 3), round(float(sc), 2)])
+
+    def splat(x, y, ch):
+        px, py = int((x - SPLAT['x0']) / SPLAT['res']), int((SPLAT['y1'] - y) / SPLAT['res'])
+        return float(spl[py, px, ch]) if 0 <= px < SW and 0 <= py < SH else 0.0
+
+    steps = [LineString(p_['pts']) for p_ in paths_out if p_['kind'] == 'steps' and len(p_['pts']) > 1]
+    city = [Polygon(b['footprint']).buffer(25) for b in buildings if b['style'] == 'city']
+    # (신촌로 and its bus lanes along the south are the city's road, not the campus's)
+    trunk = [LineString(p_['pts']).buffer(p_['w'] / 2 + 3.0) for p_ in paths_out
+             if p_['kind'] in ('primary', 'primary_link', 'secondary', 'busway') and len(p_['pts']) > 1]
+    banned = unary_union([ball.buffer(0.4), _ez, court_poly(1.0), Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 2.0),
+                          bowl.buffer(2.0)] + [l_.buffer(2.0) for l_ in steps] + city + trunk)
+    shapely.prepare(banned)
+    road_c = bline.buffer(ROAD_HALF + 1.0)
+    shapely.prepare(road_c)
+    # the campus: within 40 m of its trees (10 m cells)
+    camp = np.zeros((int((SPLAT['y1'] - SPLAT['y0']) / 10) + 1, int((SPLAT['x1'] - SPLAT['x0']) / 10) + 1), bool)
+    for t_ in trees:
+        i_, j_ = int((SPLAT['y1'] - t_[2]) / 10), int((t_[1] - SPLAT['x0']) / 10)
+        if 0 <= i_ < camp.shape[0] and 0 <= j_ < camp.shape[1]:
+            camp[i_, j_] = True
+    camp = ndimage.binary_dilation(camp, iterations=4)
+
+    def in_camp(x, y):
+        i_, j_ = ((SPLAT['y1'] - y) / 10).astype(int), ((x - SPLAT['x0']) / 10).astype(int)
+        inside = (i_ >= 0) & (i_ < camp.shape[0]) & (j_ >= 0) & (j_ < camp.shape[1])
+        return inside & camp[np.clip(i_, 0, camp.shape[0] - 1), np.clip(j_, 0, camp.shape[1] - 1)]
+
+    def ok(x, y, pad=0.0):
+        if not (-420 < x < 600 and -430 < y < 600) or not in_camp(np.array(x), np.array(y)):
+            return False
+        return not (shapely.intersects_xy(banned, x, y) or (pad > 0 and shapely.dwithin(banned, Point(x, y), pad)))
+
+    # 백양로 in the road mesh's own frame (Chaikin x3 like blender/road.py smooth_line)
+    P_ = [np.array(p_, float) for p_ in bys]
+    for _ in range(3):
+        Q_ = [P_[0]]
+        for a_, b_ in zip(P_[:-1], P_[1:]):
+            Q_ += [a_ + (b_ - a_) * 0.25, a_ + (b_ - a_) * 0.75]
+        P_ = Q_ + [P_[-1]]
+    sm = LineString(P_)
+    Ls = sm.length
+
+    def fr(s, off):
+        p_, p0, p1 = sm.interpolate(s), sm.interpolate(max(0.0, s - 2)), sm.interpolate(min(Ls, s + 2))
+        tx, ty = p1.x - p0.x, p1.y - p0.y
+        n_ = math.hypot(tx, ty)
+        return p_.x - ty / n_ * off, p_.y + tx / n_ * off, math.atan2(ty, tx)
+
+    e_lane = ROAD['median'] + ROAD['lane']
+
+    def near_cross(s, pad):
+        return any(abs(s - c_) < pad for c_ in CROSS) or abs(s - BUMP_S) < pad - 1.0
+
+    # manholes every 50 m, in the middle of one lane or the other (clear of the booth's island)
+    for k, s in enumerate(np.arange(30.0, Ls - 10, 50.0)):
+        s += rnd.uniform(-6, 6)
+        if near_cross(s, 6.0) or BOOTH['s'] - 9 < s < BOOTH['s'] + 4:
+            continue
+        x, y, h = fr(s, (1 if k % 2 else -1) * (e_lane * 0.5 + rnd.uniform(-0.3, 0.3)))
+        add('manhole', x, y, rnd.uniform(0, 2 * math.pi))
+    # gully grates against both kerbs every 30 m (none in a crossing, a side road's opening or the mouth by the gate)
+    for side, s0 in ((1, 14.0), (-1, 29.0)):
+        for s in np.arange(s0, Ls - 8, 30.0):
+            if near_cross(s, 5.5) or (side == MOUTH[0] and MOUTH[1] - 6 < s < MOUTH[2] + 5) \
+                    or any(sd == side and abs(s - g_) < hw + 1.5 for g_, sd, hw in GAPS):
+                continue
+            x, y, h = fr(s, side * (e_lane - 0.21))
+            add('drain', x, y, h)
+    # the zebra stripes (road.py: centred on the 2 m frame nearest the crossing, 0.5 m wide, 4 m long, 1 m apart):
+    # worn where the wheels run, 0.75 m either side of each lane's middle. Each stripe is a flat quad 12 mm over its
+    # frame's height, so on the slope its uphill end sinks under the asphalt: only the part that shows (the scale is
+    # the share of the 4 m), as road.py draws it from the 4 m profile
+    wheels = [side * (e_lane * 0.5 + d_) for side in (-1, 1) for d_ in (-0.75, 0.75)]
+    hroad = lambda s_: float(np.interp(s_, ss[::2], np.round(prof[::2], 3)))
+    for c_ in CROSS:
+        sc_ = 2.0 * round(c_ / 2.0)
+        vis = [t_ for t_ in np.arange(-2.0, 2.001, 0.05) if hroad(sc_ + t_) < hroad(sc_) + 0.012 - 0.003]
+        if len(vis) < 10:
+            continue
+        t0, t1 = min(vis), max(vis)
+        o = -e_lane + 0.5
+        while o < e_lane - 0.4:
+            x, y, h = fr(sc_ + (t0 + t1) / 2, o + 0.25)
+            add('wear' if min(abs(o + 0.25 - w_) for w_ in wheels) < 0.4 else 'wear_lt', x, y, h, (t1 - t0) / 4.0)
+            o += 1.0
+    # the sidewalks: cracked and stained paving, and a utility lid by the verge every ~45 m
+    E_VERGE_, WALK_ = E_CURB + ROAD['verge'], ROAD['walk']
+    for side in (-1, 1):
+        for s in np.arange(5.0, Ls - 5, 7.0):
+            s += rnd.uniform(-2.5, 2.5)
+            if near_cross(s, 4.0) or (side == MOUTH[0] and MOUTH[1] - 4 < s < MOUTH[2] + 4) or rnd.random() > 0.75:
+                continue
+            x, y, h = fr(s, side * (E_VERGE_ + 0.8 + rnd.random() * (WALK_ - 1.6)))
+            add('crack' if rnd.random() < 0.6 else 'stain', x, y, rnd.uniform(0, 2 * math.pi), rnd.uniform(0.8, 1.3))
+        for s in np.arange(20.0 + (side > 0) * 20, Ls - 10, 45.0):
+            if near_cross(s, 5.0) or (side == MOUTH[0] and MOUTH[1] - 4 < s < MOUTH[2] + 4) or rnd.random() > 0.7:
+                continue
+            x, y, h = fr(s, side * (E_VERGE_ + 0.45))
+            add('lid', x, y, h)
+
+    # side roads (asphalt in the splat, away from 백양로): manholes down the middle every ~32 m, grates at the edges
+    taken = {}
+
+    def spaced(kind, x, y, r):
+        key = (kind, int(x // r), int(y // r))
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for (qx, qy) in taken.get((kind, key[1] + dx, key[2] + dy), ()):
+                    if (qx - x) ** 2 + (qy - y) ** 2 < r * r:
+                        return False
+        taken.setdefault(key, []).append((x, y))
+        return True
+
+    road_lines = []
+    for p_ in paths_out:
+        if p_['kind'] not in ('service', 'residential', 'living_street', 'unclassified', 'road', 'tertiary', 'busway') \
+                or len(p_['pts']) < 2:
+            continue
+        ls_ = LineString(p_['pts'])
+        road_lines.append(ls_)
+        hw = p_['w'] / 2
+        for kind, step, offs in (('manhole', 38.0, (0.0,)), ('drain', 26.0, (hw - 0.25, -(hw - 0.25)))):
+            for off in offs:
+                for s in np.arange(rnd.uniform(4, step), ls_.length - 3, step):
+                    a_, b_ = ls_.interpolate(max(0.0, s - 1)), ls_.interpolate(min(ls_.length, s + 1))
+                    h = math.atan2(b_.y - a_.y, b_.x - a_.x)
+                    nx, ny = -math.sin(h), math.cos(h)
+                    q_ = ls_.interpolate(s)
+                    j = rnd.uniform(-0.5, 0.5) if kind == 'manhole' else 0.0
+                    x, y = q_.x + nx * (off + j), q_.y + ny * (off + j)
+                    if splat(x, y, 0) < 200 or shapely.intersects_xy(road_c, x, y) or not ok(x, y, 0.8):
+                        continue
+                    if kind == 'drain':
+                        # only at a real edge of the asphalt (not out in an apron), and not every time
+                        sg = 1 if off > 0 else -1
+                        if splat(x + nx * sg * 1.2, y + ny * sg * 1.2, 0) > 120 or rnd.random() > 0.55:
+                            continue
+                    if spaced(kind, x, y, 14.0 if kind == 'manhole' else 10.0):
+                        add(kind, x, y, h if kind == 'drain' else rnd.uniform(0, 2 * math.pi))
+    shapely.prepare(road_lines)
+
+    def road_heading(x, y, fallback):
+        best, bh = 9.0, fallback
+        for ls_ in road_lines:
+            d_ = ls_.distance(Point(x, y))
+            if d_ < best:
+                s = ls_.project(Point(x, y))
+                a_, b_ = ls_.interpolate(max(0.0, s - 1)), ls_.interpolate(min(ls_.length, s + 1))
+                best, bh = d_, math.atan2(b_.y - a_.y, b_.x - a_.x)
+        return bh
+
+    # parking: an oil stain under the engine of every stall, taken or not (the cars' +x is forward), a few drips
+    (_x0, _y0), (_x1, _y1) = WD(0, 0), WD(1, 0)
+    hu = math.atan2(_y1 - _y0, _x1 - _x0)
+    stalls = []
+    for (u_, face) in DAEWOO_BACK['rows']:
+        v_ = DAEWOO_BACK['row_v'][0]
+        while v_ <= DAEWOO_BACK['row_v'][1] + 0.01:
+            if not (DAEWOO_BACK['gap'][0] < v_ < DAEWOO_BACK['gap'][1]):
+                stalls.append((*WD(u_, v_), hu + (0.0 if face > 0 else math.pi)))
+            v_ += DAEWOO_BACK['stall']
+    for (a_, b_, n) in lots:
+        for k in range(n):
+            t_ = k / max(1, n - 1)
+            stalls.append((a_[0] + (b_[0] - a_[0]) * t_, a_[1] + (b_[1] - a_[1]) * t_, math.atan2(b_[1] - a_[1], b_[0] - a_[0]) + math.pi / 2))
+    stalls += [(x, y, a_ + math.pi / 2) for (x, y, a_) in LOT_W]
+    _gt, _gn = np.array([-0.969, 0.248]), np.array([0.248, 0.969])
+    stalls += [(*(np.array([44.15, 345.23]) + _gt * s_ + _gn * 8.2), math.atan2(-_gn[1], -_gn[0])) for s_ in (1.8, 4.4, 7.0, 9.6, 12.2, 14.8)]
+    for (x, y, h) in stalls:
+        if max(splat(x, y, 0), splat(x, y, 1)) < 160 or not ok(x, y):
+            continue
+        if rnd.random() < 0.8:
+            f_ = rnd.uniform(0.9, 1.5)
+            add('oil', x + math.cos(h) * f_, y + math.sin(h) * f_, rnd.uniform(0, 2 * math.pi), rnd.uniform(0.6, 1.1))
+        if rnd.random() < 0.35:
+            f_ = rnd.uniform(-1.4, 0.4)
+            add('oil', x + math.cos(h) * f_, y + math.sin(h) * f_, rnd.uniform(0, 2 * math.pi), rnd.uniform(0.35, 0.6))
+    # the car park's aisles behind 대우관: polished darker where the cars turn in, a patch or two, a manhole, grates at
+    # its low (west) side
+    for u_ in (33.0, 49.0):
+        for v_ in np.arange(32.0, 78.0, 7.5):
+            x, y = WD(u_ + rnd.uniform(-1, 1), v_ + rnd.uniform(-2, 2))
+            add('grime', x, y, hu + math.pi / 2 + rnd.uniform(-0.2, 0.2), rnd.uniform(0.9, 1.3))
+    for (u_, v_, kind, sc_) in ((49.0, 53.5, 'manhole', 1.0), (33.5, 61.0, 'patch', 1.1), (48.0, 36.0, 'patch', 0.8),
+                                 (41.0, 72.0, 'patch', 1.4)):
+        x, y = WD(u_, v_)
+        add(kind, x, y, hu + rnd.choice((0.0, math.pi / 2)) + rnd.uniform(-0.03, 0.03), sc_)
+    for v_ in (40.0, 66.0):
+        x, y = WD(25.4, v_)
+        add('drain', x, y, hu + math.pi / 2)
+
+    # the rest of the asphalt: saw-cut patches (lined up with the nearest road) and dark blotches, ~1 per 220 m²
+    def scatter(ch, thresh, per_m2, r):
+        yy, xx = np.nonzero(spl[..., ch] > thresh)
+        xs, ys = SPLAT['x0'] + (xx + 0.5) * SPLAT['res'], SPLAT['y1'] - (yy + 0.5) * SPLAT['res']
+        keep = (xs > -420) & (xs < 600) & (ys > -430) & (ys < 600)
+        xs, ys = xs[keep], ys[keep]
+        keep = in_camp(xs, ys)
+        xs, ys = xs[keep], ys[keep]
+        keep = ~shapely.intersects_xy(banned, xs, ys) & ~shapely.intersects_xy(road_c, xs, ys)
+        xs, ys = xs[keep], ys[keep]
+        n = int(len(xs) * SPLAT['res'] ** 2 / per_m2)
+        idx = list(range(len(xs)))
+        rnd.shuffle(idx)
+        picked = []
+        for i in idx:
+            if len(picked) >= n:
+                break
+            if spaced(ch, xs[i], ys[i], r):
+                picked.append((float(xs[i]), float(ys[i])))
+        return picked
+    for (x, y) in scatter(0, 230, 220.0, 6.0):
+        if not ok(x, y, 1.2):
+            continue
+        if rnd.random() < 0.7:
+            add('patch', x, y, road_heading(x, y, rnd.uniform(0, math.pi)) + rnd.choice((0.0, math.pi / 2)) + rnd.uniform(-0.04, 0.04),
+                rnd.uniform(0.6, 1.5))
+        else:
+            add('grime', x, y, rnd.uniform(0, 2 * math.pi), rnd.uniform(0.6, 1.1))
+    # ... and the paving of walks and forecourts: cracks and stains, ~1 per 75 m²
+    for (x, y) in scatter(1, 230, 75.0, 3.5):
+        if ok(x, y, 0.6):
+            add('crack' if rnd.random() < 0.55 else 'stain', x, y, rnd.uniform(0, 2 * math.pi), rnd.uniform(0.7, 1.3))
+    return found
+
+
+out['decals'] = decal_spots()
+print('decals', len(out['decals']), {k_: sum(1 for d_ in out['decals'] if d_[0] == k_) for k_ in sorted({d_[0] for d_ in out['decals']})})
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
 np.save(os.path.join(ROOT, 'data/terrain_near.npy'), Hn.astype(np.float32))

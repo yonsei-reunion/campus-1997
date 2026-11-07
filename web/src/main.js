@@ -28,6 +28,7 @@ import { SunMap, bakeSunMap } from './bakedshadow.js';
 import { Blobs } from './blobs.js';
 import { Birds } from './birds.js';
 import { flagWind } from './flags.js';
+import { Decals } from './decals.js';
 import { $, MOBILE, versioned, safeGet, safeSet, mulberry, countBy, polylineLength, closestOnSegment, placeMatrix } from './util.js';
 
 const canvas = $('#view');
@@ -292,6 +293,7 @@ async function main() {
   flagWind(lib);                    // the white flag's cloth stirs in the wind too (src/flags.js)
   scene.add(banners);
   scene.add(makeBoard(campus.landmarks.find((l) => l.id === 'events'), groundAt));
+  const decals = new Decals(scene, campus.decals || [], walkables, hfNear, sunMap);   // manholes, oil, patches (src/decals.js)
   // Quaternius CC0 people (blender/characters.py)
   const cast = new Cast();
   await cast.load(Object.keys(PEOPLE), () => progress('사람들이 모여드는 중…'));
@@ -644,6 +646,7 @@ async function main() {
     lib.uniforms.uWindT.value = tAcc;     // the wind in the leaves, branches and banners (materials.js sway)
     ball?.update(dt, tAcc, started && !bird.active);
     blobs?.update(camera.position);
+    decals.update(camera.position);
     // the shadow frustum follows the view in texel-snapped steps; people and cars are redrawn into it every frame
     shadows.update(focus, bird.active ? focus.y : camera.position.y - 10, span);
     updatePcss(sun, post.hq);    // contact-hardening shadows on the desktop HQ path only
