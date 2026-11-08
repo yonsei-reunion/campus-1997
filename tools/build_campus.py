@@ -541,36 +541,43 @@ _kbt = (_kb1 - _kb0) / np.linalg.norm(_kb1 - _kb0)
 FORECOURTS.append((468614722, None, 12.0, dict(face=(tuple(_kb0 + _kbt * 5.0), tuple(_kb0 + _kbt * 33.0)), max_half=14.0,
                                                 blend=10.0, inside=1.0)))
 FIXED = np.zeros(X.shape, bool)       # grid nodes a later harmonic fill must keep: the level aprons themselves
-# 백주년기념관's low front block (issue #9).  In the 1997 aerial photo the hall's south-west corner is not the podium's
-# corner but a lower block standing out in front of it, its long face towards the camera (the south face) with a wide
-# dark entrance, its short west side with a dark door, and above that side a light wall stepping up towards the
-# porch.  Back-projected with the photo's camera: the top edge of the west side (x 1523 -> 1587, y 630 -> 642) is a
-# level line ~5.2 m up in a plane ~6 m west of the podium's 백양로 face, so the block's corner (x 1587) stands about
-# 3.5 m south of the outline's south face; its front runs on east past the drum (to x ~2000), and the entrance spans
-# 0.7 - 9.7 m from the corner (x 1597 - 1730; its foot is behind the trees).  blender/landmarks.py builds it from this.
+# 백주년기념관's low front block (issue #9).  In the 1997 aerial photo the hall's south-west corner is a lower block,
+# its long face towards the camera (the south face) with a wide dark entrance, its short west side with a dark door,
+# and above that side a light wall stepping up towards the porch.  The photo alone only gave a family of sizes; the
+# 2010 roadview fixes it (reference/고증.md 3.4; the 2008 one shows the same block): triangulated from the four
+# panoramas on the road south of it (their headings checked against the drum's banner, residuals 0.3 m) the corner
+# stands 1.0 m west of the outline's 백양로 face and 1.1 m north of its south-west corner, the front with the entrance
+# runs ~25 m east to where the drum comes down to the ground, and its top (with the coping) ~7 m over the hall's floor
+# (6.3 and 7.7 m from two panoramas; the 1997 photo's corner, y 642, with its refitted camera: 7 m).
+# The entrance spans 0.7 - 9.7 m from the corner (a door under a window band, then square piers).  blender/landmarks.py
+# builds it from this and cuts the podium round it.
 _cnw, _csw, _cse = np.array([-11.05, -181.26]), np.array([-28.82, -256.68]), np.array([-12.33, -261.24])
 _tw = (_cnw - _csw) / np.linalg.norm(_cnw - _csw)                 # the 백양로 face, south -> north
 _ts = (_cse - _csw) / np.linalg.norm(_cse - _csw)                 # the south face, west -> east
 _nw = np.array([-_tw[1], _tw[0]])                                 # out of the 백양로 face (west)
-_c0 = _csw + _nw * 6.0 - _tw * 3.3
+_c0 = _csw + _nw * 1.0 + _tw * 1.1
+_CBF, _CBS, _CBH = 25.0, 19.6, 6.6                                 # front, side, height (its coping 0.4 over)
 CENT_BLOCK = dict(corner=[round(float(v), 2) for v in _c0], t_front=[round(float(v), 4) for v in _ts],
-                  t_side=[round(float(v), 4) for v in _tw], front=33.0, side=19.6, h=5.2,
-                  entrance=[0.7, 9.7, 2.7], door=[13.2, 15.8, 2.5], parapet=[(19.6, 25.0, 6.0), (25.0, 30.0, 6.8)])
+                  t_side=[round(float(v), 4) for v in _tw], front=_CBF, side=_CBS, h=_CBH,
+                  entrance=[0.7, 9.7, 2.7], door=[13.2, 15.8, 2.5],
+                  parapet=[(_CBS, 25.0, round(_CBH + 0.8, 2)), (25.0, 28.5, round(_CBH + 1.6, 2))])
 CENT_BLOCK['poly'] = [[round(float(v), 2) for v in q] for q in
-                      (_c0, _c0 + _ts * 33.0, _c0 + _ts * 33.0 + _tw * 19.6, _c0 + _tw * 19.6)]
+                      (_c0, _c0 + _ts * _CBF, _c0 + _ts * _CBF + _tw * _CBS, _c0 + _tw * _CBS)]
 # (its forecourt: level at the hall's floor like the 백양로 side, so the entrance is not half buried)
-FORECOURTS.append((324328422, None, 14.0, dict(face=(tuple(_c0), tuple(_c0 + _ts * 33.0)), max_half=16.5, blend=8.0,
-                                                level='corner', inside=1.0)))
-# 백주년기념관's museum entrance (blender/landmarks.py museum_entrance): the 1996 album photos of 화학공학 · 전기 · 전자 ·
-# 건축공학 · 기계설계 · 컴퓨터과학과 stand on a level paved forecourt at the foot of a broad granite flight, a storey and a
-# half of glass leaning out between a white cylinder and a white wall behind them.  It is the north-east face, towards
-# 광혜원 and 수경원 (연세 역사의 뜰, laid out in 1987 with the hall, "spatially one with the museum inside the hall"):
-# the right of the photos runs on into the drum's curved foot, the 백양로 side is the concert hall's dark porch, and
-# the south and east faces stand a few metres from the hospital.  The ground there stood 3 m over the hall's floor
-# (the hall's lowest corner, by 백양로); the forecourt is levelled at 광혜원's height, nine risers below the doors.
+FORECOURTS.append((324328422, None, 14.0, dict(face=(tuple(_c0), tuple(_c0 + _ts * _CBF)), max_half=_CBF / 2 + 1.0,
+                                                blend=8.0, level='corner', inside=1.0)))
+# 백주년기념관's north-east face, towards 광혜원 and 수경원 (연세 역사의 뜰): a plain stone box with three rows of strip
+# windows over a paved court (2010 roadview; blender/landmarks.py north_box).  The museum's own door, the one in the
+# 1996 album photos, is in the 백양로 porch (museum_porch, CENT_MUSEUM below).  The ground there stood 3 m over the
+# hall's floor (the hall's lowest corner, by 백양로); the court is levelled at 광혜원's height.
 CENT_NE = ((41.28, -200.97), (16.84, -168.65))       # the face, its outside to the right
 CENT_PLAZA_H = 42.7
 FORECOURTS.append((324328422, None, 18.0, dict(face=CENT_NE, max_half=20.3, blend=10.0, level=CENT_PLAZA_H, inside=1.0)))
+# the museum's doors in the 백양로 porch (blender/landmarks.py museum_porch): the 1996 album photos of 화학공학 · 전기 ·
+# 전자 · 건축공학 · 기계설계 · 컴퓨터과학과 on its broad granite flight, glass between a white wall (left, north) and a
+# white cylinder (right, south) - the same frontage the 2008 · 2010 · 2011 roadview shows there.  Its doors' middle on
+# the face (s from the north-west corner, the porch from where the drum's ring meets the face) and the face's outward normal
+CENT_MUSEUM = dict(s=21.9, door=[round(float(v), 2) for v in _cnw - _tw * 21.9], n=[round(float(v), 4) for v in _nw])
 # 과학관's courtyard flight (blender/generic.py porch, ENTRY_AT): in the 1996 photos of 생물학과, 생화학과 and 지질학과
 # fifteen-odd granite risers climb the whole width of the picture to the cream wall, between sloped granite side walls
 # with clipped junipers on banks either side, a five-globe lamp at the top.  The 5 m grid ran the courtyard's slope
@@ -1538,7 +1545,7 @@ plazas = [
     Point(GATE[0], GATE[1] + 10).buffer(22),                                  # 정문
     Polygon([(40, 150), (100, 140), (110, 185), (55, 195)]).buffer(2),          # 노천극장 진입
 ]
-# 백주년기념관's museum forecourt and the foot of 과학관's flight (the 1996 album photos: paved)
+# 백주년기념관's paved court towards 광혜원 (2010 roadview) and the foot of 과학관's flight (the 1996 album photos: paved)
 _pa, _pb = np.array(CENT_NE[0]), np.array(CENT_NE[1])
 _pn = np.array([(_pb - _pa)[1], -(_pb - _pa)[0]]) / np.linalg.norm(_pb - _pa)
 plazas.append(Polygon([tuple(_pa + (_pb - _pa) * 0.25), tuple(_pa + (_pb - _pa) * 0.95), tuple(_pa + (_pb - _pa) * 0.95 + _pn * 17.0),
@@ -2436,7 +2443,7 @@ for b, bp in zip(buildings, _bp_all):
                                 (px_ + tx * hw_ + nx * 8.0, py_ + ty * hw_ + ny * 8.0),
                                 (px_ - tx * hw_ + nx * 8.0, py_ - ty * hw_ + ny * 8.0)]))
     n_entry += 1
-# 백주년기념관's museum flight and forecourt, 과학관's broad flight (wider than the door's own zone)
+# 백주년기념관's paved court towards 광혜원, 과학관's broad flight (wider than the door's own zone)
 _ca, _cb = np.array(CENT_NE[0]), np.array(CENT_NE[1])
 _cn = np.array([(_cb - _ca)[1], -(_cb - _ca)[0]]) / np.linalg.norm(_cb - _ca)
 CENT_PLAZA = Polygon([tuple(_ca + (_cb - _ca) * 0.3), tuple(_ca + (_cb - _ca) * 0.9), tuple(_ca + (_cb - _ca) * 0.9 + _cn * 16.0),
@@ -3031,11 +3038,12 @@ LANDMARKS = [
     dict(id='centennial', name='백주년기념관', pos=[-30, -215], r=26, photo=['photos/centennial_1997.jpg'],
          title='백주년기념관', year='1997',
          text='원통형 매스가 인상적인 백주년기념관. 공연과 강연, 졸업 행사가 열리던 곳으로, 1997년 백양로 오른편 풍경의 중심이었다.'),
-    # the museum's own door on the hall's north-east face (blender/landmarks.py museum_entrance), towards 광혜원
-    dict(id='museum', name='연세대학교 박물관', pos=[37.0, -175.4], r=14, photo=['photos/museum_1996.jpg', 'photos/museum_1996_side.jpg'],
+    # the museum's own door in the hall's 백양로 porch (blender/landmarks.py museum_porch), at the foot of its flight
+    dict(id='museum', name='연세대학교 박물관', pos=[round(CENT_MUSEUM['door'][0] + CENT_MUSEUM['n'][0] * 9.5, 1),
+                                                  round(CENT_MUSEUM['door'][1] + CENT_MUSEUM['n'][1] * 9.5, 1)], r=12, photo=['photos/museum_1996.jpg', 'photos/museum_1996_side.jpg'],
          title='백주년기념관 박물관 입구', year='1996',
          credit='사진: 1997년 졸업 앨범의 학과 단체사진(1996년 5 ~ 6월, 2022 재상봉 25주년 기념문집 「25년 전 우리는」), 사람이 없는 윗부분',
-         text='백주년기념관의 광혜원 쪽 면, 흰 원통과 흰 벽 사이로 비스듬히 기운 유리벽과 흰 관 기둥이 서 있고 「YONSEI UNIVERSITY MUSEUM」 긴 현수막이 걸려 있었다. 짙은 차양 아래 유리문으로 들어가면 박물관. 1996년 봄엔 「세계한민족 화학학술대회」와 박물관 강좌 「민요의 현장을 찾아서」 현수막이 걸렸고, 공대 여러 학과가 이 계단에서 졸업 사진을 찍었다.'),
+         text='백주년기념관의 백양로 쪽 현관 북쪽, 흰 벽과 흰 원통 사이로 비스듬히 기운 유리벽과 흰 관 기둥이 서 있고 「YONSEI UNIVERSITY MUSEUM」 긴 현수막이 걸려 있었다. 짙은 차양 아래 유리문으로 들어가면 박물관. 1996년 봄엔 「세계한민족 화학학술대회」와 박물관 강좌 「민요의 현장을 찾아서」 현수막이 걸렸고, 공대 여러 학과가 이 계단에서 졸업 사진을 찍었다.'),
     dict(id='eagle', name='독수리상', pos=EAGLE['pos'], r=16, photo=['photos/eagle_2024.jpg'],
          title='독수리상', year='1997',
          text='연세의 상징 독수리. 높은 기둥 위에서 날개를 편 독수리가 정문 쪽으로 백양로를 내려다본다. 2015년 백양로를 다시 만들 때 북쪽 중앙도서관 앞으로 옮겨져 지금도 서 있다.'),
