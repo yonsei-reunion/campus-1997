@@ -192,7 +192,7 @@
 
 - 지도 데이터: © OpenStreetMap contributors, ODbL
 - 고도: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved). 건물을 걷어 내고 씀(`tools/fetch_terrain.py`)
-- 텍스처 · HDRI · 일부 소품(공중전화, 휴지통): [Poly Haven](https://polyhaven.com), CC0
+- 텍스처 · HDRI · 일부 소품(공중전화): [Poly Haven](https://polyhaven.com), CC0
 - 관목 · 생울타리 · 꽃의 잎과 꽃: Poly Haven [Periwinkle Plant](https://polyhaven.com/a/periwinkle_plant)(Amal Kumar)의 스캔을 잘라 다시 칠함(`tools/make_shrub_textures.py`), CC0
 - 인물과 애니메이션: Quaternius [Ultimate Modular Men](https://quaternius.com/packs/ultimatemodularmen.html) · [Ultimate Modular Women](https://quaternius.com/packs/ultimatemodularwomen.html), CC0
 - 글꼴: Noto Sans KR, Jua, Do Hyeon (SIL OFL)

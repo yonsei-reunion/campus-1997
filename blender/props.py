@@ -534,9 +534,9 @@ def _obox(mb, c, a, b, ha, hb, hn, mat, uofs=0.0):
 
 
 def bench():
-    """벤치 (2003_봄_백양로끝_핀슨관길_벚나무.jpg: under the cherries by the road to 핀슨관, beside a three-bin green
-    recycling box; 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg: seen from behind at the top of the steps, three people to a
-    bench): 1.8 m long, a seat of three broad weathered grey planks and a slightly reclined back of three more, on three
+    """벤치 (2003_봄_백양로끝_핀슨관길_벚나무.jpg: under the cherries along the top of the steps' banks, facing the road,
+    beside a three-bin green recycling box; 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg: the same row seen from behind, three
+    people to a bench): 1.8 m long, a seat of three broad weathered grey planks and a slightly reclined back of three more, on three
     dark frames (a post at each end and one in the middle shows behind the back).  The seat faces -Y; the origin is the
     middle of its footprint (0.62 m deep) on the ground."""
     mb = MeshBuilder('bench')
@@ -558,6 +558,34 @@ def bench():
     return mb
 
 
+def recycle_bin():
+    """분리수거함 (2003_봄_백양로끝_핀슨관길_벚나무.jpg: between two benches along the top of the steps up to 언더우드관
+    정원, as wide as most of a bench and taller than its back; 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg: its plain grey
+    back in the same row; both photos put it at about 0.85 of a bench's length and a little over its back): a grey steel
+    cabinet 1.55 m wide, 0.55 deep and 1.15 high on short feet under an overhanging lid, three slots under the lid and
+    three dark green doors below, each with a pale label at its head and a smaller one low down.  The doors face -Y; the
+    origin is the middle of its footprint on the ground."""
+    mb = MeshBuilder('recycle_bin')
+    W, D, H, feet = 1.55, 0.55, 1.1, 0.06
+    mb.box((0, 0, (feet + H) / 2), (W, D, H - feet), 'bin_grey', skip=('bottom',))
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            mb.box((sx * (W / 2 - 0.035), sy * (D / 2 - 0.035), feet / 2), (0.05, 0.05, feet), 'bin_grey', skip=('top', 'bottom'))
+    mb.box((0, 0.0, H + 0.025), (W + 0.07, D + 0.07, 0.05), 'bin_grey')            # the lid
+    y0 = -D / 2
+    bw = (W - 0.08) / 3
+
+    def front(x0, x1, z0, z1, y, mat):
+        mb.face([(x0, y, z0), (x1, y, z0), (x1, y, z1), (x0, y, z1)], mat)
+    for k in range(3):
+        x = -W / 2 + 0.04 + bw * (k + 0.5)
+        front(x - bw / 2 + 0.05, x + bw / 2 - 0.05, 0.9, 1.03, y0 - 0.002, 'paint_black')    # the slot
+        mb.box((x, y0 - 0.006, 0.49), (bw - 0.035, 0.012, 0.72), 'bin_green', skip=('back',))    # the door, a little proud
+        front(x - bw / 2 + 0.07, x + bw / 2 - 0.07, 0.72, 0.8, y0 - 0.0125, 'paint_white')   # its label
+        front(x - bw / 2 + 0.12, x + bw / 2 - 0.12, 0.24, 0.29, y0 - 0.0125, 'paint_white')
+    return mb
+
+
 def _haetae_curls(E, c, abc, angs, r, out=1.0):
     """Curls of the mane or the coat: small balls set on the surface of an ellipsoid at (azimuth, elevation) pairs."""
     for az, el in angs:
@@ -568,8 +596,8 @@ def _haetae_curls(E, c, abc, angs, r, out=1.0):
 
 
 def haetae():
-    """돌 해태상 (2003_봄_백양로끝_핀슨관길_벚나무.jpg: a pair at the edge of the road west of the 삼거리, both facing
-    east along it): a weathered granite 해태 about 0.8 m high sitting up on its haunches, the forelegs straight, a big
+    """돌 해태상 (2003_봄_백양로끝_핀슨관길_벚나무.jpg and 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg: a pair either side of
+    the head of the steps up from the end of 백양로, looking down them): a weathered granite 해태 about 0.8 m high sitting up on its haunches, the forelegs straight, a big
     head held high, its body covered in knobbly curls, on a plain granite plinth 0.45 m high.  The face is the usual one
     of Joseon stone 해태 (the photo is too small for it): bulging eyes under heavy brows, a broad nose, a mouth of teeth
     and two fangs, a knob of a horn; curls of the mane round the head and down the spine, a bushy tail curled up the

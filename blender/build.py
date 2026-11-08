@@ -67,7 +67,7 @@ if want('landmarks'):
             ob['bid'] = str(b['id'])
             objs.append(ob)
     for mb in landmarks.amphitheater() + landmarks.basketball_court() + landmarks.fountain() + landmarks.tennis() + landmarks.gongwon_site() + \
-            landmarks.underwood_steps() + landmarks.aud_bank() + landmarks.haetae_steps():
+            landmarks.underwood_steps() + landmarks.aud_bank():
         objs.append(mb.build())
     # statues and the gate are modelled in their own frame (front = -Y) and placed by object transform
     # (a MeshBuilder's xf only affects vertices added after it is set)
@@ -140,7 +140,7 @@ if want('props'):
                      ('stone_marker', props.stone_marker), ('sign_board', props.sign_board), ('guard_booth', props.guard_booth),
                      ('barrier_arm', props.barrier_arm), ('bollard', props.bollard), ('tent_kiosk', props.tent_kiosk),
                      ('notice_board', props.notice_board), ('haetae', props.haetae), ('bench', props.bench),
-                     ('parking_booth', props.parking_booth)):
+                     ('recycle_bin', props.recycle_bin), ('parking_booth', props.parking_booth)):
         reset_scene()
         ob = fn().build()
         stats[name] = tri_count([ob])
@@ -167,8 +167,9 @@ if want('props'):
 if want('polyhaven'):
     # CC0 Poly Haven props: decimate to game budgets, keep their own PBR textures (1k JPEG)
     PH = os.path.join(common.ROOT, 'assets_src', 'models')
-    # (the bench is blender/props.py's now: the campus bench of the 2003 photos, not this small red settle)
-    for name, src, ratio in (('payphone', 'korean_public_payphone_01', 0.06), ('trashcan', 'metal_trash_can', 0.15)):
+    # (the bench and the bin are blender/props.py's now: the campus bench and green recycling box of the 2003 photos,
+    # not this small red settle and the galvanised can)
+    for name, src, ratio in (('payphone', 'korean_public_payphone_01', 0.06),):
         reset_scene()
         bpy.ops.import_scene.gltf(filepath=os.path.join(PH, src, f'{src}_1k.gltf'))
         objs = [o for o in bpy.context.scene.objects if o.type == 'MESH']
@@ -184,7 +185,7 @@ if want('polyhaven'):
         # normalise scale: payphone source is authored in cm
         bb = [o.matrix_world @ Vector(c) for o in objs for c in o.bound_box]
         hgt = max(v.z for v in bb) - min(v.z for v in bb)
-        target = {'payphone': None, 'trashcan': None}[name]
+        target = {'payphone': None}[name]
         if target and hgt > 0:
             s = target / hgt
             for o in objs:

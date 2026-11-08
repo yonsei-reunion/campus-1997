@@ -922,6 +922,13 @@ UW_BANK = Polygon([st_xy(-26.0, -0.4), st_xy(26.0, -0.4), st_xy(26.0, _US['v_hea
 # (the paved head of the steps: from the banks' top across the walk in front of the garden, OSM's drive along it 5 m on)
 UW_HEAD = UW_SQUARE.intersection(Polygon([st_xy(-30.0, _US['v_head'] - 0.1), st_xy(36.0, _US['v_head'] - 0.1),
                                           st_xy(36.0, 29.0), st_xy(-30.0, 29.0)]))
+# along the head (UW_STEPS u): the benches, the recycling box and the pair of 해태 (props below; the 2003 photos)
+UW_HEAD_BENCHES = (8.6, 12.8, 17.6, 21.4, -10.8, -14.0, -16.6)
+UW_HEAD_BIN = 15.85
+UW_HAETAE = (-5.45, 5.45)
+# (in a row along the square's edge at the head line, their backs to the banks)
+UW_HEAD_ROW = Polygon([st_xy(-30.0, _US['v_head'] - 1.0), st_xy(36.0, _US['v_head'] - 1.0), st_xy(36.0, _US['v_head'] + 1.0),
+                       st_xy(-30.0, _US['v_head'] + 1.0)])
 
 
 # --- 언더우드관 앞 정원 (issue #3).  The level aprons of 스팀슨관 (51.6 m) and 아펜젤러관 (54.3 m) face each other across
@@ -2925,9 +2932,9 @@ for k in range(9):
 # --- the trees of the 2003 spring and autumn photos (reference/2003_*.jpg, taken by the user; reference/고증.md
 # 3.18).  Where they show the old cherries in flower and the October ginkgos, plant them one by one (the trees
 # scattered on those spots step aside):
-#  - 2003_봄_백양로끝_핀슨관길_벚나무.jpg: a row of big old cherries along the south side of the road from the 삼거리
-#    at the head of 백양로 towards 핀슨관, which bends north-west and climbs; benches under them facing the road, a
-#    green bin, a pair of stone 해태
+#  - 2003_봄_백양로끝_핀슨관길_벚나무.jpg: from the square at the head of the steps up from the end of 백양로
+#    (UW_STEPS), looking west-south-west along the top of their banks: big cherries, benches facing the square with a
+#    green recycling box among them, the pair of stone 해태 at the steps' head (with the props below)
 #  - 2003_봄_언더우드관_앞길_벚나무.jpg: from the road before 언더우드관 looking east, a row of them behind a low
 #    hedge where the road ends, on the slope up towards 논지당
 #  - 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg: big cherries on the lawn along the garden's south edge, either side
@@ -2939,65 +2946,19 @@ for k in range(9):
 rng8 = random.Random(1997 + 2003)
 PHOTO03 = []                                                      # (species, x, y, scale)
 PHOTO03_PROPS = []                                                # (name, x, y, rot), added with the props below
-# (the camera stood at the 삼거리 at the head of 백양로, by the steps up to 언더우드관 정원, looking west along the road
-# towards 핀슨관 as it bends north-west and climbs; the user placed it there.  That is OSM's drive from the 삼거리 at
-# the foot of the steps (UW_STEPS), as in the 2011 roadview from there: 백양관 and its parked cars behind a hedge on
-# the left, the drive bending right and climbing, cherries along its left side)
+# the drive west from the 삼거리 towards 핀슨관: big cherries along its south side (2011-04 roadview from the 삼거리
+# looking west: 백양관 and its parked cars behind a hedge on the left, the drive bending right and climbing, cherries
+# along its left).  The 2003 photo that had put benches, a bin and the 해태 (with a stair between them) here looks
+# along the top of the steps' banks instead: they stand at the head of UW_STEPS (props below)
 _br = LineString([(28.2, 124.1), (24.2, 125.3), (19.6, 127.2), (14.2, 131.1), (8.7, 136.9), (4.4, 143.6), (1.6, 149.5),
                   (-2.0, 160.5)])                                 # the drive west from the 삼거리 (OSM, 6 m)
-_brs, _brb = _br.offset_curve(6.0), _br.offset_curve(4.7)         # (its left: the south side)
+_brs = _br.offset_curve(6.0)                                      # (its left: the south side)
 _rows = [(t_[1], t_[2]) for t_ in trees[:N_ROWS]]
-
-
-def _samgeori_br_at(s, off):
-    """The point s m along the drive (_br) and off m to its left (south), and the drive's heading there."""
-    p_, a_, b_ = _br.interpolate(s), _br.interpolate(s - 0.5), _br.interpolate(s + 0.5)
-    t_ = np.array([b_.x - a_.x, b_.y - a_.y]) / math.hypot(b_.x - a_.x, b_.y - a_.y)
-    return np.array([p_.x, p_.y]) + np.array([-t_[1], t_[0]]) * off, math.atan2(t_[1], t_[0])
-
-
-# the pair of stone 해태 flank a short flight of steps up from the drive's south edge.  2003 spring photo: both on
-# plain plinths hard against the sloping copings of a stair about 3 m wide, so about 4.5 m apart centre to centre (the
-# plinths 1.3 m long and the stair about as wide as the gap seen at their distance), a cherry trunk rising right
-# behind the stair, in the order green bin - lamp - 해태 - stair - 해태 - benches along the road.  The 2011-04 roadview
-# still has the lamp and, where the stair was, a paved walk going up between hedges: from panos 1017220206 and
-# 1017220207 (resected on 스팀슨관, 언더우드관 and 백양로's end steps, rms 0.2 deg) the lamp is at (4.3, 135.6) and the
-# walk's mouth at (0.0, 139.3), 30.5 m along the drive, +-2.5 m along it (the two rays meet at 9 deg).  So the stair
-# goes where the cherry behind it stands, 31.8 m along (the old pair was 6.8 m apart round 34.3 m), and that cherry
-# steps back behind the stair's head (reference/고증.md 3.18)
-HAETAE_STEPS = None
 for k in range(6):
     q_ = _brs.interpolate(9.0 + 6.8 * k)                           # (past 백양로's sidewalk at its end)
     if min(math.hypot(q_.x - a_, q_.y - b_) for a_, b_ in _rows) < 4.0:
         continue                                                  # (not into 백양로's ginkgo rows)
-    if k == 4:
-        _hs = _br.project(q_)                                     # the stair's middle, along the drive
-        q_ = Point(*_samgeori_br_at(_hs, 8.6)[0])
     PHOTO03.append(('cherry', q_.x, q_.y, rng8.uniform(1.2, 1.4)))
-    if k < 5:                                                     # a bench between this one and the next
-        b_ = _brb.interpolate(12.4 + 6.8 * k)
-        if k == 3:
-            continue                                              # (the 해태 and their stair, below)
-        if k == 4:                                                # (clear of the second 해태's plinth)
-            b_ = Point(*_samgeori_br_at(max(_br.project(b_), _hs + 4.6), 4.7)[0])
-        r_ = _br.interpolate(_br.project(b_))
-        PHOTO03_PROPS.append(('trashcan' if k == 2 else 'bench', b_.x, b_.y, math.atan2(r_.y - b_.y, r_.x - b_.x)))
-    if k == 4:
-        # both 해태 look east along the road to the 삼거리 (the photo has both heads to the left), their plinths' road
-        # faces level with the foot of the stair, 0.35 m behind the bench line (+-2.05 m along the drive's middle line
-        # is 4.6 m apart out on the bend)
-        for sg_ in (-1, 1):
-            h_, fwd_ = _samgeori_br_at(_hs + sg_ * 2.05, 5.0)
-            PHOTO03_PROPS.append(('haetae', float(h_[0]), float(h_[1]), fwd_ + math.pi))
-        # three risers of 0.15 (the plinths' height) on 0.32 treads, a 0.5 m landing, sloping copings 0.3 thick;
-        # blender/landmarks.py haetae_steps sets the levels from the ground at its foot
-        _ft, _fwd = _samgeori_br_at(_hs, 4.65)
-        _dn = np.array([math.sin(_fwd), -math.cos(_fwd)])            # (down the stair: towards the drive)
-        _tp = _ft - _dn * (0.5 + 3 * 0.32)
-        HAETAE_STEPS = dict(name='haetae', top=[round(float(_tp[0]), 2), round(float(_tp[1]), 2)],
-                            down=[round(float(_dn[0]), 4), round(float(_dn[1]), 4)],
-                            foot=[round(float(_ft[0]), 2), round(float(_ft[1]), 2)], n=3, rise=0.15, width=2.6,
-                            landing=0.5, tread=0.32, cheek=0.3, head=1.2)
 for (x_, y_) in ((99.5, 246.5), (101.5, 239.5), (103.0, 232.5), (104.0, 225.5), (104.5, 218.5)):
     PHOTO03.append(('cherry', x_, y_, rng8.uniform(1.1, 1.3)))
 hedge_line([(95.0, 214.0), (93.6, 249.0)], closed=False)
@@ -3009,8 +2970,8 @@ PHOTO03 += [('cherry', 49.5, 317.5, 1.3), ('cherry', 106.0, 321.0, 1.05),
 x_, y_ = WY(16.5, -3.8)
 PHOTO03.append(('ginkgo', x_, y_, 0.42))
 #  - the white-stemmed 은백양 by the foot of the steps up to 언더우드관 정원, just east of them (bare in April; the
-#    same tree in the 2010 and 2026 roadview, a thick trunk forking at 4 - 5 m), and another behind the first cherries
-#    along the road west from the 삼거리, beyond them to the south (the 2003 spring photos)
+#    same tree in the 2010 and 2026 roadview, a thick trunk forking at 4 - 5 m; the white trunk at the left of the
+#    photo from the steps' head is this one, not a second tree by the drive west of the 삼거리)
 #  - 목련: in the north-west corner of 연희관 앞 정원 behind the double lamp (2003_봄_교육관에서_본_*), and before
 #    언더우드관 east of its tower (2024_봄_언더우드관_목련.jpg).  That one was young in 1997: in the December 2010
 #    roadview (1016786670, 1016786671, 1016786656) it is a slender tree with a narrow crown, its top level with the
@@ -3018,8 +2979,6 @@ PHOTO03.append(('ginkgo', x_, y_, 0.42))
 #    young magnolia's 25 - 30 cm a year it stood about 2.5 - 3 m in 1997: a newly planted tree of the nurseries' size
 MAGNOLIA_UW_1997 = 0.38                                           # (x 8 m: 3 m)
 PHOTO03.append(('poplar', *st_xy(6.6, 0.2), 1.0))
-_q1 = _br.offset_curve(11.0).interpolate(11.5)
-PHOTO03.append(('poplar', _q1.x, _q1.y, 0.92))
 PHOTO03 += [('magnolia', 58.0, 339.5, 1.0), ('magnolia', *WU(-3.0, 40.6), MAGNOLIA_UW_1997)]
 #  - 목련 at the south-west corner of 연희관 앞 정원, where the west drive leaves 한경길 (Kakao roadview 2011-04, in
 #    full flower; taken to have stood there in 1997)
@@ -3511,9 +3470,10 @@ for sg in (-1, 1):
         f_ = -_in * side                                                 # facing the walk
         fw_ = SG_E * f_[0] + SG_N * f_[1]
         P('bench', x_, y_, math.atan2(fw_[1], fw_[0]))
-for (x, y) in [(-48, -40), (-4, -64), uwg_xy(-2.4, 41.0), (-94, -404), (-44, -175)]:
-    P('trashcan', x, y, 0)
-# under the cherries by the drive up to 핀슨관 (2003 spring photo): benches facing the drive, a green bin among them;
+# the campus bin is the grey-and-green recycling box of the 2003 photo (props.recycle_bin), its doors to the walk
+for (x, y), r_ in [((-48, -40), 0.0), ((-4, -64), math.pi), (uwg_xy(-2.4, 41.0), math.atan2(_wuu[1], _wuu[0])),
+                   ((-94, -404), math.pi), ((-44, -175), math.pi)]:
+    P('recycle_bin', x, y, r_)
 # double-globe lamps at the north-west corner of 연희관 앞 정원 and by 교육관's north yard (the 2003 photos)
 for (name_, x, y, r) in PHOTO03_PROPS:
     P(name_, x, y, r)
@@ -3535,12 +3495,17 @@ _yd = min(np.arange(-10.0, 60.0, 0.25), key=lambda u_: abs(float((np.array(WY(u_
 _ye = 1.0 if WY(_yd + 1.0, 0.0)[0] > WY(_yd, 0.0)[0] else -1.0
 _yo = math.atan2(*(np.array(WY(_yd, -1.0)) - np.array(WY(_yd, 0.0)))[::-1])                              # out of the front
 P('tent_kiosk', *WY(_yd - _ye * 5.4, -8.0), _yo)
-# 백양로 끝 계단 (UW_STEPS): benches on the square along the top of the banks, looking out over the steps (the 2003
-# spring photo: people sitting on them at the head of the steps)
-_st_south = math.atan2(-_stv[1], -_stv[0])
-for sg in (-1, 1):
-    for u_ in (6.9, 10.7, 16.5):
-        P('bench', *st_xy(sg * u_, UW_STEPS['v_head'] + 0.7), _st_south)
+# 백양로 끝 계단 (UW_STEPS), the top of the banks either side of the head (the 2003 spring photos: from the 삼거리, the
+# backs of the benches and the bin's grey back in a row east of the head and a stone 해태 at its west corner; from the
+# square looking west-south-west, the same row's seats and the bin's green doors, the pair of 해태 at the head's
+# corners with their heads towards the steps): benches facing the square, east of the head bench - bench - bin -
+# bench - bench and west of it three benches; the 해태 on their plinths either side of the head, looking down the steps
+_st_south, _st_north = math.atan2(-_stv[1], -_stv[0]), math.atan2(_stv[1], _stv[0])
+for u_ in UW_HEAD_BENCHES:
+    P('bench', *st_xy(u_, UW_STEPS['v_head'] + 0.4), _st_north)
+P('recycle_bin', *st_xy(UW_HEAD_BIN, UW_STEPS['v_head'] + 0.4), _st_north)
+for u_ in UW_HAETAE:
+    P('haetae', *st_xy(u_, UW_STEPS['v_head'] + 0.4), _st_south)
 for (x, y) in [(52.6, 340.5), (46.0, 358.0)]:
     P('lamp_double', x, y, -0.25)
 # a double-globe lamp at the tip of the 화단섬; before 중앙도서관 the four-globe lamps of the 1997 photo, in the clipped
@@ -3622,7 +3587,9 @@ for k in range(16):
 def on_carriageway(x, y):
     return bline.distance(Point(x, y)) < E_CURB + 0.3 and bline.project(Point(x, y)) < L - 1
 n0 = (len(props), len(cars), len(trees), len(shrubs))
-props = [p for p in props if not on_carriageway(p[1], p[2])]
+# (bline runs on past the drawn end, over the steps: what stands along their head stays, as below)
+_uw_kept = lambda p: p[0] in ('bench', 'recycle_bin', 'haetae') and UW_HEAD_ROW.contains(Point(p[1], p[2]))
+props = [p for p in props if not on_carriageway(p[1], p[2]) or _uw_kept(p)]
 # (nor on the halls' front steps: benches, bins and phone boxes stood beside the doors, not in them)
 props = [p for p in props if p[0] in ('lamp_arm', 'guard_booth') or not _ez.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not on_carriageway(c[1], c[2]) and not _ez.contains(Point(c[1], c[2]))]
@@ -3641,7 +3608,7 @@ _uwz = Polygon([st_xy(-5.8, -0.5), st_xy(5.8, -0.5), st_xy(5.8, UW_STEPS['v_head
 _ext_z = _ext.buffer(ROAD_HALF + 1.0, cap_style='flat')
 _keep_sp = ('poplar', 'magnolia', 'fir')
 _gone = lambda x_, y_: _uwz.contains(Point(x_, y_)) or _ext_z.contains(Point(x_, y_))
-props = [p for p in props if not _gone(p[1], p[2]) or p[0] == 'bench' and UW_HEAD.contains(Point(p[1], p[2]))]
+props = [p for p in props if not _gone(p[1], p[2]) or _uw_kept(p)]
 cars = [c for c in cars if not _gone(c[1], c[2]) and not UW_BANK.contains(Point(c[1], c[2]))]
 _photo_xy = {(round(float(x_), 2), round(float(y_), 2)) for _, x_, y_, _ in PHOTO03}
 trees = [t for t in trees if (t[1], t[2]) in _photo_xy or t[0] in _keep_sp
@@ -3966,7 +3933,6 @@ out = dict(
     + YH_WALL_COLL,
 )
 out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
-out['haetae_steps'] = HAETAE_STEPS            # (the stair between the 해태: blender/landmarks.py haetae_steps)
 out['baekyangro']['booth'] = BOOTH
 # 대강당 앞 둑: blender/road.py leaves the planting strip out where the wall stands, blender/landmarks.py aud_bank builds it
 out['baekyangro']['walls'] = [[AUD_BANK['side'], AUD_BANK['s0'], AUD_BANK['s1']]]
@@ -4261,7 +4227,7 @@ _yjz = YJ_PAD.buffer(1.0).union(YJ_BANK)
 _n0 = (len(trees), len(shrubs), len(props), len(cars))
 trees = [t for t in trees if not _yjz.contains(Point(t[1], t[2]))]
 shrubs = [s for s in shrubs if not _yjz.contains(Point(s[1], s[2]))]
-props = [p for p in props if not _yjz.contains(Point(p[1], p[2]))]
+props = [p for p in props if not _yjz.contains(Point(p[1], p[2])) or _uw_kept(p)]   # (the row at the steps' head)
 cars = [c for c in cars if not _yjz.contains(Point(c[1], c[2]))]
 _ybank = YJ_BANK.difference(_kept.buffer(0.7)).difference(LineString(YJ_WALK).buffer(2.0))
 rng11 = random.Random(1997 + 4)
@@ -4353,7 +4319,7 @@ for _k in range(4000):                                                 # its low
                        round(rng97.uniform(0, 6.28), 2)])
 for y_ in (187.2, 190.6, 193.6, 197.2):                                  # benches facing the bed, and the bin
     props.append(['bench', round(6.9 + (y_ - 186.4) * 0.026, 2), y_, 0.0])
-props.append(['trashcan', 6.8, 195.4, 0.0])
+props.append(['recycle_bin', 6.8, 195.4, 0.0])
 draw_poly('pavers', ST_MASATO, 0)
 draw_poly('dirt', ST_MASATO)
 draw_line('asphalt', ST_PATH, 3.0)

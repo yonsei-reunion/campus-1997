@@ -3869,22 +3869,6 @@ def underwood_steps():
     return out
 
 
-def haetae_steps():
-    """The short stair between the pair of stone 해태 on the drive from the 삼거리 towards 핀슨관 (tools/build_campus.py
-    HAETAE_STEPS; 2003_봄_백양로끝_핀슨관길_벚나무.jpg): three granite risers up from the drive's south edge between the
-    plinths, rubble cheek walls with sloping pale copings, the paved apron at its head meeting the ground.  Its levels
-    come from the terrain at its foot (the highest across the flight's width)."""
-    f = CAMPUS.get('haetae_steps')
-    if not f:
-        return []
-    d = Vector((f['down'][0], f['down'][1], 0.0))
-    side = Vector((-d.y, d.x, 0.0))
-    hw = f['width'] / 2 + f['cheek']
-    zf = max(ground_top(f['foot'][0] + side.x * t * hw + d.x * 0.1, f['foot'][1] + side.y * t * hw + d.y * 0.1)
-             for t in (-1, -0.5, 0, 0.5, 1)) + 0.02
-    return [garden_flight(dict(f, z_foot=round(zf, 2), z_top=round(zf + f['n'] * f['rise'], 2)))]
-
-
 def daewoo_annex():
     """대우관 별관: the same pale stone Gothic, five storeys, end gables on the front."""
     return gothic('daewoo_annex', bld(242897923), (-0.97, 0.24), 5, tower_w=7.0, tower_extra=1.5, ivy=0, wings=True,

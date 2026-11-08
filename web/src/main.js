@@ -228,7 +228,7 @@ async function main() {
   for (const k in shrubKits) { shrubKits[k].commit(); shrubKits[k].addTo(scene); }
 
   // ---------------------------------------------------------------- props
-  const propNames = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'motorbike', 'car_sedan', 'car_sedan2', 'car_hatch', 'car_tico', 'car_taxi', 'car_van', 'payphone', 'bench', 'trashcan', 'guard_booth', 'barrier_arm', 'bollard', 'tent_kiosk', 'notice_board', 'haetae', 'parking_booth'];
+  const propNames = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'motorbike', 'car_sedan', 'car_sedan2', 'car_hatch', 'car_tico', 'car_taxi', 'car_van', 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard', 'tent_kiosk', 'notice_board', 'haetae', 'parking_booth'];
   const P = {};
   await Promise.all(propNames.map(async (n) => {
     const g = await load(`props/${n}.glb`, '공중전화를 놓는 중…');
@@ -243,7 +243,7 @@ async function main() {
     for (const pr of campus.props) (byKind[pr[0]] ||= []).push(pr);
     const rnd = mulberry(5);
     const COLLIDE = { lamp_double: 0.25, lamp_quad: 0.25, lamp_arm: 0.25, flag_white: 0.12, planter: 0.5, stone_marker: 1.0, sign_board: 0.9, payphone: 0.62, guard_booth: 1.05,
-      bollard: 0.12, tent_kiosk: 1.5, notice_board: 0.7, haetae: 0.95, parking_booth: 1.3 };
+      bollard: 0.12, tent_kiosk: 1.5, notice_board: 0.7, haetae: 0.95, parking_booth: 1.3, recycle_bin: 0.7 };
     for (const [kind, list] of Object.entries(byKind)) {
       const src = P[kind];
       if (!src) continue;
