@@ -43,7 +43,10 @@ def build():
     e_verge = e_curb + verge
     e_walk = e_verge + walk
     e_strip = e_walk + strip
-    VZ, WZ = 0.32, 0.15            # verge planter top, sidewalk top (above the asphalt)
+    # verge planter top, sidewalk top (above the asphalt): the kerbs stood some 15 - 18 cm over the carriageway (the 1997
+    # photo, the 2010 / 2011 roadview before the rebuilding: the verge's soil level with its kerbs, a low lip on the
+    # sidewalk side); a 32 cm planter wall before
+    VZ, WZ = 0.18, 0.15
     mb = MeshBuilder('baekyangro')
     marks = MeshBuilder('baekyangro_paint')
     L = samples[-1][0]
