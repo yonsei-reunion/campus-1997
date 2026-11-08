@@ -1462,7 +1462,8 @@ def basement_windows(mb, P, s0, s1, bay, plinth, gfn, wall, ww=0.5):
 
 
 def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=True, fh=4.1, wall='stone_rubble',
-           dormers=True, stairs=None, portal=None, door=None, z_floor=None, rear=None):
+           dormers=True, stairs=None, portal=None, door=None, z_floor=None, rear=None, tower_floors=None):
+    # tower_floors: the tower's storeys when it has more than the hall (연희관: one in the hall's roof); default floors
     cx, cy, L, W, ang, z0 = frame_for(b, front)
     stairs = dict(dict(width=None, wl=None, rise=1.3, cheeks=True, lamps=False, none=False, split=9, maxrise=0.16),
                   **(stairs or {}))
@@ -1639,7 +1640,7 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
             # the entrance hall seen through the glass: as deep as the tower stands out from the main wall
             vestibule(mb, P, e0 - 0.5, e1 + 0.5, zd, min(zap + 0.3, zd + 4.4), -rec - 0.01, tproj - rec - 0.05)
             wins = []
-            for f in range(1, floors):
+            for f in range(1, tower_floors or floors):
                 w0, w1 = Le / 2 - min(1.3, tw * 0.15), Le / 2 + min(1.3, tw * 0.15)
                 zw0, zw1 = plinth + f * fh + 0.9, plinth + (f + 1) * fh - 0.6
                 if zw0 < zt + 0.3:          # a tall door (대우관's pointed arch) takes the first window's place
@@ -3347,14 +3348,21 @@ def yeonhui():
     yh = CAMPUS.get('yeonhui', {})
     # the door 2.55 m over the road before it (tools/build_campus.py YEONHUI): seventeen risers of 0.15 in one flight,
     # no landing, down to the road between rubble side walls with pale copings (Kakao roadview from the road, 2026)
-    out = gothic('yeonhui', centre, tuple(-nl), 4, tower_w=8.5, tower_extra=9.5, ivy=0.85, wings=False, fh=4.1,
+    # Heights from reference/연희관_정면_2023.jpg seen through the compare/yeonhui camera (fitted to the forecourt and
+    # the threshold), checked against the ratios in reference/학교연혁_연희관.jpg (reference/고증.md 3.5): three storeys
+    # of 3.95 m over the half-sunk basement (window rows 1.4 - 3.7, 5.1 - 7.5, 8.9 - 11.3 m over the threshold, the
+    # cornice 12.6 m) under the roof; the tower 10.5 m across its corner turrets, a fourth light over the cornice,
+    # its battlements 20.6 m up; the end pavilions' storeys level with the hall's, their gables' apex 18.3 m up
+    out = gothic('yeonhui', centre, tuple(-nl), 3, tower_w=10.5, tower_extra=7.3, ivy=0.85, wings=False, fh=3.95,
                  stairs=dict(width=4.8, wl=5.6, split=99, maxrise=0.152), door=dict(w=3.3, style='four'),
-                 z_floor=yh.get('floor'))
+                 z_floor=yh.get('floor'), tower_floors=4)
     mb = MeshBuilder('lm_yeonhui_pavilions')
     iv = MeshBuilder('lm_yeonhui_pavilions_ivy')
     mb.xf = iv.xf = local_frame(a.x, a.y, ang, out[0].z_base)
-    gable_hall(mb, -14.0, 0.0, -7.9, 28.8, 4, 4.1, 'stone_rubble', pitch=1.1, plinth=1.3, iv=iv, ivy=0.85, seed=3, gothic_trim=True)
-    gable_hall(mb, 40.3, 52.0, -6.7, 30.1, 4, 4.1, 'stone_rubble', pitch=1.1, plinth=1.3, iv=iv, ivy=0.85, seed=9, gothic_trim=True)
+    # (the OSM outline makes the two fronts 14.1 and 11.7 m wide; the photos' gables are about 9.2 m, so the pitches
+    # are set for the photos' apex height rather than their 1.1)
+    gable_hall(mb, -14.0, 0.0, -7.9, 28.8, 3, 3.95, 'stone_rubble', pitch=0.81, plinth=1.3, iv=iv, ivy=0.85, seed=3, gothic_trim=True)
+    gable_hall(mb, 40.3, 52.0, -6.7, 30.1, 3, 3.95, 'stone_rubble', pitch=0.97, plinth=1.3, iv=iv, ivy=0.85, seed=9, gothic_trim=True)
     return out + [mb, iv] + yeonhui_garden(yh)
 
 
