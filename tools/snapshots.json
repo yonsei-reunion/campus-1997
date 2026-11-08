@@ -49,7 +49,7 @@
      "cam": {"x": -131.6, "y": 55.3, "dh": 3, "tx": -128.3, "ty": 67.9, "tdh": 4, "fov": 40}, "size": [1200, 500],
      "out": [{"path": "docs/compare/kwangbok_game.jpg", "width": 900}]},
     {"name": "compare/science", "doc": "reference/과학관_계단_1996_*.jpg",
-     "cam": {"x": -250.5, "y": -15.5, "h": 59.2, "tx": -242.6, "ty": 13.8, "th": 56.2, "fov": 55}, "size": [1200, 686],
+     "cam": {"x": -250.5, "y": -15.5, "h": 60.2, "tx": -242.6, "ty": 13.8, "th": 57.2, "fov": 55}, "size": [1200, 686],
      "out": [{"path": "docs/compare/science_game.jpg", "width": 900}]},
     {"name": "compare/music", "doc": "reference/음악관_현관_1996.jpg",
      "cam": {"x": 146.5, "y": -22.5, "h": 56.39, "tx": 143.5, "ty": -11.0, "th": 54.54, "fov": 60}, "size": [1200, 686],

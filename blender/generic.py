@@ -24,8 +24,10 @@ STYLE = {
 FH = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
 
 
-def wall_edge(mb, a, b, z0, z1, nfloors, fh, st, rnd, skip_windows=False, ground_floor_shop=False, door=None):
-    """door: (s along the edge, style, options) -- the ground-floor bay(s) there are left open for porch() to fill"""
+def wall_edge(mb, a, b, z0, z1, nfloors, fh, st, rnd, skip_windows=False, ground_floor_shop=False, door=None,
+              found=True):
+    """door: (s along the edge, style, options) -- the ground-floor bay(s) there are left open for porch() to fill.
+    found: the dark foundation under z0 (not for a storey standing on a lower roof)"""
     a2, b2 = a, b
     a, b = Vector((*a, 0)), Vector((*b, 0))
     t = b - a
@@ -41,7 +43,8 @@ def wall_edge(mb, a, b, z0, z1, nfloors, fh, st, rnd, skip_windows=False, ground
         return (p.x, p.y, z)
 
     # foundation (hidden under terrain on slopes)
-    mb.quad(P(0, z0 - 4), P(L, z0 - 4), P(L, z0), P(0, z0), 'concrete_dark')
+    if found:
+        mb.quad(P(0, z0 - 4), P(L, z0 - 4), P(L, z0), P(0, z0), 'concrete_dark')
     bays = int(round(L / st['bay']))
     if L < 2.6 or bays < 1 or skip_windows:
         mb.quad(P(0, z0), P(L, z0), P(L, z1), P(0, z1), wall)
@@ -511,6 +514,24 @@ def observatory(mb, b, zt, st):
                rings=5, slit=(4,), drum=0.3, win=(0.35, 1.8, 3.1), seam=0.025, phase=-math.pi / 16)
 
 
+def _science_wing(b, poly):
+    """과학관's east wing stands a storey over the front block (reference/고증.md 3.10: seven rows of windows at its east
+    end in the 1994 aerial photo and the 2008 · 2010 roadview, six on the front block's south face, two of the wing's
+    rows over the front block's roof at the junction in the 1994 photo).  The wing: a slab from the east face
+    (footprint[0] -> [1]) west to footprint[2], as deep as the east face is long.  Returns the outline's edges that
+    run its full height (as vertex pairs), the wing's own outline (CCW) and its two walls over the lower roof."""
+    fp = [tuple(p) for p in b['footprint']]
+    e0, e1, nw, j = Vector(fp[0]), Vector(fp[1]), Vector(fp[2]), Vector(fp[14])
+    w = (j - e0).normalized()                            # westwards along the wing
+    n = Vector((-w.y, w.x))                              # northwards across it
+    if n.dot(e1 - e0) < 0:
+        n = -n
+    sw = nw - n * (nw - e0).dot(n)                       # its south-west corner, on the south face's line
+    sw = (sw.x, sw.y)
+    full = {frozenset((fp[14], fp[0])), frozenset((fp[0], fp[1])), frozenset((fp[1], fp[2]))}
+    return full, [fp[0], fp[1], fp[2], sw], [(fp[2], sw), (sw, fp[14])]
+
+
 ROOF_EXTRAS = {222843398: observatory}
 # 과학관: cream square glazed tiles, about ten to a window bay (the 1996 album photos reference/과학관_계단_1996_*.jpg;
 # the 2008 roadview, 200 mm tiles); 음악관: white square tiles with grey joints (기악과's 1996 album photo;
@@ -518,6 +539,12 @@ ROOF_EXTRAS = {222843398: observatory}
 WALL = {222843398: 'tile_cream', 429077789: 'tile_white', 429077790: 'tile_white'}
 WALL.update({990021: 'plaster_white', 990022: 'plaster_white'})   # (경영학교실단's south wing and front: as its north wing)
 FRAME = {429077789: 'frame_blue', 429077790: 'frame_blue'}      # (and blue window frames in the 1996 photo)
+# per hall: its storey height and window heights instead of its style's, and a wing a storey higher (_science_wing).
+# 과학관: 4.1 m storeys (the 1994 aerial photo's camera: 4.06 - 4.13 m a row; the 2008 roadview square on to the east
+# face, 2.1 window bays a storey), windows 1.8 m high (0.44 of the storey in the 2008 roadview)
+FH_AT = {222843398: 4.1}
+SILL_AT = {222843398: dict(sill=1.0, head=1.3)}
+WING_UP = {222843398: _science_wing}
 
 
 def build_generic(b, rnd):
@@ -527,7 +554,8 @@ def build_generic(b, rnd):
     poly = [tuple(p) for p in b['footprint']]
     if poly_area(poly) < 0:
         poly.reverse()
-    fh = FH[style]
+    fh = FH_AT.get(b['id'], FH[style])
+    st.update(SILL_AT.get(b['id'], {}))
     z0 = b['base']
     nf = b['levels']
     mb = MeshBuilder('bld_%s' % b['id'])
@@ -550,9 +578,15 @@ def build_generic(b, rnd):
         nf, fh = 1, nf * fh
     shop = style == 'city' and rnd.random() < 0.45
     door = entry_edge(poly, b.get('entry')) if style in ENTRY else None
+    wing = WING_UP[b['id']](b, poly) if b['id'] in WING_UP else None
     for i in range(len(poly)):
-        wall_edge(mb, poly[i], poly[(i + 1) % len(poly)], z0, zt if pitched else zt + 0.9, nf, fh, st, rnd,
-                  ground_floor_shop=shop, door=(door[1], style, b['entry']) if door and door[0] == i else None)
+        up = 1 if wing and frozenset((poly[i], poly[(i + 1) % len(poly)])) in wing[0] else 0
+        wall_edge(mb, poly[i], poly[(i + 1) % len(poly)], z0, (zt if pitched else zt + 0.9) + up * fh, nf + up, fh,
+                  st, rnd, ground_floor_shop=shop, door=(door[1], style, b['entry']) if door and door[0] == i else None)
+    if wing:
+        for a_, b_ in wing[2]:          # the wing's storey over the lower roof
+            wall_edge(mb, a_, b_, zt, zt + fh + 0.9, 1, fh, st, rnd, found=False)
+        parapet_and_roof(mb, wing[1], zt + fh, st, rnd, clutter=False)
     if pitched:
         hip_roof(mb, cx, cy, L, W, ang, zt, rnd.choice(['roof_slate', 'roof_giwa']) if style == 'house' else 'roof_slate',
                  pitch=0.55 if style == 'house' else 0.75)
@@ -562,7 +596,7 @@ def build_generic(b, rnd):
         roof = 'roof_green' if (style == 'city' and rnd.random() < 0.6) else 'roof_flat'
         parapet_and_roof(mb, poly, zt, st, rnd, roof_mat=roof, clutter=style != 'city')
         if b['id'] in ROOF_EXTRAS:
-            ROOF_EXTRAS[b['id']](mb, b, zt, st)
+            ROOF_EXTRAS[b['id']](mb, b, zt + (fh if wing else 0.0), st)
         if style == 'city':
             n = len(poly)
             cx = sum(p[0] for p in poly) / n

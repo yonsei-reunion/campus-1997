@@ -130,6 +130,7 @@ LATE_FOOTPRINT_1997.update({
     256933753: [(-59.05, 125.82), (-13.1, 113.6), (-18.23, 94.69), (-64.14, 106.9)],
 })
 FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
+FLOOR_H_AT = {222843398: 4.1}        # 과학관's 4.1 m storeys (blender/generic.py FH_AT, reference/고증.md 3.10)
 
 # ---------------------------------------------------------------------------
 # Terrain
@@ -622,13 +623,14 @@ CENT_MUSEUM = dict(s=21.9, door=[round(float(v), 2) for v in _cnw - _tw * 21.9],
 # fifteen-odd granite risers climb the whole width of the picture to the cream wall, between sloped granite side walls
 # with clipped junipers on banks either side, a five-globe lamp at the top.  The 5 m grid ran the courtyard's slope
 # up to the doors (five risers); the car park below is levelled 2.8 m under them and banks back up beside the flight
-# (4.9 m over the hall's lowest corner: 58.9 m on the old terrain).  On Copernicus the ground falls away south of it,
-# so the car park reaches out 30 m, to where compare/science's camera (fitted to the 1996 photos) stands on it.
+# (4.9 m over the hall's lowest corner: 58.9 m on the old terrain; 5.9 m since the hall's storeys are 4.1 m, which
+# put the doors a metre higher).  On Copernicus the ground falls away south of it, so the car park reaches out 30 m,
+# to where compare/science's camera (fitted to the 1996 photos) stands on it.
 SCI_DOOR, SCI_N = np.array([-242.6, 13.81]), np.array([-0.2629, -0.9648])
 SCI_T = np.array([-SCI_N[1], SCI_N[0]])
 _sf = SCI_DOOR + SCI_N * 1.6                         # the head of the flight (the plaza runs in under it)
 FORECOURTS.append((222843398, None, 30.0, dict(face=(tuple(_sf - SCI_T * 8.8), tuple(_sf + SCI_T * 8.8)), max_half=12.0,
-                                                blend=12.0, side_blend=6.0, level='corner', rise=4.9, inside=0.0)))
+                                                blend=12.0, side_blend=6.0, level='corner', rise=5.9, inside=0.0)))
 # 빌링슬리관's south front (its door: ENTRY_AT).  The 5 m grid ran the slope from the north-west across it, 3.7 m
 # along the 45 m front, so the door in its middle stood 1.6 m under the ground and the west half of the ground floor
 # was buried.  reference/학교연혁_빌링슬리관_옛생활과학관.jpg, from the lawn at the west end, shows the ground floor
@@ -1122,7 +1124,7 @@ for wid, (style, lv, label) in B.items():
     poly = Polygon(FOOTPRINT_1997[wid]) if wid in FOOTPRINT_1997 else footprint(wv)
     campus_polys.append(poly)
     hs = [ground_h(x, y) for x, y in poly.exterior.coords]
-    fh = FLOOR_H.get(style, 4.0)
+    fh = FLOOR_H_AT.get(wid, FLOOR_H.get(style, 4.0))
     buildings.append(dict(id=wid, name=label, style=style, levels=lv,
                           height=round(lv * fh + (1.2 if not style.startswith('lm') else 0), 2),
                           base=round(min(hs), 2), top_ground=round(max(hs), 2),
