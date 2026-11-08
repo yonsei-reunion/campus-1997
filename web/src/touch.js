@@ -4,6 +4,8 @@
 //     push it all the way to run.
 //   rest of the screen: one finger drags the camera round (up to look up at the roofs and the sky, down to look over
 //     the walker), two fingers pinch to come closer or go farther.
+//   A thumb put on the left part while a finger already drags the camera still takes the stick: a pinch is two
+//   fingers on the camera's part.
 // The bird's-eye tour has its own touch handling (birdseye.js): everything here sleeps while the walker is parked.
 import { clamp } from './util.js';
 import { LIFT_MAX, LOOK_UP } from './player.js';
@@ -24,7 +26,7 @@ export class TouchControls {
     dom.addEventListener('pointerdown', (e) => {
       if (e.pointerType !== 'touch' || !player.enabled || e.target !== dom) return;
       e.preventDefault();
-      if (this.stickId === null && e.clientX < innerWidth * LEFT && !this.looks.size) this.startStick(e);
+      if (this.stickId === null && e.clientX < innerWidth * LEFT) this.startStick(e);
       else {
         this.looks.set(e.pointerId, { x: e.clientX, y: e.clientY });
         this.pinch = this.looks.size === 2 ? this.spread() : 0;
