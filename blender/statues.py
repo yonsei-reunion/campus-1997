@@ -893,7 +893,7 @@ def eagle_figure(width=5.2):
 _META_K = 0.57 * 1.35    # a lone ellipsoid's surface lies at 0.57 x radius x size; a row of them merges wider
 
 
-def _ellipsoid(co, x, y, z, hx, hy, hz):
+def _meta_ellipsoid(co, x, y, z, hx, hy, hz):
     """One metaball element: centre co, local axes x, y, z (unit), surface half-extents hx, hy, hz."""
     q = Matrix((x, y, z)).transposed().to_quaternion()
     return (Vector(co), q, (hx / _META_K, hy / _META_K, hz / _META_K))
@@ -917,7 +917,7 @@ def _figure(joints, edges, radii):
             t = i / (n - 1)
             rx = R[a][0] + (R[b][0] - R[a][0]) * t
             ry = R[a][1] + (R[b][1] - R[a][1]) * t
-            out.append(_ellipsoid(J[a] + e * (L * t), x, y, e, rx, ry, max(rx, ry, L / (n - 1))))
+            out.append(_meta_ellipsoid(J[a] + e * (L * t), x, y, e, rx, ry, max(rx, ry, L / (n - 1))))
     return out
 
 
@@ -954,7 +954,7 @@ def _drapery(pts, widths, nrm=(0, 0, 1), th=0.08):
         nv = nv.normalized() if nv.length > 1e-4 else d.orthogonal().normalized()
         s = nv.cross(d).normalized()
         taper = 1.0 if closed else min(1.0, 0.45 + 0.55 * min(k, len(sp) - 1 - k) / 2)
-        out.append(_ellipsoid(p, s, nv, d, sw[k] * taper, th / 2, max(0.07, 0.6 * sw[k] * taper)))
+        out.append(_meta_ellipsoid(p, s, nv, d, sw[k] * taper, th / 2, max(0.07, 0.6 * sw[k] * taper)))
     return out
 
 
