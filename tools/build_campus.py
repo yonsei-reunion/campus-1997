@@ -130,9 +130,10 @@ LATE_FOOTPRINT_1997.update({
     256933753: [(-59.05, 125.82), (-13.1, 113.6), (-18.23, 94.69), (-64.14, 106.9)],
 })
 # 의료원 (1990 · 1995 지도, 1990년 무렵 항공 사진; reference/고증.md 3.1.2).  The new 세브란스병원 (2005.5) and
-# 의료원 종합관 (2008) go; a name of None leaves the site paved, with no 공사중 marker: the old halls on it are in
-# OLD_HALLS below.  심장혈관병원 (1991, 지상 10층): the five-storey wing of 2011 along its north-west side is the strip
-# of the OSM outline north-west of the line through its east re-entrant corner, a car park in the 2008 roadview.
+# 의료원 종합관 (2008) go; a name of None leaves the site a car park (asphalt), with no 공사중 marker: the old halls
+# on it are in OLD_HALLS below.  심장혈관병원 (1991, 지상 10층): the five-storey wing of 2011 along its north-west
+# side is the strip of the OSM outline north-west of the line through its east re-entrant corner, a car park in the
+# 2008 roadview.
 GONE_1997.update({472648570: None, 429249489: None})
 LATE_FOOTPRINT_1997.update({
     324328481: [(131.9, -123.48), (133.01, -124.74), (150.94, -107.92), (161.79, -119.1), (144.13, -135.18),
@@ -3923,11 +3924,19 @@ spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.arra
 _gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
 _YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
 _ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5)], _gd)
-_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES] + [p_ for n_, p_ in GONE_SITES if not n_], _gp)   # (의료원)
+_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES], _gp)
+# 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
+_ga = Image.new('L', (SW, SH), 0)
+_YN[id(_ga)] = '_ga'
+_ypaint([p_ for n_, p_ in GONE_SITES if not n_], _ga)
 _gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
 spl[..., 1] *= 1.0 - _gd / 255.0
 spl[..., 2] = np.where(_gd > 0, np.minimum(np.maximum(spl[..., 2], _gd), 255.0 - spl[..., 0] - spl[..., 1]), spl[..., 2])
 spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.array(_gp, np.float32), 0.7)), 255 - spl[..., 0])
+_ga = ndimage.gaussian_filter(np.array(_ga, np.float32), 0.7) * (1.0 - ndimage.gaussian_filter(np.array(_gp, np.float32), 0.7) / 255.0)
+spl[..., 0] = np.maximum(spl[..., 0], _ga)
+spl[..., 1] = np.minimum(spl[..., 1], 255.0 - spl[..., 0])
+spl[..., 2] = np.minimum(spl[..., 2], 255.0 - spl[..., 0] - spl[..., 1])
 print('yongjae ground: walks', len(paths_out), 'decals', len(out['decals']))
 
 # ---------------------------------------------------------------------------
@@ -3936,7 +3945,7 @@ print('yongjae ground: walks', len(paths_out), 'decals', len(out['decals']))
 # The same strokes as spl, anti-aliased (splat_aa): the asphalt and paving as sharp as drawn, the dirt (woods,
 # pitches, the old amphitheater) as soft as before, 용재관's ground painted again the same way.  (spl above, binary
 # 0.5 m texels blurred, stays as it was for the debug map.)
-_aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp'])
+_aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
 spl_aa[..., 0] *= 1.0 - _ygA
@@ -3948,6 +3957,8 @@ _gdA = ndimage.gaussian_filter(_aa['_gd'], 1.2)
 spl_aa[..., 1] *= 1.0 - _gdA / 255.0
 spl_aa[..., 2] = np.where(_gdA > 0, np.minimum(np.maximum(spl_aa[..., 2], _gdA), 255.0 - spl_aa[..., 0] - spl_aa[..., 1]), spl_aa[..., 2])
 spl_aa[..., 1] = np.minimum(np.maximum(spl_aa[..., 1], _aa['_gp']), 255 - spl_aa[..., 0])
+spl_aa[..., 0] = np.maximum(spl_aa[..., 0], _aa['_ga'] * (1.0 - _aa['_gp'] / 255.0))      # (의료원's car parks)
+spl_aa[..., 1] = np.minimum(spl_aa[..., 1], 255 - spl_aa[..., 0])
 spl_aa[..., 2] = np.clip(np.minimum(spl_aa[..., 2], 255 - spl_aa[..., 0] - spl_aa[..., 1]), 0, 255)
 Image.fromarray(np.clip(np.round(spl_aa), 0, 255).astype(np.uint8), 'RGB').save(
     os.path.join(ROOT, 'web/public/assets/textures/ground_splat.png'), optimize=True)
