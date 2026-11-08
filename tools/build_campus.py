@@ -598,6 +598,15 @@ FORECOURTS.append((246156111, None, 6.0, dict(face=((26.82, 349.67), (17.82, 314
                                                side_blend=6.0, level=GYOYUK_FLOOR, inside=1.0)))      # the west drive
 FORECOURTS.append((246156111, None, 11.0, dict(face=((44.15, 345.23), (26.82, 349.67)), max_half=9.0, blend=6.0,
                                                 side_blend=5.0, level=GYOYUK_FLOOR, inside=1.0)))     # the north yard
+# 스팀슨관 · 아펜젤러관's backs (blender/landmarks.py stone_hall rear; reference/고증.md 3.5): the 2013 survey's rear
+# elevations and the 2010 roadview from the roads behind show the ground at the foot of the back walls about as low as
+# in front, the half-sunk basement's windows clear and the back door a riser or two over it; the 5 m grid ran the
+# hill behind down over them, 3 - 4 m up the ground floor.  Level a strip at the halls' lowest corner (behind
+# 아펜젤러관 a yard of parked cars in the roadview), banking up to the roads behind.
+FORECOURTS.append((246156118, None, 3.0, dict(face=((14.6, 245.96), (6.1, 214.59)), max_half=16.3, blend=9.0,
+                                                side_blend=6.0, level='corner', inside=1.0)))         # 스팀슨관
+FORECOURTS.append((246156116, None, 9.0, dict(face=((92.93, 188.38), (102.01, 221.82)), max_half=17.3, blend=6.0,
+                                                side_blend=6.0, level='corner', inside=1.0)))         # 아펜젤러관
 
 
 def level_forecourt(wid, front, depth, blend=18.0, side_blend=7.0, max_half=20.0, level=None, face=None, inside=2.0):

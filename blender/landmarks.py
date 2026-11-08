@@ -1371,17 +1371,39 @@ def flat_portal(mb, W, plinth, fh, wall, bw=7.4, gfn=None):
     return y2
 
 
-def stone_base(mb, poly, plinth, wall):
+def stone_base(mb, poly, plinth, wall, gap=None):
     """The basement storey of the stone halls: the wall's own stone down into the ground (dark granite under the white
-    halls), and a pale water table where the ground floor starts."""
+    halls), and a pale water table where the ground floor starts.  gap: (side, s0, s1, z) a doorway cut through both
+    from z up, on the side poly[side] -> poly[side + 1] (s along it; a rectangle's)."""
     if wall == 'stone_white':
         # (the white stone carried on down where the ground falls away -- 대우관's wings, reference/대우관_측면_2012.jpg
         # -- over a granite course at the foot of the ground floor)
         mb.prism(offset_poly(poly, 0.25), -4, plinth - 0.35, 'stone_white')
         mb.prism(offset_poly(poly, 0.3), plinth - 0.35, plinth, 'stone_granite', 'stone_granite')
         return
-    mb.prism(offset_poly(poly, 0.25), -4, plinth - 0.3, wall)
-    mb.prism(offset_poly(poly, 0.33), plinth - 0.3, plinth, 'stone_trim', 'stone_trim')
+    if gap is None:
+        mb.prism(offset_poly(poly, 0.25), -4, plinth - 0.3, wall)
+        mb.prism(offset_poly(poly, 0.33), plinth - 0.3, plinth, 'stone_trim', 'stone_trim')
+        return
+    k, s0, s1, zg = gap
+    for off, za, zb, mat, top in ((0.25, -4, plinth - 0.3, wall, None), (0.33, plinth - 0.3, plinth, 'stone_trim', 'stone_trim')):
+        q = offset_poly(poly, off)
+        cap = []
+        for i in range(len(q)):
+            a, b = q[i], q[(i + 1) % len(q)]
+            cap.append(a)
+            if i != k:
+                mb.face([(a[0], a[1], za), (b[0], b[1], za), (b[0], b[1], zb), (a[0], a[1], zb)], mat)
+                continue
+            P, Le, t, n = edge_P(a, b)
+            g0, g1, z_ = s0 + off, s1 + off, max(za, zg)    # (the mitred corner adds off at each end of the side)
+            mb.quad(P(0, za), P(g0, za), P(g0, zb), P(0, zb), mat)
+            mb.quad(P(g1, za), P(Le, za), P(Le, zb), P(g1, zb), mat)
+            if z_ > za:
+                mb.quad(P(g0, za), P(g1, za), P(g1, z_), P(g0, z_), mat)
+            cap += [P(g0, 0)[:2], P(g0, 0, -off)[:2], P(g1, 0, -off)[:2], P(g1, 0)[:2]]
+        if top:
+            mb.face([(p[0], p[1], zb) for p in cap], top)
 
 
 def basement_windows(mb, P, s0, s1, bay, plinth, gfn, wall, ww=0.5):
@@ -1727,17 +1749,20 @@ def hall_door(mb, P, sc, zd, door, depth, wall='stone_rubble'):
 
 def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pitch=0.5, door_group=None, porch=None,
                bays=None, back=(), chimney=None, door=None, stairs=None, floors=2, plinth=1.3, basement=True,
-               dormers=(), end_wins=None, z0=None, rect_fp=None, extra=None):
+               dormers=(), end_wins=None, z0=None, rect_fp=None, extra=None, attic=None, end_bay=None, rear=None):
     """스팀슨관 · 아펜젤러관 (see above), 성암관 and 교육관.  groups: the front's window groups (s0, s1, lights) on every
     floor, s along the front from its left end seen from outside; door_group: the one whose ground-floor place the front
     door takes; porch: a central entrance bay standing forward to a flat parapet a little over the eaves (스팀슨관,
     성암관), or, with top under the eaves, a lower one the wall above it carries on over (교육관); bays: canted bays
     standing forward through both floors to curved coped parapets (아펜젤러관); back: extra groups of the back wall
-    (in the place of the porch or bays); chimney: dict(at=(x, y) local, h=its top over the ridge).  floors over a
+    (in the place of the porch or bays); chimney: dict(at=(x, y) local, h=its top over the ridge, sky=(x, y): a
+    skylight on the back slope).  floors over a
     plinth (basement: a half-sunk storey with low windows under it), dormers: long shed dormers (x0, x1, lights) in
     the local x on both slopes, end_wins: {edge: [(g0, g1, lights, floor)]} for the gable ends (1: the +x end, 3: the
-    -x end; g along the edge from its front corner), z0: the floor level, rect_fp: the main block's corners when the
-    outline takes in a bay, extra(mb, iv, frame): further parts in the local frame."""
+    -x end; g along the edge from its first corner), attic: {edge: (g, width, z0, z1)} a single light in the gable
+    (z over the wall top), end_bay: a canted bay standing out of a gable end (스팀슨관's south end), rear: the stair
+    window over the back door in the middle of the back wall (스팀슨관, 아펜젤러관), z0: the floor level, rect_fp: the
+    main block's corners when the outline takes in a bay, extra(mb, iv, frame): further parts in the local frame."""
     cx, cy, L, W, ang, z0_ = frame_for(dict(b, footprint=rect_fp) if rect_fp else b, front)
     stairs = dict(dict(width=3.6, wl=None, rise=1.3, cheeks=True, lamps=False), **(stairs or {}))
     door = dict(dict(w=2.2, arch='tudor', spring=1.9, style='panel', rec=0.6), **(door or {}))
@@ -1752,7 +1777,16 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
     eave = 0.4
     fl = [(plinth + f * fh + LIGHTS[min(f, 1)][0], plinth + f * fh + LIGHTS[min(f, 1)][1]) for f in range(floors)]
     body = rect(L, W)
-    stone_base(mb, body, plinth, wall)
+    rd = None
+    if rear:
+        # the back door, in the middle of the back wall (s from its +x end), at the stair's landing half a storey
+        # under the ground floor, a riser or two over the yard behind
+        P2 = edge_P(body[2], body[3])[0]
+        dw, dh = rear['door']
+        g = max(gl(*P2(L / 2 + o, 0, 1.0)[:2]) for o in (-dw / 2 - 0.4, 0.0, dw / 2 + 0.4))
+        zr0 = min(max(plinth + rear['zd'], g + 0.03), plinth - 0.35)
+        rd = (L / 2 - dw / 2, L / 2 + dw / 2, zr0, zr0 + dh, g)
+    stone_base(mb, body, plinth, wall, gap=(2, rd[0], rd[1], rd[2]) if rd else None)
     rz = lambda t: math.atan2(t.y, t.x)
 
     def windows(P, wins, holes, s0=-1e9, s1=1e9):
@@ -1786,6 +1820,39 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
         if ivy:
             ivy_patch(iv, P, s0, s1, 0, z1, 5.5, seed, cover=ivy, holes=holes, top=top)
 
+    def rear_middle(P, holes, ivh):
+        """The middle of the back wall (the 2013 survey's rear elevations, in 안대환 2016): the stair's lights, three
+        tall ones at the landing between the floors (and on 아펜젤러관 three low ones under the eaves at the next),
+        over the back door; a small window either side of the door under one lintel; steps down to the yard."""
+        a, b, zr0, zr1, g = rd
+        c, hw = (a + b) / 2, rear['w'] / 2
+        for zs, zh in rear['lights']:
+            light_group(mb, P, c - hw, c + hw, plinth + zs, plinth + zh, 3)
+            holes.append((c - hw, c + hw, plinth + zs, plinth + zh))
+        sw, sh = rear['side']
+        for s in (a - 0.3 - sw, b + 0.3):
+            light_group(mb, P, s, s + sw, zr1 - sh, zr1, 1, depth=0.25)
+            holes.append((s, s + sw, max(zr1 - sh, plinth), zr1))
+        holes.append((a, b, plinth, zr1))
+        ivh.append((c - hw - 0.3, c + hw + 0.3, -1.0, plinth + rear['lights'][-1][1] + 0.3))
+        reveal(mb, lambda s, z, d=0.0: P(s, z, d + 0.33), a, b, zr0, zr1, 0.63, 'stone_trim')
+        for s0_, s1_ in ((a - 0.2, a - 0.002), (b + 0.002, b + 0.2)):           # the door's stone jambs
+            bar(mb, P, (s0_ + s1_) / 2, zr0 - 0.05, (s0_ + s1_) / 2, zr1, s1_ - s0_, 0.0, 0.34, 'stone_trim')
+        bar(mb, P, a - 0.45 - sw, zr1 + 0.16, b + 0.45 + sw, zr1 + 0.16, 0.3, 0.0, 0.36, 'stone_trim', ends=True)
+        zt = zr1 - 0.42                                     # a boarded door under a transom light
+        mb.quad(P(a, zr0, -0.3), P(b, zr0, -0.3), P(b, zt, -0.3), P(a, zt, -0.3), 'wood_dark')
+        mb.quad(P(a, zt, -0.3), P(b, zt, -0.3), P(b, zr1, -0.3), P(a, zr1, -0.3), 'glass', panes=(1, 1))
+        bar(mb, P, a, zt, b, zt, 0.08, -0.3, -0.24, 'frame_dark')
+        for k in range(1, 4):
+            s = a + (b - a) * k / 4
+            bar(mb, P, s, zr0 + 0.05, s, zt - 0.04, 0.025, -0.3, -0.285, 'frame_dark')
+        n = int(math.ceil((zr0 - g - 0.08) / 0.17))
+        ang_ = rz(Vector(P(1, 0)) - Vector(P(0, 0)))
+        for k in range(n):                                  # (granite steps, each one tread further out)
+            zt_, zb_ = zr0 - k * (zr0 - g) / n, g - 0.25
+            dd = 0.34 + 0.32 * (k + 1)
+            mb.box(P(c, (zt_ + zb_) / 2, dd / 2), (b - a + 0.7, dd, zt_ - zb_), 'stone_step', rotz=ang_, skip=('bottom',))
+
     # --- the four walls
     hidden = []                                # front spans the porch or the bays stand in front of
     low_porch = bool(porch) and porch.get('top') is not None and porch['top'] < Hw
@@ -1803,7 +1870,19 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
             wall_holes(mb, P, 0, Le, plinth, Hw, wall, holes)
             rl = lambda s, Le=Le: Hw + (Le / 2 - abs(s - Le / 2)) * pitch        # the roof's top over the wall line
             pr = 0.32                                                            # the parapet over the roof
-            mb.face([P(0, Hw), P(Le, Hw), P(Le, Hw + pr), P(Le / 2, hz + pr), P(0, Hw + pr)], wall)
+            if (attic or {}).get(i):
+                # a single light high in the gable (the attic storey's, or a vent), the gable round it in pieces
+                g, aw, za, zb = attic[i]
+                a_, b_, za, zb = g - aw / 2, g + aw / 2, Hw + za, Hw + zb
+                sl = lambda z: (z - Hw - pr) / pitch                             # where the coping line is at z
+                light_group(mb, P, a_, b_, za, zb, 1)
+                holes.append((a_, b_, za, zb))
+                mb.face([P(0, Hw), P(Le, Hw), P(Le, Hw + pr), P(Le - sl(za), za), P(sl(za), za), P(0, Hw + pr)], wall)
+                mb.face([P(sl(za), za), P(a_, za), P(a_, zb), P(sl(zb), zb)], wall)
+                mb.face([P(b_, za), P(Le - sl(za), za), P(Le - sl(zb), zb), P(b_, zb)], wall)
+                mb.face([P(sl(zb), zb), P(Le - sl(zb), zb), P(Le / 2, hz + pr)], wall)
+            else:
+                mb.face([P(0, Hw), P(Le, Hw), P(Le, Hw + pr), P(Le / 2, hz + pr), P(0, Hw + pr)], wall)
             mb.quad(P(Le / 2, hz, -0.42), P(0, Hw, -0.42), P(0, Hw + pr, -0.42), P(Le / 2, hz + pr, -0.42), wall)
             mb.quad(P(Le, Hw, -0.42), P(Le / 2, hz, -0.42), P(Le / 2, hz + pr, -0.42), P(Le, Hw + pr, -0.42), wall)
             ce = eave * pitch
@@ -1829,8 +1908,11 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
                 holes.append((dh[0], dh[1], -1.0, dh[2]))
                 ivh.append(dhole)
         else:
-            wins = [(g0, g1, nl, f) for g0, g1, nl in list(groups) + list(back) for f in range(floors)]
+            wins = [(g0, g1, nl, f) for g0, g1, nl in list(groups) + list(back) for f in range(floors)
+                    if not (rd and i == 2 and g1 > rd[0] - 0.5 and g0 < rd[1] + 0.5)]
             spans = [(0.0, Le)]
+            if rd and i == 2:
+                rear_middle(P, holes, ivh)
         for s0, s1 in spans:
             windows(P, wins, holes, s0, s1)
         for s0, s1 in spans:
@@ -1848,18 +1930,35 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
         mb.box((0, sg * (W / 2 + eave - 0.04), ze - 0.05), (L, 0.08, 0.12), 'roof_slate')      # fascia
         oface(mb, [(-L / 2, sg * W / 2, ze - 0.02), (L / 2, sg * W / 2, ze - 0.02), (L / 2, sg * (W / 2 + eave), ze - 0.02),
                    (-L / 2, sg * (W / 2 + eave), ze - 0.02)], 'stone_trim', (0, 0, -1))         # soffit
-    if chimney:                                # a tall pale chimney behind the ridge (스팀슨관, left of the porch)
+    if chimney:
+        # 스팀슨관's dressed-stone chimney astride the ridge, left of the porch (reference/스팀슨관_정면_2016.jpg and
+        # 스팀슨관_측면_2016.jpg; from the back road its foot meets the ridge, the 2010 / 2011 roadview; 10.5 m from the
+        # south end in the 2013 survey's attic plan): a broad base on the ridge, a square shaft, a moulded cap and a
+        # low domed top, its top ~3 m over the ridge
         x, y = chimney['at']
         zt_ = hz + chimney['h']
-        zb_ = Hw + (W / 2 - abs(y)) * pitch - 0.4
-        mb.box((x, y, (zb_ + zt_ - 0.75) / 2), (1.2, 0.9, zt_ - 0.75 - zb_), 'stone_trim', skip=('bottom',))
-        mb.box((x, y, zt_ - 0.6), (1.4, 1.1, 0.3), 'stone_trim', skip=('bottom',))
-        for (p, q) in (((-1, -1), (1, -1)), ((1, -1), (1, 1)), ((1, 1), (-1, 1)), ((-1, 1), (-1, -1))):
-            mb.face([(x + p[0] * 0.7, y + p[1] * 0.55, zt_ - 0.45), (x + q[0] * 0.7, y + q[1] * 0.55, zt_ - 0.45),
-                     (x + q[0] * 0.15, y + q[1] * 0.15, zt_ - 0.1), (x + p[0] * 0.15, y + p[1] * 0.15, zt_ - 0.1)], 'stone_trim')
-        mb.face([(x - 0.15, y - 0.15, zt_ - 0.1), (x + 0.15, y - 0.15, zt_ - 0.1), (x + 0.15, y + 0.15, zt_ - 0.1),
-                 (x - 0.15, y + 0.15, zt_ - 0.1)], 'stone_trim')
-        mb.cylinder((x, y), 0.15, zt_ - 0.15, zt_, 'stone_trim', seg=8)
+        zb_ = hz - (0.6 + abs(y)) * pitch - 0.15
+        z1, z2 = hz + 0.45, zt_ - 0.85
+        mb.box((x, y, (zb_ + z1) / 2), (1.2, 1.2, z1 - zb_), 'stone_trim', skip=('bottom',))
+        mb.box((x, y, (z1 + z2) / 2), (0.8, 0.8, z2 - z1), 'stone_trim', skip=('bottom', 'top'))
+        mb.box((x, y, z2 + 0.06), (0.92, 0.92, 0.12), 'stone_trim', skip=('bottom',))
+        mb.box((x, y, z2 + 0.25), (1.05, 1.05, 0.26), 'stone_trim', skip=('bottom',))
+        ring = [(0.0, 0.46), (0.17, 0.42), (0.33, 0.3), (0.43, 0.14), (0.48, 0.0)]     # the dome: (rise, radius)
+        oc = [(math.cos(math.pi / 8 + math.pi / 4 * k), math.sin(math.pi / 8 + math.pi / 4 * k)) for k in range(8)]
+        zd_ = z2 + 0.38
+        for (h0_, r0_), (h1_, r1_) in zip(ring, ring[1:]):
+            for (c0, s0_), (c1, s1_) in zip(oc, oc[1:] + oc[:1]):
+                mb.face([(x + r0_ * c0, y + r0_ * s0_, zd_ + h0_), (x + r0_ * c1, y + r0_ * s1_, zd_ + h0_),
+                         (x + r1_ * c1, y + r1_ * s1_, zd_ + h1_), (x + r1_ * c0, y + r1_ * s0_, zd_ + h1_)][:4 if r1_ else 3],
+                        'stone_trim', smooth='chimney_dome')
+        if chimney.get('sky'):                 # a small skylight on the back slope below it
+            sx, sy = chimney['sky']
+            zr_ = lambda yy: hz - yy * pitch + 0.06
+            mb.face([(sx - 0.35, sy - 0.45, zr_(sy - 0.45)), (sx + 0.35, sy - 0.45, zr_(sy - 0.45)),
+                     (sx + 0.35, sy + 0.45, zr_(sy + 0.45)), (sx - 0.35, sy + 0.45, zr_(sy + 0.45))], 'metal_dark')
+            mb.face([(sx - 0.28, sy - 0.38, zr_(sy - 0.38) + 0.01), (sx + 0.28, sy - 0.38, zr_(sy - 0.38) + 0.01),
+                     (sx + 0.28, sy + 0.38, zr_(sy + 0.38) + 0.01), (sx - 0.28, sy + 0.38, zr_(sy + 0.38) + 0.01)],
+                    'glass_reflect')
     y_face = -W / 2
     if porch:
         # 스팀슨관's entrance bay: rubble, the door in an ashlar surround, three lights over it (a wide one between two
@@ -1939,6 +2038,41 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
         for xi, xo, sg in ((inset[0][0], x0, -1), (inset[3][0], x1, 1)):
             oface(mb, [(xi, -W / 2, Hw), (xo, -W / 2, Hw), (xo, -W / 2, ztw), (xi, -W / 2, ztw)], wall, (0, 1, 0))
             oface(mb, [(xi, -W / 2, Hw), (xi, -W / 2, zr), (xi, y_r, zr)], wall, (sg, 0, 0))
+    if end_bay:
+        # 스팀슨관's south end (reference/스팀슨관_측면_2016.jpg, the 2010 roadview, the 2013 survey's plans): a canted
+        # bay in the middle of the gable through both floors, two lights in front and one in each angled side, a
+        # moulded band over the upper lights and a coped parapet about the height of the eaves, a carved shield on
+        # its front; the flat roof behind it runs back to the gable
+        eb = end_bay
+        sg = 1 if eb['edge'] == 1 else -1
+        xw, h0, h1, fw, pj = sg * L / 2, -eb['span'] / 2, eb['span'] / 2, eb['front'] / 2, eb['proj']
+        Q = ([(xw, h0), (xw + pj, -fw), (xw + pj, fw), (xw, h1)] if sg > 0 else
+             [(xw, h1), (xw - pj, fw), (xw - pj, -fw), (xw, h0)])
+        zt, zr, zb = Hw + eb.get('top', 0.1), Hw - 0.45, Hw - 0.8
+        stone_base(mb, Q, plinth, wall)
+        for k in range(3):
+            P, Le, t, n = edge_P(Q[k], Q[k + 1])
+            holes = []
+            if k == 1:
+                m_ = (Le - 2 * eb['light'] - 0.3) / 2
+                windows(P, [(m_, Le - m_, 2, f, None, 0.3) for f in range(floors)], holes)
+            else:
+                windows(P, [(Le / 2 - eb['side'] / 2, Le / 2 + eb['side'] / 2, 1, f) for f in range(floors)], holes)
+            wall_holes(mb, P, 0, Le, plinth, zt, wall, holes)
+            mb.quad(P(Le, zr, -0.3), P(0, zr, -0.3), P(0, zt, -0.3), P(Le, zt, -0.3), wall)     # (the parapet's inside)
+            bar(mb, P, -0.06, zt + 0.06, Le + 0.06, zt + 0.06, 0.16, -0.36, 0.08, 'stone_trim')  # coping
+            bar(mb, P, -0.06, zb, Le + 0.06, zb, 0.24, 0.0, 0.12, 'stone_trim')                  # the band
+            if k == 1:                                      # the shield
+                sh = [(-0.24, -0.05), (0.0, -0.32), (0.24, -0.05), (0.24, 0.28), (-0.24, 0.28)]   # (anticlockwise)
+                zc_ = (zb + zt) / 2 + 0.03
+                mb.face([P(Le / 2 + u, zc_ + v, 0.07) for u, v in sh], 'stone_trim')
+                for p, q in zip(sh, sh[1:] + sh[:1]):
+                    mb.quad(P(Le / 2 + q[0], zc_ + q[1], 0.07), P(Le / 2 + p[0], zc_ + p[1], 0.07),
+                            P(Le / 2 + p[0], zc_ + p[1], 0.0), P(Le / 2 + q[0], zc_ + q[1], 0.0), 'stone_trim')
+            ivy_wall(P, 0, Le, zb, holes, 61 + k)
+        inset = offset_poly(Q, -0.3)
+        inset[0], inset[3] = (xw, inset[0][1]), (xw, inset[3][1])
+        mb.face([(p[0], p[1], zr) for p in inset], 'roof_flat')
     # entrance steps: porch, granite flights with a landing, rubble side walls and capped posts
     if stairs.get('side'):                     # a landing before the door and one flight down along the wall
         side_steps(mb, y_face, zd, gl, stairs['side'], (porch['s1'] - porch['s0']) / 2 + 0.4 if porch else stairs['width'] / 2 + 0.6,
@@ -2108,10 +2242,16 @@ GYOYUK_FLOOR = 53.0     # 교육관's floor: the drive along its west side and t
 
 def stimson():
     """스팀슨관 (1920), from reference/스팀슨관_정면_2016.jpg (~36.7 px/m along its 32.5 m front): three groups of three
-    lights either side of a 5.6 m entrance bay standing 0.9 m forward, 1.15 m of wall between the groups; a tall
-    chimney left of and behind the bay, ~3 m over the ridge."""
+    lights either side of a 5.6 m entrance bay standing 0.9 m forward, 1.15 m of wall between the groups.  The back
+    and the ends from reference/스팀슨관_측면_2016.jpg, the Dec. 2010 / Apr. 2011 roadview (panoramas 1016786678 -
+    1016786685 on the walk past the front and the ends, 1016786048 - 1016786051 on the road behind) and the 2013
+    survey's plans and rear elevation (in 안대환 2016, reference/고증.md 3.5): the back has the front's groups and, in
+    the porch's place, the stair's tall lights over the back door; the south end a canted bay in the middle with a
+    single light either side on both floors and a vent over the bay, the north end a light in the middle and one
+    2.6 m from each corner on the ground floor (two on the upper, the hall's) and a tall narrow light in the gable;
+    the chimney astride the ridge 10.5 m from the south end, ~3 m over it."""
     b = bld(246156118)
-    L = frame_for(b, (1.0, -0.27))[2]
+    L, W = frame_for(b, (1.0, -0.27))[2:4]
     gw, pier, gap, pw = 3.15, 1.15, 0.35, 5.6
     groups = []
     for sg in (-1, 1):
@@ -2120,25 +2260,39 @@ def stimson():
             g = sorted((L / 2 + sg * a, L / 2 + sg * (a + gw)))
             groups.append((g[0], g[1], 3))
     groups.sort()
+    one = lambda g, f: (g - 0.5, g + 0.5, 1, f)                    # a single light, 1 m wide
+    ends = {1: [one(2.6, 0), one(W / 2, 0), one(W - 2.6, 0), one(2.6, 1), one(W - 2.6, 1)],
+            3: [one(g, f) for g in (2.5, W - 2.5) for f in (0, 1)]}
     return stone_hall('stimson', b, (1.0, -0.27), groups, ivy=0.8,
                       porch=dict(s0=L / 2 - pw / 2, s1=L / 2 + pw / 2, proj=0.9, parapet=0.8, win=(2.3, [0.45, 1.0, 0.45])),
-                      back=[(L / 2 - gw / 2, L / 2 + gw / 2, 3)], chimney=dict(at=(-5.8, 0.6), h=3.1),
+                      chimney=dict(at=(-5.8, 0.0), h=3.0, sky=(-5.8, 2.3)), end_wins=ends,
+                      attic={1: (W / 2, 0.7, 0.4, 1.75), 3: (W / 2, 0.75, 0.35, 1.2)},
+                      end_bay=dict(edge=3, span=4.9, front=3.0, proj=0.95, light=0.95, side=0.62, top=0.1),
+                      rear=dict(w=3.3, lights=[(3.05, 6.45)], door=(0.95, 2.4), zd=-0.94, side=(0.85, 1.15)),
                       stairs=dict(width=3.6, wl=4.8), door=dict(w=2.2, spring=1.9, style='panel', rec=0.5))
 
 
 def appenzeller():
     """아펜젤러관 (1924), from reference/아펜젤러관_정면_2016.jpg (~40 px/m along its 34.6 m front): five groups of three
     lights 0.6 m apart in the middle, the front door under the middle one; canted bays 4.3 m wide, 2.3 m in from the
-    ends."""
+    ends.  The back and the ends from the Dec. 2010 roadview (panoramas 1016786661 - 1016786668 and 1016786076,
+    reference/아펜젤러관_측면_2016.jpg) and the 2013 survey's plans and rear elevation (in 안대환 2016, reference/고증.md
+    3.5): the back has the front's five groups with the stair's lights and the back door in the middle one's place,
+    and a group 4 m from each end; each end two lights, three and two on both floors and a tall light in the gable
+    (the attic storey's)."""
     b = bld(246156116)
-    L = frame_for(b, (-1.0, 0.27))[2]
+    L, W = frame_for(b, (-1.0, 0.27))[2:4]
     gw, pier = 3.2, 0.6
     s0 = L / 2 - (5 * gw + 4 * pier) / 2
     groups = [(s0 + k * (gw + pier), s0 + k * (gw + pier) + gw, 3) for k in range(5)]
     at = [(2.3, 6.6), (L - 6.6, L - 2.3)]
+    end = [w for f in (0, 1) for w in ((W / 2 - 5.05, W / 2 - 2.95, 2, f), (W / 2 - 1.6, W / 2 + 1.6, 3, f),
+                                        (W / 2 + 2.95, W / 2 + 5.05, 2, f))]
     return stone_hall('appenzeller', b, (-1.0, 0.27), groups, ivy=1.1, door_group=2,
                       bays=dict(at=at, front=3.0, proj=0.75),
-                      back=[((a + b_) / 2 - gw / 2, (a + b_) / 2 + gw / 2, 3) for a, b_ in at],
+                      back=[(c - gw / 2, c + gw / 2, 3) for c in (4.0, L - 4.0)], end_wins={1: end, 3: end},
+                      attic={1: (W / 2, 0.9, 0.4, 2.0), 3: (W / 2, 0.9, 0.4, 2.0)},
+                      rear=dict(w=3.2, lights=[(2.55, 4.65), (5.6, 6.5)], door=(0.97, 2.5), zd=-1.08, side=(0.84, 0.65)),
                       stairs=dict(width=3.8, wl=5.0), door=dict(w=2.2, spring=1.9, style='panel', rec=0.6))
 
 
