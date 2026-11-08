@@ -1023,5 +1023,6 @@
  "canvas_green": {"color": [0.06, 0.24, 0.17], "rough": 0.9, "side": "double"},
  "paint_black": {"color": [0.03, 0.03, 0.03], "rough": 0.6},
  "notice_posters": {"image": "notice_posters.png", "rough": 0.85},
- "stone_haetae": {"weather": 0.4, "tex": "granite_tile", "tile": 0.9, "tint": [1.62, 1.6, 1.54], "sat": 0.3, "rough": 0.85}
+ "stone_haetae": {"weather": 0.4, "tex": "granite_tile", "tile": 0.9, "tint": [1.62, 1.6, 1.54], "sat": 0.3, "rough": 0.85},
+ "stone_boulder": {"_doc": "weathered grey granite boulders (상뜰 서쪽 차로 둑, landmarks.sang_stone_bank)", "weather": 0.45, "tex": "granite_tile", "tile": 0.7, "tint": [2.05, 2.03, 1.97], "sat": 0.25, "rough": 0.9}
 }

@@ -1282,6 +1282,37 @@ _w = np.clip(_w, 0, 1)                         # (the nodes under the wings too,
 DW_APRON = round(DAEWOO['floor'] - 0.15, 2)
 Hn[_jj, _ii] = Hn[_jj, _ii] * (1 - _w) + DW_APRON * _w
 print('daewoo sides apron', DW_APRON, 'nodes', int((_w > 0).sum()))
+# 상뜰's west drive (OSM 6 m service road, (71.8, 436.3) -> (66.6, 414.3)): Kakao roadview of August 2008 (pano 2381737,
+# on the drive abreast of the 상뜰's west lawn; 2026 the same stones) shows the lawn along its east side held up by a
+# bank of natural boulders behind the granite kerb, shrubs between them, from the mouth of the 상뜰's west walk to the
+# corner where the footway to 연희관 leaves, and on round it.  Read off the panorama (camera 2.5 m up, from a passer-by):
+# 0.6 - 0.7 m high at the walk, 0.8 - 1.0 m at the corner; one or two courses of grey boulders 0.5 - 1 m long.
+# The 5 m grid cannot hold a bank: blender/landmarks.py sang_stone_bank builds the boulders on the kerb line and a
+# grass berm behind them at the top.  pts: [x, y on the line behind the kerb (the lawn on the left going along),
+# x, y of the drive's edge there (the bank stands that high over it), height]
+_kd, _ke = np.array([-0.2301, -0.9732]), np.array([0.9732, -0.2301])     # the drive southwards, its east side
+_fd, _fn = np.array([0.9685, -0.2491]), np.array([0.2491, 0.9685])       # the footway eastwards, its north side
+_kc0 = np.array([71.8, 436.3])                                           # the drive's middle at the walk
+_kQ = np.array([70.04, 414.96])           # where the kerb lines (3.2 m out of the drive, 1.5 m out of the footway) meet
+_kr = 2.4
+_kt = _kr * math.tan(math.acos(float(_kd @ _fd)) / 2)                    # the corner rounded, radius _kr
+_kO = _kQ - _kd * _kt + _ke * _kr                                        # (the arc's centre, on the lawn side)
+_kb = []
+_s_end = float((_kQ - _kd * _kt - _kc0 - _ke * 3.2) @ _kd)
+for _s in np.linspace(2.0, _s_end, int(round(_s_end - 2.0)) + 1):        # along the drive, from the walk's mouth
+    _c = _kc0 + _kd * _s
+    _kb.append([*(_c + _ke * 3.2), *(_c + _ke * 2.8), 0.6 + 0.4 * (_s - 2.0) / (_s_end - 2.0)])
+_a0, _a1 = math.atan2(*(-_ke)[::-1]), math.atan2(*(-_fn)[::-1])
+for _k in range(1, 4):                                                   # round the corner
+    _a = _a0 + (((_a1 - _a0 + math.pi) % (2 * math.pi)) - math.pi) * _k / 4
+    _p = _kO + _kr * np.array([math.cos(_a), math.sin(_a)])
+    _kb.append([*_p, *(_p + (_p - _kO) / _kr * 0.4), 1.0])
+for _t in np.linspace(0.0, 4.0, 5):                                      # and on along the footway
+    _p = _kQ + _fd * (_kt + _t)
+    _kb.append([*_p, *(_p - _fn * 0.4), 1.0])
+DAEWOO['bank'] = [[round(float(v), 2) for v in q] for q in _kb]
+print('상뜰 west drive boulder bank: %d points, %.1f m'
+      % (len(_kb), sum(math.dist(a_[:2], b_[:2]) for a_, b_ in zip(_kb, _kb[1:]))))
 
 buildings = []
 campus_polys = []

@@ -3194,6 +3194,105 @@ def daewoo_front(mb, zT, zP, u0, u1, uc=23.55, vp=-17.0):
         lamp_post(mb, uc + sg * (hp + sw + 1.2), vp - 1.6, h=3.4, z=zP - 0.04 * 1.6)
 
 
+def sang_stone_bank(pts):
+    """The bank of natural boulders along the 상뜰's west drive (tools/build_campus.py DAEWOO['bank'], Kakao roadview of
+    August 2008): grey boulders 0.6 - 1.1 m long right behind the granite kerb, one course where the bank is low and a
+    second set back on it where it is higher, small clipped shrubs between them, and a grass berm behind at the top,
+    walked on, falling back to the lawn.  pts: [x, y behind the kerb (the lawn on the left going along), x, y of the
+    drive's edge there (the bank's height is over it), height]."""
+    rr = random.Random(8707)                     # (its own: the module's rnd keeps the other landmarks' draws)
+    mb = MeshBuilder('lm_sang_stone_bank')
+    P = [Vector((q[0], q[1])) for q in pts]
+    ref = [ground_top(q[2], q[3]) for q in pts]
+    L = [0.0]
+    for a, b in zip(P, P[1:]):
+        L.append(L[-1] + (b - a).length)
+
+    def at(s):
+        """point, left normal, top height at arc length s along the line"""
+        s = min(max(s, 0.0), L[-1] - 1e-6)
+        k = max(i for i in range(len(L) - 1) if L[i] <= s)
+        f = (s - L[k]) / max(L[k + 1] - L[k], 1e-9)
+        d = (P[k + 1] - P[k]).normalized()
+        top = (ref[k] + pts[k][4]) * (1 - f) + (ref[k + 1] + pts[k + 1][4]) * f
+        return P[k] + (P[k + 1] - P[k]) * f, Vector((-d.y, d.x)), top
+
+    def boulder(c, nrm, ln, dp, z0, z1, key):
+        """a rough, rounded grey boulder: c its foot's middle, long side along the line (across nrm), flattish on top"""
+        yaw = rr.uniform(-0.3, 0.3)
+        t0 = Vector((nrm.y, -nrm.x))
+        t, nr = t0 * math.cos(yaw) + nrm * math.sin(yaw), nrm * math.cos(yaw) - t0 * math.sin(yaw)
+        seg, rings = 10, 4
+        jit = [[1 + rr.uniform(-0.2, 0.2) for _ in range(seg)] for _ in range(rings + 1)]
+        tilt = rr.uniform(-0.15, 0.15)
+        Q = []
+        for j in range(rings + 1):
+            th = (math.pi / 2) * j / rings                       # foot ring (sunk) -> crown
+            row = []
+            for i in range(seg):
+                ph = 2 * math.pi * i / seg
+                r = jit[j][i] * (1.0 if j < rings else 0.0) * (1.0 if j < rings - 1 else 0.8)
+                cx, cy = 0.5 * ln * r * math.cos(th) * math.cos(ph), 0.5 * dp * r * math.cos(th) * math.sin(ph)
+                cz = z0 + (z1 - z0) * (math.sin(th) ** 0.55) * (1 + 0.08 * (jit[j][(i + 3) % seg] - 1)) + tilt * cx
+                p = c + t * cx + nr * cy
+                row.append((p.x, p.y, cz))
+            Q.append(row)
+        for j in range(rings):
+            for i in range(seg):
+                k = (i + 1) % seg
+                mb.face([Q[j][i], Q[j][k], Q[j + 1][k], Q[j + 1][i]], 'stone_boulder', smooth=key)
+
+    n = 0
+    s = 0.2
+    while s < L[-1] - 0.3:
+        ln = rr.uniform(0.6, 1.1)
+        p, nrm, top = at(s + ln / 2)
+        g = ground_top(p.x, p.y)
+        H = max(0.35, top - g)
+        dp = rr.uniform(0.5, 0.8)
+        h1 = min(H + 0.06, rr.uniform(0.38, 0.58))               # the front course
+        boulder(p + nrm * (0.08 + dp / 2), nrm, ln, dp, g - 0.12, g + h1, 'bk%d' % n)
+        if H > h1 + 0.12:                                        # a second course, set back on it, up to the top
+            n += 1
+            p2, nrm2, top2 = at(s + ln * rr.uniform(0.3, 0.9))
+            boulder(p2 + nrm2 * (0.45 + dp / 2), nrm2, rr.uniform(0.55, 0.95), dp * 0.9, g + h1 * 0.5 - 0.1,
+                    top2 + rr.uniform(-0.04, 0.05), 'bk%d' % n)
+        if rr.random() < 0.3:                                    # a small clipped shrub between the boulders
+            q = p + nrm * rr.uniform(0.6, 0.95) + Vector((nrm.y, -nrm.x)) * (ln / 2)
+            r = rr.uniform(0.22, 0.38)
+            mb.sphere((q.x, q.y, top - 0.05 + r * 0.3), r, 'shrub_green', seg=8, rings=5, sz=0.75)
+        n += 1
+        s += ln * rr.uniform(0.8, 0.92)
+    # the berm behind: level at the top just past the boulders, then falling back to the lawn (and walked on)
+    K = max(2, int(L[-1] / 1.0))
+    offs = [0.1, 0.6, 1.1, 1.7, 2.3, 2.9, 3.5, 4.1, 4.7, 5.3]
+
+    turn = [0.0] * len(P)                                        # the radius the line bends round at each point
+    for i in range(1, len(P) - 1):
+        d0, d1 = (P[i] - P[i - 1]).normalized(), (P[i + 1] - P[i]).normalized()
+        ang = abs(math.atan2(d0.x * d1.y - d0.y * d1.x, d0.dot(d1)))
+        turn[i] = (L[i + 1] - L[i - 1]) / 2 / ang if ang > 0.02 else 1e9
+    turn = [t if t else 1e9 for t in turn]
+
+    def berm(s, o):
+        p, nrm, top = at(s)
+        room = min(turn[i] for i in range(len(P)) if abs(L[i] - s) < 2.0)
+        far = o >= offs[-1] or o > room - 0.4                    # (the far edge on the lawn; inside a bend, short)
+        q = p + nrm * min(o, max(0.6, room - 0.4))
+        z = -1e9 if far else top - max(0.0, o - 1.1) * 0.55
+        return (q.x, q.y, max(z, ground_top(q.x, q.y) + 0.02))
+    for k in range(K):
+        sa, sb = L[-1] * k / K, L[-1] * (k + 1) / K
+        for oa, ob in zip(offs, offs[1:]):
+            qd = [berm(sa, oa), berm(sb, oa), berm(sb, ob), berm(sa, ob)]
+            if all(z - ground_top(x, y) < 0.04 for x, y, z in qd):
+                continue                                         # (on the lawn already: the terrain does)
+            mb.face(qd, 'grass', smooth='bank_berm')
+            WALK_FACES.append([tuple(v) for v in qd])
+    print('상뜰 boulder bank: %d boulders over %.1f m' % (n, L[-1]))
+    return mb
+
+
 def daewoo_rear(mb, P, Le, plinth, floors, fh, Hw, wall):
     """The back of 대우관 (Google Street View 2009-11, from the drive behind it; the hall dates from 1996): none of the
     buttresses and battlements of the old halls but a plain coped parapet with the slate roof behind; single windows
@@ -3382,6 +3481,8 @@ def daewoo():
     st = lv.get('stair')
     if st:
         out.append(garden_flight(st, wall='stone_granite'))
+    if lv.get('bank'):                                   # the boulder bank along the 상뜰's west drive (issue #87)
+        out.append(sang_stone_bank(lv['bank']))
     return out
 
 
