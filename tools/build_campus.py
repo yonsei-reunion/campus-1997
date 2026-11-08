@@ -203,16 +203,19 @@ def along_raw(s, off):
     n_ = math.hypot(tx, ty)
     return p.x - ty / n_ * off, p.y + tx / n_ * off, math.atan2(ty, tx)
 
-# Height profile along 백양로 (issue #8).  The elevation tiles are a surface model (roofs and tree crowns in it) and
-# the 5 m grid smears the hall blocks and the wooded hill behind 언더우드관 down onto the road: sampled along it, the
-# road stayed flat for 100 m in from the gate, then climbed 20.6 m to the 삼거리, 11.6 of them in the last 110 m.
-# The designers of the 2015 rebuilding (Annual Technical Report(지하융복합)_2023, 2.1: 「정문에서 본관 앞 삼거리까지
-# 약 12m의 레벨 차가 있는 완만한 경사」, about 8 m of it over the 360 m of the building) drew the road before the works
-# in their long section (그림 2.5 (a), reference/고증.md): its ground line, read off column by column, rises
-# about 1.1 m in the first 50 m, runs nearly level to ~150 m and then climbs evenly (about 2.5 %) to the 삼거리.
-# So: the road gets that section, 12 m from the gate's height, and the ground around it moves with it (by the
-# difference between the section and the ground's trend across a 120 m band), fading out 50-230 m from the road;
-# beyond the 삼거리 that lowers 언더우드관's quarter, which carries its aprons, garden, statue and steps along.
+# Height profile along 백양로 (issue #8).  Sampled along the road, the 5 m grid smears the hall blocks and the wooded
+# hill behind 언더우드관 down onto it.  The designers of the 2015 rebuilding (Annual Technical Report(지하융복합)_2023,
+# 2.1: 「정문에서 본관 앞 삼거리까지 약 12m의 레벨 차가 있는 완만한 경사」, about 8 m of it over the 360 m of the
+# building; 2.2: 백양로 is 550 m from the gate) drew the road before the works in their long section (그림 2.5 (a),
+# reference/고증.md): its ground line, read off column by column, rises about 1.1 m in the first 50 m, runs nearly
+# level to ~150 m and then climbs evenly (about 2.5 %) to the 삼거리.  So: the road gets that section, 12 m from the
+# gate's height (the terrain's, ~26 m: Copernicus GLO-30 has 24.9 m on the open crossing) over B's 550 m, then on at
+# its last slope to the foot of the 삼거리 steps and the end of the line.  The 1997 and 2011 1:25000 maps have the
+# 30 m contour across the road at 292 m (the section: 31 m) and the 40 m one at 591 m, over the steps (38.9 m at
+# their foot), reference/고증.md 2.8.  The ground around moves with it (by the difference between the section and the
+# ground's trend across a 120 m band), fading out 50-230 m from the road; past the 삼거리 that lowers 언더우드관's
+# quarter (the opened surface model keeps the garden's big trees in it), which carries its aprons, garden, statue and
+# steps along.
 L = bline.length
 ss = np.arange(0, L + 0.1, 2.0)
 _dem = np.array([sample(Hn, NEAR_HALF, NEAR_STEP, *bline.interpolate(s).coords[0]) for s in ss])
@@ -220,9 +223,19 @@ H_GATE = float(ndimage.gaussian_filter1d(_dem, 12)[0])
 # 그림 2.5 (a): (fraction of the way to the 삼거리, rise in m) at the ground line's turning points
 SECTION = [(0.0, 0.0), (0.019, 0.0), (0.083, 1.14), (0.252, 1.71), (0.359, 3.43), (0.487, 5.14), (0.592, 6.86),
            (0.656, 7.43), (0.805, 9.71), (0.910, 10.86), (1.0, 12.0)]
-prof = H_GATE + np.interp(ss / L, [f for f, _ in SECTION], [d for _, d in SECTION])
+SECTION_LEN = 550.0
+_sec_k = (SECTION[-1][1] - SECTION[-2][1]) / ((SECTION[-1][0] - SECTION[-2][0]) * SECTION_LEN)   # (2.3 %)
+
+
+def section_rise(s):
+    s = np.asarray(s, float)
+    return np.where(s <= SECTION_LEN, np.interp(s / SECTION_LEN, [f for f, _ in SECTION], [d for _, d in SECTION]),
+                    SECTION[-1][1] + _sec_k * (s - SECTION_LEN))
+
+
+prof = H_GATE + section_rise(ss)
 prof = ndimage.gaussian_filter1d(prof, 6, mode='nearest')
-prof += (H_GATE + 12.0 - prof[-1]) * (ss / L) ** 2            # (keep the ends where they belong after smoothing)
+prof += (H_GATE + float(section_rise(L)) - prof[-1]) * (ss / L) ** 2      # (keep the ends where they belong after smoothing)
 _band = np.array([np.mean([sample(Hn, NEAR_HALF, NEAR_STEP, *along_raw(s, o)[:2]) for o in np.arange(-60, 61, 10)])
                   for s in ss])
 _shift = ndimage.gaussian_filter1d(prof - ndimage.gaussian_filter1d(_band, 15, mode='nearest'), 10, mode='nearest')
@@ -251,21 +264,23 @@ w = np.clip((dist - (ROAD_HALF + 4)) / 30.0, 0, 1)
 w = w * w * (3 - 2 * w)
 Hn = hline * (1 - w) + Hn * w
 
-# --- the hill north of 한경길 (연희관, 대우관, 생활과학관), 6 m down.  The elevation tiles are a radar surface model at
-# 30 m: over the wooded hill and its big halls they stand over the ground, and the 5 m grid had 연희관's door 19.5 m
-# over 한경길 behind 언더우드관, with 13 m of it one 30 % slope across the garden between them.  The photos have
-# something else: a level parterre a short flight (OSM: 5 m) over 한경길, then a bank with a broad flight up to the
-# road before 연희관 and its entrance flight, some 7 - 9 m in all (reference/연희관_정면_2023.jpg, 학교연혁_연희관.jpg,
-# 대우관_블로그_연희관과_대우관_원경.jpg).  In the 1997 aerial photo, through its fitted camera, 대우관's tower top stood
-# 18 px (6 m) and 연희관's 17 px (5.5 m) under where the game had them, while 언더우드관's roof sat right.  With the hill
-# 6 m down their eaves, gables and towers land within 2 - 4 px (about a metre), the roads either side of the garden ease from 27 % and 18 % to 14 % and 8 %, and
-# 연희관 keeps its back yard a storey over its front as before.  Full over the hill (G frame: e across, n up the
-# garden's axis from its round planter), easing in from 한경길 to the road before 연희관 (the garden takes the step,
-# YEONHUI below) and out into the woods west, east and north.
+# --- the hill north of 한경길 (연희관, 대우관, 생활과학관), 2 m down.  The elevation grid is a radar surface model at 30 m
+# (Copernicus GLO-30 with the roofs opened out; AWS Terrarium before): over the wooded hill it stands over the ground.
+# On Terrarium the 5 m grid had 연희관's door 19.5 m over 한경길 behind 언더우드관, with 13 m of it one 30 % slope across
+# the garden between them; the photos have a level parterre a short flight over 한경길, then a bank with a broad flight
+# up to the road before 연희관 and its entrance flight, some 7 - 9 m in all (reference/연희관_정면_2023.jpg,
+# 학교연혁_연희관.jpg, 대우관_블로그_연희관과_대우관_원경.jpg; YEONHUI below sets them from 한경길).  In the 1997 aerial
+# photo, through its fitted camera, 대우관's tower top and 연희관's stood 6 m under where the game had them, and the hill
+# went 6 m down.  Copernicus has the hill 0.5 - 9 m lower than Terrarium had it (대우관's site the most), and through
+# photo A's refitted camera (PHOTO_A below) the halls on it want: 생활과학관 3.5 m down, 대우관 별관 1.6 m, 대우관 4 m up
+# (each +-4 m, and 3 - 4 m either way with the camera's pitch); 2 m also keeps 연희관's front corners 3 m under its door
+# as before (reference/고증.md 3.5.1).  Full over the hill (G frame: e across, n up the garden's axis from its round
+# planter), easing in from 한경길 to the road before 연희관 (the garden takes the step, YEONHUI below) and out into the
+# woods west, east and north.
 GF_C, GF_E, GF_N = np.array([78.4, 318.3]), np.array([0.968, -0.250]), np.array([0.250, 0.968])
 GE = (X - GF_C[0]) * GF_E[0] + (Y - GF_C[1]) * GF_E[1]
 GN = (X - GF_C[0]) * GF_N[0] + (Y - GF_C[1]) * GF_N[1]
-NORTH_DROP = 6.0
+NORTH_DROP = 2.0
 
 
 def _smooth(t):
