@@ -9,7 +9,27 @@ import { kerbJointEdit } from './kerbjoints.js';
 const texLoader = new THREE.TextureLoader();
 const cache = new Map();
 const pending = new Set();
-export const texturesReady = () => Promise.all([...pending]);
+// the tiled copies of a texture still loading, bumped when its image arrives. Not in userData: Texture.copy (clone)
+// copies userData through JSON, which would serialise every waiting copy, image and all (a data URL each time)
+const waiting = new WeakMap();
+const loading = new WeakMap();         // texture -> its image coming (a tiled copy: its base's)
+// The renderer, once main.js has one: each texture goes up to the GPU as soon as its image is in, while the rest still
+// come down, not all at the first frame (there decoding the campus's hundred images held the page for 2 s)
+let gpu = null;
+export function uploadEarly(renderer) { gpu = renderer; }
+export function upload(t) { gpu?.initTexture(t); }
+
+// every texture asked for so far, or (objects) only those the materials under them use
+export function texturesReady(objects) {
+  if (!objects) return Promise.all([...pending]);
+  const ps = new Set();
+  for (const root of objects) {
+    root.traverse((o) => {
+      for (const m of [o.material ?? []].flat()) for (const v of Object.values(m)) if (v?.isTexture && loading.has(v)) ps.add(loading.get(v));
+    });
+  }
+  return Promise.all(ps);
+}
 
 // Phones: the whole 2K texture set is ~1 GB of GPU memory with mipmaps -> upload smaller copies.
 const MOBILE_MAX_TEX = 1024;
@@ -38,10 +58,13 @@ export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobile
     const t = texLoader.load(versioned(url), (tx) => {
       if (MOBILE) { tx.image = shrinkImage(tx.image, mobileMax); tx.needsUpdate = true; }
       // clones share the image Source but keep their own version -> bump them once data exists
-      for (const c of tx.userData.clones || []) c.needsUpdate = true;
+      for (const c of waiting.get(tx) || []) c.needsUpdate = true;
+      waiting.delete(tx);
+      upload(tx);
       pending.delete(pr); done();
     }, undefined, () => { pending.delete(pr); done(); });
-    t.userData.clones = [];
+    waiting.set(t, []);
+    loading.set(t, pr);
     t.flipY = flipY;
     t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
     if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -53,10 +76,12 @@ export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobile
 
 function tiled(url, tile, srgb) {
   const base = loadTex(url, { srgb });
+  const v = base.source.version;
   const t = base.clone();                         // shares the image Source
+  base.source.version = v;                        // (the copy marked it changed: it would go up to the GPU again)
+  loading.set(t, loading.get(base));
   t.repeat.set(1 / tile, 1 / tile);
-  if (base.image && base.image.complete !== false && base.image.width) t.needsUpdate = true;
-  else base.userData.clones.push(t);
+  waiting.get(base)?.push(t);                     // (until its image is in)
   return t;
 }
 

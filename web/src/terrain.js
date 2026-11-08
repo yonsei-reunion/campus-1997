@@ -1,7 +1,8 @@
 // Terrain (near: 5 m heightfield with PBR splat shader; far: 100 m ring with Seoul mountains)
 // and the sky dome.  World frame: X = east, Y = up, Z = -north.
 import * as THREE from 'three';
-import { loadTex, shrinkImage, pcss } from './materials.js';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { loadTex, shrinkImage, pcss, upload } from './materials.js';
 import { MOBILE, mulberry, placeMatrix, versioned } from './util.js';
 import { ATMOS, ATMOS_GLSL, SKY_DRIFT } from './materials.js';
 import { LITTER_GLSL, litterMagnolias } from './litter.js';
@@ -294,7 +295,10 @@ export function makeFarForest(hf, nearHalf, maxR = 3800) {
       for (let m = 0; m < k; m++) pts.push([x + (rnd() - 0.5) * step, y + (rnd() - 0.5) * step]);
     }
   }
-  const geo = new THREE.IcosahedronGeometry(1, 1);
+  // indexed: 42 corners a tree, not 240 (a sixth of the vertex work for the 6000; flat shaded, no uv read)
+  const ico = new THREE.IcosahedronGeometry(1, 1);
+  ico.deleteAttribute('uv');
+  const geo = mergeVertices(ico);
   const mat = new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true });
   const im = new THREE.InstancedMesh(geo, mat, pts.length);
   const m4 = new THREE.Matrix4(), sc = new THREE.Vector3(), c = new THREE.Color();
@@ -386,6 +390,7 @@ const SKY_FIX = [Math.cos(60 * Math.PI / 180), Math.cos(2 * Math.PI / 180)];
 export function makeSky(skyMeta) {
   const tex = new THREE.TextureLoader().load(versioned('assets/hdri/sky_8k.jpg'), (t) => {
     if (MOBILE) { t.image = shrinkImage(t.image, 4096); t.needsUpdate = true; }   // 8K sky: 90 MB on the GPU
+    upload(t);
   });
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.wrapS = THREE.RepeatWrapping;

@@ -31,6 +31,7 @@ export class SunShadows {
     this.dynCam.layers.set(DYNAMIC_LAYER);
     this.noClear = () => {};
     this.refreshes = 0;
+    this.wholeSets = null;                // (on) => the view-culled kits drawn whole or culled again (world.js KitCuller)
     this.pending = null;                  // what update() asked for this frame: {focus, y, span}
     this.req = { focus: new THREE.Vector3(), y: 0, span: 0 };
     // The depth passes need the renderer's per-render state, so they run where three draws shadows: inside
@@ -101,7 +102,12 @@ export class SunShadows {
     const { renderer, sun } = this;
     const sh = sun.shadow, cam = sh.camera;
     for (const d of this.dyn) for (const m of d.meshes) m.castShadow = false;
-    this._draw(this.staticCam);
+    this.wholeSets?.(true);               // the cache serves every view: shrubs, props and cars out of sight cast too
+    try {
+      this._draw(this.staticCam);
+    } finally {
+      this.wholeSets?.(false);
+    }
     // light space -> shadow map pixels, for the rectangles of the moving casters
     this.toPx.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
     const w = sh.map.width, h = sh.map.height;

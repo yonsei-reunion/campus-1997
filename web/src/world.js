@@ -7,9 +7,32 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { mulberry, placeMatrix, countBy, versioned } from './util.js';
 import { Impostor, renderImpostors, nearTreeMaterial, LOD, FADE } from './impostors.js';
 
-const draco = new DRACOLoader().setDecoderPath('draco/');
+const draco = new DRACOLoader().setDecoderPath('draco/').preload();     // (the decoder comes down with the first files)
 export const gltfLoader = new GLTFLoader().setDRACOLoader(draco);
-export const loadGLB = (url) => new Promise((res, rej) => gltfLoader.load(versioned(url), res, undefined, rej));
+
+// GLBs asked for ahead (prefetch): the loading screen's files all come down at once, and the main thread parses each
+// when its turn comes, instead of every stage asking for its files only once the stage before is done
+const ahead = new Map();
+export function prefetch(urls, priority = 'auto') {
+  for (const u of urls) {
+    if (!ahead.has(u)) ahead.set(u, fetch(versioned(u), { priority }).then((r) => (r.ok ? r.arrayBuffer() : null), () => null));
+  }
+}
+// the material names in a prefetched GLB's JSON chunk: their textures can be asked for before it is parsed
+export async function glbMaterials(url) {
+  const buf = await ahead.get(url);
+  if (!buf) return [];
+  const v = new DataView(buf);
+  if (v.getUint32(0, true) !== 0x46546c67) return [];        // ('glTF')
+  const json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 20, v.getUint32(12, true))));
+  return (json.materials || []).map((m) => m.name);
+}
+export async function loadGLB(url) {
+  const buf = await ahead.get(url);
+  ahead.delete(url);
+  if (buf) return gltfLoader.parseAsync(buf, THREE.LoaderUtils.extractUrlBase(url));
+  return new Promise((res, rej) => gltfLoader.load(versioned(url), res, undefined, rej));
+}
 
 // A building that keeps its own shade of a shared material (the GLB names only the shared one): 연희관's rubble is
 // the warm red-brown of reference/연희관_정면_2023.jpg, 언더우드관 · 스팀슨관 · 아펜젤러관's the warm brown of their 2016
@@ -160,6 +183,124 @@ export class InstancedKit {
   }
   addTo(parent) {
     for (const p of this.parts) parent.add(p);
+  }
+}
+
+// ---------------------------------------------------------------------------- view culling of the placed kits
+// The kits placed once (shrubs, props, parked cars) and the far hills' trees are an InstancedMesh per part over the
+// whole campus (or the whole ring of hills), drawn whole whatever the view: never frustum culled, as their bounds are
+// always in view. A KitCuller packs only the instances in view to the front of their buffers: those whose bounding
+// sphere meets a frustum TURN wider than the camera's on every side and PAD metres out, worked out again once the
+// camera has turned or moved past those margins (and the buffers sent again only when that changed what is in view).
+// whole(): the full sets, for what draws from elsewhere (the static shadow cache, shadows.js; the sun-shadow bake).
+const TURN = 6 * Math.PI / 180, PAD = 2.5;
+const _q = new THREE.Quaternion(), _p = new THREE.Vector3(), _c = new THREE.Vector3(), _mm = new THREE.Matrix4();
+
+export class KitCuller {
+  constructor() {
+    this.sets = [];
+    this.cam = new THREE.PerspectiveCamera();
+    this.frustum = new THREE.Frustum();
+    this.at = new THREE.Vector3(1e9, 0, 0);
+    this.q = new THREE.Quaternion();
+    this.lens = '';
+    this.full = true;            // every set drawn whole (until the first update)
+    this.enabled = true;
+  }
+
+  // parts: InstancedMeshes sharing one transform list (an InstancedKit's parts), placed for good
+  add(parts) {
+    const n = parts[0].count;
+    const M = parts[0].instanceMatrix;
+    for (const p of parts) p.instanceMatrix = M;        // one buffer for all the parts (one upload)
+    M.setUsage(THREE.DynamicDrawUsage);
+    for (const p of parts) p.instanceColor?.setUsage(THREE.DynamicDrawUsage);
+    const all = M.array.slice(0, n * 16);
+    const colors = parts.filter((p) => p.instanceColor).map((p) => [p.instanceColor, p.instanceColor.array.slice(0, n * 3)]);
+    // each instance's bounding sphere: the kit's (every part's) moved and scaled by its matrix
+    const box = new THREE.Box3(), ks = new THREE.Sphere();
+    for (const p of parts) { if (!p.geometry.boundingBox) p.geometry.computeBoundingBox(); box.union(p.geometry.boundingBox); }
+    box.getBoundingSphere(ks);
+    const sph = new Float32Array(n * 4);
+    for (let i = 0; i < n; i++) {
+      _mm.fromArray(all, i * 16);
+      _c.copy(ks.center).applyMatrix4(_mm);
+      sph.set([_c.x, _c.y, _c.z, ks.radius * _mm.getMaxScaleOnAxis()], i * 4);
+    }
+    this.sets.push({ parts, n, M, all, colors, sph, vis: new Uint32Array(n), shown: n, valid: false });
+  }
+
+  // camera: the view about to be drawn
+  update(camera, force = false) {
+    if (!this.enabled) return;
+    camera.updateMatrixWorld();
+    camera.matrixWorld.decompose(_p, _q, _c);
+    const lens = `${camera.fov},${camera.aspect},${camera.zoom},${camera.near},${camera.far}`;
+    if (!force && !this.full && lens === this.lens && _p.distanceTo(this.at) < PAD && _q.angleTo(this.q) < TURN * 0.8) return;
+    this.at.copy(_p);
+    this.q.copy(_q);
+    this.lens = lens;
+    // the camera's frustum, TURN wider each way
+    const c = this.cam;
+    const tv = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom, th = tv * camera.aspect;
+    const v = Math.min(Math.atan(tv) + TURN, 1.5), h = Math.min(Math.atan(th) + TURN, 1.5);
+    c.fov = THREE.MathUtils.radToDeg(v * 2);
+    c.aspect = Math.tan(h) / Math.tan(v);
+    c.near = camera.near;
+    c.far = camera.far;
+    c.updateProjectionMatrix();
+    _mm.multiplyMatrices(c.projectionMatrix, camera.matrixWorldInverse);
+    this.frustum.setFromProjectionMatrix(_mm);
+    for (const s of this.sets) this._cull(s);
+    this.full = false;
+  }
+
+  // every instance drawn (update() culls again)
+  whole() {
+    for (const s of this.sets) {
+      if (s.shown === s.n && !s.valid) continue;
+      s.M.array.set(s.all);
+      for (const [attr, src] of s.colors) { attr.array.set(src); this._send(attr, s.n * 3); }
+      this._send(s.M, s.n * 16);
+      for (const p of s.parts) p.count = s.n;
+      s.shown = s.n;
+      s.valid = false;
+    }
+    this.full = true;
+  }
+
+  _cull(s) {
+    const planes = this.frustum.planes, { sph, vis, n } = s;
+    let k = 0, same = s.valid;
+    for (let i = 0; i < n; i++) {
+      const x = sph[i * 4], y = sph[i * 4 + 1], z = sph[i * 4 + 2], r = -(sph[i * 4 + 3] + PAD);
+      let inside = true;
+      for (let j = 0; j < 6; j++) {
+        const { normal: nn, constant } = planes[j];
+        if (nn.x * x + nn.y * y + nn.z * z + constant < r) { inside = false; break; }
+      }
+      if (!inside) continue;
+      if (vis[k] !== i) { vis[k] = i; same = false; }
+      k++;
+    }
+    if (same && k === s.shown) return;
+    const dst = s.M.array, all = s.all;
+    for (let j = 0; j < k; j++) { const i = vis[j]; dst.set(all.subarray(i * 16, i * 16 + 16), j * 16); }
+    for (const [attr, src] of s.colors) {
+      for (let j = 0; j < k; j++) { const i = vis[j]; attr.array.set(src.subarray(i * 3, i * 3 + 3), j * 3); }
+      this._send(attr, k * 3);
+    }
+    this._send(s.M, k * 16);
+    for (const p of s.parts) p.count = k;
+    s.shown = k;
+    s.valid = true;
+  }
+
+  _send(attr, len) {
+    if (!len) return;                                  // (nothing drawn)
+    attr.clearUpdateRanges();
+    attr.addUpdateRange(0, len);
+    attr.needsUpdate = true;
   }
 }
 

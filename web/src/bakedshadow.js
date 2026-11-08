@@ -12,7 +12,7 @@
 // attribute blender/bake.py writes): on phones that is their shadow there (SUN_WALL); the desktop has its map.
 import * as THREE from 'three';
 import { versioned } from './util.js';
-import { patchShaderOwn } from './materials.js';
+import { patchShaderOwn, upload } from './materials.js';
 
 // the baked rectangle (campus x = east, y = north, metres; every building and tree, and their shadows to the
 // north-west) and its size in texels: 31 cm texels
@@ -156,12 +156,14 @@ export class SunMap {
     const loader = new THREE.TextureLoader();
     loader.load(versioned(URL), (t) => {
       rectTexture(t).anisotropy = 8;
+      upload(t);
       this.texture = t;
       if (this._on) this.uniforms.uSunMap.value = t;
     }, undefined, () => console.warn('no baked sun shadows:', URL));
     loader.load(versioned(GROUND_URL), (t) => {
       rectTexture(t).generateMipmaps = false;  // heights: never averaged across a terrace's edge in the distance
       t.minFilter = THREE.LinearFilter;
+      upload(t);
       this.uniforms.uSunLift.value = t;
     }, undefined, () => console.warn('no baked walked surface (the shadows on the bare terrain):', GROUND_URL));
     return this;

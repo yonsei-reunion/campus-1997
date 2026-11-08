@@ -4,17 +4,17 @@ import '@fontsource/jua/400.css';
 import '@fontsource/do-hyeon/400.css';
 import * as THREE from 'three';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
-import { MaterialLibrary, SEASONS, texturesReady, updatePcss } from './materials.js';
+import { MaterialLibrary, SEASONS, texturesReady, updatePcss, uploadEarly } from './materials.js';
 import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materials.js';
 import { Heightfield, makeNearTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeTerrain } from './terrain.js';
-import { loadGLB, bindMaterials, mergeStatic, InstancedKit, Forest } from './world.js';
+import { loadGLB, prefetch, glbMaterials, bindMaterials, mergeStatic, InstancedKit, KitCuller, Forest } from './world.js';
 import { Grass } from './grass.js';
 import { Fall } from './fall.js';
 import { Player, Colliders } from './player.js';
 import { UI } from './ui.js';
 import { Post } from './post.js';
 import { Path, makeBanners, Crowd, Traffic, BoothGates, CAR_COLORS } from './life.js';
-import { Cast, PEOPLE, STUDENTS, HEROES, portraits } from './characters.js';
+import { Cast, PEOPLE, STUDENTS, HEROES, portraits, castFiles } from './characters.js';
 import { BirdsEye } from './birdseye.js';
 import { SunShadows } from './shadows.js';
 import { TouchControls } from './touch.js';
@@ -45,6 +45,12 @@ const progress = (label) => {
   if (label) $('#loadtext').textContent = label;
 };
 const json = (u) => fetch(versioned(u)).then((r) => r.json());
+const MODELS = 'assets/models/';
+const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'motorbike', 'car_sedan', 'car_sedan2', 'car_hatch', 'car_tico', 'car_taxi', 'car_van', 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard', 'tent_kiosk', 'notice_board', 'haetae', 'parking_booth'];
+// the vegetation campus.json plants: two models of each tree species, one of each shrub
+const treeFile = (sp, v) => `veg/${sp}_${v}.glb`, shrubFile = (k) => `veg/${k}.glb`;
+const vegFiles = (campus) => [...new Set(campus.trees.map((t) => t[0]))].flatMap((sp) => [treeFile(sp, 0), treeFile(sp, 1)])
+  .concat([...new Set(campus.shrubs.map((s) => s[0]))].map(shrubFile));
 const bin = (u) => fetch(versioned(u)).then((r) => r.arrayBuffer()).then((b) => new Float32Array(b));
 
 function seasonButtons(v) {
@@ -55,8 +61,15 @@ setupNews();
 
 async function main() {
   total = 40;
+  // every model of the loading screen asked for at once (world.js prefetch), the vegetation once campus.json names it;
+  // the halls first, the rest at low priority. The environment map comes down with the data.
+  const halls = ['campus_buildings.glb', 'campus_landmarks.glb', 'baekyangro.glb'].map((f) => MODELS + f);
+  prefetch(halls);
+  prefetch([...PROPS.map((n) => `${MODELS}props/${n}.glb`), ...castFiles(Object.keys(PEOPLE))], 'low');
+  const envHdr = new RGBELoader().loadAsync(versioned('assets/hdri/env_1k_nosun.hdr'));
   const [campus, matDefs, skyMeta, nearData, farData, entrances] = await Promise.all([
-    json('data/campus.json'), json('data/materials.json'), json('data/sky.json'),
+    json('data/campus.json').then((c) => { prefetch(vegFiles(c).map((f) => MODELS + f), 'low'); return c; }),
+    json('data/materials.json'), json('data/sky.json'),
     bin('data/terrain_near.bin'), bin('data/terrain_far.bin'),
     json('data/entrances.json').catch(() => ({ entrances: [] })),
   ]);
@@ -72,6 +85,7 @@ async function main() {
   // (SIGSEGV in the driver's LoadTextureState -> WebGL context lost -> white screen) at any map size.
   renderer.shadowMap.enabled = !MOBILE;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  uploadEarly(renderer);          // (each texture to the GPU as it comes)
 
   const scene = new THREE.Scene();
   // switches fog on (USE_FOG) for every material; what they draw is the height fog of materials.js ATMOS (globalPatch)
@@ -81,12 +95,14 @@ async function main() {
 
   const lib = new MaterialLibrary(matDefs);
   lib.setSeason(season);
+  // the halls' textures asked for as soon as their files are in, not once they are parsed and merged
+  for (const u of halls) glbMaterials(u).then((names) => { for (const n of names) if (lib.defs[n]) lib.get(n); });
 
   // Environment lighting from the CC0 Poly Haven HDRI (same sky as the backdrop) with its sun's disc taken out
   // (blender/sky_bake.py): left in, the disc was ~70 % of the light an upward face got from the environment, and as
   // no shadow map stops the environment, the shade under trees and buildings was lit by the sun all the same.
   const pmrem = new THREE.PMREMGenerator(renderer);
-  const hdr = await new RGBELoader().loadAsync(versioned('assets/hdri/env_1k_nosun.hdr'));
+  const hdr = await envHdr;
   hdr.mapping = THREE.EquirectangularReflectionMapping;
   scene.environment = pmrem.fromEquirectangular(hdr).texture;
   scene.environmentIntensity = 0.75;
@@ -145,13 +161,17 @@ async function main() {
   const fall = new Fall(renderer, scene, lib, hfNear, campus, sunMap);   // petals / leaves coming down round it
   scene.add(makeFarTerrain(hfFar, T.near.half));
   scene.add(makeCity(hfFar, T.near.half));
-  scene.add(makeFarForest(hfFar, T.near.half));
+  // the kits placed for good, and the far hills' trees, drawn only where in view (world.js); whole into the shadow cache
+  const kitCull = new KitCuller();
+  shadows.wholeSets = (on) => (on ? kitCull.whole() : kitCull.update(camera, true));
+  const farForest = makeFarForest(hfFar, T.near.half);
+  kitCull.add([farForest]);
+  scene.add(farForest);
   scene.add(makeSummitTower(hfFar));
   progress('백양로를 까는 중…');
 
   // ---------------------------------------------------------------- GLB assets
-  const M = 'assets/models/';
-  const load = async (u, label) => { const g = await loadGLB(M + u); progress(label); return g; };
+  const load = async (u, label) => { const g = await loadGLB(MODELS + u); progress(label); return g; };
   const [bld, lms, road] = await Promise.all([
     load('campus_buildings.glb', '건물을 세우는 중…'),
     load('campus_landmarks.glb', '언더우드관에 담쟁이를 심는 중…'),
@@ -206,35 +226,41 @@ async function main() {
   };
 
   // ---------------------------------------------------------------- vegetation
+  // trees, shrubs and props parsed (and their textures asked for) together, the cast alongside (placed further down)
+  const cast = new Cast();                  // Quaternius CC0 people (blender/characters.py)
+  const castLoaded = cast.load(Object.keys(PEOPLE), () => progress('사람들이 모여드는 중…'));
   const kits = {};
   const species = [...new Set(campus.trees.map((t) => t[0]))];      // ginkgo, zelkova, …, zelkova_young, metasequoia
-  await Promise.all(species.flatMap((sp) => [0, 1].map(async (v) => {
-    const g = await load(`veg/${sp}_${v}.glb`, '나무를 심는 중…');
-    bindMaterials(g.scene, lib);
-    kits[`${sp}_${v}`] = g.scene;
-  })));
-  await texturesReady();
-  const forest = new Forest(scene, renderer, lib, kits, campus.trees, groundAt);
   clearEntrances(campus.shrubs, entrances.entrances || []);
-  const shrubKits = {};
+  const shrubScenes = {};
   const shrubCounts = countBy(campus.shrubs, (s) => s[0]);
-  await Promise.all(Object.keys(shrubCounts).map(async (k) => {
-    const g = await load(`veg/${k}.glb`, '회양목을 다듬는 중…');
-    bindMaterials(g.scene, lib);
-    shrubKits[k] = new InstancedKit(g.scene, lib, shrubCounts[k]);
-  }));
+  const P = {};
+  await Promise.all([
+    ...species.flatMap((sp) => [0, 1].map(async (v) => {
+      const g = await load(treeFile(sp, v), '나무를 심는 중…');
+      bindMaterials(g.scene, lib);
+      kits[`${sp}_${v}`] = g.scene;
+    })),
+    ...Object.keys(shrubCounts).map(async (k) => {
+      const g = await load(shrubFile(k), '회양목을 다듬는 중…');
+      bindMaterials(g.scene, lib);
+      shrubScenes[k] = g.scene;
+    }),
+    ...PROPS.map(async (n) => {
+      const g = await load(`props/${n}.glb`, '공중전화를 놓는 중…');
+      bindMaterials(g.scene, lib, true);
+      P[n] = g;
+    }),
+  ]);
+  await texturesReady(Object.values(kits));     // the impostors are drawn from the tree models: their leaves and bark
+  const forest = new Forest(scene, renderer, lib, kits, campus.trees, groundAt);
+  const shrubKits = {};
+  for (const k in shrubScenes) shrubKits[k] = new InstancedKit(shrubScenes[k], lib, shrubCounts[k]);
   const m4 = new THREE.Matrix4();
   for (const [k, x, y, sc, rot] of campus.shrubs) shrubKits[k].add(placeMatrix(m4, x, groundAt(x, y) - 0.05, y, rot, sc));
-  for (const k in shrubKits) { shrubKits[k].commit(); shrubKits[k].addTo(scene); }
+  for (const k in shrubKits) { shrubKits[k].commit(); shrubKits[k].addTo(scene); kitCull.add(shrubKits[k].parts); }
 
   // ---------------------------------------------------------------- props
-  const propNames = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'motorbike', 'car_sedan', 'car_sedan2', 'car_hatch', 'car_tico', 'car_taxi', 'car_van', 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard', 'tent_kiosk', 'notice_board', 'haetae', 'parking_booth'];
-  const P = {};
-  await Promise.all(propNames.map(async (n) => {
-    const g = await load(`props/${n}.glb`, '공중전화를 놓는 중…');
-    bindMaterials(g.scene, lib, true);
-    P[n] = g;
-  }));
   const colliders = new Colliders();
   for (const b of campus.buildings) colliders.addPolygon(b.style === 'lm:hanok' ? hanokWalls(b.footprint) : b.footprint);
   for (const poly of campus.colliders || []) colliders.addPolygon(poly);     // parts outside the OSM outlines (백주년기념관's front block)
@@ -258,6 +284,7 @@ async function main() {
       }
       kit.commit();
       kit.addTo(scene);
+      kitCull.add(kit.parts);
     }
     // parked cars
     const carKits = {};
@@ -271,7 +298,7 @@ async function main() {
       colliders.addCircle(x + Math.cos(ang) * 1.2, y + Math.sin(ang) * 1.2, 1.0);
       colliders.addCircle(x - Math.cos(ang) * 1.2, y - Math.sin(ang) * 1.2, 1.0);
     });
-    for (const k in carKits) { carKits[k].commit(); carKits[k].addTo(scene); }
+    for (const k in carKits) { carKits[k].commit(); carKits[k].addTo(scene); kitCull.add(carKits[k].parts); }
   }
   for (const t of campus.trees) colliders.addCircle(t[1], t[2], 0.35 * t[3]);
   // clipped shrubs: round boxwood, cones, bushes and azaleas are as wide as a person; low hedges are three overlapping circles
@@ -304,9 +331,7 @@ async function main() {
   const decals = new Decals(scene, campus.decals || [], walkables, hfNear, sunMap);   // manholes, oil, patches (src/decals.js)
   const curbs = new Curbs(scene, campus.curbs || [], hfNear, walkables.slice(1), lib,     // kerbs along the paving (src/curbs.js)
     { lawn: campus.curb_lawn, ground: terrain.material });
-  // Quaternius CC0 people (blender/characters.py)
-  const cast = new Cast();
-  await cast.load(Object.keys(PEOPLE), () => progress('사람들이 모여드는 중…'));
+  await castLoaded;
 
   // ---------------------------------------------------------------- life
   const R = campus.baekyangro;
@@ -399,12 +424,6 @@ async function main() {
     places.forEach((p, i) => { if (p.group === group) og.appendChild(new Option(p.name, i)); });
     placeEl.appendChild(og);
   }
-  placeEl.disabled = false;
-  progress('준비 완료!');
-  $('#loadfill').style.width = '100%';
-  $('#loadtext').textContent = '1997년, 백양로에 도착했습니다.';
-  $('#start').disabled = false;
-  $('#tour-start').disabled = false;
 
   const setSeason = (v) => {
     season = v;
@@ -661,6 +680,7 @@ async function main() {
     curbs.update(camera.position);
     // the shadow frustum follows the view in texel-snapped steps; people and cars are redrawn into it every frame
     shadows.update(focus, bird.active ? focus.y : camera.position.y - 10, span);
+    kitCull.update(camera);
     updatePcss(sun, post.hq);    // contact-hardening shadows on the desktop HQ path only
     if (bird.active) {
       ui.drawMinimap(bird.cur.x, bird.cur.y, bird.mapYaw);
@@ -682,6 +702,18 @@ async function main() {
     }
     post.draw(tAcc);
   };
+  // The first frame's work done ahead while the page still answers: every texture in (each went up to the GPU as it
+  // came, materials.js upload), the scene's shaders compiled for the target post.js draws the scene into (no tone
+  // mapping there), in the background where the browser can (KHR_parallel_shader_compile). Held a desktop's first
+  // frame for 3 s, after the start button had come on.
+  progress('햇살을 고르는 중…');
+  await texturesReady();
+  const warm = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+  renderer.setRenderTarget(warm);
+  const compiled = renderer.extensions.has('KHR_parallel_shader_compile') ? renderer.compileAsync(scene, camera) : renderer.compile(scene, camera);
+  renderer.setRenderTarget(null);
+  await compiled;
+  warm.dispose();
   renderer.setAnimationLoop(frame);
   post.setSize(innerWidth, innerHeight);          // CSS pixels: EffectComposer applies the pixel ratio itself
   // offline trailer recording (used from the browser console / automation): fixed-size frames, stepped by hand
@@ -709,8 +741,27 @@ async function main() {
   window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, cast, traffic, bird, toggleBird, shadows, fountainWater,
     startWalk, enterBird, leaveBird, record, ball, post, grass, sunMap, blobs, curbs,
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
-    bakeSunMap: () => bakeSunMap({ renderer, scene, sun, sunDir, shadows, forest, hf: hfNear, walk: walkables, hide: [banners, ball?.mesh], skip: farScenery }) };
+    // (the kits whole for it: it draws them from above, tile by tile)
+    bakeSunMap: async () => {
+      kitCull.whole();
+      kitCull.enabled = false;
+      try {
+        return await bakeSunMap({ renderer, scene, sun, sunDir, shadows, forest, hf: hfNear, walk: walkables, hide: [banners, ball?.mesh], skip: farScenery });
+      } finally {
+        kitCull.enabled = true;
+      }
+    },
+    kitCull };
   window.__y97.atmos = ATMOS;
+
+  // ready once the first frames are drawn (the shadow map's and the post passes' shaders are compiled there)
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  placeEl.disabled = false;
+  progress('준비 완료!');
+  $('#loadfill').style.width = '100%';
+  $('#loadtext').textContent = '1997년, 백양로에 도착했습니다.';
+  $('#start').disabled = false;
+  $('#tour-start').disabled = false;
 }
 
 // 광혜원's OSM outline takes in its whole stone platform (기단) and more; the walker collides with the hall's walls

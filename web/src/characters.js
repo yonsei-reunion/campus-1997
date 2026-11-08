@@ -85,12 +85,16 @@ function mergeParts(root) {
   for (const p of parts) { p.parent.remove(p); p.geometry.dispose(); }
 }
 
+const PEOPLE_DIR = 'assets/models/people/', RIGS = ['rig-umc', 'rig-women'];
+// the files Cast.load(ids) reads (for world.js prefetch)
+export const castFiles = (ids) => [...RIGS, ...ids].map((n) => PEOPLE_DIR + n + '.glb');
+
 export class Cast {
   constructor() { this.models = {}; this.rigs = {}; }
 
   async load(ids, onEach) {
-    const base = 'assets/models/people/';
-    await Promise.all(['rig-umc', 'rig-women'].map(async (r) => {
+    const base = PEOPLE_DIR;
+    await Promise.all(RIGS.map(async (r) => {
       const g = await loadGLB(base + r + '.glb');
       const u = g.scene.getObjectByName(r)?.userData || {};
       this.rigs[r] = { clips: g.animations, walkSpeed: +u.walk_speed || 1.2, runSpeed: +u.run_speed || 2.8 };
