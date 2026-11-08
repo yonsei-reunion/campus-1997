@@ -16,6 +16,7 @@ README 와 문집 사이트(`../yonsei-anthology/src/content/memories.md`)의 �
 | `compare/<이름>` | `docs/compare/<이름>_game.jpg` | README 「사진과 비교」의 오른쪽 칸 (왼쪽 `_photo.jpg` 는 그대로) |
 | `compare/<이름>_1`, `_2` + grid | `docs/compare/<이름>_game.jpg` | 사진 두 장을 위아래로 둔 칸(2003년 사진) |
 | `game/<이름>` | `docs/game/<이름>.jpg` | README 맨 위 그림과 「게임 화면」 |
+| `screenshots/<이름>` | `docs/screenshots/<이름>.jpg` | `reference/고증.md` 의 「비교」(사진 짝이 없는 대상의 지금 모습) |
 | `compare/baekyangro`, `game/autumn_banners`, `anthology/underwood` | `../yonsei-anthology/src/content/memory-campus1997-2/3/4.jpg` | 문집 「1997년 신촌 캠퍼스 산책」 갤러리(1 은 실제 사진이라 찍지 않음) |
 
 ## 순서
@@ -44,7 +45,7 @@ README 와 문집 사이트(`../yonsei-anthology/src/content/memories.md`)의 �
 5. **카메라를 고칠 때**는 `tools/snapshots.json` 만 고친다(아래 「카메라 맞추기」). 한 장만 다시: `--only <이름>`.
 6. **사진과 차이가 큰 곳**이 보이면 캡처만 바꾸고 끝내지 말고, 사용자에게 알리거나(요청 범위면) 외부 자료(연세춘추 · 학교 기록 · 옛 사진)를 찾아 건물을 고친 뒤 다시 찍는다. 근거는 `reference/고증.md`, 바뀐 내용은 새 소식(`CLAUDE.md` 규칙).
 7. **커밋한다.**
-   - 이 저장소: `docs/compare/*_game.jpg`, `docs/game/*.jpg`, 고쳤으면 `tools/snapshots.json`. 다른 세션이 같은 트리에서 일하고 있으면 내 파일만 `git add <경로>` 로. 메시지는 `CLAUDE.md` 의 커밋 규칙(80자, 접두사 없음, attribution 줄 없음). README 의 그림 경로가 그대로면 README 는 안 바뀐다.
+   - 이 저장소: `docs/compare/*_game.jpg`, `docs/game/*.jpg`, `docs/screenshots/*.jpg`, 고쳤으면 `tools/snapshots.json`. 다른 세션이 같은 트리에서 일하고 있으면 내 파일만 `git add <경로>` 로. 메시지는 `CLAUDE.md` 의 커밋 규칙(80자, 접두사 없음, attribution 줄 없음). README 의 그림 경로가 그대로면 README 는 안 바뀐다.
    - 문집 저장소 `../yonsei-anthology`: `src/content/memory-campus1997-*.jpg` 만 바뀐다. `memories.md` 의 `<img width height>` 가 그림 크기와 같아야 하므로 크기를 바꾸면 그 값도 고친다. 그 저장소는 push 하면 GitHub Pages 로 배포되니 사용자가 push 를 원할 때 `git -C ../yonsei-anthology push origin main`.
 
 ## 카메라 맞추기

@@ -24,7 +24,7 @@
 
 - 새 날짜는 배열 맨 위에. 같은 날짜의 변경은 그 날짜의 `groups` 에 더한다.
 - 날짜 옆 제목(`title`)은 쓰지 않는다. 날짜만 보이고 내용은 카테고리가 나눈다.
-- 캡처(`images`)는 그 내용을 다룬 카테고리 안에 둔다. 파일은 `web/public/assets/news/` 와 `docs/screenshots/` 에.
+- 캡처(`images`)는 그 내용을 다룬 카테고리 안에 둔다. 파일은 `web/public/assets/news/` 에만 둔다(`docs/` 에 사본을 두지 않음).
 
 ### 카테고리
 
@@ -64,6 +64,9 @@
   - 서로 다른 자료 · 지점에서 따로 잰 값을 견준다(두 장 넘는 사진이나 파노라마, 방위 삼각측량).
   - 잔차 · 오차 범위를 적는다.
   - 어느 쪽을 왜 골랐는지를 `reference/고증.md` 에 남긴다. 결론이 나지 않으면 바꾸지 않고 5장(남은 한계)에 적는다.
+- 저장소의 게임 화면은 지금 모습만 둔다. 옛 화면은 새 소식(`web/public/assets/news/`)에만 남긴다.
+  - `docs/compare/`(README 「사진과 비교」) · `docs/game/` · `docs/screenshots/` 는 모두 `tools/snapshots.json` 의 카메라로 `/update-snapshots` 가 다시 찍는다.
+  - 고증.md 의 「비교」는 `docs/compare/` 에 짝이 있으면 그것을 가리킨다. 짝이 없는 대상만 `docs/screenshots/<이름>.jpg`(번호 없는 이름)로 찍고, 카메라를 `screenshots/<이름>` 으로 더한다.
 - 사진은 라이선스가 분명할 때만(퍼블릭 도메인, CC BY · BY-SA, KOGL 1유형 등) 줄여서 `reference/` 에 넣는다. 로드뷰 · 거리뷰 화면과 그 밖의 사진은 저장소에 넣지 않는다. 대신 `reference/출처.txt` 에 「보며 잼」과 파노라마 id · 촬영 연월(또는 URL)을 적는다.
 
 ## 생성 파일과 다시 만들기
