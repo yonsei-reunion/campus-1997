@@ -329,6 +329,25 @@
    0.54
   ]
  },
+ "glass_reflect": {
+  "_doc": "heat-reflecting green glass: its coating mirrors more of the sky than plain glass (f0: reflectance square on, plain glass 0.08); \ub300\uac15\ub2f9's tall windows (reference/\ub300\uac15\ub2f9_2009_\uc815\uba74.jpg)",
+  "color": [
+   0.05,
+   0.08,
+   0.07
+  ],
+  "rough": 0.05,
+  "metal": 0.0,
+  "env": 2.0,
+  "rooms": "windows.jpg",
+  "lit": 0.1,
+  "tint": [
+   0.52,
+   0.66,
+   0.58
+  ],
+  "f0": 0.2
+ },
  "glass_car": {
   "color": [
    0.07,
@@ -719,6 +738,20 @@
   "weather": 0.3,
   "tex": "concrete_wall_008",
   "tile": 3.0,
+  "tint": [
+   2.78,
+   2.76,
+   2.72
+  ],
+  "sat": 0.12,
+  "rough": 0.75
+ },
+ "stone_panel_wide": {
+  "_doc": "stone_panel laid a quarter turned (uv: swap): courses 0.5 m tall, panels 1 m wide (\ub300\uac15\ub2f9's granite cladding)",
+  "weather": 0.3,
+  "tex": "concrete_wall_008",
+  "tile": 2.0,
+  "uv": "swap",
   "tint": [
    2.78,
    2.76,

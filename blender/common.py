@@ -262,6 +262,8 @@ class MeshBuilder:
             if uvs is None:
                 pts = [self.verts[i] for i in idx]
                 uvs = pane_uv(pts, self.panes.get(pi)) if mat in ROOM_GLASS else auto_uv(pts)
+                if MATS.get(mat, {}).get('uv') == 'swap':          # a texture laid a quarter turned
+                    uvs = [(b, a) for a, b in uvs]
             for k, li_ in enumerate(poly.loop_indices):
                 uvl.data[li_].uv = uvs[k]
                 if has_col:
@@ -299,7 +301,7 @@ def auto_uv(pts):
 # panes across the face (a whole number per pane, 0..1 across it) from a pseudo-random whole-number offset per face.
 # The web app's glass shader (web/src/materials.js windowGlass) picks a cell of its room atlas from the whole part and
 # spreads it over the fraction.  v from HALL up: a hall (lobby, stair hall) behind tall glazing instead of a room.
-ROOM_GLASS = ('glass', 'glass_green')
+ROOM_GLASS = tuple(k for k, d in MATS.items() if isinstance(d, dict) and 'rooms' in d)     # glass, glass_green, ...
 HALL = 32
 # u from SASH: a sash window (an ordinary window of a generic hall, blender/windows.py; the shader takes u - SASH mod 24
 # to pick its room, so the rooms stay those of the plain offset).  One in OPEN_P of them has a sash slid open: the

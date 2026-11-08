@@ -319,23 +319,28 @@ function windowGlass(d) {
     metalness: 0,
     ior: 1.5,
   });
-  // both faces of the pane reflect (F0 0.04 each); the back face's light crosses the tinted glass (학생회관's green)
+  // both faces of the pane reflect (F0 0.04 each); the back face's light crosses the tinted glass (학생회관's green).
+  // A coated (heat-reflecting) glass mirrors more, `f0` square on, in its own tint (대강당's pale green panes)
   const t = new THREE.Color(...(d.tint || [0.66, 0.69, 0.69]));
   const tm = Math.max(t.r, t.g, t.b);
-  m.specularColor.setRGB(1 + t.r / tm, 1 + t.g / tm, 1 + t.b / tm);
+  const f0 = d.f0 ?? 0.08;
+  if (d.f0) m.specularColor.setRGB(t.r / tm, t.g / tm, t.b / tm).multiplyScalar(f0 / 0.04);
+  else m.specularColor.setRGB(1 + t.r / tm, 1 + t.g / tm, 1 + t.b / tm);
   const u = {
     uRoomTint: { value: t },                       // what the (dusty) glass lets through
     uRoomLit: { value: d.lit ?? 0.45 },            // a room with the lights on
     uGlassEnv: { value: d.env ?? 2.0 },            // the reflection, x scene.environmentIntensity
     uRoomOpen: { value: 0.3 },                     // the room through an open sash (no glass, in the shade inside)
+    uGlassF0: { value: f0 },                       // reflectance square on
   };
   m.userData.rooms = u;                            // (to tune from the console)
-  patchShader(m, 'rooms', (sh) => {
+  patchShader(m, d.f0 ? 'roomsC' : 'rooms', (sh) => {
     Object.assign(sh.uniforms, u);
+    if (d.f0) sh.defines = { ...sh.defines, GLASS_COATED: '' };
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
         uniform vec3 uRoomTint;
-        uniform float uRoomLit, uGlassEnv, uRoomOpen;
+        uniform float uRoomLit, uGlassEnv, uRoomOpen, uGlassF0;
         const int ROOM_CELLS[16] = int[16](${ROOM_CELLS});
         const float SASH_U = 64.0, OPEN_P = 0.07, TRANSOM = 0.715;
         uint paneMix(uint n) { n ^= n >> 16; n *= 0x7feb352du; n ^= n >> 15; n *= 0x846ca68bu; n ^= n >> 16; return n; }
@@ -357,7 +362,7 @@ function windowGlass(d) {
         vec3 room = textureGrad(map, cuv, dFdx(paneUv) * 0.24, dFdy(paneUv) * 0.24).rgb;
         room *= mix(uRoomTint, vec3(uRoomOpen), paneOpen) * (0.75 + 0.5 * paneHash(roomPane, 3u));
         if (paneDark) room = vec3(0.012);
-        float glassF = (1.0 - paneOpen) * (0.08 + 0.92 * pow(1.0 - saturate(abs(dot(normalize(vNormal), normalize(vViewPosition)))), 5.0));
+        float glassF = (1.0 - paneOpen) * (uGlassF0 + (1.0 - uGlassF0) * pow(1.0 - saturate(abs(dot(normalize(vNormal), normalize(vViewPosition)))), 5.0));
         float roomOn = !paneDark && (cell == 8 || cell == 13 || cell == 15) ? 1.0 : 0.0;
         diffuseColor.rgb = room * (1.0 - roomOn) * (1.0 - glassF);
         vec3 roomGlow = room * roomOn * uRoomLit * (1.0 - glassF);
@@ -460,7 +465,8 @@ const BAKE_AO = /* glsl */`
 {
   float bkAO = 1.0 - uBakeAO * (1.0 - vBake.r);
   reflectedLight.indirectDiffuse *= bkAO;
-  #if defined( USE_ENVMAP ) && defined( STANDARD )
+  // (a coated glass mirrors the sky over the walker, which neither the porch below nor the shallow reveals hide)
+  #if defined( USE_ENVMAP ) && defined( STANDARD ) && !defined( GLASS_COATED )
     float bkNV = saturate( dot( geometryNormal, geometryViewDir ) );
     reflectedLight.indirectSpecular *= computeSpecularOcclusion( bkNV, bkAO, material.roughness );
   #endif

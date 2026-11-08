@@ -2225,23 +2225,66 @@ def hip_roof(mb, poly, z, rise, mat, eave=0.5):
     mb.face([P3(q[3], z), P3(q[0], z), P3(r0, zr)], mat)
 
 
+def grid_window(mb, P, a, b, za, zb, d, cols, rows, frame='frame_dark', glass='glass_reflect', vents=(), vent_glass='glass',
+                fw=0.06, hall=False):
+    """A steel window over [a, b] x [za, zb] at depth d of a wall P: a grid of cols x rows lights on slim bars, the rows
+    in `vents` (counted from the top) hopper sashes whose glass reads darker (대강당: the first and fourth rows of its
+    tall windows in reference/대강당_2009_정면.jpg)."""
+    rh = (zb - za) / rows
+    k = 0
+    while k < rows:                                    # one glass face per run of rows of the same kind
+        vent = k in vents
+        j = k
+        while j + 1 < rows and ((j + 1) in vents) == vent:
+            j += 1
+        z1, z0 = zb - k * rh, zb - (j + 1) * rh
+        mb.quad(P(a, z0, d), P(b, z0, d), P(b, z1, d), P(a, z1, d), vent_glass if vent else glass,
+                panes=(max(1, round((b - a) / 1.5)), max(1, round((z1 - z0) / 2.6)), hall))
+        k = j + 1
+    for c in range(cols + 1):
+        x = a + (b - a) * c / cols
+        bar(mb, P, x, za, x, zb, fw if 0 < c < cols else fw * 1.6, d, d + 0.06, frame)
+    for r in range(rows + 1):
+        heavy = r in (0, rows) or (rows - r) in vents or (rows - r - 1) in vents
+        bar(mb, P, a, za + rh * r, b, za + rh * r, fw * 1.6 if heavy else fw, d, d + 0.06, frame)
+
+
+def diamond_grille(mb, P, a, b, za, zb, d, pitch=0.32, w=0.022, mat='frame_dark'):
+    """A lattice of diagonal bars over [a, b] x [za, zb] in front of a window at depth d (대강당's lobby windows)."""
+    H = zb - za
+    s0 = a - H
+    while s0 < b:
+        sa_, sb_ = max(a, s0), min(b, s0 + H)
+        if sb_ - sa_ > 0.03:
+            bar(mb, P, sa_, za + sa_ - s0, sb_, za + sb_ - s0, w, d, d + 0.03, mat)
+            bar(mb, P, sa_, zb - (sa_ - s0), sb_, zb - (sb_ - s0), w, d, d + 0.03, mat)
+        s0 += pitch
+
+
 def auditorium():
-    """대강당 (1980, 선교70주년기념관), from the 2009 photos (reference/대강당_2009_정면.jpg, 대강당_2009_측면.jpg,
-    대강당_2009_앞길_계단.jpg; the front is as it was built): a hall clad in pale granite panels whose big gable faces
-    백양로 over the whole front, a wall of square panels with the cross at the top.  Under it a clerestory of small
-    windows over a cornice, five bays of tall paired windows between broad pilasters, and at the foot the lobby: three
-    bays of glass doors in brass frames, a grilled window in each outer bay, lanterns on the pilasters.  Square end
-    pylons with two slit windows each stand a little forward.  The lobby floor is a raised porch ten risers over the
-    forecourt: a broad flight before the three door bays with steel handrails, lattice railings round the rest.
-    (The model before had a flat canopy on columns over five low steps, which the photos do not show.)  Lower wings
-    fill the rest of the OSM outline: two storeys with hipped roofs at the front, flat-roofed blocks at the back."""
+    """대강당 (finished December 1958 as a hall of 2,300 seats, four storeys of reinforced concrete: 연세대학교 건물의
+    역사, 자료 G), from the 2009 photos (reference/대강당_2009_정면.jpg, 대강당_2009_측면.jpg, 대강당_2009_앞길_계단.jpg) and
+    the school's own photo (reference/학교연혁_대강당.jpg).  A hall clad in pale granite courses whose gable faces
+    백양로, a wall of panels with a small cross near the top; the gable's shoulders stand 1.6 m in from the outer faces
+    of the end towers, over a knee of wall above their tops.  Under it a clerestory of small windows, one over each
+    tall window, a deep band, and five bays of 3.7 m between broad pilasters: in each a recessed frame holding a pair of
+    tall steel windows (2 x 10 lights of pale green glass on dark bars, a darker row of hoppers) parted by a strip of
+    stone.  At the foot the lobby: three bays of glass doors in brass frames, a grilled window in each outer bay,
+    lanterns on the pilasters.  The end towers, two bays wide, stand a little forward with stepped returns, each with a
+    recessed panel of two tall windows (2 x 16 lights).
+    Proportions: the widths share the OSM front (34 m) out as the school's frontal photo does (towers 7.7 m, bays
+    3.7 m); the heights are that photo's times 0.765: a camera fitted to the 2009 front photo (17 corners, 6 px rms)
+    finds the school's image stretched upright by 1.3, and so do its stone courses (0.5 m) and window shapes.
+    The lobby floor is a raised porch ten risers over the forecourt: a broad flight before the three door bays with
+    steel handrails, lattice railings round the rest.  Lower wings fill the rest of the OSM outline: two storeys with
+    hipped roofs at the front, flat-roofed blocks at the back."""
     b = bld(371403811)
     fp = b['footprint']
     fa, fb = Vector(fp[1]), Vector(fp[0])            # the main hall's 34 m front, south -> north
     v = (fb - fa).normalized()
     u = Vector((v.y, -v.x))                          # into the hall (east, away from 백양로)
     m = (fa + fb) / 2
-    # local frame: x along the front from north to south, y into the hall: the front wall at y = 0, the porch at -y
+    # local frame: x along the front from north to south, y into the hall: the gable plane at y = 0, the porch at -y
     ang = math.atan2(-v.y, -v.x)
     zf = max(ground(*(m - u * 4.0 + v * s_)) for s_ in (-14.0, -7.0, 0.0, 7.0, 14.0))     # the forecourt
     mb = MeshBuilder('lm_auditorium')
@@ -2249,140 +2292,210 @@ def auditorium():
     gl = local_ground(mb)
     loc = lambda p: ((Vector(p) - m).dot(-v), (Vector(p) - m).dot(u))
     W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
-    wall = 'stone_panel'
+
+    def bx(xa, xb, ya, yb, za, zb_, mat, **kw):
+        mb.box(((xa + xb) / 2, (ya + yb) / 2, (za + zb_) / 2), (xb - xa, yb - ya, zb_ - za), mat, **kw)
+
+    def courses(P, s0, s1, z0, z1, head=None, holes=(), d=0.012, jw=0.012):
+        """joints of the granite cladding on a wall P: beds every 0.5 m (from the porch), heads every `head` m from
+        s0 (stack bond), round the openings `holes`"""
+        def runs(a, b, cuts):
+            for c0, c1 in sorted(cuts):
+                if c0 > a:
+                    yield a, min(c0, b)
+                a = max(a, c1)
+            if a < b:
+                yield a, b
+        z = Zp + 0.5
+        while z < z1 - 0.1:
+            if z > z0 + 0.1:
+                for a_, b_ in runs(s0, s1, [(h[0], h[1]) for h in holes if h[2] < z < h[3]]):
+                    mb.quad(P(a_, z - jw, d), P(b_, z - jw, d), P(b_, z + jw, d), P(a_, z + jw, d), 'concrete_dark')
+            z += 0.5
+        if head:
+            n_ = max(1, round((s1 - s0) / head))
+            for k in range(1, n_):
+                x = s0 + (s1 - s0) * k / n_
+                for a_, b_ in runs(z0, z1, [(h[2], h[3]) for h in holes if h[0] < x < h[1]]):
+                    mb.quad(P(x - jw, a_, d), P(x + jw, a_, d), P(x + jw, b_, d), P(x - jw, b_, d), 'concrete_dark')
+
+    def side(x, ya, yb, za, zb_, facing):
+        """a wall in the plane x = const from y = ya to yb, facing +x (facing > 0) or -x"""
+        P, L, _, _ = edge_P((x, ya), (x, yb)) if facing > 0 else edge_P((x, yb), (x, ya))
+        flat_wall(mb, P, 0, L, za, zb_, wall)
+    wall = 'stone_panel_wide'
     hx = (fb - fa).length / 2
     D = max(loc(p)[1] for p in fp)
     Zp = 1.6                     # the porch and lobby floor: ten risers over the forecourt
-    He = Zp + 14.6               # eaves of the gable
-    Hr = He + 5.6                # its ridge
-    pw, pp = 5.4, 0.8            # end pylons: width, how far they stand out
+    He = Zp + 11.75              # the cornice under the gable, the tops of the end towers
+    Hk = Zp + 12.42              # the hall's eaves: a knee of gable wall over the towers
+    Hr = Zp + 16.9               # its ridge
+    hb = hx - 1.6                # the gable's half width (the hall's upper walls stand in from the towers)
+    T, pp = 7.72, 0.9            # end towers: width, how far their face stands out of the gable plane
+    x0 = -hx + T                 # the recessed middle between the towers: five bays (x0 < 0, mirrored at -x0)
+    pb = (2 * hx - 2 * T) / 5    # bay pitch (3.72 m)
+    pl = 0.86                    # pilaster face
+    yP_, yB = -0.45, -0.2        # the faces of the pilasters and the band; the wall of the bays behind them
+    zL, zS, zW0, zW1 = Zp + 2.45, Zp + 3.2, Zp + 3.8, Zp + 9.5     # lobby top, its lintel band, the tall windows
+    zH, zC0, zC1 = Zp + 9.95, Zp + 10.75, Zp + 11.58               # bay heads, the band over them, the clerestory
     zb = -9.0                    # the walls go on down into the slope (the back stands ~11 m higher)
-    # --- side and back walls: slit windows by the front, a clerestory row high up the long sides, a cornice
+    cs = [x0 + (k + 0.5) * pb for k in range(5)]                   # bay centres
+    ww, ws = 1.03, 0.55          # tall window width, the stone strip between a pair
+    wins = [(c + sg * (ws + ww) / 2 - ww / 2, c + sg * (ws + ww) / 2 + ww / 2) for c in cs for sg in (-1, 1)]
+    ret = [(0.30, -pp), (0.15, -0.72), (0.0, -0.58)]               # tower returns: (how far out from the bays a
+    X0 = -x0                                                       #  face's inner edge is, its y)
+    XR = X0 + ret[0][0]                                            # the towers' faces end at x = -XR and XR
+    xr = -XR
+    # --- side and back walls up to the cornice: a row of small clerestory windows high up the long sides
     body = [(-hx, 0.0), (hx, 0.0), (hx, D), (-hx, D)]
     for i in (1, 2, 3):
         P, Le, t, n = edge_P(body[i], body[(i + 1) % 4])
         holes = []
         if i in (1, 3):
-            for k in range(2):
-                s_ = 1.8 + k * 2.6
-                s_ = s_ if i == 1 else Le - s_
-                holes.append((s_ - 0.45, s_ + 0.45, Zp + 4.2, Zp + 13.0))
             for k in range(int((Le - 16.0) / 3.4)):
                 s_ = 12.0 + k * 3.4
                 s_ = s_ if i == 1 else Le - s_
-                holes.append((s_ - 0.6, s_ + 0.6, He - 2.4, He - 1.4))
+                holes.append((s_ - 0.6, s_ + 0.6, He - 2.2, He - 1.3))
         wall_holes(mb, P, 0, Le, zb, He, wall, holes)
         for a_, b_, za_, zb_ in holes:
             reveal(mb, P, a_, b_, za_, zb_, 0.2, wall)
-            glazing(mb, P, a_, b_, za_, zb_, -0.2, 1, max(1, int(round((zb_ - za_) / 1.0))), 'frame_dark')
-        bar(mb, P, -0.2, He - 0.15, Le + 0.2, He - 0.15, 0.3, 0.0, 0.25, 'stone_trim', ends=True)
-    # --- the front: the pylons, then the recessed middle between them
-    for x0 in (-hx, hx - pw):
-        x1 = x0 + pw
-        Pp, _, _, _ = edge_P((x0, -pp), (x1, -pp))
-        slits = [(pw / 2 - 1.55, pw / 2 - 0.7, Zp + 4.0, Zp + 13.2), (pw / 2 + 0.7, pw / 2 + 1.55, Zp + 4.0, Zp + 13.2)]
-        wall_holes(mb, Pp, 0, pw, zb, He + 0.4, wall, slits)
-        for a_, b_, za_, zb_ in slits:
-            reveal(mb, Pp, a_, b_, za_, zb_, 0.25, wall)
-            glazing(mb, Pp, a_, b_, za_, zb_, -0.25, 1, 9, 'frame_dark')
-        for (xa, ya, xb, yb) in ((x0, 0.0, x0, -pp), (x1, -pp, x1, 0.0)):
-            Ps, Ls, _, _ = edge_P((xa, ya), (xb, yb))
-            flat_wall(mb, Ps, 0, Ls, zb, He + 0.4, wall)
-        mb.quad((x0, -pp, He + 0.4), (x1, -pp, He + 0.4), (x1, 0.0, He + 0.4), (x0, 0.0, He + 0.4), 'stone_trim')
-    Pf, _, _, _ = edge_P((-hx, 0.0), (hx, 0.0))      # s from the north end, d outwards
-    nb = 5
-    pb = (2 * hx - 2 * pw) / nb                      # bay pitch
-    pl = 1.0                                         # pilaster width
-    bays = [(pw + k * pb + pl / 2, pw + (k + 1) * pb - pl / 2) for k in range(nb)]
-    doors = bays[1:4]
-    holes = []
-    for k, (sa, sb) in enumerate(bays):
-        holes.append((sa, sb, Zp if 0 < k < 4 else Zp + 0.9, Zp + 3.9))           # lobby: doors / grilled windows
-        c = (sa + sb) / 2
-        for sg in (-1, 1):
-            holes.append((c + sg * 0.9 - 0.55, c + sg * 0.9 + 0.55, Zp + 5.4, Zp + 12.4))   # tall paired windows
-            holes.append((c + sg * 1.0 - 0.65, c + sg * 1.0 + 0.65, Zp + 13.95, Zp + 14.5))  # clerestory
-    wall_holes(mb, Pf, pw, 2 * hx - pw, zb, He, wall, holes)
-    for (sa, sb, za_, zb_) in holes:
-        lobby = zb_ < Zp + 4.0
-        door = lobby and za_ < Zp + 0.1
-        reveal(mb, Pf, sa, sb, za_, zb_, 0.3 if lobby else 0.22, wall)
-        if door:          # brass-framed glass doors and the lit lobby behind
-            glazing(mb, Pf, sa, sb, za_, zb_, -0.3, 4, 1, 'bronze', glass='glass_door', fw=0.08, transom=Zp + 2.75)
-            for sk in (1, 2, 3):
-                hs = sa + (sb - sa) * sk / 4
-                if sk == 2:
-                    for sg in (-1, 1):
-                        bar(mb, Pf, hs + sg * 0.12, Zp + 0.95, hs + sg * 0.12, Zp + 1.55, 0.035, -0.22, -0.16, 'bronze', ends=True)
-            vestibule(mb, Pf, sa, sb, Zp + 0.003, Zp + 3.85, -0.32, 7.0, lights=3)
-        elif lobby:       # the grilled windows of the outer bays
-            glazing(mb, Pf, sa, sb, za_, zb_, -0.3, 6, 4, 'frame_dark')
-            for kk in range(6):
-                c_ = sa + (sb - sa) * (kk + 0.5) / 6
-                for zz in (za_ + (zb_ - za_) * q for q in (0.125, 0.375, 0.625, 0.875)):
-                    bar(mb, Pf, c_ - 0.14, zz, c_ + 0.14, zz, 0.025, -0.24, -0.2, 'frame_dark')
-        elif zb_ - za_ > 2.0:
-            glazing(mb, Pf, sa, sb, za_, zb_, -0.22, 2, 7, 'frame_dark')
+            glazing(mb, P, a_, b_, za_, zb_, -0.2, 1, 1, 'frame_dark')
+        bar(mb, P, -0.2, He - 0.1, Le + 0.2, He - 0.1, 0.2, 0.0, 0.2, 'stone_trim', ends=True)
+    for sg in (-1, 1):
+        # the flat strip over each side wall outside the gable, the stone cap of each tower in front of it
+        xa, xb = sorted((sg * hb, sg * hx))
+        mb.quad((xa, 0.0, He), (xb, 0.0, He), (xb, D, He), (xa, D, He), 'roof_flat')
+        xa, xb = sorted((sg * hx, sg * XR))
+        mb.quad((xa, -pp, He), (xb, -pp, He), (xb, 0.0, He), (xa, 0.0, He), 'stone_trim')
+        # --- the end towers: a recessed panel with two tall windows (offset outwards a little, as in the photos)
+        xa, xb = sorted((sg * hx, sg * XR))
+        Pt, Lt, _, _ = edge_P((xa, -pp), (xb, -pp))                # s from the north end, d outwards
+        out = (lambda off: off) if sg < 0 else (lambda off, Lt=Lt: Lt - off)
+        pa_, pb2 = sorted((out(1.38), out(5.75)))
+        pz0, pz1 = Zp + 0.88, zH
+        wall_holes(mb, Pt, 0, Lt, zb, He, wall, [(pa_, pb2, pz0, pz1)])
+        reveal(mb, Pt, pa_, pb2, pz0, pz1, 0.12, wall)
+        Pr = lambda s, z, d=0.0, Pt=Pt: Pt(s, z, d - 0.12)
+        pc = (pa_ + pb2) / 2
+        tw = [(pc + q * 1.2 - 0.64, pc + q * 1.2 + 0.64, Zp + 1.17, zW1) for q in (-1, 1)]
+        wall_holes(mb, Pr, pa_, pb2, pz0, pz1, wall, tw)
+        for a_, b_, za_, zb_ in tw:
+            reveal(mb, Pr, a_, b_, za_, zb_, 0.15, wall)
+            grid_window(mb, Pr, a_, b_, za_, zb_, -0.15, 2, 16, vents=(0, 6, 15))
+        bar(mb, Pt, pa_ - 0.04, pz0, pb2 + 0.04, pz0, 0.08, -0.12, 0.06, 'stone_trim', ends=True)   # the panel's sill
+        courses(Pt, 0.05, Lt - 0.05, Zp, He - 0.05, head=Lt / 7, holes=[(pa_ - 0.03, pb2 + 0.03, pz0 - 0.1, pz1 + 0.03)])
+        side(sg * hx, -pp, 0.0, zb, He, sg)                        # the outer side back to the side wall
+        # the inner return: two steps back to the pilasters' face up to the band, then plain to the gable plane
+        for k, (off, yf) in enumerate(ret):
+            yn = ret[k + 1][1] if k + 1 < len(ret) else yP_
+            side(sg * (X0 + off), yf, yn, Zp - 0.2, zC0, -sg)
+            if k + 1 < len(ret):                                   # the next step's face and its top at the band
+                xa, xb = sorted((sg * (X0 + off), sg * (X0 + ret[k + 1][0])))
+                Pq, Lq, _, _ = edge_P((xa, yn), (xb, yn))
+                flat_wall(mb, Pq, 0, Lq, Zp - 0.2, zC0, wall)
+                mb.quad((xa, yn, zC0), (xb, yn, zC0), (xb, 0.0, zC0), (xa, 0.0, zC0), wall)
+        side(sg * XR, -pp, 0.0, zC0, He, -sg)
+    # --- the middle: the clerestory in the gable plane, the band, pilasters, the bays' wall and windows, the lobby
+    Pg, _, _, _ = edge_P((-hx, 0.0), (hx, 0.0))                    # s = x + hx, d outwards
+    Pb, _, _, _ = edge_P((-hx, yB), (hx, yB))
+    S = lambda x: x + hx
+    clere = [(S(a_), S(b_), zC0 + 0.2, zC1 - 0.02) for a_, b_ in wins]
+    wall_holes(mb, Pg, S(xr), S(-xr), zC0, He, wall, clere)
+    for a_, b_, za_, zb_ in clere:
+        reveal(mb, Pg, a_, b_, za_, zb_, 0.15, wall)
+        grid_window(mb, Pg, a_, b_, za_, zb_, -0.15, 3, 1)
+    for k in range(6):                                             # two thin fins at each pilaster over the band
+        x = x0 + k * pb
+        for sf in (-1, 1):
+            if (k == 0 and sf < 0) or (k == 5 and sf > 0):
+                continue
+            bx(x + sf * 0.36 - 0.06, x + sf * 0.36 + 0.06, -0.2, 0.0, zC0, zC1, wall, skip=('bottom', 'back'))
+    bx(xr, -xr, -0.12, 0.0, zC1, He, 'stone_trim', skip=('back',))                # the cornice under the gable
+    bx(x0, -x0, yP_, 0.0, zH + 0.12, zC0, wall, skip=('back',))                    # the deep band over the bays
+    bx(x0, -x0, yP_ - 0.06, yB, zH, zH + 0.12, 'stone_trim', skip=('back',))     # its drip ledge
+    holes = [(S(a_), S(b_), zW0, zW1) for a_, b_ in wins]                        # the bays' wall and the windows
+    wall_holes(mb, Pb, S(x0), S(-x0), zS, zH, wall, holes)
+    for a_, b_, za_, zb_ in holes:
+        reveal(mb, Pb, a_, b_, za_, zb_, 0.15, wall)
+        grid_window(mb, Pb, a_, b_, za_, zb_, -0.15, 2, 10, vents=(0, 3))
+    for c in cs:                                                   # a sill under each pair
+        bar(mb, Pb, S(c - pb / 2 + pl / 2), zW0, S(c + pb / 2 - pl / 2), zW0, 0.07, -0.02, 0.09, 'stone_trim')
+    bx(x0, -x0, -0.38, yB, zL, zS, wall, skip=('back',))                        # the lintel band over the lobby
+    Pp, _, _, _ = edge_P((-hx, yP_), (hx, yP_))
+    for k in range(6):                                             # pilasters from the porch to the band
+        x = x0 + k * pb
+        bx(x - pl / 2, x + pl / 2, yP_, yB, Zp - 0.2, zH, wall, skip=('bottom', 'back'))
+        courses(Pp, S(max(x - pl / 2, x0)) + 0.02, S(min(x + pl / 2, -x0)) - 0.02, Zp, zH)
+    # the lobby: brass-framed glass doors in the three middle bays, a grilled window in each outer bay
+    for k, c in enumerate(cs):
+        sa, sb = S(c - pb / 2 + pl / 2), S(c + pb / 2 - pl / 2)
+        door = 0 < k < 4
+        za_ = Zp if door else Zp + 0.7
+        wall_holes(mb, Pb, sa, sb, Zp - 0.2, zL, wall, [(sa, sb, za_, zL)])
+        reveal(mb, Pb, sa, sb, za_, zL, 0.2, wall)
+        if door:
+            # (dark glass mirroring the trees in the photos: the lobby behind it unlit)
+            grid_window(mb, Pb, sa, sb, za_, zL, -0.2, 4, 1, frame='bronze', fw=0.07, hall=True)
+            for zz in (Zp + 1.95, Zp + 0.92):                       # transom, and a rail over the handles
+                bar(mb, Pb, sa, zz, sb, zz, 0.08 if zz > Zp + 1.5 else 0.05, -0.2, -0.13, 'bronze')
+            hs = (sa + sb) / 2
+            for sg in (-1, 1):
+                bar(mb, Pb, hs + sg * 0.1, Zp + 0.8, hs + sg * 0.1, Zp + 1.4, 0.03, -0.13, -0.08, 'bronze', ends=True)
         else:
-            glazing(mb, Pf, sa, sb, za_, zb_, -0.22, 2, 1, 'frame_dark')
-    # pilasters between the bays from the porch to the cornice, a slimmer strip between each pair of windows
-    for k in range(nb + 1):
-        x = -hx + pw + k * pb
-        w_ = pl if 0 < k < nb else pl * 0.6
-        xc = x if 0 < k < nb else x + (w_ / 2 if k == 0 else -w_ / 2)
-        mb.box((xc, -0.2, (Zp + Zp + 13.4) / 2), (w_, 0.4, 13.4), wall, skip=('bottom',))
-    for sa, sb in bays:
-        mb.box(((sa + sb) / 2 - hx, -0.1, Zp + 9.0), (0.7, 0.2, 7.6), wall, skip=('bottom',))
-    mb.box((0.0, -0.3, Zp + 13.55), (2 * hx - 2 * pw, 0.6, 0.3), 'stone_trim')                 # cornice
-    mb.box((0.0, -0.22, Zp + 4.65), (2 * hx - 2 * pw, 0.44, 0.12), 'stone_trim')               # band over the lobby
-    mb.box((0.0, -0.25, He + 0.05), (2 * hx + 0.5, 0.5, 0.3), 'stone_trim')                    # under the gable
-    for k in range(1, nb):                                         # lanterns on the inner pilasters
-        x = -hx + pw + k * pb
-        mb.box((x, -0.5, Zp + 3.5), (0.22, 0.2, 0.42), 'metal_dark')
-        mb.box((x, -0.52, Zp + 3.48), (0.16, 0.16, 0.26), 'light_amber')
-    # --- the gable: square panels, the cross; copings up the rakes; the same gable at the back
-    mb.face([(-hx, -0.02, He), (hx, -0.02, He), (0.0, -0.02, Hr)], wall)
-    mb.face([(hx, D + 0.02, He), (-hx, D + 0.02, He), (0.0, D + 0.02, Hr)], wall)
-    ps = 1.46
-    for k in range(1, int((Hr - He) / ps) + 1):
-        z = He + k * ps
-        hw_ = hx * (1 - (z - He) / (Hr - He)) - 0.1
-        if hw_ > 0.3:
-            mb.quad((-hw_, -0.04, z), (hw_, -0.04, z), (hw_, -0.04, z + 0.04), (-hw_, -0.04, z + 0.04), 'concrete_dark')
-    for k in range(-int(hx / ps), int(hx / ps) + 1):
-        x = k * ps
-        zt = He + (Hr - He) * (1 - abs(x) / hx) - 0.12
-        if zt > He + 0.3:
-            mb.quad((x - 0.02, -0.04, He + 0.2), (x + 0.02, -0.04, He + 0.2), (x + 0.02, -0.04, zt), (x - 0.02, -0.04, zt), 'concrete_dark')
+            glazing(mb, Pb, sa, sb, za_, zL, -0.2, 6, 3, 'frame_dark', glass='glass_reflect')
+            diamond_grille(mb, Pb, sa, sb, za_, zL, -0.12)
+    for k in range(1, 5):                                          # lanterns on the inner pilasters
+        x = x0 + k * pb
+        mb.box((x, yP_ - 0.1, zL + 0.15), (0.2, 0.2, 0.4), 'metal_green')
+        mb.box((x, yP_ - 0.12, zL + 0.12), (0.14, 0.14, 0.24), 'light_amber')
+    # --- the gable: a knee of wall over the cornice and the triangle, front and back; the small cross near the top
+    for yg, sgn in ((-0.02, 1), (D + 0.02, -1)):
+        xa, xb = (-hb, hb) if sgn > 0 else (hb, -hb)
+        mb.quad((xa, yg, He), (xb, yg, He), (xb, yg, Hk), (xa, yg, Hk), wall)
+        mb.face([(xa, yg, Hk), (xb, yg, Hk), (0.0, yg, Hr)], wall)
+    for sg in (-1, 1):                                             # the knee walls along the sides, under the eaves
+        side(sg * hb, 0.0, D, He, Hk, sg)
+    jy, jw = -0.035, 0.017                                         # the front gable's joints: panels 0.8 x 0.5 m
+    rake = lambda x: Hk + (Hr - Hk) * (1 - abs(x) / hb)
+    z = He + 0.5
+    while z < Hr - 0.25:
+        hw_ = (hb if z <= Hk else hb * (1 - (z - Hk) / (Hr - Hk))) - 0.06
+        mb.quad((-hw_, jy, z - jw), (hw_, jy, z - jw), (hw_, jy, z + jw), (-hw_, jy, z + jw), 'concrete_dark')
+        z += 0.5
+    for k in range(1, int(hb / 0.8) + 1):
+        for x in (-k * 0.8 + 0.4, k * 0.8 - 0.4):
+            if abs(x) < hb - 0.1:
+                mb.quad((x - jw, jy, He + 0.12), (x + jw, jy, He + 0.12), (x + jw, jy, rake(x) - 0.1),
+                        (x - jw, jy, rake(x) - 0.1), 'concrete_dark')
+    zc = Hr - 1.68                                                 # the cross: a ring over a T
+    mb.box((0.0, -0.07, zc - 0.25), (0.07, 0.07, 1.15), 'metal_dark')
+    mb.box((0.0, -0.07, zc + 0.12), (0.66, 0.07, 0.06), 'metal_dark')
+    for k in range(12):
+        a_ = 2 * math.pi * k / 12
+        mb.box((0.16 * math.cos(a_), -0.07, zc + 0.5 + 0.16 * math.sin(a_)), (0.08, 0.07, 0.05), 'metal_dark',
+               rotz=0.0)
+    # --- the roof, its ridge front to back: grey standing-seam metal, green flashing along the eaves and the rakes
+    e = hb + 0.45
+    mb.face([(-e, -0.45, Hk - 0.15), (0.0, -0.45, Hr + 0.1), (0.0, D + 0.45, Hr + 0.1), (-e, D + 0.45, Hk - 0.15)], 'roof_metal')
+    mb.face([(e, D + 0.45, Hk - 0.15), (0.0, D + 0.45, Hr + 0.1), (0.0, -0.45, Hr + 0.1), (e, -0.45, Hk - 0.15)], 'roof_metal')
     for sg in (-1, 1):
-        a3, b3 = (sg * (hx + 0.35), He - 0.1), (0.0, Hr + 0.15)
-        mb.quad((a3[0], -0.35, a3[1]), (b3[0], -0.35, b3[1]), (b3[0], 0.05, b3[1]), (a3[0], 0.05, a3[1]),
-                'stone_trim') if sg < 0 else \
-            mb.quad((b3[0], -0.35, b3[1]), (a3[0], -0.35, a3[1]), (a3[0], 0.05, a3[1]), (b3[0], 0.05, b3[1]), 'stone_trim')
-    zc = He + 3.6                                                  # the cross: a ring over a T
-    mb.box((0.0, -0.08, zc), (0.16, 0.1, 2.2), 'metal_dark')
-    mb.box((0.0, -0.08, zc + 0.75), (1.1, 0.1, 0.14), 'metal_dark')
-    for k in range(10):
-        a_ = 2 * math.pi * k / 10
-        mb.box((0.36 * math.cos(a_), -0.08, zc + 1.55 + 0.36 * math.sin(a_)), (0.2, 0.1, 0.1), 'metal_dark', rotz=0.0)
-    # --- the roof, its ridge front to back
-    e = hx + 0.45
-    # (grey standing-seam metal in the photos, a green flashing along the eaves and the rakes)
-    mb.face([(-e, -0.45, He - 0.15), (0.0, -0.45, Hr + 0.1), (0.0, D + 0.45, Hr + 0.1), (-e, D + 0.45, He - 0.15)], 'roof_metal')
-    mb.face([(e, D + 0.45, He - 0.15), (0.0, D + 0.45, Hr + 0.1), (0.0, -0.45, Hr + 0.1), (e, -0.45, He - 0.15)], 'roof_metal')
-    for sg in (-1, 1):
-        mb.box((sg * e, D / 2, He - 0.25), (0.14, D + 0.9, 0.22), 'metal_green')
+        mb.box((sg * e, D / 2, Hk - 0.25), (0.14, D + 0.9, 0.22), 'metal_green')
     mb.box((0.0, D / 2, Hr + 0.18), (0.3, D + 0.9, 0.18), 'metal_green')
-    # --- the porch: from the front of the pylons out to the flight, and between them up to the doors
+    Pfr, _, _, _ = edge_P((-hx, -0.45), (hx, -0.45))
+    Pbk, _, _, _ = edge_P((hx, D + 0.45), (-hx, D + 0.45))
+    for P_, Sx in ((Pfr, lambda x: x + hx), (Pbk, lambda x: hx - x)):
+        for sg in (-1, 1):
+            bar(mb, P_, Sx(sg * e), Hk - 0.18, Sx(0.0), Hr + 0.08, 0.16, -0.02, 0.05, 'metal_green', ends=True)
+    # --- the porch: from the towers' faces out to the flight, and between them up to the doors
     yP = -5.6
     mb.box((0.0, (yP - pp) / 2, (Zp - 2.0) / 2), (2 * hx, -pp - yP, Zp + 2.0), 'stone_granite', mats={'top': 'stone_step'},
            skip=('bottom',))
-    mb.box((0.0, -pp / 2, (Zp - 2.0) / 2), (2 * hx - 2 * pw, pp, Zp + 2.0), 'stone_granite', mats={'top': 'stone_step'},
+    mb.box((0.0, -pp / 2, (Zp - 2.0) / 2), (-2 * xr, pp, Zp + 2.0), 'stone_granite', mats={'top': 'stone_step'},
            skip=('bottom',))
     mb.box((0.0, yP + 0.12, Zp + 0.02), (2 * hx + 0.1, 0.3, 0.06), 'stone_trim')                 # nosing along its edge
     WALK_FACES.append([W_(-hx, yP, Zp), W_(hx, yP, Zp), W_(hx, -pp, Zp), W_(-hx, -pp, Zp)])
-    WALK_FACES.append([W_(-hx + pw, -pp, Zp), W_(hx - pw, -pp, Zp), W_(hx - pw, 0.3, Zp), W_(-hx + pw, 0.3, Zp)])
-    fw = sum(b_ - a_ for a_, b_ in doors) + 2 * pl                  # the flight: as wide as the three door bays
+    WALK_FACES.append([W_(x0, -pp, Zp), W_(-x0, -pp, Zp), W_(-x0, 0.3, Zp), W_(x0, 0.3, Zp)])
+    fw = 3 * pb                                                    # the flight: as wide as the three door bays
     stair_flight(mb, 0.0, yP, fw, Zp, n=10, mat='stone_step', landing=0.0, tread=0.33, flare=0.0, rail=True, gfn=gl,
                  maxrise=0.165)
     for sg in (-1, 1):                                             # lattice railings round the rest of the porch
@@ -2397,7 +2510,7 @@ def auditorium():
         if area < 0:
             wp = wp[::-1]
         gs = [gl(*p) for p in wp]
-        top = min(He - 3.5, max(gs) + 7.8)
+        top = max(min(He - 3.5, max(gs) + 7.8), max(gs) + 1.2)     # (the blocks at the back stand up the slope)
         base = min(gs) - 1.5
         for i in range(4):
             a2, b2 = wp[i], wp[(i + 1) % 4]
