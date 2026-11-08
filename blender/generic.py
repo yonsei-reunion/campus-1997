@@ -492,26 +492,28 @@ def dome_tower(mb, c, ang, zt, st, T, Ht, R, seg, rings, slit, drum, win, seam=0
 
 
 def observatory(mb, b, zt, st):
-    """과학관's two domes on its east wing.  The observatory (reference/학교연혁_과학관.jpg, top right;
-    reference/활천대_2009_연세춘추.jpg, far left): a square white tower about 1.4 storeys over the roof near the east
-    end, carrying a silver dome with an observing slit.  The tower stands back from the south face and is about 2.5
-    window bays across; the dome nearly fills it (7.6 m across on a short drum), its top some 9.5 m over the main
-    roof.  And at the wing's west end, where it meets the front block, a small tower with a small silver dome
-    (학교연혁_과학관.jpg, x 213 y 55 in the 454 px print; the 1995 aerial photo, a white tower with a rounded top at
-    x 515 - 550 of 3200).  No photo shows it near enough to measure: against the window bays round each, the small
-    dome is about 0.4 - 0.5 of the large one across and its top about 0.7 as high over the roof, so 3.6 m across on
-    a tower 4.4 m a side and 4.2 m high (reference/고증.md)."""
+    """과학관's two domes on its east wing (zt: the wing's roof).  The observatory (reference/학교연혁_과학관.jpg,
+    top right; reference/활천대_2009_연세춘추.jpg, far left): a square white tower near the east end carrying a
+    silver dome with an observing slit.  Measured (reference/고증.md 3.10): the 1994 aerial photo with its fitted
+    camera (tools/photofit) has the dome 5.6 m across at half brightness, its centre 10 m west of the east face, the
+    tower's top 4.7 m over the parapet; three 2010 roadview panoramas from the south (1016786788 · 7072 · 7073) 5.1 -
+    5.4 m, the dome 0.83 - 0.86 of the tower as seen.  So a 5.4 m dome on a 5.6 m tower, its top 8.5 m over the roof.
+    And near the junction with the front block a small tower with a small silver dome (학교연혁_과학관.jpg, x 213
+    y 55 in the 454 px print; the 2010 roadview from the south, a dome of 1.5 - 2 m 1 - 5 m west of the junction; the
+    1994 photo, a narrow white post 2.2 - 2.6 m wide 7 m west of it, and a white tower with a rounded top 17 m west):
+    the old proportions to the large one (3.6 m on a 4.4 m tower against 7.6 on 9) scaled with it, 2.6 m on a 2.8 m
+    tower, 4.5 m west of the junction."""
     fp = b['footprint']
     e0, e1 = Vector(fp[0]), Vector(fp[1])                # the east face of the east wing (south -> north)
     w = (Vector(fp[14]) - e0).normalized()               # along the wing, westwards
     ang = math.atan2(w.y, w.x)
     # (the slit two gores wide, facing south-west: u westwards, v southwards)
-    dome_tower(mb, (e0 + e1) / 2 + w * 7.5, ang, zt, st, T=9.0, Ht=5.0, R=3.8, seg=24, rings=7, slit=(5, 6),
-               drum=0.51, win=(0.45, 2.2, 3.6))
-    # the small one over the junction with the front block (whose east face meets the wing 49.5 m from its east face),
-    # its slit one gore wide, the same way
-    dome_tower(mb, (e0 + e1) / 2 + w * (Vector(fp[14]) - e0).length, ang, zt, st, T=4.4, Ht=4.2, R=1.8, seg=16,
-               rings=5, slit=(4,), drum=0.3, win=(0.35, 1.8, 3.1), seam=0.025, phase=-math.pi / 16)
+    dome_tower(mb, (e0 + e1) / 2 + w * 10.0, ang, zt, st, T=5.6, Ht=5.0, R=2.7, seg=24, rings=7, slit=(5, 6),
+               drum=0.51, win=(0.4, 2.2, 3.6))
+    # the small one west of the junction with the front block (whose east face meets the wing 49.5 m from its east
+    # face), its slit one gore wide, the same way
+    dome_tower(mb, (e0 + e1) / 2 + w * ((Vector(fp[14]) - e0).length + 4.5), ang, zt, st, T=2.8, Ht=4.4, R=1.3,
+               seg=16, rings=5, slit=(4,), drum=0.25, win=(0.25, 1.8, 3.1), seam=0.02, phase=-math.pi / 16)
 
 
 def _science_wing(b, poly):
