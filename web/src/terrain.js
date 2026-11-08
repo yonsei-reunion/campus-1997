@@ -6,6 +6,44 @@ import { MOBILE, mulberry, placeMatrix, versioned } from './util.js';
 import { ATMOS, ATMOS_GLSL, SKY_DRIFT } from './materials.js';
 import { LITTER_GLSL, litterMagnolias } from './litter.js';
 
+// Paving of another kind than the campus's red interlocking pavers (issue #85): ground_dry.png's G and B say where
+// (tools/build_campus.py, coverage at 1 m cut at one half as sharp as the screen allows), campus.json pave.ang the
+// long side's direction of each. Blocks in running bond, drawn here: no texture, a few operations where they lie.
+//  - G only: 상뜰's dark grey rectangular blocks, 20 x 10 cm, rows across its walks (reference/대우관_2024_정면과_상뜰.jpg)
+//  - B only: red clay bricks, 20 x 10 cm, rows across the eagle's walks (2011 roadview); G and B: the same a quarter
+//    turned (its east and west walks)
+// kc: the colour, kn: the tangent normal (x east, y north) of the bevelled stones; returns how much of the pixel is
+// of the kind (0 at the edge to the ordinary paving). kfw, pfw: fwidth of k and of p, taken outside the branch it is
+// called from (derivatives are undefined in a branch some pixels of a quad do not take).
+const PAVE_GLSL = `
+  float paveKind(vec2 p, vec2 k, vec2 kfw, float pfw, float macro, out vec3 kc, out vec3 kn) {
+    vec2 kw = max(kfw * 0.75, vec2(0.002));
+    vec2 ks = smoothstep(0.5 - kw, 0.5 + kw, k);
+    float brick = step(0.5, k.y);
+    float a = mix(uPaveAng.x, uPaveAng.y + step(0.5, k.x) * 1.5707963, brick);
+    vec2 sz = vec2(0.2, 0.1);
+    float c = cos(a), s = sin(a);
+    vec2 q = vec2(c * p.x + s * p.y, -s * p.x + c * p.y);           // q.x along the long side
+    float row = floor(q.y / sz.y);
+    q.x += mod(row, 2.0) * 0.5 * sz.x;                               // half bond
+    vec2 cell = vec2(floor(q.x / sz.x), row);
+    vec2 f = q - cell * sz;
+    vec2 e = min(f, sz - f);                                         // metres to the joints either way
+    vec2 fw = vec2(pfw);
+    float fade = 1.0 - smoothstep(0.006, 0.03, pfw);                 // (far off: the joints' average shade)
+    vec2 jm2 = 1.0 - smoothstep(vec2(0.003), vec2(0.003) + fw * 1.5, e);
+    float jm = max(jm2.x, jm2.y) * fade;
+    float h = hash12(cell + a * 17.0), h2 = hash12(cell.yx * 1.31 + 7.0);
+    vec3 grey = vec3(0.058, 0.06, 0.066) * (0.8 + 0.45 * h) + vec3(0.025, 0.02, 0.016) * step(0.92, h2);
+    vec3 red = mix(vec3(0.34, 0.15, 0.115), vec3(0.42, 0.22, 0.17), h2) * (0.78 + 0.4 * h);
+    kc = mix(grey, red, brick) * mix(1.06, 0.86, smoothstep(0.4, 0.75, macro));
+    kc = mix(kc * (1.0 - 0.07 * (1.0 - fade)), vec3(0.045, 0.043, 0.04), jm);
+    // the stones' bevelled edges lean away from their middles
+    vec2 bev = (1.0 - smoothstep(vec2(0.0), vec2(0.009), e)) * sign(f - sz * 0.5) * 0.55 * fade;
+    kn = vec3(c * bev.x - s * bev.y, s * bev.x + c * bev.y, 1.0);
+    return mix(ks.x, ks.y, brick);
+  }`;
+
 export class Heightfield {
   constructor(data, half, step, n) {
     Object.assign(this, { data, half, step, n });
@@ -77,7 +115,9 @@ export function makeNearTerrain(hf, campus, lib) {
   const uniforms = {
     uSplat: { value: loadTex('assets/textures/ground_splat.png', { srgb: false, repeat: false, mobileMax: 2048 }) },
     // worn, dry lawn (the east lawn and the 화단섬 of the May 1997 photo): same rectangle, 1 m texels
+    // (its G and B: where the paving is of another kind, PAVE_GLSL below)
     uDry: { value: loadTex('assets/textures/ground_dry.png', { srgb: false, repeat: false }) },
+    uPaveAng: { value: new THREE.Vector2(...(campus.pave?.ang ?? [0, 0])) },
     uRect: { value: new THREE.Vector4(S.x0, S.y0, S.x1, S.y1) },
     gD: { value: T('leafy_grass/diff.jpg') }, gN: { value: T('leafy_grass/nor.jpg', false) },
     aD: { value: T('asphalt_02/diff.jpg') }, aN: { value: T('asphalt_02/nor.jpg', false) },
@@ -103,10 +143,11 @@ export function makeNearTerrain(hf, campus, lib) {
       .replace('#include <common>', `#include <common>
         varying vec3 vWPos; varying vec3 vWNrm;
         uniform sampler2D uSplat, uDry, gD, gN, aD, aN, pD, pN, dD, dN, fD;
-        uniform vec4 uRect; uniform vec3 uGrass;
+        uniform vec4 uRect; uniform vec3 uGrass; uniform vec2 uPaveAng;
         vec3 gTN; float gRough;
         vec3 nrm(sampler2D t, vec2 uv) { return texture2D(t, uv).xyz * 2.0 - 1.0; }
         float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+        ${PAVE_GLSL}
         ${LITTER_GLSL}`)
       .replace('#include <map_fragment>', `
         vec2 wp = vec2(vWPos.x, -vWPos.z);                 // campus x=east, y=north
@@ -142,12 +183,23 @@ export function makeNearTerrain(hf, campus, lib) {
         vec3 aTex = texture2D(aD, ua).rgb;
         vec3 asph = mix(texture2D(aD, ua, 9.0).rgb, aTex, 0.55) * 0.85;
         vec3 pav = texture2D(pD, up).rgb * vec3(1.08, 0.94, 0.92);
+        vec3 pavN = nrm(pN, up);
+        vec3 dryK = texture2D(uDry, suv).rgb * inside;      // R the dry lawn, G and B the paving's kind
+        vec2 kfw = fwidth(dryK.gb);
+        vec2 pfw2 = fwidth(wp);
+        float pfw = max(pfw2.x, pfw2.y);
+        if (wpv > 0.003 && dryK.g + dryK.b > 0.01) {
+          vec3 kc, kn;
+          float kw = paveKind(wp, dryK.gb, kfw, pfw, macro, kc, kn);
+          pav = mix(pav, kc, kw);
+          pavN = mix(pavN, kn, kw);
+        }
         vec3 dirt = texture2D(dD, ud).rgb;
         vec3 forest = texture2D(fD, wp / 5.0).rgb * 0.8;
         float forestMask = smoothstep(0.55, 0.7, sp.b) * (1.0 - smoothstep(0.85, 0.95, sp.b));
         dirt = mix(dirt, forest, forestMask);
         // dry lawn: the grass goes to straw, with patches of bare trodden earth where the macro noise is high
-        float dry = texture2D(uDry, suv).r * inside;
+        float dry = dryK.r;
         if (dry > 0.003) {
           dry = clamp(dry * 1.5 - 0.25 + (macro - 0.5) * 0.9 + (n2 - 0.5) * 0.3, 0.0, 1.0);   // a ragged edge, green tufts
           vec3 straw = vec3(0.45, 0.37, 0.2) * (0.5 + 1.3 * lum) * mix(0.85, 1.12, n2);
@@ -163,7 +215,7 @@ export function makeNearTerrain(hf, campus, lib) {
         float litCov = litter(wp, wg, litCol);
         albedo = mix(albedo, litCol, litCov);
         diffuseColor.rgb *= albedo;
-        gTN = nrm(gN, ug) * wg + nrm(aN, ua) * wa * 0.45 + nrm(pN, up) * wpv + nrm(dN, ud) * wd;
+        gTN = nrm(gN, ug) * wg + nrm(aN, ua) * wa * 0.45 + pavN * wpv + nrm(dN, ud) * wd;
         gTN *= 1.0 - 0.75 * litCov;
         gRough = mix(0.98 * wg + 0.92 * wa + 0.85 * wpv + 1.0 * wd, 0.8, litCov);
       `)

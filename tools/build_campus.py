@@ -1977,7 +1977,48 @@ for _poly, _v in ((_dl, 235), (ISL.buffer(-1.0), 190)):
     _dd.polygon([_tp(x, y) for x, y in _poly.exterior.coords], fill=_v)
 _dd.line([_tp(x, y) for x, y, _ in LOT_C], fill=255, width=9)
 _dry = ndimage.gaussian_filter(np.array(_dry).astype(np.float32), 2.5)
-Image.fromarray(np.clip(_dry, 0, 255).astype(np.uint8), 'L').save(
+# Paving kinds (issue #85), in the same map's G and B (R stays the dry lawn): where the splat has paving, the terrain
+# shader lays blocks of another kind instead of the campus's red interlocking pavers (web/src/terrain.js).
+#  - G only: 상뜰's dark grey rectangular blocks, about 20 x 10 cm in rows across the walks, the long side along the
+#    hall (reference/대우관_2024_정면과_상뜰.jpg; the 2008 roadview 2381737 shows the same walks)
+#  - B only: red clay bricks in rows across the walk, the long side along the statue's u axis: the eagle's north and
+#    south walks (2011 roadview 1017220175 · 1017220172: the walks up to its round dais)
+#  - G and B: the same bricks a quarter turned: its east and west walks
+# Coverage at 1 m from the outlines drawn 8 times finer, so the shader's cut at one half runs within ~10 cm of them.
+_KIND_SS = 8
+
+
+def _kind_cover(geoms, W_, H_, res=DRY_RES):
+    out_ = np.zeros((H_, W_), np.float32)
+    for g_ in geoms:
+        for p_ in (g_.geoms if hasattr(g_, 'geoms') else [g_]):
+            if p_.is_empty or p_.geom_type != 'Polygon':
+                continue
+            x0_, y0_, x1_, y1_ = p_.bounds
+            i0, i1 = max(0, int((x0_ - SPLAT['x0']) / res) - 1), min(W_, int((x1_ - SPLAT['x0']) / res) + 2)
+            j0, j1 = max(0, int((SPLAT['y1'] - y1_) / res) - 1), min(H_, int((SPLAT['y1'] - y0_) / res) + 2)
+            k_ = _KIND_SS / res
+            im_ = Image.new('L', ((i1 - i0) * _KIND_SS, (j1 - j0) * _KIND_SS), 0)
+            d_ = ImageDraw.Draw(im_)
+            P_ = lambda x, y: ((x - SPLAT['x0']) * k_ - i0 * _KIND_SS, (SPLAT['y1'] - y) * k_ - j0 * _KIND_SS)
+            d_.polygon([P_(x, y) for x, y in p_.exterior.coords], fill=255)
+            for h_ in p_.interiors:
+                d_.polygon([P_(x, y) for x, y in h_.coords], fill=0)
+            a_ = np.array(im_, np.float32).reshape(j1 - j0, _KIND_SS, i1 - i0, _KIND_SS).mean((1, 3))
+            out_[j0:j1, i0:i1] = np.maximum(out_[j0:j1, i0:i1], a_)
+    return out_
+
+
+_DW, _DH = _dry.shape[1], _dry.shape[0]
+_sang_pave = unary_union([Polygon(SANG_DIAMOND).buffer(3.0), LineString([SG(0.0, -6.5), SANG_DIAMOND[2], (101.2, 405.4)]).buffer(3.5),
+                          LineString([WD(23.5, 0), SANG]).buffer(3.5)])       # (and the broad walk up to the arcade)
+_eu = EAGLE_WALK_W / 2 + 0.2
+_eband = Polygon([eagle_xy(-40.0, -_eu), eagle_xy(40.0, -_eu), eagle_xy(40.0, _eu), eagle_xy(-40.0, _eu)])
+_brick_ew = EAGLE_PAVED.intersection(_eband)
+_kind_g = _kind_cover([_sang_pave, _brick_ew], _DW, _DH)
+_kind_b = _kind_cover([EAGLE_PAVED], _DW, _DH)
+PAVE = dict(ang=[round(math.atan2(SG_E[1], SG_E[0]), 4), round(EAGLE_ROT, 4)])     # the kinds' long sides (G, B)
+Image.fromarray(np.clip(np.stack([_dry, _kind_g, _kind_b], -1), 0, 255).round().astype(np.uint8), 'RGB').save(
     os.path.join(ROOT, 'web/public/assets/textures/ground_dry.png'), optimize=True)
 
 # ---------------------------------------------------------------------------
@@ -3527,6 +3568,7 @@ out = dict(
 )
 out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
 out['baekyangro']['booth'] = BOOTH
+out['pave'] = PAVE                            # paving kinds in ground_dry.png's G and B (web/src/terrain.js)
 
 
 # ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { MOBILE, versioned, mulberry } from './util.js';
 import { LITTER_MATS, litterUniforms, litterEdit, litterSeason } from './litter.js';
 import { wallTone, edgeWear } from './walltone.js';
 import { shrubTexture, hedgeMaps, hedgeEdit, HEDGE_KEY, SHRUB_LEAVES, cardEdit, CARD_KEY } from './hedges.js';
+import { kerbJointEdit } from './kerbjoints.js';
 
 const texLoader = new THREE.TextureLoader();
 const cache = new Map();
@@ -634,6 +635,7 @@ export class MaterialLibrary {
       }
       if (name.startsWith('bark')) foliage(m, 0.0, 0);         // trunks and branches bend with the leaves, no flutter
       if (LITTER_MATS.has(name)) patchShader(m, 'litter', litterEdit(this.uniforms));
+      if (d.joints) patchShader(m, `kerbJoints${d.joints}`, kerbJointEdit(d.joints));      // (kerbjoints.js)
       const wall = wallTone(name, d, ATMOS.uCloudTex);         // walls: broad and per-panel tone, no repeat
       if (wall) patchShader(m, wall.key, wall.edit);
     } else if (d.leaf) {

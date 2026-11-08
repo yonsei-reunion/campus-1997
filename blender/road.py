@@ -47,6 +47,9 @@ def build():
     # photo, the 2010 / 2011 roadview before the rebuilding: the verge's soil level with its kerbs, a low lip on the
     # sidewalk side); a 32 cm planter wall before
     VZ, WZ = 0.18, 0.15
+    # the granite kerbs: their own material, whose shader draws a joint every metre of u (web/src/kerbjoints.js; the
+    # 2010 / 2011 roadview: stones about 1 m long), u running along the road
+    KERB = 'curb_road'
     mb = MeshBuilder('baekyangro')
     marks = MeshBuilder('baekyangro_paint')
     L = samples[-1][0]
@@ -131,7 +134,7 @@ def build():
                         q_mat[0] = 'pavers'
                         quad([P(u0, p0, WZ), P(v0, p0, WZ), P(v1, p1, WZ), P(u1, p1, WZ)])
                         if sa < u0 < sb or sa < u1 < sb:
-                            q_mat[0] = 'curb'
+                            q_mat[0] = KERB
                             f = [P(u0, p0, 0), P(u1, p1, 0), P(u1, p1, WZ), P(u0, p0, WZ)]
                             quad([f[1], f[0], f[3], f[2]])
                 for (u0, v0), (u1, v1), edge in (((sa, min(sb, l0)), (sa, min(sb, l1)), 'end'),
@@ -144,7 +147,7 @@ def build():
                     # the kerb face where the band stops, towards the mouth
                     e0, e1 = (v0, v1) if edge == 'end' else (u0, u1)
                     if sa < e0 < sb or sa < e1 < sb:
-                        q_mat[0] = 'curb'
+                        q_mat[0] = KERB
                         f = [P(e0, p0, 0), P(e1, p1, 0), P(e1, p1, z), P(e0, p0, z)]
                         quad(f if edge == 'end' else [f[1], f[0], f[3], f[2]])
         # kerbs along the road (carriageway edge, verge, strip edges), where they stand; f faces the centre line
@@ -153,14 +156,14 @@ def build():
             lo, hi = cut(m, off, off <= e_verge + 1e-6)
             for u, v in ((sa, min(sb, lo)), (max(sa, hi), sb)):
                 if v - u > 1e-3:
-                    q_mat[0] = 'curb'
+                    q_mat[0] = KERB
                     f = [P(u, off, z0_), P(v, off, z0_), P(v, off, z1_), P(u, off, z1_)]
                     quad([f[1], f[0], f[3], f[2]] if outward else f)
             if off == e_lane and m[5] > 0:
                 # the low kerb of the paving in front of the verge's end
                 u, v = max(sa, cut(m, off)[1]), min(sb, hi)
                 if v - u > 1e-3:
-                    q_mat[0] = 'curb'
+                    q_mat[0] = KERB
                     quad([P(u, off, 0), P(v, off, 0), P(v, off, WZ), P(u, off, WZ)])
         # the flush asphalt of the mouth, out past the strip onto the terrain's own asphalt, with a skirt beneath
         k = int(math.ceil((e_strip + 0.6 - e_lane) / 0.4))
@@ -193,18 +196,29 @@ def build():
                 mouth_segment(a, b, side, m_)
                 continue
 
-            def band(o0, o1, z0, z1, mat):
-                q = [pt(a, o(o0), z0), pt(b, o(o0), z0), pt(b, o(o1), z1), pt(a, o(o1), z1)]
-                if flip:
-                    q = [q[1], q[0], q[3], q[2]]
-                mb.face(q, mat)
+            def at_s(s, off, dz):
+                # a point of the cross-section between frames a and b, at arc length s
+                t = (s - a[0]) / (b[0] - a[0])
+                q = a[1].lerp(b[1], t) + a[3].lerp(b[3], t) * off
+                return (q.x, q.y, a[4] + (b[4] - a[4]) * t + dz)
 
-            def riser(off, z0, z1, mat, outward=True):
+            def band(o0, o1, z0, z1, mat, rng=None):
+                u, v = rng or (a[0], b[0])
+                q = [at_s(u, o(o0), z0), at_s(v, o(o0), z0), at_s(v, o(o1), z1), at_s(u, o(o1), z1)]
+                # the kerbs' stones: u = metres along the road (a joint every metre, web/src/kerbjoints.js)
+                uv = [(u, o0), (v, o0), (v, o1), (u, o1)]
+                if flip:
+                    q, uv = [q[1], q[0], q[3], q[2]], [uv[1], uv[0], uv[3], uv[2]]
+                mb.face(q, KERB if mat == 'curb' else mat, uvs=uv if mat == 'curb' else None)
+
+            def riser(off, z0, z1, mat, outward=True, rng=None):
                 # vertical face along the road at offset `off`; outward=True faces away from the centre line
-                q = [pt(a, o(off), z0), pt(b, o(off), z0), pt(b, o(off), z1), pt(a, o(off), z1)]
+                u, v = rng or (a[0], b[0])
+                q = [at_s(u, o(off), z0), at_s(v, o(off), z0), at_s(v, o(off), z1), at_s(u, o(off), z1)]
+                uv = [(u, z0), (v, z0), (v, z1), (u, z1)]
                 if outward != flip:
-                    q = [q[1], q[0], q[3], q[2]]
-                mb.face(q, mat)
+                    q, uv = [q[1], q[0], q[3], q[2]], [uv[1], uv[0], uv[3], uv[2]]
+                mb.face(q, KERB if mat == 'curb' else mat, uvs=uv if mat == 'curb' else None)
 
             if med > 0:
                 band(0, med, 0, 0, 'asphalt')

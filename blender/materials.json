@@ -246,6 +246,7 @@
   ],
   "rough": 0.9
  },
+ "curb_road": {"tex": "concrete_wall_008", "tile": 1.5, "tint": [0.95, 0.95, 0.93], "rough": 0.9, "joints": 1.0},
  "pavers": {
   "tex": "patterned_concrete_pavers",
   "tile": 2.4,
