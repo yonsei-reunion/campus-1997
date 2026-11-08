@@ -4,7 +4,7 @@
 
 **바로 해 보기: [yonsei-1997.benelog.net](http://yonsei-1997.benelog.net/)**
 
-![백양로](docs/screenshots/02_library_union.jpg)
+![5월 백양로](docs/game/baekyangro.jpg)
 
 - 계절은 4월 벚꽃, 5월 신록, 10월 단풍 가운데 고릅니다.
 - 정문에서 출발해 백양로를 따라 걸으며 중앙도서관, 학생회관, 독수리상, 백주년기념관, 옛 노천극장, 언더우드관을 둘러봅니다.
@@ -35,7 +35,7 @@
 | ![과학관 앞 계단 1996년 사진](docs/compare/science_photo.jpg)<br>**과학관** 앞 계단 · 1996년 | ![게임의 과학관 앞 계단](docs/compare/science_game.jpg) |
 | ![음악관 현관 1996년 사진](docs/compare/music_photo.jpg)<br>**음악관** 현관 · 1996년 | ![게임의 음악관 현관](docs/compare/music_game.jpg) |
 | ![빌링슬리관 현관 1996년 사진](docs/compare/billingsley_photo.jpg)<br>**빌링슬리관** 현관 · 1996년 | ![게임의 빌링슬리관 현관](docs/compare/billingsley_game.jpg) |
-| ![용재관 사진](docs/compare/yongjae_photo.jpg)<br>**용재관** (1957 – 2013, 지금 경영관 자리) | ![게임의 용재관](docs/compare/yongjae_game.jpg) |
+| ![용재관 사진](docs/compare/yongjae_photo.jpg)<br>**용재관** · 1990년대 봄, 언더우드 동상 너머 (1957 – 2013, 지금 경영관 자리) | ![게임의 용재관](docs/compare/yongjae_game.jpg) |
 | ![옛 노천극장 1997년 사진](docs/compare/amphitheater_photo.jpg)<br>**옛 노천극장** · 1997년 | ![게임의 옛 노천극장](docs/compare/amphitheater_game.jpg) |
 | ![활천대 2009년 사진](docs/compare/hwalcheon_photo.jpg)<br>**활천대** · 2009년, 독수리상 옆의 옛 자리 | ![게임의 활천대](docs/compare/hwalcheon_game.jpg) |
 | ![백양로 초소 1997년 사진](docs/compare/guard_booth_photo.jpg)<br>**백양로 초소** · 1997년(게임은 같은 카메라) | ![게임의 백양로 초소](docs/compare/guard_booth_game.jpg) |
@@ -48,9 +48,9 @@
 
 | | |
 |---|---|
-| ![추억 카드](docs/screenshots/06_memory_card.jpg) | ![10월 + 1997 필름](docs/screenshots/05_autumn_film.jpg) |
-| ![10월 연고전 응원 현수막](docs/screenshots/14_autumn_banners.jpg) | ![농구 슛](docs/screenshots/17_basketball.jpg) |
-| ![독수리상 옆의 활천대 분수](docs/screenshots/33_hwalcheon.jpg) | ![캠퍼스 지도](docs/screenshots/07_map.jpg) |
+| ![추억 카드](docs/game/memory_card.jpg) | ![10월 + 1997 필름](docs/game/autumn_film.jpg) |
+| ![10월 연고전 응원 현수막](docs/game/autumn_banners.jpg) | ![농구 슛](docs/game/basketball.jpg) |
+| ![독수리상 옆의 활천대 분수](docs/game/hwalcheon.jpg) | ![캠퍼스 지도](docs/game/map.jpg) |
 
 ## 게임 방법
 
@@ -128,13 +128,13 @@
 
 ### 랜드마크
 
-- 중앙도서관: 높은 석재 기둥과 얕은 아치, 두 단 화강석 기단 위 아케이드, 유리문 너머 불 켜진 로비
+- 중앙도서관: 높은 석재 기둥과 얕은 아치, 두 단 화강석 기단 위 아케이드, 유리문 너머 불 켜진 로비, 앞 화단과 네 구 가로등
 - 학생회관: 필로티, 흰 콘크리트 판에 뾰족아치 창, 세로 현수막
 - 백주년기념관: 기단 위의 큰 원통과 무대 탑, 곡면 유리 로비, 광혜원 쪽 박물관 입구
 - 언더우드관 · 스팀슨관 · 아펜젤러관 · 연희관: 갈색 잡석 벽, 계절마다 색이 바뀌는 담쟁이, 튜더 아치 현관과 화강석 계단, 앞 정원
 - 대우관 · 별관(1996): 흰 석조 고딕, 아치 현관과 테라스, 상뜰
-- 대강당: 화강석 박공 정면, 양끝 탑, 열 단 위의 로비 현관
-- 제1공학관(1997년 크기), 광복관, 용재관(1957 – 2013), 루스채플, 광혜원(팔작지붕 한옥), 옛 노천극장, 정문(延世大學校 현판)
+- 대강당: 화강석 박공 정면, 짝지은 창살 창, 양끝 탑, 열 단 위의 로비 현관
+- 제1공학관(1997년 크기), 광복관, 용재관(1957 – 2013)과 진달래동산, 루스채플, 광혜원(팔작지붕 한옥), 옛 노천극장(잔디 계단 객석), 정문(延世大學校 현판)
 
 ### 그 밖의 건물
 
@@ -204,3 +204,4 @@
 - [`3D_GRAPHICS.md`](3D_GRAPHICS.md): 이 게임을 고칠 때 알아 두면 좋은 3D 그래픽 개념과 쓰는 라이브러리
 - [`CLAUDE.md`](CLAUDE.md): 새 소식 · 커밋 메시지 · 이슈 댓글을 쓰는 규칙
 - [`reference/고증.md`](reference/고증.md): 건물 · 길의 근거 자료와 잰 값
+- [`tools/snapshots.json`](tools/snapshots.json): README · 문집 사이트에 쓰는 게임 화면의 카메라. `node tools/snapshots.mjs` 로 다시 찍음(Claude Code 스킬 `/update-snapshots`)
