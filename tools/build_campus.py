@@ -2872,14 +2872,16 @@ for (name_, x, y, r) in PHOTO03_PROPS:
     P(name_, x, y, r)
 # 언더우드관 앞길 (2003_봄_언더우드관_앞길_벚나무.jpg, looking east from before the west wing): a row of yellow-and-black
 # bollards across the road before the west wing and another at its east end, where it meets the slope towards
-# 논지당 (no cars in front of the hall); before the west wing a green canvas tent (a stall) and, by the wing's side
-# door, a notice board under a little green roof
+# 논지당 (no cars in front of the hall); before the west wing a green canvas tent (a stall) and, at the road's edge
+# by the west side of the tower's flight, a notice board under a little green roof (the people walking past it
+# stand ~17 m off in the photo, by their height: so the flight behind it is the tower's, not a side door's; in the
+# Dec. 2010 roadview, panoramas 1016786672 - 673, no board is left)
 _south = math.atan2(-_wuv[1], -_wuv[0])
 for (u_, vs_) in ((-22.0, np.arange(29.9, 37.0, 1.4)), (15.2, np.arange(30.8, 36.4, 1.35))):
     for v_ in vs_:
         P('bollard', *WU(u_, float(v_)), 0.0)
 P('tent_kiosk', *WU(-28.0, 40.4), _south)
-P('notice_board', *WU(-17.5, 38.2), _south)
+P('notice_board', *WU(-14.8, 37.2), _south)
 # 연희관 (2003_가을_연희관_정면.jpg, from the south-west; Kakao roadview 2008-08 from the west end of the road): the
 # green tent stall west of the entrance flight, at its foot by the road, its counter to the road
 _yd = min(np.arange(-10.0, 60.0, 0.25), key=lambda u_: abs(float((np.array(WY(u_, 0.0)) - GF_C) @ GF_E)))   # the axis
