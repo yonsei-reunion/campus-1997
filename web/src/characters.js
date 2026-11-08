@@ -6,6 +6,7 @@ import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { loadGLB } from './world.js';
 import { pcss } from './materials.js';
+import { HERO_BAGS, baggedGeometry } from './bags.js';
 
 export const PEOPLE = {
   'man-tee': '흰 티 · 청바지',
@@ -105,10 +106,12 @@ export class Cast {
     }));
   }
 
-  make(id) {
+  // bag: what the person carries (bags.js: merged into their one mesh), null for nothing; a hero has their own
+  make(id, bag = HERO_BAGS[id] ?? null) {
     const src = this.models[id];
     const holder = new THREE.Group();
     const root = skeletonClone(src.scene);
+    if (bag) root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = baggedGeometry(o, id, bag); });
     // frustum culled by the posed bounds above (off-screen people cost nothing, in the shadow pass too)
     root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     holder.add(root);
@@ -116,7 +119,7 @@ export class Cast {
     const mixer = new THREE.AnimationMixer(root);
     const actions = {};
     for (const c of rig.clips) actions[c.name] = mixer.clipAction(c);
-    const a = { id, holder, root, mixer, actions, current: null, walkSpeed: rig.walkSpeed, runSpeed: rig.runSpeed, after: null };
+    const a = { id, bag, holder, root, mixer, actions, current: null, walkSpeed: rig.walkSpeed, runSpeed: rig.runSpeed, after: null };
     mixer.addEventListener('finished', () => { const next = a.after || 'idle'; a.after = null; play(a, next, { fade: 0.3 }); });
     play(a, 'idle', { fade: 0 });
     return a;

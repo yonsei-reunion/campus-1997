@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { mulberry, wrapAngle } from './util.js';
 import { patchShader, restShadow } from './materials.js';
 import { play, locomotion, gesturing } from './characters.js';
+import { crowdBag, carriesInHand } from './bags.js';
 import { kindOf, meeting, chatter, hello, excuse, lineTime } from './talk.js';
 
 // ---------------------------------------------------------------- polyline helpers (campus frame)
@@ -283,8 +284,10 @@ export class Crowd {
     this.people = [];
     const rnd = mulberry(rndSeed);
     const pick = () => ids[Math.floor(rnd() * ids.length)];
+    // about 70 % carry a bag (bags.js: its own random stream, so the walkers' paths stay where they were)
     for (let i = 0; i < count; i++) {
-      const a = cast.make(pick());
+      const id = pick();
+      const a = cast.make(id, crowdBag(id, i));
       const path = paths[Math.floor(rnd() * paths.length)];
       const p = { a, path, s: rnd() * path.length, dir: rnd() < 0.5 ? 1 : -1, speed: 1.15 + rnd() * 0.4, side: (rnd() - 0.5) * 0.8,
         heading: 0, walking: true, gestureAt: 5 + rnd() * 30, tick: i & 1,
@@ -303,7 +306,8 @@ export class Crowd {
       for (let k = 0; k < n; k++) {
         const ang = (k / n) * Math.PI * 2 + rnd() * 0.4;
         const x = gx + Math.cos(ang) * 0.85, y = gy + Math.sin(ang) * 0.85;
-        const a = cast.make(pick());
+        const id = pick();
+        const a = cast.make(id, crowdBag(id, 1000 + this.people.length));
         a.mixer.setTime(rnd() * 2);
         a.holder.position.set(x, h, -y);
         const heading = Math.atan2(gx - x, -(gy - y));
@@ -388,7 +392,8 @@ export class Crowd {
       if (!a.holder.parent) this.scene.add(a.holder);
       if (!p.walking && t > p.gestureAt) {
         p.gestureAt = t + 12 + Math.random() * 20;
-        playGesture(a, Math.random() < 0.7 ? 'emote-yes' : 'interact-right');
+        // (a bag carried in the right hand: wave with the left)
+        playGesture(a, Math.random() < 0.7 || carriesInHand(a.bag) ? 'emote-yes' : 'interact-right');
       }
       locomotion(a, speed);
       // distant people animate at half rate
@@ -554,7 +559,7 @@ export class Traffic {
       const len = box.max.x - box.min.x;
       let driver = null;
       if (cast && driverIds.length) {
-        driver = cast.make(driverIds[Math.floor(rnd() * driverIds.length)]);
+        driver = cast.make(driverIds[Math.floor(rnd() * driverIds.length)], null);     // (no bag at the wheel)
         play(driver, 'sit', { fade: 0 });
         const [dx, dy] = DRIVER[kind];
         // car frame: +X forward, Blender +Y (left, the driver's side) is three -Z; the 'sit' clip puts the hips 0.22 above
