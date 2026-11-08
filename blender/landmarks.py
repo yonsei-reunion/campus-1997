@@ -3708,7 +3708,7 @@ def basketball_court():
 # relief, in three drums with a dark joint between them and its four arms ending above in upright prongs of
 # different heights; it stands on a square slab with a carved edge, on a lower cross-shaped pedestal (letters cut in
 # its faces), on a round dark plinth in the water.  The 1997 basin, from the 2009 photo (reference/활천대_2009_연세춘추.jpg,
-# 「활천대는 독수리상 옆에 있는 분수대다」): a round pool about 6.4 m across with a low light rim, a tall jet out of
+# 「활천대는 독수리상 옆에 있는 분수대다」): a round pool about 5.2 m across (FOUNTAIN r 2.6) with a low light rim, a tall jet out of
 # the top of the column, and a ring of jets on the rim arching up and in towards the column, a bell of water as high
 # as the column.  (Since 백양로's rebuilding it stands in front of 제1공학관 in a small brick-edged pool without jets.)
 FOUNTAIN_COL = dict(plinth=0.45, ped=1.25, slab=1.52, top=3.72, arm=0.55, arm_w=0.34, core=0.3)
