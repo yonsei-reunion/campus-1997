@@ -285,6 +285,10 @@ async function main() {
   }
   const S = campus.statues;
   colliders.addCircle(S.eagle.pos[0], S.eagle.pos[1], S.eagle.r ?? 4.2);       // the eagle's round dais (its brick ring is walked on)
+  for (const [b, r] of S.eagle.groups ?? []) {   // the four groups on the dais' edge, their wedges out on the ring
+    const a = b * Math.PI / 180;
+    colliders.addCircle(S.eagle.pos[0] + r * Math.sin(a), S.eagle.pos[1] + r * Math.cos(a), 0.6);
+  }
   colliders.addCircle(S.underwood_statue.pos[0], S.underwood_statue.pos[1], 2.1);   // the rock-faced octagon (the round slab is walked on)
   if (S.fountain) colliders.addCircle(S.fountain.pos[0], S.fountain.pos[1], S.fountain.r + 0.4);   // 활천 basin
   if (S.court) {                                                                     // the two hoop posts of the 대강당 court

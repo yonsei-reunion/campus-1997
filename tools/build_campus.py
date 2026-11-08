@@ -377,6 +377,10 @@ EAGLE_PLAZA = Point(*EAGLE['pos']).buffer(EAGLE_R).union(EAGLE_WALK.buffer(1.5, 
 # which bounds the beds (blender/statues.py builds the dais, the ring and the beds' kerb; the beds are planted below).
 EAGLE_ROT = math.radians(-14)                 # the statue faces 194 deg, down 백양로 (STATUES below)
 EAGLE_DAIS, EAGLE_RING, EAGLE_BEDS_R, EAGLE_WALK_W = (4.6, 0.4), (5.6, 0.2), 9.5, 3.0
+# the four 「연세인」 groups A - D (SW, NW, SE, NE): compass bearing (deg) and distance (m) of each group's centre from
+# the column, solved from the 2011 / 2010 roadview (tools/roadview/groups.py, reference/고증.md 4.1.1).  They stand on
+# the dais' edge, their low wedges running out onto the brick ring (blender/statues.py, web/src/main.js colliders)
+EAGLE_GROUPS = ((246, 4.9), (330, 4.6), (150, 4.3), (56, 4.6))
 EAGLE_EDGE = round(bline.distance(Point(*EAGLE['pos'])) - E_WALK, 2)     # the centre to the sidewalk's outer edge
 
 
@@ -3688,7 +3692,7 @@ LANDMARKS = [
 STATUES = dict(
     eagle=dict(pos=EAGLE['pos'], rot=EAGLE_ROT,                  # looks down 백양로 to the gate (2011 roadview side view)
                r=round(EAGLE_DAIS[0] + 0.05, 2), dais=list(EAGLE_DAIS), ring=list(EAGLE_RING), beds=EAGLE_BEDS_R, walk=EAGLE_WALK_W,
-               walk_edge=EAGLE_EDGE),
+               walk_edge=EAGLE_EDGE, groups=[list(g_) for g_ in EAGLE_GROUPS]),
     underwood_statue=dict(pos=list(UW_STATUE), rot=math.radians(-14)),
     court=dict(pos=COURT['pos'], rot=COURT['rot'], L=COURT['L'], W=COURT['W']),
     fountain=dict(pos=FOUNTAIN['pos'], r=FOUNTAIN['r'], rot=0.0),     # (the column's arms face the compass points)

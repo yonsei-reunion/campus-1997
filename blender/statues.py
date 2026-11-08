@@ -978,8 +978,9 @@ def eagle_figure(width=5.2):
 
 
 # The four groups of white figures (the "Yonseians"; the university's symbol page: 「네 귀퉁이에는 … 연세인의 형상이
-# 조각되어 있습니다」) stand on the dais' diagonals, 3.7 m out (Kakao roadview 2008-08, 2010-12 and 2011-04 from six
-# points round it, the groups triangulated; the same four were set on granite wedges by the rebuilt 백양로, 2024 photo).
+# 조각되어 있습니다」) stand near the dais' diagonals, 4.3 - 4.9 m out on its edge (Kakao roadview 2008-08, 2010-12 and
+# 2011-04 from six points round it, the groups triangulated; the same four were set on granite wedges by the rebuilt
+# 백양로, 2024 photo).
 # Abstract white figures, the bodies and broad bands of drapery flowing into one another with holes between them (one
 # metaball surface each), on a low white wedge rising towards the column; about 2 m over the dais.  In group space
 # (x right as seen from outside, y back towards the column, z up from the dais, facing -y):
@@ -1177,9 +1178,9 @@ def yonseian_group(k, size=1.1, broad=1.55):
     ys = [ax.x * x + ax.y * y for x, y in poly]
     y0, y1 = min(ys), max(ys)
     zt = [h_front + (h_back - h_front) * (y - y0) / (y1 - y0) for y in ys]
-    for i in range(len(poly)):
+    for i in range(len(poly)):          # (the walls reach 0.25 m below the dais top: the outer end stands on the ring)
         j = (i + 1) % len(poly)
-        mb.face([(*poly[i], -0.05), (*poly[j], -0.05), (*poly[j], zt[j]), (*poly[i], zt[i])], W)
+        mb.face([(*poly[i], -0.25), (*poly[j], -0.25), (*poly[j], zt[j]), (*poly[i], zt[i])], W)
     mb.face([(*p, z) for p, z in zip(poly, zt)], W)
     zb = (h_front + h_back) / 2 - 0.04          # the figures stand in the wedge
     bw = broad ** 0.5                           # (bodies widen less than the bands)
@@ -1225,7 +1226,7 @@ def eagle_tower(site=EAGLE_SITE):
     for k in range(11):
         t = k / 10
         prof.append((z0 + (zf - z0) * t, 0.36 + (1.25 - 0.36) * (1 - t) ** 2.8))
-    prof.append((z1, 0.31))
+    prof.append((z1, 0.34))             # 0.72 -> 0.68 m (reference/고증.md 4.1.1: 0.68 - 0.70 m at 5 - 7.5 m, 2011 roadview)
     rings = [[(-w, -w, z), (w, -w, z), (w, w, z), (-w, w, z)] for z, w in prof]
     for a, b in zip(rings[:-1], rings[1:]):
         for i in range(4):
@@ -1303,13 +1304,16 @@ def eagle_statue(site=None):
     out = [tower.build(), rock, eagle, eagle_kerbs(site).build()]
     # the four groups at the diagonals, facing out: A south-west, B north-west, C south-east, D north-east (the statue
     # faces -y, south-south-west; +x is east-south-east, towards 백양로)
+    # Each at its measured bearing and distance (site['groups'], tools/build_campus.py EAGLE_GROUPS: 4.3 - 4.9 m, on
+    # the dais' edge, the wedge's outer end down on the brick ring); without them the diagonals at 4.6 m
     zd = site['dais'][1]
-    for k, (deg, yaw) in enumerate(((-135, 0), (135, 0), (-45, 0), (45, 0))):
-        a = math.radians(deg)
+    rot = site.get('rot', math.radians(-14))
+    groups = site.get('groups') or [(math.degrees(math.pi / 2 - rot) - d, 4.6) for d in (-135, 135, -45, 45)]
+    for k, (brg, r) in enumerate(groups):
+        a = math.pi / 2 - math.radians(brg) - rot          # compass bearing -> the statue frame's angle
         g = yonseian_group(k).build()
-        r = 3.7
         g.matrix_world = Matrix.Translation((r * math.cos(a), r * math.sin(a), zd)) @ \
-            Matrix.Rotation(a + math.pi / 2 + math.radians(yaw), 4, 'Z')
+            Matrix.Rotation(a + math.pi / 2, 4, 'Z')
         bpy.context.view_layer.update()
         out.append(g)
     return out
