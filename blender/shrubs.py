@@ -316,11 +316,13 @@ def make_shrub(kind, seed=0):
         cards(mb, rnd, 120, 'leaf_azalea', CARD_M['azalea'], W=(0.75, 1.15), Hf=(0.55, 0.85), tilt=(10, 70),
               depth=0.06, weight=lambda p, n: 0.3 if p.z < 0.15 else 0.6 + 0.4 * max(0.0, n.z))
     elif kind == 'azalea_red':
-        # 철쭉 massed in the beds (the 정문 island, the May 1997 photo): low clipped mounds that close up into one
-        # sheet of bloom, trusses of flowers on the shoots' tips
-        prof = [(0.66, -0.05), (0.76, 0.08), (0.8, 0.22), (0.77, 0.38), (0.66, 0.54), (0.46, 0.68), (0.22, 0.76), (0.0, 0.78)]
-        revolve(mb, prof, 'hedge_azalea_red', _ao_round(0.78, foot=0.3), seg=14, plan=_wobble(rnd, 0.05))
-        cards(mb, rnd, 116, 'leaf_azalea_red', CARD_M['azalea_red'], W=(0.75, 1.1), Hf=(0.5, 0.8), tilt=(10, 65),
+        # 철쭉 massed in the beds (the 정문 island, the May 1997 photo; round the eagle, the April 2011 roadview): low
+        # clipped mounds with a flat top, set about a metre apart so that a bed closes up into one flat-topped mass
+        # with rounded edges, not a heap of balls; small trusses of flowers on the shoots' tips in May
+        prof = [(0.66, -0.05), (0.77, 0.08), (0.82, 0.2), (0.8, 0.34), (0.72, 0.47), (0.58, 0.57), (0.38, 0.63),
+                (0.18, 0.655), (0.0, 0.66)]
+        revolve(mb, prof, 'hedge_azalea_red', _ao_round(0.66, foot=0.26), seg=14, plan=_wobble(rnd, 0.05))
+        cards(mb, rnd, 100, 'leaf_azalea_red', CARD_M['azalea_red'], W=(0.7, 1.0), Hf=(0.45, 0.7), tilt=(15, 55),
               depth=0.06, weight=lambda p, n: 0.3 if p.z < 0.12 else 0.55 + 0.45 * max(0.0, n.z))
     elif kind == 'azalea_violet':
         # 진달래 on 용재관's bank (reference/용재관.jpg, April): a loose rounded mound of violet bloom on thin twigs,

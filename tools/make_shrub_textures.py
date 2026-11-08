@@ -9,9 +9,16 @@ Outputs (web/public/assets/textures):
   hedge_<name>.jpg, hedge_<name>_nor.jpg   the clipped surface, a seamless tile (TILE m), and its normal map: the
                                            shrub bodies take them in world space from three sides (web/src/hedges.js)
   leaf_<name>.png                          2x2 atlas of sprig cards (RGBA, alpha-tested) that stand out of the body
-Names: boxwood (회양목 · 주목, all year), azalea_summer (철쭉 leaves, May and the bush), azalea (the bush in April,
-magenta 영산홍), azalea_red (철쭉 in bloom), azalea_violet (진달래 in April), azalea_autumn (철쭉 · 진달래 leaves in late
-October), pansy (팬지 border).
+Names (the month each is worn: web/src/hedges.js shrubTexture):
+  boxwood        회양목 · 주목, all year
+  azalea_spring  철쭉 · 영산홍 in mid-April, before they flower: last year's leaves bronzed red-brown over the winter,
+                 dull green ones, the new shoots' light green, a few buds and hardly a flower
+  azalea_red     철쭉 in bloom (late May): small trusses spread evenly over the shoots, the leaves showing between
+  azalea         영산홍 (the bushes round the halls) in bloom (late May), magenta, more leaf than flower
+  azalea_violet  진달래 in mid-April, at the end of its bloom: pink-violet flowers on bare grey twigs, the first new leaves
+  azalea_summer  진달래 leaves (late May)
+  azalea_autumn  철쭉 · 영산홍 · 진달래 in late October: mostly still green, some bronze and red
+  pansy          팬지 border, all year
 Needs the scan: python3 tools/fetch_polyhaven.py models 2k periwinkle_plant
 Run: .venv/bin/python tools/make_shrub_textures.py [name ...]
 """
@@ -30,10 +37,10 @@ CELL = 512              # atlas cell, px (atlas = 2x2 cells)
 
 # metres per surface tile: the leaves come out at their real size (boxwood 1.2-2 cm, azalea leaves 2.5-4 cm,
 # flowers 4-5 cm, pansies 4-6 cm). web/src/hedges.js reads the same numbers.
-TILE = {'boxwood': 0.5, 'azalea_summer': 0.7, 'azalea': 0.7, 'azalea_red': 0.7, 'azalea_violet': 0.7,
-        'azalea_autumn': 0.7, 'pansy': 0.6}
-CARD_M = {'boxwood': 0.22, 'azalea_summer': 0.32, 'azalea': 0.32, 'azalea_red': 0.32, 'azalea_violet': 0.34,
-          'azalea_autumn': 0.32, 'pansy': 0.2}      # metres across a card cell (blender/shrubs.py CARDS)
+TILE = {'boxwood': 0.5, 'azalea_spring': 0.7, 'azalea_summer': 0.7, 'azalea': 0.7, 'azalea_red': 0.7,
+        'azalea_violet': 0.7, 'azalea_autumn': 0.7, 'pansy': 0.6}
+CARD_M = {'boxwood': 0.22, 'azalea_spring': 0.32, 'azalea_summer': 0.32, 'azalea': 0.32, 'azalea_red': 0.32,
+          'azalea_violet': 0.34, 'azalea_autumn': 0.32, 'pansy': 0.2}      # metres across a card cell (blender/shrubs.py CARDS)
 
 
 def srgb2lin(c):
@@ -264,15 +271,24 @@ LEAF = {    # sRGB leaf colours: (body, fresh tips), and how strong the scan's o
     'azalea': ([(58, 86, 36), (66, 96, 40), (50, 76, 31), (74, 102, 44)], [(104, 132, 54), (92, 124, 50)], 0.55),
     'autumn': ([(58, 84, 36), (52, 76, 32), (66, 92, 40), (60, 80, 34), (56, 82, 34), (70, 90, 38), (118, 100, 48),
                 (104, 82, 40), (160, 58, 36), (140, 42, 40)], [(170, 66, 40), (184, 96, 46)], 0.55),     # (most still green)
-    'violet': ([(98, 128, 56), (112, 140, 62), (88, 118, 50)], [(126, 150, 66)], 0.55),
+    # 철쭉 · 영산홍 in April (2011년 4월 16일 로드뷰 독수리상 둘레, 2003년 4월 연희관 앞 정원): the winter's red-brown
+    # leaves over most of the bush, some dull green, the new shoots light green
+    'spring': ([(124, 60, 44), (110, 50, 42), (138, 74, 52), (98, 56, 40), (116, 66, 46), (72, 82, 40), (104, 64, 44),
+                (86, 72, 42)], [(150, 172, 78), (132, 160, 68), (164, 180, 90)], 0.55),
+    'violet': ([(98, 128, 56), (112, 140, 62), (88, 118, 50)], [(140, 172, 80), (126, 160, 70)], 0.55),
     'pansy': ([(56, 92, 38), (66, 104, 44), (50, 84, 34)], [(76, 112, 48)], 0.6),
 }
 FLOWER = {  # sRGB petals, share, and the centre (colour, inner, outer radius as a fraction of the flower's half size)
-    'azalea': [((214, 66, 148), 0.6, ((176, 40, 112), 0.0, 0.3)), ((226, 92, 166), 0.4, ((188, 56, 128), 0.0, 0.3))],
-    'azalea_red': [((216, 40, 60), 0.55, ((164, 22, 40), 0.0, 0.3)), ((228, 62, 84), 0.3, ((172, 30, 50), 0.0, 0.3)),
-                   ((234, 90, 116), 0.15, ((184, 48, 78), 0.0, 0.3))],
-    'azalea_violet': [((196, 90, 200), 0.55, ((160, 64, 168), 0.0, 0.32)), ((212, 112, 212), 0.3, ((176, 80, 180), 0.0, 0.32)),
-                      ((178, 78, 188), 0.15, ((144, 56, 156), 0.0, 0.32))],
+    'azalea': [((214, 70, 150), 0.45, ((176, 42, 114), 0.0, 0.3)), ((226, 96, 168), 0.35, ((188, 58, 130), 0.0, 0.3)),
+               ((200, 58, 136), 0.2, ((164, 36, 104), 0.0, 0.3))],
+    # (red with a pinkish cast, plant to plant and flower to flower: not one deep red)
+    'azalea_red': [((214, 58, 80), 0.35, ((166, 30, 52), 0.0, 0.3)), ((226, 86, 106), 0.3, ((176, 42, 64), 0.0, 0.3)),
+                   ((202, 46, 66), 0.15, ((156, 24, 44), 0.0, 0.3)), ((234, 118, 138), 0.2, ((190, 66, 90), 0.0, 0.3))],
+    # 진달래: a light pink-violet (magenta), not a deep or blue violet (2003년 4월 사진들)
+    'azalea_violet': [((216, 112, 186), 0.5, ((180, 76, 150), 0.0, 0.32)), ((228, 136, 200), 0.3, ((190, 94, 162), 0.0, 0.32)),
+                      ((200, 96, 174), 0.2, ((164, 62, 140), 0.0, 0.32))],
+    # the few buds and first flowers of 철쭉 in April: paler
+    'azalea_spring': [((228, 120, 140), 1.0, ((186, 70, 96), 0.0, 0.3))],
     'pansy': [((244, 204, 40), 0.84, ((58, 36, 26), 0.0, 0.42)), ((246, 242, 230), 0.08, ((96, 60, 132), 0.0, 0.3)),
               ((112, 62, 152), 0.08, ((240, 200, 60), 0.0, 0.16))],
 }
@@ -415,7 +431,7 @@ def surface_painter(name, S):
                   rnd.randint(8, 13), (0.011, 0.017), cols, fresh, 0.3, gloss, sqr=BOX)
         return P, (22, 30, 15), 0.05
     leafset = {'azalea_summer': 'azalea', 'azalea': 'azalea', 'azalea_red': 'azalea', 'azalea_autumn': 'autumn',
-               'azalea_violet': 'violet', 'pansy': 'pansy'}[name]
+               'azalea_spring': 'spring', 'azalea_violet': 'violet', 'pansy': 'pansy'}[name]
     cols, fresh, gloss = LEAF[leafset]
     if name == 'pansy':
         for k in range(int(A * 900)):               # rosettes of small round leaves
@@ -433,9 +449,9 @@ def surface_painter(name, S):
             L = rnd.uniform(0.05, 0.13) * ppm
             P.twig(x, y, x + math.cos(a) * L, y + math.sin(a) * L, rnd.uniform(0.0018, 0.0035), rnd.uniform(0.0, 0.6),
                    rnd.choice([(128, 116, 100), (110, 100, 88), (140, 126, 108)]))
-        for k in range(int(A * 300)):
-            shoot(P, rnd.uniform(0, n), rnd.uniform(0, n), rnd.uniform(0.3, 0.8), rnd.uniform(0.015, 0.025),
-                  rnd.randint(2, 4), (0.018, 0.03), cols, fresh, 0.5, gloss)
+        for k in range(int(A * 420)):               # the first new leaves, small and light, as the bloom goes over
+            shoot(P, rnd.uniform(0, n), rnd.uniform(0, n), rnd.uniform(0.3, 0.85), rnd.uniform(0.012, 0.02),
+                  rnd.randint(3, 5), (0.014, 0.024), cols, fresh, 0.75, gloss)
         for k in range(int(A * 560)):
             cx, cy = rnd.uniform(0, n), rnd.uniform(0, n)
             hc = 0.6 * rnd.random() ** 0.5 + 0.4 * B(cx, cy)
@@ -446,8 +462,9 @@ def surface_painter(name, S):
                 P.flower(cx + math.cos(a) * d, cy + math.sin(a) * d, rnd.uniform(0.034, 0.046), hc + 0.08 + 0.04 * j,
                          jit(petal[0], rnd, 0.06), petal[2], (math.cos(a) * 0.3, math.sin(a) * 0.3))
         return P, (58, 50, 48), 0.06
-    # 철쭉 · 영산홍: whorls of leaves at the shoot tips; in bloom a truss of flowers on many tips
-    bloom = {'azalea_red': (0.62, (2, 3)), 'azalea': (0.29, (1, 2))}.get(name)
+    # 철쭉 · 영산홍: whorls of leaves at the shoot tips. In bloom (late May) a small truss of two or three flowers on
+    # a share of the tips, spread evenly over the face (a jittered grid, not heaped where shoots crowd): flowers over
+    # some half of it, the leaves showing between. In April a few buds and hardly a flower.
     for k in range(int(A * 2200)):                  # old leaves inside
         x, y = rnd.uniform(0, n), rnd.uniform(0, n)
         P.leaf(x, y, rnd.uniform(0, 2 * math.pi), rnd.uniform(0.022, 0.034), rnd.uniform(0.05, 0.45),
@@ -455,14 +472,27 @@ def surface_painter(name, S):
     for k in range(int(A * 1000)):
         cx, cy = rnd.uniform(0, n), rnd.uniform(0, n)
         hc = 0.6 * rnd.random() ** 0.5 + 0.4 * B(cx, cy)
-        shoot(P, cx, cy, hc, rnd.uniform(0.024, 0.036), rnd.randint(6, 9), (0.024, 0.038), cols, fresh, 0.3, gloss)
-        if bloom and rnd.random() < bloom[0]:
-            for j in range(rnd.randint(*bloom[1])):
-                petal = pick(rnd, FLOWER[name])
-                a = rnd.uniform(0, 2 * math.pi)
-                d = rnd.uniform(0.008, 0.02) * ppm
-                P.flower(cx + math.cos(a) * d, cy + math.sin(a) * d, rnd.uniform(0.04, 0.052), hc + 0.07 + 0.03 * j,
-                         jit(petal[0], rnd, 0.06), petal[2], (math.cos(a) * 0.35, math.sin(a) * 0.35))
+        shoot(P, cx, cy, hc, rnd.uniform(0.024, 0.036), rnd.randint(6, 9), (0.024, 0.038), cols, fresh,
+              0.15 if name == 'azalea_spring' else 0.3, gloss)
+    # (grid spacing m, share of the cells with a truss, flowers in a truss)
+    bloom = {'azalea_red': (0.066, 1.0, (2, 3)), 'azalea': (0.085, 0.8, (1, 3)), 'azalea_spring': (0.075, 0.1, (1, 1))}.get(name)
+    if bloom:
+        g = max(1, round(T / bloom[0]))
+        for i in range(g):
+            for j in range(g):
+                if rnd.random() > bloom[1]:
+                    continue
+                cx, cy = (i + rnd.uniform(0.15, 0.85)) * n / g, (j + rnd.uniform(0.15, 0.85)) * n / g
+                hc = 0.75 + 0.25 * B(cx, cy)
+                bud = name == 'azalea_spring' and rnd.random() < 0.85
+                for f in range(rnd.randint(*bloom[2])):
+                    petal = pick(rnd, FLOWER[name])
+                    a = rnd.uniform(0, 2 * math.pi)
+                    d = rnd.uniform(0.006, 0.018) * ppm
+                    D = rnd.uniform(0.012, 0.018) if bud else rnd.uniform(0.04, 0.05)
+                    P.flower(cx + math.cos(a) * d, cy + math.sin(a) * d, D, hc + 0.05 + 0.03 * f,
+                             jit(petal[0], rnd, 0.08), petal[2], (math.cos(a) * 0.35, math.sin(a) * 0.35),
+                             squash=rnd.uniform(0.35, 0.55) if bud else None)
     return P, (24, 30, 18), 0.06
 
 
@@ -483,7 +513,7 @@ def card_painter(name, S, rnd):
     bx, by = n * 0.5, n * 0.995
     bark = [(96, 80, 60), (112, 96, 72)]
     leafset = {'boxwood': 'boxwood', 'azalea_summer': 'azalea', 'azalea': 'azalea', 'azalea_red': 'azalea',
-               'azalea_autumn': 'autumn', 'azalea_violet': 'violet', 'pansy': 'pansy'}[name]
+               'azalea_autumn': 'autumn', 'azalea_spring': 'spring', 'azalea_violet': 'violet', 'pansy': 'pansy'}[name]
     cols, fresh, gloss = LEAF[leafset]
     if name == 'pansy':
         for k in range(rnd.randint(9, 13)):          # the leaves low down
@@ -519,7 +549,10 @@ def card_painter(name, S, rnd):
         tx, ty = bx + math.cos(a) * L, by + math.sin(a) * L
         P.twig(bx + rnd.uniform(-6, 6), by, tx, ty, 0.0018 if name == 'boxwood' else 0.0026, 0.15, rnd.choice(twigcol))
         tips.append((tx, ty, a, L))
-    fl = {'azalea_red': (2, 3), 'azalea': (0, 2), 'azalea_violet': (1, 3)}.get(name)
+    # (the share of the tips with a truss, flowers in it: in bloom only some of a sprig's tips flower, so a card is not
+    # a ball of flowers; in April a bud here and there)
+    fl = {'azalea_red': (0.45, (2, 3)), 'azalea': (0.35, (1, 3)), 'azalea_violet': (1.0, (1, 3)),
+          'azalea_spring': (0.12, (1, 1))}.get(name)
     for tx, ty, a, L in tips:
         ux, uy = math.cos(a), math.sin(a)
         # leaves along the shoot (boxwood: opposite pairs), a tuft or whorl at the tip
@@ -537,17 +570,21 @@ def card_painter(name, S, rnd):
             shoot(P, tx, ty, 0.95, 0.018, rnd.randint(7, 10), leafL, cols, fresh, 0.5, gloss, up=(ux, uy), sqr=sqr)
             continue
         if name != 'azalea_violet':
-            shoot(P, tx, ty, 0.8, 0.03, rnd.randint(6, 9), (0.026, 0.04), cols, fresh, 0.3, gloss, up=(ux, uy))
-        elif rnd.random() < 0.5:
-            shoot(P, tx, ty, 0.6, 0.02, rnd.randint(2, 3), (0.018, 0.028), cols, fresh, 0.5, gloss, up=(ux, uy))
-        if fl:              # a truss of flowers over the tip
-            for j in range(rnd.randint(*fl)):
+            shoot(P, tx, ty, 0.8, 0.03, rnd.randint(6, 9), (0.026, 0.04), cols, fresh,
+                  0.18 if name == 'azalea_spring' else 0.3, gloss, up=(ux, uy))
+        elif rnd.random() < 0.7:            # (the first new leaves)
+            shoot(P, tx, ty, 0.6, 0.016, rnd.randint(3, 4), (0.014, 0.024), cols, fresh, 0.8, gloss, up=(ux, uy))
+        if fl and rnd.random() < fl[0]:     # a truss of flowers over the tip
+            bud = name == 'azalea_spring' and rnd.random() < 0.85
+            for j in range(rnd.randint(*fl[1])):
                 petal = pick(rnd, FLOWER[name])
                 ang = rnd.uniform(0, 2 * math.pi)
-                d = rnd.uniform(0.0, 0.022) * ppm
-                D = rnd.uniform(0.042, 0.052) if name != 'azalea_violet' else rnd.uniform(0.036, 0.046)
+                d = rnd.uniform(0.004, 0.018) * ppm
+                D = (rnd.uniform(0.012, 0.018) if bud else rnd.uniform(0.04, 0.05) if name != 'azalea_violet'
+                     else rnd.uniform(0.036, 0.046))
                 P.flower(tx + math.cos(ang) * d, ty + math.sin(ang) * d - 0.01 * ppm, D, 1.0 + 0.05 * j,
-                         jit(petal[0], rnd, 0.06), petal[2], (math.cos(ang) * 0.3, math.sin(ang) * 0.3))
+                         jit(petal[0], rnd, 0.08), petal[2], (math.cos(ang) * 0.3, math.sin(ang) * 0.3),
+                         squash=rnd.uniform(0.35, 0.55) if bud else None)
             if name == 'azalea_violet':         # flowers all along the twig
                 for s_ in range(rnd.randint(3, 6)):
                     t = rnd.uniform(0.25, 0.85)
@@ -571,7 +608,7 @@ def make_atlas(name, S):
     save_atlas(name, cells)
 
 
-NAMES = ['boxwood', 'azalea_summer', 'azalea', 'azalea_red', 'azalea_violet', 'azalea_autumn', 'pansy']
+NAMES = ['boxwood', 'azalea_spring', 'azalea_summer', 'azalea', 'azalea_red', 'azalea_violet', 'azalea_autumn', 'pansy']
 
 if __name__ == '__main__' and ONLY != {'__none__'}:
     S = cut_stamps()

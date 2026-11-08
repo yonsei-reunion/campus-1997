@@ -13,11 +13,15 @@ const TILE = { boxwood: 0.5, azalea: 0.7, azalea_red: 0.7, azalea_violet: 0.7, p
 const tiles = {};
 
 // The textures a shrub wears in a season (spring = mid-April, summer = late May, autumn = late October):
-// 영산홍 (the bushes round the halls) magenta in April; 철쭉 red from late April through May; 진달래 violet in April
-// before its leaves; in late October the azaleas' leaves bronze and red. Boxwood and the pansy border all year.
+// 철쭉 and 영산홍 (the bushes round the halls) flower from late April into May in Seoul: in mid-April they are still
+// in last winter's red-brown leaves with the new shoots coming, a bud here and there (the 2011-04-16 roadview round
+// the eagle, 2003 April photos), in late May in bloom, red and magenta (the May 1997 photo of the gate island).
+// 진달래 flowers before its leaves, from about the end of March (Seoul's mean, KMA 1971-2000: 3-31) into the cherries'
+// bloom (1997: 4-8): still out in mid-April, the first leaves coming (reference/용재관.jpg, 2003 April photos); leaves
+// in May. In late October the azaleas' leaves bronze and red. Boxwood and the pansy border all year.
 export function shrubTexture(species, season) {
-  if (species === 'azalea') return season === 'spring' ? 'azalea' : season === 'autumn' ? 'azalea_autumn' : 'azalea_summer';
-  if (species === 'azalea_red') return season === 'autumn' ? 'azalea_autumn' : 'azalea_red';
+  if (species === 'azalea') return season === 'spring' ? 'azalea_spring' : season === 'autumn' ? 'azalea_autumn' : 'azalea';
+  if (species === 'azalea_red') return season === 'spring' ? 'azalea_spring' : season === 'autumn' ? 'azalea_autumn' : 'azalea_red';
   if (species === 'azalea_violet') return season === 'spring' ? 'azalea_violet' : season === 'autumn' ? 'azalea_autumn' : 'azalea_summer';
   return species;
 }
