@@ -13,7 +13,7 @@
 | `groups.py` | 독수리상 「연세인」 네 무리의 자리와 독수리상 축 |
 | `drum.py` | 백주년기념관 원통: 2011년 163 ~ 174의 원통 남서쪽 윤곽을 `statues.py` 판독과 함께 풂(`--c12 osm\|kakao\|drop`, `--south`, [#101](https://github.com/yonsei-reunion/campus-1997/issues/101)) |
 | `north/` | s 267 ~ 385 m 차도: 2010 · 2011년 파노라마를 도서관 · 학생회관 · 백양관 · 백주년 모서리로 풂(`final.py` 파노라마마다, `joint.py` 주행마다 한 직선), 노란선으로 차 자리(`lanes2.py`). `LMSHIFT` 로 기준점을 옮겨 시험 |
-| `eng/` | 2014 ~ 2015년 증축 전 제1공학관 남동 모서리: 측면 도로 · 백양로 파노라마의 묶음 조정(`net.py`, 판독 `readings.py`). 사진 A 카메라의 깊이를 묶는 기준점 |
+| `eng/` | 2014 ~ 2015년 증축 전 제1공학관 남동 모서리: 측면 도로 · 백양로 파노라마의 묶음 조정(`net.py`, 판독 `readings.py`). 사진 A 카메라의 깊이를 묶는 기준점. 동쪽 면 북동 끝([#83](https://github.com/yonsei-reunion/campus-1997/issues/83)): `net.py --nface`(2011년 159 · 160, 길 방향 자리에 걸려 74.5 ~ 82.8 m), `pillars.py`(162 한 화면의 창 기둥 원근, 차로 거리에 걸려 79.5 ~ 83.9 m). 사진 A는 86.7 m(`reference/고증.md` 3.8) |
 | `pw.mjs` | playwright 찾기, 게임 좌표 ↔ 위경도 |
 
 ## 측정할 때

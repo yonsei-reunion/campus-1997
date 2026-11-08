@@ -1,8 +1,11 @@
 # 제1공학관's south-east corner before the 2014 - 2015 extension (issue #82, 2026-11-08), from 2008-08, 2010-12 and 2011-04
 # panos round the gate's side road.  Bundle adjustment of bearings: unknown pano (x, y, heading offset), unknown points; known points fixed.
-#   uv run --with numpy --with scipy python net.py [--face S] [--kprior S] [--drop pano:target] [--free Q] [--loo]
+#   uv run --with numpy --with scipy python net.py [--face S] [--nface S] [--kprior S] [--drop pano:target] [--free Q] [--loo]
 # Result: T (-123.9 ± 0.4, -280.3 ± 0.6), 26 m north of OSM's slanted tip E, neither FOOTPRINT_1997's A nor E; on the
 # east face and the west wing's south face line within 0.3 m (reference/고증.md 3.8, 2.2).
+# N (#83), the north end of the east face from 159 and 160 only, held on the face line (--face 0.5 --nface 0.3):
+# 74.5 ± 2.6 m along it; the two panos are 7 m apart and their place along the road is held loosely, so tying them
+# to Kakao's positions (--kprior 0.5 ~ 3) moves it to 82.8 ~ 77.6 m, while T stays at 26.1 ~ 27.1 m.
 import argparse, math, sys
 import numpy as np
 from scipy.optimize import least_squares
@@ -15,13 +18,13 @@ A_FP, E_OSM = np.array([-127.6, -296.97]), E_TIP
 def az(p, q): return math.degrees(math.atan2(q[0] - p[0], q[1] - p[1]))
 def wrap(d): return (d + 180) % 360 - 180
 def bearing(pan, x): return math.floor(pan + 1e-9) + math.degrees(math.atan((x - 694) / F))
-def run(read, known, face=None, kprior=None, quiet=False, start=None):
+def run(read, known, face=None, kprior=None, quiet=False, start=None, nface=None):
     panos = sorted({r[0] for r in read}); pts = sorted({('rock' if r[1].startswith('rock') else r[1]) for r in read if r[1] not in known})
     # need >= 3 obs per pano
     cnt = {p: sum(1 for r in read if r[0] == p) for p in panos}
     panos = [p for p in panos if cnt[p] >= 3]; read = [r for r in read if r[0] in panos]
     n = len(panos)
-    guess = {'rock': (-110, -318), 'T': (-124, -282), 'gN': (-166, -330), 'gS': (-180, -385), 'Q': tuple(KNOWN['Q']), 'C12': KNOWN['C12']}
+    guess = {'rock': (-110, -318), 'T': (-124, -282), 'gN': (-166, -330), 'gS': (-180, -385), 'Q': tuple(KNOWN['Q']), 'C12': KNOWN['C12'], 'N': (-108.5, -222.0)}
     q0 = []
     for p in panos:
         q0 += [*KAKAO[p], 0.0]
@@ -48,6 +51,8 @@ def run(read, known, face=None, kprior=None, quiet=False, start=None):
             r.append(wrap(bearing(pan, x) - P[p][1] - pred) / sdeg)
         if face is not None and 'T' in X:
             r.append(((X['T'] - E_TIP) @ NRM) / face)
+        if nface is not None and 'N' in X:
+            r.append(((X['N'] - E_TIP) @ NRM) / nface)
         if kprior is not None:
             for p in panos: r += list((P[p][0] - np.array(KAKAO[p])) / kprior)
         return np.array(r)
@@ -72,6 +77,10 @@ def run(read, known, face=None, kprior=None, quiet=False, start=None):
             print('  T: along the OSM east face %.2f m north of E (±%.2f), %.2f m east of it (±%.2f)' % (a, math.sqrt(U @ c @ U), e, math.sqrt(NRM @ c @ NRM)))
             d9 = V11 - V9; d9 /= np.linalg.norm(d9); n9 = np.array([d9[1], -d9[0]])
             print('     off the v9-v11 facade line %.2f m (+ = south); from A %.1f m, from E %.1f m' % (-(T - V9) @ np.array([-d9[1], d9[0]]), np.linalg.norm(T - A_FP), np.linalg.norm(T - E_OSM)))
+        if 'N' in X:
+            Nn = X['N']; j = pts.index('N'); k = 3 * n + 2 * j; c = C[k:k + 2, k:k + 2]
+            print('  N: along the OSM east face %.2f m north of E (±%.2f), %.2f m east of it (±%.2f)' % (
+                (Nn - E_TIP) @ U, math.sqrt(U @ c @ U), (Nn - E_TIP) @ NRM, math.sqrt(NRM @ c @ NRM)))
         rr = iter(sol.fun)
         print('  residuals (sigma units):', ' '.join('%s:%s %+.1f' % (p[-3:], t, next(rr)) for p, t, *_ in read))
     return out
@@ -80,15 +89,16 @@ if __name__ == '__main__':
     ap.add_argument('--face', type=float); ap.add_argument('--kprior', type=float)
     ap.add_argument('--drop', nargs='*', default=[]); ap.add_argument('--free', nargs='*', default=[])
     ap.add_argument('--loo', action='store_true'); ap.add_argument('--only', default='')
+    ap.add_argument('--nface', type=float)
     a = ap.parse_args()
     known = {k: v for k, v in KNOWN.items() if k not in a.free}
     read = [r for r in READ if '%s:%s' % (r[0][-3:], r[1]) not in a.drop and (not a.only or r[0].startswith(a.only))]
-    base = run(read, known, a.face, a.kprior)
+    base = run(read, known, a.face, a.kprior, nface=a.nface)
     if a.loo:
         print('\nleave-one-out (T along / east):')
         vals = []
         for i, r in enumerate(read):
-            o = run(read[:i] + read[i + 1:], known, a.face, a.kprior, quiet=True)
+            o = run(read[:i] + read[i + 1:], known, a.face, a.kprior, quiet=True, nface=a.nface)
             if 'T' not in o['X']: continue
             T = o['X']['T']; al = (T - E_TIP) @ U; e = (T - E_TIP) @ NRM; vals.append((al, e))
             print('  -%s:%s  T (%.2f, %.2f) along %.2f east %.2f chi2 %.2f' % (r[0], r[1], *T, al, e, o['chi2']))

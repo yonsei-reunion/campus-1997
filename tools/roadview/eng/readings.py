@@ -2,6 +2,7 @@
 # bearing = floor(pan) + atan((x - 694) / 783) in each pano's own (unknown-offset) frame.
 # T  = 제1공학관 pre-extension SE corner (the dark groove at the corner of the YONSEI-banner facade and the east face)
 # Q  = concave corner where the facade meets the west wing's east face (OSM way 1451926787 vertex 9)
+# N  = 제1공학관's north end of the east face (the wall's edge against the sky over the fifth-floor rows, issue #83)
 # gN, gS = apex of the pyramid roofs on 공학원's NE and SE glass towers (tie points, position unknown)
 # C12 = 백주년기념관 hall box NW corner (OSM way 324328422 vertex 12)
 KAKAO = {  # Kakao positions (game xy), start values only
@@ -23,6 +24,7 @@ READ = [
     ('2011/158', 'T', 310, 893.0, 3), ('2011/158', 'Q', 310, 729.3, 2), ('2011/158', 'gN', 250, 984.5, 1.5), ('2011/158', 'gS', 250, 568.5, 1.5),
     ('2011/159', 'T', 302, 880.0, 3), ('2011/159', 'Q', 302, 743.0, 2), ('2011/159', 'gN', 246, 938.8, 1.5), ('2011/159', 'gS', 246, 570.8, 1.5),
     ('2011/160', 'gN', 242, 909.0, 3), ('2011/160', 'gS', 242, 573.0, 1.5),
+    ('2011/159', 'N', 346, 731.0, 1.5), ('2011/160', 'N', 343, 733.3, 1.5),
     # the big rock on the lawn east of the facade (the 1997 화단섬's stone marker): left / right ends of its base
     ('2010/919', 'rockL', 334, 849.0, 8), ('2010/919', 'rockR', 334, 954.0, 8),
     ('2011/157', 'rockL', 318, 783.0, 8), ('2011/157', 'rockR', 318, 887.0, 8),
