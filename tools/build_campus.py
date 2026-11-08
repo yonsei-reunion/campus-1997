@@ -885,8 +885,9 @@ fix_strip(_ed, sample(Hn, NEAR_HALF, NEAR_STEP, *_ed[0]), UW_TOP, 4.0)
 # A diamond of walks round a round planter, a cross of walks through it, four beds edged with clipped boxwood.  It is
 # a terrace rising some 8 % northwards, ten risers over 한경길 at its south end; to the north a planted bank with a
 # broad flight between low walls (OSM 10 m) climbs to the road before 연희관, whose entrance flight (seventeen risers,
-# no landing) rises from the road between the wings.  West and east, walled flights come down into the garden's side
-# corners from the drives along 교육관 and 성암관.  The 5 m grid had one 30 % slope from 한경길 to the door; now:
+# no landing) rises from the road between the wings.  West and east, the ways in from the drives along 교육관 and
+# 성암관 are a landing between low coped cheeks and one step down; along 한경길 a rubble retaining wall with boxwood
+# on it (YH_WALL below).  The 5 m grid had one 30 % slope from 한경길 to the door; now:
 # 한경길 45.6 -> garden 47.1 (the S node) .. 49.8 (the N node) -> road 54.3 -> door 56.8.
 #  - the south flight: ten granite risers between the rubble retaining walls along 한경길 (counted in Kakao roadview,
 #    2008-08 and 2026-06: the same blocks); 16 before, from the OSM length
@@ -941,9 +942,33 @@ _W_RD = [(40.3, 301.6), (40.7, 306.0), (41.7, 310.2), (45.5, 327.4), (51.7, 354.
 _E_RD = [(106.6, 289.8), (111.9, 310.1), (118.8, 335.6)]
 fix_strip(_FRONT_RD[:2], _rw, _rc, 3.5)
 fix_strip(_FRONT_RD[1:], _rc, _re, 3.5)
-fix_strip(_W_RD, _hw0, _rw, 3.5)
-fix_strip(_E_RD, _he0, _re, 3.5)
 _wrd, _erd = LineString(_W_RD), LineString(_E_RD)
+# the side drives pass the garden's west and east corners at the garden's level: in the August 2008 roadview from the
+# drive along 교육관 (2381720, 2381722) the way in is a landing between low coped cheek walls at the drive's edge and
+# one step on to the garden's walk, and the drive from 한경길 up to it is all but level (its edges vanish at the
+# horizon); the one from the drive along 성암관 has the same coped cheeks (2026), and in 2008 (2381704) the rubble wall
+# under the garden's edge has run out by it.  So each drive climbs from 한경길 to one riser over the garden at its
+# way in, and on from there to the road before 연희관 (before: one grade from 한경길 to the road, which stood the
+# ways in 3.2 m and 1.7 m over the garden, flights of twenty and eleven risers)
+_dw = np.array([52.7 - 45.5, 325.4 - 327.4]); _dw /= np.linalg.norm(_dw)
+_tw = np.array([45.5, 327.4]) + _dw * 3.0
+_de = np.array([103.4 - 111.9, 312.1 - 310.1]); _de /= np.linalg.norm(_de)
+_te = np.array([111.9, 310.1]) + _de * 3.0
+YH_RISE1 = 0.15
+
+
+def _yh_side_drive(line, top, down, z_mouth, z_road):
+    """grade a side drive in two pieces about the point by its way into the garden; returns that point's height
+    and the drive's grade as (s along it, z) knots"""
+    s_ = line.project(Point(*top))
+    z_in = yh_plane(*g_en(*(np.array(top) + down * (0.5 + 0.30)))) + YH_RISE1      # (the foot of a one-riser flight)
+    fix_strip(list(substring(line, 0.0, s_).coords), z_mouth, z_in, 3.5)
+    fix_strip(list(substring(line, s_, line.length).coords), z_in, z_road, 3.5)
+    return float(z_in), ([0.0, s_, line.length], [z_mouth, float(z_in), z_road])
+
+
+_zw, _gw = _yh_side_drive(_wrd, _tw, _dw, _hw0, _rw)
+_zeo, _ge = _yh_side_drive(_erd, _te, _de, _he0, _re)
 # the garden terrace, its walks and a metre beyond
 _gd = shapely.contains_xy(Polygon(YH_DIAMOND).buffer(2.0), X, Y)
 Hn[_gd] = yh_plane(GE[_gd], GN[_gd])
@@ -960,22 +985,119 @@ _rd_u = np.interp(YH_U[_ct], [float((np.array(p_) - _ya) @ _yt) for p_ in _FRONT
 Hn[_ct] = (YEONHUI['floor'] - 1.2) + (_rd_u - (YEONHUI['floor'] - 1.2)) * np.clip(-YH_V[_ct] / 10.5, 0, 1)
 FIXED[_ct] = True
 # the flights (blender/landmarks.py yeonhui_garden builds them from these)
-_dw = np.array([52.7 - 45.5, 325.4 - 327.4]); _dw /= np.linalg.norm(_dw)
-_tw = np.array([45.5, 327.4]) + _dw * 3.0
-_de = np.array([103.4 - 111.9, 312.1 - 310.1]); _de /= np.linalg.norm(_de)
-_te = np.array([111.9, 310.1]) + _de * 3.0
 _ds = np.array([73.1 - 74.4, 297.5 - 302.5]); _ds /= np.linalg.norm(_ds)
-_zw = float(_hw0 + (_rw - _hw0) * _wrd.project(Point(*_tw)) / _wrd.length)
-_zeo = float(_he0 + (_re - _he0) * _erd.project(Point(*_te)) / _erd.length)
 YEONHUI['flights'] = [
     flight_at('north', _tn, -_un, YEONHUI['road'], _zfn, 5.0, landing=0.6, tread=0.31, maxrise=0.16, cheek=0.4),
-    flight_at('south', YH_DIAMOND[0], _ds, yh_plane(*g_en(*YH_DIAMOND[0])), _zh, 4.0, landing=0.5, maxrise=0.15, cheek=0.35),
+    flight_at('south', YH_DIAMOND[0], _ds, yh_plane(*g_en(*YH_DIAMOND[0])), _zh, 4.0, landing=0.5, maxrise=0.15, cheek=0.35,
+              plain=True),
 ]
-_fw = flight_at('west', _tw, _dw, _zw, 0.0, 3.2, landing=0.5, cheek=0.35, maxrise=0.16)
-_fw = flight_at('west', _tw, _dw, _zw, yh_plane(*g_en(*_fw['foot'])), 3.2, landing=0.5, cheek=0.35, maxrise=0.16)
-_fe = flight_at('east', _te, _de, _zeo, 0.0, 3.2, landing=0.5, cheek=0.35, maxrise=0.16)
-_fe = flight_at('east', _te, _de, _zeo, yh_plane(*g_en(*_fe['foot'])), 3.2, landing=0.5, cheek=0.35, maxrise=0.16)
+_fw = flight_at('west', _tw, _dw, _zw, _zw - YH_RISE1, 3.2, landing=0.5, cheek=0.35, maxrise=0.16)      # (one riser:
+_fe = flight_at('east', _te, _de, _zeo, _zeo - YH_RISE1, 3.2, landing=0.5, cheek=0.35, maxrise=0.16)     # _yh_side_drive)
 YEONHUI['flights'] += [_fw, _fe]
+# the rubble retaining wall under the garden's south edge (Kakao roadview 2008-08 2381704 · 2381709 · 2381711 and
+# 2010-12 1016786644 · 1016786645 · 1016786650 from 한경길): uncoursed brown-grey rubble with no coping, standing
+# at the road's edge from the drive along 교육관 round to the one along 성암관, the south flight going up through a
+# gap in it with the wall's own rubble for its sides; on top, all along, a bank of clipped boxwood in big mounds.
+# Over the road it stands about 0.7 m at the west drive, 0.75 m beside the flight (four or five of its ten risers)
+# and 1.1 m at the east drive (over a parked car's roof from the roadview camera); up the two drives its top stays
+# level while the drive climbs to it.  The lawn behind it is held at its top (the 5 m grid's nodes in a band behind
+# it), the rest of the lawns down from the garden filling in between
+YH_WALL_OFF = 3.6                                            # wall face from the road's centre line, m
+_hk = LineString([(112.0, 284.1), (105.3, 286.1), (72.5, 295.2), (52.5, 300.2), (40.3, 301.6), (34.0, 302.3)])
+
+
+def _yh_offset(line, d):
+    """line offset d m to the garden's side (north of 한경길, east of the 교육관 drive, west of the 성암관 one)"""
+    a_, b_ = line.offset_curve(d), line.offset_curve(-d)
+    c_ = Point(*YH_C)
+    return a_ if a_.distance(c_) < b_.distance(c_) else b_
+
+
+_ext6 = lambda ln_: LineString([tuple(np.array(ln_[0]) - 6.0 * (np.array(ln_[1]) - np.array(ln_[0])) / math.dist(ln_[0], ln_[1]))] + ln_)
+_lh, _lw, _le = _yh_offset(_hk, YH_WALL_OFF), _yh_offset(_ext6(_W_RD), YH_WALL_OFF), _yh_offset(_ext6(_E_RD), YH_WALL_OFF)
+_cw, _ce = _lh.intersection(_lw), _lh.intersection(_le)
+_cw, _ce = [g_ if g_.geom_type == 'Point' else g_.geoms[0] for g_ in (_cw, _ce)]
+_s0, _s1 = sorted((_lh.project(_cw), _lh.project(_ce)))
+_wall_h = substring(_lh, _s0, _s1)
+if Point(_wall_h.coords[0]).distance(_cw) > 1.0:
+    _wall_h = LineString(list(_wall_h.coords)[::-1])          # (west -> east)
+_zr = lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, *(lambda q_: (q_.x, q_.y))(_hk.interpolate(_hk.project(Point(x_, y_)))))
+_zd = lambda ln_, g_, x_, y_: float(np.interp(ln_.project(Point(x_, y_)), *g_))     # (a side drive at its grade)
+
+
+def _yh_wall_top(x_):                                       # over the road, by x along 한경길 (west 0.7, flight 0.75, east 1.1)
+    return float(np.interp(x_, [_cw.x, 73.5, _ce.x], [0.7, 0.75, 1.1]))
+
+
+def _yh_up_drive(lc, ln, g, corner, z_top, top_flight):
+    """the wall's run up a drive from its corner: level at z_top until the drive has climbed to it (or to 2.5 m short
+    of the drive's way into the garden)"""
+    s_c = lc.project(corner)
+    s_f = lc.project(Point(*top_flight))
+    sgn = 1.0 if s_f > s_c else -1.0
+    pts_ = []
+    for k in range(1, 60):
+        s_ = s_c + sgn * 0.8 * k
+        if (s_ - (s_f - sgn * 2.5)) * sgn > 0:
+            break
+        q_ = lc.interpolate(s_)
+        zf_ = _zd(ln, g, q_.x, q_.y)
+        if z_top - zf_ < 0.12:
+            break
+        pts_.append((q_.x, q_.y, zf_))
+    return pts_
+
+
+# at the two corners the top is taken from the drive's mouth (0.6 m and 0.8 m over it: 한경길 itself falls away from
+# both mouths towards the flight, in the game 0.9 m in the 4 m to the east one), and along 한경길 it eases over 6 m
+# from there to its own height
+_zc_w = max(_zr(_cw.x, _cw.y) + _yh_wall_top(_cw.x), _zd(_wrd, _gw, _cw.x, _cw.y) + 0.6)
+_zc_e = max(_zr(_ce.x, _ce.y) + _yh_wall_top(_ce.x), _zd(_erd, _ge, _ce.x, _ce.y) + 0.8)
+_run_w = _yh_up_drive(_lw, _wrd, _gw, _cw, _zc_w, _tw)[::-1]   # (top of the west drive's run -> the corner)
+_run_e = _yh_up_drive(_le, _erd, _ge, _ce, _zc_e, _te)
+_fs = YEONHUI['flights'][1]                                  # the south flight: a gap in the wall
+_fs_ax = LineString([_fs['top'], _fs['foot']])
+_fs_hw = _fs['width'] / 2 + _fs['cheek']
+YH_WALL = []                                                 # runs of [x, y, z at its foot, z at its top]
+_run = [[x_, y_, zf_, _zc_w] for x_, y_, zf_ in _run_w]
+for s_ in np.arange(0.0, _wall_h.length + 0.01, 0.8):
+    q_ = _wall_h.interpolate(min(s_, _wall_h.length))
+    zf_ = _zr(q_.x, q_.y)
+    if _fs_ax.distance(q_) < _fs_hw:                        # (the flight's gap)
+        if _run:
+            YH_WALL.append(_run)
+        _run = []
+        continue
+    zt_ = zf_ + _yh_wall_top(q_.x)
+    for c_, zc_ in ((_cw, _zc_w), (_ce, _zc_e)):
+        f_ = max(0.0, 1.0 - c_.distance(q_) / 6.0)
+        zt_ = max(zt_, zt_ + (zc_ - zt_) * f_)
+    _run.append([q_.x, q_.y, zf_, zt_])
+_run += [[x_, y_, zf_, _zc_e] for x_, y_, zf_ in _run_e]
+YH_WALL.append(_run)
+YH_WALL = [[[round(float(v_), 2) for v_ in p_] for p_ in r_] for r_ in YH_WALL if len(r_) > 1]
+_fs['wall_h'] = round(_yh_wall_top(_fs['foot'][0]), 2)
+# the lawn behind it at its top: free nodes in a band 4.5 m deep behind each run
+for r_ in YH_WALL:
+    _ln = LineString([p_[:2] for p_ in r_])
+    _m = shapely.contains_xy(_yh_offset(_ln, 2.25).buffer(2.25, cap_style='flat'), X, Y) & ~FIXED
+    _yhs = shapely.line_locate_point(_ln, shapely.points(X[_m], Y[_m]))
+    _yhk = np.cumsum([0.0] + [math.hypot(b_[0] - a_[0], b_[1] - a_[1]) for a_, b_ in zip(r_, r_[1:])])
+    Hn[_m] = np.interp(_yhs, _yhk, [p_[3] for p_ in r_])
+    FIXED[_m] = True
+YEONHUI['wall'] = YH_WALL
+YH_WALL_COLL = []                                            # (web: the player does not walk through it)
+for r_ in YH_WALL:
+    _ln = LineString([p_[:2] for p_ in r_])
+    _g = _yh_offset(_ln, 0.25).buffer(0.25, cap_style='flat').simplify(0.05)
+    for g_ in (_g.geoms if hasattr(_g, 'geoms') else [_g]):
+        YH_WALL_COLL.append([[round(x_, 2), round(y_, 2)] for x_, y_ in list(g_.exterior.coords)[:-1]])
+# the lamp at the head of the south flight: in 2008 a single white globe on a dark post behind the boxwood east of
+# the flight's head (2381709 · 2381711: resected on the flight's four corners, both residuals under 0.6 deg, each
+# reading dropped in turn moves it 0.7 m at most); by 2026 a brown one stands at the west corner instead
+YEONHUI['lamp'] = [79.9, 303.6]
+YH_WALL_COLL.append([[round(YEONHUI['lamp'][0] + dx_, 2), round(YEONHUI['lamp'][1] + dy_, 2)]
+                     for dx_, dy_ in ((-0.25, -0.25), (0.25, -0.25), (0.25, 0.25), (-0.25, 0.25))])
 for _f in YEONHUI['flights']:            # keep the ground under each flight below its treads
     if _f['name'] in ('west', 'east', 'south'):
         # ... and the banks either side of the two flights down from the side drives, past both ends too, no higher
@@ -1002,7 +1124,8 @@ for _f in YEONHUI['flights']:            # keep the ground under each flight bel
 _blk = Polygon(_W_RD + _FRONT_RD[1:] + _E_RD[::-1][1:] + [(105.3, 286.1), (72.5, 295.2), (52.5, 300.2)]).buffer(8.0)
 _free = shapely.contains_xy(_blk, X, Y) & (GN > -24.0) & ~FIXED & ~near_buildings(1.0)
 harmonic_fill(_free)
-print('연희관 앞', {k: v for k, v in YEONHUI.items() if k != 'flights'},
+print('연희관 앞', {k: v for k, v in YEONHUI.items() if k not in ('flights', 'wall')},
+      'wall runs', [(len(r_), r_[0][3] - r_[0][2], r_[-1][3] - r_[-1][2]) for r_ in YEONHUI['wall']],
       [(f_['name'], f_['n'], f_['z_top'], f_['z_foot']) for f_ in YEONHUI['flights']])
 
 # --- 대우관 (reference/대우관_정면_전경.jpg, 대우관_2024_정면과_상뜰.jpg, 대우관_측면_2012.jpg): the hall stands on a
@@ -2285,13 +2408,47 @@ for (p0, p1) in ((_FRONT_RD[0], _FRONT_RD[1]), (_FRONT_RD[1], _FRONT_RD[2])):
                           round(rng7.uniform(0, 6.28), 2)])
         else:
             shrubs.append(['topiary_round', round(float(q_[0]), 2), round(float(q_[1]), 2), 1.15, 0])
-for (e_, n_, kind_, sc_) in ((-30, -12, 'zelkova', 1.1), (-19, -21, 'pine', 0.6), (-38, -2, 'zelkova', 0.95),
+_yh_face = unary_union([LineString([p_[:2] for p_ in r_]) for r_ in YEONHUI['wall']])
+_yh_front = unary_union([LineString([p_[:2] for p_ in r_]).buffer(3.0, cap_style='flat').difference(
+    _yh_offset(LineString([p_[:2] for p_ in r_]), 1.5).buffer(1.5, cap_style='flat')) for r_ in YEONHUI['wall']])   # (road side)
+
+
+def _yh_behind(x_, y_, d_min=2.0):
+    """a lawn tree set back behind the retaining wall's face, clear of the boxwood on its top"""
+    p_ = Point(x_, y_)
+    if _yh_face.distance(p_) >= d_min and not _yh_front.contains(p_):
+        return x_, y_
+    q_ = _yh_face.interpolate(_yh_face.project(p_))
+    c_ = np.array(YH_C) - np.array([q_.x, q_.y])
+    t_ = np.array([q_.x, q_.y]) - np.array(_yh_face.interpolate(max(0.0, _yh_face.project(p_) - 0.5)).coords[0])
+    o_ = np.array([-t_[1], t_[0]]) / max(np.linalg.norm(t_), 1e-6)
+    o_ = o_ if o_ @ c_ > 0 else -o_
+    return float(q_.x + o_[0] * d_min), float(q_.y + o_[1] * d_min)
+
+
+for (e_, n_, kind_, sc_) in ((-28, -13, 'zelkova', 1.1), (-19, -21, 'pine', 0.6), (-38, -2, 'zelkova', 0.95),
                              (23, -15, 'zelkova', 1.25), (13, -21, 'zelkova', 1.1), (33, -8, 'zelkova', 1.15)):
-    x_, y_ = YH_G(e_, n_)
+    x_, y_ = _yh_behind(*YH_G(e_, n_))     # (three stood on 한경길's verge or the drive, in front of the wall; the
+    # west one stepped 2 m along it, off the wall and clear of the cherry over the drive)
     trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng7.uniform(0, 6.28), 2)])
 for (u, v, kind_, sc_) in ((-6.0, -11.5, 'ginkgo', 1.25), (46.5, -10.5, 'ginkgo', 1.25), (6.0, -5.5, 'pine', 0.34),
                            (12.5, -5.5, 'pine', 0.3), (27.5, -5.5, 'pine', 0.3), (34.0, -5.5, 'pine', 0.34)):
     plant(kind_, WY, u, v, sc_, rng7.uniform(0, 6.28))
+# the bank of clipped boxwood all along the top of the retaining wall (YEONHUI['wall']; the 2008 and 2010 roadview
+# from 한경길: big rounded mounds close together, bronzed in December), clear of the lamp at the flight's head
+rng_yw = random.Random(1997 + 80)
+for r_ in YEONHUI['wall']:
+    _bk = _yh_offset(LineString([p_[:2] for p_ in r_]), 0.85)
+    for s_ in np.arange(0.8, _bk.length - 0.5, 1.55):
+        q_, q2_ = _bk.interpolate(s_), _bk.interpolate(min(_bk.length, s_ + 0.5))
+        a_ = math.atan2(q2_.y - q_.y, q2_.x - q_.x) + rng_yw.uniform(-0.2, 0.2)
+        k_, sc_ = rng_yw.random(), rng_yw.uniform(0.9, 1.12)
+        if math.hypot(q_.x - YEONHUI['lamp'][0], q_.y - YEONHUI['lamp'][1]) < 1.2:
+            continue
+        if k_ < 0.3:
+            shrubs.append(['topiary_round', round(q_.x, 2), round(q_.y, 2), round(sc_ * 1.05, 2), 0])
+        else:
+            shrubs.append(['hedge_blob', round(q_.x, 2), round(q_.y, 2), round(sc_, 2), round(a_, 3)])
 # 대우관 상뜰 (see SANG above): the small round-crowned pine in the round lawn, a broadleaf tree in the west lawn
 # triangle by the ring and one by the north-east path, low shrubs along the triangles' upper edges, and the big pines
 # on the lawns outside the walks towards the terrace
@@ -3341,7 +3498,8 @@ out = dict(
     paths=_ui_paths(), landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
     centennial_block=CENT_BLOCK, sang=dict(c=list(SANG), r=SANG_LAWN), yeonhui=YEONHUI, underwood_steps=UW_STEPS,
     gyoyuk_floor=GYOYUK_FLOOR,
-    colliders=[CENT_BLOCK['poly']] + [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(GONGWON_SITE.exterior.coords)[:-1]]],
+    colliders=[CENT_BLOCK['poly']] + [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(GONGWON_SITE.exterior.coords)[:-1]]]
+    + YH_WALL_COLL,
 )
 out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
 out['baekyangro']['booth'] = BOOTH

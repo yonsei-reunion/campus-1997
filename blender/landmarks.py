@@ -3458,7 +3458,21 @@ def garden_flight(f, wall='stone_rubble', mat='stone_step', apron=True):
                 continue                                       # (already on the ground: the terrain does)
             mb.face(q, 'pavers')
             WALK_FACES.append([W_(*p) for p in q])
-    if ct:
+    if ct and f.get('plain'):
+        # f['plain']: sides of the wall's own rubble, no coping, no posts (연희관's south flight, set in a gap of the
+        # retaining wall along 한경길: tools/build_campus.py YEONHUI['wall']): flush with the wall's top
+        # (f['wall_h'] over the foot) at the bottom, then just over the nosings up to the head
+        wh = f.get('wall_h', 0.75)
+        prof = [(1.2, zt + 0.06), (-lnd, zt + 0.06)]
+        for k in range(1, 11):                             # (the nosing line, down the flight; y decreasing)
+            y_ = -lnd + (y_foot + 0.05 + lnd) * k / 10
+            z_nos = zt - (zt - (zf + rise)) * k / 10
+            prof.append((y_, max(z_nos + 0.06, zf + wh)))
+        prof.append((y_foot - 0.25, zf + wh))
+        for sg in (-1, 1):
+            x0, x1 = sorted((sg * hw, sg * (hw + ct)))
+            sloped_wall(mb, x0, x1, prof, gnd, wall, cap=wall, ct=0.02)
+    elif ct:
         hc = 0.55 if not f.get('rails') else 0.18          # (a kerb under handrails, a low wall otherwise)
         head = f.get('head', 1.2)
         for sg in (-1, 1):
@@ -3491,8 +3505,10 @@ def garden_flight(f, wall='stone_rubble', mat='stone_step', apron=True):
 
 def yeonhui_garden(yh):
     """연희관 앞 정원 (tools/build_campus.py YEONHUI): the walled flights into the garden -- the broad one down the
-    bank from the road before 연희관, the one up to 한경길 behind 언더우드관, those from the drives along 교육관 and
-    성암관 -- and the low concrete drum of the round planter in the middle, its clipped yew planted in it (shrubs)."""
+    bank from the road before 연희관, the one up from 한경길 behind 언더우드관 (through a gap in the retaining wall,
+    plain rubble sides), the one-step ways in from the drives along 교육관 and 성암관 -- the low concrete drum of the
+    round planter in the middle, its clipped yew planted in it (shrubs), the forecourt's slabs, the rubble retaining
+    wall along 한경길 (yeonhui_wall) and the lamp at the south flight's head."""
     out = [garden_flight(f) for f in yh.get('flights', [])]
     pl = yh.get('planter')
     if pl:
@@ -3511,7 +3527,62 @@ def yeonhui_garden(yh):
     fc = yh.get('forecourt')
     if fc:
         out.append(yeonhui_forecourt(fc))
+    if yh.get('wall'):
+        out.append(yeonhui_wall(yh['wall']))
+    if yh.get('lamp'):
+        mb = MeshBuilder('lm_yeonhui_lamp')
+        _yh_lamp_globe(mb, *yh['lamp'], ground_top(*yh['lamp']))
+        out.append(mb)
     return out
+
+
+def yeonhui_wall(runs, t=0.4, bed=1.8, back=2.8):
+    """The rubble retaining wall under 연희관 앞 정원's south edge (tools/build_campus.py YEONHUI['wall']: runs of
+    [x, y, z at the foot, z at the top] along its face): uncoursed rubble from below the road up to its top, no coping;
+    behind it a soil bed level with its top (bed m deep, the boxwood mounds stand on it: walked on), sloping on back
+    to the lawn by `back` m.  The face looks away from the garden (towards 한경길 and the two drives)."""
+    mb = MeshBuilder('lm_yeonhui_wall')
+    gc = Vector(CAMPUS['yeonhui']['planter']['c'])
+    for run in runs:
+        P = [Vector((p[0], p[1])) for p in run]
+        N = []
+        for i in range(len(P)):
+            tg = (P[min(i + 1, len(P) - 1)] - P[max(i - 1, 0)]).normalized()
+            nv = Vector((-tg.y, tg.x))
+            N.append(nv if nv.dot(gc - P[i]) > 0 else -nv)       # (into the garden)
+        zt = [max(p[3], ground_top(*(P[i] + N[i] * 0.2)) + 0.02) for i, p in enumerate(run)]
+        gnd = [min(p[2], ground(*(P[i] - N[i] * 0.3))) - 0.6 for i, p in enumerate(run)]
+        rows = []                                              # (depth into the garden, z) at each vertex
+        for i in range(len(P)):
+            zb = ground_top(*(P[i] + N[i] * back)) + 0.02           # (on the lawn)
+            rows.append([(0.0, zt[i]), (t, zt[i]), (bed, max(zt[i], ground_top(*(P[i] + N[i] * bed)) + 0.02)), (back, zb)])
+        for i in range(len(P) - 1):
+            a, b = P[i], P[i + 1]
+            out_n = -(N[i] + N[i + 1]).normalized()
+            oface(mb, [(*a, gnd[i]), (*b, gnd[i + 1]), (*b, zt[i + 1]), (*a, zt[i])], 'stone_rubble', (*out_n, 0))
+            for k in range(3):
+                (da, za), (db, zb_) = rows[i][k], rows[i][k + 1]
+                (dc, zc), (dd, zd) = rows[i + 1][k], rows[i + 1][k + 1]
+                q = [(*(a + N[i] * da), za), (*(b + N[i + 1] * dc), zc), (*(b + N[i + 1] * dd), zd), (*(a + N[i] * db), zb_)]
+                oface(mb, q, 'stone_rubble' if k == 0 else 'soil', (0, 0, 1))
+                if k > 0:
+                    WALK_FACES.append([tuple(v) for v in q])
+        for i, sg in ((0, 1), (len(P) - 1, -1)):               # the two ends: the wall's own rubble across it
+            tg = (P[min(i + 1, len(P) - 1)] - P[max(i - 1, 0)]).normalized() * sg
+            a, b = P[i], P[i] + N[i] * t
+            oface(mb, [(*a, gnd[i]), (*b, gnd[i]), (*b, zt[i]), (*a, zt[i])], 'stone_rubble', (*(-tg), 0))
+    return mb
+
+
+def _yh_lamp_globe(mb, x, y, z):
+    """the single-globe lamp at the head of 연희관 앞 정원's south flight (2008 roadview): a dark post on a low square
+    foot, a collar under the head, one white globe about 4.3 m up"""
+    mb.box((x, y, z + 0.2), (0.42, 0.42, 0.5), 'metal_dark')
+    mb.cylinder((x, y), 0.1, z + 0.45, z + 3.95, 'metal_dark', seg=10, r1=0.06)
+    mb.cylinder((x, y), 0.14, z + 0.45, z + 1.1, 'metal_dark', seg=10, r1=0.1)
+    mb.cylinder((x, y), 0.09, z + 3.9, z + 4.02, 'metal_dark', seg=10)
+    mb.sphere((x, y, z + 4.25), 0.25, 'globe', seg=14, rings=10)
+    mb.sphere((x, y, z + 4.52), 0.05, 'metal_dark', seg=8, rings=6)
 
 
 def yeonhui_forecourt(fc):
