@@ -21,6 +21,19 @@ npm run build        # web/dist 정적 사이트
 게임 안 「새 소식」 창과 `news.html`(날짜마다 `#2026-11-06` 같은 주소)은 같은 데이터 `web/public/data/releases.json` 을 `web/src/notes.js` 로 그립니다.
 형식과 쓰는 규칙은 [`CLAUDE.md`](CLAUDE.md) 에 있습니다. 캡처는 `docs/screenshots/` 와 `web/public/assets/news/` 에 둡니다.
 
+## README · 문집 캡처
+
+README 의 게임 화면(「사진과 비교」의 오른쪽 칸, 「게임 화면」, 맨 위 그림)과 문집 사이트(`../yonsei-anthology/src/content/memories.md`)의
+게임 캡처는 `tools/snapshots.json` 의 카메라로 한 번에 다시 찍습니다. 건물을 고친 뒤에는 같은 카메라로 다시 찍어 사진과 비교합니다.
+
+```bash
+cd web && npx vite --port 5197                     # 다른 터미널
+node tools/snapshots.mjs --port 5197               # 전부, 또는 --only compare/library,game/
+python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 짝을 한 장에 모아 검토
+```
+
+순서와 카메라 맞추는 법은 Claude Code 스킬 [`.claude/skills/update-snapshots`](.claude/skills/update-snapshots/SKILL.md) 에 있습니다.
+
 ## 저장소 구조
 
 | 경로 | 내용 |
@@ -35,6 +48,7 @@ npm run build        # web/dist 정적 사이트
 | `reference/` | 1997년 사진과 고증 문서 |
 | `docs/` | README 에 쓰는 캡처 · 비교 사진 |
 | `docs/compare/` | README 「사진과 비교」의 사진(`<이름>_photo.jpg`)과 같은 자리의 게임 화면(`<이름>_game.jpg`), 표의 왼쪽 · 오른쪽 칸에 하나씩 |
+| `docs/game/` | README 맨 위 그림과 「게임 화면」의 캡처 |
 
 ### 모듈 (`web/src/`)
 

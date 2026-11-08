@@ -6,3 +6,6 @@ data/raw/pdf_images/
 previews/
 __pycache__/
 trailer/*.mp4
+
+.claude/worktrees/
+.claude/settings.local.json
