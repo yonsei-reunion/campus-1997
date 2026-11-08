@@ -1187,19 +1187,19 @@ def pedestal(mb, x, y, top, gnd, wall, w=0.64):
 
 
 def hall_steps(mb, y_face, zl, wu, gfn, wall='stone_rubble', mat='stone_step', rec=0.9, porch=1.3, tread=0.35,
-               maxrise=0.16, wl=None, cheeks=True, lamps=False, zone_hw=0.0):
+               maxrise=0.16, wl=None, cheeks=True, lamps=False, zone_hw=0.0, split_at=9):
     """The entrance steps of the old stone halls, as in reference/언더우드관_정면_2016.jpg, 스팀슨관_정면_2016.jpg and
     아펜젤러관_정면_2016.jpg:
     a porch from the door out past the arch, then granite treads of ~15 cm risers and 35 cm goings; flights of nine
     risers or more break at a landing, the lower flight a little wider.  Low rubble side walls with a pale coping
     follow the flights and end in square capped posts at the porch, at the landing and at the foot.
-    Local frame: the door wall faces -y at y_face (the door itself rec m back), the porch top is zl.  Returns the
-    y of the foot."""
+    Local frame: the door wall faces -y at y_face (the door itself rec m back), the porch top is zl.  split_at: from
+    how many risers on the flight breaks at a landing (연희관's seventeen run in one).  Returns the y of the foot."""
     wl = wl or wu + 1.4
     T = tread
     y_p = y_face - porch
     for n in range(2, 31):
-        split = n >= 9
+        split = n >= split_at
         nl = max(3, round(n * 0.36)) if split else 0
         nu = n - nl
         mid = 1.6 if split else 0.0
@@ -1406,7 +1406,8 @@ def basement_windows(mb, P, s0, s1, bay, plinth, gfn, wall, ww=0.5):
 def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=True, fh=4.1, wall='stone_rubble',
            dormers=True, stairs=None, portal=None, door=None, z_floor=None, rear=None):
     cx, cy, L, W, ang, z0 = frame_for(b, front)
-    stairs = dict(dict(width=None, wl=None, rise=1.3, cheeks=True, lamps=False, none=False), **(stairs or {}))
+    stairs = dict(dict(width=None, wl=None, rise=1.3, cheeks=True, lamps=False, none=False, split=9, maxrise=0.16),
+                  **(stairs or {}))
     door = dict(dict(w=3.0, arch='tudor', spring=2.55, style='grid'), **(door or {}))
     # the floor stands on the ground in front of the door, not at the lowest corner of the footprint (the halls sit on
     # slopes: 대우관 별관's front is ~3 m above that corner and would bury the whole flight); `rise` is how high the
@@ -1624,7 +1625,7 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
     sw = stairs['width'] or min(tw * 0.5, 4.4)
     if not stairs['none']:
         hall_steps(mb, ty0, plinth - 0.1, sw, local_ground(mb), wall=wall, wl=stairs['wl'], cheeks=stairs['cheeks'],
-                   lamps=stairs['lamps'])
+                   lamps=stairs['lamps'], split_at=stairs['split'], maxrise=stairs['maxrise'])
     mb.tower_front = ty0
     mb.tower_info = (ty0, tw, Ht)
     mb.z_base = z0
@@ -3153,10 +3154,11 @@ def yeonhui():
     W = lambda u, v: tuple(a + t * u + nl * v)
     centre = dict(b, footprint=[W(0.4, 0), W(39.9, 0), W(39.9, 14.2), W(0.4, 14.2)])
     yh = CAMPUS.get('yeonhui', {})
-    # the door three metres over the road before it (tools/build_campus.py YEONHUI): nineteen risers and a landing
-    # down to the road, between rubble side walls (reference/대우관_블로그_연희관과_대우관_원경.jpg)
+    # the door 2.55 m over the road before it (tools/build_campus.py YEONHUI): seventeen risers of 0.15 in one flight,
+    # no landing, down to the road between rubble side walls with pale copings (Kakao roadview from the road, 2026)
     out = gothic('yeonhui', centre, tuple(-nl), 4, tower_w=8.5, tower_extra=9.5, ivy=0.85, wings=False, fh=4.1,
-                 stairs=dict(width=4.8, wl=5.6), door=dict(w=3.3, style='four'), z_floor=yh.get('floor'))
+                 stairs=dict(width=4.8, wl=5.6, split=99, maxrise=0.152), door=dict(w=3.3, style='four'),
+                 z_floor=yh.get('floor'))
     mb = MeshBuilder('lm_yeonhui_pavilions')
     iv = MeshBuilder('lm_yeonhui_pavilions_ivy')
     mb.xf = iv.xf = local_frame(a.x, a.y, ang, out[0].z_base)
@@ -3256,7 +3258,60 @@ def yeonhui_garden(yh):
             mb.quad((*rin[k], z1), (*rin[k + 1], z1), (*rin[k + 1], z1 - 0.12), (*rin[k], z1 - 0.12), 'concrete')
         mb.face([(x, y, z1 - 0.12) for x, y in rin[:-1]], 'soil')
         out.append(mb)
+    fc = yh.get('forecourt')
+    if fc:
+        out.append(yeonhui_forecourt(fc))
     return out
+
+
+def yeonhui_forecourt(fc):
+    """The forecourt at the head of the south flight (tools/build_campus.py YEONHUI['forecourt'];
+    reference/연희관_정면_2023.jpg): old concrete slabs a little over the terrain's paving, dark joints radiating from a
+    point between the tips of the two south beds (and the walk's centre joint on north), and across the head of the
+    flight a drain of perforated concrete blocks, two rows of oval holes each."""
+    from mathutils.geometry import tessellate_polygon
+    mb = MeshBuilder('lm_yeonhui_forecourt')
+    poly = [Vector(p) for p in fc['poly']]
+    for tri in tessellate_polygon([[p for p in poly]]):
+        mb.face([tuple(poly[i]) for i in tri[::-1]] if _area2([poly[i] for i in tri]) < 0 else [tuple(poly[i]) for i in tri],
+                'concrete_dark')
+
+    def strip(a, b, w, z_up, mat):
+        a, b = Vector(a), Vector(b)
+        d = (b - a).xy
+        if d.length < 1e-3:
+            return
+        o = Vector((-d.y, d.x)).normalized() * (w / 2)
+        mb.face([(a.x - o.x, a.y - o.y, a.z + z_up), (b.x - o.x, b.y - o.y, b.z + z_up),
+                 (b.x + o.x, b.y + o.y, b.z + z_up), (a.x + o.x, a.y + o.y, a.z + z_up)], mat)
+    for ray in fc['rays']:
+        for a, b in zip(ray, ray[1:]):
+            strip(a, b, 0.035, 0.004, 'asphalt')
+    # the drain: blocks 0.6 m long and 0.42 m across, a little proud of the slabs, two rows of six holes each
+    a, b = Vector(fc['drain'][0]), Vector(fc['drain'][1])
+    L = (b - a).xy.length
+    t = (b - a).normalized()
+    t2 = Vector((t.x, t.y, 0.0)).normalized()
+    o = Vector((-t2.y, t2.x, 0.0))
+    nb = max(1, int(L / 0.62))
+    bl = L / nb
+    for k in range(nb):
+        p0 = a + t * (k * bl + 0.01)
+        p1 = a + t * ((k + 1) * bl - 0.01)
+        q = [p0 - o * 0.21, p1 - o * 0.21, p1 + o * 0.21, p0 + o * 0.21]
+        mb.face([(v.x, v.y, v.z + 0.015) for v in q], 'concrete_dark')
+        for r in (-0.095, 0.095):
+            for j in range(6):
+                c = p0 + (p1 - p0) * ((j + 0.5) / 6) + o * r
+                hx, hy = t2 * 0.035, o * 0.06
+                h = [c - hx - hy, c + hx - hy, c + hx + hy, c - hx + hy]
+                mb.face([(v.x, v.y, v.z + 0.019) for v in h], 'metal_dark')
+    return mb
+
+
+def _area2(pts):
+    """twice the signed area of a polygon's xy (anticlockwise > 0)"""
+    return sum(p.x * q.y - q.x * p.y for p, q in zip(pts, pts[1:] + pts[:1]))
 
 
 def uw_slab(mb, corners, gnd, top, side, walk=False):

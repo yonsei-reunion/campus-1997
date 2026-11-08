@@ -731,15 +731,20 @@ def fix_strip(line_pts, h0, h1, half, top=False):
 # --- 연희관 앞 정원: between 언더우드관's back and 연희관 (OSM; reference/연희관_정면_2023.jpg, 학교연혁_연희관.jpg from
 # its south walk, 대우관_블로그_연희관과_대우관_원경.jpg from above to the west, the 1995 map's star-shaped garden).
 # A diamond of walks round a round planter, a cross of walks through it, four beds edged with clipped boxwood.  It is
-# a level terrace (a 4 % rise northwards) a short flight over 한경길 (OSM 5 m: 16 risers); to the north a planted bank
-# with a broad flight between low walls (OSM 10 m: 32 risers) climbs to the road before 연희관, whose entrance flight
-# (nineteen risers, a landing) rises from the road between the wings.  West and east, walled flights come down into
-# the garden's side corners from the drives along 교육관 and 성암관.  The 5 m grid had one 30 % slope from 한경길 to
-# the door; now: 한경길 45.6 -> garden 48.0 (the S node) .. 49.4 (the N node) -> road 54.3 -> door 57.3.
+# a terrace rising some 8 % northwards, ten risers over 한경길 at its south end; to the north a planted bank with a
+# broad flight between low walls (OSM 10 m) climbs to the road before 연희관, whose entrance flight (seventeen risers,
+# no landing) rises from the road between the wings.  West and east, walled flights come down into the garden's side
+# corners from the drives along 교육관 and 성암관.  The 5 m grid had one 30 % slope from 한경길 to the door; now:
+# 한경길 45.6 -> garden 47.1 (the S node) .. 49.8 (the N node) -> road 54.3 -> door 56.8.
+#  - the south flight: ten granite risers between the rubble retaining walls along 한경길 (counted in Kakao roadview,
+#    2008-08 and 2026-06: the same blocks); 16 before, from the OSM length
+#  - the slope: from the roadview camera at the foot of that flight (about 3.4 m up, from the flight's own risers and
+#    treads) the rim of the planter stands level with the lens, 1.3 m over the forecourt 16 m away
+#  - 연희관's entrance: seventeen risers of 0.15 in one flight (roadview from the road before it, 2026)
 YH_DIAMOND = [(74.4, 302.5), (52.7, 325.4), (82.5, 335.4), (103.4, 312.1)]      # S, W, N, E nodes of the walks
 YH_C = (78.4, 318.3)                                                            # the round planter (GF_C)
 _zh = sample(Hn, NEAR_HALF, NEAR_STEP, 73.1, 297.5)                             # 한경길 at the foot of the S flight
-YEONHUI = dict(garden=round(_zh + 2.4, 2), slope=0.04, planter=dict(c=list(YH_C), r=3.2, h=0.5))
+YEONHUI = dict(garden=round(_zh + 10 * 0.15, 2), slope=0.08, planter=dict(c=list(YH_C), r=3.2, h=0.5))
 
 
 def yh_plane(e, n):
@@ -760,13 +765,18 @@ def flight_at(name, top, down, z_top, z_foot, width, landing=0.6, tread=0.30, ma
                 n=n_, width=width, landing=landing, tread=tread, **kw)
 
 
-# the north flight: from the road's south edge on the OSM line down onto the garden's axis walk, 32 risers of 0.16
+# the north flight: from the road's south edge on the OSM line down onto the garden's axis walk, risers of 0.16.  The
+# road (and with it 연희관) stays where the 1997 aerial photo put it (NORTH_DROP above): as high as it stood over the
+# old 4 % garden plane through a 32-riser flight; the flight takes what the steeper garden leaves
 _un = np.array([85.2 - 82.5, 345.0 - 335.4]) / math.hypot(85.2 - 82.5, 345.0 - 335.4)
 _tn = np.array([85.2, 345.0]) - _un * 3.0
 _fn = _tn - _un * (0.6 + 32 * 0.31)
+YEONHUI['road'] = round(_zh + 2.4 + 0.04 * (g_en(*_fn)[1] + 16.3) + 32 * 0.16, 2)   # the road before 연희관, on the axis
+for _ in range(3):                                            # (the foot moves with the number of risers)
+    _zfn = yh_plane(*g_en(*_fn))
+    _fn = _tn - _un * (0.6 + math.ceil((YEONHUI['road'] - _zfn) / 0.16 - 1e-6) * 0.31)
 _zfn = yh_plane(*g_en(*_fn))
-YEONHUI['road'] = round(_zfn + 32 * 0.16, 2)                  # the road before 연희관, on the garden's axis
-YEONHUI['floor'] = round(YEONHUI['road'] + 3.0, 2)            # 연희관's door (blender: gothic z_floor)
+YEONHUI['floor'] = round(YEONHUI['road'] + 17 * 0.15, 2)      # 연희관's door (blender: gothic z_floor), 17 risers up
 _rw, _rc, _re = YEONHUI['road'] + 1.3, YEONHUI['road'], YEONHUI['road'] - 1.5       # the road's west end, axis, east end
 _hw0 = sample(Hn, NEAR_HALF, NEAR_STEP, 40.3, 301.6)          # 한경길 where the west drive leaves it
 _he0 = sample(Hn, NEAR_HALF, NEAR_STEP, 106.6, 289.8)         # and the east one
@@ -1848,11 +1858,16 @@ for (u, v) in ((-27, -20), (-28, 8), (-27, 26), (27, -22), (28, 6), (27, 27)):
         plant('pine', WU, u, v, 0.45, rng.uniform(0, 6.28))
         continue
     plant('zelkova', WU, u, v, 1.15, rng.uniform(0, 6.28))
-# 연희관 앞 정원 (YEONHUI): each of the four beds edged with clipped boxwood, a clipped pine in its middle and round
-# boxwood towards its corners; the two by the south walk behind tall clipped hedges that end square at the forecourt
-# (reference/연희관_정면_2023.jpg), the two under the bank low ones (대우관_블로그_연희관과_대우관_원경.jpg); the big
-# clipped yew in the round planter; small round-headed shrubs along the top of the banks by the road and a low hedge
-# along their foot; zelkovas on the lawns down to 한경길, ginkgos and round pines in the court before 연희관
+# 연희관 앞 정원 (YEONHUI): a parterre of clipped boxwood as the photos and roadview before the 2013 works show it
+# (reference/2003_가을_연희관앞정원과_교육관_북쪽계단.jpg from above to the north-west, 2003_봄_교육관에서_본_*; Kakao
+# roadview 2008-08 and 2010-12 from 한경길 and the road before 연희관).  Each of the four beds: a low boxwood edging, a
+# second band inside it with a strip of lawn between (the 2003 photo's parallel bands), tiered cones of clipped yew at
+# its corners (in pairs either side of the axis from the south), a clipped pine and round boxwood in the middle.  The
+# edgings of the two beds by the forecourt are a little higher (2010: brown winter boxwood up to the waist); the tall
+# square-topped hedge blocks of reference/연희관_정면_2023.jpg are those edgings grown on after 2011.  The big clipped
+# yew in the round planter; small round-headed shrubs and clipped pines along the top of the banks by the road and a
+# low hedge along their foot; big zelkovas on the lawns down to 한경길 (2008: three in the south-east one), a magnolia
+# at the south-west corner by the west drive (2011-04, in flower), ginkgos and round pines in the court before 연희관
 rng7 = random.Random(1997 + 71)
 
 
@@ -1866,25 +1881,69 @@ def hedge_line(pts, kind='hedge_low', sc=1.0, step=1.5, closed=True):
             shrubs.append([kind, round(xa + (xb - xa) * f_, 2), round(ya + (yb - ya) * f_, 2), sc, round(a_, 3)])
 
 
+def _ring(g):
+    """the exterior of a polygon (the largest part if it fell apart), [] if nothing is left"""
+    if g.is_empty:
+        return []
+    if g.geom_type != 'Polygon':
+        g = max(g.geoms, key=lambda q: q.area)
+    return list(g.exterior.coords)[:-1]
+
+
 _yd = Polygon(YH_DIAMOND).buffer(-1.4, join_style='mitre')
 _ywalks = unary_union([LineString([YH_G(0, -20), YH_G(0, 20)]).buffer(2.2), LineString([YH_DIAMOND[1], YH_DIAMOND[3]]).buffer(1.7),
                        Point(*YH_C).buffer(5.8)])
 _beds = _yd.difference(_ywalks)
+# the forecourt at the head of the south flight (reference/연희관_정면_2023.jpg, Kakao roadview 2026: the same old slabs):
+# concrete slabs whose joints radiate from a point between the tips of the two south beds, a drain of perforated
+# concrete blocks across it at the head of the flight, the walk's centre joint on to the planter (blender/landmarks.py
+# yeonhui_garden lays them on the garden plane)
+_fcc = YH_G(0.0, -13.0)
+_fc = Polygon(YH_DIAMOND).buffer(0.6, join_style='mitre').union(                          # (the walks, and the head of
+    Polygon([YH_G(-2.4, -16.3), YH_G(2.4, -16.3), YH_G(2.4, -14.0), YH_G(-2.4, -14.0)])).intersection(   # the flight)
+    Polygon([YH_G(-5.5, -16.3), YH_G(5.5, -16.3), YH_G(5.5, -9.5), YH_G(-5.5, -9.5)])).difference(_beds.buffer(0.1)).simplify(0.1)
+_fc = max(_fc.geoms, key=lambda q: q.area) if _fc.geom_type != 'Polygon' else _fc
+_dr = LineString([YH_G(-8.0, -15.95), YH_G(8.0, -15.95)]).intersection(_fc)
+_fz = lambda x, y: round(yh_plane(*g_en(x, y)) + 0.02, 3)
+_rays = []
+for k in range(8):
+    a_ = math.pi / 4 * k
+    d_ = GF_E * math.cos(a_) + GF_N * math.sin(a_)
+    seg_ = LineString([_fcc, tuple(np.array(_fcc) + d_ * 12.0)]).intersection(_fc)
+    for g_ in ([seg_] if seg_.geom_type == 'LineString' else getattr(seg_, 'geoms', [])):
+        if g_.geom_type == 'LineString' and g_.length > 0.5:
+            _rays.append([[round(x, 2), round(y, 2), _fz(x, y)] for x, y in g_.coords])
+_rays.append([[*map(lambda v: round(v, 2), YH_G(0.0, -13.0)), _fz(*YH_G(0.0, -13.0))],
+              [*map(lambda v: round(v, 2), YH_G(0.0, -6.2)), _fz(*YH_G(0.0, -6.2))]])       # the walk's centre joint
+YEONHUI['forecourt'] = dict(c=[*map(lambda v: round(v, 2), _fcc), _fz(*_fcc)],
+                            poly=[[round(x, 2), round(y, 2), _fz(x, y)] for x, y in list(_fc.exterior.coords)[:-1]],
+                            rays=_rays,
+                            drain=[[round(x, 2), round(y, 2), _fz(x, y)] for x, y in (_dr.coords if _dr.geom_type == 'LineString'
+                                                                                      else max(_dr.geoms, key=lambda q: q.length).coords)])
 for bed in sorted(_beds.geoms if hasattr(_beds, 'geoms') else [_beds], key=lambda g: g.centroid.y):
     if bed.area < 20:
         continue
     bed = bed.simplify(0.3)
     south = g_en(bed.centroid.x, bed.centroid.y)[1] < 0
-    hedge_line(list(bed.exterior.coords)[:-1], 'hedge_blob' if south else 'hedge_low', 1.3 if south else 1.0,
-               step=1.6 if south else 1.5)
-    inner = bed.buffer(-2.2).simplify(1.0)
-    cx_, cy_ = bed.centroid.x, bed.centroid.y
-    trees.append(['pine', round(cx_, 2), round(cy_, 2), round(rng7.uniform(0.36, 0.44), 2), round(rng7.uniform(0, 6.28), 2)])
+    hedge_line(_ring(bed), 'hedge_low', 1.15 if south else 1.0, step=1.5)                 # the edging
+    band = bed.buffer(-1.6, join_style='mitre').simplify(0.3)
+    if band.area > 6:
+        hedge_line(_ring(band), 'hedge_low', 0.8, step=1.25)                           # the inner band
+    # the tiered yew cones in the strip between the edging and the band, away from the axis (2010: in pairs either side
+    # of it, the walk itself between round shrubs): at the bed's tip by the cross walk and halfway along its outer edge
+    _in = _ring(bed.buffer(-0.8, join_style='mitre').simplify(0.5))
+    _tip = max(_in, key=lambda q: abs(g_en(*q)[0]))
+    _out = max(zip(_in, _in[1:] + _in[:1]), key=lambda ab: math.hypot(ab[1][0] - ab[0][0], ab[1][1] - ab[0][1]))
+    for (px_, py_) in (_tip, ((_out[0][0] + _out[1][0]) / 2, (_out[0][1] + _out[1][1]) / 2)):
+        shrubs.append(['topiary_cone', round(px_, 2), round(py_, 2), round(rng7.uniform(1.05, 1.2), 2), round(rng7.uniform(0, 6.28), 2)])
+    core = bed.buffer(-2.7)
+    cx_, cy_ = (core.centroid.x, core.centroid.y) if not core.is_empty else (bed.centroid.x, bed.centroid.y)
+    trees.append(['pine', round(cx_, 2), round(cy_, 2), round(rng7.uniform(0.34, 0.4), 2), round(rng7.uniform(0, 6.28), 2)])
     _done = [(cx_, cy_)]
-    for (px_, py_) in ([] if inner.is_empty or inner.geom_type != 'Polygon' else list(inner.exterior.coords)[:-1]):
-        if min(math.hypot(px_ - qx_, py_ - qy_) for qx_, qy_ in _done) > 3.2:
+    for (px_, py_) in _ring(core.simplify(0.8)):
+        if min(math.hypot(px_ - qx_, py_ - qy_) for qx_, qy_ in _done) > 2.6:
             _done.append((px_, py_))
-            shrubs.append(['topiary_round', round(px_, 2), round(py_, 2), round(rng7.uniform(0.95, 1.2), 2), 0])
+            shrubs.append(['topiary_round', round(px_, 2), round(py_, 2), round(rng7.uniform(0.75, 0.9), 2), 0])
 for k in range(6):                                                  # the clipped yew filling the round planter
     a_ = 2 * math.pi * k / 6
     shrubs.append(['topiary_round', round(YH_C[0] + 1.55 * math.cos(a_), 2), round(YH_C[1] + 1.55 * math.sin(a_), 2), 1.45, 0])
@@ -1904,9 +1963,13 @@ for (p0, p1) in ((_FRONT_RD[0], _FRONT_RD[1]), (_FRONT_RD[1], _FRONT_RD[2])):
         q_ = p0 + d_ * (1.7 + k * 3.4) + s_ * 4.6
         if np.linalg.norm(q_ - (_tn - _un * 1.0)) < 4.6 or not _ybank.buffer(-0.5).contains(Point(*q_)):
             continue
-        shrubs.append(['topiary_round', round(float(q_[0]), 2), round(float(q_[1]), 2), 1.15, 0])
-for (e_, n_, kind_, sc_) in ((-30, -12, 'zelkova', 1.0), (-19, -21, 'pine', 0.6), (-38, -2, 'zelkova', 0.9),
-                             (24, -16, 'zelkova', 1.05), (14, -22, 'pine', 0.55), (33, -8, 'zelkova', 0.9)):
+        if k % 2:                     # (every other one a low clipped pine: 2008 roadview along the road)
+            trees.append(['pine', round(float(q_[0]), 2), round(float(q_[1]), 2), round(rng7.uniform(0.28, 0.32), 2),
+                          round(rng7.uniform(0, 6.28), 2)])
+        else:
+            shrubs.append(['topiary_round', round(float(q_[0]), 2), round(float(q_[1]), 2), 1.15, 0])
+for (e_, n_, kind_, sc_) in ((-30, -12, 'zelkova', 1.1), (-19, -21, 'pine', 0.6), (-38, -2, 'zelkova', 0.95),
+                             (23, -15, 'zelkova', 1.25), (13, -21, 'zelkova', 1.1), (33, -8, 'zelkova', 1.15)):
     x_, y_ = YH_G(e_, n_)
     trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng7.uniform(0, 6.28), 2)])
 for (u, v, kind_, sc_) in ((-6.0, -11.5, 'ginkgo', 1.25), (46.5, -10.5, 'ginkgo', 1.25), (6.0, -5.5, 'pine', 0.34),
@@ -2034,6 +2097,9 @@ PHOTO03.append(('ginkgo', x_, y_, 0.42))
 PHOTO03.append(('poplar', *WU(5.4, -43.4), 1.0))
 PHOTO03.append(('poplar', 24.0, 155.5, 0.92))
 PHOTO03 += [('magnolia', 58.0, 339.5, 1.0), ('magnolia', *WU(-3.0, 40.6), 1.05)]
+#  - 목련 at the south-west corner of 연희관 앞 정원, where the west drive leaves 한경길 (Kakao roadview 2011-04, in
+#    full flower; taken to have stood there in 1997)
+PHOTO03.append(('magnolia', 48.5, 307.5, 1.1))
 _n0 = len(trees)
 trees[N_PHOTO_TREES:] = [t_ for t_ in trees[N_PHOTO_TREES:]
                          if min(math.hypot(t_[1] - p_[1], t_[2] - p_[2]) for p_ in PHOTO03) > 4.2]
@@ -2442,6 +2508,15 @@ for (a_, b_) in ((YH_DIAMOND[1], YH_DIAMOND[2]), (YH_DIAMOND[2], YH_DIAMOND[3]))
     for t_ in (0.3, 0.55):
         q_ = a_ + (b_ - a_) * (t_ if a_[0] < YH_C[0] else 1 - t_) + o_ * 0.95
         P('bench', float(q_[0]), float(q_[1]), math.atan2(-o_[1], -o_[0]))
+# ... and on the verge of the road before 연희관, between the shrubs and pines along the top of the banks, looking at
+# the road (Kakao roadview 2008-08; reference/2003_가을_연희관_정면.jpg: a plank bench on the verge)
+for (p0, p1), ks in (((_FRONT_RD[0], _FRONT_RD[1]), (4, 6)), ((_FRONT_RD[1], _FRONT_RD[2]), (3, 5))):
+    p0, p1 = np.array(p0), np.array(p1)
+    d_ = (p1 - p0) / np.linalg.norm(p1 - p0)
+    s_ = np.array([d_[1], -d_[0]])                                   # (south, off the road)
+    for k in ks:
+        q_ = p0 + d_ * (3.4 * k) + s_ * 4.1
+        P('bench', float(q_[0]), float(q_[1]), math.atan2(-s_[1], -s_[0]))
 # 대우관 상뜰: along the two lower (SW / SE) walks of the diamond, two benches on the lawn triangle inside facing the
 # walk and two on the far side facing back (the photos; a bench model faces its rot angle, see bench_along)
 for sg in (-1, 1):
@@ -2470,11 +2545,12 @@ for (u_, vs_) in ((-22.0, np.arange(29.9, 37.0, 1.4)), (15.2, np.arange(30.8, 36
         P('bollard', *WU(u_, float(v_)), 0.0)
 P('tent_kiosk', *WU(-28.0, 40.4), _south)
 P('notice_board', *WU(-17.5, 38.2), _south)
-# 연희관 (2003_가을_연희관_정면.jpg, from the south-west): the green tent stall against the tower just west of its porch
+# 연희관 (2003_가을_연희관_정면.jpg, from the south-west; Kakao roadview 2008-08 from the west end of the road): the
+# green tent stall west of the entrance flight, at its foot by the road, its counter to the road
 _yd = min(np.arange(-10.0, 60.0, 0.25), key=lambda u_: abs(float((np.array(WY(u_, 0.0)) - GF_C) @ GF_E)))   # the axis
 _ye = 1.0 if WY(_yd + 1.0, 0.0)[0] > WY(_yd, 0.0)[0] else -1.0
 _yo = math.atan2(*(np.array(WY(_yd, -1.0)) - np.array(WY(_yd, 0.0)))[::-1])                              # out of the front
-P('tent_kiosk', *WY(_yd - _ye * 5.4, -3.2), _yo)
+P('tent_kiosk', *WY(_yd - _ye * 5.4, -8.0), _yo)
 # 언더우드관 정원 남쪽 계단: benches along the walk at the top of the banks, looking out over the steps
 for sg in (-1, 1):
     for u_ in (6.5, 13.5):
