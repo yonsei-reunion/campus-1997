@@ -82,13 +82,13 @@ B = {
     722550503: ('white', 2, '행정동'),
     # medical quarter (old Severance)
     472648570: ('modern', 10, '세브란스병원'), 429249489: ('modern', 6, '의료원 종합관'),
-    429249493: ('white', 5, '치과대학'), 429249490: ('modern', 6, '치과대학병원'),
+    429249493: ('white', 5, '치과대학'), 429249490: ('modern', 7, '치과대학병원'),
     429249494: ('white', 5, '간호대학'),
-    473006250: ('white', 4, '광혜관'), 473006251: ('white', 5, '제중관'),
+    473006250: ('white', 5, '광혜관'), 473006251: ('white', 5, '제중관'),
     324328456: ('white', 4, '의학도서관'), 473014379: ('modern', 5, '임상의학연구센터'),
-    1178739301: ('white', 5, '의과대학'), 1178739302: ('white', 5, '의과대학'),
+    1178739301: ('white', 4, '의과대학'), 1178739302: ('white', 4, '의과대학'),
     473014385: ('white', 5, '동문회관'), 429079067: ('white', 6, '재활병원'),
-    324328481: ('modern', 7, '심장혈관병원'), 324328472: ('white', 5, '안·이비인후과병원'),
+    324328481: ('modern', 10, '심장혈관병원'), 324328472: ('white', 5, '안·이비인후과병원'),
     # in 1997 too, missing before
     246156110: ('stone', 2, '한경관'), 429249497: ('house', 1, '수경원 정자각'), 1178743320: ('white', 3, '미우학사'),
 }
@@ -131,8 +131,14 @@ LATE_FOOTPRINT_1997.update({
 })
 # 의료원 (1990 · 1995 지도, 1990년 무렵 항공 사진; reference/고증.md 3.1.2).  The new 세브란스병원 (2005.5) and
 # 의료원 종합관 (2008) go; a name of None leaves the site paved, with no 공사중 marker: the old halls on it are in
-# OLD_HALLS below.
+# OLD_HALLS below.  심장혈관병원 (1991, 지상 10층): the five-storey wing of 2011 along its north-west side is the strip
+# of the OSM outline north-west of the line through its east re-entrant corner, a car park in the 2008 roadview.
 GONE_1997.update({472648570: None, 429249489: None})
+LATE_FOOTPRINT_1997.update({
+    324328481: [(131.9, -123.48), (133.01, -124.74), (150.94, -107.92), (161.79, -119.1), (144.13, -135.18),
+                (151.61, -142.42), (121.68, -168.17), (119.94, -166.35), (118.02, -168.03), (109.95, -158.47),
+                (111.97, -156.58), (105.47, -149.2), (138.32, -116.73)],
+})
 FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
 FLOOR_H_AT = {222843398: 4.1}        # 과학관's 4.1 m storeys (blender/generic.py FH_AT, reference/고증.md 3.10)
 
