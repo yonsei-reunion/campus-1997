@@ -335,10 +335,11 @@ def porch(mb, a, b, s0, s1, zf, fh, st, style, opts=None):
         if opts.get('music'):
             music_canopy(mb, P, sc, w, zc, ang, zd)
         else:
-            c = P(sc, zc + 0.11, cd / 2)
-            mb.box(c, (w + (1.6 if style != 'house' else 0.5), cd, 0.22), 'concrete', rotz=ang)
+            ct = opts.get('canopy_t', 0.22)          # (경영학교실단's thick flat canopy: 0.4)
+            c = P(sc, zc + ct / 2, cd / 2)
+            mb.box(c, (w + (1.6 if style != 'house' else 0.5), cd, ct), 'concrete', rotz=ang)
             if style != 'house':
-                c2 = P(sc, zc + 0.27, cd - 0.05)
+                c2 = P(sc, zc + ct + 0.05, cd - 0.05)
                 mb.box(c2, (w + 1.6, 0.1, 0.12), 'concrete_dark', rotz=ang)
     # the flight down to the ground: in a frame at the door (local -y outwards, x along the wall, z from the sill)
     ang = math.atan2(t.y, t.x)
@@ -350,11 +351,13 @@ def porch(mb, a, b, s0, s1, zf, fh, st, style, opts=None):
     big = drop > 0.95
     n0 = len(LM.ENTRANCES)
     music = opts.get('music')
-    landing = MUSIC_CANOPY if music else (1.6 if style != 'house' else 1.0)
-    y_foot = LM.stair_flight(mb, 0.0, 0.0, fw, 0.0, landing=landing, tread=0.34, flare=0.25 if big else 0.1,
+    # (options where the photos give them: the counted risers and their tread, the landing's depth, the side walls)
+    landing = MUSIC_CANOPY if music else opts.get('landing', 1.6 if style != 'house' else 1.0)
+    y_foot = LM.stair_flight(mb, 0.0, 0.0, fw, 0.0, landing=landing, tread=opts.get('tread', 0.34), flare=0.25 if big else 0.1,
                              cheek=(0.45 if 'stair_w' in opts else 0.32) if big and style != 'house' and not music else 0.0,
-                             cheek_mat=E['side'], newel=big and E['kind'] == 'arch',
-                             rail=drop > 1.3 and E['kind'] == 'glass', gfn=gfn, mat=E['step'], maxrise=0.17)
+                             cheek_mat=opts.get('side', E['side']), newel=big and E['kind'] == 'arch',
+                             rail=drop > 1.3 and E['kind'] == 'glass', gfn=gfn, mat=E['step'], maxrise=0.17,
+                             risers=opts.get('risers'))
     if music:
         music_planters(mb, fw, y_foot, gfn)
     if opts.get('lamp5'):

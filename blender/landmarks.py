@@ -987,17 +987,17 @@ def walk_mesh():
 
 def stair_flight(mb, x, y_face, width, zl, n=8, mat='stone_granite', landing=1.8, tread=0.36, flare=0.35,
                  cheek=0.0, cheek_mat=None, newel=False, rail=False, ground=-1.2, zbot=-0.15, gfn=None, maxrise=0.18,
-                 rail_mat='metal_dark'):
+                 rail_mat='metal_dark', risers=None):
     """A straight entrance flight in a builder's local frame, going down towards -y from the wall at y_face.
     zl: top of the landing in front of the door; n risers (rise = (zl - ground_level) / n, ground_level ~ -0.15);
     each tread is a solid block down to `ground`, the lowest ones a little wider (flare) like the real granite steps.
     cheek: thickness of the low sloped side walls (0 = none); newel: a squared post with a cap at the foot of each;
-    rail: slim metal handrails along the flight."""
+    rail: slim metal handrails along the flight.  risers: a counted number of risers (with gfn), whatever their rise."""
     cheek_mat = cheek_mat or mat
     if gfn is not None:
         # as many risers as the ground in front needs: the foot of the flight stands on the terrain, all across it
         hf0 = width / 2 + flare
-        for n in range(2, 19):
+        for n in ([risers] if risers else range(2, 19)):
             zbot = across(gfn, x - hf0, x + hf0, y_face - landing - n * tread) - 0.04
             if (zl - zbot) / n <= maxrise:
                 break

@@ -1532,10 +1532,11 @@ OLD_HALLS = [
     # 본교 (1997 확인; reference/고증.md 3.1.1): 학군단 (45 학생군사교육단 on the 1990 · 1995 maps, at the west end of the
     # 육상경기장; 1971 지하 1 · 지상 2층, the third floor 1983), still standing west of 대운동장 (brick, concrete floor bands
     # and a brick chimney in the 2010 roadview): its roof from the Kakao skyview.  The 경영학교실단 south wing and the
-    # low front and hall between the wings (LATE_FOOTPRINT_1997).
+    # low front and hall between the wings (LATE_FOOTPRINT_1997): its one storey raised over a half-sunk one, the
+    # front door at the head of a flight of thirteen risers (BK_FRONT_BASE).
     (990020, '학군단', 'brick', 3, Polygon([(-523.9, -176.1), (-514.7, -166.8), (-493.5, -188.5), (-507.0, -201.0)])),
     (990021, '경영학교실단', 'white', 5, Polygon([(-81.36, 48.43), (-24.1, 33.19), (-20.74, 45.64), (-78.0, 60.87)])),
-    (990022, '경영학교실단', 'white', 1, Polygon([(-57.62, 55.45), (-20.74, 45.64), (-4.6, 105.49), (-14.58, 108.14),
+    (990022, '경영학교실단', 'white', 2, Polygon([(-57.62, 55.45), (-20.74, 45.64), (-4.6, 105.49), (-14.58, 108.14),
                                              (-18.23, 94.69), (-45.12, 101.84)])),
     # 의료원 (1990 · 1995 지도, 1990년 무렵 항공 사진; reference/고증.md 3.1.2): 30 외래진료소 (on the 연세암병원 site),
     # 29 의학관 (의과대학 본관, standing still but not in OSM: its roof from the Kakao skyview), 54 의료원 종합관 (north-
@@ -3016,6 +3017,22 @@ ENTRY_AT = {222843398: ((-242.7, 13.8), dict(span=3, canopy=3.0, stair_w=16.0, l
 # (제2인문관, GONE_1997: its door where the ground before 외솔관2's road lowering put it, so that the paving drawn
 # there before the site is laid bare, and with it the decals' random draws, stay as they were)
 ENTRY_AT[246156119] = ((-4.35, 348.6), {})
+# 경영학교실단 (백양관)'s front door (reference/고증.md 3.15): at the north end of the low front between the wings, where
+# the annex before the north wing begins, 44.9 m along its face to 백양로 (± 3 m; the door takes the two bays nearest,
+# 45.7 m).  The 2008 and 2010 roadview count thirteen risers in one straight flight, about 7 m wide over its side
+# walls, 2.0 - 2.1 m up (risers of 15 - 16 cm, and the perspective's 2.0 - 2.3 m), to glass doors in under a thick
+# flat canopy; the 2003 photo has the same flight.  So the front's floor stands 2.1 m over the walk at the foot of the
+# flight (its sill, generic.porch: 0.12 m over the floor), over a half-sunk storey: the hall's second level.
+_bk_a, _bk_b = np.array([-20.74, 45.64]), np.array([-4.6, 105.49])
+BK_T = (_bk_b - _bk_a) / np.linalg.norm(_bk_b - _bk_a)
+BK_N = np.array([BK_T[1], -BK_T[0]])
+BK_DOOR = _bk_a + BK_T * 46.4
+BK_FOOT = _bk_a + BK_T * 45.66 + BK_N * 5.1                  # (landing 1.2 m, twelve treads of 0.3 m and the last)
+BK_FRONT_BASE = round(max(ground_h(*(BK_FOOT + BK_T * u)) for u in (-3.2, 0.0, 3.2)) + 2.1 - 0.12
+                      - FLOOR_H['white'], 2)
+ENTRY_AT[990022] = ((round(float(BK_DOOR[0]), 2), round(float(BK_DOOR[1]), 2)),
+                    dict(span=2, floor=1, stair_w=5.8, risers=13, tread=0.3, landing=1.2, side='plaster_white',
+                         canopy=2.4, canopy_t=0.4))
 _walks = [LineString(p_['pts']) for p_ in paths_out if len(p_['pts']) > 1] + [bline]
 _walk_u = unary_union(_walks)
 _bp_all = [Polygon(b_['footprint']) for b_ in buildings]
@@ -3808,7 +3825,7 @@ for pid, nm, style, lv, poly in OLD_HALLS:
     poly = shapely.geometry.polygon.orient(poly.simplify(0.05), 1.0)
     hs = [ground_h(x, y) for x, y in poly.exterior.coords]
     LATE_HALLS.append(dict(id=pid, name=nm, style=style, levels=lv, height=round(lv * FLOOR_H[style] + 1.2, 2),
-                           base=round(min(hs), 2), top_ground=round(max(hs), 2),
+                           base=BK_FRONT_BASE if pid == 990022 else round(min(hs), 2), top_ground=round(max(hs), 2),
                            footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]))
 buildings += LATE_HALLS
 LATE_SITES = []
@@ -3831,7 +3848,8 @@ for b in LATE_HALLS:
     poly = next(q for q, b_ in zip(_bp_all, buildings) if b_ is b)
     e_ = _entry(b, poly) if b['style'] in ENTRY_STYLES else None
     if e_:
-        b['entry'] = dict(p=[round(e_[1], 2), round(e_[2], 2)], n=[round(e_[3], 4), round(e_[4], 4)])
+        b['entry'] = dict(p=[round(e_[1], 2), round(e_[2], 2)], n=[round(e_[3], 4), round(e_[4], 4)],
+                          **ENTRY_AT.get(b['id'], (0, {}))[1])
     if not ball.buffer(0.5).contains(poly):                  # (not the parts of an outline that stood at the planting)
         LATE_SITES.append(poly)
 print('1997: left out', [n for n, _ in GONE_SITES], '- outlines put back', len(LATE_SITES))
@@ -4362,7 +4380,10 @@ spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.arra
 _gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
 _YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
 _ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5)], _gd)
-_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES], _gp)
+# (and 경영학교실단's front flight: paved to 2 m past its foot)
+_bkc = _bk_a + BK_T * 45.66
+_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES]
+        + [Polygon([tuple(_bkc + BK_T * u + BK_N * v) for u, v in ((-4.5, 0.0), (4.5, 0.0), (4.5, 7.1), (-4.5, 7.1))])], _gp)
 # 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'
