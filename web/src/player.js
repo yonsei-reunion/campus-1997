@@ -128,6 +128,7 @@ export class Player {
     this.col = colliders;
     this.walk = walkables;
     this.hf = hf;
+    this.lift = null;                 // (x, y) -> metres the ground stands over the terrain there (curbs.js lift)
     this.setActor(actor);
     this.vy = 0;
     this.speed = 0;
@@ -242,7 +243,9 @@ export class Player {
     this.ray.set(this._from.set(x, top, z), this.down);
     this.ray.far = from ? 1000 : STEP + 60;
     const hits = this.ray.intersectObjects(this.walk, false);
-    return hits.length ? hits[0].point.y : null;
+    if (!hits.length) return null;
+    // on the terrain: and on the lawn's raised edge along the kerbs
+    return hits[0].point.y + (this.lift && hits[0].object === this.walk[0] ? this.lift(x, -z) : 0);
   }
 
   input() {

@@ -140,6 +140,7 @@ export class Grass {
     this.dry = null;                                   // Uint8Array at 1 m: dry lawn 0..255
     this.cells = new Map();
     this.enabled = true;
+    this.lift = null;                                  // (x, y) -> the ground over the terrain (curbs.js lift)
     this.last = new THREE.Vector3(1e9, 0, 0);
     this.order = [];                                   // cell offsets round the camera's cell, nearest first
     const span = Math.ceil((R + MOVE) / CELL) + 1;
@@ -240,7 +241,8 @@ export class Grass {
       const t = Math.min(1, (sh - 0.5) / 0.35);
       if (pick > t * t * (3 - 2 * t) * (1 - 0.6 * dry)) continue;
       const scale = 0.8 + sc * 0.45;
-      m4.compose(v.set(x, surface(this.hf, x, y), -y), q.setFromAxisAngle(UP, rot * Math.PI * 2), s.set(scale, scale * (0.8 + hs * 0.4), scale));
+      const gy = surface(this.hf, x, y) + (this.lift ? this.lift(x, y) : 0);
+      m4.compose(v.set(x, gy, -y), q.setFromAxisAngle(UP, rot * Math.PI * 2), s.set(scale, scale * (0.8 + hs * 0.4), scale));
       m4.toArray(m, n * 16);
       a[n * 2] = rank;
       a[n * 2 + 1] = 0.85 + tone * 0.3;

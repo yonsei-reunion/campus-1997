@@ -4207,7 +4207,7 @@ def curb_runs(F3):
     def at(A, P):
         return ndimage.map_coordinates(A, [(SPLAT['y1'] - P[:, 1]) / SPLAT['res'] - 0.5,
                                            (P[:, 0] - SPLAT['x0']) / SPLAT['res'] - 0.5], order=1, mode='nearest')
-    runs = []
+    runs, lawns = [], []
     for P, closed in iso_chains(paved, 127.5):
         if len(P) < 4:
             continue
@@ -4244,11 +4244,25 @@ def curb_runs(F3):
             q_ = np.round(np.array(ls_.simplify(0.05).coords) * 100).astype(int)
             q_[1:] -= q_[:-1].copy()
             runs.append(['a' if k_ == 2 else 'p'] + q_.ravel().tolist())
-    print('curbs: %d runs, %.0f m' % (len(runs), sum(np.hypot(*np.reshape(r_[3:], (-1, 2)).T).sum() / 100 for r_ in runs)))
-    return runs
+            # how far the lawn reaches behind the kerb (to the next paving, the woods' floor, at most 3 m), every
+            # CURB_LAWN_STEP m along the run in dm: the raised lawn's edge (issue #86, web/src/curbs.js) spans a narrow
+            # strip from kerb to kerb and on a wide lawn eases back down
+            Pi, Ni = P[idx], N[idx]
+            dd_ = np.arange(0.3, 3.01, 0.1)
+            lawn_ = np.ones((len(Pi), len(dd_)), bool)
+            for m_, d_ in enumerate(dd_):
+                lawn_[:, m_] = at(grass, Pi + Ni * d_) > 128
+            Dp = np.where(lawn_.all(1), 3.0, dd_[np.argmin(lawn_, 1)] - 0.05)
+            Dp = ndimage.minimum_filter1d(Dp, 3, mode='nearest')
+            cum = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(Pi, axis=0).T))])
+            lawns.append(np.round(np.interp(np.arange(0.0, cum[-1] + CURB_LAWN_STEP, CURB_LAWN_STEP), cum, Dp) * 10).astype(int).tolist())
+    print('curbs: %d runs, %.0f m' % (len(runs), sum(np.hypot(*np.reshape(r_[3:], (-1, 2)).T).sum() / 100 for r_ in runs)),
+          'lawn behind them < 2 m: %.0f %%' % (100 * np.mean([v_ < 20 for l_ in lawns for v_ in l_])))
+    return runs, lawns
 
 
-out['curbs'] = curb_runs(spl_aa)
+CURB_LAWN_STEP = 2.0
+out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
 np.save(os.path.join(ROOT, 'data/terrain_near.npy'), Hn.astype(np.float32))

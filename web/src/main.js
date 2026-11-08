@@ -298,7 +298,8 @@ async function main() {
   scene.add(banners);
   scene.add(makeBoard(campus.landmarks.find((l) => l.id === 'events'), groundAt));
   const decals = new Decals(scene, campus.decals || [], walkables, hfNear, sunMap);   // manholes, oil, patches (src/decals.js)
-  const curbs = new Curbs(scene, campus.curbs || [], hfNear, walkables.slice(1), lib);   // kerbs along the paving (src/curbs.js)
+  const curbs = new Curbs(scene, campus.curbs || [], hfNear, walkables.slice(1), lib,     // kerbs along the paving (src/curbs.js)
+    { lawn: campus.curb_lawn, ground: terrain.material });
   // Quaternius CC0 people (blender/characters.py)
   const cast = new Cast();
   await cast.load(Object.keys(PEOPLE), () => progress('사람들이 모여드는 중…'));
@@ -346,6 +347,7 @@ async function main() {
   scene.add(hero.holder);
   shadows.addDynamic(hero.holder);
   const player = new Player(camera, canvas, colliders, walkables, hfNear, hero);
+  grass.lift = player.lift = (x, y) => curbs.lift(x, y);     // the lawn raised along the kerbs
   for (const name of ['buildings', 'landmarks']) {      // walls for the walker: BVHs built once, shared with the bird's-eye roof picking
     scene.getObjectByName(name)?.traverse((o) => { if (o.isMesh) { if (!o.geometry.boundsTree) o.geometry.computeBoundsTree(); player.walls.push(o); } });
   }

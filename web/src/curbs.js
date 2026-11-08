@@ -11,9 +11,16 @@
 // cell's two triangles, terrain.js gridGeometry); where a flight, a terrace or the road stands over the ground the
 // kerb is left out. Every built square within reach is drawn as one mesh (one draw call), merged again when that set
 // changes; phones reach less far.
+// The lawn behind the kerbs stands nearly level with their tops (issue #86: the 2008 - 2011 roadview, the 2024 photo
+// of the 상뜰), not at the paving's level as the 5 m grid has it: along each kerb a strip of ground in the terrain's own
+// material (terrain.js groundLipCut) rises LIP over the ground at the kerb's lawn face. On a lawn wider than about 2 m
+// it eases back down to the ground 1.6 m out; a narrower strip (campus.json curb_lawn: how far the lawn reaches behind
+// each kerb) is raised from kerb to kerb, the two edges meeting level. Built and drawn with the kerbs (one more draw
+// call); lift() gives its height for the walker and the grass blades standing on it.
 import * as THREE from 'three';
 import { MOBILE } from './util.js';
 import { derivedCopy, patchShader } from './materials.js';
+import { groundLipCut } from './terrain.js';
 
 const CELL = 64;
 const FAR = MOBILE ? 80 : 140;       // reach from the camera, m
@@ -25,6 +32,12 @@ const LAP = 0.04;                    // how far the stone reaches over the edge 
 const ARRIS = 0.025;                 // radius of the rounded top edge on the paving side
 const SINK = 0.1;                    // how far the faces go down into the ground
 const FLOATS = 8;                    // position 3, normal 3, uv 2
+const LIP = 0.12;                    // the lawn's edge over the ground at the kerb (3 cm under the kerb's top)
+const LIP_O = [0.0, 0.5, 1.0, 1.6];  // a wide lawn's edge: out from the kerb's face (m) ...
+const LIP_Z = [1.0, 0.95, 0.5, -0.25];      // ... and its height there, a share of LIP (sunk under the ground at the end)
+const LIP_FLOATS = 6;                // position 3, normal 3
+const LAWN_STEP = 2.0;               // campus.json curb_lawn: a value every this many metres along the run (dm)
+const BIN = 4;                       // lift(): the kerbs near a point, by squares of this size
 
 // the visible terrain's height: the 5 m grid's cells split along (i+1, j)-(i, j+1) as terrain.js draws them
 function terrainHeight(hf, x, y) {
@@ -33,6 +46,44 @@ function terrainHeight(hf, x, y) {
   const i = fx | 0, j = fy | 0, ax = fx - i, ay = fy - j;
   const a = data[j * n + i], b = data[j * n + i + 1], c = data[(j + 1) * n + i], d = data[(j + 1) * n + i + 1];
   return ax + ay <= 1 ? a + (b - a) * ax + (c - a) * ay : d + (c - d) * (1 - ax) + (b - d) * (1 - ay);
+}
+
+// the terrain's shading normal there (campus east, north, up; not unit): its vertices' normals (central differences,
+// close to computeVertexNormals) blended across the cell, so the lawn's edge is lit as the lawn beside it
+function terrainNormal(hf, x, y, out) {
+  const { half, step, n, data } = hf;
+  const fx = Math.min(Math.max((x + half) / step, 1), n - 2.001), fy = Math.min(Math.max((y + half) / step, 1), n - 2.001);
+  const i = fx | 0, j = fy | 0, ax = fx - i, ay = fy - j;
+  out[0] = out[1] = 0;
+  for (const [di, dj, w] of [[0, 0, (1 - ax) * (1 - ay)], [1, 0, ax * (1 - ay)], [0, 1, (1 - ax) * ay], [1, 1, ax * ay]]) {
+    const k = (j + dj) * n + i + di;
+    out[0] -= w * (data[k + 1] - data[k - 1]) / (2 * step);
+    out[1] -= w * (data[k + n] - data[k - n]) / (2 * step);
+  }
+  out[2] = 1;
+  return out;
+}
+
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+// the lawn's edge across, from the kerb's lawn face: offsets o and heights z over the ground for `room` m of lawn to
+// the next kerb's face (narrow: level all the way; wide: easing down as LIP_O / LIP_Z)
+function lipProfile(room, o, z) {
+  const k = smooth(1.2, 2.2, room);
+  for (let i = 0; i < 4; i++) {
+    const on = (room + 0.03) * i / 3;
+    o[i] = on + (LIP_O[i] - on) * k;
+    z[i] = LIP * (1 + (LIP_Z[i] - 1) * k);
+  }
+}
+const _po = new Float32Array(4), _pz = new Float32Array(4);
+function lipAt(room, d) {
+  if (room < 0.1) return 0;
+  lipProfile(room, _po, _pz);
+  if (d < -0.02 || d > _po[3]) return 0;
+  for (let i = 1; i < 4; i++) {
+    if (d <= _po[i]) return Math.max(0, _pz[i - 1] + (_pz[i] - _pz[i - 1]) * Math.max(0, d - _po[i - 1]) / Math.max(1e-4, _po[i] - _po[i - 1]));
+  }
+  return 0;
 }
 
 // the joints and the stones' tones (aAlong: metres along the run, offset per run)
@@ -56,14 +107,16 @@ function curbEdit(sh) {
 
 export class Curbs {
   // list: campus.json curbs; hf: the near terrain heightfield; over: the walked meshes other than the terrain (the
-  // road, the flights, the terraces: no kerb under them); lib: the material library
-  constructor(scene, list, hf, over, lib) {
+  // road, the flights, the terraces: no kerb under them); lib: the material library; lawn: campus.json curb_lawn;
+  // ground: the near terrain's material (the lawn's raised edge; none without it)
+  constructor(scene, list, hf, over, lib, { lawn = [], ground = null } = {}) {
     this.hf = hf;
     this.over = over;
     this.ray = new THREE.Raycaster();
     this.ray.firstHitOnly = true;
-    // every run's points, subdivided to SUB m, in flat arrays; segments by cell
-    const X = [], Y = [], U = [], MX = [], MY = [], K = [];
+    // every run's points, subdivided to SUB m, in flat arrays; segments by cell; D: the lawn behind the kerb there, m
+    const X = [], Y = [], U = [], MX = [], MY = [], K = [], D = [];
+    let ri = -1;
     this.cells = new Map();                 // key -> {segs: start indices, data: Float32Array | null}
     const seg = (i) => {
       const key = this._key((X[i] + X[i + 1]) / 2, (Y[i] + Y[i + 1]) / 2);
@@ -73,6 +126,7 @@ export class Curbs {
     };
     let seed = 1;
     for (const r of list) {
+      const lw = lawn[++ri];
       const kind = r[0] === 'a' ? 1 : 0;
       const P = [];
       let x = 0, y = 0;
@@ -97,6 +151,12 @@ export class Curbs {
         return [mx * s, my * s];
       };
       let u = (seed = (seed * 16807) % 2147483647) % 1000 / 1000 * PIECE;
+      const u0 = u;
+      const depth = (uu) => {
+        if (!lw?.length) return 3;
+        const f = Math.min(Math.max((uu - u0) / LAWN_STEP, 0), lw.length - 1), k0 = Math.min(f | 0, lw.length - 2);
+        return lw.length < 2 ? lw[0] / 10 : (lw[k0] + (lw[k0 + 1] - lw[k0]) * (f - k0)) / 10;
+      };
       const first = X.length;
       for (let k = 0; k < (closed ? m + 1 : m); k++) {
         const a = P[k % m], ma = miter(k % m);
@@ -107,17 +167,18 @@ export class Curbs {
           for (let t = 1; t < nsub; t++) {
             const f = t / nsub;
             X.push(b[0] + (a[0] - b[0]) * f); Y.push(b[1] + (a[1] - b[1]) * f);
-            MX.push(sn[0]); MY.push(sn[1]); U.push(u + L * f); K.push(kind);
+            MX.push(sn[0]); MY.push(sn[1]); U.push(u + L * f); K.push(kind); D.push(depth(u + L * f));
           }
           u += L;
         }
-        X.push(a[0]); Y.push(a[1]); MX.push(ma[0]); MY.push(ma[1]); U.push(u); K.push(kind);
+        X.push(a[0]); Y.push(a[1]); MX.push(ma[0]); MY.push(ma[1]); U.push(u); K.push(kind); D.push(depth(u));
       }
       for (let i = first; i < X.length - 1; i++) seg(i);       // (none from a run's last point to the next run)
     }
     const f32 = (a) => Float32Array.from(a);
-    Object.assign(this, { X: f32(X), Y: f32(Y), U: f32(U), MX: f32(MX), MY: f32(MY), K: Uint8Array.from(K) });
+    Object.assign(this, { X: f32(X), Y: f32(Y), U: f32(U), MX: f32(MX), MY: f32(MY), K: Uint8Array.from(K), D: f32(D) });
     this.state = new Uint8Array(X.length);            // 0 not looked at, 1 on the ground, 2 under something
+    this.lipOk = new Uint8Array(X.length);            // the lawn behind it may be raised (once looked at)
     this.g0 = new Float32Array(X.length);             // ground under the paving side, the lawn side
     this.g1 = new Float32Array(X.length);
     for (const c of this.cells.values()) c.segs = Int32Array.from(c.segs);
@@ -136,6 +197,21 @@ export class Curbs {
     this.mesh.castShadow = false;
     this.mesh.visible = false;
     scene.add(this.mesh);
+    // the lawn's raised edge: drawn before the terrain (whose pixels under it are then skipped), no shadow of its own
+    this.lipMesh = null;
+    if (ground) {
+      const gm = derivedCopy(ground);
+      gm.name = 'curb_lawn';
+      patchShader(gm, 'groundLipCut', groundLipCut);
+      this.lipCap = 0;
+      this.lipGeo = new THREE.BufferGeometry();
+      this.lipMesh = new THREE.Mesh(this.lipGeo, gm);
+      Object.assign(this.lipMesh, { name: 'curb_lawn', frustumCulled: false, receiveShadow: true, castShadow: false, visible: false, renderOrder: -1 });
+      // (into the scene at the first update: its material replays the terrain's edits, the baked sun shadow's
+      // among them, so the pass that gives every material in the scene that shadow must not find it)
+      this.scene = scene;
+    }
+    this.bins = new Map();
     this.last = new THREE.Vector3(1e9, 0, 0);
     this.shown = '';
     this.queue = [];
@@ -156,6 +232,14 @@ export class Curbs {
       const h = this.ray.intersectObjects(this.over, false);
       if (h.length && h[0].point.y > Math.min(this.g0[i], this.g1[i]) - 0.3) ok = false;
     }
+    // the lawn's raised edge only where nothing walked on lies on the lawn just behind the stone (상뜰's round lawn is
+    // a dome of its own, blender/landmarks.py)
+    if (ok && this.lipMesh && this.over.length) {
+      const lx = x + mx * (s1 + 0.4), ly = y + my * (s1 + 0.4);
+      this.ray.set(_o.set(lx, 600, -ly), _down);
+      const h = this.ray.intersectObjects(this.over, false);
+      this.lipOk[i] = h.length && h[0].point.y > terrainHeight(this.hf, lx, ly) - 0.3 ? 0 : 1;
+    } else this.lipOk[i] = ok ? 1 : 0;
     this.state[i] = ok ? 1 : 2;
     return ok;
   }
@@ -193,8 +277,79 @@ export class Curbs {
     return out.subarray(0, n);
   }
 
+  // the lawn's raised edge along the stones of one cell: 4 points across at each section, 3 quads a segment
+  _buildLip(c) {
+    const out = new Float32Array(c.segs.length * 8 * LIP_FLOATS);
+    let n = 0;
+    const o = new Float32Array(4), z = new Float32Array(4), tn = [0, 0, 1];
+    for (const i of c.segs) {
+      if (!this._look(i) || !this._look(i + 1) || !this.lipOk[i] || !this.lipOk[i + 1]) continue;
+      const room = (j) => this.D[j] - 2 * (KINDS[this.K[j]].w - LAP);      // to the next paving's kerb, m
+      if (room(i) < 0.1 && room(i + 1) < 0.1) continue;
+      for (const j of [i, i + 1]) {
+        const x = this.X[j], y = this.Y[j], mx = this.MX[j], my = this.MY[j], s1 = KINDS[this.K[j]].w - LAP;
+        const ml = Math.hypot(mx, my), ux = mx / ml, uy = my / ml;
+        lipProfile(Math.max(0.1, room(j)), o, z);
+        for (let k = 0; k < 4; k++) {
+          const px = x + mx * (s1 + o[k]), py = y + my * (s1 + o[k]);
+          const k0 = Math.max(0, k - 1), k1 = Math.min(3, k + 1);
+          const slope = (z[k1] - z[k0]) / Math.max(1e-3, (o[k1] - o[k0]) * ml);
+          terrainNormal(this.hf, px, py, tn);
+          let nx = tn[0] - slope * ux, ny = tn[1] - slope * uy;
+          const nl = Math.hypot(nx, ny, 1);
+          nx /= nl; ny /= nl;
+          out[n++] = px; out[n++] = terrainHeight(this.hf, px, py) + z[k]; out[n++] = -py;
+          out[n++] = nx; out[n++] = 1 / nl; out[n++] = -ny;
+        }
+      }
+    }
+    return out.subarray(0, n);
+  }
+
+  // the raised lawn's height over the ground at campus (x, y) (0 off it): for the walker and the grass blades
+  lift(x, y) {
+    if (!this.lipMesh) return 0;
+    const bi = Math.floor(x / BIN), bj = Math.floor(y / BIN), key = bi * 65536 + bj;
+    let segs = this.bins.get(key);
+    if (!segs) {
+      if (this.bins.size > 30000) this.bins.clear();
+      this.bins.set(key, (segs = this._binSegs(bi, bj)));
+    }
+    let best = 0;
+    for (const i of segs) {
+      const ax = this.X[i], ay = this.Y[i], dx = this.X[i + 1] - ax, dy = this.Y[i + 1] - ay, L2 = dx * dx + dy * dy;
+      if (L2 < 1e-6) continue;
+      const t = ((x - ax) * dx + (y - ay) * dy) / L2;
+      if (t < -0.05 || t > 1.05) continue;
+      const L = Math.sqrt(L2), d = ((x - ax) * -dy + (y - ay) * dx) / L;    // out on the lawn side (the left)
+      const tc = Math.min(1, Math.max(0, t)), s1 = KINDS[this.K[i]].w - LAP;
+      const z = lipAt(this.D[i] + (this.D[i + 1] - this.D[i]) * tc - 2 * s1, d - s1);
+      if (z > best && this._look(i) && this._look(i + 1) && this.lipOk[i] && this.lipOk[i + 1]) best = z;
+    }
+    return best;
+  }
+
+  // the segments whose raised lawn may reach into the square (bi, bj)
+  _binSegs(bi, bj) {
+    const x0 = bi * BIN - 2.5, x1 = (bi + 1) * BIN + 2.5, y0 = bj * BIN - 2.5, y1 = (bj + 1) * BIN + 2.5;
+    const out = [];
+    for (let ci = Math.floor((x0 - SUB) / CELL); ci <= Math.floor((x1 + SUB) / CELL); ci++) {
+      for (let cj = Math.floor((y0 - SUB) / CELL); cj <= Math.floor((y1 + SUB) / CELL); cj++) {
+        const c = this.cells.get(`${ci},${cj}`);
+        if (!c) continue;
+        for (const i of c.segs) {
+          const ax = this.X[i], ay = this.Y[i], bx = this.X[i + 1], by = this.Y[i + 1];
+          if (Math.max(ax, bx) < x0 || Math.min(ax, bx) > x1 || Math.max(ay, by) < y0 || Math.min(ay, by) > y1) continue;
+          out.push(i);
+        }
+      }
+    }
+    return Int32Array.from(out);
+  }
+
   // once a frame: build the cells coming within reach (a few a frame), and draw the ones within reach
   update(cam) {
+    if (this.lipMesh && !this.lipMesh.parent) this.scene.add(this.lipMesh);
     if (cam.distanceToSquared(this.last) > STEP * STEP) {
       this.last.copy(cam);
       const cx = cam.x, cy = -cam.z, hy = Math.max(0, cam.y - terrainHeight(this.hf, cx, cy));
@@ -216,7 +371,7 @@ export class Curbs {
       this.queue = want.filter((k) => !this.cells.get(k).data)
         .sort((a, b) => this._dist(a, cx, cy) - this._dist(b, cx, cy));
       // the stones of cells far behind go (the ground under them stays looked at: built again quickly)
-      for (const [k, c] of this.cells) if (c.data && this._dist(k, cx, cy) > FAR * 2.5) c.data = null;
+      for (const [k, c] of this.cells) if (c.data && this._dist(k, cx, cy) > FAR * 2.5) c.data = c.lip = null;
       if (!this.queue.length) this._show();
     }
     if (this.queue.length) {
@@ -230,6 +385,7 @@ export class Curbs {
         }
         if (c.at < c.segs.length) break;
         c.data = this._build(c);
+        c.lip = this.lipMesh ? this._buildLip(c) : null;
         this.queue.shift();
       }
       if (!this.queue.length) this._show();
@@ -276,6 +432,36 @@ export class Curbs {
     this.geo.attributes.position.data.needsUpdate = true;
     this.geo.setDrawRange(0, (verts / 20) * 30);
     this.mesh.visible = verts > 0;
+    if (this.lipMesh) this._showLip(keys);
+  }
+
+  // the same for the lawn's raised edge: 8 points a segment (4 across at either end), 3 quads
+  _showLip(keys) {
+    let total = 0;
+    for (const k of keys) total += this.cells.get(k).lip.length;
+    const verts = total / LIP_FLOATS;
+    if (verts > this.lipCap) {
+      this.lipCap = Math.ceil(verts * 1.3 / 8) * 8;
+      this.lipBuf = new Float32Array(this.lipCap * LIP_FLOATS);
+      const ib = new THREE.InterleavedBuffer(this.lipBuf, LIP_FLOATS).setUsage(THREE.DynamicDrawUsage);
+      this.lipGeo.dispose();
+      this.lipGeo = new THREE.BufferGeometry();
+      this.lipGeo.setAttribute('position', new THREE.InterleavedBufferAttribute(ib, 3, 0));
+      this.lipGeo.setAttribute('normal', new THREE.InterleavedBufferAttribute(ib, 3, 3));
+      const quads = (this.lipCap / 8) * 3;
+      const idx = new Uint32Array(quads * 6);
+      for (let q = 0, k = 0; q < quads; q++) {
+        const seg = Math.floor(q / 3), f = q % 3, a = seg * 8 + f, b = a + 4;
+        idx[k++] = a; idx[k++] = b; idx[k++] = b + 1; idx[k++] = a; idx[k++] = b + 1; idx[k++] = a + 1;
+      }
+      this.lipGeo.setIndex(new THREE.BufferAttribute(idx, 1));
+      this.lipMesh.geometry = this.lipGeo;
+    }
+    let o = 0;
+    for (const k of keys) { const d = this.cells.get(k).lip; this.lipBuf.set(d, o); o += d.length; }
+    this.lipGeo.attributes.position.data.needsUpdate = true;
+    this.lipGeo.setDrawRange(0, (verts / 8) * 18);
+    this.lipMesh.visible = verts > 0;
   }
 
   stats() {
