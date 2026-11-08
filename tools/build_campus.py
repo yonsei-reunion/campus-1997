@@ -40,13 +40,15 @@ ways = {e['id']: e for e in osm if e.get('geometry')}
 # Names are the ones a 1997 student used (several halls were renamed in 1999, 2001 and 2013); halls built after
 # May 1997 are left out, the ones going up then are marked 공사중.  Checked against the university's building history
 # (yonsei.ac.kr/sc/349/subview.do), namu.wiki and OSM; three outlines once listed here are on the Ewha campus.
+# A landmark's levels are the record's storeys above ground (its shape is blender/landmarks.py's); they only set the
+# height of its name tag (reference/고증.md 3.1.1).
 B = {
-    163525865: ('lm:library', 5, '중앙도서관'),
+    163525865: ('lm:library', 6, '중앙도서관'),         # 1979 five storeys, six since 1992
     1444448640: ('lm:union', 4, '학생회관'),
     1444448646: ('white', 3, '학생회관 별관'),
     324328422: ('lm:centennial', 4, '백주년기념관'),
     246156115: ('lm:underwood', 3, '언더우드관'),
-    246156116: ('lm:appenzeller', 2, '아펜젤러관'),
+    246156116: ('lm:appenzeller', 3, '아펜젤러관'),   # two storeys and the attic storey in the roof
     246156118: ('lm:stimson', 2, '스팀슨관'),
     371403811: ('lm:auditorium', 4, '대강당'),
     429249499: ('lm:chapel', 2, '루스채플'),
@@ -65,7 +67,8 @@ B = {
     246156112: ('modern', 6, '인문관'), 246156114: ('modern', 3, '인문관'),
     246156119: ('white', 4, '제2인문관 (공사중)'), 245623759: ('lm:yeonhui', 6, '연희관'),   # (with the tower's)
     246156121: ('stone', 2, '연합신학대학원'), 246156123: ('modern', 6, '종합관'),
-    246156117: ('lm:seongam', 2, '성암관'), 246156111: ('lm:gyoyuk', 3, '교육관'),   # (blender/landmarks.py seongam, gyoyuk)
+    246156117: ('lm:seongam', 2, '성암관'), 246156111: ('lm:gyoyuk', 4, '교육관'),   # (blender/landmarks.py seongam, gyoyuk;
+    # 교육관: three storeys and the dormered attic)
     245623193: ('stone_pale', 4, '생활과학관'), 413217834: ('house', 1, '논지당'),
     242897922: ('lm:daewoo', 6, '대우관'), 242897923: ('lm:daewoo_annex', 5, '대우관 별관'),
     429077789: ('white', 4, '음악대학'), 429077790: ('white', 4, '음악대학'),

@@ -286,8 +286,24 @@ def library():
                         P(sq - 0.025, H, 0.015), 'concrete_dark')
         flat_wall(mb, P, 0, Le, H - 1.2, H, 'concrete', d=-depth)
     mb.face([(p[0], p[1], H - 1.2) for p in offset_poly(rect(L, W), -depth)], 'roof_flat')
-    # rooftop plant room (seen over the attic in the 1995 photo)
-    mb.box((0, 4, H + 0.3), (16, 9, 3.0), 'stone_panel', mats={'top': 'roof_flat'})
+    # the storey on the roof (the 1992 extension to six storeys stands behind the attic band; this block is what shows
+    # over it): one white storey with a few small lights, its top 2.3 m over the attic, 15.5 m across, a little east of
+    # the axis and 6.5 m in from the south end (the 1995 photo, end on: 14.2 m wide, its centre 2.8 m east of the
+    # axis, 2.2 m over the attic; the 1994 aerial photo: 13.6 - 17.1 m, 1.6 - 2.0 m east; their two views put its
+    # front 5 - 8 m in).  How far back it runs is not seen (reference/고증.md 3.2)
+    xf_, dep_, yc_, wd_, top_ = -L / 2 + 6.5, 22.0, -2.2, 15.5, H + 2.3
+    mb.box((xf_ + dep_ / 2, yc_, (H - 1.2 + top_) / 2), (dep_, wd_, top_ - H + 1.2), 'plaster_white',
+           mats={'top': 'roof_flat'})
+    Pr, Lr, _, _ = edge_P((xf_, yc_ + wd_ / 2), (xf_, yc_ - wd_ / 2))        # its south face, from the west corner
+    for fr, ww in ((0.18, 1.5), (0.34, 0.8), (0.55, 1.5), (0.75, 1.5)):    # four lights, as in the 1995 photo
+        s = fr * Lr
+        mb.quad(Pr(s - ww / 2, H + 0.6, 0.02), Pr(s + ww / 2, H + 0.6, 0.02), Pr(s + ww / 2, H + 1.75, 0.02),
+                Pr(s - ww / 2, H + 1.75, 0.02), 'glass')
+    Pe, Le_, _, _ = edge_P((xf_, yc_ - wd_ / 2), (xf_ + dep_, yc_ - wd_ / 2))  # its east face (lights assumed)
+    for k in range(5):
+        s = (k + 0.5) * Le_ / 5
+        mb.quad(Pe(s - 0.75, H + 0.6, 0.02), Pe(s + 0.75, H + 0.6, 0.02), Pe(s + 0.75, H + 1.75, 0.02),
+                Pe(s - 0.75, H + 1.75, 0.02), 'glass')
     # two broad granite steps along the whole 백양로 front, from the forecourt up onto the base
     stair_flight(mb, 0, -W / 2 - 0.6, L + 1.2, g0, n=2, landing=0.0, tread=0.42, flare=0.0, cheek=0.0, rail=False,
                  gfn=local_ground(mb))
