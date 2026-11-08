@@ -10,7 +10,7 @@
   ],
   "shots": [
     {"name": "compare/baekyangro", "doc": "1997년 백양로 항공 사진(birdseye.js 「1997 사진 시점」과 같은 카메라). 문집의 「같은 시점에서 본 버드 아이뷰」도",
-     "cam": {"x": -119.6, "y": -424.0, "h": 44.9, "tx": 43.4, "ty": 152.7, "th": 22.5, "fov": 27.9}, "size": [1413, 900],
+     "cam": {"x": -111.0, "y": -395.7, "h": 44.5, "tx": 53.1, "ty": 181.4, "th": 6.75, "fov": 32.13}, "size": [1413, 900],
      "out": [{"path": "docs/compare/baekyangro_game.jpg", "width": 900}, {"path": "../yonsei-anthology/src/content/memory-campus1997-2.jpg", "width": 1173}]},
     {"name": "compare/campus_west", "doc": "1995년 남쪽에서 찍은 항공 사진(reference/1995_캠퍼스_항공사진_남쪽에서.jpg)",
      "cam": {"x": -80, "y": -740, "dh": 240, "tx": -160, "ty": -70, "tdh": 0, "fov": 34}, "size": [1600, 788],
@@ -73,7 +73,7 @@
      "cam": {"x": -78.6, "y": -216.2, "dh": 1.6, "tx": -84.48, "ty": -186.78, "tdh": 3.94, "fov": 36.1}, "size": [1050, 700],
      "out": [{"path": "docs/compare/hwalcheon_game.jpg", "width": 525}]},
     {"name": "compare/guard_booth", "doc": "1997년 항공 사진 카메라로 초소만 당겨 봄",
-     "cam": {"x": -119.6, "y": -424.0, "h": 44.9, "tx": -84.8, "ty": -298.1, "th": 28.7, "fov": 5}, "size": [1200, 986],
+     "cam": {"x": -111.0, "y": -395.7, "h": 44.5, "tx": -79.43, "ty": -281.57, "th": 25.06, "fov": 5.79}, "size": [1200, 986],
      "out": [{"path": "docs/compare/guard_booth_game.jpg", "width": 600}]},
 
     {"name": "compare/gyoyuk_1", "doc": "2003_가을_연희관앞정원과_교육관_북쪽계단.jpg",

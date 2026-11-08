@@ -1771,8 +1771,14 @@ bcorr = bline.buffer(ROAD_HALF + 12)
 # 34.9 -> 25.7 m, the north end of 백양로 7 m down, 언더우드관's quarter 1 m) the camera came down with it: its height
 # over the road where the photo's widths were read (s 60 - 140 m, 9.1 m lower, all of it; the road between the box
 # hedges stays 8.9 m) and its pitch from the halls it was fitted to (중앙도서관, 제1공학관, 언더우드관: the new camera
-# puts them where the old one did on the old ground within 11 px rms; it was 54.0 m, -2.70 deg).
-PHOTO_A = dict(pos=(-119.6, -424.0, 44.9), yaw=15.8, pitch=-2.13, fov=27.9, size=(2100, 1338))
+# puts them where the old one did on the old ground within 11 px rms; it was 54.0 m, -2.70 deg).  Its depth was then
+# fixed (issues #82, #83, reference/고증.md 2.2): 제1공학관's south-east corner before the 2014 - 2015 wings, solved from
+# ten roadview panoramas at (-124.0, -280), and 백주년기념관's drum from the roadview (#101), with the vertical edges,
+# lines and vanishing points of the unchanged halls, roll held at 0: 3.1 px rms (it was (-119.6, -424.0, 44.9), yaw
+# 15.8, pitch -2.13, fov 27.9, fitted to a 52 m drum).
+# (an optional 'roll' in degrees, + clockwise as tools/photofit/cam.py; the bird's-eye view and compare/baekyangro
+# have none, so the camera is kept without)
+PHOTO_A = dict(pos=(-111.0, -395.7, 44.5), yaw=15.87, pitch=-3.60, fov=32.13, size=(2100, 1338))
 
 
 def photo_ray(px, py):
@@ -1781,16 +1787,57 @@ def photo_ray(px, py):
     yw, pt_ = math.radians(PHOTO_A['yaw']), math.radians(PHOTO_A['pitch'])
     fwd = np.array([math.sin(yw) * math.cos(pt_), math.cos(yw) * math.cos(pt_), math.sin(pt_)])
     rgt = np.array([math.cos(yw), -math.sin(yw), 0.0])
-    return np.array(PHOTO_A['pos']), fwd + (px - W_ / 2) / f_ * rgt - (py - H_ / 2) / f_ * np.cross(rgt, fwd)
+    up = np.cross(rgt, fwd)
+    rl = math.radians(PHOTO_A.get('roll', 0.0))
+    rgt, up = rgt * math.cos(rl) + up * math.sin(rl), -rgt * math.sin(rl) + up * math.cos(rl)
+    return np.array(PHOTO_A['pos']), fwd + (px - W_ / 2) / f_ * rgt - (py - H_ / 2) / f_ * up
 
 
-def photo_ground(px, py):
+def photo_ground(px, py, dz=0.0):
+    """where the ray through a pixel of photo A meets the terrain (or the surface dz over it)"""
     o_, d_ = photo_ray(px, py)
     z_ = 36.0
-    for _ in range(8):
+    for _ in range(12):
         x_, y_ = o_[:2] + d_[:2] * (z_ - o_[2]) / d_[2]
-        z_ = sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_)
+        z_ = sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_) + dz
     return round(float(x_), 2), round(float(y_), 2)
+
+
+def photo_top(x, y, py_top, px):
+    """the height over the ground at (x, y) of the point in pixel column px, row py_top straight over it (a crown's top)"""
+    o_, d_ = photo_ray(px, py_top)
+    t_ = float(np.dot(np.array([x, y]) - o_[:2], d_[:2]) / np.dot(d_[:2], d_[:2]))
+    return float(o_[2] + d_[2] * t_ - sample(Hn, NEAR_HALF, NEAR_STEP, x, y))
+
+
+def photo_on_line(px, p0, dv, lo=-80.0, hi=80.0):
+    """the point of the 2D line p0 + t dv (lo <= t <= hi, in front of the camera) seen in pixel column px (for feet
+    that stand on a known line, where the ground ray runs too flat or the foot is out of the frame)"""
+    def col(t):
+        q = photo_px(p0[0] + dv[0] * t, p0[1] + dv[1] * t, 30.0)
+        return q[0] - px if q[2] > 1.0 else None             # (None: behind or beside the camera)
+    ts = np.linspace(lo, hi, 161)
+    cs = [col(t) for t in ts]
+    br = [(a, b) for a, b, ca, cb in zip(ts, ts[1:], cs, cs[1:]) if ca is not None and cb is not None and ca * cb <= 0]
+    assert br, 'photo_on_line: column %.0f does not cross the line' % px
+    a, b = br[0]
+    for _ in range(40):
+        m_ = (a + b) / 2
+        a, b = (m_, b) if col(a) * col(m_) > 0 else (a, m_)
+    return round(float(p0[0] + dv[0] * a), 2), round(float(p0[1] + dv[1] * a), 2)
+
+
+def photo_px(x, y, z):
+    """photo A pixel of a point (the inverse of photo_ray) and its depth along the view"""
+    W_, H_ = PHOTO_A['size']
+    o_, _ = photo_ray(W_ / 2, H_ / 2)
+    f_ = H_ / 2 / math.tan(math.radians(PHOTO_A['fov'] / 2))
+    fwd = photo_ray(W_ / 2, H_ / 2)[1]
+    rgt = photo_ray(W_ / 2 + f_, H_ / 2)[1] - fwd
+    up = fwd - photo_ray(W_ / 2, H_ / 2 + f_)[1]
+    v = np.array([x, y, z]) - o_
+    zf = float(v @ fwd)
+    return W_ / 2 + f_ * float(v @ rgt) / zf, H_ / 2 - f_ * float(v @ up) / zf, zf
 
 
 # 정문 안쪽 왼편 화단섬 (1997 photo): hedge-bordered flower bed with azaleas, a pine, a stone marker and a sign.
@@ -1949,8 +1996,14 @@ draw_poly('asphalt', mouth_poly(66.0, 86.5, 3.0, 2.0))
 
 # shaded car park on the lawn south-west of 백주년기념관 (red car under the trees in the 1997 photo)
 LOT_E = [along_raw(s, -(ROAD_HALF + 8.5)) for s in np.arange(150, 196, 3.2)]
-# 1997 photo: no car park beside the road here; the cars stand in a row on the dry lawn in front of 백주년기념관
-LOT_C = [(x, -301.0 + (x + 58) * 0.06, 0.0) for x in np.arange(-58, -24, 4.6)]     # its cars back-projected
+# 1997 photo: no car park beside the road here; the cars stand in a row on the dry lawn in front of 백주년기념관, side
+# on to the camera: the front row's wheels from the red car (x 1650, y 931 px) to the dark cars on the right (2030, 921),
+# kept as pixels and placed through PHOTO_A (issue #83; first read through the camera of before #8), a car every 4.6 m
+# from the red one, along the row
+_lc0, _lc1 = np.array(photo_ground(1650, 931)), np.array(photo_ground(2030, 921))
+_lcd = (_lc1 - _lc0) / np.linalg.norm(_lc1 - _lc0)
+LOT_C = [(round(float(q_[0]), 2), round(float(q_[1]), 2), round(math.atan2(_lcd[1], _lcd[0]), 3))
+         for q_ in (_lc0 + _lcd * 4.6 * k for k in range(7))]
 draw_line('dirt', [(x, y) for x, y, _ in LOT_C], 7.0)          # (on the trodden dry lawn, no paving)
 # 백양로 itself is real geometry (Blender) – paint asphalt below so seams never show grass
 draw_line('asphalt', bys, 2 * E_CURB)
@@ -2415,18 +2468,33 @@ for t_ in trees[n0:]:
     east_keep.append(t_)
 trees[n0:] = east_keep
 N_EAST = (n0, n0 + len(east_keep))
-# trees read off the 1997 photo (trunks back-projected onto the ground with its fitted camera): the red maple and the
-# big zelkova between the island and 제1공학관's canopy; in front, south of the side road, a young ginkgo and a round
-# cherry; on the east lawn the two big zelkovas shading the car row, the young trees and the propped zelkova beyond it,
-# the dark round pine by the sidewalk and the small pines at the foot of 백주년기념관.  Heights measured in the photo
-# (crown top above the trunk through its camera): the two big zelkovas are ~9 m (not 16-17), the round pine ~5 m,
-# the conifer at the foot of the hall ~3.5 m -- young trees in 1997, so the hall's dark porch shows above them
-for sp, x, y, sc in (('maple', -118.5, -301.0, 0.85), ('zelkova', -110.5, -291.0, 0.66),
-                     ('ginkgo', *photo_ground(530, 1373), 0.85), ('cherry', *photo_ground(97, 1330), 0.6),
-                     ('zelkova', -59.5, -292.5, 0.72), ('zelkova', -50.5, -293.0, 0.71), ('cherry', -54.3, -311.3, 0.65),
-                     ('zelkova', -47.1, -311.8, 0.71), ('zelkova', -39.0, -310.1, 0.85), ('pine', -78.5, -351.9, 0.45),
-                     ('pine', -27.6, -278.1, 0.68), ('pine', -33.1, -277.1, 0.32)):
-    trees.append([sp, x, y, sc, round(rng2.uniform(0, 6.28), 2)])
+# trees read off the 1997 photo, kept as its pixels and placed through PHOTO_A at build time (photo_ground; issue #83:
+# first read through the camera and the flat road of before #8): the red maple and the big zelkova between the island
+# and 제1공학관's canopy; in front, south of the side road, a young ginkgo and a round cherry; on the east lawn the two
+# big zelkovas shading the car row, the young cherry and the propped zelkova beyond it, the zelkova by the dark cars,
+# the dark round pine by the sidewalk and the pines at the foot of 백주년기념관's low block.  Each: species, the trunk's
+# foot (x, y px), the crown's top (row px) for its height (photo_top), or None and the height (m) kept.  The feet of the
+# first big zelkova (behind the roadside ginkgo) and of the round pine (under its crown) are hidden: taken at the row
+# of the next one's and at the crown's foot.  The pines by the block stand where the ground ray runs too flat (a pixel
+# is metres there, and the ground through PHOTO_A lands them 10 - 14 m short of the block): on a line 2 m before the
+# block's front, at their columns (photo_on_line).
+SPECIES_H = {'ginkgo': 9.8, 'zelkova': 13.0, 'cherry': 7.5, 'maple': 6.5, 'oak': 12.5, 'pine': 11.0,
+             'zelkova_young': 9.0, 'cherry_young': 5.4, 'metasequoia': 13.5, 'magnolia': 8.0, 'poplar': 17.0}   # blender/vegetation.py
+_BLOCK_LINE = (np.array(CENT_BLOCK['corner']) - np.array(CENT_BLOCK['t_side']) * 2.0, np.array(CENT_BLOCK['t_front']))
+PHOTO_TREES = [('maple', 274, 965, 838, None), ('zelkova', 410, 905, 762, None),
+               ('ginkgo', 530, 1373, None, 8.33), ('cherry', 97, 1330, None, 4.5),
+               ('zelkova', 1462, 930, 695, None), ('zelkova', 1610, 933, 702, None), ('cherry', 1747, 966, 850, None),
+               ('zelkova', 1890, 977, None, 9.3), ('zelkova', 2082, 933, 715, None), ('pine', 1730, 1195, 1040, None),
+               ('pine', 1855, 790, 677, 'block'), ('pine', 1762, 787, 736, 'block')]
+for sp, px_, py_, pt_, h_ in PHOTO_TREES:
+    if h_ == 'block':           # (height from foot to top in pixels at that depth: the ground there stands ~3 m over the
+        x, y = photo_on_line(px_, *_BLOCK_LINE)                  # photo's through PHOTO_A, reference/고증.md 5장)
+        h_ = (py_ - pt_) * photo_px(x, y, 30.0)[2] / (PHOTO_A['size'][1] / 2 / math.tan(math.radians(PHOTO_A['fov'] / 2)))
+    else:
+        x, y = photo_ground(px_, py_)
+        h_ = photo_top(x, y, pt_, px_) if pt_ is not None else h_
+    trees.append([sp, x, y, round(h_ / SPECIES_H[sp], 2), round(rng2.uniform(0, 6.28), 2)])
+    print('photo tree %s (%.1f, %.1f) %.1f m' % (sp, x, y, h_))
 N_PHOTO_TREES = len(trees)          # trees up to here are placed and sized one by one (rows, island, photo trees)
 
 # the lawn between the gate and the side road, west of 백양로: open grass in the 1997 photo but for the trees above
@@ -2512,9 +2580,7 @@ for sp, u, v, sc in (('oak', -25.0, -13.0, 1.15), ('metasequoia', -25.5, -4.0, 1
 # generic model heights (zelkova ~9 m, not 13-16); the ginkgo rows already match.  Scale the scattered trees there
 # (not the rows or the hand-placed photo trees), easing back to full size past the library where the photo shows
 # nothing, and keep the east lawn's below 8 m so 백주년기념관's dark porch shows over them as in the photo.
-SPECIES_H = {'ginkgo': 9.8, 'zelkova': 13.0, 'cherry': 7.5, 'maple': 6.5, 'oak': 12.5, 'pine': 11.0,
-             'zelkova_young': 9.0, 'cherry_young': 5.4, 'metasequoia': 13.5, 'magnolia': 8.0, 'poplar': 17.0}   # blender/vegetation.py
-YOUNG = 0.65
+YOUNG = 0.65                        # (SPECIES_H: with the photo trees above)
 n_young = 0
 for i, t_ in enumerate(trees):
     if i < N_ROWS + 5 or N_EAST[1] <= i < N_PHOTO_TREES:
@@ -2547,12 +2613,16 @@ for i, t_ in enumerate(trees):
     n_vase += 1
 print('young crowns:', n_vase)
 # 메타세쿼이아 (issue #10): tall narrow conifers in the photo's bottom right corner, east of 백양로 just inside the gate.
-# Their trunks are below the frame; the columns of the two crowns (photo x 1930 and 2080, tops at y 1000 and 1030)
-# through the fitted camera, on the lawn behind the ginkgo row (clear of its trees), give these spots and heights
-METASEQ = [(52.0, 14.7, 9.4), (57.0, 19.9, 8.0)]       # s, offset east, height
+# Their trunks are below the frame: on the lawn behind the ginkgo row (clear of its trees, 14.7 and 19.9 m east of the
+# centre line), where the columns of the two crowns (photo x 1930 and 2080) cross those lines through PHOTO_A, their
+# heights from the crowns' tops (y 1000 and 1030; issue #83: first placed through the camera of before #8)
+METASEQ = [(1930, 1000, 14.7), (2080, 1030, 19.9)]       # crown column, top row (px), offset east (m)
 _mq = []
-for _s, _o, _h in METASEQ:
-    _x, _y, _ = along_raw(_s, -_o)
+for _px, _pt, _o in METASEQ:
+    _a, _b = np.array(along_raw(20.0, -_o)[:2]), np.array(along_raw(70.0, -_o)[:2])
+    _x, _y = photo_on_line(_px, _a, (_b - _a) / np.linalg.norm(_b - _a), 0.0, 100.0)
+    _h = photo_top(_x, _y, _pt, _px)
+    print('metasequoia s %.1f, %.1f m east: %.1f m' % (s_at(_x, _y), _o, _h))
     _mq.append((_x, _y))
     trees.append(['metasequoia', round(_x, 2), round(_y, 2), round(_h / SPECIES_H['metasequoia'], 2), round(rng2.uniform(0, 6.28), 2)])
 trees[N_ROWS:] = [t_ for t_ in trees[N_ROWS:] if t_[0] == 'metasequoia' or min(math.hypot(t_[1] - x_, t_[2] - y_) for x_, y_ in _mq) > 5.0]
@@ -3221,10 +3291,18 @@ for s in np.arange(40, L - 20, 34):
 # 92-106 m in from the gate (issue #12, back-projected with the photo's camera), is no row of flags: it is one long
 # placard stretched between two trees inside the island's hedge, seen end-on through the trees so that it shows as
 # three white patches.  The north end is tied to the island's young zelkova, the south end to a young tree by the
-# hedge; the cloth hangs low, about 2.3 m up, its lettering towards the road.
-_pt0 = along_raw(93.5, 12.8)[:2]                      # the south tree, just inside the hedge
+# hedge; the cloth hangs low, about 2.3 m up, its lettering towards the road.  Its ends are kept as the pixels of the
+# cloth's top (north end x 790, y 929; south end 742, 989), placed along the road through PHOTO_A where they stand 2.35 m
+# over the ground (issue #83; first read through the camera of before #8), the trees a little beyond either end.  Across
+# the road it stays just inside the strip's hedge, as in the photo: the pixels through PHOTO_A put it 8.1 - 8.7 m west,
+# on the game's sidewalk, as they put the photo's hedge ~2.6 m east of the game's (reference/고증.md 5장)
+_pln, _pls = (s_off(*photo_ground(790, 929, 2.35)), s_off(*photo_ground(742, 989, 2.35)))
+_pl_s, _pl_o = (round(_pls[0], 1), round(_pln[0], 1)), (round(ROAD_HALF + 0.9, 1),) * 2
+print('bed placard: through the photo %.1f - %.1f m west' % (_pls[1], _pln[1]))
+_pt0 = along_raw(_pl_s[0] - 1.8, _pl_o[0] - 0.2)[:2]  # the south tree, just inside the hedge
 trees.append(['zelkova_young', round(_pt0[0], 2), round(_pt0[1], 2), 0.9, 1.3])
-BED_PLACARD = dict(s=(95.3, 106.4), off=(13.0, 14.5), tie=((93.5, 12.8), (108.1, 15.3)), top=2.35, depth=0.82,
+print('bed placard s %.1f - %.1f, %.1f - %.1f m west' % (*_pl_s, *_pl_o))
+BED_PLACARD = dict(s=_pl_s, off=_pl_o, tie=((_pl_s[0] - 1.8, _pl_o[0] - 0.2), (_pl_s[1] + 1.7, _pl_o[1] + 0.8)), top=2.35, depth=0.82,
                    text='’97 공과대학 학술제  —  공학인의 밤', sub='연세대학교 공과대학 학생회', color='white')
 # banners (현수막) across the road, tied with ropes to the trees on either side (no poles of their own).  The first
 # five are read off photo A (reference/고증.md 2.5): the pixels of each cloth's corners (top west, top east, bottom
@@ -3334,6 +3412,9 @@ _bp = BED_PLACARD
 _bn, _bs = along_raw(_bp['s'][1], _bp['off'][1])[:2], along_raw(_bp['s'][0], _bp['off'][0])[:2]
 _gn, _gs = sample(Hn, NEAR_HALF, NEAR_STEP, *_bn), sample(Hn, NEAR_HALF, NEAR_STEP, *_bs)
 _tn, _ts_ = along_raw(*_bp['tie'][1])[:2], along_raw(*_bp['tie'][0])[:2]
+_tq = min(trees, key=lambda t_: math.hypot(t_[1] - _tn[0], t_[2] - _tn[1]))
+if math.hypot(_tq[1] - _tn[0], _tq[2] - _tn[1]) < 8.0:            # (the north rope to the nearest tree beyond the end)
+    _tn = (_tq[1], _tq[2])
 banners.append(dict(color=_bp['color'], text=_bp['text'], sub=_bp['sub'], depth=_bp['depth'],
                     a=[round(_bn[0], 2), round(_bn[1], 2), round(_gn + _bp['top'] + 0.05, 2)],
                     b=[round(_bs[0], 2), round(_bs[1], 2), round(_gs + _bp['top'], 2)],
@@ -3498,10 +3579,11 @@ for line in (LOT_W, LOT_E):
             if line is not LOT_E:
                 cars.append(car)
 rng3 = random.Random(1997 + 11)
-for (x, y, a) in LOT_C:          # a red sedan among them, as in the photo
-    if rng3.random() < 0.85:
-        cars.append([rng3.choice(['sedan', 'sedan', 'hatch', 'taxi']), round(x, 2), round(y, 2),
-                     round(math.pi / 2 + rng3.uniform(-.06, .06), 3), rng3.randrange(8)])
+for k_, (x, y, a) in enumerate(LOT_C):     # the first is the photo's red car (web/src/main.js PARKED_COLORS[6])
+    if k_ == 0 or rng3.random() < 0.85:
+        kind_ = rng3.choice(['sedan', 'sedan', 'hatch', 'taxi']) if k_ else 'hatch'
+        cars.append([kind_, round(x, 2), round(y, 2), round(a + rng3.uniform(-.06, .06), 3),
+                     rng3.randrange(8) if k_ else 'red'])          # (its colour index once the list is final, below)
 # 대우관 뒤: the car park behind the hall (Street View 2009: three rows of cars, nearly full), nose in, along v
 rng5 = random.Random(1997 + 29)
 (_x0, _y0), (_x1, _y1) = WD(0, 0), WD(1, 0)
@@ -3811,13 +3893,20 @@ for k_, c_ in APRON_LINES:
     APRON_PAINT.append(dict(kind=k_, pts=[[round(x, 2), round(y, 2), round(ground_h(x, y), 3)] for x, y in pts_]))
 
 # 백양로 가운데 초소 (the guard booth on the centre line, 1997 aerial photo x 1020 - 1049, y 841 - 906): its foot
-# back-projected onto the road profile with the photo's camera lands 132 m in from the gate, 0.34 m east of the
-# centre line, 1.4 m across; a red-and-white barrier arm runs west from beside it across the outgoing lane (s ~134)
-# and another east across the incoming lane further on (s ~138).  blender/props.py guard_booth / barrier_arm build
-# it in a frame with the origin at the booth's centre, -Y up the road, +X west; the arm pivots below are that
-# file's BOOTH_ARMS (x, y, z, side).  The cars keep clear of its island (web/src/main.js) and the arms swing up
-# for them (web/src/life.js BoothGates).
-BOOTH = dict(s=132.8, off=-0.34, island=[-0.85, 0.85, -6.0, 1.6])
+# (x 1034.5, y 906.5) kept as the pixel and placed on the road profile through PHOTO_A (issue #83: first read through
+# the camera of before #8, 132.8 m in, 0.34 m east of the centre line), 1.4 m across; a red-and-white barrier arm runs
+# west from beside it across the outgoing lane and another east across the incoming lane further on.
+# blender/props.py guard_booth / barrier_arm build it in a frame with the origin at the booth's centre, -Y up the
+# road, +X west; the arm pivots below are that file's BOOTH_ARMS (x, y, z, side).  The cars keep clear of its island
+# (web/src/main.js) and the arms swing up for them (web/src/life.js BoothGates).
+_bo_, _bd_ = photo_ray(1034.5, 906.5)
+_bz_ = 30.0
+for _ in range(12):
+    _bq_ = _bo_ + _bd_ * (_bz_ - _bo_[2]) / _bd_[2]
+    _bz_ = prof_h(s_at(_bq_[0], _bq_[1]))
+_bs_, _boff_ = s_off(_bq_[0], _bq_[1])
+BOOTH = dict(s=round(_bs_, 1), off=round(_boff_, 2), island=[-0.85, 0.85, -6.0, 1.6])
+print('guard booth s %.1f, %.2f m west' % (BOOTH['s'], BOOTH['off']))
 _bx, _by, _ba = along_raw(BOOTH['s'], BOOTH['off'])
 props.append(['guard_booth', round(_bx, 2), round(_by, 2), round(_ba, 3)])
 BOOTH['arms'] = []
@@ -4264,6 +4353,8 @@ draw_line('asphalt', ST_PATH, 3.0)
 out['paths'].append(dict(kind='footway', w=3.0, pts=[list(p_) for p_ in ST_PATH]))
 print('스팀슨관 south: cleared (trees, shrubs, props)', _n0[0] - len(trees), _n0[1] - len(shrubs), _n0[2] - len(props),
       '- bed shrubs', len(_sbp))
+# the photo's red car on the east lawn (LOT_C): the web app paints car i in PARKED_COLORS[(c * 7 + i) % 13], 6 = red
+cars = [c[:4] + [(2 * (6 - i)) % 13] if c[4] == 'red' else c for i, c in enumerate(cars)]
 out.update(trees=trees, shrubs=shrubs, props=props, cars=cars)
 
 
