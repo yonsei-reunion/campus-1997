@@ -237,6 +237,67 @@ def guard_booth():
     return mb
 
 
+def parking_booth():
+    """The parking booth of the side road inside the gate (1997 aerial photo, its left edge: taken for the front of a blue
+    bus before).  A booth about 1.7 x 2.3 m and 2.5 m high with a rounded glazed front, blue frames, a white skirt and a
+    white cap, on a low island between the lanes; at the island's nose a yellow barrier box with its red-and-white arm
+    raised and a yellow ticket machine (the 2010 roadview has the side road's booth and barriers laid out the same way).
+    Frame: the front (towards 백양로) is -Y, +X is the booth's left (north side of the road); origin at the island's
+    centre."""
+    mb = MeshBuilder('parking_booth')
+    kh = 0.15
+    ix0, ix1, iy0, iy1 = -1.3, 1.3, -2.5, 2.3                     # the island (nose at -Y)
+    mb.box(((ix0 + ix1) / 2, (iy0 + iy1) / 2, kh / 2), (ix1 - ix0, iy1 - iy0, kh), 'concrete',
+           mats={'sides': 'paint_yellow'}, skip=('bottom',))
+
+    def rrect(cx, cy, w, d, rf, rb, n=5):
+        """a rounded rectangle, counter-clockwise from above: front corners (-Y) radius rf, back corners rb"""
+        pts = []
+        for (qx, qy, r, a0) in ((cx + w / 2, cy - d / 2, rf, -90), (cx + w / 2, cy + d / 2, rb, 0),
+                                (cx - w / 2, cy + d / 2, rb, 90), (cx - w / 2, cy - d / 2, rf, 180)):
+            ox, oy = qx - math.copysign(r, qx - cx), qy - math.copysign(r, qy - cy)
+            for k in range(n + 1):
+                a = math.radians(a0 + 90 * k / n)
+                pts.append((ox + r * math.cos(a), oy + r * math.sin(a)))
+        return pts
+
+    bx, by, w, d = -0.25, 0.75, 1.7, 2.3
+    body = rrect(bx, by, w, d, 0.55, 0.15)
+    cap = rrect(bx, by, w + 0.24, d + 0.24, 0.67, 0.27)
+    z0, zs, zb, zw, zh, zc = kh, 1.0, 1.1, 2.08, 2.2, 2.45
+    mb.prism(body, z0, zs, 'paint_white')                         # white skirt
+    mb.prism(body, zs, zb, 'paint_blue')                          # blue sill band
+    mb.prism(body, zb, zw, 'glass')                               # the glazing all round
+    mb.prism(body, zw, zh, 'paint_blue')                          # blue head band
+    mb.prism(cap, zh, zc, 'paint_white', mat_top='roof_flat', mat_bottom='paint_white')
+    # blue mullions: at the ends of the front's curves, mid-sides and the back corners
+    for i in (0, 5, 6, 11, 12, 17, 18, 23):
+        px, py = body[i]
+        mb.box((px, py, (zb + zw) / 2), (0.08, 0.08, zw - zb), 'frame_blue')
+    for px, py in ((bx + w / 2, by + 0.35), (bx - w / 2, by + 0.35)):
+        mb.box((px, py, (zb + zw) / 2), (0.08, 0.08, zw - zb), 'frame_blue')
+    # the barrier box at the nose (left of the booth, on the centre line) and its arm, raised
+    hx, hy = 1.0, -1.6
+    mb.box((hx, hy, kh + 0.5), (0.3, 0.32, 1.0), 'paint_yellow', skip=('bottom',))
+    mb.box((hx, hy, kh + 0.82), (0.31, 0.33, 0.1), 'trim_black')
+    piv = (hx + 0.17, hy, kh + 0.9)
+    ang, L, n, r = math.radians(68), 2.8, 7, 0.035
+    ca, sa = math.cos(ang), math.sin(ang)
+    for k in range(n):                                            # the raised arm in red and white lengths, tilted
+        t0, t1 = 0.05 + k * L / n, 0.05 + (k + 1) * L / n
+        V = [(piv[0] + t * ca - v * sa, piv[1] + u, piv[2] + t * sa + v * ca)
+             for t in (t0, t1) for u, v in ((-r, -r), (r, -r), (r, r), (-r, r))]
+        m = 'paint_white' if k % 2 else 'light_red'
+        for a_, b_, c_, d_ in ((0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7), (3, 2, 1, 0)):
+            mb.face([V[a_], V[b_], V[c_], V[d_]], m)
+    # a pole with a white sign board at the nose, and the yellow ticket machine ahead of the booth
+    mb.cylinder((1.15, -2.25), 0.04, kh, 2.7, 'metal_dark', seg=8)
+    mb.box((1.15, -2.3, 2.45), (0.55, 0.04, 0.4), 'paint_white')
+    mb.box((-0.35, -2.05, kh + 0.62), (0.42, 0.34, 1.24), 'paint_yellow', skip=('bottom',))
+    mb.box((-0.35, -2.23, kh + 0.85), (0.3, 0.02, 0.36), 'trim_black')
+    return mb
+
+
 def barrier_arm():
     """The red-and-white barrier arm of the 초소 gates: pivot at the origin, the arm along +X (ARM_LEN), a short
     counterweight behind; web/src/life.js swings it up for cars."""

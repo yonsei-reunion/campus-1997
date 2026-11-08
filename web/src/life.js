@@ -91,7 +91,7 @@ function title(x, text, cx, cy, size, maxW, fill = 0.9) {
   x.textAlign = 'center';
 }
 
-// b: { text, sub?, marks?: ['경', '축'], color }; H: canvas height for a 2048 px wide strip (the cloth's aspect)
+// b: { text, sub?, marks?: ['경', '축'], band?: small print of the bottom band, color }; H: canvas height for a 2048 px wide strip (the cloth's aspect)
 function bannerTexture(b, H = 160) {
   const st = BANNER_STYLE[b.color] || BANNER_STYLE.white;
   const c = document.createElement('canvas');
@@ -125,9 +125,11 @@ function bannerTexture(b, H = 160) {
     title(x, b.text, W / 2, (e + band0) / 2 + H * 0.03, (band0 - e) * 0.8, W - 2 * padX);
   }
   if (bandH && st.bandFg) {
-    fitFont(x, '일시 · 장소 · 주최  연세대학교', bandH * 0.62, W * 0.5, 8);
+    // the small print of the bottom band: what can be made out on the photo (b.band), else the usual fields
+    const band = b.band || '일시 · 장소 · 주최  연세대학교';
+    fitFont(x, band, bandH * 0.62, W * (b.band ? 0.8 : 0.5), 8);
     x.fillStyle = st.bandFg;
-    x.fillText('일시 · 장소 · 주최  연세대학교', W / 2, band0 + bandH / 2 + 1);
+    x.fillText(band, W / 2, band0 + bandH / 2 + 1);
   }
   if (marks) {
     // red circles with a white character at both ends (경 … 축)

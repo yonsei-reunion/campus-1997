@@ -128,7 +128,8 @@ if want('props'):
                      ('lamp_quad', props.lamp_quad), ('flag_white', props.flag_white), ('planter', props.planter),
                      ('stone_marker', props.stone_marker), ('sign_board', props.sign_board), ('guard_booth', props.guard_booth),
                      ('barrier_arm', props.barrier_arm), ('bollard', props.bollard), ('tent_kiosk', props.tent_kiosk),
-                     ('notice_board', props.notice_board), ('haetae', props.haetae), ('bench', props.bench)):
+                     ('notice_board', props.notice_board), ('haetae', props.haetae), ('bench', props.bench),
+                     ('parking_booth', props.parking_booth)):
         reset_scene()
         ob = fn().build()
         stats[name] = tri_count([ob])

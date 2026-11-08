@@ -54,8 +54,10 @@ def build():
     gaps = R.get('gaps', [])
     bump = R.get('bump')
     # side-road mouths: on that side the verge, sidewalk and planting strip stop between s0 and s1 and the asphalt
-    # runs flush out to the terrain; their corners at the carriageway are rounded (radius r0 / r1)
-    mouths = [tuple(m) for m in R.get('mouths', [])]
+    # runs flush out to the terrain; their corners at the carriageway are rounded (radius r0 / r1).  An optional sixth
+    # value: the boxwood verge stops that much short of the north end, with a round end, the sidewalk paved out to
+    # the carriageway's kerb in front of it (the gate's side road, 1997 photo)
+    mouths = [tuple(m) + (0.0,) * (6 - len(m)) for m in R.get('mouths', [])]
     frames = []
     for k, (s, p) in enumerate(samples):
         q0 = samples[max(0, k - 1)][1]
@@ -81,14 +83,19 @@ def build():
         u = o - e_lane
         return r - math.sqrt(max(0.0, r * r - (r - u) ** 2)) if 0 <= u < r else (r if u < 0 else 0.0)
 
-    def cut(m, o):
-        # the stretch [lo, hi] of road (arc length) where nothing stands at offset o
-        sd, s0, s1, r0, r1 = m
-        return s0 - fillet(o, r0), s1 + fillet(o, r1)
+    def cut(m, o, verge=False):
+        # the stretch [lo, hi] of road (arc length) where nothing stands at offset o (verge: where no boxwood stands)
+        sd, s0, s1, r0, r1, vb = m
+        hi = s1 + fillet(o, r1)
+        if verge and vb > 0:
+            half = (e_verge - e_lane) / 2
+            u = min(1.0, abs(o - (e_lane + half)) / half)
+            hi = s1 + vb + half * (1 - math.sqrt(max(0.0, 1 - u * u)))
+        return s0 - fillet(o, r0), hi
 
     def mouth_at(sa, sb, side):
         for m in mouths:
-            if m[0] == side and sb > m[1] - m[3] - 0.01 and sa < m[2] + m[4] + 0.01:
+            if m[0] == side and sb > m[1] - m[3] - 0.01 and sa < m[2] + m[4] + m[5] + 1.1:
                 return m
         return None
 
@@ -111,9 +118,22 @@ def build():
                  (e_verge, e_walk, WZ, 'pavers'), (e_walk, e_walk + 0.18, WZ + 0.05, 'curb'), (e_walk + 0.18, e_strip, WZ, 'dirt')]
         for o0, o1, z, mat in bands:
             k = max(1, int(math.ceil((o1 - o0) / 0.4)))
+            vg = o1 <= e_verge + 1e-6                     # a band of the boxwood verge
             for i in range(k):
                 p0, p1 = o0 + (o1 - o0) * i / k, o0 + (o1 - o0) * (i + 1) / k
-                (l0, h0), (l1, h1) = cut(m, p0), cut(m, p1)
+                (l0, h0), (l1, h1) = cut(m, p0, vg), cut(m, p1, vg)
+                if vg and m[5] > 0:
+                    # in front of the verge's end the sidewalk's paving, out to the carriageway, its kerb facing the mouth
+                    (_, f0), (_, f1) = cut(m, p0), cut(m, p1)
+                    u0, v0, u1, v1 = max(sa, f0), min(sb, h0), max(sa, f1), min(sb, h1)
+                    if v0 - u0 > 1e-4 or v1 - u1 > 1e-4:
+                        v0, v1 = max(u0, v0), max(u1, v1)
+                        q_mat[0] = 'pavers'
+                        quad([P(u0, p0, WZ), P(v0, p0, WZ), P(v1, p1, WZ), P(u1, p1, WZ)])
+                        if sa < u0 < sb or sa < u1 < sb:
+                            q_mat[0] = 'curb'
+                            f = [P(u0, p0, 0), P(u1, p1, 0), P(u1, p1, WZ), P(u0, p0, WZ)]
+                            quad([f[1], f[0], f[3], f[2]])
                 for (u0, v0), (u1, v1), edge in (((sa, min(sb, l0)), (sa, min(sb, l1)), 'end'),
                                                  ((max(sa, h0), sb), (max(sa, h1), sb), 'start')):
                     if u0 >= v0 - 1e-4 and u1 >= v1 - 1e-4:
@@ -130,12 +150,18 @@ def build():
         # kerbs along the road (carriageway edge, verge, strip edges), where they stand; f faces the centre line
         for off, z0_, z1_, outward in ((e_lane, 0, VZ, False), (e_verge, WZ, VZ, True), (e_walk, WZ, WZ + 0.05, False),
                                        (e_strip, -0.8, WZ, True)):
-            lo, hi = cut(m, off)
+            lo, hi = cut(m, off, off <= e_verge + 1e-6)
             for u, v in ((sa, min(sb, lo)), (max(sa, hi), sb)):
                 if v - u > 1e-3:
                     q_mat[0] = 'curb'
                     f = [P(u, off, z0_), P(v, off, z0_), P(v, off, z1_), P(u, off, z1_)]
                     quad([f[1], f[0], f[3], f[2]] if outward else f)
+            if off == e_lane and m[5] > 0:
+                # the low kerb of the paving in front of the verge's end
+                u, v = max(sa, cut(m, off)[1]), min(sb, hi)
+                if v - u > 1e-3:
+                    q_mat[0] = 'curb'
+                    quad([P(u, off, 0), P(v, off, 0), P(v, off, WZ), P(u, off, WZ)])
         # the flush asphalt of the mouth, out past the strip onto the terrain's own asphalt, with a skirt beneath
         k = int(math.ceil((e_strip + 0.6 - e_lane) / 0.4))
         for i in range(k):
