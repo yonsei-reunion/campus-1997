@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { loadTex, shrinkImage, pcss } from './materials.js';
 import { MOBILE, mulberry, placeMatrix, versioned } from './util.js';
 import { ATMOS, ATMOS_GLSL, SKY_DRIFT } from './materials.js';
-import { LITTER_GLSL } from './litter.js';
+import { LITTER_GLSL, litterMagnolias } from './litter.js';
 
 export class Heightfield {
   constructor(data, half, step, n) {
@@ -87,8 +87,10 @@ export function makeNearTerrain(hf, campus, lib) {
     uGrass: lib.uniforms.uGrass,
     // the month's fallen leaves (litter.js): shared with 백양로's road materials, over the same rectangle
     uLeaf: lib.uniforms.uLeaf, uLitter: lib.uniforms.uLitter, uLeafRect: lib.uniforms.uLeafRect, uFall: lib.uniforms.uFall,
+    uMag: lib.uniforms.uMag, uMagFall: lib.uniforms.uMagFall,           // (April's magnolia petals)
   };
   uniforms.uLeafRect.value.set(S.x0, S.y0, S.x1, S.y1);
+  litterMagnolias(lib.uniforms, campus.trees);
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 });
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, uniforms);

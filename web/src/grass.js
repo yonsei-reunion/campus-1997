@@ -11,6 +11,7 @@
 // Farther clumps thin out one by one (a per-clump dither by rank).
 import * as THREE from 'three';
 import { loadTex } from './materials.js';
+import { MAG_GLSL } from './litter.js';
 import { MOBILE, mulberry, versioned } from './util.js';
 
 const R = MOBILE ? 18 : 25;          // radius round the camera, m
@@ -157,6 +158,7 @@ export class Grass {
       uDry: { value: loadTex('assets/textures/ground_dry.png', { srgb: false, repeat: false }) },
       uGrass: lib.uniforms.uGrass,
       uLeaf: lib.uniforms.uLeaf, uLeafRect: lib.uniforms.uLeafRect, uFall: lib.uniforms.uFall,
+      uMag: lib.uniforms.uMag, uMagFall: lib.uniforms.uMagFall,
     };
     const mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
     mat.onBeforeCompile = (sh) => this._patch(sh);
@@ -316,6 +318,7 @@ export class Grass {
         uniform vec4 uRect, uLeafRect;
         uniform vec3 uGrass, uFall, uAmb, uSun;
         varying vec3 vGCol;
+        ${MAG_GLSL}
         ${KEEP_GLSL}`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         {
@@ -347,6 +350,7 @@ export class Grass {
             // under the month's carpet of leaves the blades barely show (April's petals are only a strew: litter.js)
             vec2 luv = vec2((wp.x - uLeafRect.x) / (uLeafRect.z - uLeafRect.x), (uLeafRect.w - wp.y) / (uLeafRect.w - uLeafRect.y));
             tall *= 1.0 - 0.7 * clamp(dot(textureLod(uLeaf, luv, 0.0).rgb, uFall * vec3(1.0, 0.1, 1.0)) * 1.3, 0.0, 1.0);
+            tall *= 1.0 - 0.75 * clamp(magMask(wp) * 1.4, 0.0, 1.0);        // (and under April's magnolia petals)
             // a gust from the west now and then: the tips bow east (a world offset, taken into the clump's frame)
             float ph = dot(wp, vec2(0.21, 0.13)) - uTime * 1.7;
             vec3 wind = vec3(0.012 + 0.012 * sin(ph) + 0.004 * sin(uTime * 4.3 + wp.y), 0.0, 0.006 * sin(ph * 1.7 + 1.3)) * aBlade.y;
