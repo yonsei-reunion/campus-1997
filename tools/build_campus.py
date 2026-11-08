@@ -87,7 +87,7 @@ B = {
     473006250: ('white', 4, '광혜관'), 473006251: ('white', 5, '제중관'),
     324328456: ('white', 4, '의학도서관'), 473014379: ('modern', 5, '임상의학연구센터'),
     1178739301: ('white', 5, '의과대학'), 1178739302: ('white', 5, '의과대학'),
-    473014385: ('white', 4, '동문회관'), 429079067: ('white', 6, '재활병원'),
+    473014385: ('white', 5, '동문회관'), 429079067: ('white', 6, '재활병원'),
     324328481: ('modern', 7, '심장혈관병원'), 324328472: ('white', 5, '안·이비인후과병원'),
     # in 1997 too, missing before
     246156110: ('stone', 2, '한경관'), 429249497: ('house', 1, '수경원 정자각'), 1178743320: ('white', 3, '미우학사'),
@@ -104,7 +104,7 @@ FOOTPRINT_1997 = {205583531: [(-127.6, -296.97), (-110.42, -233.76), (-124.96, -
 # the roof of the corridor between 인문관 and 종합관: three storeys with the corridor from the low east end, two over
 # the car park on its west side (2010 roadview);
 # 언더우드가 사택 rebuilt as one storey in 1955 (attic dormers); 재활병원 지하 1층 · 지상 6층 in 1987 (four more
-# floors in 2011).  reference/고증.md 3.1.1 has the table, hall by hall.
+# floors in 2011); 동문회관 (1993) at least five (its 5층 소연회장).  reference/고증.md 3.1.1 has the table, hall by hall.
 # Two more are put right only after the random planting, cars and decals (their draws depend on every outline, as
 # for 용재관: YONGJAE_SCATTER), so that the rest of the campus keeps its layout:
 # - GONE_1997: 제2인문관 (위당관) broke ground on 29 May 1997 (착공 1997.5.29, 준공 1998.8.24), later than 새천년관
