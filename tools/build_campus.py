@@ -1130,6 +1130,9 @@ def to_px(x, y):
 
 layers = {k: Image.new('L', (SW, SH), 0) for k in ('asphalt', 'pavers', 'dirt')}
 dr = {k: ImageDraw.Draw(v) for k, v in layers.items()}
+# every stroke is also kept (in metres) to be drawn again finer for the map the game reads (splat_aa below): the
+# random planting, the decals and the leaf mask go on reading these 0.5 m layers as before
+SPLAT_OPS = []
 
 
 def draw_line(layer, coords, width):
@@ -1139,6 +1142,7 @@ def draw_line(layer, coords, width):
     r = wpx / 2
     for x, y in pp:
         dr[layer].ellipse([x - r, y - r, x + r, y + r], fill=255)
+    SPLAT_OPS.append(('line', layer, [tuple(c[:2]) for c in coords], wpx, True))
 
 
 def draw_poly(layer, poly, val=255):
@@ -1149,8 +1153,50 @@ def draw_poly(layer, poly, val=255):
         if g.geom_type != 'Polygon':
             continue
         dr[layer].polygon([to_px(x, y) for x, y in g.exterior.coords], fill=val)
+        SPLAT_OPS.append(('poly', layer, list(g.exterior.coords), val))
         for hole in g.interiors:
             dr[layer].polygon([to_px(x, y) for x, y in hole.coords], fill=0)
+            SPLAT_OPS.append(('poly', layer, list(hole.coords), 0))
+
+
+def splat_aa(names, ss=8, strip=62):
+    """The splat strokes (SPLAT_OPS) drawn again at ss times the resolution, a strip of rows at a time, and averaged
+    back to the 0.5 m texels: each texel holds how much of it the paving covers, so the edge the terrain shader cuts
+    where a channel crosses one half (web/src/terrain.js) runs straight and smooth instead of following the texels in
+    0.5 m steps (at 8x it lies within about 5 cm of the drawn outline; the old map's, PIL filling whole texels, wandered
+    from 0.5 m inside it to 0.9 m out, 0.16 m out on the average).  The priority of the layers (asphalt > pavers > dirt)
+    is taken at the fine resolution.  Returns {name: float32 (SH, SW) 0..255}."""
+    out_ = {n_: np.zeros((SH, SW), np.float32) for n_ in names}
+    k_ = ss / SPLAT['res']
+    boxes = []
+    for op in SPLAT_OPS:
+        ys_ = [c[1] for c in op[2]]
+        pad_ = (op[3] if op[0] == 'line' else 0) * SPLAT['res'] + 1.0
+        boxes.append(((SPLAT['y1'] - max(ys_) - pad_) / SPLAT['res'], (SPLAT['y1'] - min(ys_) + pad_) / SPLAT['res']))
+    for r0 in range(0, SH, strip):
+        r1 = min(SH, r0 + strip)
+        hi = {n_: Image.new('L', (SW * ss, (r1 - r0) * ss), 0) for n_ in names}
+        dd_ = {n_: ImageDraw.Draw(im_) for n_, im_ in hi.items()}
+        P_ = lambda x, y: ((x - SPLAT['x0']) * k_, (SPLAT['y1'] - y) * k_ - r0 * ss)
+        for op, (b0, b1) in zip(SPLAT_OPS, boxes):
+            if op[1] not in hi or b1 < r0 or b0 > r1:
+                continue
+            if op[0] == 'poly':
+                dd_[op[1]].polygon([P_(x, y) for x, y in op[2]], fill=op[3])
+                continue
+            pp = [P_(x, y) for x, y in op[2]]
+            w_ = op[3] * ss
+            dd_[op[1]].line(pp, fill=255, width=w_, joint='curve')
+            if op[4]:
+                for x, y in pp:
+                    dd_[op[1]].ellipse([x - w_ / 2, y - w_ / 2, x + w_ / 2, y + w_ / 2], fill=255)
+        arr = {n_: np.array(im_, np.int16) for n_, im_ in hi.items()}
+        if 'asphalt' in arr:
+            arr['pavers'] = np.minimum(arr['pavers'], 255 - arr['asphalt'])
+            arr['dirt'] = np.clip(np.minimum(arr['dirt'], 255 - arr['asphalt'] - arr['pavers']), 0, 255)
+        for n_, a_ in arr.items():
+            out_[n_][r0:r1] = a_.reshape(r1 - r0, ss, SW, ss).mean((1, 3))
+    return out_
 
 # forest floor under woods (natural=wood / landuse=forest)
 woods = []
@@ -3086,13 +3132,16 @@ def _ypaint(geoms, img, width=None):
     for g_ in geoms:
         if width:
             dr_.line([to_px(x, y) for x, y in g_], fill=255, width=max(1, int(width / SPLAT['res'])), joint='curve')
+            SPLAT_OPS.append(('line', _YN[id(img)], [tuple(c[:2]) for c in g_], max(1, int(width / SPLAT['res'])), False))
             continue
         for p_ in (g_.geoms if hasattr(g_, 'geoms') else [g_]):
             if p_.geom_type == 'Polygon':
                 dr_.polygon([to_px(x, y) for x, y in p_.exterior.coords], fill=255)
+                SPLAT_OPS.append(('poly', _YN[id(img)], list(p_.exterior.coords), 255))
 
 
 _yz, _yg, _yp = (Image.new('L', (SW, SH), 0) for _ in range(3))
+_YN = {id(_yz): '_yz', id(_yg): '_yg', id(_yp): '_yp'}
 _ypaint([_yclear], _yz)
 _ypaint([YJ_GARDEN.difference(_kept)], _yg)
 _ypaint([Polygon(b_['footprint']).buffer(3.5, join_style=2) for b_ in YONGJAE_BUILDINGS] +
@@ -3104,9 +3153,146 @@ spl[..., 0] *= 1.0 - _yg
 spl[..., 1] *= (1.0 - _yz) * (1.0 - _yg)
 spl[..., 2] *= (1.0 - _yz) * (1.0 - _yg)
 spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.array(_yp, np.float32), 0.7)), 255 - spl[..., 0])
-Image.fromarray(np.clip(spl, 0, 255).astype(np.uint8), 'RGB').save(
-    os.path.join(ROOT, 'web/public/assets/textures/ground_splat.png'), optimize=True)
 print('yongjae ground: walks', len(paths_out), 'decals', len(out['decals']))
+
+# ---------------------------------------------------------------------------
+# The ground map the game reads, and the curbs along its paving
+# ---------------------------------------------------------------------------
+# The same strokes as spl, anti-aliased (splat_aa): the asphalt and paving as sharp as drawn, the dirt (woods,
+# pitches, the old amphitheater) as soft as before, 용재관's ground painted again the same way.  (spl above, binary
+# 0.5 m texels blurred, stays as it was for the debug map.)
+_aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp'])
+spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
+_yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
+spl_aa[..., 0] *= 1.0 - _ygA
+spl_aa[..., 1] *= (1.0 - _yzA) * (1.0 - _ygA)
+spl_aa[..., 2] *= (1.0 - _yzA) * (1.0 - _ygA)
+spl_aa[..., 1] = np.minimum(np.maximum(spl_aa[..., 1], _aa['_yp']), 255 - spl_aa[..., 0])
+spl_aa[..., 2] = np.clip(np.minimum(spl_aa[..., 2], 255 - spl_aa[..., 0] - spl_aa[..., 1]), 0, 255)
+Image.fromarray(np.clip(np.round(spl_aa), 0, 255).astype(np.uint8), 'RGB').save(
+    os.path.join(ROOT, 'web/public/assets/textures/ground_splat.png'), optimize=True)
+
+
+def iso_chains(F, level):
+    """Marching squares over the texel centres of F (rows from the north): the polylines where F crosses level, in
+    campus metres, and whether each is closed."""
+    H_, W_ = F.shape
+    b_ = F > level
+    c_ = (b_[:-1, :-1] * 1 + b_[:-1, 1:] * 2 + b_[1:, 1:] * 4 + b_[1:, :-1] * 8).astype(np.uint8)
+    # the cell's edges: 0 top, 1 right, 2 bottom, 3 left; a saddle is split by the mean of its corners
+    table = {1: [(3, 0)], 2: [(0, 1)], 3: [(3, 1)], 4: [(1, 2)], 6: [(0, 2)], 7: [(3, 2)], 8: [(2, 3)], 9: [(2, 0)],
+             11: [(2, 1)], 12: [(1, 3)], 13: [(1, 0)], 14: [(0, 3)]}
+    ii, jj = np.nonzero((c_ > 0) & (c_ < 15))
+    adj = {}
+
+    def eid(i, j, e):
+        return (2 * (i * W_ + j), 2 * (i * W_ + j + 1) + 1, 2 * ((i + 1) * W_ + j), 2 * (i * W_ + j) + 1)[e]
+    for i, j, k in zip(ii.tolist(), jj.tolist(), c_[ii, jj].tolist()):
+        if k in (5, 10):
+            hi_ = (F[i, j] + F[i, j + 1] + F[i + 1, j] + F[i + 1, j + 1]) / 4 > level
+            pairs = ([(3, 2), (1, 0)] if hi_ else [(3, 0), (1, 2)]) if k == 5 else ([(0, 3), (2, 1)] if hi_ else [(0, 1), (2, 3)])
+        else:
+            pairs = table[k]
+        for a_, b2 in pairs:
+            ea, eb = eid(i, j, a_), eid(i, j, b2)
+            adj.setdefault(ea, []).append(eb)
+            adj.setdefault(eb, []).append(ea)
+
+    def where(e):
+        i, j = divmod(e >> 1, W_)
+        if e & 1:
+            f0, f1 = F[i, j], F[i + 1, j]
+            r, c = i + (level - f0) / (f1 - f0), j
+        else:
+            f0, f1 = F[i, j], F[i, j + 1]
+            r, c = i, j + (level - f0) / (f1 - f0)
+        return SPLAT['x0'] + (c + 0.5) * SPLAT['res'], SPLAT['y1'] - (r + 0.5) * SPLAT['res']
+    seen, chains = set(), []
+    for e0 in adj:
+        if e0 in seen:
+            continue
+        seen.add(e0)
+        ch = [e0]
+        for end in (0, 1):
+            cur = e0
+            while True:
+                nxt = [n_ for n_ in adj[cur] if n_ not in seen]
+                if not nxt:
+                    break
+                cur = nxt[0]
+                seen.add(cur)
+                if end:
+                    ch.insert(0, cur)
+                else:
+                    ch.append(cur)
+        closed = len(ch) > 2 and ch[0] in adj[ch[-1]]
+        chains.append((np.array([where(e) for e in ch]), closed))
+    return chains
+
+
+# Curbs (경계석): wherever the painted asphalt or paving meets the lawn, a low granite kerb stands along the edge on the
+# lawn side (1997 photos and the 2008 / 2011 roadview: kerbs round the 상뜰's beds and the drives, the paths across the
+# lawns, the forecourts), drawn by web/src/curbs.js.  Not along 백양로 (its own road mesh has its kerbs), the walls of
+# the halls, the woods' floor, nor in the town round the campus.  [kind, x0, y0, dx1, dy1, ...]: the lawn on the left
+# going along, kind 'a' by the asphalt (drives, car parks), 'p' by the paving; x0, y0 in cm, then each next point's
+# step from the last in cm.
+def curb_runs(F3):
+    paved = F3[..., 0] + F3[..., 1]
+    grass = np.clip(255.0 - paved - F3[..., 2], 0, 255)
+    keep_out = unary_union([bline.buffer(ROAD_HALF + 0.4), city.buffer(2.0)] +
+                           [Polygon(b_['footprint']).buffer(0.5) for b_ in out['buildings']] +
+                           [LineString(xy(q) for q in w_['geometry']).buffer(WID[w_['tags']['highway']] / 2 + 1.5)
+                            for w_ in ways.values() if w_.get('tags', {}).get('highway') in ('primary', 'secondary')])
+    area = unary_union([Polygon(b_['footprint']).buffer(45.0) for b_ in out['buildings'] if b_['style'] != 'city'] +
+                       [bline.buffer(60.0)])                       # (the campus: not the hills' and the town's roads)
+    shapely.prepare(keep_out)
+    shapely.prepare(area)
+
+    def at(A, P):
+        return ndimage.map_coordinates(A, [(SPLAT['y1'] - P[:, 1]) / SPLAT['res'] - 0.5,
+                                           (P[:, 0] - SPLAT['x0']) / SPLAT['res'] - 0.5], order=1, mode='nearest')
+    runs = []
+    for P, closed in iso_chains(paved, 127.5):
+        if len(P) < 4:
+            continue
+        T = np.gradient(P, axis=0)
+        if closed:
+            T[0], T[-1] = P[1] - P[-1], P[0] - P[-2]
+        T /= np.maximum(np.hypot(T[:, 0], T[:, 1]), 1e-9)[:, None]
+        N = np.stack([-T[:, 1], T[:, 0]], 1)                       # the left of the way along
+        if np.mean(at(paved, P + N * 0.4) - at(paved, P - N * 0.4)) > 0:
+            P, N = P[::-1].copy(), -N[::-1]                        # the lawn on the left
+        ok = ((at(grass, P + N * 0.45) > 150) & (at(paved, P - N * 0.45) > 160)
+              & shapely.contains_xy(area, P[:, 0], P[:, 1]) & ~shapely.contains_xy(keep_out, P[:, 0], P[:, 1]))
+        asph = (at(F3[..., 0], P - N * 0.45) > at(F3[..., 1], P - N * 0.45)).astype(np.int8)
+        asph = ndimage.median_filter(asph, 5, mode='wrap' if closed else 'nearest')     # (no flicker over a texel)
+        lab = np.where(ok, 1 + asph, 0)                                # 0 no kerb, 1 by the paving, 2 by the asphalt
+        if closed and (lab == lab[0]).all():
+            pieces = [(np.r_[np.arange(len(P)), 0], lab[0])] if lab[0] else []
+        else:
+            if closed:                                             # start the loop where a kerb breaks off or changes
+                k0 = int(np.flatnonzero(lab != np.roll(lab, 1))[0])
+                P, lab = np.roll(P, -k0, 0), np.roll(lab, -k0)
+            cut = np.flatnonzero(np.diff(lab)) + 1
+            pieces = []
+            for s_, e_ in zip(np.r_[0, cut], np.r_[cut, len(P)]):
+                if lab[s_]:                                        # (a kerb runs on to the next kind's first point)
+                    nxt = e_ + 1 if e_ < len(P) and lab[e_] else e_
+                    pieces.append((np.arange(s_, nxt), lab[s_]))
+        for idx, k_ in pieces:
+            if len(idx) < 3:
+                continue
+            ls_ = LineString(P[idx])
+            if ls_.length < 2.0:
+                continue
+            q_ = np.round(np.array(ls_.simplify(0.05).coords) * 100).astype(int)
+            q_[1:] -= q_[:-1].copy()
+            runs.append(['a' if k_ == 2 else 'p'] + q_.ravel().tolist())
+    print('curbs: %d runs, %.0f m' % (len(runs), sum(np.hypot(*np.reshape(r_[3:], (-1, 2)).T).sum() / 100 for r_ in runs)))
+    return runs
+
+
+out['curbs'] = curb_runs(spl_aa)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
 np.save(os.path.join(ROOT, 'data/terrain_near.npy'), Hn.astype(np.float32))

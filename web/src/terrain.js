@@ -112,10 +112,22 @@ export function makeNearTerrain(hf, campus, lib) {
         vec3 sp = texture2D(uSplat, suv).rgb;
         float inside = step(0.0, suv.x) * step(suv.x, 1.0) * step(0.0, suv.y) * step(suv.y, 1.0);
         sp *= inside;
+        // the paving's edge: the map holds how much of each texel the asphalt and the paving cover (anti-aliased,
+        // tools/build_campus.py splat_aa), so the edge is where that crosses one half: cut there as sharp as the
+        // screen allows instead of blending grass into paving over a metre (the kerbs of curbs.js stand on it), and
+        // the same between asphalt and paving
+        float pv = sp.r + sp.g;
+        float pvw = max(fwidth(pv) * 0.75, 0.002);
+        float pvS = smoothstep(0.5 - pvw, 0.5 + pvw, pv);
+        float ra = sp.r / max(pv, 1e-3);
+        float raw = max(fwidth(ra) * 0.75, 0.002);
+        float raS = smoothstep(0.5 - raw, 0.5 + raw, ra);
+        sp.r = pvS * raS;
+        sp.g = pvS * (1.0 - raS);
         // break up hard splat edges with a little texture-driven noise
         float macro = texture2D(dD, wp / 61.0).r;
         float n2 = texture2D(gD, wp / 23.0).g;
-        sp.b = clamp(sp.b + (macro - 0.45) * 0.25 * step(0.05, sp.b), 0.0, 1.0);
+        sp.b = clamp(sp.b + (macro - 0.45) * 0.25 * step(0.05, sp.b), 0.0, 1.0 - pvS);
         float wa = sp.r, wpv = sp.g, wd = sp.b;
         float wg = max(0.0, 1.0 - wa - wpv - wd);
         vec2 ug = wp / 4.0, ua = wp / 7.0, up = wp / 2.4, ud = wp / 4.0;

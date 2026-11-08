@@ -3107,19 +3107,13 @@ def daewoo():
     bk.xf = local_frame(a.x, a.y, ang, z0)
     daewoo_back(bk, z0)
     out += [mb, fr, bk]
-    # 상뜰: the low pale curb round the round lawn in the middle of the paved circle (tools/build_campus.py SANG)
+    # 상뜰: the round lawn in the middle of the paved circle (tools/build_campus.py SANG); the low pale kerb round it
+    # is drawn with every other kerb along the paving's edge (web/src/curbs.js)
     sg = CAMPUS.get('sang')
     if sg:
         cb = MeshBuilder('lm_daewoo_sang_curb')
         (cx, cy), r = sg['c'], sg['r']
         n_ = 40
-        for k in range(n_):
-            a0, a1 = 2 * math.pi * k / n_, 2 * math.pi * (k + 1) / n_
-            am = (a0 + a1) / 2
-            x_, y_ = cx + (r + 0.1) * math.cos(am), cy + (r + 0.1) * math.sin(am)
-            zg = ground_top(x_, y_)
-            cb.box((x_, y_, zg - 0.05), (2 * (r + 0.1) * math.sin(math.pi / n_) + 0.02, 0.22, 0.4), 'stone_trim',
-                   rotz=am + math.pi / 2)
         # inside it the lawn, a low dome a little under the curb at its edge and some 0.4 m over it in the middle
         # (대우관_2024_정면과_상뜰.jpg), walked on; the tree stands on its crown
         rings, H = 7, 0.4

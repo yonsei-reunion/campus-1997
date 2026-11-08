@@ -232,10 +232,10 @@ export class Grass {
     for (let k = 0; k < tries; k++) {
       const x = (i + rnd()) * CELL, y = (j + rnd()) * CELL, pick = rnd(), rank = rnd(), tone = rnd(), sc = rnd(), hs = rnd(), rot = rnd();
       const sh = this._share(x, y);
-      if (sh < 0.4) continue;
+      if (sh < 0.5) continue;                 // (the paving's edge is where the share crosses one half: terrain.js)
       // full lawn: all of them; its edges and the worn dry lawn: fewer
       const dry = Math.min(1, Math.max(0, this._dry(x, y) * 1.5 - 0.25));
-      const t = Math.min(1, (sh - 0.4) / 0.45);
+      const t = Math.min(1, (sh - 0.5) / 0.35);
       if (pick > t * t * (3 - 2 * t) * (1 - 0.6 * dry)) continue;
       const scale = 0.8 + sc * 0.45;
       m4.compose(v.set(x, surface(this.hf, x, y), -y), q.setFromAxisAngle(UP, rot * Math.PI * 2), s.set(scale, scale * (0.8 + hs * 0.4), scale));
