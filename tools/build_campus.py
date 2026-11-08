@@ -1908,14 +1908,21 @@ for side in (-1, 1):
                 if not in_gap(s, side, 0.6, outer=True):
                     shrubs.append(['hedge_low', round(x, 2), round(y, 2), sc_, round(a, 3)])
         s += 1.5
-    s = 14.0
+    # (the verge: every other shrub a 향나무 clipped in two tiers on a bare trunk -- the April 2011 roadview has
+    # them 5 - 6 m apart along every verge from the gate to the library, the May 1997 photo flat-topped pads twice as
+    # close, some with a darker skirt -- round boxwood between them; the kinds take no random numbers)
+    s, k_ = 14.0, 0
     while s < L - 20:
         if not in_gap_old(s, side, 0.8):
             x, y, _ = along_raw(s, side * (E_CURB + ROAD['verge'] * 0.5))
             sc_ = round(rng.uniform(0.95, 1.1), 2)
             if not in_gap(s, side, 0.8, verge=True):
-                shrubs.append(['topiary_round', round(x, 2), round(y, 2), sc_, 0])
+                if k_ % 2 == 0:
+                    shrubs.append(['juniper_tiers', round(x, 2), round(y, 2), sc_, round((k_ * 2.39996) % 6.2832, 3)])
+                else:
+                    shrubs.append(['topiary_round', round(x, 2), round(y, 2), sc_, 0])
         s += 2.6
+        k_ += 1
 N_ROWS = len(trees)
 
 # 정문 화단섬: hedge border, red azaleas massed along the south and east edges, pine + maple + zelkova
@@ -2237,13 +2244,15 @@ for bed in sorted(_beds.geoms if hasattr(_beds, 'geoms') else [_beds], key=lambd
     band = bed.buffer(-1.6, join_style='mitre').simplify(0.3)
     if band.area > 6:
         hedge_line(_ring(band), 'hedge_low', 0.8, step=1.25)                           # the inner band
-    # the tiered yew cones in the strip between the edging and the band, away from the axis (2010: in pairs either side
-    # of it, the walk itself between round shrubs): at the bed's tip by the cross walk and halfway along its outer edge
+    # the tiered yews in the strip between the edging and the band, away from the axis (2010: in pairs either side of
+    # it, the walk itself between round shrubs): at the bed's tip by the cross walk and halfway along its outer edge.
+    # Five or six rounded pads stacked up a bare trunk (blender/shrubs.py yew_tiers; the December 2010 roadview from
+    # 한경길, the August 2008 one from the drive along 교육관), not a smooth cone
     _in = _ring(bed.buffer(-0.8, join_style='mitre').simplify(0.5))
     _tip = max(_in, key=lambda q: abs(g_en(*q)[0]))
     _out = max(zip(_in, _in[1:] + _in[:1]), key=lambda ab: math.hypot(ab[1][0] - ab[0][0], ab[1][1] - ab[0][1]))
     for (px_, py_) in (_tip, ((_out[0][0] + _out[1][0]) / 2, (_out[0][1] + _out[1][1]) / 2)):
-        shrubs.append(['topiary_cone', round(px_, 2), round(py_, 2), round(rng7.uniform(1.05, 1.2), 2), round(rng7.uniform(0, 6.28), 2)])
+        shrubs.append(['yew_tiers', round(px_, 2), round(py_, 2), round(rng7.uniform(1.05, 1.2), 2), round(rng7.uniform(0, 6.28), 2)])
     core = bed.buffer(-2.7)
     cx_, cy_ = (core.centroid.x, core.centroid.y) if not core.is_empty else (bed.centroid.x, bed.centroid.y)
     trees.append(['pine', round(cx_, 2), round(cy_, 2), round(rng7.uniform(0.34, 0.4), 2), round(rng7.uniform(0, 6.28), 2)])

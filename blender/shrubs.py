@@ -276,6 +276,41 @@ def _wobble(rnd, amp, lobes=(2, 5)):
     return lambda a: 1 + amp * sum(w * math.sin(k * a + ph) for k, ph, w in terms) / s
 
 
+def _tier_pad(mb, rnd, z0, z1, r, rt, mat, lo=0.32):
+    """One clipped pad of a tiered conifer (향나무 · 주목 trained in tiers): a cushion from z0 to z1, r across at its
+    widest, its underside drawn in to the trunk (radius rt) and shaded, the top domed. Seated on mb.surf for the cards."""
+    h = z1 - z0
+    prof = [(rt, z0 + 0.16 * h), (0.5 * r, z0 + 0.03 * h), (0.82 * r, z0 + 0.1 * h), (0.97 * r, z0 + 0.27 * h),
+            (1.0 * r, z0 + 0.45 * h), (0.94 * r, z0 + 0.65 * h), (0.78 * r, z0 + 0.83 * h), (0.52 * r, z0 + 0.95 * h),
+            (0.24 * r, z0 + 0.995 * h), (0.0, z1)]
+
+    def ao(p, n):
+        o = lo + (1 - lo) * _ss(z0 - 0.02, z0 + 0.6 * h, p.z)
+        o *= 0.62 + 0.38 * _ss(-0.7, 0.4, n.z)                # the underside in the pad's own shade
+        o *= 0.88 + 0.12 * min(1.0, max(0.0, p.z / max(z1, 0.5)))
+        return max(0.18, min(1.0, o))
+    revolve(mb, prof, mat, ao, seg=14, plan=_wobble(rnd, 0.06))
+
+
+def _tier_trunk(mb, z1, r0, r1, mat, sides=6):
+    """the bare trunk that shows below and between the pads (bark, UV along it as blender/vegetation.py tube)"""
+    pts = [(0.0, -0.1), (0.015, z1 * 0.5), (-0.01, z1)]
+    rr = [r0, (r0 + r1) / 2, r1]
+    vl = 0.0
+    for k in range(len(pts) - 1):
+        (xa, za), (xb, zb) = pts[k], pts[k + 1]
+        sl = math.hypot(xb - xa, zb - za)
+        for i in range(sides):
+            a0, a1 = 2 * math.pi * i / sides, 2 * math.pi * (i + 1) / sides
+            q = [Vector((xa + rr[k] * math.cos(a0), rr[k] * math.sin(a0), za)), Vector((xa + rr[k] * math.cos(a1), rr[k] * math.sin(a1), za)),
+                 Vector((xb + rr[k + 1] * math.cos(a1), rr[k + 1] * math.sin(a1), zb)), Vector((xb + rr[k + 1] * math.cos(a0), rr[k + 1] * math.sin(a0), zb))]
+            circ = 2 * math.pi * max(rr[k], 0.05)
+            uv = [(i / sides * circ, vl), ((i + 1) / sides * circ, vl), ((i + 1) / sides * circ, vl + sl), (i / sides * circ, vl + sl)]
+            c0, c1 = 0.45 + 0.25 * min(1.0, za / z1), 0.45 + 0.25 * min(1.0, zb / z1)
+            mb.face(q, mat, uvs=uv, smooth='trunk', col=[(c0, c0, c0, 1), (c0, c0, c0, 1), (c1, c1, c1, 1), (c1, c1, c1, 1)])
+        vl += sl
+
+
 def make_shrub(kind, seed=0):
     rnd = random.Random(zlib.crc32(kind.encode()) + seed)
     mb = ShrubBuilder(f'shrub_{kind}')
@@ -307,6 +342,26 @@ def make_shrub(kind, seed=0):
         revolve(mb, prof, 'hedge_boxwood', _ao_round(2.48, foot=0.3), seg=14, plan=_wobble(rnd, 0.03))
         cards(mb, rnd, 84, 'leaf_boxwood', CARD_M['boxwood'], W=(0.7, 1.05), Hf=(0.5, 0.75), tilt=(15, 60),
               depth=0.035, weight=lambda p, n: 0.25 if p.z < 0.15 else 0.7 + 0.3 * max(0.0, n.z))
+    elif kind == 'juniper_tiers':
+        # 향나무 clipped in two tiers on a bare trunk (백양로's boxwood verges: the April 2011 roadview, every verge
+        # from the gate to the library; the May 1997 photo's flat-topped pads with a darker skirt under some): a broad
+        # cushion low on the trunk, a gap where the trunk shows, a smaller domed one over it; 1.45 m high, 1.25 m across
+        _tier_trunk(mb, 1.3, 0.06, 0.035, 'bark_pine')
+        for (z0, z1, r) in ((0.36, 0.74, 0.63), (0.86, 1.45, 0.5)):
+            _tier_pad(mb, rnd, z0, z1, r, 0.05, 'hedge_boxwood')
+        cards(mb, rnd, 110, 'leaf_boxwood', CARD_M['boxwood'], W=(0.7, 1.05), Hf=(0.5, 0.75), tilt=(10, 65),
+              depth=0.035, weight=lambda p, n: 0.12 if n.z < -0.25 else 0.45 + 0.55 * max(0.0, n.z))
+    elif kind == 'yew_tiers':
+        # 주목 · 향나무 clipped in stacked tiers (연희관 앞 정원: the December 2010 roadview from 한경길, the 2008 and
+        # 2026 ones from the drives; the 2003 spring photo): five rounded pads narrowing upwards, the trunk showing in
+        # the gaps between them, a small dome on top; 2.75 m high, 1.2 m across at the foot
+        _tier_trunk(mb, 2.55, 0.08, 0.04, 'bark_pine')
+        tiers = ((0.08, 0.66, 0.6), (0.72, 1.22, 0.51), (1.28, 1.7, 0.43), (1.76, 2.12, 0.35), (2.18, 2.47, 0.26), (2.52, 2.75, 0.15))
+        for k, (z0, z1, r) in enumerate(tiers):
+            _tier_pad(mb, rnd, z0, z1, r * rnd.uniform(0.94, 1.06), 0.06 if k < 3 else 0.045, 'hedge_boxwood',
+                      lo=0.4 if k == 0 else 0.32)
+        cards(mb, rnd, 150, 'leaf_boxwood', CARD_M['boxwood'], W=(0.7, 1.05), Hf=(0.5, 0.75), tilt=(10, 65),
+              depth=0.035, weight=lambda p, n: 0.12 if n.z < -0.25 else 0.45 + 0.55 * max(0.0, n.z))
     elif kind == 'bush':
         # a free-grown azalea bush round the halls (영산홍: magenta in April, green in May): an uneven mound,
         # its outline all leaves

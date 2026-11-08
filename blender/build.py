@@ -127,7 +127,8 @@ if want('veg'):
             export_glb([ob], os.path.join(OUT, 'veg', f'{sp}_{v}.glb'), colors=True)
 
 if want('veg') or want('shrubs'):       # (`shrubs` alone: the clipped shrubs without the trees, blender/shrubs.py)
-    for k in ('topiary_round', 'topiary_cone', 'hedge_blob', 'bush', 'hedge_low', 'azalea_red', 'azalea_violet', 'pansy_bed'):
+    for k in ('topiary_round', 'topiary_cone', 'hedge_blob', 'bush', 'hedge_low', 'azalea_red', 'azalea_violet', 'pansy_bed',
+              'juniper_tiers', 'yew_tiers'):
         reset_scene()
         ob = vegetation.make_shrub(k).build()
         stats[k] = tri_count([ob])
