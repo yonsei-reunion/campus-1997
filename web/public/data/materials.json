@@ -2,6 +2,7 @@
  "_doc": "Shared material library. Blender builds preview materials from it; the web app rebuilds MeshStandardMaterials by name. tile = metres per texture repeat (UVs are in metres).",
  "stone_rubble": {
   "weather": 0.3,
+  "streak": 0.2,
   "tex": "old_stone_wall",
   "tile": 3.2,
   "tint": [
@@ -14,6 +15,7 @@
  },
  "stone_rubble_brown": {
   "weather": 0.3,
+  "streak": 0.2,
   "tex": "old_stone_wall",
   "tile": 3.2,
   "tint": [
@@ -25,6 +27,7 @@
  },
  "stone_rubble_warm": {
   "weather": 0.3,
+  "streak": 0.2,
   "tex": "old_stone_wall",
   "tile": 3.2,
   "tint": [
@@ -36,6 +39,7 @@
  },
  "stone_trim": {
   "weather": 0.25,
+  "streak": 0.6,
   "tex": "concrete_wall_008",
   "tile": 1.6,
   "tint": [
@@ -48,6 +52,7 @@
  },
  "stone_granite": {
   "weather": 0.12,
+  "streak": 0.3,
   "tex": "granite_tile",
   "tile": 2.0,
   "tint": [
@@ -138,6 +143,7 @@
  },
  "tile_facade": {
   "weather": 0.3,
+  "streak": 0.4,
   "tex": "rectangular_facade_tiles",
   "tile": 1.5,
   "tint": [
@@ -341,7 +347,7 @@
   ]
  },
  "glass_reflect": {
-  "_doc": "heat-reflecting green glass: its coating mirrors more of the sky than plain glass (f0: reflectance square on, plain glass 0.08); \ub300\uac15\ub2f9's tall windows (reference/\ub300\uac15\ub2f9_2009_\uc815\uba74.jpg)",
+  "_doc": "heat-reflecting green glass: its coating mirrors more of the sky than plain glass (f0: reflectance square on, plain glass 0.08); 대강당's tall windows (reference/대강당_2009_정면.jpg)",
   "color": [
    0.05,
    0.08,
@@ -735,6 +741,7 @@
  },
  "stone_rubble_gray": {
   "weather": 0.3,
+  "streak": 0.2,
   "tex": "old_stone_wall",
   "tile": 3.2,
   "tint": [
@@ -747,6 +754,7 @@
  },
  "stone_panel": {
   "weather": 0.3,
+  "streak": 0.45,
   "tex": "concrete_wall_008",
   "tile": 3.0,
   "tint": [
@@ -758,8 +766,9 @@
   "rough": 0.75
  },
  "stone_panel_wide": {
-  "_doc": "stone_panel laid a quarter turned (uv: swap): courses 0.5 m tall, panels 1 m wide (\ub300\uac15\ub2f9's granite cladding)",
+  "_doc": "stone_panel laid a quarter turned (uv: swap): courses 0.5 m tall, panels 1 m wide (대강당's granite cladding)",
   "weather": 0.3,
+  "streak": 0.45,
   "tex": "concrete_wall_008",
   "tile": 2.0,
   "uv": "swap",
@@ -871,6 +880,7 @@
  },
  "granite_light": {
   "weather": 0.12,
+  "streak": 0.3,
   "tex": "granite_tile",
   "tile": 1.2,
   "tint": [
@@ -1016,6 +1026,7 @@
  },
  "tile_white": {
   "weather": 0.3,
+  "streak": 0.4,
   "tex": "white_square_tiles",
   "tile": 1.2,
   "tint": [
