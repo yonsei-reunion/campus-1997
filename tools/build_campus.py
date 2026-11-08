@@ -293,11 +293,6 @@ def north_drop(e, n):
                          * (1 - _smooth((-95.0 - e) / 50.0)) * (1 - _smooth((e - 105.0) / 45.0)))
 
 
-def drop_at(x, y):
-    d_ = np.array([x, y]) - GF_C
-    return float(north_drop(d_ @ GF_E, d_ @ GF_N))
-
-
 Hn = Hn - north_drop(GE, GN)
 print('north hill down %.1f m (%d grid nodes moved)' % (NORTH_DROP, int((north_drop(GE, GN) > 0.05).sum())))
 
@@ -584,9 +579,17 @@ FORECOURTS.append((324328422, None, 14.0, dict(face=(tuple(_c0), tuple(_c0 + _ts
 # 백주년기념관's north-east face, towards 광혜원 and 수경원 (연세 역사의 뜰): a plain stone box with three rows of strip
 # windows over a paved court (2010 roadview; blender/landmarks.py north_box).  The museum's own door, the one in the
 # 1996 album photos, is in the 백양로 porch (museum_porch, CENT_MUSEUM below).  The ground there stood 3 m over the
-# hall's floor (the hall's lowest corner, by 백양로); the court is levelled at 광혜원's height.
+# hall's floor (the hall's lowest corner, by 백양로); the court is levelled 2.6 m over that corner (42.7 m on the old
+# terrain, 광혜원's height there).
 CENT_NE = ((41.28, -200.97), (16.84, -168.65))       # the face, its outside to the right
-CENT_PLAZA_H = 42.7
+
+
+def corner_level(wid):
+    """the lowest ground under a hall's outline corners (level_forecourt's 'corner')"""
+    return min(sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_) for x_, y_ in footprint(ways[wid]).exterior.coords)
+
+
+CENT_PLAZA_H = round(corner_level(324328422) + 2.6, 2)
 FORECOURTS.append((324328422, None, 18.0, dict(face=CENT_NE, max_half=20.3, blend=10.0, level=CENT_PLAZA_H, inside=1.0)))
 # the museum's doors in the 백양로 porch (blender/landmarks.py museum_porch): the 1996 album photos of 화학공학 · 전기 ·
 # 전자 · 건축공학 · 기계설계 · 컴퓨터과학과 on its broad granite flight, glass between a white wall (left, north) and a
@@ -596,26 +599,28 @@ CENT_MUSEUM = dict(s=21.9, door=[round(float(v), 2) for v in _cnw - _tw * 21.9],
 # 과학관's courtyard flight (blender/generic.py porch, ENTRY_AT): in the 1996 photos of 생물학과, 생화학과 and 지질학과
 # fifteen-odd granite risers climb the whole width of the picture to the cream wall, between sloped granite side walls
 # with clipped junipers on banks either side, a five-globe lamp at the top.  The 5 m grid ran the courtyard's slope
-# up to the doors (five risers); the car park below is levelled 2.8 m under them and banks back up beside the flight.
+# up to the doors (five risers); the car park below is levelled 2.8 m under them and banks back up beside the flight
+# (4.9 m over the hall's lowest corner: 58.9 m on the old terrain).  On Copernicus the ground falls away south of it,
+# so the car park reaches out 30 m, to where compare/science's camera (fitted to the 1996 photos) stands on it.
 SCI_DOOR, SCI_N = np.array([-242.6, 13.81]), np.array([-0.2629, -0.9648])
 SCI_T = np.array([-SCI_N[1], SCI_N[0]])
 _sf = SCI_DOOR + SCI_N * 1.6                         # the head of the flight (the plaza runs in under it)
-FORECOURTS.append((222843398, None, 20.0, dict(face=(tuple(_sf - SCI_T * 8.8), tuple(_sf + SCI_T * 8.8)), max_half=8.8,
-                                                blend=8.0, side_blend=3.0, level=58.9, inside=0.0)))
+FORECOURTS.append((222843398, None, 30.0, dict(face=(tuple(_sf - SCI_T * 8.8), tuple(_sf + SCI_T * 8.8)), max_half=12.0,
+                                                blend=12.0, side_blend=6.0, level='corner', rise=4.9, inside=0.0)))
 # 빌링슬리관's south front (its door: ENTRY_AT).  The 5 m grid ran the slope from the north-west across it, 3.7 m
 # along the 45 m front, so the door in its middle stood 1.6 m under the ground and the west half of the ground floor
 # was buried.  reference/학교연혁_빌링슬리관_옛생활과학관.jpg, from the lawn at the west end, shows the ground floor
 # standing on a level lawn all along the front: level it at the floor (its south-east corner), a riser or two under
-# the threshold, banking back up into the hill at the west end.
+# the threshold, banking back up into the hill at the west end (its lowest corner, 0.1 m under).
 BILL_FRONT = ((14.11, 417.87), (57.73, 406.29))      # the south front, west -> east (the outside to the right)
 FORECOURTS.append((245623193, None, 12.0, dict(face=BILL_FRONT, max_half=23.0, blend=10.0, side_blend=9.0,
-                                                level=round(68.85 - drop_at(36.0, 412.0), 2), inside=2.0)))  # (68.85 before)
+                                                level='corner', rise=-0.1, inside=2.0)))
 # 교육관 (blender/landmarks.py gyoyuk): its west side stands three full storeys over the drive below 제2인문관
 # (reference/2003_가을_교육관_서쪽면.jpg, taken from there) and its north end's outside flight starts from a yard of
 # parked cars at the ground floor (2003_가을_연희관앞정원과_교육관_북쪽계단.jpg).  The 5 m grid ran the hill from 종합관
 # and 제2인문관 down over both: the ground stood 3-4 m over the floor at the north-west corner.  Level the drive and
 # the yard at the floor, banking back up to the hill beyond.
-GYOYUK_FLOOR = 53.0                                  # (blender/landmarks.py GYOYUK_FLOOR)
+GYOYUK_FLOOR = round(corner_level(246156111) + 2.3, 2)     # (53.0 m on the old terrain; blender/landmarks.py reads it)
 FORECOURTS.append((246156111, None, 6.0, dict(face=((26.82, 349.67), (17.82, 314.97)), max_half=18.0, blend=7.0,
                                                side_blend=6.0, level=GYOYUK_FLOOR, inside=1.0)))      # the west drive
 FORECOURTS.append((246156111, None, 11.0, dict(face=((44.15, 345.23), (26.82, 349.67)), max_half=9.0, blend=6.0,
@@ -631,7 +636,8 @@ FORECOURTS.append((246156116, None, 9.0, dict(face=((92.93, 188.38), (102.01, 22
                                                 side_blend=6.0, level='corner', inside=1.0)))         # 아펜젤러관
 
 
-def level_forecourt(wid, front, depth, blend=18.0, side_blend=7.0, max_half=20.0, level=None, face=None, inside=2.0):
+def level_forecourt(wid, front, depth, blend=18.0, side_blend=7.0, max_half=20.0, level=None, face=None, inside=2.0,
+                    rise=0.0):
     poly = footprint(ways[wid])
     if face is not None:
         # an explicit face (two footprint corners, the outside to their right)
@@ -666,9 +672,9 @@ def level_forecourt(wid, front, depth, blend=18.0, side_blend=7.0, max_half=20.0
     tx, ty = -fy, fx
     hw = min(hl, max_half)
     if level == 'corner':
-        level = min(sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_) for x_, y_ in poly.exterior.coords)
+        level = min(sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_) for x_, y_ in poly.exterior.coords) + rise
     if level is None:
-        level = float(np.mean([sample(Hn, NEAR_HALF, NEAR_STEP, mx + tx * s + fx, my + ty * s + fy) for s in np.linspace(-hw, hw, 7)]))
+        level = float(np.mean([sample(Hn, NEAR_HALF, NEAR_STEP, mx + tx * s + fx, my + ty * s + fy) for s in np.linspace(-hw, hw, 7)])) + rise
     S = (X - mx) * tx + (Y - my) * ty
     D = (X - mx) * fx + (Y - my) * fy
     e = np.maximum.reduce([(np.abs(S) - hw) / side_blend, (D - depth) / blend, (-D - inside) / side_blend, np.zeros_like(S)])
@@ -880,7 +886,7 @@ def g_en(x, y):
 
 def flight_at(name, top, down, z_top, z_foot, width, landing=0.6, tread=0.30, maxrise=0.165, **kw):
     d_ = np.array(down, float) / np.linalg.norm(down)
-    n_ = int(math.ceil((z_top - z_foot) / maxrise - 1e-6))
+    n_ = int(math.ceil((z_top - z_foot) / maxrise - 0.1))      # (a centimetre over whole risers, from rounding, adds none)
     foot = np.array(top) + d_ * (landing + n_ * tread)
     return dict(name=name, top=[round(float(top[0]), 2), round(float(top[1]), 2)], down=[round(float(d_[0]), 4), round(float(d_[1]), 4)],
                 foot=[round(float(foot[0]), 2), round(float(foot[1]), 2)], z_top=round(float(z_top), 2), z_foot=round(float(z_foot), 2),
@@ -1114,8 +1120,9 @@ for wid, (style, lv, label) in B.items():
 # outline's was 7 m east and 4 m lower there).  In the ground photo the fin face runs off to the right at ~28 deg and
 # the north side faces the lens, the tower on the line from the camera through the statue, ~80 m beyond it (the
 # 경영관 that replaced it fills x 72..120, y 88..136).  The whole stands on the azalea hill (진달래동산) 5 m over the
-# 삼거리, as both photos put it (the terrain grid there is the 2010s dig for 경영관's basements).
-YONGJAE = dict(o=(67.2, 104.1), ang=math.radians(-15.0), floor=52.0, fh=3.6, parts=[
+# 삼거리, as both photos put it (the terrain grid there is the 2010s dig for 경영관's basements): 6.2 m over 백양로's
+# section abreast of it (52.0 m on the old terrain).
+YONGJAE = dict(o=(67.2, 104.1), ang=math.radians(-15.0), floor=round(prof_h(s_at(67.2, 104.1)) + 6.2, 2), fh=3.6, parts=[
     (990001, 'lm:yongjae', 6, (0.0, 10.5, 0.0, 11.6)),       # tower: u0, u1, v0, v1 (u0 = the fin face)
     (990002, 'lm:none', 3, (2.8, 16.0, 11.6, 39.5)),         # north wing
     (990003, 'lm:none', 5, (16.0, 30.0, 0.0, 30.0)),         # east block (gabled)
@@ -3234,6 +3241,7 @@ out = dict(
     paths=LIB_PATHS + [dict(kind='service', w=SIDE_W_W, pts=[list(p_) for p_ in SIDE_W])]
     + [p_ for p_ in paths_out if not lib_osm_walk(p_) and p_['pts'] not in _fork_pts], landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
     centennial_block=CENT_BLOCK, sang=dict(c=list(SANG), r=SANG_LAWN), yeonhui=YEONHUI, underwood_steps=UW_STEPS,
+    gyoyuk_floor=GYOYUK_FLOOR,
     colliders=[CENT_BLOCK['poly']] +
     [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(tennis_poly(pd_, 0.1).exterior.coords)[:-1]] for pd_ in TENNIS['pads']],
 )

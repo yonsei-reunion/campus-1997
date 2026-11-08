@@ -2254,7 +2254,8 @@ def gyoyuk():
                       extra=lambda mb, iv, f: gyoyuk_north_flight(mb, iv, f, 12.4, 16.2))
 
 
-GYOYUK_FLOOR = 53.0     # 교육관's floor: the drive along its west side and the yard north of it (tools/build_campus.py)
+GYOYUK_FLOOR = CAMPUS.get('gyoyuk_floor', 53.0)     # 교육관's floor: the drive along its west side and the yard north of it
+# (tools/build_campus.py GYOYUK_FLOOR)
 
 
 def stimson():
