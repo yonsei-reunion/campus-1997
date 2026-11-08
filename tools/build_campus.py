@@ -117,6 +117,18 @@ LATE_FOOTPRINT_1997 = {1178743320: [(482.62, 70.11), (489.63, 62.96), (493.39, 6
                                     (514.69, 77.29), (516.59, 76.58), (523.4, 82.93), (520.97, 85.51), (522.73, 87.14),
                                     (508.59, 102.12), (503.97, 97.8), (504.74, 96.98), (492.07, 85.22), (494.02, 83.15),
                                     (481.39, 71.42)]}
+# 본교 (1997 확인; reference/고증.md 3.1.1):
+# - 루스채플: its own hall (1974, 「면적 329.9평」 in the building history) is the rectangle under the big hipped roof,
+#   the south 45.4 x 24.5 m of OSM's outline (1,111 m2 = 336평); the low wing north of it with its glass drum is 원일한
+#   홀 (2006.4 - 2006.11, 「지하 1층, 지상 3층」).  The 1990 map (no. 20) has no drum.
+# - 경영학교실단: OSM's outline is the 1997 one (the 1990 map draws the low front between the wings along 백양로; 2005
+#   only put floors on it, 155.6평), but only the two wings stand five storeys: with the whole of it at five the floor
+#   area would be 1.8 times the 3,073평 it had before 2005.  The north wing keeps the OSM way; the south wing and the
+#   one-storey front and hall between them go in with OLD_HALLS (990021, 990022).
+LATE_FOOTPRINT_1997.update({
+    429249499: [(62.85, -84.25), (106.77, -95.8), (113.08, -72.16), (69.16, -60.6)],
+    256933753: [(-59.05, 125.82), (-13.1, 113.6), (-18.23, 94.69), (-64.14, 106.9)],
+})
 FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
 
 # ---------------------------------------------------------------------------
@@ -1234,8 +1246,21 @@ OLD_HALLS = [
     (990011, '장기원 기념관', 'white', 4, block_poly(_jk, (_lib_u[1], -_lib_u[0]), 10.0, 7.0, round_end=True)),
     (990012, '', 'white', 2, Point(*(_jk + np.array([_lib_u[1], -_lib_u[0]]) * -14.0 - _lib_u * 12.0)).buffer(7.0, 3)),
     (990013, '청경관', 'white', 2, block_poly((20.0, 266.0), (0.557, 0.830), 8.0, 4.5)),
+    # 본교 (1997 확인; reference/고증.md 3.1.1): 학군단 (45 학생군사교육단 on the 1990 · 1995 maps, at the west end of the
+    # 육상경기장; 1971 지하 1 · 지상 2층, the third floor 1983), still standing west of 대운동장 (brick, concrete floor bands
+    # and a brick chimney in the 2010 roadview): its roof from the Kakao skyview.  The 경영학교실단 south wing and the
+    # low front and hall between the wings (LATE_FOOTPRINT_1997).
+    (990020, '학군단', 'brick', 3, Polygon([(-523.9, -176.1), (-514.7, -166.8), (-493.5, -188.5), (-507.0, -201.0)])),
+    (990021, '경영학교실단', 'white', 5, Polygon([(-81.36, 48.43), (-24.1, 33.19), (-20.74, 45.64), (-78.0, 60.87)])),
+    (990022, '경영학교실단', 'white', 1, Polygon([(-57.62, 55.45), (-20.74, 45.64), (-4.6, 105.49), (-14.58, 108.14),
+                                             (-18.23, 94.69), (-45.12, 101.84)])),
 ]
+# The rows after the first four go in after the random planting, cars and decals, as LATE_FOOTPRINT_1997 (below), so
+# that the rest of the campus keeps its layout
+OLD_HALLS_EARLY = {990010, 990011, 990012, 990013}
 for pid, nm, style, lv, poly in OLD_HALLS:
+    if pid not in OLD_HALLS_EARLY:
+        continue
     poly = shapely.geometry.polygon.orient(poly.simplify(0.05), 1.0)
     campus_polys.append(poly)
     hs = [ground_h(x, y) for x, y in poly.exterior.coords]
@@ -3141,7 +3166,23 @@ STATUES = dict(
 _tn = dict(TENNIS, rot=round(TENNIS['rot'], 5))
 for v in STATUES.values():
     v['h'] = round(ground_h(*v['pos']), 2)
-STATUES['tennis'] = _tn                 # (its pads carry their own levels)
+# 공학원 (연세공학원) broke ground on 18 August 1995 on the 정구장's two blocks (TENNIS) and was finished on 8 April 1999
+# (yonsei.ac.kr/sc/349: 지하 5층 · 지상 4층; namu.wiki): the 1990 · 1994 · 1995 maps and the 1994 aerial photo show the
+# courts before it.  In the spring of 1997 the block between the service roads was a building site: bare earth behind
+# a hoarding round the hall's outline and the courts' pads, its gate on the service road to the north
+# (reference/고증.md 4.4).  The courts' levelled pads and the planting laid out round them stay as they were.
+_gw = unary_union([footprint(ways[218430716])] + [tennis_poly(pd_, 1.0) for pd_ in TENNIS['pads']]).convex_hull
+_gw = _gw.difference(unary_union([LineString(p_['pts']).buffer(p_['w'] / 2 + 1.0) for p_ in paths_out
+                                  if p_['kind'] in ('service', 'residential', 'primary', 'secondary', 'tertiary', 'road')
+                                  and len(p_['pts']) > 1 and LineString(p_['pts']).distance(_gw) < 5.0]))
+GONGWON_SITE = shapely.geometry.polygon.orient(max(getattr(_gw, 'geoms', [_gw]), key=lambda g_: g_.area).simplify(0.6), 1.0)
+_gr, GONGWON_RING = GONGWON_SITE.exterior, []
+for k_ in range(int(math.ceil(_gr.length / 2.5))):
+    q_ = _gr.interpolate(k_ * _gr.length / math.ceil(_gr.length / 2.5))
+    GONGWON_RING.append([round(q_.x, 2), round(q_.y, 2), round(ground_h(q_.x, q_.y), 2)])
+_gn = min(range(len(GONGWON_RING)), key=lambda k_: math.hypot(GONGWON_RING[k_][0] + 205.0, GONGWON_RING[k_][1] + 312.0))
+STATUES['gongwon_site'] = dict(ring=GONGWON_RING, gate=[_gn - 1, _gn + 1])     # (the gate: ring points either side)
+print('공학원 site', round(GONGWON_SITE.area), 'm2, hoarding', round(_gr.length), 'm')
 
 _sx, _sy, _ = along_raw(30, E_VERGE + ROAD['walk'] * 0.5)        # on the west sidewalk just inside the gate
 SPAWN = dict(pos=[round(_sx, 1), round(_sy, 1)], yaw=math.radians(-14))
@@ -3166,6 +3207,18 @@ GONE_SITES = [(GONE_1997[b['id']], Polygon(b['footprint'])) for b in buildings i
 RND_GHOSTS = [{**{k_: v_ for k_, v_ in b.items() if k_ != 'entry'}, 'at': i_ - j_}
               for j_, (i_, b) in enumerate((i_, b) for i_, b in enumerate(buildings) if b['id'] in GONE_1997)]
 buildings[:] = [b for b in buildings if b['id'] not in GONE_1997]
+# the OLD_HALLS put back after the planting (OLD_HALLS_EARLY): at the end of the halls list, so that blender/build.py's
+# colour and roof draws for the halls before them stay as they were (their doors once the outlines below are in)
+LATE_HALLS = []
+for pid, nm, style, lv, poly in OLD_HALLS:
+    if pid in OLD_HALLS_EARLY:
+        continue
+    poly = shapely.geometry.polygon.orient(poly.simplify(0.05), 1.0)
+    hs = [ground_h(x, y) for x, y in poly.exterior.coords]
+    LATE_HALLS.append(dict(id=pid, name=nm, style=style, levels=lv, height=round(lv * FLOOR_H[style] + 1.2, 2),
+                           base=round(min(hs), 2), top_ground=round(max(hs), 2),
+                           footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]))
+buildings += LATE_HALLS
 LATE_SITES = []
 for b in buildings:
     if b['id'] not in LATE_FOOTPRINT_1997:
@@ -3177,14 +3230,23 @@ for b in buildings:
     _bp_all = [Polygon(b_['footprint']) for b_ in buildings]
     poly = next(q for q, b_ in zip(_bp_all, buildings) if b_ is b)
     b.pop('entry', None)
-    e_ = _entry(b, poly)
+    e_ = _entry(b, poly) if b['style'] in ENTRY_STYLES else None       # (the landmarks make their own doors)
     if e_:
         b['entry'] = dict(p=[round(e_[1], 2), round(e_[2], 2)], n=[round(e_[3], 4), round(e_[4], 4)])
     LATE_SITES.append(poly)
+_bp_all = [Polygon(b_['footprint']) for b_ in buildings]
+for b in LATE_HALLS:
+    poly = next(q for q, b_ in zip(_bp_all, buildings) if b_ is b)
+    e_ = _entry(b, poly) if b['style'] in ENTRY_STYLES else None
+    if e_:
+        b['entry'] = dict(p=[round(e_[1], 2), round(e_[2], 2)], n=[round(e_[3], 4), round(e_[4], 4)])
+    if not ball.buffer(0.5).contains(poly):                  # (not the parts of an outline that stood at the planting)
+        LATE_SITES.append(poly)
 print('1997: left out', [n for n, _ in GONE_SITES], '- outlines put back', len(LATE_SITES))
 MARKER_NAME = {n: None for n in ('별동연구동', '영빈관', '영선실', '차량실', '행정동', '학생회관 별관', '광혜관')}
 EXTRA_MARKERS = [('청송대', 238.0, 284.0), ('농구장', 21.9, 2.5)]          # the wooded park east of 연희관 (OSM leisure=park)
 EXTRA_MARKERS += [(n, round(p.centroid.x, 1), round(p.centroid.y, 1)) for n, p in GONE_SITES]
+EXTRA_MARKERS += [('공학원 (공사중)', round(GONGWON_SITE.centroid.x, 1), round(GONGWON_SITE.centroid.y, 1))]
 LANDMARK_NAMES = {l['name'] for l in LANDMARKS}
 groups = {}
 for b in buildings:
@@ -3268,8 +3330,7 @@ out = dict(
     paths=_ui_paths(), landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
     centennial_block=CENT_BLOCK, sang=dict(c=list(SANG), r=SANG_LAWN), yeonhui=YEONHUI, underwood_steps=UW_STEPS,
     gyoyuk_floor=GYOYUK_FLOOR,
-    colliders=[CENT_BLOCK['poly']] +
-    [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(tennis_poly(pd_, 0.1).exterior.coords)[:-1]] for pd_ in TENNIS['pads']],
+    colliders=[CENT_BLOCK['poly']] + [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(GONGWON_SITE.exterior.coords)[:-1]]],
 )
 out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
 out['baekyangro']['booth'] = BOOTH
@@ -3587,8 +3648,11 @@ _lx, _ly = yj_xy(-3.9, 21.6)
 props.append(['lamp_double', round(_lx, 2), round(_ly, 2), round(YONGJAE['ang'], 3)])
 print('yongjae: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees) + 2, _n0[1] - len(shrubs),
       _n0[2] - len(props) + 1, _n0[3] - len(cars), '- 진달래동산', len(_yjp))
-# the 1997 sites (GONE_1997, LATE_FOOTPRINT_1997): off the bare site and its ring of shrubs, off the walls put back
-_gz = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for p_ in LATE_SITES])
+# the 1997 sites (GONE_1997, LATE_FOOTPRINT_1997): off the bare site and its ring of shrubs, off the walls put back,
+# off 공학원's building site and the pavement decals there
+_gz = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for p_ in LATE_SITES] +
+                  [GONGWON_SITE.buffer(1.5)])
+out['decals'] = [d_ for d_ in out['decals'] if not GONGWON_SITE.buffer(1.0).contains(Point(d_[1], d_[2]))]
 _n0 = (len(trees), len(shrubs), len(props), len(cars))
 trees = [t for t in trees if not _gz.contains(Point(t[1], t[2]))]
 shrubs = [s for s in shrubs if not _gz.contains(Point(s[1], s[2]))]
@@ -3666,7 +3730,7 @@ spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.arra
 # its own walls
 _gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
 _YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
-_ypaint([p_.buffer(2.0) for _, p_ in GONE_SITES], _gd)
+_ypaint([p_.buffer(2.0) for _, p_ in GONE_SITES] + [GONGWON_SITE.buffer(0.5)], _gd)
 _ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES], _gp)
 _gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
 spl[..., 1] *= 1.0 - _gd / 255.0

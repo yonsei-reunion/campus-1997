@@ -4202,6 +4202,38 @@ def tennis():
     return out
 
 
+# ============================================================================= 공학원 공사장 (1995.8 - 1999.4)
+def gongwon_site():
+    """The hoarding round 공학원's building site, where the 정구장 had been (tools/build_campus.py GONGWON_SITE): steel
+    sheet panels 2.4 m high on posts every 2.5 m following the ground, white over a blue foot band, both faces (6 cm
+    apart: coincident faces would read as fully occluded in the AO bake, black on the phones); a steel gate on the
+    service road to the north."""
+    G = CAMPUS.get('statues', {}).get('gongwon_site')
+    if not G:
+        return []
+    mb = MeshBuilder('lm_gongwon_site')
+    ring, (g0, g1) = G['ring'], G['gate']
+    n = len(ring)
+    H, foot, sink = 2.4, 0.6, 0.3
+    for i in range(n):
+        (xa, ya, za), (xb, yb, zb) = ring[i], ring[(i + 1) % n]
+        gate = g0 <= i < g1
+        bands = [(-sink, H + 0.3, 'metal')] if gate else [(-sink, foot, 'paint_blue'), (foot, H, 'paint_white')]
+        L = math.hypot(xb - xa, yb - ya) or 1.0
+        nx, ny = (yb - ya) / L * 0.03, -(xb - xa) / L * 0.03
+        for z0, z1, mat in bands:
+            for sg in (1, -1):
+                a0, a1 = (xa + sg * nx, ya + sg * ny, za + z0), (xa + sg * nx, ya + sg * ny, za + z1)
+                b0, b1 = (xb + sg * nx, yb + sg * ny, zb + z0), (xb + sg * nx, yb + sg * ny, zb + z1)
+                mb.face([a0, b0, b1, a1] if sg > 0 else [b0, a0, a1, b1], mat)
+        zt = bands[-1][1]
+        mb.face([(xa + nx, ya + ny, za + zt), (xb + nx, yb + ny, zb + zt), (xb - nx, yb - ny, zb + zt), (xa - nx, ya - ny, za + zt)],
+                'metal_dark')
+        h = H + (0.45 if g0 <= i <= g1 else 0.1)
+        mb.box((xa, ya, za + (h - sink) / 2), (0.1, 0.1, h + sink), 'metal_dark', rotz=math.atan2(yb - ya, xb - xa))
+    return [mb]
+
+
 # ============================================================================= 광복관 (법과대학)
 # 1997's 광복관 was neither the red-brick block the generic builder made of it nor today's six-storey granite hall (its
 # 2000s rebuilding, reference/학교연혁_광복관.jpg).  The 1990 and 1995 campus maps (reference/1990_캠퍼스_지도.png and

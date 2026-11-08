@@ -515,6 +515,7 @@ ROOF_EXTRAS = {222843398: observatory}
 WALL = {222843398: 'plaster_cream',          # 과학관: cream in the 1995 aerial photo (reference/1995_캠퍼스_항공사진_남쪽에서.jpg)
         # 음악관: white square tiles with grey joints (기악과's 1996 album photo; reference/학교연혁_음악관.jpg still shows them)
         429077789: 'tile_white', 429077790: 'tile_white'}
+WALL.update({990021: 'plaster_white', 990022: 'plaster_white'})   # (경영학교실단's south wing and front: as its north wing)
 FRAME = {429077789: 'frame_blue', 429077790: 'frame_blue'}      # (and blue window frames in the 1996 photo)
 
 

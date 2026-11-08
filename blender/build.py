@@ -66,7 +66,7 @@ if want('landmarks'):
             ob['name_ko'] = b['name']
             ob['bid'] = str(b['id'])
             objs.append(ob)
-    for mb in landmarks.amphitheater() + landmarks.basketball_court() + landmarks.fountain() + landmarks.tennis() + \
+    for mb in landmarks.amphitheater() + landmarks.basketball_court() + landmarks.fountain() + landmarks.tennis() + landmarks.gongwon_site() + \
             landmarks.underwood_steps():
         objs.append(mb.build())
     # statues and the gate are modelled in their own frame (front = -Y) and placed by object transform
