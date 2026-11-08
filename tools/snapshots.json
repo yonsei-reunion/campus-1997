@@ -2,7 +2,7 @@
   "_doc": [
     "README · 문집에 쓰는 게임 화면의 카메라와 저장할 곳. node tools/snapshots.mjs 가 읽는다(쓰는 법은 그 파일 머리말).",
     "좌표는 캠퍼스 m 단위(x = 동, y = 북). cam(하늘 카메라, UI 없음): x y 와 dh(땅 위 높이) 또는 h(절대 높이), 바라보는 점 tx ty 와 tdh 또는 th, fov(세로, 도).",
-    "walk(걷기, UI 보임): x y yaw(0 = 북, 동쪽으로 돌면 음수), dist lift orbit(등 뒤 카메라). eval: 자리 잡은 뒤 실행할 JS, keys: 누를 키, post: 키 다음 JS.",
+    "walk(걷기, UI 보임): x y yaw(0 = 북, 동쪽으로 돌면 음수), dist lift orbit(등 뒤 카메라, lift 음수는 올려다보기: −1 = 끝까지). eval: 자리 잡은 뒤 실행할 JS, keys: 누를 키, post: 키 다음 JS.",
     "size: 찍는 창 크기(px). out: 저장할 곳(저장소 루트 기준)과 width(줄일 폭). grid: 여러 shot 을 위에서 아래로 붙인 칸(cell = 칸 크기).",
     "season: spring(4월) · summer(5월, 기본) · autumn(10월). film: 1997 필름 감성. ui: 걷기에서 UI 를 숨기려면 false.",
     "README 「사진과 비교」의 짝은 이름 compare/<이름> 이 docs/compare/<이름>_game.jpg 로 간다. 사진에 맞춘 카메라이므로 건물을 고친 뒤에도 그대로 다시 찍는다."

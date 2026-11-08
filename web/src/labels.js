@@ -37,9 +37,11 @@ export class WalkLabels {
       this.active = next;
     }
     const W = innerWidth, H = innerHeight, v = this._v, boxes = [];
+    // how far the view looks up (the camera looks down its -Z): the roofs come into it, and the tags go back up to them
+    const up = Math.max(0, -this.camera.matrixWorld.elements[9]);
     for (const it of this.active) {
       // over the roof, but never far above the eye: close to a tall hall the tag comes down its front
-      v.set(it.m.pos[0], Math.min(it.m.top, this.camera.position.y + 7), -it.m.pos[1]).project(this.camera);
+      v.set(it.m.pos[0], Math.min(it.m.top, this.camera.position.y + 7 + up * 60), -it.m.pos[1]).project(this.camera);
       // a tall hall close by puts its roof above the view: the tag then sits along the top edge
       if (v.z > 1 || Math.abs(v.x) > 1.05 || v.y < -0.6) { it.el.style.display = 'none'; continue; }
       const sx = ((v.x + 1) / 2) * W, sy = Math.max(70, ((1 - v.y) / 2) * H);

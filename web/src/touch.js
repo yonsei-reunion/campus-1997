@@ -2,9 +2,11 @@
 //   left part of the screen: a floating stick that appears under the thumb wherever it lands.
 //     Push it the way you want to go on screen (up = ahead, right = to the right, down = towards the camera);
 //     push it all the way to run.
-//   rest of the screen: one finger drags the camera round, two fingers pinch to come closer or go farther.
+//   rest of the screen: one finger drags the camera round (up to look up at the roofs and the sky, down to look over
+//     the walker), two fingers pinch to come closer or go farther.
 // The bird's-eye tour has its own touch handling (birdseye.js): everything here sleeps while the walker is parked.
 import { clamp } from './util.js';
+import { LIFT_MAX, LOOK_UP } from './player.js';
 
 const STICK_R = 50;            // px the knob can travel from the stick centre
 const LEFT = 0.45;             // fraction of the screen width where a new touch starts the stick
@@ -44,7 +46,7 @@ export class TouchControls {
         return;
       }
       c.orbit -= (e.clientX - f.x) * 0.008;
-      c.lift = clamp(c.lift + (e.clientY - f.y) * 0.005, -0.35, 1.1);
+      c.lift = clamp(c.lift + (e.clientY - f.y) * 0.005, LOOK_UP, LIFT_MAX);
       f.x = e.clientX; f.y = e.clientY;
     });
     const up = (e) => {

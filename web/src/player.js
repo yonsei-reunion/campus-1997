@@ -1,6 +1,8 @@
 // Third-person walker in the manner of sim-office (office/engine/movement.js + camera.js):
 // ↑↓ / W S walk forward and back, ← → / A D turn, Shift runs; the camera follows behind and above.
 // Mouse drag swings the camera round (it settles back behind you when you walk), the wheel zooms.
+// Dragging up (or PageUp) looks up: the camera sinks behind the walker and tips up to the roofs, the statues and the
+// sky; dragging down (PageDown) brings it level and then up over the walker. The look up settles back as you walk.
 // The touch stick (touch.js) is camera-relative instead: push it the way you want to go on screen and the
 // walker turns that way; the camera keeps its direction and only drifts back behind you while you head away from it.
 // Collisions: building footprints and circles (trees, lamps, statues, people); ground follows the
@@ -20,6 +22,15 @@ const RADIUS = 0.32, STEP = 0.55;
 const WALL_RAY_H = [0.1, 0.2, 0.42, 0.65, 1.3];
 const LOW_RAY = 0.6;
 export const WALK = 2.4, RUN = 6.2, TURN = 2.3;
+// The camera's one vertical axis, cam.lift: 0 is the usual view from behind and a little above; up to LIFT_MAX the
+// camera climbs to look down on the walker; below 0 the view looks up: by LOOK_UP the camera has sunk behind the
+// walker to CAM_LOW over the ground and the view has tipped up PITCH_MAX past its level look, about 70° above the
+// horizon in all (the 12 m 독수리상 from its plinth, a five-storey roof line from across the road, clouds, the sun).
+// The walker sits low in the frame while the view climbs and drops out of it at the top of the range.
+export const LIFT_MAX = 1.1, LOOK_UP = -1;
+const PITCH_MAX = 1.05, CAM_LOW = 0.5, LOOK_KEY = 1.1, LOOK_BACK = 1.0;
+// how far down the camera has sunk at a look up of u (0..1): all the way by u = 0.6, quickly at first
+const sink = (u) => { const t = Math.min(1, u / 0.6); return 1 - (1 - t) * (1 - t); };
 
 // numeric grid-cell key (no string building in the per-frame lookups); unique for |i|, |j| < 32768
 const cellKey = (i, j) => (i + 32768) * 65536 + (j + 32768);
@@ -136,8 +147,9 @@ export class Player {
     this._from = new THREE.Vector3();
     this._want = new THREE.Vector3(); this._head = new THREE.Vector3(); this._q = new THREE.Vector3(); this._look = new THREE.Vector3();
     // camera rig
-    this.cam = { pos: new THREE.Vector3(), look: new THREE.Vector3(), ready: false, orbit: 0, lift: 0, dist: 5.4, drag: null };
-    addEventListener('keydown', (e) => { if (!/INPUT|TEXTAREA/.test(e.target.tagName)) this.keys.add(e.code); if (/Arrow|Space/.test(e.code) && this.enabled) e.preventDefault(); });
+    // up: the look up actually shown (follows -lift, smoothed like the camera's position)
+    this.cam = { pos: new THREE.Vector3(), look: new THREE.Vector3(), ready: false, orbit: 0, lift: 0, up: 0, dist: 5.4, drag: null };
+    addEventListener('keydown', (e) => { if (!/INPUT|TEXTAREA/.test(e.target.tagName)) this.keys.add(e.code); if (/Arrow|Space|Page(Up|Down)/.test(e.code) && this.enabled) e.preventDefault(); });
     addEventListener('keyup', (e) => this.keys.delete(e.code));
     addEventListener('blur', () => this.keys.clear());
     dom.addEventListener('pointerdown', (e) => {
@@ -149,7 +161,7 @@ export class Player {
       const d = this.cam.drag;
       if (!d || d.id !== e.pointerId) return;
       this.cam.orbit -= (e.clientX - d.x) * 0.006;
-      this.cam.lift = clamp(this.cam.lift + (e.clientY - d.y) * 0.004, -0.35, 1.1);
+      this.cam.lift = clamp(this.cam.lift + (e.clientY - d.y) * 0.004, LOOK_UP, LIFT_MAX);
       d.x = e.clientX; d.y = e.clientY;
     });
     const up = () => { this.cam.drag = null; };
@@ -181,6 +193,7 @@ export class Player {
     this.actor.holder.rotation.y = this.heading;
     this.cam.ready = false;
     this.cam.orbit = 0;
+    this.cam.lift = Math.max(0, this.cam.lift);      // arrive looking level
   }
 
   // push the walker out of the walls of the real meshes: rays round a circle from ankle to chest height, so columns,
@@ -240,16 +253,24 @@ export class Player {
     if (k.has('ArrowLeft') || k.has('KeyA')) turn += 1;
     if (k.has('ArrowRight') || k.has('KeyD')) turn -= 1;
     const run = k.has('ShiftLeft') || k.has('ShiftRight');
+    const tilt = (k.has('PageDown') ? 1 : 0) - (k.has('PageUp') ? 1 : 0);     // + = down, as a downward drag
     const m = this.stick.length();
     if (!fwd && !turn && m > 0.15) {
       // stick: the screen direction pushed (0 = straight ahead, + = left), relative to where the camera looks
-      return { fwd: 0, turn: 0, run: m > 0.9, stick: { rel: Math.atan2(-this.stick.x, -this.stick.y), m: Math.min(1, (m - 0.15) / 0.75) } };
+      return { fwd: 0, turn: 0, run: m > 0.9, tilt, stick: { rel: Math.atan2(-this.stick.x, -this.stick.y), m: Math.min(1, (m - 0.15) / 0.75) } };
     }
-    return { fwd: clamp(fwd, -1, 1), turn: clamp(turn, -1, 1), run };
+    return { fwd: clamp(fwd, -1, 1), turn: clamp(turn, -1, 1), run, tilt };
   }
 
   update(dt) {
     const inp = this.enabled ? this.input() : { fwd: 0, turn: 0, run: false };
+    if (inp.tilt) {
+      const c = this.cam;
+      if (!this._tilt) this._tiltSide = Math.sign(Math.round(c.lift * 100));
+      const l = clamp(c.lift + inp.tilt * LOOK_KEY * dt, LOOK_UP, LIFT_MAX);
+      c.lift = this._tiltSide * l < 0 ? 0 : l;      // a held key stops at level on its way across (press again to go on)
+    }
+    this._tilt = inp.tilt;
     if (inp.stick) {
       // turn quickly towards the pushed direction; the camera keeps its own direction meanwhile
       const c = this.cam, want = this.heading + c.orbit + inp.stick.rel;
@@ -285,14 +306,16 @@ export class Player {
 
   updateCamera(dt, inp = { fwd: 0, turn: 0 }) {
     const c = this.cam, p = this.pos;
-    // walking: the camera swings back behind you
+    // walking: the camera swings back behind you and a look up comes back to level (a camera raised to look down stays)
     if (!c.drag && (inp.fwd || inp.turn)) {
       c.orbit = wrapAngle(c.orbit);
       c.orbit *= Math.exp(-dt * (inp.recenter ?? 1.6));
+      if (c.lift < 0 && !inp.tilt) c.lift *= Math.exp(-dt * LOOK_BACK);
     }
     const a = this.heading + c.orbit;
-    const back = c.dist * Math.cos(0.36 + c.lift * 0.5), high = 1.25 + c.dist * Math.sin(0.36 + c.lift * 0.5);
-    const want = this._want.set(p.x - Math.sin(a) * back, p.y + high, p.z - Math.cos(a) * back);
+    const el = 0.36 + Math.max(0, c.lift) * 0.5, up = Math.max(0, -c.lift), s = sink(up);
+    const back = c.dist * Math.cos(el), high = 1.25 + c.dist * Math.sin(el);
+    const want = this._want.set(p.x - Math.sin(a) * back, p.y + high + (CAM_LOW - high) * s, p.z - Math.cos(a) * back);
     // keep the camera out of buildings: walk the line from the head and stop before a wall
     const head = this._head.set(p.x, p.y + 1.5, p.z), q = this._q;
     const steps = 12;
@@ -300,15 +323,25 @@ export class Player {
       q.lerpVectors(head, want, i / steps);
       if (this.col.insideBuilding(q.x, -q.z)) { want.lerpVectors(head, want, Math.max(0, (i - 1.5) / steps)); want.y += 0.6; break; }
     }
-    const gy = this.hf.height(want.x, -want.z);
-    if (want.y < gy + 0.6) want.y = gy + 0.6;
+    // over the terrain; sunk low for a look up, also over the steps, kerbs and terraces walked on behind you
+    let gy = this.hf.height(want.x, -want.z), floor = 0.6 - 0.3 * s;
+    if (s > 0) {
+      const w = this.groundAt(want.x, want.z, Math.max(want.y, p.y) + 2.5);
+      if (w !== null && w > gy) gy = w;
+      // and over the roof of a car coming up to it or stopped behind you, not inside it (people's circles are 0.3)
+      for (const m of this.movers) if (m.r > 0.6 && Math.hypot(want.x - m.x, want.z + m.y) < m.r + 1) { floor = Math.max(floor, 1.9); break; }
+    }
+    if (want.y < gy + floor) want.y = gy + floor;
     const look = this._look.set(p.x + Math.sin(this.heading) * 1.2, p.y + 1.45, p.z + Math.cos(this.heading) * 1.2);
     const k = c.ready ? 1 - Math.exp(-dt * 4.5) : 1;
     c.ready = true;
     c.pos.lerp(want, k);
     c.look.lerp(look, k);
+    c.up += (up - c.up) * k;
     this.camera.position.copy(c.pos);
     this.camera.lookAt(c.look);
+    // the look up: tip the view about its own level side axis, past where it looks at the walker
+    if (c.up > 1e-4) this.camera.rotateX(c.up * PITCH_MAX);
   }
 
   // campus frame helpers
