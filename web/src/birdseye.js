@@ -184,8 +184,9 @@ export class BirdsEye {
       this.stopAuto();                   // normal lens, up 백양로 to 언더우드관 and 대우관 (any other control returns to the orbit view).
       // Camera fitted by least squares to the photo positions of 제1공학관's south-east corner, 중앙도서관, the
       // outline of 백주년기념관's drum and the towers of 언더우드관 and 대우관 (~12 px rms on the 2100 px scan; refitted
-      // after 백양로's height section was corrected, issue #8)
-      this.fixed = { x: -119.6, y: -424.0, h: 54.0, tx: 43.4, ty: 152.7, th: 25.6 };
+      // after 백양로's height section was corrected, issue #8, and lowered with the ground to Copernicus GLO-30:
+      // tools/build_campus.py PHOTO_A)
+      this.fixed = { x: -119.6, y: -424.0, h: 44.9, tx: 43.4, ty: 152.7, th: 22.5 };
       this.fovGoal = 27.9;
       this.camera.fov = 27.9;
       this.camera.updateProjectionMatrix();

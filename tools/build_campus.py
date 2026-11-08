@@ -1365,8 +1365,12 @@ bcorr = bline.buffer(ROAD_HALF + 12)
 # tools/snapshots.json): the ray through a pixel of the 2100 x 1338 photo, and the ground point under it on the terrain
 # as built.  The gate's side road, island, booth and banners below are kept as the pixels read off the photo, so they
 # follow the camera and 백양로's height section when either changes (first read through the camera and the flat road
-# of before #8, they had come out 4 - 10 m too far in).
-PHOTO_A = dict(pos=(-119.6, -424.0, 54.0), yaw=15.8, pitch=-2.7, fov=27.9, size=(2100, 1338))
+# of before #8, they had come out 4 - 10 m too far in).  When the ground went over to Copernicus GLO-30 (gate
+# 34.9 -> 25.7 m, the north end of 백양로 7 m down, 언더우드관's quarter 1 m) the camera came down with it: its height
+# over the road where the photo's widths were read (s 60 - 140 m, 9.1 m lower, all of it; the road between the box
+# hedges stays 8.9 m) and its pitch from the halls it was fitted to (중앙도서관, 제1공학관, 언더우드관: the new camera
+# puts them where the old one did on the old ground within 11 px rms; it was 54.0 m, -2.70 deg).
+PHOTO_A = dict(pos=(-119.6, -424.0, 44.9), yaw=15.8, pitch=-2.13, fov=27.9, size=(2100, 1338))
 
 
 def photo_ray(px, py):
