@@ -34,6 +34,7 @@ npm run build        # web/dist 정적 사이트
 | `assets_src/` | 내려받은 원본 텍스처 · HDRI · 캐릭터 팩 |
 | `reference/` | 1997년 사진과 고증 문서 |
 | `docs/` | README 에 쓰는 캡처 · 비교 사진 |
+| `docs/compare/` | README 「사진과 비교」의 사진(`<이름>_photo.jpg`)과 같은 자리의 게임 화면(`<이름>_game.jpg`), 표의 왼쪽 · 오른쪽 칸에 하나씩 |
 
 ### 모듈 (`web/src/`)
 
