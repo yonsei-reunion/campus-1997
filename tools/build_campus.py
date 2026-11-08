@@ -282,14 +282,26 @@ COURT = dict(pos=[21.9, 2.5], rot=1.313, L=28.0, W=15.0)
 # --- 활천대 (活泉臺): the fountain the electrical engineering alumni raised money for in 1974 (연세대학교 공식 블로그
 # 「연세대학교의 조형물을 찾아서!! 제3탄」, 2017).  Before 백양로 was rebuilt it stood beside the eagle (연세춘추
 # 「연세인도 모르는 연세대학교」, 2009.9: 「활천대는 독수리상 옆에 있는 분수대다」; since 2015 it is in front of
-# 제1공학관, where its old spot became the stairs down to 백양누리).  Its 2009 photo (reference/활천대_2009_연세춘추.jpg)
-# was taken from 백양로's west sidewalk looking north-west past it: the arched east front of 중앙도서관 behind, the dome
-# of 과학관 far left, the eagle on the right.  Solving for that camera (the eagle's top and foot and its place in the
-# frame, the library's arches and roofline, the dome; a wide lens, residuals under 6 px) puts the basin 11 m in front
-# of it, 36 m south-south-west of the eagle and 20 m off 백양로's centre line; it is ~6.4 m across (the bell of jets
-# 180 px wide) and its column ~3.3 m over the water.  (The camera: (-51.0, -125.8), 1.6 m up, heading 29.2 deg west
-# of north, tilted 5.1 deg up, vertical field 51.5 deg.)
-FOUNTAIN = dict(pos=[-58.0, -117.0], r=3.2)
+# 제1공학관, where its old spot became the stairs down to 백양누리).
+# Where the eagle and 활천대 stood before 백양로 was rebuilt: Kakao roadview of April 2011 (reference/고증.md 4.1, 4.3),
+# bearings to each column centred in panoramas on 백양로's centre line, whose positions fall on the game's centre line
+# within 1.5 m.  The eagle: 285.6 deg from (-46.5, -166.4) and 355.2 deg from (-61.2, -222.2) -> 20 m west of the
+# centre line, ~80 m south of where the 2015 rebuilding put it, in front of 중앙도서관's south end (a flower bed in 2011).
+# 활천대's white cross column (the water off): 314.4 deg from (-61.2, -222.2) and 250.9 deg from (-53.3, -193.7) ->
+# 45 m south-south-west of the eagle, 24 m off the centre line.  The 1995 campus map draws the same row along the west
+# side of 백양로 south of the library: a round plaza, then a round basin.  Its 2009 photo
+# (reference/활천대_2009_연세춘추.jpg) is then taken from the lawn 10.6 m south-south-east of the basin, looking
+# north-north-west past it at 중앙도서관's south front, with 과학관's dome far left and the eagle on the right (the camera
+# solved from the two columns: (-77.3, -213.2), 1.6 m up, heading 10.7 deg west of north, tilted 3.3 deg up, vertical
+# field 42 deg).  Through that camera the bell of jets (180 px) is 4.4 m across, and the roadview's basin rim about
+# 5.3 m: a basin of 5.2 m (6.4 m before, from the wider lens of the first solution), its column ~3.3 m over the water.
+EAGLE = dict(pos=[-66.5, -161.0])
+FOUNTAIN = dict(pos=[-80.7, -203.2], r=2.6)
+# the eagle on a paved round (its platform is 8.4 m square, 5.9 m to the corners) with a straight walk east to
+# 백양로's sidewalk (the 2011 roadview from 백양로, between beds of azaleas)
+EAGLE_R = 6.0
+EAGLE_WALK = LineString([tuple(EAGLE['pos']), along_raw(s_at(*EAGLE['pos']), E_WALK - 0.3)[:2]])
+EAGLE_PLAZA = Point(*EAGLE['pos']).buffer(EAGLE_R).union(EAGLE_WALK.buffer(1.5, cap_style=2))
 
 
 def court_poly(pad=0.0):
@@ -1214,8 +1226,9 @@ for wv in ways.values():
     if hw in ('footway', 'path', 'steps', 'pedestrian'):
         if EAST_LAWN.contains(ls.centroid):
             continue
-        # (and none across 활천대's basin: OSM's walks there lead down to the 2015 백양누리 entrance)
-        ls = ls.difference(bcorr).difference(ISL.buffer(1.0)).difference(Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 1.5))
+        # (and none across 활천대's basin or the eagle's round: OSM's walks there are the 2015 백양누리 garden's)
+        ls = ls.difference(bcorr).difference(ISL.buffer(1.0)).difference(Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 1.5)) \
+            .difference(EAGLE_PLAZA.buffer(1.0))
         if ls.is_empty:
             continue
         lsl = ls.geoms if hasattr(ls, 'geoms') else [ls]
@@ -1235,6 +1248,13 @@ extra_roads = [
     [GATE, (-150, -432), (-250, -428)], [GATE, (0, -440), (120, -440)],
     ISL_ROAD,
 ]
+# west of the eagle (1997 photo, back-projected with its camera): a row of parked cars ~48 m west of 백양로 between
+# s 250 and 300, a grey drive along their east side.  The drive runs parallel to 백양로 from the end of the road along
+# 제1공학관's north side up to the square south of 중앙도서관; the cars park nose in along its west side.
+# (Drawn after the random planting has read the ground: ASPH_PRE below.)
+SIDE_W = [(-119.9, -181.8)] + [tuple(round(c_, 1) for c_ in along_raw(s, 43.5)[:2]) for s in (240, 270, 300, 330, 352)]
+SIDE_W_W = 6.0
+LOT_W = [along_raw(s, 48.5) for s in np.arange(255, 300, 3.0)]
 draw_poly('asphalt', GATE_APRON.difference(bline.buffer(ROAD_HALF)))
 for r in extra_roads:
     draw_line('asphalt', r, 7 if r is ISL_ROAD else 8)
@@ -1286,13 +1306,14 @@ for pz in plazas:
 # --- 중앙도서관 앞 (1997).  Not one paved square from the hall to 백양로: the 1990 and 1995 campus maps
 # (reference/1990_캠퍼스_지도.png, 1995_캠퍼스_지도.jpg) draw a paved walk along the arcade and, between it and 백양로,
 # hedged beds with a cross walk to the middle of the front and a walk running slant through the north bed; the
-# 1997 aerial photo shows that ground full of trees and the 2009 photo of 활천대 (reference/활천대_2009_연세춘추.jpg)
-# lawn, clipped pines, azaleas and tall trees about the eagle.  The 1997 photo (reference/1997_중앙도서관.jpg) was
+# 1997 aerial photo shows that ground full of trees (the eagle stood 80 m further south: EAGLE above; the 2011
+# roadview has a flower bed where the 2015 rebuilding put it, before the hall's south end).  The 1997 photo
+# (reference/1997_중앙도서관.jpg) was
 # taken by the head of that slant walk, north-east of the hall (eleven arches along the long front on the left, the
 # shaded north end on the right): the walk runs off 13 deg left of the view, its people 1.6 m under the eye at 15 to
 # 46 m (their height against the height of their feet under the horizon).
 # Frame: s along the front from the south-east corner, o out of it (east).  (The old forecourt square stays south of
-# the hall's south end, round the eagle.)
+# the hall's south end.)
 _lfu = (_lf1 - _lf0) / np.linalg.norm(_lf1 - _lf0)
 
 
@@ -1320,10 +1341,8 @@ LIB_SDIAG = [along_raw(CROSS[1], E_WALK - 0.3)[:2], LF(9.0, 11.0)]
 LIB_SDIAG_W = 3.2
 LIB_WALKS = unary_union([LIB_APRON, LIB_CROSS, LineString(LIB_DIAG).buffer(LIB_DIAG_W / 2, cap_style=2),
                          LineString(LIB_SDIAG).buffer(LIB_SDIAG_W / 2, cap_style=2)])
-_lib_eagle = Point(-52.0, -82.0).buffer(9.0)
 LIB_BEDS = (unary_union([lf_rect(5.0, 34.5, 12.0, 60.0), lf_rect(42.5, 100.0, 12.0, 60.0)])
-            .difference(_lib_road.buffer(ROAD['strip'])).difference(_lib_street.buffer(3.6)).difference(LIB_WALKS)
-            .difference(_lib_eagle))
+            .difference(_lib_road.buffer(ROAD['strip'])).difference(_lib_street.buffer(3.6)).difference(LIB_WALKS))
 LIB_BEDS = unary_union([g_ for g_ in (LIB_BEDS.geoms if hasattr(LIB_BEDS, 'geoms') else [LIB_BEDS])
                         if g_.area > 20 and g_.centroid.y < _lib_street.interpolate(_lib_street.project(g_.centroid)).y])
 
@@ -1425,7 +1444,12 @@ for pg in amph_dirt:
 # 중앙도서관 앞: lawn in the beds (over the old square and OSM's later walks), the 1997 walks paved.  The random
 # planting below still reads the paving as it was before (PAV_PRE), so that the rest of the campus keeps its draws.
 PAV_PRE = np.array(layers['pavers']) > 40
+ASPH_PRE = np.array(layers['asphalt']) > 40
 draw_poly('pavers', LIB_BEDS, 0)
+# the same for the eagle's round and walk and the side road west of it with its car stalls (EAGLE_PLAZA, SIDE_W, LOT_W)
+draw_poly('pavers', EAGLE_PLAZA.difference(bline.buffer(E_WALK)))
+draw_line('asphalt', SIDE_W, SIDE_W_W)
+draw_line('asphalt', [(x, y) for x, y, _ in LOT_W], 5.0)
 draw_poly('pavers', LIB_WALKS.intersection(LIB_OLD_SQUARE.union(lf_rect(-4.0, 100.0, 0.0, 60.0))).difference(_lib_road))
 spl = np.stack([np.array(layers['asphalt']), np.array(layers['pavers']), np.array(layers['dirt'])], -1).astype(np.float32)
 # priority: asphalt > pavers > dirt
@@ -1460,8 +1484,8 @@ Image.fromarray(np.clip(_dry, 0, 255).astype(np.uint8), 'L').save(
 # ---------------------------------------------------------------------------
 trees = []        # [species, x, y, scale, rot]
 shrubs = []       # [kind, x, y, scale, rot]
-asph = np.array(layers['asphalt']) > 40
-pav = PAV_PRE                          # (the paving before 중앙도서관's 1997 beds: see above)
+asph = ASPH_PRE                        # (the ground before 중앙도서관's 1997 beds and the eagle's round: see above)
+pav = PAV_PRE
 
 
 def blocked(x, y, pad=4.0):
@@ -1903,7 +1927,7 @@ for k in range(14):
     shrubs.append(['topiary_round', round(_fx + rr_ * math.cos(a_), 2), round(_fy + rr_ * math.sin(a_), 2),
                    round(rng2.uniform(0.6, 0.85), 2), 0])
 for k in range(9):
-    a_ = math.atan2(-82 - _fy, -52 - _fx) + (k - 4) * 0.09
+    a_ = math.atan2(EAGLE['pos'][1] - _fy, EAGLE['pos'][0] - _fx) + (k - 4) * 0.09
     rr_ = FOUNTAIN['r'] + 9.5 + (k % 3) * 0.8
     shrubs.append(['azalea_red', round(_fx + rr_ * math.cos(a_), 2), round(_fy + rr_ * math.sin(a_), 2),
                    round(rng2.uniform(0.9, 1.1), 2), round(rng2.uniform(0, 6.28), 2)])
@@ -2146,7 +2170,7 @@ LIB_TREES = [
     ('zelkova_young', LD(20.3, 11.3), 0.75),    # the young one with the forked stem behind the lamp
     ('pine', LD(19.9, 14.9), 0.87),             # the big dark pine on the right, ~10 m
     ('pine', LD(35.0, -4.9), 0.55),             # the low pine at the photo's left edge
-    # the rest of the beds (1997 aerial photo: trees all over them; 2009 photo: clipped pines about the eagle)
+    # the rest of the beds (1997 aerial photo: trees all over them)
     ('zelkova', LF(50.0, 34.0), 0.7), ('zelkova', LF(61.0, 40.0), 0.72), ('cherry', LF(73.0, 41.0), 0.9),
     ('zelkova', LF(28.0, 22.0), 0.7), ('pine', LF(23.0, 15.5), 0.45), ('cherry', LF(31.0, 30.0), 0.85),
     ('zelkova', LF(8.0, 30.0), 0.66), ('pine', LF(14.0, 40.0), 0.42), ('pine', LF(19.0, 44.0), 0.4),
@@ -2176,6 +2200,14 @@ for g_ in (LIB_BEDS.geoms if hasattr(LIB_BEDS, 'geoms') else [LIB_BEDS]):
         if _ledge.contains(p_) and not _lslant.contains(p_):
             shrubs.append(['hedge_low', round(p_.x, 2), round(p_.y, 2), 1.0, round(math.atan2(q_.y - p_.y, q_.x - p_.x), 3)])
 print('library beds: cleared (trees, shrubs)', _lcleared, 'planted', _n_lib)
+# the eagle's round and walk (EAGLE_PLAZA) through 백양로's strip, the side road west of it and its parked cars (SIDE_W,
+# LOT_W): clear them
+_ecz = unary_union([EAGLE_PLAZA.buffer(0.6), LineString([(x, y) for x, y, _ in LOT_W]).buffer(3.2),
+                    LineString(SIDE_W).buffer(SIDE_W_W / 2 + 1.5)])
+_nt, _ns = len(trees), len(shrubs)
+trees = [t_ for t_ in trees if not _ecz.contains(Point(t_[1], t_[2]))]
+shrubs = [s_ for s_ in shrubs if not _ecz.contains(Point(s_[1], s_[2]))]
+print('eagle round, west cars: cleared (trees, shrubs)', (_nt - len(trees), _ns - len(shrubs)))
 print('trees', len(trees), 'shrubs', len(shrubs))
 
 # ---------------------------------------------------------------------------
@@ -2420,8 +2452,7 @@ for (x, y) in ((-121.0, -347.5), (-120.8, -356.6)):
 
 # parked & moving cars (1990s 승용차), engineering-side motorbikes
 cars = []
-# west of 백양로 between 제1공학관 and 중앙도서관 (cars along the side road in the 1997 photo)
-LOT_W = [along_raw(s, ROAD_HALF + 9.0) for s in np.arange(255, 300, 3.0)]
+# (LOT_W, west of the eagle along the side road SIDE_W: with the roads above)
 lots = [((60, 100), (100, 92), 9), ((-130, 110), (-80, 130), 8), ((20, -150), (40, -180), 6)]
 for (a, b_, n) in lots:
     for k in range(n):
@@ -2584,9 +2615,9 @@ LANDMARKS = [
          title='백주년기념관 박물관 입구', year='1996',
          credit='사진: 1997년 졸업 앨범의 학과 단체사진(1996년 5 ~ 6월, 2022 재상봉 25주년 기념문집 「25년 전 우리는」), 사람이 없는 윗부분',
          text='백주년기념관의 광혜원 쪽 면, 흰 원통과 흰 벽 사이로 비스듬히 기운 유리벽과 흰 관 기둥이 서 있고 「YONSEI UNIVERSITY MUSEUM」 긴 현수막이 걸려 있었다. 짙은 차양 아래 유리문으로 들어가면 박물관. 1996년 봄엔 「세계한민족 화학학술대회」와 박물관 강좌 「민요의 현장을 찾아서」 현수막이 걸렸고, 공대 여러 학과가 이 계단에서 졸업 사진을 찍었다.'),
-    dict(id='eagle', name='독수리상', pos=[-52, -82], r=16, photo=['photos/eagle_2024.jpg'],
+    dict(id='eagle', name='독수리상', pos=EAGLE['pos'], r=16, photo=['photos/eagle_2024.jpg'],
          title='독수리상', year='1997',
-         text='연세의 상징 독수리. 높은 기둥 위에서 날개를 편 독수리는 지금도 같은 자리에서 백양로를 내려다본다.'),
+         text='연세의 상징 독수리. 높은 기둥 위에서 날개를 편 독수리가 정문 쪽으로 백양로를 내려다본다. 2015년 백양로를 다시 만들 때 북쪽 중앙도서관 앞으로 옮겨져 지금도 서 있다.'),
     dict(id='hwalcheon', name='활천대', pos=FOUNTAIN['pos'], r=12, photo=['photos/hwalcheon_2009.jpg', 'photos/hwalcheon_2017.jpg'],
          title='활천대 (活泉臺)', year='1974',
          credit='사진: 연세춘추 「연세인도 모르는 연세대학교」(2009.9.5, 우리대학교 홈페이지 자료) · 연세대학교 공식 블로그 「연세대학교의 조형물을 찾아서!! 제3탄」(2017)',
@@ -2629,7 +2660,7 @@ LANDMARKS = [
          text='1956년 과학관으로 지어져 1984년부터 연희관으로 불린 석조 건물. 담쟁이 덮인 벽과 회양목 정원 사이로, 대우관까지 이어지는 오르막길이 시작된다.'),
 ]
 STATUES = dict(
-    eagle=dict(pos=[-52, -82], rot=math.radians(-14)),          # looks down 백양로 to the gate (2011 roadview side view)
+    eagle=dict(pos=EAGLE['pos'], rot=math.radians(-14)),          # looks down 백양로 to the gate (2011 roadview side view)
     underwood_statue=dict(pos=[55.5, 187.5], rot=math.radians(-14)),
     court=dict(pos=COURT['pos'], rot=COURT['rot'], L=COURT['L'], W=COURT['W']),
     fountain=dict(pos=FOUNTAIN['pos'], r=FOUNTAIN['r'], rot=0.0),     # (the column's arms face the compass points)
@@ -2723,7 +2754,8 @@ out = dict(
                     gaps=[list(g) for g in GAPS], mouths=[list(MOUTH)], apron_paint=APRON_PAINT, **ROAD),
     amphitheater={k: (round(v, 3) if isinstance(v, float) else v) for k, v in AMPH.items()},
     buildings=buildings, trees=trees, shrubs=shrubs, props=props, cars=cars, banners=banners,
-    paths=LIB_PATHS + [p_ for p_ in paths_out if not lib_osm_walk(p_)], landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
+    paths=LIB_PATHS + [dict(kind='service', w=SIDE_W_W, pts=[list(p_) for p_ in SIDE_W])]
+    + [p_ for p_ in paths_out if not lib_osm_walk(p_)], landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
     centennial_block=CENT_BLOCK, sang=dict(c=list(SANG), r=SANG_LAWN), yeonhui=YEONHUI, underwood_steps=UW_STEPS,
     colliders=[CENT_BLOCK['poly']] +
     [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(tennis_poly(pd_, 0.1).exterior.coords)[:-1]] for pd_ in TENNIS['pads']],
