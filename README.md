@@ -42,7 +42,7 @@
 | ![백양로 초소 1997년 사진](docs/compare/guard_booth_photo.jpg)<br>**백양로 초소** · 1997년(게임은 같은 카메라) | ![게임의 백양로 초소](docs/compare/guard_booth_game.jpg) |
 | ![교육관 북쪽 끝과 서쪽 면 2003년 가을 사진](docs/compare/gyoyuk_photo.jpg)<br>**교육관** · 연희관 앞 정원 · 2003년 가을 | ![게임의 교육관](docs/compare/gyoyuk_game.jpg) |
 | ![백양로 끝 벚나무 2003년 봄 사진](docs/compare/cherry_photo.jpg)<br>**벚나무** · 백양로 끝 · 언더우드관 앞길 · 2003년 봄 | ![게임의 벚나무](docs/compare/cherry_game.jpg) |
-| ![언더우드관 정원 남쪽 계단 2003년 봄 사진](docs/compare/uw_steps_photo.jpg)<br>**언더우드관 정원 남쪽 계단** · 앞길 볼라드 · 2003년 봄 | ![게임의 언더우드관 정원 남쪽 계단](docs/compare/uw_steps_game.jpg) |
+| ![백양로 끝 계단 2003년 봄 사진](docs/compare/uw_steps_photo.jpg)<br>**백양로 끝 계단** · 언더우드관 앞길 볼라드 · 2003년 봄 | ![게임의 백양로 끝 계단](docs/compare/uw_steps_game.jpg) |
 | ![해태상과 연희관 앞 매점 2003년 사진](docs/compare/haetae_kiosk_photo.jpg)<br>**해태상** · 연희관 녹색 천막 매점 · 2003년 | ![게임의 해태상과 매점](docs/compare/haetae_kiosk_game.jpg) |
 
 ## 게임 화면
