@@ -1,7 +1,7 @@
 .venv/
-web/node_modules/
+web/node_modules
 web/dist/
-assets_src/
+assets_src
 data/raw/pdf_images/
 previews/
 __pycache__/
