@@ -40,7 +40,8 @@ STEP = 1.5             # m: into a grid this fine
 AO_TOL = 0.08          # thin a grid while its coarser cells stay this close to every node
 DOWN_W = 0.6           # share of a downward face's light that the shaded ground under it takes away
 D_RANGE, U_RANGE = 16.0, 8.0
-REACH = 2.5            # m: how far the streaks under a ledge run down at most (else to the opening below it)
+REACH = 2.5            # m: how far the streaks under a ledge run down at most (else to the opening below it; the
+                       # photos agree, their darkness per material is materials.json `streak`: reference/고증.md 3.19)
 QUANT = (64, 256, 256, 32)  # levels per channel
 LEDGE_DEPTH = 0.65     # m: deepest upward face that still counts as a ledge (sills, copings, bands, treads)
 EDGE_RANGE = 128.0     # m: an edge channel's value where the face has no arris for it (and its largest distance)

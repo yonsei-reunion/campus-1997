@@ -390,7 +390,9 @@ function windowGlass(d) {
 //   G  depth under the ledge above in fade lengths / 16, B position along that ledge (u + 8) / 16
 // -> weathering: soil splashed up the foot of the walls (their height over the terrain the walker sees: setTerrain),
 // rain streaks down from sills, copings and bands, grime on the faces that look up, scaled by the material's
-// `weather` (materials.json) and the building's age (GLB extras `weather`: 대우관 was new in 1996)
+// `weather` (materials.json) and the building's age (GLB extras `weather`: 대우관 was new in 1996); the streaks
+// by the material's `streak` too (default 1: render and concrete; the 1990s photos show them faint on glazed
+// tiles and stone panels and none to see on rubble and granite, reference/고증.md 3.19)
 const BAKE_VERT = /* glsl */`
 attribute vec4 bake;
 uniform sampler2D uTerrain;
@@ -413,7 +415,7 @@ varying vec4 vBake;
 varying vec3 vBakeW;
 varying float vBakeH;
 uniform float uBakeAO;
-uniform float uWeather;
+uniform float uWeather, uStreak;
 float bkHash(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
 float bkNoise(vec3 x) {
   vec3 i = floor(x), f = fract(x);
@@ -456,7 +458,7 @@ const BAKE_WEATHER = /* glsl */`
   float broad = bkNoise(P * vec3(0.3, 0.8, 0.3)) - 0.5;
   float grime = clamp(up * 0.6 + broad * 0.18 + (1.0 - vBake.r) * 0.2, 0.0, 1.0);
   diffuseColor.rgb *= mix(vec3(1.0), vec3(0.58, 0.53, 0.46), base * uWeather);
-  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.44, 0.43, 0.42), streak * uWeather);
+  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.44, 0.43, 0.42), streak * uWeather * uStreak);
   diffuseColor.rgb *= mix(vec3(1.0), vec3(0.7, 0.69, 0.66), grime * uWeather);
 }
 #endif`;
@@ -550,7 +552,8 @@ export class MaterialLibrary {
       const weather = (this.defs[m.name]?.weather ?? 0) * age;
       const { uBakeAO, uTerrain, uTerrainGrid } = this.uniforms;
       v.userData.uWeather = { value: weather };
-      bakeShade(v, { uBakeAO, uTerrain, uTerrainGrid, uWeather: v.userData.uWeather }, weather > 0);
+      const uStreak = { value: this.defs[m.name]?.streak ?? 1 };
+      bakeShade(v, { uBakeAO, uTerrain, uTerrainGrid, uWeather: v.userData.uWeather, uStreak }, weather > 0);
       const edge = edgeWear(this.defs[m.name]);               // worn arrises (walltone.js)
       if (edge) { patchShader(v, edge.key, edge.edit); v.defaultAttributeValues.edge = edge.none; }
       this.bakedMats.set(key, v);
