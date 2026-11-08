@@ -660,6 +660,17 @@ FORECOURTS.append((246156111, None, 6.0, dict(face=((26.82, 349.67), (17.82, 314
                                                side_blend=6.0, level=GYOYUK_FLOOR, inside=1.0)))      # the west drive
 FORECOURTS.append((246156111, None, 11.0, dict(face=((44.15, 345.23), (26.82, 349.67)), max_half=9.0, blend=6.0,
                                                 side_blend=5.0, level=GYOYUK_FLOOR, inside=1.0)))     # the north yard
+# 외솔관2 (1991, on the corridor between 인문관 and 종합관; reference/고증.md 3.1.1): three storeys from its low east end,
+# two from the car park at its west end.  Kakao roadview of June 2026 from that car park (pano 1212397635, 20 m off
+# the west end): 7.5 m of wall shows over the car park's level, and 종합관's west wing stands there on its pilotis
+# with four storeys over them.  The surface model keeps the woods and the halls round the car park, so the 5 m grid
+# had the ground at the west end 10.9 m over the east end and the car park over the block's roof.  Level the car park
+# at the block's lowest corner + 4.5 m (its 12.6 m less the 7.5 showing: 5.1; a storey: 3.8), banking back up into the
+# wooded slope beyond (the face run on 9 m either way: the car park reaches 종합관's west end and 인문관's north wall);
+# the passages along its sides and the service road through the car park are graded and filled (OESOL_ROAD below).
+OESOL_LEVEL = round(corner_level(246156114) + 4.5, 2)
+FORECOURTS.append((246156114, None, 18.0, dict(face=((-90.10, 300.95), (-97.34, 271.24)), max_half=16.0, blend=14.0,
+                                                side_blend=10.0, level=OESOL_LEVEL, inside=1.0)))
 # 스팀슨관 · 아펜젤러관's backs (blender/landmarks.py stone_hall rear; reference/고증.md 3.5): the 2013 survey's rear
 # elevations and the 2010 roadview from the roads behind show the ground at the foot of the back walls about as low as
 # in front, the half-sunk basement's windows clear and the back door a riser or two over it; the 5 m grid ran the
@@ -889,6 +900,30 @@ def fix_strip(line_pts, h0, h1, half, top=False):
 # meets the walk in front of the garden (roadview 2010: the square, the drive and the walk at one level there)
 _ed = [(51.5, 126.5), (63.3, 139.8), (69.1, 146.2)]
 fix_strip(_ed, sample(Hn, NEAR_HALF, NEAR_STEP, *_ed[0]), UW_TOP, 4.0)
+
+# 외솔관2's sides (OESOL_LEVEL above): the passage to 종합관 (north, 5.5 - 6.6 m wide) and the gap to 인문관 (south,
+# ~7.6 m) fall from the car park's level at the west end to the ground at the east end, a storey lower
+OESOL_PASSAGES = [[(-90.46, 295.16), (-44.09, 283.35)], [(-95.1, 276.2), (-52.8, 265.8)]]
+for _ln, _hw in zip(OESOL_PASSAGES, (3.0, 3.5)):
+    fix_strip(_ln, OESOL_LEVEL, sample(Hn, NEAR_HALF, NEAR_STEP, *_ln[1]), _hw)
+# The service road through the car park (OSM 444854948 · 444854949) stood on the same surface model, 8 - 10 m over
+# the car park north-east of it along 종합관 (roadview 2026 from it, pano 1212397616: the road falls gently east and
+# 종합관's north wing shows four storeys over it; the game had two).  Graded from the car park (where the roadview's
+# lens stands 1.2 m over the block's west end) to its own ends, which stay: east the junction at the head of the
+# steps down to 교육관, south-west up the hill.  The ground between the road, the car park and the halls, and a 15 m
+# band of the woods north of the road: one smooth surface down to it.
+OESOL_ROAD = [[(-103.6, 307.7), (-88.0, 318.1), (-81.6, 321.9), (-52.8, 328.0), (-40.9, 329.5), (-35.1, 329.1),
+               (-6.8, 322.1), (-0.7, 321.7)], [(-103.6, 307.7), (-129.6, 290.3), (-151.1, 218.7)]]
+_ocp = OESOL_LEVEL + 1.2
+for _ln in OESOL_ROAD:
+    fix_strip(_ln, _ocp, sample(Hn, NEAR_HALF, NEAR_STEP, *_ln[-1]), 3.5)
+_oreg = unary_union([LineString(_ln).buffer(16.0) for _ln in OESOL_ROAD] +
+                    [Polygon([(-126.0, 262.0), (-60.0, 262.0), (-48.0, 290.0), (-80.0, 322.0), (-126.0, 300.0)])]) \
+    .intersection(Polygon([(-200.0, 150.0), (-8.0, 150.0), (-8.0, 400.0), (-200.0, 400.0)]))   # (not the junction east)
+_free = shapely.contains_xy(_oreg, X, Y) & ~FIXED & (dist > ROAD_HALF + 4)
+harmonic_fill(_free)
+print('외솔관2: car park %.2f (road %.2f), east end %.2f m, %d nodes filled' % (OESOL_LEVEL, _ocp, corner_level(246156114),
+                                                                         int(_free.sum())))
 
 
 # --- 연희관 앞 정원: between 언더우드관's back and 연희관 (OSM; reference/연희관_정면_2023.jpg, 학교연혁_연희관.jpg from
@@ -2764,6 +2799,9 @@ ENTRY_STYLES = ('modern', 'white', 'stone', 'brick', 'tile', 'stone_pale', 'gym'
 ENTRY_AT = {222843398: ((-242.7, 13.8), dict(span=3, canopy=3.0, stair_w=16.0, lamp5=True, floor=2)),
             429077789: ((144.08, -11.73), dict(span=2, music=True)),
             245623193: ((35.93, 412.08), dict(floor=0))}
+# (제2인문관, GONE_1997: its door where the ground before 외솔관2's road lowering put it, so that the paving drawn
+# there before the site is laid bare, and with it the decals' random draws, stay as they were)
+ENTRY_AT[246156119] = ((-4.35, 348.6), {})
 _walks = [LineString(p_['pts']) for p_ in paths_out if len(p_['pts']) > 1] + [bline]
 _walk_u = unary_union(_walks)
 _bp_all = [Polygon(b_['footprint']) for b_ in buildings]
