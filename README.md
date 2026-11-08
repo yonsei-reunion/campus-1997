@@ -26,6 +26,7 @@
 | ![백주년기념관 박물관 입구 1996년 사진](docs/compare/museum_photo.jpg)<br>**백주년기념관** 박물관 입구 · 1996년 | ![게임의 백주년기념관 박물관 입구](docs/compare/museum_game.jpg) |
 | ![대강당 2009년 사진](docs/compare/auditorium_photo.jpg)<br>**대강당** · 2009년 | ![게임의 대강당](docs/compare/auditorium_game.jpg) |
 | ![언더우드관 2016년 사진](docs/compare/underwood_photo.jpg)<br>**언더우드관** · 2016년 | ![게임의 언더우드관](docs/compare/underwood_game.jpg) |
+| ![언더우드 동상 2009년 사진](docs/compare/underwood_statue_photo.jpg)<br>**언더우드 동상** · 2009년 | ![게임의 언더우드 동상](docs/compare/underwood_statue_game.jpg) |
 | ![스팀슨관 2016년 사진](docs/compare/stimson_photo.jpg)<br>**스팀슨관** · 2016년 | ![게임의 스팀슨관](docs/compare/stimson_game.jpg) |
 | ![아펜젤러관 2016년 사진](docs/compare/appenzeller_photo.jpg)<br>**아펜젤러관** · 2016년 | ![게임의 아펜젤러관](docs/compare/appenzeller_game.jpg) |
 | ![연희관 2023년 가을 사진](docs/compare/yeonhui_photo.jpg)<br>**연희관** · 2023년 가을(게임은 10월) | ![게임의 연희관](docs/compare/yeonhui_game.jpg) |
@@ -195,8 +196,8 @@
 - 인물과 애니메이션: Quaternius [Ultimate Modular Men](https://quaternius.com/packs/ultimatemodularmen.html) · [Ultimate Modular Women](https://quaternius.com/packs/ultimatemodularwomen.html), CC0
 - 글꼴: Noto Sans KR, Jua, Do Hyeon (SIL OFL)
 - 분수 물결 · 빛무늬: [Ultra Water](https://github.com/Humpalumps/Ultra-Water), MIT
-- 동상 모델링 참고(배포하지 않음): Wikimedia Commons의 언더우드 동상 사진(Rickinasia, CC BY-SA 4.0 등), 연세대 상징물 소개 페이지,
-  연세춘추 「'버추얼 캠퍼스', 우리대학교 네 번째 교정 출범」(2024)
+- 언더우드 동상 사진: Wikimedia Commons User:Thinkinglex (2009, 퍼블릭 도메인), Rickinasia (2019) · 콩가루 (2011, CC BY-SA 4.0), Fumihiko Ueno (2010, CC BY 3.0).
+  모델링 참고(배포하지 않음): 연세대 상징물 소개 페이지, 연세춘추 「'버추얼 캠퍼스', 우리대학교 네 번째 교정 출범」(2024)
 - 1997년 사진: `reference/` (2026 연세대학교 재상봉 25주년 기념문집 「응답하라 1997!」: 연세대학교 기록관 · 연세동문회보 · 연세춘추 · 동문 제공, 그 밖의 재상봉 기념문집, 파일별 출처는 `reference/출처.txt`).
   동문회 비영리 용도로만 쓰고, 재배포할 때는 원 출처의 허락을 받아야 합니다.
 - 「사진과 비교」의 뒤 시기 사진: 언더우드관 · 스팀슨관 · 아펜젤러관 Wikimedia Commons User:Tungdangthanh (2016, CC BY-SA 4.0), 연희관 User:Huntsmanleader (2023, CC BY 4.0),
