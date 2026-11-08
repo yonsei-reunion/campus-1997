@@ -107,6 +107,10 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 230 m 밖의 나무는 실행 중에 렌더링한 임포스터(교차 판 + 위에서 본 판)로 바꿉니다(`world.js` `Forest`).
 - 줄기와 잎은 카메라 가까이에서 디더링으로 비쳐 보이고, 고품질 화면에서는 TAA 가 점무늬를 고르게 섞습니다.
 - 담쟁이는 잎 카드마다 위상과 매달린 길이를 정점에 담아 흔듭니다.
+- 다듬은 관목 · 생울타리 · 꽃은 `blender/shrubs.py`: 다듬은 윤곽의 몸통(모서리 둥근 상자, 회전체)에 몸통 안에서 비스듬히 솟은 잔가지 카드.
+  - 몸통은 이음매 없는 잎 무늬와 노멀 맵을 월드 좌표에서 세 방향으로 비춰 입힘(`web/src/hedges.js`, 폰은 색만): 한 줄로 겹친 생울타리 토막이 한 무늬로 이어짐
+  - 카드는 뿌리 쪽 몸통의 노멀과 그늘을 받아 겉면과 같은 밝기, 뒷면을 볼 때도 노멀을 뒤집지 않음
+  - 잎 · 꽃은 Poly Haven 「Periwinkle Plant」 스캔을 잘라 실제 크기로 다시 칠함(`tools/make_shrub_textures.py`)
 
 ### 사람
 
@@ -153,6 +157,7 @@ python3 tools/fetch_polyhaven.py textures 1k <이름…>   # CC0 텍스처/모�
 python3 tools/fetch_terrain.py near && python3 tools/fetch_terrain.py far
 .venv/bin/python tools/build_campus.py            # OSM + 지형 -> data/campus.json, 지형 bin, 스플랫맵
 .venv/bin/python tools/make_textures.py           # 잎 아틀라스, 은행잎 · 벚꽃잎 타일, 간판, 정문 현판
+.venv/bin/python tools/make_shrub_textures.py     # 관목 · 꽃의 겉면과 잔가지 아틀라스 (먼저 fetch_polyhaven.py models 2k periwinkle_plant)
 .venv/bin/python tools/prepare_web_textures.py    # PBR 텍스처 -> web/public
 blender -b --factory-startup --python blender/build.py            # 모든 GLB 빌드
 blender -b --factory-startup --python blender/build.py -- blend   # + 편집용 assets_src/yonsei1997_campus.blend
@@ -161,7 +166,7 @@ node tools/bake_sun_shadows.mjs <포트>   # (web 에서 npx vite 를 띄운 뒤
 blender -b --factory-startup --python blender/characters.py       # 사람 14명 + 리그 2개 (assets_src/quaternius/ 필요)
 ```
 
-- `blender/build.py` 에 `buildings landmarks road veg props polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다. `noao` 를 더하면 베이크를 건너뜁니다.
+- `blender/build.py` 에 `buildings landmarks road veg shrubs props polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다(`shrubs`: 나무를 빼고 관목만). `noao` 를 더하면 베이크를 건너뜁니다.
 - 순서가 있습니다: 일반 건물과 랜드마크는 서로의 그림자를 상대의 마지막 GLB 에서 읽어 굽습니다. 한쪽을 크게 바꿨으면 `landmarks` → `buildings` → `landmarks` 로 돕니다. 그림자를 지거나 걷는 면이 바뀌면 마지막에 `bake_sun_shadows.mjs`.
 - `bake_sun_shadows.mjs` 는 Playwright 의 Chromium 이 필요합니다(`npx playwright install chromium`).
 

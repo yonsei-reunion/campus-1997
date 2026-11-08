@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { MOBILE, versioned, mulberry } from './util.js';
 import { LITTER_MATS, litterUniforms, litterEdit, litterSeason } from './litter.js';
 import { wallTone, edgeWear } from './walltone.js';
+import { shrubTexture, hedgeMaps, hedgeEdit, HEDGE_KEY, SHRUB_LEAVES, cardEdit, CARD_KEY } from './hedges.js';
 
 const texLoader = new THREE.TextureLoader();
 const cache = new Map();
@@ -76,11 +77,8 @@ export function leafUrl(species, season, young = false) {
   const v = LEAF_VARIANTS[species] || [];
   // young trees (1997's lawn planting) still wear April's light, sparse leaves in May
   if (young && season === 'summer' && v.includes('spring')) return `assets/textures/leaf_${species}_spring.png`;
-  // 철쭉 bloom red from late April through May; green leaves in October
-  if (species === 'azalea_red') return season === 'autumn' ? `assets/textures/leaf_azalea_summer.png` : `assets/textures/leaf_azalea_red.png`;
-  // 진달래 flower in April, before their leaves
-  if (species === 'azalea_violet') return season === 'spring' ? `assets/textures/leaf_azalea_violet.png` : `assets/textures/leaf_azalea_summer.png`;
-  if (species === 'azalea') return season === 'spring' ? `assets/textures/leaf_azalea.png` : `assets/textures/leaf_azalea_summer.png`;
+  // 영산홍 · 철쭉 · 진달래: their bloom and their leaves by the month (hedges.js)
+  if (species.startsWith('azalea')) return `assets/textures/leaf_${shrubTexture(species, season)}.png`;
   if (v.includes(season)) return `assets/textures/leaf_${species}_${season}.png`;
   return `assets/textures/leaf_${species}.png`;
 }
@@ -637,8 +635,9 @@ export class MaterialLibrary {
       if (wall) patchShader(m, wall.key, wall.edit);
     } else if (d.leaf) {
       const species = d.leaf;
+      const hedge = d.opaque && hedgeMaps(species, this.season);   // a clipped shrub's body (hedges.js)
       m = new THREE.MeshStandardMaterial({
-        map: loadTex(leafUrl(species, this.season, !!d.young), { repeat: !!d.opaque }),
+        map: loadTex(hedge ? hedge.map : leafUrl(species, this.season, !!d.young), { repeat: !!d.opaque }),
         alphaTest: d.opaque ? 0 : 0.42,
         transparent: false,
         side: THREE.DoubleSide,
@@ -653,7 +652,14 @@ export class MaterialLibrary {
       m.userData.tintAutumn = d.tintAutumn || m.userData.tint;
       // (a clipped hedge's solid body does not flutter, nor does the sun shine through it)
       foliage(m, d.opaque ? LEAF_GLOW_FLAT : LEAF_GLOW, d.opaque ? 0 : 0.03);
-      if (!d.opaque) backlight(m);
+      if (!d.opaque) {
+        backlight(m);
+        if (SHRUB_LEAVES.has(species)) patchShader(m, CARD_KEY, cardEdit);    // (a shrub's sprigs: hedges.js)
+      } else {
+        m.userData.hedge = true;
+        if (hedge.normal) m.normalMap = loadTex(hedge.normal, { srgb: false });
+        patchShader(m, HEDGE_KEY, hedgeEdit(species));
+      }
       this.leafMats.push(m);
     } else if (d.rooms) {
       m = windowGlass(d);
@@ -694,8 +700,11 @@ export class MaterialLibrary {
     this.uniforms.uGrass.value.setRGB(...SEASONS[season].grass);
     litterSeason(this.uniforms, season);                      // the month's fallen leaves or petals
     for (const m of this.leafMats) {
-      const t = loadTex(leafUrl(m.userData.species, season, m.userData.young), { repeat: m.userData.opaque });
-      m.map = t;
+      if (m.userData.hedge) {
+        const h = hedgeMaps(m.userData.species, season);
+        m.map = loadTex(h.map);
+        if (m.normalMap) m.normalMap = loadTex(h.normal, { srgb: false });
+      } else m.map = loadTex(leafUrl(m.userData.species, season, m.userData.young), { repeat: m.userData.opaque });
       m.color.setRGB(...(season === 'autumn' ? m.userData.tintAutumn : m.userData.tint));
       m.needsUpdate = true;
     }

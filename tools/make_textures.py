@@ -441,19 +441,8 @@ atlas('poplar_autumn', 'poplar', [(222, 190, 70), (204, 170, 60), (186, 152, 58)
 atlas('ivy', 'ivy', [(54, 98, 30), (70, 116, 36), (44, 82, 26), (86, 130, 42)])
 atlas('ivy_autumn', 'ivy', [(165, 34, 30), (190, 58, 32), (128, 28, 40), (205, 96, 38), (150, 100, 40), (110, 30, 45)])
 atlas('ivy_spring', 'ivy_bare', [(128, 150, 58), (112, 136, 50), (140, 160, 64), (160, 92, 54), (118, 142, 52)])
-atlas('boxwood', 'boxwood', [(45, 82, 32), (55, 95, 36), (38, 70, 28)])
-atlas('azalea', 'azalea', [(55, 90, 35), (65, 100, 40)], flowers=((225, 60, 150), 380, (0.045, 0.06)))
-atlas('azalea_summer', 'azalea', [(55, 90, 35), (65, 100, 40)])
-atlas('azalea_red', 'azalea', [(50, 85, 32), (60, 95, 38)], flowers=((200, 32, 48), 300, (0.04, 0.055)))
-# 진달래 on 용재관's bank in April (reference/용재관.jpg): violet-pink flowers before the leaves, the bush one mass of
-# bloom with a few fresh leaves showing (May and October: the green azalea_summer)
-atlas('azalea_violet', 'azalea', [(96, 128, 56), (110, 138, 62)],
-      flowers=[((196, 104, 196), 700, (0.05, 0.068), (186, 110, 176)), ((214, 122, 206), 260, (0.045, 0.06), (204, 128, 192))])
-# the flower border along the top of the banks by the steps up to 언더우드관 정원 (the 2003 spring photo): yellow
-# pansies with a few white and purple ones among small leaves
-atlas('pansy', 'pansy', [(60, 100, 40), (72, 112, 46), (52, 88, 34)],
-      flowers=[((246, 206, 40), 560, (0.034, 0.048), (60, 40, 20)), ((250, 246, 236), 40, (0.032, 0.044), (230, 190, 40)),
-               ((120, 70, 150), 22, (0.032, 0.044), (240, 200, 60))])
+# the clipped shrubs' and flower beds' atlases (boxwood, azalea*, pansy) and their bodies' surfaces are painted from
+# scanned leaves by tools/make_shrub_textures.py
 
 
 def shape_petal(rnd):

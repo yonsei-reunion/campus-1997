@@ -1,6 +1,6 @@
 """Build every 3D asset of the Yonsei-1997 campus and export GLBs for the web app.
 
-usage: blender -b --factory-startup --python blender/build.py -- [buildings] [landmarks] [road] [veg] [props] [polyhaven] [preview]
+usage: blender -b --factory-startup --python blender/build.py -- [buildings] [landmarks] [road] [veg] [shrubs] [props] [polyhaven] [preview]
 (no argument = everything; add noao to skip the occlusion / weathering bake of the halls and landmarks, blender/bake.py)
 """
 import sys, os, math, random, json
@@ -106,6 +106,8 @@ if want('veg'):
             vegetation.apply_canopy_normals(ob, mb.leaf_center, mb.leaf_radii)
             stats[f'{sp}_{v}'] = tri_count([ob])
             export_glb([ob], os.path.join(OUT, 'veg', f'{sp}_{v}.glb'), colors=True)
+
+if want('veg') or want('shrubs'):       # (`shrubs` alone: the clipped shrubs without the trees, blender/shrubs.py)
     for k in ('topiary_round', 'topiary_cone', 'hedge_blob', 'bush', 'hedge_low', 'azalea_red', 'azalea_violet', 'pansy_bed'):
         reset_scene()
         ob = vegetation.make_shrub(k).build()
