@@ -886,14 +886,14 @@ def win_holes(L, z0, nfl, fh, bay, ww=0.6, sill=0.9, head=0.6, s_start=0.0, s_en
     return out
 
 
-def ivy_patch(iv, P, s0, s1, z0, z1, density, seedoff=0, holes=(), top=None, cover=1.0):
+def ivy_patch(iv, P, s0, s1, z0, z1, density, seedoff=0, holes=(), top=None, cover=1.0, mask=None):
     """Boston ivy (담쟁이) on a wall rectangle, as leaf cards.
 
     As in the photos of 언더우드관 (1990s - 2023): the vines climb from the foot of the wall in broad vertical
     strands that merge into an almost continuous mat; each strand reaches its own height (most of them the
     eaves), and the window openings stay clear (the leaves only lap over their edges).
     holes: (s0, s1, z0, z1) openings to keep clear; top(s): wall top for gables; cover: 0..1 how much of the
-    wall the strands cover.
+    wall the strands cover; mask(s, z): False where the wall stays bare (_stone_ivy_spec).
 
     Every corner of a card carries its wind (corner colour, which blender/bake.py keeps for the leaves; read by
     web/src/materials.js wallLeaf): R the card's phase, G 1 - how far the corner hangs below the card's stalk (m),
@@ -929,6 +929,8 @@ def ivy_patch(iv, P, s0, s1, z0, z1, density, seedoff=0, holes=(), top=None, cov
         if r.random() > thick(s, z) * edge:
             continue
         if any(a < s < b and c < z < d for a, b, c, d in hl):
+            continue
+        if mask is not None and not mask(s, z):
             continue
         sz = r.uniform(0.5, 0.95)
         off = r.uniform(0.04, 0.2)
@@ -1800,9 +1802,31 @@ def hall_door(mb, P, sc, zd, door, depth, wall='stone_rubble'):
     return (e0 - band, e1 + band, zt), (e0 - band - 0.25, e1 + band + 0.25, -1.0, zt + 0.3)
 
 
+def _stone_ivy_spec(ivy, walls, w):
+    """The ivy of one wall of a stone_hall, (cover, z top, mask), as the photos of each wall show it (reference/
+    고증.md 3.5): walls {key: cover, or dict(cover=, zmax=, ends=(a, b))}, key 0 the front, 1 / 3 the ends (1 the +x
+    one), 2 the back, 'porch', 'bays', 'end_bay'; walls not named take the hall's ivy.  zmax: the strands climb only
+    that high over the plinth's foot (their tips thinning as on a full wall), ends: they grow only within a m of the
+    wall's first corner and b m of its last, the edge wavering by ~0.5 m.  w: (key, the wall's length)."""
+    if not ivy:
+        return 0.0, None, None
+    key, Le = w if w else (None, 0.0)
+    spec = (walls or {}).get(key, ivy)
+    if not isinstance(spec, dict):
+        return spec, None, None
+    ends = spec.get('ends')
+    mask = None
+    if ends:
+        def mask(s, z):
+            d = 0.35 * math.sin(z * 1.3 + s) + 0.2 * math.sin(z * 3.7)
+            return s < ends[0] + d or s > Le - ends[1] - d
+    return spec.get('cover', ivy), spec.get('zmax'), mask
+
+
 def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pitch=0.5, door_group=None, porch=None,
                bays=None, back=(), chimney=None, door=None, stairs=None, floors=2, plinth=1.3, basement=True,
-               dormers=(), end_wins=None, z0=None, rect_fp=None, extra=None, attic=None, end_bay=None, rear=None):
+               dormers=(), end_wins=None, z0=None, rect_fp=None, extra=None, attic=None, end_bay=None, rear=None,
+               ivy_walls=None):
     """스팀슨관 · 아펜젤러관 (see above), 성암관 and 교육관.  groups: the front's window groups (s0, s1, lights) on every
     floor, s along the front from its left end seen from outside; door_group: the one whose ground-floor place the front
     door takes; porch: a central entrance bay standing forward to a flat parapet a little over the eaves (스팀슨관,
@@ -1815,7 +1839,8 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
     -x end; g along the edge from its first corner), attic: {edge: (g, width, z0, z1)} a single light in the gable
     (z over the wall top), end_bay: a canted bay standing out of a gable end (스팀슨관's south end), rear: the stair
     window over the back door in the middle of the back wall (스팀슨관, 아펜젤러관), z0: the floor level, rect_fp: the
-    main block's corners when the outline takes in a bay, extra(mb, iv, frame): further parts in the local frame."""
+    main block's corners when the outline takes in a bay, extra(mb, iv, frame): further parts in the local frame,
+    ivy_walls: the ivy of single walls (_stone_ivy_spec)."""
     cx, cy, L, W, ang, z0_ = frame_for(dict(b, footprint=rect_fp) if rect_fp else b, front)
     stairs = dict(dict(width=3.6, wl=None, rise=1.3, cheeks=True, lamps=False), **(stairs or {}))
     door = dict(dict(w=2.2, arch='tudor', spring=1.9, style='panel', rec=0.6), **(door or {}))
@@ -1869,9 +1894,10 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
                 bar(mb, P, sa, za + 0.05, sb, zb_ + 0.05, 0.14, (inner if inner is not None else -0.3) - 0.04, d + 0.08,
                     'stone_trim')
 
-    def ivy_wall(P, s0, s1, z1, holes, seed, top=None):
-        if ivy:
-            ivy_patch(iv, P, s0, s1, 0, z1, 5.5, seed, cover=ivy, holes=holes, top=top)
+    def ivy_wall(P, s0, s1, z1, holes, seed, top=None, w=None):
+        cover, zmax, mask = _stone_ivy_spec(ivy, ivy_walls, w)
+        if cover:
+            ivy_patch(iv, P, s0, s1, 0, min(z1, zmax or z1), 5.5, seed, cover=cover, holes=holes, top=top, mask=mask)
 
     def rear_middle(P, holes, ivh):
         """The middle of the back wall (the 2013 survey's rear elevations, in 안대환 2016): the stair's lights, three
@@ -1944,7 +1970,7 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
             for s in (-0.15, Le + 0.15):       # kneelers at the foot of the copings, over the ends of the eaves
                 kb, kt = Hw - ce - 0.1, Hw + pr + 0.12
                 mb.box(P(s, (kb + kt) / 2, -0.2), (0.55, 0.5, kt - kb), 'stone_trim', rotz=rz(t))
-            ivy_wall(P, 0, Le, hz - 0.4, holes, i, top=lambda s, rl=rl: rl(s) - 0.4)
+            ivy_wall(P, 0, Le, hz - 0.4, holes, i, top=lambda s, rl=rl: rl(s) - 0.4, w=(i, Le))
             continue
         front_side = (i == 0)
         if front_side:
@@ -1970,7 +1996,7 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
             windows(P, wins, holes, s0, s1)
         for s0, s1 in spans:
             wall_holes(mb, P, s0, s1, plinth, Hw, wall, [h for h in holes if h[1] > s0 and h[0] < s1])
-            ivy_wall(P, s0, s1, Hw + 0.3, holes + ivh, i * 3 + int(s0))
+            ivy_wall(P, s0, s1, Hw + 0.3, holes + ivh, i * 3 + int(s0), w=(i, Le))
         bar(mb, P, -0.05, Hw - 0.15, Le + 0.05, Hw - 0.15, 0.3, 0.0, 0.12, 'stone_trim', ends=True)   # cornice
     # --- slate roof (gable along L), plain eaves with a gutter
     ze = Hw - eave * pitch
@@ -2044,14 +2070,14 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
         for s in (0.22, Le - 0.22):                                 # the raised ends of the coping
             bar(mb, P, s - 0.25, ztp + 0.16, s + 0.25, ztp + 0.16, 0.16, -0.39, 0.1, 'stone_trim', ends=True)
         if pwall == wall:
-            ivy_wall(P, 0, Le, ztp - 0.15, holes + [dhole], 41)
+            ivy_wall(P, 0, Le, ztp - 0.15, holes + [dhole], 41, w=('porch', Le))
         for pa, pb, sg in (((p1, yf), (p1, -W / 2), 1), ((p0, -W / 2), (p0, yf), -1)):   # its sides
             P2, Le2, t2, _ = edge_P(pa, pb)
             flat_wall(mb, P2, 0, Le2, plinth, ztp, pwall)
             mb.quad(P2(Le2, zr, -0.35), P2(0, zr, -0.35), P2(0, ztp, -0.35), P2(Le2, ztp, -0.35), pwall)
             bar(mb, P2, -0.04, ztp + 0.05, Le2 + 0.04, ztp + 0.05, 0.14, -0.39, 0.08, 'stone_trim', ends=True)
             if pwall == wall:
-                ivy_wall(P2, 0, Le2, ztp - 0.15, [], 43 + sg)
+                ivy_wall(P2, 0, Le2, ztp - 0.15, [], 43 + sg, w=('porch', Le2))
             if low_porch:
                 continue
             xi = (p1 - 0.35) if sg > 0 else (p0 + 0.35)
@@ -2082,7 +2108,7 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
             wall_holes(mb, P, 0, Le, plinth, zlo, wall, holes)
             profile_wall(P, prof, zlo, inner=-0.3)
             mb.quad(P(Le, zr, -0.3), P(0, zr, -0.3), P(0, zlo, -0.3), P(Le, zlo, -0.3), wall)
-            ivy_wall(P, 0, Le, ztf, holes, 51 + k + int(x0),
+            ivy_wall(P, 0, Le, ztf, holes, 51 + k + int(x0), w=('bays', Le),
                      top=lambda s, prof=prof: prof[0][1] + (prof[-1][1] - prof[0][1]) * s / max(prof[-1][0], 1e-3) - 0.25)
         inset = offset_poly(Q, -0.3)
         inset[0] = (inset[0][0], y_r)
@@ -2122,7 +2148,7 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
                 for p, q in zip(sh, sh[1:] + sh[:1]):
                     mb.quad(P(Le / 2 + q[0], zc_ + q[1], 0.07), P(Le / 2 + p[0], zc_ + p[1], 0.07),
                             P(Le / 2 + p[0], zc_ + p[1], 0.0), P(Le / 2 + q[0], zc_ + q[1], 0.0), 'stone_trim')
-            ivy_wall(P, 0, Le, zb, holes, 61 + k)
+            ivy_wall(P, 0, Le, zb, holes, 61 + k, w=('end_bay', Le))
         inset = offset_poly(Q, -0.3)
         inset[0], inset[3] = (xw, inset[0][1]), (xw, inset[3][1])
         mb.face([(p[0], p[1], zr) for p in inset], 'roof_flat')
@@ -2317,7 +2343,12 @@ def stimson():
     one = lambda g, f: (g - 0.5, g + 0.5, 1, f)                    # a single light, 1 m wide
     ends = {1: [one(2.6, 0), one(W / 2, 0), one(W - 2.6, 0), one(2.6, 1), one(W - 2.6, 1)],
             3: [one(g, f) for g in (2.5, W - 2.5) for f in (0, 1)]}
-    return stone_hall('stimson', b, (1.0, -0.27), groups, ivy=0.8,
+    # the ivy (reference/고증.md 3.5): the porch a mat to its parapet (a 1996 - 2000 summer photo, the Dec. 2010
+    # roadview, 2016), the north end covered to its gable (2010); the south end bare stone but for low growth at its
+    # corners (April 2003 from 백양로's end, 2010, 2016), the back only up to the ground floor (the Aug. 2008 roadview)
+    ivy_walls = {'porch': 1.15, 1: 1.0, 3: dict(cover=0.6, zmax=3.3, ends=(1.2, 1.6)), 'end_bay': 0,
+                 2: dict(cover=0.6, zmax=4.3)}
+    return stone_hall('stimson', b, (1.0, -0.27), groups, ivy=0.8, ivy_walls=ivy_walls,
                       porch=dict(s0=L / 2 - pw / 2, s1=L / 2 + pw / 2, proj=0.9, parapet=0.8, win=(2.3, [0.45, 1.0, 0.45])),
                       chimney=dict(at=(-5.8, 0.0), h=3.0, sky=(-5.8, 2.3)), end_wins=ends,
                       attic={1: (W / 2, 0.7, 0.4, 1.75), 3: (W / 2, 0.75, 0.35, 1.2)},
@@ -2342,7 +2373,11 @@ def appenzeller():
     at = [(2.3, 6.6), (L - 6.6, L - 2.3)]
     end = [w for f in (0, 1) for w in ((W / 2 - 5.05, W / 2 - 2.95, 2, f), (W / 2 - 1.6, W / 2 + 1.6, 3, f),
                                         (W / 2 + 2.95, W / 2 + 5.05, 2, f))]
-    return stone_hall('appenzeller', b, (-1.0, 0.27), groups, ivy=1.1, door_group=2,
+    # the ivy (reference/고증.md 3.5): the front a mat round the door (a 1996 group photo) and the north end (2010,
+    # 2016) as before; the south end (1: the +x one) strands up the piers and a band under the upper lights (a 1996 -
+    # 2000 autumn photo, the telephone box at its corner); the back bare but near its north end (the Dec. 2010 roadview)
+    ivy_walls = {1: 1.0, 2: dict(cover=0.6, ends=(0.0, 3.5))}
+    return stone_hall('appenzeller', b, (-1.0, 0.27), groups, ivy=1.1, door_group=2, ivy_walls=ivy_walls,
                       bays=dict(at=at, front=3.0, proj=0.75),
                       back=[(c - gw / 2, c + gw / 2, 3) for c in (4.0, L - 4.0)], end_wins={1: end, 3: end},
                       attic={1: (W / 2, 0.9, 0.4, 2.0), 3: (W / 2, 0.9, 0.4, 2.0)},
