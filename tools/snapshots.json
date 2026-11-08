@@ -66,7 +66,7 @@
      "cam": {"x": 211.6, "y": 152.4, "h": 68.83, "tx": 162.9, "ty": 161.2, "th": 54.24, "fov": 36.1}, "size": [1141, 900],
      "out": [{"path": "docs/compare/amphitheater_game.jpg", "width": 900}]},
     {"name": "compare/hwalcheon", "doc": "reference/활천대_2009_연세춘추.jpg: 분수 뒤 중앙도서관, 오른쪽 독수리상",
-     "cam": {"x": -77.3, "y": -213.2, "dh": 1.6, "tx": -82.87, "ty": -183.72, "tdh": 3.79, "fov": 42}, "size": [1050, 700],
+     "cam": {"x": -78.6, "y": -216.2, "dh": 1.6, "tx": -84.48, "ty": -186.78, "tdh": 3.94, "fov": 36.1}, "size": [1050, 700],
      "out": [{"path": "docs/compare/hwalcheon_game.jpg", "width": 525}]},
     {"name": "compare/guard_booth", "doc": "1997년 항공 사진 카메라로 초소만 당겨 봄",
      "cam": {"x": -119.6, "y": -424.0, "h": 44.9, "tx": -84.8, "ty": -298.1, "th": 28.7, "fov": 5}, "size": [1200, 986],

@@ -317,20 +317,26 @@ COURT = dict(pos=[21.9, 2.5], rot=1.313, L=28.0, W=15.0)
 # 「연세대학교의 조형물을 찾아서!! 제3탄」, 2017).  Before 백양로 was rebuilt it stood beside the eagle (연세춘추
 # 「연세인도 모르는 연세대학교」, 2009.9: 「활천대는 독수리상 옆에 있는 분수대다」; since 2015 it is in front of
 # 제1공학관, where its old spot became the stairs down to 백양누리).
-# Where the eagle and 활천대 stood before 백양로 was rebuilt: Kakao roadview of April 2011 (reference/고증.md 4.1, 4.3),
-# bearings to each column centred in panoramas on 백양로's centre line, whose positions fall on the game's centre line
-# within 1.5 m.  The eagle: 285.6 deg from (-46.5, -166.4) and 355.2 deg from (-61.2, -222.2) -> 20 m west of the
-# centre line, ~80 m south of where the 2015 rebuilding put it, in front of 중앙도서관's south end (a flower bed in 2011).
-# 활천대's white cross column (the water off): 314.4 deg from (-61.2, -222.2) and 250.9 deg from (-53.3, -193.7) ->
-# 45 m south-south-west of the eagle, 24 m off the centre line.  The 1995 campus map draws the same row along the west
-# side of 백양로 south of the library: a round plaza, then a round basin.  Its 2009 photo
-# (reference/활천대_2009_연세춘추.jpg) is then taken from the lawn 10.6 m south-south-east of the basin, looking
+# Where the eagle and 활천대 stood before 백양로 was rebuilt (reference/고증.md 4.1.4, 4.3): Kakao roadview of 2008-08,
+# 2010-12 and 2011-04, solved without Kakao's headings or positions (tools/roadview/resect.py: every pano has its own
+# unknown heading, and only the angles between things in one view count, tied to unchanged corners of 중앙도서관 and
+# 백주년기념관).  The eagle: 20.8 m west of 백양로's carriageway centre (1994 aerial photo 20.3 - 20.9 m, roadview 20.6 - 22 m,
+# photo A 20 - 23 m), ~80 m south of where the 2015 rebuilding put it, in front of 중앙도서관's south end (a flower
+# bed in 2011).  활천대's white cross column (the water off): 45 m south-south-west of the eagle, 27 m off the centre
+# line.  Both were first placed from Kakao's headings and positions as given, 4.6 and 2.5 m too far east (that drive's
+# headings are off by up to 3 deg and its positions there by ~2 m).  The 1995 campus map draws the same row along the
+# west side of 백양로 south of the library: a round plaza, then a round basin.  Its 2009 photo
+# (reference/활천대_2009_연세춘추.jpg) is then taken from the lawn 14 m south-south-east of the basin, looking
 # north-north-west past it at 중앙도서관's south front, with 과학관's dome far left and the eagle on the right (the camera
-# solved from the two columns: (-77.3, -213.2), 1.6 m up, heading 10.7 deg west of north, tilted 3.3 deg up, vertical
-# field 42 deg).  Through that camera the bell of jets (180 px) is 4.4 m across, and the roadview's basin rim about
-# 5.3 m: a basin of 5.2 m (6.4 m before, from the wider lens of the first solution), its column ~3.3 m over the water.
-EAGLE = dict(pos=[-66.5, -161.0])
-FOUNTAIN = dict(pos=[-80.7, -203.2], r=2.6)
+# solved from the two columns and the south front's two corners: (-78.6, -216.2), 1.6 m up, heading 11.3 deg west of
+# north, tilted 3.5 deg up, vertical field 36 deg; 3 px rms, 7 px with the two where they first stood).  Through it
+# the bell of jets (180 px) is 5.0 m across and the roadview's basin rim about 5.3 m: a basin of 5.2 m, its column
+# ~3.3 m over the water.
+EAGLE = dict(pos=[-70.9, -159.8])
+FOUNTAIN = dict(pos=[-83.1, -202.6], r=2.6)
+# the random planting keeps its lawn hole where the fountain first stood, so that the campus keeps its trees (one
+# stream of draws, see below); the scattered trees round the moved basin are cleared after the draws (_FOUNTAIN_LAWN)
+FOUNTAIN_SCATTER = (-80.7, -203.2)
 # the eagle on a paved round (its platform is 8.4 m square, 5.9 m to the corners) with a straight walk east to
 # 백양로's sidewalk (the 2011 roadview from 백양로, between beds of azaleas)
 EAGLE_R = 6.0
@@ -1699,7 +1705,7 @@ for _k in ('lot',):
 draw_poly('pavers', fpoly(WD, [(-0.6, 14.8), (46.0, 14.8), (46.0, 24.6), (-0.6, 24.6)]))
 draw_poly('pavers', court_poly(1.0))
 draw_poly('pavers', Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 1.1))         # a narrow paved ring, lawn beyond
-GARDEN_ZONES = [garden, yeonhui_garden, daewoo_garden, court_poly(2.0), Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 7)]
+GARDEN_ZONES = [garden, yeonhui_garden, daewoo_garden, court_poly(2.0), Point(*FOUNTAIN_SCATTER).buffer(FOUNTAIN['r'] + 7)]
 
 # amphitheater (worn earth), sports field (dirt), tree-root patches done in web shader
 draw_poly('dirt', Point(AMPH['cx'], AMPH['cy']).buffer(1).simplify(0))
@@ -2297,6 +2303,8 @@ for (u_, v_) in ((68.5, 34.0), (66.5, 58.0)):                     # on the bank 
 # 활천대 (reference/활천대_2009_연세춘추.jpg): on the lawn round its narrow paved ring, low clipped shrubs and a few
 # small clipped pines scattered a few metres out, and red azaleas towards the eagle
 _fx, _fy = FOUNTAIN['pos']
+_FOUNTAIN_LAWN = Point(_fx, _fy).buffer(FOUNTAIN['r'] + 7)
+trees = [t_ for t_ in trees if not _FOUNTAIN_LAWN.contains(Point(t_[1], t_[2]))]
 for k, a_ in enumerate(np.radians([40, 105, 170, 235])):       # (none on the 2009 photo's side, south-east)
     rr_ = FOUNTAIN['r'] + 5.0 + (k % 2) * 1.6
     trees.append(['pine', round(_fx + rr_ * math.cos(a_), 2), round(_fy + rr_ * math.sin(a_), 2), round(rng2.uniform(0.2, 0.26), 2),

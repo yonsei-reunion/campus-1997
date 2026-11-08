@@ -7,8 +7,9 @@
 # Models: two = south (169-175) and north (178-187) groups shift separately; one = a single shift; drift = the
 # lateral shift changes linearly along the drive.  --past adds the 2010-12 and 2008-08 panos at node 175, each with
 # its own free position and heading.  Offsets: + east of the game's 백양로 line / the game eagle.
-# Result 2026-11-08 (two, --past): eagle 4.2 ± 0.5 m west, fountain 3.1 ± 1.5 m west, road at the eagle about on the
-# game line (2011 +1.3, 2010 −1.7, 2008 +1.6 m); see the issue comment of that date.
+# Result 2026-11-08 (two, --past): eagle 4.3 ± 0.5 m west, fountain 3.0 ± 1.4 m west (of their first spots), road at
+# the eagle about on the game line (2011 +1.4, 2010 −1.7, 2008 +1.5 m); see the issue comment of that date.  The
+# fountain from more panos: statues.py.
 import argparse, math
 import numpy as np
 from scipy.optimize import least_squares, brentq
@@ -36,7 +37,7 @@ def sig(i, k):
 
 
 def fit(model='two', past=False, drop=()):
-    ids = list(XY)
+    ids = list(OBS_2011)
     pasts = [n for n in PAST if n.endswith('@175')] if past else []
     n = len(ids)
     # q: shift params (4), headings (n), eagle (2), fountain (2), per past pano (x, y, h)
