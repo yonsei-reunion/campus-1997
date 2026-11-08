@@ -129,6 +129,10 @@ LATE_FOOTPRINT_1997.update({
     429249499: [(62.85, -84.25), (106.77, -95.8), (113.08, -72.16), (69.16, -60.6)],
     256933753: [(-59.05, 125.82), (-13.1, 113.6), (-18.23, 94.69), (-64.14, 106.9)],
 })
+# 의료원 (1990 · 1995 지도, 1990년 무렵 항공 사진; reference/고증.md 3.1.2).  The new 세브란스병원 (2005.5) and
+# 의료원 종합관 (2008) go; a name of None leaves the site paved, with no 공사중 marker: the old halls on it are in
+# OLD_HALLS below.
+GONE_1997.update({472648570: None, 429249489: None})
 FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
 FLOOR_H_AT = {222843398: 4.1}        # 과학관's 4.1 m storeys (blender/generic.py FH_AT, reference/고증.md 3.10)
 
@@ -1365,6 +1369,7 @@ def block_poly(c, u, hl, hw, round_end=0.0, n=8):
 
 
 _lib_u = np.array([0.2544, 0.9671])                   # 중앙도서관's long axis
+_med_u, _med_v = (0.755, 0.656), (-0.656, 0.755)       # 의료원's grid (its halls' long and short axes)
 _jk = np.array([-150.0, -25.0])
 OLD_HALLS = [
     (990010, '연구관', 'white', 3, arc_poly((-147.0, 18.0), 30.0, 40.0, 165.0, 230.0)),
@@ -1379,6 +1384,18 @@ OLD_HALLS = [
     (990021, '경영학교실단', 'white', 5, Polygon([(-81.36, 48.43), (-24.1, 33.19), (-20.74, 45.64), (-78.0, 60.87)])),
     (990022, '경영학교실단', 'white', 1, Polygon([(-57.62, 55.45), (-20.74, 45.64), (-4.6, 105.49), (-14.58, 108.14),
                                              (-18.23, 94.69), (-45.12, 101.84)])),
+    # 의료원 (1990 · 1995 지도, 1990년 무렵 항공 사진; reference/고증.md 3.1.2): 30 외래진료소 (on the 연세암병원 site),
+    # 29 의학관 (의과대학 본관, standing still but not in OSM: its roof from the Kakao skyview), 54 의료원 종합관 (north-
+    # east of 의과대학 신관 by 성산로, where the 2008 종합관 is), 36 선우학사 · 37 간호학관 · 38 향난숙사 (on the 2005
+    # 세브란스병원 site) and 34 특별병동 (어린이병원 since 2006, 지상 10층).  On the quarter's grid (_med_u), placed with
+    # the aerial photo's camera (tools/photofit), which puts the halls still standing there 35 ~ 95 px east of the photo.
+    (990030, '외래진료소', 'white', 3, block_poly((61.0, -301.0), _med_v, 35.0, 20.0)),
+    (990031, '의과대학', 'white', 5, block_poly((140.5, -333.75), (0.705, 0.710), 59.0, 9.0)),
+    (990032, '의료원 종합관', 'white', 8, Polygon([(205.0, -300.0), (227.6, -325.4), (238.8, -315.4), (216.2, -290.0)])),
+    (990033, '선우학사', 'white', 3, block_poly((224.0, -226.0), _med_u, 18.0, 6.0)),
+    (990034, '간호학관', 'white', 3, block_poly((240.4, -244.9), _med_u, 18.0, 6.0)),
+    (990035, '향난숙사', 'white', 3, block_poly((256.8, -263.8), _med_u, 18.0, 6.0)),
+    (990036, '특별병동', 'white', 10, footprint(ways[324328432])),
 ]
 # The rows after the first four go in after the random planting, cars and decals, as LATE_FOOTPRINT_1997 (below), so
 # that the rest of the campus keeps its layout
@@ -3413,7 +3430,7 @@ for b in LATE_HALLS:
 print('1997: left out', [n for n, _ in GONE_SITES], '- outlines put back', len(LATE_SITES))
 MARKER_NAME = {n: None for n in ('별동연구동', '영빈관', '영선실', '차량실', '행정동', '학생회관 별관', '광혜관')}
 EXTRA_MARKERS = [('청송대', 238.0, 284.0), ('농구장', 21.9, 2.5)]          # the wooded park east of 연희관 (OSM leisure=park)
-EXTRA_MARKERS += [(n, round(p.centroid.x, 1), round(p.centroid.y, 1)) for n, p in GONE_SITES]
+EXTRA_MARKERS += [(n, round(p.centroid.x, 1), round(p.centroid.y, 1)) for n, p in GONE_SITES if n]
 EXTRA_MARKERS += [('공학원 (공사중)', round(GONGWON_SITE.centroid.x, 1), round(GONGWON_SITE.centroid.y, 1))]
 LANDMARK_NAMES = {l['name'] for l in LANDMARKS}
 groups = {}
@@ -3899,8 +3916,8 @@ spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.arra
 # its own walls
 _gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
 _YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
-_ypaint([p_.buffer(2.0) for _, p_ in GONE_SITES] + [GONGWON_SITE.buffer(0.5)], _gd)
-_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES], _gp)
+_ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5)], _gd)
+_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES] + [p_ for n_, p_ in GONE_SITES if not n_], _gp)   # (의료원)
 _gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
 spl[..., 1] *= 1.0 - _gd / 255.0
 spl[..., 2] = np.where(_gd > 0, np.minimum(np.maximum(spl[..., 2], _gd), 255.0 - spl[..., 0] - spl[..., 1]), spl[..., 2])
