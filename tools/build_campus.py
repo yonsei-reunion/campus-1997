@@ -3234,6 +3234,15 @@ LIB_PATHS = [dict(kind='footway', w=LIB_DIAG_W, pts=[[round(x, 1), round(y, 1)] 
              dict(kind='footway', w=LIB_SDIAG_W, pts=[[round(x, 1), round(y, 1)] for x, y in LIB_SDIAG]),
              dict(kind='footway', w=8.0, pts=[[round(x, 1), round(y, 1)] for x, y in (LF(38.5, 11.0), LF(38.5, 47.0))]),
              dict(kind='footway', w=6.0, pts=[[round(x, 1), round(y, 1)] for x, y in (LF(-3.0, 8.0), LF(78.0, 8.0))])]
+
+
+def _ui_paths():
+    """The walks the game reads (out['paths']: the minimap, the crowd's walks), from paths_out as it stands; made again
+    once 용재관's ground has changed paths_out (below)."""
+    return LIB_PATHS + [dict(kind='service', w=SIDE_W_W, pts=[list(p_) for p_ in SIDE_W])] + \
+        [p_ for p_ in paths_out if not lib_osm_walk(p_) and p_['pts'] not in _fork_pts]
+
+
 # 백양로 as drawn (the road mesh, its decals, the cars and walkers): to the foot of the steps at the 삼거리 (UW_STEPS);
 # the full line kept its section (to 615 m) and the planting.  The last crossing on the 삼거리's near side (the
 # skyview's zebra across the road's end), not 30 m before the old end on the bank
@@ -3250,8 +3259,7 @@ out = dict(
                     gaps=[list(g) for g in GAPS], mouths=[list(MOUTH)], apron_paint=APRON_PAINT, **ROAD),
     amphitheater={k: (round(v, 3) if isinstance(v, float) else v) for k, v in AMPH.items()},
     buildings=buildings, trees=trees, shrubs=shrubs, props=props, cars=cars, banners=banners,
-    paths=LIB_PATHS + [dict(kind='service', w=SIDE_W_W, pts=[list(p_) for p_ in SIDE_W])]
-    + [p_ for p_ in paths_out if not lib_osm_walk(p_) and p_['pts'] not in _fork_pts], landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
+    paths=_ui_paths(), landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
     centennial_block=CENT_BLOCK, sang=dict(c=list(SANG), r=SANG_LAWN), yeonhui=YEONHUI, underwood_steps=UW_STEPS,
     gyoyuk_floor=GYOYUK_FLOOR,
     colliders=[CENT_BLOCK['poly']] +
@@ -3525,6 +3533,7 @@ for p_ in paths_out:
         if g_.geom_type == 'LineString' and g_.length >= 3.0:
             _ypaths.append(dict(p_, pts=[[round(x, 1), round(y, 1)] for x, y in g_.coords]))
 paths_out[:] = _ypaths + [dict(kind='footway', w=2.6, pts=[[round(x, 1), round(y, 1)] for x, y in YJ_WALK])]
+out['paths'] = _ui_paths()                  # (out was made above, from the walks before this)
 _kept = unary_union([LineString(p_['pts']).buffer(p_['w'] / 2) for p_ in paths_out
                      if len(p_['pts']) > 1 and LineString(p_['pts']).distance(YJ_GARDEN) < 10.0])
 _yclear = YJ_PAD.union(unary_union([Polygon(b_['footprint']).buffer(4.0) for b_ in YONGJAE_SCATTER]))
