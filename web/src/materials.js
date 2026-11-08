@@ -78,6 +78,8 @@ export function leafUrl(species, season, young = false) {
   if (young && season === 'summer' && v.includes('spring')) return `assets/textures/leaf_${species}_spring.png`;
   // 철쭉 bloom red from late April through May; green leaves in October
   if (species === 'azalea_red') return season === 'autumn' ? `assets/textures/leaf_azalea_summer.png` : `assets/textures/leaf_azalea_red.png`;
+  // 진달래 flower in April, before their leaves
+  if (species === 'azalea_violet') return season === 'spring' ? `assets/textures/leaf_azalea_violet.png` : `assets/textures/leaf_azalea_summer.png`;
   if (species === 'azalea') return season === 'spring' ? `assets/textures/leaf_azalea.png` : `assets/textures/leaf_azalea_summer.png`;
   if (v.includes(season)) return `assets/textures/leaf_${species}_${season}.png`;
   return `assets/textures/leaf_${species}.png`;

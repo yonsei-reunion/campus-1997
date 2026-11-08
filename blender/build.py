@@ -106,7 +106,7 @@ if want('veg'):
             vegetation.apply_canopy_normals(ob, mb.leaf_center, mb.leaf_radii)
             stats[f'{sp}_{v}'] = tri_count([ob])
             export_glb([ob], os.path.join(OUT, 'veg', f'{sp}_{v}.glb'), colors=True)
-    for k in ('topiary_round', 'topiary_cone', 'hedge_blob', 'bush', 'hedge_low', 'azalea_red', 'pansy_bed'):
+    for k in ('topiary_round', 'topiary_cone', 'hedge_blob', 'bush', 'hedge_low', 'azalea_red', 'azalea_violet', 'pansy_bed'):
         reset_scene()
         ob = vegetation.make_shrub(k).build()
         stats[k] = tri_count([ob])

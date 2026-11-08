@@ -3566,65 +3566,235 @@ def fountain():
 
 # ============================================================================= 용재관 (demolished)
 def yongjae():
-    """용재관 as in reference/용재관.jpg: white painted concrete, a slender stair tower with vertical fins and paired
-    windows facing the end of 백양로, a three-storey wing with a dark hipped roof and a flat entrance canopy at the
-    foot of the tower, and a five-storey block with a roof penthouse behind.  Footprints: tools/build_campus.py."""
-    import generic
-    st = dict(generic.STYLE['white'])
-    fh = 3.6
-    rnd = random.Random(1997)
+    """용재관 (1957 - 2013), white painted concrete, from reference/용재관.jpg (April, 1990s, from 언더우드관 over the
+    Underwood statue: the tower's fin face running off to the right, its north side to the lens, the wing on the left
+    with the canopy at its foot), the mid-1950s photo of the first library building (slc.bc.ca/yonsei: the fin face
+    square on, the V reliefs of its crown, the wing's groups of three tall lights, the gabled block behind, the lower
+    hipped block beyond the tower) and the 1994 / 1997 aerial photos (the tower over the south block's roof).
+    - the stair tower, six storeys of 3.6 m: on its fin face (to 백양로) two narrow bays of tall steel windows, one a
+      floor for five floors over a sunk panel, between three slim fins, broad blank bays either side, the top floor a
+      blank crown with a V in each window bay, a thin roof slab standing out all round, a penthouse and a mast;
+      on its north and south sides two columns of small windows near the fin face, two a floor
+    - the north wing, three storeys under a dark hipped roof, 2.8 m back from the fin face: four bays of three tall
+      lights between pilasters on its 백양로 front, a chimney box over its north end
+    - the entrance in the corner: a one-storey porch with the notice board on its 백양로 side and the glass doors on
+      its north side, under a flat canopy on one slim post, air-conditioner units on top; a flight down the bank
+    - behind: a five-storey gabled block east of the wing, a four-storey link, a three-storey block south of the
+      tower under a pale hipped roof (in the photo right of the fin face).  Footprints, floor and ground:
+      tools/build_campus.py YONGJAE."""
     parts = {b['id']: b for b in CAMPUS['buildings'] if b['name'] == '용재관'}
+    f = parts[990001]['frame']
+    (ox, oy), a = f['o'], f['ang']
+    ca, sa = math.cos(a), math.sin(a)
+    U = lambda u, v, z: (ox + u * ca - v * sa, oy + u * sa + v * ca, z)
+    z0 = parts[990001]['base']
+    fh = parts[990001]['height'] / parts[990001]['levels']
+    st = dict(generic.STYLE['white'], bay=3.4)
+    rnd = random.Random(1997)
+    Wm = 'plaster_white'
     out = []
 
-    def corners(b):
-        return [tuple(p) for p in b['footprint']]
+    def plane(ua, va, ub, vb):
+        """The wall plane along (ua, va) -> (ub, vb) of a counter-clockwise outline: P(s, z, d), d outwards."""
+        L = math.hypot(ub - ua, vb - va)
+        tu, tv = (ub - ua) / L, (vb - va) / L
+        return (lambda s, z, d=0.0: U(ua + tu * s + tv * d, va + tv * s - tu * d, z)), L
 
-    # five-storey block: plain white walls, parapet, penthouse
-    blk = parts[990003]
-    mb = MeshBuilder('lm_yongjae_block')
-    poly, z0 = corners(blk), blk['base']
-    zt = z0 + 5 * fh
-    for i in range(4):
-        generic.wall_edge(mb, poly[i], poly[(i + 1) % 4], z0, zt + 0.9, 5, fh, st, rnd)
-    generic.parapet_and_roof(mb, poly, zt, st, rnd)
-    out.append(mb)
+    def outline(uv):
+        u0, u1, v0, v1 = uv
+        return [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
 
-    # three-storey wing with a dark hipped roof
-    wg = parts[990002]
-    mb = MeshBuilder('lm_yongjae_wing')
-    poly, z0 = corners(wg), wg['base']
-    zt = z0 + 3 * fh
-    for i in range(4):
-        generic.wall_edge(mb, poly[i], poly[(i + 1) % 4], z0, zt, 3, fh, st, rnd)
-    cx, cy, L, W, ang = min_area_rect(poly)
-    generic.hip_roof(mb, cx, cy, L, W, ang, zt, 'roof_slate', pitch=0.42, over=0.7)
-    # entrance canopy at the tower end of the front, on two slim posts, and the notice board under it
-    f = wg['frame']
-    (ox, oy), a = f['o'], f['ang']
-    c, s_ = math.cos(a), math.sin(a)
-    U = lambda u, v, z: (ox + u * c - v * s_, oy + u * s_ + v * c, z)
-    zc = z0 + 3.3
-    mb.box(U(9.5, 2.6, zc + 0.15), (11.0, 3.4, 0.3), 'plaster_white', rotz=a)
-    for u in (4.6, 14.4):
-        mb.box(U(u, 4.0, z0 + (zc - z0) / 2 - 1.0), (0.25, 0.25, zc - z0 + 2.0), 'plaster_white', rotz=a)
-    mb.box(U(11.0, 1.08, z0 + 1.6), (4.0, 0.12, 1.4), 'metal_green', rotz=a)
-    out.append(mb)
+    def world2(uv):
+        return [U(u, v, 0)[:2] for u, v in outline(uv)]
 
-    # the stair tower: seven storeys, three vertical fins on the front, paired windows, a blank crown
-    tw = parts[990001]
+    def box(mb, u, v, z, su, sv, sz, mat, **kw):
+        mb.box(U(u, v, z), (su, sv, sz), mat, rotz=a, **kw)
+
+    def window(mb, P, w0, w1, zs, zh, d, cols, rows, sill=True):
+        """A steel-framed window [w0, w1] x [zs, zh] in the wall P (its hole already left), d deep."""
+        reveal(mb, P, w0, w1, zs, zh, d, Wm)
+        glazing(mb, P, w0, w1, zs, zh, -d, cols, rows, 'frame_dark', fw=0.045)
+        if sill:
+            bar(mb, P, w0 - 0.08, zs - 0.05, w1 + 0.08, zs - 0.05, 0.1, -0.02, 0.1, Wm, ends=True)
+
+    def simple_walls(mb, uv, nfl, z1, skip=()):
+        pts = world2(uv)
+        for i in range(4):
+            if i not in skip:
+                generic.wall_edge(mb, pts[i], pts[(i + 1) % 4], z0, z1, nfl, fh, st, rnd)
+
+    # ------------------------------------------------------------------ the stair tower
+    T = parts[990001]['frame']['uv']
+    u0, u1, v0, v1 = T
     mb = MeshBuilder('lm_yongjae_tower')
-    poly, z0 = corners(tw), tw['base']
-    zt = z0 + 6 * fh
-    zc = zt + 3.2
-    tst = dict(st, bay=4.0, ww=0.5, sill=0.9, head=0.7)
-    for i in range(4):
-        generic.wall_edge(mb, poly[i], poly[(i + 1) % 4], z0, zc, 6, fh, tst, rnd)
-    generic.parapet_and_roof(mb, poly, zc - 0.6, st, rnd, clutter=False)
-    u0, u1, v0, v1 = tw['frame']['uv']
-    for u in (u0 + 0.15, (u0 + u1) / 2, u1 - 0.15):      # fins on the face towards 백양로 (v1)
-        mb.box(U(u, v1 + 0.18, z0 + 4.0 + (zc - z0 - 4.0) / 2), (0.3, 0.36, zc - z0 - 4.0), 'plaster_white', rotz=a)
-    for k in range(1, 6):                                  # thin slab lines between the floors of the front
-        mb.box(U((u0 + u1) / 2, v1 + 0.05, z0 + k * fh), (u1 - u0, 0.1, 0.12), 'plaster_white', rotz=a)
+    zr = z0 + 6 * fh                    # roof
+    zp = zr + 0.85                      # top of the walls, under the roof slab
+    Pw, Lw = plane(u0, v1, u0, v0)      # the fin face, s from its north corner
+    Pn, Ln = plane(u1, v1, u0, v1)      # north side, s from the east
+    Ps, Ls = plane(u0, v0, u1, v0)      # south side, s from the fin face
+    Pe, Le = plane(u1, v0, u1, v1)
+    for P, L in ((Pw, Lw), (Pn, Ln), (Ps, Ls), (Pe, Le)):
+        flat_wall(mb, P, 0, L, z0 - 4.0, z0, 'concrete_dark')
+    # fin face: blank bay 3.0 | windows 2.8 | windows 2.8 | blank bay 3.0, the window bays 0.1 back
+    fins, rec = (3.0, 5.8, 8.6), 0.1
+    flat_wall(mb, Pw, 0.0, fins[0], z0, zp, Wm)
+    flat_wall(mb, Pw, fins[2], Lw, z0, zp, Wm)
+    Pr = lambda s, z, d=0.0: Pw(s, z, d - rec)
+    zc = z0 + 5 * fh                                           # the crown
+    for b0, b1 in ((fins[0], fins[1]), (fins[1], fins[2])):
+        bc = (b0 + b1) / 2
+        w0, w1 = bc - 0.8, bc + 0.8
+        wins = [(w0, w1, z0 + k * fh + 0.6, z0 + k * fh + 2.65) for k in range(5)]
+        panels = [(w0, w1, zh + 0.25, zs - 0.2) for (_, _, _, zh), (_, _, zs, _) in zip(wins, wins[1:])]
+        wall_holes(mb, Pr, b0, b1, z0, zc, Wm, wins + panels)
+        for (_, _, zs, zh) in wins:
+            window(mb, Pr, w0, w1, zs, zh, 0.2, 3, 4)
+        for (_, _, za, zb) in panels:                          # the sunk panel under each window above
+            reveal(mb, Pr, w0, w1, za, zb, 0.06, Wm)
+            flat_wall(mb, Pr, w0, w1, za, zb, Wm, d=-0.06)
+        # the crown: blank, a V in relief
+        flat_wall(mb, Pr, b0, b1, zc, zp, Wm)
+        for sg in (-1, 1):
+            bar(mb, Pr, bc + sg * 1.2, zp - 0.35, bc, zc + 1.7, 0.13, 0.0, 0.07, Wm, ends=True)
+    for s in fins:                                             # slim fins, the whole height
+        bar(mb, Pw, s, z0, s, zp - 0.02, 0.22, -rec, 0.42, Wm, ends=True)
+    # north and south sides: two columns of small windows near the fin face, two a floor (the north side's are seen
+    # over the wing's roof; under it the wing and the porch stand against the wall)
+    for P, L, cols in ((Pn, Ln, (Ln - 3.55, Ln - 2.1)), (Ps, Ls, (2.1, 3.55))):
+        holes, wins = [], []
+        for k in range(3, 6):
+            zf = z0 + k * fh
+            for sc in cols:
+                for za, zb in ((zf + 0.85, zf + 1.65), (zf + 2.2, zf + 3.0)):
+                    holes.append((sc - 0.4, sc + 0.4, za, zb))
+        wall_holes(mb, P, 0.0, L, z0, zp, Wm, holes)
+        for (w0, w1, za, zb) in holes:
+            window(mb, P, w0, w1, za, zb, 0.16, 2, 2)
+    bar(mb, Pn, Ln - 1.4, z0 + 3.7, Ln - 1.4, zp - 0.1, 0.11, 0.06, 0.17, 'metal_dark', ends=True)    # downpipe
+    flat_wall(mb, Pe, 0.0, Le, z0, zp, Wm)
+    # the roof slab standing out 0.35 all round, a penthouse with its own slab towards the back, a mast
+    um, vm = (u0 + u1) / 2, (v0 + v1) / 2
+    box(mb, um, vm, zp + 0.13, u1 - u0 + 0.7, v1 - v0 + 0.7, 0.26, Wm, mats={'top': 'roof_flat'})
+    pu0, pu1, pv0, pv1 = u1 - 5.2, u1 - 0.4, v0 + 3.0, v0 + 9.0
+    box(mb, (pu0 + pu1) / 2, (pv0 + pv1) / 2, zp + 0.26 + 1.4, pu1 - pu0, pv1 - pv0, 2.8, Wm, skip=('bottom',))
+    box(mb, (pu0 + pu1) / 2, (pv0 + pv1) / 2, zp + 0.26 + 2.9, pu1 - pu0 + 0.4, pv1 - pv0 + 0.4, 0.2, Wm,
+        mats={'top': 'roof_flat'})
+    box(mb, pu0 - 0.03, (pv0 + pv1) / 2, zp + 0.26 + 1.05, 0.06, 0.95, 2.1, 'frame_dark')            # its door
+    mc = U(u0 + 3.0, vm, 0)
+    mb.cylinder(mc[:2], 0.05, zp + 0.26, zp + 6.8, 'metal_dark', seg=6)              # a plain mast
+    out.append(mb)
+
+    # ------------------------------------------------------------------ the north wing
+    Wg = parts[990002]['frame']['uv']
+    wu0, wu1, wv0, wv1 = Wg
+    mb = MeshBuilder('lm_yongjae_wing')
+    zt = z0 + 3 * fh
+    Pf, Lf = plane(wu0, wv1, wu0, wv0)  # its front to 백양로, s from the north end
+    Pt, Lt = plane(wu1, wv1, wu0, wv1)  # the north end
+    flat_wall(mb, Pf, 0, Lf, z0 - 4.0, z0, 'concrete_dark')
+    flat_wall(mb, Pt, 0, Lt, z0 - 4.0, z0, 'concrete_dark')
+
+    def lights3(P, s0, s1, nfl, z1):
+        """Groups of three tall lights in the bays [s0, s1] of a front, a pilaster at each bay end."""
+        lw, pier = 1.1, 0.32
+        holes = []
+        for k in range(nfl):
+            zf = z0 + k * fh
+            sc = (s0 + s1) / 2
+            g0 = sc - (3 * lw + 2 * pier) / 2
+            for j in range(3):
+                holes.append((g0 + j * (lw + pier), g0 + j * (lw + pier) + lw, zf + 0.85, zf + 3.25))
+        wall_holes(mb, P, s0, s1, z0, z1, Wm, holes)
+        for (w0, w1, za, zb) in holes:
+            window(mb, P, w0, w1, za, zb, 0.18, 2, 4)
+    nb = 4
+    bw = Lf / nb
+    for k in range(nb):
+        lights3(Pf, k * bw, (k + 1) * bw, 3, zt)
+    for k in range(nb + 1):
+        bar(mb, Pf, k * bw, z0, k * bw, zt - 0.05, 0.45, 0.0, 0.12, Wm, ends=True)
+    flat_wall(mb, Pf, 0, Lf, z0, z0 + 0.55, 'concrete', d=0.05)                     # plinth
+    lights3(Pt, 0.0, Lt, 3, zt)
+    for s in (0.0, Lt):
+        bar(mb, Pt, s, z0, s, zt - 0.05, 0.45, 0.0, 0.12, Wm, ends=True)
+    pts = world2(Wg)
+    generic.wall_edge(mb, pts[1], pts[2], z0, zt, 3, fh, st, rnd)                  # the east side (mostly behind)
+    cx, cy = U((wu0 + wu1) / 2, (wv0 + wv1) / 2, 0)[:2]
+    generic.hip_roof(mb, cx, cy, wv1 - wv0, wu1 - wu0, a + math.pi / 2, zt, 'roof_slate', pitch=0.45, over=0.6)
+    box(mb, (wu0 + wu1) / 2, wv1 - 2.2, zt + 2.6, 2.2, 1.6, 5.2, Wm, mats={'top': 'concrete'})    # chimney box
+    out.append(mb)
+
+    # ------------------------------------------------------------------ the entrance porch and its canopy
+    Pq = parts[990006]['frame']['uv']
+    qu0, qu1, qv0, qv1 = Pq
+    mb = MeshBuilder('lm_yongjae_porch')
+    zq = z0 + 3.4
+    Pqw, Lqw = plane(qu0, qv1, qu0, qv0)           # its 백양로 side: the notice board
+    Pqn, Lqn = plane(qu1, qv1, qu0, qv1)           # north side: the doors
+    flat_wall(mb, Pqw, 0, Lqw, z0 - 4.0, zq, Wm)
+    flat_wall(mb, Pqw, 0, Lqw, z0, z0 + 0.4, 'concrete', d=0.03)
+    nb0, nb1 = 0.6, Lqw - 0.5                       # the board: green steel frame, posters
+    flat_wall(mb, Pqw, nb0, nb1, z0 + 0.95, z0 + 2.35, 'metal_green', d=0.06)
+    for k, (s0_, s1_) in enumerate(((nb0 + 0.1, nb0 + 1.3), (nb0 + 1.4, nb0 + 2.6), (nb0 + 2.7, nb1 - 0.1))):
+        if s1_ - s0_ > 0.4:
+            mb.face([Pqw(s0_, z0 + 1.05, 0.07), Pqw(s1_, z0 + 1.05, 0.07), Pqw(s1_, z0 + 2.25, 0.07), Pqw(s0_, z0 + 2.25, 0.07)],
+                    'notice_posters', uvs=[(k / 3, 0), ((k + 1) / 3, 0), ((k + 1) / 3, 1), (k / 3, 1)])
+    d0, d1 = 0.5, min(Lqn - 0.3, 0.5 + 2.4)        # the doors: four leaves of glass under a transom
+    wall_holes(mb, Pqn, 0, Lqn, z0 - 4.0, zq, Wm, [(d0, d1, z0, z0 + 2.7)])
+    reveal(mb, Pqn, d0, d1, z0, z0 + 2.7, 0.25, Wm)
+    glazing(mb, Pqn, d0, d1, z0, z0 + 2.7, -0.25, 4, 2, 'frame_dark', fw=0.05, transom=z0 + 2.15)
+    # the canopy: a flat slab over the porch and on out over the doors and the walk, one slim post at its corner
+    cu0, cu1, cv0, cv1 = qu0 - 0.9, qu1, qv0, qv1 + 4.5
+    box(mb, (cu0 + cu1) / 2, (cv0 + cv1) / 2, zq + 0.15, cu1 - cu0, cv1 - cv0, 0.3, Wm, mats={'top': 'roof_flat'})
+    box(mb, cu0 + 0.35, cv1 - 0.35, z0 + zq / 2 - z0 / 2, 0.28, 0.28, zq - z0, Wm)
+    for k, (uu, vv) in enumerate(((qu0 + 0.9, qv0 + 1.6), (qu0 + 0.9, qv0 + 2.7), (qu0 + 1.4, qv1 + 1.0))):
+        box(mb, uu, vv, zq + 0.3 + 0.32, 0.36, 0.9, 0.64, 'plaster_white')                 # air conditioners
+        box(mb, uu - 0.19, vv, zq + 0.3 + 0.32, 0.02, 0.5, 0.5, 'metal_dark')
+    out.append(mb)
+
+    # ------------------------------------------------------------------ the blocks behind
+    E = parts[990003]['frame']['uv']
+    mb = MeshBuilder('lm_yongjae_east')
+    eu0, eu1, ev0, ev1 = E
+    ze = z0 + 5 * fh
+    simple_walls(mb, E, 5, ze)
+    pitch, over = 0.48, 0.5
+    um_, h_ = (eu0 + eu1) / 2, (eu1 - eu0) / 2 * pitch
+    zre, zeo, vA, vB = ze + h_, ze - over * pitch, ev0 - 0.4, ev1 + 0.4
+    mb.face([U(eu0 - over, vA, zeo), U(um_, vA, zre), U(um_, vB, zre), U(eu0 - over, vB, zeo)], 'roof_slate')
+    mb.face([U(eu1 + over, vB, zeo), U(um_, vB, zre), U(um_, vA, zre), U(eu1 + over, vA, zeo)], 'roof_slate')
+    mb.face([U(eu0, ev0, ze), U(eu1, ev0, ze), U(um_, ev0, zre)], Wm)
+    mb.face([U(eu1, ev1, ze), U(eu0, ev1, ze), U(um_, ev1, zre)], Wm)
+    out.append(mb)
+
+    S = parts[990004]['frame']['uv']
+    mb = MeshBuilder('lm_yongjae_south')
+    zs_ = z0 + 3 * fh
+    simple_walls(mb, S, 3, zs_)
+    cx, cy = U((S[0] + S[1]) / 2, (S[2] + S[3]) / 2, 0)[:2]
+    generic.hip_roof(mb, cx, cy, S[1] - S[0], S[3] - S[2], a, zs_, 'roof_cement', pitch=0.45, over=0.6)
+    out.append(mb)
+
+    K = parts[990005]['frame']['uv']
+    mb = MeshBuilder('lm_yongjae_link')
+    zk = z0 + 4 * fh
+    simple_walls(mb, K, 4, zk + 0.9)
+    generic.parapet_and_roof(mb, world2(K), zk, st, rnd, clutter=False)
+    out.append(mb)
+
+    # ------------------------------------------------------------------ the flight down the 진달래동산
+    # (tools/build_campus.py YJ_WALK: from the canopy north-north-west, over the edge of the level ground)
+    mb = MeshBuilder('lm_yongjae_flight')
+    du, dv = -7.0, 9.0
+    dl = math.hypot(du, dv)
+    du, dv = du / dl, dv / dl
+    tu_ = (-7.0 - (-4.0)) / du                         # where the walk leaves the level ground (u = -7)
+    fu, fv = -4.0 + du * tu_, 24.0 + dv * tu_
+    wx, wy = U(fu, fv, 0)[:2]
+    dx, dy = du * ca - dv * sa, du * sa + dv * ca      # the walk's direction (world): local -y
+    mb.xf = local_frame(wx, wy, math.atan2(dx, -dy), z0)
+    stair_flight(mb, 0.0, 0.0, 2.6, 0.0, landing=1.2, tread=0.34, flare=0.15, cheek=0.3, cheek_mat='concrete',
+                 mat='stone_step', gfn=local_ground(mb))
     out.append(mb)
     return out
 

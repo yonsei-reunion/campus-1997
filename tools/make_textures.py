@@ -445,6 +445,10 @@ atlas('boxwood', 'boxwood', [(45, 82, 32), (55, 95, 36), (38, 70, 28)])
 atlas('azalea', 'azalea', [(55, 90, 35), (65, 100, 40)], flowers=((225, 60, 150), 380, (0.045, 0.06)))
 atlas('azalea_summer', 'azalea', [(55, 90, 35), (65, 100, 40)])
 atlas('azalea_red', 'azalea', [(50, 85, 32), (60, 95, 38)], flowers=((200, 32, 48), 300, (0.04, 0.055)))
+# 진달래 on 용재관's bank in April (reference/용재관.jpg): violet-pink flowers before the leaves, the bush one mass of
+# bloom with a few fresh leaves showing (May and October: the green azalea_summer)
+atlas('azalea_violet', 'azalea', [(96, 128, 56), (110, 138, 62)],
+      flowers=[((196, 104, 196), 700, (0.05, 0.068), (186, 110, 176)), ((214, 122, 206), 260, (0.045, 0.06), (204, 128, 192))])
 # the flower border along the top of the banks by the steps up to 언더우드관 정원 (the 2003 spring photo): yellow
 # pansies with a few white and purple ones among small leaves
 atlas('pansy', 'pansy', [(60, 100, 40), (72, 112, 46), (52, 88, 34)],

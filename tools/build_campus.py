@@ -956,14 +956,28 @@ for wid, (style, lv, label) in B.items():
                           base=round(min(hs), 2), top_ground=round(max(hs), 2),
                           footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]))
 
-# 용재관 (demolished; 경영관 has stood on its site since 2015, so it is not in OSM).  Placed from the 경영관 indoor
-# corridors in OSM (x 72..120, y 88..136) and reference/용재관.jpg, taken from behind the Underwood statue looking
-# south-east: a white modernist hall whose slender stair tower faces the end of 백양로, a three-storey wing with a
-# dark hipped roof and the entrance canopy beside it, and a five-storey block behind.
-YONGJAE = dict(o=(74.0, 124.0), ang=math.radians(20), parts=[
-    (990001, 'lm:yongjae', 7, (-3.2, 3.2, -4, 3.5)),        # tower: u0, u1, v0, v1 (v = towards 백양로 / the statue)
-    (990002, 'lm:none', 3, (3.2, 34, -11, 1)),          # wing
-    (990003, 'lm:none', 5, (-2, 36, -27, -11)),       # block
+# 용재관 (1957 - 2013; 경영관 has stood on its site since 2015, so it is not in OSM; reference/고증.md 3.13).  From
+# reference/용재관.jpg (April, 1990s: from 언더우드관 over the Underwood statue's back, looking SSE, a long lens), the
+# mid-1950s photo of the first library building (slc.bc.ca/yonsei, from the 백양로 side) and the 1994 / 1997 aerial
+# photos (from the south):
+# - the stair tower, six storeys: its fin face to 백양로 (west), paired small windows on its north side
+# - north of it, set back from that face, a three-storey wing with a dark hipped roof, its long front to 백양로; the
+#   entrance porch and its flat canopy in the corner between the two
+# - behind (east of) the wing a taller gabled block, south of the tower a three-storey hipped block
+# The frame is square to 백양로 (u east-south-east, v north-north-east, o the tower's south-west corner).  Placed
+# with the 1997 aerial photo's camera (web/src/birdseye.js 'photo'): the tower's south side, its paired windows near
+# the west end, stands over the south block's pale hipped roof at x 1224 - 1272, its roof slab at y 440 (the old
+# outline's was 7 m east and 4 m lower there).  In the ground photo the fin face runs off to the right at ~28 deg and
+# the north side faces the lens, the tower on the line from the camera through the statue, ~80 m beyond it (the
+# 경영관 that replaced it fills x 72..120, y 88..136).  The whole stands on the azalea hill (진달래동산) 5 m over the
+# 삼거리, as both photos put it (the terrain grid there is the 2010s dig for 경영관's basements).
+YONGJAE = dict(o=(67.2, 104.1), ang=math.radians(-15.0), floor=52.0, fh=3.6, parts=[
+    (990001, 'lm:yongjae', 6, (0.0, 10.5, 0.0, 11.6)),       # tower: u0, u1, v0, v1 (u0 = the fin face)
+    (990002, 'lm:none', 3, (2.8, 16.0, 11.6, 39.5)),         # north wing
+    (990003, 'lm:none', 5, (16.0, 30.0, 0.0, 30.0)),         # east block (gabled)
+    (990004, 'lm:none', 3, (1.5, 40.0, -12.5, 0.0)),         # south block
+    (990005, 'lm:none', 4, (10.5, 16.0, 0.0, 11.6)),         # the link between them
+    (990006, 'lm:none', 1, (-0.5, 2.8, 11.6, 16.0)),         # entrance porch
 ])
 
 
@@ -973,14 +987,50 @@ def yongjae_poly(u0, u1, v0, v1):
     return Polygon([(ox + u * c - v * s_, oy + u * s_ + v * c) for u, v in ((u0, v0), (u1, v0), (u1, v1), (u0, v1))])
 
 
+def yj_xy(u, v):
+    (ox, oy), a = YONGJAE['o'], YONGJAE['ang']
+    return (ox + u * math.cos(a) - v * math.sin(a), oy + u * math.sin(a) + v * math.cos(a))
+
+
+# its ground: level at the floor round the building (wider on the 백양로 and north sides, where the walk and the
+# porch flight are), the 진달래동산 bank a smooth fill from there to the ground around (not into the old amphitheater's
+# bowl, nor 백양로)
+YJ_PAD = unary_union([yongjae_poly(-7.0, 32.0, -2.0, 43.0), yongjae_poly(-1.0, 42.0, -14.5, 1.0)])
+_ypad = shapely.contains_xy(YJ_PAD, X, Y) & (dist > ROAD_HALF + 4)
+Hn[_ypad] = YONGJAE['floor']
+FIXED[_ypad] = True
+_yring = shapely.contains_xy(YJ_PAD.buffer(15.0), X, Y) & ~_ypad & ~FIXED & (dist > ROAD_HALF + 4) & \
+    ~near_buildings(1.0) & (np.hypot(X - AMPH['cx'], Y - AMPH['cy']) > 48.0)
+harmonic_fill(_yring)
+print('yongjae pad', YONGJAE['floor'], 'nodes', int(_ypad.sum()), 'bank', int(_yring.sum()))
+YONGJAE_BUILDINGS = []
 for pid, style, lv, uv in YONGJAE['parts']:
     poly = yongjae_poly(*uv)
-    campus_polys.append(poly)
     hs = [ground_h(x, y) for x, y in poly.exterior.coords]
-    buildings.append(dict(id=pid, name='용재관', style=style, levels=lv, height=round(lv * 3.6, 2),
-                          base=round(min(hs), 2), top_ground=round(max(hs), 2),
-                          footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]],
-                          frame=dict(o=YONGJAE['o'], ang=round(YONGJAE['ang'], 5), uv=uv)))
+    YONGJAE_BUILDINGS.append(dict(id=pid, name='용재관', style=style, levels=lv, height=round(lv * YONGJAE['fh'], 2),
+                                  base=YONGJAE['floor'], top_ground=round(max(hs), 2),
+                                  footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]],
+                                  frame=dict(o=YONGJAE['o'], ang=round(YONGJAE['ang'], 5), uv=uv)))
+# The campus's random planting, cars and pavement decals each draw from one stream, each draw depending on whether
+# the spots before were clear of the halls and their aprons: till they are placed, the halls list carries
+# 용재관's outline as it was before (three boxes on the old ground), so that the rest of the campus keeps its
+# trees; the outline above takes its place after (YONGJAE_BUILDINGS below), with its own ground and planting.
+_yo, _ya = (74.0, 124.0), math.radians(20)
+YONGJAE_SCATTER = []
+for _pid, _uv in ((990001, (-3.2, 3.2, -4, 3.5)), (990002, (3.2, 34, -11, 1)), (990003, (-2, 36, -27, -11))):
+    _pts = [(_yo[0] + u * math.cos(_ya) - v * math.sin(_ya), _yo[1] + u * math.sin(_ya) + v * math.cos(_ya))
+            for u, v in ((_uv[0], _uv[2]), (_uv[1], _uv[2]), (_uv[1], _uv[3]), (_uv[0], _uv[3]))]
+    campus_polys.append(Polygon(_pts))
+    YONGJAE_SCATTER.append(dict(id=_pid, name='용재관', style='lm:none', levels=3, height=10.8, base=YONGJAE['floor'],
+                                top_ground=YONGJAE['floor'], footprint=[[round(x, 2), round(y, 2)] for x, y in _pts]))
+buildings += YONGJAE_SCATTER
+YJ_WALK = [yj_xy(-1.6, 20.5), yj_xy(-4.0, 24.0), yj_xy(-11.0, 33.0)]                  # (its walk: below)
+
+
+def yj_gone(p_):
+    """OSM's walks over 용재관's ground (they go round the 2015 경영관; left out after the random draws)."""
+    return p_['kind'] in ('footway', 'path', 'steps', 'pedestrian') and len(p_['pts']) > 1 and \
+        LineString(p_['pts']).intersects(YJ_PAD.buffer(-1.0))
 
 # Halls on the 1990 · 1994 · 1995 campus maps that OSM no longer has (reference/1990_캠퍼스_지도.png,
 # 1994_캠퍼스_지도.jpg, 1995_캠퍼스_지도.jpg; reference/고증.md).  Behind (west of) 중앙도서관, where
@@ -2564,7 +2614,7 @@ LANDMARKS = [
     dict(id='events', name='게시판 · 그때 우리는', pos=[9, -36], r=9, photo=['photos/marathon_1997.jpg', 'photos/daedongje_1997.jpg', 'photos/yongo_1997.jpg', 'photos/cheer_1997.jpg', 'photos/yongo_banner_1997.jpg'],
          title='신촌 캠퍼스 1997 · 그때 우리는', year='1997',
          text='4월 마라톤대회, 5월 빗속의 대동제, 9월 정기 연고전 출정식과 응원제. 백양로는 늘 푸른 물결로 가득했다.'),
-    dict(id='yongjae', name='용재관', pos=[71.8, 136.0], r=18, photo=['photos/yongjae_1990s.jpg'],
+    dict(id='yongjae', name='용재관', pos=[64.2, 127.7], r=18, photo=['photos/yongjae_1990s.jpg'],
          title='용재관', year='1957 – 2013',
          credit='사진: 동문 제공 (reference/용재관.jpg)',
          text='연세대 초대 총장 용재(庸齋) 백낙준의 호를 딴 흰 건물. 1957년 도서관으로 지어졌고, 언더우드 동상 너머로 보이던 세로로 긴 계단탑이 상징이었다. 2013년 헐리고 그 자리에 경영관(2015)이 섰다. 경영관 한쪽의 「용재관 타워」가 옛 모습을 잇는다.'),
@@ -2605,6 +2655,7 @@ Hf.tofile(os.path.join(ROOT, 'web/public/data/terrain_far.bin'))
 # Building name markers (bird's-eye pins, walk-mode labels, big map).  One per name, over its largest footprint.
 # MARKER_NAME: the name a 1997 student would use (or None: no marker, e.g. not built yet in 1997).
 # ---------------------------------------------------------------------------
+buildings[:] = [b for b in buildings if not any(b is q for q in YONGJAE_SCATTER)] + YONGJAE_BUILDINGS   # (above)
 MARKER_NAME = {n: None for n in ('별동연구동', '영빈관', '영선실', '차량실', '행정동', '학생회관 별관', '광혜관')}
 EXTRA_MARKERS = [('청송대', 238.0, 284.0), ('농구장', 21.9, 2.5)]          # the wooded park east of 연희관 (OSM leisure=park)
 LANDMARK_NAMES = {l['name'] for l in LANDMARKS}
@@ -2922,6 +2973,108 @@ def decal_spots():
 
 out['decals'] = decal_spots()
 print('decals', len(out['decals']), {k_: sum(1 for d_ in out['decals'] if d_[0] == k_) for k_ in sorted({d_[0] for d_ in out['decals']})})
+# 용재관's ground (YONGJAE above) now that the random draws are done.  The photo has the 진달래동산 right behind the
+# statue: the bank between the 삼거리's east fork and the hall's 백양로 side and north end, one sheet of azaleas with
+# the walk and its flight going up through it (YJ_GARDEN, with the bank round the level ground on those sides).  OSM's
+# walks over the hall's ground go, and so do the parts of the 2010s walks and drive over the bank (they go round
+# 경영관); the decals there go, and the splat there is painted again: the old outline's aprons and the bank's
+# paving out, the new hall's aprons, the paving along the porch and the fin face, and its walk in.
+YJ_GARDEN = unary_union([yongjae_poly(-22.0, -7.0, 16.0, 52.0), yongjae_poly(-7.0, 10.0, 43.0, 52.0)]).difference(
+    bline.buffer(ROAD_HALF + 3.0))
+_xroads = [[list(q) for q in r_] for r_ in extra_roads]
+_ypaths = []
+for p_ in paths_out:
+    if yj_gone(p_):
+        continue
+    ls_ = LineString(p_['pts']) if len(p_['pts']) > 1 else None
+    if ls_ is None or p_['pts'] in _xroads or not ls_.intersects(YJ_GARDEN):
+        _ypaths.append(p_)
+        continue
+    rest_ = ls_.difference(YJ_GARDEN)
+    for g_ in (rest_.geoms if hasattr(rest_, 'geoms') else [rest_]):
+        if g_.geom_type == 'LineString' and g_.length >= 3.0:
+            _ypaths.append(dict(p_, pts=[[round(x, 1), round(y, 1)] for x, y in g_.coords]))
+paths_out[:] = _ypaths + [dict(kind='footway', w=2.6, pts=[[round(x, 1), round(y, 1)] for x, y in YJ_WALK])]
+_kept = unary_union([LineString(p_['pts']).buffer(p_['w'] / 2) for p_ in paths_out
+                     if len(p_['pts']) > 1 and LineString(p_['pts']).distance(YJ_GARDEN) < 10.0])
+_yclear = YJ_PAD.union(unary_union([Polygon(b_['footprint']).buffer(4.0) for b_ in YONGJAE_SCATTER]))
+_ydz = _yclear.union(YJ_GARDEN)
+out['decals'] = [d_ for d_ in out['decals'] if not _ydz.contains(Point(d_[1], d_[2]))]
+# the planting (reference/용재관.jpg, April): the bank one sheet of violet 진달래, in flower before their leaves, either
+# side of the walk; a clipped hedge along the walk's west side, a few red 영산홍 at the foot of the bank, a double-
+# globe lamp at the head of the flight by the canopy, a cherry in flower on the bank by the foot of the walk; a tall
+# 전나무 on the terrace west of the statue (the right of the photo, its trunk 3.9 deg right of the camera's axis, its
+# foot behind the hedge: ~73 m from the lens, 4 m from the statue).  The scattered planting there goes first.
+YJ_BANK = YJ_PAD.buffer(12.0).difference(YJ_PAD.buffer(0.5)).intersection(
+    unary_union([yongjae_poly(-30.0, 4.0, -16.0, 62.0), yongjae_poly(-30.0, 22.0, 41.0, 62.0)]))
+YJ_BANK = YJ_BANK.difference(bline.buffer(ROAD_HALF + 3.0)).union(YJ_GARDEN.difference(YJ_PAD.buffer(0.5)))
+YJ_BANK = YJ_BANK.intersection(Polygon([(-10, 181.5), (38, 163.5), (62, 155.5), (85, 145.5), (110, 135.5), (160, 115.5),
+                                        (160, 40), (-10, 40)]))      # (this side of the 삼거리's east fork)
+_yjz = YJ_PAD.buffer(1.0).union(YJ_BANK)
+_n0 = (len(trees), len(shrubs), len(props), len(cars))
+trees = [t for t in trees if not _yjz.contains(Point(t[1], t[2]))]
+shrubs = [s for s in shrubs if not _yjz.contains(Point(s[1], s[2]))]
+props = [p for p in props if not _yjz.contains(Point(p[1], p[2]))]
+cars = [c for c in cars if not _yjz.contains(Point(c[1], c[2]))]
+_ybank = YJ_BANK.difference(_kept.buffer(0.7)).difference(LineString(YJ_WALK).buffer(2.0))
+rng11 = random.Random(1997 + 4)
+_yb0, _yb1 = _ybank.bounds[:2], _ybank.bounds[2:]
+_yjp = []
+for _k in range(24000):
+    x_, y_ = rng11.uniform(_yb0[0], _yb1[0]), rng11.uniform(_yb0[1], _yb1[1])
+    if not _ybank.contains(Point(x_, y_)) or any((x_ - a_) ** 2 + (y_ - b_) ** 2 < 1.3 ** 2 for a_, b_ in _yjp[-500:]):
+        continue
+    _yjp.append((x_, y_))
+    foot_ = YJ_PAD.distance(Point(x_, y_)) > 9.5
+    kind_ = 'azalea_red' if foot_ and rng11.random() < 0.3 else 'azalea_violet'
+    shrubs.append([kind_, round(x_, 2), round(y_, 2), round(rng11.uniform(1.0, 1.45), 2), round(rng11.uniform(0, 6.28), 2)])
+_wl = LineString(YJ_WALK[1:3])
+for f_ in np.arange(0.06, 0.95, 1.6 / _wl.length):                 # the hedge along the walk's west side
+    a_, b_ = _wl.interpolate(f_, normalized=True), _wl.interpolate(min(1.0, f_ + 0.01), normalized=True)
+    ang_ = math.atan2(b_.y - a_.y, b_.x - a_.x)
+    shrubs.append(['hedge_low', round(a_.x - math.sin(ang_) * 2.0, 2), round(a_.y + math.cos(ang_) * 2.0, 2), 1.0,
+                   round(ang_, 3)])
+for sp_, (x_, y_), sc_ in (('fir', (51.4, 184.0), 1.15), ('cherry', (59.5, 136.0), 1.05)):
+    trees.append([sp_, round(x_, 2), round(y_, 2), sc_, round(rng11.uniform(0, 6.28), 2)])
+# (the 은백양 by the foot of the steps, tall in the 2003 photos, is not in this one, where its crown would stand
+# before the tower's fin face: a young tree in the 1990s)
+_wux, _wuy = WU(5.4, -43.4)
+for t_ in trees:
+    if t_[0] == 'poplar' and math.hypot(t_[1] - _wux, t_[2] - _wuy) < 1.0:
+        t_[3] = 0.45
+_lx, _ly = yj_xy(-3.9, 21.6)
+props.append(['lamp_double', round(_lx, 2), round(_ly, 2), round(YONGJAE['ang'], 3)])
+print('yongjae: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees) + 2, _n0[1] - len(shrubs),
+      _n0[2] - len(props) + 1, _n0[3] - len(cars), '- 진달래동산', len(_yjp))
+out.update(trees=trees, shrubs=shrubs, props=props, cars=cars)
+
+
+def _ypaint(geoms, img, width=None):
+    dr_ = ImageDraw.Draw(img)
+    for g_ in geoms:
+        if width:
+            dr_.line([to_px(x, y) for x, y in g_], fill=255, width=max(1, int(width / SPLAT['res'])), joint='curve')
+            continue
+        for p_ in (g_.geoms if hasattr(g_, 'geoms') else [g_]):
+            if p_.geom_type == 'Polygon':
+                dr_.polygon([to_px(x, y) for x, y in p_.exterior.coords], fill=255)
+
+
+_yz, _yg, _yp = (Image.new('L', (SW, SH), 0) for _ in range(3))
+_ypaint([_yclear], _yz)
+_ypaint([YJ_GARDEN.difference(_kept)], _yg)
+_ypaint([Polygon(b_['footprint']).buffer(3.5, join_style=2) for b_ in YONGJAE_BUILDINGS] +
+        [yongjae_poly(-4.5, 2.8, -1.0, 21.0)], _yp)
+_ypaint([YJ_WALK], _yp, width=2.6)
+_yz = ndimage.gaussian_filter(np.array(_yz, np.float32) / 255.0, 0.7)
+_yg = ndimage.gaussian_filter(np.array(_yg, np.float32) / 255.0, 0.7)
+spl[..., 0] *= 1.0 - _yg
+spl[..., 1] *= (1.0 - _yz) * (1.0 - _yg)
+spl[..., 2] *= (1.0 - _yz) * (1.0 - _yg)
+spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.array(_yp, np.float32), 0.7)), 255 - spl[..., 0])
+Image.fromarray(np.clip(spl, 0, 255).astype(np.uint8), 'RGB').save(
+    os.path.join(ROOT, 'web/public/assets/textures/ground_splat.png'), optimize=True)
+print('yongjae ground: walks', len(paths_out), 'decals', len(out['decals']))
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
 np.save(os.path.join(ROOT, 'data/terrain_near.npy'), Hn.astype(np.float32))
@@ -2944,7 +3097,7 @@ for t in trees:
     x, y = tp(t[1], t[2])
     c_ = {'ginkgo': (255, 230, 0), 'pine': (0, 90, 30), 'zelkova': (40, 160, 40), 'cherry': (255, 150, 200), 'maple': (200, 60, 20), 'oak': (60, 120, 30),
           'zelkova_young': (120, 220, 90), 'cherry_young': (255, 190, 220), 'metasequoia': (150, 200, 60),
-          'magnolia': (250, 250, 235), 'poplar': (210, 220, 210)}[t[0]]
+          'magnolia': (250, 250, 235), 'poplar': (210, 220, 210), 'fir': (10, 70, 40)}[t[0]]
     d.ellipse([x - 2, y - 2, x + 2, y + 2], fill=c_)
 for l in LANDMARKS:
     x, y = tp(*l['pos'])

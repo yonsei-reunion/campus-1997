@@ -36,7 +36,12 @@ SPECIES = {
     # that climb steeply into an upright crown; bare in mid-April (leaf_poplar_spring: twigs and buds)
     'poplar': dict(h=17.0, th=4.4, cz=11.6, rx=4.4, rz=5.4, n=200, card=2.1, groups=5, exc=False, bark='bark_poplar',
                    taper=0.2, lift=1.35),
+    # 전나무 (reference/용재관.jpg, right of the Underwood statue): a straight stem to the tip, short tiers of dark
+    # drooping branches from low down, a narrow spire (the pine's needles; evergreen)
+    'fir': dict(h=16.0, th=1.2, cz=6.0, rx=3.1, rz=9.0, n=560, card=1.05, groups=18, exc=True, bark='bark_pine',
+                taper=0.92, leaf='leaf_pine'),
 }
+CONIFERS = ('pine', 'metasequoia', 'fir')          # cards laid flat like sprays (not leaves turned to the light)
 
 
 def tube(mb, pts, radii, mat, sides, rnd, col=(1, 1, 1, 1)):
@@ -116,7 +121,7 @@ def make_tree(species, seed=0, leaf_mat=None):
         cards.append(p)
     # --- trunk
     lean = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), 0)) * (0.06 if species != 'pine' else 0.18)
-    if species == 'metasequoia':
+    if species in ('metasequoia', 'fir'):
         lean *= 0.2
     top = sp['h'] * (0.92 if sp['exc'] else 0.55)
     if not sp['exc']:
@@ -164,8 +169,8 @@ def make_tree(species, seed=0, leaf_mat=None):
         lift = sp.get('lift', 0.6 if species != 'pine' else 0.15)
         if young:
             lift = 1.0 + sp['spread']           # branches reach up rather than out (a vase, not a dome)
-        if species == 'metasequoia':
-            lift = 0.05                         # short level branches round the straight stem
+        if species in ('metasequoia', 'fir'):
+            lift = 0.05 if species == 'metasequoia' else -0.25    # short level (the fir's: drooping) branches
         mid = base.lerp(cen, 0.5) + Vector((0, 0, lift * (cen - base).length * 0.35))
         end = base.lerp(cen, 0.88)
         pts = bezier(base, mid, end, 4)
@@ -183,7 +188,7 @@ def make_tree(species, seed=0, leaf_mat=None):
         shell = min(1.0, dn.length)
         out = d.normalized() if d.length > 1e-3 else Vector((0, 0, 1))
         nrm = (out * 0.6 + Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.3, 1))) * 0.55).normalized()
-        if species in ('pine', 'metasequoia'):
+        if species in CONIFERS:
             nrm = (Vector((0, 0, 1)) + out * 0.5 + Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), 0)) * 0.8).normalized()
         up = Vector((0, 0, 1))
         tang = nrm.cross(up)
@@ -323,4 +328,9 @@ def make_shrub(kind, seed=0):
         # 철쭉 in full bloom (red), as in the 정문 flower bed of the May 1997 photo
         blob(mb, (0, 0, 0.4), 0.8, 0.8, 0.42, 'hedge_azalea', rnd, noise=0.14)
         fluff(mb, (0, 0, 0.42), 0.86, 0.86, 0.45, 'leaf_azalea_red', rnd, n=40, size=0.45)
+    elif kind == 'azalea_violet':
+        # 진달래 on 용재관's bank (reference/용재관.jpg, April): a loose, rounded mound of violet bloom, taller than the
+        # clipped 철쭉, the sheet of them closing up across the bank
+        blob(mb, (0, 0, 0.5), 0.78, 0.78, 0.55, 'hedge_azalea_violet', rnd, noise=0.2)
+        fluff(mb, (0, 0, 0.55), 0.9, 0.9, 0.6, 'leaf_azalea_violet', rnd, n=48, size=0.5)
     return mb
