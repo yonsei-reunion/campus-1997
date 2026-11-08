@@ -231,40 +231,59 @@ def library():
     def joint(P, s0, s1, z):          # a recessed horizontal panel joint
         mb.quad(P(s0, z, 0.015), P(s1, z, 0.015), P(s1, z + 0.05, 0.015), P(s0, z + 0.05, 0.015), 'concrete_dark')
 
+    # every pier reads as two: a dark slot down the middle of its face, on up through the attic band to the roofline
+    # (the 1997 photo and reference/2024_겨울_독수리상과_중앙도서관.jpg: one dark line per pier from the roof to the base,
+    # darker than the panel joints)
+    SLOT_W, SLOT_D = 0.12, 0.3
+
+    def slot(P, sm, z0, z1):          # its two cheeks and its back
+        w = SLOT_W / 2
+        mb.quad(P(sm - w, z0, 0), P(sm - w, z0, -SLOT_D), P(sm - w, z1, -SLOT_D), P(sm - w, z1, 0), 'concrete_dark')
+        mb.quad(P(sm + w, z0, -SLOT_D), P(sm + w, z0, 0), P(sm + w, z1, 0), P(sm + w, z1, -SLOT_D), 'concrete_dark')
+        mb.quad(P(sm - w, z0, -SLOT_D), P(sm + w, z0, -SLOT_D), P(sm + w, z1, -SLOT_D), P(sm - w, z1, -SLOT_D), 'trim_black')
+
+    def beside(s0, s1, slots):        # [s0, s1] less the slots
+        cuts = [s0] + [v for sm in slots for v in (sm - SLOT_W / 2, sm + SLOT_W / 2)] + [s1]
+        return list(zip(cuts[0::2], cuts[1::2]))
+
     for i in range(4):
         a, bb = outer[i], outer[(i + 1) % 4]
         P, Le, t, n = edge_P(a, bb)
         nb = max(1, int(round(Le / BAY)))
         bw = (Le - pier) / nb
+        slots = []
         for k in range(nb + 1):
             s = k * bw
             pw = pier * (1.4 if k in (0, nb) else 1.0)
             s0, s1 = (s, s + pw) if k < nb else (Le - pw, Le)
             if k == 0:
                 s1 = pw
-            mb.quad(P(s0, g0, 0), P(s1, g0, 0), P(s1, attic0, 0), P(s0, attic0, 0), 'stone_panel')
+            sm = (s0 + s1) / 2
+            slots.append(sm)
+            for p0, p1 in beside(s0, s1, [sm]):
+                mb.quad(P(p0, g0, 0), P(p1, g0, 0), P(p1, attic0, 0), P(p0, attic0, 0), 'stone_panel')
+                for zz in [g0 + 1.8 * q for q in range(1, int((attic0 - g0) / 1.8))]:
+                    joint(P, p0, p1, zz)
             mb.quad(P(s1, g0, 0), P(s1, g0, -depth), P(s1, attic0, -depth), P(s1, attic0, 0), 'stone_panel')
             mb.quad(P(s0, g0, -depth), P(s0, g0, 0), P(s0, attic0, 0), P(s0, attic0, -depth), 'stone_panel')
-            for zz in [g0 + 1.8 * q for q in range(1, int((attic0 - g0) / 1.8))]:
-                joint(P, s0, s1, zz)
-            if k in (0, nb):          # the corner piers read as two, a groove down the middle of each face
-                sm = (s0 + s1) / 2
-                mb.quad(P(sm - 0.05, g0, 0.015), P(sm + 0.05, g0, 0.015), P(sm + 0.05, attic0, 0.015), P(sm - 0.05, attic0, 0.015),
-                        'concrete_dark')
+            slot(P, sm, g0, H)
             if k < nb:
                 a0 = s1
                 a1 = (k + 1) * bw if k + 1 < nb else Le - pier * 1.4
                 arch_fill(mb, P, a0, a1, spring, attic0, depth, 'stone_panel', 'segment', 10)
-        # deep attic band of square panels
-        flat_wall(mb, P, 0, Le, attic0, H, 'stone_panel')
+        # deep attic band of square panels, cut by the piers' slots
+        for p0, p1 in beside(0, Le, slots):
+            flat_wall(mb, P, p0, p1, attic0, H, 'stone_panel')
+            for zz in (attic0 + (H - attic0) / 3, attic0 + (H - attic0) * 2 / 3):
+                joint(P, p0, p1, zz)
         mb.quad(P(0, H, 0), P(Le, H, 0), P(Le, H, -depth), P(0, H, -depth), 'stone_panel')
         mb.quad(P(0, attic0, 0), P(0, attic0, -depth), P(Le, attic0, -depth), P(Le, attic0, 0), 'stone_panel')
-        for zz in (attic0 + (H - attic0) / 3, attic0 + (H - attic0) * 2 / 3):
-            joint(P, 0, Le, zz)
-        npn = max(1, int(round(Le / 2.1)))
-        for q in range(1, npn):
-            sq = q * Le / npn
-            mb.quad(P(sq - 0.025, attic0, 0.015), P(sq + 0.025, attic0, 0.015), P(sq + 0.025, H, 0.015), P(sq - 0.025, H, 0.015), 'concrete_dark')
+        for sa, sb in zip(slots, slots[1:]):        # the panels' vertical joints evenly between two slots
+            npn = max(1, int(round((sb - sa) / 2.1)))
+            for q in range(1, npn):
+                sq = sa + q * (sb - sa) / npn
+                mb.quad(P(sq - 0.025, attic0, 0.015), P(sq + 0.025, attic0, 0.015), P(sq + 0.025, H, 0.015),
+                        P(sq - 0.025, H, 0.015), 'concrete_dark')
         flat_wall(mb, P, 0, Le, H - 1.2, H, 'concrete', d=-depth)
     mb.face([(p[0], p[1], H - 1.2) for p in offset_poly(rect(L, W), -depth)], 'roof_flat')
     # rooftop plant room (seen over the attic in the 1995 photo)
