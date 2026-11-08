@@ -344,9 +344,9 @@ export class Grass {
               g = mix(g, mix(g, straw, 0.65 + 0.3 * smoothstep(0.35, 0.6, n2)), smoothstep(0.0, 0.6, dry));
               tall *= 1.0 - 0.3 * dry;                                                       // trodden short
             }
-            // under the month's carpet of leaves or petals the blades barely show
+            // under the month's carpet of leaves the blades barely show (April's petals are only a strew: litter.js)
             vec2 luv = vec2((wp.x - uLeafRect.x) / (uLeafRect.z - uLeafRect.x), (uLeafRect.w - wp.y) / (uLeafRect.w - uLeafRect.y));
-            tall *= 1.0 - 0.7 * clamp(dot(textureLod(uLeaf, luv, 0.0).rgb, uFall) * 1.3, 0.0, 1.0);
+            tall *= 1.0 - 0.7 * clamp(dot(textureLod(uLeaf, luv, 0.0).rgb, uFall * vec3(1.0, 0.1, 1.0)) * 1.3, 0.0, 1.0);
             // a gust from the west now and then: the tips bow east (a world offset, taken into the clump's frame)
             float ph = dot(wp, vec2(0.21, 0.13)) - uTime * 1.7;
             vec3 wind = vec3(0.012 + 0.012 * sin(ph) + 0.004 * sin(uTime * 4.3 + wp.y), 0.0, 0.006 * sin(ph * 1.7 + 1.3)) * aBlade.y;

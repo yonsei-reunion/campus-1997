@@ -535,8 +535,10 @@ bark_tex('bark_smooth', (132, 128, 120), (104, 102, 96), (170, 166, 154), 900, (
 # leaves 0.8 m and cherry petals 0.4 m of ground per tile in web/src/litter.js).  Its alpha is each leaf's rank, not
 # its coverage: the shader shows the leaves whose rank clears the carpet's thinness there, so a few strewn leaves and
 # a full carpet come from the one tile.  Higher ranks lie on top, so a thin strew is whole leaves.  n is about
-# 4.6 (1 - 0.14) / (one leaf's share of the tile): the coverage above rank t is then 1 - exp(-4.6 (1 - t)).
-def litter(name, kind, palette, n, size, seed=0):
+# k (1 - r0) / (one leaf's share of the tile), ranks from r0 up: the coverage above rank t is then 1 - exp(-k (1 - t)).
+# The ginkgo tile is a carpet (k 4.6); the petal tile only a strew (k about 0.2, ranks from 0), so that the few
+# petals on the ground at full bloom still take the whole range of ranks (issue #74, reference/고증.md 3.18).
+def litter(name, kind, palette, n, size, seed=0, r0=0.14):
     if ONLY and name not in ONLY:
         return
     rnd = random.Random(seed)
@@ -545,7 +547,7 @@ def litter(name, kind, palette, n, size, seed=0):
     rank = Image.new('L', (S, S), 0)
     d, dk = ImageDraw.Draw(img), ImageDraw.Draw(rank)
     shape_fn = {'ginkgo': shape_ginkgo, 'petal': shape_petal}[kind]
-    leaves = sorted((rnd.uniform(0.14, 1.0), rnd.uniform(0, S), rnd.uniform(0, S), rnd.uniform(0, 2 * math.pi),
+    leaves = sorted((rnd.uniform(r0, 1.0), rnd.uniform(0, S), rnd.uniform(0, S), rnd.uniform(0, 2 * math.pi),
                      rnd.uniform(*size) * S, rnd.choice(palette), rnd.random()) for _ in range(n))
     for r, x, y, a, sz, col, sd in leaves:
         shape = shape_fn(random.Random(sd))
@@ -565,17 +567,23 @@ def litter(name, kind, palette, n, size, seed=0):
                         width=max(1, int(sz * 0.05)))
     img.putalpha(rank)
     out = finish(img)
+    if kind == 'petal':
+        # the rank, not an edge's coverage, all the way to a petal's rim (the largest of the supersamples): the shader
+        # cuts the strew at a rank near 1, which would otherwise shave the antialiased rims off every petal
+        r = np.array(rank).reshape(S // SS, SS, S // SS, SS).max((1, 3))
+        out = Image.fromarray(np.concatenate([np.array(out)[..., :3], r[..., None]], -1), 'RGBA')
     out.save(os.path.join(OUT, f'{name}.png'), optimize=True)
     al = np.array(out)[..., 3] / 255
-    print('litter', name, 'cover above rank 0.14 / 0.5 / 0.8: %.2f %.2f %.2f (1 - exp(-4.6 (1 - t)): 0.98 0.90 0.60)'
-          % ((al > 0.14).mean(), (al > 0.5).mean(), (al > 0.8).mean()))
+    print('litter', name, 'cover above rank 0.02 / 0.14 / 0.5 / 0.8: %.3f %.3f %.3f %.3f'
+          % ((al > 0.02).mean(), (al > 0.14).mean(), (al > 0.5).mean(), (al > 0.8).mean()))
 
 
 litter('litter_ginkgo', 'ginkgo', [(240, 200, 40), (230, 185, 30), (250, 215, 70), (215, 170, 30), (200, 180, 50),
                                    (236, 196, 52), (190, 150, 40), (175, 130, 45)], 1500, (0.036, 0.052), seed=18)
-# Somei-yoshino petals 1.1-1.5 cm long, near white with a blush of pink, a few going brown
+# Somei-yoshino petals 1.1-1.5 cm long, near white with a blush of pink, a few going brown: a strew of about 400
+# petals per 0.4 m tile, 2500 a square metre with every rank shown (the ground at full bloom takes a few per cent)
 litter('litter_petals', 'petal', [(246, 206, 218), (248, 216, 226), (250, 226, 233), (244, 198, 212), (252, 236, 240),
-                                  (240, 190, 205), (247, 222, 228), (236, 214, 208)], 8200, (0.0275, 0.0375), seed=35)
+                                  (240, 190, 205), (247, 222, 228), (236, 214, 208)], 400, (0.0275, 0.0375), seed=35, r0=0.0)
 
 # 게시판 (2003_봄_언더우드관_앞길_벚나무.jpg): the board by 언더우드관's west wing pasted over with posters and 대자보,
 # 1997 campus notices (blender/props.py notice_board)

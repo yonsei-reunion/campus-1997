@@ -76,19 +76,24 @@ export const LITTER_GLSL = `
       col = (lg.rgb * 0.82 * cg + oc * co * (1.0 - cg)) / max(cov, 1e-4);
     }
     if (m.y > 0.004) {
-      // cherry petals 1.1-1.5 cm long (this month's uLitter is their tile, 0.4 m): a carpet right under the crown,
-      // drifted into little heaps and swept thin between them, a few strewn beyond. Two lookups turned against each
+      // cherry petals 1.1-1.5 cm long (this month's uLitter is their tile, 0.4 m). April is full bloom, when the
+      // crowns are white and the ground under them all but bare (the 2003 spring photos, the April 2011 roadview:
+      // reference/고증.md 3.18): a strew of 1-9 % under the crown, thicker where the wind heaps it, thinning out a
+      // metre or two past its edge (not as far as October's leaves: the mask's long tail is left out). The tile is a
+      // strew too (its coverage above rank t is about 1 - exp(-0.2 (1 - t))). Two lookups turned against each
       // other, each laying half the share, hide the tile's repeat; once the petals shrink to a pixel or two their
       // share takes over, as with the leaves.
-      float dp = clamp(m.y * (0.2 + smoothstep(0.2, 0.8, nz)) * (0.6 + 0.6 * litNoise(wp * 2.9 + 1.7))
-                       + 0.12 * smoothstep(0.55, 0.95, m.y), 0.0, 1.0);
+      float dp = 0.06 * smoothstep(0.3, 1.0, m.y) * (0.25 + 0.75 * smoothstep(0.25, 0.85, nz))
+                 * (0.5 + litNoise(wp * 2.9 + 1.7));
       float near = 1.0 - smoothstep(0.0025, 0.008, px);
-      float tp = 1.0 + log(max(sqrt(1.0 - 0.97 * dp), 0.001)) / 4.6;   // (each layer 1 - sqrt(1 - d): together d)
+      float tp = 1.0 + log(max(sqrt(1.0 - dp), 0.8)) / 0.2;            // (each layer 1 - sqrt(1 - d): together d)
+      // (a mip level sharper than the footprint: the coarser levels average a petal's rank with the bare ground
+      // round it and would shave each petal down to its middle)
       mat2 tr = mat2(0.6, -0.8, 0.8, 0.6) * 2.9;
-      vec4 la = textureGrad(uLitter, wp * 2.5, dwx * 2.5, dwy * 2.5);
-      vec4 lb = textureGrad(uLitter, tr * wp + 0.61, tr * dwx, tr * dwy);
-      float ca = smoothstep(tp - 0.03, tp + 0.01, la.a), cb = smoothstep(tp - 0.03, tp + 0.01, lb.a);
-      float cp = mix(dp * 0.97, 1.0 - (1.0 - ca) * (1.0 - cb), near) * smoothstep(0.0, 0.04, dp);
+      vec4 la = textureGrad(uLitter, wp * 2.5, dwx * 1.25, dwy * 1.25);
+      vec4 lb = textureGrad(uLitter, tr * wp + 0.61, tr * dwx * 0.5, tr * dwy * 0.5);
+      float ca = smoothstep(tp - 0.004, tp + 0.004, la.a), cb = smoothstep(tp - 0.004, tp + 0.004, lb.a);
+      float cp = mix(dp, 1.0 - (1.0 - ca) * (1.0 - cb), near) * smoothstep(0.0, 0.003, dp);
       vec3 pc = mix(la.rgb, lb.rgb, mix(0.5, cb, near));
       // on the lawn a little brighter and whiter, or the green swallows the pink
       pc = mix(pc * 1.1, min(pc * 1.2 + 0.04, vec3(1.0)), grass);
