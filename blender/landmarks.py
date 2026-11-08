@@ -518,154 +518,158 @@ def nw_lobby(mb, c, R, arc, z0, HP, low, pockets):
         planter(mb, poly, z0)
 
 
-def drum_outline(c, r, A, nw, dclip, seg=192):
-    """The drum's ring of radius r cut flat by the 백양로 face: its points less than dclip into the building from the
-    face line through A (nw: into the building) are moved onto that line.  Returns the points (angle increasing, like
-    MeshBuilder.cylinder) and, for each, whether it lies on the flat."""
-    pts, flat = [], []
-    for i in range(seg):
-        a = 2 * math.pi * i / seg
-        p = Vector((c[0] + r * math.cos(a), c[1] + r * math.sin(a)))
-        d = (p - A).dot(nw)
-        flat.append(d < dclip)
-        pts.append(p + nw * (dclip - d) if d < dclip else p)
-    return pts, flat
+def drum_outline(c, r, arc=None, seg=192):
+    """The drum's ring of radius r, angle increasing (like MeshBuilder.cylinder), with points at the ends of `arc`
+    (a0, a1 in radians, a0 < a1) and, for each point, whether the segment from it to the next lies on that arc (where
+    the drum's wall stops above the lobby glass at its foot: drum_band's `flat`)."""
+    angs = [2 * math.pi * i / seg for i in range(seg)]
+    if arc:
+        a0, a1 = (a % (2 * math.pi) for a in arc)
+        angs = sorted(set(round(a, 9) for a in angs + [a0, a1]))
+    pts, on = [], []
+    for k, a in enumerate(angs):
+        pts.append(Vector((c[0] + r * math.cos(a), c[1] + r * math.sin(a))))
+        if arc:
+            m = (a + angs[(k + 1) % len(angs)] + (2 * math.pi if k == len(angs) - 1 else 0)) / 2
+            on.append(a0 <= m % (2 * math.pi) <= a1 if a0 <= a1 else (m % (2 * math.pi) >= a0 or m % (2 * math.pi) <= a1))
+        else:
+            on.append(False)
+    return pts, on
 
 
 def drum_band(mb, pts, flat, za, zb, mat, zflat=None, tag=None):
-    """Walls along the outline from za to zb; on the flat (both ends on it) only from zflat up (the porch under it)."""
+    """Walls along the outline from za to zb; on the segments flagged in `flat` (drum_outline: from point i to the next)
+    only from zflat up (the lobby glass under it)."""
     n = len(pts)
     per = sum((pts[(i + 1) % n] - pts[i]).length for i in range(n))
     u = 0.0
     for i in range(n):
         j = (i + 1) % n
         L = (pts[j] - pts[i]).length
-        on_flat = flat[i] and flat[j]
+        on_flat = flat[i]
         z1 = max(za, zflat) if (on_flat and zflat is not None) else za
         if z1 < zb:
             mb.face([(*pts[i], z1), (*pts[j], z1), (*pts[j], zb), (*pts[i], zb)], mat,
-                    uvs=[(u, z1), (u + L, z1), (u + L, zb), (u, zb)], smooth=False if on_flat else tag)
+                    uvs=[(u, z1), (u + L, z1), (u + L, zb), (u, zb)], smooth=tag)
         u += L
     return per
 
 
+# 백주년기념관's drum (the concert hall, reference/고증.md 3.4, issue #101): a 34 m drum at the south of the hall, at the
+# 백양로 face, from the 2011 roadview (its silhouette from nine panoramas along 백양로, every heading solved on
+# 백주년기념관's north-west corner and the eagle / 활천대 pillars: (-8.8, -240.8) ± 1.6 m, d 35.7 ± 3.1 m; with d 34 m:
+# (-9.2, -241.7), or (-7.0, -243.2) with that corner where Kakao's base map has it), the 1994 photo (the roof rim's line
+# of centres, d 31 - 33 m) and the skyview's ring less its lean (-8, -244.6): (-8.6, -241.8) ± 1.2 m, 0.7 m out past the
+# outline's face line (the roadview shows the face running smoothly into it).  North of it a flat-topped box (the 1994
+# photo, the 2010 north road).  Heights from photo A through PHOTO_A (tools/build_campus.py, reference/고증.md 2.2):
+# the box's north-west corner 17.2 m over the hall's floor, the drum's rim 0.2 m higher (18.4 - 18.9 m through the
+# other refitted cameras).
+CENT_DRUM = dict(c=(-8.6, -241.8), r=17.0, top=17.4)
+CENT_BOX_TOP = 16.7               # the box's walls over the hall's floor (its coping 0.5 m over)
+CENT_FACE_DRUM = 54.0             # where the box's 백양로 face meets the drum, m from the north-west corner (2011 roadview)
+
+
 def centennial():
-    """1997 aerial photo (reference/1997_백양로_항공사진.jpg): a large stone drum rising out of a two-storey podium that fills
-    the whole site, and a plain box (stage house) standing above the drum on its north side.  Light granite with
-    incised horizontal courses.  The 2008 · 2010 · 2011 roadview (reference/고증.md 3.4): the 백양로 face is flat (the drum
-    is cut by it) over a deep porch, the museum's glass entrance in it (museum_porch), the drum's curved foot with tall
-    glass south of that; the north end is a plain stone box with strip windows (north_box); the low block at the
-    south-west corner (tools/build_campus.py CENT_BLOCK)."""
+    """The 1994 · 1997 aerial photos and the 2008 · 2010 · 2011 roadview (reference/고증.md 3.4): a stone drum (the
+    concert hall) at the hall's south end, a flat-topped stone box over the north part, both about as high as the
+    building's four storeys, a stage house standing over them north-east of the drum.  Light granite with incised
+    horizontal courses.  The 백양로 face is the box's: flat, about 17 m, over a deep porch with the museum's glass entrance
+    (museum_porch), running at its south end into the drum, whose foot has curved glass (nw_lobby); the north end has
+    three rows of strip windows (north_box); the low block at the south-west corner (tools/build_campus.py CENT_BLOCK)
+    stands before the drum's south-west quarter, and on the east the drum comes down to the ground."""
     b = bld(324328422)
     z0 = b['base']
     fp = [tuple(p) for p in b['footprint']]
+    F = [Vector(p) for p in fp]
     mb = MeshBuilder('lm_centennial')
-    # sized from the 1997 photo with its camera fitted to the surrounding halls (the 1997 photo view in the bird's-eye
-    # mode): the drum is ~52 m across and as low as the building's four storeys (its top ~19 m up, the podium ~7 m)
-    HP = 7.0                     # podium roof
-    c = (3.8, -207.6)            # drum centre
-    R, HD = 25.9, 19.5           # drum radius / top
-    A_, B_ = Vector(fp[3]), Vector(fp[4])          # the 백양로 (west) face, north to south
+    HP = 7.0                                       # the old podium's height: joint bands, the lobby glass's band
+    c, R, HD = CENT_DRUM['c'], CENT_DRUM['r'], CENT_DRUM['top']
+    HB = CENT_BOX_TOP
+    A_, B_ = F[3], F[4]                            # the 백양로 (west) face, north to south
     tw = (B_ - A_).normalized()
     nw = Vector((-tw.y, tw.x))                     # into the building
-    # The porch: where the drum's ring stands out past the 백양로 face the drum is cut flat by the face (the real hall's
-    # face there is flat over its porch), and under that flat a 5 m deep porch HR high holds the museum's entrance
-    # (2011 roadview: the porch from 6.5 m south of the north-west corner, the recess about 11 m high).  South of it,
-    # where the ring comes back inside the face, the drum comes down to the ground: curved glass (nw_lobby) behind a
-    # planter, as the 1996 side photo shows right of the entrance.
+    # The porch under the box's face (2011 roadview: from 6.4 m south of the north-west corner, the white wall to 14.3 m,
+    # glass to 29.3 m, a white cylinder, a low wall to 38.1 m; the recess about 11 m high, 5 m deep; museum_porch)
     PD, HR = 5.0, 11.2
-    X_n = circle_cross(c, R, A_, A_ + tw * 20.0)                       # the ring leaves the face (north) ...
-    X_s = circle_cross(c, R, A_ + tw * 20.0, A_ + tw * 60.0)           # ... and comes back (south)
-    X_b = circle_cross(c, R, A_ + tw * 30.0 + nw * PD, A_ + tw * 60.0 + nw * PD)   # and meets the porch's back line
-    N1 = X_n + nw * PD
-    N3 = A_ + tw * (X_b - A_).dot(tw)                                  # the porch's south end on the face
-    # the low block at the south-west corner (tools/build_campus.py CENT_BLOCK, issue #9): the podium steps round it
+    X_n, X_s = A_ + tw * 6.4, A_ + tw * 38.1
+    N1, N2 = X_n + nw * PD, X_s + nw * PD
+    # the box: the outline north of the drum, its 백양로 face to where the drum meets it, then in under the drum and
+    # across to the outline's east side (the outline's south-east vertices follow the drum's leaning roof ring in the
+    # skyview, not its foot)
+    sc_, dc_ = (Vector(c) - A_).dot(tw), (Vector(c) - A_).dot(nw)     # the drum's centre along / into the face
+    J = A_ + tw * min(CENT_FACE_DRUM, sc_ - math.sqrt(max(R * R - dc_ * dc_, 0.0)) - 0.05)   # (where the ring crosses it)
+    Jin = J + nw * 4.0
+    box = [F[0], F[1], F[2], F[3], X_n, X_s, J, Jin] + F[10:]
+    low = [F[0], F[1], F[2], F[3], X_n, N1, N2, X_s, J, Jin] + F[10:]          # below the porch's soffit
+    nb = len(box)
+    ground_walls = {2, 3, 5, 6, 7} | set(range(8, nb))                           # (0, 1: north_box; 4: over the porch)
+    mb.prism(offset_poly([tuple(p) for p in low], 0.3), z0 - 4, z0 + 0.4, 'stone_granite', 'stone_granite')
+    for i in range(2, nb):
+        p, q = box[i], box[(i + 1) % nb]
+        zb_ = HR if i == 4 else 0.4
+        mb.face([(p.x, p.y, z0 + zb_), (q.x, q.y, z0 + zb_), (q.x, q.y, z0 + HB), (p.x, p.y, z0 + HB)], 'stone_ashlar')
+        if i in ground_walls:
+            d = (q - p).normalized()
+            o = Vector((d.y, -d.x)) * 0.04
+            for zz in (3.2, 6.0):
+                mb.face([(*(p + o), z0 + zz), (*(q + o), z0 + zz), (*(q + o), z0 + zz + 0.14), (*(p + o), z0 + zz + 0.14)],
+                        'concrete_dark')
+    rim = [Vector(p) for p in offset_poly([tuple(p) for p in box], 0.12)]
+    for i in range(2, nb):
+        p, q = rim[i], rim[(i + 1) % nb]
+        mb.quad((p.x, p.y, z0 + HB), (q.x, q.y, z0 + HB), (q.x, q.y, z0 + HB + 0.5), (p.x, p.y, z0 + HB + 0.5), 'stone_ashlar')
+    mb.face([(p.x, p.y, z0 + HB + 0.5) for p in rim], 'roof_flat')
+    # where the drum comes down to the ground by the face, between the box and the low block: curved glass on its foot
+    # (nw_lobby), a planter of clipped box between it and the face
     K = CAMPUS.get('centennial_block')
+    Xw = circle_cross(c, R, J, Jin)
+    a_w = math.atan2(Xw.y - c[1], Xw.x - c[0])
     if K:
         c0, tf, tsd = Vector(K['corner']), Vector(K['t_front']), Vector(K['t_side'])
         kNW = c0 + tsd * K['side']
-        kN = kNW + tf * ((A_ - kNW).dot(nw) / tf.dot(nw))              # its north side meets the face line
-        kNE, kSE = kNW + tf * K['front'], c0 + tf * K['front']
-        south = [kN, kNE, kSE] + [Vector(p) for p in fp[7:]]
-        inner = [(kN, kNE), (kNE, kSE)]                                # (against the block)
+        kN = kNW + tf * ((A_ - kNW).dot(nw) / tf.dot(nw))                     # its north side meets the face line
+        Xk = circle_cross(c, R, kNW, kNW + tf * 4.0)
+        a_k = math.atan2(Xk.y - c[1], Xk.x - c[0])
     else:
-        south = [Vector(p) for p in fp[4:]]
-        inner = []
-    fpr = [Vector(p) for p in fp[:4]] + [X_n, N1, X_b, N3] + south
-    # the podium's walls and coping: not along the north box (north_box), nor in the porch, nor against the block
-    edges = [(fpr[i], fpr[(i + 1) % len(fpr)]) for i in range(len(fpr))]
-    key = lambda e: (tuple(e[0]), tuple(e[1]))
-    skipk = {key(e) for e in ((Vector(fp[0]), Vector(fp[1])), (Vector(fp[1]), Vector(fp[2])), (Vector(fp[-1]), Vector(fp[0])),
-                              (X_n, N1), (N1, X_b))}
-    innerk = {key(e) for e in inner}
-    walls = [e for e in edges if key(e) not in skipk and key(e) not in innerk]
-    # podium
-    pl = offset_poly([tuple(p) for p in fpr], 0.3)
-    mb.prism(pl, z0 - 4, z0 + 0.4, 'stone_granite', 'stone_granite')
-    for p, q in walls:
-        mb.face([(p.x, p.y, z0 + 0.4), (q.x, q.y, z0 + 0.4), (q.x, q.y, z0 + HP), (p.x, p.y, z0 + HP)], 'stone_ashlar')
-    mb.face([(p.x, p.y, z0 + HP) for p in fpr], 'roof_flat')
-    for zz in (3.2, 6.0):
-        for p, q in walls:
-            d = (q - p).normalized()
-            o = Vector((d.y, -d.x)) * 0.04
-            mb.face([(*(p + o), z0 + zz), (*(q + o), z0 + zz), (*(q + o), z0 + zz + 0.14), (*(p + o), z0 + zz + 0.14)],
-                    'concrete_dark')
-    # the podium's coping (round its outer walls, and the step down to the block's roof)
-    rim = [Vector(p) for p in offset_poly([tuple(p) for p in fpr], 0.12)]
-    for i, e in enumerate(edges):
-        if key(e) in skipk:
-            continue
-        p, q = rim[i], rim[(i + 1) % len(rim)]
-        if key(e) in innerk:
-            p, q = e
-        mb.quad((p.x, p.y, z0 + HP), (q.x, q.y, z0 + HP), (q.x, q.y, z0 + HP + 0.9), (p.x, p.y, z0 + HP + 0.9), 'stone_ashlar')
-    mb.face([(p.x, p.y, z0 + HP + 0.9) for p in rim], 'stone_ashlar')
-    # the drum's curved foot south of the porch: tall curved glass on the ring from the face to the porch's back line,
-    # a planter of clipped box between it and the face (nw_lobby)
-    a_s = math.atan2(X_s.y - c[1], X_s.x - c[0])
-    a_b = math.atan2(X_b.y - c[1], X_b.x - c[0])
-    narc = max(3, int(math.ceil((a_b - a_s) / (2 * math.pi / 96))))
-    arc = [Vector((c[0] + R * math.cos(a_s + (a_b - a_s) * k / narc), c[1] + R * math.sin(a_s + (a_b - a_s) * k / narc)))
-           for k in range(narc + 1)]
+        a_k = a_w + 0.4
+        kN = J + tw * 4.0
+    narc = max(3, int(math.ceil((a_k - a_w) / (2 * math.pi / 96))))
+    ring = lambda r, a: Vector((c[0] + r * math.cos(a), c[1] + r * math.sin(a)))
+    arc = [ring(R, a_w + (a_k - a_w) * k / narc) for k in range(narc + 1)]
     Rp = R + 0.2
-    pa = lambda p: math.atan2(p.y - c[1], p.x - c[0])
-    Xs_p = circle_cross(c, Rp, A_ + tw * 20.0, A_ + tw * 60.0)
-    Xb_p = circle_cross(c, Rp, N3, X_b)
-    pocket = [tuple(Xs_p), tuple(N3), tuple(Xb_p)] + \
-        [(c[0] + Rp * math.cos(pa(Xb_p) + (pa(Xs_p) - pa(Xb_p)) * k / 6), c[1] + Rp * math.sin(pa(Xb_p) + (pa(Xs_p) - pa(Xb_p)) * k / 6))
-         for k in range(1, 6)]
+    pocket = [tuple(J)] + [tuple(ring(Rp, a_w + (a_k - a_w) * k / 6)) for k in range(7)] + [tuple(kN)]
     nw_lobby(mb, c, R, arc, z0, HP, arc, [pocket])
-    # drum with incised horizontal joints above the podium, cut flat by the 백양로 face over the porch
-    joints = [HP + 0.9 + k * 3.0 for k in range(1, 4)]
-    o0, f0 = drum_outline(c, R, A_, nw, 0.0)
-    # its underside where it stands out over the podium (not over the porch: the porch's soffit is HR up)
-    ob, _ = drum_outline(c, R, A_, nw, PD)
-    mb.face([(p.x, p.y, z0 + HP - 0.02) for p in reversed(ob)], 'trim_black')
-    z = z0 + HP
+    # the drum, with incised horizontal joints, from the ground (inside the box and the block it is hidden), above the
+    # lobby glass only from the glass's band up
+    joints = [j for j in (3.2, 6.0, HP + 0.9, HP + 3.9, HP + 6.9, HP + 9.9) if j < HD - 1.5]
+    o0, f0 = drum_outline(c, R, (a_w, a_k))
+    oj, fj = drum_outline(c, R - 0.1, (a_w, a_k))
+    z = z0 - 3.0
     tag = 'drum'
     for zj in joints + [HD - 1.2]:
-        drum_band(mb, o0, f0, z, z0 + zj, 'stone_ashlar', zflat=z0 + HR, tag=tag)
-        oj, fj = drum_outline(c, R - 0.1, A_, nw, 0.1)
-        drum_band(mb, oj, fj, z0 + zj, z0 + zj + 0.12, 'concrete_dark', zflat=z0 + HR, tag=tag + 'j')
+        drum_band(mb, o0, f0, z, z0 + zj, 'stone_ashlar', zflat=z0 + HP + 0.9, tag=tag)
+        drum_band(mb, oj, fj, z0 + zj, z0 + zj + 0.12, 'concrete_dark', zflat=z0 + HP + 0.9, tag=tag + 'j')
         z = z0 + zj + 0.12
-    oc, fc = drum_outline(c, R + 0.3, A_, nw, -0.3)
+    oc, fc = drum_outline(c, R + 0.3)
     drum_band(mb, oc, fc, z0 + HD - 1.2, z0 + HD, 'stone_ashlar', tag=tag + 'c')
-    oi, fi = drum_outline(c, R - 0.5, A_, nw, 0.5)
+    oi, _ = drum_outline(c, R - 0.5)
+    zr = max(HD - 1.0, HB + 0.55)                  # its roof inside the parapet (over the box's, which runs in under it)
     n_ = len(oc)
     for i in range(n_):
         j = (i + 1) % n_
         mb.quad((*oc[i], z0 + HD), (*oc[j], z0 + HD), (*oi[j], z0 + HD), (*oi[i], z0 + HD), 'stone_ashlar')
-        mb.quad((*oi[j], z0 + HD), (*oi[j], z0 + HD - 1.0), (*oi[i], z0 + HD - 1.0), (*oi[i], z0 + HD), 'concrete')
-    mb.face([(*p, z0 + HD - 1.0) for p in oi], 'roof_flat')
-    # stage house: plain stone box above the drum on the north side, with a slot window
+        mb.quad((*oi[j], z0 + HD), (*oi[j], z0 + zr), (*oi[i], z0 + zr), (*oi[i], z0 + HD), 'concrete')
+    mb.face([(*p, z0 + zr) for p in oi], 'roof_flat')
+    # stage house: a plain stone box standing over the box and the drum north-east of the drum, with a slot window
+    # (photo A x 1735 - 1910 and the 1994 photo's box over the drum's east half: its corners at about (-1, -219) and
+    # (12, -225.5), its top ~6 m over the drum's)
     sh = MeshBuilder('lm_centennial_stage')
-    sh.xf = local_frame(c[0] + 2.0, c[1] + 12.5, math.radians(-8), z0)
-    sh.box((0, 0, (HD + 6.5) / 2), (19.0, 12.0, HD + 6.5), 'stone_ashlar', mats={'top': 'roof_flat'})
-    sh.box((0, 0, HD + 6.5 + 0.45), (19.4, 12.4, 0.9), 'stone_ashlar', skip=('bottom',))
+    sh.xf = local_frame(6.0, -219.5, math.radians(-8), z0)
+    sh.box((0, 0, (HD + 6.5) / 2), (14.0, 12.0, HD + 6.5), 'stone_ashlar', mats={'top': 'roof_flat'})
+    sh.box((0, 0, HD + 6.5 + 0.45), (14.4, 12.4, 0.9), 'stone_ashlar', skip=('bottom',))
     sh.face([(-3.0, -6.03, HD + 3.0), (3.0, -6.03, HD + 3.0), (3.0, -6.03, HD + 4.2), (-3.0, -6.03, HD + 4.2)], 'glass')
-    sh.box((7.0, 3.0, HD + 8.0), (3.0, 3.0, 2.2), 'concrete', mats={'top': 'roof_flat'})
-    out = [mb, sh, museum_porch(tuple(X_n), tuple(X_s), z0, HR, PD), north_box(fp[0], fp[1], fp[2], z0)]
+    sh.box((4.5, 3.0, HD + 8.0), (3.0, 3.0, 2.2), 'concrete', mats={'top': 'roof_flat'})
+    out = [mb, sh, museum_porch(tuple(X_n), tuple(X_s), z0, HR, PD), north_box(fp[0], fp[1], fp[2], z0, HB)]
     # the low front block before the podium's south-west corner (tools/build_campus.py CENT_BLOCK, issue #9)
     if K:
         bk = MeshBuilder('lm_centennial_block')
@@ -745,7 +749,9 @@ def museum_porch(A, B, z0, HR, PD):
     mb = MeshBuilder('lm_centennial_museum')
     P, Le, t, n = edge_P(A, B, z0)                 # s from the north end, d > 0 out of the face (west)
     zf = 2.6                                        # the lobby floor over the hall's datum (roadview: ~4 m over 백양로)
-    S0, S1 = 6.6, 24.4                              # the glass between the white wall and the cylinder
+    # the glass between the white wall and the cylinder: from 14.3 m south of the north-west corner, the cylinder's
+    # middle at 32.2 m (2011 roadview 172 - 175 with their headings solved, residuals 0.1 - 0.4 m; first 13 m, 33.7 m)
+    S0, S1 = 7.9, 22.9
     zcb, zct = zf + 3.7, zf + 4.5                   # canopy underside / top
     g0, g1 = zct, HR                                # the leaning glass: foot (behind the canopy) and head
     dg0, dg1 = -2.4, -0.6
@@ -840,33 +846,29 @@ def museum_porch(A, B, z0, HR, PD):
     return mb
 
 
-def north_box(A, B, C, z0):
-    """백주년기념관's north end (2010 roadview from the road along its north side, reference/고증.md 3.4): a plain stone
-    box over the north-east face (A -> B, towards 광혜원) and the north-north-west side (B -> C), about 11 m high,
-    three rows of strip windows in the same grey panels as the podium, its back hidden in the drum."""
+def north_box(A, B, C, z0, ZB=10.8):
+    """백주년기념관's north end (2010 roadview from the road along its north side, reference/고증.md 3.4): the north-east
+    face (A -> B, towards 광혜원) and the north-north-west side (B -> C) of the box (centennial), ZB high, three rows of
+    strip windows in its lower part in the same grey panels as the podium, the plain wall above."""
     mb = MeshBuilder('lm_centennial_north')
-    ZB = 10.8
     A, B, C = Vector(A), Vector(B), Vector(C)
-    D = A + (C - B)
     W = 'stone_ashlar'
     rows = (3.4, 6.2, 9.0)                          # sills over the hall's datum (its ground there is ~2.5 m up)
-    for p, q, wins in ((A, B, True), (B, C, True), (C, D, False), (D, A, False)):
+    for p, q in ((A, B), (B, C)):
         P, L, t, n = edge_P(tuple(p), tuple(q), z0)
         holes = []
-        if wins:
-            nb = max(1, int((L - 2.0) / 4.4))
-            w_ = (L - 2.0) / nb
-            for zs_ in rows:
-                for k in range(nb):
-                    holes.append((1.0 + w_ * k + 0.5, 1.0 + w_ * (k + 1) - 0.5, zs_, zs_ + 0.75))
+        nb = max(1, int((L - 2.0) / 4.4))
+        w_ = (L - 2.0) / nb
+        for zs_ in rows:
+            for k in range(nb):
+                holes.append((1.0 + w_ * k + 0.5, 1.0 + w_ * (k + 1) - 0.5, zs_, zs_ + 0.75))
         wall_holes(mb, P, 0.0, L, -3.0, ZB, W, holes)
         for a_, b_, za_, zb_ in holes:
             reveal(mb, P, a_, b_, za_, zb_, 0.25, W)
             glazing(mb, P, a_, b_, za_, zb_, -0.25, max(2, round((b_ - a_) / 1.4)), 1, 'frame_dark')
         for zz in (3.2, 6.0):                                               # the podium's joint bands carried on
             bar(mb, P, 0.0, zz + 0.07, L, zz + 0.07, 0.14, 0.0, 0.04, 'concrete_dark')
-        bar(mb, P, -0.1, ZB + 0.25, L + 0.1, ZB + 0.25, 0.5, 0.0, 0.12, W)  # the coping
-    mb.face([(p.x, p.y, z0 + ZB) for p in (A, B, C, D)], 'roof_flat')
+        bar(mb, P, -0.1, ZB + 0.25, L + 0.1, ZB + 0.25, 0.5, 0.0, 0.12, W)  # the coping (the box's roof: centennial)
     return mb
 
 
