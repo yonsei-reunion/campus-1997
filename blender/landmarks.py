@@ -3818,6 +3818,8 @@ def underwood_steps():
     ct = U['cheek']
     for f in U['flights']:
         out.append(garden_flight(dict(f, cheek=0.0), apron=False))      # (the cheeks below, posts only outside)
+    for f in U.get('garden', []):          # the short walled flight up into 언더우드관 정원 at its south-west corner
+        out.append(garden_flight(f))
     F = U['frame']
     mb = MeshBuilder('lm_uw_steps')
     mb.xf = local_frame(F['o'][0], F['o'][1], math.atan2(F['u'][1], F['u'][0]), 0.0)
