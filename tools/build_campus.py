@@ -94,10 +94,9 @@ B = {
 }
 # Outlines that have grown since 1997.  제1공학관: the College of Engineering added south and north wings in 2014-15
 # (연세대 공과대학 연혁: 2014.6 착공, 2015.7 봉헌; yonsei.ac.kr/sc/243: 1,452평, 지상 6층) and the sixth floor in 2007.
-# In the 1997 aerial photo (reference/1997_백양로_항공사진.jpg, camera fitted to the buildings) the 백양로 front ends
-# about 65 m from its south end, with a car park and lawn where OSM now has another 13.5 m of hall and the 공AS block;
-# the OSM outline's slanted south end, 9 m past the west wall, is the south wing.  So: the OSM hall's rectangle from
-# 9 m to 74.5 m along its length (about 800 m2 a floor taken off, as much as the wings added).
+# FOOTPRINT_1997 is the hall as first read off the 1997 aerial photo through an older camera (9 m to 74.5 m along the
+# OSM hall).  The random planting, cars and decals ran with it, so it stays for them; the 1997 hall goes in after them
+# (LATE_FOOTPRINT_1997 below, issue #83, reference/고증.md 3.8).
 FOOTPRINT_1997 = {205583531: [(-127.6, -296.97), (-110.42, -233.76), (-124.96, -229.8), (-142.14, -293.01)]}
 # Floors as of 1997 from the building history (yonsei.ac.kr/sc/349) and the colleges' and hospital's own: 제2공학관
 # 지하 2층 · 지상 7층 since 1994; 한국어학당 (언어연구교육원, 1991) 지상 6층; 외솔관2 (1991) 「지하 1층, 지상 1층」 on
@@ -125,9 +124,15 @@ LATE_FOOTPRINT_1997 = {1178743320: [(482.62, 70.11), (489.63, 62.96), (493.39, 6
 #   only put floors on it, 155.6평), but only the two wings stand five storeys: with the whole of it at five the floor
 #   area would be 1.8 times the 3,073평 it had before 2005.  The north wing keeps the OSM way; the south wing and the
 #   one-storey front and hall between them go in with OLD_HALLS (990021, 990022).
+# - 제1공학관 (FOOTPRINT_1997 above): the OSM hall north of the line of the west wing's south face, up to OSM's north
+#   face.  That line meets the east face at the south-east corner the roadview of before the wings puts at
+#   (-124.0, -280) (tools/roadview/eng), 26 m north of OSM's slanted tip; photo A's camera ends the 14-bay front at
+#   OSM's north face (86 - 88 m along; the 2011 roadview and the 1994 photo see it 2 - 7 m short, reference/고증.md
+#   5장).  The south wing (303 m2) and the 공AS block (508 m2) then make up the 800 m2 a floor that the wings added.
 LATE_FOOTPRINT_1997.update({
     429249499: [(62.85, -84.25), (106.77, -95.8), (113.08, -72.16), (69.16, -60.6)],
     256933753: [(-59.05, 125.82), (-13.1, 113.6), (-18.23, 94.69), (-64.14, 106.9)],
+    205583531: [(-124.14, -280.18), (-108.0, -220.69), (-121.44, -216.91), (-137.84, -276.66)],
 })
 # 의료원 (1990 · 1995 지도, 1990년 무렵 항공 사진; reference/고증.md 3.1.2).  The new 세브란스병원 (2005.5) and
 # 의료원 종합관 (2008) go; a name of None leaves the site a car park (asphalt), with no 공사중 marker: the old halls
@@ -3605,11 +3610,13 @@ for s_ in (1.8, 4.4, 7.0, 9.6, 12.2, 14.8):
         q_ = np.array([44.15, 345.23]) + _gt * s_ + _gn * 8.2
         cars.append([rng9.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(float(q_[0]), 2), round(float(q_[1]), 2),
                      round(math.atan2(-_gn[1], -_gn[0]) + rng9.uniform(-.04, .04), 3), rng9.randrange(8)])
-# motorbikes in front of the south end of 제1공학관 (the 1997 photo: by its south-east corner, next to the island)
+# motorbikes in front of the south end of 제1공학관 (the 1997 photo: by its south-east corner, next to the island): from
+# 5 m before its south face (LATE_FOOTPRINT_1997) south-south-east to 19 m, as photo A shows them through PHOTO_A with
+# the ground there the 2.3 m lower that the corner's foot wants (reference/고증.md 3.8)
 for k in range(16):
     t_ = k / 15
-    x, y = -141 + 13 * t_ + rng.uniform(-.3, .3), -299.5 - 6.5 * t_
-    P('motorbike', x, y, -0.85 + rng.uniform(-.2, .2))
+    x, y = -127.8 + 9.0 * t_ + rng.uniform(-.3, .3), -285.0 - 14.0 * t_
+    P('motorbike', x, y, -1.385 + rng.uniform(-.2, .2))
 
 # keep the carriageway clear: nothing static may stand on 백양로's driving lanes
 def on_carriageway(x, y):

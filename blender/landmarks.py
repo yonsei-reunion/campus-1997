@@ -2833,7 +2833,7 @@ def engineering():
     mb.prism(offset_poly(body, 0.2), -4, 0.4, 'stone_granite')
     st = dict(generic.STYLE['modern'])
     # windows as in the 1997 aerial photo (reference/1997_백양로_항공사진.jpg): five rows on the 백양로 front, 14 wide
-    # sliding windows a row across the 65 m (a 4.7 m bay, narrow piers between them), and deep plain spandrels: the
+    # sliding windows a row across the 62 m (a 4.4 m bay, narrow piers between them), and deep plain spandrels: the
     # glass is under half the storey height
     st.update(wall='plaster_white', alt='plaster_white', ww=0.88, bay=L / 14.0, sill=1.0, head=1.05, mull=1)
     for i in range(4):
@@ -2852,19 +2852,21 @@ def engineering():
     for i in (0, 2):
         generic.wall_edge(mbw, world[i], world[(i + 1) % 4], z0 + 0.4, z0 + H + 0.9, nf, fh, st, rnd_)
     generic.parapet_and_roof(mbw, world, z0 + H, st, rnd_)
-    # the hall is the 1997 one (tools/build_campus.py FOOTPRINT_1997: 65 m, before the 2015 wings).  As in the 1997
-    # aerial photo: a white rooftop storey over the south third (the sixth floor was only built out in 2007), and a
-    # long flat canopy on columns along the north half of the 백양로 front with the entrance at its south end
-    mb.box((-L / 2 + 11.0, 0.3, H + 1.8), (22.0, W - 0.6, 3.6), 'plaster_white', mats={'top': 'roof_flat'})
-    for k in range(5):
-        mb.box((-L / 2 + 2.5 + k * 4.2, -W / 2 + 0.27, H + 2.0), (1.6, 0.08, 1.1), 'glass')
-    x0c, x1c = 0.0, L / 2 - 0.3
+    # the hall is the 1997 one (tools/build_campus.py LATE_FOOTPRINT_1997: 62 m, before the 2014 - 2015 wings).  As
+    # photo A shows it through its camera (reference/고증.md 3.8): a white rooftop storey over the south 25 m (the
+    # sixth floor was only built out in 2007), 2.2 m over the parapet, with two windows on the 백양로 side 11 and 19 m
+    # from the south end; and a flat canopy on columns along the 백양로 front from 25 to 45 m (its north front corner
+    # in the photo stops short of the hall's north end), the entrance doors at its south end
+    mb.box((-L / 2 + 12.45, 0.3, H + 1.55), (24.9, W - 0.6, 3.1), 'plaster_white', mats={'top': 'roof_flat'})
+    for s_ in (11.0, 19.3):
+        mb.box((-L / 2 + s_, -W / 2 + 0.57, H + 1.15), (2.0, 0.08, 1.1), 'glass')
+    x0c, x1c = -L / 2 + 25.1, -L / 2 + 45.1
     mb.box(((x0c + x1c) / 2, -W / 2 - 2.2, 4.0), (x1c - x0c, 4.4, 0.45), 'concrete', mats={'top': 'roof_flat'})
     for k in range(6):
         mb.cylinder((x0c + 0.6 + k * (x1c - x0c - 1.2) / 5, -W / 2 - 4.0), 0.22, 0.4, 3.8, 'concrete', seg=8, cap_top=False)
-    xe = x0c + 4.6
-    # wide concrete flight with handrails under the canopy, glass double doors behind a landing
-    stair_flight(mb, xe, -W / 2, 8.0, 0.4, n=4, mat='stone_granite', landing=1.8, tread=0.4, flare=0.6, rail=True, gfn=local_ground(mb))
+    xe = x0c + 3.4
+    # concrete flight with handrails under the canopy, glass double doors behind a landing
+    stair_flight(mb, xe, -W / 2, 6.4, 0.4, n=4, mat='stone_granite', landing=1.8, tread=0.4, flare=0.6, rail=True, gfn=local_ground(mb))
     mb.quad((xe - 2.6, -W / 2 - 0.02, 0.4), (xe + 2.6, -W / 2 - 0.02, 0.4), (xe + 2.6, -W / 2 - 0.02, 3.4), (xe - 2.6, -W / 2 - 0.02, 3.4), 'glass', panes=(1, 1, True))
     mb.box((xe, -W / 2 - 0.03, 3.5), (5.4, 0.08, 0.16), 'frame_dark')
     mb.box((xe, -W / 2 - 0.03, 0.4 + 1.5), (0.1, 0.08, 3.0), 'frame_dark')
