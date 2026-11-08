@@ -220,6 +220,34 @@ export class UI {
     el.hidden = false;
     el.querySelector('span').textContent = text;
   }
+  // On a phone the look up (player.js) drops the walker to the foot of the screen, where the prompt button sits. While
+  // the button would cover the walker's body it slides off to the walker's side, or fades where there is no room beside
+  // it (a phone held upright). box: the walker's body on screen (Player.screenBox)
+  clearWalker(box) {
+    const b = this.promptEl || (this.promptEl = $('#prompt'));
+    let dx = 0, fade = false;
+    if (!b.hidden) {
+      const text = b.textContent;
+      if (text !== this._cwText || innerWidth !== this._cwW || innerHeight !== this._cwH) {
+        // where the button sits when it stays (centred by the CSS), and the HUD's side edges
+        this._cwText = text; this._cwW = innerWidth; this._cwH = innerHeight;
+        const w = b.offsetWidth;
+        this._cwHome = [innerWidth / 2 - w / 2, b.offsetTop, innerWidth / 2 + w / 2, b.offsetTop + b.offsetHeight];
+        this._cwEdge = [$('#place').getBoundingClientRect().left, $('#minimap').getBoundingClientRect().right];
+      }
+      const [l, t, r, bt] = this._cwHome, [e0, e1] = this._cwEdge, m = this._cwDx || this._cwFade ? 14 : 4, gap = 12;
+      if (box[0] < r + m && box[2] > l - m && box[1] < bt + m && box[3] > t - m) {
+        if (box[2] + gap + r - l <= e1) dx = box[2] + gap - l;            // to the walker's right (the stick is left)
+        else if (box[0] - gap - (r - l) >= e0) dx = box[0] - gap - r;
+        else fade = true;
+      }
+    }
+    if (Math.abs(dx - (this._cwDx || 0)) > (dx && this._cwDx ? 8 : 0)) {
+      this._cwDx = dx;
+      b.style.setProperty('--dx', `${Math.round(dx)}px`);
+    }
+    if (fade !== !!this._cwFade) { this._cwFade = fade; b.classList.toggle('faded', fade); }
+  }
   toast(text, ms = 2600) {
     const el = $('#toast');
     el.textContent = text; el.hidden = false;

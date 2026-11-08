@@ -671,6 +671,7 @@ async function main() {
         const bp = ball?.prompt();
         ui.setPrompt(bp ? bp : l && !ui.memoryOpen ? `${l.name} · ${MOBILE ? '눌러서 ' : ''}그때의 추억 보기` : null);
       }
+      if (MOBILE) ui.clearWalker(player.screenBox(camera));     // the prompt button off the walker (phones)
     }
     post.draw(tAcc);
   };

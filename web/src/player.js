@@ -344,6 +344,17 @@ export class Player {
     if (c.up > 1e-4) this.camera.rotateX(c.up * PITCH_MAX);
   }
 
+  // the walker's body on screen, head to knees, in CSS px [left, top, right, bottom] (for the HUD to keep clear of it)
+  screenBox(camera, out = this._sbox || (this._sbox = [0, 0, 0, 0])) {
+    const v = this._sb || (this._sb = new THREE.Vector3());
+    v.set(this.pos.x, this.pos.y + 1.75, this.pos.z).project(camera);
+    const x = (v.x + 1) / 2 * innerWidth, top = (1 - v.y) / 2 * innerHeight;
+    v.set(this.pos.x, this.pos.y + 0.45, this.pos.z).project(camera);
+    const bottom = (1 - v.y) / 2 * innerHeight, half = (bottom - top) / 1.3 * 0.3;     // 0.6 m wide
+    out[0] = x - half; out[1] = top; out[2] = x + half; out[3] = bottom;
+    return out;
+  }
+
   // campus frame helpers
   get x() { return this.pos.x; }
   get y() { return -this.pos.z; }
