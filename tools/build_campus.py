@@ -3593,6 +3593,43 @@ props = [p for p in props if not _gz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _gz.contains(Point(c[1], c[2]))]
 print('1997 sites: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees), _n0[1] - len(shrubs), _n0[2] - len(props),
       _n0[3] - len(cars))
+# In front of 스팀슨관's south end (reference/고증.md 3.5.2; the Dec. 2010 walk past it, panoramas 1016786683 - 686,
+# placed by the bearings of the end's corners and its bay): a bed of bare low shrubs in a boxwood band with round
+# corners west of the walk, benches and a bin along its west side under the trees of a low bank, the walk and the
+# forecourt before the end decomposed granite (마사토), and an asphalt path from the forecourt west over the bank to the
+# drive.  (Laid after the planting: the rest of the campus keeps its draws.)
+ST_BED = Polygon([(9.4, 186.4), (15.2, 186.1), (17.4, 201.6), (9.8, 201.8)]).buffer(-1.5).buffer(1.5)
+ST_PATH = [(9.5, 208.0), (3.0, 207.6), (-4.0, 206.0), (-11.5, 204.8)]
+_stw = LineString([(13.7, 173.2), (16.4, 184.4), (23.0, 210.8)])        # (OSM's walk: its middle)
+ST_MASATO = unary_union([ST_BED.buffer(3.2), _stw.buffer(2.8, cap_style='flat'),
+                         Polygon([(9.0, 201.0), (21.5, 201.0), (21.8, 210.6), (20.3, 210.8), (9.0, 213.8)])])
+_stz = unary_union([ST_MASATO, LineString(ST_PATH).buffer(2.2)])
+_n0 = (len(trees), len(shrubs), len(props))
+trees = [t for t in trees if not _stz.contains(Point(t[1], t[2]))]
+shrubs = [s for s in shrubs if not _stz.contains(Point(s[1], s[2]))]
+props = [p for p in props if not _stz.contains(Point(p[1], p[2]))]
+rng97 = random.Random(1997 + 97)
+_be = ST_BED.exterior
+for f_ in np.arange(0.0, _be.length, 1.5):                               # the boxwood band
+    a_, b_ = _be.interpolate(f_), _be.interpolate(f_ + 0.3)
+    shrubs.append(['hedge_low', round(a_.x, 2), round(a_.y, 2), 1.0, round(math.atan2(b_.y - a_.y, b_.x - a_.x), 3)])
+_sb = ST_BED.buffer(-1.0)
+_sbp = []
+for _k in range(4000):                                                 # its low shrubs, bare in December
+    x_, y_ = rng97.uniform(*_sb.bounds[0::2]), rng97.uniform(*_sb.bounds[1::2])
+    if _sb.contains(Point(x_, y_)) and all((x_ - a_) ** 2 + (y_ - b_) ** 2 > 1.6 ** 2 for a_, b_ in _sbp):
+        _sbp.append((x_, y_))
+        shrubs.append(['azalea_red', round(x_, 2), round(y_, 2), round(rng97.uniform(0.55, 0.7), 2),
+                       round(rng97.uniform(0, 6.28), 2)])
+for y_ in (187.2, 190.6, 193.6, 197.2):                                  # benches facing the bed, and the bin
+    props.append(['bench', round(6.9 + (y_ - 186.4) * 0.026, 2), y_, 0.0])
+props.append(['trashcan', 6.8, 195.4, 0.0])
+draw_poly('pavers', ST_MASATO, 0)
+draw_poly('dirt', ST_MASATO)
+draw_line('asphalt', ST_PATH, 3.0)
+out['paths'].append(dict(kind='footway', w=3.0, pts=[list(p_) for p_ in ST_PATH]))
+print('스팀슨관 south: cleared (trees, shrubs, props)', _n0[0] - len(trees), _n0[1] - len(shrubs), _n0[2] - len(props),
+      '- bed shrubs', len(_sbp))
 out.update(trees=trees, shrubs=shrubs, props=props, cars=cars)
 
 
