@@ -160,7 +160,7 @@
     {"name": "screenshots/cheonggyeong", "doc": "고증 3.16: 유억겸 기념관 남서쪽의 청경관",
      "cam": {"x": -8, "y": 238, "dh": 18, "tx": 20, "ty": 266, "tdh": 2, "fov": 50}, "size": [1350, 860],
      "out": [{"path": "docs/screenshots/cheonggyeong.jpg", "width": 900}]},
-    {"name": "screenshots/tennis", "doc": "고증 4.4: 공학관 남쪽 큰길가의 정구장",
+    {"name": "screenshots/tennis", "doc": "고증 4.4: 공학관 남쪽 큰길가의 정구장 자리(1997년엔 공학원 공사장)",
      "cam": {"x": -225, "y": -445, "dh": 35, "tx": -226, "ty": -364, "tdh": 0, "fov": 50}, "size": [1350, 860],
      "out": [{"path": "docs/screenshots/tennis.jpg", "width": 900}]},
 
