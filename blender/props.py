@@ -25,6 +25,25 @@ def lamp_double():
     return mb
 
 
+# ----------------------------------------------------------------------------- 네 구 가로등 (중앙도서관 앞, 1997 photo)
+def lamp_quad():
+    """The lamps in the shrubs before 중앙도서관 (reference/1997_중앙도서관.jpg): a dark brown post with a white band
+    at eye height, a cross of four short arms at the top and a white globe hanging under the tip of each, a finial
+    over the middle; the globes about 4 m up."""
+    mb = MeshBuilder('lamp_quad')
+    mb.box((0, 0, 0.25), (0.46, 0.46, 0.5), 'metal_dark')
+    mb.cylinder((0, 0), 0.11, 0.5, 4.45, 'metal_dark', seg=10, r1=0.07)
+    mb.cylinder((0, 0), 0.115, 1.75, 1.95, 'plaster_white', seg=10)
+    for a in range(4):
+        c, s = round(math.cos(a * math.pi / 2)), round(math.sin(a * math.pi / 2))
+        mb.box((c * 0.29, s * 0.29, 4.32), (0.58 if c else 0.05, 0.05 if c else 0.58, 0.05), 'metal_dark')
+        mb.cylinder((c * 0.56, s * 0.56), 0.035, 4.06, 4.33, 'metal_dark', seg=8)
+        mb.sphere((c * 0.56, s * 0.56, 3.86), 0.22, 'globe', seg=14, rings=10)
+    mb.cylinder((0, 0), 0.05, 4.45, 4.62, 'metal_dark', seg=8)
+    mb.sphere((0, 0, 4.66), 0.07, 'metal_dark', seg=8, rings=6)
+    return mb
+
+
 # ----------------------------------------------------------------------------- 백양로 양팔 가로등 (1997 aerial photo)
 def lamp_arm():
     """Two-armed street lamp with flat box luminaires.  Local +X points away from the road (over the sidewalk),

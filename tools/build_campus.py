@@ -1172,6 +1172,50 @@ plazas[3] = plazas[3].difference(UW_BANKS)
 for pz in plazas:
     draw_poly('pavers', pz)
 
+# --- 중앙도서관 앞 (1997).  Not one paved square from the hall to 백양로: the 1990 and 1995 campus maps
+# (reference/1990_캠퍼스_지도.png, 1995_캠퍼스_지도.jpg) draw a paved walk along the arcade and, between it and 백양로,
+# hedged beds with a cross walk to the middle of the front and a walk running slant through the north bed; the
+# 1997 aerial photo shows that ground full of trees and the 2009 photo of 활천대 (reference/활천대_2009_연세춘추.jpg)
+# lawn, clipped pines, azaleas and tall trees about the eagle.  The 1997 photo (reference/1997_중앙도서관.jpg) was
+# taken by the head of that slant walk, north-east of the hall (eleven arches along the long front on the left, the
+# shaded north end on the right): the walk runs off 13 deg left of the view, its people 1.6 m under the eye at 15 to
+# 46 m (their height against the height of their feet under the horizon).
+# Frame: s along the front from the south-east corner, o out of it (east).  (The old forecourt square stays south of
+# the hall's south end, round the eagle.)
+_lfu = (_lf1 - _lf0) / np.linalg.norm(_lf1 - _lf0)
+
+
+def LF(s, o):
+    return tuple(float(c) for c in _lf0 + _lfu * s + _lfn * o)
+
+
+def lf_rect(s0, s1, o0, o1):
+    return Polygon([LF(s0, o0), LF(s1, o0), LF(s1, o1), LF(s0, o1)])
+
+
+LIB_OLD_SQUARE = plazas[0]
+_lib_road = bline.buffer(E_WALK)                                       # 백양로 to the outer edge of its sidewalk
+_lib_street = next(LineString(p_['pts']) for p_ in paths_out if p_['kind'] == 'living_street'
+                   and p_['pts'][0] == [-60.4, 21.1])                  # the drive along the hall's north end
+LIB_APRON = lf_rect(-4.0, 79.0, 0.0, 12.0)                            # the walk along the arcade
+LIB_CROSS = lf_rect(34.5, 42.5, 11.0, 60.0).difference(_lib_road)     # to the main door, the middle bay
+# the slant walk: from the drive's kerb, just right of the photo's camera (README view: the game's camera there, fitted
+# to the hall's corners, roofline and arches), to the main door, where it meets the cross walk; 4.2 m wide (the
+# people on it)
+LIB_DIAG = [(-23.2, 9.0), LF(39.0, 12.0)]
+LIB_DIAG_W = 4.2
+# and one from the 학생회관 crossing to the south end of the arcade
+LIB_SDIAG = [along_raw(CROSS[1], E_WALK - 0.3)[:2], LF(9.0, 11.0)]
+LIB_SDIAG_W = 3.2
+LIB_WALKS = unary_union([LIB_APRON, LIB_CROSS, LineString(LIB_DIAG).buffer(LIB_DIAG_W / 2, cap_style=2),
+                         LineString(LIB_SDIAG).buffer(LIB_SDIAG_W / 2, cap_style=2)])
+_lib_eagle = Point(-52.0, -82.0).buffer(9.0)
+LIB_BEDS = (unary_union([lf_rect(5.0, 34.5, 12.0, 60.0), lf_rect(42.5, 100.0, 12.0, 60.0)])
+            .difference(_lib_road.buffer(ROAD['strip'])).difference(_lib_street.buffer(3.6)).difference(LIB_WALKS)
+            .difference(_lib_eagle))
+LIB_BEDS = unary_union([g_ for g_ in (LIB_BEDS.geoms if hasattr(LIB_BEDS, 'geoms') else [LIB_BEDS])
+                        if g_.area > 20 and g_.centroid.y < _lib_street.interpolate(_lib_street.project(g_.centroid)).y])
+
 # ---------------------------------------------------------------------------
 # Front gardens laid out from the photos (reference/학교연혁_언더우드관.jpg, 언더우드관_2024_*, 학교연혁_연희관.jpg,
 # 연희관_2024_*, 학교연혁_대우관.jpg, 대우관_*): each in a frame (u across, v towards the building)
@@ -1266,6 +1310,11 @@ draw_poly('asphalt', bowl, 0)
 draw_poly('pavers', bowl, 0)
 draw_poly('dirt', bowl, 0)
 draw_poly('dirt', Polygon(ell))
+# 중앙도서관 앞: lawn in the beds (over the old square and OSM's later walks), the 1997 walks paved.  The random
+# planting below still reads the paving as it was before (PAV_PRE), so that the rest of the campus keeps its draws.
+PAV_PRE = np.array(layers['pavers']) > 40
+draw_poly('pavers', LIB_BEDS, 0)
+draw_poly('pavers', LIB_WALKS.intersection(LIB_OLD_SQUARE.union(lf_rect(-4.0, 100.0, 0.0, 60.0))).difference(_lib_road))
 spl = np.stack([np.array(layers['asphalt']), np.array(layers['pavers']), np.array(layers['dirt'])], -1).astype(np.float32)
 # priority: asphalt > pavers > dirt
 spl[..., 1] = np.minimum(spl[..., 1], 255 - spl[..., 0])
@@ -1300,7 +1349,7 @@ Image.fromarray(np.clip(_dry, 0, 255).astype(np.uint8), 'L').save(
 trees = []        # [species, x, y, scale, rot]
 shrubs = []       # [kind, x, y, scale, rot]
 asph = np.array(layers['asphalt']) > 40
-pav = np.array(layers['pavers']) > 40
+pav = PAV_PRE                          # (the paving before 중앙도서관's 1997 beds: see above)
 
 
 def blocked(x, y, pad=4.0):
@@ -1919,6 +1968,78 @@ for b, bp in zip(buildings, bpolys):
             sh_ = ['bush', round(p.x, 2), round(p.y, 2), round(rng.uniform(0.7, 1.3), 2), round(rng.uniform(0, 6.28), 2)]
             if not _ez.contains(p):              # (drawn all the same, so the rest of the campus keeps its random draws)
                 shrubs.append(sh_)
+
+# 중앙도서관 앞 beds (1997, LIB_BEDS above).  Clear what the random planting put there (not the ginkgo row on
+# 백양로's strip), then plant the beds as the 1997 photo shows them along the slant walk.  That planting is placed in
+# the walk's own frame (t from the drive's kerb along the walk, w to its right, the hall's side) from where it stands
+# in the photo: its bearing off the view through the README camera, at the photo's distance (from the sizes of
+# shrubs, lamp and people) times 0.68, the README camera's wider lens; heights from the crown tops' rows.
+_lbz = LIB_BEDS.buffer(0.3)
+_lsz = LIB_WALKS.intersection(_lib_road.buffer(ROAD['strip'] + 0.3)).buffer(0.4)   # the walks' gaps in the strip
+_nt, _ns = len(trees), len(shrubs)
+trees = [t_ for t_ in trees if t_[0] == 'ginkgo' or not _lbz.contains(Point(t_[1], t_[2]))]
+shrubs = [s_ for s_ in shrubs if not (_lbz.contains(Point(s_[1], s_[2])) or _lsz.contains(Point(s_[1], s_[2])))]
+_lcleared = (_nt - len(trees), _ns - len(shrubs))
+_la, _lb = np.array(LIB_DIAG[0]), np.array(LIB_DIAG[1])
+_lda = (_lb - _la) / np.linalg.norm(_lb - _la)                         # down the walk (south-west)
+_ldr = np.array([_lda[1], -_lda[0]])                                   # its right (north-west, the hall's side)
+
+
+def LD(t, w):
+    return tuple(float(c) for c in _la + _lda * t + _ldr * w)
+
+
+LIB_GROUPS = [Point(-46.0, -26.0), Point(-40.0, -45.0)]                # (web/src/main.js: people stand about here)
+_lok = LIB_BEDS.buffer(-0.4).difference(LIB_WALKS.buffer(0.8)).difference(unary_union([g_.buffer(4.5) for g_ in LIB_GROUPS]))
+LIB_PLANT = [
+    # right of the walk: clipped juniper mounds 1.2 m high (round the near lamp), two juniper cones and a big dark one,
+    # mounds and round box on to the door, a round box by the hall's north end
+    ('hedge_blob', LD(8.3, 4.9), 1.5), ('hedge_blob', LD(9.8, 3.7), 1.5), ('hedge_blob', LD(11.8, 3.6), 1.45),
+    ('hedge_blob', LD(10.7, 5.9), 1.4), ('hedge_blob', LD(7.0, 6.6), 1.4), ('hedge_blob', LD(13.6, 3.9), 1.3),
+    ('hedge_blob', LD(16.1, 5.1), 1.3), ('hedge_blob', LD(17.6, 4.2), 1.15), ('hedge_blob', LD(26.5, 3.6), 1.1),
+    ('hedge_blob', LD(36.0, 3.4), 1.15),
+    ('topiary_round', LD(40.0, 3.4), 1.25), ('topiary_round', LD(44.0, 3.4), 1.15),
+    ('topiary_cone', LD(18.7, 7.6), 0.85), ('topiary_cone', LD(21.7, 7.7), 0.8), ('topiary_cone', LD(31.7, 3.5), 1.3),
+    ('topiary_round', LF(82.0, 13.6), 1.6),
+    # left of the walk: the big mound in the photo's left corner, round boxes further on
+    ('hedge_blob', LD(16.1, -3.5), 1.5), ('hedge_blob', LD(17.6, -4.6), 1.4), ('hedge_blob', LD(14.6, -4.5), 1.4),
+    ('hedge_blob', LD(19.0, -3.7), 1.25), ('topiary_round', LD(25.0, -3.4), 1.3), ('topiary_round', LD(42.0, -3.3), 1.2),
+]
+LIB_TREES = [
+    ('zelkova', LD(24.8, 5.6), 0.53),           # the round broadleaf in the middle of the photo, ~7 m
+    ('zelkova_young', LD(20.3, 11.3), 0.75),    # the young one with the forked stem behind the lamp
+    ('pine', LD(19.9, 14.9), 0.87),             # the big dark pine on the right, ~10 m
+    ('pine', LD(35.0, -4.9), 0.55),             # the low pine at the photo's left edge
+    # the rest of the beds (1997 aerial photo: trees all over them; 2009 photo: clipped pines about the eagle)
+    ('zelkova', LF(50.0, 34.0), 0.7), ('zelkova', LF(61.0, 40.0), 0.72), ('cherry', LF(73.0, 41.0), 0.9),
+    ('zelkova', LF(28.0, 22.0), 0.7), ('pine', LF(23.0, 15.5), 0.45), ('cherry', LF(31.0, 30.0), 0.85),
+    ('zelkova', LF(8.0, 30.0), 0.66), ('pine', LF(14.0, 40.0), 0.42), ('pine', LF(19.0, 44.0), 0.4),
+]
+rng10 = random.Random(1997 + 163)
+_n_lib = 0
+for kind_, (x_, y_), sc_ in LIB_PLANT:
+    if _lok.contains(Point(x_, y_)):
+        shrubs.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng10.uniform(0, 6.28), 2)])
+        _n_lib += 1
+for kind_, (x_, y_), sc_ in LIB_TREES:
+    if _lok.contains(Point(x_, y_)):
+        trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng10.uniform(0, 6.28), 2)])
+        _n_lib += 1
+# green azalea clumps under the trees in the south bed and the east of the north bed, and the beds' low box hedges
+# along the walk by the arcade and the cross walk (the maps' dotted edges), broken where the slant walks run through
+for (s_, o_) in ((10.0, 26.0), (11.5, 27.2), (26.0, 24.0), (27.4, 23.0), (52.0, 36.0), (53.4, 37.0), (62.5, 42.0)):
+    x_, y_ = LF(s_, o_)
+    if _lok.contains(Point(x_, y_)):
+        shrubs.append(['bush', round(x_, 2), round(y_, 2), round(rng10.uniform(0.9, 1.2), 2), round(rng10.uniform(0, 6.28), 2)])
+_ledge = LIB_APRON.union(LIB_CROSS).buffer(1.6)
+_lslant = unary_union([LineString(LIB_DIAG).buffer(LIB_DIAG_W / 2 + 0.9), LineString(LIB_SDIAG).buffer(LIB_SDIAG_W / 2 + 0.9)])
+for g_ in (LIB_BEDS.geoms if hasattr(LIB_BEDS, 'geoms') else [LIB_BEDS]):
+    ring_ = g_.buffer(-0.6, join_style=2).exterior
+    for d_ in np.arange(0.75, ring_.length, 1.5):
+        p_, q_ = ring_.interpolate(d_), ring_.interpolate(min(ring_.length, d_ + 0.5))
+        if _ledge.contains(p_) and not _lslant.contains(p_):
+            shrubs.append(['hedge_low', round(p_.x, 2), round(p_.y, 2), 1.0, round(math.atan2(q_.y - p_.y, q_.x - p_.x), 3)])
+print('library beds: cleared (trees, shrubs)', _lcleared, 'planted', _n_lib)
 print('trees', len(trees), 'shrubs', len(shrubs))
 
 # ---------------------------------------------------------------------------
@@ -2058,8 +2179,9 @@ _c = (_a + _b) / 2 + _n * 3.0
 for k in (-1, 0, 1):
     _p = _c + _u * 1.2 * k
     P('payphone', float(_p[0]), float(_p[1]), math.atan2(_n[1], _n[0]))
-for (x, y, r) in [(-50, -25, -1.82), (-47, -14, -1.82), (-58, -60, -1.82)]:
-    P('bench', x, y, r)
+# benches along the beds' edge by the arcade of 중앙도서관, facing the hall
+for s_ in (14.0, 25.0, 56.0, 62.0):
+    P('bench', *LF(s_, 11.3), math.atan2(-_lfn[1], -_lfn[0]))
 # 노천극장 진입 광장 (plazas): on the grass at the east edge of its paving, the long side along it, looking in (it
 # stood across the edge)
 _pz = Polygon([(40, 150), (100, 140), (110, 185), (55, 195)]).buffer(2).exterior
@@ -2142,10 +2264,12 @@ for sg in (-1, 1):
         P('bench', *WU(sg * u_, -32.7), _south)
 for (x, y) in [(52.6, 340.5), (46.0, 358.0)]:
     P('lamp_double', x, y, -0.25)
-# double-globe lamps around the library forecourt (1997 library photo: in the clipped shrubs some way out from the
-# piers, not on the steps) and at the tip of the 화단섬
-for (x, y) in [(-64, -58), (-58, -22), (-68.5, -41.5), (-106.7, -315.3)]:
-    P('lamp_double', x, y, -0.25)
+# a double-globe lamp at the tip of the 화단섬; before 중앙도서관 the four-globe lamps of the 1997 photo, in the clipped
+# shrubs on the hall's side of the slant walk (a near one, a far one where it meets the walk along the arcade), and
+# along the edge of the beds by the arcade
+P('lamp_double', -106.7, -315.3, -0.25)
+for (x, y) in [LD(10.6, 4.4), LD(48.2, 3.5), LF(18.0, 13.8), LF(33.0, 13.8), LF(66.0, 13.8)]:
+    P('lamp_quad', x, y, -0.25)
 # 화단섬: natural stone marker, campus guide sign, white round planters along the side road (all from the 1997 photo)
 P('stone_marker', -112.9, -321.5, 0.4)
 P('sign_board', -122.1, -320.4, -0.9)
@@ -2327,7 +2451,7 @@ LANDMARKS = [
          text='독수리상 옆의 분수대. 전기공학과 동창회가 모금해 1974년 앞뜰에 만들었고, 연세의 영향력이 사회 전 분야에 퍼지길 바라는 마음을 담았다고 한다. 흰 돌을 깎은 十자 기둥 꼭대기에서 물기둥이 솟고, 둘레에서는 물줄기가 종처럼 휘어 들었다. 공대 축제 「활천제」의 이름도 여기서 왔다. 백양로 재창조 뒤에는 제1공학관 앞으로 자리를 옮겼다.'),
     dict(id='library', name='중앙도서관', pos=[-58, -40], r=22, photo=['photos/library_1997.jpg', 'photos/library_reading_1997.jpg', 'photos/baekyangro_library_1995.jpg'],
          title='1997년 중앙도서관', year='1997',
-         text='1984년 준공된 중앙도서관. 아치형 기둥이 늘어선 정면은 그 시절 연세인 모두의 배경이었다. 시험 기간이면 열람실 자리를 맡으려 새벽부터 줄을 섰다.'),
+         text='1979년 준공된 중앙도서관. 아치형 기둥이 늘어선 정면은 그 시절 연세인 모두의 배경이었다. 시험 기간이면 열람실 자리를 맡으려 새벽부터 줄을 섰다.'),
     dict(id='union', name='학생회관', pos=[0, -62], r=22, photo=['photos/union_1997.jpg', 'photos/marathon_news_1997.jpg'],
          title='1997년 학생회관', year='1997',
          credit='사진: 연세춘추 제1316호(1997.5.5) 「4·19 정신잇기」 김민정 기자 · 연세대학교 기록관',
@@ -2435,6 +2559,17 @@ for _ax, _ay, _az, _sd in ((0.82, -1.5, 1.0, 1), (-0.82, -5.5, 1.0, -1)):
     BOOTH['arms'].append(dict(x=round(_px, 2), y=round(_py, 2), z=_az, dir=round(_ba + _sd * math.pi / 2, 3),
                               s=round(BOOTH['s'] - _ay, 2), side=_sd))
 
+# 중앙도서관 앞: OSM's walks through the 1997 beds are the later layout (the beds are lawn now); the 1997 walks go
+# first, so that the crowd (web/src/main.js) walks the slant one
+def lib_osm_walk(p_):
+    return p_['kind'] in ('footway', 'path', 'steps', 'pedestrian') and len(p_['pts']) > 1 \
+        and LIB_BEDS.buffer(1.0).contains(LineString(p_['pts']).centroid)
+
+
+LIB_PATHS = [dict(kind='footway', w=LIB_DIAG_W, pts=[[round(x, 1), round(y, 1)] for x, y in LIB_DIAG]),
+             dict(kind='footway', w=LIB_SDIAG_W, pts=[[round(x, 1), round(y, 1)] for x, y in LIB_SDIAG]),
+             dict(kind='footway', w=8.0, pts=[[round(x, 1), round(y, 1)] for x, y in (LF(38.5, 11.0), LF(38.5, 47.0))]),
+             dict(kind='footway', w=6.0, pts=[[round(x, 1), round(y, 1)] for x, y in (LF(-3.0, 8.0), LF(78.0, 8.0))])]
 out = dict(
     origin=[LAT0, LON0],
     terrain=dict(near=dict(half=NEAR_HALF, step=NEAR_STEP, n=n_near, file='data/terrain_near.bin'),
@@ -2445,7 +2580,7 @@ out = dict(
                     gaps=[list(g) for g in GAPS], mouths=[list(MOUTH)], apron_paint=APRON_PAINT, **ROAD),
     amphitheater={k: (round(v, 3) if isinstance(v, float) else v) for k, v in AMPH.items()},
     buildings=buildings, trees=trees, shrubs=shrubs, props=props, cars=cars, banners=banners,
-    paths=paths_out, landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
+    paths=LIB_PATHS + [p_ for p_ in paths_out if not lib_osm_walk(p_)], landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
     centennial_block=CENT_BLOCK, sang=dict(c=list(SANG), r=SANG_LAWN), yeonhui=YEONHUI, underwood_steps=UW_STEPS,
     colliders=[CENT_BLOCK['poly']] +
     [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(tennis_poly(pd_, 0.1).exterior.coords)[:-1]] for pd_ in TENNIS['pads']],

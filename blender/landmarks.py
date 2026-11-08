@@ -171,9 +171,15 @@ def library():
     mb = MeshBuilder('lm_library')
     mb.xf = local_frame(cx, cy, ang, z0)
     H = 23.0                     # top of attic
-    spring, attic0 = 16.6, 18.8
+    # the arches spring about 5 m under the roof and their crowns come within 4 m of it, the top floor's glazing
+    # filling them (the 1997 photo: the arch crown 0.15 - 0.18 of the hall's height under the roofline)
+    spring, attic0 = 17.9, 19.3
     inset = 2.4
-    fh, nf = 3.6, 5
+    fh, nf = 3.75, 5
+    # bays about 7 m on centre: eleven along the long fronts and six across the ends (the 1997 photo counts eleven
+    # arches along the 백양로 front; the 1997 aerial photo and the 1990 campus map six on the south end), the piers
+    # some 1.7 m wide and the corner piers wider, a little under a third of the bay (the 1995 photo, end on)
+    BAY, PIER = 7.0, 1.7
     # plinth
     mb.prism(offset_poly(rect(L, W), 0.6), -4, g0, 'stone_granite', 'stone_granite')
     # its top is the floor of the deep arcade between the piers, walked on all round to the glass
@@ -182,13 +188,12 @@ def library():
     for i in range(4):
         j = (i + 1) % 4
         WALK_FACES.append([W_(*ring_o[i], g0), W_(*ring_o[j], g0), W_(*ring_i[j], g0), W_(*ring_i[i], g0)])
-    # the main door: the two bays either side of the middle pier of the 백양로 front, glass doors in bright frames
-    # with the lit entrance hall behind (instead of the dark glazing of the other bays)
-    nb_f = max(1, int(round(L / 5.4)))
-    bw_f = (L - 1.25) / nb_f
+    # the main door: the middle bay of the 백양로 front (or the two either side of its middle pier), glass doors in
+    # bright frames with the lit entrance hall behind (instead of the dark glazing of the other bays)
+    nb_f = max(1, int(round(L / BAY)))
+    bw_f = (L - PIER) / nb_f
     mid_k = nb_f // 2
-    door_bays = [(-L / 2 + (mid_k - 1) * bw_f + 1.25, -L / 2 + mid_k * bw_f),
-                 (-L / 2 + mid_k * bw_f + 1.25, -L / 2 + (mid_k + 1) * bw_f)]
+    door_bays = [(-L / 2 + k * bw_f + PIER, -L / 2 + (k + 1) * bw_f) for k in ((mid_k,) if nb_f % 2 else (mid_k - 1, mid_k))]
     # recessed wall in the bays: per floor a bronze spandrel band, then glazing split by slim mullions
     core = rect(L - 2 * inset, W - 2 * inset)
     for i in range(4):
@@ -219,7 +224,7 @@ def library():
                 mb.quad(P(s - 0.05, zf + 1.35, -0.08), P(s + 0.05, zf + 1.35, -0.08), P(s + 0.05, zf + fh, -0.08), P(s - 0.05, zf + fh, -0.08), 'frame_dark')
         flat_wall(mb, P, 0, Le, g0 + 3.4 + (nf - 1) * fh, attic0 + 0.4, 'panel_bronze')
     # pier screen
-    pier = 1.25
+    pier = PIER
     depth = 2.0
     outer = rect(L, W)
 
@@ -229,11 +234,11 @@ def library():
     for i in range(4):
         a, bb = outer[i], outer[(i + 1) % 4]
         P, Le, t, n = edge_P(a, bb)
-        nb = max(1, int(round(Le / 5.4)))
+        nb = max(1, int(round(Le / BAY)))
         bw = (Le - pier) / nb
         for k in range(nb + 1):
             s = k * bw
-            pw = pier * (1.7 if k in (0, nb) else 1.0)
+            pw = pier * (1.4 if k in (0, nb) else 1.0)
             s0, s1 = (s, s + pw) if k < nb else (Le - pw, Le)
             if k == 0:
                 s1 = pw
@@ -242,15 +247,19 @@ def library():
             mb.quad(P(s0, g0, -depth), P(s0, g0, 0), P(s0, attic0, 0), P(s0, attic0, -depth), 'stone_panel')
             for zz in [g0 + 1.8 * q for q in range(1, int((attic0 - g0) / 1.8))]:
                 joint(P, s0, s1, zz)
+            if k in (0, nb):          # the corner piers read as two, a groove down the middle of each face
+                sm = (s0 + s1) / 2
+                mb.quad(P(sm - 0.05, g0, 0.015), P(sm + 0.05, g0, 0.015), P(sm + 0.05, attic0, 0.015), P(sm - 0.05, attic0, 0.015),
+                        'concrete_dark')
             if k < nb:
                 a0 = s1
-                a1 = (k + 1) * bw if k + 1 < nb else Le - pier * 1.7
+                a1 = (k + 1) * bw if k + 1 < nb else Le - pier * 1.4
                 arch_fill(mb, P, a0, a1, spring, attic0, depth, 'stone_panel', 'segment', 10)
         # deep attic band of square panels
         flat_wall(mb, P, 0, Le, attic0, H, 'stone_panel')
         mb.quad(P(0, H, 0), P(Le, H, 0), P(Le, H, -depth), P(0, H, -depth), 'stone_panel')
         mb.quad(P(0, attic0, 0), P(0, attic0, -depth), P(Le, attic0, -depth), P(Le, attic0, 0), 'stone_panel')
-        for zz in (attic0 + 1.4, attic0 + 2.8):
+        for zz in (attic0 + (H - attic0) / 3, attic0 + (H - attic0) * 2 / 3):
             joint(P, 0, Le, zz)
         npn = max(1, int(round(Le / 2.1)))
         for q in range(1, npn):
