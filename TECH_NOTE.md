@@ -72,7 +72,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 
 ### 지형과 배치
 
-- OpenStreetMap 건물 외곽선과 도로, AWS Terrarium 고도 자료로 캠퍼스를 만듭니다(`tools/build_campus.py`).
+- OpenStreetMap 건물 외곽선과 도로, Copernicus GLO-30 고도 자료(건물을 걷어 냄, `tools/fetch_terrain.py`)로 캠퍼스를 만듭니다(`tools/build_campus.py`).
 - 건물 이름 · 층수 · 재료 · 색은 `build_campus.py` 의 건물 표 `B` 와 `LANDMARKS` 에 있습니다. 고증이 틀린 곳은 여기만 고쳐 다시 빌드합니다.
 - 5 m 고도 격자가 건물 앞을 비탈로 뭉개는 곳은 `FORECOURTS` 로 앞마당을 평평하게 다듬습니다.
 - 숲과 큰 건물 위에서 높게 나오는 고도 자료 탓에 한경길 북쪽 언덕은 1997년 항공 사진에 맞춰 6 m 낮췄습니다(고증 3.5.1).
@@ -154,7 +154,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 ```bash
 python3 -m venv .venv && .venv/bin/pip install numpy scipy shapely pillow
 python3 tools/fetch_polyhaven.py textures 1k <이름…>   # CC0 텍스처/모델/HDRI 내려받기 (assets_src/)
-python3 tools/fetch_terrain.py near && python3 tools/fetch_terrain.py far
+.venv/bin/python tools/fetch_terrain.py near && .venv/bin/python tools/fetch_terrain.py far   # Copernicus GLO-30 (data/raw/copernicus/, git 밖)
 .venv/bin/python tools/build_campus.py            # OSM + 지형 -> data/campus.json, 지형 bin, 스플랫맵
 .venv/bin/python tools/make_textures.py           # 잎 아틀라스, 은행잎 · 벚꽃잎 타일, 간판, 정문 현판
 .venv/bin/python tools/make_shrub_textures.py     # 관목 · 꽃의 겉면과 잔가지 아틀라스 (먼저 fetch_polyhaven.py models 2k periwinkle_plant)

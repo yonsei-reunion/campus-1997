@@ -121,7 +121,7 @@ FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 
 tn = json.load(open(os.path.join(ROOT, 'data/terrain.json')))
 tf = json.load(open(os.path.join(ROOT, 'data/terrain_far.json')))
 H10 = np.array(tn['rows_south_to_north'], dtype=np.float64)       # 10 m grid, +-1400
-H10 = ndimage.gaussian_filter(H10, 1.6)                             # remove DSM building bumps
+H10 = ndimage.gaussian_filter(H10, 1.6)                             # (tools/fetch_terrain.py opened the roofs out)
 NEAR_HALF, NEAR_STEP = 800, 5.0
 n_near = int(2 * NEAR_HALF / NEAR_STEP) + 1
 gx = np.linspace(-NEAR_HALF, NEAR_HALF, n_near)

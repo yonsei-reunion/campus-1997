@@ -193,7 +193,7 @@ export function makeFarTerrain(hf, nearHalf) {
     // sRGB forest greens converted to linear (vertex colours are linear): dark, as in the 1997 photos
     wc.setRGB(0.2 + n * 0.06, 0.3 + n * 0.06, 0.15, THREE.SRGBColorSpace);
     const wood = [wc.r, wc.g, wc.b];
-    const river = h < 12 && r > 3000 ? 1 : 0;
+    const river = h < 6 && r > 3000 ? 1 : 0;      // (Copernicus GLO-30: the Han 2.5 - 3 m, 여의도 and the banks 8 m and up)
     const c = city.map((v, k) => v * (1 - forest) + wood[k] * forest);
     return river ? [0.32, 0.4, 0.45] : c;
   };
