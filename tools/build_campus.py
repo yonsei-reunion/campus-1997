@@ -2896,12 +2896,13 @@ for r_ in YEONHUI['wall']:
         else:
             shrubs.append(['hedge_blob', round(q_.x, 2), round(q_.y, 2), round(sc_, 2), round(a_, 3)])
 # 대우관 상뜰 (see SANG above): the small round-crowned pine in the round lawn, a broadleaf tree in the west lawn
-# triangle by the ring and one by the north-east path, low shrubs along the triangles' upper edges, and the big pines
-# on the lawns outside the walks towards the terrace
+# triangle by the ring and one in the north-east triangle under its upper walk (on the lawn, 1.6 m clear of the walk:
+# it stood on the paving), low shrubs along the triangles' upper edges, and the big pines on the lawns outside the
+# walks towards the terrace
 ang_d = axis_angle(WD)
 rng6 = random.Random(1997 + 61)
 trees.append(['pine', SANG[0], SANG[1], 0.55, 0.4])
-for (e_, n_, kind_, sc_) in ((-8.5, 4.5, 'zelkova', 0.75), (10.0, 8.6, 'zelkova', 0.8), (13.0, -2.5, 'pine', 0.45)):
+for (e_, n_, kind_, sc_) in ((-8.5, 4.5, 'zelkova', 0.75), (9.0, 6.0, 'zelkova', 0.8), (13.0, -2.5, 'pine', 0.45)):
     x_, y_ = SG(e_, n_)
     trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
 # the planted bank under the diamond's lower walks, down to the footway, the south flight going down between its
@@ -2909,7 +2910,7 @@ for (e_, n_, kind_, sc_) in ((-8.5, 4.5, 'zelkova', 0.75), (10.0, 8.6, 'zelkova'
 for (e_, n_, kind_, sc_) in ((-7.5, -18.6, 'zelkova', 0.85), (-15.0, -15.5, 'maple', 0.75), (-23.0, -11.5, 'zelkova', 0.9),
                              (-30.5, -8.0, 'oak', 0.85), (-11.0, -20.5, 'cherry', 0.7), (7.5, -18.8, 'pine', 0.95),
                              (14.5, -16.0, 'pine', 0.8), (22.0, -12.0, 'zelkova', 0.85), (30.0, -8.5, 'pine', 0.85),
-                             (11.5, -21.0, 'maple', 0.65)):
+                             (11.5, -19.5, 'maple', 0.65)):          # (up the bank, off the footway's edge)
     x_, y_ = SG(e_, n_)
     trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
 for sg in (-1, 1):
