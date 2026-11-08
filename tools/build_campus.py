@@ -325,7 +325,29 @@ FOUNTAIN = dict(pos=[-80.7, -203.2], r=2.6)
 # 백양로's sidewalk (the 2011 roadview from 백양로, between beds of azaleas)
 EAGLE_R = 6.0
 EAGLE_WALK = LineString([tuple(EAGLE['pos']), along_raw(s_at(*EAGLE['pos']), E_WALK - 0.3)[:2]])
-EAGLE_PLAZA = Point(*EAGLE['pos']).buffer(EAGLE_R).union(EAGLE_WALK.buffer(1.5, cap_style=2))
+EAGLE_PLAZA = Point(*EAGLE['pos']).buffer(EAGLE_R).union(EAGLE_WALK.buffer(1.5, cap_style=2))   # (the OSM cut below)
+# Its precinct (Kakao roadview 2008-08, 2010-12 and 2011-04 from six points round it; the 1995 aerial photo): a low
+# round dais of light stone (r 4.6 m, 0.4 m) on a ring of brick paving a step up from the walks (r 5.6 m, 0.2 m); four
+# brick walks 3 m wide along the statue's axes through four quadrant beds of clipped azaleas (red-brown in winter,
+# green in summer, about 0.8 m high) out to a low round kerb at 9.5 m.  The east walk meets 백양로's west sidewalk,
+# which bounds the beds (blender/statues.py builds the dais, the ring and the beds' kerb; the beds are planted below).
+EAGLE_ROT = math.radians(-14)                 # the statue faces 194 deg, down 백양로 (STATUES below)
+EAGLE_DAIS, EAGLE_RING, EAGLE_BEDS_R, EAGLE_WALK_W = (4.6, 0.4), (5.6, 0.2), 9.5, 3.0
+EAGLE_EDGE = round(bline.distance(Point(*EAGLE['pos'])) - E_WALK, 2)     # the centre to the sidewalk's outer edge
+
+
+def eagle_xy(u, v):
+    """the statue's frame (u towards 백양로, v up its axis, the front at -v) -> campus xy"""
+    c_, s_ = math.cos(EAGLE_ROT), math.sin(EAGLE_ROT)
+    return (EAGLE['pos'][0] + u * c_ - v * s_, EAGLE['pos'][1] + u * s_ + v * c_)
+
+
+EAGLE_WALKS = unary_union([LineString([eagle_xy(0, 0), eagle_xy(EAGLE_EDGE + 0.3, 0)]).buffer(EAGLE_WALK_W / 2, cap_style=2)] +
+                          [LineString([eagle_xy(0, 0), eagle_xy(*uv_)]).buffer(EAGLE_WALK_W / 2, cap_style=2)
+                           for uv_ in ((0, -EAGLE_BEDS_R - 1.0), (-EAGLE_BEDS_R - 1.0, 0), (0, EAGLE_BEDS_R + 1.0))])
+EAGLE_PAVED = Point(*EAGLE['pos']).buffer(EAGLE_RING[0], 64).union(EAGLE_WALKS)
+EAGLE_BEDS = Point(*EAGLE['pos']).buffer(EAGLE_BEDS_R, 64).difference(EAGLE_PAVED.buffer(0.15)) \
+    .difference(bline.buffer(E_WALK + 0.2))
 
 
 def court_poly(pad=0.0):
@@ -668,6 +690,15 @@ FIXED[_lap] = True
 _lring = shapely.contains_xy(_lib.buffer(30.0), X, Y) & ~_lap & ~FIXED & (dist > ROAD_HALF + 4) & ~near_buildings(1.0)
 harmonic_fill(_lring)
 print('library apron', round(LIBRARY_LEVEL, 2))
+# --- 독수리상: its precinct level out to the beds' kerb and a little beyond (the walks run out level from the ring),
+# easing back into the lawn by 15 m (the 5 m grid had it falling 0.8 m to the west across the beds); not under
+# 백양로's sidewalk
+_er = np.hypot(X - EAGLE['pos'][0], Y - EAGLE['pos'][1])
+_ew = np.clip((15.0 - _er) / 4.5, 0, 1) * np.clip((dist - (ROAD_HALF + 0.5)) / 2.0, 0, 1)
+EAGLE_LEVEL = sample(Hn, NEAR_HALF, NEAR_STEP, *EAGLE['pos'])
+Hn[:] = Hn * (1 - _ew) + EAGLE_LEVEL * _ew
+FIXED[_ew > 0.999] = True
+print('eagle precinct level', round(EAGLE_LEVEL, 2))
 
 
 # --- 언더우드관 정원 남쪽 계단 (reference/2003_봄_언더우드관정원_남쪽계단_벚나무.jpg, from the head of 백양로 looking
@@ -1629,8 +1660,10 @@ for pth in paths_out:
 draw_poly('asphalt', ISL, 0)
 draw_poly('pavers', ISL, 0)
 draw_poly('pavers', LIB_BEDS, 0)
-# the same for the eagle's round and walk and the side road west of it with its car stalls (EAGLE_PLAZA, SIDE_W, LOT_W)
-draw_poly('pavers', EAGLE_PLAZA.difference(bline.buffer(E_WALK)))
+# the same for the eagle's ring and walks and the side road west of it with its car stalls (EAGLE_PAVED, SIDE_W,
+# LOT_W); no OSM walk across its beds
+draw_poly('pavers', EAGLE_BEDS, 0)
+draw_poly('pavers', EAGLE_PAVED.difference(bline.buffer(E_WALK)))
 draw_line('asphalt', SIDE_W, SIDE_W_W)
 draw_line('asphalt', [(x, y) for x, y, _ in LOT_W], 5.0)
 draw_poly('pavers', LIB_WALKS.intersection(LIB_OLD_SQUARE.union(lf_rect(-4.0, 100.0, 0.0, 60.0))).difference(_lib_road))
@@ -2451,12 +2484,32 @@ for g_ in (LIB_BEDS.geoms if hasattr(LIB_BEDS, 'geoms') else [LIB_BEDS]):
 print('library beds: cleared (trees, shrubs)', _lcleared, 'planted', _n_lib)
 # the eagle's round and walk (EAGLE_PLAZA) through 백양로's strip, the side road west of it and its parked cars (SIDE_W,
 # LOT_W): clear them
-_ecz = unary_union([EAGLE_PLAZA.buffer(0.6), LineString([(x, y) for x, y, _ in LOT_W]).buffer(3.2),
-                    LineString(SIDE_W).buffer(SIDE_W_W / 2 + 1.5)])
+# (the ginkgo row on 백양로's strip stands at the beds' edge, as in the roadview: keep it)
+_ecz = unary_union([EAGLE_PLAZA.buffer(0.6), Point(*EAGLE['pos']).buffer(EAGLE_BEDS_R + 0.8),
+                    LineString([(x, y) for x, y, _ in LOT_W]).buffer(3.2), LineString(SIDE_W).buffer(SIDE_W_W / 2 + 1.5)])
+_strip = bline.buffer(ROAD_HALF + 0.3).difference(EAGLE_PAVED.buffer(0.8))
 _nt, _ns = len(trees), len(shrubs)
-trees = [t_ for t_ in trees if not _ecz.contains(Point(t_[1], t_[2]))]
+trees = [t_ for t_ in trees if not _ecz.contains(Point(t_[1], t_[2])) or _strip.contains(Point(t_[1], t_[2]))]
 shrubs = [s_ for s_ in shrubs if not _ecz.contains(Point(s_[1], s_[2]))]
-print('eagle round, west cars: cleared (trees, shrubs)', (_nt - len(trees), _ns - len(shrubs)))
+print('eagle precinct, west cars: cleared (trees, shrubs)', (_nt - len(trees), _ns - len(shrubs)))
+# its four beds: clipped azaleas massed on a 1.1 m staggered grid, the outer rows a little lower (their own random
+# draws, so the rest of the campus keeps its own); clear of the strip's ginkgo trunks
+rng55 = random.Random(55)
+_inner = EAGLE_BEDS.buffer(-0.3)
+_outer = EAGLE_BEDS.buffer(-1.2)
+_trunks = [Point(t_[1], t_[2]) for t_ in trees if Point(*EAGLE['pos']).distance(Point(t_[1], t_[2])) < EAGLE_BEDS_R + 1]
+_n_bed = 0
+for j_, v_ in enumerate(np.arange(-EAGLE_BEDS_R, EAGLE_BEDS_R + 0.01, 0.95)):
+    for u_ in np.arange(-EAGLE_BEDS_R + (j_ % 2) * 0.55, EAGLE_BEDS_R + 0.01, 1.1):
+        x_, y_ = eagle_xy(u_ + rng55.uniform(-0.12, 0.12), v_ + rng55.uniform(-0.12, 0.12))
+        sc_, rot_ = rng55.uniform(0.98, 1.14), rng55.uniform(0, 6.28)
+        p_ = Point(x_, y_)
+        if not _inner.contains(p_) or any(p_.distance(q_) < 0.9 for q_ in _trunks):
+            continue
+        shrubs.append(['azalea_red', round(x_, 2), round(y_, 2), round(sc_ * (1.0 if _outer.contains(p_) else 0.86), 2),
+                       round(rot_, 2)])
+        _n_bed += 1
+print('eagle beds: azaleas', _n_bed)
 print('trees', len(trees), 'shrubs', len(shrubs))
 
 # ---------------------------------------------------------------------------
@@ -2949,7 +3002,9 @@ LANDMARKS = [
          text='1956년 과학관으로 지어져 1984년부터 연희관으로 불린 석조 건물. 담쟁이 덮인 벽과 회양목 정원 사이로, 대우관까지 이어지는 오르막길이 시작된다.'),
 ]
 STATUES = dict(
-    eagle=dict(pos=EAGLE['pos'], rot=math.radians(-14)),          # looks down 백양로 to the gate (2011 roadview side view)
+    eagle=dict(pos=EAGLE['pos'], rot=EAGLE_ROT,                  # looks down 백양로 to the gate (2011 roadview side view)
+               r=round(EAGLE_DAIS[0] + 0.05, 2), dais=list(EAGLE_DAIS), ring=list(EAGLE_RING), beds=EAGLE_BEDS_R, walk=EAGLE_WALK_W,
+               walk_edge=EAGLE_EDGE),
     underwood_statue=dict(pos=[55.5, 187.5], rot=math.radians(-14)),
     court=dict(pos=COURT['pos'], rot=COURT['rot'], L=COURT['L'], W=COURT['W']),
     fountain=dict(pos=FOUNTAIN['pos'], r=FOUNTAIN['r'], rot=0.0),     # (the column's arms face the compass points)
