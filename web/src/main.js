@@ -282,7 +282,7 @@ async function main() {
     } else colliders.addCircle(x, y, (k === 'topiary_cone' ? 0.6 : k === 'azalea_red' ? 0.62 : 0.72) * sc);
   }
   const S = campus.statues;
-  colliders.addCircle(S.eagle.pos[0], S.eagle.pos[1], 3.3);                    // stepped platform of the eagle tower
+  colliders.addCircle(S.eagle.pos[0], S.eagle.pos[1], 4.2);                    // the eagle tower's square platform (8.4 m)
   colliders.addCircle(S.underwood_statue.pos[0], S.underwood_statue.pos[1], 3.2);   // round steps under the statue
   if (S.fountain) colliders.addCircle(S.fountain.pos[0], S.fountain.pos[1], S.fountain.r + 0.4);   // 활천 basin
   if (S.court) {                                                                     // the two hoop posts of the 대강당 court

@@ -2363,7 +2363,7 @@ LANDMARKS = [
          text='1956년 과학관으로 지어져 1984년부터 연희관으로 불린 석조 건물. 담쟁이 덮인 벽과 회양목 정원 사이로, 대우관까지 이어지는 오르막길이 시작된다.'),
 ]
 STATUES = dict(
-    eagle=dict(pos=[-52, -82], rot=math.radians(-14 + 90)),
+    eagle=dict(pos=[-52, -82], rot=math.radians(-14)),          # looks down 백양로 (1997 aerial, 2009 photo)
     underwood_statue=dict(pos=[55.5, 187.5], rot=math.radians(-14)),
     court=dict(pos=COURT['pos'], rot=COURT['rot'], L=COURT['L'], W=COURT['W']),
     fountain=dict(pos=FOUNTAIN['pos'], r=FOUNTAIN['r'], rot=0.0),     # (the column's arms face the compass points)
