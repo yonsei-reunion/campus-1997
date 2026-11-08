@@ -831,6 +831,7 @@
   ],
   "rough": 1.0
  },
+ "terrain_drape": {"color": [0.2, 0.3, 0.1], "rough": 1.0, "drape": true},
  "stone_marker": {
   "tex": "concrete_slab_wall",
   "tile": 1.4,

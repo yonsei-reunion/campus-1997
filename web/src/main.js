@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { MaterialLibrary, SEASONS, texturesReady, updatePcss } from './materials.js';
 import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materials.js';
-import { Heightfield, makeNearTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky } from './terrain.js';
+import { Heightfield, makeNearTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeTerrain } from './terrain.js';
 import { loadGLB, bindMaterials, mergeStatic, InstancedKit, Forest } from './world.js';
 import { Grass } from './grass.js';
 import { Fall } from './fall.js';
@@ -159,6 +159,7 @@ async function main() {
   ]);
   bindMaterials(bld.scene, lib, false, true);
   bindMaterials(lms.scene, lib, false, true);
+  drapeTerrain(lms.scene, terrain.material);          // 대강당 앞 둑: the ground's own material (src/terrain.js)
   bindMaterials(road.scene, lib);
 
   // walkable surfaces: terrain + road + amphitheater terraces

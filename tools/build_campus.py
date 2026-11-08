@@ -1443,6 +1443,90 @@ print('buildings', len(buildings), 'city', n_city)
 bpolys = [Polygon(b['footprint']) for b in buildings]
 ball = unary_union(bpolys)
 
+# --- 대강당 앞: the rubble wall and the bank of shrubs along 백양로's east sidewalk (issue #84).  Kakao roadview of
+# August 2008 (2381303) and April 2011 (1017220192 - 1017220198), reference/대강당_2009_앞길_계단.jpg: from the drive
+# up to 대강당 (south) to the broad granite flight up to its forecourt (north) a low wall of mortared granite rubble with
+# a flat top stands at the sidewalk's outer edge, about 0.7 m high (0.72 m by the pano heights, about the flight's 4th
+# riser in the 2009 photo); behind it a bank of shrubs, the ginkgo row standing on it a metre behind the wall, climbs
+# to a clipped hedge along the top, and the terrace there (the court, the forecourt) is out of sight from the street.
+# The wall's south end: (2.85, -10.3) and (2.9, -11.2) from two panos, s 433; the flight's foot s 498 - 500, the wall
+# taken to s 496.5.  The bank's top edge 6.5 m behind the wall (the flight's 21 treads; the 1994 aerial photo's paved
+# terrace begins 20 - 22 m east of the centre line, the court 17.4 m).  The terrace is the forecourt's level: the
+# flight has 21 - 22 risers (about 3.3 m) over the sidewalk, but 대강당's forecourt stands only 1 - 1.9 m over 백양로
+# in the game (reference/고증.md 4.5, 5).  The wall and the bank are a mesh (blender/landmarks.py aud_bank, its slope
+# drawn with the terrain's own material: web/src/terrain.js drapeTerrain); the 5 m grid under it is kept below it,
+# and below the sidewalk in front of the wall.
+AUD_BANK = dict(s0=433.1, s1=496.5, wall=0.7, cap=0.35, top=6.55, ext=12.55, side=-1, walk_z=0.15)   # (walk_z: road.py WZ)
+_av_ = np.array([59.82 - 51.13, 61.16 - 28.26]); _av_ /= np.linalg.norm(_av_)
+AUD_T = round(float(sample(Hn, NEAR_HALF, NEAR_STEP, *(np.array([55.48, 44.71]) + np.array([-_av_[1], _av_[0]]) * 6.0))), 2)
+# the terrace: from the bank's top edge to the forecourt, the court's slab and its margin, at the forecourt's level,
+# blending out over the next cell or two; not under the road, and not within 11 m of a hall (학생회관 별관 is 3.5 m
+# from the court: the slab's stone skirt shows there; the ground its door is chosen by, 1 - 6 m out, stays as it was)
+_tb = [along_raw(s_, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] - 0.5))[:2] for s_ in np.arange(AUD_BANK['s0'] + 2.0, AUD_BANK['s1'] + 0.1, 4.0)]
+_tb += [along_raw(s_, AUD_BANK['side'] * (E_WALK + 21.0))[:2] for s_ in np.arange(AUD_BANK['s1'], AUD_BANK['s0'] + 1.9, -4.0)]
+AUD_TERRACE = court_poly(1.5).union(Polygon(_tb))
+_tw = shapely.contains_xy(AUD_TERRACE, X, Y)
+_tw = np.maximum(_tw.astype(float), ndimage.gaussian_filter(ndimage.binary_dilation(_tw, iterations=1).astype(float), 1.0))
+_tw *= np.clip((dist - ROAD_HALF - 1.0) / 3.0, 0, 1)
+_tw[near_buildings(11.0) | FIXED] = 0.0
+Hn[:] = Hn * (1 - _tw) + AUD_T * _tw
+FIXED[_tw > 0.999] = True
+
+
+def aud_bank_z(top, tp, o):
+    """the bank's surface o m behind the wall face: the wall's cap, then an S-curve up to the terrace's edge"""
+    if o <= AUD_BANK['cap']:
+        return top
+    t_ = min(1.0, (o - AUD_BANK['cap']) / (AUD_BANK['top'] - AUD_BANK['cap']))
+    return top + (tp - top) * t_ * t_ * (3 - 2 * t_)
+
+
+_ab = []                   # per metre of the wall: s, the sidewalk, the wall top, the terrace edge, the terrace beyond
+for _s in np.arange(AUD_BANK['s0'], AUD_BANK['s1'] + 1e-6, 1.0):
+    _zb = prof_h(_s) + AUD_BANK['walk_z']
+    _top = _zb + AUD_BANK['wall']
+    _far = [sample(Hn, NEAR_HALF, NEAR_STEP, *along_raw(_s, AUD_BANK['side'] * (E_WALK + o_))[:2])
+            for o_ in (AUD_BANK['top'], (AUD_BANK['top'] + AUD_BANK['ext']) / 2, AUD_BANK['ext'])]
+    _ab.append((float(_s), _zb, _top, max(_far[0], _top + 0.05), _far))
+_abs = np.array([a_[0] for a_ in _ab])
+# the grid under the bank: below its surface, and so low that no terrain triangle reaching out under the sidewalk
+# rises over the sidewalk in front of the wall
+_win = (X > -40) & (X < 90) & (Y > -60) & (Y < 100)
+_jj, _ii = np.nonzero(_win)
+_SO = {}
+for _j, _i in zip(_jj.tolist(), _ii.tolist()):
+    _s, _o = s_off(X[_j, _i], Y[_j, _i])
+    _SO[(_j, _i)] = (_s, AUD_BANK['side'] * _o - E_WALK)          # (o: metres behind the wall face, + into the bank)
+_nb = 0
+for (_j, _i), (_s, _o) in _SO.items():
+    if not (AUD_BANK['s0'] <= _s <= AUD_BANK['s1'] and 0.0 <= _o < AUD_BANK['top']):
+        continue
+    _k = int(np.clip(np.searchsorted(_abs, _s), 1, len(_abs) - 1))
+    _f = (_s - _abs[_k - 1]) / (_abs[_k] - _abs[_k - 1])
+    _zb, _top, _tp = [_ab[_k - 1][q_] * (1 - _f) + _ab[_k][q_] * _f for q_ in (1, 2, 3)]
+    _h = min(float(Hn[_j, _i]), aud_bank_z(_top, _tp, _o) - 0.03)
+    for _dj in (-1, 0, 1):
+        for _di in (-1, 0, 1):
+            _q = _SO.get((_j + _dj, _i + _di))
+            if _q is None or _q[1] >= 0.0 or not (AUD_BANK['s0'] - 6 <= _q[0] <= AUD_BANK['s1'] + 6):
+                continue
+            _ha = float(Hn[_j + _dj, _i + _di])
+            _fr = -_q[1] / (_o - _q[1])                            # where the line between them meets the wall face
+            _h = min(_h, _ha + (_zb - 0.03 - _ha) / max(_fr, 1e-3))
+    Hn[_j, _i] = _h
+    FIXED[_j, _i] = True
+    _nb += 1
+AUD_BANK['sections'] = []
+for _s, _zb, _top, _tp, _far in _ab:
+    _x, _y, _a = along_raw(_s, AUD_BANK['side'] * E_WALK)
+    # s, the wall face's foot (x, y), the heading into the bank, sidewalk, wall top, terrace edge, terrace beyond (+4 cm)
+    AUD_BANK['sections'].append([round(_s, 2), round(_x, 3), round(_y, 3),
+                                 round(math.atan2(AUD_BANK['side'] * math.cos(_a), -AUD_BANK['side'] * math.sin(_a)), 5),
+                                 round(_zb, 3), round(_top, 3), round(_tp, 3)] + [round(v_ + 0.04, 3) for v_ in _far])
+AUD_BANK['terrace'] = AUD_T
+print('대강당 앞 둑: terrace', AUD_T, 'wall s %.1f - %.1f' % (AUD_BANK['s0'], AUD_BANK['s1']), 'grid nodes under it', _nb,
+      'bank over the wall top %.2f - %.2f m' % (min(a_[3] - a_[2] for a_ in _ab), max(a_[3] - a_[2] for a_ in _ab)))
+
 # ---------------------------------------------------------------------------
 # Ground splat map  (R asphalt, G pavers, B dirt/forest floor ; rest = grass)
 # ---------------------------------------------------------------------------
@@ -3399,6 +3483,7 @@ STATUES = dict(
 _tn = dict(TENNIS, rot=round(TENNIS['rot'], 5))
 for v in STATUES.values():
     v['h'] = round(ground_h(*v['pos']), 2)
+STATUES['court']['h'] = AUD_T           # (on the terrace behind 백양로's bank, AUD_BANK; not the ground left low by 별관)
 # 공학원 (연세공학원) broke ground on 18 August 1995 on the 정구장's two blocks (TENNIS) and was finished on 8 April 1999
 # (yonsei.ac.kr/sc/349: 지하 5층 · 지상 4층; namu.wiki): the 1990 · 1994 · 1995 maps and the 1994 aerial photo show the
 # courts before it.  In the spring of 1997 the block between the service roads was a building site: bare earth behind
@@ -3568,6 +3653,9 @@ out = dict(
 )
 out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
 out['baekyangro']['booth'] = BOOTH
+# 대강당 앞 둑: blender/road.py leaves the planting strip out where the wall stands, blender/landmarks.py aud_bank builds it
+out['baekyangro']['walls'] = [[AUD_BANK['side'], AUD_BANK['s0'], AUD_BANK['s1']]]
+out['aud_bank'] = {k: v for k, v in AUD_BANK.items()}
 out['pave'] = PAVE                            # paving kinds in ground_dry.png's G and B (web/src/terrain.js)
 
 
@@ -3895,6 +3983,28 @@ props = [p for p in props if not _gz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _gz.contains(Point(c[1], c[2]))]
 print('1997 sites: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees), _n0[1] - len(shrubs), _n0[2] - len(props),
       _n0[3] - len(cars))
+# 대강당 앞 둑 (AUD_BANK): the strip's clipped hedge goes where the bank rises behind the wall (the ginkgo row stays, on
+# the bank as in the roadview); the bank is thick with shrubs (bare and brown in April 2011, green with yellow flowers
+# at its foot in August 2008) under a clipped hedge along its top.  Its own random numbers.
+AUD_BANK_POLY = Polygon([along_raw(s_, AUD_BANK['side'] * (E_WALK - 0.1))[:2] for s_ in np.arange(AUD_BANK['s0'], AUD_BANK['s1'] + 0.1, 2.0)] +
+                        [along_raw(s_, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] + 0.1))[:2]
+                         for s_ in np.arange(AUD_BANK['s1'], AUD_BANK['s0'] - 0.1, -2.0)])
+_n0 = len(shrubs)
+shrubs = [s for s in shrubs if not (s[0] == 'hedge_low' and AUD_BANK_POLY.contains(Point(s[1], s[2])))]
+_rb = random.Random(84)
+_gk = [Point(t[1], t[2]) for t in trees if AUD_BANK_POLY.buffer(1.0).contains(Point(t[1], t[2]))]
+_nb0 = len(shrubs)
+for _s in np.arange(AUD_BANK['s0'] + 1.0, AUD_BANK['s1'] - 0.5, 1.7):
+    for _k, _o in enumerate((1.3, 2.9, 4.5)):
+        _ss = _s + (0.85 if _k % 2 else 0.0) + _rb.uniform(-0.3, 0.3)
+        _x, _y, _ = along_raw(_ss, AUD_BANK['side'] * (E_WALK + _o + _rb.uniform(-0.3, 0.3)))
+        if any(g_.distance(Point(_x, _y)) < 1.1 for g_ in _gk) or _ss > AUD_BANK['s1'] - 0.6:
+            continue
+        shrubs.append(['bush', round(_x, 2), round(_y, 2), round(_rb.uniform(1.0, 1.45), 2), round(_rb.uniform(0, 6.28), 2)])
+for _s in np.arange(AUD_BANK['s0'] + 2.0, AUD_BANK['s1'] - 0.5, 1.5):
+    _x, _y, _a = along_raw(_s, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] - 0.2))
+    shrubs.append(['hedge_low', round(_x, 2), round(_y, 2), 1.0, round(_a, 3)])
+print('대강당 앞 둑: strip hedge cleared', _n0 - _nb0, 'bank shrubs', len(shrubs) - _nb0)
 # In front of 스팀슨관's south end (reference/고증.md 3.5.2; the Dec. 2010 walk past it, panoramas 1016786683 - 686,
 # placed by the bearings of the end's corners and its bay): a bed of bare low shrubs in a boxwood band with round
 # corners west of the walk, benches and a bin along its west side under the trees of a low bank, the walk and the
@@ -3980,6 +4090,15 @@ spl[..., 0] = np.maximum(spl[..., 0], _ga)
 spl[..., 1] = np.minimum(spl[..., 1], 255.0 - spl[..., 0])
 spl[..., 2] = np.minimum(spl[..., 2], 255.0 - spl[..., 0] - spl[..., 1])
 print('yongjae ground: walks', len(paths_out), 'decals', len(out['decals']))
+# 대강당 앞 둑 (AUD_BANK_POLY): the bank's slope is the woods' floor under its shrubs (the bank mesh draws the ground's
+# own shading: web/src/terrain.js drapeTerrain), no paving of the strip under it, no grass blades
+_gb = Image.new('L', (SW, SH), 0)
+_YN[id(_gb)] = '_gb'
+_ypaint([AUD_BANK_POLY], _gb)
+_gbm = ndimage.gaussian_filter(np.array(_gb, np.float32), 0.7) / 255.0
+spl[..., 0] *= 1.0 - _gbm
+spl[..., 1] *= 1.0 - _gbm
+spl[..., 2] = spl[..., 2] * (1.0 - _gbm) + 178.0 * _gbm
 
 # ---------------------------------------------------------------------------
 # The ground map the game reads, and the curbs along its paving
@@ -4002,6 +4121,10 @@ spl_aa[..., 1] = np.minimum(np.maximum(spl_aa[..., 1], _aa['_gp']), 255 - spl_aa
 spl_aa[..., 0] = np.maximum(spl_aa[..., 0], _aa['_ga'] * (1.0 - _aa['_gp'] / 255.0))      # (의료원's car parks)
 spl_aa[..., 1] = np.minimum(spl_aa[..., 1], 255 - spl_aa[..., 0])
 spl_aa[..., 2] = np.clip(np.minimum(spl_aa[..., 2], 255 - spl_aa[..., 0] - spl_aa[..., 1]), 0, 255)
+_gbA = splat_aa(['_gb'])['_gb'] / 255.0           # (대강당 앞 둑, as in spl above)
+spl_aa[..., 0] *= 1.0 - _gbA
+spl_aa[..., 1] *= 1.0 - _gbA
+spl_aa[..., 2] = spl_aa[..., 2] * (1.0 - _gbA) + 178.0 * _gbA
 Image.fromarray(np.clip(np.round(spl_aa), 0, 255).astype(np.uint8), 'RGB').save(
     os.path.join(ROOT, 'web/public/assets/textures/ground_splat.png'), optimize=True)
 

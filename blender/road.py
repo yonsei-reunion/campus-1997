@@ -50,6 +50,7 @@ def build():
     # the granite kerbs: their own material, whose shader draws a joint every metre of u (web/src/kerbjoints.js; the
     # 2010 / 2011 roadview: stones about 1 m long), u running along the road
     KERB = 'curb_road'
+    walls = R.get('walls', [])          # [side, s0, s1]: no planting strip there (a retaining wall, landmarks.aud_bank)
     mb = MeshBuilder('baekyangro')
     marks = MeshBuilder('baekyangro_paint')
     L = samples[-1][0]
@@ -183,6 +184,25 @@ def build():
             f = [P(u, e_strip + 0.6, -0.8), P(v, e_strip + 0.6, -0.8), P(v, e_strip + 0.6, 0), P(u, e_strip + 0.6, 0)]
             quad([f[1], f[0], f[3], f[2]])
 
+    def strip_pieces(sa, sb, side):
+        # the stretches of [sa, sb] where the outer planting strip stands: not where the bank behind a retaining wall
+        # rises from the sidewalk's edge (campus.json baekyangro walls, blender/landmarks.py aud_bank)
+        out = [(sa, sb)]
+        for sd, w0, w1 in walls:
+            if sd != side:
+                continue
+            nxt = []
+            for u, v in out:
+                if w1 <= u or w0 >= v:
+                    nxt.append((u, v))
+                    continue
+                if w0 > u:
+                    nxt.append((u, w0))
+                if w1 < v:
+                    nxt.append((w1, v))
+            out = nxt
+        return [(u, v) for u, v in out if v - u > 1e-3]
+
     for a, b in zip(frames[:-1], frames[1:]):
         sm = (a[0] + b[0]) / 2
         cross = in_cross(sm)
@@ -236,10 +256,11 @@ def build():
                 riser(e_verge, WZ, VZ, 'curb', outward=True)
             band(e_verge, e_walk, WZ, WZ, 'pavers')
             # outer planting strip (ginkgo + hedge), then a skirt down to the terrain
-            band(e_walk, e_walk + 0.18, WZ + 0.05, WZ + 0.05, 'curb')
-            riser(e_walk, WZ, WZ + 0.05, 'curb', outward=False)
-            band(e_walk + 0.18, e_strip, WZ, WZ, 'dirt')
-            riser(e_strip, -0.8, WZ, 'curb', outward=True)
+            for rg in strip_pieces(a[0], b[0], side):
+                band(e_walk, e_walk + 0.18, WZ + 0.05, WZ + 0.05, 'curb', rg)
+                riser(e_walk, WZ, WZ + 0.05, 'curb', outward=False, rng=rg)
+                band(e_walk + 0.18, e_strip, WZ, WZ, 'dirt', rg)
+                riser(e_strip, -0.8, WZ, 'curb', outward=True, rng=rg)
 
     # paint ---------------------------------------------------------------
     def strip_(s0, s1, off, width, mat, dz=0.012):

@@ -232,6 +232,23 @@ export function makeNearTerrain(hf, campus, lib) {
   return mesh;
 }
 
+// Ground the 5 m grid cannot hold, drawn by meshes of their own in the near terrain's material, so they take the
+// ground's shading where they lie (the splat's lawn, woods' floor and paving, the dry lawn, the fallen leaves, the
+// baked sun shadow):
+//  - the GLB meshes whose material is 'terrain_drape' (blender/landmarks.py aud_bank: the bank behind 대강당's
+//    rubble wall, issue #84)
+export function drapeTerrain(root, terrainMat) {
+  root.traverse((o) => {
+    if (o.isMesh && o.material?.name === 'terrain_drape') o.material = terrainMat;
+  });
+}
+
+//  - the lawn's raised edge along the kerbs (curbs.js, issue #86): where it reaches over paving (a narrow strip's far
+//    side, a corner) it is cut away, so the paving there stays the ground's own
+export function groundLipCut(sh) {
+  sh.fragmentShader = sh.fragmentShader.replace('sp.g = pvS * (1.0 - raS);', 'sp.g = pvS * (1.0 - raS);\n if (pvS > 0.5) discard;');
+}
+
 // low-frequency 0..1 noise over the far ring: where the woods start on the hills (terrain colour and canopy clumps)
 const hillNoise = (x, y) => Math.sin(x * 0.013) * Math.cos(y * 0.011) * 0.5 + 0.5;
 

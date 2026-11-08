@@ -3780,8 +3780,9 @@ def basketball_court():
     mb = MeshBuilder('lm_court')
     mb.xf = local_frame(C['pos'][0], C['pos'][1], C['rot'], C['h'])
     z = 0.06
-    # slab with a skirt so it sits cleanly on the flattened ground
-    mb.box((0, 0, z / 2 - 0.25), (L + 2.0, W + 2.0, z + 0.5), 'asphalt', skip=('bottom',))
+    # slab on the terrace behind 백양로's bank (tools/build_campus.py AUD_BANK: at 대강당's forecourt level); its skirt
+    # goes 2 m down in mortared rubble, which shows where the ground falls away (학생회관 별관's side)
+    mb.box((0, 0, (z - 2.0) / 2), (L + 2.0, W + 2.0, z + 2.0), 'stone_rubble_warm', mats={'top': 'asphalt'}, skip=('bottom',))
     lw = 0.05
 
     def line(x0, y0, x1, y1):
@@ -3849,6 +3850,64 @@ def basketball_court():
                 q = [(u[0], u[1], zz - 0.008), (v[0], v[1], zz - 0.008), (v[0], v[1], zz + 0.008), (u[0], u[1], zz + 0.008)]
                 mb.face(q, 'paint_white')
                 mb.face(q[::-1], 'paint_white')
+    return [mb]
+
+
+def aud_bank():
+    """The rubble wall along 백양로's east sidewalk in front of 대강당 and the bank of shrubs behind it, up to the
+    terrace of the court and the forecourt (tools/build_campus.py AUD_BANK; Kakao roadview 2008 · 2011,
+    reference/대강당_2009_앞길_계단.jpg).  Mortared granite rubble about 0.7 m high with a flat top, the bank's slope and
+    the terrace's edge beyond it drawn in the terrain's own material ('terrain_drape': web/src/terrain.js
+    drapeTerrain), so the woods' floor under the shrubs and the lawn at the top are the ground's; walked on (the
+    'walk_stairs' mesh), the shrubs and the ginkgo row stand on it.  One section a metre: s, the wall face's foot
+    (x, y), the heading into the bank, the sidewalk, the wall top, the bank's top, the terrace 6.55 / 9.55 / 12.55 m
+    behind the wall."""
+    B = CAMPUS.get('aud_bank')
+    if not B or B.get('side', -1) != -1:          # (laid out for the east side: the bank to the right going along)
+        return []
+    mb = MeshBuilder('lm_aud_bank')
+    cap, top_o, ext_o = B['cap'], B['top'], B['ext']
+    mid_o = (top_o + ext_o) / 2
+
+    def bank_z(top, tp, o):
+        t_ = min(1.0, max(0.0, (o - cap) / (top_o - cap)))
+        return top + (tp - top) * t_ * t_ * (3 - 2 * t_)
+    OS = [cap + (top_o - cap) * k / 6 for k in range(7)]           # the slope, then the terrace's edge
+    secs = []
+    for s, x, y, ang, zb, top, tp, f1, f2, f3 in B['sections']:
+        n = (math.cos(ang), math.sin(ang))
+        f_at = lambda o: (f1 + (f2 - f1) * (o - top_o) / (mid_o - top_o)) if o <= mid_o else (f2 + (f3 - f2) * (o - mid_o) / (ext_o - mid_o))
+        prof = [(o, bank_z(top, tp, o) + 0.04 * (o - cap) / (top_o - cap)) for o in OS] + \
+               [(o, f_at(o)) for o in (top_o + 1.45, mid_o, ext_o)]
+        secs.append(dict(P=lambda o, z, x=x, y=y, n=n: (x + n[0] * o, y + n[1] * o, z), zb=zb, top=top, prof=prof))
+    BATTER = 0.05                                                 # the wall leans back a little
+    for a, b in zip(secs[:-1], secs[1:]):
+        # the wall's face (towards the road), its flat top, the bank and the terrace's edge
+        mb.face([a['P'](BATTER, a['top']), b['P'](BATTER, b['top']), b['P'](0.0, b['zb'] - 0.35), a['P'](0.0, a['zb'] - 0.35)],
+                'stone_rubble_warm')
+        mb.face([a['P'](BATTER, a['top']), a['P'](cap, a['top']), b['P'](cap, b['top']), b['P'](BATTER, b['top'])], 'curb')
+        for (o0, z0a), (o1, z1a), (_, z0b), (_, z1b) in zip(a['prof'][:-1], a['prof'][1:], b['prof'][:-1], b['prof'][1:]):
+            q = [a['P'](o0, z0a), a['P'](o1, z1a), b['P'](o1, z1b), b['P'](o0, z0b)]
+            mb.face(q, 'terrain_drape')
+            WALK_FACES.append(q)
+    # its two ends: the wall's end in rubble; the bank runs out 3 m beyond it down to the ground, its toe 3 cm over it
+    TOE = 3.0
+    for sec, first in ((secs[0], True), (secs[-1], False)):
+        P, lo = sec['P'], sec['zb'] - 0.35
+        wall = [P(0.0, lo), P(cap, lo), P(cap, sec['top']), P(BATTER, sec['top'])]
+        mb.face(wall if first else wall[::-1], 'stone_rubble_warm')
+        x0, y0, _ = P(0.0, 0.0)
+        nx, ny = (P(1.0, 0.0)[0] - x0), (P(1.0, 0.0)[1] - y0)
+        tx, ty = (-ny, nx) if not first else (ny, -nx)            # along the road, away from the wall
+        toe = lambda o, z: (lambda x, y: (x, y, min(z, ground_top(x, y) + 0.03)))(x0 + nx * o + tx * TOE, y0 + ny * o + ty * TOE)
+        for (o0, z0), (o1, z1) in zip(sec['prof'][:-1], sec['prof'][1:]):
+            q = [P(o0, z0), P(o1, z1), toe(o1, z1), toe(o0, z0)]
+            mb.face(q[::-1] if first else q, 'terrain_drape')
+            WALK_FACES.append(q)
+        # under the bank's first metre the toe meets the wall's end: close the gap down to the ground
+        o0, z0 = sec['prof'][0]
+        q = [P(o0, z0), toe(o0, z0), (toe(o0, z0)[0], toe(o0, z0)[1], lo), P(o0, lo)]
+        mb.face(q[::-1] if first else q, 'stone_rubble_warm')             # (facing the road)
     return [mb]
 
 
