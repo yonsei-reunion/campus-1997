@@ -56,24 +56,24 @@ B = {
     # engineering / science quarter
     # (제1공학관's 공AS block, 1451926794, is the 2015 north wing: a car park in the 1997 photo; see FOOTPRINT_1997)
     1451926793: ('modern', 5, '제1공학관'), 1451926787: ('modern', 5, '제1공학관'),
-    256932940: ('modern', 6, '제2공학관'),
+    256932940: ('modern', 7, '제2공학관'),
     224955691: ('modern', 5, '제3공학관 (공사중)'), 324328471: ('white', 2, '별동연구동'),
     222843398: ('white', 6, '과학관'), 468614722: ('lm:kwangbok', 4, '광복관'),   # (blender/landmarks.py kwangbok)
     256933753: ('white', 5, '백양관'),          # (OSM: 경영학교실단) the old 상경대학 hall, 백양관 since 1996
     421415366: ('gym', 2, '체육관'), 421415365: ('white', 4, '체육교육관'),
     # humanities / north campus
-    246156112: ('modern', 6, '인문관'), 246156114: ('modern', 5, '인문관'),
+    246156112: ('modern', 6, '인문관'), 246156114: ('modern', 3, '인문관'),
     246156119: ('white', 4, '제2인문관 (공사중)'), 245623759: ('lm:yeonhui', 4, '연희관'),
     246156121: ('stone', 2, '연합신학대학원'), 246156123: ('modern', 6, '종합관'),
     246156117: ('lm:seongam', 2, '성암관'), 246156111: ('lm:gyoyuk', 3, '교육관'),   # (blender/landmarks.py seongam, gyoyuk)
     245623193: ('stone_pale', 4, '생활과학관'), 413217834: ('house', 1, '논지당'),
     242897922: ('lm:daewoo', 6, '대우관'), 242897923: ('lm:daewoo_annex', 5, '대우관 별관'),
     429077789: ('white', 4, '음악대학'), 429077790: ('white', 4, '음악대학'),
-    429079066: ('stone', 2, '언더우드가 사택'), 472512289: ('brick', 2, '알렌관'),
+    429079066: ('stone', 1, '언더우드가 사택'), 472512289: ('brick', 2, '알렌관'),
     472512292: ('white', 2, '어린이생활지도연구원'), 472965030: ('house', 2, '대학사택'),
     472987415: ('house', 2, '대학사택'), 472987419: ('house', 2, '대학사택'),
     472534641: ('house', 2, '영빈관'), 472534642: ('house', 2, '총장공관'),
-    472516998: ('tile', 5, '국제학사'), 371403603: ('brick', 5, '한국어학당'),
+    472516998: ('tile', 5, '국제학사'), 371403603: ('brick', 6, '한국어학당'),
     429077785: ('white', 1, '영선실'), 472516999: ('white', 1, '차량실'),
     722550503: ('white', 2, '행정동'),
     # medical quarter (old Severance)
@@ -83,7 +83,7 @@ B = {
     473006250: ('white', 4, '광혜관'), 473006251: ('white', 5, '제중관'),
     324328456: ('white', 4, '의학도서관'), 473014379: ('modern', 5, '임상의학연구센터'),
     1178739301: ('white', 5, '의과대학'), 1178739302: ('white', 5, '의과대학'),
-    473014385: ('white', 4, '동문회관'), 429079067: ('white', 4, '재활병원'),
+    473014385: ('white', 4, '동문회관'), 429079067: ('white', 6, '재활병원'),
     324328481: ('modern', 7, '심장혈관병원'), 324328472: ('white', 5, '안·이비인후과병원'),
     # in 1997 too, missing before
     246156110: ('stone', 2, '한경관'), 429249497: ('house', 1, '수경원 정자각'), 1178743320: ('white', 3, '미우학사'),
@@ -95,6 +95,24 @@ B = {
 # the OSM outline's slanted south end, 9 m past the west wall, is the south wing.  So: the OSM hall's rectangle from
 # 9 m to 74.5 m along its length (about 800 m2 a floor taken off, as much as the wings added).
 FOOTPRINT_1997 = {205583531: [(-127.6, -296.97), (-110.42, -233.76), (-124.96, -229.8), (-142.14, -293.01)]}
+# Floors as of 1997 from the building history (yonsei.ac.kr/sc/349) and the colleges' and hospital's own: 제2공학관
+# 지하 2층 · 지상 7층 since 1994; 한국어학당 (언어연구교육원, 1991) 지상 6층; 외솔관2 (1991) 「지하 1층, 지상 1층」 on
+# the roof of the corridor between 인문관 and 종합관: three storeys with the corridor from the low east end, two over
+# the car park on its west side (2010 roadview);
+# 언더우드가 사택 rebuilt as one storey in 1955 (attic dormers); 재활병원 지하 1층 · 지상 6층 in 1987 (four more
+# floors in 2011).  reference/고증.md 3.1.1 has the table, hall by hall.
+# Two more are put right only after the random planting, cars and decals (their draws depend on every outline, as
+# for 용재관: YONGJAE_SCATTER), so that the rest of the campus keeps its layout:
+# - GONE_1997: 제2인문관 (위당관) broke ground on 29 May 1997 (착공 1997.5.29, 준공 1998.8.24), later than 새천년관
+#   (1997.5.10), which is left out too.  Its site is bare earth with the 공사중 marker.
+# - LATE_FOOTPRINT_1997: 미우학사 (1972, 지하 1층 · 지상 3층) was pulled down for the ten-storey 미우관 of 2021,
+#   whose outline OSM has now; its own, from OSM as of 2018 (way 472534638 「미우관」, building:levels 3).
+GONE_1997 = {246156119: '제2인문관 (공사중)'}
+LATE_FOOTPRINT_1997 = {1178743320: [(482.62, 70.11), (489.63, 62.96), (493.39, 66.6), (499.74, 60.11), (496.1, 56.6),
+                                    (505.76, 46.76), (516.66, 57.31), (503.76, 70.47), (510.43, 76.92), (512.31, 74.99),
+                                    (514.69, 77.29), (516.59, 76.58), (523.4, 82.93), (520.97, 85.51), (522.73, 87.14),
+                                    (508.59, 102.12), (503.97, 97.8), (504.74, 96.98), (492.07, 85.22), (494.02, 83.15),
+                                    (481.39, 71.42)]}
 FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
 
 # ---------------------------------------------------------------------------
@@ -1060,9 +1078,12 @@ def yj_gone(p_):
 # south-west, and 24 장기원 기념관, a four-storey block across the library's axis with a rounded west end and a low
 # round hall at its south-west foot (the 1994 map draws both; 서울신문 1996.9.3: classes moved to the temporary rooms
 # of the 기념관 "도서관 뒤쪽" that September).  The 한국어학당 left the bow-shaped hall for its own building in April
-# 1991 (yonsei.ac.kr/sc/349), so a student of 1997 knew it as the old one.  12 청경관, a student cafeteria, low at the
-# foot of a crescent of planting south-west of 유억겸 기념관 and west of 언더우드관: the triangle between the three
-# drives there.  (16 요업관, the other cafeteria, stood behind 연희관 where 대우관's 상뜰 was laid out in 1996.)
+# 1991 (yonsei.ac.kr/sc/349); from 1992 it was 연구관, the three-storey home of 연세춘추 and the campus broadcasters,
+# pulled down with 장기원 기념관 (1972, 「한국 최초의 교수 기념관」) when 학술정보관 broke ground in 2005 (연세춘추
+# 2006.11.4).  12 청경관, a student cafeteria, low at the foot of a crescent of planting south-west of 유억겸 기념관
+# and west of 언더우드관: the triangle between the three drives there (gone in the autumn of 1998, when 청경관 moved
+# into 제2인문관: 연세춘추 1999.3.8).  (16 요업관, the other cafeteria, stood behind 연희관 where 대우관's 상뜰 was
+# laid out in 1996.)
 def arc_poly(c, r0, r1, a0, a1, n=12):
     out = [(c[0] + r1 * math.cos(math.radians(a0 + (a1 - a0) * k / n)), c[1] + r1 * math.sin(math.radians(a0 + (a1 - a0) * k / n)))
            for k in range(n + 1)]
@@ -1088,7 +1109,7 @@ def block_poly(c, u, hl, hw, round_end=0.0, n=8):
 _lib_u = np.array([0.2544, 0.9671])                   # 중앙도서관's long axis
 _jk = np.array([-150.0, -25.0])
 OLD_HALLS = [
-    (990010, '옛 어학당', 'white', 3, arc_poly((-147.0, 18.0), 30.0, 40.0, 165.0, 230.0)),
+    (990010, '연구관', 'white', 3, arc_poly((-147.0, 18.0), 30.0, 40.0, 165.0, 230.0)),
     (990011, '장기원 기념관', 'white', 4, block_poly(_jk, (_lib_u[1], -_lib_u[0]), 10.0, 7.0, round_end=True)),
     (990012, '', 'white', 2, Point(*(_jk + np.array([_lib_u[1], -_lib_u[0]]) * -14.0 - _lib_u * 12.0)).buffer(7.0, 3)),
     (990013, '청경관', 'white', 2, block_poly((20.0, 266.0), (0.557, 0.830), 8.0, 4.5)),
@@ -2809,8 +2830,32 @@ Hf.tofile(os.path.join(ROOT, 'web/public/data/terrain_far.bin'))
 # MARKER_NAME: the name a 1997 student would use (or None: no marker, e.g. not built yet in 1997).
 # ---------------------------------------------------------------------------
 buildings[:] = [b for b in buildings if not any(b is q for q in YONGJAE_SCATTER)] + YONGJAE_BUILDINGS   # (above)
+# GONE_1997 / LATE_FOOTPRINT_1997 (with the hall table above): the planting is done
+GONE_SITES = [(GONE_1997[b['id']], Polygon(b['footprint'])) for b in buildings if b['id'] in GONE_1997]
+# (blender/build.py draws each hall's colours and roof clutter from one stream in this list's order: it still draws
+# for these at their old place, `at`, so that the halls after them keep their looks)
+RND_GHOSTS = [{**{k_: v_ for k_, v_ in b.items() if k_ != 'entry'}, 'at': i_ - j_}
+              for j_, (i_, b) in enumerate((i_, b) for i_, b in enumerate(buildings) if b['id'] in GONE_1997)]
+buildings[:] = [b for b in buildings if b['id'] not in GONE_1997]
+LATE_SITES = []
+for b in buildings:
+    if b['id'] not in LATE_FOOTPRINT_1997:
+        continue
+    poly = shapely.geometry.polygon.orient(Polygon(LATE_FOOTPRINT_1997[b['id']]).simplify(0.35), 1.0)
+    hs = [ground_h(x, y) for x, y in poly.exterior.coords]
+    b.update(base=round(min(hs), 2), top_ground=round(max(hs), 2),
+             footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]])
+    _bp_all = [Polygon(b_['footprint']) for b_ in buildings]
+    poly = next(q for q, b_ in zip(_bp_all, buildings) if b_ is b)
+    b.pop('entry', None)
+    e_ = _entry(b, poly)
+    if e_:
+        b['entry'] = dict(p=[round(e_[1], 2), round(e_[2], 2)], n=[round(e_[3], 4), round(e_[4], 4)])
+    LATE_SITES.append(poly)
+print('1997: left out', [n for n, _ in GONE_SITES], '- outlines put back', len(LATE_SITES))
 MARKER_NAME = {n: None for n in ('별동연구동', '영빈관', '영선실', '차량실', '행정동', '학생회관 별관', '광혜관')}
 EXTRA_MARKERS = [('청송대', 238.0, 284.0), ('농구장', 21.9, 2.5)]          # the wooded park east of 연희관 (OSM leisure=park)
+EXTRA_MARKERS += [(n, round(p.centroid.x, 1), round(p.centroid.y, 1)) for n, p in GONE_SITES]
 LANDMARK_NAMES = {l['name'] for l in LANDMARKS}
 groups = {}
 for b in buildings:
@@ -2882,6 +2927,7 @@ out = dict(
     colliders=[CENT_BLOCK['poly']] +
     [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(tennis_poly(pd_, 0.1).exterior.coords)[:-1]] for pd_ in TENNIS['pads']],
 )
+out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
 out['baekyangro']['booth'] = BOOTH
 
 
@@ -3200,6 +3246,15 @@ _lx, _ly = yj_xy(-3.9, 21.6)
 props.append(['lamp_double', round(_lx, 2), round(_ly, 2), round(YONGJAE['ang'], 3)])
 print('yongjae: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees) + 2, _n0[1] - len(shrubs),
       _n0[2] - len(props) + 1, _n0[3] - len(cars), '- 진달래동산', len(_yjp))
+# the 1997 sites (GONE_1997, LATE_FOOTPRINT_1997): off the bare site and its ring of shrubs, off the walls put back
+_gz = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for p_ in LATE_SITES])
+_n0 = (len(trees), len(shrubs), len(props), len(cars))
+trees = [t for t in trees if not _gz.contains(Point(t[1], t[2]))]
+shrubs = [s for s in shrubs if not _gz.contains(Point(s[1], s[2]))]
+props = [p for p in props if not _gz.contains(Point(p[1], p[2]))]
+cars = [c for c in cars if not _gz.contains(Point(c[1], c[2]))]
+print('1997 sites: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees), _n0[1] - len(shrubs), _n0[2] - len(props),
+      _n0[3] - len(cars))
 out.update(trees=trees, shrubs=shrubs, props=props, cars=cars)
 
 
@@ -3229,6 +3284,16 @@ spl[..., 0] *= 1.0 - _yg
 spl[..., 1] *= (1.0 - _yz) * (1.0 - _yg)
 spl[..., 2] *= (1.0 - _yz) * (1.0 - _yg)
 spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.array(_yp, np.float32), 0.7)), 255 - spl[..., 0])
+# the 1997 sites: 제2인문관's bare earth (the rest of its apron and its walks left as they were), 미우학사's apron round
+# its own walls
+_gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
+_YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
+_ypaint([p_.buffer(2.0) for _, p_ in GONE_SITES], _gd)
+_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES], _gp)
+_gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
+spl[..., 1] *= 1.0 - _gd / 255.0
+spl[..., 2] = np.where(_gd > 0, np.minimum(np.maximum(spl[..., 2], _gd), 255.0 - spl[..., 0] - spl[..., 1]), spl[..., 2])
+spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.array(_gp, np.float32), 0.7)), 255 - spl[..., 0])
 print('yongjae ground: walks', len(paths_out), 'decals', len(out['decals']))
 
 # ---------------------------------------------------------------------------
@@ -3237,13 +3302,18 @@ print('yongjae ground: walks', len(paths_out), 'decals', len(out['decals']))
 # The same strokes as spl, anti-aliased (splat_aa): the asphalt and paving as sharp as drawn, the dirt (woods,
 # pitches, the old amphitheater) as soft as before, 용재관's ground painted again the same way.  (spl above, binary
 # 0.5 m texels blurred, stays as it was for the debug map.)
-_aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp'])
+_aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
 spl_aa[..., 0] *= 1.0 - _ygA
 spl_aa[..., 1] *= (1.0 - _yzA) * (1.0 - _ygA)
 spl_aa[..., 2] *= (1.0 - _yzA) * (1.0 - _ygA)
 spl_aa[..., 1] = np.minimum(np.maximum(spl_aa[..., 1], _aa['_yp']), 255 - spl_aa[..., 0])
+# the 1997 sites (GONE_1997, LATE_FOOTPRINT_1997) as in spl above: 제2인문관's bare earth soft, 미우학사's apron sharp
+_gdA = ndimage.gaussian_filter(_aa['_gd'], 1.2)
+spl_aa[..., 1] *= 1.0 - _gdA / 255.0
+spl_aa[..., 2] = np.where(_gdA > 0, np.minimum(np.maximum(spl_aa[..., 2], _gdA), 255.0 - spl_aa[..., 0] - spl_aa[..., 1]), spl_aa[..., 2])
+spl_aa[..., 1] = np.minimum(np.maximum(spl_aa[..., 1], _aa['_gp']), 255 - spl_aa[..., 0])
 spl_aa[..., 2] = np.clip(np.minimum(spl_aa[..., 2], 255 - spl_aa[..., 0] - spl_aa[..., 1]), 0, 255)
 Image.fromarray(np.clip(np.round(spl_aa), 0, 255).astype(np.uint8), 'RGB').save(
     os.path.join(ROOT, 'web/public/assets/textures/ground_splat.png'), optimize=True)

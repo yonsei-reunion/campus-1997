@@ -26,11 +26,20 @@ def place(mb, x, y, z, rot):
     return mb
 
 
+def ghost_draws(i, rnd):
+    """Halls left out of the 1997 campus after OSM (tools/build_campus.py GONE_1997): draw for them at their old
+    place in the list as if they were built, so that the halls after them keep their colours and roof clutter."""
+    for g in CAMPUS.get('rnd_ghosts', []):
+        if g['at'] == i:
+            generic.build_generic(g, rnd)
+
+
 if want('buildings'):
     reset_scene()
     rnd = random.Random(1997)
     objs = []
-    for b in CAMPUS['buildings']:
+    for i, b in enumerate(CAMPUS['buildings']):
+        ghost_draws(i, rnd)
         if b['style'].startswith('lm:'):
             continue
         ob = generic.build_generic(b, rnd).build()
@@ -196,7 +205,8 @@ if BLEND:
     import numpy as np
     reset_scene()
     rnd = random.Random(1997)
-    for b in CAMPUS['buildings']:
+    for i, b in enumerate(CAMPUS['buildings']):
+        ghost_draws(i, rnd)
         if b['style'].startswith('lm:'):
             continue
         generic.build_generic(b, rnd).build()

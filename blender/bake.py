@@ -47,8 +47,8 @@ LEDGE_DEPTH = 0.65     # m: deepest upward face that still counts as a ledge (si
 EDGE_RANGE = 128.0     # m: an edge channel's value where the face has no arris for it (and its largest distance)
 EDGE_BEND = 0.85       # cos of the least turn between two faces that makes their shared edge an arris (32 deg)
 # halls that were new in 1997 (bid -> share of their materials' weathering, exported as the object's extras):
-# 대우관 was finished in 1996, 제3공학관 and 제2인문관 were going up
-AGE = {'242897922': 0.1, '224955691': 0.15, '246156119': 0.15}
+# 대우관 was finished in 1996, 제3공학관 was going up (제2인문관 broke ground in late May 1997: not built)
+AGE = {'242897922': 0.1, '224955691': 0.15}
 
 
 def _front_only(name):
