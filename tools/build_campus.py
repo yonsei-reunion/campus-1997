@@ -4527,6 +4527,45 @@ def iso_chains(F, level):
     return chains
 
 
+def smooth_chain(P, closed, step=0.1, sigma=0.35, corner=40.0):
+    """An edge traced off the ground map, laid out as a kerb is: resampled every step m and smoothed along its length
+    (a Gaussian of sigma m), keeping its corners (where it turns more than `corner` degrees within 0.6 m either way).
+    The trace wanders a few cm about the drawn outline with the 0.5 m texels, and simplified at 5 cm that came out as
+    1 m stretches turning 10 degrees one way and the next (the median turn between stones was 9.8 degrees); smoothed,
+    a straight edge stays straight and a curve bends evenly, within 1 - 2 cm of the trace."""
+    Q = np.vstack([P, P[:1]]) if closed else P
+    cum = np.r_[0.0, np.cumsum(np.hypot(*np.diff(Q, axis=0).T))]
+    if cum[-1] < 8 * sigma:
+        return P
+    n_ = max(int(round(cum[-1] / step)), 8)
+    s_ = np.linspace(0.0, cum[-1], n_ + 1)[:-1] if closed else np.linspace(0.0, cum[-1], n_ + 1)
+    R = np.column_stack([np.interp(s_, cum, Q[:, 0]), np.interp(s_, cum, Q[:, 1])])
+    w_ = max(1, int(round(0.6 / step)))
+    if closed:
+        A, B = np.roll(R, w_, 0), np.roll(R, -w_, 0)
+    else:
+        A, B = R[np.maximum(np.arange(len(R)) - w_, 0)], R[np.minimum(np.arange(len(R)) + w_, len(R) - 1)]
+    u_, v_ = R - A, B - R
+    turn = np.degrees(np.abs(np.arctan2(u_[:, 0] * v_[:, 1] - u_[:, 1] * v_[:, 0], (u_ * v_).sum(1))))
+    if not closed:
+        turn[:w_] = turn[-w_:] = 0.0
+    peak = (turn > corner) & (turn == ndimage.maximum_filter1d(turn, 2 * w_ + 1, mode='wrap' if closed else 'nearest'))
+    cuts = np.flatnonzero(peak)
+    sg_ = sigma / step
+    if not len(cuts):
+        return ndimage.gaussian_filter1d(R, sg_, axis=0, mode='wrap' if closed else 'nearest')
+    if closed:                                     # start the loop at a corner, and close it there
+        R = np.vstack([np.roll(R, -cuts[0], 0), np.roll(R, -cuts[0], 0)[:1]])
+        cuts = np.r_[cuts - cuts[0], len(R) - 1]
+    else:
+        cuts = np.unique(np.r_[0, cuts, len(R) - 1])
+    out_ = R.copy()
+    for a_, b_ in zip(cuts[:-1], cuts[1:]):
+        if b_ - a_ > 2:
+            out_[a_ + 1:b_] = ndimage.gaussian_filter1d(R[a_:b_ + 1], sg_, axis=0, mode='nearest')[1:-1]
+    return out_[:-1] if closed else out_
+
+
 # Curbs (경계석): wherever the painted asphalt or paving meets the lawn, a low granite kerb stands along the edge on the
 # lawn side (1997 photos and the 2008 / 2011 roadview: kerbs round the 상뜰's beds and the drives, the paths across the
 # lawns, the forecourts), drawn by web/src/curbs.js.  Not along 백양로 (its own road mesh has its kerbs), the walls of
@@ -4552,6 +4591,7 @@ def curb_runs(F3):
     for P, closed in iso_chains(paved, 127.5):
         if len(P) < 4:
             continue
+        P = smooth_chain(P, closed)
         T = np.gradient(P, axis=0)
         if closed:
             T[0], T[-1] = P[1] - P[-1], P[0] - P[-2]
@@ -4562,7 +4602,7 @@ def curb_runs(F3):
         ok = ((at(grass, P + N * 0.45) > 150) & (at(paved, P - N * 0.45) > 160)
               & shapely.contains_xy(area, P[:, 0], P[:, 1]) & ~shapely.contains_xy(keep_out, P[:, 0], P[:, 1]))
         asph = (at(F3[..., 0], P - N * 0.45) > at(F3[..., 1], P - N * 0.45)).astype(np.int8)
-        asph = ndimage.median_filter(asph, 5, mode='wrap' if closed else 'nearest')     # (no flicker over a texel)
+        asph = ndimage.median_filter(asph, 17, mode='wrap' if closed else 'nearest')    # (no flicker over a texel)
         lab = np.where(ok, 1 + asph, 0)                                # 0 no kerb, 1 by the paving, 2 by the asphalt
         if closed and (lab == lab[0]).all():
             pieces = [(np.r_[np.arange(len(P)), 0], lab[0])] if lab[0] else []
@@ -4582,7 +4622,7 @@ def curb_runs(F3):
             ls_ = LineString(P[idx])
             if ls_.length < 2.0:
                 continue
-            q_ = np.round(np.array(ls_.simplify(0.05).coords) * 100).astype(int)
+            q_ = np.round(np.array(ls_.simplify(0.015).coords) * 100).astype(int)
             q_[1:] -= q_[:-1].copy()
             runs.append(['a' if k_ == 2 else 'p'] + q_.ravel().tolist())
             # how far the lawn reaches behind the kerb (to the next paving, the woods' floor, at most 3 m), every
@@ -4594,7 +4634,7 @@ def curb_runs(F3):
             for m_, d_ in enumerate(dd_):
                 lawn_[:, m_] = at(grass, Pi + Ni * d_) > 128
             Dp = np.where(lawn_.all(1), 3.0, dd_[np.argmin(lawn_, 1)] - 0.05)
-            Dp = ndimage.minimum_filter1d(Dp, 3, mode='nearest')
+            Dp = ndimage.minimum_filter1d(Dp, 11, mode='nearest')          # (about 1 m: smooth_chain's 0.1 m points)
             cum = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(Pi, axis=0).T))])
             lawns.append(np.round(np.interp(np.arange(0.0, cum[-1] + CURB_LAWN_STEP, CURB_LAWN_STEP), cum, Dp) * 10).astype(int).tolist())
     print('curbs: %d runs, %.0f m' % (len(runs), sum(np.hypot(*np.reshape(r_[3:], (-1, 2)).T).sum() / 100 for r_ in runs)),
