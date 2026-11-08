@@ -2756,24 +2756,57 @@ _br = LineString([(28.2, 124.1), (24.2, 125.3), (19.6, 127.2), (14.2, 131.1), (8
                   (-2.0, 160.5)])                                 # the drive west from the 삼거리 (OSM, 6 m)
 _brs, _brb = _br.offset_curve(6.0), _br.offset_curve(4.7)         # (its left: the south side)
 _rows = [(t_[1], t_[2]) for t_ in trees[:N_ROWS]]
+
+
+def _samgeori_br_at(s, off):
+    """The point s m along the drive (_br) and off m to its left (south), and the drive's heading there."""
+    p_, a_, b_ = _br.interpolate(s), _br.interpolate(s - 0.5), _br.interpolate(s + 0.5)
+    t_ = np.array([b_.x - a_.x, b_.y - a_.y]) / math.hypot(b_.x - a_.x, b_.y - a_.y)
+    return np.array([p_.x, p_.y]) + np.array([-t_[1], t_[0]]) * off, math.atan2(t_[1], t_[0])
+
+
+# the pair of stone 해태 flank a short flight of steps up from the drive's south edge.  2003 spring photo: both on
+# plain plinths hard against the sloping copings of a stair about 3 m wide, so about 4.5 m apart centre to centre (the
+# plinths 1.3 m long and the stair about as wide as the gap seen at their distance), a cherry trunk rising right
+# behind the stair, in the order green bin - lamp - 해태 - stair - 해태 - benches along the road.  The 2011-04 roadview
+# still has the lamp and, where the stair was, a paved walk going up between hedges: from panos 1017220206 and
+# 1017220207 (resected on 스팀슨관, 언더우드관 and 백양로's end steps, rms 0.2 deg) the lamp is at (4.3, 135.6) and the
+# walk's mouth at (0.0, 139.3), 30.5 m along the drive, +-2.5 m along it (the two rays meet at 9 deg).  So the stair
+# goes where the cherry behind it stands, 31.8 m along (the old pair was 6.8 m apart round 34.3 m), and that cherry
+# steps back behind the stair's head (reference/고증.md 3.18)
+HAETAE_STEPS = None
 for k in range(6):
     q_ = _brs.interpolate(9.0 + 6.8 * k)                           # (past 백양로's sidewalk at its end)
     if min(math.hypot(q_.x - a_, q_.y - b_) for a_, b_ in _rows) < 4.0:
         continue                                                  # (not into 백양로's ginkgo rows)
+    if k == 4:
+        _hs = _br.project(q_)                                     # the stair's middle, along the drive
+        q_ = Point(*_samgeori_br_at(_hs, 8.6)[0])
     PHOTO03.append(('cherry', q_.x, q_.y, rng8.uniform(1.2, 1.4)))
     if k < 5:                                                     # a bench between this one and the next
         b_ = _brb.interpolate(12.4 + 6.8 * k)
+        if k == 3:
+            continue                                              # (the 해태 and their stair, below)
+        if k == 4:                                                # (clear of the second 해태's plinth)
+            b_ = Point(*_samgeori_br_at(max(_br.project(b_), _hs + 4.6), 4.7)[0])
         r_ = _br.interpolate(_br.project(b_))
-        if k in (3, 4):
-            # the pair of stone 해태 on low plinths at the road's edge either side of the opening of a path (in the photo
-            # between the green bin and the benches beyond), both looking east along the road to the 삼거리 (the
-            # photo has both heads to the left)
-            h_ = _br.offset_curve(5.0).interpolate(12.4 + 6.8 * k)
-            t0_, t1_ = _br.interpolate(_br.project(h_) - 1.0), _br.interpolate(_br.project(h_) + 1.0)
-            fwd_ = math.atan2(t1_.y - t0_.y, t1_.x - t0_.x)
-            PHOTO03_PROPS.append(('haetae', h_.x, h_.y, fwd_ + math.pi))
-            continue
         PHOTO03_PROPS.append(('trashcan' if k == 2 else 'bench', b_.x, b_.y, math.atan2(r_.y - b_.y, r_.x - b_.x)))
+    if k == 4:
+        # both 해태 look east along the road to the 삼거리 (the photo has both heads to the left), their plinths' road
+        # faces level with the foot of the stair, 0.35 m behind the bench line (+-2.05 m along the drive's middle line
+        # is 4.6 m apart out on the bend)
+        for sg_ in (-1, 1):
+            h_, fwd_ = _samgeori_br_at(_hs + sg_ * 2.05, 5.0)
+            PHOTO03_PROPS.append(('haetae', float(h_[0]), float(h_[1]), fwd_ + math.pi))
+        # three risers of 0.15 (the plinths' height) on 0.32 treads, a 0.5 m landing, sloping copings 0.3 thick;
+        # blender/landmarks.py haetae_steps sets the levels from the ground at its foot
+        _ft, _fwd = _samgeori_br_at(_hs, 4.65)
+        _dn = np.array([math.sin(_fwd), -math.cos(_fwd)])            # (down the stair: towards the drive)
+        _tp = _ft - _dn * (0.5 + 3 * 0.32)
+        HAETAE_STEPS = dict(name='haetae', top=[round(float(_tp[0]), 2), round(float(_tp[1]), 2)],
+                            down=[round(float(_dn[0]), 4), round(float(_dn[1]), 4)],
+                            foot=[round(float(_ft[0]), 2), round(float(_ft[1]), 2)], n=3, rise=0.15, width=2.6,
+                            landing=0.5, tread=0.32, cheek=0.3, head=1.2)
 for (x_, y_) in ((99.5, 246.5), (101.5, 239.5), (103.0, 232.5), (104.0, 225.5), (104.5, 218.5)):
     PHOTO03.append(('cherry', x_, y_, rng8.uniform(1.1, 1.3)))
 hedge_line([(95.0, 214.0), (93.6, 249.0)], closed=False)
@@ -3721,6 +3754,7 @@ out = dict(
     + YH_WALL_COLL,
 )
 out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
+out['haetae_steps'] = HAETAE_STEPS            # (the stair between the 해태: blender/landmarks.py haetae_steps)
 out['baekyangro']['booth'] = BOOTH
 # 대강당 앞 둑: blender/road.py leaves the planting strip out where the wall stands, blender/landmarks.py aud_bank builds it
 out['baekyangro']['walls'] = [[AUD_BANK['side'], AUD_BANK['s0'], AUD_BANK['s1']]]

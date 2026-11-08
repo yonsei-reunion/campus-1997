@@ -67,7 +67,7 @@ if want('landmarks'):
             ob['bid'] = str(b['id'])
             objs.append(ob)
     for mb in landmarks.amphitheater() + landmarks.basketball_court() + landmarks.fountain() + landmarks.tennis() + landmarks.gongwon_site() + \
-            landmarks.underwood_steps() + landmarks.aud_bank():
+            landmarks.underwood_steps() + landmarks.aud_bank() + landmarks.haetae_steps():
         objs.append(mb.build())
     # statues and the gate are modelled in their own frame (front = -Y) and placed by object transform
     # (a MeshBuilder's xf only affects vertices added after it is set)
