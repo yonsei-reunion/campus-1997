@@ -558,50 +558,85 @@ def bench():
     return mb
 
 
-def _ellipsoid(mb, c, rx, ry, rz, mat, rnd, seg=12, rings=8, noise=0.06, tag=None):
-    tag = tag or 'ell%d' % len(mb.faces)
-    P = []
-    for j in range(rings + 1):
-        th = math.pi * j / rings
-        row = []
-        for i in range(seg):
-            ph = 2 * math.pi * i / seg
-            n = 1 + noise * math.sin(ph * 3 + j * 1.7 + rnd.uniform(0, 0.6)) * math.sin(th * 4)
-            row.append((c[0] + rx * n * math.sin(th) * math.cos(ph), c[1] + ry * n * math.sin(th) * math.sin(ph), c[2] + rz * n * math.cos(th)))
-        P.append(row)
-    for j in range(rings):
-        for i in range(seg):
-            k = (i + 1) % seg
-            mb.face([P[j][i], P[j + 1][i], P[j + 1][k], P[j][k]], mat, smooth=tag)
+def _haetae_curls(E, c, abc, angs, r, out=1.0):
+    """Curls of the mane or the coat: small balls set on the surface of an ellipsoid at (azimuth, elevation) pairs."""
+    for az, el in angs:
+        a, e = math.radians(az), math.radians(el)
+        n = Vector((math.cos(e) * math.cos(a), math.cos(e) * math.sin(a), math.sin(e)))
+        p = Vector(c) + Vector((n.x * abc[0], n.y * abc[1], n.z * abc[2])) * out
+        E.append(('ball', tuple(p), r))
 
 
 def haetae():
-    """돌 해태상 (2003_봄_백양로끝_핀슨관길_벚나무.jpg: a pair at the edge of the drive up to 핀슨관): a weathered granite
-    해태 about a metre high sitting up on its haunches, forelegs straight, a big curly-maned head with a single knob of a
-    horn, on a plain granite plinth 0.5 m high and 1.8 m long; it looks along -Y."""
-    rnd = random.Random(1997)
-    mb = MeshBuilder('haetae')
-    mb.box((0, 0.05, 0.25), (0.95, 1.8, 0.62), 'stone_haetae', skip=('bottom',))
-    mb.box((0, 0.05, 0.53), (1.02, 1.86, 0.06), 'stone_haetae', skip=('bottom',))
-    z = 0.56
-    m = 'stone_haetae'
-    E = lambda c, rx, ry, rz, **kw: _ellipsoid(mb, (c[0], c[1], c[2] + z), rx, ry, rz, m, rnd, **kw)
-    E((0, 0.36, 0.3), 0.34, 0.46, 0.3)                     # haunches
-    E((0, 0.02, 0.46), 0.3, 0.42, 0.32)                    # the back, low, running forward
-    E((0, -0.3, 0.6), 0.29, 0.27, 0.38)                    # chest, sitting up
-    E((0, -0.5, 0.94), 0.27, 0.27, 0.25)                   # head
-    E((0, -0.74, 0.87), 0.17, 0.14, 0.13)                  # muzzle
-    E((0, -0.8, 0.8), 0.13, 0.08, 0.06, noise=0.02)        # jaw, the mouth line under it
+    """돌 해태상 (2003_봄_백양로끝_핀슨관길_벚나무.jpg: a pair at the edge of the road west of the 삼거리, both facing
+    east along it): a weathered granite 해태 about 0.8 m high sitting up on its haunches, the forelegs straight, a big
+    head held high, its body covered in knobbly curls, on a plain granite plinth 0.45 m high.  The face is the usual one
+    of Joseon stone 해태 (the photo is too small for it): bulging eyes under heavy brows, a broad nose, a mouth of teeth
+    and two fangs, a knob of a horn; curls of the mane round the head and down the spine, a bushy tail curled up the
+    back.  It looks along -Y."""
+    from statues import _blob, _qx, _qy
+    E = [
+        ('ell', (0, 0.2, 0.2), (0.22, 0.23, 0.2)),                 # haunches
+        ('ell', (0, 0.0, 0.3), (0.19, 0.27, 0.19)),                # the back, running forward
+        ('ell', (0, -0.17, 0.4), (0.18, 0.14, 0.22)),              # chest, sitting up
+        ('ell', (0, -0.15, 0.62), (0.22, 0.17, 0.18)),             # the mane round the neck
+        ('ell', (0, -0.25, 0.7), (0.18, 0.16, 0.15)),              # head
+        ('ell', (0, -0.36, 0.63), (0.12, 0.09, 0.085)),            # muzzle
+        ('ell', (0, -0.44, 0.66), (0.078, 0.036, 0.044)),          # the broad nose
+        ('ell', (0, -0.34, 0.56), (0.105, 0.085, 0.042)),          # lower jaw
+        ('cap', (0, -0.22, 0.83), (0, -0.2, 0.9), 0.03),           # the horn
+        ('cap', (0, 0.42, 0.12), (0, 0.45, 0.3), 0.05),            # tail, up the back of the haunches
+        ('cap', (0, 0.45, 0.3), (0, 0.4, 0.44), 0.045),
+        ('ball', (0, 0.35, 0.47), 0.06),                           # ... curled over at the top
+    ]
     for sx in (-1, 1):
-        E((sx * 0.2, -0.47, 1.02), 0.13, 0.17, 0.18)       # curls of the mane round the face
-        E((sx * 0.23, -0.34, 0.82), 0.11, 0.15, 0.15)
-        E((sx * 0.1, -0.72, 0.98), 0.065, 0.06, 0.06, noise=0.0)  # eyes bulging over the muzzle
-        E((sx * 0.16, -0.5, 0.22), 0.1, 0.1, 0.26)         # forelegs
-        E((sx * 0.16, -0.62, 0.04), 0.1, 0.15, 0.06)       # front paws
-        E((sx * 0.29, 0.1, 0.07), 0.12, 0.2, 0.08)         # hind paws
-        E((sx * 0.3, 0.38, 0.3), 0.08, 0.34, 0.24)         # flanks of the haunches
-    E((0, -0.44, 1.17), 0.19, 0.16, 0.09)                  # mane over the crown
-    E((0, -0.52, 1.26), 0.05, 0.05, 0.08, noise=0.0)       # the horn
-    E((0, 0.8, 0.52), 0.1, 0.09, 0.22)                     # tail curled up the back
-    E((0, 0.72, 0.74), 0.12, 0.1, 0.08)
+        E += [
+            ('ell', (sx * 0.16, 0.18, 0.16), (0.085, 0.19, 0.14)),             # thighs
+            ('ell', (sx * 0.17, -0.01, 0.04), (0.065, 0.11, 0.042)),           # hind paws
+            ('cap', (sx * 0.12, -0.2, 0.42), (sx * 0.12, -0.26, 0.07), 0.062), # forelegs
+            ('ell', (sx * 0.12, -0.3, 0.04), (0.068, 0.09, 0.042)),            # fore paws
+            ('ball', (sx * 0.08, -0.37, 0.77), 0.036),                         # bulging eyes
+            ('ell', (sx * 0.08, -0.36, 0.81), (0.052, 0.027, 0.021), _qy(sx * -12)),   # heavy brows
+            ('ball', (sx * 0.036, -0.468, 0.67), 0.021),                       # nostrils
+            ('ell', (sx * 0.16, -0.2, 0.78), (0.025, 0.04, 0.055), _qy(sx * 55)),     # ears, laid out sideways
+            ('ell', (sx * 0.062, -0.42, 0.59), (0.017, 0.017, 0.034)),         # fangs
+            ('ell', (sx * 0.11, -0.34, 0.61), (0.032, 0.052, 0.037)),          # cheeks
+            ('ball', (sx * 0.035, 0.44, 0.24), 0.04),                          # the bushy tail
+            ('ball', (sx * 0.04, 0.39, 0.4), 0.04),
+        ]
+        for t in (-0.03, 0.0, 0.03):                                           # toes
+            E.append(('ball', (sx * 0.12 + t, -0.375, 0.035), 0.022))
+            E.append(('ball', (sx * 0.17 + t, -0.105, 0.035), 0.02))
+    for x in (-0.03, -0.01, 0.01, 0.03):                                       # the front teeth
+        E.append(('ell', (x, -0.432, 0.605), (0.009, 0.01, 0.014)))
+    # the mane in curls round the back and sides of the head and down the neck, a row down the spine, the coat knobbly
+    _haetae_curls(E, (0, -0.15, 0.62), (0.22, 0.17, 0.18),
+                  [(az, el) for el in (-10, 15, 40) for az in range(-20, 210, 26)], 0.044)
+    _haetae_curls(E, (0, -0.19, 0.42), (0.18, 0.14, 0.22), [(az, -25) for az in range(210, 340, 26)], 0.03)
+    _haetae_curls(E, (0, 0.0, 0.3), (0.19, 0.27, 0.19),
+                  [(az, el) for el in (25, 55, 80) for az in range(-170, 180, 40)], 0.026, out=0.96)
+    _haetae_curls(E, (0, 0.2, 0.2), (0.22, 0.23, 0.2),
+                  [(az, el) for el in (10, 40) for az in range(-150, 180, 45)], 0.026, out=0.96)
+    ob = _blob('haetae', E, 0.009, smooth=3, factor=0.5)
+    m = ob.modifiers.new('dec', 'DECIMATE')
+    m.ratio = 0.08
+    import bpy
+    dg = bpy.context.evaluated_depsgraph_get()
+    dg.update()
+    me = bpy.data.meshes.new_from_object(ob.evaluated_get(dg))
+    mb = MeshBuilder('haetae')
+    z0 = 0.45
+    V = [Vector((v.co.x, v.co.y, v.co.z + z0)) for v in me.vertices]
+    for p in me.polygons:
+        mb.face([V[i] for i in p.vertices], 'stone_haetae', smooth='body')
+    bpy.data.objects.remove(ob)
+    bpy.data.meshes.remove(me)
+    # the plinth: a plain granite block with a chamfered top edge (the photo: a little longer than the beast)
+    mb.box((0, 0.02, 0.2), (0.7, 1.32, 0.42), 'stone_haetae', skip=('bottom',))
+    top = [(-0.35, -0.64), (0.35, -0.64), (0.35, 0.68), (-0.35, 0.68)]
+    inset = [(-0.32, -0.61), (0.32, -0.61), (0.32, 0.65), (-0.32, 0.65)]
+    for i in range(4):
+        j = (i + 1) % 4
+        mb.face([(*top[i], 0.41), (*top[j], 0.41), (*inset[j], 0.45), (*inset[i], 0.45)], 'stone_haetae')
+    mb.face([(*p, 0.45) for p in inset], 'stone_haetae')
     return mb

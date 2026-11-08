@@ -2319,12 +2319,13 @@ for k in range(6):
         b_ = _brb.interpolate(12.4 + 6.8 * k)
         r_ = _br.interpolate(_br.project(b_))
         if k in (3, 4):
-            # the pair of stone 해태 on low plinths at the road's edge, facing each other across the opening of a path
-            # (in the photo between the green bin and the benches beyond)
+            # the pair of stone 해태 on low plinths at the road's edge either side of the opening of a path (in the photo
+            # between the green bin and the benches beyond), both looking east along the road to the 삼거리 (the
+            # photo has both heads to the left)
             h_ = _br.offset_curve(5.0).interpolate(12.4 + 6.8 * k)
             t0_, t1_ = _br.interpolate(_br.project(h_) - 1.0), _br.interpolate(_br.project(h_) + 1.0)
             fwd_ = math.atan2(t1_.y - t0_.y, t1_.x - t0_.x)
-            PHOTO03_PROPS.append(('haetae', h_.x, h_.y, fwd_ if k == 3 else fwd_ + math.pi))
+            PHOTO03_PROPS.append(('haetae', h_.x, h_.y, fwd_ + math.pi))
             continue
         PHOTO03_PROPS.append(('trashcan' if k == 2 else 'bench', b_.x, b_.y, math.atan2(r_.y - b_.y, r_.x - b_.x)))
 for (x_, y_) in ((99.5, 246.5), (101.5, 239.5), (103.0, 232.5), (104.0, 225.5), (104.5, 218.5)):
