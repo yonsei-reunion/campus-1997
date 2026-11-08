@@ -14,7 +14,7 @@ import json, math, os, random
 import numpy as np
 from scipy import ndimage
 from shapely.geometry import Polygon, LineString, Point, MultiPolygon
-from shapely.ops import unary_union
+from shapely.ops import unary_union, substring
 import shapely
 from PIL import Image, ImageDraw
 
@@ -710,14 +710,18 @@ FIXED[_ew > 0.999] = True
 print('eagle precinct level', round(EAGLE_LEVEL, 2))
 
 
-# --- 언더우드관 정원 남쪽 계단 (reference/2003_봄_언더우드관정원_남쪽계단_벚나무.jpg, from the head of 백양로 looking
-# north; reference/고증.md 3.18).  The garden's south edge stood some 2 m over the 삼거리: two flights of granite steps
-# rose from the road either side of a planted bed with a stone tablet to a landing, and one broad flight went on up the
-# axis to the terrace with the statue, between grass banks set with clipped round shrubs and topped by a border of
-# yellow pansies, the big cherries along the top and a white-stemmed poplar by the foot.  The game had a level paved
-# plaza there.  Now: the terrace along the garden's south edge at the road's level plus fourteen risers of 0.15, the
-# banks a straight grade down to the road, the ground under the steps kept below their treads; the garden falls from
-# the terrace to 언더우드관's front (GARDEN_FILL below).  blender/landmarks.py underwood_steps builds them (UW_STEPS).
+# --- 백양로 끝 계단 (reference/고증.md 3.18; 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg, Kakao roadview 2008-08 /
+# 2010-12 / 2011-04 / 2026, Kakao skyview).  백양로 ended at the 삼거리 at the foot of a bank, where the drives to 핀슨관 (west)
+# and 노천극장 (east) branch off; the steps go up the bank from the road to the paved square before 언더우드관 정원,
+# 3.3 m higher: three tiers of two granite flights either side of a lawn strip down the axis (eight, eight and six
+# risers of 0.15), a deep landing and a shorter one between them, the strip a broad bed with the crest tablet between
+# the lowest flights, narrowing above, and grass banks either side set with rows of clipped round shrubs.  The skyview
+# puts the foot at the road's edge (33.0, 134.8) and the head on the square 18.6 m on along the axis (bearing 11 deg),
+# about 10.6 m across the walls; the roadview shows the same flights, tablet and white poplar in 2008, 2010 and 2026
+# (the 2013-15 rebuilding stopped short of them).  The game had 백양로 run on 40 m to the garden's south edge and the steps
+# (two short tiers) there: that end of the road is no longer drawn (BY_END_S), the square sits at the head of the
+# steps, the garden falls from it to 언더우드관's front (GARDEN_FILL below).  blender/landmarks.py underwood_steps builds
+# them (UW_STEPS).
 _wuo = np.array([62.0, 213.0])
 _wuu = np.array([0.970, -0.243]) / math.hypot(0.970, -0.243)
 _wuv = np.array([-_wuu[1], _wuu[0]])                         # (WU below: u across the garden, v up its axis)
@@ -727,45 +731,71 @@ def wu_xy(u, v):
     return tuple(float(c) for c in _wuo + _wuu * u + _wuv * v)
 
 
-UWU = (X - _wuo[0]) * _wuu[0] + (Y - _wuo[1]) * _wuu[1]
-UWV = (X - _wuo[0]) * _wuv[0] + (Y - _wuo[1]) * _wuv[1]
-_H0 = sample(Hn, NEAR_HALF, NEAR_STEP, *wu_xy(0.0, -45.0))     # the road at the foot
-# (widths from the people on them in the photo, about 88 px/m at the foot: the whole about 9 m across)
-UW_STEPS = dict(rise=0.15, n=7, tread=0.32, v_top=-34.5, land=(-40.4, -37.14), land_hw=3.65, cheek=0.35,
-                low=dict(u=2.3, w=2.7), up=dict(w=3.6), bed=(-42.9, -40.4), v_bank=-43.0)
-UW_STEPS.update(h0=round(_H0, 2), hl=round(_H0 + 7 * 0.15, 2), ht=round(_H0 + 14 * 0.15, 2))
+_sto = np.array([33.0, 134.8])                               # the middle of the foot, at the road's edge
+_stv = np.array([math.sin(math.radians(11.0)), math.cos(math.radians(11.0))])    # up the axis
+_stu = np.array([_stv[1], -_stv[0]])                         # across it, east
+
+
+def st_xy(u, v):
+    return tuple(float(c) for c in _sto + _stu * u + _stv * v)
+
+
+STU = (X - _sto[0]) * _stu[0] + (Y - _sto[1]) * _stu[1]
+STV = (X - _sto[0]) * _stv[0] + (Y - _sto[1]) * _stv[1]
+_H0 = sample(Hn, NEAR_HALF, NEAR_STEP, *st_xy(0.0, -3.0))     # the 삼거리 before the foot (백양로's section)
+# tiers: (v of the foot, risers, half width of the lawn strip between the inner cheeks, width of each flight); the
+# flights rise onto landings 5.6 and 2.9 m deep and the head landing (treads 0.42, cheeks 0.35)
+_TI = [(0.0, 8, 1.0, 3.6), (8.96, 8, 0.6, 3.8), (15.22, 6, 0.4, 3.7)]
+UW_STEPS = dict(rise=0.15, tread=0.42, cheek=0.35, h0=round(_H0, 2), v_head=18.6,
+                frame=dict(o=[float(c) for c in _sto], u=[round(float(c), 5) for c in _stu], v=[round(float(c), 5) for c in _stv]))
 _US = UW_STEPS
-
-
-def _uw_flight(name, u, v, width, z_top, z_foot, landing):
-    foot = wu_xy(u, v - landing - _US['n'] * _US['tread'])
-    return dict(name=name, top=[round(c, 2) for c in wu_xy(u, v)], down=[round(-float(_wuv[0]), 4), round(-float(_wuv[1]), 4)],
-                foot=[round(c, 2) for c in foot], z_top=z_top, z_foot=z_foot, n=_US['n'], width=width, landing=landing,
-                tread=_US['tread'], cheek=_US['cheek'])
-
-
-_US['flights'] = [_uw_flight('uw_up', 0.0, _US['v_top'], _US['up']['w'], _US['ht'], _US['hl'], 0.4)] + \
-    [_uw_flight('uw_low_%s' % ('w' if sg < 0 else 'e'), sg * _US['low']['u'], _US['land'][0] + 0.3, _US['low']['w'], _US['hl'],
-                _US['h0'], 0.3) for sg in (-1, 1)]
-_US['frame'] = dict(o=[float(c) for c in _wuo], u=[round(float(c), 5) for c in _wuu], v=[round(float(c), 5) for c in _wuv])
-# the terrace (up to the statue's line) and the banks, fading into the ground beyond the garden's corners
-_H_pre = Hn.copy()
-_reg = (np.abs(UWU) < 32.0) & (UWV > _US['v_bank'] - 0.01) & (UWV < -26.0) & ~near_buildings(1.5)
-_zf = np.array([sample(_H_pre, NEAR_HALF, NEAR_STEP, *wu_xy(u_, _US['v_bank'])) for u_ in UWU[_reg]])
-_tb = np.clip((UWV[_reg] - _US['v_bank']) / (_US['v_top'] - _US['v_bank']), 0.0, 1.0)
-_wl = 1 - _smooth((np.abs(UWU[_reg]) - 20.0) / 10.0)
-Hn[_reg] += _wl * (_zf + (_US['ht'] - _zf) * _tb - Hn[_reg])
-FIXED[_reg] = True
-_stp = np.hypot(X - 55.5, Y - 187.5) < 6.0                   # the statue on the terrace, its round steps level
-Hn[_stp] = _US['ht']
+_zt, _tiers, _flights = _H0, [], []
+for _k, (_v0, _n, _shw, _fw) in enumerate(_TI):
+    _v1 = _v0 + _n * _US['tread']                              # the flight's head (where its landing starts)
+    _z1 = _zt + _n * _US['rise']
+    _uc = _shw + _US['cheek'] + _fw / 2
+    _tiers.append(dict(v0=_v0, v1=round(_v1, 2), z0=round(_zt, 2), z1=round(_z1, 2), strip=_shw,
+                       outer=round(_shw + 2 * _US['cheek'] + _fw, 2)))
+    for _sg in (-1, 1):
+        _flights.append(dict(name='uw_%d%s' % (_k, 'w' if _sg < 0 else 'e'), top=[round(c, 2) for c in st_xy(_sg * _uc, _v1 + 0.3)],
+                             down=[round(-float(_stv[0]), 4), round(-float(_stv[1]), 4)],
+                             foot=[round(c, 2) for c in st_xy(_sg * _uc, _v0)], z_top=round(_z1, 2), z_foot=round(_zt, 2),
+                             n=_n, width=_fw, landing=0.3, tread=_US['tread'], cheek=_US['cheek']))
+    _zt = _z1
+_US.update(tiers=_tiers, flights=_flights, top=round(_zt, 2))
+_US['landings'] = [dict(v0=_tiers[k]['v1'], v1=(_tiers[k + 1]['v0'] if k + 1 < len(_tiers) else _US['v_head']),
+                        z=_tiers[k]['z1'], outer=max(_tiers[k]['outer'], _tiers[k + 1]['outer'] if k + 1 < len(_tiers) else 0),
+                        strip=(_tiers[k]['strip'], _tiers[k + 1]['strip'] if k + 1 < len(_tiers) else _tiers[k]['strip']))
+                   for k in range(len(_tiers))]
+UW_TOP = _US['top']
+# the banks either side, a straight grade from the road's edge to the head, fading into the ground beyond 18 - 26 m
+# across (the drives to 핀슨관 and 노천극장 climb round their ends); the square at the head level, from the banks' top
+# to the garden; the ground under the flights and landings below their treads
+_reg = (np.abs(STU) < 26.0) & (STV > -0.6) & (STV < _US['v_head']) & ~near_buildings(1.5)
+_tb = np.clip(STV[_reg] / _US['v_head'], 0.0, 1.0)
+_wl = 1 - _smooth((np.abs(STU[_reg]) - 18.0) / 8.0)
+Hn[_reg] += _wl * (_H0 + (UW_TOP - _H0) * _tb - Hn[_reg])
+FIXED[_reg & (np.abs(STU) < 18.0)] = True
+UW_SQUARE = Polygon([st_xy(-28.0, _US['v_head']), st_xy(34.0, _US['v_head']), (84.0, 170.0), (84.0, 176.0), (27.0, 190.0),
+                     (8.0, 184.0)])
+_sq = shapely.contains_xy(UW_SQUARE, X, Y) & ~near_buildings(1.5)
+Hn[_sq] = UW_TOP
+FIXED[_sq] = True
+_stp = np.hypot(X - 55.5, Y - 187.5) < 6.0                   # the Underwood statue in the garden, its round steps level
+Hn[_stp] = UW_TOP + 0.3
 FIXED[_stp] = True
-# under the steps, the landing, the bed and the raised beds behind the landing: below their tops
-_zc = np.where(UWV < -42.64, _US['h0'], np.where(UWV < -40.4, _US['h0'] + (_US['hl'] - _US['h0']) * (UWV + 42.64) / 2.24,
-               np.where(UWV < -37.14, _US['hl'], _US['hl'] + (_US['ht'] - _US['hl']) * np.clip((UWV + 37.14) / 2.24, 0, 1))))
-_sz = (np.abs(UWU) < 6.5) & (UWV > -45.5) & (UWV < -33.5)
+_zc = np.full(X.shape, _H0)
+for _t in _tiers:
+    _zc = np.where(STV > _t['v0'], _t['z0'] + (_t['z1'] - _t['z0']) * np.clip((STV - _t['v0']) / (_t['v1'] - _t['v0']), 0, 1), _zc)
+_sz = (np.abs(STU) < 5.8) & (STV > -0.5) & (STV < _US['v_head'] + 0.2)
 Hn[_sz] = np.minimum(Hn[_sz], _zc[_sz] - 0.7)                 # (low enough for the 5 m chords to clear)
 FIXED[_sz] = True
-print('언더우드관 정원 남쪽 계단: road %.2f, landing %.2f, terrace %.2f m' % (_US['h0'], _US['hl'], _US['ht']))
+print('백양로 끝 계단: road %.2f, landings %s, square %.2f m' % (_H0, [l_['z'] for l_ in _US['landings'][:2]], UW_TOP))
+BY_END_S = round(float(bline.project(Point(*st_xy(0.0, -1.0)))), 1)     # 백양로 is drawn to here (1 m before the foot)
+UW_BANK = Polygon([st_xy(-26.0, -0.4), st_xy(26.0, -0.4), st_xy(26.0, _US['v_head']), st_xy(-26.0, _US['v_head'])])
+# (the paved head of the steps: from the banks' top across the walk in front of the garden, OSM's drive along it 5 m on)
+UW_HEAD = UW_SQUARE.intersection(Polygon([st_xy(-30.0, _US['v_head'] - 0.1), st_xy(36.0, _US['v_head'] - 0.1),
+                                          st_xy(36.0, 29.0), st_xy(-30.0, 29.0)]))
 
 
 # --- 언더우드관 앞 정원 (issue #3).  The level aprons of 스팀슨관 (51.6 m) and 아펜젤러관 (54.3 m) face each other across
@@ -790,6 +820,12 @@ def fix_strip(line_pts, h0, h1, half, top=False):
     Hn[m] = np.minimum(Hn[m], z) if top else z
     FIXED[m] = True
     return m
+
+
+# the drive from the 삼거리 towards 노천극장 (OSM) climbs past the east end of the bank to the square's level, where it
+# meets the walk in front of the garden (roadview 2010: the square, the drive and the walk at one level there)
+_ed = [(51.5, 126.5), (63.3, 139.8), (69.1, 146.2)]
+fix_strip(_ed, sample(Hn, NEAR_HALF, NEAR_STEP, *_ed[0]), UW_TOP, 4.0)
 
 
 # --- 연희관 앞 정원: between 언더우드관's back and 연희관 (OSM; reference/연희관_정면_2023.jpg, 학교연혁_연희관.jpg from
@@ -1509,7 +1545,8 @@ plazas.append(Polygon([tuple(_pa + (_pb - _pa) * 0.25), tuple(_pa + (_pb - _pa) 
                        tuple(_pa + (_pb - _pa) * 0.25 + _pn * 17.0)]))
 plazas.append(Polygon([tuple(SCI_DOOR - SCI_T * 9.0), tuple(SCI_DOOR + SCI_T * 9.0), tuple(SCI_DOOR + SCI_T * 11.0 + SCI_N * 17.0),
                        tuple(SCI_DOOR - SCI_T * 11.0 + SCI_N * 17.0)]))
-# (the plaza before 언더우드관 정원: the steps and the banks now, UW_STEPS)
+# (the plaza before 언더우드관 정원: where the game had its steps and banks.  Kept as drawn then, for the random planting
+# below; 백양로's end steps, their banks and the square at their head are painted after it: UW_STEPS, PAV_PRE)
 UW_BANKS = Polygon([wu_xy(-31.0, -43.4), wu_xy(31.0, -43.4), wu_xy(31.0, -26.0), wu_xy(-31.0, -26.0)])
 plazas[3] = plazas[3].difference(UW_BANKS)
 for pz in plazas:
@@ -1587,8 +1624,8 @@ draw_poly('pavers', garden.buffer(1.5))
 draw_poly('pavers', garden.buffer(-3), 0)
 draw_line('pavers', [WU(0, -30), WU(0, 31)], 5.5)
 draw_line('dirt', [WU(-25, 2), WU(25, 2)], 3.0)
-# the steps up from the 삼거리 (UW_STEPS): the axis walk on to the head of the upper flight, a walk along the top of the
-# banks, the road's asphalt up to the foot of the lower flights
+# where the game had the steps up from the 삼거리 (now 백양로's end steps further south, UW_STEPS): the paving as drawn
+# then, for the random planting (the square at the head of the real steps is painted after it, PAV_PRE)
 for _ly in ('pavers', 'asphalt'):                                  # (the banks are lawn: not 백양로's paving round its end)
     draw_poly(_ly, fpoly(WU, [(-31.0, -43.0), (31.0, -43.0), (31.0, -34.4), (-31.0, -34.4)]), 0)
 draw_line('pavers', [WU(0, -34.6), WU(0, -30)], 5.0)
@@ -1676,6 +1713,28 @@ draw_poly('pavers', EAGLE_PAVED.difference(bline.buffer(E_WALK)))
 draw_line('asphalt', SIDE_W, SIDE_W_W)
 draw_line('asphalt', [(x, y) for x, y, _ in LOT_W], 5.0)
 draw_poly('pavers', LIB_WALKS.intersection(LIB_OLD_SQUARE.union(lf_rect(-4.0, 100.0, 0.0, 60.0))).difference(_lib_road))
+# ... and for 백양로's end (UW_STEPS above): the road stops at the foot of the steps.  Past it, the paving of the old
+# extension to the garden's south edge and the two drives forking from there (extra_roads: they doubled OSM's drives
+# round the bank, 10 - 15 m off) give way to the banks (lawn) and the square at the head of the steps (paved); OSM's
+# drives and walks there are drawn again, not across the banks
+_ext = substring(bline, BY_END_S, L)
+for _ly in ('asphalt', 'pavers'):
+    draw_poly(_ly, _ext.buffer(ROAD_HALF + 0.5, cap_style='flat'), 0)
+    draw_poly(_ly, UW_BANK, 0)
+_forks = unary_union([LineString(r_).buffer(4.6) for r_ in extra_roads[:2]])
+draw_poly('asphalt', _forks, 0)
+draw_poly('pavers', UW_HEAD.difference(garden.buffer(1.5)))
+_bank_core = Polygon([st_xy(-20.0, -0.4), st_xy(20.0, -0.4), st_xy(20.0, _US['v_head'] - 0.3), st_xy(-20.0, _US['v_head'] - 0.3)])
+_redo = _ext.buffer(ROAD_HALF + 1.0).union(_forks).union(UW_BANK)
+_fork_pts = [[list(q) for q in r_] for r_ in extra_roads[:2]]
+for p_ in paths_out:
+    _pl = LineString(p_['pts'])
+    if len(p_['pts']) < 2 or not _pl.intersects(_redo) or p_['pts'] in _fork_pts:
+        continue
+    _pl = _pl.difference(_bank_core)
+    for g_ in (_pl.geoms if hasattr(_pl, 'geoms') else [_pl]):
+        if g_.length > 0.5:
+            draw_line('pavers' if p_['kind'] in ('footway', 'path', 'steps', 'pedestrian') else 'asphalt', g_.coords, p_['w'])
 spl = np.stack([np.array(layers['asphalt']), np.array(layers['pavers']), np.array(layers['dirt'])], -1).astype(np.float32)
 # priority: asphalt > pavers > dirt
 spl[..., 1] = np.minimum(spl[..., 1], 255 - spl[..., 0])
@@ -2237,22 +2296,25 @@ rng8 = random.Random(1997 + 2003)
 PHOTO03 = []                                                      # (species, x, y, scale)
 PHOTO03_PROPS = []                                                # (name, x, y, rot), added with the props below
 # (the camera stood at the 삼거리 at the head of 백양로, by the steps up to 언더우드관 정원, looking west along the road
-# towards 핀슨관 as it bends north-west and climbs; the user placed it there)
-_br = LineString([(38, 168), (20, 175), (-2, 178), (-43, 186)])  # the west fork from the 삼거리 (extra_roads, 8 m)
+# towards 핀슨관 as it bends north-west and climbs; the user placed it there.  That is OSM's drive from the 삼거리 at
+# the foot of the steps (UW_STEPS), as in the 2011 roadview from there: 백양관 and its parked cars behind a hedge on
+# the left, the drive bending right and climbing, cherries along its left side)
+_br = LineString([(28.2, 124.1), (24.2, 125.3), (19.6, 127.2), (14.2, 131.1), (8.7, 136.9), (4.4, 143.6), (1.6, 149.5),
+                  (-2.0, 160.5)])                                 # the drive west from the 삼거리 (OSM, 6 m)
 _brs, _brb = _br.offset_curve(6.0), _br.offset_curve(4.7)         # (its left: the south side)
 _rows = [(t_[1], t_[2]) for t_ in trees[:N_ROWS]]
-for k in range(8):
-    q_ = _brs.interpolate(11.0 + 6.8 * k)                          # (past 백양로's sidewalk at its end)
+for k in range(6):
+    q_ = _brs.interpolate(9.0 + 6.8 * k)                           # (past 백양로's sidewalk at its end)
     if min(math.hypot(q_.x - a_, q_.y - b_) for a_, b_ in _rows) < 4.0:
         continue                                                  # (not into 백양로's ginkgo rows)
     PHOTO03.append(('cherry', q_.x, q_.y, rng8.uniform(1.2, 1.4)))
-    if k < 7:                                                     # a bench between this one and the next
-        b_ = _brb.interpolate(14.4 + 6.8 * k)
+    if k < 5:                                                     # a bench between this one and the next
+        b_ = _brb.interpolate(12.4 + 6.8 * k)
         r_ = _br.interpolate(_br.project(b_))
         if k in (3, 4):
             # the pair of stone 해태 on low plinths at the road's edge, facing each other across the opening of a path
             # (in the photo between the green bin and the benches beyond)
-            h_ = _br.offset_curve(5.0).interpolate(14.4 + 6.8 * k)
+            h_ = _br.offset_curve(5.0).interpolate(12.4 + 6.8 * k)
             t0_, t1_ = _br.interpolate(_br.project(h_) - 1.0), _br.interpolate(_br.project(h_) + 1.0)
             fwd_ = math.atan2(t1_.y - t0_.y, t1_.x - t0_.x)
             PHOTO03_PROPS.append(('haetae', h_.x, h_.y, fwd_ if k == 3 else fwd_ + math.pi))
@@ -2261,21 +2323,26 @@ for k in range(8):
 for (x_, y_) in ((99.5, 246.5), (101.5, 239.5), (103.0, 232.5), (104.0, 225.5), (104.5, 218.5)):
     PHOTO03.append(('cherry', x_, y_, rng8.uniform(1.1, 1.3)))
 hedge_line([(95.0, 214.0), (93.6, 249.0)], closed=False)
-for (u_, v_) in ((-22.0, -27.0), (-15.0, -28.5), (-8.0, -29.5), (8.0, -29.5), (15.0, -28.5), (22.0, -27.0)):
-    x_, y_ = WU(u_, v_)
+for u_ in (-19.4, -13.6, -7.8, 7.8, 13.6, 19.4):                  # (along the top of the banks, UW_STEPS)
+    x_, y_ = st_xy(u_, UW_STEPS['v_head'] - 1.4)
     PHOTO03.append(('cherry', x_, y_, rng8.uniform(1.15, 1.3)))
 PHOTO03 += [('cherry', 49.5, 317.5, 1.3), ('cherry', 106.0, 321.0, 1.05),
             ('ginkgo', 119.5, 317.5, 1.0), ('maple', 120.5, 328.5, 0.9)]
 x_, y_ = WY(16.5, -3.8)
 PHOTO03.append(('ginkgo', x_, y_, 0.42))
-#  - the white-stemmed 은백양 by the foot of the steps up to 언더우드관 정원, just east of them (bare in April), and
-#    another behind the first cherries along the road west from the 삼거리, beyond the side road south of them
-#    (the 2003 spring photos)
+#  - the white-stemmed 은백양 by the foot of the steps up to 언더우드관 정원, just east of them (bare in April; the
+#    same tree in the 2010 and 2026 roadview, a thick trunk forking at 4 - 5 m), and another behind the first cherries
+#    along the road west from the 삼거리, beyond them to the south (the 2003 spring photos)
 #  - 목련: in the north-west corner of 연희관 앞 정원 behind the double lamp (2003_봄_교육관에서_본_*), and before
-#    언더우드관 east of its tower (2024_봄_언더우드관_목련.jpg: the old tree is taken to have stood there in 1997 too)
-PHOTO03.append(('poplar', *WU(5.4, -43.4), 1.0))
-PHOTO03.append(('poplar', 24.0, 155.5, 0.92))
-PHOTO03 += [('magnolia', 58.0, 339.5, 1.0), ('magnolia', *WU(-3.0, 40.6), 1.05)]
+#    언더우드관 east of its tower (2024_봄_언더우드관_목련.jpg).  That one was young in 1997: in the December 2010
+#    roadview (1016786670, 1016786671, 1016786656) it is a slender tree with a narrow crown, its top level with the
+#    tower's door head, about 5.5 - 6 m, where the 2024 photo has it full grown (8 m).  Run back thirteen years at a
+#    young magnolia's 25 - 30 cm a year it stood about 2.5 - 3 m in 1997: a newly planted tree of the nurseries' size
+MAGNOLIA_UW_1997 = 0.38                                           # (x 8 m: 3 m)
+PHOTO03.append(('poplar', *st_xy(6.6, 0.2), 1.0))
+_q1 = _br.offset_curve(11.0).interpolate(11.5)
+PHOTO03.append(('poplar', _q1.x, _q1.y, 0.92))
+PHOTO03 += [('magnolia', 58.0, 339.5, 1.0), ('magnolia', *WU(-3.0, 40.6), MAGNOLIA_UW_1997)]
 #  - 목련 at the south-west corner of 연희관 앞 정원, where the west drive leaves 한경길 (Kakao roadview 2011-04, in
 #    full flower; taken to have stood there in 1997)
 PHOTO03.append(('magnolia', 48.5, 307.5, 1.1))
@@ -2774,10 +2841,12 @@ _yd = min(np.arange(-10.0, 60.0, 0.25), key=lambda u_: abs(float((np.array(WY(u_
 _ye = 1.0 if WY(_yd + 1.0, 0.0)[0] > WY(_yd, 0.0)[0] else -1.0
 _yo = math.atan2(*(np.array(WY(_yd, -1.0)) - np.array(WY(_yd, 0.0)))[::-1])                              # out of the front
 P('tent_kiosk', *WY(_yd - _ye * 5.4, -8.0), _yo)
-# 언더우드관 정원 남쪽 계단: benches along the walk at the top of the banks, looking out over the steps
+# 백양로 끝 계단 (UW_STEPS): benches on the square along the top of the banks, looking out over the steps (the 2003
+# spring photo: people sitting on them at the head of the steps)
+_st_south = math.atan2(-_stv[1], -_stv[0])
 for sg in (-1, 1):
-    for u_ in (6.5, 13.5):
-        P('bench', *WU(sg * u_, -32.7), _south)
+    for u_ in (6.9, 10.7, 16.5):
+        P('bench', *st_xy(sg * u_, UW_STEPS['v_head'] + 0.7), _st_south)
 for (x, y) in [(52.6, 340.5), (46.0, 358.0)]:
     P('lamp_double', x, y, -0.25)
 # a double-globe lamp at the tip of the 화단섬; before 중앙도서관 the four-globe lamps of the 1997 photo, in the clipped
@@ -2867,29 +2936,30 @@ print('removed from carriageway (props, cars, trees, shrubs):',
 # ... nor in the 1997 photo's view over the old amphitheater
 trees = [t for t in trees if not _in_photo_view(t[1], t[2])]
 shrubs = [t for t in shrubs if not _in_photo_view(t[1], t[2], 1.0)]
-# ... nor on 언더우드관 정원's south steps (UW_STEPS); then the planting of their banks and beds (the 2003 spring photo):
-# clipped round shrubs on the banks in two staggered rows, a border of pansies along their top, and in the raised beds
-# either side of the upper flight a clipped shrub and pansies along the front
-_uwz = Polygon([wu_xy(-4.6, -43.4), wu_xy(4.6, -43.4), wu_xy(4.6, -34.2), wu_xy(-4.6, -34.2)])
-props = [p for p in props if not _uwz.contains(Point(p[1], p[2]))]
-cars = [c for c in cars if not _uwz.contains(Point(c[1], c[2]))]
-trees = [t for t in trees if not _uwz.contains(Point(t[1], t[2]))]
-_uwb = Polygon([wu_xy(-31.0, -43.4), wu_xy(31.0, -43.4), wu_xy(31.0, -31.2), wu_xy(-31.0, -31.2)])     # (not the garden's own)
-shrubs = [t for t in shrubs if not _uwz.contains(Point(t[1], t[2])) and not _uwb.contains(Point(t[1], t[2]))]
+# ... nor on 백양로's end steps (UW_STEPS) and their banks, nor on the old extension of the road past them (planted
+# above along the full line, to keep the random draws) or the paved head of the steps (only the trees of the photos
+# stay there); then the planting of the banks (the 2003 spring photo, the 2010 - 2026 roadview): rows of clipped round
+# shrubs down both banks and a border of pansies along their top under the cherries
+_uwz = Polygon([st_xy(-5.8, -0.5), st_xy(5.8, -0.5), st_xy(5.8, UW_STEPS['v_head'] + 0.3), st_xy(-5.8, UW_STEPS['v_head'] + 0.3)])
+_ext_z = _ext.buffer(ROAD_HALF + 1.0, cap_style='flat')
+_keep_sp = ('poplar', 'magnolia', 'fir')
+_gone = lambda x_, y_: _uwz.contains(Point(x_, y_)) or _ext_z.contains(Point(x_, y_))
+props = [p for p in props if not _gone(p[1], p[2]) or p[0] == 'bench' and UW_HEAD.contains(Point(p[1], p[2]))]
+cars = [c for c in cars if not _gone(c[1], c[2]) and not UW_BANK.contains(Point(c[1], c[2]))]
+_photo_xy = {(round(float(x_), 2), round(float(y_), 2)) for _, x_, y_, _ in PHOTO03}
+trees = [t for t in trees if (t[1], t[2]) in _photo_xy or t[0] in _keep_sp
+         or not (_gone(t[1], t[2]) or UW_HEAD.contains(Point(t[1], t[2])))]
+shrubs = [t for t in shrubs if not (_gone(t[1], t[2]) or UW_BANK.contains(Point(t[1], t[2])) or UW_HEAD.contains(Point(t[1], t[2])))]
 rng10 = random.Random(1997 + 2005)
-_along = math.atan2(_wuu[1], _wuu[0])
+_along = math.atan2(_stu[1], _stu[0])
 for sg in (-1, 1):
-    for k, u_ in enumerate(np.arange(6.6, 27.0, 4.0)):
-        for v_, du_ in ((-40.6, 0.0), (-37.4, 2.0)):
-            x_, y_ = wu_xy(sg * (u_ + du_), v_)
+    for k, v_ in enumerate((2.2, 5.6, 9.0, 12.4, 15.4)):
+        for u_ in np.arange(7.2 + (k % 2) * 1.8, 21.0, 3.6):
+            x_, y_ = st_xy(sg * u_, v_)
             shrubs.append(['topiary_round', round(x_, 2), round(y_, 2), round(rng10.uniform(0.95, 1.2), 2), 0])
-    for u_ in np.arange(5.0, 27.0, 1.6):
-        x_, y_ = wu_xy(sg * u_, -34.95)
+    for u_ in np.arange(6.4, 22.0, 1.6):
+        x_, y_ = st_xy(sg * u_, UW_STEPS['v_head'] - 0.7)
         shrubs.append(['pansy_bed', round(x_, 2), round(y_, 2), 1.0, round(_along, 3)])
-    x_, y_ = wu_xy(sg * 2.9, -35.4)
-    shrubs.append(['topiary_round', round(x_, 2), round(y_, 2), 0.6, 0])
-    x_, y_ = wu_xy(sg * 2.9, -36.6)
-    shrubs.append(['pansy_bed', round(x_, 2), round(y_, 2), 0.7, round(_along, 3)])
 
 # ---------------------------------------------------------------------------
 # Fallen leaves (issue #18): where October's ginkgo leaves and April's cherry petals lie.  An RGB mask over the
@@ -3121,6 +3191,12 @@ LIB_PATHS = [dict(kind='footway', w=LIB_DIAG_W, pts=[[round(x, 1), round(y, 1)] 
              dict(kind='footway', w=LIB_SDIAG_W, pts=[[round(x, 1), round(y, 1)] for x, y in LIB_SDIAG]),
              dict(kind='footway', w=8.0, pts=[[round(x, 1), round(y, 1)] for x, y in (LF(38.5, 11.0), LF(38.5, 47.0))]),
              dict(kind='footway', w=6.0, pts=[[round(x, 1), round(y, 1)] for x, y in (LF(-3.0, 8.0), LF(78.0, 8.0))])]
+# 백양로 as drawn (the road mesh, its decals, the cars and walkers): to the foot of the steps at the 삼거리 (UW_STEPS);
+# the full line kept its section (to 615 m) and the planting.  The last crossing on the 삼거리's near side (the
+# skyview's zebra across the road's end), not 30 m before the old end on the bank
+bys = [tuple(c_) for c_ in substring(bline, 0.0, BY_END_S).coords]
+CROSS = [c_ for c_ in CROSS if c_ < BY_END_S - 20.0] + [round(BY_END_S - 14.0, 1)]
+GAPS = [g_ for g_ in GAPS if g_[0] < BY_END_S - 3.0]
 out = dict(
     origin=[LAT0, LON0],
     terrain=dict(near=dict(half=NEAR_HALF, step=NEAR_STEP, n=n_near, file='data/terrain_near.bin'),
@@ -3132,7 +3208,7 @@ out = dict(
     amphitheater={k: (round(v, 3) if isinstance(v, float) else v) for k, v in AMPH.items()},
     buildings=buildings, trees=trees, shrubs=shrubs, props=props, cars=cars, banners=banners,
     paths=LIB_PATHS + [dict(kind='service', w=SIDE_W_W, pts=[list(p_) for p_ in SIDE_W])]
-    + [p_ for p_ in paths_out if not lib_osm_walk(p_)], landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
+    + [p_ for p_ in paths_out if not lib_osm_walk(p_) and p_['pts'] not in _fork_pts], landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
     centennial_block=CENT_BLOCK, sang=dict(c=list(SANG), r=SANG_LAWN), yeonhui=YEONHUI, underwood_steps=UW_STEPS,
     colliders=[CENT_BLOCK['poly']] +
     [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(tennis_poly(pd_, 0.1).exterior.coords)[:-1]] for pd_ in TENNIS['pads']],
@@ -3446,12 +3522,8 @@ for f_ in np.arange(0.06, 0.95, 1.6 / _wl.length):                 # the hedge a
                    round(ang_, 3)])
 for sp_, (x_, y_), sc_ in (('fir', (51.4, 184.0), 1.15), ('cherry', (59.5, 136.0), 1.05)):
     trees.append([sp_, round(x_, 2), round(y_, 2), sc_, round(rng11.uniform(0, 6.28), 2)])
-# (the 은백양 by the foot of the steps, tall in the 2003 photos, is not in this one, where its crown would stand
-# before the tower's fin face: a young tree in the 1990s)
-_wux, _wuy = WU(5.4, -43.4)
-for t_ in trees:
-    if t_[0] == 'poplar' and math.hypot(t_[1] - _wux, t_[2] - _wuy) < 1.0:
-        t_[3] = 0.45
+# (the 은백양 by the foot of the steps, tall in the 2003 photos, stands at the foot of 백양로's end steps (UW_STEPS),
+# left of the tower in this view: the big bare tree on the photo's left edge, full grown)
 _lx, _ly = yj_xy(-3.9, 21.6)
 props.append(['lamp_double', round(_lx, 2), round(_ly, 2), round(YONGJAE['ang'], 3)])
 print('yongjae: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees) + 2, _n0[1] - len(shrubs),
