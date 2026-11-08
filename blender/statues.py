@@ -262,10 +262,9 @@ def underwood_statue():
 # right edge), the 1997 aerial photo and 2009 (reference/활천대_2009_연세춘추.jpg, before 백양로 was rebuilt), with a
 # side silhouette (Flickr, 2000s) and the university's symbol page for the eagle's form.  The dark bronze eagle (gilded
 # only after 2015) raises its wings in a wide V with the broad feathered faces turned back, its primaries spread like
-# fingers, gripping a bronze rock on a tall white square column whose foot sweeps out concavely onto a low square
-# platform with straight walls (1971); on the platform, round the foot, four groups of white figures (the
-# "Yonseians") on sloping mounds reach up towards the eagle.  (The wide round steps of the 2024 photo came with the
-# rebuilt 백양로.)
+# fingers, gripping a bronze rock on a tall white square column whose foot sweeps out concavely onto a low round
+# dais (the roadview of 2008 - 2011, below); on the dais, round the foot, four groups of white figures (the
+# "Yonseians").  (The wide round steps and granite wedges of the 2024 photo came with the rebuilt 백양로.)
 def _to_mb(ob, mb, mat):
     """Copy a baked mesh object's faces into a MeshBuilder (metric UVs, shared smooth normals) and delete it."""
     tag = 'skin%d' % len(mb.faces)
@@ -482,134 +481,320 @@ def eagle_figure(width=5.2):
     return ob
 
 
-# the four groups of figures round the foot (2009 and 2024 photos): stick figures for the skin modifier.  Each pose
-# is (joints, edges, radii) in figure space: x right, y back, z up, facing -Y (outward from the column), ~2 m tall.
-def _figure(pose):
-    P = {}
-    if pose == 'reach':                                   # standing, both arms flung up towards the eagle, leaning back
-        P = dict(pel=(0, 0, 0.95), chest=(0, 0.1, 1.4), neck=(0, 0.16, 1.62), head=(0, 0.2, 1.78),
-                 hl=(0.12, 0, 0.92), kl=(0.16, -0.12, 0.5), fl=(0.18, -0.05, 0.04),
-                 hr=(-0.12, 0, 0.92), kr=(-0.14, 0.08, 0.48), fr=(-0.16, 0.18, 0.04),
-                 sl=(0.2, 0.12, 1.5), el=(0.5, 0.16, 1.76), wl=(0.78, 0.22, 2.02),
-                 sr=(-0.2, 0.12, 1.5), er=(-0.48, 0.18, 1.8), wr=(-0.74, 0.26, 2.08))
-    elif pose == 'kneel':                                 # kneeling on one knee, one arm raised, the other at the chest
-        P = dict(pel=(0, 0, 0.62), chest=(0, 0.04, 1.08), neck=(0, 0.06, 1.3), head=(0, 0.04, 1.46),
-                 hl=(0.12, 0, 0.6), kl=(0.16, -0.42, 0.52), fl=(0.18, -0.46, 0.04),
-                 hr=(-0.12, 0, 0.58), kr=(-0.14, 0.05, 0.06), fr=(-0.14, 0.45, 0.06),
-                 sl=(0.2, 0.04, 1.18), el=(0.3, 0.0, 1.5), wl=(0.36, 0.06, 1.88),
-                 sr=(-0.2, 0.04, 1.18), er=(-0.24, -0.2, 1.02), wr=(-0.04, -0.22, 1.12))
-    elif pose == 'stride':                                # striding out, one arm pointing up, the other swept back
-        P = dict(pel=(0, 0, 0.95), chest=(0, -0.04, 1.4), neck=(0, -0.06, 1.62), head=(0, -0.06, 1.79),
-                 hl=(0.12, 0, 0.92), kl=(0.14, -0.26, 0.52), fl=(0.15, -0.36, 0.04),
-                 hr=(-0.12, 0, 0.92), kr=(-0.13, 0.22, 0.5), fr=(-0.14, 0.42, 0.06),
-                 sl=(0.2, -0.04, 1.5), el=(0.3, -0.12, 1.82), wl=(0.34, -0.2, 2.16),
-                 sr=(-0.2, -0.04, 1.5), er=(-0.36, 0.16, 1.24), wr=(-0.44, 0.38, 1.1))
-    elif pose == 'lift':                                  # sitting back on the heels, both arms raised in a V
-        P = dict(pel=(0, 0.1, 0.42), chest=(0, 0.06, 0.88), neck=(0, 0.06, 1.1), head=(0, 0.08, 1.26),
-                 hl=(0.13, 0.1, 0.4), kl=(0.2, -0.36, 0.2), fl=(0.18, 0.14, 0.05),
-                 hr=(-0.13, 0.1, 0.4), kr=(-0.2, -0.36, 0.2), fr=(-0.18, 0.14, 0.05),
-                 sl=(0.2, 0.06, 0.98), el=(0.44, -0.14, 1.1), wl=(0.66, -0.3, 1.3),
-                 sr=(-0.2, 0.06, 0.98), er=(-0.44, -0.14, 1.1), wr=(-0.66, -0.3, 1.3))
-    if pose == 'recline':                                 # leaning back along the mound, one arm raised (1971, right)
-        P = dict(pel=(0, 0.15, 0.42), chest=(0, 0.42, 0.82), neck=(0, 0.5, 1.02), head=(0, 0.54, 1.18),
-                 hl=(0.12, 0.12, 0.4), kl=(0.14, -0.3, 0.4), fl=(0.16, -0.72, 0.08),
-                 hr=(-0.12, 0.12, 0.4), kr=(-0.12, -0.26, 0.3), fr=(-0.14, -0.66, 0.06),
-                 sl=(0.2, 0.44, 0.92), el=(0.34, 0.5, 1.26), wl=(0.4, 0.56, 1.66),
-                 sr=(-0.2, 0.44, 0.92), er=(-0.38, 0.3, 0.7), wr=(-0.44, 0.12, 0.5))
-    # a long robe gathers the legs into one flowing mass (the sculptures are draped figures, not athletes)
-    px, py, pz = P['pel']
-    if pz > 0.8:
-        P['rb1'], P['rb2'] = (px, py + 0.04, pz * 0.5), (px, py + 0.08, 0.06)
+# The four groups of white figures (the "Yonseians"; the university's symbol page: 「네 귀퉁이에는 … 연세인의 형상이
+# 조각되어 있습니다」) stand on the dais' diagonals, 3.7 m out (Kakao roadview 2008-08, 2010-12 and 2011-04 from six
+# points round it, the groups triangulated; the same four were set on granite wedges by the rebuilt 백양로, 2024 photo).
+# Abstract white figures, the bodies and broad bands of drapery flowing into one another with holes between them (one
+# metaball surface each), on a low white wedge rising towards the column; about 2 m over the dais.  In group space
+# (x right as seen from outside, y back towards the column, z up from the dais, facing -y):
+#  A (south-west): crouching, leaning back, one arm straight out from the column; a hooded loop over the head and
+#    broad drapery falling behind
+#  B (north-west): standing, both arms flung up in a wide V, a hollow ring in the breast, the robe flaring to the base
+#  C (south-east): kneeling in a robe, the left arm raised high, the right forearm across the breast, a ring of
+#    drapery low at the side
+#  D (north-east): leaning far back towards the column, one arm raised, the drapery swept from the knees up past the
+#    head in bands crossing into leaf-shaped holes (seen from the sides)
+_META_K = 0.57 * 1.35    # a lone ellipsoid's surface lies at 0.57 x radius x size; a row of them merges wider
+
+
+def _ellipsoid(co, x, y, z, hx, hy, hz):
+    """One metaball element: centre co, local axes x, y, z (unit), surface half-extents hx, hy, hz."""
+    q = Matrix((x, y, z)).transposed().to_quaternion()
+    return (Vector(co), q, (hx / _META_K, hy / _META_K, hz / _META_K))
+
+
+def _figure(joints, edges, radii):
+    """A solid part of a figure (body, robe, hood) as metaball ellipsoids strung along the edges between `joints`,
+    each joint's radius a number or (across, front-to-back)."""
+    J = [Vector(j) for j in joints]
+    R = [r if isinstance(r, (tuple, list)) else (r, r) for r in radii]
+    out = []
+    for a, b in edges:
+        e = J[b] - J[a]
+        L = e.length
+        e.normalize()
+        x = Vector(Y_).cross(e)
+        x = x.normalized() if x.length > 0.2 else Vector(X_)
+        y = e.cross(x).normalized()
+        n = max(2, int(L / 0.07) + 1)
+        for i in range(n):
+            t = i / (n - 1)
+            rx = R[a][0] + (R[b][0] - R[a][0]) * t
+            ry = R[a][1] + (R[b][1] - R[a][1]) * t
+            out.append(_ellipsoid(J[a] + e * (L * t), x, y, e, rx, ry, max(rx, ry, L / (n - 1))))
+    return out
+
+
+def _drapery(pts, widths, nrm=(0, 0, 1), th=0.08):
+    """A flowing band (the sculptures' drapery and flat limbs) along a smooth curve through pts: half-width widths[k]
+    (a list, a number, or (w0, w1) tapering), its broad face turned towards `nrm`, th thick; metaball ellipsoids."""
+    pts = [Vector(p) for p in pts]
+    n_ = len(pts)
+    closed = (pts[0] - pts[-1]).length < 1e-3
+    if isinstance(widths, (int, float)):
+        widths = [widths] * n_
+    elif len(widths) != n_:
+        widths = [widths[0] + (widths[1] - widths[0]) * k / (n_ - 1) for k in range(n_)]
+    if closed:
+        ext = [pts[-2]] + pts + [pts[1]]
     else:
-        P['rb1'], P['rb2'] = (px, py - 0.12, pz * 0.55), (px, py - 0.2, 0.08)
-    names = list(P)
-    idx = {k: i for i, k in enumerate(names)}
-    E = [('pel', 'chest'), ('chest', 'neck'), ('neck', 'head'), ('pel', 'hl'), ('hl', 'kl'), ('kl', 'fl'),
-         ('pel', 'hr'), ('hr', 'kr'), ('kr', 'fr'), ('chest', 'sl'), ('sl', 'el'), ('el', 'wl'),
-         ('chest', 'sr'), ('sr', 'er'), ('er', 'wr'), ('pel', 'rb1'), ('rb1', 'rb2')]
-    rad = dict(pel=0.24, chest=0.26, neck=0.12, head=0.17, hl=0.16, kl=0.12, fl=0.09, hr=0.16, kr=0.12, fr=0.09,
-               sl=0.11, el=0.085, wl=0.07, sr=0.11, er=0.085, wr=0.07, rb1=0.3, rb2=0.36)
-    return [Vector(P[k]) for k in names], [(idx[a], idx[b]) for a, b in E], [rad[k] for k in names]
+        ext = [pts[0] * 2 - pts[1]] + pts + [pts[-1] * 2 - pts[-2]]
+    sp, sw = [], []
+    for i in range(n_ - 1):                 # Catmull-Rom through the points, finely
+        p0, p1, p2, p3 = ext[i:i + 4]
+        m = max(2, int((p2 - p1).length / 0.05))
+        for j in range(m):
+            t = j / m
+            sp.append(0.5 * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t
+                             + (3 * p1 - p0 - 3 * p2 + p3) * t ** 3))
+            sw.append(widths[i] + (widths[i + 1] - widths[i]) * t)
+    sp.append(pts[-1])
+    sw.append(widths[-1])
+    out = []
+    for k, p in enumerate(sp):
+        d = (sp[min(k + 1, len(sp) - 1)] - sp[max(k - 1, 0)]).normalized()
+        nv = Vector(nrm)
+        nv = nv - d * nv.dot(d)
+        nv = nv.normalized() if nv.length > 1e-4 else d.orthogonal().normalized()
+        s = nv.cross(d).normalized()
+        taper = 1.0 if closed else min(1.0, 0.45 + 0.55 * min(k, len(sp) - 1 - k) / 2)
+        out.append(_ellipsoid(p, s, nv, d, sw[k] * taper, th / 2, max(0.07, 0.6 * sw[k] * taper)))
+    return out
 
 
-def _drapery(mb, pts, r0, mat):
-    """A flowing band of cloth as a flattened tube along pts (the sculptures' swirling forms)."""
-    rings = []
-    for k, p in enumerate(pts):
-        t = k / (len(pts) - 1)
-        d = (pts[min(k + 1, len(pts) - 1)] - pts[max(k - 1, 0)]).normalized()
-        a = Vector((0, 0, 1)) if abs(d.z) < 0.9 else Vector((1, 0, 0))
-        u = d.cross(a).normalized()
-        v = d.cross(u).normalized()
-        w = r0 * (1 - 0.7 * t) + 0.01
-        rings.append([p + u * w, p + v * w * 0.3, p - u * w, p - v * w * 0.3])
-    loft(mb, rings, mat)
+def _meta_mesh(name, elems, res=0.035, tris=4500):
+    """Polygonise metaball elements into one smooth mesh object (decimated to about `tris` triangles)."""
+    mball = bpy.data.metaballs.new(name)
+    mball.resolution = mball.render_resolution = res
+    mball.threshold = 0.6
+    ob = bpy.data.objects.new(name, mball)
+    bpy.context.scene.collection.objects.link(ob)
+    for co, q, size in elems:
+        e = mball.elements.new(type='ELLIPSOID')
+        e.co, e.rotation, e.radius, e.stiffness = co, q, 1.0, 2.0
+        e.size_x, e.size_y, e.size_z = size
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    me = bpy.data.meshes.new_from_object(ob.evaluated_get(dg), depsgraph=dg)
+    bpy.data.objects.remove(ob)
+    bpy.data.metaballs.remove(mball)
+    out = bpy.data.objects.new(name + '_mesh', me)
+    bpy.context.scene.collection.objects.link(out)
+    nt = sum(len(p.vertices) - 2 for p in me.polygons)
+    if nt > tris:
+        dec = out.modifiers.new('dec', 'DECIMATE')
+        dec.ratio = tris / nt
+        baked = _bake(out)
+        bpy.data.objects.remove(out)
+        out = baked
+    return out
 
 
-def yonseian_group(k):
-    """Group k of the white figures on its sloping mound, in group space (facing -Y, outward; the column at +Y)."""
+def _ring_pts(c, r, axis_u, axis_v, a0=0.0, a1=360.0, n=14, squash=1.0):
+    """Points round an (elliptical) arc centred at c in the plane of axis_u, axis_v (degrees)."""
+    c, u, v = Vector(c), Vector(axis_u), Vector(axis_v)
+    return [c + u * (r * math.cos(math.radians(a0 + (a1 - a0) * k / (n - 1))))
+            + v * (r * squash * math.sin(math.radians(a0 + (a1 - a0) * k / (n - 1)))) for k in range(n)]
+
+
+# each group: its wedge base (footprint, height at the front and at the back) and its parts:
+#   ('body', joints, edges, radii)  solid part;  ('band', pts, widths, nrm)  band of drapery or a flat limb
+X_, Y_, Z_ = (1, 0, 0), (0, 1, 0), (0, 0, 1)
+YONSEIANS = {
+    'A': dict(base=([(-0.5, -0.5), (0.45, -0.52), (0.62, 0.05), (0.42, 0.55), (-0.45, 0.52), (-0.62, 0.0)], 0.12, 0.36),
+              parts=[
+                  # crouching on the folded legs, the robe spread over the wedge, the body leaning back
+                  ('body', [(0, 0.0, 0.0), (0, 0.08, 0.32), (0, 0.18, 0.58)], [(0, 1), (1, 2)],
+                   [(0.3, 0.24), (0.2, 0.16), (0.13, 0.11)]),
+                  ('body', [(0, 0.15, 0.3), (0, 0.32, 0.85), (0, 0.38, 1.12), (0, 0.4, 1.27), (0, -0.3, 0.3), (0, -0.12, 0.06)],
+                   [(0, 1), (1, 2), (2, 3), (0, 4), (4, 5)], [(0.22, 0.18), (0.18, 0.13), 0.07, 0.11, 0.16, 0.12]),
+                  # the hood: a loop from the brow up over the head and down the back
+                  ('band', [(0, 0.26, 1.36), (0, 0.42, 1.56), (0.02, 0.66, 1.6), (0.04, 0.84, 1.4), (0.04, 0.82, 1.04),
+                            (0.02, 0.6, 0.74)], (0.12, 0.17), X_),
+                  # the arm held straight out from the column, a flat blade with a broad angular hand
+                  ('band', [(-0.16, 0.28, 1.02), (-0.12, -0.08, 0.96), (-0.08, -0.4, 0.9), (-0.05, -0.62, 0.84)],
+                   [0.08, 0.085, 0.09, 0.1], Z_),
+                  # drapery falling behind, and the robe over the knees
+                  ('band', [(0.18, 0.3, 1.0), (0.3, 0.55, 0.76), (0.35, 0.68, 0.45), (0.28, 0.6, 0.08)], (0.18, 0.25), X_),
+                  ('band', [(-0.2, 0.05, 0.62), (-0.27, -0.25, 0.44), (-0.3, -0.48, 0.16)], (0.2, 0.24), (1, 0, 0.3)),
+              ]),
+    'B': dict(base=([(-0.45, -0.45), (0.45, -0.45), (0.55, 0.25), (0.0, 0.55), (-0.55, 0.25)], 0.2, 0.48),
+              parts=[
+                  ('body', [(0, 0.02, 0.0), (0, 0.02, 0.38), (0, 0.02, 0.66)], [(0, 1), (1, 2)],
+                   [(0.24, 0.19), (0.13, 0.1), 0.07]),
+                  ('body', [(0, 0.02, 0.2), (0, 0.02, 0.75), (0, 0.03, 1.2), (0, 0.03, 1.42), (0, 0.03, 1.56)],
+                   [(0, 1), (1, 2), (2, 3), (3, 4)], [(0.22, 0.16), 0.09, (0.13, 0.1), 0.06, 0.1]),
+                  # the arms flung up in a wide V, the left (seen right) higher and longer
+                  ('band', [(0.12, 0.03, 1.3), (0.28, 0.05, 1.52), (0.44, 0.07, 1.78), (0.54, 0.09, 1.98)], (0.12, 0.06), Y_),
+                  ('band', [(-0.12, 0.03, 1.3), (-0.26, 0.05, 1.5), (-0.38, 0.07, 1.7), (-0.45, 0.09, 1.86)], (0.11, 0.05), Y_),
+                  # the hollow ring in the breast
+                  ('band', _ring_pts((0, -0.05, 1.08), 0.2, X_, Z_, n=16, squash=1.2), 0.065, Y_),
+                  # the robe flaring down to the base, a sweep of drapery up one side
+                  ('band', [(0.05, 0.0, 0.8), (0.2, 0.05, 0.5), (0.36, 0.1, 0.22), (0.45, 0.14, 0.04)], (0.13, 0.24), Y_),
+                  ('band', [(-0.05, 0.0, 0.8), (-0.2, 0.05, 0.5), (-0.36, 0.1, 0.22), (-0.45, 0.14, 0.04)], (0.13, 0.22), Y_),
+                  ('band', [(-0.38, 0.12, 0.15), (-0.45, 0.08, 0.6), (-0.37, 0.05, 0.95), (-0.2, 0.03, 1.18)], (0.1, 0.05), Y_),
+              ]),
+    'C': dict(base=([(-0.55, -0.5), (0.52, -0.52), (0.64, 0.08), (0.36, 0.55), (-0.5, 0.55), (-0.66, 0.04)], 0.12, 0.35),
+              parts=[
+                  # kneeling: the robe a broad mass from the knees to the hips, the upright breast, the hooded head
+                  ('body', [(0, -0.02, 0.0), (0, 0.04, 0.28)], [(0, 1)], [(0.32, 0.24), (0.22, 0.16)]),
+                  ('body', [(0, 0.15, 0.4), (0, 0.08, 0.92), (0, 0.05, 1.15), (0, 0.03, 1.29), (0, -0.3, 0.25)],
+                   [(0, 1), (1, 2), (2, 3), (0, 4)], [(0.3, 0.2), (0.17, 0.13), 0.07, 0.11, (0.28, 0.16)]),
+                  # the left arm raised high, a little out
+                  ('band', [(0.18, 0.06, 1.1), (0.27, 0.02, 1.34), (0.34, -0.02, 1.56), (0.38, -0.04, 1.74)], (0.09, 0.055), Y_),
+                  # the right forearm across the breast
+                  ('band', [(-0.2, 0.05, 1.06), (-0.26, -0.15, 0.92), (0.0, -0.26, 0.9), (0.3, -0.28, 0.88)], 0.06, Z_),
+                  # a ring of drapery low at the right side, and the drapery falling behind
+                  ('band', _ring_pts((-0.3, 0.18, 0.5), 0.24, Y_, Z_, n=16), 0.07, X_),
+                  ('band', [(0.25, 0.25, 0.9), (0.38, 0.38, 0.6), (0.4, 0.36, 0.25), (0.34, 0.28, 0.05)], (0.12, 0.22), X_),
+              ]),
+    'D': dict(base=([(-0.5, -0.95), (0.5, -0.95), (0.58, 0.2), (0.35, 0.62), (-0.35, 0.62), (-0.58, 0.2)], 0.1, 0.4),
+              parts=[
+                  # leaning far back towards the column, the knees out over the long low end of the wedge
+                  ('body', [(0, -0.35, 0.0), (0, -0.12, 0.3), (0, 0.08, 0.5)], [(0, 1), (1, 2)],
+                   [(0.26, 0.3), (0.18, 0.17), (0.12, 0.1)]),
+                  ('body', [(0, -0.1, 0.35), (0, 0.25, 0.85), (0, 0.38, 1.1), (0, 0.45, 1.25), (0, -0.5, 0.45), (0, -0.8, 0.12)],
+                   [(0, 1), (1, 2), (2, 3), (0, 4), (4, 5)], [(0.2, 0.17), (0.16, 0.12), 0.07, 0.11, 0.13, 0.1]),
+                  # one arm raised up and out
+                  ('band', [(0.15, 0.25, 1.0), (0.2, 0.12, 1.26), (0.22, 0.0, 1.5), (0.2, -0.06, 1.66)], (0.08, 0.05), Y_),
+                  # drapery swept from the knees up past the head in bands crossing into leaf-shaped holes (seen from
+                  # the sides)
+                  ('band', [(-0.05, -0.85, 0.15), (0, -0.5, 0.75), (0.02, -0.1, 1.1), (0.04, 0.3, 1.45), (0.05, 0.6, 1.7)],
+                   (0.11, 0.07), X_),
+                  ('band', [(0.05, -0.6, 0.2), (0.06, -0.2, 0.45), (0.07, 0.2, 0.75), (0.08, 0.6, 1.1), (0.08, 0.85, 1.35)],
+                   (0.12, 0.07), X_),
+                  ('band', [(-0.06, -0.3, 1.0), (-0.05, 0.05, 0.75), (-0.04, 0.4, 0.62), (-0.03, 0.75, 0.7)], (0.08, 0.06), X_),
+              ]),
+}
+
+
+def yonseian_group(k, size=1.1, broad=1.55):
+    """Group k (A-D) of the white figures on its wedge, in group space (facing -y, outward; the column at +y).
+    The table is drawn about 2 m tall; `size` scales the whole and `broad` widens the bands and the bodies (the
+    roadview shows heavy white masses with a few holes rather than slender limbs)."""
+    spec = YONSEIANS['ABCD'[k]]
     mb = MeshBuilder(f'yonseian_{k}')
     W = 'stone_panel'
-    # the mound: high on the column side, sloping down outward (1971 and 2024 photos)
-    L, D, h0, h1 = 1.7, 1.25, 0.95, 0.45
-    pts_b = [(-L / 2, -D / 2), (L / 2, -D / 2), (L / 2, D / 2), (-L / 2, D / 2)]
-    zt = [h1, h1, h0, h0]
-    top = [(x, y, z) for (x, y), z in zip(pts_b, zt)]
-    bot = [(x, y, -0.1) for (x, y) in pts_b]
-    mb.face(top, W)
-    for i in range(4):
-        j = (i + 1) % 4
-        mb.face([bot[i], bot[j], top[j], top[i]], W)
-    zc = (h0 + h1) / 2
-    poses = (('stride', 'kneel'), ('recline',), ('reach', 'lift'), ('kneel', 'recline'))[k]
-    for i, pose in enumerate(poses):
-        V, E, R = _figure(pose)
-        dx = 0.0 if len(poses) == 1 else (-0.38 if i == 0 else 0.42)
-        dy = -0.1 + 0.25 * i
-        sc = 1.0 if i == 0 else 0.9
-        rot = Matrix.Rotation(math.radians((-12, 15)[i] if len(poses) > 1 else 6), 3, 'Z')
-        V = [rot @ (v * sc) + Vector((dx, dy, zc + (h0 - h1) * (dy / D) - 0.02)) for v in V]
-        _to_mb(_skin(f'yonseian_{k}_{i}', V, E, R, root=0, levels=1), mb, W)
-    # one sweep of drapery arching over the group like a wave (the flowing forms of the 1971 photo)
-    sx = (1, -1, 1, -1)[k]
-    pts = [Vector((sx * (-0.75 + 1.35 * t), 0.2 + 0.12 * math.sin(t * math.pi), zc + 0.15 + 1.05 * math.sin(t * math.pi * 0.85)))
-           for t in [i / 8 for i in range(9)]]
-    _drapery(mb, pts, 0.28, W)
+    poly, h_front, h_back = spec['base'][:3]
+    poly = [(x * size, y * size) for x, y in poly]
+    ax = Vector(spec['base'][3] if len(spec['base']) > 3 else (0, 1)).normalized()      # the way the wedge rises
+    ys = [ax.x * x + ax.y * y for x, y in poly]
+    y0, y1 = min(ys), max(ys)
+    zt = [h_front + (h_back - h_front) * (y - y0) / (y1 - y0) for y in ys]
+    for i in range(len(poly)):
+        j = (i + 1) % len(poly)
+        mb.face([(*poly[i], -0.05), (*poly[j], -0.05), (*poly[j], zt[j]), (*poly[i], zt[i])], W)
+    mb.face([(*p, z) for p, z in zip(poly, zt)], W)
+    zb = (h_front + h_back) / 2 - 0.04          # the figures stand in the wedge
+    bw = broad ** 0.5                           # (bodies widen less than the bands)
+    elems = []
+    for part in spec['parts']:
+        if part[0] == 'body':
+            _, J, E, R = part
+            elems += _figure(J, E, [tuple(c * bw for c in r) if isinstance(r, tuple) else r * bw for r in R])
+        else:
+            _, P, wd, nrm = part
+            wd = [w * broad for w in wd] if isinstance(wd, (list, tuple)) else wd * broad
+            elems += _drapery(P, wd, nrm, th=0.13)
+    ob = _meta_mesh(f'ymeta{k}', elems)
+    ob.data.transform(Matrix.Translation((0, 0, zb)) @ Matrix.Scale(size, 4))
+    _to_mb(ob, mb, W)
     return mb
 
 
-PLATFORM_Z = 0.6        # top of the eagle tower's low square platform (1971 photo: about knee high to the passers-by)
+# The dais and its precinct (Kakao roadview 2008-08 and 2010-12 / 2011-04; the 1995 aerial photo shows the ring of
+# beds broken by the walks): a low round dais of light stone on a ring of brick paving a step above the walks; four
+# brick walks between low kerbs through four quadrant beds of clipped azaleas (planted by tools/build_campus.py) out to
+# a round kerb.  The walks run along the statue's axes; the east one meets 백양로's sidewalk, which bounds the beds.
+EAGLE_SITE = dict(dais=[4.6, 0.4], ring=[5.6, 0.2], beds=9.5, walk=3.0, walk_edge=99.0)
+PLATFORM_Z = EAGLE_SITE['dais'][1]
 
 
-def eagle_tower():
-    """The low square platform with straight white walls, the column's foot sweeping out onto it, the tall tapering
-    white shaft and its cap."""
+def eagle_tower(site=EAGLE_SITE):
+    """The round dais on its brick ring, the column's foot sweeping out concavely onto it, the tall tapering white
+    shaft and its cap."""
     mb = MeshBuilder('eagle_tower')
     W, Wd = 'stone_white', 'granite_light'
-    z0 = PLATFORM_Z
-    mb.box((0, 0, (z0 - 0.6) / 2), (8.4, 8.4, z0 + 0.6), Wd)    # (runs into the ground on slopes)
-    mb.box((0, 0, z0 + 0.03), (8.5, 8.5, 0.06), Wd)              # coping
-    z0 += 0.06
-    # the flaring foot: each face curves out concavely onto the platform, then the shaft tapers to the cap
+    (rd, zd), (rr, zr) = site['dais'], site['ring']
+    mb.cylinder((0, 0), rr, -0.8, zr, 'curb', seg=64, cap_top=False, smooth=False)     # (runs into the ground)
+    for k in range(64):                 # the ring's top as an annulus (a disc would take its baked light from under the dais)
+        a0, a1 = 2 * math.pi * k / 64, 2 * math.pi * (k + 1) / 64
+        mb.face([(r_ * math.cos(a_), r_ * math.sin(a_), zr) for r_, a_ in ((rd - 0.05, a0), (rr, a0), (rr, a1), (rd - 0.05, a1))],
+                'pavers')
+    mb.cylinder((0, 0), rd, zr - 0.05, zd, 'stone_step', seg=56, mat_cap=Wd, smooth=False)
+    z0 = zd
+    # the flaring foot: each face curves out concavely onto the dais, then the shaft tapers to the cap
     zf, z1 = z0 + 2.6, 9.3
     prof = []
     for k in range(11):
         t = k / 10
-        prof.append((z0 + (zf - z0) * t, 0.47 + (1.7 - 0.47) * (1 - t) ** 2.8))
-    prof.append((z1, 0.4))
+        prof.append((z0 + (zf - z0) * t, 0.36 + (1.25 - 0.36) * (1 - t) ** 2.8))
+    prof.append((z1, 0.31))
     rings = [[(-w, -w, z), (w, -w, z), (w, w, z), (-w, w, z)] for z, w in prof]
     for a, b in zip(rings[:-1], rings[1:]):
         for i in range(4):
             j = (i + 1) % 4
             mb.face([a[i], a[j], b[j], b[i]], W)
     # the cap: a thin lip a little wider than the shaft
-    mb.box((0, 0, z1 + 0.06), (0.98, 0.98, 0.12), W)
-    mb.box((0, 0, z1 + 0.16), (0.88, 0.88, 0.08), W)
+    mb.box((0, 0, z1 + 0.06), (0.8, 0.8, 0.12), W)
+    mb.box((0, 0, z1 + 0.16), (0.72, 0.72, 0.08), W)
+    # a dark tablet leaning on a low block before the foot's front (the 2010 roadview from the south)
+    yb = -1.6
+    blk = [(-0.55, yb - 0.3), (0.55, yb - 0.3), (0.55, yb + 0.3), (-0.55, yb + 0.3)]
+    zt = [z0 + 0.08, z0 + 0.08, z0 + 0.42, z0 + 0.42]
+    for i in range(4):
+        j = (i + 1) % 4
+        mb.face([(*blk[i], z0 - 0.02), (*blk[j], z0 - 0.02), (*blk[j], zt[j]), (*blk[i], zt[i])], Wd)
+    mb.face([(*p, z + 0.012) for p, z in zip([(-0.5, yb - 0.26), (0.5, yb - 0.26), (0.5, yb + 0.26), (-0.5, yb + 0.26)],
+                                            [z0 + 0.1, z0 + 0.1, z0 + 0.41, z0 + 0.41])], 'bronze_patina')
+    mb.face([(*p, z) for p, z in zip(blk, zt)], Wd)
     return mb, z1 + 0.2
 
 
-def eagle_statue():
-    tower, top = eagle_tower()
+def eagle_kerbs(site=EAGLE_SITE):
+    """The low concrete kerb round the four beds' outer edge, cut by the walks and where the beds meet 백양로's
+    sidewalk (local +x, `walk_edge` from the centre).  (The walks' own edges get the campus-wide kerbs that
+    tools/build_campus.py lays along every paved edge.)"""
+    mb = MeshBuilder('eagle_kerbs')
+    K = 'curb'
+    R, hw, xe = site['beds'], site['walk'] / 2, site['walk_edge']
+    kw, kh = 0.15, 0.25
+
+    def seg(a, b, h=kh):
+        a, b = Vector((*a, 0)), Vector((*b, 0))
+        d = (b - a)
+        if d.length < 0.05:
+            return
+        d.normalize()
+        mb.box(tuple((a + b) / 2 + Vector((0, 0, (h - 0.4) / 2))), ((b - a).length, kw, h + 0.4), K,
+               rotz=math.atan2(d.y, d.x), skip=('bottom',))
+
+    for q in range(4):
+        a = math.radians(90 * q)
+        # the round edge of the bed between this walk and the next
+        a0 = a + math.asin((hw + kw) / R)
+        a1 = a + math.pi / 2 - math.asin((hw + kw) / R)
+        n = 9
+        pts = [Vector((R * math.cos(a0 + (a1 - a0) * i / n), R * math.sin(a0 + (a1 - a0) * i / n))) for i in range(n + 1)]
+        for p, p2 in zip(pts[:-1], pts[1:]):
+            if p.x > xe - 0.2 and p2.x > xe - 0.2:
+                continue
+            if p2.x > xe - 0.2:
+                p2 = p + (p2 - p) * ((xe - 0.2 - p.x) / (p2.x - p.x))
+            if p.x > xe - 0.2:
+                p = p2 + (p - p2) * ((xe - 0.2 - p2.x) / (p.x - p2.x))
+            seg(tuple(p), tuple(p2))
+    # where the beds meet the sidewalk
+    if xe < R:
+        y_ = math.sqrt(R ** 2 - (xe - 0.2) ** 2)
+        for sg in (-1, 1):
+            seg((xe - 0.2, sg * (hw + kw)), (xe - 0.2, sg * y_))
+    return mb
+
+
+def eagle_statue(site=None):
+    site = dict(EAGLE_SITE, **(site or {}))
+    tower, top = eagle_tower(site)
     rock = eagle_rock().build()
     rock.data.transform(Matrix.Translation((0, 0, top - 0.04)))
     eagle = eagle_figure()
@@ -619,14 +804,16 @@ def eagle_statue():
     eagle.select_set(True)
     bpy.context.view_layer.objects.active = eagle
     bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
-    out = [tower.build(), rock, eagle]
-    # the four groups at the diagonals, facing out
-    for k in range(4):
-        a = math.radians(45 + 90 * k)
+    out = [tower.build(), rock, eagle, eagle_kerbs(site).build()]
+    # the four groups at the diagonals, facing out: A south-west, B north-west, C south-east, D north-east (the statue
+    # faces -y, south-south-west; +x is east-south-east, towards 백양로)
+    zd = site['dais'][1]
+    for k, (deg, yaw) in enumerate(((-135, 0), (135, 0), (-45, 0), (45, 0))):
+        a = math.radians(deg)
         g = yonseian_group(k).build()
-        r = 3.25
-        g.matrix_world = Matrix.Translation((r * math.cos(a), r * math.sin(a), PLATFORM_Z + 0.06)) @ \
-            Matrix.Rotation(a + math.pi / 2, 4, 'Z')
+        r = 3.7
+        g.matrix_world = Matrix.Translation((r * math.cos(a), r * math.sin(a), zd)) @ \
+            Matrix.Rotation(a + math.pi / 2 + math.radians(yaw), 4, 'Z')
         bpy.context.view_layer.update()
         out.append(g)
     return out

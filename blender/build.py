@@ -72,7 +72,8 @@ if want('landmarks'):
     # statues and the gate are modelled in their own frame (front = -Y) and placed by object transform
     # (a MeshBuilder's xf only affects vertices added after it is set)
     S = CAMPUS['statues']
-    for key, fn in (('eagle', statues.eagle_statue), ('underwood_statue', statues.underwood_statue), ('gate', lambda: [props.gate().build()])):
+    for key, fn in (('eagle', lambda: statues.eagle_statue(S['eagle'])), ('underwood_statue', statues.underwood_statue),
+                    ('gate', lambda: [props.gate().build()])):
         st = S[key]
         M = Matrix.Translation((st['pos'][0], st['pos'][1], st['h'])) @ Matrix.Rotation(st['rot'], 4, 'Z')
         for ob in fn():
@@ -88,6 +89,15 @@ if want('landmarks'):
             landmarks.WALK_FACES.append([(st['pos'][0], st['pos'][1], st['h'] + z_),
                                          (st['pos'][0] + r_ * math.cos(a0), st['pos'][1] + r_ * math.sin(a0), st['h'] + z_),
                                          (st['pos'][0] + r_ * math.cos(a1), st['pos'][1] + r_ * math.sin(a1), st['h'] + z_)])
+    # the eagle's brick ring, a step up from its walks, is walked on round the dais (the dais itself is not)
+    st = S['eagle']
+    if 'ring' in st:
+        (r0_, _), (r1_, z_) = st['dais'], st['ring']
+        for k in range(48):
+            a0, a1 = 2 * math.pi * k / 48, 2 * math.pi * (k + 1) / 48
+            q_ = [(st['pos'][0] + r_ * math.cos(a_), st['pos'][1] + r_ * math.sin(a_), st['h'] + z_)
+                  for r_, a_ in ((r0_, a0), (r1_, a0), (r1_, a1), (r0_, a1))]
+            landmarks.WALK_FACES.append(q_)
     objs.append(landmarks.walk_mesh().build())
     # where the entrance flights are, so the web app keeps the apron shrubs off the steps
     _gp = os.path.join(common.ROOT, 'data', 'entrances_generic.json')
