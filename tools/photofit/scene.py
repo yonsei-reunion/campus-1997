@@ -64,8 +64,12 @@ BLD = {b['id']: b for b in C['buildings']}
 FH = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
 
 
+FH_AT = {222843398: 4.1}                     # 과학관's 4.1 m storeys (blender/generic.py FH_AT)
+WING_UP = {222843398: (0, 1, 2, 14)}         # footprint corners of its east wing, one storey higher (generic.py _science_wing)
+
+
 def roof_z(b):
-    return b['base'] + b['levels'] * FH.get(b['style'], 4.0)
+    return b['base'] + b['levels'] * FH_AT.get(b['id'], FH.get(b['style'], 4.0))
 
 
 def lm_verts():
@@ -103,5 +107,7 @@ def corners(bid):
         tops = np.array(tops)
     else:
         tops = np.full(len(fp), roof_z(b) + (0 if b['style'] in ('stone', 'house', 'stone_pale') else 0.9))
+        for k in WING_UP.get(bid, ()):
+            tops[k] += FH_AT.get(bid, FH.get(b['style'], 4.0))
     base = np.array([terrain(x, y)[0] for x, y in fp])
     return fp, tops, base
