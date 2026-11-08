@@ -2279,7 +2279,8 @@ def seongam():
     parapet over the eaves, the pointed-arched door at the head of a short flight, an oriel over it) and the 2003 photos
     across 연희관 앞 정원 (2003_가을_연희관앞정원과_교육관_북쪽계단.jpg, 2003_봄_교육관에서_본_연희관앞정원과_성암관.jpg:
     two storeys over a half-sunk basement under a long grey-tiled roof, coped gable ends, red ivy).  The OSM outline
-    takes in the centre bay (11.3 m wide, 3.6 m out); the hall itself is the 33.3 x 13.2 m block behind it."""
+    takes in the centre bay (11.3 m wide, 3.6 m out); the hall itself is the 33.3 x 13.2 m block behind it.  Its floor
+    puts the porch a short flight over the drive before it (tools/build_campus.py SEONGAM_FLOOR)."""
     b = bld(246156117)
     main = [(116.69, 289.28), (129.55, 286.12), (137.57, 318.39), (124.32, 321.63)]
     front = (-0.97, 0.24)
@@ -2287,10 +2288,11 @@ def seongam():
     groups = []
     for sc in (2.0, 5.2, 8.4, L - 8.4, L - 5.2, L - 2.0):
         groups.append((sc - 1.0, sc + 1.0, 2))
-    return stone_hall('seongam', b, front, groups, ivy=0.7, pitch=0.62, rect_fp=main,
+    return stone_hall('seongam', b, front, groups, ivy=0.7, pitch=0.62, rect_fp=main, z0=CAMPUS.get('seongam_floor'),
                       porch=dict(s0=10.2, s1=21.5, proj=3.6, parapet=1.0, win=(4.8, [1.0] * 5)),
                       back=[(L / 2 - 1.6, L / 2 + 1.6, 3), (L / 2 - 4.8, L / 2 - 3.0, 2), (L / 2 + 3.0, L / 2 + 4.8, 2)],
-                      stairs=dict(width=3.2, wl=4.2), door=dict(w=2.0, arch='pointed', spring=1.7, style='panel', rec=0.6))
+                      stairs=dict(width=3.2, wl=4.2, rise=0.0 if 'seongam_floor' in CAMPUS else 1.3),
+                      door=dict(w=2.0, arch='pointed', spring=1.7, style='panel', rec=0.6))
 
 
 def gyoyuk():

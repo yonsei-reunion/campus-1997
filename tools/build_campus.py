@@ -1254,6 +1254,38 @@ print('연희관 앞', {k: v for k, v in YEONHUI.items() if k not in ('flights',
       'wall runs', [(len(r_), r_[0][3] - r_[0][2], r_[-1][3] - r_[-1][2]) for r_ in YEONHUI['wall']],
       [(f_['name'], f_['n'], f_['z_top'], f_['z_foot']) for f_ in YEONHUI['flights']])
 
+# --- 성암관's west front (blender/landmarks.py seongam): the pointed door opens at the head of a short flight down to
+# the drive along the hall (reference/학교연혁_성암관.jpg: two risers at the door, a landing, five or more below it).
+# The 5 m grid ran the hill behind the hall down across the 3 m between its porch and the drive, a 1.5 m fall, and the
+# flight grew to twenty risers with a landing that ran out over the drive to the lawn beyond, in the way of the drive
+# from 언더우드관 up to 대우관.  Hold the ground between the drive's east edge and the hall level across at the edge's
+# height, and the porch seven risers of 0.16 over it at the door (SEONGAM_FLOOR: the floor under the porch's 1.2 m).
+_sd = LineString(_E_RD)
+SEONGAM_DOOR = ((115.82 + 118.54) / 2, (301.6 + 312.55) / 2)        # the middle of the porch's face (OSM)
+
+
+def _sd_edge(x, y):
+    """the drive's east edge (3 m from its centre line) abreast of x, y, and how far x, y lies east of the centre"""
+    a_ = _sd.project(Point(x, y))
+    q_ = np.array(_sd.interpolate(a_).coords[0])
+    t_ = np.array(_sd.interpolate(min(a_ + 0.5, _sd.length)).coords[0]) - np.array(_sd.interpolate(max(a_ - 0.5, 0.0)).coords[0])
+    t_ /= np.linalg.norm(t_)
+    r_ = np.array([t_[1], -t_[0]])                                  # (the right of the way north: east)
+    return q_ + r_ * 3.0, float((np.array([x, y]) - q_) @ r_)
+
+
+_sm = (X > 100) & (X < 130) & (Y > 285) & (Y < 325)
+_sv = []
+for _j, _i in zip(*np.nonzero(_sm)):
+    _e, _off = _sd_edge(X[_j, _i], Y[_j, _i])
+    if 3.0 <= _off <= 11.0:
+        _sv.append((_j, _i, sample(Hn, NEAR_HALF, NEAR_STEP, *_e)))
+for _j, _i, _h in _sv:
+    Hn[_j, _i] = _h
+    FIXED[_j, _i] = True
+SEONGAM_FLOOR = round(sample(Hn, NEAR_HALF, NEAR_STEP, *_sd_edge(*SEONGAM_DOOR)[0]) + 7 * 0.16 - 1.2, 2)
+print('성암관 west front: %d nodes held at the drive\'s edge, floor %.2f' % (len(_sv), SEONGAM_FLOOR))
+
 # --- 대우관 (reference/대우관_정면_전경.jpg, 대우관_2024_정면과_상뜰.jpg, 대우관_측면_2012.jpg): the hall stands on a
 # terrace about 6 m over the 상뜰.  A white stone podium projects from the tower with the main door at the plaza level
 # (no steps: a wide low arch, a glazed lobby behind) and flights climb to the terrace beside it; the tower's own
@@ -3947,6 +3979,7 @@ out = dict(
     paths=_ui_paths(), landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
     centennial_block=CENT_BLOCK, sang=dict(c=list(SANG), r=SANG_LAWN), yeonhui=YEONHUI, underwood_steps=UW_STEPS,
     gyoyuk_floor=GYOYUK_FLOOR,
+    seongam_floor=SEONGAM_FLOOR,
     colliders=[CENT_BLOCK['poly']] + [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(GONGWON_SITE.exterior.coords)[:-1]]]
     + YH_WALL_COLL,
 )
