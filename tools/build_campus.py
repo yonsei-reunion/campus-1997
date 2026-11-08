@@ -61,7 +61,8 @@ B = {
     256932940: ('modern', 7, '제2공학관'),
     224955691: ('modern', 5, '제3공학관 (공사중)'), 324328471: ('white', 2, '별동연구동'),
     222843398: ('white', 6, '과학관'), 468614722: ('lm:kwangbok', 4, '광복관'),   # (blender/landmarks.py kwangbok)
-    256933753: ('white', 5, '백양관'),          # (OSM: 경영학교실단) the old 상경대학 hall, 백양관 since 1996
+    256933753: ('white', 5, '경영학교실단'),    # (OSM: 백양관) the old 상경대학 hall, 「경영관」 to students; 백양관 since
+                                               # June 1999 (연세춘추 1999.5.3).  Its two wings and low front: below
     421415366: ('gym', 2, '체육관'), 421415365: ('white', 4, '체육교육관'),
     # humanities / north campus
     246156112: ('modern', 6, '인문관'), 246156114: ('modern', 3, '인문관'),
@@ -69,7 +70,7 @@ B = {
     246156121: ('stone', 2, '연합신학대학원'), 246156123: ('modern', 6, '종합관'),
     246156117: ('lm:seongam', 2, '성암관'), 246156111: ('lm:gyoyuk', 4, '교육관'),   # (blender/landmarks.py seongam, gyoyuk;
     # 교육관: three storeys and the dormered attic)
-    245623193: ('stone_pale', 4, '생활과학관'), 413217834: ('house', 1, '논지당'),
+    245623193: ('stone_pale', 4, '가정관'), 413217834: ('house', 1, '논지당'),     # (빌링슬리관 since 1999)
     242897922: ('lm:daewoo', 6, '대우관'), 242897923: ('lm:daewoo_annex', 5, '대우관 별관'),
     429077789: ('white', 4, '음악대학'), 429077790: ('white', 4, '음악대학'),
     429079066: ('stone', 1, '언더우드가 사택'), 472512289: ('brick', 2, '알렌관'),
@@ -2806,9 +2807,9 @@ P('bench', _q.x + _o[0] * 0.4, _q.y + _o[1] * 0.4, math.atan2(-_o[1], -_o[0]))
 # the old amphitheater: a lamp at each end of the stage, by the foot of the flight up the seat end (the 1997 photo)
 for _sv in (-1, 1):
     P('lamp_double', *amph_xy(AMPH['stage_u'] - 1.0, _sv * (AMPH['stage_w'] / 2 + 0.8)), AMPH['rot'])
-# 백양관: against its east wall by the south-east corner, looking out over the apron towards 백양로 (it stood across
+# 경영학교실단: against its east wall by the south-east corner, looking out over the apron towards 백양로 (it stood across
 # the apron)
-_bk = Polygon(next(b for b in buildings if b['name'] == '백양관')['footprint']).exterior
+_bk = Polygon(next(b for b in buildings if b['name'] == '경영학교실단')['footprint']).exterior
 _q = _bk.interpolate(_bk.project(Point(-20, 35)))
 _o = np.array([-20 - _q.x, 35 - _q.y]) / _q.distance(Point(-20, 35))
 P('bench', _q.x + _o[0] * 0.6, _q.y + _o[1] * 0.6, math.atan2(_o[1], _o[0]))
