@@ -422,11 +422,12 @@ def _torso_front(x, z, H, off=0.0):
 
 
 def underwood_coat(H=UW_H, legs=None):
-    """The morning coat and what shows of the waistcoat: the body of the coat, sleeves with cuffs, wide notched lapels
-    rolling down to the one button at the waist, the waistcoat's six buttons between them, the high collar and tie,
-    and the skirt - its fronts cut away from the waist button in a long curve over the thighs, the tails hanging to
-    the backs of the knees with a vent between them, clear of the trousers (`legs`, the figure's mesh).  Returns
-    (MeshBuilder, joints): shoulder / elbow / wrist per side, the neck."""
+    """The morning coat and what shows of the waistcoat: the body of the coat, sleeves with cuffs, wide peaked lapels
+    meeting the fronts at the upper button low on the chest, the fronts falling straight to the button at the waist,
+    the waistcoat's six buttons between them, the high collar and tie, and the skirt - its fronts cut away from the
+    waist button in a long curve over the thighs, the tails hanging to the backs of the knees with a vent between
+    them, clear of the trousers (`legs`, the figure's mesh).  Returns (MeshBuilder, joints): shoulder / elbow / wrist
+    per side, the neck."""
     mb = MeshBuilder('underwood_coat')
     M = 'bronze_patina'
     k = H / 2.45
@@ -449,7 +450,7 @@ def underwood_coat(H=UW_H, legs=None):
         rings.append(ring)
     loft(mb, rings, M, cap0=False, cap1=True, tag='torso')
     zc = UW_TORSO[-1][0] * k                     # the collar's foot
-    zw = 0.585 * H                               # the waist seam, the coat's button
+    zw = 0.597 * H                               # the waist seam, the coat's lower button (2011 photos: 0.598, 0.600)
     J = {'neck': Vector((0, UW_TORSO[-1][3] * k, zc)), 'top': zc + 0.06 * k, 'waist': zw, 'arms': {}}
     # -- sleeves: from the shoulders down and forward to the elbows, the forearms reaching out (2019 photo: hands wide
     # apart at the height of the waist button, palms up); loose, a turned cuff, the shirt cuff under it
@@ -466,14 +467,19 @@ def underwood_coat(H=UW_H, legs=None):
         _tube(mb, [W - d * 0.055 * k, W - d * 0.05 * k, W, W + d * 0.004], [0.062 * k, 0.069 * k, 0.069 * k, 0.06 * k],
               M, n=16, tag='cuf%d' % sx)
         _tube(mb, [W, W + d * 0.03 * k], [0.05 * k, 0.047 * k], M, n=12, tag='sc%d' % sx)
-    # -- lapels (his left = +X; mirrored): from behind the collar out to the notch and the peak, rolling down to the
-    # waist button; each stands off the coat by its thickness
+    # -- lapels (his left = +X; mirrored): wide peaked lapels from behind the collar up to the shoulders, running
+    # straight down to meet the fronts at the coat's upper button, low on the chest (0.648 of his height: 2011 photos,
+    # two of them, 0.647 and 0.652); the fronts then hang straight down, just apart over the waistcoat, to the button
+    # at the waist.  Each stands off the coat by its thickness.
     L = zc - zw
-    outer = [(0.07, 0.0), (0.105, 0.07), (0.128, 0.13), (0.114, 0.152), (0.152, 0.166), (0.138, 0.24),
-             (0.105, 0.34), (0.062, (L - 0.12) / k), (0.022, (L - 0.01) / k)]
-    inner = [(0.05, 0.0), (0.06, 0.07), (0.068, 0.13), (0.068, 0.152), (0.068, 0.166), (0.06, 0.24),
-             (0.046, 0.34), (0.026, (L - 0.12) / k), (0.008, (L - 0.01) / k)]
+    zb = 0.648 * H                               # the lapels' foot, the upper button
+    B = (zc - zb) / k
+    outer = [(0.07, 0.0), (0.12, 0.03), (0.15, 0.06), (0.135, 0.08), (0.19, 0.095), (0.175, 0.15), (0.137, 0.224),
+             (0.085, 0.32), (0.05, B - 0.04), (0.03, B)]
+    inner = [(0.05, 0.0), (0.055, 0.03), (0.05, 0.06), (0.045, 0.08), (0.042, 0.095), (0.034, 0.15), (0.028, 0.224),
+             (0.026, 0.32), (0.026, B - 0.04), (0.026, B)]
     P = lambda x, d, off: _torso_front(x * k, zc - d * k, H, off * k)
+    front = [(0.026, B), (0.025, (L - 0.01) / k)]                    # the fronts below the lapels
     for sx in (-1, 1):
         tag = 'lap%d' % sx
         for (xa, da), (xb, db), (xc, dc), (xd, dd) in zip(outer[:-1], outer[1:], inner[1:], inner[:-1]):
@@ -485,11 +491,19 @@ def underwood_coat(H=UW_H, legs=None):
         for (xa, da), (xb, db) in zip(inner[:-1], inner[1:]):
             q = [P(sx * xa, da, 0.016), P(sx * xb, db, 0.016), P(sx * xb, db, -0.004), P(sx * xa, da, -0.004)]
             _oface(mb, q, M, (-sx, -0.4, 0))
-        # the waistcoat's edge inside the lapel, from the collar down to its points below the last button
-        wv = [(0.03, 0.06), (0.042, 0.2), (0.034, 0.36), (0.024, (L - 0.06) / k), (0.03, (L + 0.03) / k), (0.0, (L + 0.07) / k)]
-        for (xa, da), (xb, db) in zip(wv[:-1], wv[1:]):
-            q = [P(sx * xa, da, 0.006), P(sx * xb, db, 0.006), P(sx * xb, db, -0.003), P(sx * xa, da, -0.003)]
-            _oface(mb, q, M, (-sx, -0.4, 0))
+        # each front's edge over the waistcoat, from the lapel's foot to the waist: a band falling away outwards
+        (xa, da), (xb, db) = front
+        w = 0.035
+        _oface(mb, [P(sx * xa, da, 0.012), P(sx * xb, db, 0.010), P(sx * (xb + w), db, 0.0), P(sx * (xa + w), da, 0.0)],
+               M, (sx * 0.2, -1, 0))
+        _oface(mb, [P(sx * xa, da, 0.012), P(sx * xb, db, 0.010), P(sx * xb, db, -0.004), P(sx * xa, da, -0.004)],
+               M, (-sx, -0.4, 0))
+        # the waistcoat: its neck inside the lapels down to the first button, its points below the last
+        for wv in ([(0.046, 0.03), (0.024, 0.1), (0.004, 0.15)],
+                   [(0.02, (L - 0.04) / k), (0.03, (L + 0.03) / k), (0.0, (L + 0.07) / k)]):
+            for (xa, da), (xb, db) in zip(wv[:-1], wv[1:]):
+                q = [P(sx * xa, da, 0.006), P(sx * xb, db, 0.006), P(sx * xb, db, -0.003), P(sx * xa, da, -0.003)]
+                _oface(mb, q, M, (-sx, -0.4, 0))
     # the coat's collar standing round the back of the neck, running into the lapels at the front
     cyn = J['neck'].y
     crings = []
@@ -506,12 +520,13 @@ def underwood_coat(H=UW_H, legs=None):
         q = [top[i], top[i + 1], Vector((top[i + 1].x * 0.86, cyn + (top[i + 1].y - cyn) * 0.86, top[i + 1].z)),
              Vector((top[i].x * 0.86, cyn + (top[i].y - cyn) * 0.86, top[i].z))]
         _oface(mb, q, M, (0, 0, 1))
-    # the waistcoat's six buttons and the coat's own button at the waist
+    # the waistcoat's six buttons, and the coat's two on his right front: at the lapels' foot and at the waist
     for i in range(6):
         p = _torso_front(0.0, zc - 0.16 * k - i * (zc - 0.16 * k - zw - 0.05 * k) / 5, H, 0.005 * k)
         mb.sphere(tuple(p), 0.0105 * k, M, seg=8, rings=5, sz=0.7)
-    p = _torso_front(0.0, zw + 0.012 * k, H, 0.02 * k)
-    mb.sphere(tuple(p), 0.017 * k, M, seg=10, rings=6, sz=0.8)
+    for z in (zb - 0.008 * k, zw + 0.012 * k):
+        p = _torso_front(-0.068 * k, z, H, 0.012 * k)
+        mb.sphere(tuple(p), 0.016 * k, M, seg=10, rings=6, sz=0.8)
     # the high collar with its turned points, the knot of the tie under them
     cy = J['neck'].y
     mb.cylinder((0, cy), 0.086 * k, zc - 0.02 * k, zc + 0.085 * k, M, seg=20, cap_top=False, r1=0.08 * k)
