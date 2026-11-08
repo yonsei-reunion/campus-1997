@@ -21,6 +21,7 @@
 |---|---|
 | ![백양로 1997년 항공 사진](docs/compare/baekyangro_photo.jpg)<br>**백양로** · 1997년 항공 사진(게임은 같은 카메라) | ![게임의 백양로](docs/compare/baekyangro_game.jpg) |
 | ![캠퍼스 서쪽 1995년 항공 사진](docs/compare/campus_west_photo.jpg)<br>**캠퍼스 서쪽** · 1995년 항공 사진 | ![게임의 캠퍼스 서쪽](docs/compare/campus_west_game.jpg) |
+| ![캠퍼스 전경 1994년 항공 사진](docs/compare/campus_1994_photo.jpg)<br>**캠퍼스 전경** · 1994년 항공 사진(게임은 사진에 맞춘 카메라) | ![게임의 캠퍼스 전경](docs/compare/campus_1994_game.jpg) |
 | ![중앙도서관 1997년 사진](docs/compare/library_photo.jpg)<br>**중앙도서관** · 1997년 | ![게임의 중앙도서관](docs/compare/library_game.jpg) |
 | ![학생회관 외벽 2009년 사진](docs/compare/union_photo.jpg)<br>**학생회관** 외벽 · 2009년 | ![게임의 학생회관 외벽](docs/compare/union_game.jpg) |
 | ![백주년기념관 박물관 입구 1996년 사진](docs/compare/museum_photo.jpg)<br>**백주년기념관** 박물관 입구 · 1996년 | ![게임의 백주년기념관 박물관 입구](docs/compare/museum_game.jpg) |
