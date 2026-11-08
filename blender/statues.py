@@ -298,9 +298,37 @@ def _arc(p0, p1, p2, n):
     return out
 
 
+def _xsection(me, z):
+    """The points where the mesh's edges cross the height z."""
+    out = []
+    for e in me.edges:
+        a, b = me.vertices[e.vertices[0]].co, me.vertices[e.vertices[1]].co
+        if (a.z - z) * (b.z - z) < 0:
+            out.append(a.lerp(b, (z - a.z) / (b.z - a.z)))
+    return out
+
+
+def _lerp_table(T, x):
+    """Piecewise linear lookup in [(x, y), ...] (x ascending), clamped at the ends."""
+    if x <= T[0][0]:
+        return T[0][1]
+    for (xa, ya), (xb, yb) in zip(T[:-1], T[1:]):
+        if x <= xb:
+            return ya + (yb - ya) * (x - xa) / (xb - xa)
+    return T[-1][1]
+
+
+# the trousers' outer edge from the front (z, half-width) at H = 2.45, and how far in the shoes come: straight wide
+# legs that meet at the knees, the shoes apart under them (2011 photo, from the front; 2019 photo)
+UW_LEG_W = [(0.15, 0.225), (0.36, 0.225), (0.55, 0.235), (0.8, 0.245), (1.0, 0.25), (1.15, 0.255), (1.25, 0.253)]
+UW_SHOE_IN = 0.045
+
+
 def underwood_figure(H=UW_H):
     """Trousers and shoes: the Quaternius Suit character's legs in its relaxed stance, as one bronze mesh, soles at
-    z = 0, facing -Y (the character's jacket, short arms and mitten hands are not used)."""
+    z = 0, facing -Y (the character's jacket, short arms and mitten hands are not used).  The character's legs stand
+    apart on wide hips; each is widened in towards the other until they meet above the knees, the outer edges kept
+    within UW_LEG_W, and the shoes come in under them."""
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=SUIT, merge_vertices=True, import_shading='SMOOTH')
     new = [o for o in bpy.data.objects if o not in before]
@@ -311,29 +339,65 @@ def underwood_figure(H=UW_H):
     bpy.context.scene.frame_set(1)
     bpy.context.view_layer.update()
     y0 = (arm.matrix_world @ arm.pose.bones['Hips'].head).y
-    baked = []
+    baked = {}
     for m in keep:
         b = _bake(m)
         b.matrix_world = m.matrix_world.copy()
-        baked.append(b)
+        baked[m.name] = b
     for o in new:
         bpy.data.objects.remove(o, do_unlink=True)
-    ob = _join(baked, 'underwood_legs')
+    for b in baked.values():
+        b.data.transform(b.matrix_world)
+        b.matrix_world = Matrix()
     s = 1.344 * H / 2.45                         # (the character's collar under his chin)
-    z0 = min(v.co.z for v in ob.data.vertices)
-    for v in ob.data.vertices:                   # wide trousers
-        v.co = Vector((v.co.x * s * 1.25, (v.co.y - y0) * s * 1.15, (v.co.z - z0) * s))
-    ob.data.update()
+    k = H / 2.45
+    z0 = min(v.co.z for b in baked.values() for v in b.data.vertices)
+    for name, b in baked.items():                # wide trousers, the shoes as long as before
+        sy = 1.0 if name == 'Suit_Legs' else 1.15
+        for v in b.data.vertices:
+            v.co = Vector((v.co.x * s * 1.25, (v.co.y - y0) * s * sy, (v.co.z - z0) * s))
+    legs = baked['Suit_Legs'].data
+    zs = [i * 0.02 * k for i in range(1 + int(max(v.co.z for v in legs.vertices) / (0.02 * k)))]
+    span = []                                    # the inner and outer edge of a leg (|x|) at each height
+    for z in zs:
+        xs = [abs(p.x) for p in _xsection(legs, z)]
+        span.append((min(xs), max(xs)) if xs else None)
+    zs, span = zip(*[(z, sp) for z, sp in zip(zs, span) if sp])
+    T_in = list(zip(zs, (a for a, _ in span)))
+    T_out = list(zip(zs, (b for _, b in span)))
+    W = [(z * k, w * k) for z, w in UW_LEG_W]
+    G = [(0.6 * k, 0.006 * k), (0.9 * k, -0.03 * k)]   # half the gap between them: a crease above the knees
+    for v in legs.vertices:
+        lo, hi = _lerp_table(T_in, v.co.z), _lerp_table(T_out, v.co.z)
+        lo2, hi2 = min(lo, _lerp_table(G, v.co.z)), min(hi, _lerp_table(W, v.co.z))
+        t = (abs(v.co.x) - lo) / max(hi - lo, 1e-6)
+        v.co.x = math.copysign(max(0.0, lo2 + (hi2 - lo2) * t), v.co.x)
+    for v in legs.vertices:                      # the fly set back between the thighs (the character's is round)
+        wx = max(0.0, 1 - abs(v.co.x) / (0.08 * k))
+        wz = max(0.0, 1 - abs(v.co.z - 1.2 * k) / (0.1 * k))
+        if v.co.y < 0:
+            v.co.y += 0.012 * k * (wx * wx * (3 - 2 * wx)) * (wz * wz * (3 - 2 * wz)) * min(1.0, -v.co.y / (0.06 * k))
+    for v in baked['Suit_Feet'].data.vertices:
+        v.co.x -= math.copysign(UW_SHOE_IN * k, v.co.x)
+    for b in baked.values():
+        b.data.update()
+    ob = _join(list(baked.values()), 'underwood_legs')
     _set_material(ob, 'bronze_patina')
     return ob
 
 
-# his coat over the waistcoat, ring by ring from the hips to the collar (z, half-width, half-depth, centre y), at
-# H = 2.45: broad in the chest, a full waistcoat, sloping shoulders (2011 and 2019 photos)
-UW_TORSO = [(1.28, 0.19, 0.13, 0.0), (1.433, 0.198, 0.136, 0.0), (1.56, 0.21, 0.148, -0.014),
-            (1.7, 0.228, 0.148, -0.01), (1.82, 0.236, 0.136, 0.0), (1.895, 0.232, 0.122, 0.004),
+# his coat over the waistcoat, ring by ring from the waistcoat's points to the collar (z, half-width, half-depth,
+# centre y), at H = 2.45: broad in the chest, a full waistcoat, sloping shoulders, and as wide at the waist as in the
+# chest (2011 and 2019 photos from the front: 0.8 of the shoulders' width)
+UW_TORSO = [(1.35, 0.23, 0.138, 0.0), (1.433, 0.234, 0.14, 0.0), (1.56, 0.232, 0.148, -0.012),
+            (1.7, 0.232, 0.148, -0.01), (1.82, 0.236, 0.136, 0.0), (1.895, 0.232, 0.122, 0.004),
             (1.955, 0.214, 0.106, 0.008), (2.005, 0.14, 0.09, 0.01), (2.05, 0.08, 0.074, 0.012)]
 UW_SE = 2.6                                      # the rings are superellipses: flatter front, back and sides
+# the skirt from the front by t (0 at the waist seam, 1 at the hem), at H = 2.45: its half-width, and where the fronts'
+# cut edge lies as a share of it, from the button round over the thighs to the sides at the hem (2011 photo from the
+# front; 2019 photo from close below)
+UW_SKIRT_W = [(0.0, 0.242), (0.15, 0.266), (0.3, 0.277), (0.55, 0.29), (0.8, 0.298), (1.0, 0.305)]
+UW_CUT = [(0.0, 0.14), (0.15, 0.32), (0.3, 0.5), (0.45, 0.65), (0.6, 0.77), (0.75, 0.86), (0.9, 0.93), (1.0, 0.97)]
 
 
 def _torso_at(z, H):
@@ -357,11 +421,12 @@ def _torso_front(x, z, H, off=0.0):
     return Vector((x, y - off, z))
 
 
-def underwood_coat(H=UW_H):
+def underwood_coat(H=UW_H, legs=None):
     """The morning coat and what shows of the waistcoat: the body of the coat, sleeves with cuffs, wide notched lapels
     rolling down to the one button at the waist, the waistcoat's six buttons between them, the high collar and tie,
-    and the skirt - its fronts cut away from the waist button over the hips, the tails hanging to the backs of the
-    knees with a vent between them.  Returns (MeshBuilder, joints): shoulder / elbow / wrist per side, the neck."""
+    and the skirt - its fronts cut away from the waist button in a long curve over the thighs, the tails hanging to
+    the backs of the knees with a vent between them, clear of the trousers (`legs`, the figure's mesh).  Returns
+    (MeshBuilder, joints): shoulder / elbow / wrist per side, the neck."""
     mb = MeshBuilder('underwood_coat')
     M = 'bronze_patina'
     k = H / 2.45
@@ -455,45 +520,64 @@ def underwood_coat(H=UW_H):
                     (sx * 0.006 * k, cy - 0.09 * k, zc + 0.01 * k)], M, (0, -1, 0))
     t = _torso_front(0.0, zc - 0.02 * k, H, 0.0)
     mb.box((0, t.y - 0.008 * k, zc - 0.012 * k), (0.042 * k, 0.03 * k, 0.04 * k), M)
-    # -- the skirt
-    a, b, cy = _torso_at(zw, H)
-    rx, ry = a + 0.016 * k, b + 0.018 * k
+    # -- the skirt: the fronts cut away from the button in a long curve over the thighs to the sides at the hem, the
+    # tails hanging to the backs of the knees with a vent between them.  It stands off the trousers: each ring is
+    # deepened where the legs would come through it.
+    _, b0, cy = _torso_at(zw, H)
+    z_top = zw + 0.03 * k
     z_hem = 0.27 * H                    # the backs of the knees (2011 photo, from the front: 0.27 of his height)
-    rows = 9
-    for sx in (-1, 1):                  # each tail from the front edge round to the vent at the back
+    rows, cols = 16, 16
+    gap, th = 0.025 * k, 0.014 * k      # room over the trousers, the cloth's thickness
+    R = []
+    for j in range(rows + 1):
+        t = j / rows
+        z = z_top - (z_top - z_hem) * t
+        rx = _lerp_table(UW_SKIRT_W, t) * k
+        se = UW_SE - 0.5 * min(1.0, t / 0.3)                             # rounder below the hips
+        bf, bb = b0 + (0.008 + 0.03 * t) * k, b0 + (0.008 + 0.07 * t) * k
+        for p in (_xsection(legs.data, z) if legs is not None else ()):
+            u = min(abs(p.x) / rx, 0.95)
+            need = (abs(p.y - cy) + gap) / (1 - u ** se) ** (1 / se)
+            if p.y < cy:
+                bf = max(bf, need)
+            else:
+                bb = max(bb, need)
+        R.append([t, z, rx, bf, bb, se])
+    for i in (3, 4):                    # no kinks down the skirt
+        v = [r[i] for r in R]
+        for j, r in enumerate(R):
+            r[i] = max(v[max(j - 2, 0):j + 3])
+    for sx in (-1, 1):                  # each side from the cut edge round to the vent at the back
         outer_, inner_ = [], []
-        for j in range(rows + 1):
-            t = j / rows
-            z = zw + 0.03 * k - (zw + 0.03 * k - z_hem) * t
-            open_ = math.radians(6 + 52 * min(1.0, t / 0.4) ** 0.75)       # the front cut away over the hips
-            a0 = -math.pi / 2 + open_                                        # (front = -90 degrees)
+        for t, z, rx, bf, bb, se in R:
+            a0 = -math.acos(_lerp_table(UW_CUT, t) ** (se / 2))            # (front = -90 degrees)
             a1 = math.pi / 2 - math.radians(0.6 + 2.5 * max(0.0, t - 0.4))  # the vent opens below the hips
             o_row, i_row = [], []
-            for kk in range(13):
-                ang = a0 + (a1 - a0) * kk / 12
-                flare = 1 + 0.3 * t ** 1.1 + 0.06 * t * max(0.0, math.sin(ang))
+            for kk in range(cols + 1):
+                ang = a0 + (a1 - a0) * kk / cols
                 c, s_ = math.cos(ang), math.sin(ang)
-                x = sx * math.copysign(abs(c) ** (2 / UW_SE), c) * rx * flare
-                y = cy + math.copysign(abs(s_) ** (2 / UW_SE), s_) * ry * flare + 0.05 * k * t * max(0.0, s_)
-                zr = z + (0.03 * k * t * max(0.0, -s_) if j == rows else 0.0)
-                o_row.append(Vector((x, y, zr)))
-                i_row.append(Vector((x * 0.94, cy + (y - cy) * 0.92, zr)))
+                b = bf if s_ < 0 else bb
+                fold = 1 + 0.03 * t * t * math.cos(5.0 * ang + 0.8 * sx)   # soft folds towards the hem
+                ex, ey = abs(c) ** (2 / se) * fold, math.copysign(abs(s_) ** (2 / se), s_) * fold
+                zr = z + (0.035 * k * max(0.0, -s_) ** 2 if t == 1 else 0.0)  # the fronts' corners rounded up
+                o_row.append(Vector((sx * ex * rx, cy + ey * b, zr)))
+                i_row.append(Vector((sx * ex * (rx - th), cy + ey * (b - th), zr)))
             outer_.append(o_row)
             inner_.append(i_row)
         tag = 'tail%d' % sx
         for j in range(rows):
-            for kk in range(12):
+            for kk in range(cols):
                 q = [outer_[j][kk], outer_[j + 1][kk], outer_[j + 1][kk + 1], outer_[j][kk + 1]]
                 c = sum(q, Vector()) / 4
                 _oface(mb, q, M, (c.x, c.y - cy, 0), smooth=tag)
                 q = [inner_[j][kk], inner_[j + 1][kk], inner_[j + 1][kk + 1], inner_[j][kk + 1]]
                 _oface(mb, q, M, (-c.x, cy - c.y, 0), smooth=tag + 'i')
-        for kk in range(12):
+        for kk in range(cols):
             _oface(mb, [outer_[rows][kk], inner_[rows][kk], inner_[rows][kk + 1], outer_[rows][kk + 1]], M, (0, 0, -1))
-        for kk in (0, 12):
+        for kk in (0, cols):
             for j in range(rows):
                 q = [outer_[j][kk], inner_[j][kk], inner_[j + 1][kk], outer_[j + 1][kk]]
-                mid = (outer_[j][6] + inner_[j][6]) / 2
+                mid = (outer_[j][cols // 2] + inner_[j][cols // 2]) / 2
                 _oface(mb, q, M, sum(q, Vector()) / 4 - mid)
     return mb, J
 
@@ -622,8 +706,9 @@ def underwood_pedestal():
 
 
 def underwood_statue():
-    coat, J = underwood_coat()                   # soles at z = 0
-    parts = [underwood_figure(), coat.build()]
+    legs = underwood_figure()                    # soles at z = 0
+    coat, J = underwood_coat(legs=legs)
+    parts = [legs, coat.build()]
     # head: scaled from life size so that it is H / 6.7 from the chin to the crown, the chin lifted a little
     head = underwood_head()
     vs = head.data.vertices
