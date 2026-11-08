@@ -330,44 +330,105 @@ for _pd in TENNIS['pads']:          # each block a level pad on the slope, banke
     Hn = Hn * (1 - _soft) + _pd['h'] * _soft
 print('tennis pads', [p_['h'] for p_ in TENNIS['pads']])
 
-# --- old 노천극장 (1997): bowl carved into the hillside east of the stage
-AMPH = dict(cx=160.0, cy=163.0, arena_rx=18.0, arena_ry=14.0, rows=15, row_d=1.6, row_h=0.45,
-            rot=math.radians(45))      # local -x (stage / open side) faces SW, downhill; seats climb toward 안산
+# --- old 노천극장 (1933 - 1997, reference/고증.md 3.14): grass terraces the students and staff dug into the ridge, a
+# horseshoe round a pale earth floor, open to the west onto a low stage and the walk in from the 진입 광장 (the sun set
+# behind the stage, as it does behind the new theatre built on the site in 1999).  Local frame: u east (up the middle
+# of the seats), v north.  seat_end: the horseshoe's two ends, degrees round from +u; a flight runs up beside each.
+AMPH = dict(cx=154.0, cy=160.0, arena_rx=15.0, arena_ry=15.5, rows=18, row_d=1.1, row_h=0.32, seat_end=118.0,
+            stage_u=-8.0, stage_d=12.0, stage_w=18.0, stage_h=0.8, rot=0.0)
+# The campus scatter keeps clear of this circle and the 1999 theatre's paths (OSM) are cleared inside this ellipse:
+# the bowl as first modelled (rot 45°), kept as they were so that the random layout elsewhere does not move
+AMPH_CLEAR = (160.0, 163.0, 43.0)
+AMPH_PATHS = Polygon([(160 + 43 * math.cos(a) * math.cos(math.pi / 4) - 39 * math.sin(a) * math.sin(math.pi / 4),
+                       163 + 43 * math.cos(a) * math.sin(math.pi / 4) + 39 * math.sin(a) * math.cos(math.pi / 4))
+                      for a in np.linspace(0, 2 * math.pi, 64)])
 amph_poly = None
 for wv in ways.values():
     if wv['id'] == 180788744:
         amph_poly = Polygon([xy(p) for p in wv['geometry']]).buffer(0)
-AMPH['arena_h'] = round(sample(Hn, NEAR_HALF, NEAR_STEP, AMPH['cx'], AMPH['cy']) - 0.6, 2)
+
+
+def amph_uv(x, y):
+    dx, dy = x - AMPH['cx'], y - AMPH['cy']
+    c, s = math.cos(AMPH['rot']), math.sin(AMPH['rot'])
+    return dx * c + dy * s, -dx * s + dy * c
+
+
+def amph_xy(u, v):
+    c, s = math.cos(AMPH['rot']), math.sin(AMPH['rot'])
+    return AMPH['cx'] + u * c - v * s, AMPH['cy'] + u * s + v * c
+
+
+# the stage is level with the ground behind it (the walk in from the west), the floor a stage lower
+AMPH['arena_h'] = round(sample(Hn, NEAR_HALF, NEAR_STEP, *amph_xy(AMPH['stage_u'] - AMPH['stage_d'], 0)) - AMPH['stage_h'], 2)
+AMPH_DEPTH = AMPH['rows'] * AMPH['row_d']           # the floor's edge to the rim
+
+
+def amph_d(x, y):
+    """How far out from the floor's edge (negative on the floor) and the angle round from +u (degrees, 0 - 180), as
+    blender/landmarks.py lays the rows: the point (rx + d) cos t, (ry + d) sin t."""
+    u, v = amph_uv(x, y)
+    rx, ry = AMPH['arena_rx'], AMPH['arena_ry']
+    lo, hi = 0.05 - min(rx, ry), 400.0
+    for _ in range(40):
+        d = (lo + hi) / 2
+        lo, hi = (d, hi) if (u / (rx + d)) ** 2 + (v / (ry + d)) ** 2 > 1 else (lo, d)
+    d = (lo + hi) / 2
+    return d, math.degrees(abs(math.atan2(v / (ry + d), u / (rx + d))))
 
 
 def amph_height(x, y):
-    """Terraced bowl height (continuous); used both for terrain carving and Blender."""
-    dx, dy = x - AMPH['cx'], y - AMPH['cy']
-    c, s = math.cos(-AMPH['rot']), math.sin(-AMPH['rot'])
-    u, v = dx * c - dy * s, dx * s + dy * c
-    r = math.hypot(u / AMPH['arena_rx'], v / AMPH['arena_ry'])
-    if r <= 1:
-        return AMPH['arena_h']
-    d = (r - 1) * min(AMPH['arena_rx'], AMPH['arena_ry'])
+    """The bowl's surface, continuous (the front edges of the treads): the floor, then a row up per row_d to the rim."""
+    d = min(max(amph_d(x, y)[0], 0.0), AMPH_DEPTH)
     return AMPH['arena_h'] + d / AMPH['row_d'] * AMPH['row_h']
 
-R_OUT = AMPH['rows'] * AMPH['row_d'] + max(AMPH['arena_rx'], AMPH['arena_ry'])
-# the bowl replaces the hillside (cut and fill), blending back over 30 m
+
+# The 1997 photo was taken from the slope beyond the east end of the seats, looking west over the bowl (its camera
+# fitted to the stage wall, the flights and the floor's edge: reference/고증.md 3.14.1).  Nothing stood between it and
+# the floor but a tree at the left edge of the frame: no trunk or crown in the rest of its view on this side of the rim
+AMPH_PHOTO = dict(x=211.6, y=152.4, yaw=169.7, left=15.0, right=-23.0)
+
+
+def _in_photo_view(x, y, crown=4.5):
+    dx, dy = x - AMPH_PHOTO['x'], y - AMPH_PHOTO['y']
+    dist = math.hypot(dx, dy)
+    if dist < 1.0 or dist > 32 or amph_uv(x, y)[0] < 0:
+        return False
+    off = (math.degrees(math.atan2(dy, dx)) - AMPH_PHOTO['yaw'] + 180) % 360 - 180
+    m = math.degrees(math.atan2(crown, dist))
+    return off - m < AMPH_PHOTO['left'] and off + m > AMPH_PHOTO['right']
+
+
+# the bowl replaces the hillside (cut into it on the north and east, a bank on the south), easing back past the rim.
+# The 5 m grid cannot follow the floor's edge or the rows: it stays under the floor and the treads (the walker
+# and the trees stand on the landmark mesh), dipping 0.9 m more round the floor's edge where the slope breaks
+_floor = AMPH['arena_h']
+_top = _floor + AMPH['rows'] * AMPH['row_h']
+_stage = _floor + AMPH['stage_h']
+_back = AMPH['stage_u'] - AMPH['stage_d'] - 6.0     # the level ground behind the stage ends here
+_mr = min(AMPH['arena_rx'], AMPH['arena_ry'])
 for j in range(n_near):
     for i in range(n_near):
         x, y = gx[i], gx[j]
-        dx, dy = x - AMPH['cx'], y - AMPH['cy']
-        c_, s_ = math.cos(-AMPH['rot']), math.sin(-AMPH['rot'])
-        u, v = dx * c_ - dy * s_, dx * s_ + dy * c_
-        ang = math.atan2(v / AMPH['arena_ry'], u / AMPH['arena_rx'])
-        r_el = math.hypot(u / (AMPH['arena_rx'] + AMPH['rows'] * AMPH['row_d']), v / (AMPH['arena_ry'] + AMPH['rows'] * AMPH['row_d']))
-        if r_el > 2.2:
+        u, v = amph_uv(x, y)
+        if math.hypot(u, v) > 95:
             continue
-        open_side = abs(ang) > math.radians(128)          # stage side (west): flat apron
-        hb = AMPH['arena_h'] + 0.1 if open_side else min(amph_height(x, y), AMPH['arena_h'] + AMPH['rows'] * AMPH['row_h']) - 0.25
-        t = float(np.clip((r_el - 1.0) / (0.35 if open_side else 0.9), 0, 1))
-        t = t * t * (3 - 2 * t)
-        Hn[j, i] = hb * (1 - t) + Hn[j, i] * t
+        d, ang = amph_d(x, y)
+        dip = 0.9 * _smooth(1 - abs(d) / 6.0)
+        if ang <= AMPH['seat_end']:
+            # the floor, the terraces, the path round the rim
+            h = _floor - 0.3 - dip if d <= 0 else (amph_height(x, y) - 0.3 - dip if d <= AMPH_DEPTH else _top - 0.05)
+        else:
+            # the open (west) end: the floor runs on between the stage and the seat ends; the stage and the level ground
+            # behind it; banks falling away from the flights beside the seat ends
+            h = (_floor - (0.3 + dip if d <= 0 else 0.1)) if u > AMPH['stage_u'] - 2.5 else _stage - 0.12
+            if d > 0:
+                off = math.radians(ang - AMPH['seat_end']) * (_mr + d)       # metres out from the seat end
+                h = max(h, amph_height(x, y) - 0.3 - dip - 0.6 * max(off - 1.8, 0.0))
+        t = _smooth((d - AMPH_DEPTH - 3.0) / 14.0)
+        if ang > AMPH['seat_end']:
+            t = max(t, _smooth((_back - u) / 10.0))
+        Hn[j, i] = h * (1 - t) + Hn[j, i] * t
 
 # ---------------------------------------------------------------------------
 # Buildings
@@ -1289,13 +1350,15 @@ draw_poly('pavers', court_poly(1.0))
 draw_poly('pavers', Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 1.1))         # a narrow paved ring, lawn beyond
 GARDEN_ZONES = [garden, yeonhui_garden, daewoo_garden, court_poly(2.0), Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 7)]
 
-# amphitheater arena (dirt), sports field (dirt), tree-root patches done in web shader
+# amphitheater (worn earth), sports field (dirt), tree-root patches done in web shader
 draw_poly('dirt', Point(AMPH['cx'], AMPH['cy']).buffer(1).simplify(0))
-c, s = math.cos(AMPH['rot']), math.sin(AMPH['rot'])
-ell = [(AMPH['cx'] + (AMPH['arena_rx'] + 1) * math.cos(a) * c - (AMPH['arena_ry'] + 1) * math.sin(a) * s,
-        AMPH['cy'] + (AMPH['arena_rx'] + 1) * math.cos(a) * s + (AMPH['arena_ry'] + 1) * math.sin(a) * c)
-       for a in np.linspace(0, 2 * math.pi, 48)]
-draw_poly('dirt', Polygon(ell))
+ell = [amph_xy((AMPH['arena_rx'] + 0.5) * math.cos(a), (AMPH['arena_ry'] + 0.5) * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 48)]
+# the floor, the ground round the stage and between it and the seat ends, the path round the rim
+amph_dirt = [Polygon(ell), Polygon([amph_xy(u, v) for u, v in ((_back, -15), (AMPH['stage_u'] + 1, -15), (AMPH['stage_u'] + 1, 15), (_back, 15))]),
+             Polygon([amph_xy((AMPH['arena_rx'] + AMPH_DEPTH + dd) * math.cos(a), (AMPH['arena_ry'] + AMPH_DEPTH + dd) * math.sin(a))
+                      for dd, aa in ((0.4, 1), (2.2, -1)) for a in np.radians(np.linspace(-AMPH['seat_end'], AMPH['seat_end'], 40))[::aa]])]
+for pg in amph_dirt:
+    draw_poly('dirt', pg)
 for wv in ways.values():
     t = wv.get('tags', {})
     if t.get('leisure') in ('pitch', 'track') and len(wv['geometry']) > 3:
@@ -1303,13 +1366,12 @@ for wv in ways.values():
         if pg.area > 1500:
             draw_poly('dirt', pg, 230)
 
-# the old amphitheater: no paths across the bowl
-bowl = Polygon([(AMPH['cx'] + (AMPH['arena_rx'] + AMPH['rows'] * AMPH['row_d'] + 1) * math.cos(a) * math.cos(AMPH['rot']) - (AMPH['arena_ry'] + AMPH['rows'] * AMPH['row_d'] + 1) * math.sin(a) * math.sin(AMPH['rot']),
-                  AMPH['cy'] + (AMPH['arena_rx'] + AMPH['rows'] * AMPH['row_d'] + 1) * math.cos(a) * math.sin(AMPH['rot']) + (AMPH['arena_ry'] + AMPH['rows'] * AMPH['row_d'] + 1) * math.sin(a) * math.cos(AMPH['rot'])) for a in np.linspace(0, 2 * math.pi, 64)])
-draw_poly('asphalt', bowl, 0)
-draw_poly('pavers', bowl, 0)
-draw_poly('dirt', bowl, 0)
-draw_poly('dirt', Polygon(ell))
+# the old amphitheater: no paths across the bowl (the 1999 theatre's aisles and steps)
+draw_poly('asphalt', AMPH_PATHS, 0)
+draw_poly('pavers', AMPH_PATHS, 0)
+draw_poly('dirt', AMPH_PATHS, 0)
+for pg in amph_dirt:
+    draw_poly('dirt', pg)
 # 중앙도서관 앞: lawn in the beds (over the old square and OSM's later walks), the 1997 walks paved.  The random
 # planting below still reads the paving as it was before (PAV_PRE), so that the rest of the campus keeps its draws.
 PAV_PRE = np.array(layers['pavers']) > 40
@@ -1531,7 +1593,7 @@ for k in range(60000):
                     ok = False
     if not ok or ball_buf.contains(pt) or blocked(x, y, 3.5 if in_wood else 4.5) or bcorr.contains(pt):
         continue
-    if amph_poly is not None and Point(AMPH['cx'], AMPH['cy']).distance(pt) < R_OUT + 1:
+    if amph_poly is not None and Point(*AMPH_CLEAR[:2]).distance(pt) < AMPH_CLEAR[2]:
         continue
     if any(z.contains(pt) for z in GARDEN_ZONES) or ISL.buffer(3).contains(pt) or EAST_LAWN.contains(pt) or lot_line.contains(pt) \
             or FRONT_LAWN.contains(pt):
@@ -1539,14 +1601,38 @@ for k in range(60000):
     sp = rng.choice(['pine', 'pine', 'oak', 'oak', 'zelkova']) if in_wood else rng.choice(species_campus)
     trees.append([sp, round(x, 2), round(y, 2), round(rng.uniform(0.8, 1.25), 2), round(rng.uniform(0, 6.28), 2)])
     grid_cells.setdefault(key, []).append((x, y))
-# ring of pines around the old amphitheater (as in the April 1997 photo)
-for a in np.linspace(0, 2 * math.pi, 26, endpoint=False):
-    if abs(((a - math.pi - AMPH["rot"]) + math.pi) % (2 * math.pi) - math.pi) < 0.8:
-        continue        # keep the stage side open
-    rr = R_OUT + rng.uniform(3, 8)
-    x, y = AMPH['cx'] + rr * math.cos(a), AMPH['cy'] + rr * math.sin(a)
-    if not ball_buf.contains(Point(x, y)):
-        trees.append(['pine', round(x, 2), round(y, 2), round(rng.uniform(1.0, 1.3), 2), round(rng.uniform(0, 6.28), 2)])
+# the wood round the old amphitheater (reference/1997_구노천극장_마지막모습.jpg): two rows round the rim beyond its path,
+# pines, oaks and zelkovas; behind the stage the tall narrow poplars of the photo (drawn with the narrow metasequoia,
+# the nearest shape the game has) among oaks; pines on the banks beside the seat ends.  Its own RNG: as many draws are
+# taken from rng as the ring of pines it replaced took, so that the rest of the campus keeps its layout
+for _ in range(57):
+    rng.random()
+rng_a = random.Random(1933)
+_near_halls = unary_union([Polygon(b['footprint']) for b in buildings
+                           if Point(AMPH['cx'], AMPH['cy']).distance(Polygon(b['footprint'])) < 80]).buffer(3.0)
+
+
+def _amph_tree(sp, x, y, sc):
+    if not _near_halls.contains(Point(x, y)) and not blocked(x, y, 1.5):
+        trees.append([sp, round(x, 2), round(y, 2), round(sc, 2), round(rng_a.uniform(0, 6.28), 2)])
+
+
+trees = [t for t in trees if not (amph_d(t[1], t[2])[0] < AMPH_DEPTH + 2.6 and amph_d(t[1], t[2])[1] <= AMPH['seat_end'] + 6)]
+for dd, step, ph in ((4.5, 7.0, 0.0), (10.5, 7.5, 0.5)):
+    Ru, Rv, a_lim = AMPH['arena_rx'] + AMPH_DEPTH + dd, AMPH['arena_ry'] + AMPH_DEPTH + dd, AMPH['seat_end'] + 12
+    n = int(math.radians(2 * a_lim) * (Ru + Rv) / 2 / step)
+    for k in range(n + (ph == 0)):
+        a = math.radians(-a_lim + 2 * a_lim * (k + ph + rng_a.uniform(-0.25, 0.25)) / n)
+        x, y = amph_xy((Ru + rng_a.uniform(-1.5, 1.5)) * math.cos(a), (Rv + rng_a.uniform(-1.5, 1.5)) * math.sin(a))
+        _amph_tree(rng_a.choice(['pine'] * 4 + ['oak'] * 3 + ['zelkova'] * 3), x, y, rng_a.uniform(0.9, 1.25))
+for sp, u, v, sc in (('oak', -25.0, -13.0, 1.15), ('metasequoia', -25.5, -4.0, 1.4), ('metasequoia', -27.5, 3.5, 1.5),
+                     ('metasequoia', -25.5, 9.5, 1.35), ('zelkova', -26.0, 16.5, 1.1), ('oak', -33.0, -9.0, 1.1),
+                     ('oak', -32.0, 6.0, 1.15), ('oak', -34.0, 17.0, 1.0), ('zelkova', -33.5, -19.0, 1.1),
+                     ('pine', -23.0, -17.0, 1.1), ('zelkova', -23.5, -10.0, 1.15), ('pine', -23.0, 15.0, 1.05),
+                     ('oak', -30.5, 0.0, 1.2), ('oak', -31.0, -15.5, 1.1), ('pine', -30.0, 12.0, 1.1),
+                     ('pine', -20.0, 18.0, 1.0), ('pine', -24.5, 23.0, 1.1), ('pine', -20.0, -18.0, 1.05), ('pine', -24.5, -23.0, 1.0),
+                     ('oak', -21.0, -30.5, 1.15), ('zelkova', -29.0, -24.0, 1.1), ('oak', -21.0, 30.5, 1.1)):
+    _amph_tree(sp, *amph_xy(u + rng_a.uniform(-0.8, 0.8), v + rng_a.uniform(-0.8, 0.8)), sc)
 
 # 1997's lawn trees were young.  Measured in the 1997 aerial photo (crown tops above the trunks through its fitted
 # camera) the scattered zelkovas, pines and cherries between the gate and 중앙도서관 stand at about 2/3 of the
@@ -2188,6 +2274,9 @@ _pz = Polygon([(40, 150), (100, 140), (110, 185), (55, 195)]).buffer(2).exterior
 _q = _pz.interpolate(_pz.project(Point(110, 160)))
 _o = np.array([110 - _q.x, 160 - _q.y]) / _q.distance(Point(110, 160))
 P('bench', _q.x + _o[0] * 0.4, _q.y + _o[1] * 0.4, math.atan2(-_o[1], -_o[0]))
+# the old amphitheater: a lamp at each end of the stage, by the foot of the flight up the seat end (the 1997 photo)
+for _sv in (-1, 1):
+    P('lamp_double', *amph_xy(AMPH['stage_u'] - 1.0, _sv * (AMPH['stage_w'] / 2 + 0.8)), AMPH['rot'])
 # 백양관: against its east wall by the south-east corner, looking out over the apron towards 백양로 (it stood across
 # the apron)
 _bk = Polygon(next(b for b in buildings if b['name'] == '백양관')['footprint']).exterior
@@ -2343,6 +2432,9 @@ trees = [t for t in trees if not on_carriageway(t[1], t[2])]
 shrubs = [t for t in shrubs if not on_carriageway(t[1], t[2])]
 print('removed from carriageway (props, cars, trees, shrubs):',
       n0[0] - len(props), n0[1] - len(cars), n0[2] - len(trees), n0[3] - len(shrubs))
+# ... nor in the 1997 photo's view over the old amphitheater
+trees = [t for t in trees if not _in_photo_view(t[1], t[2])]
+shrubs = [t for t in shrubs if not _in_photo_view(t[1], t[2], 1.0)]
 # ... nor on 언더우드관 정원's south steps (UW_STEPS); then the planting of their banks and beds (the 2003 spring photo):
 # clipped round shrubs on the banks in two staggered rows, a border of pansies along their top, and in the raised beds
 # either side of the upper flight a clipped shrub and pansies along the front
@@ -2612,7 +2704,7 @@ def decal_spots():
     trunk = [LineString(p_['pts']).buffer(p_['w'] / 2 + 3.0) for p_ in paths_out
              if p_['kind'] in ('primary', 'primary_link', 'secondary', 'busway') and len(p_['pts']) > 1]
     banned = unary_union([ball.buffer(0.4), _ez, court_poly(1.0), Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 2.0),
-                          bowl.buffer(2.0)] + [l_.buffer(2.0) for l_ in steps] + city + trunk)
+                          AMPH_PATHS.buffer(2.0)] + [l_.buffer(2.0) for l_ in steps] + city + trunk)
     shapely.prepare(banned)
     road_c = bline.buffer(ROAD_HALF + 1.0)
     shapely.prepare(road_c)

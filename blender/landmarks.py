@@ -2710,49 +2710,90 @@ def hanok():
     return [mb]
 
 
-# ============================================================================= 구 노천극장 (1997)
+# ============================================================================= 구 노천극장 (1933 - 1997)
 def amphitheater():
+    """The old 노천극장 in its last photo (reference/1997_구노천극장_마지막모습.jpg, April 1997; reference/고증.md 3.14):
+    grass terraces round a pale earth floor, a thin line of stone along the top of each grass riser, a stone kerb
+    round the floor and a dashed ring of stones laid in it; at the open west end a low stage of the same earth behind
+    a straight dark stone wall, and a flight of steps up beside each end of the seats (two to a row).  In the local
+    frame of tools/build_campus.py AMPH (u east, v north).  All of it is walked on (web/src/main.js)."""
     A = CAMPUS['amphitheater']
     mb = MeshBuilder('lm_amphitheater')
     mb.xf = local_frame(A['cx'], A['cy'], A['rot'], 0)
-    rx, ry = A['arena_rx'], A['arena_ry']
-    h0 = A['arena_h']
-    nseg = 56
-    a0, a1 = math.radians(-128), math.radians(128)
-    # arena floor (dirt) – full ellipse
-    pts = [(rx * math.cos(2 * math.pi * i / 48), ry * math.sin(2 * math.pi * i / 48)) for i in range(48)]
-    mb.face([(x, y, h0 + 0.02) for x, y in pts], 'dirt')
-    from common import ground
-    cA, sA = math.cos(A['rot']), math.sin(A['rot'])
+    rx, ry, h0 = A['arena_rx'], A['arena_ry'], A['arena_h']
+    rows, rd, rh = A['rows'], A['row_d'], A['row_h']
+    te = math.radians(A['seat_end'])
+    nseg = 80
 
     def E(t, d):
         return ((rx + d) * math.cos(t), (ry + d) * math.sin(t))
 
-    def gz(p):
-        # world ground at a local point -> rows never stand proud of the hillside
-        wx = A['cx'] + p[0] * cA - p[1] * sA
-        wy = A['cy'] + p[0] * sA + p[1] * cA
-        return ground(wx, wy) + 0.03
-
-    def zrow(r, p):
-        return h0 + r * A['row_h']
-    for r in range(A['rows']):
-        d0, d1 = r * A['row_d'], (r + 1) * A['row_d']
+    def T(i, n=nseg):
+        return -te + 2 * te * i / n
+    # the floor, a skirt under its edge where the ground beyond is lower (the open end)
+    ring = [E(2 * math.pi * i / 72, 0) for i in range(72)]
+    mb.face([(x, y, h0 + 0.02) for x, y in ring], 'dirt_pale')
+    for i in range(72):
+        a, b = ring[i], ring[(i + 1) % 72]
+        mb.quad((*a, h0 - 1.4), (*b, h0 - 1.4), (*b, h0 + 0.02), (*a, h0 + 0.02), 'dirt_pale')
+    # the kerb along the foot of the seats, and the ring of stones 1.5 m in from it
+    for i in range(nseg):
+        t0, t1 = T(i), T(i + 1)
+        a0, a1, b0, b1 = E(t0, -0.3), E(t1, -0.3), E(t0, 0.0), E(t1, 0.0)
+        mb.quad((*a1, h0 + 0.12), (*a0, h0 + 0.12), (*b0, h0 + 0.12), (*b1, h0 + 0.12), 'stone_marker')
+        mb.quad((*a1, h0 + 0.02), (*a0, h0 + 0.02), (*a0, h0 + 0.12), (*a1, h0 + 0.12), 'stone_marker')
+        for k in range(2):
+            s0, s1 = t0 + (t1 - t0) * (k * 0.5 + 0.08), t0 + (t1 - t0) * (k * 0.5 + 0.42)
+            c0, c1, e0, e1 = E(s0, -1.75), E(s1, -1.75), E(s0, -1.5), E(s1, -1.5)
+            mb.quad((*c1, h0 + 0.035), (*c0, h0 + 0.035), (*e0, h0 + 0.035), (*e1, h0 + 0.035), 'concrete_dark')
+    # the terraces: a grass bank, a thin stone face at its top (seen only from across the bowl, as in the photo; from
+    # above the seats are all grass), then the grass tread back to the next bank
+    for r in range(rows):
+        d0, d1 = r * rd, (r + 1) * rd
+        z0, z1 = h0 + r * rh, h0 + (r + 1) * rh
+        prof = [(d0, max(z0, h0 + 0.12)), (d0 + 0.3, z1 - 0.1), (d0 + 0.3, z1), (d1, z1)]
+        mats = ('grass', 'stone_marker', 'grass')
         for i in range(nseg):
-            t0 = a0 + (a1 - a0) * i / nseg
-            t1 = a0 + (a1 - a0) * (i + 1) / nseg
-            p00, p01 = E(t0, d0), E(t1, d0)
-            p10, p11 = E(t0, d1), E(t1, d1)
-            z00, z01 = zrow(r, p00), zrow(r, p01)
-            z10, z11 = zrow(r + 1, p10), zrow(r + 1, p11)
-            zb00, zb01 = zrow(r + 1, p00), zrow(r + 1, p01)
-            # riser (stone edge) then grass tread
-            if zb00 - z00 > 0.02 or zb01 - z01 > 0.02:
-                mb.quad((*p01, z01), (*p00, z00), (*p00, zb00), (*p01, zb01), 'concrete_dark')
-            mb.quad((*p01, zb01), (*p00, zb00), (*p10, z10), (*p11, z11), 'grass')
-    # simple stage at the open (west) side
-    sx = -rx - 4.0
-    mb.box((sx, 0, h0 + 0.05), (6.0, 14.0, 1.1), 'concrete', mats={'top': 'wood_dark'})
+            t0, t1 = T(i), T(i + 1)
+            for k in range(3):
+                (da, za), (db, zb) = prof[k], prof[k + 1]
+                mb.quad((*E(t1, da), za), (*E(t0, da), za), (*E(t0, db), zb), (*E(t1, db), zb), mats[k])
+        # the row's end, facing the flight beside it
+        for sg in (-1, 1):
+            end = [(d0, z0 - 0.45), (d1, z0 - 0.45), (d1, z1), (d0 + 0.3, z1), prof[0]]
+            pts = [(*E(sg * te, d), z) for d, z in end]
+            mb.face(pts[::-1] if sg > 0 else pts, 'grass')
+    # a flight up beside each end of the seats, two steps to a row, a stone cheek wall along its outer side
+    W, D = 1.6, rows * rd
+    for sg in (-1, 1):
+        t = sg * te
+        n = (-sg * math.sin(t), sg * math.cos(t))           # out from the seat end, toward the open end
+
+        def P(d, o, z):
+            p = E(t, d)
+            return (p[0] + n[0] * o, p[1] + n[1] * o, z)
+        for k in range(2 * rows):
+            da, db = k * rd / 2, (k + 1) * rd / 2
+            za, zb = h0 + k * rh / 2, h0 + (k + 1) * rh / 2
+            q = [P(da, 0.05, za), P(da, W, za), P(da, W, zb), P(da, 0.05, zb)]
+            mb.face(q[::-1] if sg > 0 else q, 'stone_step')
+            q = [P(da, 0.05, zb), P(da, W, zb), P(db, W, zb), P(db, 0.05, zb)]
+            mb.face(q[::-1] if sg > 0 else q, 'stone_step')
+        top = lambda d: h0 + d / rd * rh + 0.3
+        o0, o1 = W, W + 0.25
+        side = [(P(0, o, top(0)), P(D, o, top(D)), P(D, o, top(D) - 1.6), P(0, o, top(0) - 1.6)) for o in (o0, o1)]
+        mb.face(side[0][::-1] if sg > 0 else side[0], 'stone_rubble_gray')
+        mb.face(side[1] if sg > 0 else side[1][::-1], 'stone_rubble_gray')
+        q = [P(0, o0, top(0)), P(0, o1, top(0)), P(D, o1, top(D)), P(D, o0, top(D))]
+        mb.face(q[::-1] if sg > 0 else q, 'stone_marker')
+        for d in (0, D):
+            q = [P(d, o0, top(d) - 1.6), P(d, o1, top(d) - 1.6), P(d, o1, top(d)), P(d, o0, top(d))]
+            mb.face(q[::-1] if (d == 0) == (sg > 0) else q, 'stone_rubble_gray')
+    # the stage: the same earth, level with the ground behind it, a dark stone wall along its straight front
+    su, sd, sw, sh = A['stage_u'], A['stage_d'], A['stage_w'], A['stage_h']
+    mb.box((su - sd / 2, 0, h0 + (sh - 0.4) / 2), (sd, sw, sh + 0.4), 'stone_rubble_brown', mats={'top': 'dirt_pale'},
+           skip=('bottom',))
+    mb.box((su - 0.15, 0, h0 + sh + 0.03), (0.34, sw + 0.04, 0.08), 'stone_marker', skip=('bottom',))
     return [mb]
 
 

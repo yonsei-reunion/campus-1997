@@ -275,6 +275,17 @@
   ],
   "rough": 1.0
  },
+ "dirt_pale": {
+  "tex": "raked_dirt",
+  "tile": 5.0,
+  "tint": [
+   3.3,
+   3.2,
+   3.0
+  ],
+  "sat": 0.35,
+  "rough": 1.0
+ },
  "bark": {
   "tex": "bark_brown_02",
   "tile": 1.6,
