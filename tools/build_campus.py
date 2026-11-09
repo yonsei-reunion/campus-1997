@@ -854,6 +854,102 @@ FIXED[_ew > 0.999] = True
 print('eagle precinct level', round(EAGLE_LEVEL, 2))
 
 
+# --- 백주년기념관 앞 테라스 (reference/고증.md 3.4; Kakao roadview 2010-12 1016785999 · 1016786000 · 1016786002 ·
+# 1016786003, 2008-08 2381242 · 2381245, headings and positions solved from the eagle, 활천대 and the hall's north-west
+# corner).  From the paved apron behind the sidewalk's ginkgo row three granite flights climb to the museum porch,
+# symmetric about its doors (s 21.9): six risers (five north of the doors' axis), a 5.4 m landing, five risers between
+# two clipped-shrub planters, a 4.3 m landing, five risers between two more planters, then the porch's own level
+# 9.7 m out from the face.  Risers 0.147 m (sixteen in all), so the foot is 2.35 m under the porch floor (museum_porch
+# zf, kept): the apron falls from the sidewalk to the foot.  South of the flights a dressed granite retaining wall at
+# the foot line (its coping at the first landing, lawn on it), north a low planter box on the apron and a planter wall
+# beside the first landing.  The face frame: s along the 백양로 face from its north-west corner (south), d out of it.
+_ct0 = np.array([-11.05, -181.26])
+CT_T = np.array([-28.82 + 11.05, -256.68 + 181.26]) / math.hypot(-28.82 + 11.05, -256.68 + 181.26)
+CT_N = np.array([CT_T[1], -CT_T[0]])                         # out of the face (west, towards 백양로)
+
+
+def ct_xy(s, d):
+    return [round(float(v), 3) for v in _ct0 + CT_T * s + CT_N * d]
+
+
+def ct_sidewalk(s, d=33.0):
+    """the sidewalk's top (blender/road.py WZ) across from face s"""
+    return prof_h(s_at(*ct_xy(s, d))) + 0.15
+
+
+CTS = (X - _ct0[0]) * CT_T[0] + (Y - _ct0[1]) * CT_T[1]
+CTD = (X - _ct0[0]) * CT_N[0] + (Y - _ct0[1]) * CT_N[1]
+_ctr, _ctt = 0.147, 0.36
+_ctp = corner_level(324328422) + 2.6                          # the porch floor (blender/landmarks.py museum_porch zf)
+_ctl2 = _ctp - 5 * _ctr
+_ctl1 = _ctl2 - 5 * _ctr
+_ctf = _ctl1 - 6 * _ctr                                      # the foot (south of the doors' axis)
+CT_FOOT_D, CT_MID_D, CT_UP_D = 24.0, 16.8, 11.1               # the first riser of each flight, m out of the face
+CT_SC = 21.9                                                 # the doors' axis (CENT_MUSEUM s)
+CENT_TERRACE = dict(
+    o=[float(v) for v in _ct0], t=[round(float(v), 5) for v in CT_T], n=[round(float(v), 5) for v in CT_N],
+    rise=_ctr, tread=_ctt, porch=round(_ctp, 3), l1=round(_ctl1, 3), l2=round(_ctl2, 3), foot=round(_ctf, 3),
+    # flights: s range, d of the first riser, risers, the level at the foot; 'low' the s range of the lowest riser
+    flights=[dict(name='lower', s0=8.8, s1=35.2, d0=CT_FOOT_D, n=6, z0=round(_ctf, 3), low=[CT_SC, 35.2]),
+             dict(name='middle', s0=10.3, s1=35.2, d0=CT_MID_D, n=5, z0=round(_ctl1, 3)),
+             dict(name='upper', s0=9.6, s1=35.2, d0=CT_UP_D, n=5, z0=round(_ctl2, 3))],
+    # the planters on the middle and upper flights (s ranges), from the flight's foot to its head (a wedge narrowing
+    # towards the doors: the upper ones stand 0.8 m nearer the axis)
+    planters=[dict(f=1, s=[13.2, 15.6]), dict(f=1, s=[28.2, 30.6]), dict(f=2, s=[14.4, 16.2]), dict(f=2, s=[27.6, 29.4])],
+    box=dict(s=[6.8, 8.8], d=[23.0, 25.5], h=0.6),             # the planter box on the apron at the north end
+    bed=dict(s=[2.2, 10.3], d=[17.0, 22.0], h=round(_ctl2 - _ctl1 + 0.3, 3)),   # the planter wall beside the first landing
+    wall=[dict(s0=35.2, s1=53.0, top=round(_ctl1 + 0.08, 3)), dict(s0=53.0, s1=70.0, top=round(_ctl1 - 0.3, 3))],
+)
+# the apron: sections every metre from the walk's outer edge (in front of the flights the planting strip gives way to
+# paving and tree pits; elsewhere from the strip's back edge) to the foot line, falling to the foot's level (south of
+# the flights the wall's foot, never over the sidewalk); (s, [[d, z] ...])
+CT_PAVED_S = (2.0, 37.0)                                     # no planting strip: the ginkgos stand in pits
+_ap = []
+for _s in np.arange(2.0, 70.01, 1.0):
+    _xy0 = ct_xy(_s, 33.0)
+    _sr = s_at(*_xy0)
+    _de = bline.distance(Point(*ct_xy(_s, 0.0)))                # the face's distance from 백양로's centre line
+    _dout = _de - (E_WALK if CT_PAVED_S[0] <= _s <= CT_PAVED_S[1] else ROAD_HALF)
+    _zs = prof_h(_sr) + 0.15
+    if _s < 8.8:
+        _din, _zf = CT_FOOT_D - _ctt, _ctf + _ctr
+    elif _s <= 35.2:
+        _din, _zf = CT_FOOT_D, (_ctf if _s >= CT_SC + 0.5 else _ctf + _ctr * float(np.clip(CT_SC + 0.5 - _s, 0, 1)))
+    else:
+        _din, _zf = CT_FOOT_D, min(_ctf, _zs)
+    _ap.append([round(float(_s), 2), [[round(float(_dout), 3), round(_zs, 3)], [round(float(_dout) - 0.8, 3), round(_zs - 0.02, 3)],
+                                      [round(_din, 3), round(_zf, 3)]]])
+CENT_TERRACE['apron'] = _ap
+# the ground under the apron and the flights below their surfaces; the lawns south and north of the flights on the
+# first landing's level, rising towards the face (2010 roadview: from the wall's coping to the porch's level by the
+# cylinder), easing back by the drum's foot
+_cta = (CTS > 1.5) & (CTS < 70.5) & (CTD > 0.5) & (CTD < 36.0) & (dist > E_WALK + 0.1)
+_ctzs = np.full(X.shape, np.nan)
+for _s, _sec in _ap:
+    _m = _cta & (np.abs(CTS - _s) <= 0.5) & (CTD >= _sec[2][0]) & (CTD <= _sec[0][0] + 2.0)
+    _ctzs[_m] = np.interp(CTD[_m], [_sec[2][0], _sec[1][0], _sec[0][0]], [_sec[2][1], _sec[1][1], _sec[0][1]])
+_m = ~np.isnan(_ctzs)
+Hn[_m] = np.minimum(Hn[_m], _ctzs[_m] - 0.12)
+FIXED[_m] = True
+_cst = _cta & (CTS > 1.5) & (CTS < 36.0) & (CTD < CT_FOOT_D + 0.3) & (CTD > 0.5)       # the flights, landings, beds
+_cst &= (CTS > 8.0) | (CTD > 16.5)
+_ctzc = np.where(CTD > CT_MID_D + 2.0, _ctf, np.where(CTD > CT_UP_D + 2.0, _ctl1, np.where(CTD > 7.0, _ctl2, _ctp)))
+Hn[_cst] = np.minimum(Hn[_cst], _ctzc[_cst] - 0.4)
+FIXED[_cst] = True
+_lw = lambda d_: _ctl1 + (_ctp - 0.3 - _ctl1) * np.clip((CT_FOOT_D - d_) / (CT_FOOT_D - 2.0), 0, 1)
+# (on up to the face and in under the hall, whose walls go down past it, so the lawn meets them level; not under the
+# drum's glazed foot)
+_ls = (CTS >= 36.0) & (CTS < 66.0) & (CTD < CT_FOOT_D - 0.4) & ((CTD > 0.5) | ((CTD > -6.0) & (CTS < 50.0)))
+_lsw = np.clip((60.0 - CTS) / 8.0, 0, 1)
+Hn[_ls] = Hn[_ls] * (1 - _lsw[_ls]) + _lw(CTD[_ls]) * _lsw[_ls]
+FIXED[_ls] = True
+_ln = (CTS > 1.5) & (CTS < 8.0) & (CTD < 16.5) & (CTD > -6.0)                           # (behind the bed)
+Hn[_ln] = _ctl1 + 0.5 + (_ctl2 - _ctl1 - 0.5) * np.clip((16.5 - CTD[_ln]) / 14.5, 0, 1)
+FIXED[_ln] = True
+print('백주년기념관 앞 테라스: foot %.2f, landings %.2f / %.2f, porch %.2f (sidewalk %.2f .. %.2f)' % (
+    _ctf, _ctl1, _ctl2, _ctp, ct_sidewalk(35.0), ct_sidewalk(8.8)))
+
+
 # --- 백양로 끝 계단 (reference/고증.md 3.18; 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg, Kakao roadview 2008-08 /
 # 2010-12 / 2011-04 / 2026, Kakao skyview).  백양로 ended at the 삼거리 at the foot of a bank, where the drives to 핀슨관 (west)
 # and 노천극장 (east) branch off; the steps go up the bank from the road to the paved square before 언더우드관 정원,
@@ -4095,6 +4191,8 @@ for _sd, _s in ((-1, 234.5), (-1, 375.5), (-1, 377.7), (-1, 379.9)):
     _n = math.hypot(_tx, _ty)
     _o = _sd * (ROAD['median'] + ROAD['lane'] + 0.4)
     P('bollard', _p.x - _ty / _n * _o, _p.y + _tx / _n * _o, 0.0)
+# (and before 백주년기념관's flights: paving and tree pits instead of the strip, CENT_TERRACE)
+out['baekyangro']['walls'].append([-1, round(s_at(*ct_xy(CT_PAVED_S[1], 33.0)), 2), round(s_at(*ct_xy(CT_PAVED_S[0], 33.0)), 2)])
 out['aud_bank'] = {k: v for k, v in AUD_BANK.items()}
 out['aud_flight'] = AUD_FLIGHT                # (blender/landmarks.py aud_flight)
 out['pave'] = PAVE                            # paving kinds in ground_dry.png's G and B (web/src/terrain.js)
@@ -4513,6 +4611,39 @@ print('스팀슨관 south: cleared (trees, shrubs, props)', _n0[0] - len(trees),
       '- bed shrubs', len(_sbp))
 # the photo's red car on the east lawn (LOT_C): the web app paints car i in PARKED_COLORS[(c * 7 + i) % 13], 6 = red
 cars = [c[:4] + [(2 * (6 - i)) % 13] if c[4] == 'red' else c for i, c in enumerate(cars)]
+# 백주년기념관 앞 테라스 (CENT_TERRACE above; after every planting, so nothing else moves): before the flights the
+# ginkgos stand in round pits in the paving 1.7 m behind the strip's line (2010 roadview: two of them triangulated at
+# d 30.3 and 30.7), the strip's hedge goes; clipped shrubs fill the planters
+
+
+def ct_sd(x, y):
+    q = np.array([x, y]) - _ct0
+    return float(q @ CT_T), float(q @ CT_N)
+
+
+CT_PIT_D = 30.5
+CENT_TERRACE['pits'] = []
+for _t in trees:
+    _s, _d = ct_sd(_t[1], _t[2])
+    if _t[0] == 'ginkgo' and CT_PAVED_S[0] <= _s <= CT_PAVED_S[1] and 28.0 < _d < 36.0:
+        _t[1], _t[2] = ct_xy(_s, CT_PIT_D)[0], ct_xy(_s, CT_PIT_D)[1]
+        CENT_TERRACE['pits'].append(ct_xy(_s, CT_PIT_D)[:2])
+shrubs = [_b for _b in shrubs if not (_b[0] == 'hedge_low' and CT_PAVED_S[0] - 0.5 <= ct_sd(_b[1], _b[2])[0] <= CT_PAVED_S[1] + 0.5
+                                       and 28.0 < ct_sd(_b[1], _b[2])[1] < 36.0)]
+_ang = round(math.atan2(CT_T[1], CT_T[0]), 3)
+_angn = round(math.atan2(CT_N[1], CT_N[0]), 3)              # (hedge pieces along the flight: clear of the steps' zones)
+for _p in CENT_TERRACE['planters']:
+    _f = CENT_TERRACE['flights'][_p['f']]
+    _d1 = _f['d0'] - (_f['n'] - 1) * _ctt
+    for _dd in np.arange(_f['d0'] - 0.55, _d1 + 0.1, -0.9):
+        for _ss in np.arange(_p['s'][0] + 0.5, _p['s'][1] - 0.5 + 1e-6, 0.65):
+            shrubs.append(['hedge_low', *ct_xy(float(_ss), float(_dd))[:2], 0.85, _angn])
+for _lo, _hi, _ds in ((CENT_TERRACE['box']['s'], CENT_TERRACE['box']['d'], 0.7),
+                      (CENT_TERRACE['bed']['s'], CENT_TERRACE['bed']['d'], 0.9)):
+    for _dd in np.arange(_hi[1] - 0.6, _hi[0] + 0.3, -_ds):           # (clear of the lower flight's zone)
+        for _ss in np.arange(_lo[0] + 0.6, _lo[1] - 0.5, _ds):
+            shrubs.append(['hedge_low', *ct_xy(float(_ss), float(_dd))[:2], 0.9, _ang])
+out['centennial_terrace'] = CENT_TERRACE
 out.update(trees=trees, shrubs=shrubs, props=props, cars=cars)
 
 
@@ -4554,6 +4685,10 @@ _gyc, _gyt, _gyn = np.array([30.29, 348.78]), np.array([-0.969, 0.248]), np.arra
 _ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES]
         + [Polygon([tuple(_bkc + BK_T * u + BK_N * v) for u, v in ((-4.5, 0.0), (4.5, 0.0), (4.5, 7.1), (-4.5, 7.1))])]
         + [Polygon([tuple(_gyc + _gyt * u + _gyn * v) for u, v in ((-2.6, 8.4), (2.6, 8.4), (2.6, 12.6), (-2.6, 12.6))])], _gp)
+# 백주년기념관 앞 테라스 (CENT_TERRACE): the apron paved out to the sidewalk, and under the flights, landings and the
+# porch's level to just inside their side walls and the retaining wall (so no kerb runs along them)
+_ypaint([Polygon([ct_xy(s_, sec_[0][0] + 0.3)[:2] for s_, sec_ in _ap] + [ct_xy(s_, sec_[2][0] - 0.25)[:2] for s_, sec_ in _ap[::-1]]),
+         Polygon([ct_xy(s_, d_)[:2] for s_, d_ in ((8.6, CT_FOOT_D + 0.1), (35.35, CT_FOOT_D + 0.1), (35.35, 0.3), (8.6, 0.3))])], _gp)
 # 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'

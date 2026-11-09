@@ -669,7 +669,7 @@ def centennial():
     sh.box((0, 0, HD + 6.5 + 0.45), (14.4, 12.4, 0.9), 'stone_ashlar', skip=('bottom',))
     sh.face([(-3.0, -6.03, HD + 3.0), (3.0, -6.03, HD + 3.0), (3.0, -6.03, HD + 4.2), (-3.0, -6.03, HD + 4.2)], 'glass')
     sh.box((4.5, 3.0, HD + 8.0), (3.0, 3.0, 2.2), 'concrete', mats={'top': 'roof_flat'})
-    out = [mb, sh, museum_porch(tuple(X_n), tuple(X_s), z0, HR, PD), north_box(fp[0], fp[1], fp[2], z0, HB)]
+    out = [mb, sh, museum_porch(tuple(X_n), tuple(X_s), z0, HR, PD), north_box(fp[0], fp[1], fp[2], z0, HB)] + centennial_terrace()
     # the low front block before the podium's south-west corner (tools/build_campus.py CENT_BLOCK, issue #9)
     if K:
         bk = MeshBuilder('lm_centennial_block')
@@ -838,12 +838,181 @@ def museum_porch(A, B, z0, HR, PD):
         zk = zf + k * 1.2
         if not zb0 - 0.2 < zk < zb1 + 0.2:
             mb.cylinder((cx, cy), 2.62, z0 + zk, z0 + zk + 0.04, 'stone_ashlar', seg=28, cap_top=False)
-    # the flight: as wide as the entrance, granite side walls, down to the forecourt
-    mb.xf = Matrix.Translation(Vector(P((S0 + S1) / 2, zf, 0.2))) @ Matrix.Rotation(ang, 4, 'Z')
-    stair_flight(mb, 0.0, 0.0, S1 - S0 - 2.0, 0.0, landing=1.4, tread=0.36, flare=0.6, cheek=0.5, cheek_mat='stone_granite',
-                 gfn=local_ground(mb), mat='stone_step', maxrise=0.16)
-    mb.xf = Matrix.Identity(4)
+    # the flights down to 백양로: the terrace before the face (centennial_terrace; before it, one flight as wide as the
+    # entrance down to the forecourt)
+    if not CAMPUS.get('centennial_terrace'):
+        mb.xf = Matrix.Translation(Vector(P((S0 + S1) / 2, zf, 0.2))) @ Matrix.Rotation(ang, 4, 'Z')
+        stair_flight(mb, 0.0, 0.0, S1 - S0 - 2.0, 0.0, landing=1.4, tread=0.36, flare=0.6, cheek=0.5, cheek_mat='stone_granite',
+                     gfn=local_ground(mb), mat='stone_step', maxrise=0.16)
+        mb.xf = Matrix.Identity(4)
     return mb
+
+
+def centennial_terrace():
+    """The terrace before 백주년기념관's 백양로 face (tools/build_campus.py CENT_TERRACE; Kakao roadview 2008-08 ·
+    2010-12, reference/고증.md 3.4): from the paved apron behind the sidewalk's ginkgo row (the trees in round pits with
+    a low kerb) three broad granite flights up to the museum porch's level -- six risers (five north of the doors' axis),
+    a deep landing, five between two planters of clipped shrubs, a landing, five more between two planters -- with
+    coped granite side walls; south of them a dressed granite retaining wall along the apron (its coping at the first
+    landing, the lawn on it), north a low planter box on the apron and a tall planter bed beside the first landing.
+    Laid out in the face frame: s along the face from its north-west corner (south), d out of it (west)."""
+    T = CAMPUS.get('centennial_terrace')
+    if not T:
+        return []
+    o, tv, nv = Vector((*T['o'], 0.0)), Vector((*T['t'], 0.0)), Vector((*T['n'], 0.0))
+    P = lambda s, d, z: tuple(o + tv * s + nv * d + Vector((0.0, 0.0, z)))
+    r, t = T['rise'], T['tread']
+    mb = MeshBuilder('lm_centennial_terrace')
+    G, TRIM, STEP = 'stone_granite', 'stone_trim', 'stone_step'
+
+    def block(sd, zt, zb, top, side, walk=False, cells=False):
+        """a solid block on the (s, d) quad sd (any winding), its top at zt (one value or four), sides down to zb"""
+        zt = list(zt) if isinstance(zt, (list, tuple)) else [zt] * 4
+        q = [P(s, d, z) for (s, d), z in zip(sd, zt)]
+        if _area2([Vector(c) for c in q]) < 0:
+            q = q[::-1]
+        if cells:
+            uw_block(mb, q, zb, top, side, walk=walk)
+            return
+        oface(mb, q, top, (0, 0, 1))
+        for a, b in zip(q, q[1:] + q[:1]):
+            oface(mb, [(a[0], a[1], zb), (b[0], b[1], zb), (b[0], b[1], b[2]), (a[0], a[1], a[2])], side, (b[1] - a[1], a[0] - b[0], 0))
+        if walk:
+            WALK_FACES.append(q)
+
+    def ramp(s0, s1, d0, z0, d1, z1):
+        WALK_FACES.append([P(s0, d0, z0), P(s1, d0, z0), P(s1, d1, z1), P(s0, d1, z1)])
+
+    def zone(s0, s1, d_top, d_foot):
+        """the flight's zone for the web app (main.js clearEntrances): origin at its head, u along the face, v down it"""
+        c = Vector(P((s0 + s1) / 2, d_top, 0.0))
+        ENTRANCES.append(dict(o=[round(c.x, 2), round(c.y, 2)], u=[round(tv.x, 4), round(tv.y, 4)], v=[round(nv.x, 4), round(nv.y, 4)],
+                              hw=round((s1 - s0) / 2, 2), len=round(d_foot - d_top + 0.6, 2)))
+    F = T['flights']
+    pl = T['planters']
+    for fi, f in enumerate(F):
+        s0, s1, d0, n, z0 = f['s0'], f['s1'], f['d0'], f['n'], f['z0']
+        d_top = d0 - (n - 1) * t
+        for k in range(1, n + 1):
+            a, b = (f['low'] if (k == 1 and f.get('low')) else (s0, s1))
+            dk = d0 - (k - 1) * t
+            dd = t if k == n else t + 0.03                                    # (the top one meets the landing)
+            block([(a, dk), (b, dk), (b, dk - dd), (a, dk - dd)], z0 + k * r, z0 - 0.8, STEP, STEP)
+        # its walked surface (north of the doors' axis the lower flight starts a riser up) and its zones between the
+        # planters
+        if f.get('low'):
+            lo0 = f['low'][0]
+            ramp(lo0, s1, d0, z0, d_top, z0 + n * r)
+            ramp(s0, lo0, d0 - t, z0 + r, d_top, z0 + n * r)
+        else:
+            ramp(s0, s1, d0, z0, d_top, z0 + n * r)
+        ramp(s0, s1, d_top, z0 + n * r, d_top - t - 0.02, z0 + n * r)       # (its top tread, up to the landing)
+        cuts = sorted(p['s'] for p in pl if p['f'] == fi)
+        edges = [s0] + [v for c in cuts for v in c] + [s1]
+        for a, b in zip(edges[::2], edges[1::2]):
+            if b - a > 0.6:
+                zone(a + 0.1, b - 0.1, d_top - 0.3, d0 + 0.3)
+        # the planters: granite boxes from the flight's foot to its head, their tops sloping with it, shrubs on them
+        for p in pl:
+            if p['f'] != fi:
+                continue
+            a, b = p['s']
+            block([(a, d0 + 0.02), (b, d0 + 0.02), (b, d_top - 0.5), (a, d_top - 0.5)],
+                  [z0 + 0.5, z0 + 0.5, z0 + n * r + 0.45, z0 + n * r + 0.45], z0 - 0.5, 'dirt', G, walk=True)
+            for (u0, u1) in ((a - 0.06, a + 0.12), (b - 0.12, b + 0.06)):        # the coped rims along their sides
+                block([(u0, d0 + 0.05), (u1, d0 + 0.05), (u1, d_top - 0.53), (u0, d_top - 0.53)],
+                      [z0 + 0.58, z0 + 0.58, z0 + n * r + 0.53, z0 + n * r + 0.53], z0 + 0.3, TRIM, TRIM)
+            block([(a - 0.06, d0 + 0.08), (b + 0.06, d0 + 0.08), (b + 0.06, d0 - 0.1), (a - 0.06, d0 - 0.1)], z0 + 0.58, z0 - 0.3,
+                  TRIM, TRIM)
+    # the landings and the porch's level (granite in cells), the first between the lower and the middle flight
+    l1, l2, zp = T['l1'], T['l2'], T['porch']
+    fL, fM, fU = F
+    dl1 = fL['d0'] - (fL['n'] - 1) * t
+    dm1 = fM['d0'] - (fM['n'] - 1) * t
+    du1 = fU['d0'] - (fU['n'] - 1) * t
+    block([(fL['s0'], dl1 - t), (fL['s1'], dl1 - t), (fL['s1'], fM['d0']), (fL['s0'], fM['d0'])], l1, l1 - 0.8, STEP, STEP, walk=True, cells=True)
+    block([(fU['s0'], dm1 - t), (fM['s1'], dm1 - t), (fM['s1'], fU['d0']), (fU['s0'], fU['d0'])], l2, l2 - 0.8, STEP, STEP, walk=True, cells=True)
+    block([(fU['s0'], du1 - t), (fL['s1'], du1 - t), (fL['s1'], 0.0), (fU['s0'], 0.0)], zp, zp - 0.8, STEP, STEP, walk=True, cells=True)
+    # coped side walls: south of all three flights (the lawn on the wall's side rises with them), north of the upper two
+    sS = fL['s1']
+    prof = [(fL['d0'], l1 + 0.08), (fM['d0'] + 0.3, l1 + 0.35), (dm1, l2 + 0.4), (fU['d0'] + 0.3, l2 + 0.4), (du1, zp + 0.4), (1.0, zp + 0.4)]
+    for sa, sb, pr in ((sS, sS + 0.4, prof), (fU['s0'] - 0.4, fU['s0'], [p for p in prof if p[0] <= fM['d0'] - 0.2])):
+        for (da, za), (db, zb) in zip(pr[:-1], pr[1:]):
+            block([(sa, da), (sb, da), (sb, db), (sa, db)], [za - 0.1, za - 0.1, zb - 0.1, zb - 0.1], l1 - 1.2, G, G)
+            block([(sa - 0.04, da), (sb + 0.04, da), (sb + 0.04, db), (sa - 0.04, db)], [za, za, zb, zb], min(za, zb) - 0.14, TRIM, TRIM)
+    # the retaining wall along the apron south of the flights: dressed granite, a coping, its face on the foot line;
+    # stepping down by the drum's foot, and turning back into the lawn at its south end
+    dW = fL['d0']
+    W = T['wall']
+    for w in W:
+        zb = min(T['foot'], w['top'] - 0.9) - 0.4
+        block([(w['s0'], dW), (w['s1'], dW), (w['s1'], dW - 0.45), (w['s0'], dW - 0.45)], w['top'] - 0.1, zb, G, G)
+        block([(w['s0'], dW + 0.05), (w['s1'], dW + 0.05), (w['s1'], dW - 0.5), (w['s0'], dW - 0.5)], w['top'], w['top'] - 0.14, TRIM, TRIM)
+    we = W[-1]
+    block([(we['s1'] - 0.45, dW), (we['s1'], dW), (we['s1'], dW - 4.0), (we['s1'] - 0.45, dW - 4.0)], we['top'], we['top'] - 1.4, G, TRIM)
+    # the lawn on the wall: a band in the ground's own material from the coping's back down to the terrain 5 m in (the
+    # 5 m grid cannot step up at the wall), walked on
+    BAND = (dW - 0.5, dW - 2.5, dW - 5.5)
+    for w in W:
+        ss = [w['s0'] + 0.4 + k * (w['s1'] - w['s0'] - 0.4) / max(1, int(w['s1'] - w['s0'])) for k in range(int(w['s1'] - w['s0']) + 1)]
+        prev = None
+        for s_ in ss:
+            gx, gy, _ = P(s_, BAND[2], 0.0)
+            zg = ground_top(gx, gy) + 0.02
+            zt_ = w['top'] - 0.1
+            cur = [P(s_, BAND[0], zt_), P(s_, BAND[1], max(zg, zt_ - 0.25) if zg < zt_ else zg), P(s_, BAND[2], zg)]
+            if prev:
+                for a0, a1, b0, b1 in zip(prev[:-1], prev[1:], cur[:-1], cur[1:]):
+                    q = [a0, b0, b1, a1]
+                    oface(mb, q, 'terrain_drape', (0, 0, 1))
+                    WALK_FACES.append(q)
+            prev = cur
+    # the planter box on the apron at the north end of the lower flight, and the bed beside the first landing
+    zn = T['foot'] + r
+    for key, zt in (('box', zn + T['box']['h']), ('bed', l1 + T['bed']['h'])):
+        (sa, sb), (da, db) = T[key]['s'], T[key]['d']
+        block([(sa, da), (sb, da), (sb, db), (sa, db)], zt - 0.12, zn - 1.0, 'dirt', G, walk=True)
+        for (u0, u1, v0, v1) in ((sa, sb, db - 0.25, db), (sa, sb, da, da + 0.25), (sa, sa + 0.25, da, db), (sb - 0.25, sb, da, db)):
+            block([(u0 - 0.04, v0 - 0.04), (u1 + 0.04, v0 - 0.04), (u1 + 0.04, v1 + 0.04), (u0 - 0.04, v1 + 0.04)], zt, zt - 0.4, TRIM, TRIM)
+    # the apron: its paving in the ground's own material (the splat paints it), walked on; the tree pits on it
+    A = T['apron']
+    for (sa, ca), (sb, cb) in zip(A[:-1], A[1:]):
+        for (dA0, zA0), (dA1, zA1), (dB0, zB0), (dB1, zB1) in zip(ca[:-1], ca[1:], cb[:-1], cb[1:]):
+            q = [P(sa, dA0, zA0), P(sb, dB0, zB0), P(sb, dB1, zB1), P(sa, dA1, zA1)]
+            oface(mb, q, 'terrain_drape', (0, 0, 1))
+            WALK_FACES.append(q)
+    for (sa, ca) in (A[0], A[-1]):
+        lo = min(z for _, z in ca) - 0.6
+        for (dA0, zA0), (dA1, zA1) in zip(ca[:-1], ca[1:]):
+            oface(mb, [P(sa, dA0, lo), P(sa, dA1, lo), P(sa, dA1, zA1), P(sa, dA0, zA0)], G, tuple(tv * (-1 if sa == A[0][0] else 1)))
+
+    def lerp_xp(x, xp, fp):
+        if x <= xp[0]:
+            return fp[0]
+        for (x0, f0), (x1, f1) in zip(zip(xp, fp), zip(xp[1:], fp[1:])):
+            if x <= x1:
+                return f0 + (f1 - f0) * (x - x0) / max(x1 - x0, 1e-9)
+        return fp[-1]
+
+    def apron_z(x, y):
+        q = Vector((x, y, 0.0)) - o
+        s, d = q.dot(tv), q.dot(nv)
+        k = max(0, min(len(A) - 2, int(s - A[0][0])))
+        (sa, ca), (sb, cb) = A[k], A[k + 1]
+        za = lerp_xp(-d, [-v for v, _ in ca], [z for _, z in ca])
+        zb_ = lerp_xp(-d, [-v for v, _ in cb], [z for _, z in cb])
+        f_ = min(1.0, max(0.0, s - sa))
+        return za + (zb_ - za) * f_
+    for (x, y) in T.get('pits', []):
+        z = apron_z(x, y)
+        mb.cylinder((x, y), 0.68, z - 0.3, z + 0.08, 'curb', seg=24, cap_top=False)
+        ring = [(x + rr * math.cos(2 * math.pi * k / 24), y + rr * math.sin(2 * math.pi * k / 24)) for k in range(24) for rr in (0.68,)]
+        inner = [(x + 0.56 * math.cos(2 * math.pi * k / 24), y + 0.56 * math.sin(2 * math.pi * k / 24)) for k in range(24)]
+        for k in range(24):
+            j = (k + 1) % 24
+            oface(mb, [(*ring[k], z + 0.08), (*ring[j], z + 0.08), (*inner[j], z + 0.08), (*inner[k], z + 0.08)], 'curb', (0, 0, 1))
+        oface(mb, [(*p, z + 0.03) for p in inner], 'dirt', (0, 0, 1))
+    return [mb]
 
 
 def north_box(A, B, C, z0, ZB=10.8):
