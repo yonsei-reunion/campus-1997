@@ -1,16 +1,18 @@
 // 활천대 fountain water, rendered with Ultra Water (https://github.com/Humpalumps/Ultra-Water, MIT; ./ultra-water/).
 //
-// Ultra Water is an ocean renderer; the fountain basin is about 6.4 m across and 37.5 cm deep, so only the parts that
-// scale down are used:
+// Ultra Water is an ocean renderer; the fountain's pool is 8.9 m across and 30 cm deep, so only the parts that scale
+// down are used:
 //  - OceanSim: the Tessendorf FFT with capillary-gravity dispersion, at 64² and with cascades of 4.5 m to 19 cm,
 //    driven by a light breeze over a few metres of fetch, so the basin carries fine wind ripples.
 //  - WaveCaustics: area-ratio splatting of the three longer cascades onto the basin floor depth.
 //  - From OceanSurface's water shader: slope + slope-variance (LEAN) roughness from the cascades' mips, Kaplanyan
 //    geometric specular AA, Lagarde's roughness-aware Fresnel, the GGX sun with its alpha floor, the facet-count
-//    glints, Beer-Lambert absorption, and the Cauchy-Poisson impact rings (here: the jets falling back).
-// The basin under the water (concrete floor, granite inner wall, pedestal foot) is ray-traced in the same shader
-// through the refracted view ray, so it bends with the ripples and takes the caustics and the shadows of the rim and
-// pedestal; the scene's sun shadow map (when shadows are on) darkens the surface and the floor.
+//    glints, Beer-Lambert absorption, and the Cauchy-Poisson impact rings (here: the jet falling back).
+// The basin under the water (concrete floor, the field-stone wall's inner face, the stone island) is ray-traced in the
+// same shader through the refracted view ray, so it bends with the ripples and takes the caustics and the shadows of
+// the wall and the island; the scene's sun shadow map (when shadows are on) darkens the surface and the floor.
+// The pool's sizes come with campus.statues.fountain (tools/build_campus.py FOUNTAIN): heights there are over the
+// flagstones round it, here over the pool's floor.
 // Cost: the sim and caustics run only while the fountain is on screen and within SIM_DIST of the camera (every
 // second frame on phones); otherwise the surface keeps its last state and only the shader runs, on the few pixels the
 // basin covers.
@@ -21,12 +23,9 @@ import { patchShader } from '../materials.js';
 
 const N = 64;
 const CASCADES = [4.5, 1.5, 0.5, 0.19];    // 4.5 = 3 x 1.5 = 9 x 0.5 exactly, so the caustic tile (all three summed) tiles
-const WATER_Z = 0.375;                     // basin water level above the floor (blender/landmarks.py fountain())
-const PED_R = 0.9;                         // the round plinth at the water (blender/landmarks.py FOUNTAIN_COL)
-const PLINTH_H = 0.45;                     // its top
-const COL_R = 0.58, COL_H = 3.72;          // the carved cross column on it (its shadow: a cylinder that wide)
-const JETS = 32, JET_LAND = 1.12;          // the rim's arching jets and where they come down (FOUNTAIN_JETS)
-const RIM_H = 0.5;                         // top of the granite rim above the floor
+const COL_R = 0.45, COL_TOP = 3.04;        // the carved cross column (its shadow: a cylinder that wide), its top over
+                                           // the flagstones (blender/landmarks.py FOUNTAIN_COL)
+const CURTAIN_R = 1.05;                    // where the jet's fall meets the water (FOUNTAIN_CURTAIN)
 const SIM_DIST = 70;                       // metres: beyond this the ripples freeze (too small to see move)
 const IMPACTS = 16;
 
@@ -57,7 +56,7 @@ void main() {
   #include <fog_vertex>
 }`;
 
-const FRAG = /* glsl */`
+const frag = ({ WATER_Z, PED_R, RIM_H, PLINTH_H, COL_H }) => /* glsl */`
 #include <common>
 #include <packing>
 #include <fog_pars_fragment>
@@ -79,7 +78,7 @@ uniform vec3 uFloorTint, uWallTint;
 uniform vec3 uAbsorb, uScatter;
 uniform vec4 uImpact[${IMPACTS}];      // x, z (world), age (s), amplitude (m)
 uniform float uImpactSize[${IMPACTS}];
-uniform vec4 uJets;            // landing radius of the arching jets, of the falling curtain, jet angle offset, -
+uniform vec4 uJets;            // -, landing radius of the jet's falling curtain, -, -
 varying vec3 vWorld;
 
 #define WATER_Z ${WATER_Z.toFixed(3)}
@@ -142,7 +141,7 @@ float basinShadow(vec3 q, vec3 rs, vec3 sun) {
   // under water: the inner wall and the pedestal foot
   if (exitCircle(q.xz, up.xz, uR) < tS) return 0.0;
   if (length(q.xz) > PED_R && enterCircle(q.xz, up.xz, PED_R) < tS) return 0.0;
-  // above: the rim (up to RIM_H at radius uR), the plinth and the column on it
+  // above: the wall (up to RIM_H at radius uR), the island and the column on it
   vec3 e = q + up * tS;
   float tR = exitCircle(e.xz, sun.xz, uR);
   if (WATER_Z + sun.y * tR < RIM_H) return 0.0;
@@ -164,8 +163,8 @@ void main() {
   float fw = max(max(fwXZ.x, fwXZ.y), 1e-4);
 
   // --- surface: slopes + slope variance from the four cascades ---------------------------------------------------
-  // the water is stirred most around the ring where the jets fall back, calmest at the outer wall
-  float stir = 0.45 + 0.9 * exp(-pow((rr - uJets.y) / 0.6, 2.0)) + 0.5 * exp(-pow((rr - uJets.x) / 0.35, 2.0));
+  // the water is stirred most around the ring where the jet falls back, calmest at the outer wall
+  float stir = 0.45 + 0.9 * exp(-pow((rr - uJets.y) / 0.6, 2.0));
   vec4 s0 = texture(uSlope0, xz / uLength.x), s1 = texture(uSlope1, xz / uLength.y);
   vec4 s2 = texture(uSlope2, xz / uLength.z), s3 = texture(uSlope3, xz / uLength.w);
   vec2 slope = (s0.xy + s1.xy + s2.xy + s3.xy) * stir;
@@ -211,7 +210,7 @@ void main() {
     vec2 radial = normalize(Q.xz);
     nQ = t == tW ? vec3(-radial.x, 0.0, -radial.y) : vec3(radial.x, 0.0, radial.y);
     float u = atan(Q.z, Q.x) * (t == tW ? uR : PED_R);
-    albedo = texture(uWallMap, vec2(u, Q.y) / 2.0).rgb * uWallTint;
+    albedo = texture(uWallMap, vec2(u, Q.y) / 3.2).rgb * uWallTint;      // (stone_rubble_brown's tile)
   }
   float depthQ = WATER_Z - Q.y;
   // caustics registered at the surface entry point of the sun ray through Q
@@ -226,8 +225,8 @@ void main() {
   vec3 inscatter = uScatter * (ambient * 0.6 + sun * max(uSunDir.y, 0.0) * 0.4) / PI;
   vec3 body = floorCol * Tr + inscatter * (1.0 - Tr);
 
-  // aerated water where the jets come down: churned, whitish, flickering patches
-  float churn = exp(-pow((rr - uJets.y) / 0.28, 2.0)) * 0.55 + exp(-pow((rr - uJets.x) / 0.16, 2.0)) * 0.5;
+  // aerated water where the jet comes down: churned, whitish, flickering patches
+  float churn = exp(-pow((rr - uJets.y) / 0.28, 2.0)) * 0.55;
   churn *= smoothstep(0.35, 0.75, vnoise(lp * 7.0 + vec2(uTime * 1.7, -uTime * 1.3)) * 0.6 + vnoise(lp * 19.0 - uTime * 2.3) * 0.5);
   body = mix(body, vec3(0.85, 0.9, 0.92) * (sun * max(uSunDir.y, 0.0) + ambient) / PI, churn * 0.7);
 
@@ -283,28 +282,30 @@ void main() {
 }`;
 
 export class FountainWater {
-  // F: campus.statues.fountain ({pos, r, rot, h}); lib: MaterialLibrary; sun: the DirectionalLight; sunDir: towards it
+  // F: campus.statues.fountain ({pos, r, island, wall, water, floor, isle, rot, h}); lib: MaterialLibrary; sun: the
+  // DirectionalLight; sunDir: towards it
   constructor(renderer, scene, F, lib, sun, sunDir, { mobile = false } = {}) {
     this.renderer = renderer;
     this.F = F;
     this.mobile = mobile;
     this.sunDir = sunDir;
-    this.center = new THREE.Vector3(F.pos[0], F.h, -F.pos[1]);
-    this.sphere = new THREE.Sphere(this.center.clone().setY(F.h + WATER_Z), F.r + 0.5);
+    const fl = F.floor;                    // the pool's floor under the flagstones; the shader's heights are over it
+    this.B = { WATER_Z: F.water - fl, PED_R: F.island, RIM_H: F.wall - fl, PLINTH_H: F.isle - fl, COL_H: COL_TOP - fl };
+    this.center = new THREE.Vector3(F.pos[0], F.h + fl, -F.pos[1]);
+    this.sphere = new THREE.Sphere(this.center.clone().setY(F.h + F.water), F.r + 0.5);
     this.frustum = new THREE.Frustum();
     this.m4 = new THREE.Matrix4();
     this.frame = 0;
     this.time = 0;
 
     this.sim = new OceanSim(renderer, fountainParams(), { n: N, cascades: CASCADES });
-    this.caustics = new WaveCaustics(renderer, this.sim, { cascades: [0, 1, 2], depth: WATER_Z, cells: mobile ? 128 : 192, res: mobile ? 256 : 512, samples: mobile ? 0 : 4 });
+    this.caustics = new WaveCaustics(renderer, this.sim, { cascades: [0, 1, 2], depth: this.B.WATER_Z, cells: mobile ? 128 : 192, res: mobile ? 256 : 512, samples: mobile ? 0 : 4 });
 
     const env = scene.environment;
     const h = env.image.height, maxMip = Math.log2(h) - 2;
-    const floorM = lib.get('concrete_dark'), wallM = lib.get('stone_granite');
-    // the rim's arching jets land at the column's foot, the central jet falls back round it (blender/landmarks.py)
-    this.jetR = JET_LAND;
-    this.curtainR = 0.95;
+    const floorM = lib.get('concrete_dark'), wallM = lib.get('stone_rubble_brown');
+    // the jet out of the column's top falls back round it into the pool (blender/landmarks.py); no jets on the rim
+    this.curtainR = CURTAIN_R;
     this.impacts = Array.from({ length: IMPACTS }, () => new THREE.Vector4());
     this.sizes = new Array(IMPACTS).fill(0.06);
     this._flowSpray(lib.get('water_spray'));
@@ -312,7 +313,7 @@ export class FountainWater {
     const sl = this.sim.slope;
     this.material = new THREE.ShaderMaterial({
       vertexShader: VERT,
-      fragmentShader: FRAG,
+      fragmentShader: frag(this.B),
       lights: true,
       fog: true,
       defines: {
@@ -337,7 +338,7 @@ export class FountainWater {
         uAbsorb: { value: new THREE.Vector3(1.3, 0.5, 0.42) },     // a little green-blue, city fountain water
         uScatter: { value: new THREE.Color(0.05, 0.12, 0.13) },
         uImpactSize: { value: this.sizes },
-        uJets: { value: new THREE.Vector4(this.jetR, this.curtainR, F.rot || 0, 0) },
+        uJets: { value: new THREE.Vector4(0, this.curtainR, 0, 0) },
       }]),
     });
     // textures go in after the merge (UniformsUtils.merge would clone them)
@@ -349,12 +350,12 @@ export class FountainWater {
     u.uWallMap = { value: wallM.map };
     u.uImpact = { value: this.impacts };
 
-    // a flat ring between the pedestal and the inner wall, at the water level
-    const geo = new THREE.RingGeometry(PED_R - 0.01, F.r + 0.01, 72, 1);
+    // a flat ring between the island and the wall, at the water level
+    const geo = new THREE.RingGeometry(this.B.PED_R - 0.01, F.r + 0.01, 120, 1);
     geo.rotateX(-Math.PI / 2);
     this.mesh = new THREE.Mesh(geo, this.material);
     this.mesh.name = 'fountain_water';
-    this.mesh.position.set(this.center.x, F.h + WATER_Z, this.center.z);
+    this.mesh.position.set(this.center.x, F.h + F.water, this.center.z);
     this.mesh.receiveShadow = true;
     this.mesh.castShadow = false;
     scene.add(this.mesh);
@@ -365,13 +366,8 @@ export class FountainWater {
   }
 
   _spawn(i, age = 0) {
-    const F = this.F, rot = F.rot || 0;
-    let a, r, amp, size;
-    if (i < 10) {                      // the arching jets: where one of them comes down
-      a = rot + (2 * Math.PI * (Math.floor(Math.random() * JETS) + 0.5)) / JETS; r = this.jetR + (Math.random() - 0.5) * 0.08; amp = 0.006; size = 0.07;
-    } else {                           // the central jet's falling curtain: anywhere round its ring
-      a = Math.random() * Math.PI * 2; r = this.curtainR + (Math.random() - 0.5) * 0.3; amp = 0.005; size = 0.09;
-    }
+    // the jet's falling curtain: anywhere round its ring
+    const a = Math.random() * Math.PI * 2, r = this.curtainR + (Math.random() - 0.5) * 0.3, amp = 0.005, size = 0.09;
     // blender's local frame (x, y) -> three (x, -z)
     this.impacts[i].set(this.center.x + Math.cos(a) * r, this.center.z - Math.sin(a) * r, age, amp * (0.7 + 0.6 * Math.random()));
     this.sizes[i] = size;
@@ -413,7 +409,7 @@ float sprH(float n) { return fract(sin(n * 127.1) * 43758.5453); }`)
   float h = sprH(cell), h2 = sprH(cell + 31.7);
   float spd = 2.6 + 2.2 * h2;
   // the central jet runs up out of the column's top; everything else (the curtain, the arching jets) runs down
-  float ph = hy * (1.1 + 0.8 * h) + (hy > ${COL_H.toFixed(2)} && rad < 0.3 ? 1.0 : -1.0) * uSprayT * spd * 0.5 + h * 9.0;
+  float ph = hy * (1.1 + 0.8 * h) + (hy > ${this.B.COL_H.toFixed(2)} && rad < 0.3 ? 1.0 : -1.0) * uSprayT * spd * 0.5 + h * 9.0;
   float lump = smoothstep(0.35, 0.9, fract(ph));
   float fr = fract(ang * 26.0 + rad * 9.0);
   float thread = smoothstep(0.12, 0.5, fr) * smoothstep(0.95, 0.55, fr);

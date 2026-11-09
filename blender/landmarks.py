@@ -4092,28 +4092,63 @@ def aud_bank():
 
 
 # ============================================================================= 활천대 (독수리상 옆)
-# The sculpture, from the 2017 photos of it (reference/활천대_2017_연세대블로그_*.jpg; the name plate reads 「활천대 기증
-# 전기공학과 동창회 (1974년)」): a white stone column of cross section, carved all over with abstract figures in low
-# relief, in three drums with a dark joint between them and its four arms ending above in upright prongs of
-# different heights; it stands on a square slab with a carved edge, on a lower cross-shaped pedestal (letters cut in
-# its faces), on a round dark plinth in the water.  The 1997 basin, from the 2009 photo (reference/활천대_2009_연세춘추.jpg,
-# 「활천대는 독수리상 옆에 있는 분수대다」): a round pool about 5.2 m across (FOUNTAIN r 2.6) with a low light rim, a tall jet out of
-# the top of the column, and a ring of jets on the rim arching up and in towards the column, a bell of water as high
-# as the column.  (Since 백양로's rebuilding it stands in front of 제1공학관 in a small brick-edged pool without jets.)
-FOUNTAIN_COL = dict(plinth=0.45, ped=1.25, slab=1.52, top=3.72, arm=0.55, arm_w=0.34, core=0.3)
-FOUNTAIN_JETS = dict(n=32, land=1.12, peak=3.5)            # web/src/water/fountain.js mirrors these
+# The basin before 백양로 was rebuilt (reference/고증.md 4.3): the old photo in the 2017 blog post (reference/
+# 활천대_공사전_연세대블로그.jpg) and a 1990s snapshot (reference/활천대_1990년대_*.jpg).  One round pool 8.9 m across,
+# walled in rounded field stones laid in mortar with a rounded top a little lighter than the faces, the water a few
+# centimetres over the ground outside and some 15 cm under the wall's top; a ring of rough flagstones 1.1 m wide round
+# the wall; in the middle a low round island of the same stones carrying the sculpture.  (The thin metal ring of jets
+# in the water, 6.5 m across, and its bell of water in the 2009 photo came later: none on the rim in 1997.)  Sizes:
+# tools/build_campus.py FOUNTAIN, from the old photo's camera (the rings and the column, 4 px rms) and the 2011
+# roadview (the column 2.29 / 2.34 m, slab top to the tips, from two solved spots).
+# The sculpture, from the old photo, the 1990s snapshot and the 2017 photos of it (reference/활천대_2017_연세대블로그_*.jpg;
+# the name plate reads 「활천대 기증 전기공학과 동창회 (1974년)」): a stone column of cross section, carved all over with
+# abstract figures in low relief, in three drums with a dark joint between them and its four arms ending above in
+# upright prongs of different heights; it stands on a square slab with a carved edge, on a lower cross-shaped pedestal
+# (letters cut in its faces).  In the old photo the column is 4.14 times narrower than the wall across, its drums
+# 0.65 / 0.73 / 0.91 m (with the prongs) and the slab 0.25 m thick on a pedestal 0.66 m high; seen square on (2017)
+# the arms span 0.38 and the slab 0.47 of the column's height.  In the 1990s snapshot its white stone had gone grey
+# with dark streaks (stone_white_old).  A jet rises from its top (the 2009 photo) and falls back round it.
+FOUNTAIN_COL = dict(ped=0.79, slab=1.04, j2=1.69, j1=2.42, top=3.04, tip=0.29, arm=0.43, arm_w=0.27, core=0.23,
+                    slab_w=1.08, ped_l=0.74, ped_w=0.33)          # z over the flagstones; web/src/water/fountain.js
+FOUNTAIN_CURTAIN = 1.05                                           # where the jet's fall meets the water (web too)
 
 
 def _relief(mb, c, n, t, w, z0, z1, rnd, mat, depth=0.05):
     """carved low relief on a vertical face: c its centre line foot (x, y), n the outward normal, t the face's own
     horizontal direction, w its width; little blocks and ribs standing a few cm proud, like the 활천대 figures"""
-    for _ in range(int(w * (z1 - z0) * 9)):
-        u = rnd.uniform(-w / 2 + 0.04, w / 2 - 0.04)
-        z = rnd.uniform(z0 + 0.05, z1 - 0.05)
-        bw, bh = rnd.uniform(0.04, 0.14), rnd.uniform(0.05, 0.3)
+    for _ in range(int(w * (z1 - z0) * 14)):
+        u = rnd.uniform(-w / 2 + 0.03, w / 2 - 0.03)
+        z = rnd.uniform(z0 + 0.04, z1 - 0.04)
+        bw, bh = rnd.uniform(0.03, 0.11), rnd.uniform(0.04, 0.24)
         d = depth * rnd.uniform(0.4, 1.0)
         x, y = c[0] + t[0] * u + n[0] * d / 2, c[1] + t[1] * u + n[1] * d / 2
         mb.box((x, y, z), (bw, d, bh), mat, rotz=math.atan2(t[1], t[0]), skip=('bottom', 'back'))
+
+
+def _lathe(mb, prof, mats, seg, tag, jit=None, a0=0.0, planar=False):
+    """A surface of revolution round the local z axis: prof a list of (radius, z) and mats one material per band
+    (prof[i] -> prof[i + 1]).  Ordered so that the side to be seen is on the left going along the profile seen from
+    outside (outer face upwards, a top inwards, an inner face downwards).  jit(k, i) -> (dr, dz) roughens point i at
+    the k-th of seg angles.  UVs in metres: round the ring by the arc, across it by the length along the profile
+    (planar: x, y, for a flat ring)."""
+    run = [0.0]
+    for (ra, za), (rb, zb) in zip(prof, prof[1:]):
+        run.append(run[-1] + math.hypot(rb - ra, zb - za))
+
+    def P(k, i):
+        a = a0 + 2 * math.pi * (k % seg) / seg
+        dr, dz = jit(k % seg, i) if jit else (0.0, 0.0)
+        r, z = prof[i][0] + dr, prof[i][1] + dz
+        return (r * math.cos(a), r * math.sin(a), z)
+    for k in range(seg):
+        for i in range(len(prof) - 1):
+            ra, rb = prof[i][0], prof[i + 1][0]
+            u0a, u1a = 2 * math.pi * ra * k / seg, 2 * math.pi * ra * (k + 1) / seg
+            u0b, u1b = 2 * math.pi * rb * k / seg, 2 * math.pi * rb * (k + 1) / seg
+            q = [P(k, i), P(k + 1, i), P(k + 1, i + 1), P(k, i + 1)]
+            uv = [(p_[0], p_[1]) for p_ in q] if planar else \
+                [(u0a, run[i]), (u1a, run[i]), (u1b, run[i + 1]), (u0b, run[i + 1])]
+            mb.face(q, mats[i], uvs=uv, smooth=tag)
 
 
 def fountain():
@@ -4121,88 +4156,92 @@ def fountain():
     F = CAMPUS.get('statues', {}).get('fountain')
     if not F:
         return []
-    r = F['r']
+    r, R, pave = F['r'], F['rim'], F['pave']
+    wall, water, floor, isl, isle = F['wall'], F['water'], F['floor'], F['island'], F['isle']
     rnd = random.Random(1974)
     mb = MeshBuilder('lm_fountain')
-    mb.xf = local_frame(F['pos'][0], F['pos'][1], F.get('rot', 0.0), F['h'])
-    # rim: a low ring of light granite (outer and inner walls, flat top) round the water
-    seg = 48
-    mb.cylinder((0, 0), r + 0.4, -0.6, 0.5, 'granite_light', seg=seg, cap_top=False)
-    for k in range(seg):
-        a0, a1 = 2 * math.pi * k / seg, 2 * math.pi * (k + 1) / seg
-        c0, s0, c1, s1 = math.cos(a0), math.sin(a0), math.cos(a1), math.sin(a1)
-        mb.face([(r * c0, r * s0, 0.5), (r * c1, r * s1, 0.5), ((r + 0.4) * c1, (r + 0.4) * s1, 0.5), ((r + 0.4) * c0, (r + 0.4) * s0, 0.5)], 'granite_light')
-        mb.face([(r * c1, r * s1, 0.0), (r * c0, r * s0, 0.0), (r * c0, r * s0, 0.5), (r * c1, r * s1, 0.5)], 'stone_granite')
-    mb.cylinder((0, 0), r, -0.2, 0.0, 'concrete_dark', seg=seg)                     # basin floor
-    # the water surface (level 0.375) is drawn live in the web app: web/src/water/fountain.js (Ultra Water)
+    mb.xf = local_frame(F['pos'][0], F['pos'][1], F.get('rot', 0.0), F['h'])      # z = 0: the flagstones (level ground)
+    face_m, top_m, flag_m = 'stone_rubble_brown', 'stone_rubble_gray', 'stone_rubble'
+    # the wall: an outer face from under the ground, a rounded top of lighter stones, the inner face down to the floor;
+    # its stones uneven along the top, a lump every 15 - 25 cm
+    seg = 160
+    bumps = []
+    while len(bumps) < seg:
+        n_, dr, dz = rnd.randint(1, 2), rnd.uniform(-0.02, 0.02), rnd.uniform(-0.035, 0.02)
+        bumps += [(dr, dz)] + [(dr * 0.5, dz * 0.4 - 0.012)] * n_
+    bumps = bumps[:seg]
+    cz, ch, cw = wall - 0.07, 0.07, (R - r) / 2
+    cap = [((R + r) / 2 + cw * math.cos(t), cz + ch * math.sin(t)) for t in (math.pi * j / 5 for j in range(6))]
+    prof = [(R, -0.35), (R + 0.01, cz - 0.03)] + cap + [(r - 0.01, cz - 0.03), (r, floor)]
+    mats = [face_m, face_m] + [top_m] * (len(cap) - 1) + [face_m, face_m]
+    nprof = len(prof)
+    _lathe(mb, prof, mats, seg, 'fw_wall', jit=lambda k, i: bumps[k] if 1 <= i <= nprof - 2 else (0.0, 0.0))
+    mb.cylinder((0, 0), r, floor - 0.05, floor, 'concrete_dark', seg=seg)          # the floor (drawn by the water's shader)
+    # the flagstones: a flat ring round the wall, its outer edge ragged where the stones meet the lawn
+    ring_seg = 96
+    edge = [pave + rnd.uniform(-0.09, 0.07) for _ in range(ring_seg)]
+    _lathe(mb, [(pave, 0.02), (R - 0.02, 0.02)], [flag_m], ring_seg, False,
+           jit=lambda k, i: (edge[k] - pave, 0.0) if i == 0 else (0.0, 0.0), planar=True)
+    _lathe(mb, [(pave, -0.12), (pave, 0.02)], [flag_m], ring_seg, False,          # (its edge into the turf)
+           jit=lambda k, i: (edge[k] - pave, 0.0))
+    # the island: the same stones, a low drum a few centimetres over the water with a rounded edge
+    ib = [(rnd.uniform(-0.01, 0.01), rnd.uniform(-0.012, 0.012)) for _ in range(48)]
+    _lathe(mb, [(isl, floor), (isl, isle - 0.05)] + [(isl - 0.05 + 0.05 * math.cos(t), isle - 0.05 + 0.05 * math.sin(t))
+                                                      for t in (math.pi / 6 * j for j in range(4))][1:] + [(0.0, isle)],
+           [face_m, top_m, top_m, top_m, top_m], 48, 'fw_isle', jit=lambda k, i: ib[k] if i in (1, 2, 3) else (0.0, 0.0))
+    # the water surface (level `water`) is drawn live in the web app: web/src/water/fountain.js (Ultra Water)
     C = FOUNTAIN_COL
-    mb.cylinder((0, 0), 0.9, 0.0, C['plinth'], 'concrete_dark', seg=28)             # the round dark plinth
-    # lower pedestal: a cross of two slabs (0.95 x 0.42 m), letters cut in its faces
+    stone = 'stone_white_old'
+    # lower pedestal: a cross of two slabs, letters cut in its faces
     for ang in (0.0, math.pi / 2):
-        mb.box((0, 0, (C['plinth'] + C['ped']) / 2), (0.95, 0.42, C['ped'] - C['plinth']), 'stone_white', rotz=ang)
+        mb.box((0, 0, (isle + C['ped']) / 2), (C['ped_l'], C['ped_w'], C['ped'] - isle + 0.02), stone, rotz=ang)
     for k in range(4):
         a = k * math.pi / 2
         n_, t_ = (math.cos(a), math.sin(a)), (-math.sin(a), math.cos(a))
-        _relief(mb, (n_[0] * 0.475, n_[1] * 0.475), n_, t_, 0.42, C['plinth'] + 0.1, C['ped'] - 0.08, rnd, 'stone_white', 0.03)
+        _relief(mb, (n_[0] * C['ped_l'] / 2, n_[1] * C['ped_l'] / 2), n_, t_, C['ped_w'], isle + 0.08, C['ped'] - 0.06, rnd,
+                stone, 0.025)
     # the square slab with a carved (wavy) edge
-    mb.box((0, 0, (C['ped'] + C['slab']) / 2), (1.38, 1.38, C['slab'] - C['ped']), 'stone_white')
+    sw = C['slab_w']
+    mb.box((0, 0, (C['ped'] + C['slab']) / 2), (sw, sw, C['slab'] - C['ped']), stone)
     for k in range(4):
         a = k * math.pi / 2
         n_, t_ = (math.cos(a), math.sin(a)), (-math.sin(a), math.cos(a))
         for j in range(9):
-            u = -0.6 + j * 0.15
-            x, y = n_[0] * 0.7 + t_[0] * u, n_[1] * 0.7 + t_[1] * u
-            mb.box((x, y, C['ped'] + 0.06 + 0.16 * (j % 2)), (0.1, 0.035, 0.09), 'stone_white', rotz=a + math.pi / 2, skip=('back',))
+            u = -sw * 0.43 + j * sw * 0.86 / 8
+            x, y = n_[0] * sw / 2 + t_[0] * u, n_[1] * sw / 2 + t_[1] * u
+            mb.box((x, y, C['ped'] + 0.05 + 0.13 * (j % 2)), (0.08, 0.03, 0.08), stone, rotz=a + math.pi / 2, skip=('back',))
     # the column: a core and four arms, in three drums with dark joints
-    drums = [(C['slab'], 2.24), (2.27, 2.99), (3.02, C['top'])]
+    jt = 0.015
+    drums = [(C['slab'], C['j2'] - jt), (C['j2'] + jt, C['j1'] - jt), (C['j1'] + jt, C['top'])]
     for z0, z1 in drums:
-        mb.box((0, 0, (z0 + z1) / 2), (C['core'] * 2, C['core'] * 2, z1 - z0), 'stone_white')
+        mb.box((0, 0, (z0 + z1) / 2), (C['core'] * 2, C['core'] * 2, z1 - z0), stone)
         for ang in (0.0, math.pi / 2):
-            mb.box((0, 0, (z0 + z1) / 2), (C['arm'] * 2, C['arm_w'], z1 - z0), 'stone_white', rotz=ang)
+            mb.box((0, 0, (z0 + z1) / 2), (C['arm'] * 2, C['arm_w'], z1 - z0), stone, rotz=ang)
         for k in range(4):
             a = k * math.pi / 2
             n_, t_ = (math.cos(a), math.sin(a)), (-math.sin(a), math.cos(a))
-            _relief(mb, (n_[0] * C['arm'], n_[1] * C['arm']), n_, t_, C['arm_w'], z0, z1, rnd, 'stone_white')
+            _relief(mb, (n_[0] * C['arm'], n_[1] * C['arm']), n_, t_, C['arm_w'], z0, z1, rnd, stone, 0.04)
             for sd in (-1, 1):          # the arm's two side faces and the core's corner faces between the arms
                 o = (n_[0] * (C['core'] + (C['arm'] - C['core']) / 2) + t_[0] * sd * C['arm_w'] / 2,
                      n_[1] * (C['core'] + (C['arm'] - C['core']) / 2) + t_[1] * sd * C['arm_w'] / 2)
-                _relief(mb, o, (t_[0] * sd, t_[1] * sd), n_, C['arm'] - C['core'], z0, z1, rnd, 'stone_white')
+                _relief(mb, o, (t_[0] * sd, t_[1] * sd), n_, C['arm'] - C['core'], z0, z1, rnd, stone, 0.04)
     for z0, z1 in zip([d[1] for d in drums[:-1]], [d[0] for d in drums[1:]]):            # the dark joints
-        mb.box((0, 0, (z0 + z1) / 2), (C['arm'] * 2 - 0.06, C['arm_w'] - 0.06, z1 - z0 + 0.01), 'concrete_dark')
-        mb.box((0, 0, (z0 + z1) / 2), (C['arm_w'] - 0.06, C['arm'] * 2 - 0.06, z1 - z0 + 0.01), 'concrete_dark')
+        mb.box((0, 0, (z0 + z1) / 2), (C['arm'] * 2 - 0.05, C['arm_w'] - 0.05, z1 - z0 + 0.01), 'concrete_dark')
+        mb.box((0, 0, (z0 + z1) / 2), (C['arm_w'] - 0.05, C['arm'] * 2 - 0.05, z1 - z0 + 0.01), 'concrete_dark')
     # the prongs: each arm ends above in two upright blades of different heights
     for k in range(4):
         a = k * math.pi / 2
         n_, t_ = (math.cos(a), math.sin(a)), (-math.sin(a), math.cos(a))
-        for j, (off, h) in enumerate(((-0.09, rnd.uniform(0.22, 0.4)), (0.09, rnd.uniform(0.08, 0.25)))):
-            dd = C['arm'] - 0.12
-            mb.box((n_[0] * dd + t_[0] * off, n_[1] * dd + t_[1] * off, C['top'] + h / 2), (0.2, 0.15, h), 'stone_white',
+        for j, (off, h) in enumerate(((-0.07, rnd.uniform(0.6, 1.0) * C['tip']), (0.07, rnd.uniform(0.25, 0.65) * C['tip']))):
+            dd = C['arm'] - 0.1
+            mb.box((n_[0] * dd + t_[0] * off, n_[1] * dd + t_[1] * off, C['top'] + h / 2), (0.16, 0.12, h), stone,
                    rotz=a, skip=('bottom',))
-    mb.cylinder((0, 0), 0.07, C['top'], C['top'] + 0.12, 'metal_dark', seg=8)        # the jet's nozzle
+    mb.cylinder((0, 0), 0.06, C['top'], C['top'] + 0.1, 'metal_dark', seg=8)          # the jet's nozzle
     sp = MeshBuilder('lm_fountain_spray')
     sp.xf = mb.xf
-    sp.cylinder((0, 0), 0.13, C['top'] + 0.1, C['top'] + 2.5, 'water_spray', seg=12, r1=0.04)   # the tall central jet
-    sp.cylinder((0, 0), 0.95, 0.4, C['top'] + 0.5, 'water_spray', seg=24, r1=0.22, cap_top=False)  # falling back over the column
-    # the ring of jets on the rim, arching up and in to land at the column's foot (a bell as high as the column)
-    J = FOUNTAIN_JETS
-    r0 = r - 0.12
-    for k in range(J['n']):
-        a = 2 * math.pi * (k + 0.5) / J['n']
-        c, s_ = math.cos(a), math.sin(a)
-        prof = []
-        for q in range(13):
-            f = q / 12
-            rad = r0 - (r0 - J['land']) * f ** 0.85             # it leaves the rim steeply, falls in near the column
-            z = 0.5 + (J['peak'] - 0.5) * 4 * f * (1 - f) * (1.0 - 0.25 * f) / 0.89 - 0.12 * f
-            prof.append((rad, z))
-        w = 0.045
-        for (ra, za), (rb, zb) in zip(prof, prof[1:]):
-            ring = lambda rad, z: [(rad * c - s_ * w, rad * s_ + c * w, z), (rad * c + s_ * w, rad * s_ - c * w, z),
-                                   (rad * c + s_ * w, rad * s_ - c * w, z + 2 * w), (rad * c - s_ * w, rad * s_ + c * w, z + 2 * w)]
-            A, B = ring(ra, za), ring(rb, zb)
-            for i in range(4):
-                sp.face([A[i], A[(i + 1) % 4], B[(i + 1) % 4], B[i]], 'water_spray')
-        mb.cylinder((r0 * c, r0 * s_), 0.05, 0.42, 0.55, 'metal_dark', seg=6)        # nozzle on the rim
+    sp.cylinder((0, 0), 0.12, C['top'] + 0.08, C['top'] + 2.3, 'water_spray', seg=12, r1=0.04)   # the central jet
+    # falling back over the column, round the island into the pool
+    sp.cylinder((0, 0), FOUNTAIN_CURTAIN, water - 0.02, C['top'] + 0.45, 'water_spray', seg=24, r1=0.2, cap_top=False)
     return [mb, sp]
 
 

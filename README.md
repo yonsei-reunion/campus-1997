@@ -40,6 +40,7 @@
 | ![용재관 사진](docs/compare/yongjae_photo.jpg)<br>**용재관** · 1990년대 봄, 언더우드 동상 너머 (1957 – 2013, 지금 경영관 자리) | ![게임의 용재관](docs/compare/yongjae_game.jpg) |
 | ![옛 노천극장 1997년 사진](docs/compare/amphitheater_photo.jpg)<br>**옛 노천극장** · 1997년 | ![게임의 옛 노천극장](docs/compare/amphitheater_game.jpg) |
 | ![활천대 2009년 사진](docs/compare/hwalcheon_photo.jpg)<br>**활천대** · 2009년, 독수리상 옆의 옛 자리 | ![게임의 활천대](docs/compare/hwalcheon_game.jpg) |
+| ![활천대 백양로 공사 전 사진](docs/compare/hwalcheon_old_photo.jpg)<br>**활천대** · 백양로 공사 전, 막돌 담 수반(물속 쇠 고리는 1997년 뒤) | ![게임의 활천대 수반](docs/compare/hwalcheon_old_game.jpg) |
 | ![백양로 초소 1997년 사진](docs/compare/guard_booth_photo.jpg)<br>**백양로 초소** · 1997년(게임은 같은 카메라) | ![게임의 백양로 초소](docs/compare/guard_booth_game.jpg) |
 | ![교육관 북쪽 끝과 서쪽 면 2003년 가을 사진](docs/compare/gyoyuk_photo.jpg)<br>**교육관** · 연희관 앞 정원 · 2003년 가을 | ![게임의 교육관](docs/compare/gyoyuk_game.jpg) |
 | ![백양로 끝 벚나무 2003년 봄 사진](docs/compare/cherry_photo.jpg)<br>**벚나무** · 백양로 끝 · 언더우드관 앞길 · 2003년 봄 | ![게임의 벚나무](docs/compare/cherry_game.jpg) |
@@ -149,7 +150,7 @@
 ### 조형물과 시설
 
 - 독수리상 · 언더우드 동상
-- 활천대(1974): 독수리상 옆 1997년 자리의 분수. 물결이 일고 하늘이 비치며, 바닥에 빛무늬가 일렁입니다.
+- 활천대(1974): 독수리상 옆 1997년 자리의 분수. 막돌 담 안의 물결이 일고 하늘이 비치며, 바닥에 빛무늬가 일렁입니다.
 - 대강당 앞 농구장: 공을 주워서 슛할 수 있습니다.
 - 공학관 남쪽 공학원 공사장(1995 ~ 1999, 옛 정구장 자리)의 가림막, 학생회관 앞 공중전화 부스
 - 백양로 가운데 초소: 차가 다가오면 차단봉이 올라갑니다.
@@ -202,7 +203,7 @@
 - 1997년 사진: `reference/` (2026 연세대학교 재상봉 25주년 기념문집 「응답하라 1997!」: 연세대학교 기록관 · 연세동문회보 · 연세춘추 · 동문 제공, 그 밖의 재상봉 기념문집, 파일별 출처는 `reference/출처.txt`).
   동문회 비영리 용도로만 쓰고, 재배포할 때는 원 출처의 허락을 받아야 합니다.
 - 「사진과 비교」의 뒤 시기 사진: 언더우드관 · 스팀슨관 · 아펜젤러관 Wikimedia Commons User:Tungdangthanh (2016, CC BY-SA 4.0), 연희관 User:Huntsmanleader (2023, CC BY 4.0),
-  대강당 · 학생회관 younghwan12.tistory.com (2009), 대우관 나무위키 · 블로그, 활천대 연세춘추 (2009)
+  대강당 · 학생회관 younghwan12.tistory.com (2009), 대우관 나무위키 · 블로그, 활천대 연세춘추 (2009) · 연세대학교 블로그 (공사 전 사진)
 
 ## 개발자에게
 

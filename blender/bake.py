@@ -663,10 +663,12 @@ def _sun_light(meshes, glb=None):
 # ----------------------------------------------------------------------------- driver
 def bake(objs, sun_glb=None):
     """Write the 'bake' colour attribute on every mesh object in objs (in place; large quads may be split).
-    Objects named walk_* (invisible walk surfaces) neither receive nor occlude.  sun_glb: the other GLB of halls or
-    landmarks, whose shadows fall on these too (its last build)."""
+    Objects named walk_* (invisible walk surfaces) neither receive nor occlude, nor do falling water's thin sheets
+    (all water_spray: 활천대's jet would leave its column black).  sun_glb: the other GLB of halls or landmarks, whose
+    shadows fall on these too (its last build)."""
     t0 = time.time()
-    hidden = [o for o in objs if o.name.startswith('walk')]
+    hidden = [o for o in objs if o.name.startswith('walk') or
+              (o.type == 'MESH' and len(o.data.materials) and all(m and m.name.split('.')[0] == 'water_spray' for m in o.data.materials))]
     objs = [o for o in objs if o.type == 'MESH' and o not in hidden and len(o.data.polygons)]
     for ob in objs:
         if ob.get('bid') in AGE:

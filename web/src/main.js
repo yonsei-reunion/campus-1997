@@ -218,7 +218,7 @@ async function main() {
   scene.add(amphGroup);
   scene.add(mergeStatic(bld.scene, { name: 'buildings' }));
   scene.add(mergeStatic(lms.scene, { name: 'landmarks' }));
-  // 활천 water: Ultra Water FFT ripples, caustics and the jets' rings (src/water/fountain.js)
+  // 활천 water: Ultra Water FFT ripples, caustics and the jet's rings (src/water/fountain.js)
   const fountainWater = campus.statues.fountain ? new FountainWater(renderer, scene, campus.statues.fountain, lib, sun, sunDir, { mobile: MOBILE }) : null;
   progress('건물을 정리하는 중…');
 
@@ -340,7 +340,7 @@ async function main() {
     colliders.addCircle(S.eagle.pos[0] + r * Math.sin(a), S.eagle.pos[1] + r * Math.cos(a), 0.6);
   }
   colliders.addCircle(S.underwood_statue.pos[0], S.underwood_statue.pos[1], 2.1);   // the rock-faced octagon (the round slab is walked on)
-  if (S.fountain) colliders.addCircle(S.fountain.pos[0], S.fountain.pos[1], S.fountain.r + 0.4);   // 활천 basin
+  if (S.fountain) colliders.addCircle(S.fountain.pos[0], S.fountain.pos[1], S.fountain.rim);   // 활천 basin's stone wall
   if (S.court) {                                                                     // the two hoop posts of the 대강당 court
     for (const sg of [-1, 1]) {
       const d = sg * (S.court.L / 2 + 1.0);

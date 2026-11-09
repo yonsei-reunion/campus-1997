@@ -362,14 +362,23 @@ COURT = dict(pos=[21.9, 2.5], rot=1.313, L=28.0, W=15.0)
 # (reference/활천대_2009_연세춘추.jpg) is then taken from the lawn 14 m south-south-east of the basin, looking
 # north-north-west past it at 중앙도서관's south front, with 과학관's dome far left and the eagle on the right (the camera
 # solved from the two columns and the south front's two corners: (-78.6, -216.2), 1.6 m up, heading 11.3 deg west of
-# north, tilted 3.5 deg up, vertical field 36 deg; 3 px rms, 7 px with the two where they first stood).  Through it
-# the bell of jets (180 px) is 5.0 m across and the roadview's basin rim about 5.3 m: a basin of 5.2 m, its column
-# ~3.3 m over the water.
+# north, tilted 3.5 deg up, vertical field 36 deg; 3 px rms, 7 px with the two where they first stood).
+# The basin before the rebuilding (reference/고증.md 4.3): the old photo in the 2017 blog post (reference/
+# 활천대_공사전_연세대블로그.jpg, its camera solved from the rings and the column: 4 px rms) and a 1990s snapshot
+# (reference/활천대_1990년대_*.jpg) show one round pool walled in rounded field stones, the water up to just under
+# their top, the column on a low round island of the same stones, a ring of rough flagstones round the wall and lawn
+# beyond.  The wall is 4.14 times the column's height (slab top to the tips) across; the column is 2.29 / 2.34 m in
+# the 2011 roadview from 169 / 172 (their solved spots, 27 / 30 m off), the wall's ends 9.4 - 9.6 m apart from 170:
+# a wall 9.5 m across.  (The thin metal ring of jets in the water, 6.5 m, came later: there were no jets on the rim
+# in 1997.)  Radii: r the water, rim the wall's outer face, pave the flagstones' outer edge, island the stone island
+# under the sculpture; heights over the flagstones (level ground): wall the wall's top, water, floor the pool's
+# floor, isle the island's top (blender/landmarks.py fountain, web/src/water/fountain.js).
 EAGLE = dict(pos=[-70.9, -159.8])
-FOUNTAIN = dict(pos=[-83.1, -202.6], r=2.6)
-# the random planting keeps its lawn hole where the fountain first stood, so that the campus keeps its trees (one
-# stream of draws, see below); the scattered trees round the moved basin are cleared after the draws (_FOUNTAIN_LAWN)
-FOUNTAIN_SCATTER = (-80.7, -203.2)
+FOUNTAIN = dict(pos=[-83.1, -202.6], r=4.45, rim=4.75, pave=5.85, island=0.95, wall=0.22, water=0.05, floor=-0.25, isle=0.13)
+# the random planting keeps its lawn hole where the fountain first stood, with the first basin's size (r 2.6), so
+# that the campus keeps its trees (one stream of draws, see below); the scattered trees round the moved basin are
+# cleared after the draws (_FOUNTAIN_LAWN)
+FOUNTAIN_SCATTER, FOUNTAIN_SCATTER_R = (-80.7, -203.2), 2.6 + 7
 # the eagle on a paved round (its platform is 8.4 m square, 5.9 m to the corners) with a straight walk east to
 # 백양로's sidewalk (the 2011 roadview from 백양로, between beds of azaleas)
 EAGLE_R = 6.0
@@ -414,6 +423,13 @@ _inside = np.array([court_poly(1.5).contains(Point(x, y)) for x, y in pts]).resh
 if _inside.any():
     _soft = ndimage.gaussian_filter(ndimage.binary_dilation(_inside, iterations=1).astype(float), 1.0)
     Hn = Hn * (1 - _soft) + float(Hn[_inside].mean()) * _soft
+# 활천대's pool and flagstones on level ground (the water stands only 5 cm over the flagstones, and the lawn there fell
+# 0.4 m across the pool): every node of the 5 m grid whose cells the flagstones reach, eased into the lawn round it
+_inside = shapely.contains_xy(Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['pave'] + 7.1), X, Y)
+_lvl = float(Hn[shapely.contains_xy(Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['pave']), X, Y)].mean())
+_soft = ndimage.gaussian_filter(ndimage.binary_dilation(_inside, iterations=1).astype(float), 1.0)
+_soft[_inside] = 1.0
+Hn = Hn * (1 - _soft) + _lvl * _soft
 
 # --- 정구장 (tennis courts), 1997.  The 1990 and 1995 campus maps (reference/1990_캠퍼스_지도.png, 1995_캠퍼스_지도.jpg)
 # have 47 정구장 by the main road south-west of 공학관, and the 1995 aerial photo (reference/1995_캠퍼스_항공사진_남쪽에서.jpg)
@@ -1997,7 +2013,7 @@ for wv in ways.values():
         if EAST_LAWN.contains(ls.centroid):
             continue
         # (and none across 활천대's basin or the eagle's round: OSM's walks there are the 2015 백양누리 garden's)
-        ls = ls.difference(bcorr).difference(ISL_OLD.buffer(1.0)).difference(Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 1.5)) \
+        ls = ls.difference(bcorr).difference(ISL_OLD.buffer(1.0)).difference(Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['pave'] + 0.3)) \
             .difference(EAGLE_PLAZA.buffer(1.0))
         if ls.is_empty:
             continue
@@ -2199,8 +2215,8 @@ for _k in ('lot',):
     draw_poly('asphalt', fpoly(WD, DAEWOO_BACK[_k]))
 draw_poly('pavers', fpoly(WD, [(-0.6, 14.8), (46.0, 14.8), (46.0, 24.6), (-0.6, 24.6)]))
 draw_poly('pavers', court_poly(1.0))
-draw_poly('pavers', Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 1.1))         # a narrow paved ring, lawn beyond
-GARDEN_ZONES = [garden, yeonhui_garden, daewoo_garden, court_poly(2.0), Point(*FOUNTAIN_SCATTER).buffer(FOUNTAIN['r'] + 7)]
+draw_poly('pavers', Point(*FOUNTAIN['pos']).buffer(3.7))        # (the first basin's paved ring, as first read: PAV_PRE)
+GARDEN_ZONES = [garden, yeonhui_garden, daewoo_garden, court_poly(2.0), Point(*FOUNTAIN_SCATTER).buffer(FOUNTAIN_SCATTER_R)]
 
 # amphitheater (worn earth), sports field (dirt), tree-root patches done in web shader
 draw_poly('dirt', Point(AMPH['cx'], AMPH['cy']).buffer(1).simplify(0))
@@ -2243,6 +2259,7 @@ draw_poly('pavers', LIB_BEDS, 0)
 # the same for the eagle's ring and walks and the side road west of it with its car stalls (EAGLE_PAVED, SIDE_W,
 # LOT_W); no OSM walk across its beds
 draw_poly('pavers', EAGLE_BEDS, 0)
+draw_poly('pavers', Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['pave']))   # 활천대: the pool and its flagstones (no grass)
 draw_poly('pavers', EAGLE_PAVED.difference(bline.buffer(E_WALK)))
 draw_line('asphalt', SIDE_W, SIDE_W_W)
 draw_line('asphalt', [(x, y) for x, y, _ in LOT_W], 5.0)
@@ -2944,23 +2961,24 @@ while _n_sh < 10:
         _n_sh += 1
 for (u_, v_) in ((68.5, 34.0), (66.5, 58.0)):                     # on the bank below the road to 북문
     plant('maple', WD, u_, v_, 0.7, rng4.uniform(0, 6.28))
-# 활천대 (reference/활천대_2009_연세춘추.jpg): on the lawn round its narrow paved ring, low clipped shrubs and a few
-# small clipped pines scattered a few metres out, and red azaleas towards the eagle
+# 활천대 (reference/활천대_2009_연세춘추.jpg, 활천대_공사전_연세대블로그.jpg): on the lawn round its flagstones, low
+# clipped shrubs on bare stems and a few small clipped pines scattered a few metres out, and red azaleas towards the
+# eagle (the radii and draws of the first, 5.2 m basin's planting, moved out to the 9.5 m pool's flagstones)
 _fx, _fy = FOUNTAIN['pos']
-_FOUNTAIN_LAWN = Point(_fx, _fy).buffer(FOUNTAIN['r'] + 7)
+_FOUNTAIN_LAWN = Point(_fx, _fy).buffer(FOUNTAIN_SCATTER_R)
 trees = [t_ for t_ in trees if not _FOUNTAIN_LAWN.contains(Point(t_[1], t_[2]))]
 for k, a_ in enumerate(np.radians([40, 105, 170, 235])):       # (none on the 2009 photo's side, south-east)
-    rr_ = FOUNTAIN['r'] + 5.0 + (k % 2) * 1.6
+    rr_ = FOUNTAIN['pave'] + 2.6 + (k % 2) * 1.2
     trees.append(['pine', round(_fx + rr_ * math.cos(a_), 2), round(_fy + rr_ * math.sin(a_), 2), round(rng2.uniform(0.2, 0.26), 2),
                   round(rng2.uniform(0, 6.28), 2)])
 for k in range(14):
     a_ = 2 * math.pi * (k + 0.5) / 14 + rng2.uniform(-0.12, 0.12)
-    rr_ = FOUNTAIN['r'] + 2.4 + rng2.uniform(0, 2.6)
+    rr_ = FOUNTAIN['pave'] + 0.6 + rng2.uniform(0, 2.6) * 0.6
     shrubs.append(['topiary_round', round(_fx + rr_ * math.cos(a_), 2), round(_fy + rr_ * math.sin(a_), 2),
                    round(rng2.uniform(0.6, 0.85), 2), 0])
 for k in range(9):
     a_ = math.atan2(EAGLE['pos'][1] - _fy, EAGLE['pos'][0] - _fx) + (k - 4) * 0.09
-    rr_ = FOUNTAIN['r'] + 9.5 + (k % 3) * 0.8
+    rr_ = 12.1 + (k % 3) * 0.8
     shrubs.append(['azalea_red', round(_fx + rr_ * math.cos(a_), 2), round(_fy + rr_ * math.sin(a_), 2),
                    round(rng2.uniform(0.9, 1.1), 2), round(rng2.uniform(0, 6.28), 2)])
 # --- the trees of the 2003 spring and autumn photos (reference/2003_*.jpg, taken by the user; reference/고증.md
@@ -3756,10 +3774,10 @@ LANDMARKS = [
     dict(id='eagle', name='독수리상', pos=EAGLE['pos'], r=16, photo=['photos/eagle_2024.jpg'],
          title='독수리상', year='1997',
          text='연세의 상징 독수리. 높은 기둥 위에서 날개를 편 독수리가 정문 쪽으로 백양로를 내려다본다. 2015년 백양로를 다시 만들 때 북쪽 중앙도서관 앞으로 옮겨져 지금도 서 있다.'),
-    dict(id='hwalcheon', name='활천대', pos=FOUNTAIN['pos'], r=12, photo=['photos/hwalcheon_2009.jpg', 'photos/hwalcheon_2017.jpg'],
+    dict(id='hwalcheon', name='활천대', pos=FOUNTAIN['pos'], r=12, photo=['photos/hwalcheon_old.jpg'],
          title='활천대 (活泉臺)', year='1974',
-         credit='사진: 연세춘추 「연세인도 모르는 연세대학교」(2009.9.5, 우리대학교 홈페이지 자료) · 연세대학교 공식 블로그 「연세대학교의 조형물을 찾아서!! 제3탄」(2017)',
-         text='독수리상 옆의 분수대. 전기공학과 동창회가 모금해 1974년 앞뜰에 만들었고, 연세의 영향력이 사회 전 분야에 퍼지길 바라는 마음을 담았다고 한다. 흰 돌을 깎은 十자 기둥 꼭대기에서 물기둥이 솟고, 둘레에서는 물줄기가 종처럼 휘어 들었다. 공대 축제 「활천제」의 이름도 여기서 왔다. 백양로 재창조 뒤에는 제1공학관 앞으로 자리를 옮겼다.'),
+         credit='사진: 연세대학교 공식 블로그 「연세대학교의 조형물을 찾아서!! 제3탄」(2017)의 「예전의 활천대」(blog.naver.com/luckycmw)',
+         text='독수리상 옆의 분수대. 전기공학과 동창회가 모금해 1974년 앞뜰에 만들었고, 연세의 영향력이 사회 전 분야에 퍼지길 바라는 마음을 담았다고 한다. 둥근 막돌 담 안에 물이 찰랑이고, 가운데 돌섬 위에 선 十자 기둥 꼭대기에서 물기둥이 솟았다. 공대 축제 「활천제」의 이름도 여기서 왔다. 백양로 재창조 뒤에는 제1공학관 앞으로 자리를 옮겼다.'),
     dict(id='library', name='중앙도서관', pos=[-58, -40], r=22, photo=['photos/library_1997.jpg', 'photos/library_reading_1997.jpg', 'photos/baekyangro_library_1995.jpg'],
          title='1997년 중앙도서관', year='1997',
          text='1979년 준공된 중앙도서관. 아치형 기둥이 늘어선 정면은 그 시절 연세인 모두의 배경이었다. 시험 기간이면 열람실 자리를 맡으려 새벽부터 줄을 섰다.'),
@@ -3803,7 +3821,7 @@ STATUES = dict(
                walk_edge=EAGLE_EDGE, groups=[list(g_) for g_ in EAGLE_GROUPS]),
     underwood_statue=dict(pos=list(UW_STATUE), rot=math.radians(-14)),
     court=dict(pos=COURT['pos'], rot=COURT['rot'], L=COURT['L'], W=COURT['W']),
-    fountain=dict(pos=FOUNTAIN['pos'], r=FOUNTAIN['r'], rot=0.0),     # (the column's arms face the compass points)
+    fountain=dict(FOUNTAIN, rot=0.0),                            # (the column's arms face the compass points)
     gate=dict(pos=[round(GATE[0], 2), round(GATE[1] + 4, 2)], rot=math.radians(-14)),
 )
 _tn = dict(TENNIS, rot=round(TENNIS['rot'], 5))
@@ -4017,7 +4035,7 @@ def decal_spots():
     # (신촌로 and its bus lanes along the south are the city's road, not the campus's)
     trunk = [LineString(p_['pts']).buffer(p_['w'] / 2 + 3.0) for p_ in paths_out
              if p_['kind'] in ('primary', 'primary_link', 'secondary', 'busway') and len(p_['pts']) > 1]
-    banned = unary_union([ball.buffer(0.4), _ez, court_poly(1.0), Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['r'] + 2.0),
+    banned = unary_union([ball.buffer(0.4), _ez, court_poly(1.0), Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['pave'] + 0.3),
                           AMPH_PATHS.buffer(2.0)] + [l_.buffer(2.0) for l_ in steps] + city + trunk)
     shapely.prepare(banned)
     road_c = bline.buffer(ROAD_HALF + 1.0)
@@ -4580,7 +4598,8 @@ def smooth_chain(P, closed, step=0.1, sigma=0.35, corner=40.0):
 def curb_runs(F3):
     paved = F3[..., 0] + F3[..., 1]
     grass = np.clip(255.0 - paved - F3[..., 2], 0, 255)
-    keep_out = unary_union([bline.buffer(ROAD_HALF + 0.4), city.buffer(2.0)] +
+    keep_out = unary_union([bline.buffer(ROAD_HALF + 0.4), city.buffer(2.0),
+                            Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['pave'] + 0.6)] +    # (활천대's flagstones run into the turf)
                            [Polygon(b_['footprint']).buffer(0.5) for b_ in out['buildings']] +
                            [LineString(xy(q) for q in w_['geometry']).buffer(WID[w_['tags']['highway']] / 2 + 1.5)
                             for w_ in ways.values() if w_.get('tags', {}).get('highway') in ('primary', 'secondary')])

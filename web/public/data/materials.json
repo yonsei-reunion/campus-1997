@@ -1180,6 +1180,20 @@
   "image": "notice_posters.png",
   "rough": 0.85
  },
+ "stone_white_old": {
+  "_doc": "활천대's carved column gone grey with dark streaks, as in the 1990s snapshot (reference/활천대_1990년대_기둥.jpg)",
+  "weather": 0.55,
+  "streak": 0.45,
+  "tex": "concrete_slab_wall",
+  "tile": 2.2,
+  "tint": [
+   1.52,
+   1.5,
+   1.43
+  ],
+  "sat": 0.25,
+  "rough": 0.8
+ },
  "stone_haetae": {
   "weather": 0.4,
   "tex": "granite_tile",
