@@ -15,7 +15,7 @@
 // - the throw: the last swing is a heave that ends at the speed the body flies off with, so nothing jumps at letting go
 import * as THREE from 'three';
 import { play, locomotion } from './characters.js';
-import { ArmPose, Stance, aimAxis, twoBone } from './armpose.js';
+import { ArmPose, Stance, Hands, aimAxis, twoBone } from './armpose.js';
 import { lineTime } from './talk.js';
 import { wrapAngle } from './util.js';
 
@@ -197,6 +197,10 @@ export class Birthday {
     this.fStance = new Stance(this.f, shin);
     this.hStance = new Stance(player.actor, shin);
     this.fSt = { ...REST }; this.hSt = { ...REST };
+    this.bHands = new Hands(this.b);
+    this.fHands = new Hands(this.f);
+    this.hHands = new Hands(player.actor);
+    this.elbows = ['LowerArmL', 'LowerArmR'].map((n) => this.b.root.getObjectByName(n));
     this.makeWettable();
     this.splash = new Splash(scene, mobile ? 260 : 600);
     this.state = 'idle';
@@ -223,6 +227,7 @@ export class Birthday {
     this.p0 = null;
     Object.assign(this.fSt, REST); Object.assign(this.hSt, REST);
     this.fStance.apply(); this.hStance.apply();
+    this.bHands.grip(null, 0); this.fHands.grip(null, 0); this.hHands.grip(null, 0);
   }
 
   place(a, p, heading) {
@@ -316,7 +321,7 @@ export class Birthday {
     pl.keys.clear();
     this.hero = pl.actor;
     this.hTop = height(this.hero.id);
-    if (this.hPose.actor !== this.hero) { this.hPose.setActor(this.hero); this.hStance.setActor(this.hero); }
+    if (this.hPose.actor !== this.hero) { this.hHands.grip(null, 0); this.hPose.setActor(this.hero); this.hStance.setActor(this.hero); this.hHands.setActor(this.hero); }
     this.hR = reachOf(this.hero);
     this.hero.heading = pl.heading;
     // the camera stands back on the lawn, side on to the carry: you and the friend left and right, the pool beyond
@@ -584,22 +589,30 @@ export class Birthday {
     const raw = holding ? this.grips() : null;
     const a = 1 - Math.exp(-dt * (holding ? 30 : 5));
     const settle = (cur, want) => { for (const k in cur) cur[k] += (want[k] - cur[k]) * a; };
-    settle(this.fSt, !holding ? REST : st === 'lift' ? { ...REST, lean: this.leanFor(raw.f[0].y - f.holder.position.y) } : this.crouchTo(f, this.fR, raw.f, st === 'take' ? this.fW : 1));
+    settle(this.fSt, !holding ? REST : st === 'lift' ? { ...REST, lean: this.leanFor(raw.f[0].p.y - f.holder.position.y) } : this.crouchTo(f, this.fR, raw.f.map((g) => g.p), st === 'take' ? this.fW : 1));
     this.fStance.apply(this.fSt);
     if (this.hero) {
-      settle(this.hSt, holding ? this.crouchTo(this.hero, this.hR, raw.h, st === 'take' ? ease(s / 0.7) : 1) : REST);
+      settle(this.hSt, holding ? this.crouchTo(this.hero, this.hR, raw.h.map((g) => g.p), st === 'take' ? ease(s / 0.7) : 1) : REST);
       this.hStance.apply(this.hSt);
     }
     if (holding) {
-      this.fT = this.match(f, this.fPose, raw.f);
-      this.hT = this.match(this.hero, this.hPose, raw.h);
+      this.fG = this.match(f, this.fPose, raw.f);
+      this.hG = this.match(this.hero, this.hPose, raw.h);
+      this.fT = this.fG.map((g) => g.w);
+      this.hT = this.hG.map((g) => g.w);
       this.fH = this.hints(f, this.fPose);
       this.hH = this.hints(this.hero, this.hPose);
     }
     if (this.fT && (this.fW > 0.01 || this.hW > 0.01)) {
       this.fPose.apply(this.fT, this.fH, this.fW);
-      if (this.hero) this.hPose.apply(this.hT, this.hH, this.hW);
+      this.fHands.grip(this.fG, this.fW);
+      if (this.hero) { this.hPose.apply(this.hT, this.hH, this.hW); this.hHands.grip(this.hG, this.hW); }
+    } else if (this.fT) {
+      this.fHands.grip(null, 0);
+      if (this.hero) this.hHands.grip(null, 0);
     }
+    // held by the wrists, their own hands close loosely; open again in the air
+    for (let i = 0; i < 2; i++) this.bHands.curl(i, 0.6 * this.fW);
     // the bubble anchor: over the head
     const head = this.bones.head.getWorldPosition(_v);
     this.anchor.position.set(head.x, head.y + 0.2 - this.bTop, head.z);
@@ -640,13 +653,19 @@ export class Birthday {
     }
   }
 
-  // where the palms go on the carried body (world): the friend's round the raised wrists, yours round the ankles
-  // (low on the shins)
+  // what the hands close round on the carried body: the friend's the raised wrists (just below the hands), yours the
+  // ankles (low on the shins). Each: a point on the limb's axis, the axis and the limb's radius
   grips() {
-    const bn = this.bones;
+    const bn = this.bones, P = (o) => o.getWorldPosition(new THREE.Vector3());
     return {
-      f: bn.wrists.map((x) => x.getWorldPosition(new THREE.Vector3())),
-      h: [0, 1].map((i) => bn.knees[i].getWorldPosition(new THREE.Vector3()).lerp(bn.feet[i].getWorldPosition(_v), 0.75)),
+      f: [0, 1].map((i) => {
+        const p = P(bn.wrists[i]), axis = p.clone().sub(P(this.elbows[i])).normalize();
+        return { p: p.addScaledVector(axis, -0.03), axis, r: 0.035 };
+      }),
+      h: [0, 1].map((i) => {
+        const k = P(bn.knees[i]), e = P(bn.feet[i]);
+        return { p: k.clone().lerp(e, 0.75), axis: e.sub(k).normalize(), r: 0.05 };
+      }),
     };
   }
 
@@ -687,15 +706,22 @@ export class Birthday {
     locomotion(a, Math.abs(v) > 0.08 ? Math.sign(v) * Math.max(0.5, Math.abs(v)) : 0);
   }
 
-  // the two palms' places as the carrier's wrists' (L, R), uncrossed: each wrist stops a
-  // palm short of its point, on the line from the shoulder
+  // the carrier's two hands (L, R) on the two grips, uncrossed. Each hand lies across its limb, outside it with the
+  // palm in (towards the other hand; palm down when the two are one above the other), so the curled fingers hook
+  // under: w where the wrist goes, h the way the hand points, n the way the palm faces
   match(a, pose, two) {
     a.holder.updateMatrixWorld(true);
     const x = (p) => a.holder.worldToLocal(p.clone()).x;
     const sh = pose.arms.map((arm) => arm.up.getWorldPosition(new THREE.Vector3()));
-    const [p, q] = (x(two[0]) > x(two[1])) === (x(sh[0]) > x(sh[1])) ? two : [two[1], two[0]];
-    const pull = (v, s) => v.clone().addScaledVector(_v.copy(s).sub(v).normalize(), PALM);
-    return [pull(p, sh[0]), pull(q, sh[1])];
+    const [p, q] = (x(two[0].p) > x(two[1].p)) === (x(sh[0]) > x(sh[1])) ? two : [two[1], two[0]];
+    const one = (g, o, s) => {
+      const h = g.p.clone().sub(s).normalize();
+      h.addScaledVector(g.axis, -h.dot(g.axis)).normalize();
+      const n = new THREE.Vector3().crossVectors(g.axis, h);
+      if (n.dot(_v.copy(o.p).sub(g.p).normalize()) - 0.5 * n.y < 0) n.negate();
+      return { w: g.p.clone().addScaledVector(n, -g.r).addScaledVector(h, -PALM), h, n };
+    };
+    return [one(p, q, sh[0]), one(q, p, sh[1])];
   }
 
   // elbows down, out and a little back
@@ -723,7 +749,7 @@ export class Birthday {
       const sg = i ? -sL : sL, ph = i * 1.9;
       const sh = h.worldToLocal(pose.arms[i].up.getWorldPosition(new THREE.Vector3()));
       const up = this.state === 'take' ? 0 : this.state === 'lift' ? ease(this.st / LIFT_T) : 1;   // up and back, then straight out
-      const loc = sh.add(held ? new THREE.Vector3(sg * 0.09, 0.47 + 0.09 * up, -0.34 + 0.37 * up)
+      const loc = sh.add(held ? new THREE.Vector3(sg * (0.09 + 0.12 * up), 0.47 + 0.09 * up, -0.34 + 0.37 * up)
         : new THREE.Vector3(sg * (0.2 + 0.05 * Math.sin(t * 5 + ph)), 0.5 + 0.04 * Math.sin(t * 6.3 + ph), 0.12 + 0.06 * Math.cos(t * 4.1 + ph)));
       T.push(h.localToWorld(loc));
       H.push(new THREE.Vector3(sg, 0, -0.5).applyQuaternion(h.quaternion));
@@ -736,6 +762,7 @@ export class Birthday {
     const pl = this.player;
     Object.assign(this.hSt, REST); Object.assign(this.fSt, REST);
     this.hStance.apply(); this.fStance.apply();
+    this.hHands.grip(null, 0); this.fHands.grip(null, 0); this.bHands.grip(null, 0);
     pl.scripted = false;
     pl.camOverride = null;
     pl.speed = 0;
