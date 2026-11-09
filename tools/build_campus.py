@@ -3145,9 +3145,11 @@ def flight_zone(p, n, hw, depth, inside=0.5):
 
 
 # 교육관's and 성암관's flights (blender/landmarks.py builds them, not generic.porch): the front doors, east and west,
-# and 교육관's outside flight along its north end
+# and 교육관's outside flight from the bay on its north end straight out to the yard (gyoyuk_north_flight).  The zone
+# along that end's wall is the one the flight had when it was drawn running east along it: the paving decals below
+# are drawn against these zones, and dropping it shifts every crack and stain on the campus
 ENTRY_ZONES += [flight_zone((39.65, 327.89), (0.97, -0.25), 2.8, 9.0), flight_zone((117.18, 307.08), (-0.97, 0.24), 3.0, 9.0),
-                flight_zone((33.7, 347.9), (0.25, 0.97), 7.0, 5.5)]
+                flight_zone((33.7, 347.9), (0.25, 0.97), 7.0, 5.5), flight_zone((30.29, 348.78), (0.25, 0.97), 2.4, 12.5)]
 _ez = unary_union(ENTRY_ZONES + [tennis_poly(pd_, 2.5) for pd_ in TENNIS['pads']])     # (and off the tennis courts)
 _nt = len(trees)
 trees[N_ROWS:] = [t_ for t_ in trees[N_ROWS:] if not _ez.contains(Point(t_[1], t_[2]))]
@@ -3617,10 +3619,10 @@ for (u_, face) in DAEWOO_BACK['rows']:
                          round(_hu + (0.0 if face > 0 else math.pi) + rng5.uniform(-.04, .04), 3), rng5.randrange(8)])
         v_ += DAEWOO_BACK['stall']
 # 교육관's north yard, full of cars in the 2003 autumn photo (2003_가을_연희관앞정원과_교육관_북쪽계단.jpg): a row nose in
-# towards the hall, clear of the outside flight along its wall
+# towards the hall, east of the outside flight that comes down from the bay near its west corner
 _gt, _gn = np.array([-0.969, 0.248]), np.array([0.248, 0.969])     # along its north end (from the east corner), out of it
 rng9 = random.Random(1997 + 2004)
-for s_ in (1.8, 4.4, 7.0, 9.6, 12.2, 14.8):
+for s_ in (1.8, 4.4, 7.0, 9.6):
     if rng9.random() < 0.9:
         q_ = np.array([44.15, 345.23]) + _gt * s_ + _gn * 8.2
         cars.append([rng9.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(float(q_[0]), 2), round(float(q_[1]), 2),
@@ -4414,10 +4416,13 @@ spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.arra
 _gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
 _YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
 _ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5)], _gd)
-# (and 경영학교실단's front flight: paved to 2 m past its foot)
+# (and 경영학교실단's front flight: paved to 2 m past its foot; 교육관's north flight, which comes down 9.5 m out of
+# the gable onto the yard (blender/landmarks.py gyoyuk_north_flight): paved round its foot and the low wall past it)
 _bkc = _bk_a + BK_T * 45.66
+_gyc, _gyt, _gyn = np.array([30.29, 348.78]), np.array([-0.969, 0.248]), np.array([0.248, 0.969])
 _ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES]
-        + [Polygon([tuple(_bkc + BK_T * u + BK_N * v) for u, v in ((-4.5, 0.0), (4.5, 0.0), (4.5, 7.1), (-4.5, 7.1))])], _gp)
+        + [Polygon([tuple(_bkc + BK_T * u + BK_N * v) for u, v in ((-4.5, 0.0), (4.5, 0.0), (4.5, 7.1), (-4.5, 7.1))])]
+        + [Polygon([tuple(_gyc + _gyt * u + _gyn * v) for u, v in ((-2.6, 8.4), (2.6, 8.4), (2.6, 12.6), (-2.6, 12.6))])], _gp)
 # 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'

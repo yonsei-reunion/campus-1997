@@ -2194,21 +2194,58 @@ def shed_dormer(mb, x0, x1, nl, sg, W, hz, pitch, hd=1.15, p2=0.12, inset=0.9):
                (x0 - 0.12, ym, zm + 0.03)], 'roof_slate', (0, sg * p2, 1))
 
 
-def gyoyuk_north_flight(mb, iv, f, s0, s1, bd=2.4, fw=1.9):
-    """교육관's north end (reference/2003_가을_연희관앞정원과_교육관_북쪽계단.jpg, 2003_가을_교육관_서쪽면.jpg): a square
-    stone bay standing out from the gable near its west corner, a pointed-arched door in its north face a storey up,
-    a landing before it and a granite flight down along the wall towards the road to the east (towards -y), between
-    solid side walls of the wall's stone with a pale coping; under the landing, a low arched door into the bay at the
-    ground.  Local frame of stone_hall: the end at x = L/2, s along it from the front corner (y = s - W/2)."""
+def profile_wall(mb, ya, yb, xs, tops, bots, wall, cap='stone_trim', ct=0.14):
+    """A wall between ya < yb across a builder's local x stations xs (increasing), its top following tops and its
+    underside bots (z at each station), the top ct m in a pale coping, closed at both ends: the parapets of a flight
+    that stands free over open ground (교육관's north flight)."""
+    for i in range(len(xs) - 1):
+        xa, xb, ta, tb, ba, bb = xs[i], xs[i + 1], tops[i], tops[i + 1], bots[i], bots[i + 1]
+        ma, mbz = max(ba, ta - ct), max(bb, tb - ct)
+        for y, out in ((ya, False), (yb, True)):
+            q = [(xa, y, ba), (xb, y, bb), (xb, y, mbz), (xa, y, ma)]
+            c = [(xa, y, ma), (xb, y, mbz), (xb, y, tb), (xa, y, ta)]
+            if out:
+                q, c = q[::-1], c[::-1]
+            mb.face(q, wall)
+            mb.face(c, cap)
+        mb.quad((xa, ya, ta), (xb, ya, tb), (xb, yb, tb), (xa, yb, ta), cap)
+        mb.quad((xa, yb, ba), (xb, yb, bb), (xb, ya, bb), (xa, ya, ba), wall)
+    for i, sg in ((0, -1), (len(xs) - 1, 1)):
+        x, t, bt = xs[i], tops[i], bots[i]
+        q = [(x, yb, bt), (x, ya, bt), (x, ya, t), (x, yb, t)]
+        mb.face(q if sg < 0 else q[::-1], wall)
+
+
+def gyoyuk_north_flight(mb, iv, f, s0, s1, bd=2.4, fw=2.3, pt=0.35, ld=2.0, T=0.3, maxrise=0.21):
+    """교육관's north end: a square stone bay standing out from the gable near its west corner, a pointed-arched door
+    in its north face a storey up and a plain door under it at the ground; before the upper door a landing, and from
+    it a straight granite flight down to the yard, square to the gable (out along +x, the bay's axis), between solid
+    parapets of the wall's stone with a pale coping that end at the foot in square capped posts.  The landing and the
+    upper flight stand free, the ground running on under them to the lower door; lower down, where its underside
+    comes within 1.4 m of the ground, it is walled in down to it.  The west parapet runs on past the foot as a low wall to a lower post.
+    reference/2003_가을_연희관앞정원과_교육관_북쪽계단.jpg (from the north-west, above: the flight coming down towards the
+    yard, grass and leaves under it, the lower door under the landing), 2003_가을_교육관_서쪽면.jpg (the landing's west
+    side flush with the bay's, the lower door straight under the upper one) and the Kakao roadview from the yard
+    (Aug. 2008 pano 2381727, June 2026 1212397962: the same flight, its side parapets and the posts at its foot).  It
+    had been drawn running east along the gable from a landing beside the bay, over a solid wedge of wall.
+    Local frame of stone_hall: the end at x = L/2, s along it from the front corner (y = s - W/2)."""
     L, W, plinth, fh, wall, gl = f['L'], f['W'], f['plinth'], f['fh'], f['wall'], f['gl']
     xe = L / 2
     y0, y1 = s0 - W / 2, s1 - W / 2
+    yc = (y0 + y1) / 2
     zl = plinth + fh - 0.1                        # the landing: the first floor's threshold
     zt = plinth + 2 * fh - 0.25                   # the bay's top, under the second floor's lights
-    gnd = min(gl(xe + bd + fw / 2, (y0 + y1) / 2), gl(xe + 1.0, y0)) - 1.5
-    # the bay
-    stone_base(mb, [(xe - 0.2, y0), (xe + bd, y0), (xe + bd, y1), (xe - 0.2, y1)], plinth, wall)
-    faces = (((xe + bd, y0), (xe + bd, y1)), ((xe + bd, y1), (xe, y1)), ((xe, y0), (xe + bd, y0)))
+    xf, xs = xe + bd, xe + bd + ld                # the bay's north face, the landing's edge (the flight's head)
+    ya, yb = yc - fw / 2, yc + fw / 2             # the flight between its parapets
+    yA, yB = ya - pt, yb + pt
+    gnd_at = lambda x: max(gl(x, yA + (yB - yA) * k / 6) for k in range(7))
+    zb = gnd_at(xf + 0.6) - 0.02                  # the ground under the landing, at the lower door
+    gnd = min(gl(xf + 0.5, yc), gl(xs + 5.0, yc), zb) - 0.6     # footings
+    # the bay, its base opened for the lower door
+    dl = 1.1                                      # the lower door
+    stone_base(mb, [(xe - 0.2, y0), (xf, y0), (xf, y1), (xe - 0.2, y1)], plinth, wall,
+               gap=(1, (y1 - y0) / 2 - dl / 2, (y1 - y0) / 2 + dl / 2, zb))
+    faces = (((xf, y0), (xf, y1)), ((xf, y1), (xe, y1)), ((xe, y0), (xf, y0)))
     for k, (pa, pb) in enumerate(faces):
         P, Le, t, n = edge_P(pa, pb)
         holes = []
@@ -2227,51 +2264,85 @@ def gyoyuk_north_flight(mb, iv, f, s0, s1, bd=2.4, fw=1.9):
             for s_ in (e0, e1):                   # the reveal's sides
                 mb.quad(P(s_, zl, 0), P(s_, zl, -0.4), P(s_, zs, -0.4), P(s_, zs, 0), 'stone_trim')
             holes.append((e0 - rw, e1 + rw, zl, zs + dw + 0.3))
-        if k == 1:                                # the low door, under the landing's height, on the west side
-            dw = 1.1
-            e0, e1 = Le / 2 - dw / 2, Le / 2 + dw / 2
-            zb = max(gl(xe + bd / 2, y1 + 0.6) - 0.05, plinth)
-            arch_fill(mb, P, e0, e1, zb + 1.8, zb + 1.8 + dw * 0.9, 0.3, 'stone_trim', 'pointed', 10)
-            mb.quad(P(e0, zb, -0.3), P(e1, zb, -0.3), P(e1, zb + 1.8, -0.3), P(e0, zb + 1.8, -0.3), 'void_black')
-            for s_ in (e0, e1):
-                mb.quad(P(s_, zb, 0), P(s_, zb, -0.3), P(s_, zb + 1.8, -0.3), P(s_, zb + 1.8, 0), 'stone_trim')
-            holes.append((e0, e1, -2.0, zb + 1.8 + dw * 0.9))
+            # the lower door, straight under it in the shade of the landing: a plain opening with a dark leaf
+            a_, b_, zh = Le / 2 - dl / 2, Le / 2 + dl / 2, zl - 0.75
+            mb.quad(P(a_, zb, -0.3), P(b_, zb, -0.3), P(b_, zh, -0.3), P(a_, zh, -0.3), 'frame_dark')
+            reveal(mb, P, a_, b_, zb, zh, 0.3, 'stone_trim')
+            holes.append((a_, b_, -2.0, zh))
         wall_holes(mb, P, 0, Le, plinth, zt, wall, holes)
         bar(mb, P, -0.05, zt + 0.12, Le + 0.05, zt + 0.12, 0.24, -0.1, 0.12, 'stone_trim', ends=True)
         if f['ivy']:
             ivy_patch(iv, P, 0, Le, 0, zt, 5.5, 71 + k, cover=f['ivy'] * 0.9, holes=holes)
     # its cap: a low pyramid of slate over a coping
-    xc, yc = xe + bd / 2, (y0 + y1) / 2
+    xc = xe + bd / 2
     hb, hy = bd / 2 + 0.12, (y1 - y0) / 2 + 0.12
     for (p, q) in (((-1, -1), (1, -1)), ((1, -1), (1, 1)), ((1, 1), (-1, 1)), ((-1, 1), (-1, -1))):
         mb.face([(xc + p[0] * hb, yc + p[1] * hy, zt + 0.24), (xc + q[0] * hb, yc + q[1] * hy, zt + 0.24),
                  (xc, yc, zt + 1.1)], 'roof_slate')
-    # the landing and the flight down to the east
-    xa, xb = xe + bd, xe + bd + fw
-    T, maxrise = 0.3, 0.165
+    # the flight: as many risers as reach the yard at its foot, none over maxrise
     for n in range(4, 40):
-        y_foot = y0 - (n - 1) * T
-        zbot = across(gl, xa, xb, y_foot - 0.5) - 0.03
+        x_end = xs + (n - 1) * T                  # the last nosing; the ground beyond it
+        zbot = gnd_at(x_end + 0.5) - 0.03
         if (zl - zbot) / n <= maxrise:
             break
     rise = (zl - zbot) / n
-    yl0 = y0                                       # the landing runs from the bay's east side to beyond its west one
-    mb.box(((xa + xb) / 2, (yl0 + y1 + 0.4) / 2, (zl + gnd) / 2), (fw, y1 + 0.4 - yl0, zl - gnd), 'stone_step', skip=('bottom',))
+    ts, hp, hs = 0.5, 0.95, 1.4                   # the slab's depth, the parapets over the nosings, the open height
+    soffit = lambda x: zl - ts - (x - xs) * rise / T
+    x_p = xs + (zl - ts - (zb + hs)) * T / rise   # from here on the flight is walled in down to the ground
+    # the landing slab, the treads (each down to the soffit, or to the ground where it is walled in) and the soffit.
+    # Their tops and fronts are cut in three across: the bake shades a face from its corners, and a tread's four all
+    # stand in the angle of a parapet (blender/bake.py), which left the whole flight dark
+    cuts = [ya, ya + 0.45, yb - 0.45, yb]
+
+    def across_(x0, x1, z0, z1, up):
+        for y_a, y_b in zip(cuts, cuts[1:]):
+            if up:
+                mb.quad((x0, y_a, z0), (x1, y_a, z0), (x1, y_b, z0), (x0, y_b, z0), 'stone_step')
+            else:
+                mb.quad((x1, y_a, z0), (x1, y_b, z0), (x1, y_b, z1), (x1, y_a, z1), 'stone_step')
+    # (each riser from the tread below it up: a corner buried in the next tread bakes black)
+    for x0, x1 in ((xf, (xf + xs) / 2), ((xf + xs) / 2, xs)):
+        across_(x0, x1, zl, zl, True)
+        mb.quad((x0, yb, zl - ts), (x1, yb, zl - ts), (x1, ya, zl - ts), (x0, ya, zl - ts), 'stone_step')
+    across_(xf, xs, zl - rise, zl, False)
     for k in range(1, n):
-        top = zl - k * rise
-        mb.box(((xa + xb) / 2, yl0 - (k - 0.5) * T + 0.01, (top + gnd) / 2), (fw, T + 0.02, top - gnd), 'stone_step',
-               skip=('bottom',))
+        top, xa_ = zl - k * rise, xs + (k - 1) * T
+        across_(xa_, xa_ + T, top, top, True)
+        across_(xa_, xa_ + T, top - rise, top, False)
+    xg = min(x_p, x_end)
+    mb.quad((xs, yb, zl - ts), (xg, yb, soffit(xg)), (xg, ya, soffit(xg)), (xs, ya, zl - ts), 'stone_step')
+    mb.quad((xg, ya, soffit(xg)), (xg, yb, soffit(xg)), (xg, yb, gnd), (xg, ya, gnd), wall)
+    # the parapets, round the landing and down the flight: free over the open ground, then walled to the ground
+    xst = [xf, xs] + [xs + (xg - xs) * k / 4 for k in range(1, 5)]
+    tops = [zl + hp, zl + hp] + [zl + hp - (x - xs) * rise / T for x in xst[2:]]
+    bots = [zl - ts, zl - ts] + [soffit(x) for x in xst[2:]]
+    wp = 0.55                                     # the posts at the foot (the parapets stop at their faces)
+    x_q = x_end + 0.12 - wp / 2
+    for (p0, p1) in ((yA, ya), (yb, yB)):
+        profile_wall(mb, p0, p1, xst, tops, bots, wall)
+        if x_q > xg:
+            xw = [xg, (xg + x_q) / 2, x_q]
+            profile_wall(mb, p0, p1, xw, [zl + hp - (x - xs) * rise / T for x in xw], [gnd] * 3, wall)
+    for y in ((yA + ya) / 2, (yb + yB) / 2):
+        pedestal(mb, x_end + 0.12, y, zbot + rise + hp + 0.3, gnd, wall, w=wp)
+    # the west parapet runs on past the foot as a low coped wall to a lower post
+    ym = (yb + yB) / 2
+    gw = gl(x_end + 1.0, ym) - 0.03
+    gx = min(gl(x_end + 0.35 + 0.4 * k, ym) for k in range(6)) - 0.4      # (the yard falls away past the foot)
+    xw = [x_end + 0.12 + wp / 2, x_end + 1.2, x_end + 2.1 - 0.25]           # (post face to post face)
+    profile_wall(mb, yb + 0.03, yB - 0.03, xw, [gw + 0.75] * 3, [gx] * 3, wall)
+    pedestal(mb, x_end + 2.1, ym, gw + 1.0, gx, wall, w=0.5)
     W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
-    WALK_FACES.append([W_(xa, y1 + 0.4, zl), W_(xa, yl0, zl), W_(xb, yl0, zl), W_(xb, y1 + 0.4, zl)])
-    WALK_FACES.append([W_(xa, yl0, zl), W_(xa, yl0 - n * T, zbot), W_(xb, yl0 - n * T, zbot), W_(xb, yl0, zl)])
-    yf_ = yl0 - (n - 1) * T
-    prof = [(y1 + 0.4, zl + 0.95), (yl0, zl + 0.95), (yf_ + 0.1, zbot + rise + 0.85)]
-    sloped_wall(mb, xb, xb + 0.32, prof, gnd, wall)                      # the outer side wall, round the landing
-    sloped_wall(mb, xa - 0.3, xa, [(yl0, zl + 0.95), (yf_ + 0.1, zbot + rise + 0.85)], gnd, wall)   # the inner one
-    mb.box(((xa + xb + 0.32) / 2, y1 + 0.55, (zl + 0.95 + gnd) / 2), (fw + 0.32, 0.3, zl + 0.95 - gnd), wall, skip=('bottom',))
-    for x in (xa - 0.15, xb + 0.16):
-        pedestal(mb, x, yf_ + 0.2, zbot + rise + 1.1, gnd, wall, w=0.5)
-    note_entrance(mb, fw / 2 + 0.6, yl0, yf_ - 1.0, x=(xa + xb) / 2)
+    WALK_FACES.append([W_(xf, ya, zl), W_(xs, ya, zl), W_(xs, yb, zl), W_(xf, yb, zl)])
+    WALK_FACES.append([W_(xs, ya, zl), W_(xs + n * T, ya, zbot), W_(xs + n * T, yb, zbot), W_(xs, yb, zl)])
+    # the zone over the flight (note_entrance takes flights going down towards -y: this one goes out along +x)
+    o = mb.xf @ Vector((xf, yc, 0.0))
+    u = (mb.xf.to_3x3() @ Vector((0.0, 1.0, 0.0))).normalized()
+    v = (mb.xf.to_3x3() @ Vector((1.0, 0.0, 0.0))).normalized()
+    ENTRANCES.append(dict(o=[round(o.x, 2), round(o.y, 2)], u=[round(u.x, 4), round(u.y, 4)], v=[round(v.x, 4), round(v.y, 4)],
+                          hw=round((yB - yA) / 2 + 0.6, 2), len=round(x_end + 2.4 - xf, 2)))
+    print('교육관 north flight: %d risers of %.3f m, landing %.2f m over the yard, foot %.1f m out of the gable'
+          % (n, rise, zl - zbot, x_end - xe))
 
 
 def seongam():
