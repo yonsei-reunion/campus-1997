@@ -4093,20 +4093,21 @@ def aud_bank():
 
 # ============================================================================= 활천대 (독수리상 옆)
 # The basin before 백양로 was rebuilt (reference/고증.md 4.3): the old photo in the 2017 blog post (reference/
-# 활천대_공사전_연세대블로그.jpg) and a 1990s snapshot (reference/활천대_1990년대_*.jpg).  One round pool 8.9 m across,
+# 활천대_공사전_연세대블로그.jpg) and a group snapshot of about late 1999 - the early 2000s
+# (reference/활천대_단체사진_*.jpg).  One round pool 8.9 m across,
 # walled in rounded field stones laid in mortar with a rounded top a little lighter than the faces, the water a few
 # centimetres over the ground outside and some 15 cm under the wall's top; a ring of rough flagstones 1.1 m wide round
 # the wall; in the middle a low round island of the same stones carrying the sculpture.  (The thin metal ring of jets
 # in the water, 6.5 m across, and its bell of water in the 2009 photo came later: none on the rim in 1997.)  Sizes:
 # tools/build_campus.py FOUNTAIN, from the old photo's camera (the rings and the column, 4 px rms) and the 2011
 # roadview (the column 2.29 / 2.34 m, slab top to the tips, from two solved spots).
-# The sculpture, from the old photo, the 1990s snapshot and the 2017 photos of it (reference/활천대_2017_연세대블로그_*.jpg;
+# The sculpture, from the old photo, the snapshot and the 2017 photos of it (reference/활천대_2017_연세대블로그_*.jpg;
 # the name plate reads 「활천대 기증 전기공학과 동창회 (1974년)」): a stone column of cross section, carved all over with
 # abstract figures in low relief, in three drums with a dark joint between them and its four arms ending above in
 # upright prongs of different heights; it stands on a square slab with a carved edge, on a lower cross-shaped pedestal
 # (letters cut in its faces).  In the old photo the column is 4.14 times narrower than the wall across, its drums
 # 0.65 / 0.73 / 0.91 m (with the prongs) and the slab 0.25 m thick on a pedestal 0.66 m high; seen square on (2017)
-# the arms span 0.38 and the slab 0.47 of the column's height.  In the 1990s snapshot its white stone had gone grey
+# the arms span 0.38 and the slab 0.47 of the column's height.  In the snapshot its white stone had gone grey
 # with dark streaks (stone_white_old).  A jet rises from its top and falls back round it (there in 1997 too, the
 # user remembers; its shape from the 2009 photo).
 FOUNTAIN_COL = dict(ped=0.79, slab=1.04, j2=1.69, j1=2.42, top=3.04, tip=0.29, arm=0.43, arm_w=0.27, core=0.23,

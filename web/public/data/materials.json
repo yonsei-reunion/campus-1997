@@ -1181,7 +1181,7 @@
   "rough": 0.85
  },
  "stone_white_old": {
-  "_doc": "활천대's carved column gone grey with dark streaks, as in the 1990s snapshot (reference/활천대_1990년대_기둥.jpg)",
+  "_doc": "활천대's carved column gone grey with dark streaks, as in a snapshot of about late 1999 - the early 2000s (reference/활천대_단체사진_기둥.jpg)",
   "weather": 0.55,
   "streak": 0.45,
   "tex": "concrete_slab_wall",

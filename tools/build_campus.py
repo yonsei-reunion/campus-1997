@@ -364,17 +364,19 @@ COURT = dict(pos=[21.9, 2.5], rot=1.313, L=28.0, W=15.0)
 # solved from the two columns and the south front's two corners: (-78.6, -216.2), 1.6 m up, heading 11.3 deg west of
 # north, tilted 3.5 deg up, vertical field 36 deg; 3 px rms, 7 px with the two where they first stood).
 # The basin before the rebuilding (reference/고증.md 4.3): the old photo in the 2017 blog post (reference/
-# 활천대_공사전_연세대블로그.jpg, its camera solved from the rings and the column: 4 px rms) and a 1990s snapshot
-# (reference/활천대_1990년대_*.jpg) show one round pool walled in rounded field stones, the water up to just under
-# their top, the column on a low round island of the same stones, a ring of rough flagstones round the wall and lawn
-# beyond.  The wall is 4.14 times the column's height (slab top to the tips) across; the column is 2.29 / 2.34 m in
-# the 2011 roadview from 169 / 172 (their solved spots, 27 / 30 m off), the wall's ends 9.4 - 9.6 m apart from 170:
-# a wall 9.5 m across.  (The thin metal ring of jets in the water, 6.5 m, came later: there were no jets on the rim
-# in 1997.)  Radii: r the water, rim the wall's outer face, pave the flagstones' outer edge, island the stone island
-# under the sculpture; heights over the flagstones (level ground): wall the wall's top, water, floor the pool's
-# floor, isle the island's top (blender/landmarks.py fountain, web/src/water/fountain.js).
+# 활천대_공사전_연세대블로그.jpg, its camera solved from the rings and the column: 4 px rms) and a group snapshot of
+# about late 1999 - the early 2000s (reference/활천대_단체사진_*.jpg) show one round pool walled in rounded field
+# stones, the water up to just under their top, the column on a low round island of the same stones, a ring of rough
+# flagstones round the wall and lawn beyond.  The wall is 4.14 times the column's height (slab top to the tips)
+# across; the column is 2.29 / 2.34 m in the 2011 roadview from 169 / 172 (their solved spots, 27 / 30 m off), the
+# wall's ends 9.4 - 9.6 m apart from 170: a wall 9.5 m across.  (The thin metal ring of jets in the water, 6.5 m,
+# came later: there were no jets on the rim in 1997.)  Radii: r the water, rim the wall's outer face, pave the
+# flagstones' outer edge, island the stone island under the sculpture; heights over the flagstones (level ground):
+# wall the wall's top, water, floor the pool's floor, isle the island's top (blender/landmarks.py fountain,
+# web/src/water/fountain.js).
 EAGLE = dict(pos=[-70.9, -159.8])
-FOUNTAIN = dict(pos=[-83.1, -202.6], r=4.45, rim=4.75, pave=5.85, island=0.95, wall=0.22, water=0.05, floor=-0.25, isle=0.13)
+FOUNTAIN = dict(pos=[-83.1, -202.6], r=4.45, rim=4.75, pave=5.85, island=0.95,
+                wall=0.22, water=0.05, floor=-0.25, isle=0.13)
 # the random planting keeps its lawn hole where the fountain first stood, with the first basin's size (r 2.6), so
 # that the campus keeps its trees (one stream of draws, see below); the scattered trees round the moved basin are
 # cleared after the draws (_FOUNTAIN_LAWN)

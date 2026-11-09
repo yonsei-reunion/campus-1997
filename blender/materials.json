@@ -1023,7 +1023,7 @@
  "canvas_green": {"color": [0.06, 0.24, 0.17], "rough": 0.9, "side": "double"},
  "paint_black": {"color": [0.03, 0.03, 0.03], "rough": 0.6},
  "notice_posters": {"image": "notice_posters.png", "rough": 0.85},
- "stone_white_old": {"_doc": "활천대's carved column gone grey with dark streaks, as in the 1990s snapshot (reference/활천대_1990년대_기둥.jpg)", "weather": 0.55, "streak": 0.45, "tex": "concrete_slab_wall", "tile": 2.2, "tint": [1.52, 1.5, 1.43], "sat": 0.25, "rough": 0.8},
+ "stone_white_old": {"_doc": "활천대's carved column gone grey with dark streaks, as in a snapshot of about late 1999 - the early 2000s (reference/활천대_단체사진_기둥.jpg)", "weather": 0.55, "streak": 0.45, "tex": "concrete_slab_wall", "tile": 2.2, "tint": [1.52, 1.5, 1.43], "sat": 0.25, "rough": 0.8},
  "stone_haetae": {"weather": 0.4, "tex": "granite_tile", "tile": 0.9, "tint": [1.62, 1.6, 1.54], "sat": 0.3, "rough": 0.85},
  "stone_boulder": {"_doc": "weathered grey granite boulders (상뜰 서쪽 차로 둑, landmarks.sang_stone_bank)", "weather": 0.45, "tex": "granite_tile", "tile": 0.7, "tint": [2.05, 2.03, 1.97], "sat": 0.25, "rough": 0.9},
  "bin_grey": {"_doc": "the green recycling box's grey steel carcass and lid (props.recycle_bin)", "color": [0.3, 0.31, 0.32], "rough": 0.6, "metal": 0.2},
