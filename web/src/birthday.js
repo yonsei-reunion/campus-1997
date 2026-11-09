@@ -1,13 +1,15 @@
 // 활천대 앞 생일 축하: two students stand on the flagstones south of the basin. Come up to them and one says
 // 「나 오늘 생일이야!」; press E (or tap the prompt) and you and the friend say 「축하해!」, take the birthday student
-// under the arms and the knees, swing them 「하나, 둘, 셋!」 and drop them in the pool, as was done on campus fountains
-// on birthdays. The birthday student goes along with it (arms up all the way in), sits up in the water, climbs out
-// over the wall dripping and stands where they were, wet for a while.
+// by the raised wrists and by the ankles, swing them 「하나, 둘, 셋!」 and drop them in the pool, as was done on
+// campus fountains on birthdays. The birthday student goes along with it (arms up all the way in), sits up in the
+// water, climbs out over the wall dripping and stands where they were, wet for a while.
 //
 // No clip in the rig holds a person up (characters.js: idle, walk, sprint, sit, emote-yes / no, interact-right), so
-// the carry is built here: the birthday student in the 'sit' clip, tipped back into a V and moved by the hips; the two
-// carriers in 'idle' with both hands put under the arms / the knees by two-bone IK (armpose.js), and the carried one's
-// own arms up over their head the same way.
+// the carry is built here: the birthday student in the 'sit' clip, tipped back and moved by the hips, the thighs and
+// shins aimed so the body hangs in a V that sags at the seat, as a held body does; the two carriers in 'idle' with
+// both hands put round the wrists of the arms raised over the head / round the ankles by two-bone IK (armpose.js).
+// The rig's arms are short (about 0.48 m shoulder to wrist), so each carrier stands where both hands just reach,
+// frame by frame, and the hands stay on the body through the swing.
 import * as THREE from 'three';
 import { play, locomotion } from './characters.js';
 import { ArmPose } from './armpose.js';
@@ -20,14 +22,15 @@ const SPOT_R = 5.3;                               // on the flagstones (wall's o
 const LAND_R = 2.6;                               // where the birthday student comes down in the pool
 const SAY_NEAR = 6.5, OFFER_NEAR = 4.6, RESET_FAR = 16;
 const G = 9.8;
-const PITCH = 0.95;                               // the carried V: tipped back this far (rad) from sitting upright
-const CARRY_H = 0.8;                              // hips over the flagstones while carried
+const PITCH = 1.12;                               // the carried V: tipped back this far (rad) from sitting upright
+const THIGH_UP = 0.52, SHIN_UP = 0.1;            // held: thighs and shins rise this far (rad) towards the feet's end
+const CARRY_H = 0.85;                             // hips over the flagstones while carried
 const SWING_T = 0.8, SWING_A = 0.32;              // one swing (s) and how far out / in it goes (m)
 const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
 const height = (id) => (id.startsWith('woman') ? 1.61 : 1.73);
 
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
-const _e = new THREE.Euler(0, 0, 0, 'YXZ'), _X = new THREE.Vector3(1, 0, 0), _Y = new THREE.Vector3(0, 1, 0), _Z = new THREE.Vector3(0, 0, 1);
+const _X = new THREE.Vector3(1, 0, 0), _Y = new THREE.Vector3(0, 1, 0), _Z = new THREE.Vector3(0, 0, 1);
 
 // the hips' place in the holder's frame for a clip (sampled once from the model)
 function sampleHips(a, clip) {
@@ -42,6 +45,29 @@ function sampleHips(a, clip) {
   a.current = null;
   play(a, 'idle', { fade: 0 });
   return p;
+}
+
+// turn a bone (they run along their local +Y in this rig) so it points along the world direction dir, w of the way
+// from its pose (as armpose.js aims the arms); its parents' world matrices must be current
+const _pq = new THREE.Quaternion(), _wq = new THREE.Quaternion(), _rq = new THREE.Quaternion(), _ax = new THREE.Vector3();
+function aimBone(bone, dir, w) {
+  bone.parent.getWorldQuaternion(_pq);
+  _wq.copy(_pq).multiply(bone.quaternion);
+  _ax.set(0, 1, 0).applyQuaternion(_wq);
+  _rq.setFromUnitVectors(_ax, dir);
+  _wq.premultiply(_rq);
+  bone.quaternion.slerp(_pq.invert().multiply(_wq).normalize(), w);
+  bone.updateWorldMatrix(false, true);
+}
+
+// a carrier's reach: arm length (shoulder to wrist), half the shoulders' width, and where the shoulders are in the
+// holder's frame (height, how far forward), in the 'idle' pose
+function reachOf(a) {
+  a.holder.updateMatrixWorld(true);
+  const p = (n) => a.root.getObjectByName(n).getWorldPosition(new THREE.Vector3());
+  const s = p('UpperArmL'), e = p('LowerArmL'), w = p('WristL'), s2 = p('UpperArmR');
+  const loc = a.holder.worldToLocal(s.clone().add(s2).multiplyScalar(0.5));
+  return { arm: s.distanceTo(e) + e.distanceTo(w), half: s.distanceTo(s2) / 2, h: loc.y, fwd: loc.z };
 }
 
 // --------------------------------------------------------------- droplets
@@ -120,8 +146,10 @@ export class Birthday {
     this.rad = new THREE.Vector3(Math.cos(SPOT_A), 0, -Math.sin(SPOT_A));
     this.tan = new THREE.Vector3(-Math.sin(SPOT_A), 0, -Math.cos(SPOT_A));
     this.spot = C.clone().addScaledVector(this.rad, SPOT_R);
-    this.headEnd = this.spot.clone().addScaledVector(this.tan, -0.92);     // the friend, behind the birthday student
-    this.feetEnd = this.spot.clone().addScaledVector(this.tan, 1.12);      // you, at their feet
+    // where the friend (behind the birthday student, at their head) and you (at their feet) stand to take them up;
+    // while they are swung both stand where their hands reach (reachPlace)
+    this.headEnd = this.spot.clone().addScaledVector(this.tan, -1.2);
+    this.feetEnd = this.spot.clone().addScaledVector(this.tan, 0.95);
     this.friendHome = this.spot.clone().addScaledVector(this.tan, -1.05).addScaledVector(this.rad, 0.15);
     this.land = C.clone().addScaledVector(this.rad, LAND_R).setY(F.h + F.water);
     this.floorY = F.h + F.floor;
@@ -130,6 +158,25 @@ export class Birthday {
     this.f = cast.make(FRIEND, null);
     this.hipSit = sampleHips(this.b, 'sit');
     this.hipIdle = sampleHips(this.b, 'idle');
+    this.bones = {
+      knees: ['LowerLegL', 'LowerLegR'].map((n) => this.b.root.getObjectByName(n)),
+      feet: ['FootL', 'FootR'].map((n) => this.b.root.getObjectByName(n)),
+      wrists: ['WristL', 'WristR'].map((n) => this.b.root.getObjectByName(n)),
+      thighs: ['UpperLegL', 'UpperLegR'].map((n) => this.b.root.getObjectByName(n)),
+      head: this.b.root.getObjectByName('Head'),
+    };
+    // the feet's rest pose (sampleHips has left the model in it): no clip drives their rotation while sitting or
+    // standing, so what hangLegs gives them would stay (and be saved by the mixer as their rest when a walk starts);
+    // they go back to it every frame. And where each foot sits on its shin at rest (offset and turn in the shin's
+    // frame), for hangLegs to carry it along
+    this.footRest = this.bones.feet.map((x) => ({ p: x.position.clone(), q: x.quaternion.clone() }));
+    this.b.holder.updateMatrixWorld(true);
+    this.footOnShin = [0, 1].map((i) => {
+      const knee = this.bones.knees[i], foot = this.bones.feet[i];
+      const kq = knee.getWorldQuaternion(new THREE.Quaternion()).invert();
+      const off = foot.getWorldPosition(new THREE.Vector3()).sub(knee.getWorldPosition(new THREE.Vector3()));
+      return { off: off.applyQuaternion(kq), rel: kq.clone().multiply(foot.getWorldQuaternion(new THREE.Quaternion())) };
+    });
     for (const a of [this.b, this.f]) {
       scene.add(a.holder);
       shadows?.addDynamic(a.holder);
@@ -141,12 +188,8 @@ export class Birthday {
     scene.add(this.anchor);
     this.bPose = new ArmPose(this.b);
     this.fPose = new ArmPose(this.f);
+    this.fR = reachOf(this.f);
     this.hPose = new ArmPose(player.actor);
-    this.bones = {
-      shoulders: ['UpperArmL', 'UpperArmR'].map((n) => this.b.root.getObjectByName(n)),
-      knees: ['LowerLegL', 'LowerLegR'].map((n) => this.b.root.getObjectByName(n)),
-      head: this.b.root.getObjectByName('Head'),
-    };
     this.makeWettable();
     this.splash = new Splash(scene, mobile ? 260 : 600);
     this.state = 'idle';
@@ -262,6 +305,7 @@ export class Birthday {
     this.hero = pl.actor;
     this.hTop = height(this.hero.id);
     if (this.hPose.actor !== this.hero) this.hPose.setActor(this.hero);
+    this.hR = reachOf(this.hero);
     this.hero.heading = pl.heading;
     // the camera stands back on the lawn, side on to the carry: you and the friend left and right, the pool beyond
     if (!this.noCamera) {
@@ -304,6 +348,7 @@ export class Birthday {
       else if (!visible && a.holder.parent) this.scene.remove(a.holder);
     }
     if (!visible && this.state === 'idle') return;
+    this.bones.feet.forEach((x, i) => { x.position.copy(this.footRest[i].p); x.quaternion.copy(this.footRest[i].q); });
     if (pl.scripted && this.state !== 'idle' && this.state !== 'rest' && (far > 12 || pl.actor !== this.hero)) { this.abort(); return; }
     this.st += dt;
     const s = this.st;
@@ -346,7 +391,7 @@ export class Birthday {
         const hip = _w.copy(this.hipIdle).lerp(this.hipSit, ease(s / 0.45));
         this.carry(hips, this.yaw0 + wrapAngle(tanYaw - this.yaw0) * ease(s / 0.3), PITCH * u, 0, hip);
         this.armsUp = Math.min(1, s / 0.6);
-        if (s > 1.6) { this.go('swing'); this.counted = 0; this.sway = 0; }
+        if (s > 1.6) { this.go('swing'); this.counted = 0; }
         break;
       }
       case 'swing': {
@@ -362,7 +407,6 @@ export class Birthday {
           this.say(this.hero.holder, this.hTop, word, t, 0.75);
           this.counted++;
         }
-        this.sway = x;
         if (s >= 2.5 * SWING_T) {
           // the throw: from here to the landing spot in TF seconds
           const TF = 0.85;
@@ -462,20 +506,13 @@ export class Birthday {
       }
     }
 
-    // the carriers: in place, swaying with the swing, hands on the body while it is held
     const holding = this.state === 'lift' || this.state === 'swing';
-    if (this.state === 'lift' || this.state === 'swing' || this.state === 'fly') {
-      const x = this.state === 'swing' ? this.sway : this.state === 'lift' ? 0 : -SWING_A * 0.3;
-      this.place(f, _w.copy(this.headEnd).addScaledVector(this.rad, x * 0.3), tanYaw);
-      this.place(this.hero, _w.copy(this.feetEnd).addScaledVector(this.rad, x * 0.3), tanYaw + Math.PI);
-      locomotion(f, 0); locomotion(this.hero, 0);
-    }
     if (this.state === 'water' && s > 0.4) {
       // turn to watch the pool
       this.turn(f, this.headingTo(f.holder.position, b.holder.position), dt, 3);
       this.turn(this.hero, this.headingTo(this.hero.holder.position, b.holder.position), dt, 3);
     }
-    const wantArms = holding ? (this.state === 'lift' ? ease(s / 0.3) : 1) : 0;
+    const wantArms = holding ? (this.state === 'lift' ? ease((s - 0.15) / 0.4) : 1) : 0;
     this.armW += (wantArms - this.armW) * Math.min(1, dt * (wantArms > this.armW ? 14 : 4));
 
     // animate (the walker's own mixer too while the scene has it), then the arms on top
@@ -489,9 +526,28 @@ export class Birthday {
       if (q && t >= q.at) { play(q.a, 'emote-yes', { once: true, fade: 0.25 }); this[c] = null; }
     }
     b.holder.updateMatrixWorld(true);
-    if (this.armsUp > 0.01) this.cheerArms(t);
-    if (this.armW > 0.01 || this.state === 'fly') {
-      if (holding) this.grip();
+    // held: the legs out of the sitting pose into the V (none of it shows once they are in the water)
+    const open = this.state === 'lift' ? ease(s / 0.45) : this.state === 'swing' || this.state === 'fly' ? 1 : 0;
+    if (open > 0) this.hangLegs(tanYaw, open);
+    if (this.armsUp > 0.01) this.cheerArms(t, holding);
+    // the carriers: hands round the raised wrists / the ankles, standing where both hands reach (taking them up:
+    // at their places; in the air: where they let go)
+    if (holding) {
+      const raw = this.grips();
+      if (this.state === 'swing') {
+        this.reachPlace(f, this.fR, raw.f, tanYaw, this.headEnd);
+        this.reachPlace(this.hero, this.hR, raw.h, tanYaw + Math.PI, this.feetEnd);
+      } else {
+        this.place(f, this.headEnd, tanYaw);
+        this.place(this.hero, this.feetEnd, tanYaw + Math.PI);
+      }
+      locomotion(f, 0); locomotion(this.hero, 0);
+      this.fT = this.match(f, this.fPose, raw.f);
+      this.hT = this.match(this.hero, this.hPose, raw.h);
+      this.fH = this.hints(f, this.fPose);
+      this.hH = this.hints(this.hero, this.hPose);
+    }
+    if ((this.armW > 0.01 || this.state === 'fly') && this.fT) {
       this.fPose.apply(this.fT, this.fH, this.armW);
       if (this.hero) this.hPose.apply(this.hT, this.hH, this.armW);
     }
@@ -500,15 +556,51 @@ export class Birthday {
     this.anchor.position.set(head.x, head.y + 0.2 - this.bTop, head.z);
   }
 
-  // hand targets on the carried body: under the arms for the friend, under the knees for you
-  grip() {
-    const b = this.b;
-    const down = _w.set(0, -1, 0).applyQuaternion(b.holder.quaternion);
-    const pts = (bones, drop) => bones.map((bn) => bn.getWorldPosition(new THREE.Vector3()).addScaledVector(down, drop));
-    this.fT = this.match(this.f, this.fPose, pts(this.bones.shoulders, 0.1));
-    this.hT = this.match(this.hero, this.hPose, pts(this.bones.knees, 0.07));
-    this.fH = this.hints(this.f, this.fPose);
-    this.hH = this.hints(this.hero, this.hPose);
+  // thighs up towards the feet's end at THIGH_UP, a little apart, the knees a little bent (shins at SHIN_UP). The
+  // rig's feet are IK controls under Root, not children of the shins: each foot is put on the end of its shin as at
+  // rest, or the skin would stretch from the knee to where the clip left the foot
+  hangLegs(yaw, w) {
+    const h = this.b.holder, bn = this.bones, fx = Math.sin(yaw), fz = Math.cos(yaw);
+    const side = new THREE.Vector3(1, 0, 0).applyQuaternion(h.quaternion);
+    const kp = new THREE.Vector3(), kq = new THREE.Quaternion(), fq = new THREE.Quaternion();
+    for (let i = 0; i < 2; i++) {
+      const knee = bn.knees[i], foot = bn.feet[i], off = this.footOnShin[i].off.clone(), rel = this.footOnShin[i].rel;
+      const sg = Math.sign(h.worldToLocal(bn.thighs[i].getWorldPosition(_w)).x) || 1;
+      const d = _w.set(fx * Math.cos(THIGH_UP), Math.sin(THIGH_UP), fz * Math.cos(THIGH_UP)).addScaledVector(side, sg * 0.07).normalize();
+      aimBone(bn.thighs[i], d.clone(), w);
+      aimBone(knee, _w.set(fx * Math.cos(SHIN_UP), Math.sin(SHIN_UP), fz * Math.cos(SHIN_UP)), w);
+      knee.getWorldPosition(kp); knee.getWorldQuaternion(kq);
+      foot.position.copy(foot.parent.worldToLocal(off.applyQuaternion(kq).add(kp)));
+      foot.parent.getWorldQuaternion(fq);
+      foot.quaternion.copy(fq.invert().multiply(kq.multiply(rel)));   // (kq is spent here)
+      foot.updateWorldMatrix(false, true);
+    }
+  }
+
+  // where the hands go on the carried body (world): the friend round the raised wrists, you round the ankles (low on
+  // the shins)
+  grips() {
+    const bn = this.bones;
+    const down = _w.set(0, -1, 0).applyQuaternion(this.b.holder.quaternion);
+    return {
+      f: bn.wrists.map((x) => x.getWorldPosition(new THREE.Vector3())),
+      h: [0, 1].map((i) => bn.knees[i].getWorldPosition(new THREE.Vector3()).lerp(bn.feet[i].getWorldPosition(_v), 0.75)
+        .addScaledVector(down, 0.03)),
+    };
+  }
+
+  // stand a carrier facing `yaw` where both hands just reach the two points T (arms 90 % out): forward or back of
+  // `nominal` along the way they face, and half way across with the swing (the arms take the rest)
+  reachPlace(a, R, T, yaw, nominal) {
+    const fx = Math.sin(yaw), fz = Math.cos(yaw), sx = fz, sz = -fx;
+    const mx = (T[0].x + T[1].x) / 2, my = (T[0].y + T[1].y) / 2, mz = (T[0].z + T[1].z) / 2;
+    const along = (mx - nominal.x) * fx + (mz - nominal.z) * fz;
+    const lat = (mx - nominal.x) * sx + (mz - nominal.z) * sz;
+    const spread = Math.max(0, T[0].distanceTo(T[1]) / 2 - R.half);
+    const dy = nominal.y + R.h - my, l = Math.abs(lat) * 0.5 + spread, reach = 0.9 * R.arm;
+    const d = Math.sqrt(Math.max(0.0225, reach * reach - dy * dy - l * l)) + R.fwd;
+    const go = THREE.MathUtils.clamp(along - d, -0.45, 0.45);
+    this.place(a, _w.copy(nominal).addScaledVector(_v.set(fx, 0, fz), go).addScaledVector(_v.set(sx, 0, sz), lat * 0.5), yaw);
   }
 
   // the two targets in the order of the carrier's arms (L, R), by the side of the body each is on
@@ -535,8 +627,9 @@ export class Birthday {
     this.hT = this.hT.map((p) => p.clone().add(push));
   }
 
-  // the carried student's arms up over their head, as on a ride, swaying a little (in their own frame)
-  cheerArms(t) {
+  // the carried student's arms up over their head (in their own frame): straight out to the friend's hands while
+  // held, swaying a little as on a ride once let go
+  cheerArms(t, held) {
     const pose = this.bPose, h = this.b.holder;
     if (!pose.ok) return;
     const sL = Math.sign(h.worldToLocal(pose.arms[0].up.getWorldPosition(new THREE.Vector3())).x) || 1;
@@ -544,7 +637,8 @@ export class Birthday {
     for (let i = 0; i < 2; i++) {
       const sg = i ? -sL : sL, ph = i * 1.9;
       const sh = h.worldToLocal(pose.arms[i].up.getWorldPosition(new THREE.Vector3()));
-      const loc = sh.add(new THREE.Vector3(sg * (0.2 + 0.05 * Math.sin(t * 5 + ph)), 0.5 + 0.04 * Math.sin(t * 6.3 + ph), 0.12 + 0.06 * Math.cos(t * 4.1 + ph)));
+      const loc = sh.add(held ? new THREE.Vector3(sg * 0.09, 0.56, 0.03)
+        : new THREE.Vector3(sg * (0.2 + 0.05 * Math.sin(t * 5 + ph)), 0.5 + 0.04 * Math.sin(t * 6.3 + ph), 0.12 + 0.06 * Math.cos(t * 4.1 + ph)));
       T.push(h.localToWorld(loc));
       H.push(new THREE.Vector3(sg, 0, -0.5).applyQuaternion(h.quaternion));
     }
