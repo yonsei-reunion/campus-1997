@@ -187,6 +187,14 @@ python3 tools/trailer/frame_server.py /tmp/frames-dir/frames &   # 프레임 받
 python3 tools/trailer/make_video.py /tmp/frames-dir trailer/campus1997_trailer.mp4   # 자막을 넣어 MP4로
 ```
 
+활천대 생일 영상(약 40초)은 `reference/활천대_공사전_연세대블로그.jpg` 에서 같은 카메라의 게임 화면으로 번지듯 바뀐 뒤 `birthday.js` 의 장면을 찍습니다.
+던지는 순간은 게임 시간을 늦춰 슬로 모션으로 찍고, 소리(분수 · 물보라 · 오르골 「생일 축하합니다」)는 합성합니다.
+
+```bash
+node tools/trailer/birthday.mjs /tmp/bday --port 5197                    # (web 에서 npx vite 를 띄운 뒤) 게임 프레임
+python3 tools/trailer/birthday_video.py /tmp/bday trailer/birthday.mp4   # 사진 → 게임 전환, 자막, 소리
+```
+
 ## 커밋과 이슈
 
 커밋 메시지 · 이슈 댓글 규칙은 [`CLAUDE.md`](CLAUDE.md) 에 있습니다.
