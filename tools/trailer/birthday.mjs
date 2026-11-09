@@ -62,7 +62,7 @@ await page.evaluate(({ W, H, FPS }) => {
   // round the basin: bearing a (deg, campus, from east), r metres, dh over the flagstones
   const R = (a, r, dh) => { const t = a * Math.PI / 180; return new V(C.x + Math.cos(t) * r, h0 + dh, C.z - Math.sin(t) * r); };
   const at = (base, rad, tan, dh) => base.clone().addScaledVector(bd.rad, rad).addScaledVector(bd.tan, tan).setY(h0 + dh);
-  const S = bd.spot;
+  const S = bd.spot, M = bd.mid;                   // where they stand; the middle of the carry
   // the shots: camera position, the point looked at, vertical field of view
   const SHOT = {
     // the photo's camera (tools/snapshots.json compare/hwalcheon_old)
@@ -70,9 +70,9 @@ await page.evaluate(({ W, H, FPS }) => {
     // round to the south: the two by the wall, you coming up from the right
     approach: { pos: R(-70, 12.5, 1.9), look: at(S, -0.6, 1.4, 1.05), fov: 40 },
     // side on to the carry
-    side: { pos: at(S, 3.7, 0.35, 1.5), look: at(S, -0.9, 0.1, 0.85), fov: 44 },
+    side: { pos: at(M, 3.7, 0.35, 1.45), look: at(M, -0.9, 0.1, 0.8), fov: 44 },
     // the throw, a little wider and looking into the pool
-    throw: { pos: at(S, 4.3, 0.9, 1.75), look: at(S, -1.9, 0.1, 0.9), fov: 46 },
+    throw: { pos: at(M, 4.3, 0.9, 1.75), look: at(M, -1.9, 0.1, 0.9), fov: 46 },
     // over your shoulders, down at them in the water
     water: { pos: at(S, 2.9, 0.15, 2.25), look: at(bd.land, 0, 0, 0.75), fov: 46 },
     back: { pos: at(S, 4.0, 0.2, 1.6), look: at(S, -0.6, 0.1, 1.05), fov: 44 },
@@ -111,7 +111,7 @@ await page.evaluate(({ W, H, FPS }) => {
     const t = st.T;
     // game time runs slow from just before they let go until the splash has settled
     let want = 1;
-    if ((bd.state === 'swing' && bd.st > 1.72) || bd.state === 'fly' || (bd.state === 'water' && bd.st < 0.55)) want = 0.32;
+    if ((bd.state === 'swing' && bd.st > 1.86) || bd.state === 'fly' || (bd.state === 'water' && bd.st < 0.55)) want = 0.32;
     st.slow += (want - st.slow) * (want < st.slow ? 0.35 : 0.12);
     const dt = st.slow / FPS;
     // the jet comes on after the photo has gone
@@ -134,8 +134,8 @@ await page.evaluate(({ W, H, FPS }) => {
     else if (!st.acted) goal = lerpShot(SHOT.photo, SHOT.approach, smooth((t - T.dolly) / 4.2));
     else {
       const s = bd.state;
-      goal = s === 'gather' || s === 'lift' ? SHOT.side
-        : s === 'swing' ? (bd.st > 1.6 ? SHOT.throw : SHOT.side)
+      goal = s === 'gather' || s === 'take' || s === 'lift' ? SHOT.side
+        : s === 'swing' ? (bd.st > 1.7 ? SHOT.throw : SHOT.side)
         : s === 'fly' ? SHOT.throw
         : s === 'water' ? (bd.st > 0.9 ? SHOT.water : SHOT.throw)
         : s === 'stand' || s === 'wade' ? SHOT.water
