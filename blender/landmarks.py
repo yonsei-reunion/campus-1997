@@ -4107,7 +4107,8 @@ def aud_bank():
 # (letters cut in its faces).  In the old photo the column is 4.14 times narrower than the wall across, its drums
 # 0.65 / 0.73 / 0.91 m (with the prongs) and the slab 0.25 m thick on a pedestal 0.66 m high; seen square on (2017)
 # the arms span 0.38 and the slab 0.47 of the column's height.  In the 1990s snapshot its white stone had gone grey
-# with dark streaks (stone_white_old).  A jet rises from its top (the 2009 photo) and falls back round it.
+# with dark streaks (stone_white_old).  A jet rises from its top and falls back round it (there in 1997 too, the
+# user remembers; its shape from the 2009 photo).
 FOUNTAIN_COL = dict(ped=0.79, slab=1.04, j2=1.69, j1=2.42, top=3.04, tip=0.29, arm=0.43, arm_w=0.27, core=0.23,
                     slab_w=1.08, ped_l=0.74, ped_w=0.33)          # z over the flagstones; web/src/water/fountain.js
 FOUNTAIN_CURTAIN = 1.05                                           # where the jet's fall meets the water (web too)
