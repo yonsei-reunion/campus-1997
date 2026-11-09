@@ -395,3 +395,35 @@ def make_shrub(kind, seed=0):
         cards(mb, rnd, 46, 'leaf_pansy', CARD_M['pansy'], W=(0.7, 1.0), Hf=(0.7, 0.95), tilt=(0, 35), depth=0.05,
               weight=lambda p, n: 0.15 + 0.85 * max(0.0, n.z))
     return mb
+
+
+def far_version(ob, cards_kept=3, body_ratio=0.4):
+    """The shrub seen from afar (web/src/main.js SHRUB_FAR): split by material, one card in cards_kept left and the
+    body (not a tier trunk) collapsed to body_ratio of its faces. Returns the objects; ob is left as it was."""
+    import bpy, bmesh
+    far = ob.copy()
+    far.data = ob.data.copy()
+    bpy.context.scene.collection.objects.link(far)
+    bpy.ops.object.select_all(action='DESELECT')
+    far.select_set(True)
+    bpy.context.view_layer.objects.active = far
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.separate(type='MATERIAL')
+    bpy.ops.object.mode_set(mode='OBJECT')
+    parts = list(bpy.context.selected_objects)
+    for p in parts:
+        name = p.data.materials[0].name
+        if name.startswith('leaf_'):
+            bm = bmesh.new()
+            bm.from_mesh(p.data)
+            bm.faces.ensure_lookup_table()
+            drop = [f for i, f in enumerate(bm.faces) if i % cards_kept]
+            bmesh.ops.delete(bm, geom=drop, context='FACES')
+            bm.to_mesh(p.data)
+            bm.free()
+        elif not name.startswith('bark'):
+            d = p.modifiers.new('far', 'DECIMATE')
+            d.decimate_type = 'COLLAPSE'
+            d.ratio = body_ratio
+            d.use_collapse_triangulate = True
+    return parts

@@ -46,11 +46,16 @@ const progress = (label) => {
 };
 const json = (u) => fetch(versioned(u)).then((r) => r.json());
 const MODELS = 'assets/models/';
-const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'motorbike', 'car_sedan', 'car_sedan2', 'car_hatch', 'car_tico', 'car_taxi', 'car_van', 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard', 'tent_kiosk', 'notice_board', 'haetae', 'parking_booth'];
-// the vegetation campus.json plants: two models of each tree species, one of each shrub
+const CARS = ['sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'van'];
+const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'motorbike',
+  ...CARS.flatMap((k) => [`car_${k}`, `car_${k}_far`]), 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard',
+  'tent_kiosk', 'notice_board', 'haetae', 'parking_booth'];
+const CAR_FAR = 20;     // parked cars farther than this from the camera: their lighter models (a fifth of the triangles)
+const SHRUB_FAR = 25;   // shrubs, hedges and flower beds farther than this: theirs (blender/shrubs.py far_version)
+// the vegetation campus.json plants: two models of each tree species, one of each shrub (and its lighter one, _far)
 const treeFile = (sp, v) => `veg/${sp}_${v}.glb`, shrubFile = (k) => `veg/${k}.glb`;
 const vegFiles = (campus) => [...new Set(campus.trees.map((t) => t[0]))].flatMap((sp) => [treeFile(sp, 0), treeFile(sp, 1)])
-  .concat([...new Set(campus.shrubs.map((s) => s[0]))].map(shrubFile));
+  .concat([...new Set(campus.shrubs.map((s) => s[0]))].flatMap((k) => [shrubFile(k), shrubFile(k + '_far')]));
 const bin = (u) => fetch(versioned(u)).then((r) => r.arrayBuffer()).then((b) => new Float32Array(b));
 
 function seasonButtons(v) {
@@ -161,7 +166,8 @@ async function main() {
   const fall = new Fall(renderer, scene, lib, hfNear, campus, sunMap);   // petals / leaves coming down round it
   scene.add(makeFarTerrain(hfFar, T.near.half));
   scene.add(makeCity(hfFar, T.near.half));
-  // the kits placed for good, and the far hills' trees, drawn only where in view (world.js); whole into the shadow cache
+  // the kits placed for good, the forest and the far hills' trees, drawn only where in view (world.js); whole into
+  // the shadow cache
   const kitCull = new KitCuller();
   shadows.wholeSets = (on) => (on ? kitCull.whole() : kitCull.update(camera, true));
   const farForest = makeFarForest(hfFar, T.near.half);
@@ -241,7 +247,7 @@ async function main() {
       bindMaterials(g.scene, lib);
       kits[`${sp}_${v}`] = g.scene;
     })),
-    ...Object.keys(shrubCounts).map(async (k) => {
+    ...Object.keys(shrubCounts).flatMap((k) => [k, k + '_far']).map(async (k) => {
       const g = await load(shrubFile(k), '회양목을 다듬는 중…');
       bindMaterials(g.scene, lib);
       shrubScenes[k] = g.scene;
@@ -253,12 +259,18 @@ async function main() {
     }),
   ]);
   await texturesReady(Object.values(kits));     // the impostors are drawn from the tree models: their leaves and bark
-  const forest = new Forest(scene, renderer, lib, kits, campus.trees, groundAt);
+  const forest = new Forest(scene, renderer, lib, kits, campus.trees, groundAt, kitCull);
+  // (and their lighter models farther than SHRUB_FAR from the camera)
   const shrubKits = {};
-  for (const k in shrubScenes) shrubKits[k] = new InstancedKit(shrubScenes[k], lib, shrubCounts[k]);
+  for (const k in shrubCounts) for (const f of [k, k + '_far']) shrubKits[f] = new InstancedKit(shrubScenes[f], lib, shrubCounts[k]);
   const m4 = new THREE.Matrix4();
-  for (const [k, x, y, sc, rot] of campus.shrubs) shrubKits[k].add(placeMatrix(m4, x, groundAt(x, y) - 0.05, y, rot, sc));
-  for (const k in shrubKits) { shrubKits[k].commit(); shrubKits[k].addTo(scene); kitCull.add(shrubKits[k].parts); }
+  for (const [k, x, y, sc, rot] of campus.shrubs) {
+    placeMatrix(m4, x, groundAt(x, y) - 0.05, y, rot, sc);
+    shrubKits[k].add(m4);
+    shrubKits[k + '_far'].add(m4);
+  }
+  for (const k in shrubKits) { shrubKits[k].commit(); shrubKits[k].addTo(scene); }
+  for (const k in shrubCounts) kitCull.add(shrubKits[k].parts, { far: shrubKits[k + '_far'].parts, dist: SHRUB_FAR });
 
   // ---------------------------------------------------------------- props
   const colliders = new Colliders();
@@ -291,14 +303,25 @@ async function main() {
     const PARKED_COLORS = [...CAR_COLORS, '#8c8f94'];
     const MODEL = (k, i) => (k === 'sedan' ? ['sedan', 'sedan2', 'sedan', 'van'][i % 4] : k === 'hatch' ? ['hatch', 'tico'][i % 2] : k);
     const carCount = countBy(campus.cars, (c, i) => MODEL(c[0], i));
-    for (const [k, n] of Object.entries(carCount)) { carKits[k] = new InstancedKit(P['car_' + k].scene, lib, n, { colors: true }); }
+    // (and their lighter models, blender/build.py car_*_far: farther than CAR_FAR from the camera)
+    const farKits = {};
+    for (const [k, n] of Object.entries(carCount)) {
+      carKits[k] = new InstancedKit(P['car_' + k].scene, lib, n, { colors: true });
+      farKits[k] = new InstancedKit(P[`car_${k}_far`].scene, lib, n, { colors: true });
+    }
     campus.cars.forEach(([k0, x, y, ang, ci], i) => {
       const k = MODEL(k0, i);
-      carKits[k].add(placeMatrix(m4, x, groundAt(x, y), y, ang), new THREE.Color(k === 'taxi' ? '#ecebe4' : PARKED_COLORS[(ci * 7 + i) % PARKED_COLORS.length]));
+      const col = new THREE.Color(k === 'taxi' ? '#ecebe4' : PARKED_COLORS[(ci * 7 + i) % PARKED_COLORS.length]);
+      placeMatrix(m4, x, groundAt(x, y), y, ang);
+      carKits[k].add(m4, col);
+      farKits[k].add(m4, col);
       colliders.addCircle(x + Math.cos(ang) * 1.2, y + Math.sin(ang) * 1.2, 1.0);
       colliders.addCircle(x - Math.cos(ang) * 1.2, y - Math.sin(ang) * 1.2, 1.0);
     });
-    for (const k in carKits) { carKits[k].commit(); carKits[k].addTo(scene); kitCull.add(carKits[k].parts); }
+    for (const k in carKits) {
+      for (const kit of [carKits[k], farKits[k]]) { kit.commit(); kit.addTo(scene); }
+      kitCull.add(carKits[k].parts, { far: farKits[k].parts, dist: CAR_FAR });
+    }
   }
   for (const t of campus.trees) colliders.addCircle(t[1], t[2], 0.35 * t[3]);
   // clipped shrubs: round boxwood, cones, bushes and azaleas are as wide as a person; low hedges are three overlapping circles

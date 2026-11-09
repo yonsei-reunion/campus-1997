@@ -107,12 +107,14 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - `blender/vegetation.py` 가 가지 골격 + 잎 카드로 일곱 수종을 만듭니다. 어린 느티나무 · 벚나무는 따로 만든 모델입니다.
 - 수관 구형 노멀과 버텍스 AO, 계절별 잎 아틀라스(`tools/make_textures.py`).
 - 230 m 밖의 나무는 실행 중에 렌더링한 임포스터(교차 판 + 위에서 본 판)로 바꿉니다(`world.js` `Forest`).
+- 나무 · 임포스터 · 덤불 · 소품 · 세워 둔 차 · 먼 산 숲은 종류마다 InstancedMesh 하나로 캠퍼스 전체에 퍼져 있어, `world.js` `KitCuller` 가 넓힌 시야 안의 인스턴스만 버퍼 앞에 모아 그립니다. 정적 그림자 캐시와 해 그림자 굽기는 전체를 그립니다.
 - 줄기와 잎은 카메라 가까이에서 디더링으로 비쳐 보이고, 고품질 화면에서는 TAA 가 점무늬를 고르게 섞습니다.
 - 담쟁이는 잎 카드마다 위상과 매달린 길이를 정점에 담아 흔듭니다.
 - 다듬은 관목 · 생울타리 · 꽃은 `blender/shrubs.py`: 다듬은 윤곽의 몸통(모서리 둥근 상자, 회전체)에 몸통 안에서 비스듬히 솟은 잔가지 카드.
   - 몸통은 이음매 없는 잎 무늬와 노멀 맵을 월드 좌표에서 세 방향으로 비춰 입힘(`web/src/hedges.js`, 폰은 색만): 한 줄로 겹친 생울타리 토막이 한 무늬로 이어짐
   - 카드는 뿌리 쪽 몸통의 노멀과 그늘을 받아 겉면과 같은 밝기, 뒷면을 볼 때도 노멀을 뒤집지 않음
   - 잎 · 꽃은 Poly Haven 「Periwinkle Plant」 스캔을 잘라 실제 크기로 다시 칠함(`tools/make_shrub_textures.py`)
+  - 25 m 밖은 가벼운 모델 `<종류>_far.glb`(`shrubs.far_version`: 카드 셋에 하나, 몸통 40 %)
 
 ### 사람
 
@@ -126,6 +128,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - `blender/cars.py`. 단면을 몇 cm 마다 이어 붙이는 로프트 방식으로 차체 · 범퍼를 만들고, 램프는 차체 표면 위에 깔아 둥근 모서리를 따라 휩니다.
 - 운전석의 인물이 꼿꼿이 앉으므로 차는 실제보다 7 % 크게 내보냅니다(`CAR_SCALE`).
 - 도장은 클리어코트 재질, 바퀴는 달린 거리만큼 굴러가고 감속하면 브레이크등이 켜집니다.
+- 세워 둔 차는 20 m 밖에서 `car_<종류>_far.glb` 로 그립니다(`build.py` 의 `cars` 단계): 10° 안으로 굽은 면을 재질 경계 안에서 합치고 바퀴만 접어, 삼각형이 5분의 1.
 
 ### 분수
 
@@ -168,7 +171,7 @@ node tools/bake_sun_shadows.mjs <포트>   # (web 에서 npx vite 를 띄운 뒤
 blender -b --factory-startup --python blender/characters.py       # 사람 14명 + 리그 2개 (assets_src/quaternius/ 필요)
 ```
 
-- `blender/build.py` 에 `buildings landmarks road veg shrubs props polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다(`shrubs`: 나무를 빼고 관목만). `noao` 를 더하면 베이크를 건너뜁니다.
+- `blender/build.py` 에 `buildings landmarks road veg shrubs props cars polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다(`shrubs`: 나무를 빼고 관목만, `cars`: 다른 소품을 빼고 차만). `noao` 를 더하면 베이크를 건너뜁니다.
 - 순서가 있습니다: 일반 건물과 랜드마크는 서로의 그림자를 상대의 마지막 GLB 에서 읽어 굽습니다. 한쪽을 크게 바꿨으면 `landmarks` → `buildings` → `landmarks` 로 돕니다. 그림자를 지거나 걷는 면이 바뀌면 마지막에 `bake_sun_shadows.mjs`.
 - `bake_sun_shadows.mjs` 는 Playwright 의 Chromium 이 필요합니다(`npx playwright install chromium`).
 

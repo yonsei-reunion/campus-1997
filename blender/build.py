@@ -1,6 +1,6 @@
 """Build every 3D asset of the Yonsei-1997 campus and export GLBs for the web app.
 
-usage: blender -b --factory-startup --python blender/build.py -- [buildings] [landmarks] [road] [veg] [shrubs] [props] [polyhaven] [preview]
+usage: blender -b --factory-startup --python blender/build.py -- [buildings] [landmarks] [road] [veg] [shrubs] [props] [cars] [polyhaven] [preview]
 (no argument = everything; add noao to skip the occlusion / weathering bake of the halls and landmarks, blender/bake.py)
 """
 import sys, os, math, random, json
@@ -9,7 +9,7 @@ import bpy
 from mathutils import Vector, Matrix
 import common
 from common import CAMPUS, OUT, reset_scene, export_glb, tri_count, ground
-import generic, landmarks, vegetation, props, road, statues, bake
+import generic, landmarks, vegetation, props, road, statues, bake, shrubs
 
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 ALL = not argv
@@ -133,6 +133,8 @@ if want('veg') or want('shrubs'):       # (`shrubs` alone: the clipped shrubs wi
         ob = vegetation.make_shrub(k).build()
         stats[k] = tri_count([ob])
         export_glb([ob], os.path.join(OUT, 'veg', f'{k}.glb'), colors=True)
+        # farther than 25 m (web/src/main.js): a third of the cards, the body collapsed to 40 %
+        export_glb(shrubs.far_version(ob), os.path.join(OUT, 'veg', f'{k}_far.glb'), colors=True)
 
 if want('props'):
     for name, fn in (('lamp_double', props.lamp_double), ('motorbike', props.motorbike), ('lamp_arm', props.lamp_arm),
@@ -145,6 +147,8 @@ if want('props'):
         ob = fn().build()
         stats[name] = tri_count([ob])
         export_glb([ob], os.path.join(OUT, 'props', f'{name}.glb'))
+
+if want('props') or want('cars'):     # (`cars` alone: the cars without the other props)
     import cars
     for k in ('sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'van'):
         reset_scene()
@@ -163,6 +167,21 @@ if want('props'):
             objs.append(o)
         stats['car_' + k] = tri_count(objs)
         export_glb(objs, os.path.join(OUT, 'props', f'car_{k}.glb'))
+        # the parked cars farther than 20 m (web/src/main.js): a fifth of the triangles. The 4 cm loft stations merged
+        # where the panels bend less than 10 degrees (within each material, sharp edges kept: the windows, trims and
+        # lamps stay as they were), the wheels collapsed to 40 %. Alike from 20 m on; at 15 m only the rims show it
+        for o in objs:
+            d = o.modifiers.new('far', 'DECIMATE')
+            d.decimate_type = 'DISSOLVE'
+            d.angle_limit = math.radians(10)
+            d.delimit = {'MATERIAL', 'SHARP'}
+            o.modifiers.new('tri', 'TRIANGULATE')
+            if o is not body:
+                c = o.modifiers.new('wheel', 'DECIMATE')
+                c.decimate_type = 'COLLAPSE'
+                c.ratio = 0.4
+                c.use_collapse_triangulate = True
+        export_glb(objs, os.path.join(OUT, 'props', f'car_{k}_far.glb'))
 
 if want('polyhaven'):
     # CC0 Poly Haven props: decimate to game budgets, keep their own PBR textures (1k JPEG)

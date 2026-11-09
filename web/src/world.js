@@ -186,15 +186,27 @@ export class InstancedKit {
   }
 }
 
-// ---------------------------------------------------------------------------- view culling of the placed kits
-// The kits placed once (shrubs, props, parked cars) and the far hills' trees are an InstancedMesh per part over the
-// whole campus (or the whole ring of hills), drawn whole whatever the view: never frustum culled, as their bounds are
-// always in view. A KitCuller packs only the instances in view to the front of their buffers: those whose bounding
-// sphere meets a frustum TURN wider than the camera's on every side and PAD metres out, worked out again once the
-// camera has turned or moved past those margins (and the buffers sent again only when that changed what is in view).
+// ---------------------------------------------------------------------------- view culling of the kits
+// The kits placed once (shrubs, props, parked cars), the forest's near trees and impostors and the far hills' trees are
+// an InstancedMesh per part over the whole campus (or the whole ring of hills), drawn whole whatever the view: never
+// frustum culled, as their bounds are always in view. A KitCuller packs only the instances in view to the front of
+// their buffers: those whose bounding sphere meets a frustum TURN wider than the camera's on every side and PAD metres
+// out, worked out again once the camera has turned or moved past those margins (and the buffers sent again only when
+// that changed what is in view). A part with none in view is hidden (three draws an InstancedMesh of count 0 too).
+// A kit may have a lighter model for the instances farther than some distance (the parked cars).
 // whole(): the full sets, for what draws from elsewhere (the static shadow cache, shadows.js; the sun-shadow bake).
 const TURN = 6 * Math.PI / 180, PAD = 2.5;
 const _q = new THREE.Quaternion(), _p = new THREE.Vector3(), _c = new THREE.Vector3(), _mm = new THREE.Matrix4();
+
+// parts sharing one transform list: one buffer for all of them (one upload), a copy of the full list to pack from
+function packed(parts) {
+  const M = parts[0].instanceMatrix, cap = M.count;
+  for (const p of parts) p.instanceMatrix = M;
+  M.setUsage(THREE.DynamicDrawUsage);
+  for (const p of parts) p.instanceColor?.setUsage(THREE.DynamicDrawUsage);
+  const colors = parts.filter((p) => p.instanceColor).map((p) => [p.instanceColor, new Float32Array(cap * 3)]);
+  return { parts, M, all: new Float32Array(cap * 16), colors, idx: new Uint32Array(cap), shown: 0 };
+}
 
 export class KitCuller {
   constructor() {
@@ -208,26 +220,49 @@ export class KitCuller {
     this.enabled = true;
   }
 
-  // parts: InstancedMeshes sharing one transform list (an InstancedKit's parts), placed for good
-  add(parts) {
-    const n = parts[0].count;
-    const M = parts[0].instanceMatrix;
-    for (const p of parts) p.instanceMatrix = M;        // one buffer for all the parts (one upload)
-    M.setUsage(THREE.DynamicDrawUsage);
-    for (const p of parts) p.instanceColor?.setUsage(THREE.DynamicDrawUsage);
-    const all = M.array.slice(0, n * 16);
-    const colors = parts.filter((p) => p.instanceColor).map((p) => [p.instanceColor, p.instanceColor.array.slice(0, n * 3)]);
-    // each instance's bounding sphere: the kit's (every part's) moved and scaled by its matrix
-    const box = new THREE.Box3(), ks = new THREE.Sphere();
-    for (const p of parts) { if (!p.geometry.boundingBox) p.geometry.computeBoundingBox(); box.union(p.geometry.boundingBox); }
-    box.getBoundingSphere(ks);
-    const sph = new Float32Array(n * 4);
+  // parts: InstancedMeshes sharing one transform list (an InstancedKit's parts, or an impostor's mesh), the first
+  // parts[0].count of it in place; bounds: their joint bounding sphere in the model frame (or the parts' boxes');
+  // far: the parts of a lighter model placed alike, drawn for the instances farther than dist from the camera.
+  // Returns the set, for refill() when the list changes (the forest's as you walk)
+  add(parts, { bounds = null, far = null, dist = 0 } = {}) {
+    let ks = bounds;
+    if (!ks) {
+      const box = new THREE.Box3();
+      for (const p of parts) { if (!p.geometry.boundingBox) p.geometry.computeBoundingBox(); box.union(p.geometry.boundingBox); }
+      ks = box.getBoundingSphere(new THREE.Sphere());
+    }
+    const cap = parts[0].instanceMatrix.count;
+    const s = { near: packed(parts), far: far && packed(far), d2: dist * dist, n: 0, ks, sph: new Float32Array(cap * 4),
+      valid: false, dirty: false };
+    this.sets.push(s);
+    this.refill(s);
+    return s;
+  }
+
+  // the set's list as its buffers hold it now (parts[0].count of them, just written and sent whole): drawn whole
+  // until the next update() culls it
+  refill(s) {
+    const n = s.n = s.near.parts[0].count, { sph, ks } = s;
+    for (const d of [s.near, s.far]) {
+      if (!d) continue;
+      d.all.set(d.M.array.subarray(0, n * 16));
+      for (const [attr, src] of d.colors) src.set(attr.array.subarray(0, n * 3));
+    }
+    const all = s.near.all;
     for (let i = 0; i < n; i++) {
       _mm.fromArray(all, i * 16);
       _c.copy(ks.center).applyMatrix4(_mm);
-      sph.set([_c.x, _c.y, _c.z, ks.radius * _mm.getMaxScaleOnAxis()], i * 4);
+      sph[i * 4] = _c.x; sph[i * 4 + 1] = _c.y; sph[i * 4 + 2] = _c.z;
+      sph[i * 4 + 3] = ks.radius * _mm.getMaxScaleOnAxis();
     }
-    this.sets.push({ parts, n, M, all, colors, sph, vis: new Uint32Array(n), shown: n, valid: false });
+    const d = s.near;
+    for (const p of d.parts) p.visible = true;
+    this._send(d.M, n * 16);                           // (all of it: a hidden part's last range may be pending)
+    for (const [attr] of d.colors) this._send(attr, n * 3);
+    d.shown = n;
+    this._hide(s.far);
+    s.valid = false;
+    s.dirty = true;
   }
 
   // camera: the view about to be drawn
@@ -236,7 +271,10 @@ export class KitCuller {
     camera.updateMatrixWorld();
     camera.matrixWorld.decompose(_p, _q, _c);
     const lens = `${camera.fov},${camera.aspect},${camera.zoom},${camera.near},${camera.far}`;
-    if (!force && !this.full && lens === this.lens && _p.distanceTo(this.at) < PAD && _q.angleTo(this.q) < TURN * 0.8) return;
+    if (!force && !this.full && lens === this.lens && _p.distanceTo(this.at) < PAD && _q.angleTo(this.q) < TURN * 0.8) {
+      for (const s of this.sets) if (s.dirty) this._cull(s);     // (a list refilled since)
+      return;
+    }
     this.at.copy(_p);
     this.q.copy(_q);
     this.lens = lens;
@@ -255,23 +293,28 @@ export class KitCuller {
     this.full = false;
   }
 
-  // every instance drawn (update() culls again)
+  // every instance drawn, in the full model (update() culls again)
   whole() {
     for (const s of this.sets) {
-      if (s.shown === s.n && !s.valid) continue;
-      s.M.array.set(s.all);
-      for (const [attr, src] of s.colors) { attr.array.set(src); this._send(attr, s.n * 3); }
-      this._send(s.M, s.n * 16);
-      for (const p of s.parts) p.count = s.n;
-      s.shown = s.n;
+      const d = s.near, n = s.n;
+      for (const p of d.parts) p.visible = true;
+      this._hide(s.far);
+      if (d.shown === n && !s.valid) continue;
+      d.M.array.set(d.all.subarray(0, n * 16));
+      for (const [attr, src] of d.colors) { attr.array.set(src.subarray(0, n * 3)); this._send(attr, n * 3); }
+      this._send(d.M, n * 16);
+      for (const p of d.parts) p.count = n;
+      d.shown = n;
       s.valid = false;
     }
     this.full = true;
   }
 
   _cull(s) {
-    const planes = this.frustum.planes, { sph, vis, n } = s;
-    let k = 0, same = s.valid;
+    const planes = this.frustum.planes, { sph, n, near, far, d2 } = s;
+    const ni = near.idx, fi = far?.idx, { x: cx, y: cy, z: cz } = this.at;
+    s.dirty = false;
+    let k = 0, f = 0, same = s.valid;
     for (let i = 0; i < n; i++) {
       const x = sph[i * 4], y = sph[i * 4 + 1], z = sph[i * 4 + 2], r = -(sph[i * 4 + 3] + PAD);
       let inside = true;
@@ -280,20 +323,37 @@ export class KitCuller {
         if (nn.x * x + nn.y * y + nn.z * z + constant < r) { inside = false; break; }
       }
       if (!inside) continue;
-      if (vis[k] !== i) { vis[k] = i; same = false; }
-      k++;
+      if (far && (x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2 > d2) {
+        if (fi[f] !== i) { fi[f] = i; same = false; }
+        f++;
+      } else {
+        if (ni[k] !== i) { ni[k] = i; same = false; }
+        k++;
+      }
     }
-    if (same && k === s.shown) return;
-    const dst = s.M.array, all = s.all;
-    for (let j = 0; j < k; j++) { const i = vis[j]; dst.set(all.subarray(i * 16, i * 16 + 16), j * 16); }
-    for (const [attr, src] of s.colors) {
-      for (let j = 0; j < k; j++) { const i = vis[j]; attr.array.set(src.subarray(i * 3, i * 3 + 3), j * 3); }
+    if (same && k === near.shown && (!far || f === far.shown)) return;
+    this._pack(near, k);
+    if (far) this._pack(far, f);
+    s.valid = true;
+  }
+
+  // instances idx[0 .. k) of the full list to the front of the buffers
+  _pack(d, k) {
+    const dst = d.M.array, all = d.all, idx = d.idx;
+    for (let j = 0; j < k; j++) { const i = idx[j]; dst.set(all.subarray(i * 16, i * 16 + 16), j * 16); }
+    for (const [attr, src] of d.colors) {
+      for (let j = 0; j < k; j++) { const i = idx[j]; attr.array.set(src.subarray(i * 3, i * 3 + 3), j * 3); }
       this._send(attr, k * 3);
     }
-    this._send(s.M, k * 16);
-    for (const p of s.parts) p.count = k;
-    s.shown = k;
-    s.valid = true;
+    this._send(d.M, k * 16);
+    for (const p of d.parts) { p.count = k; p.visible = k > 0; }
+    d.shown = k;
+  }
+
+  _hide(d) {
+    if (!d) return;
+    for (const p of d.parts) { p.count = 0; p.visible = false; }
+    d.shown = 0;
   }
 
   _send(attr, len) {
@@ -307,8 +367,9 @@ export class KitCuller {
 // ---------------------------------------------------------------------------- vegetation with impostor LOD
 // Trees within nearDist of the LOD centre (the camera, or the ground point below a bird's-eye view) are the full
 // models, the rest impostors lit by the scene (impostors.js), with a dithered cross-fade over the last FADE metres.
+// culler: the KitCuller that draws only the ones in view of each (refilled as the lists change)
 export class Forest {
-  constructor(scene, renderer, lib, kits, trees, groundAt) {
+  constructor(scene, renderer, lib, kits, trees, groundAt, culler = null) {
     this.scene = scene;
     this.kits = kits;            // {species_variant: gltf.scene}
     this.lib = lib;
@@ -324,6 +385,8 @@ export class Forest {
     // near meshes
     this.near = {};
     this.impostors = {};         // {key: Impostor} (its InstancedMesh: .im)
+    this.culler = culler;
+    this.culled = [];            // their sets in the culler
     const counts = countBy(this.items, (it) => it.key);
     for (const key of Object.keys(kits)) {
       if (!counts[key]) continue;
@@ -333,6 +396,10 @@ export class Forest {
       const imp = new Impostor(key, kits[key], counts[key]);
       scene.add(imp.im);
       this.impostors[key] = imp;
+      if (!culler) continue;
+      // (the impostor's quad turns to the camera round the crown centre: R across, quad.x .. quad.y up)
+      const { box, quad } = imp, up = Math.max(-quad.x, quad.y);
+      this.culled.push(culler.add(kit.parts), culler.add([imp.im], { bounds: new THREE.Sphere(new THREE.Vector3(0, box.w, 0), Math.hypot(box.x, up)) }));
     }
     this.renderImpostors(renderer);
     this.lastUpdate = new THREE.Vector3(1e9, 0, 0);
@@ -369,5 +436,6 @@ export class Forest {
       im.count = ic[k];
       im.instanceMatrix.needsUpdate = true;
     }
+    for (const s of this.culled) this.culler.refill(s);
   }
 }
