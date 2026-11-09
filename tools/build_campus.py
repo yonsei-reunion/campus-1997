@@ -2484,7 +2484,7 @@ def in_gap(s, side, pad=0.0, outer=False, verge=False):
 # and a ramp down to the carriageway (campus.json baekyangro breaks).  대강당 계단 발치: the flight's foot at s 498 -
 # 500 m (4.5), the roadview's opening with its round south end just short of it.  Only the verge's shrubs make way
 # (after their random draw, so the planting elsewhere keeps its layout)
-VERGE_BREAKS = [[-1, 494.0, 500.0]]
+VERGE_BREAKS = [[-1, 496.5, 503.5]]                 # (the foot of 대강당's flight: its posts' outer faces at s 497.4 - 502.9)
 
 
 def in_break(s, side, pad=0.0):
