@@ -141,6 +141,7 @@ export class Grass {
     this.cells = new Map();
     this.enabled = true;
     this.lift = null;                                  // (x, y) -> the ground over the terrain (curbs.js lift)
+    this.verge = null;                                 // 백양로's lawn over the road's kerbs (verge.js)
     this.last = new THREE.Vector3(1e9, 0, 0);
     this.order = [];                                   // cell offsets round the camera's cell, nearest first
     const span = Math.ceil((R + MOVE) / CELL) + 1;
@@ -234,18 +235,27 @@ export class Grass {
     let n = 0;
     for (let k = 0; k < tries; k++) {
       const x = (i + rnd()) * CELL, y = (j + rnd()) * CELL, pick = rnd(), rank = rnd(), tone = rnd(), sc = rnd(), hs = rnd(), rot = rnd();
-      const sh = this._share(x, y);
-      if (sh < 0.5) continue;                 // (the paving's edge is where the share crosses one half: terrain.js)
-      // full lawn: all of them; its edges and the worn dry lawn: fewer
-      const dry = Math.min(1, Math.max(0, this._dry(x, y) * 1.5 - 0.25));
-      const t = Math.min(1, (sh - 0.5) / 0.35);
-      if (pick > t * t * (3 - 2 * t) * (1 - 0.6 * dry)) continue;
+      // 백양로's verge and planting strip: their own lawn at its own height, none where its earth is bare (verge.js)
+      const vh = this.verge ? this.verge.height(x, y) : NaN;
+      let gy;
+      if (vh === vh) {
+        const b = this.verge.bare(x, y);
+        if (pick > 1 - Math.min(1, Math.max(0, (b - 0.3) / 0.3))) continue;
+        gy = vh;
+      } else {
+        const sh = this._share(x, y);
+        if (sh < 0.5) continue;               // (the paving's edge is where the share crosses one half: terrain.js)
+        // full lawn: all of them; its edges and the worn dry lawn: fewer
+        const dry = Math.min(1, Math.max(0, this._dry(x, y) * 1.5 - 0.25));
+        const t = Math.min(1, (sh - 0.5) / 0.35);
+        if (pick > t * t * (3 - 2 * t) * (1 - 0.6 * dry)) continue;
+        gy = surface(this.hf, x, y) + (this.lift ? this.lift(x, y) : 0);
+      }
       const scale = 0.8 + sc * 0.45;
-      const gy = surface(this.hf, x, y) + (this.lift ? this.lift(x, y) : 0);
       m4.compose(v.set(x, gy, -y), q.setFromAxisAngle(UP, rot * Math.PI * 2), s.set(scale, scale * (0.8 + hs * 0.4), scale));
       m4.toArray(m, n * 16);
       a[n * 2] = rank;
-      a[n * 2 + 1] = 0.85 + tone * 0.3;
+      a[n * 2 + 1] = 0.85 + tone * 0.3 + (vh === vh ? 2 : 0);     // (+2: on the verge, no dry lawn there)
       p[n * 2] = x;
       p[n * 2 + 1] = -y;
       n++;
@@ -339,7 +349,8 @@ export class Grass {
             float lum = dot(textureLod(gD, wp / 4.0, 4.0).rgb, vec3(0.299, 0.587, 0.114));
             vec3 g = uGrass * (0.45 + 1.6 * lum) * mix(0.82, 1.15, macro) * mix(0.92, 1.06, n2);
             g = mix(g, g * vec3(1.15, 1.05, 0.7), smoothstep(0.55, 0.75, macro) * 0.5);
-            float dry = textureLod(uDry, suv, 0.0).r;
+            float onVerge = step(1.5, aInst.y), tone = aInst.y - 2.0 * onVerge;
+            float dry = textureLod(uDry, suv, 0.0).r * (1.0 - onVerge);
             float tall = 1.0;
             if (dry > 0.003) {
               dry = clamp(dry * 1.5 - 0.25 + (macro - 0.5) * 0.9 + (n2 - 0.5) * 0.3, 0.0, 1.0);
@@ -379,7 +390,7 @@ export class Grass {
               }
             }
             // lit as the lawn beside it; dark at the foot, light at the tip
-            vGCol = g * aInst.y * aBlade.x * mix(0.7, 1.2, aBlade.y) * (uAmb + uSun * vis);
+            vGCol = g * tone * aBlade.x * mix(0.7, 1.2, aBlade.y) * (uAmb + uSun * vis);
           }
         }`);
     sh.fragmentShader = sh.fragmentShader

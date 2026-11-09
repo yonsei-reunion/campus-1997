@@ -50,6 +50,9 @@ def build():
     # the granite kerbs: their own material, whose shader draws a joint every metre of u (web/src/kerbjoints.js; the
     # 2010 / 2011 roadview: stones about 1 m long), u running along the road
     KERB = 'curb_road'
+    # the lawn between the kerbs of the verge and of the outer planting strip (the 2008 / 2010 roadview, the 1997
+    # photo): drawn in the web app with the terrain's own lawn, its blades and bare patches (web/src/verge.js)
+    LAWN = 'verge_lawn'
     walls = R.get('walls', [])          # [side, s0, s1]: no planting strip there (a retaining wall, landmarks.aud_bank)
     mb = MeshBuilder('baekyangro')
     marks = MeshBuilder('baekyangro_paint')
@@ -118,8 +121,8 @@ def build():
 
         q_mat = [None]
         # (o0, o1, z, mat) bands standing beside the road, as in the plain cross-section
-        bands = [(e_lane, e_curb, VZ, 'curb'), (e_curb, e_verge - 0.2, VZ, 'dirt'), (e_verge - 0.2, e_verge, VZ, 'curb'),
-                 (e_verge, e_walk, WZ, 'pavers'), (e_walk, e_walk + 0.18, WZ + 0.05, 'curb'), (e_walk + 0.18, e_strip, WZ, 'dirt')]
+        bands = [(e_lane, e_curb, VZ, 'curb'), (e_curb, e_verge - 0.2, VZ, LAWN), (e_verge - 0.2, e_verge, VZ, 'curb'),
+                 (e_verge, e_walk, WZ, 'pavers'), (e_walk, e_walk + 0.18, WZ + 0.05, 'curb'), (e_walk + 0.18, e_strip, WZ, LAWN)]
         for o0, o1, z, mat in bands:
             k = max(1, int(math.ceil((o1 - o0) / 0.4)))
             vg = o1 <= e_verge + 1e-6                     # a band of the boxwood verge
@@ -251,7 +254,7 @@ def build():
                 # granite curb, then the raised boxwood verge with its own kerb
                 riser(e_lane, 0, VZ, 'curb', outward=False)
                 band(e_lane, e_curb, VZ, VZ, 'curb')
-                band(e_curb, e_verge - 0.2, VZ, VZ, 'dirt')
+                band(e_curb, e_verge - 0.2, VZ, VZ, LAWN)
                 band(e_verge - 0.2, e_verge, VZ, VZ, 'curb')
                 riser(e_verge, WZ, VZ, 'curb', outward=True)
             band(e_verge, e_walk, WZ, WZ, 'pavers')
@@ -259,7 +262,7 @@ def build():
             for rg in strip_pieces(a[0], b[0], side):
                 band(e_walk, e_walk + 0.18, WZ + 0.05, WZ + 0.05, 'curb', rg)
                 riser(e_walk, WZ, WZ + 0.05, 'curb', outward=False, rng=rg)
-                band(e_walk + 0.18, e_strip, WZ, WZ, 'dirt', rg)
+                band(e_walk + 0.18, e_strip, WZ, WZ, LAWN, rg)
                 riser(e_strip, -0.8, WZ, 'curb', outward=True, rng=rg)
 
     # paint ---------------------------------------------------------------

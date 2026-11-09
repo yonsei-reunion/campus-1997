@@ -30,6 +30,7 @@ import { Birds } from './birds.js';
 import { flagWind } from './flags.js';
 import { Decals } from './decals.js';
 import { Curbs } from './curbs.js';
+import { Verge } from './verge.js';
 import { $, MOBILE, versioned, safeGet, safeSet, mulberry, countBy, polylineLength, closestOnSegment, placeMatrix } from './util.js';
 
 const canvas = $('#view');
@@ -187,6 +188,8 @@ async function main() {
   bindMaterials(lms.scene, lib, false, true);
   drapeTerrain(lms.scene, terrain.material);          // 대강당 앞 둑: the ground's own material (src/terrain.js)
   bindMaterials(road.scene, lib);
+  const verge = new Verge(road.scene, campus);        // 백양로's verge and planting strip: lawn (src/verge.js)
+  grass.verge = verge;
 
   // walkable surfaces: terrain + road + amphitheater terraces
   const walkables = [terrain];
@@ -637,6 +640,7 @@ async function main() {
   // every material in the scene gets the drifting cloud shadows and the height fog: the library's (patched as they
   // are made) and the rest, made here and there (terrain, far hills, city, impostors, people, banners, the fountain)
   scene.traverse((o) => { for (const m of [].concat(o.material || [])) globalPatch(m); });
+  verge.attach(terrain.material);          // (after these passes: its material replays the terrain's edits)
   const cloudK = ATMOS.uCloud.value.z;
   addEventListener('keydown', (e) => {        // C: cloud shadows off / on (no option for it in the settings card)
     if (e.code !== 'KeyC' || e.repeat || (!started && !bird.active) || ui.memoryOpen || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
@@ -762,7 +766,7 @@ async function main() {
     },
   };
   window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, cast, traffic, bird, toggleBird, shadows, fountainWater,
-    startWalk, enterBird, leaveBird, record, ball, post, grass, sunMap, blobs, curbs,
+    startWalk, enterBird, leaveBird, record, ball, post, grass, sunMap, blobs, curbs, verge,
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
     // (the kits whole for it: it draws them from above, tile by tile)
     bakeSunMap: async () => {

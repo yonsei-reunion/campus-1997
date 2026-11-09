@@ -870,6 +870,16 @@
   "rough": 1.0,
   "drape": true
  },
+ "verge_lawn": {
+  "_doc": "백양로's verge and outer planting strip between their kerbs (blender/road.py LAWN): the terrain's lawn in the web app (web/src/verge.js)",
+  "color": [
+   0.2,
+   0.3,
+   0.1
+  ],
+  "rough": 1.0,
+  "drape": true
+ },
  "stone_marker": {
   "tex": "concrete_slab_wall",
   "tile": 1.4,
