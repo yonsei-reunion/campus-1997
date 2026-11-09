@@ -583,6 +583,46 @@ def footprint(wv):
     return poly
 
 
+# --- 대강당 앞 돌계단: the straight granite flight from 백양로's east sidewalk up to 대강당's forecourt, on the hall's
+# axis (reference/고증.md 4.5).  Counted in four frames, the 2009 photo (reference/대강당_2009_앞길_계단.jpg) and Kakao
+# roadview Dec. 2010 1016786028 · Apr. 2011 1017220198 · 1017220199: 24 risers, the 12th tread a landing where the
+# side walls' coping turns level for a step and the slope changes.  The profile is fitted to the nosing rows of the
+# two frames from in front (0.4 - 0.6 px): treads 0.27 m below the landing, 0.21 - 0.23 m above it, the landing
+# 1.3 - 1.7 m; the head 3.5 - 3.7 m over the sidewalk (the horizon from the nosings' vanishing point and the lean of
+# the hall's uprights, the treads seen from the 2.5 m camera up to the 16th riser).  The forecourt, the terrace on
+# the bank and the court (AUD_BANK below) stand at the head's level: the hall's front had been only 0.8 m over the
+# sidewalk here (5장).  Width 4.6 m between rubble side walls (the flight's width over the camera height, and the low
+# wall's 0.72 m beside the foot), the first riser 0.25 m behind the wall's face, square posts in line with it.
+_AF0, _AF1 = np.array([51.13, 28.26]), np.array([59.82, 61.16])     # 대강당's front (its OSM outline, south -> north)
+_afv = (_AF1 - _AF0) / np.linalg.norm(_AF1 - _AF0)
+_afu = np.array([-_afv[1], _afv[0]])                                 # out of the front (west, towards 백양로)
+
+
+def _aud_axis_s():
+    """arc length where 대강당's axis meets the face of 백양로's east wall (the sidewalk's outer edge)"""
+    m_ = (_AF0 + _AF1) / 2
+    off = lambda s_: float((np.array(along_raw(s_, -E_WALK)[:2]) - m_) @ _afv)
+    a_, b_ = 470.0, 530.0
+    for _ in range(50):
+        c_ = (a_ + b_) / 2
+        a_, b_ = (c_, b_) if off(a_) * off(c_) > 0 else (a_, c_)
+    return round((a_ + b_) / 2, 2)
+
+
+AUD_FLIGHT = dict(s=_aud_axis_s(), w=4.6, cheek=0.42, foot=0.25, n1=12, n2=12, t1=0.27, landing=1.4, t2=0.215,
+                  rise=3.55, walk_z=0.15)
+AUD_FLIGHT['axis'] = [round(float(-_afu[0]), 5), round(float(-_afu[1]), 5)]       # up the flight (into the hall)
+AUD_FLIGHT['foot_z'] = round(prof_h(AUD_FLIGHT['s']) + AUD_FLIGHT['walk_z'], 3)
+AUD_HEAD = round(AUD_FLIGHT['foot_z'] + AUD_FLIGHT['rise'], 2)       # the forecourt's level
+AUD_FLIGHT['head_z'] = AUD_HEAD
+AUD_FLIGHT['run'] = round(AUD_FLIGHT['foot'] + (AUD_FLIGHT['n1'] - 1) * AUD_FLIGHT['t1'] + AUD_FLIGHT['landing']
+                          + (AUD_FLIGHT['n2'] - 1) * AUD_FLIGHT['t2'], 3)            # the wall's face to the head
+_afh = AUD_FLIGHT['w'] / 2 + AUD_FLIGHT['cheek']
+AUD_FLIGHT['s_range'] = [round(AUD_FLIGHT['s'] - _afh, 2), round(AUD_FLIGHT['s'] + _afh, 2)]   # (its foot along 백양로)
+AUD_FLIGHT['o'] = [round(v_, 3) for v_ in along_raw(AUD_FLIGHT['s'], -E_WALK)[:2]]          # (the wall's face on its axis)
+print('대강당 앞 돌계단: axis at s %.2f, foot %.2f, head %.2f m (s %.2f - %.2f), run %.2f m'
+      % (AUD_FLIGHT['s'], AUD_FLIGHT['foot_z'], AUD_HEAD, *AUD_FLIGHT['s_range'], AUD_FLIGHT['run']))
+
 # --- level aprons in front of the old halls.  The 5 m terrain grid smooths the hillsides behind 스팀슨관, 아펜젤러관
 # and 연희관 down across their fronts, so the ground fell 2-4 m within a few metres of the doors and the entrance flights
 # grew to 16-20 risers.  The photos (reference/스팀슨관_정면_2016.jpg, 아펜젤러관_정면_2016.jpg) show 8-9 risers up
@@ -595,8 +635,9 @@ FORECOURTS = [  # OSM way, outward front direction (None: the recess edge footpr
     (246156118, (1.0, -0.27), 11.0, {}),      # 스팀슨관
     (246156116, (-1.0, 0.27), 11.0, {}),      # 아펜젤러관
     # (연희관's front: YEONHUI below, with the garden before it)
-    # 대강당: the 45 m wide flight under the canopy ran across a 2 m cross slope, its north end under the grass
-    (371403811, (-1.0, 0.25), 13.0, dict(max_half=27.0, blend=12.0)),
+    # 대강당: the 45 m wide flight under the canopy ran across a 2 m cross slope, its north end under the grass; level
+    # at the head of the flight up from 백양로 (AUD_FLIGHT)
+    (371403811, (-1.0, 0.25), 13.0, dict(max_half=27.0, blend=12.0, level=AUD_HEAD)),
     # 대우관 별관: likewise the lower of its two flights (10 m wide) on the slope of the road past its front
     (242897923, (-0.97, 0.24), 9.0, dict(max_half=10.0, blend=10.0)),
     # 백주년기념관's 백양로 front: the smoothed DEM drapes the hall's own bulk over its west lawn, a 3-5 m mound
@@ -1648,16 +1689,18 @@ ball = unary_union(bpolys)
 # a flat top stands at the sidewalk's outer edge, about 0.7 m high (0.72 m by the pano heights, about the flight's 4th
 # riser in the 2009 photo); behind it a bank of shrubs, the ginkgo row standing on it a metre behind the wall, climbs
 # to a clipped hedge along the top, and the terrace there (the court, the forecourt) is out of sight from the street.
-# The wall's south end: (2.85, -10.3) and (2.9, -11.2) from two panos, s 433; the flight's foot s 498 - 500, the wall
-# taken to s 496.5.  The bank's top edge 6.5 m behind the wall (the flight's 21 treads; the 1994 aerial photo's paved
-# terrace begins 20 - 22 m east of the centre line, the court 17.4 m).  The terrace is the forecourt's level: the
-# flight has 21 - 22 risers (about 3.3 m) over the sidewalk, but 대강당's forecourt stands only 1 - 1.9 m over 백양로
-# in the game (reference/고증.md 4.5, 5).  The wall and the bank are a mesh (blender/landmarks.py aud_bank, its slope
-# drawn with the terrain's own material: web/src/terrain.js drapeTerrain); the 5 m grid under it is kept below it,
-# and below the sidewalk in front of the wall.
-AUD_BANK = dict(s0=433.1, s1=496.5, wall=0.7, cap=0.35, top=6.55, ext=12.55, side=-1, walk_z=0.15)   # (walk_z: road.py WZ)
-_av_ = np.array([59.82 - 51.13, 61.16 - 28.26]); _av_ /= np.linalg.norm(_av_)
-AUD_T = round(float(sample(Hn, NEAR_HALF, NEAR_STEP, *(np.array([55.48, 44.71]) + np.array([-_av_[1], _av_[0]]) * 6.0))), 2)
+# The wall's south end: (2.85, -10.3) and (2.9, -11.2) from two panos, s 433.  It runs on north past the flight
+# (AUD_FLIGHT, which stands in a gap in it between its posts) with the bank behind it (Dec. 2010 1016786030 · 034,
+# Aug. 2008 2381323) to where it turns into the side road below 용재관 (s ~555), beyond the hall's north end.  The bank's
+# top edge 7 m behind the wall, at the flight's head (the 1994 aerial photo's paved terrace begins 20 - 22 m east of
+# the centre line, the court 17.4 m).  The terrace is the forecourt's level, the head of the flight 3.55 m over the
+# sidewalk (AUD_HEAD; before, 대강당's forecourt stood only 0.8 m over it here, reference/고증.md 4.5, 5).  The wall
+# and the bank are a mesh (blender/landmarks.py aud_bank, its slope drawn with the terrain's own material:
+# web/src/terrain.js drapeTerrain); the 5 m grid under it is kept below it, and below the sidewalk in front of the
+# wall, and under the flight below the sidewalk.
+AUD_BANK = dict(s0=433.1, s1=545.0, wall=0.7, cap=0.35, top=7.0, ext=12.55, side=-1, walk_z=0.15)   # (walk_z: road.py WZ)
+AUD_BANK['gap'] = [round(AUD_FLIGHT['s_range'][0] + 0.05, 2), round(AUD_FLIGHT['s_range'][1] - 0.05, 2)]  # (the flight)
+AUD_T = AUD_HEAD
 # the terrace: from the bank's top edge to the forecourt, the court's slab and its margin, at the forecourt's level,
 # blending out over the next cell or two; not under the road, and not within 11 m of a hall (학생회관 별관 is 3.5 m
 # from the court: the slab's stone skirt shows there; the ground its door is chosen by, 1 - 6 m out, stays as it was)
@@ -1681,11 +1724,13 @@ def aud_bank_z(top, tp, o):
 
 
 _ab = []                   # per metre of the wall: s, the sidewalk, the wall top, the terrace edge, the terrace beyond
-for _s in np.arange(AUD_BANK['s0'], AUD_BANK['s1'] + 1e-6, 1.0):
+_gA, _gB = AUD_BANK['gap']                                          # (and at the two ends of the gap for the flight)
+for _s in sorted(set([round(float(v_), 3) for v_ in np.arange(AUD_BANK['s0'], AUD_BANK['s1'] + 1e-6, 1.0)] + [_gA, _gB])):
     _zb = prof_h(_s) + AUD_BANK['walk_z']
     _top = _zb + AUD_BANK['wall']
     _far = [sample(Hn, NEAR_HALF, NEAR_STEP, *along_raw(_s, AUD_BANK['side'] * (E_WALK + o_))[:2])
             for o_ in (AUD_BANK['top'], (AUD_BANK['top'] + AUD_BANK['ext']) / 2, AUD_BANK['ext'])]
+    _far[0] = max(_far[0], AUD_T)                 # (the top edge at the terrace's level: the 5 m grid rounds it off)
     _ab.append((float(_s), _zb, _top, max(_far[0], _top + 0.05), _far))
 _abs = np.array([a_[0] for a_ in _ab])
 # the grid under the bank: below its surface, and so low that no terrain triangle reaching out under the sidewalk
@@ -1704,6 +1749,8 @@ for (_j, _i), (_s, _o) in _SO.items():
     _f = (_s - _abs[_k - 1]) / (_abs[_k] - _abs[_k - 1])
     _zb, _top, _tp = [_ab[_k - 1][q_] * (1 - _f) + _ab[_k][q_] * _f for q_ in (1, 2, 3)]
     _h = min(float(Hn[_j, _i]), aud_bank_z(_top, _tp, _o) - 0.03)
+    if abs(_s - AUD_FLIGHT['s']) < AUD_FLIGHT['w'] / 2 + AUD_FLIGHT['cheek'] + 2.5:
+        _h = min(_h, AUD_FLIGHT['foot_z'] - 0.3)                    # (under the flight: its treads hide nothing)
     for _dj in (-1, 0, 1):
         for _di in (-1, 0, 1):
             _q = _SO.get((_j + _dj, _i + _di))
@@ -1717,12 +1764,16 @@ for (_j, _i), (_s, _o) in _SO.items():
     _nb += 1
 AUD_BANK['sections'] = []
 for _s, _zb, _top, _tp, _far in _ab:
+    if _gA < _s < _gB:
+        continue                                                    # (the flight stands there)
     _x, _y, _a = along_raw(_s, AUD_BANK['side'] * E_WALK)
     # s, the wall face's foot (x, y), the heading into the bank, sidewalk, wall top, terrace edge, terrace beyond (+4 cm)
     AUD_BANK['sections'].append([round(_s, 2), round(_x, 3), round(_y, 3),
                                  round(math.atan2(AUD_BANK['side'] * math.cos(_a), -AUD_BANK['side'] * math.sin(_a)), 5),
                                  round(_zb, 3), round(_top, 3), round(_tp, 3)] + [round(v_ + 0.04, 3) for v_ in _far])
 AUD_BANK['terrace'] = AUD_T
+_fl = [a_ for a_ in _ab if abs(a_[0] - AUD_FLIGHT['s']) < 0.6]
+AUD_FLIGHT['far'] = [round(v_ + 0.04, 3) for v_ in (_fl[0][4] if _fl else [AUD_HEAD] * 3)]   # (the terrace beyond its head)
 print('대강당 앞 둑: terrace', AUD_T, 'wall s %.1f - %.1f' % (AUD_BANK['s0'], AUD_BANK['s1']), 'grid nodes under it', _nb,
       'bank over the wall top %.2f - %.2f m' % (min(a_[3] - a_[2] for a_ in _ab), max(a_[3] - a_[2] for a_ in _ab)))
 
@@ -3844,6 +3895,10 @@ _tn = dict(TENNIS, rot=round(TENNIS['rot'], 5))
 for v in STATUES.values():
     v['h'] = round(ground_h(*v['pos']), 2)
 STATUES['court']['h'] = AUD_T           # (on the terrace behind 백양로's bank, AUD_BANK; not the ground left low by 별관)
+# its stone skirt down to the lowest ground round it (학생회관 별관's side, left low) and half a metre under
+_cr = court_poly(1.2).exterior
+STATUES['court']['skirt'] = round(max(2.0, AUD_T + 0.5 - min(ground_h(*_cr.interpolate(k_ / 80, normalized=True).coords[0])
+                                                             for k_ in range(80))), 2)
 # 공학원 (연세공학원) broke ground on 18 August 1995 on the 정구장's two blocks (TENNIS) and was finished on 8 April 1999
 # (yonsei.ac.kr/sc/349: 지하 5층 · 지상 4층; namu.wiki): the 1990 · 1994 · 1995 maps and the 1994 aerial photo show the
 # courts before it.  In the spring of 1997 the block between the service roads was a building site: bare earth behind
@@ -4041,6 +4096,7 @@ for _sd, _s in ((-1, 234.5), (-1, 375.5), (-1, 377.7), (-1, 379.9)):
     _o = _sd * (ROAD['median'] + ROAD['lane'] + 0.4)
     P('bollard', _p.x - _ty / _n * _o, _p.y + _tx / _n * _o, 0.0)
 out['aud_bank'] = {k: v for k, v in AUD_BANK.items()}
+out['aud_flight'] = AUD_FLIGHT                # (blender/landmarks.py aud_flight)
 out['pave'] = PAVE                            # paving kinds in ground_dry.png's G and B (web/src/terrain.js)
 
 
@@ -4381,21 +4437,43 @@ AUD_BANK_POLY = Polygon([along_raw(s_, AUD_BANK['side'] * (E_WALK - 0.1))[:2] fo
                         [along_raw(s_, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] + 0.1))[:2]
                          for s_ in np.arange(AUD_BANK['s1'], AUD_BANK['s0'] - 0.1, -2.0)])
 _n0 = len(shrubs)
-shrubs = [s for s in shrubs if not (s[0] == 'hedge_low' and AUD_BANK_POLY.contains(Point(s[1], s[2])))]
+_hp = Polygon([along_raw(s_, AUD_BANK['side'] * (E_WALK - 0.1))[:2] for s_ in np.arange(AUD_BANK['s0'] - 3.2, AUD_BANK['s1'] + 3.3, 2.0)] +
+               [along_raw(s_, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] + 0.1))[:2]
+                for s_ in np.arange(AUD_BANK['s1'] + 3.2, AUD_BANK['s0'] - 3.3, -2.0)])     # (and its ends' 3 m toes)
+shrubs = [s for s in shrubs if not (s[0] == 'hedge_low' and _hp.contains(Point(s[1], s[2])))]
+_n0 -= len(shrubs)
+# the flight (AUD_FLIGHT) and a metre round it: no tree, shrub, prop or car (the ginkgo row stands either side of it)
+_fo = np.array(along_raw(AUD_FLIGHT['s'], -E_WALK)[:2])
+_fv, _fu = np.array(AUD_FLIGHT['axis']), _afv
+_fh = AUD_FLIGHT['w'] / 2 + AUD_FLIGHT['cheek']
+AUD_FLIGHT_POLY = Polygon([tuple(_fo + _fu * u_ + _fv * v_) for u_, v_ in ((-_fh, 0.0), (_fh, 0.0), (_fh, AUD_FLIGHT['run'] + 0.6),
+                                                                          (-_fh, AUD_FLIGHT['run'] + 0.6))])
+_fz = AUD_FLIGHT_POLY.buffer(1.0)
+_nf = (len(trees), len(shrubs), len(props), len(cars))
+trees = [t for t in trees if not _fz.contains(Point(t[1], t[2]))]
+shrubs = [s for s in shrubs if not _fz.contains(Point(s[1], s[2]))]
+props = [p for p in props if not _fz.contains(Point(p[1], p[2]))]
+cars = [c for c in cars if not _fz.contains(Point(c[1], c[2]))]
+print('대강당 앞 돌계단: cleared (trees, shrubs, props, cars)', _nf[0] - len(trees), _nf[1] - len(shrubs), _nf[2] - len(props),
+      _nf[3] - len(cars))
 _rb = random.Random(84)
 _gk = [Point(t[1], t[2]) for t in trees if AUD_BANK_POLY.buffer(1.0).contains(Point(t[1], t[2]))]
 _nb0 = len(shrubs)
+_in_flight = lambda s_, m_: AUD_BANK['gap'][0] - m_ < s_ < AUD_BANK['gap'][1] + m_
 for _s in np.arange(AUD_BANK['s0'] + 1.0, AUD_BANK['s1'] - 0.5, 1.7):
     for _k, _o in enumerate((1.3, 2.9, 4.5)):
         _ss = _s + (0.85 if _k % 2 else 0.0) + _rb.uniform(-0.3, 0.3)
         _x, _y, _ = along_raw(_ss, AUD_BANK['side'] * (E_WALK + _o + _rb.uniform(-0.3, 0.3)))
-        if any(g_.distance(Point(_x, _y)) < 1.1 for g_ in _gk) or _ss > AUD_BANK['s1'] - 0.6:
+        _sc, _rot = round(_rb.uniform(1.0, 1.45), 2), round(_rb.uniform(0, 6.28), 2)
+        if any(g_.distance(Point(_x, _y)) < 1.1 for g_ in _gk) or _ss > AUD_BANK['s1'] - 0.6 or _in_flight(_ss, 0.9):
             continue
-        shrubs.append(['bush', round(_x, 2), round(_y, 2), round(_rb.uniform(1.0, 1.45), 2), round(_rb.uniform(0, 6.28), 2)])
+        shrubs.append(['bush', round(_x, 2), round(_y, 2), _sc, _rot])
 for _s in np.arange(AUD_BANK['s0'] + 2.0, AUD_BANK['s1'] - 0.5, 1.5):
+    if _in_flight(_s, 0.8):
+        continue
     _x, _y, _a = along_raw(_s, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] - 0.2))
     shrubs.append(['hedge_low', round(_x, 2), round(_y, 2), 1.0, round(_a, 3)])
-print('대강당 앞 둑: strip hedge cleared', _n0 - _nb0, 'bank shrubs', len(shrubs) - _nb0)
+print('대강당 앞 둑: strip hedge cleared', _n0, 'bank shrubs', len(shrubs) - _nb0)
 # In front of 스팀슨관's south end (reference/고증.md 3.5.2; the Dec. 2010 walk past it, panoramas 1016786683 - 686,
 # placed by the bearings of the end's corners and its bay): a bed of bare low shrubs in a boxwood band with round
 # corners west of the walk, benches and a bin along its west side under the trees of a low bank, the walk and the
@@ -4480,6 +4558,9 @@ _ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES]
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'
 _ypaint([p_ for n_, p_ in GONE_SITES if not n_], _ga)
+# 대강당 앞 돌계단: the forecourt's paving runs on to the head of the flight (the 2009 photo: cars parked at its top)
+_ypaint([Polygon([tuple(_fo + _fu * u_ + _fv * v_) for u_, v_ in ((-4.5, AUD_FLIGHT['run'] - 0.2), (4.5, AUD_FLIGHT['run'] - 0.2),
+                                                                   (6.0, 26.0), (-6.0, 26.0))])], _ga)
 _gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
 spl[..., 1] *= 1.0 - _gd / 255.0
 spl[..., 2] = np.where(_gd > 0, np.minimum(np.maximum(spl[..., 2], _gd), 255.0 - spl[..., 0] - spl[..., 1]), spl[..., 2])
@@ -4493,7 +4574,7 @@ print('yongjae ground: walks', len(paths_out), 'decals', len(out['decals']))
 # own shading: web/src/terrain.js drapeTerrain), no paving of the strip under it, no grass blades
 _gb = Image.new('L', (SW, SH), 0)
 _YN[id(_gb)] = '_gb'
-_ypaint([AUD_BANK_POLY], _gb)
+_ypaint([AUD_BANK_POLY.difference(AUD_FLIGHT_POLY)], _gb)          # (not the flight: its head is paved)
 _gbm = ndimage.gaussian_filter(np.array(_gb, np.float32), 0.7) / 255.0
 spl[..., 0] *= 1.0 - _gbm
 spl[..., 1] *= 1.0 - _gbm

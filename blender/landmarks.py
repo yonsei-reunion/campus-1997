@@ -3960,9 +3960,11 @@ def basketball_court():
     mb = MeshBuilder('lm_court')
     mb.xf = local_frame(C['pos'][0], C['pos'][1], C['rot'], C['h'])
     z = 0.06
-    # slab on the terrace behind 백양로's bank (tools/build_campus.py AUD_BANK: at 대강당's forecourt level); its skirt
-    # goes 2 m down in mortared rubble, which shows where the ground falls away (학생회관 별관's side)
-    mb.box((0, 0, (z - 2.0) / 2), (L + 2.0, W + 2.0, z + 2.0), 'stone_rubble_warm', mats={'top': 'asphalt'}, skip=('bottom',))
+    # slab on the terrace behind 백양로's bank (tools/build_campus.py AUD_BANK: at 대강당's forecourt level, the head of
+    # the flight up from 백양로); its skirt goes down in mortared rubble to the lowest ground round it, which shows where
+    # the ground falls away (학생회관 별관's side, about 5 m)
+    sk = C.get('skirt', 2.0)
+    mb.box((0, 0, (z - sk) / 2), (L + 2.0, W + 2.0, z + sk), 'stone_rubble_warm', mats={'top': 'asphalt'}, skip=('bottom',))
     lw = 0.05
 
     def line(x0, y0, x1, y1):
@@ -4040,11 +4042,13 @@ def aud_bank():
     the terrace's edge beyond it drawn in the terrain's own material ('terrain_drape': web/src/terrain.js
     drapeTerrain), so the woods' floor under the shrubs and the lawn at the top are the ground's; walked on (the
     'walk_stairs' mesh), the shrubs and the ginkgo row stand on it.  One section a metre: s, the wall face's foot
-    (x, y), the heading into the bank, the sidewalk, the wall top, the bank's top, the terrace 6.55 / 9.55 / 12.55 m
-    behind the wall."""
+    (x, y), the heading into the bank, the sidewalk, the wall top, the bank's top, the terrace 7 / 9.8 / 12.55 m
+    behind the wall.  The flight up to the forecourt (aud_flight) stands in a gap in it, B['gap']: the wall and the
+    bank end there against its side walls."""
     B = CAMPUS.get('aud_bank')
     if not B or B.get('side', -1) != -1:          # (laid out for the east side: the bank to the right going along)
         return []
+    gA, gB = B.get('gap', (1e9, 1e9))
     mb = MeshBuilder('lm_aud_bank')
     cap, top_o, ext_o = B['cap'], B['top'], B['ext']
     mid_o = (top_o + ext_o) / 2
@@ -4059,9 +4063,11 @@ def aud_bank():
         f_at = lambda o: (f1 + (f2 - f1) * (o - top_o) / (mid_o - top_o)) if o <= mid_o else (f2 + (f3 - f2) * (o - mid_o) / (ext_o - mid_o))
         prof = [(o, bank_z(top, tp, o) + 0.04 * (o - cap) / (top_o - cap)) for o in OS] + \
                [(o, f_at(o)) for o in (top_o + 1.45, mid_o, ext_o)]
-        secs.append(dict(P=lambda o, z, x=x, y=y, n=n: (x + n[0] * o, y + n[1] * o, z), zb=zb, top=top, prof=prof))
+        secs.append(dict(s=s, P=lambda o, z, x=x, y=y, n=n: (x + n[0] * o, y + n[1] * o, z), zb=zb, top=top, prof=prof))
     BATTER = 0.05                                                 # the wall leans back a little
     for a, b in zip(secs[:-1], secs[1:]):
+        if a['s'] <= gA + 1e-3 and b['s'] >= gB - 1e-3:
+            continue                                              # (the flight)
         # the wall's face (towards the road), its flat top, the bank and the terrace's edge
         mb.face([a['P'](BATTER, a['top']), b['P'](BATTER, b['top']), b['P'](0.0, b['zb'] - 0.35), a['P'](0.0, a['zb'] - 0.35)],
                 'stone_rubble_warm')
@@ -4088,6 +4094,109 @@ def aud_bank():
         o0, z0 = sec['prof'][0]
         q = [P(o0, z0), toe(o0, z0), (toe(o0, z0)[0], toe(o0, z0)[1], lo), P(o0, lo)]
         mb.face(q[::-1] if first else q, 'stone_rubble_warm')             # (facing the road)
+    # at the flight: the wall and the bank closed in rubble, inside its side walls (they stand 5 cm further out)
+    for sec in secs:
+        if abs(sec['s'] - gA) > 1e-3 and abs(sec['s'] - gB) > 1e-3:
+            continue
+        P, lo, south = sec['P'], sec['zb'] - 0.35, abs(sec['s'] - gB) < 1e-3
+        qs = [[P(0.0, lo), P(cap, lo), P(cap, sec['top']), P(BATTER, sec['top'])]]
+        qs += [[P(o0, lo), P(o1, lo), P(o1, z1), P(o0, z0)] for (o0, z0), (o1, z1) in zip(sec['prof'][:-1], sec['prof'][1:])]
+        for q in qs:
+            mb.face(q if south else q[::-1], 'stone_rubble_warm')
+    return [mb] + aud_flight()
+
+
+def aud_flight():
+    """The straight granite flight from 백양로's east sidewalk up to 대강당's forecourt, on the hall's axis, through the
+    rubble wall and the bank (tools/build_campus.py AUD_FLIGHT; reference/대강당_2009_앞길_계단.jpg, Kakao roadview
+    Aug. 2008 2381313 · Dec. 2010 1016786027 · 028 · Apr. 2011 1017220198 · 199).  24 risers of about 15 cm: eleven
+    treads of 0.27 m, a landing of 1.4 m (the 12th tread) where the slope changes, eleven steeper treads of 0.215 m to
+    the head.  Between side walls of mortared granite rubble under a pale granite coping that follows the flight, turns
+    level over the landing for a block and over the head for one more; at the foot square granite posts in line with
+    the wall's face, letters cut down their road faces.  The foot from the wall's face to the first riser is paved.
+    Local frame: x up the flight from the wall's face, y across it (north +), z over the sidewalk."""
+    F = CAMPUS.get('aud_flight')
+    if not F:
+        return []
+    ax, ay = F['axis']
+    mb = MeshBuilder('lm_aud_flight')
+    mb.xf = local_frame(F['o'][0], F['o'][1], math.atan2(ay, ax), F['foot_z'])
+    W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
+    hw, ch, n1, n2 = F['w'] / 2, F['cheek'], F['n1'], F['n2']
+    n = n1 + n2
+    r = F['rise'] / n
+    xs = [F['foot']]                                  # the nosings, 1 .. n
+    for i in range(1, n):
+        xs.append(xs[-1] + (F['t1'] if i < n1 else F['landing'] if i == n1 else F['t2']))
+    x_top = xs[-1] + 0.35                             # the head's stone, then the forecourt
+    cuts = [-hw, -hw + 0.45, hw - 0.45, hw]           # (tops and fronts in three across: the bake reads corners)
+
+    def across_(x0, x1, z0, z1, up):
+        for y_a, y_b in zip(cuts, cuts[1:]):
+            if up:
+                mb.quad((x0, y_a, z0), (x1, y_a, z0), (x1, y_b, z0), (x0, y_b, z0), 'stone_granite')
+            else:
+                mb.quad((x0, y_b, z0), (x0, y_a, z0), (x0, y_a, z1), (x0, y_b, z1), 'stone_granite')
+    across_(0.0, xs[0], 0.0, 0.0, True)               # (the foot, paved as the sidewalk's granite edge)
+    for i in range(1, n + 1):
+        x0 = xs[i - 1]
+        x1 = xs[i] if i < n else x_top
+        across_(x0, x0, (i - 1) * r, i * r, False)    # the riser
+        across_(x0, x1, i * r, i * r, True)           # the tread
+    # under the treads, down to the ground below the sidewalk (the 5 m grid is kept under it, build_campus)
+    base = -0.6
+    mb.quad((0.0, -hw, base), (0.0, hw, base), (x_top, hw, base), (x_top, -hw, base), 'stone_rubble_warm')
+    mb.quad((x_top, -hw, base), (x_top, hw, base), (x_top, hw, F['rise']), (x_top, -hw, F['rise']), 'stone_rubble_warm')
+    # the side walls: their coping from the posts' caps up the lower flight, level over the landing, up the upper
+    # flight and level over the head (0.68 m over the landing's nosing, as from in front in Dec. 2010)
+    hc, wp, post_top = 0.68, 0.46, 0.80
+    k = n1 - 1
+    prof = [(wp, post_top), (xs[k], (k + 1) * r + hc), (xs[k + 1] - 0.05, (k + 1) * r + hc),
+            (xs[k + 1] - 0.05, (k + 2) * r + hc), (xs[-1], n * r + hc), (x_top + 0.6, n * r + hc)]
+    sx, tops = [], []
+    for (xa, za), (xb, zb) in zip(prof[:-1], prof[1:]):
+        m = max(1, int(math.ceil((xb - xa) / 0.9)))
+        for j in range(m):
+            sx.append(xa + (xb - xa) * j / m)
+            tops.append(za + (zb - za) * j / m)
+    sx.append(prof[-1][0]); tops.append(prof[-1][1])
+    for j in range(len(sx) - 1, 0, -1):               # (the step up at the landing's end: a vertical joint)
+        if sx[j] - sx[j - 1] < 1e-6:
+            sx[j] += 0.002
+    for ya, yb in ((-hw - ch, -hw), (hw, hw + ch)):
+        profile_wall(mb, ya, yb, sx, tops, [base] * len(sx), 'stone_rubble_warm', cap='stone_trim', ct=0.2)
+    # the posts at the foot: square granite, a flat cap, letters down the face towards the road
+    rnd = random.Random(1958)
+    for yc in (-hw - ch / 2, hw + ch / 2):
+        mb.box((wp / 2, yc, (base + post_top - 0.08) / 2), (wp, wp, post_top - 0.08 - base), 'stone_trim', skip=('bottom',))
+        mb.box((wp / 2, yc, post_top - 0.04), (wp + 0.06, wp + 0.06, 0.08), 'stone_trim', skip=('bottom',))
+        z = post_top - 0.2
+        while z > 0.12:
+            h_ = rnd.uniform(0.04, 0.07)
+            mb.quad((-0.003, yc + 0.03, z - h_), (-0.003, yc - 0.03, z - h_), (-0.003, yc - 0.03, z), (-0.003, yc + 0.03, z),
+                    'concrete_dark')
+            z -= h_ + 0.035
+    # beyond the head the forecourt's edge in the ground's own material (painted as its asphalt), over the 5 m grid
+    # kept under the flight; as the bank's terrace edge either side of it (aud_bank)
+    f1, f2, f3 = (v - F['foot_z'] for v in F['far'])
+    yb_ = hw + ch - 0.05
+    edge = [(x_top, F['rise'])] + [(x_, z_) for x_, z_ in ((7.0, f1), (9.775, f2), (12.55, f3)) if x_ > x_top + 0.3]
+    for (x0, z0), (x1, z1) in zip(edge[:-1], edge[1:]):
+        q = [(x0, -yb_, z0), (x1, -yb_, z1), (x1, yb_, z1), (x0, yb_, z0)]
+        mb.face(q, 'terrain_drape')
+        WALK_FACES.append([W_(*p) for p in q])
+    # walked on: the foot, one ramp up each flight through the nosings, the landing, the head
+    walk = [(0.0, 0.0), (xs[0], 0.0), (xs[k], (k + 1) * r), (xs[k + 1], (k + 1) * r), (xs[-1], n * r), (x_top, n * r)]
+    for (x0, z0), (x1, z1) in zip(walk[:-1], walk[1:]):
+        WALK_FACES.append([W_(x0, -hw, z0), W_(x1, -hw, z1), W_(x1, hw, z1), W_(x0, hw, z0)])
+    # the zone over the flight (the web app keeps shrubs off it)
+    o = mb.xf @ Vector((-0.5, 0.0, 0.0))
+    u = (mb.xf.to_3x3() @ Vector((0.0, 1.0, 0.0))).normalized()
+    v = (mb.xf.to_3x3() @ Vector((1.0, 0.0, 0.0))).normalized()
+    ENTRANCES.append(dict(o=[round(o.x, 2), round(o.y, 2)], u=[round(u.x, 4), round(u.y, 4)], v=[round(v.x, 4), round(v.y, 4)],
+                          hw=round(hw + ch + 0.6, 2), len=round(x_top + 1.5, 2)))
+    print('대강당 앞 돌계단: %d risers of %.3f m, landing %.2f m, head %.2f m out of the wall'
+          % (n, r, F['landing'], xs[-1]))
     return [mb]
 
 

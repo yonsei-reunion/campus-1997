@@ -28,7 +28,7 @@
      "cam": {"x": -41.4, "y": -196.6, "h": 34.41, "tx": -16.1, "ty": -202.6, "th": 37.3, "fov": 58}, "size": [1200, 800],
      "out": [{"path": "docs/compare/museum_game.jpg", "width": 900}]},
     {"name": "compare/auditorium", "doc": "reference/대강당_2009_정면.jpg: 현관 바닥 높이에서 정면을 올려다봄",
-     "cam": {"x": 34.14, "y": 52.9, "h": 38.76, "tx": 61.17, "ty": 43.99, "th": 48.61, "fov": 38.5}, "size": [1200, 904],
+     "cam": {"x": 34.14, "y": 52.9, "h": 41.55, "tx": 61.17, "ty": 43.99, "th": 51.4, "fov": 38.5}, "size": [1200, 904],
      "out": [{"path": "docs/compare/auditorium_game.jpg", "width": 900}]},
     {"name": "compare/underwood", "doc": "reference/언더우드관_정면_2016.jpg",
      "cam": {"x": 56.4, "y": 195.4, "dh": 4, "tx": 63.75, "ty": 259.3, "tdh": 6, "fov": 50}, "size": [1350, 900],
