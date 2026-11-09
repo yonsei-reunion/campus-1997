@@ -247,6 +247,7 @@
   "rough": 0.9
  },
  "curb_road": {"tex": "concrete_wall_008", "tile": 1.5, "tint": [0.95, 0.95, 0.93], "rough": 0.9, "joints": 1.0},
+ "gutter_road": {"_doc": "백양로's concrete gutter between the asphalt and the kerb, a cross joint every 1.5 m (blender/road.py GUT)", "tex": "concrete_wall_008", "tile": 2.0, "tint": [0.64, 0.64, 0.625], "rough": 0.92, "joints": 1.5},
  "pavers": {
   "tex": "patterned_concrete_pavers",
   "tile": 2.4,

@@ -53,6 +53,22 @@ def build():
     # the lawn between the kerbs of the verge and of the outer planting strip (the 2008 / 2010 roadview, the 1997
     # photo): drawn in the web app with the terrain's own lawn, its blades and bare patches (web/src/verge.js)
     LAWN = 'verge_lawn'
+    # the concrete gutter between the asphalt and the kerb's face (the 2008 / 2010 roadview: 0.3 m, a cross joint every
+    # 1 - 2 m; reference/고증.md 2.3): the lane's last GUT m, its own material with a joint every 1.5 m of u
+    # (web/src/kerbjoints.js), level with the asphalt (not falling to the kerb: the terrain lies level with the
+    # asphalt under the road and would cover anything lower).  The yellow edge line, 12 cm, on the asphalt 6 cm inside
+    # its edge
+    GUT = R.get('gutter', 0.0)
+    GUTTER = 'gutter_road'
+    e_gut = e_lane - GUT
+    YW, YGAP = 0.12, 0.06
+    e_yel = e_gut - YGAP - YW / 2
+    # where the verge breaks (crossings, side-road gaps, the openings of campus.json baekyangro breaks) its ends are
+    # round, half circles of the verge's width with the kerb running round them (radius RV about the verge's middle VC;
+    # the soil's half circle RD about DC inside the kerb's ring), the gutter following round to the tip; between them
+    # a ramp from the gutter up to the sidewalk (the roadview: the openings at the carriageway's level)
+    RV, VC = (e_verge - e_lane) / 2, (e_lane + e_verge) / 2
+    RD, DC = (e_verge - 0.2 - e_curb) / 2, (e_curb + e_verge - 0.2) / 2
     walls = R.get('walls', [])          # [side, s0, s1]: no planting strip there (a retaining wall, landmarks.aud_bank)
     mb = MeshBuilder('baekyangro')
     marks = MeshBuilder('baekyangro_paint')
@@ -65,6 +81,21 @@ def build():
     # value: the boxwood verge stops that much short of the north end, with a round end, the sidewalk paved out to
     # the carriageway's kerb in front of it (the gate's side road, 1997 photo)
     mouths = [tuple(m) + (0.0,) * (6 - len(m)) for m in R.get('mouths', [])]
+    # the openings in the verge on each side, [s0, s1, turn] (turn: a side road's, the yellow line turns in round the
+    # verge's end); those closer than two round ends merged
+    vbreaks = {}
+    for side in (-1, 1):
+        lst = [[c - 3.0, c + 3.0, False] for c in crossings] + [[g - hw, g + hw, True] for g, sd, hw in gaps if sd == side] \
+            + [[s0, s1, False] for sd, s0, s1 in R.get('breaks', []) if sd == side]
+        lst.sort()
+        out_ = []
+        for br in lst:
+            if out_ and br[0] < out_[-1][1] + 2 * RV + 0.3:
+                out_[-1][1] = max(out_[-1][1], br[1])
+                out_[-1][2] = out_[-1][2] or br[2]
+            else:
+                out_.append(list(br))
+        vbreaks[side] = out_
     frames = []
     for k, (s, p) in enumerate(samples):
         q0 = samples[max(0, k - 1)][1]
@@ -82,8 +113,91 @@ def build():
     def in_cross(s, pad=0.0):
         return any(abs(s - c) < 3.0 + pad for c in crossings)
 
-    def in_gap(s, side):
-        return any(sd == side and abs(s - g) < hw for g, sd, hw in gaps)
+    def at_so(s, off, dz=0.0):
+        # the point at arc length s, signed offset off (+ west), dz over the road's height there
+        k = max(0, min(len(frames) - 2, int(s // 2.0)))
+        fa, fb = frames[k], frames[k + 1]
+        t = (s - fa[0]) / (fb[0] - fa[0])
+        q = fa[1].lerp(fb[1], t) + fa[3].lerp(fb[3], t) * off
+        return (q.x, q.y, fa[4] + (fb[4] - fa[4]) * t + dz)
+
+    def break_at(sa, sb, side):
+        for br in vbreaks[side]:
+            if br[0] - RV - 0.5 < sb and br[1] + RV + 0.5 > sa:
+                return br
+        return None
+
+    def ramp(o):
+        # the opening's ramp from the kerb line up to the sidewalk
+        return WZ * (o - e_lane) / (e_verge - e_lane)
+
+    def break_segment(a, b, side, br):
+        """one 2 m step of the road beside an opening in the verge, from the gutter out to the sidewalk: the gutter, the
+        verge's round kerbed ends, the gutter round them, the ramp between"""
+        sa, sb = a[0], b[0]
+        s0, s1 = br[0], br[1]
+        INF = 1e6
+
+        def P(s, off, dz):
+            t = (s - sa) / (sb - sa)
+            q = a[1].lerp(b[1], t) + a[3].lerp(b[3], t) * (off * side)
+            return (q.x, q.y, a[4] + (b[4] - a[4]) * t + dz)
+
+        def quad(q, mat, uv=None):
+            if side < 0:
+                q = [q[1], q[0], q[3], q[2]]
+                uv = [uv[1], uv[0], uv[3], uv[2]] if uv else None
+            mb.face(q, mat, uvs=uv)
+
+        def circ(r, c, o):
+            return math.sqrt(max(0.0, r * r - (o - c) ** 2))
+
+        def pieces(o, kind):
+            """[(from, to, mat, z)] along the road at offset o, from the south verge piece to the north one; kind: the
+            strip's band ('road': the carriageway's gutter strip, 'soil': the verge's soil, 'kerb': its kerbs)"""
+            if kind == 'road':
+                g = circ(RV + GUT, VC, o)
+                return [(-INF, s0 - RV + g, GUTTER, 0.0), (s0 - RV + g, s1 + RV - g, 'asphalt', 0.0), (s1 + RV - g, INF, GUTTER, 0.0)]
+            v = circ(RV, VC, o)
+            g = circ(RV + GUT, VC, o) if o <= VC else v
+            d = circ(RD, DC, o) if kind == 'soil' else v
+            z = ramp(o)
+            top = LAWN if kind == 'soil' else 'curb'
+            return [(-INF, s0 - RV + d, top, VZ), (s0 - RV + d, s0 - RV + v, 'curb', VZ),
+                    (s0 - RV + v, s0 - RV + g, GUTTER, z + 0.004), (s0 - RV + g, s1 + RV - g, 'pavers', z),
+                    (s1 + RV - g, s1 + RV - v, GUTTER, z + 0.004), (s1 + RV - v, s1 + RV - d, 'curb', VZ),
+                    (s1 + RV - d, INF, top, VZ)]
+
+        cuts = [(e_gut, e_lane, 3, 'road'), (e_lane, e_curb, 2, 'kerb'), (e_curb, e_verge - 0.2, 12, 'soil'),
+                (e_verge - 0.2, e_verge, 2, 'kerb')]
+        for o0, o1, k, kind in cuts:
+            for i in range(k):
+                p0, p1 = o0 + (o1 - o0) * i / k, o0 + (o1 - o0) * (i + 1) / k
+                A, B = pieces(p0, kind), pieces(p1, kind)
+                for (u0, v0, mat, z0), (u1, v1, _, z1) in zip(A, B):
+                    u0, v0, u1, v1 = max(sa, u0), min(sb, v0), max(sa, u1), min(sb, v1)
+                    if v0 - u0 < 1e-4 and v1 - u1 < 1e-4:
+                        continue
+                    v0, v1 = max(u0, v0), max(u1, v1)
+                    uv = [(u0, p0), (v0, p0), (v1, p1), (u1, p1)] if mat in ('curb', GUTTER) else None
+                    quad([P(u0, p0, z0), P(v0, p0, z0), P(v1, p1, z1), P(u1, p1, z1)], KERB if mat == 'curb' else mat, uv)
+                if kind == 'road':
+                    continue
+                # the kerb's face round the verge's ends, from the ramp up to the verge's top
+                for e0, e1, end in ((A[1][1], B[1][1], True), (A[5][0], B[5][0], False)):
+                    if not (sa < e0 < sb or sa < e1 < sb):
+                        continue
+                    e0, e1 = min(max(e0, sa), sb), min(max(e1, sa), sb)
+                    f = [P(e0, p0, ramp(p0)), P(e1, p1, ramp(p1)), P(e1, p1, VZ), P(e0, p0, VZ)]
+                    uv = [(e0, ramp(p0)), (e1, ramp(p1)), (e1, VZ), (e0, VZ)]
+                    quad(f if end else [f[1], f[0], f[3], f[2]], KERB, uv if end else [uv[1], uv[0], uv[3], uv[2]])
+        # the kerbs' faces along the road where the verge stands: to the carriageway, and the low lip to the sidewalk
+        for off, z0_, z1_, inward in ((e_lane, 0.0, VZ, True), (e_verge, WZ, VZ, False)):
+            for u, v in ((sa, min(sb, s0 - RV)), (max(sa, s1 + RV), sb)):
+                if v - u > 1e-3:
+                    f = [P(u, off, z0_), P(v, off, z0_), P(v, off, z1_), P(u, off, z1_)]
+                    uv = [(u, z0_), (v, z0_), (v, z1_), (u, z1_)]
+                    quad(f if inward else [f[1], f[0], f[3], f[2]], KERB, uv if inward else [uv[1], uv[0], uv[3], uv[2]])
 
     def fillet(o, r):
         # how far the corner of radius r cuts back along the road at offset o
@@ -207,15 +321,24 @@ def build():
         return [(u, v) for u, v in out if v - u > 1e-3]
 
     for a, b in zip(frames[:-1], frames[1:]):
-        sm = (a[0] + b[0]) / 2
-        cross = in_cross(sm)
         for side in (-1, 1):
             o = lambda v: v * side
             flip = side < 0
             m_ = mouth_at(a[0], b[0], side)
             if m_ is not None:
-                mb.face([pt(a, o(0), 0), pt(b, o(0), 0), pt(b, o(e_lane), 0), pt(a, o(e_lane), 0)] if not flip else
-                        [pt(b, o(0), 0), pt(a, o(0), 0), pt(a, o(e_lane), 0), pt(b, o(e_lane), 0)], 'asphalt')
+                mb.face([pt(a, o(0), 0), pt(b, o(0), 0), pt(b, o(e_gut), 0), pt(a, o(e_gut), 0)] if not flip else
+                        [pt(b, o(0), 0), pt(a, o(0), 0), pt(a, o(e_gut), 0), pt(b, o(e_gut), 0)], 'asphalt')
+                if GUT > 0:
+                    # the gutter (level here) where the kerb stands at the carriageway's edge, asphalt in the mouth
+                    lo, hi = cut(m_, e_lane)
+                    for u, v, mat in ((a[0], min(b[0], lo), GUTTER), (max(a[0], lo), min(b[0], hi), 'asphalt'),
+                                      (max(a[0], hi), b[0], GUTTER)):
+                        if v - u > 1e-3:
+                            q = [at_so(u, o(e_gut)), at_so(v, o(e_gut)), at_so(v, o(e_lane)), at_so(u, o(e_lane))]
+                            uv = [(u, e_gut), (v, e_gut), (v, e_lane), (u, e_lane)]
+                            if flip:
+                                q, uv = [q[1], q[0], q[3], q[2]], [uv[1], uv[0], uv[3], uv[2]]
+                            mb.face(q, mat, uvs=uv if mat == GUTTER else None)
                 mouth_segment(a, b, side, m_)
                 continue
 
@@ -232,7 +355,7 @@ def build():
                 uv = [(u, o0), (v, o0), (v, o1), (u, o1)]
                 if flip:
                     q, uv = [q[1], q[0], q[3], q[2]], [uv[1], uv[0], uv[3], uv[2]]
-                mb.face(q, KERB if mat == 'curb' else mat, uvs=uv if mat == 'curb' else None)
+                mb.face(q, KERB if mat == 'curb' else mat, uvs=uv if mat in ('curb', GUTTER) else None)
 
             def riser(off, z0, z1, mat, outward=True, rng=None):
                 # vertical face along the road at offset `off`; outward=True faces away from the centre line
@@ -245,13 +368,15 @@ def build():
 
             if med > 0:
                 band(0, med, 0, 0, 'asphalt')
-            band(med, e_lane, 0, 0, 'asphalt')
-            if cross or in_gap(sm, side):
-                # pedestrian crossing / side-road entrance: the verge is paved flush with the sidewalk
-                riser(e_lane, 0, WZ, 'curb', outward=False)
-                band(e_lane, e_verge, WZ, WZ, 'pavers')
+            band(med, e_gut, 0, 0, 'asphalt')
+            br = break_at(a[0], b[0], side)
+            if br is not None:
+                # an opening in the verge (a crossing, a side road, a flight's foot): round kerbed ends, a ramp between
+                break_segment(a, b, side, br)
             else:
-                # granite curb, then the raised boxwood verge with its own kerb
+                # the gutter, the granite curb, then the raised boxwood verge with its own kerb
+                if GUT > 0:
+                    band(e_gut, e_lane, 0, 0, GUTTER)
                 riser(e_lane, 0, VZ, 'curb', outward=False)
                 band(e_lane, e_curb, VZ, VZ, 'curb')
                 band(e_curb, e_verge - 0.2, VZ, VZ, LAWN)
@@ -285,12 +410,42 @@ def build():
         if not blank(s, 2) and not blank(s + 3, 2):
             strip_(s, s + 3.0, 0.0, 0.15, 'paint_white')
         s += 8.0
+
+    def ribbon(pts, w, mat, side):
+        # a painted line along [(s, offset, dz)], w wide (the offset unsigned, on this side)
+        W = [Vector(at_so(s_, side * o_, dz_)) for s_, o_, dz_ in pts]
+        for p, q in zip(W[:-1], W[1:]):
+            d = q - p
+            d.z = 0.0
+            if d.length < 1e-6:
+                continue
+            n = Vector((-d.y, d.x, 0.0)) * (w / 2 / d.length)
+            marks.face([tuple(p - n), tuple(q - n), tuple(q + n), tuple(p + n)], mat)
+
+    def surf(o):
+        # the height over the road of what lies at offset o in an opening (asphalt and gutter, then the ramp)
+        return 0.0 if o <= e_lane else ramp(o)
+
+    # the yellow edge lines: solid along both kerbs (stopping before a crossing's zebra and the bump), straight on past
+    # the openings people walk through (the roadview); at a side road's gap it follows the kerb round the verge's end
+    # and in, to the sidewalk's edge (2008 roadview 2381296, s 344 m)
     for side in (-1, 1):
-        s = 4.0
-        while s < L - 4:
-            if not blank(s, 1.5) and not in_gap(s, side):
-                strip_(s, s + 2.0, side * (e_lane - 0.35), 0.15, 'paint_yellow')
-            s += 2.0
+        cutl = [(c - 4.5, c + 4.5) for c in crossings] + ([(bump - 4.0, bump + 4.0)] if bump is not None else []) \
+            + [(b0 - RV, b1 + RV) for b0, b1, turn in vbreaks[side] if turn]
+        runs = [(4.0, L - 2.0)]
+        for c0, c1 in cutl:
+            runs = [r for u, v in runs for r in ((u, min(v, c0)), (max(u, c1), v)) if r[1] - r[0] > 0.05]
+        for u, v in runs:
+            ss_ = [u] + [2.0 * k for k in range(int(u // 2) + 1, int(math.ceil(v / 2)))] + [v]
+            ribbon([(s_, e_yel, 0.012) for s_ in ss_], YW, 'paint_yellow', side)
+        ry = VC - e_yel
+        for b0, b1, turn in vbreaks[side]:
+            if not turn:
+                continue
+            for sc, sg in ((b0 - RV, 1), (b1 + RV, -1)):
+                arc = [(sc + sg * ry * math.sin(f), VC - ry * math.cos(f)) for f in np.linspace(0, math.pi / 2, 10)]
+                arc += [(sc + sg * ry, VC + (e_verge - VC) * t) for t in (0.5, 1.0)]
+                ribbon([(s_, o_, surf(o_) + 0.012) for s_, o_ in arc], YW, 'paint_yellow', side)
 
     def quad_at(f, o0, o1, t0, t1, mat):
         s, p, t, n, h = f
@@ -309,7 +464,7 @@ def build():
             o += 1.0
         for side in (-1, 1):
             fb = at(c - side * 4.5)
-            o0, o1 = (0.0, e_lane) if side > 0 else (-e_lane, 0.0)
+            o0, o1 = (0.0, e_gut) if side > 0 else (-e_gut, 0.0)
             quad_at(fb, o0, o1, -0.2, 0.2, 'paint_white')
     def hump(f, o0, o1, mat, half=0.9, flat=0.5, rise=0.09):
         # a real raised bump: flat top with sloping sides (a 9 cm rise over 1.8 m), stripes painted on it

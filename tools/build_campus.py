@@ -208,8 +208,10 @@ bline = LineString(bys)
 # a two-lane carriageway (white dashed centre line, yellow edge lines) with no median, a raised verge of
 # clipped round boxwood on each side, a paver sidewalk, and an outer planting strip carrying the ginkgo row and a low
 # clipped hedge.  Widths measured in the photo at 100 m and 185 m from the gate: 6.6 m between the yellow edge lines
-# (OSM's modern road is wider), the verges' outer edge 5 m out, the sidewalk to ~9.5 m.
-ROAD = dict(median=0.0, lane=3.3, curb=0.25, verge=1.8, walk=4.6, strip=2.2)
+# (OSM's modern road is wider), the verges' outer edge 5 m out, the sidewalk to ~9.5 m.  The lane runs to the kerb's
+# face; its last 0.3 m is a concrete gutter (`gutter`, blender/road.py: the 2008 / 2010 roadview, reference/고증.md 2.3)
+# with the yellow edge line on the asphalt just inside it.
+ROAD = dict(median=0.0, lane=3.3, curb=0.25, verge=1.8, walk=4.6, strip=2.2, gutter=0.3)
 E_CURB = ROAD['median'] + ROAD['lane'] + ROAD['curb']       # carriageway edge (curb top)
 E_VERGE = E_CURB + ROAD['verge']                             # inner edge of the sidewalk
 E_WALK = E_VERGE + ROAD['walk']                              # outer edge of the sidewalk
@@ -2426,6 +2428,18 @@ def in_gap(s, side, pad=0.0, outer=False, verge=False):
     return any(sd == side and abs(s - g) < hw + pad for g, sd, hw in GAPS)
 
 
+# 화단 띠가 끊기는 곳 (reference/고증.md 2.3): besides the crossings and the side-road gaps, the openings in the verge
+# that the 2008 and the 2010 roadview both show, [side, s0, s1]; blender/road.py gives every opening round kerbed ends
+# and a ramp down to the carriageway (campus.json baekyangro breaks).  대강당 계단 발치: the flight's foot at s 498 -
+# 500 m (4.5), the roadview's opening with its round south end just short of it.  Only the verge's shrubs make way
+# (after their random draw, so the planting elsewhere keeps its layout)
+VERGE_BREAKS = [[-1, 494.0, 500.0]]
+
+
+def in_break(s, side, pad=0.0):
+    return any(sd == side and b0 - pad < s < b1 + pad for sd, b0, b1 in VERGE_BREAKS)
+
+
 def in_gap_old(s, side, pad=0.0):
     # the gaps before the side-road mouth (a 10 m opening in the verge only); used to keep the random draws
     if any(abs(s - c) < 3.0 + pad for c in CROSS):
@@ -2461,7 +2475,7 @@ for side in (-1, 1):
         if not in_gap_old(s, side, 0.8):
             x, y, _ = along_raw(s, side * (E_CURB + ROAD['verge'] * 0.5))
             sc_ = round(rng.uniform(0.95, 1.1), 2)
-            if not in_gap(s, side, 0.8, verge=True):
+            if not in_gap(s, side, 0.8, verge=True) and not in_break(s, side, 0.8):
                 if k_ % 2 == 0:
                     shrubs.append(['juniper_tiers', round(x, 2), round(y, 2), sc_, round((k_ * 2.39996) % 6.2832, 3)])
                 else:
@@ -4010,6 +4024,22 @@ out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
 out['baekyangro']['booth'] = BOOTH
 # 대강당 앞 둑: blender/road.py leaves the planting strip out where the wall stands, blender/landmarks.py aud_bank builds it
 out['baekyangro']['walls'] = [[AUD_BANK['side'], AUD_BANK['s0'], AUD_BANK['s1']]]
+out['baekyangro']['breaks'] = VERGE_BREAKS          # (the verge's openings besides crossings and gaps, above)
+# yellow-and-black bollards on the ramps of the openings, where the 2008 and the 2010 roadview both have them
+# (side, s; 1997 unknown): 백주년기념관 앞 건널목 (the one south of the grate), 학생회관 앞 (a row across the forecourt)
+_bsm = [np.array(p_, float) for p_ in bys]
+for _ in range(3):                                   # (the road mesh's own frame, Chaikin x3 as blender/road.py)
+    _q = [_bsm[0]]
+    for a_, b_ in zip(_bsm[:-1], _bsm[1:]):
+        _q += [a_ + (b_ - a_) * 0.25, a_ + (b_ - a_) * 0.75]
+    _bsm = _q + [_bsm[-1]]
+_bsm = LineString(_bsm)
+for _sd, _s in ((-1, 234.5), (-1, 375.5), (-1, 377.7), (-1, 379.9)):
+    _p, _p0, _p1 = _bsm.interpolate(_s), _bsm.interpolate(_s - 2), _bsm.interpolate(_s + 2)
+    _tx, _ty = _p1.x - _p0.x, _p1.y - _p0.y
+    _n = math.hypot(_tx, _ty)
+    _o = _sd * (ROAD['median'] + ROAD['lane'] + 0.4)
+    P('bollard', _p.x - _ty / _n * _o, _p.y + _tx / _n * _o, 0.0)
 out['aud_bank'] = {k: v for k, v in AUD_BANK.items()}
 out['pave'] = PAVE                            # paving kinds in ground_dry.png's G and B (web/src/terrain.js)
 
@@ -4088,14 +4118,17 @@ def decal_spots():
             continue
         x, y, h = fr(s, (1 if k % 2 else -1) * (e_lane * 0.5 + rnd.uniform(-0.3, 0.3)))
         add('manhole', x, y, rnd.uniform(0, 2 * math.pi))
-    # gully grates against both kerbs every 30 m (none in a crossing, a side road's opening or the mouth by the gate)
+    # gully grates against both kerbs every 30 m (none in a crossing, a side road's opening, an opening in the verge or
+    # the mouth by the gate): in the concrete gutter, filling its 0.3 m against the kerb (2008 / 2010 roadview, the
+    # grates 0.28 m across; the decal's 1.0 x 0.42 m scaled to 0.7 x 0.29 m)
     for side, s0 in ((1, 14.0), (-1, 29.0)):
         for s in np.arange(s0, Ls - 8, 30.0):
             if near_cross(s, 5.5) or (side == MOUTH[0] and MOUTH[1] - 6 < s < MOUTH[2] + 5) \
-                    or any(sd == side and abs(s - g_) < hw + 1.5 for g_, sd, hw in GAPS):
+                    or any(sd == side and abs(s - g_) < hw + 1.5 for g_, sd, hw in GAPS) \
+                    or in_break(s, side, 1.5):
                 continue
-            x, y, h = fr(s, side * (e_lane - 0.21))
-            add('drain', x, y, h)
+            x, y, h = fr(s, side * (e_lane - ROAD['gutter'] / 2))
+            add('drain', x, y, h, 0.7)
     # the zebra stripes (road.py: centred on the 2 m frame nearest the crossing, 0.5 m wide, 4 m long, 1 m apart):
     # worn where the wheels run, 0.75 m either side of each lane's middle. Each stripe is a flat quad 12 mm over its
     # frame's height, so on the slope its uphill end sinks under the asphalt: only the part that shows (the scale is
