@@ -67,6 +67,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `birdseye.js` | 캠퍼스 위로 날아가기 |
 | `characters.js` · `armpose.js` · `life.js` · `talk.js` | 사람 모델과 애니메이션, 팔 IK, 군중 · 차 · 현수막 · 초소, 말풍선 대사 |
 | `hoops.js` | 농구공 |
+| `birthday.js` | 활천대 앞 생일 축하(두 학생, 들어 올려 분수로) |
 | `water/fountain.js` | 활천대 분수 물(Ultra Water) |
 | `ui.js` · `labels.js` · `places.js` · `news.js` · `notes.js` | 화면 UI, 건물 이름표, 추억 카드, 새 소식 |
 

@@ -22,6 +22,7 @@ import { setupNews } from './news.js';
 import { WalkLabels } from './labels.js';
 import { Bubbles } from './talk.js';
 import { FountainWater } from './water/fountain.js';
+import { Birthday } from './birthday.js';
 import { Basketball } from './hoops.js';
 import { startPlaces } from './places.js';
 import { SunMap, bakeSunMap } from './bakedshadow.js';
@@ -442,6 +443,8 @@ async function main() {
     blobs.hero = () => player.actor;
     blobs.ball = ball;
   }
+  // 활천대 앞 생일 축하: two students on the flagstones; you and the friend throw the birthday one in (src/birthday.js)
+  const birthday = S.fountain ? new Birthday({ scene, cast, player, F: S.fountain, water: fountainWater, bubbles: crowd.bubbles, ui, shadows, blobs, mobile: MOBILE }) : null;
   // where to start walking (title card): 정문, the memory spots, then every named building at its front door
   const places = startPlaces(campus, entrances.entrances || [], (x, y, r) => colliders.resolve(x, y, r));
   const placeEl = $('#place-pick');
@@ -507,6 +510,7 @@ async function main() {
   const openNearby = () => {
     if (ui.memoryOpen) { ui.closeMemory(); return; }
     if (ball && !bird.active && ball.action()) { ui.setPrompt(ball.prompt()); return; }
+    if (birthday && !bird.active && birthday.action()) { ui.setPrompt(null); return; }
     const l = ui.nearestLandmark(player.x, player.y);
     if (l) { player.enabled = false; ui.openMemory(l); }
   };
@@ -671,6 +675,7 @@ async function main() {
     if (started) {
       crowd.movers(player.x, player.y, player.movers);
       traffic.movers(player.x, player.y, player.movers);
+      birthday?.movers(player.x, player.y, player.movers);
       player.update(dt);
     }
     let span = SH;
@@ -695,6 +700,7 @@ async function main() {
     grass.update(camera.position, tAcc);
     fall.update(camera);
     crowd.update(dt, tAcc, started ? player : NOBODY, focus);
+    birthday?.update(dt, tAcc, started && !bird.active, focus);
     crowd.bubbles.update(tAcc, started && !bird.active);
     birds.update(dt, tAcc, started ? player : NOBODY, crowd.people, focus);
     traffic.update(dt, started ? player : NOBODY, focus);
@@ -722,7 +728,7 @@ async function main() {
         lastPlace = tAcc;
         const l = ui.nearestLandmark(player.x, player.y);
         ui.setPlace(ui.placeName(player.x, player.y, onRoad(player.x, player.y)));
-        const bp = ball?.prompt();
+        const bp = ball?.prompt() || birthday?.prompt();
         ui.setPrompt(bp ? bp : l && !ui.memoryOpen ? `${l.name} · ${MOBILE ? '눌러서 ' : ''}그때의 추억 보기` : null);
       }
       if (MOBILE) ui.clearWalker(player.screenBox(camera));     // the prompt button off the walker (phones)
@@ -766,7 +772,7 @@ async function main() {
     },
   };
   window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, cast, traffic, bird, toggleBird, shadows, fountainWater,
-    startWalk, enterBird, leaveBird, record, ball, post, grass, sunMap, blobs, curbs, verge,
+    startWalk, enterBird, leaveBird, record, ball, birthday, post, grass, sunMap, blobs, curbs, verge,
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
     // (the kits whole for it: it draws them from above, tile by tile)
     bakeSunMap: async () => {

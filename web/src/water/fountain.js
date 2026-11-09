@@ -374,6 +374,28 @@ export class FountainWater {
     this.life[i] = 1.2 + Math.random() * 0.8;
   }
 
+  // something big falling in at (x, z) (three coordinates): a few strong rings from round the spot, staggered, that
+  // outlive the jet's small ones (birthday.js: a student thrown in on their birthday)
+  splash(x, z, amp = 0.05, size = 0.45) {
+    this.pending = this.pending || [];
+    for (let k = 0; k < 4; k++) {
+      const a = Math.random() * Math.PI * 2, r = k ? 0.25 + Math.random() * 0.35 : 0;
+      this.pending.push({ at: this.time + k * 0.12, x: x + Math.cos(a) * r, z: z + Math.sin(a) * r, amp: amp * (k ? 0.45 : 1), size: size * (k ? 0.6 : 1) });
+    }
+  }
+
+  _startPending() {
+    for (let k = this.pending.length - 1; k >= 0; k--) {
+      const p = this.pending[k];
+      if (this.time < p.at) continue;
+      const i = (this._big = ((this._big ?? -1) + 1) % IMPACTS);
+      this.impacts[i].set(p.x, p.z, 0, p.amp);
+      this.sizes[i] = p.size;
+      this.life[i] = 4.5;
+      this.pending.splice(k, 1);
+    }
+  }
+
   _step(dt) {
     const r = this.renderer, prev = r.getRenderTarget();
     this.sim.update(dt);
@@ -425,6 +447,7 @@ float sprH(float n) { return fract(sin(n * 127.1) * 43758.5453); }`)
     this.time += dt;
     if (this.sprayT) this.sprayT.value = this.time;
     this.material.uniforms.uTime.value = this.time;
+    if (this.pending?.length) this._startPending();
     const d = camera.position.distanceTo(this.sphere.center);
     if (d > SIM_DIST) return;
     this.m4.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);

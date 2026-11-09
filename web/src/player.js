@@ -135,6 +135,11 @@ export class Player {
     this.heading = 0;                 // facing: forward = (sin h, cos h) in three's XZ
     this.keys = new Set();
     this.enabled = false;
+    // a short scene that moves the walker itself (birthday.js): while true, update() leaves the walker, its clip and
+    // its mixer to the scene and only runs the camera
+    this.scripted = false;
+    // {pos, look, k?}: the camera eases to this view instead of following behind (k = 1 sets it at once)
+    this.camOverride = null;
     this.stick = new THREE.Vector2();
     this.movers = [];
     this.ray = new THREE.Raycaster();
@@ -266,6 +271,7 @@ export class Player {
   }
 
   update(dt) {
+    if (this.scripted) { this.speed = 0; this.vy = 0; this.updateCamera(dt); return; }
     const inp = this.enabled ? this.input() : { fwd: 0, turn: 0, run: false };
     if (inp.tilt) {
       const c = this.cam;
@@ -309,6 +315,16 @@ export class Player {
 
   updateCamera(dt, inp = { fwd: 0, turn: 0 }) {
     const c = this.cam, p = this.pos;
+    if (this.camOverride) {
+      const o = this.camOverride, k = o.k ?? 1 - Math.exp(-dt * 2.2);
+      c.pos.lerp(o.pos, k);
+      c.look.lerp(o.look, k);
+      c.up *= 1 - k;
+      c.ready = true;
+      this.camera.position.copy(c.pos);
+      this.camera.lookAt(c.look);
+      return;
+    }
     // walking: the camera swings back behind you and a look up comes back to level (a camera raised to look down stays)
     if (!c.drag && (inp.fwd || inp.turn)) {
       c.orbit = wrapAngle(c.orbit);
