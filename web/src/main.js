@@ -4,7 +4,8 @@ import '@fontsource/jua/400.css';
 import '@fontsource/do-hyeon/400.css';
 import * as THREE from 'three';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
-import { MaterialLibrary, SEASONS, texturesReady, updatePcss, uploadEarly } from './materials.js';
+import { MaterialLibrary, SEASONS, texturesReady, texCount, updatePcss, uploadEarly } from './materials.js';
+import { loading, fetchCounted } from './loading.js';
 import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materials.js';
 import { Heightfield, makeNearTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeTerrain } from './terrain.js';
 import { loadGLB, prefetch, glbMaterials, bindMaterials, mergeStatic, InstancedKit, KitCuller, Forest } from './world.js';
@@ -39,15 +40,15 @@ const canvas = $('#view');
 let season = safeGet('y97-season');
 if (!SEASONS[season]) season = 'summer';
 const NOBODY = { x: 1e9, y: 1e9 };       // the player before the walk starts: nobody in the way
+// The weights of main()'s steps together: a weight is the hundredths of a second the step before the call takes on a
+// desktop (window.__y97.loading.state.marks after a load says; the 90 or so models of trees, shrubs, props and people
+// are 1 each, and the first frames after the last call 190).
+const STEPS = 940;
 
 // ------------------------------------------------------------------ progress
-let loaded = 0, total = 1;
-const progress = (label) => {
-  loaded++;
-  $('#loadfill').style.width = `${Math.min(100, (loaded / total) * 100)}%`;
-  if (label) $('#loadtext').textContent = label;
-};
-const json = (u) => fetch(versioned(u)).then((r) => r.json());
+// the bar, its percentage and the cards beside it: loading.js. The data files' bytes are counted as they come down.
+const progress = (label, weight) => loading.step(label, weight);
+const json = (u) => fetchCounted(u).then((b) => JSON.parse(new TextDecoder().decode(b)));
 const MODELS = 'assets/models/';
 const CARS = ['sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'van'];
 const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'motorbike',
@@ -59,7 +60,7 @@ const SHRUB_FAR = 25;   // shrubs, hedges and flower beds farther than this: the
 const treeFile = (sp, v) => `veg/${sp}_${v}.glb`, shrubFile = (k) => `veg/${k}.glb`;
 const vegFiles = (campus) => [...new Set(campus.trees.map((t) => t[0]))].flatMap((sp) => [treeFile(sp, 0), treeFile(sp, 1)])
   .concat([...new Set(campus.shrubs.map((s) => s[0]))].flatMap((k) => [shrubFile(k), shrubFile(k + '_far')]));
-const bin = (u) => fetch(versioned(u)).then((r) => r.arrayBuffer()).then((b) => new Float32Array(b));
+const bin = (u) => fetchCounted(u).then((b) => new Float32Array(b));
 
 function seasonButtons(v) {
   document.querySelectorAll('[data-season]').forEach((b) => b.classList.toggle('on', b.dataset.season === v));
@@ -68,7 +69,8 @@ seasonButtons(season);
 setupNews();
 
 async function main() {
-  total = 40;
+  loading.expect(STEPS);
+  texCount.onChange = () => loading.textures(texCount.asked, texCount.done);
   // every model of the loading screen asked for at once (world.js prefetch), the vegetation once campus.json names it;
   // the halls first, the rest at low priority. The environment map comes down with the data.
   const halls = ['campus_buildings.glb', 'campus_landmarks.glb', 'baekyangro.glb'].map((f) => MODELS + f);
@@ -81,7 +83,7 @@ async function main() {
     bin('data/terrain_near.bin'), bin('data/terrain_far.bin'),
     json('data/entrances.json').catch(() => ({ entrances: [] })),
   ]);
-  progress('지형 데이터를 펼치는 중…');
+  progress('지형 데이터를 펼치는 중…', 60);
 
   // ---------------------------------------------------------------- renderer / scene
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -114,7 +116,7 @@ async function main() {
   hdr.mapping = THREE.EquirectangularReflectionMapping;
   scene.environment = pmrem.fromEquirectangular(hdr).texture;
   scene.environmentIntensity = 0.75;
-  progress('하늘을 칠하는 중…');
+  progress('하늘을 칠하는 중…', 5);
 
   // sun direction from the HDRI's brightest texel (three equirect convention)
   const phi = (skyMeta.sun_u - 0.5) * Math.PI * 2, el = (skyMeta.sun_v - 0.5) * Math.PI;
@@ -177,14 +179,14 @@ async function main() {
   kitCull.add([farForest]);
   scene.add(farForest);
   scene.add(makeSummitTower(hfFar));
-  progress('백양로를 까는 중…');
+  progress('백양로를 까는 중…', 20);
 
   // ---------------------------------------------------------------- GLB assets
-  const load = async (u, label) => { const g = await loadGLB(MODELS + u); progress(label); return g; };
+  const load = async (u, label, weight) => { const g = await loadGLB(MODELS + u); progress(label, weight); return g; };
   const [bld, lms, road] = await Promise.all([
-    load('campus_buildings.glb', '건물을 세우는 중…'),
-    load('campus_landmarks.glb', '언더우드관에 담쟁이를 심는 중…'),
-    load('baekyangro.glb', '백양로에 차선을 긋는 중…'),
+    load('campus_buildings.glb', '건물을 세우는 중…', 115),
+    load('campus_landmarks.glb', '언더우드관에 담쟁이를 심는 중…', 115),
+    load('baekyangro.glb', '백양로에 차선을 긋는 중…', 115),
   ]);
   bindMaterials(bld.scene, lib, false, true);
   bindMaterials(lms.scene, lib, false, true);
@@ -225,7 +227,7 @@ async function main() {
   scene.add(mergeStatic(lms.scene, { name: 'landmarks' }));
   // 활천 water: Ultra Water FFT ripples, caustics and the jet's rings (src/water/fountain.js)
   const fountainWater = campus.statues.fountain ? new FountainWater(renderer, scene, campus.statues.fountain, lib, sun, sunDir, { mobile: MOBILE }) : null;
-  progress('건물을 정리하는 중…');
+  progress('건물을 정리하는 중…', 70);
 
   const ray = new THREE.Raycaster();
   ray.firstHitOnly = true;
@@ -278,6 +280,7 @@ async function main() {
   for (const k in shrubCounts) kitCull.add(shrubKits[k].parts, { far: shrubKits[k + '_far'].parts, dist: SHRUB_FAR });
 
   // ---------------------------------------------------------------- props
+  progress('가로등과 벤치를 놓는 중…', 16);
   const colliders = new Colliders();
   for (const b of campus.buildings) colliders.addPolygon(b.style === 'lm:hanok' ? hanokWalls(b.footprint) : b.footprint);
   for (const poly of campus.colliders || []) colliders.addPolygon(poly);     // parts outside the OSM outlines (백주년기념관's front block)
@@ -384,6 +387,7 @@ async function main() {
   await castLoaded;
 
   // ---------------------------------------------------------------- life
+  progress('학생들이 등교하는 중…', 40);
   const R = campus.baekyangro;
   const center = new Path(R.pts, groundAt);
   const eWalk = R.median + R.lane + R.curb + (R.verge || 0);      // inner edge of the sidewalk
@@ -446,6 +450,7 @@ async function main() {
   const gates = new BoothGates(scene, P.barrier_arm, R.booth, lanes, groundAt, shadows);
 
   // ---------------------------------------------------------------- player / UI / post
+  progress('가방을 메는 중…', 36);
   let heroId = safeGet('y97-hero');
   if (!HEROES.includes(heroId)) heroId = HEROES[0];
   const hero = cast.make(heroId);
@@ -481,6 +486,7 @@ async function main() {
   }
   pickHero(heroId);
   // ---------------------------------------------------------------- baked sun shadows, blob shadows
+  progress('그림자를 드리우는 중…', 42);
   const FAR_SCENERY = /^(sky|terrain_far|far_city|far_forest|ansan_tower)$/;
   const farScenery = (o) => { for (let p = o; p; p = p.parent) if (FAR_SCENERY.test(p.name)) return true; return false; };
   sunMap.patchScene(scene, farScenery);
@@ -797,13 +803,16 @@ async function main() {
   // came, materials.js upload), the scene's shaders compiled for the target post.js draws the scene into (no tone
   // mapping there), in the background where the browser can (KHR_parallel_shader_compile). Held a desktop's first
   // frame for 3 s, after the start button had come on.
-  progress('햇살을 고르는 중…');
+  progress('햇살을 고르는 중…', 8);
   await texturesReady();
+  progress('필름을 끼우는 중…');
   const warm = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
   renderer.setRenderTarget(warm);
   const compiled = renderer.extensions.has('KHR_parallel_shader_compile') ? renderer.compileAsync(scene, camera) : renderer.compile(scene, camera);
   renderer.setRenderTarget(null);
   await compiled;
+  progress('첫 장면을 그리는 중…', 20);
+  loading.coast(MOBILE ? 6 : 2.5);
   warm.dispose();
   renderer.setAnimationLoop(frame);
   post.setSize(innerWidth, innerHeight);          // CSS pixels: EffectComposer applies the pixel ratio itself
@@ -844,13 +853,12 @@ async function main() {
     },
     kitCull };
   window.__y97.atmos = ATMOS;
+  window.__y97.loading = loading;
 
   // ready once the first frames are drawn (the shadow map's and the post passes' shaders are compiled there)
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   placeEl.disabled = false;
-  progress('준비 완료!');
-  $('#loadfill').style.width = '100%';
-  $('#loadtext').textContent = '1997년, 백양로에 도착했습니다.';
+  loading.done('1997년, 백양로에 도착했습니다.');
   $('#start').disabled = false;
   $('#tour-start').disabled = false;
 }
@@ -957,5 +965,5 @@ function makeBoard(l, groundAt) {
 
 main().catch((e) => {
   console.error(e);
-  $('#loadtext').textContent = '불러오기 실패: ' + e.message;
+  loading.fail('불러오기 실패: ' + e.message);
 });

@@ -17,6 +17,17 @@
       <p class="eyebrow">설레던 백양로, 첫 시작의 기억 <button class="newsbtn" type="button">새 소식<i hidden></i></button></p>
       <h1>신촌 캠퍼스 1997<br /><span>그 시절 우리 학교는</span></h1>
       <p class="lead">1997년 봄과 가을, 신촌 연세대학교 캠퍼스. 정문에서 백양로를 따라 걸으며 그때의 중앙도서관, 학생회관, 옛 노천극장과 언더우드관을 다시 만나 보세요.</p>
+      <div id="loadblock">
+        <div class="loadrow">
+          <div id="loadbar" role="progressbar" aria-label="불러오기" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="loadfill"></div></div>
+          <b id="loadpct">0%</b>
+        </div>
+        <p class="loadline"><span id="loadtext">캠퍼스를 불러오는 중…</span><span id="loadbytes"></span></p>
+        <button id="waitbox" type="button" title="눌러서 다음 이야기">
+          <span class="pager"><span class="lcd"><b>1997</b></span><i class="led"></i></span>
+          <span class="waittext"><small>기다리는 동안</small><span class="line">삐삐 암호와 그때의 캠퍼스 이야기</span></span>
+        </button>
+      </div>
       <div class="season-pick" role="radiogroup" aria-label="계절">
         <button data-season="spring">4월 · 벚꽃</button>
         <button data-season="summer" class="on">5월 · 신록</button>
@@ -26,8 +37,6 @@
       <div id="hero-pick" role="radiogroup" aria-label="캐릭터"></div>
       <label class="pick-label" for="place-pick">어디서 걸어 볼까요?</label>
       <select id="place-pick" disabled><option value="">정문</option></select>
-      <div id="loadbar"><div id="loadfill"></div></div>
-      <p id="loadtext">캠퍼스를 불러오는 중…</p>
       <button id="start" disabled>캠퍼스 산책하기</button>
       <button id="tour-start" class="ghost" disabled title="하늘에서 1997년 캠퍼스를 날아다니며 구경합니다">캠퍼스 위로 날아가기</button>
       <dl class="keys pc-only">

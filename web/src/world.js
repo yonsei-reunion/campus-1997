@@ -6,6 +6,7 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { mulberry, placeMatrix, countBy, versioned } from './util.js';
 import { Impostor, renderImpostors, nearTreeMaterial, LOD, FADE } from './impostors.js';
+import { fetchCounted } from './loading.js';
 
 const draco = new DRACOLoader().setDecoderPath('draco/').preload();     // (the decoder comes down with the first files)
 export const gltfLoader = new GLTFLoader().setDRACOLoader(draco);
@@ -15,7 +16,7 @@ export const gltfLoader = new GLTFLoader().setDRACOLoader(draco);
 const ahead = new Map();
 export function prefetch(urls, priority = 'auto') {
   for (const u of urls) {
-    if (!ahead.has(u)) ahead.set(u, fetch(versioned(u), { priority }).then((r) => (r.ok ? r.arrayBuffer() : null), () => null));
+    if (!ahead.has(u)) ahead.set(u, fetchCounted(u, { priority }).catch(() => null));      // (its bytes into the loading bar)
   }
 }
 // the material names in a prefetched GLB's JSON chunk: their textures can be asked for before it is parsed

@@ -71,6 +71,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `birthday.js` | 활천대 앞 생일 축하(두 학생, 들어 올려 분수로) |
 | `water/fountain.js` | 활천대 분수 물(Ultra Water) |
 | `ui.js` · `labels.js` · `places.js` · `news.js` · `notes.js` | 화면 UI, 건물 이름표, 추억 카드, 새 소식 |
+| `loading.js` | 첫 화면의 불러오기: 퍼센트 막대, 기다리는 동안의 삐삐 암호 · 캠퍼스 이야기 카드 |
 
 ## 구현 방식
 
@@ -147,6 +148,16 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - Ultra Water(`web/src/water/ultra-water/`)의 FFT 물결 시뮬레이션과 바닥 빛무늬를 분수 크기(64² 격자, 4.5 m ~ 19 cm 네 층)로 줄여 씁니다(`web/src/water/fountain.js`).
 - 바닥 · 벽은 같은 셰이더에서 굴절된 시선으로 레이트레이스합니다.
 - 분수가 화면에 보이고 70 m 안쪽일 때만 계산합니다.
+
+### 로딩 화면
+
+- `loading.js` 가 진행률을 두 가지로 잽니다.
+  - 받기: 모델 · 데이터는 `fetchCounted` 가 스트림을 읽으며 바이트를 세고(`world.js` `prefetch`, `main.js` `json` · `bin`), 텍스처는 `<img>` 로 받으므로 개수 × 평균 크기(`materials.js` `texCount`)로 셉니다. 데스크톱 기준 모델 · 데이터 25 MB, 텍스처 29 MB.
+  - 처리: `main.js` 의 `progress(label, weight)`. 가중치는 그 단계가 데스크톱에서 걸리는 시간(1 = 0.01초)이고 합이 `STEPS` 입니다.
+- 받기의 몫은 망 속도로 정합니다. 처음 2초(또는 받기가 그 전에 끝나면 전체)의 속도로 받는 시간을 어림해 `받는 시간 / (받는 시간 + WORK_S)` 로 둡니다. 캐시된 방문은 거의 처리, 느린 망은 거의 받기입니다.
+- 마지막 「첫 장면을 그리는 중」(약 2초)은 셰이더 · 그림자를 한꺼번에 올리느라 페이지가 멈춥니다. 막대는 `transform` 전환으로만 움직여(`loading.coast`) 그동안에도 흘러갑니다.
+- 모델을 더하거나 단계가 바뀌면 `window.__y97.loading.state.marks`(단계마다의 시각)로 가중치와 `STEPS`, `WORK_S` 를 다시 맞춥니다.
+- 대기 카드(`#waitbox`)의 삐삐 암호와 캠퍼스 이야기는 `loading.js` 의 `CODES` · `FACTS` 에 있습니다. 걷기를 시작할 수 있게 되면 카드는 접힙니다.
 
 ### 농구
 

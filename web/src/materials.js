@@ -13,6 +13,9 @@ const pending = new Set();
 // copies userData through JSON, which would serialise every waiting copy, image and all (a data URL each time)
 const waiting = new WeakMap();
 const loading = new WeakMap();         // texture -> its image coming (a tiled copy: its base's)
+// textures asked for and in so far: the loading bar's share of them (loading.js, set up by main.js)
+export const texCount = { asked: 0, done: 0, onChange: null };
+const texIn = () => { texCount.done++; texCount.onChange?.(); };
 // The renderer, once main.js has one: each texture goes up to the GPU as soon as its image is in, while the rest still
 // come down, not all at the first frame (there decoding the campus's hundred images held the page for 2 s)
 let gpu = null;
@@ -55,14 +58,15 @@ export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobile
     let done;
     const pr = new Promise((r) => (done = r));
     pending.add(pr);
+    texCount.asked++;
     const t = texLoader.load(versioned(url), (tx) => {
       if (MOBILE) { tx.image = shrinkImage(tx.image, mobileMax); tx.needsUpdate = true; }
       // clones share the image Source but keep their own version -> bump them once data exists
       for (const c of waiting.get(tx) || []) c.needsUpdate = true;
       waiting.delete(tx);
       upload(tx);
-      pending.delete(pr); done();
-    }, undefined, () => { pending.delete(pr); done(); });
+      pending.delete(pr); done(); texIn();
+    }, undefined, () => { pending.delete(pr); done(); texIn(); });
     waiting.set(t, []);
     loading.set(t, pr);
     t.flipY = flipY;
