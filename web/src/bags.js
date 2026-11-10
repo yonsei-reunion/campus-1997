@@ -232,6 +232,8 @@ class Kit {
     }
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     g.setAttribute('rough', new THREE.Float32BufferAttribute(ro, 1));
+    // (the people's material draws the faces from an atlas: a bag lies on its blank cell, characters.js BLANK_UV)
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2).fill(0.875), 2));
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
     this.geos.push(g);

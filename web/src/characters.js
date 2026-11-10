@@ -7,7 +7,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { loadGLB } from './world.js';
 import { pcss } from './materials.js';
 import { HERO_BAGS, baggedGeometry } from './bags.js';
-import { mulberry } from './util.js';
+import { mulberry, versioned } from './util.js';
 
 export const PEOPLE = {
   'man-tee': '흰 티 · 청바지',
@@ -29,18 +29,40 @@ export const STUDENTS = ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man
   'woman-tee', 'woman-pink', 'woman-dress', 'woman-dress-blue', 'woman-cardigan'];
 export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'woman-tee', 'woman-dress', 'woman-cardigan'];
 
-// Every part of a person (skin, clothes, hair, eyes ...) is a flat colour, so one vertex-coloured material serves
+// Every part of a person (skin, clothes, hair ...) is a flat colour, so one vertex-coloured material serves
 // everyone and each person is a single SkinnedMesh: one draw call (and one in the shadow pass) instead of 6-10.
 // The per-part roughness (hair is glossier) rides along as a vertex attribute.
+// The eyes, brows and mouths are a few lines drawn on one small atlas all the people share (blender/faces.py): the
+// front of a face lies on its own cell, everything else on the blank cell, and the picture multiplies the vertex
+// colour. So the lines keep to whatever skin a person of the crowd has, and fade into it with distance (mip maps).
+// The picture's alpha is how much of that shows: the rest is the white of the eye.
 const PERSON_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, envMapIntensity: 0.8 });
 PERSON_MAT.name = 'person';
+const FACE_BIAS = '-0.75', EYE_WHITE = '0.84, 0.83, 0.80';     // (faces.py WHITE)
+const BLANK_UV = 0.875;            // the middle of the atlas' blank cell (u and v): faces.py BLANK
+function loadFaces() {
+  return new Promise((res, rej) => new THREE.TextureLoader().load(versioned(PEOPLE_DIR + 'faces.png'), (t) => {
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.flipY = false;               // (glTF texture coordinates: v from the top)
+    t.anisotropy = 4;
+    PERSON_MAT.map = t;
+    PERSON_MAT.needsUpdate = true;
+    res();
+  }, undefined, rej));
+}
 PERSON_MAT.onBeforeCompile = (sh) => {
   sh.vertexShader = sh.vertexShader
     .replace('#include <common>', '#include <common>\nattribute float rough;\nvarying float vRough;')
     .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRough = rough;');
   sh.fragmentShader = sh.fragmentShader
     .replace('#include <common>', '#include <common>\nvarying float vRough;')
-    .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = vRough;');
+    .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = vRough;')
+    // the drawn face, laid on after the vertex colour (the white of the eye is white on any skin), read most of a
+    // mip level sharper than the screen asks for: thin strokes hold a little further away
+    .replace('#include <map_fragment>', '')
+    .replace('#include <color_fragment>', `#include <color_fragment>
+      vec4 drawn = texture2D( map, vMapUv, ${FACE_BIAS} );
+      diffuseColor.rgb = mix( vec3( ${EYE_WHITE} ), diffuseColor.rgb * drawn.rgb, drawn.a );`);
 };
 pcss(PERSON_MAT);
 
@@ -60,6 +82,10 @@ function mergeParts(root) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', src.attributes.position);
     g.setAttribute('normal', src.attributes.normal);
+    // (only the skin has texture coordinates, as normalized shorts: the other parts lie on the atlas' blank cell)
+    const uv = new Float32Array(n * 2).fill(BLANK_UV), su = src.attributes.uv;
+    if (su) for (let i = 0; i < n; i++) { uv[i * 2] = su.getX(i); uv[i * 2 + 1] = su.getY(i); }
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     // the parts may store joints / weights in different array types: unify them so they merge
     const si = src.attributes.skinIndex, sw = src.attributes.skinWeight;
     const idx = new Uint16Array(n * 4), wt = new Float32Array(n * 4);
@@ -96,16 +122,13 @@ function mergeParts(root) {
 // takes the model's cut in colours of their own (the 1997 wardrobe of blender/characters.py: stone-washed and dark
 // denim, khaki and grey slacks, white, navy, forest green, burgundy, mustard tops), a skin tone, now and then dark
 // brown hair, and a height and build of their own: heights spread about the model's (men 1.73 m, women 1.61 m) by
-// 3.2 %, about 5.5 cm (6 % at most), builds by a couple of per cent. The heroes, the drivers and the birthday
-// pair keep the models as they are.
+// 3.2 %, about 5.5 cm (6 % at most), builds by a couple of per cent. Every model has a pair of thin-rimmed glasses
+// (blender/characters.py): about three in ten of the crowd wear theirs, whatever they wear else (four of the eleven
+// students in the anthology's photographs of 1997-2002 do: reference/고증 4.9), most professors, in metal rims or,
+// one in five, dark ones. The heroes, the drivers and the birthday pair keep the models as they are.
 const JEANS = ['#46638f', '#2b3c5c', '#7f9cc0', '#8fa8c8'];
 const SKIN = ['#f0c9a4', '#e6b991', '#d9a77d', '#c99168'];
-// lips, the lines of the lids and the mouth, and brows follow the skin and the hair as in blender/characters.py
-// (head_1997): linear light scaled, sRGB mixed
-const LIP = { man: [0.80, 0.58, 0.56], woman: [0.84, 0.46, 0.47] }, LINE = [0.50, 0.36, 0.33];
-const SHADE = { man: [0.78, 0.70, 0.67], woman: [0.80, 0.71, 0.69] };
-const mixHex = (a, b, t) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t)
-  + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('');
+const RIMS = ['#77736c', '#2a2420'];       // thin metal, dark horn
 // material name -> the colours to draw from (the first is the model's own)
 const LOOKS = {
   'man-tee': { LightBrown: ['#f1efe8', '#f1efe8', '#d8dde3', '#e9dfa8', '#a9c3de', '#2f3a55', '#9a9a96'], LightBlue: [...JEANS, '#a8946a'] },
@@ -124,39 +147,61 @@ const LOOKS = {
   'woman-staff': { Black: ['#2f3644', '#3a3f47', '#4a4038', '#5b6470'] },
 };
 
-// the look of the n-th person of the crowd: { colors: {material: hex}, scale: [width, height] }. Its own random
-// stream (as bags.js crowdBag), so the crowd's paths and faces stay where they were.
+// the look of the n-th person of the crowd: { colors: {material: hex}, scale: [width, height], glasses }. Its own
+// random stream (as bags.js crowdBag), so the crowd's paths and faces stay where they were. The drawn lines of the
+// face need no colours here: they darken the skin they lie on (the brows stay the model's: dark, or a professor's grey).
 export function crowdLook(id, n) {
   const r = mulberry(n * 2654435761 + 977);
   const colors = {};
   const set = LOOKS[id] || {};
   for (const k in set) colors[k] = set[k][Math.floor(r() * set[k].length)];
-  const skin = SKIN[Math.floor(r() * SKIN.length)];
-  colors.Skin = skin;
-  const sex = id.startsWith('woman') ? 'woman' : 'man', c = new THREE.Color(skin);
-  const scaled = (k) => '#' + new THREE.Color().setRGB(c.r * k[0], c.g * k[1], c.b * k[2]).getHexString();
-  colors.Lip = scaled(LIP[sex]);
-  colors.Line = scaled(LINE);
-  colors.Shade = scaled(SHADE[sex]);
+  colors.Skin = SKIN[Math.floor(r() * SKIN.length)];
   const h = r();
   if (id !== 'man-professor' && id !== 'man-grey') {       // (grey hair, and the dyed brown of 1997, stay)
-    const hair = h < 0.74 ? '#141110' : h < 0.93 ? '#2b1f18' : '#4a3020';
-    colors.Hair = hair;
-    colors.Brow = mixHex(hair, skin, 0.20);
+    colors.Hair = h < 0.74 ? '#141110' : h < 0.93 ? '#2b1f18' : '#4a3020';
   }
   const tall = 1 + 0.032 * ((r() + r() + r() - 1.5) / 0.5);            // about normal, sd 3.2 %
   const build = 1 + 0.02 * (r() + r() - 1);
   const clamp = (v) => Math.min(1.065, Math.max(0.94, v));
-  return { colors, scale: [clamp(tall * build), clamp(tall)] };
+  const glasses = r() < (id === 'man-professor' ? 0.7 : 0.3);
+  colors.Glasses = RIMS[r() < 0.8 ? 0 : 1];
+  return { colors, scale: [clamp(tall * build), clamp(tall)], glasses };
 }
 
-// `geo` (a person's merged geometry, or that with a bag: the person's vertices come first) with the parts named in
-// `colors` in those colours: a geometry sharing every buffer but the colours
-function tinted(geo, ranges, colors) {
+// the triangles of `geo` without the glasses: an index of its own, kept with the index it was taken from
+const bareIndex = new WeakMap();
+function withoutGlasses(geo, ranges) {
+  const part = ranges?.find((p) => p.name === 'Glasses');
+  if (!part) return geo.index;
+  let idx = bareIndex.get(geo.index);
+  if (!idx) {
+    const a = geo.index.array, keep = [];
+    for (let i = 0; i < a.length; i += 3) if (a[i] < part.start || a[i] >= part.start + part.count) keep.push(a[i], a[i + 1], a[i + 2]);
+    idx = new THREE.BufferAttribute(new a.constructor(keep), 1);
+    bareIndex.set(geo.index, idx);
+  }
+  return idx;
+}
+
+// `geo` (a person's merged geometry, or that with a bag: the person's vertices come first) as one person wears it:
+// the parts named in `colors` in those colours, with the glasses or without. A geometry sharing every buffer but
+// the colours (and the index, without glasses); people who wear the model as it is share one.
+const worn = new WeakMap();        // geometry -> [without glasses, with]
+function dressed(geo, ranges, colors, glasses) {
   if (!ranges || !geo.attributes.color) return geo;
+  if (!colors) {
+    const made = worn.get(geo) || worn.set(geo, []).get(geo);
+    return made[+glasses] || (made[+glasses] = dressed(geo, ranges, {}, glasses));
+  }
   const g = new THREE.BufferGeometry();
   for (const k in geo.attributes) if (k !== 'color') g.setAttribute(k, geo.attributes[k]);
-  g.setIndex(geo.index);
+  g.setIndex(glasses ? geo.index : withoutGlasses(geo, ranges));
+  if (!Object.keys(colors).length) {
+    g.setAttribute('color', geo.attributes.color);
+    g.boundingSphere = geo.boundingSphere;
+    g.boundingBox = geo.boundingBox;
+    return g;
+  }
   const col = geo.attributes.color.clone(), c = new THREE.Color();
   for (const p of ranges) {
     if (!colors[p.name]) continue;
@@ -178,6 +223,7 @@ export class Cast {
 
   async load(ids, onEach) {
     const base = PEOPLE_DIR;
+    const drawn = loadFaces();
     await Promise.all(RIGS.map(async (r) => {
       const g = await loadGLB(base + r + '.glb');
       const u = g.scene.getObjectByName(r)?.userData || {};
@@ -186,22 +232,27 @@ export class Cast {
     }));
     await Promise.all(ids.map(async (id) => {
       const g = await loadGLB(base + id + '.glb');
-      let rig = 'rig-umc';
-      g.scene.traverse((o) => { if (o.userData && typeof o.userData.rig === 'string') rig = o.userData.rig; });
+      let rig = 'rig-umc', glasses = false;
+      g.scene.traverse((o) => {
+        if (o.userData && typeof o.userData.rig === 'string') { rig = o.userData.rig; glasses = !!o.userData.glasses; }
+      });
       const ranges = mergeParts(g.scene);
-      this.models[id] = { scene: g.scene, rig, ranges };
+      this.models[id] = { scene: g.scene, rig, ranges, glasses };
       onEach?.();
     }));
+    await drawn;
   }
 
   // bag: what the person carries (bags.js: merged into their one mesh), null for nothing; a hero has their own
-  // look: colours and size of their own (crowdLook), null for the model as it is
+  // look: colours, size and glasses of their own (crowdLook), null for the model as it is
   make(id, bag = HERO_BAGS[id] ?? null, look = null) {
     const src = this.models[id];
     const holder = new THREE.Group();
     const root = skeletonClone(src.scene);
     if (bag) root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = baggedGeometry(o, id, bag); });
-    if (look) root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = tinted(o.geometry, src.ranges, look.colors); });
+    root.traverse((o) => {
+      if (o.isSkinnedMesh) o.geometry = dressed(o.geometry, src.ranges, look?.colors, look ? look.glasses : src.glasses);
+    });
     const [wide, tall] = look?.scale || [1, 1];
     holder.scale.set(wide, tall, wide);
     // frustum culled by the posed bounds above (off-screen people cost nothing, in the shadow pass too)
