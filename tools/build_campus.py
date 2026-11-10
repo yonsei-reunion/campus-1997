@@ -4141,14 +4141,24 @@ for k_, c_ in APRON_LINES:
 # blender/props.py guard_booth / barrier_arm build it in a frame with the origin at the booth's centre, -Y up the
 # road, +X west; the arm pivots below are that file's BOOTH_ARMS (x, y, z, side).  The cars keep clear of its island
 # (web/src/main.js) and the arms swing up for them (web/src/life.js BoothGates).
-_bo_, _bd_ = photo_ray(1034.5, 906.5)
-_bz_ = 30.0
-for _ in range(12):
-    _bq_ = _bo_ + _bd_ * (_bz_ - _bo_[2]) / _bd_[2]
-    _bz_ = prof_h(s_at(_bq_[0], _bq_[1]))
-_bs_, _boff_ = s_off(_bq_[0], _bq_[1])
-BOOTH = dict(s=round(_bs_, 1), off=round(_boff_, 2), island=[-0.85, 0.85, -6.0, 1.6])
-print('guard booth s %.1f, %.2f m west' % (BOOTH['s'], BOOTH['off']))
+# Across the road it stands where the photo has it between its two yellow edge lines (their pixels on the foot's row,
+# x 961.6 and 1105.6): the photo's carriageway lies some 1.15 m east of the game's centre line there (reference/
+# 고증.md 2.2.1, the centre line kept), so the foot's own offset would put the island 1.2 m east, leaving the
+# northbound lane 1.3 m of asphalt (as it was before)
+def _photo_road_off(px, py):
+    o_, d_ = photo_ray(px, py)
+    z_ = 30.0
+    for _ in range(12):
+        q_ = o_ + d_ * (z_ - o_[2]) / d_[2]
+        z_ = prof_h(s_at(q_[0], q_[1]))
+    return s_off(q_[0], q_[1])
+
+
+_bs_, _boff_ = _photo_road_off(1034.5, 906.5)
+_bmid_ = (_photo_road_off(961.6, 906.0)[1] + _photo_road_off(1105.6, 906.0)[1]) / 2
+BOOTH = dict(s=round(_bs_, 1), off=round(_boff_ - _bmid_, 2), island=[-0.85, 0.85, -6.0, 1.6])
+print('guard booth s %.1f, %.2f m west (the photo\'s carriageway: its middle %.2f m west of the centre line)'
+      % (BOOTH['s'], BOOTH['off'], _bmid_))
 _bx, _by, _ba = along_raw(BOOTH['s'], BOOTH['off'])
 props.append(['guard_booth', round(_bx, 2), round(_by, 2), round(_ba, 3)])
 BOOTH['arms'] = []

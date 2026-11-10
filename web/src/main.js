@@ -426,8 +426,9 @@ async function main() {
   crowd.season = season;
   crowd.bubbles = new Bubbles($('#bubbles'), camera);
   const lanes = [];
-  // one lane each way on the 1997 two-lane road (right-hand traffic); both bend out round the guard booth's island
-  // on the centre line (tools/build_campus.py BOOTH, which stands a little east of it)
+  // one lane each way on the 1997 two-lane road (right-hand traffic); both bend out 0.5 m round the guard booth's
+  // island on the centre line (tools/build_campus.py BOOTH: 1.7 m across), the mirrors 0.3 - 0.4 m clear of its kerb
+  // and inside the carriageway's
   const bo = R.booth;
   const roundBooth = (s) => {
     if (!bo) return 0;
@@ -437,8 +438,8 @@ async function main() {
     return u * u * (3 - 2 * u);
   };
   for (const off of [R.median + R.lane * 0.5]) {
-    lanes.push(new Path(center.offset((s) => -(off + 0.7 * roundBooth(s))), groundAt));            // northbound
-    lanes.push(new Path(center.offset((s) => off + 0.3 * roundBooth(s)).reverse(), groundAt));    // southbound
+    lanes.push(new Path(center.offset((s) => -(off + 0.5 * roundBooth(s))), groundAt));            // northbound
+    lanes.push(new Path(center.offset((s) => off + 0.5 * roundBooth(s)).reverse(), groundAt));    // southbound
   }
   const traffic = new Traffic(scene, { sedan: P.car_sedan, sedan2: P.car_sedan2, hatch: P.car_hatch, tico: P.car_tico, taxi: P.car_taxi, van: P.car_van }, lanes, 14, cast, STUDENTS.concat(['man-professor', 'man-staff', 'woman-staff']));
   for (const c of traffic.cars) shadows.addDynamic(c.root, c.len / 2 + 1.5);
