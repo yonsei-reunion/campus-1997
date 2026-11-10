@@ -72,63 +72,68 @@ def woman(hair, body, legs, feet, colors=None, note='', **more):
 
 # 1997 campus fashion: baggy stone-washed jeans and wide trousers, big tees and sweatshirts, checked shirts, navy hoodies,
 # the Yonsei-blue cheer jacket, long floral or beige dresses, cardigans, a professor in a grey suit, staff in work vests.
-# Hair (the first name, see HAIR_STYLES): men short, parted in the middle (5:5) or at the side, or a sports cut; women
-# long and straight, a bob, or tied back; black to dark brown.  Optional: flip (the parting on the other side),
-# face (jaw, eye, brow, mouth: scales of the shared face's features; brow_tilt, smile; glasses).
+# Hair (the first name, see HAIR_STYLES) and faces as students wore and had them about 1997 (reference/고증 4.9): most
+# of them plain, a few the cuts of the year.  Optional: flip (the parting on the other side), bridge (bleached locks:
+# [(azimuth, half width)]), face: lid (mono 홑꺼풀, inner 속쌍꺼풀, double 쌍꺼풀), slant (the outer corner of the eye
+# higher), jaw, chin, eye, brow, mouth (scales of the shared face's features), brow_tilt, smile, glasses.
 PEOPLE = {
-    'man-tee': man('part-centre', 'Casual_2', 'Casual_2', 'Casual_2',
+    'man-tee': man('curtain', 'Casual_2', 'Casual_2', 'Casual_2',
                    {'LightBrown': '#f1efe8', 'LightBlue': JEANS['stone'], 'Red_Dark': '#e8e6e0', 'feet:White': '#c9c6be',
                     'Skin': SKIN['b'], 'Hair': HAIR['black']},
-                   'big white tee, baggy stone-washed jeans, white sneakers; hair parted in the middle'),
-    'man-check': man('part-side', 'Casual_2', 'Casual_2', 'Casual_2',
+                   'big white tee, baggy stone-washed jeans, white sneakers; long fringe parted in the middle',
+                   face=dict(lid='inner', slant=.08, jaw=.97, brow=1.05)),
+    'man-check': man('short', 'Casual_2', 'Casual_2', 'Casual_2',
                      {'LightBrown': '#8a3a33', 'LightBlue': JEANS['dark'], 'Red_Dark': '#3a2c24', 'Skin': SKIN['c'],
-                      'Hair': HAIR['black']}, 'burgundy shirt, dark jeans, brown shoes; side parting',
-                     face=dict(jaw=1.04, brow=1.15, eye=.96)),
+                      'Hair': HAIR['black'], 'Glasses': '#77736c'}, 'burgundy shirt, dark jeans, brown shoes; neat short hair, metal glasses',
+                     face=dict(lid='mono', slant=.10, jaw=1.04, brow=1.1, eye=.96, glasses=True)),
     'man-hoodie': man('sports', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
                       {'Purple': '#23345e', 'LightBlue': '#a8946a', 'feet:White': '#e8e6e0', 'Skin': SKIN['a'],
                        'Hair': HAIR['dark']}, 'oversized navy hoodie, wide khaki cargo trousers; sports cut',
-                      face=dict(jaw=.95, eye=1.05, brow=.9)),
-    'man-cheer': man('short', 'Casual_Hoodie', 'Casual_2', 'Casual_2',
+                      face=dict(lid='mono', slant=.12, jaw=.97, eye=.98, brow=.95)),
+    'man-cheer': man('up', 'Casual_Hoodie', 'Casual_2', 'Casual_2',
                      {'Purple': '#1d3fa0', 'LightBlue': JEANS['mid'], 'Red_Dark': '#f2f2ee', 'Skin': SKIN['c'],
-                      'Hair': HAIR['black']}, 'Yonsei-blue cheer jacket, jeans; short hair, fringe down',
-                     face=dict(jaw=1.02, mouth=1.08, smile=.002)),
-    'man-grey': man('part-centre', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
+                      'Hair': HAIR['black']}, 'Yonsei-blue cheer jacket, jeans; short hair brushed up with mousse',
+                     face=dict(lid='double', slant=.05, jaw=1.02, eye=1.03, brow=1.12, mouth=1.06, smile=.002)),
+    'man-grey': man('curtain', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
                     {'Purple': '#b3262e', 'LightBlue': JEANS['light'], 'feet:Purple': '#2a2a2e', 'Skin': SKIN['b'],
-                     'Hair': HAIR['dyed'], 'Brow': HAIR['dark']}, 'big red sweatshirt, wide light jeans, brown-dyed hair (1997!)',
-                    face=dict(jaw=.96, eye=1.06, brow=.95)),
+                     'Hair': HAIR['dyed'], 'Bridge': '#ad7c44', 'Brow': HAIR['dark']},
+                    'big red sweatshirt, wide light jeans, brown-dyed hair with bleached locks (1997!)',
+                    bridge=[(-17, 5), (24, 5), (58, 5)], face=dict(lid='double', slant=.06, jaw=.96, eye=1.04, brow=.95)),
     'man-blazer': man('part-side', 'Suit', 'Casual_2', 'Suit',
                       {'Suit': '#5e4634', 'White': '#dfe7ee', 'Tie': '#dfe7ee', 'LightBlue': JEANS['dark'], 'Black': '#3a2a1f',
                        'Skin': SKIN['a'], 'Hair': HAIR['black']},
                       'brown blazer, light blue shirt, jeans (콤비); side parting', flip=True,
-                      face=dict(jaw=.94, brow_tilt=-.05)),
+                      face=dict(lid='inner', slant=.07, jaw=.95, brow_tilt=-.03)),
     'man-professor': man('thin', 'Suit', 'Suit', 'Suit',
                          {'Suit': '#55595f', 'Tie': '#2f4a7a', 'White': '#eceae4', 'Skin': SKIN['c'], 'Hair': HAIR['grey'],
-                          'Brow': '#5a5652'}, 'grey suit, blue tie, thinning grey hair',
-                         face=dict(jaw=1.05, eye=.9, brow=1.1, glasses=True)),
+                          'Brow': '#5a5652'}, 'grey suit, blue tie, thinning grey hair, glasses',
+                         face=dict(lid='inner', slant=.04, jaw=1.05, eye=.93, brow=1.05, glasses=True)),
     'man-staff': man('crop', 'Worker', 'Suit', 'Worker',
                      {'Worker_Vest': '#3d4f6a', 'Worker_Yellow': '#c9c3b2', 'LightBrown': '#c9c3b2', 'Suit': '#3a3f47',
                       'Skin': SKIN['d'], 'Hair': HAIR['dark']}, 'campus staff: navy vest, grey trousers',
-                     face=dict(jaw=1.07, eye=.94, brow=1.2)),
+                     face=dict(lid='mono', slant=.08, jaw=1.07, eye=.95, brow=1.15)),
     'woman-tee': woman('long', 'Casual', 'Casual', 'Casual',
                        {'White': '#f4f1e8', 'Orange': JEANS['stone'], 'Grey': '#e8e6e0', 'Skin': SKIN['a'], 'Hair': HAIR['black']},
-                       'loose white tee, wide stone-washed jeans, long straight black hair'),
-    'woman-pink': woman('bob', 'Casual', 'Casual', 'Casual',
+                       'loose white tee, wide stone-washed jeans, long straight black hair',
+                       face=dict(lid='double', slant=.08, eye=1.02)),
+    'woman-pink': woman('tuck', 'Casual', 'Casual', 'Casual',
                         {'White': '#e7a7b6', 'Orange': '#cdb994', 'Grey': '#f0eee8', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
-                        'pink knit, wide beige trousers; bob', face=dict(jaw=1.05, eye=1.05)),
+                        'pink knit, wide beige trousers; short bob, one side behind the ear',
+                        face=dict(lid='inner', slant=.06, jaw=1.04)),
     'woman-dress': woman('tied', 'Formal', 'Formal', 'Formal',
                          {'LimeGreen': '#e3d7bd', 'Gold': '#a8835a', 'feet:Red': '#4a3426', 'Skin': SKIN['a'], 'Hair': HAIR['black']},
-                         'long beige dress, black hair tied back', face=dict(jaw=.96, smile=.0018)),
+                         'long beige dress, black hair tied back', face=dict(lid='mono', slant=.12, jaw=.96, smile=.0018)),
     'woman-dress-blue': woman('shoulder', 'Formal', 'Formal', 'Formal',
                               {'LimeGreen': '#4f6f9c', 'Gold': '#e9e2d0', 'feet:Red': '#1f1f24', 'Skin': SKIN['b'],
-                               'Hair': HAIR['brown'], 'Brow': HAIR['dark']}, 'long navy-blue dress, brown hair to the shoulders',
-                              face=dict(eye=.96, jaw=.98, brow=1.1)),
-    'woman-cardigan': woman('bob-side', 'Suit', 'Casual', 'Casual',
+                               'Hair': HAIR['brown'], 'Brow': HAIR['dark']}, 'long navy-blue dress, brown-dyed hair to the shoulders',
+                              face=dict(lid='double', slant=.10, eye=.98, jaw=.98)),
+    'woman-cardigan': woman('pixie', 'Suit', 'Casual', 'Casual',
                             {'Black': '#6f7f5a', 'White': '#f2efe6', 'Orange': '#2b2f3a', 'Grey': '#2a2a2e', 'Skin': SKIN['c'],
-                             'Hair': HAIR['black']}, 'olive cardigan over white blouse, bob parted at the side',
-                            face=dict(jaw=1.04, brow=1.15)),
+                             'Hair': HAIR['black'], 'Glasses': '#77736c'}, 'olive cardigan over white blouse, short cut, metal glasses',
+                            face=dict(lid='inner', slant=.07, jaw=1.03, glasses=(1.26, .92))),
     'woman-staff': woman('perm', 'Suit', 'Suit', 'Suit',
                          {'Black': '#2f3644', 'White': '#eef0f2', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
-                         'office staff: navy suit, short permed hair', face=dict(jaw=1.06, eye=.92)),
+                         'office staff: navy suit, short permed hair', face=dict(lid='inner', slant=.05, jaw=1.06, eye=.95)),
 }
 RIGS = {'rig-umc': 'umc', 'rig-women': 'women'}
 PART_MESH = {'head': '_Head', 'body': '_Body', 'legs': '_Legs', 'feet': '_Feet'}
@@ -502,14 +507,14 @@ def loosen(ob, part, outfit):
 # The packs' heads are the same face under clumped anime hair (a pony tail and a beard among the men), with block
 # eyes under scowling brows and no mouth.  Each person takes the pack's one head with a whole skull (men: Worker,
 # women: Adventurer), which is softened (one level of subdivision), loses the doll's eyes and brows, and gets
-#   - eyes (white, iris, upper lid), brows and lips as thin patches lying on the face,
+#   - eyes (white, iris, pupil, the lids' lines), brows and lips as thin patches lying on the face (face_patches),
 #   - hair as a shell around the skull: columns run from the crown down to a hem whose height is given by azimuth
 #     (HAIR_STYLES), lie `vol` off the scalp and hang free below it; the hanging part has an inner side.
 # Lengths are in the source's units (men x 0.93, women x 0.90 in the game), heights `dz` from the brow line.
 # Everything is skinned to the bone Head (long hair shares its ends with Neck), so bags.js, which reads the build
 # off the vertices of the other bones, and the clips see the same body as before.
-# The materials are named Skin, Hair, Brow, Lip, Eye, EyeWhite (Band, Glasses): web/src/characters.js crowdLook
-# recolours the first four by these names.
+# The materials are named Skin, Hair, Brow, Lip, Line, Shade, Eye, Iris, EyeWhite (Band, Glasses, Bridge):
+# web/src/characters.js crowdLook recolours the first six by these names.
 HAIR_COLS = 40
 NOSE_LENGTH = 0.042        # the packs' noses run from the brow down: this long at most
 HAIR_RN = 0.115            # nominal radius of the head of hair: arc length on the scalp = HAIR_RN x angle from the crown
@@ -521,7 +526,7 @@ HAIR_STYLES = {
     #      person's left; unsigned lists are mirrored).  vol: [(azimuth, m)] off the scalp, `top` at the crown,
     #      `edge` at the hem.  part: (azimuth, depth, width in degrees).  fall: how fast free hair may close in on
     #      the neck (m per m).  curl: the hem turns in.  sheet: thickness of hanging hair.  rough, ragged: how uneven
-    #      the volume and the hem are from lock to lock.
+    #      the volume and the hem are from lock to lock.  The cuts and what they were taken from: reference/고증 4.9.
     'sports': dict(tip=[(0, .064), (30, .062), (47, .050)] + _MEN_SIDE + _MEN_BACK,
                    vol=[(0, .011), (55, .006), (180, .006)], top=.016, edge=.003, rows=6, rough=.1),
     'crop': dict(tip=[(0, .062), (30, .060), (47, .048)] + _MEN_SIDE + _MEN_BACK,
@@ -531,15 +536,18 @@ HAIR_STYLES = {
                        (59, -.012), (68, -.020), (79, .002), (100, .002), (112, -.050), (135, -.094), (180, -.104)],
                   vol=[(-180, .011), (-60, .008), (-20, .014), (20, .012), (60, .008), (180, .011)], top=.026, edge=.004,
                   rows=7, rough=.25, ragged=.005),
+    'up': dict(tip=[(0, .064), (30, .062), (47, .050)] + _MEN_SIDE + _MEN_BACK,
+               vol=[(-180, .010), (-60, .008), (-25, .019), (8, .025), (34, .017), (60, .008), (180, .010)], top=.028,
+               edge=.004, rows=7, rough=.2),
+    'curtain': dict(tip=[(0, .058), (9, .034), (20, .006), (32, -.008), (44, -.016), (56, -.022), (66, -.026), (78, -.012),
+                         (100, -.010), (112, -.058), (135, -.102), (180, -.112)],
+                    vol=[(0, .013), (30, .017), (60, .014), (180, .014)], top=.027, edge=.006, part=(0, .010, 7), rows=8,
+                    rough=.3, ragged=.005),
     'part-side': dict(tip=[(-180, -.104), (-135, -.094), (-112, -.050), (-100, .002), (-79, .002), (-68, -.020),
                            (-59, -.012), (-47, .024), (-22, .028), (0, .038), (20, .052), (34, .064), (47, .050),
                            (59, -.012), (68, -.020), (79, .002), (100, .002), (112, -.050), (135, -.094), (180, -.104)],
                       vol=[(-180, .011), (-90, .009), (-40, .015), (0, .015), (25, .013), (45, .008), (90, .008),
                            (180, .011)], top=.026, edge=.004, part=(34, .009, 8), rows=7, rough=.15, ragged=.003),
-    'part-centre': dict(tip=[(0, .062), (10, .040), (22, .014), (35, .000), (48, -.008), (59, -.016), (68, -.022),
-                             (79, -.004), (100, -.004), (112, -.054), (135, -.098), (180, -.108)],
-                        vol=[(0, .012), (30, .015), (60, .012), (180, .012)], top=.025, edge=.005, part=(0, .009, 7),
-                        rows=7, rough=.15, ragged=.003),
     'thin': dict(tip=[(-180, -.100), (-135, -.090), (-112, -.048), (-100, .002), (-79, .002), (-68, -.018),
                       (-59, -.010), (-47, .050), (-22, .056), (0, .064), (20, .072), (34, .078), (47, .068),
                       (59, -.010), (68, -.018), (79, .002), (100, .002), (112, -.048), (135, -.090), (180, -.100)],
@@ -554,14 +562,17 @@ HAIR_STYLES = {
                           (180, -.205)],
                      vol=[(-180, .017), (-90, .016), (-30, .014), (28, .012), (60, .015), (180, .017)], top=.019, edge=.011,
                      part=(28, .007, 7), fall=.10, sheet=.015, curl=.010, rows=10, rough=.08, ragged=.0015, ears=False),
-    'bob': dict(tip=[(0, .062), (14, .046), (28, .022), (40, -.020), (50, -.095), (58, -.150), (90, -.150), (180, -.152)],
-                vol=[(0, .012), (45, .016), (90, .018), (180, .019)], top=.020, edge=.012, part=(0, .007, 7),
-                fall=.06, sheet=.016, curl=.014, rows=9, rough=.08, ragged=.0015, ears=False),
-    'bob-side': dict(tip=[(-180, -.146), (-90, -.146), (-60, -.146), (-52, -.10), (-42, -.02), (-22, .020), (0, .036),
-                          (15, .052), (28, .062), (38, .0), (49, -.10), (58, -.146), (90, -.146), (180, -.146)],
-                     vol=[(-180, .018), (-90, .017), (-30, .015), (28, .012), (60, .016), (180, .018)], top=.020,
-                     edge=.012, part=(28, .007, 7), fall=.06, sheet=.016, curl=.014, rows=9, rough=.08, ragged=.0015,
-                     ears=False),
+    'tuck': dict(tip=[(-180, -.146), (-90, -.146), (-60, -.146), (-52, -.10), (-42, -.02), (-22, .020), (0, .036),
+                      (15, .052), (28, .062), (40, .040), (52, .022), (62, .008), (79, .006), (97, .004), (106, -.09),
+                      (116, -.146), (180, -.146)],
+                 vol=[(-180, .018), (-90, .017), (-30, .015), (28, .012), (55, .008), (97, .008), (114, .016), (180, .018)],
+                 top=.020, edge=.010, part=(28, .007, 7), fall=.06, sheet=.016, curl=.014, rows=9, rough=.08, ragged=.0015,
+                 ears='left'),
+    'pixie': dict(tip=[(-180, -.112), (-135, -.102), (-112, -.060), (-100, -.004), (-79, -.004), (-70, -.046), (-59, -.040),
+                       (-48, .014), (-28, .012), (-8, .018), (14, .030), (30, .052), (46, .030), (59, -.040), (70, -.046),
+                       (79, -.004), (100, -.004), (112, -.060), (135, -.102), (180, -.112)],
+                  vol=[(-180, .013), (-60, .011), (-20, .017), (20, .014), (60, .011), (180, .013)], top=.024, edge=.005,
+                  part=(30, .004, 7), rows=7, rough=.25, ragged=.004),
     'tied': dict(tip=[(-180, -.090), (-135, -.080), (-112, -.040), (-100, .004), (-79, .004), (-68, -.014), (-59, -.008),
                       (-47, .040), (-26, .030), (-6, .028), (14, .040), (30, .060), (47, .048),
                       (59, -.008), (68, -.014), (79, .004), (100, .004), (112, -.040), (135, -.080), (180, -.090)],
@@ -572,15 +583,23 @@ HAIR_STYLES = {
                  vol=[(-180, .021), (-90, .021), (-30, .019), (28, .013), (60, .020), (180, .021)], top=.023, edge=.013,
                  part=(28, .006, 7), fall=.5, sheet=.018, curl=.006, rows=8, rough=.35, ragged=.003, ears=False),
 }
-# the features, as lengths on the face (m): eye half width, lid height above / below the eye's middle, iris radius,
-# brow height over the eye and thickness, mouth half width and lips
+# The features, as lengths on the face in the source's units (the game: men x 0.93, women x 0.90), set so that in the
+# game they have the size they have on a person: the eye 2.9 cm wide and about one eye apart, the iris 1.1 cm, the
+# brow 4 cm long, the mouth 4.5 cm (reference/고증 4.9: the sizes, and the photographs the eyes were set beside).
+#   eye: half width, opening below the middle; lid: opening above the middle by the kind of eyelid (mono 홑꺼풀,
+#   inner 속쌍꺼풀, double 쌍꺼풀); gap: between the inner corners; brow: height over the eye, thickness at the head
+#   and at the tail, arch; mouth: half width, upper and lower lip; lip, line, shade (the hollow of the eye): the
+#   skin's linear light scaled;
+#   chin: the jaw's length from the nose down, scaled (the packs' jaws are long)
 FACE = {
-    'umc': dict(eye=(.0142, .0054, .0038), iris=.0049, slant=.06, apart=-.006, brow=(.0190, .0052, .0020, .0022),
-                mouth=(.0210, .0018, .0028), lip=(.80, .58, .56)),
-    'women': dict(eye=(.0150, .0062, .0042), iris=.0054, slant=.09, apart=-.007, brow=(.0205, .0036, .0013, .0032),
-                  mouth=(.0185, .0030, .0044), lip=(.84, .46, .47)),
+    'umc': dict(eye=(.0158, .0036), lid=dict(mono=.0042, inner=.0048, double=.0054), iris=.0059, pupil=.0024, gap=.0390,
+                slant=.07, brow=(.0192, .0070, .0026, .0026), mouth=(.0250, .0022, .0034), lip=(.80, .58, .56),
+                line=(.50, .36, .33), shade=(.78, .70, .67), chin=.93, lash=.0018),
+    'women': dict(eye=(.0162, .0038), lid=dict(mono=.0046, inner=.0053, double=.0061), iris=.0061, pupil=.0025, gap=.0385,
+                  slant=.09, brow=(.0212, .0052, .0018, .0040), mouth=(.0232, .0032, .0046), lip=(.84, .46, .47),
+                  line=(.50, .36, .33), shade=(.80, .71, .69), chin=.97, lash=.0022),
 }
-EYE_COLORS = {'Eye': '#1d1512', 'EyeWhite': '#e4ddd4', 'Band': '#27345a', 'Glasses': '#3a3128'}
+EYE_COLORS = {'Eye': '#17110f', 'Iris': '#3d2718', 'EyeWhite': '#b9ada2', 'Band': '#27345a', 'Glasses': '#3a3128'}
 
 
 def hex_scale(h, k):
@@ -637,7 +656,7 @@ def head_islands(bm):
     return out
 
 
-def head_clean(ob, style, face):
+def head_clean(ob, style, face, rig):
     """The head as one skull with its ears and nose: the doll's eyes and brows, the hat and the moustache go (where
     the eyes were is returned), the cap painted on the scalp becomes the material 'Hair'.  The nose, a wedge stuck on
     the face, is made lower and a little wider."""
@@ -662,7 +681,8 @@ def head_clean(ob, style, face):
         if mats == {'Skin'}:
             if abs(box[0].x + box[1].x) > 0.08:
                 L['ears'].append(box)
-                if style.get('ears', True):
+                keep = style.get('ears', True)              # (True, False, or 'left': only the person's left ear shows)
+                if keep is True or keep == 'left' and box[0].x > 0:
                     continue
             else:
                 L['nose'] = box
@@ -685,15 +705,19 @@ def head_clean(ob, style, face):
     if len(L['eyes']) != 2 or len(L['ears']) != 2 or not L['nose']:
         raise SystemExit(f'{ob.name}: the head is not the one expected (eyes {len(L["eyes"])}, ears {len(L["ears"])})')
     bmesh.ops.delete(bm, geom=kill, context='FACES')
-    jaw = face.get('jaw', 1.0)
-    if jaw != 1.0:                                           # the lower face wider or narrower, most at the mouth
-        chin, cheek = L['nose'][0].z - 0.085, (L['eyes'][0][0].z + L['eyes'][0][1].z) / 2 - 0.012
-        inv = mw.inverted()
-        for v in {v for f in main for v in f.verts}:
-            p = mw @ v.co
-            if p.y < L['ears'][0][1].y + 0.01:
-                p.x *= 1 + (jaw - 1) * _smooth(cheek, cheek - 0.05, p.z) * _smooth(chin - 0.035, chin + 0.01, p.z)
-                v.co = inv @ p
+    # the lower face: wider or narrower (most at the mouth), and the long jaw of the packs shorter
+    jaw, short = face.get('jaw', 1.0), 1 - FACE[rig]['chin'] * face.get('chin', 1.0)
+    nb = L['nose'][0].z
+    chin, cheek = nb - 0.085, (L['eyes'][0][0].z + L['eyes'][0][1].z) / 2 - 0.012
+    inv = mw.inverted()
+    zb = min((mw @ v.co).z for f in main for v in f.verts)       # (the neck's lower edge stays where the body has it)
+    for v in {v for f in main for v in f.verts}:
+        p = mw @ v.co
+        if p.y < L['ears'][0][1].y + 0.01:
+            p.x *= 1 + (jaw - 1) * _smooth(cheek, cheek - 0.05, p.z) * _smooth(chin - 0.035, chin + 0.01, p.z)
+            if p.z < nb:
+                p.z += (nb - p.z) * short * _smooth(chin - 0.05, chin - 0.005, p.z) * _smooth(zb + 0.002, zb + 0.03, p.z)
+            v.co = inv @ p
     # the pack's faces are a few flat planes: ease them before and after the subdivision (head_soften)
     soft = list({v for v in soft if v.is_valid and not v.is_boundary})
     L['top'] = max((mw @ v.co).z for v in bm.verts)
@@ -806,6 +830,7 @@ def hair_grow(pid, surf, st):
     noise = [(noise[j - 1] + 2 * noise[j] + noise[(j + 1) % NA]) / 4 for j in range(NA)]
     lock = [rnd.uniform(-1, 1) for _ in range(NA)]
     pts, faces = [C.copy()], []
+    streak, aps = [], []        # faces of the bleached locks (style 'bridge': [(azimuth, half width)]); azimuth by column
     grid = {}                  # (column, row) -> vertex
     inner = {}                 # (column, row) -> vertex of the inner side
     ends = []                  # per column: arc length of the hem
@@ -814,6 +839,7 @@ def hair_grow(pid, surf, st):
         a = 2 * math.pi * j / NA
         deg = math.degrees(a if a <= math.pi else a - 2 * math.pi)
         ap = surf.style_azimuth(deg)
+        aps.append(ap)
         dz_tip = _by_azimuth(st['tip'], ap) + st.get('ragged', 0) * lock[j]
         s_end = Rn * (math.pi / 2 - math.asin(min(1.0, dz_tip / Rn))) if dz_tip >= 0 else s_eq - dz_tip
         ends.append(s_end)
@@ -860,10 +886,13 @@ def hair_grow(pid, surf, st):
     pts[0] = Vector((C.x, C.y, max(z for _, z in top_r) + 0.0045))             # the crown: a little over the first ring
     for j in range(NA):
         k = (j + 1) % NA
+        first = len(faces)
         faces.append((0, grid[k, 1], grid[j, 1]))
         for i in range(1, NR - 1):
             faces.append((grid[j, i], grid[k, i], grid[k, i + 1], grid[j, i + 1]))
         faces.append((grid[j, NR - 1], grid[k, NR - 1], inner[k, NR - 1], inner[j, NR - 1]))      # the hem
+        if any(abs(aps[j] - c) <= w for c, w in st.get('bridge', ())):
+            streak += range(first + 2, len(faces))            # (a lock: from below the crown to the hem)
         for i in range(1, NR - 1):
             if (j, i) in inner and (k, i) in inner:
                 faces.append((inner[j, i + 1], inner[k, i + 1], inner[k, i], inner[j, i]))
@@ -880,7 +909,7 @@ def hair_grow(pid, surf, st):
         pts += tp
         faces += tf
         neck += [0.6 * _smooth(C.z - 0.10, C.z - 0.30, p.z) for p in tp]
-    return pts, faces, neck, ends, band
+    return pts, faces, neck, ends, band, streak
 
 
 def hair_tail(surf, st, tail, base):
@@ -918,7 +947,9 @@ def hair_tail(surf, st, tail, base):
 
 
 def face_patches(surf, L, f, face):
-    """Eyes, brows and lips: [(material, points, faces)], flat patches laid on the face, each a little off it."""
+    """Eyes, brows and lips: [(material, points, faces)], flat patches laid on the face, each a little off it.
+    An eye is the shaded hollow, the white, the iris and the pupil cut off by the lids, a spot of light, the upper lid's dark line
+    (the lashes and their shade), a faint lower line and, by the kind of eyelid, the crease over it."""
     out = []
 
     def lay(name, pts2, faces, off):
@@ -935,59 +966,82 @@ def face_patches(surf, L, f, face):
             fixed.append(tuple(reversed(fc)) if (b - a).cross(c - a).y > 0 else fc)
         out.append((name, pts, fixed))
 
-    def lens(cx, cz, hw, up, lo, n, sx, slant=0.0, power=0.75):
-        """An almond: points along the top and the bottom (the corners shared), and the faces."""
-        top, bot = [], []
-        for i in range(n + 1):
-            t = 2 * i / n - 1
-            g = (1 - t * t) ** power
-            x = cx + sx * hw * t
-            top.append((x, cz + up * g + slant * hw * t))
-            bot.append((x, cz - lo * g + slant * hw * t))
-        pts = [top[0]] + [p for i in range(1, n) for p in (top[i], bot[i])] + [top[n]]
-        fs = [(0, 2, 1) if sx > 0 else (0, 1, 2)]
-        for i in range(1, n - 1):
-            a, b = 2 * i - 1, 2 * i
-            fs.append((a, b, b + 2, a + 2) if sx > 0 else (a, a + 2, b + 2, b))
-        e = len(pts) - 1
-        fs.append((e - 2, e - 1, e) if sx > 0 else (e - 2, e, e - 1))
-        return pts, fs, top
+    def strip(pairs):
+        return [p for pair in pairs for p in pair], [(2 * i, 2 * i + 1, 2 * i + 3, 2 * i + 2) for i in range(len(pairs) - 1)]
 
-    hw, up, lo = (v * face.get('eye', 1.0) for v in f['eye'])
+    def disc(cx, cz, r, n, clip):
+        pts = [clip(cx, cz)] + [clip(cx + r * math.cos(2 * math.pi * q / n), cz + r * math.sin(2 * math.pi * q / n)) for q in range(n)]
+        return pts, [(0, 1 + q, 1 + (q + 1) % n) for q in range(n)]
+
+    kind = face.get('lid', 'inner')
+    k = face.get('eye', 1.0)
+    hw, lo, up = f['eye'][0] * k, f['eye'][1] * k, f['lid'][kind] * k
+    slant = face.get('slant', f['slant'])
     bh, bt0, bt1, arch = f['brow']
+    ez0 = sum((b[0].z + b[1].z) / 2 for b in L['eyes']) / 2 + face.get('eyes_up', 0.0)
     for box in L['eyes']:
         sx = 1 if box[0].x + box[1].x > 0 else -1
-        ex = (box[0].x + box[1].x) / 2 + sx * (f['apart'] + face.get('eyes_apart', 0.0))
-        ez = (box[0].z + box[1].z) / 2 + face.get('eyes_up', 0.0)
-        pts, fs, top = lens(ex, ez, hw, up, lo, 6, sx, f['slant'])
-        lay('EyeWhite', pts, fs, 0.0009)
-        r = f['iris'] * face.get('eye', 1.0)
-        iris = [(ex, ez + 0.0004)]
-        for q in range(8):
-            w = 2 * math.pi * q / 8
-            x, z = ex + r * math.cos(w), ez + 0.0004 + r * math.sin(w)
-            t = (x - ex) / (sx * hw)
-            g = (1 - t * t) ** 0.75
-            iris.append((x, min(max(z, ez - lo * g + 0.0002), ez + up * g)))
-        lay('Eye', iris, [(0, 1 + q, 1 + (q + 1) % 8) for q in range(8)], 0.0014)
+        ex = sx * (f['gap'] / 2 + face.get('eyes_apart', 0.0) + hw)
+
+        def top(t):                                         # the lids' edges at t = -1 (inner corner) .. 1 (outer)
+            return ez0 + up * (1 - t * t) ** 0.72 * (1 - 0.12 * t) + slant * hw * t
+
+        def bot(t):
+            return ez0 - lo * (1 - t * t) ** 0.85 * (1 + 0.15 * t) + slant * hw * t
+
+        def clip(x, z):                                     # a point of the eyeball, kept between the lids
+            t = max(-0.98, min(0.98, (x - ex) / (sx * hw)))
+            return x, min(max(z, bot(t) + 0.0001), top(t))
+
+        n = 8
+        ts = [2 * i / n - 1 for i in range(n + 1)]
+        xs = [ex + sx * hw * t for t in ts]
+        white = [(xs[0], top(-1))] + [q for i in range(1, n) for q in ((xs[i], top(ts[i])), (xs[i], bot(ts[i])))] + [(xs[n], top(1))]
+        fs = [(0, 1, 2)] + [(2 * i - 1, 2 * i, 2 * i + 2, 2 * i + 1) for i in range(1, n - 1)] + [(2 * n - 3, 2 * n - 2, 2 * n - 1)]
+        # the hollow of the eye: the lid and the skin round it lie in the brow's shade
+        hollow = []
+        for i in range(7):
+            t = -1.16 + 2.36 * i / 6
+            tc = max(-1.0, min(1.0, t))
+            g = max(0.0, 1 - (t / 1.18) ** 2) ** 0.6
+            hollow.append(((ex + sx * hw * t, bot(tc) - 0.0016 * g), (ex + sx * hw * t, top(tc) + (bh - bt0 * 0.5 - up) * 0.78 * g)))
+        lay('Shade', *strip(hollow), 0.0005)
+        lay('EyeWhite', white, fs, 0.0008)
+        iz = ez0 + 0.0006 * k                                # (the iris sits a little under the upper lid)
+        r = f['iris'] * k
+        lay('Iris', *disc(ex, iz, r, 10, clip), 0.0012)
+        lay('Eye', *disc(ex, iz, f['pupil'] * k, 6, clip), 0.0015)
+        g = 0.0007 * k                                      # the spot of light: up and to one side of the pupil
+        gx, gz = clip(ex - 0.42 * r, iz + 0.36 * r)
+        lay('EyeWhite', [(gx - g, gz - g), (gx + g, gz - g), (gx + g, gz + g), (gx - g, gz + g)], [(0, 1, 2, 3)], 0.0018)
         # the upper lid: a dark line along the top of the eye, thickest over the iris, a little past the outer corner
-        n = len(top) - 1
+        lash = f['lash'] * face.get('lash', 1.0)
         lid = []
-        for i, (x, z) in enumerate(top):
-            t = 2 * i / n - 1
-            th = 0.0006 + 0.0011 * (1 - t * t)
-            lid += [(x + (sx * 0.0012 if i == n else 0), z - 0.0003), (x + (sx * 0.0012 if i == n else 0), z + th)]
-        lay('Eye', lid, [(2 * i, 2 * i + 1, 2 * i + 3, 2 * i + 2) if sx < 0 else (2 * i, 2 * i + 2, 2 * i + 3, 2 * i + 1) for i in range(n)], 0.0018)
-        # the brow: from over the inner corner out past the eye, arched, thinning
+        for i, t in enumerate(ts):
+            x = xs[i] + (sx * 0.0016 if i == n else 0)
+            th = 0.0005 + lash * (1 - t * t) ** 0.6 * (1 + 0.25 * t)
+            lid.append(((x, top(t) - 0.0004 - 0.0009 * (1 - t * t) ** 0.5), (x, top(t) + th)))     # (and its shade on the eye)
+        lay('Eye', *strip(lid), 0.0017)
+        # a faint line under the eye, from the middle out
+        low = [((ex + sx * hw * t, bot(t) - 0.0007), (ex + sx * hw * t, bot(t) + 0.0003)) for t in (-0.6, -0.3, 0.0, 0.35, 0.7, 0.98)]
+        lay('Line', *strip(low), 0.0010)
+        # the crease of a double eyelid: over the whole eye, or (inner) only showing towards the outer corner
+        if kind != 'mono':
+            gap = (0.0024 if kind == 'double' else 0.0013) * k
+            cr = [((ex + sx * hw * t, top(t) + lash + gap * (0.55 + 0.45 * (1 - t * t))),
+                   (ex + sx * hw * t, top(t) + lash + gap * (0.55 + 0.45 * (1 - t * t)) + 0.0006))
+                  for t in ((-0.7, -0.35, 0.0, 0.35, 0.7, 1.0) if kind == 'double' else (0.0, 0.35, 0.7, 1.0))]
+            lay('Line', *strip(cr), 0.0009)
+        # the brow: from over the inner corner out past the eye, a low arch, thinning to the tail
         brow = []
-        for i in range(6):
-            t = i / 5
-            x = ex + sx * (-1.15 * hw + 2.55 * hw * t)
-            z = ez + bh + arch * (0.45 + 0.55 * math.sin(math.pi * min(1.0, t / 0.6) / 2)) - arch * 1.25 * (max(0.0, t - 0.6) / 0.4) ** 1.5 \
-                + face.get('brow_tilt', 0.0) * (t - 0.5) * hw
-            th = (bt0 + (bt1 - bt0) * t ** 1.5) * face.get('brow', 1.0) * (0.75 if i == 0 else 1.0)
-            brow += [(x, z - th / 2), (x, z + th / 2)]
-        lay('Brow', brow, [(2 * i, 2 * i + 1, 2 * i + 3, 2 * i + 2) if sx < 0 else (2 * i, 2 * i + 2, 2 * i + 3, 2 * i + 1) for i in range(5)], 0.0010)
+        for i in range(7):
+            t = i / 6
+            x = ex + sx * hw * (-1.22 + 2.72 * t)
+            z = ez0 + bh + arch * (0.35 + 0.65 * math.sin(math.pi * min(1.0, t / 0.62) / 2)) - arch * 1.35 * (max(0.0, t - 0.62) / 0.38) ** 1.5 \
+                + (face.get('brow_tilt', 0.0) + slant * 0.5) * (t - 0.5) * hw
+            th = (bt0 + (bt1 - bt0) * t ** 1.3) * face.get('brow', 1.0) * (0.7 if i == 0 else 1.0)
+            brow.append(((x, z - th / 2), (x, z + th / 2)))
+        lay('Brow', *strip(brow), 0.0010)
     # the mouth, between the nose and the chin
     nz = L['nose'][0].z
     z, last = nz - 0.03, None
@@ -997,26 +1051,34 @@ def face_patches(surf, L, f, face):
             break
         last = p.y
         z -= 0.002
-    mz = z + (nz - z) * face.get('mouth_at', 0.52)
+    mz = z + (nz - z) * face.get('mouth_at', 0.53)
     mw_, mu, ml = f['mouth']
     mw_ *= face.get('mouth', 1.0)
-    pts, fs, _ = lens(0, mz, mw_, mu, ml, 8, 1, 0.0, 0.6)
-    pts = [(x, zz + face.get('smile', 0.0012) * (abs(x) / mw_) ** 2) for x, zz in pts]
-    lay('Lip', pts, fs, 0.0009)
+    smile = face.get('smile', 0.0012)
+    n = 8
+    lips, line = [], []
+    for i in range(n + 1):
+        t = 2 * i / n - 1
+        zc = mz + smile * t * t
+        bow = 1 - 0.28 * math.exp(-(t / 0.16) ** 2)         # the dip in the middle of the upper lip
+        lips.append(((mw_ * t, zc - ml * (1 - t * t) ** 0.7), (mw_ * t, zc + mu * (1 - t * t) ** 0.55 * bow)))
+        line.append(((mw_ * t, zc - 0.0005), (mw_ * t, zc + 0.0005 + 0.0004 * (1 - t * t))))
+    lay('Lip', *strip(lips), 0.0008)
+    lay('Line', *strip(line), 0.0013)
     if face.get('glasses'):
-        out.append(('Glasses', *face_glasses(surf, L, hw)))
+        out.append(('Glasses', *face_glasses(surf, L, hw, f['gap'] / 2 + hw, face['glasses'])))
     return out
 
 
-def face_glasses(surf, L, hw):
+def face_glasses(surf, L, hw, ex, glasses):
     """Round-cornered rims a centimetre off the eyes, a bridge, and temples back to the ears: (points, faces)."""
     pts, faces = [], []
     ez = (L['eyes'][0][0].z + L['eyes'][0][1].z) / 2 - 0.001
     ear = max(L['ears'], key=lambda box: box[1].x)
-    W, H, T, N = hw * 1.42, hw * 1.02, 0.0024, 16
+    gw, gh = glasses if isinstance(glasses, tuple) else (1.36, 1.02)
+    W, H, T, N = hw * gw, hw * gh, 0.0024, 16
     for box in L['eyes']:
         sx = 1 if box[0].x + box[1].x > 0 else -1
-        ex = abs(box[0].x + box[1].x) / 2 - 0.004
         y = surf.front(sx * ex, ez)[0].y - 0.011
         base = len(pts)
         for q in range(N):
@@ -1038,11 +1100,16 @@ def face_glasses(surf, L, hw):
                 Vector((sx * (x1 + 0.004), y1, z0 + 0.006 + T)), Vector((sx * (x1 + 0.004), y1, z0 + 0.006))]
         faces.append((base, base + 1, base + 2, base + 3) if sx < 0 else (base + 3, base + 2, base + 1, base))
     # the bridge
-    xi = abs(L['eyes'][0][0].x + L['eyes'][0][1].x) / 2 - 0.004 - W
+    xi = ex - W
     y = surf.front(xi, ez)[0].y - 0.011
     base = len(pts)
     pts += [Vector((-xi, y, ez + H * 0.25)), Vector((xi, y, ez + H * 0.25)), Vector((xi, y, ez + H * 0.25 + T)), Vector((-xi, y, ez + H * 0.25 + T))]
     faces.append((base, base + 1, base + 2, base + 3))
+    for i, fc in enumerate(faces):                           # the rims and the bridge face the front, the temples out
+        n = (pts[fc[1]] - pts[fc[0]]).cross(pts[fc[2]] - pts[fc[0]])
+        c = sum((pts[k] for k in fc), Vector()) / len(fc)
+        if (n.y > 0) if abs(n.y) > abs(n.x) else (n.x * c.x < 0):
+            faces[i] = tuple(reversed(fc))
     return pts, faces
 
 
@@ -1068,7 +1135,7 @@ def head_trim(ob, surf, st, ends):
         near = [ends[(j + d) % NA] for d in (-1, 0, 1, 2)]
         return math.degrees(a), dz, s, min(near), near[1] + (near[2] - near[1]) * (x - j)       # (.., least, here)
 
-    back = 118 if st.get('ears', True) else 100             # (hair over the ears hides the sides of the head too)
+    back = 118 if st.get('ears', True) is True else 100     # (hair over the ears hides the sides of the head too)
     bm = bmesh.new()
     bm.from_mesh(me)
     kill = []
@@ -1080,6 +1147,8 @@ def head_trim(ob, surf, st, ends):
             a = where(mw @ f.calc_center_median())[0]             # (a face any corner of which shows)
             if (abs(surf.style_azimuth(a)) < 104 or not st.get('nape', True)) and any(s > here - 0.002 for _, _, s, _, here in info):
                 f.material_index = skin
+        elif all(s < here - 0.006 and dz > -0.03 for _, dz, s, _, here in info):
+            f.material_index = hair                               # (skin under the hair: if it pokes through, as hair)
     bmesh.ops.delete(bm, geom=kill, context='FACES')
     bm.to_mesh(me)
     bm.free()
@@ -1122,20 +1191,27 @@ def head_1997(pid, head, body, arm, spec):
                   vol=[(-a, v) for a, v in reversed(st['vol'])] if st['vol'][0][0] < 0 else st['vol'],
                   part=(-st['part'][0],) + tuple(st['part'][1:]) if st.get('part') else None)
     face = spec.get('face', {})
-    L = head_clean(head, st, face)
+    L = head_clean(head, st, face, rig)
     head_soften(head, L)
     surf = HeadSurface(head, body, L)
-    pts, faces, neck, ends, band = hair_grow(pid, surf, st)
+    if spec.get('bridge'):
+        st = dict(st, bridge=spec['bridge'])
+    pts, faces, neck, ends, band, streak = hair_grow(pid, surf, st)
     head_trim(head, surf, st, ends)
-    pieces = [('Hair', pts, [f for i, f in enumerate(faces) if i not in set(band)])]
-    if band:                                                # (the band has points of its own)
-        ring = sorted({i for b in band for i in faces[b]})
-        pieces.append(('Band', [pts[i] * 1.0 for i in ring], [tuple(ring.index(i) for i in faces[b]) for b in band]))
+    other = set(band) | set(streak)
+    pieces = [('Hair', pts, [f for i, f in enumerate(faces) if i not in other])]
+    for name, part in (('Band', band), ('Bridge', streak)):  # (these have points of their own)
+        if part:
+            ring = sorted({i for b in part for i in faces[b]})
+            at = {i: n for n, i in enumerate(ring)}
+            pieces.append((name, [pts[i] * 1.0 for i in ring], [tuple(at[i] for i in faces[b]) for b in part]))
     col = spec['colors']
     hair = col.get('Hair', HAIR['black'])
-    defaults = dict(EYE_COLORS, Hair=hair, Brow=hex_mix(hair, col.get('Skin', SKIN['b']), 0.12),
-                    Lip=hex_scale(col.get('Skin', SKIN['b']), FACE[rig]['lip']))
-    for name in ('Hair', 'Brow', 'Lip', 'Eye', 'EyeWhite', 'Band', 'Glasses'):
+    skin = col.get('Skin', SKIN['b'])
+    defaults = dict(EYE_COLORS, Hair=hair, Brow=hex_mix(hair, skin, 0.20), Lip=hex_scale(skin, FACE[rig]['lip']),
+                    Line=hex_scale(skin, FACE[rig]['line']), Shade=hex_scale(skin, FACE[rig]['shade']),
+                    Bridge=hex_mix(hair, '#d9a35a', 0.5))
+    for name in ('Hair', 'Brow', 'Lip', 'Line', 'Shade', 'Eye', 'Iris', 'EyeWhite', 'Band', 'Glasses', 'Bridge'):
         colour_material(name, srgb_to_linear(col.get(name, defaults[name])))
     hob = head_part(pid + '-hair', arm, pieces, neck)
     fob = head_part(pid + '-face', arm, face_patches(surf, L, FACE[rig], face))
