@@ -43,8 +43,8 @@ if (!SEASONS[season]) season = 'summer';
 const NOBODY = { x: 1e9, y: 1e9 };       // the player before the walk starts: nobody in the way
 // The weights of main()'s steps together: a weight is the hundredths of a second the step before the call takes on a
 // desktop (window.__y97.loading.state.marks after a load says; the 90 or so models of trees, shrubs, props and people
-// are 1 each, and the first frames after the last call 190).
-const STEPS = 940;
+// are 1 each, the town outside the gate 20, and the first frames after the last call 190).
+const STEPS = 960;
 
 // ------------------------------------------------------------------ progress
 // the bar, its percentage and the cards beside it: loading.js. The data files' bytes are counted as they come down.
