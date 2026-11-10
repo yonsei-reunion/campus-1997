@@ -50,8 +50,10 @@ export class Basketball {
       const board = this.toWorld(sg * (court.L / 2 - 1.2), 0);
       return { sg, rim: new THREE.Vector3(rim[0], court.h + RIM_H, -rim[1]), board: new THREE.Vector3(board[0], court.h, -board[1]) };
     });
-    // the ball lies just outside the sideline (on the slab's margin), a few metres from the middle of the court
-    const home = this.toWorld(-3.0, court.W / 2 + 0.8);
+    // the ball lies on the court a few metres from the centre circle towards the north basket, in view of a walker
+    // sent to the court (who stands in the circle, or comes up from the south).  Not off the sideline: the slab's
+    // margin there is the low hedge along the bank's top, which hid it
+    const home = this.toWorld(3.0, 2.0);
     this.home = new THREE.Vector3(home[0], this.floorAt(home[0], -home[1], 1000) + R, -home[1]);
     this.pos = this.home.clone();
     this.vel = new THREE.Vector3();
