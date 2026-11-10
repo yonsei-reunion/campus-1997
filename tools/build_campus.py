@@ -210,9 +210,15 @@ bline = LineString(bys)
 # clipped hedge.  Widths measured in the photo at 100 m and 185 m from the gate: 6.6 m between the yellow edge lines
 # (OSM's modern road is wider), the verges' outer edge 5 m out, the sidewalk to ~9.5 m.  The lane runs to the kerb's
 # face; its last 0.3 m is a concrete gutter (`gutter`, blender/road.py: the 2008 / 2010 roadview, reference/고증.md 2.3)
-# with the yellow edge line on the asphalt just inside it.
-ROAD = dict(median=0.0, lane=3.3, curb=0.25, verge=1.8, walk=4.6, strip=2.2, gutter=0.3)
+# with the yellow edge line on the asphalt just inside it.  The kerb faces 7.3 m apart (the yellow lines 6.46 m: the
+# photo's 6.3 - 6.4 m plus the roadview's gutter, gap and half line, the photo's east kerb 0.44 m out from its line);
+# the verge narrower by as much (1.7 m from the kerb's face, photo A 1.3 - 1.6 m), so that the sidewalk, the strip
+# and what is planted on them stay where the photo has them (before: the kerb faces 6.6 m apart, the verge 2.05 m)
+ROAD = dict(median=0.0, lane=3.65, curb=0.25, verge=1.45, walk=4.6, strip=2.2, gutter=0.3)
 E_CURB = ROAD['median'] + ROAD['lane'] + ROAD['curb']       # carriageway edge (curb top)
+# (the ground's paint under the road mesh, the side roads' ends and the openings are drawn from the carriageway's first
+# width: the random planting and the decals read them, so the rest of the campus keeps its draws; the mesh covers it)
+E_CURB0 = 3.55
 E_VERGE = E_CURB + ROAD['verge']                             # inner edge of the sidewalk
 E_WALK = E_VERGE + ROAD['walk']                              # outer edge of the sidewalk
 ROAD_HALF = E_WALK + ROAD['strip']
@@ -2137,7 +2143,7 @@ def _chaikin(pts, n=3):
     return [tuple(np.round(p, 2)) for p in P_]
 
 
-ISL_ROAD = [tuple(np.round(_to_strip(_c0, _cd, E_CURB + 1.0), 2)), tuple(np.round(_post, 2))] + \
+ISL_ROAD = [tuple(np.round(_to_strip(_c0, _cd, E_CURB0 + 1.0), 2)), tuple(np.round(_post, 2))] + \
     _chaikin([_post - _cd * 5.0, _post - _cd * 8.0, (-140.0, -324.8), (-148.0, -316.4), (-156.0, -314.3)])
 _hw_e = _to_strip(np.array(_hed[1]), _hd, ROAD_HALF + 0.5)
 GATE_APRON = Polygon([along_raw(_m1, ROAD_HALF + 0.5)[:2]] + [photo_ground(*p) for p in _ISL_PX[3:10]] +
@@ -2212,7 +2218,7 @@ for r in extra_roads:
 
 def mouth_poly(s0, s1, r0, r1):
     # the mouth itself is road geometry (blender/road.py), asphalt under it too
-    return Polygon([along_raw(s, _ms * E_CURB)[:2] for s in np.arange(s0 - r0, s1 + r1 + 0.1, 1.0)] +
+    return Polygon([along_raw(s, _ms * E_CURB0)[:2] for s in np.arange(s0 - r0, s1 + r1 + 0.1, 1.0)] +
                    [along_raw(s, _ms * (ROAD_HALF + 1.0))[:2] for s in np.arange(s1, s0 - 0.1, -1.0)])
 
 
@@ -2230,7 +2236,7 @@ LOT_C = [(round(float(q_[0]), 2), round(float(q_[1]), 2), round(math.atan2(_lcd[
          for q_ in (_lc0 + _lcd * 4.6 * k for k in range(7))]
 draw_line('dirt', [(x, y) for x, y, _ in LOT_C], 7.0)          # (on the trodden dry lawn, no paving)
 # 백양로 itself is real geometry (Blender) – paint asphalt below so seams never show grass
-draw_line('asphalt', bys, 2 * E_CURB)
+draw_line('asphalt', bys, 2 * E_CURB0)
 draw_line('pavers', bys, 2 * ROAD_HALF)
 
 
@@ -2409,7 +2415,7 @@ PAV_PRE = np.array(layers['pavers']) > 40
 ASPH_PRE = np.array(layers['asphalt']) > 40
 # the gate's apron, side road and island as photo A has them (above: as first read)
 _erase = GATE_APRON_OLD.union(LineString(ISL_ROAD_OLD).buffer(3.6)).union(mouth_poly(66.0, 86.5, 3.0, 2.0)) \
-    .difference(bline.buffer(E_CURB))
+    .difference(bline.buffer(E_CURB0))
 draw_poly('asphalt', _erase, 0)
 draw_poly('asphalt', GATE_APRON.difference(bline.buffer(ROAD_HALF)))
 draw_poly('asphalt', mouth_poly(_m0, _m1, MOUTH[3], MOUTH[4]))
@@ -2568,7 +2574,7 @@ for pth in paths_out:
     if hit.is_empty or bline.distance(ls_) > ROAD_HALF:
         continue
     for side in (-1, 1):
-        edge = bline.offset_curve(side * (E_CURB + 0.5))
+        edge = bline.offset_curve(side * (E_CURB0 + 0.5))
         cut = ls_.intersection(edge)
         for g in (cut.geoms if hasattr(cut, 'geoms') else [cut]):
             if g.is_empty or g.geom_type != 'Point':
@@ -3489,15 +3495,20 @@ def along(s, off):
     return p.x - ty / n_ * off, p.y + tx / n_ * off, math.atan2(ty, tx)
 
 props = []
-# 백양로 street lamps: two-armed lamps with box heads at the inner edge of the east sidewalk (1997 aerial photo: they
-# stand along the east sidewalk all the way up; along the west sidewalk, from the gate past the library, there is
-# not one pole)
+# 백양로 street lamps: two-armed lamps with box heads along the east side (1997 aerial photo: they stand along the
+# east side all the way up; along the west side, from the gate past the library, there is not one pole).  In the
+# verge's lawn just inside its kerb to the sidewalk (the August 2008 roadview; in photo A both near poles come down
+# inside the verge, reference/고증.md 2.3), halfway between two of the verge's shrubs (14 m + 2.6 m steps, above);
+# on the sidewalk 0.45 m out before
 for s in np.arange(40, L - 20, 34):
     for side in (-1,):
         s_ = s
-        while in_gap(s_, side, 1.0):
+        while True:
+            s_ = 14.0 + 2.6 * (math.floor((s_ - 14.0) / 2.6) + 0.5)
+            if not (in_gap(s_, side, 1.0) or in_break(s_, side, 1.0)):
+                break
             s_ += 4.0
-        x, y, a = along_raw(s_, side * (E_VERGE + 0.45))
+        x, y, a = along_raw(s_, side * (E_VERGE - 0.45))
         props.append(['lamp_arm', round(x, 2), round(y, 2), round(a + (math.pi if side < 0 else 0), 3)])
 # (no white flags or poles along the west sidewalk.)  The white cloth past the gate, by the island's hedge about
 # 92-106 m in from the gate (issue #12, back-projected with the photo's camera), is no row of flags: it is one long

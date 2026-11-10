@@ -47,11 +47,13 @@ def lamp_quad():
 # ----------------------------------------------------------------------------- 백양로 양팔 가로등 (1997 aerial photo)
 def lamp_arm():
     """Two-armed street lamp with flat box luminaires.  Local +X points away from the road (over the sidewalk),
-    -X over the carriageway."""
+    -X over the carriageway.  Standing in the verge (reference/고증.md 2.3), the head on the road's side over the kerb
+    and the other over the sidewalk: in photo A the heads 1.2 - 1.3 m from the pole on the road's side, 1.4 - 1.9 m on
+    the sidewalk's (1.95 and 1.3 m before, when the pole stood on the sidewalk)"""
     mb = MeshBuilder('lamp_arm')
     mb.box((0, 0, 0.3), (0.42, 0.42, 0.6), 'metal_dark')
     mb.cylinder((0, 0), 0.11, 0.6, 7.6, 'metal_dark', seg=10, r1=0.065)
-    for sx, L_ in ((-1, 1.7), (1, 1.05)):
+    for sx, L_ in ((-1, 1.05), (1, 1.4)):
         # slightly rising arm, then the luminaire box hanging from its tip
         p0, p1 = Vector((0, 0, 7.25)), Vector((sx * L_, 0, 7.55))
         c = (p0 + p1) / 2
