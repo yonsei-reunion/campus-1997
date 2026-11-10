@@ -95,6 +95,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 나머지 200여 동은 절차적 생성기 `blender/generic.py` 가 실제 외곽선 위에 세웁니다.
   - 창호(창틀 · 문설주 · 창대), 층 밴드, 파라펫, 옥상 설비, 녹색 방수 옥상, 물탱크, 상점 간판
   - 창의 7 %쯤은 미서기 한 짝을 열어 두고, 드물게 에어컨을 붙입니다(`blender/windows.py`)
+  - 벽에는 선홈통, 땅을 따라 층지는 기단 띠, 뒷문과 환기구를, 동네 집 옥상에는 TV 안테나를 답니다(`blender/backs.py`, 고증 3.20). 건물 id로 씨앗을 준 자기 난수만 써서 `generic.py` 의 난수 순서는 그대로입니다.
   - 건물마다 현관(`porch`)이 있고 자리는 `build_campus.py` `_entry`. 1996년 졸업 앨범 사진의 현관들을 따랐습니다.
   - 계단은 걸어 오를 수 있는 보이지 않는 `walk_stairs` 메시를 따로 냅니다.
 - 건물 · 랜드마크의 정점에는 `blender/bake.py` 가 AO, 처마 아래 비 자국, 햇빛 여부를 구워 `COLOR_0` 으로 내보냅니다. 웹은 이를 `bake` 속성으로 읽습니다.

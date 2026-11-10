@@ -3,7 +3,7 @@ with real recessed windows, sills, floor bands, parapets, roofs and rooftop clut
 import math, random
 from mathutils import Vector, Matrix
 from common import MeshBuilder, ground, offset_poly, min_area_rect, poly_area
-import windows
+import windows, backs
 
 STYLE = {
     #          wall            window frame     bay   win_w  sill  head  band      found
@@ -25,9 +25,10 @@ FH = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city
 
 
 def wall_edge(mb, a, b, z0, z1, nfloors, fh, st, rnd, skip_windows=False, ground_floor_shop=False, door=None,
-              found=True):
+              found=True, back=None):
     """door: (s along the edge, style, options) -- the ground-floor bay(s) there are left open for porch() to fill.
-    found: the dark foundation under z0 (not for a storey standing on a lower roof)"""
+    found: the dark foundation under z0 (not for a storey standing on a lower roof)
+    back: a back door in one ground-floor bay instead of its window (blender/backs.py back_pick_door)"""
     a2, b2 = a, b
     a, b = Vector((*a, 0)), Vector((*b, 0))
     t = b - a
@@ -42,9 +43,10 @@ def wall_edge(mb, a, b, z0, z1, nfloors, fh, st, rnd, skip_windows=False, ground
         p = a + t * s + n * d
         return (p.x, p.y, z)
 
-    # foundation (hidden under terrain on slopes)
+    # foundation (hidden under terrain on slopes; flagged smooth so that the bake leaves it one face: with a plinth
+    # standing in front of its top, blender/backs.py, bake.py would keep a grid of it for the occlusion nobody sees)
     if found:
-        mb.quad(P(0, z0 - 4), P(L, z0 - 4), P(L, z0), P(0, z0), 'concrete_dark')
+        mb.quad(P(0, z0 - 4), P(L, z0 - 4), P(L, z0), P(0, z0), 'concrete_dark', smooth='fd%d' % len(mb.faces))
     bays = int(round(L / st['bay']))
     if L < 2.6 or bays < 1 or skip_windows:
         mb.quad(P(0, z0), P(L, z0), P(L, z1), P(0, z1), wall)
@@ -69,6 +71,9 @@ def wall_edge(mb, a, b, z0, z1, nfloors, fh, st, rnd, skip_windows=False, ground
             if f == fd and kd <= k < kd + span:
                 if k == kd:
                     porch(mb, a2, b2, s0, s0 + span * bw, zf, fh, st, door[1], door[2])
+                continue
+            if back and f == back['floor'] and k == back['bay']:
+                backs.back_door(mb, a2, b2, s0, s1, zf, fh, st, back)
                 continue
             mid = a + t * ((s0 + s1) / 2) + n * 0.6
             g = ground(mid.x, mid.y)
@@ -584,10 +589,16 @@ def build_generic(b, rnd):
     shop = style == 'city' and rnd.random() < 0.45
     door = entry_edge(poly, b.get('entry')) if style in ENTRY else None
     wing = WING_UP[b['id']](b, poly) if b['id'] in WING_UP else None
+    ups = [1 if wing and frozenset((poly[i], poly[(i + 1) % len(poly)])) in wing[0] else 0 for i in range(len(poly))]
+    # the backs and feet of the walls (blender/backs.py: its own random stream, nothing drawn from rnd)
+    n_doors = len(DOORS)
+    back = backs.back_plan(b, poly, st, fh, z0, zt, nf, door, shop, pitched=pitched, ups=ups,
+                           tops=[zt - backs.EAVE * backs.PITCH[style] if pitched else zt + up * fh for up in ups])
     for i in range(len(poly)):
-        up = 1 if wing and frozenset((poly[i], poly[(i + 1) % len(poly)])) in wing[0] else 0
+        up = ups[i]
         wall_edge(mb, poly[i], poly[(i + 1) % len(poly)], z0, (zt if pitched else zt + 0.9) + up * fh, nf + up, fh,
-                  st, rnd, ground_floor_shop=shop, door=(door[1], style, b['entry']) if door and door[0] == i else None)
+                  st, rnd, ground_floor_shop=shop, door=(door[1], style, b['entry']) if door and door[0] == i else None,
+                  back=back.edges[i].back if back.on else None)
     if wing:
         for a_, b_ in wing[2]:          # the wing's storey over the lower roof
             wall_edge(mb, a_, b_, zt, zt + fh + 0.9, 1, fh, st, rnd, found=False)
@@ -627,4 +638,5 @@ def build_generic(b, rnd):
                     zs0, zs1 = z0 + fh - 0.1, z0 + fh + 1.0
                     mb.face([(p0.x, p0.y, zs0), (p1.x, p1.y, zs0), (p1.x, p1.y, zs1), (p0.x, p0.y, zs1)], 'sign_shops',
                             uvs=[(u0, v0), (u0 + 0.5, v0), (u0 + 0.5, v0 + 0.125), (u0, v0 + 0.125)])
+    backs.back_finish(mb, back, DOORS[n_doors:])
     return mb
