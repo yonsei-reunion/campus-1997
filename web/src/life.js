@@ -371,7 +371,8 @@ export class Crowd {
         a.holder.position.y = m.h + THIGH - hip;
         const head = a.root.getObjectByName('Head');
         const top = head ? head.getWorldPosition(_head).y + 0.24 * a.tall : hip + 0.75;
-        const p = join(g, a, m.x, m.y, m.heading, { seated: true, head, look: 0, lookTo: 0, lookAt: rx() * 6 });
+        // (headRest: the head as the clip holds it. The turn is set from it, never added to the frame before)
+        const p = join(g, a, m.x, m.y, m.heading, { seated: true, head, headRest: head?.quaternion.clone(), look: 0, lookTo: 0, lookAt: rx() * 6 });
         p.top = top;
       }
     }
@@ -459,8 +460,13 @@ export class Crowd {
       if (far > FAR2) { if (a.holder.parent) this.scene.remove(a.holder); continue; }
       if (!a.holder.parent) this.scene.add(a.holder);
       if (p.seated) {
-        // (the clip is one held pose: set again every frame only so the head's turn starts from it)
-        if (far < 45 * 45 || !p.posed) { p.posed = true; a.mixer.update(dt); if (p.head) p.head.rotateY(p.look); }
+        // (the clip is one held pose, and the mixer writes a bone only when its value has changed: the head would keep
+        // every frame's turn and spin round. So the turn starts from the held pose each time.)
+        if (far < 45 * 45 || !p.posed) {
+          p.posed = true;
+          a.mixer.update(dt);
+          if (p.head) { p.head.quaternion.copy(p.headRest); p.head.rotateY(p.look); }
+        }
         continue;
       }
       if (!p.walking && t > p.gestureAt) {
