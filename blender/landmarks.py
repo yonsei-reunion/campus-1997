@@ -4128,9 +4128,9 @@ def daewoo_annex():
 
 # ============================================================================= 대강당 앞 농구장
 def basketball_court():
-    """The 1997 outdoor basketball court in front of the 대강당 (later the site of 금호아트홀): a 28 x 15 m concrete
-    slab with painted lines (FIBA rules of the time: trapezoid lanes, 6.25 m three-point arc) and two hoops on
-    steel posts behind the baselines.  No photo found, so a plain standard court."""
+    """The 1997 outdoor basketball court on the terrace before 대강당 (tools/build_campus.py COURT): a 28 x 15 m
+    concrete slab with painted lines (FIBA rules of the time: trapezoid lanes, 6.25 m three-point arc) and two hoops
+    on steel posts behind the baselines.  No photo found, so a plain standard court."""
     C = CAMPUS.get('statues', {}).get('court')
     if not C:
         return []
@@ -4139,12 +4139,10 @@ def basketball_court():
     mb.xf = local_frame(C['pos'][0], C['pos'][1], C['rot'], C['h'])
     z = 0.06
     # slab on the terrace behind 백양로's bank (tools/build_campus.py AUD_BANK: at 대강당's forecourt level, the head of
-    # the flight up from 백양로); its skirt goes down in mortared rubble to the lowest ground round it, which shows where
-    # the ground falls away (학생회관 별관's side, about 5 m)
+    # the flight up from 백양로); its skirt goes down in mortared rubble under the ground round it
     sk = C.get('skirt', 2.0)
     mb.box((0, 0, (z - sk) / 2), (L + 2.0, W + 2.0, z + sk), 'stone_rubble_warm', mats={'top': 'asphalt'}, skip=('bottom',))
-    # the slab's top is walked on (the 'walk_stairs' mesh): the ground under it falls away to 학생회관 별관's side, so
-    # without it the walker went down under the slab there (and arrived under it when sent to the court)
+    # the slab's top is walked on (the 'walk_stairs' mesh), 6 cm over the terrace
     W_ = lambda lx, ly: tuple(mb.xf @ Vector((lx, ly, z)))
     WALK_FACES.append([W_(-L / 2 - 1.0, -W / 2 - 1.0), W_(L / 2 + 1.0, -W / 2 - 1.0), W_(L / 2 + 1.0, W / 2 + 1.0),
                        W_(-L / 2 - 1.0, W / 2 + 1.0)])

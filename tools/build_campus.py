@@ -350,10 +350,14 @@ for wv in ways.values():
             soft = ndimage.gaussian_filter(m.astype(float), 1.2)
             Hn = Hn * (1 - soft) + float(Hn[inside].mean()) * soft
 
-# --- 대강당 앞 농구장 (1997): an outdoor court between 백양로 and the 대강당 driveway, where 금호아트홀 (under
-# 백양누리) was later built (namu.wiki 연세대학교/신촌캠퍼스).  No photo found: a standard 28 x 15 m court, long side
-# along 백양로.  Flatten the ground under it.
-COURT = dict(pos=[21.9, 2.5], rot=1.313, L=28.0, W=15.0)
+# --- 대강당 앞 농구장 (1997): an outdoor court on the paved terrace before 대강당 (remembered by a 1997 student; the
+# 1994 aerial photo has the terrace paved and empty of cars; by 2008 it was a car park with two planted islands, Kakao
+# skyview 2008 · 2010).  No photo of the court itself: a standard 28 x 15 m court, long side along the hall's front,
+# south of the hall's axis so the way from the flight's head to the porch stays clear (reference/고증.md 4.5).
+# COURT_OLD: where it first stood in the game, beside 학생회관 별관 on what was really the drive up to the terrace
+# (AUD_RAMP below); the random planting still reads that spot (PAV_PRE, GARDEN_ZONES) so the campus keeps its draws.
+COURT = dict(pos=[33.8, 28.7], rot=1.313, L=28.0, W=15.0)
+COURT_OLD = dict(pos=[21.9, 2.5], rot=1.313, L=28.0, W=15.0)
 # --- 활천대 (活泉臺): the fountain the electrical engineering alumni raised money for in 1974 (연세대학교 공식 블로그
 # 「연세대학교의 조형물을 찾아서!! 제3탄」, 2017).  Before 백양로 was rebuilt it stood beside the eagle (연세춘추
 # 「연세인도 모르는 연세대학교」, 2009.9: 「활천대는 독수리상 옆에 있는 분수대다」; since 2015 it is in front of
@@ -422,10 +426,11 @@ EAGLE_BEDS = Point(*EAGLE['pos']).buffer(EAGLE_BEDS_R, 64).difference(EAGLE_PAVE
     .difference(bline.buffer(E_WALK + 0.2))
 
 
-def court_poly(pad=0.0):
-    c_, s_ = math.cos(COURT['rot']), math.sin(COURT['rot'])
-    hl, hw = COURT['L'] / 2 + pad, COURT['W'] / 2 + pad
-    return Polygon([(COURT['pos'][0] + u * c_ - v * s_, COURT['pos'][1] + u * s_ + v * c_)
+def court_poly(pad=0.0, C=None):
+    C = C or COURT
+    c_, s_ = math.cos(C['rot']), math.sin(C['rot'])
+    hl, hw = C['L'] / 2 + pad, C['W'] / 2 + pad
+    return Polygon([(C['pos'][0] + u * c_ - v * s_, C['pos'][1] + u * s_ + v * c_)
                     for u, v in ((-hl, -hw), (hl, -hw), (hl, hw), (-hl, hw))])
 
 
@@ -1815,18 +1820,53 @@ ball = unary_union(bpolys)
 AUD_BANK = dict(s0=433.1, s1=545.0, wall=0.7, cap=0.35, top=7.0, ext=12.55, side=-1, walk_z=0.15)   # (walk_z: road.py WZ)
 AUD_BANK['gap'] = [round(AUD_FLIGHT['s_range'][0] + 0.05, 2), round(AUD_FLIGHT['s_range'][1] - 0.05, 2)]  # (the flight)
 AUD_T = AUD_HEAD
-# the terrace: from the bank's top edge to the forecourt, the court's slab and its margin, at the forecourt's level,
-# blending out over the next cell or two; not under the road, and not within 11 m of a hall (학생회관 별관 is 3.5 m
-# from the court: the slab's stone skirt shows there; the ground its door is chosen by, 1 - 6 m out, stays as it was)
-_tb = [along_raw(s_, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] - 0.5))[:2] for s_ in np.arange(AUD_BANK['s0'] + 2.0, AUD_BANK['s1'] + 0.1, 4.0)]
-_tb += [along_raw(s_, AUD_BANK['side'] * (E_WALK + 21.0))[:2] for s_ in np.arange(AUD_BANK['s1'], AUD_BANK['s0'] + 1.9, -4.0)]
-AUD_TERRACE = court_poly(1.5).union(Polygon(_tb))
+# the terrace: from the bank's top edge to the forecourt, with the court on it, at the forecourt's level, blending
+# out over the next cell or two; not under the road, and not within 11 m of a hall.  It ends in the south at the head
+# of the drive (AUD_RAMP): Kakao roadview April 2011 1017220191 - 194 and skyview 2008 · 2010 have an asphalt ramp
+# from 백양로 at the wall's south end north-east up to the terrace, the bank a wedge between it and the street, and
+# 학생회관 별관's ground floor and the yard before it down at the street's level (the court's slab had stood there on a
+# 5 m stone skirt).  The ramp's middle and width from the skyview; its head stands at the terrace's level, which makes
+# it 15 % (seen from 1017220191 its head is about 38.8 +- 0.7 m, so the real terrace may fall 1 - 1.5 m to the south:
+# not measured, reference/고증.md 4.5).
+AUD_RAMP = dict(pts=[(3.0, -17.0), (9.0, -13.0), (15.0, -7.5), (21.5, 1.5), (28.5, 12.0)], w=7.0)
+_rl = LineString(AUD_RAMP['pts'])
+_rl0 = _rl.project(Point(AUD_RAMP['pts'][1]))                        # (level across the sidewalk, then up)
+_rs0 = s_off(*AUD_RAMP['pts'][1])[0]
+AUD_RAMP['z0'] = round(prof_h(_rs0) + AUD_BANK['walk_z'], 3)
+AUD_RAMP['z1'] = AUD_T
+AUD_RAMP['s_head'] = round(s_off(*AUD_RAMP['pts'][-1])[0], 2)
+
+
+def aud_ramp_z(x, y):
+    """the drive's surface at the point of its middle line nearest (x, y)"""
+    t_ = min(1.0, max(0.0, (_rl.project(Point(x, y)) - _rl0) / (_rl.length - _rl0)))
+    return AUD_RAMP['z0'] + (AUD_RAMP['z1'] - AUD_RAMP['z0']) * t_
+
+
+_ts0 = AUD_RAMP['s_head'] - 2.0
+_tb = [along_raw(s_, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] - 0.5))[:2] for s_ in np.arange(_ts0, AUD_BANK['s1'] + 0.1, 4.0)]
+_tb += [along_raw(s_, AUD_BANK['side'] * (E_WALK + 21.0))[:2] for s_ in np.arange(AUD_BANK['s1'], _ts0 - 0.1, -4.0)]
+AUD_TERRACE = court_poly(5.0).union(Polygon(_tb)).union(Point(AUD_RAMP['pts'][-1]).buffer(5.0))
+_bk = Polygon([along_raw(s_, AUD_BANK['side'] * (E_WALK - 2.0))[:2] for s_ in np.arange(AUD_BANK['s0'] - 2.0, AUD_BANK['s1'] + 0.1, 2.0)] +
+              [along_raw(s_, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] - 0.5))[:2]
+               for s_ in np.arange(AUD_BANK['s1'], AUD_BANK['s0'] - 2.1, -2.0)])           # (the bank: its own mesh)
+AUD_RAMP_POLY = LineString(AUD_RAMP['pts'][1:]).buffer(AUD_RAMP['w'] / 2, cap_style='flat').difference(_bk)
 _tw = shapely.contains_xy(AUD_TERRACE, X, Y)
-_tw = np.maximum(_tw.astype(float), ndimage.gaussian_filter(ndimage.binary_dilation(_tw, iterations=1).astype(float), 1.0))
+_rw = shapely.contains_xy(AUD_RAMP_POLY.buffer(1.5), X, Y) & ~_tw
+_zt = np.full(X.shape, AUD_T)
+for _j, _i in zip(*np.nonzero(_rw)):
+    _zt[_j, _i] = aud_ramp_z(X[_j, _i], Y[_j, _i])
+_in = _tw | _rw
+_ni = ndimage.distance_transform_edt(~_in, return_distances=False, return_indices=True)
+_zt = _zt[_ni[0], _ni[1]]                                           # (beyond them: the nearest node's level)
+_tw = np.maximum(_in.astype(float), ndimage.gaussian_filter(ndimage.binary_dilation(_in, iterations=1).astype(float), 1.0))
 _tw *= np.clip((dist - ROAD_HALF - 1.0) / 3.0, 0, 1)
-_tw[near_buildings(11.0) | FIXED] = 0.0
-Hn[:] = Hn * (1 - _tw) + AUD_T * _tw
+_tw[(near_buildings(11.0) & ~_rw & ~shapely.contains_xy(court_poly(5.0), X, Y)) | near_buildings(3.0) | FIXED] = 0.0   # (the court's margin: level)
+Hn[:] = Hn * (1 - _tw) + _zt * _tw
 FIXED[_tw > 0.999] = True
+print('대강당 앞 진입로: z %.2f -> %.2f over %.1f m (%.1f %%), head at s %.1f'
+      % (AUD_RAMP['z0'], AUD_RAMP['z1'], _rl.length - _rl0, 100 * (AUD_RAMP['z1'] - AUD_RAMP['z0']) / (_rl.length - _rl0),
+         AUD_RAMP['s_head']))
 
 
 def aud_bank_z(top, tp, o):
@@ -1844,7 +1884,9 @@ for _s in sorted(set([round(float(v_), 3) for v_ in np.arange(AUD_BANK['s0'], AU
     _top = _zb + AUD_BANK['wall']
     _far = [sample(Hn, NEAR_HALF, NEAR_STEP, *along_raw(_s, AUD_BANK['side'] * (E_WALK + o_))[:2])
             for o_ in (AUD_BANK['top'], (AUD_BANK['top'] + AUD_BANK['ext']) / 2, AUD_BANK['ext'])]
-    _far[0] = max(_far[0], AUD_T)                 # (the top edge at the terrace's level: the 5 m grid rounds it off)
+    # the top edge at the terrace's level (the 5 m grid rounds it off); south of the drive's head, at the drive's
+    _far[0] = max(_far[0], AUD_T) if _s >= AUD_RAMP['s_head'] else \
+        aud_ramp_z(*along_raw(_s, AUD_BANK['side'] * (E_WALK + AUD_BANK['top']))[:2])
     _ab.append((float(_s), _zb, _top, max(_far[0], _top + 0.05), _far))
 _abs = np.array([a_[0] for a_ in _ab])
 # the grid under the bank: below its surface, and so low that no terrain triangle reaching out under the sidewalk
@@ -2383,9 +2425,9 @@ draw_poly('pavers', Point(*SANG).buffer(SANG_LAWN + 0.1), 0)    # (the lawn insi
 for _k in ('lot',):
     draw_poly('asphalt', fpoly(WD, DAEWOO_BACK[_k]))
 draw_poly('pavers', fpoly(WD, [(-0.6, 14.8), (46.0, 14.8), (46.0, 24.6), (-0.6, 24.6)]))
-draw_poly('pavers', court_poly(1.0))
+draw_poly('pavers', court_poly(1.0, COURT_OLD))                # (as first read: PAV_PRE; the court's own below)
 draw_poly('pavers', Point(*FOUNTAIN['pos']).buffer(3.7))        # (the first basin's paved ring, as first read: PAV_PRE)
-GARDEN_ZONES = [garden, yeonhui_garden, daewoo_garden, court_poly(2.0), Point(*FOUNTAIN_SCATTER).buffer(FOUNTAIN_SCATTER_R)]
+GARDEN_ZONES = [garden, yeonhui_garden, daewoo_garden, court_poly(2.0, COURT_OLD), Point(*FOUNTAIN_SCATTER).buffer(FOUNTAIN_SCATTER_R)]
 
 # amphitheater (worn earth), sports field (dirt), tree-root patches done in web shader
 draw_poly('dirt', Point(AMPH['cx'], AMPH['cy']).buffer(1).simplify(0))
@@ -4020,8 +4062,8 @@ STATUES = dict(
 _tn = dict(TENNIS, rot=round(TENNIS['rot'], 5))
 for v in STATUES.values():
     v['h'] = round(ground_h(*v['pos']), 2)
-STATUES['court']['h'] = AUD_T           # (on the terrace behind 백양로's bank, AUD_BANK; not the ground left low by 별관)
-# its stone skirt down to the lowest ground round it (학생회관 별관's side, left low) and half a metre under
+STATUES['court']['h'] = AUD_T           # (on the terrace behind 백양로's bank, AUD_BANK)
+# its stone skirt down to the lowest ground round it and half a metre under
 _cr = court_poly(1.2).exterior
 STATUES['court']['skirt'] = round(max(2.0, AUD_T + 0.5 - min(ground_h(*_cr.interpolate(k_ / 80, normalized=True).coords[0])
                                                              for k_ in range(80))), 2)
@@ -4104,7 +4146,7 @@ for b in LATE_HALLS:
         LATE_SITES.append(poly)
 print('1997: left out', [n for n, _ in GONE_SITES], '- outlines put back', len(LATE_SITES))
 MARKER_NAME = {n: None for n in ('별동연구동', '영빈관', '영선실', '차량실', '행정동', '학생회관 별관', '광혜관')}
-EXTRA_MARKERS = [('청송대', 238.0, 284.0), ('농구장', 21.9, 2.5)]          # the wooded park east of 연희관 (OSM leisure=park)
+EXTRA_MARKERS = [('청송대', 238.0, 284.0), ('농구장', COURT['pos'][0], COURT['pos'][1])]          # the wooded park east of 연희관 (OSM leisure=park)
 EXTRA_MARKERS += [(n, round(p.centroid.x, 1), round(p.centroid.y, 1)) for n, p in GONE_SITES if n]
 EXTRA_MARKERS += [('공학원 (공사중)', round(GONGWON_SITE.centroid.x, 1), round(GONGWON_SITE.centroid.y, 1))]
 LANDMARK_NAMES = {l['name'] for l in LANDMARKS}
@@ -4261,7 +4303,7 @@ def decal_spots():
     # (신촌로 and its bus lanes along the south are the city's road, not the campus's)
     trunk = [LineString(p_['pts']).buffer(p_['w'] / 2 + 3.0) for p_ in paths_out
              if p_['kind'] in ('primary', 'primary_link', 'secondary', 'busway') and len(p_['pts']) > 1]
-    banned = unary_union([ball.buffer(0.4), _ez, court_poly(1.0), Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['pave'] + 0.3),
+    banned = unary_union([ball.buffer(0.4), _ez, court_poly(1.0, COURT_OLD), Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['pave'] + 0.3),
                           AMPH_PATHS.buffer(2.0)] + [l_.buffer(2.0) for l_ in steps] + city + trunk)
     shapely.prepare(banned)
     road_c = bline.buffer(ROAD_HALF + 1.0)
@@ -4482,6 +4524,7 @@ def decal_spots():
 
 
 out['decals'] = decal_spots()
+out['decals'] = [d_ for d_ in out['decals'] if not court_poly(1.0).contains(Point(d_[1], d_[2]))]   # (the court's slab)
 out['decals'] = [d_ for d_ in out['decals'] if not _uwz.contains(Point(d_[1], d_[2]))]   # (the old garden's paving)
 print('decals', len(out['decals']), {k_: sum(1 for d_ in out['decals'] if d_[0] == k_) for k_ in sorted({d_[0] for d_ in out['decals']})})
 # 용재관's ground (YONGJAE above) now that the random draws are done.  The photo has the 진달래동산 right behind the
@@ -4594,6 +4637,16 @@ props = [p for p in props if not _fz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _fz.contains(Point(c[1], c[2]))]
 print('대강당 앞 돌계단: cleared (trees, shrubs, props, cars)', _nf[0] - len(trees), _nf[1] - len(shrubs), _nf[2] - len(props),
       _nf[3] - len(cars))
+# the court on the terrace and the drive up to it: no tree, shrub, prop or car (laid after the planting)
+_cz = unary_union([court_poly(2.0), AUD_RAMP_POLY.buffer(0.5), LineString(AUD_RAMP['pts'][:2]).buffer(AUD_RAMP['w'] / 2)]) \
+    .difference(bline.buffer(E_WALK + 0.3))
+_nf = (len(trees), len(shrubs), len(props), len(cars))
+trees = [t for t in trees if not _cz.contains(Point(t[1], t[2]))]
+shrubs = [s for s in shrubs if not _cz.contains(Point(s[1], s[2]))]
+props = [p for p in props if not _cz.contains(Point(p[1], p[2]))]
+cars = [c for c in cars if not _cz.contains(Point(c[1], c[2]))]
+print('대강당 앞 코트 · 진입로: cleared (trees, shrubs, props, cars)', _nf[0] - len(trees), _nf[1] - len(shrubs),
+      _nf[2] - len(props), _nf[3] - len(cars))
 _rb = random.Random(84)
 _gk = [Point(t[1], t[2]) for t in trees if AUD_BANK_POLY.buffer(1.0).contains(Point(t[1], t[2]))]
 _nb0 = len(shrubs)
@@ -4736,6 +4789,12 @@ _ypaint([p_ for n_, p_ in GONE_SITES if not n_], _ga)
 # 대강당 앞 돌계단: the forecourt's paving runs on to the head of the flight (the 2009 photo: cars parked at its top)
 _ypaint([Polygon([tuple(_fo + _fu * u_ + _fv * v_) for u_, v_ in ((-4.5, AUD_FLIGHT['run'] - 0.2), (4.5, AUD_FLIGHT['run'] - 0.2),
                                                                    (6.0, 26.0), (-6.0, 26.0))])], _ga)
+# 대강당 앞: the terrace and the drive up to it asphalt, and the yard before 학생회관 별관 where the court first stood
+# (the 1994 aerial photo: one paved yard from 별관's foot to the hall)
+AUD_YARD = unary_union([AUD_RAMP_POLY, LineString(AUD_RAMP['pts'][:2]).buffer(AUD_RAMP['w'] / 2, cap_style='flat'),
+                        AUD_TERRACE.buffer(-1.0), court_poly(1.0, COURT_OLD)]) \
+    .difference(bline.buffer(ROAD_HALF)).difference(AUD_BANK_POLY)
+_ypaint([AUD_YARD], _ga)
 _gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
 spl[..., 1] *= 1.0 - _gd / 255.0
 spl[..., 2] = np.where(_gd > 0, np.minimum(np.maximum(spl[..., 2], _gd), 255.0 - spl[..., 0] - spl[..., 1]), spl[..., 2])
