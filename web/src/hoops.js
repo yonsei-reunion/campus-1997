@@ -50,9 +50,9 @@ export class Basketball {
       const board = this.toWorld(sg * (court.L / 2 - 1.2), 0);
       return { sg, rim: new THREE.Vector3(rim[0], court.h + RIM_H, -rim[1]), board: new THREE.Vector3(board[0], court.h, -board[1]) };
     });
-    // the ball lies just outside the sideline, a few metres from the middle of the court
-    const home = this.toWorld(-3.0, court.W / 2 + 1.0);
-    this.home = new THREE.Vector3(home[0], hf.height(home[0], home[1]) + R, -home[1]);
+    // the ball lies just outside the sideline (on the slab's margin), a few metres from the middle of the court
+    const home = this.toWorld(-3.0, court.W / 2 + 0.8);
+    this.home = new THREE.Vector3(home[0], this.floorAt(home[0], -home[1], 1000) + R, -home[1]);
     this.pos = this.home.clone();
     this.vel = new THREE.Vector3();
     this.state = 'ground';            // ground (resting or rolling) | held | flying
@@ -65,6 +65,12 @@ export class Basketball {
     this.t = 0;                       // time into a shot
     this.shot = null;                 // {hoop} while the shot is being taken
     this.carry = new THREE.Vector3();
+  }
+
+  // the ground under three (x, z): the surfaces the walker walks on, looked for from height `top` down (the court's
+  // slab stands up to 5 m over the terrain on 학생회관 별관's side); the terrain where there is none
+  floorAt(x, z, top) {
+    return this.player.groundAt(x, z, top) ?? this.hf.height(x, -z);
   }
 
   toWorld(lx, ly) {
@@ -230,7 +236,7 @@ export class Basketball {
     pos.addScaledVector(vel, dt);
     this.mesh.rotation.x += vel.z * dt * 6; this.mesh.rotation.z -= vel.x * dt * 6;
     // ground
-    const gy = this.hf.height(pos.x, -pos.z) + R;
+    const gy = this.floorAt(pos.x, pos.z, prevY + 0.3) + R;      // (from where it was: a fall through the slab's top bounces)
     if (pos.y < gy) {
       pos.y = gy;
       if (vel.y < -0.8) {

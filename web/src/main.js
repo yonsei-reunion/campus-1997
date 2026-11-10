@@ -313,10 +313,32 @@ async function main() {
       carKits[k] = new InstancedKit(P['car_' + k].scene, lib, n, { colors: true });
       farKits[k] = new InstancedKit(P[`car_${k}_far`].scene, lib, n, { colors: true });
     }
+    // each car stands on its four tyres: where they meet the ground (model frame, +X forward, three -Z left) ...
+    const tyres = {};
+    const tyresOf = (k) => tyres[k] ||= (() => {
+      const sc = P['car_' + k].scene, v = new THREE.Vector3(), xs = [], zs = [];
+      sc.updateMatrixWorld(true);
+      sc.traverse((o) => { if (/^wheel_/.test(o.name)) { o.getWorldPosition(v); xs.push(v.x); zs.push(v.z); } });
+      return xs.length ? { f: Math.max(...xs), r: Math.min(...xs), l: Math.min(...zs), rt: Math.max(...zs) } : { f: 1.4, r: -1.4, l: -0.75, rt: 0.75 };
+    })();
+    // ... and leans with the slope under them (pitch about its own Z, roll about its own X), so that on a drive's
+    // slope or a kerb no tyre sinks into the ground and none hangs over it
+    const carEuler = new THREE.Euler(0, 0, 0, 'YZX'), carQ = new THREE.Quaternion(), carP = new THREE.Vector3(), ONE = new THREE.Vector3(1, 1, 1);
+    const parkedMatrix = (k, x, y, ang) => {
+      const t = tyresOf(k), c = Math.cos(ang), s = Math.sin(ang);
+      const g = (lx, lz) => groundAt(x + lx * c + lz * s, y + lx * s - lz * c);      // model (x, z) -> campus
+      const fl = g(t.f, t.l), fr = g(t.f, t.rt), rl = g(t.r, t.l), rr = g(t.r, t.rt);
+      const pitch = Math.max(-0.3, Math.min(0.3, Math.atan2((fl + fr - rl - rr) / 2, t.f - t.r)));
+      const roll = Math.max(-0.3, Math.min(0.3, Math.atan2((fl + rl - fr - rr) / 2, t.rt - t.l)));     // + : the left side up
+      const mx = (t.f + t.r) / 2, mz = (t.l + t.rt) / 2;
+      const h = (fl + fr + rl + rr) / 4 - mx * Math.tan(pitch) + mz * Math.tan(roll);     // the plane under the tyres at the origin
+      carQ.setFromEuler(carEuler.set(roll, ang, pitch));
+      return m4.compose(carP.set(x, h, -y), carQ, ONE);
+    };
     campus.cars.forEach(([k0, x, y, ang, ci], i) => {
       const k = MODEL(k0, i);
       const col = new THREE.Color(k === 'taxi' ? '#ecebe4' : PARKED_COLORS[(ci * 7 + i) % PARKED_COLORS.length]);
-      placeMatrix(m4, x, groundAt(x, y), y, ang);
+      parkedMatrix(k, x, y, ang);
       carKits[k].add(m4, col);
       farKits[k].add(m4, col);
       colliders.addCircle(x + Math.cos(ang) * 1.2, y + Math.sin(ang) * 1.2, 1.0);

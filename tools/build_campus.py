@@ -804,6 +804,18 @@ def level_forecourt(wid, front, depth, blend=18.0, side_blend=7.0, max_half=20.0
 for wid, front, depth, opt in FORECOURTS:
     level_forecourt(wid, front, depth, **opt)
 
+# --- 논지당 (one storey, 1956) stands across the hillside east of 언더우드관.  The 5 m grid rose 5.4 m over its
+# outline (about 1 in 4.5), more than the hall's 4.6 m, so the east end stood in the ground up to the eaves and only
+# the roof showed.  Give it a level terrace at the ground before its door (the south-west front, the low side) under
+# the whole outline, out to every grid node of the cells it touches, cut into the slope behind and easing back into
+# it over 12 m.
+_nj = footprint(ways[413217834])
+NONJI_LEVEL = sample(Hn, NEAR_HALF, NEAR_STEP, 112.14 - 0.253 * 2.0, 251.72 - 0.968 * 2.0)   # 2 m out from the door
+_njw = np.clip(1.0 - (shapely.distance(_nj, shapely.points(X, Y)) - 7.1) / 12.0, 0, 1)
+Hn[:] = Hn * (1 - _njw) + NONJI_LEVEL * _njw
+FIXED[_njw > 0.999] = True
+print('논지당 terrace', round(NONJI_LEVEL, 2))
+
 
 def harmonic_fill(free, iters=3000):
     """Give the `free` grid nodes the smoothest surface that meets the nodes around them (Laplace's equation, Jacobi
@@ -3231,6 +3243,9 @@ ENTRY_AT = {222843398: ((-242.7, 13.8), dict(span=3, canopy=3.0, stair_w=16.0, l
 # (제2인문관, GONE_1997: its door where the ground before 외솔관2's road lowering put it, so that the paving drawn
 # there before the site is laid bare, and with it the decals' random draws, stay as they were)
 ENTRY_AT[246156119] = ((-4.35, 348.6), {})
+# (논지당: its door where the slope before its terrace (NONJI_LEVEL) put it, at the low end of its front, for the
+# same reason)
+ENTRY_AT[413217834] = ((112.14, 251.72), {})
 # 경영학교실단 (백양관)'s front door (reference/고증.md 3.15): at the north end of the low front between the wings, where
 # the annex before the north wing begins, 44.9 m along its face to 백양로 (± 3 m; the door takes the two bays nearest,
 # 45.7 m).  The 2008 and 2010 roadview count thirteen risers in one straight flight, about 7 m wide over its side
@@ -3765,6 +3780,10 @@ P('parking_booth', round(float(_bo[0]), 2), round(float(_bo[1]), 2), round(math.
 # parked & moving cars (1990s 승용차), engineering-side motorbikes
 cars = []
 # (LOT_W, west of the eagle along the side road SIDE_W: with the roads above)
+# These three straight rows were placeholders from before the roads and lawns were drawn.  The first left no car
+# (most of it falls in halls), and the other two stood on lawn slopes north of 광복관 and of 백주년기념관, tilted
+# 0.3 - 0.6 m into the grass.  No 1997 source puts cars there, so they are still drawn (one stream of draws, see
+# above) but not parked.
 lots = [((60, 100), (100, 92), 9), ((-130, 110), (-80, 130), 8), ((20, -150), (40, -180), 6)]
 for (a, b_, n) in lots:
     for k in range(n):
@@ -3773,7 +3792,7 @@ for (a, b_, n) in lots:
         y = a[1] + (b_[1] - a[1]) * t_
         ang = math.atan2(b_[1] - a[1], b_[0] - a[0]) + math.pi / 2
         if rng.random() < 0.85 and not ball.buffer(1.5).contains(Point(x, y)):
-            cars.append([rng.choice(['sedan', 'sedan', 'hatch', 'taxi']), round(x, 2), round(y, 2), round(ang + rng.uniform(-.05, .05), 3), rng.randrange(8)])
+            _ = (rng.choice(['sedan', 'sedan', 'hatch', 'taxi']), rng.uniform(-.05, .05), rng.randrange(8))   # (a car's draws)
 for line in (LOT_W, LOT_E):
     for (x, y, a) in line:
         if rng.random() < 0.8 and not ball.buffer(1.5).contains(Point(x, y)):

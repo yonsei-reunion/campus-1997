@@ -92,9 +92,11 @@ export class Blobs {
   _put(x, h, z, rot, hl, hw, corner, inset, sigma, dark) {
     const i = this.mesh.count;
     if (i >= MAX) return;
-    // tilted to the terrain's slope (central differences over a metre and a half)
+    // tilted to the terrain's slope (central differences over a metre and a half); level on what stands over the
+    // terrain (the court's slab, a terrace, a landing)
     const hf = this.hf, cy = -z, e = 0.75;
-    _y.set(hf.height(x - e, cy) - hf.height(x + e, cy), 2 * e, -(hf.height(x, cy - e) - hf.height(x, cy + e))).normalize();
+    if (h - hf.height(x, cy) > 0.25) _y.set(0, 1, 0);
+    else _y.set(hf.height(x - e, cy) - hf.height(x + e, cy), 2 * e, -(hf.height(x, cy - e) - hf.height(x, cy + e))).normalize();
     _a.set(Math.cos(rot), 0, -Math.sin(rot));                 // heading: local +X
     _z.crossVectors(_a, _y).normalize();
     _x.crossVectors(_y, _z);
@@ -139,7 +141,7 @@ export class Blobs {
     }
     const b = this.ball;
     if (b && b.state !== 'held' && near(b.pos)) {
-      const g = this.hf.height(b.pos.x, -b.pos.z), up = Math.max(0, b.pos.y - 0.12 - g);
+      const g = b.floorAt(b.pos.x, b.pos.z, b.pos.y), up = Math.max(0, b.pos.y - 0.12 - g);
       const k = 1 + up * 1.5;
       this._put(b.pos.x, g, b.pos.z, 0, 0.12 * k, 0.12 * k, 0.12 * k, 0.06 * k, 0.08 * k, 0.5 / (k * k));
     }

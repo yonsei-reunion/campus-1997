@@ -3775,8 +3775,17 @@ def garden_flight(f, wall='stone_rubble', mat='stone_step', apron=True):
     d = Vector(f['down']).normalized()
     mb.xf = local_frame(f['top'][0], f['top'][1], math.atan2(d.x, -d.y), 0.0)
     zt, zf, n, w = f['z_top'], f['z_foot'], f['n'], f['width']
-    gnd = zf - 1.6
     lnd, tr = f['landing'], f['tread']
+    # the drawn ground at the head must not stand over the landing: there the 5 m grid's triangles are pulled up by
+    # a node out on the drive, and the one-riser ways in from the drives along 교육관 and 성암관 lay under 0.1 -
+    # 0.35 m of it, the drive running on over them.  Raise the whole flight to the drive (its foot then a little over
+    # the ground).  (Lower down, where a sloping walk at the foot buries the ends of the last treads, it stays.)
+    gl0 = local_ground(mb)
+    lift = max(gl0(x_, y_) + 0.02 - zt for x_ in (-w / 2, -w / 4, 0.0, w / 4, w / 2) for y_ in (0.0, -lnd))
+    if lift > 0.05:
+        print('garden flight %s raised %.2f m over the drawn ground' % (f['name'], lift))
+        zt, zf = zt + lift, zf + lift
+    gnd = zf - 1.6
     stair_flight(mb, 0.0, 0.0, w, zt, n=n, mat=mat, landing=lnd, tread=tr, flare=0.0, ground=gnd, zbot=zf,
                  cheek=0.0)
     y_foot = -lnd - n * tr
@@ -4134,6 +4143,11 @@ def basketball_court():
     # the ground falls away (학생회관 별관's side, about 5 m)
     sk = C.get('skirt', 2.0)
     mb.box((0, 0, (z - sk) / 2), (L + 2.0, W + 2.0, z + sk), 'stone_rubble_warm', mats={'top': 'asphalt'}, skip=('bottom',))
+    # the slab's top is walked on (the 'walk_stairs' mesh): the ground under it falls away to 학생회관 별관's side, so
+    # without it the walker went down under the slab there (and arrived under it when sent to the court)
+    W_ = lambda lx, ly: tuple(mb.xf @ Vector((lx, ly, z)))
+    WALK_FACES.append([W_(-L / 2 - 1.0, -W / 2 - 1.0), W_(L / 2 + 1.0, -W / 2 - 1.0), W_(L / 2 + 1.0, W / 2 + 1.0),
+                       W_(-L / 2 - 1.0, W / 2 + 1.0)])
     lw = 0.05
 
     def line(x0, y0, x1, y1):
