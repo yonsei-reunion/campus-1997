@@ -6,6 +6,8 @@
 # Result: 2010-12 +3.3 .. +3.9 m east of the game line, 2011-04 +0.4 .. +1.1 (bearing fixed at 15.0 deg); the two drives
 # part on 백주년기념관's C12 / C14, whose OSM spots and Kakao's base-map outline differ by 3 - 4 m
 # (LMSHIFT="C12:2.9:-1.6,C14:2.1:-4.0" moves them; reference/고증.md 2.2.1, 5장).
+# #132 (2026-11-11): the C14 readings do not fit OSM's C12 - C14; with C12 alone (--drop C13,C14) 2011 is +1.1 .. +1.7, and
+# moving C12 to the base map moves both drives 1.3 - 1.4 m east together, so their ~2.2 m gap is not C12 (../c12/net.py).
 import math, argparse, importlib
 import numpy as np
 from scipy.optimize import least_squares
