@@ -1,10 +1,12 @@
 // Curbs (경계석) where the painted asphalt and paving meet the lawn. tools/build_campus.py traces the edges of the
 // paving in the ground map (campus.json curbs: [kind, x0, y0, dx1, dy1, ...] in cm, the lawn on the left going along:
-// kind 'p' by the paving, 'a' by the asphalt of the drives and car parks; none along 백양로, whose own road mesh has
-// its kerbs, nor along the walls of the halls or in the woods). Each run gets a low granite kerb standing on the lawn
-// side over the edge, so the cut between the two ground textures (terrain.js) lies under its paving-side face:
+// kind 'p' by the paving, 'a' by the asphalt of the drives and car parks; 'k' between a drive or a car park and the
+// paving beside it, the paving on the left; none along 백양로, whose own road mesh has its kerbs, nor along the walls
+// of the halls or in the woods). Each run gets a low granite kerb standing on the lawn (or the paving) side over the
+// edge, so the cut between the two ground textures (terrain.js) lies under its face to the lower side:
 //  - by the paving 15 cm wide and 15 cm high, by the asphalt 18 cm wide (the 상뜰's kerbs in
-//    reference/대우관_2024_정면과_상뜰.jpg, the drives' and the 백양로 islands' in the 2008 / 2011 roadview)
+//    reference/대우관_2024_정면과_상뜰.jpg, the drives' and the 백양로 islands' in the 2008 / 2011 roadview); between
+//    asphalt and paving 15 cm wide, 14 cm over the asphalt, the paving behind it raised to 2 cm under its top
 //  - the top arris on the paving side rounded, a joint every metre and each stone a shade lighter or darker
 //    (the shared 'curb' material of 백양로's kerbs, with the joints and the tones as a shader edit)
 // The kerbs are built in CELL m squares as the camera comes within reach, on the terrain as it is drawn (each 5 m
@@ -15,8 +17,9 @@
 // of the 상뜰), not at the paving's level as the 5 m grid has it: along each kerb a strip of ground in the terrain's own
 // material (terrain.js groundLipCut) rises LIP over the ground at the kerb's lawn face. On a lawn wider than about 2 m
 // it eases back down to the ground 1.6 m out; a narrower strip (campus.json curb_lawn: how far the lawn reaches behind
-// each kerb) is raised from kerb to kerb, the two edges meeting level. Built and drawn with the kerbs (one more draw
-// call); lift() gives its height for the walker and the grass blades standing on it.
+// each kerb) is raised from kerb to kerb, the two edges meeting level. Behind a 'k' kerb the paving is raised the same
+// way (aPave: terrain.js groundLipCut keeps the paving there, not the lawn). Built and drawn with the kerbs (one more
+// draw call); lift() gives its height for the walker and the grass blades standing on it.
 import * as THREE from 'three';
 import { MOBILE } from './util.js';
 import { derivedCopy, patchShader } from './materials.js';
@@ -27,7 +30,7 @@ const FAR = MOBILE ? 80 : 140;       // reach from the camera, m
 const STEP = 6;                      // look again after the camera has moved this far
 const PIECE = 1.0;                   // stone length, m
 const SUB = 2.5;                     // longest straight stretch between two sections (half a terrain cell)
-const KINDS = [{ w: 0.15, h: 0.15 }, { w: 0.18, h: 0.15 }];      // 'p', 'a'
+const KINDS = [{ w: 0.15, h: 0.15 }, { w: 0.18, h: 0.15 }, { w: 0.15, h: 0.14 }];      // 'p', 'a', 'k'
 const LAP = 0.04;                    // how far the stone reaches over the edge onto the paving
 const ARRIS = 0.025;                 // radius of the rounded top edge on the paving side
 const SINK = 0.1;                    // how far the faces go down into the ground
@@ -35,7 +38,7 @@ const FLOATS = 8;                    // position 3, normal 3, uv 2
 const LIP = 0.12;                    // the lawn's edge over the ground at the kerb (3 cm under the kerb's top)
 const LIP_O = [0.0, 0.5, 1.0, 1.6];  // a wide lawn's edge: out from the kerb's face (m) ...
 const LIP_Z = [1.0, 0.95, 0.5, -0.25];      // ... and its height there, a share of LIP (sunk under the ground at the end)
-const LIP_FLOATS = 6;                // position 3, normal 3
+const LIP_FLOATS = 7;                // position 3, normal 3, aPave 1 (the paving's edge behind a 'k' kerb)
 const LAWN_STEP = 2.0;               // campus.json curb_lawn: a value every this many metres along the run (dm)
 const BIN = 4;                       // lift(): the kerbs near a point, by squares of this size
 
@@ -127,7 +130,7 @@ export class Curbs {
     let seed = 1;
     for (const r of list) {
       const lw = lawn[++ri];
-      const kind = r[0] === 'a' ? 1 : 0;
+      const kind = r[0] === 'a' ? 1 : r[0] === 'k' ? 2 : 0;
       const P = [];
       let x = 0, y = 0;
       for (let k = 1; k < r.length; k += 2) { x += r[k]; y += r[k + 1]; P.push([x / 100, y / 100]); }
@@ -300,6 +303,7 @@ export class Curbs {
           nx /= nl; ny /= nl;
           out[n++] = px; out[n++] = terrainHeight(this.hf, px, py) + z[k]; out[n++] = -py;
           out[n++] = nx; out[n++] = 1 / nl; out[n++] = -ny;
+          out[n++] = this.K[j] === 2 ? 1 : 0;
         }
       }
     }
@@ -448,6 +452,7 @@ export class Curbs {
       this.lipGeo = new THREE.BufferGeometry();
       this.lipGeo.setAttribute('position', new THREE.InterleavedBufferAttribute(ib, 3, 0));
       this.lipGeo.setAttribute('normal', new THREE.InterleavedBufferAttribute(ib, 3, 3));
+      this.lipGeo.setAttribute('aPave', new THREE.InterleavedBufferAttribute(ib, 1, 6));
       const quads = (this.lipCap / 8) * 3;
       const idx = new Uint32Array(quads * 6);
       for (let q = 0, k = 0; q < quads; q++) {

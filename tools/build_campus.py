@@ -2211,6 +2211,22 @@ _ms, _m0, _m1 = MOUTH[0], MOUTH[1], MOUTH[2]
 # sidewalk too: the opening is the strip's only (blender/road.py strip_breaks), the verge and the sidewalk stay.
 # (side, s0, s1)
 ENG_MOUTH = (1, 161.6, 173.2)
+# 경영학교실단(백양관) 앞 (reference/고증/3.15): the planting strip opens before the front flight and a walk runs from
+# the sidewalk straight to its foot.  Kakao roadview August 2008 2381318, December 2010 1016786030 and April 2011
+# 1017220201 have the hedges parted there, the walk between them as wide as the flight and no tree on it; the game had
+# the ginkgo row and its hedge across, the flight standing on the lawn.  The opening is the flight's own width (its
+# side walls 7 m outside, BK_FOOT below: the foot's s from the same outline), the verge and the sidewalk stay
+_bkt0 = np.array([-4.6, 105.49]) - np.array([-20.74, 45.64])
+_bkt0 /= np.linalg.norm(_bkt0)
+_bk_s = round(s_at(*(np.array([-20.74, 45.64]) + _bkt0 * 45.66 + np.array([_bkt0[1], -_bkt0[0]]) * 5.1)), 1)
+BK_WALK = (1, round(_bk_s - 3.4, 1), round(_bk_s + 3.4, 1))
+# 백양관 북쪽 주차장 어귀: the drive from 백양로 into the car park before the hall's north wing.  The same three years'
+# roadview (2008 2381322 · 2381323, 2010 1016786034) have the verge ending round and the planting strip open there,
+# yellow-and-black bollards across the mouth and the cars nose in along the wing (BK_LOT below); the game had the
+# drive (OSM, its centre at s 548.7) end at the hedge.  Kept on the drive's line, ± 3 m (the panos' bearings put the
+# verge's round end at s 546 - 553): the verge and the strip open 7 m round it, the sidewalk stays (cars cross it)
+BK_MOUTH = (1, 545.2, 552.2)
+STRIP_OPEN = [ENG_MOUTH, BK_WALK, BK_MOUTH]            # (blender/road.py strip_breaks)
 BUMP_S =round(s_at(*photo_ground(1050, 1145)), 1)                   # the hatched speed bump, just short of the mouth's end
 
 
@@ -2709,6 +2725,7 @@ def in_gap(s, side, pad=0.0, outer=False, verge=False):
 # 500 m (4.5), the roadview's opening with its round south end just short of it.  Only the verge's shrubs make way
 # (after their random draw, so the planting elsewhere keeps its layout)
 VERGE_BREAKS = [[-1, 496.5, 503.5]]                 # (the foot of 대강당's flight: its posts' outer faces at s 497.4 - 502.9)
+VERGE_BREAKS.append([BK_MOUTH[0], BK_MOUTH[1], BK_MOUTH[2]])      # (백양관 북쪽 주차장 어귀)
 
 
 def in_break(s, side, pad=0.0):
@@ -2716,9 +2733,10 @@ def in_break(s, side, pad=0.0):
 
 
 def in_eng_mouth(s, side, pad=0.0):
-    # 제1공학관 앞 진입로 (ENG_MOUTH): only the hedge's appends ask, after its random draw, and the row's ginkgo goes
-    # at the end (ENG_COURT), so that the planting elsewhere keeps its layout
-    return side == ENG_MOUTH[0] and ENG_MOUTH[1] - pad < s < ENG_MOUTH[2] + pad
+    # the planting strip's openings (STRIP_OPEN: 제1공학관 앞 진입로, 백양관 앞 계단 길과 북쪽 주차장 어귀): only the
+    # hedge's appends ask, after its random draw, and the row's ginkgos there go at the end (ENG_COURT, BK_COURT), so
+    # that the planting elsewhere keeps its layout
+    return any(side == o_[0] and o_[1] - pad < s < o_[2] + pad for o_ in STRIP_OPEN)
 
 
 def in_gap_old(s, side, pad=0.0):
@@ -3928,7 +3946,18 @@ for line in (LOT_W, LOT_E):
             if line is not LOT_E:
                 cars.append(car)
 rng3 = random.Random(1997 + 11)
-for k_, (x, y, a) in enumerate(LOT_C):     # the first is the photo's red car (web/src/main.js PARKED_COLORS[6])
+# (the seven stalls: the cars, 4.7 m long, stood nose to tail every 4.6 m, each one into the next.  Photo A has the
+# red car side-on at the front edge of a pale paved car park (LOT_C_PAD below), more cars on it behind: the front row
+# from the red car along the photo's row, a car's length and a gap apart, the stalls left over in a row behind.  The
+# same seven draws, so the cars after these keep their places in the list, and with them their colours)
+_lcn = np.array([-_lcd[1], _lcd[0]])                               # (into the car park, away from the camera)
+_lc_span = float(np.linalg.norm(_lc1 - _lc0))
+_lc_nf = max(2, min(len(LOT_C), int(_lc_span / 5.6) + 1))
+_lc_sp = _lc_span / (_lc_nf - 1) if _lc_nf > 1 else 5.6
+LOT_C_CARS = [(*(_lc0 + _lcd * (_lc_sp * k)), a_) if k < _lc_nf else (*(_lc0 + _lcd * (2.8 + 5.6 * (k - _lc_nf)) + _lcn * 8.0), a_)
+              for k, (_, _, a_) in enumerate(LOT_C)]
+print('정문 동쪽 잔디 주차: photo row %.1f m, front %d cars %.1f m apart, %d behind' % (_lc_span, _lc_nf, _lc_sp, len(LOT_C) - _lc_nf))
+for k_, (x, y, a) in enumerate(LOT_C_CARS):     # the first is the photo's red car (web/src/main.js PARKED_COLORS[6])
     if k_ == 0 or rng3.random() < 0.85:
         kind_ = rng3.choice(['sedan', 'sedan', 'hatch', 'taxi']) if k_ else 'hatch'
         cars.append([kind_, round(x, 2), round(y, 2), round(a + rng3.uniform(-.06, .06), 3),
@@ -4357,7 +4386,7 @@ out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
 out['baekyangro']['booth'] = BOOTH
 # 대강당 앞 둑: blender/road.py leaves the planting strip out where the wall stands, blender/landmarks.py aud_bank builds it
 out['baekyangro']['walls'] = [[AUD_BANK['side'], AUD_BANK['s0'], AUD_BANK['s1']]]
-out['baekyangro']['strip_breaks'] = [list(ENG_MOUTH)]     # (제1공학관 앞 진입로)
+out['baekyangro']['strip_breaks'] = [list(o_) for o_ in STRIP_OPEN]     # (제1공학관 앞 진입로, 백양관 앞)
 out['baekyangro']['breaks'] = VERGE_BREAKS          # (the verge's openings besides crossings and gaps, above)
 # yellow-and-black bollards on the ramps of the openings, where the 2008 and the 2010 roadview both have them
 # (side, s; 1997 unknown): 백주년기념관 앞 건널목 (the one south of the grate), 학생회관 앞 (a row across the forecourt)
@@ -4938,12 +4967,79 @@ print('제1공학관 앞 진입로: cleared (trees, shrubs, props, cars)', _nf[0
       _nf[2] - len(props), _nf[3] - len(cars))
 out['paths'].append(dict(kind='service', w=round(ENG_MOUTH[2] - ENG_MOUTH[1], 1),
                          pts=[[round(v_, 1) for v_ in along_raw((ENG_MOUTH[1] + ENG_MOUTH[2]) / 2, o_)[:2]] for o_ in (ROAD_HALF, 38.0)]))
+# 경영학교실단(백양관) 앞 (BK_WALK): the walk through the strip's opening from the sidewalk to the front flight's paved
+# foot (paving, as the sidewalk: _gp below); the car park before the north wing (BK_LOT, asphalt: _ga below), its
+# drive's mouth through the strip (BK_MOUTH).  The 2008 roadview (2381322 · 2381323) has the cars nose in against the
+# wing in a row along it, white bays, an aisle and a clipped hedge island between them and 백양로; the game had the
+# drive end in a loop on the lawn with no car.  BK_LOT: from the front block's north wall along the wing's east face
+# 16.5 m, a 1.5 m walk along the face and the bays 5 m deep and the aisle 5 m beyond.  Nothing planted or parked on
+# the walk, the openings or the car park but its cars; the row's ginkgos give their places to the last trees as above
+_bk_off = float(bline.distance(Point(*BK_FOOT)))
+BK_COURT = Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((BK_WALK[1], E_WALK - 0.2), (BK_WALK[2], E_WALK - 0.2),
+                                                        (BK_WALK[2], _bk_off - 1.5), (BK_WALK[1], _bk_off - 1.5))])
+_bkq = np.array([-14.58, 108.14])                       # (the front block's north wall meets the wing's east face)
+BK_LOT = Polygon([tuple(_bkq + BK_T * u_ + BK_N * v_) for u_, v_ in ((0.0, 1.5), (16.5, 1.5), (16.5, 11.5), (0.0, 11.5))])
+_bz = unary_union([BK_COURT, BK_LOT] + [Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((o0_ - 0.6, E_WALK), (o1_ + 0.6, E_WALK),
+                                                                                     (o1_ + 0.6, ROAD_HALF + 0.6), (o0_ - 0.6, ROAD_HALF + 0.6))])
+                                        for _, o0_, o1_ in (BK_WALK, BK_MOUTH)])
+_nf = (len(trees), len(shrubs), len(props), len(cars))
+# (the trees go once 신촌 로터리's are in, below: each gives its place to the very last one, so that only that one
+# tree, far off in the town, may change its model)
+LATE_GONE_TREES = {i_ for i_, t_ in enumerate(trees) if _bz.buffer(0.8).contains(Point(t_[1], t_[2]))}
+shrubs[:] = [s_ for s_ in shrubs if not _bz.buffer(0.5).contains(Point(s_[1], s_[2]))]
+props[:] = [p_ for p_ in props if not _bz.contains(Point(p_[1], p_[2]))]
+cars[:] = [c_ for c_ in cars if not _bz.buffer(1.0).contains(Point(c_[1], c_[2]))]
+_rbk = random.Random(1997 + 548)
+_bkh = math.atan2(-BK_N[1], -BK_N[0])                    # (nose in: towards the wing)
+for k_ in range(6):
+    if _rbk.random() < 0.85:
+        q_ = _bkq + BK_T * (2.2 + 2.6 * k_) + BK_N * (1.5 + 0.3 + 2.35)
+        cars.append([_rbk.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(float(q_[0]), 2), round(float(q_[1]), 2),
+                     round(_bkh + _rbk.uniform(-.04, .04), 3), _rbk.randrange(8)])
+print('경영학교실단 앞 길 · 북쪽 주차장: cleared (trees, shrubs, props, cars)', len(LATE_GONE_TREES), _nf[1] - len(shrubs),
+      _nf[2] - len(props), _nf[3] - len(cars), '- walk s %.1f - %.1f to %.1f m' % (BK_WALK[1], BK_WALK[2], _bk_off))
+out['paths'].append(dict(kind='footway', w=round(BK_WALK[2] - BK_WALK[1], 1),
+                         pts=[[round(v_, 1) for v_ in along_raw(_bk_s, o_)[:2]] for o_ in (E_WALK, _bk_off - 1.0)]))
+# 정문 동쪽 잔디 주차 (LOT_C_CARS): photo A's pale car park under them, asphalt (_ga below), from just in front of the
+# red car back 10.5 m (the cars on it behind the red one stand 5 - 9 m deeper at the photo's camera), and the trees
+# that stood in a car moved out of it, off the car park's edge (the photo's shade trees stand round it)
+_lc_len = max(_lc_span, 2.8 + 5.6 * (len(LOT_C) - _lc_nf - 1), 4.6 * (len(LOT_C) - 1)) + 3.5    # (over the old row's trodden earth)
+LOT_C_PAD = Polygon([tuple(_lc0 + _lcd * u_ + _lcn * v_) for u_, v_ in ((-3.5, -1.4), (_lc_len, -1.4), (_lc_len, 10.5), (-3.5, 10.5))])
+_lct = []
+for c_ in cars:
+    if not LOT_C_PAD.contains(Point(c_[1], c_[2])):
+        continue
+    _ct_ = np.array([math.cos(c_[3]), math.sin(c_[3])])
+    _cn_ = np.array([-_ct_[1], _ct_[0]])
+    for t_ in trees:
+        d_ = np.array([t_[1] - c_[1], t_[2] - c_[2]])
+        u_, v_ = float(d_ @ _ct_), float(d_ @ _cn_)
+        if abs(u_) < 2.35 + 0.6 and abs(v_) < 0.88 + 0.6:
+            q_ = np.array([t_[1], t_[2]])
+            _back = float((np.array([c_[1], c_[2]]) - _lc0) @ _lcn) > 4.0
+            v_to = 10.5 + 0.8 if _back else -1.4 - 0.8               # (beyond the car park's far edge, or before it)
+            q_ = q_ + _lcn * (v_to - float((q_ - _lc0) @ _lcn))
+            _lct.append((t_[0], round(t_[1], 1), round(t_[2], 1)))
+            t_[1], t_[2] = round(float(q_[0]), 2), round(float(q_[1]), 2)
+print('정문 동쪽 잔디 주차: trees moved out of the cars', _lct)
+# 교육관 북쪽 마당 (the 2003 autumn photo: asphalt, yellow lines, the cars nose in towards the hall): the yard paved
+# from the hall's apron out to the drive, between its east corner and the flight's paved foot; the game had a lawn
+# island there under the cars (_ga below)
+_gyt0, _gyn0 = np.array([-0.969, 0.248]), np.array([0.248, 0.969])
+GY_YARD = Polygon([tuple(np.array([44.15, 345.23]) + _gyt0 * u_ + _gyn0 * v_) for u_, v_ in ((-3.0, 3.3), (11.4, 3.3), (11.4, 15.5), (-3.0, 15.5))])
+_nf = (len(LATE_GONE_TREES), len(shrubs))
+LATE_GONE_TREES |= {i_ for i_, t_ in enumerate(trees) if GY_YARD.buffer(0.5).contains(Point(t_[1], t_[2]))}
+shrubs[:] = [s_ for s_ in shrubs if not GY_YARD.buffer(0.4).contains(Point(s_[1], s_[2]))]
+print('교육관 북쪽 마당: cleared (trees, shrubs)', len(LATE_GONE_TREES) - _nf[0], _nf[1] - len(shrubs))
 # 신촌 로터리: 연세로 on south of gate_town's rows to the junction, its corners and the town south of the grid; the
 # walks there open to the walker (barrier round them), the lamps, the subway's entrances, the town's ground map
 ROT = sinchon_rotary.layout(ROT_GEO, out['town'], TOWN, ground_t, None)
 props += ROT['props']
 shrubs += ROT['shrubs']
 trees += ROT['trees']                       # (at the list's end: the web picks each tree's model by its place in it)
+for _i in sorted(LATE_GONE_TREES, reverse=True):     # (백양관 앞 길 · 북쪽 주차장, 교육관 북쪽 마당, above)
+    trees[_i] = trees[-1]
+    trees.pop()
 markers += ROT['markers']
 out['colliders'] += ROT['colliders']
 out['paths'] += ROT['paths']
@@ -5006,6 +5102,10 @@ AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), co
     .difference(unary_union(AUD_TREE_BEDS))
 _ypaint([AUD_YARD], _ga)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
+_ypaint([BK_LOT, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
+_gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
+_YN[id(_gw)] = '_gw'
+_ypaint([BK_COURT], _gw)
 _ypaint([AUD_RAMP_WALK.difference(bline.buffer(ROAD_HALF)).difference(AUD_BANK_POLY)], _gp)   # (its walk: paving)
 _gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
 spl[..., 1] *= 1.0 - _gd / 255.0
@@ -5051,7 +5151,98 @@ town_splat(spl, *(ndimage.gaussian_filter(np.array(_tl[k_], np.float32), 0.7) fo
 # The same strokes as spl, anti-aliased (splat_aa): the asphalt and paving as sharp as drawn, the dirt (woods,
 # pitches, the old amphitheater) as soft as before, 용재관's ground painted again the same way.  (spl above, binary
 # 0.5 m texels blurred, stays as it was for the debug map.)
-_aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga'])
+#
+# 섬처럼 놓인 포장 (reference/고증/2.3): today's OSM walks leave bits of paving on the lawns that lead nowhere, a stub
+# running a few metres out of another walk to stop in the grass, a lone patch with nothing round it.  The 1997 aerial
+# photos and the 2008 - 2011 roadview have none such; their walks join something at both ends.  For the game's map
+# only (spl above, which the planting and the decals read, keeps them, so the random draws stay): a walk's end that
+# (or OSM's steps, painted as paving) stops in the lawn, clear of every hall (3 m), flight's foot (3 m), landmark (6 m),
+# the woods' floor and 백양로, loses
+# its stretch back to where it meets other paving if that is 12 m or less (its stroke in SPLAT_OPS cut short, so the
+# edge is drawn again as smooth as the rest); a patch under 60 m² touching no asphalt, hall or flight goes (spl_aa)
+_pav0 = (spl[..., 0] + spl[..., 1] > 127.5) | (np.array(_ga) > 127) | (np.array(_gp) > 127) | (np.array(_yp) > 127) \
+    | (np.array(_gw) > 127)
+_dirt0 = spl[..., 2] > 127.5
+try:
+    _ents = json.load(open(os.path.join(ROOT, 'web/public/data/entrances.json')))['entrances']
+except (OSError, ValueError, KeyError):
+    _ents = []
+_halls = [Polygon(b_['footprint']) for b_ in out['buildings'] if b_['style'] != 'city']
+PRUNE_KEEP = unary_union([p_.buffer(3.0) for p_ in _halls]
+                         + [Point(e_['o'][0] + e_['v'][0] * e_['len'], e_['o'][1] + e_['v'][1] * e_['len']).buffer(3.0)
+                            for e_ in _ents]
+                         + [Point(*l_['pos']).buffer(6.0) for l_ in out['landmarks']]
+                         + [bline.buffer(ROAD_HALF + 6.0), TOWN['zone'].buffer(5.0)])
+shapely.prepare(PRUNE_KEEP)
+_res = SPLAT['res']
+_pav_ops = [k_ for k_, op_ in enumerate(SPLAT_OPS) if op_[0] == 'line' and op_[1] == 'pavers' and len(op_[2]) > 1]
+_op_a = np.array([SPLAT_OPS[k_][2][0][:2] for k_ in _pav_ops])
+_op_b = np.array([SPLAT_OPS[k_][2][-1][:2] for k_ in _pav_ops])
+PRUNED = []                                           # (the stretches taken off, for the decals left on them)
+for p_ in out['paths']:
+    if p_['kind'] not in ('footway', 'path', 'pedestrian', 'steps') or len(p_['pts']) < 2:
+        continue                                      # (OSM's steps: painted as paving, no flight of their own)
+    ls_ = LineString(p_['pts'])
+    w_, L_ = p_['w'], ls_.length
+    if L_ < 1.0:
+        continue
+    x0_, y0_, x1_, y1_ = ls_.bounds
+    pad_ = w_ + 3.0
+    j0_, j1_ = max(0, int((x0_ - pad_ - SPLAT['x0']) / _res)), min(SW, int((x1_ + pad_ - SPLAT['x0']) / _res) + 1)
+    i0_, i1_ = max(0, int((SPLAT['y1'] - y1_ - pad_) / _res)), min(SH, int((SPLAT['y1'] - y0_ + pad_) / _res) + 1)
+    if j1_ - j0_ < 2 or i1_ - i0_ < 2:
+        continue
+    own_ = Image.new('L', (j1_ - j0_, i1_ - i0_), 0)
+    do_ = ImageDraw.Draw(own_)
+    pp_ = [((x - SPLAT['x0']) / _res - j0_, (SPLAT['y1'] - y) / _res - i0_) for x, y in p_['pts']]
+    wpx_ = max(1, int(round((w_ + 0.6) / _res)))
+    do_.line(pp_, fill=255, width=wpx_, joint='curve')
+    for (u_, v_) in (pp_[0], pp_[-1]):
+        do_.ellipse([u_ - wpx_ / 2, v_ - wpx_ / 2, u_ + wpx_ / 2, v_ + wpx_ / 2], fill=255)
+    other_ = _pav0[i0_:i1_, j0_:j1_] & ~(np.array(own_) > 0)
+    if not other_.any():
+        continue                                      # (a walk on its own: the patch pass below)
+    D_ = ndimage.distance_transform_edt(~other_) * _res
+    cut_ = [0.0, L_]
+    for end_ in (0, 1):
+        q_ = Point(p_['pts'][0] if end_ == 0 else p_['pts'][-1])
+        if PRUNE_KEEP.contains(q_):
+            continue
+        qi_, qj_ = int((SPLAT['y1'] - q_.y) / _res), int((q_.x - SPLAT['x0']) / _res)
+        if _dirt0[max(0, qi_ - 3):qi_ + 4, max(0, qj_ - 3):qj_ + 4].any():
+            continue                                  # (a trail going on into the woods)
+        hit_ = None
+        for t_ in np.arange(0.0, min(L_, 12.25), 0.25):
+            g_ = ls_.interpolate(t_ if end_ == 0 else L_ - t_)
+            if PRUNE_KEEP.contains(g_):
+                break
+            ii_, jj_ = int((SPLAT['y1'] - g_.y) / _res) - i0_, int((g_.x - SPLAT['x0']) / _res) - j0_
+            if 0 <= ii_ < D_.shape[0] and 0 <= jj_ < D_.shape[1] and D_[ii_, jj_] <= w_ / 2 + 0.6:
+                hit_ = t_
+                break
+        if hit_ is None or hit_ < 0.75:
+            continue
+        keep_t = max(0.0, hit_ - 0.2)                 # (up to the edge of what it meets)
+        if end_ == 0:
+            cut_[0] = keep_t
+        else:
+            cut_[1] = L_ - keep_t
+    if cut_ == [0.0, L_]:
+        continue
+    for t0_, t1_ in ((0.0, cut_[0]), (cut_[1], L_)):
+        if t1_ - t0_ > 0.05:
+            PRUNED.append(substring(ls_, t0_, t1_).buffer(w_ / 2 + 0.3))
+    keep_ls = substring(ls_, cut_[0], cut_[1]) if cut_[1] - cut_[0] > 0.3 else None
+    _pa, _pb = np.array(p_['pts'][0]), np.array(p_['pts'][-1])
+    for m_ in np.flatnonzero((np.hypot(*(_op_a - _pa).T) < 0.2) & (np.hypot(*(_op_b - _pb).T) < 0.2)):
+        k_ = _pav_ops[m_]
+        op_ = SPLAT_OPS[k_]
+        if len(op_[2]) != len(p_['pts']) or LineString(op_[2]).hausdorff_distance(ls_) > 0.2:
+            continue
+        SPLAT_OPS[k_] = ('line', 'pavers', list(keep_ls.coords), op_[3], op_[4]) if keep_ls is not None else ('line', 'pavers', [], 0, False)
+SPLAT_OPS[:] = [op_ for op_ in SPLAT_OPS if not (op_[0] == 'line' and len(op_[2]) < 2)]
+print('섬처럼 놓인 포장: walk stubs cut', len(PRUNED), '%.0f m²' % unary_union(PRUNED).area if PRUNED else '')
+_aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
 spl_aa[..., 0] *= 1.0 - _ygA
@@ -5065,6 +5256,8 @@ spl_aa[..., 2] = np.where(_gdA > 0, np.minimum(np.maximum(spl_aa[..., 2], _gdA),
 spl_aa[..., 1] = np.minimum(np.maximum(spl_aa[..., 1], _aa['_gp']), 255 - spl_aa[..., 0])
 spl_aa[..., 0] = np.maximum(spl_aa[..., 0], _aa['_ga'] * (1.0 - _aa['_gp'] / 255.0))      # (의료원's car parks)
 spl_aa[..., 1] = np.minimum(spl_aa[..., 1], 255 - spl_aa[..., 0])
+spl_aa[..., 0] *= 1.0 - _aa['_gw'] / 255.0                                                   # (백양관 앞 계단 길)
+spl_aa[..., 1] = np.maximum(spl_aa[..., 1], _aa['_gw'])
 spl_aa[..., 2] = np.clip(np.minimum(spl_aa[..., 2], 255 - spl_aa[..., 0] - spl_aa[..., 1]), 0, 255)
 _gbA = splat_aa(['_gb'])['_gb'] / 255.0           # (대강당 앞 둑, as in spl above)
 spl_aa[..., 0] *= 1.0 - _gbA
@@ -5072,6 +5265,29 @@ spl_aa[..., 1] *= 1.0 - _gbA
 spl_aa[..., 2] = spl_aa[..., 2] * (1.0 - _gbA) + 178.0 * _gbA
 _tA = splat_aa(['_tc', '_ta', '_tp', '_td'])       # (정문 밖, as in spl above)
 town_splat(spl_aa, _tA['_tc'], _tA['_ta'], _tA['_tp'], ndimage.gaussian_filter(_tA['_td'], 0.7))
+# (섬처럼 놓인 포장, above: the lone patches) paving touching no asphalt, under 60 m², nowhere near a hall, a flight's
+# foot, a landmark or 백양로 (PRUNE_KEEP)
+_pvA = (spl_aa[..., 0] + spl_aa[..., 1] > 127.5) & (spl_aa[..., 1] >= spl_aa[..., 0])
+_asA = ndimage.binary_dilation(spl_aa[..., 0] > 127.5, iterations=2)
+_lab, _nlab = ndimage.label(_pvA)
+_gone = np.zeros_like(_pvA)
+_np = 0
+for _k, _sl in enumerate(ndimage.find_objects(_lab), 1):
+    _m = _lab[_sl] == _k
+    if _m.sum() * SPLAT['res'] ** 2 >= 60.0 or (_asA[_sl] & _m).any():
+        continue
+    _ii, _jj = np.nonzero(_m)
+    _xs = SPLAT['x0'] + (_jj + _sl[1].start + 0.5) * SPLAT['res']
+    _ys = SPLAT['y1'] - (_ii + _sl[0].start + 0.5) * SPLAT['res']
+    if shapely.contains_xy(PRUNE_KEEP, _xs, _ys).any():
+        continue
+    _gone[_sl] |= _m
+    _np += 1
+    PRUNED.append(Polygon([(_xs.min() - 1, _ys.min() - 1), (_xs.max() + 1, _ys.min() - 1), (_xs.max() + 1, _ys.max() + 1),
+                           (_xs.min() - 1, _ys.max() + 1)]))
+_gone = ndimage.binary_dilation(_gone, iterations=2) & (spl_aa[..., 0] < 127.5)
+spl_aa[..., 1][_gone] = 0.0
+print('섬처럼 놓인 포장: lone patches', _np)
 Image.fromarray(np.clip(np.round(spl_aa), 0, 255).astype(np.uint8), 'RGB').save(
     os.path.join(ROOT, 'web/public/assets/textures/ground_splat.png'), optimize=True)
 
@@ -5195,22 +5411,10 @@ def curb_runs(F3):
         return ndimage.map_coordinates(A, [(SPLAT['y1'] - P[:, 1]) / SPLAT['res'] - 0.5,
                                            (P[:, 0] - SPLAT['x0']) / SPLAT['res'] - 0.5], order=1, mode='nearest')
     runs, lawns = [], []
-    for P, closed in iso_chains(paved, 127.5):
-        if len(P) < 4:
-            continue
-        P = smooth_chain(P, closed)
-        T = np.gradient(P, axis=0)
-        if closed:
-            T[0], T[-1] = P[1] - P[-1], P[0] - P[-2]
-        T /= np.maximum(np.hypot(T[:, 0], T[:, 1]), 1e-9)[:, None]
-        N = np.stack([-T[:, 1], T[:, 0]], 1)                       # the left of the way along
-        if np.mean(at(paved, P + N * 0.4) - at(paved, P - N * 0.4)) > 0:
-            P, N = P[::-1].copy(), -N[::-1]                        # the lawn on the left
-        ok = ((at(grass, P + N * 0.45) > 150) & (at(paved, P - N * 0.45) > 160)
-              & shapely.contains_xy(area, P[:, 0], P[:, 1]) & ~shapely.contains_xy(keep_out, P[:, 0], P[:, 1]))
-        asph = (at(F3[..., 0], P - N * 0.45) > at(F3[..., 1], P - N * 0.45)).astype(np.int8)
-        asph = ndimage.median_filter(asph, 17, mode='wrap' if closed else 'nearest')    # (no flicker over a texel)
-        lab = np.where(ok, 1 + asph, 0)                                # 0 no kerb, 1 by the paving, 2 by the asphalt
+
+    def emit(P, lab, closed, behind, kinds):
+        # the kerbs of one chain (lab per point: 0 none, else an index into kinds) and how far `behind` (> 128) reaches
+        # on their left (the lawn, or the paving behind a drive's kerb), every CURB_LAWN_STEP m along each in dm
         if closed and (lab == lab[0]).all():
             pieces = [(np.r_[np.arange(len(P)), 0], lab[0])] if lab[0] else []
         else:
@@ -5223,6 +5427,9 @@ def curb_runs(F3):
                 if lab[s_]:                                        # (a kerb runs on to the next kind's first point)
                     nxt = e_ + 1 if e_ < len(P) and lab[e_] else e_
                     pieces.append((np.arange(s_, nxt), lab[s_]))
+        T = np.gradient(P, axis=0)
+        T /= np.maximum(np.hypot(T[:, 0], T[:, 1]), 1e-9)[:, None]
+        N = np.stack([-T[:, 1], T[:, 0]], 1)
         for idx, k_ in pieces:
             if len(idx) < 3:
                 continue
@@ -5231,19 +5438,53 @@ def curb_runs(F3):
                 continue
             q_ = np.round(np.array(ls_.simplify(0.015).coords) * 100).astype(int)
             q_[1:] -= q_[:-1].copy()
-            runs.append(['a' if k_ == 2 else 'p'] + q_.ravel().tolist())
+            runs.append([kinds[k_]] + q_.ravel().tolist())
             # how far the lawn reaches behind the kerb (to the next paving, the woods' floor, at most 3 m), every
             # CURB_LAWN_STEP m along the run in dm: the raised lawn's edge (issue #86, web/src/curbs.js) spans a narrow
-            # strip from kerb to kerb and on a wide lawn eases back down
+            # strip from kerb to kerb and on a wide lawn eases back down; behind a drive's kerb the same for the paving
             Pi, Ni = P[idx], N[idx]
             dd_ = np.arange(0.3, 3.01, 0.1)
             lawn_ = np.ones((len(Pi), len(dd_)), bool)
             for m_, d_ in enumerate(dd_):
-                lawn_[:, m_] = at(grass, Pi + Ni * d_) > 128
+                lawn_[:, m_] = at(behind, Pi + Ni * d_) > 128
             Dp = np.where(lawn_.all(1), 3.0, dd_[np.argmin(lawn_, 1)] - 0.05)
             Dp = ndimage.minimum_filter1d(Dp, 11, mode='nearest')          # (about 1 m: smooth_chain's 0.1 m points)
             cum = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(Pi, axis=0).T))])
             lawns.append(np.round(np.interp(np.arange(0.0, cum[-1] + CURB_LAWN_STEP, CURB_LAWN_STEP), cum, Dp) * 10).astype(int).tolist())
+
+    def chain(F, P, closed):
+        # smoothed, the left normals, turned so that F is lower on the left
+        P = smooth_chain(P, closed)
+        T = np.gradient(P, axis=0)
+        if closed:
+            T[0], T[-1] = P[1] - P[-1], P[0] - P[-2]
+        T /= np.maximum(np.hypot(T[:, 0], T[:, 1]), 1e-9)[:, None]
+        N = np.stack([-T[:, 1], T[:, 0]], 1)                       # the left of the way along
+        if np.mean(at(F, P + N * 0.4) - at(F, P - N * 0.4)) > 0:
+            P, N = P[::-1].copy(), -N[::-1]
+        return P, N
+
+    inside = lambda P: shapely.contains_xy(area, P[:, 0], P[:, 1]) & ~shapely.contains_xy(keep_out, P[:, 0], P[:, 1])
+    for P, closed in iso_chains(paved, 127.5):
+        if len(P) < 4:
+            continue
+        P, N = chain(paved, P, closed)                             # (the lawn on the left)
+        ok = (at(grass, P + N * 0.45) > 150) & (at(paved, P - N * 0.45) > 160) & inside(P)
+        asph = (at(F3[..., 0], P - N * 0.45) > at(F3[..., 1], P - N * 0.45)).astype(np.int8)
+        asph = ndimage.median_filter(asph, 17, mode='wrap' if closed else 'nearest')    # (no flicker over a texel)
+        emit(P, np.where(ok, 1 + asph, 0), closed, grass, (None, 'p', 'a'))
+    # 연석 between a drive or a car park and the paving beside it (issue: 「아스팔트와 보도블록의 경계가 흐림」): the two
+    # met level, one texture cut into the other.  The 2008 - 2011 roadview has a granite kerb along every one of them
+    # (대우관 서쪽 차로, the eagle's side road and its brick walks, 백양관 앞 · 북쪽 주차장, 학생회관 앞), the paving's side
+    # up to its top: kind 'k', the paving on the left, raised behind it as the lawn is behind the others (curbs.js)
+    pave = F3[..., 1]
+    for P, closed in iso_chains(F3[..., 0], 127.5):
+        if len(P) < 4:
+            continue
+        P, N = chain(F3[..., 0], P, closed)                        # (the asphalt on the right)
+        ok = (at(pave, P + N * 0.45) > 150) & (at(F3[..., 0], P - N * 0.45) > 160) & inside(P)
+        ok = ndimage.binary_opening(ok, np.ones(9, bool)) if ok.any() else ok      # (no stones on a texel's corner)
+        emit(P, ok.astype(np.int8), closed, pave, (None, 'k'))
     print('curbs: %d runs, %.0f m' % (len(runs), sum(np.hypot(*np.reshape(r_[3:], (-1, 2)).T).sum() / 100 for r_ in runs)),
           'lawn behind them < 2 m: %.0f %%' % (100 * np.mean([v_ < 20 for l_ in lawns for v_ in l_])))
     return runs, lawns

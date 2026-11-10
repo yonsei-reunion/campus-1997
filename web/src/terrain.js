@@ -312,9 +312,15 @@ export function drapeTerrain(root, terrainMat) {
 }
 
 //  - the lawn's raised edge along the kerbs (curbs.js, issue #86): where it reaches over paving (a narrow strip's far
-//    side, a corner) it is cut away, so the paving there stays the ground's own
+//    side, a corner) it is cut away, so the paving there stays the ground's own; the paving's raised edge behind a
+//    drive's kerb (aPave 1) the other way round: cut where it reaches over anything but the paving
 export function groundLipCut(sh) {
-  sh.fragmentShader = sh.fragmentShader.replace('sp.g = pvS * (1.0 - raS);', 'sp.g = pvS * (1.0 - raS);\n if (pvS > 0.5) discard;');
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\nattribute float aPave;\nvarying float vPave;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPave = aPave;');
+  sh.fragmentShader = sh.fragmentShader
+    .replace('#include <common>', '#include <common>\nvarying float vPave;')
+    .replace('sp.g = pvS * (1.0 - raS);', 'sp.g = pvS * (1.0 - raS);\n if (vPave > 0.5 ? (pvS < 0.5 || raS > 0.5) : (pvS > 0.5)) discard;');
 }
 
 // low-frequency 0..1 noise over the far ring: where the woods start on the hills (terrain colour and canopy clumps)

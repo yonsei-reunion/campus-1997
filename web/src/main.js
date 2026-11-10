@@ -482,9 +482,31 @@ async function main() {
     scene.getObjectByName(name)?.traverse((o) => { if (o.isMesh) { if (!o.geometry.boundsTree) o.geometry.computeBoundsTree(); player.walls.push(o); } });
   }
   player.teleport(campus.spawn.pos[0], campus.spawn.pos[1], campus.spawn.yaw);
+  // 정문 밖: the walk ends on 성산로's north sidewalk (tools/gate_town.py town.limit, the walker's barrier's north edge
+  // along 성산로). 연세로 and 신촌 로터리 are there to be seen, not walked to: the map, the bird's eye view and the start
+  // list set no walker down south of that line, but at the gate
+  const LIMIT = campus.town?.limit ?? [];
+  const beyondGate = (x, y) => {
+    for (let k = 1; k < LIMIT.length; k++) {
+      const [ax, ay] = LIMIT[k - 1], [bx, by] = LIMIT[k];
+      if (x >= Math.min(ax, bx) && x <= Math.max(ax, bx)) return y < ay + (by - ay) * (x - ax) / ((bx - ax) || 1e-6);
+    }
+    return false;
+  };
+  const landAt = (x, y) => {
+    if (!beyondGate(x, y)) return [x, y, null];
+    setTimeout(() => ui.toast('신촌 쪽으로는 걸어갈 수 없어요 · 정문에서 걸어요', 3500), 0);   // (after the start's own)
+    return [campus.spawn.pos[0], campus.spawn.pos[1], campus.spawn.yaw];
+  };
   const post = new Post(renderer, scene, camera);
   const ui = new UI(campus, {
-    onTeleport: (x, y) => { if (bird.active) leaveBird(); player.teleport(x, y); forest.update(camera.position, true); resume(); },
+    onTeleport: (x, y) => {
+      if (bird.active) leaveBird();
+      const [lx, ly, yaw] = landAt(x, y);
+      player.teleport(lx, ly, yaw);
+      forest.update(camera.position, true);
+      resume();
+    },
     onClose: () => resume(),
   });
   const ball = S.court ? new Basketball({ scene, player, ui, court: S.court, hf: hfNear, mobile: MOBILE }) : null;   // 대강당 앞 농구장
@@ -522,7 +544,8 @@ async function main() {
   // 활천대 앞 생일 축하: two students on the flagstones; you and the friend throw the birthday one in (src/birthday.js)
   const birthday = S.fountain ? new Birthday({ scene, cast, player, F: S.fountain, water: fountainWater, bubbles: crowd.bubbles, ui, shadows, blobs, mobile: MOBILE }) : null;
   // where to start walking (title card): 정문, the memory spots, then every named building at its front door
-  const places = startPlaces(campus, entrances.entrances || [], (x, y, r) => colliders.resolve(x, y, r));
+  const places = startPlaces(campus, entrances.entrances || [], (x, y, r) => colliders.resolve(x, y, r))
+    .filter((p) => !beyondGate(p.x, p.y));             // (not 신촌's buildings: past the walk's end)
   const placeEl = $('#place-pick');
   for (const group of ['추억 장소', '건물']) {
     const og = Object.assign(document.createElement('optgroup'), { label: group });
@@ -640,8 +663,9 @@ async function main() {
       [x, y] = colliders.resolve(x, y, 0.6);        // a building's tag sits inside its footprint: step out to the wall
       const fromTitle = !started;
       leaveBird();
-      if (fromTitle) startWalk(ui.placeName(x, y, false));
-      player.teleport(x, y);
+      const [lx, ly, yaw] = landAt(x, y);            // (신촌: at the gate)
+      if (fromTitle) startWalk(ui.placeName(lx, ly, false));
+      player.teleport(lx, ly, yaw);
       player.cam.ready = false;
       forest.update(camera.position, true);
     },

@@ -553,8 +553,8 @@ def layout(geo, town, extras, ground, taken_z):
         heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(t[1] * sgn, t[0] * sgn), 4), 1, 0,
                       round(ya.half * 0.75, 1)])
     # ---- the walks open to the walker: 연세로's two sidewalks from 성산로, the junction's corners within REACH, the
-    # crossings; a barrier of thin boxes round them (not along 성산로's north kerb, where they open onto the campus's
-    # side by gate_town's crossing)
+    # crossings; a barrier of thin boxes round them (not along 성산로's north kerb, where gate_town's barrier now runs
+    # unbroken over its crossing too: the walker stays on the campus's side, and these walls are out of reach)
     near = Point(*JC).buffer(REACH)
     W_parts = [walk.intersection(near)]
     yw = walk.intersection(Polygon([(-140, geo['y_top'] + 3.0), (-50, geo['y_top'] + 3.0), (-50, JC[1] - 10), (-140, JC[1] - 10)]))

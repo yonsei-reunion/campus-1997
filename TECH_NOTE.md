@@ -118,7 +118,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 땅: 5 m 격자(±800 m) 남쪽에 같은 방법의 조각 `terrain_south.bin`(x −600 ~ 400, y −1200 ~ −800 m, `campus.json` `terrain.south`). 웹 `Heightfield.setPatch` · `makeSouthTerrain`, Blender `common.ground` 가 읽고, 격자를 읽는 셰이더(벽의 흙 튐, 해 그림자 높이)는 격자만 씁니다.
 - 땅 칠: 캠퍼스 땅 지도 밖은 따로 그린 `ground_splat_town.png`(`campus.json` `tsplat`, 0.5 m: R 아스팔트, G 보도, B 지하철 계단 구멍). 칠하지 않은 곳(가운데 섬)은 잔디.
 - 무작위: `random.Random(4802)` 하나. 4.8의 집 가운데 새 길에 걸리는 것은 `b[6] = −층수` 로 남겨 Blender 가 모양을 그대로 뽑고 그리지는 않음. 새 나무는 `trees` 끝에.
-- 걷기: 걸을 수 있는 보도 · 건널목의 바깥 둘레에 1.5 m 길이의 얇은 충돌 상자(`campus.json` `colliders`)를 둘러, 차도 · 옆길 · 가게로는 나가지 못합니다. 성산로 북쪽 연석의 띠는 건널목 자리만 비움.
+- 걷기: 걸을 수 있는 보도 · 건널목의 바깥 둘레에 1.5 m 길이의 얇은 충돌 상자(`campus.json` `colliders`)를 둘러, 차도 · 옆길 · 가게로는 나가지 못합니다. 성산로 북쪽 연석의 띠는 건널목 자리까지 이어서 연세로 · 로터리로는 건너가지 못합니다. 그 띠의 북쪽 가장자리(`campus.json` `town.limit`)보다 남쪽으로는 하늘 시점 · 지도 · 출발 목록에서도 내려서지 않고 정문에 섭니다(`main.js` `beyondGate`).
 - 차: `town.lanes` 의 `stops` 가 [s, 신호 묶음, 단계]. 차마다 앞 16 m 안의 다른 길 차와 걷는 사람을 봄(성산로끼리는 전처럼 같은 길만). 신호 주기는 `town.signals`, 신호등은 `town.heads`.
 - 연세로 보도의 사람은 `town.walks` 위의 두 번째 `Crowd`(`main.js` `townCrowd`, 씨앗 11).
 
