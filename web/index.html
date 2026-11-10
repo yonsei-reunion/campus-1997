@@ -23,10 +23,10 @@
           <b id="loadpct">0%</b>
         </div>
         <p class="loadline"><span id="loadtext">캠퍼스를 불러오는 중…</span><span id="loadbytes"></span></p>
-        <button id="waitbox" type="button" title="눌러서 다음 이야기">
-          <span class="pager"><span class="lcd"><b>1997</b></span><i class="led"></i></span>
-          <span class="waittext"><small>기다리는 동안</small><span class="line">삐삐 암호와 그때의 캠퍼스 이야기</span></span>
-        </button>
+        <form id="waitbox" autocomplete="off" novalidate title="뜻을 보고 삐삐 번호를 눌러 보세요">
+          <label class="pager"><span class="lcd"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="5" enterkeyhint="done" placeholder="1997" aria-label="삐삐 번호" /></span><i class="led"></i></label>
+          <span class="waittext" aria-live="polite"><small>기다리는 동안 · 삐삐 퀴즈</small><span class="line">뜻을 보고 삐삐 번호를 눌러 보세요</span></span>
+        </form>
       </div>
       <div class="season-pick" role="radiogroup" aria-label="계절">
         <button data-season="spring">4월 · 벚꽃</button>

@@ -1,5 +1,5 @@
 // The loading screen: the bar with its percentage (index.html #loadbar) and the cards that keep the wait company
-// (#waitbox: 삐삐 number codes to guess, and things about the 1997 campus).
+// (#waitbox: a 삐삐 quiz, the meaning shown and the number keyed in).
 import { $, MOBILE, versioned } from './util.js';
 
 // ------------------------------------------------------------------ the bar
@@ -152,43 +152,21 @@ export const loading = {
   get state() { return { work, workTotal, texAsked, texDone, down: downCount(), share, target, marks }; },
 };
 
-// ------------------------------------------------------------------ the cards
-// 삐삐(무선호출기) 숫자 암호: the number first, its meaning after a moment or a tap. The others are things about the
-// campus of this game (reference/고증.md, the 추억 카드 texts of tools/build_campus.py) and about 1997.
+// ------------------------------------------------------------------ the quiz
+// 삐삐(무선호출기) 숫자 암호 맞히기: the meaning is shown, the number is keyed in on the pager's screen. It is checked
+// once it has as many digits as the answer (a phone's number pad has no Enter), and only a right answer brings the
+// next one. Every second miss shows one more digit of the answer, faintly, on the screen.
 const CODES = [
-  ['8282', '빨리빨리', '「빨리 와!」'],
-  ['1004', '천사', '「넌 나의 천사」'],
-  ['486', '사랑해', '글자의 획수가 4 · 8 · 6'],
-  ['1010235', '열렬히 사모', '열(10) · 열(10) · 이(2) · 삼(3) · 오(5)'],
-  ['7942', '친구 사이', '「우리는 친구 사이」'],
-  ['0242', '연인 사이', '「우리는 연인 사이」'],
-  ['0404', '영원히 사랑해', '영(0) · 사(4) · 영(0) · 사(4)'],
-  ['1212', '홀짝홀짝', '「술 한잔하자」'],
-  ['175', '일찍 와', '일(1) · 칠(7) · 오(5)'],
-  ['045', '빵 사 와', '빵(0) · 사(4) · 오(5)'],
-  ['100', '돌아와', 'back(백) = 100'],
-  ['2848', '이판사판', '이(2) · 팔(8) · 사(4) · 팔(8)'],
+  // [number, meaning, the kind of code (shown with the question), how it reads (shown once it is right)]
+  ['38317', '사랑해', '뒤집어 읽는 숫자', '거꾸로 보면 LIEBE, 독일어로 「사랑」'],
+  ['8282', '빨리빨리', '소리 내어 읽는 숫자', '팔(8) · 이(2) · 팔(8) · 이(2)'],
+  ['7942', '친구 사이', '소리 내어 읽는 숫자', '칠(7) · 구(9) · 사(4) · 이(2)'],
+  ['1004', '천사', '소리 내어 읽는 숫자', '천(1000) · 사(4)'],
+  ['9090', '가자', '모양이 닮은 숫자', '9는 g, 0은 o를 닮아 「GO GO」'],
+  ['505', '도와줘', '모양이 닮은 숫자', '5는 S, 0은 O를 닮아 「SOS」'],
+  ['1472', '일사천리', '소리 내어 읽는 숫자', '일(1) · 사(4) · 칠(7) · 이(2)'],
 ];
-const FACTS = [
-  ['12', '백양로의 오르막', '정문에서 본관 앞 삼거리까지 백양로는 12 m를 오릅니다. 그래서 아침마다 숨이 찼습니다.'],
-  ['1997', '옛 노천극장', '잔디 계단 객석의 옛 노천극장은 1997년이 마지막 해였습니다. 그 마지막 모습을 걸어 보세요.'],
-  ['1974', '활천대', '독수리상 옆 분수 활천대 앞에서는, 생일을 맞은 친구에게 다가가 보세요.'],
-  ['1996', '대우관', '대우관은 1996년 6월에 문을 열었습니다. 정문에서 900 m, 가장 높고 깊숙한 곳입니다.'],
-  ['2015', '백양로', '1997년의 백양로는 차와 사람이 함께 다니던 2차선 길이었습니다. 차도는 2015년에 땅속으로 들어갔습니다.'],
-  ['1957', '용재관', '언더우드 동상 너머의 흰 계단탑, 용재관은 1957년에 지어져 2013년에 헐렸습니다.'],
-  ['200', '건물', '랜드마크 말고도 200여 동의 건물이 실제 외곽선 위에 서 있습니다. 창의 7 %쯤은 열려 있습니다.'],
-  ['33', '번호판', '차들은 2004년 이전의 두 줄 번호판을 달았습니다. 녹색 바탕에 「서울 33 가 1997」.'],
-  ['0', '시내버스', '1997년에는 시내버스가 교내로 들어오지 않았습니다. 그래서 백양로에는 버스가 없습니다.'],
-  ['419', '4 · 19 마라톤', '1997년 4월 18일 학생회관 앞에서 200여 명이 10 km를 달렸습니다.'],
-  ['2', '제2백양로', '굴다리 너머 신촌 거리를 「제2백양로」라고 불렀습니다. 가을이면 푸른 응원 현수막이 걸렸습니다.'],
-  ['1971', '독수리다방', '굴다리 앞 독수리다방은 1971년에 문을 열었습니다. 삐삐가 없던 때에는 메모판에 쪽지를 남겼습니다.'],
-  ['97.3', '시티폰', '1997년 3월, 걸 수만 있는 전화 시티폰이 나왔습니다. 공중전화 부스 근처에서만 터졌습니다.'],
-  ['97.10', 'PCS', '1997년 10월에 016 · 018 · 019 PCS가 시작되었습니다. 삐삐의 시대가 저물던 가을입니다.'],
-  ['01410', 'PC통신', '01410은 하이텔의 접속 번호였습니다. 모뎀 소리가 끝나야 파란 화면이 열렸습니다.'],
-  ['E', '추억 카드', '랜드마크 앞에서 E 를 누르면(폰은 「추억 보기」) 그 시절 사진이 담긴 추억 카드가 열립니다.'],
-  ['3', '계절', '4월 벚꽃, 5월 신록, 10월 단풍. 걷는 중에도 설정에서 계절을 바꿀 수 있습니다.'],
-];
-const SHOW_Q = 2800, SHOW_A = 4200, SHOW_FACT = 7500;
+const NEXT_MS = 2600, AGAIN_MS = 4000, MISS_MS = 650;
 
 function shuffled(list, rnd = Math.random) {
   const a = list.slice();
@@ -196,62 +174,96 @@ function shuffled(list, rnd = Math.random) {
   return a;
 }
 
-function waitCards() {
+function pagerQuiz() {
   const box = $('#waitbox');
   if (!box) return;
-  const lcd = box.querySelector('.lcd b'), kicker = box.querySelector('small'), line = box.querySelector('.line');
-  // a code, then a fact, in turn: both lists in a new order every visit
-  const codes = shuffled(CODES), facts = shuffled(FACTS);
-  const deck = [];
-  for (let i = 0; i < Math.max(codes.length, facts.length); i++) {
-    deck.push({ code: codes[i % codes.length] }, { fact: facts[i % facts.length] });
-  }
-  let at = -1, open = true, timer = 0;
+  const pad = box.querySelector('input'), kicker = box.querySelector('small'), line = box.querySelector('.line');
+  let round = [], at = 0, misses = 0, lock = null, timer = 0;   // lock: the screen's text while it shows a verdict
   const later = (ms, fn) => { clearTimeout(timer); timer = setTimeout(fn, ms); };
   const flip = (fn) => {
     // (the text changes while it is faded out: style.css .turn)
     box.classList.add('turn');
     setTimeout(() => { fn(); box.classList.remove('turn'); }, 160);
   };
-  const reveal = () => {
-    const [, meaning, how] = deck[at].code;
-    open = true;
-    box.classList.remove('ask');
-    flip(() => { kicker.textContent = '삐삐 암호'; line.innerHTML = `<b>${meaning}</b> <span>${how}</span>`; });
-    later(SHOW_A, next);
+  const buzz = (cls, ms) => {
+    box.classList.remove(cls);
+    void box.offsetWidth;                              // (so the animation starts over)
+    box.classList.add(cls);
+    setTimeout(() => box.classList.remove(cls), ms);
+  };
+  const show = (text, faint) => { lock = faint ? null : text; pad.value = faint ? '' : text; pad.placeholder = faint ? text : ''; };
+  const ask = () => {
+    const [num, meaning, kind] = round[at];
+    misses = 0;
+    show('_'.repeat(num.length), true);
+    pad.maxLength = num.length;
+    box.classList.remove('right');
+    flip(() => {
+      kicker.textContent = `삐삐 퀴즈 ${at + 1} / ${round.length} · 이 뜻의 번호는?`;
+      line.innerHTML = `<b>${meaning}</b> <span>${kind}</span>`;
+    });
+    buzz('ring', 900);
+  };
+  const deal = () => {
+    const last = round[round.length - 1];
+    round = shuffled(CODES);
+    if (round[0] === last) round.push(round.shift());  // (a new round never opens with the code that ended the last)
+    at = 0;
+    ask();
   };
   const next = () => {
-    if (box.offsetParent === null) return;            // (the walk has begun: the title screen is hidden)
-    at = (at + 1) % deck.length;
-    const card = deck[at];
-    flip(() => {
-      if (card.code) {
-        lcd.textContent = card.code[0];
-        kicker.textContent = '삐삐가 울렸습니다';
-        line.innerHTML = '무슨 뜻일까요? <span>눌러서 확인</span>';
-      } else {
-        const [n, title, text] = card.fact;
-        lcd.textContent = n;
-        kicker.textContent = title;
-        line.textContent = text;
-      }
-    });
-    box.classList.toggle('ask', !!card.code);
-    box.classList.add('ring');
-    setTimeout(() => box.classList.remove('ring'), 900);
-    open = !card.code;
-    later(card.code ? SHOW_Q : SHOW_FACT, card.code ? reveal : next);
+    if (++at < round.length) return ask();
+    box.classList.remove('right');
+    show(`${round.length}-${round.length}`);
+    flip(() => { kicker.textContent = '삐삐 퀴즈 완주'; line.innerHTML = `<b>모두 맞혔습니다</b> <span>곧 새 판이 시작됩니다</span>`; });
+    buzz('ring', 900);
+    later(AGAIN_MS, deal);
   };
-  box.addEventListener('click', () => (open ? next() : reveal()));
-  // (a hidden tab's timers crawl: start again from the next card when it comes back)
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && box.offsetParent !== null) later(600, next); });
-  next();
+  const check = () => {
+    const [num, meaning, , how] = round[at];
+    if (pad.value === num) {
+      show(num);
+      box.classList.add('right');
+      flip(() => { kicker.textContent = '정답!'; line.innerHTML = `<b>${meaning}</b> <span>${how}</span>`; });
+      buzz('ring', 900);
+      later(NEXT_MS, next);
+      return;
+    }
+    misses++;
+    const hint = Math.min(num.length, misses >> 1);
+    show(pad.value);
+    buzz('wrong', 400);
+    kicker.textContent = hint ? '다시 한 번 · 화면에 힌트' : '다시 한 번';
+    later(MISS_MS, () => show(num.slice(0, hint) + '_'.repeat(num.length - hint), true));
+  };
+  const typed = () => {
+    if (lock !== null) { pad.value = lock; return; }  // (a verdict is on the screen: keys wait for the next question)
+    const v = pad.value.replace(/\D/g, '');
+    if (v !== pad.value) pad.value = v;
+    if (!v) return;
+    box.classList.add('played');                      // (a game in play is not folded away when the load is over)
+    if (v.length >= round[at][0].length) check();
+  };
+  pad.addEventListener('input', typed);
+  box.addEventListener('submit', (e) => { e.preventDefault(); if (lock === null && pad.value) check(); });
+  box.addEventListener('click', (e) => { if (e.target !== pad) pad.focus(); });
+  // on a desktop the digits can be typed straight away, wherever the focus is on the title card
+  addEventListener('keydown', (e) => {
+    if (!/^[0-9]$/.test(e.key) || e.ctrlKey || e.metaKey || e.altKey || e.target === pad) return;
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || box.offsetParent === null || $('#news')?.hidden === false) return;
+    if ($('#loadblock')?.classList.contains('done') && !box.classList.contains('played')) return;   // (folded)
+    e.preventDefault();
+    pad.focus();
+    if (lock === null && pad.value.length < pad.maxLength) pad.value += e.key;
+    typed();
+  });
+  deal();
 }
 
 function setup() {
   els.bar = $('#loadbar'); els.fill = $('#loadfill'); els.pct = $('#loadpct'); els.text = $('#loadtext'); els.bytes = $('#loadbytes');
   if (!els.fill) return;
   update();
-  waitCards();
+  pagerQuiz();
 }
 setup();
