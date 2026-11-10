@@ -195,18 +195,28 @@ export class InstancedKit {
 // out, worked out again once the camera has turned or moved past those margins (and the buffers sent again only when
 // that changed what is in view). A part with none in view is hidden (three draws an InstancedMesh of count 0 too).
 // A kit may have a lighter model for the instances farther than some distance (the parked cars).
-// whole(): the full sets, for what draws from elsewhere (the static shadow cache, shadows.js; the sun-shadow bake).
+// shadowPass(on): the full sets, from buffers of their own, for the static shadow cache (shadows.js). That pass runs
+// inside the frame's render, after three has sent the culled buffers up and before it draws them, and three sends an
+// InstancedMesh's buffer at most once a render: refilling the culled buffers there (and culling again after) left the
+// frame drawing the first instances of the full list (shrubs and trees in view gone for a frame, others far off shown).
+// whole(): the full sets in the culled buffers, until the next update() (the sun-shadow bake).
 const TURN = 6 * Math.PI / 180, PAD = 2.5;
 const _q = new THREE.Quaternion(), _p = new THREE.Vector3(), _c = new THREE.Vector3(), _mm = new THREE.Matrix4();
 
 // parts sharing one transform list: one buffer for all of them (one upload), a copy of the full list to pack from
+// (a buffer of its own too, for shadowPass; three makes it on the GPU only once something draws from it)
 function packed(parts) {
   const M = parts[0].instanceMatrix, cap = M.count;
   for (const p of parts) p.instanceMatrix = M;
   M.setUsage(THREE.DynamicDrawUsage);
   for (const p of parts) p.instanceColor?.setUsage(THREE.DynamicDrawUsage);
-  const colors = parts.filter((p) => p.instanceColor).map((p) => [p.instanceColor, new Float32Array(cap * 3)]);
-  return { parts, M, all: new Float32Array(cap * 16), colors, idx: new Uint32Array(cap), shown: 0 };
+  // [the part's attribute, the full list, that list's attribute, the part]
+  const colors = parts.filter((p) => p.instanceColor).map((p) => {
+    const src = new Float32Array(cap * 3);
+    return [p.instanceColor, src, new THREE.InstancedBufferAttribute(src, 3), p];
+  });
+  const all = new Float32Array(cap * 16);
+  return { parts, M, all, allM: new THREE.InstancedBufferAttribute(all, 16), colors, idx: new Uint32Array(cap), shown: 0 };
 }
 
 export class KitCuller {
@@ -259,7 +269,8 @@ export class KitCuller {
     const d = s.near;
     for (const p of d.parts) p.visible = true;
     this._send(d.M, n * 16);                           // (all of it: a hidden part's last range may be pending)
-    for (const [attr] of d.colors) this._send(attr, n * 3);
+    this._send(d.allM, n * 16);
+    for (const [attr, , allC] of d.colors) { this._send(attr, n * 3); this._send(allC, n * 3); }
     d.shown = n;
     this._hide(s.far);
     s.valid = false;
@@ -294,7 +305,22 @@ export class KitCuller {
     this.full = false;
   }
 
-  // every instance drawn, in the full model (update() culls again)
+  // on: every instance drawn, in the full model, from the full lists' buffers; off: back to the culled buffers as
+  // they were (untouched meanwhile, so what three sent of them before the shadow pass is what the frame draws)
+  shadowPass(on) {
+    for (const s of this.sets) {
+      const d = s.near;
+      for (const p of d.parts) {
+        p.instanceMatrix = on ? d.allM : d.M;
+        p.count = on ? s.n : d.shown;
+        p.visible = p.count > 0;
+      }
+      for (const [attr, , allC, p] of d.colors) p.instanceColor = on ? allC : attr;
+      if (s.far) for (const p of s.far.parts) p.visible = !on && s.far.shown > 0;
+    }
+  }
+
+  // every instance drawn, in the full model, from the culled buffers (update() culls again)
   whole() {
     for (const s of this.sets) {
       const d = s.near, n = s.n;

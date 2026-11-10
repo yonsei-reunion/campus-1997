@@ -175,7 +175,7 @@ async function main() {
   // the kits placed for good, the forest and the far hills' trees, drawn only where in view (world.js); whole into
   // the shadow cache
   const kitCull = new KitCuller();
-  shadows.wholeSets = (on) => (on ? kitCull.whole() : kitCull.update(camera, true));
+  shadows.wholeSets = (on) => kitCull.shadowPass(on);
   const farForest = makeFarForest(hfFar, T.near.half);
   kitCull.add([farForest]);
   scene.add(farForest);
