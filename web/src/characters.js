@@ -11,18 +11,18 @@ import { mulberry, versioned } from './util.js';
 
 export const PEOPLE = {
   'man-tee': '흰 티 · 청바지',
-  'man-check': '버건디 셔츠',
+  'man-check': '줄무늬 티',
   'man-cheer': '파란 점퍼',
   'man-hoodie': '남색 후드티',
-  'man-grey': '갈색 염색 머리',
+  'man-grey': '아이보리 점퍼',
   'man-blazer': '콤비 재킷',
   'man-professor': '교수님',
   'man-staff': '교직원',
   'woman-tee': '흰 티 · 청바지',
   'woman-pink': '분홍 니트',
-  'woman-dress': '베이지 롱원피스',
-  'woman-dress-blue': '남색 롱원피스',
-  'woman-cardigan': '올리브 카디건',
+  'woman-dress': '흰 니트 · 검정 치마',
+  'woman-dress-blue': '배꼽티 · 청바지',
+  'woman-cardigan': '노란 카디건',
   'woman-staff': '교직원',
 };
 export const STUDENTS = ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man-grey', 'man-blazer',
@@ -125,27 +125,40 @@ function mergeParts(root) {
 // 3.2 %, about 5.5 cm (6 % at most), builds by a couple of per cent. Every model has a pair of thin-rimmed glasses
 // (blender/characters.py): about three in ten of the crowd wear theirs, whatever they wear else (four of the eleven
 // students in the anthology's photographs of 1997-2002 do: reference/고증 4.9), most professors, in metal rims or,
-// one in five, dark ones. The heroes, the drivers and the birthday pair keep the models as they are.
+// one in five, dark ones. Skin: the four tones evenly, and about one in fourteen each fair or tanned. The heroes, the
+// drivers and the birthday pair keep the models as they are.
 const JEANS = ['#46638f', '#2b3c5c', '#7f9cc0', '#8fa8c8'];
 const SKIN = ['#f0c9a4', '#e6b991', '#d9a77d', '#c99168'];
+const SKIN_FAIR = '#f7ddc8', SKIN_TAN = '#b9825a';      // now and then somebody fair, or tanned (가무잡잡)
 const RIMS = ['#77736c', '#2a2420'];       // thin metal, dark horn
 // material name -> the colours to draw from (the first is the model's own)
 const LOOKS = {
   'man-tee': { LightBrown: ['#f1efe8', '#f1efe8', '#d8dde3', '#e9dfa8', '#a9c3de', '#2f3a55', '#9a9a96'], LightBlue: [...JEANS, '#a8946a'] },
-  'man-check': { LightBrown: ['#8a3a33', '#2f5a45', '#27406e', '#b58a3a', '#5b6b7c', '#e4e0d4'], LightBlue: [...JEANS, '#3a3f47', '#a8946a'] },
+  'man-check': { LightBrown: ['#1f2f55', '#2f5a45', '#6e2430', '#1f2f55', '#2a2a2e', '#e4e0d4'], LightBlue: [...JEANS, '#3a3f47', '#a8946a'] },
   'man-hoodie': { Purple: ['#23345e', '#8d8f92', '#2f5a45', '#6e2430', '#c9c3b2', '#1f1f24'], LightBlue: ['#a8946a', ...JEANS, '#3a3f47'] },
   'man-cheer': { LightBlue: JEANS },                       // (the cheer jacket stays Yonsei blue)
-  'man-grey': { Purple: ['#b3262e', '#8d8f92', '#d8b23a', '#2f6a4a', '#e9e6dc', '#274a8a'], LightBlue: JEANS },
-  'man-blazer': { Suit: ['#5e4634', '#27304a', '#4a4d52', '#8a7a5c', '#3d4a3a'], LightBlue: [...JEANS, '#3a3f47', '#a8946a'] },
+  'man-grey': { Purple: ['#e8e0b0', '#8d8f92', '#2f6a4a', '#27406e', '#b3262e', '#1f1f24'], LightBlue: JEANS },
+  'man-blazer': { Suit: ['#27304a', '#5e4634', '#4a4d52', '#8a7a5c', '#3d4a3a'], LightBlue: ['#b9a67e', ...JEANS, '#2c3550'] },
   'man-professor': { Suit: ['#55595f', '#2c3448', '#4a4038', '#3a3f47', '#6b6a5c'], Tie: ['#2f4a7a', '#6e2430', '#3d5a45', '#4a4a50'] },
   'man-staff': {},
   'woman-tee': { White: ['#f4f1e8', '#f4f1e8', '#f3d9de', '#cfe0ee', '#e9dfa8', '#2f3a55', '#b9c9a8'], Orange: [...JEANS, '#cdb994', '#2a2a2e'] },
   'woman-pink': { White: ['#e7a7b6', '#f0e6d2', '#a9c3de', '#c7b3dc', '#b5d6c3', '#e8c66a', '#c95a5a'], Orange: ['#cdb994', ...JEANS, '#2a2a2e', '#f0eee8'] },
-  'woman-dress': { LimeGreen: ['#e3d7bd', '#d9b8b0', '#aeb89a', '#c9b48a', '#8f6f5a', '#b7c4d6'] },
-  'woman-dress-blue': { LimeGreen: ['#4f6f9c', '#27304a', '#6e2430', '#2f5a45', '#3a3338', '#7a5a7a'] },
-  'woman-cardigan': { Black: ['#6f7f5a', '#b58a3a', '#7a2f38', '#8d8f92', '#2f3a55', '#e6dcc6', '#c98a8a'], Orange: ['#2b2f3a', ...JEANS, '#5b5348', '#cdb994'] },
+  'woman-dress': { LimeGreen: ['#f1ede1', '#f3d9de', '#cfe0ee', '#ecdf9e', '#2a2a2e', '#b9c9a8'] },
+  'woman-dress-blue': { Pink: ['#a9c6e6', '#f4f1e8', '#f3d9de', '#e9dfa8', '#2a2a2e', '#c95a5a'] },
+  'woman-cardigan': { Black: ['#ecdf9e', '#f3d9de', '#6f7f5a', '#8d8f92', '#2f3a55', '#e6dcc6', '#c98a8a'], Orange: ['#46638f', ...JEANS, '#2b2f3a', '#cdb994'] },
   'woman-staff': { Black: ['#2f3644', '#3a3f47', '#4a4038', '#5b6470'] },
 };
+// the parts painted on an outfit (blender/characters.py `paint`): the stripes and the collar of a tee, a jumper's
+// collar, a skirt, the jeans under a cropped tee. Drawn from a stream of their own, after everything else
+const LOOKS_MORE = {
+  'man-check': { Stripe: ['#1f8580', '#e9e4d6', '#d8b23a', '#7f9cc0', '#b3262e'], Stripe2: ['#d8742c', '#e9e4d6', '#8d8f92', '#c95a5a'],
+    Collar: ['#ece8dc', '#ece8dc', '#1f2f55'] },
+  'man-grey': { Collar: ['#3b3a3c', '#1f2a46', '#e9e6dc', '#5a1f28'] },
+  'woman-dress': { Skirt: ['#1f1f24', '#1f1f24', '#27304a', '#6e2430', '#8a7a5c', '#4a4d52'] },
+  'woman-dress-blue': { Orange: [JEANS[1], ...JEANS, '#f0eee8', '#e3cf7a', '#2a2a2e'] },
+};
+// about one striped tee in three is plain: its stripes and collar in the tee's own colour
+const PLAIN = { 'man-check': ['LightBrown', ['Stripe', 'Stripe2', 'Collar'], 0.35] };
 
 // the look of the n-th person of the crowd: { colors: {material: hex}, scale: [width, height], glasses }. Its own
 // random stream (as bags.js crowdBag), so the crowd's paths and faces stay where they were. The drawn lines of the
@@ -155,9 +168,10 @@ export function crowdLook(id, n) {
   const colors = {};
   const set = LOOKS[id] || {};
   for (const k in set) colors[k] = set[k][Math.floor(r() * set[k].length)];
-  colors.Skin = SKIN[Math.floor(r() * SKIN.length)];
+  const s = r();
+  colors.Skin = s < 0.07 ? SKIN_FAIR : s >= 0.93 ? SKIN_TAN : SKIN[Math.floor((s - 0.07) / 0.86 * SKIN.length)];
   const h = r();
-  if (id !== 'man-professor' && id !== 'man-grey') {       // (grey hair, and the dyed brown of 1997, stay)
+  if (id !== 'man-professor' && id !== 'man-grey' && id !== 'woman-dress-blue') {       // (grey hair, and the dyed brown of 1997, stay)
     colors.Hair = h < 0.74 ? '#141110' : h < 0.93 ? '#2b1f18' : '#4a3020';
   }
   const tall = 1 + 0.032 * ((r() + r() + r() - 1.5) / 0.5);            // about normal, sd 3.2 %
@@ -165,6 +179,10 @@ export function crowdLook(id, n) {
   const clamp = (v) => Math.min(1.065, Math.max(0.94, v));
   const glasses = r() < (id === 'man-professor' ? 0.7 : 0.3);
   colors.Glasses = RIMS[r() < 0.8 ? 0 : 1];
+  const r2 = mulberry(n * 40503 + 331), more = LOOKS_MORE[id] || {};
+  for (const k in more) colors[k] = more[k][Math.floor(r2() * more[k].length)];
+  const plain = PLAIN[id];
+  if (plain && r2() < plain[2]) for (const k of plain[1]) colors[k] = colors[plain[0]];
   return { colors, scale: [clamp(tall * build), clamp(tall)], glasses };
 }
 

@@ -42,7 +42,7 @@ FACE = {
                 brow=(.0246, .0056, .0026, .0028), mouth=(.0215, .0016), mouth_dz=-.0747, nose_dz=-.0521, lash=.0030,
                 lip=.0054, chin=.74, cheek=1.18),
     'women': dict(eye=(.0174, .0048), lid=dict(mono=.0074, inner=.0085, double=.0096), iris=.0068, gap=.0376, slant=.09,
-                  brow=(.0272, .0042, .0018, .0040), mouth=(.0195, .0015), mouth_dz=-.0793, nose_dz=-.0595, lash=.0036,
+                  brow=(.0262, .0056, .0028, .0040), mouth=(.0195, .0015), mouth_dz=-.0793, nose_dz=-.0595, lash=.0036,
                   lip=.0052, chin=.78, cheek=1.16),
 }
 # what the lines do to the skin's (linear) light
@@ -206,17 +206,29 @@ def draw_face(rig, face, skin, brow):
         if age == 'old':                                    # the fold under an older eye
             ts = np.linspace(-0.55, 0.75, 14)
             cv.ink(cv.stroke([(at(t), bot(t) - 0.0042 - 0.0012 * (1 - t * t)) for t in ts], 0.0003), LINE, 0.5)
-        # the brow: one stroke from over the inner corner out past the eye, a low arch, thinning to the tail
-        ts = np.linspace(0.0, 1.0, 25)
-        length = 2.72 * hw
+        # the brow: one stroke from over the inner corner out past the eye, thinning to the tail.  A person's own:
+        # how heavy it is (brow) and how far its tail keeps that weight (brow_taper), how long (brow_len), how far
+        # from the other (brow_gap, m), how high (brow_up, m), how much it arches (arch) and where its top is
+        # (brow_peak, of its length), whether it turns there in a corner (brow_corner: 각진 눈썹) or in a curve, how
+        # far the tail falls after it (brow_drop), the tail higher or lower than the head (brow_tilt), and how hard
+        # its edge is (brow_soft, pixels: bushy brows are soft)
+        ts = np.linspace(0.0, 1.0, 33)
+        t0 = -1.22 + face.get('brow_gap', 0.0) / hw
+        t1 = -1.22 + 2.72 * face.get('brow_len', 1.0)
+        length = (t1 - t0) * hw
+        peak, corner = face.get('brow_peak', 0.62), face.get('brow_corner', False)
         tilt = face.get('brow_tilt', 0.0) + 0.15 * slant - 0.01
-        bz = bh + arch * (0.35 + 0.65 * np.sin(np.pi * np.minimum(1.0, ts / 0.62) / 2)) \
-            - arch * 1.35 * (np.maximum(0.0, ts - 0.62) / 0.38) ** 1.5 + tilt * (ts - 0.5) * length
-        th = (bt0 + (bt1 - bt0) * ts ** 1.3) * face.get('brow', 1.0) * (0.72 + 0.28 * _smooth(0.0, 0.12, ts)) \
-            * (1 - 0.45 * _smooth(0.82, 1.0, ts))
+        rise = np.minimum(1.0, ts / peak)
+        rise = rise if corner else np.sin(np.pi * rise / 2)
+        fall = (np.maximum(0.0, ts - peak) / (1 - peak)) ** (1.15 if corner else 1.5)
+        bz = bh + face.get('brow_up', 0.0) + arch * (0.35 + 0.65 * rise) \
+            - arch * 1.35 * face.get('brow_drop', 1.0) * fall + tilt * (ts - 0.5) * length
+        taper = face.get('brow_taper', 1.0)
+        th = (bt0 + (bt1 * taper - bt0) * ts ** 1.3) * face.get('brow', 1.0) * (0.72 + 0.28 * _smooth(0.0, 0.12, ts)) \
+            * (1 - 0.45 / taper * _smooth(0.82, 1.0, ts))
         tint = np.clip(_linear(brow) / _linear(skin), 0.0, 1.0)
-        cv.ink(cv.stroke([(at(-1.22 + 2.72 * t), z) for t, z in zip(ts, bz)], th / 2, soft=1.8), tint,
-               face.get('brow_ink', 1.0))
+        cv.ink(cv.stroke([(at(t0 + (t1 - t0) * t), z) for t, z in zip(ts, bz)], th / 2, soft=face.get('brow_soft', 1.8)),
+               tint, face.get('brow_ink', 1.0))
     # the mouth: one line, its corners a little up, a dot's weight at each corner; under it the lower lip (a man's: a
     # light tint and a short shadow under it, a woman's: tinted)
     mw, mt = f['mouth']
