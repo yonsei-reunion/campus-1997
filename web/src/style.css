@@ -56,7 +56,7 @@ h1 span { color: var(--ink); font-size: .72em; }
 #place-pick { display: block; width: 100%; margin: 0 0 14px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; color: var(--ink);
   padding: 8px 12px; font: 700 15px var(--font); cursor: pointer; }
 #place-pick:disabled { opacity: .45; cursor: progress; }
-#hero-pick { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 14px; min-height: 40px; }
+#hero-pick { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 14px; min-height: 40px; }
 #hero-pick button { border: 2px solid #d9d3c3; background: linear-gradient(180deg, #e6f4f2, #fdf8e1); border-radius: 10px; padding: 4px 2px 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 #hero-pick button.on { border-color: var(--blue); box-shadow: 0 0 0 2px var(--yellow) inset; }
 #hero-pick img { width: 100%; max-width: 90px; aspect-ratio: 150 / 190; object-fit: contain; }
@@ -270,7 +270,7 @@ body.birds #stamps { display: none; }
 
 @media (max-width: 640px) {
   .keys { grid-template-columns: repeat(2, 1fr); }
-  #hero-pick { grid-template-columns: repeat(3, 1fr); }
+  #hero-pick { grid-template-columns: repeat(4, 1fr); }
   #minimap { width: 120px; height: 120px; }
   #stamps { top: calc(146px + var(--st)); width: 120px; }
   #hudbtns { top: calc(196px + var(--st)); width: 120px; }

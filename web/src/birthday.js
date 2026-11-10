@@ -19,7 +19,7 @@ import { ArmPose, Stance, Hands, aimAxis, twoBone } from './armpose.js';
 import { lineTime } from './talk.js';
 import { wrapAngle } from './util.js';
 
-const BDAY = 'man-hoodie', FRIEND = 'man-grey';   // not among the heroes, so you never meet yourself
+const BDAY = 'man-hoodie', FRIEND = 'man-blazer';   // not among the heroes, so you never meet yourself
 const SPOT_A = -105 * Math.PI / 180;              // where they stand: bearing from the basin's centre (campus, from east)
 const SPOT_R = 5.3;                               // on the flagstones (wall's outer face 4.75, flagstones to 5.85)
 const LAND_R = 2.6;                               // where the birthday student comes down in the pool

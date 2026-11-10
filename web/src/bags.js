@@ -34,7 +34,7 @@ const PALETTE = {
 };
 PALETTE.sling = PALETTE.backpack;
 
-// the player's characters (characters.js HEROES): four of the six
+// the player's characters (characters.js HEROES): four of the seven
 export const HERO_BAGS = {
   'man-tee': { type: 'backpack', color: '#1b1b1e', size: 1 },
   'man-cheer': { type: 'sling', color: '#55585e', side: -1, size: 1 },
