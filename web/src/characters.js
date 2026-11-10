@@ -100,7 +100,10 @@ function mergeParts(root) {
 // pair keep the models as they are.
 const JEANS = ['#46638f', '#2b3c5c', '#7f9cc0', '#8fa8c8'];
 const SKIN = ['#f0c9a4', '#e6b991', '#d9a77d', '#c99168'];
-const HAIR_PARTS = ['Hair', 'Hair_Blond-head', 'Hair_Brown-head', 'Red-head'];
+// lips and brows follow the skin and the hair as in blender/characters.py (head_1997): linear light scaled, sRGB mixed
+const LIP = { man: [0.80, 0.58, 0.56], woman: [0.84, 0.46, 0.47] };
+const mixHex = (a, b, t) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t)
+  + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('');
 // material name -> the colours to draw from (the first is the model's own)
 const LOOKS = {
   'man-tee': { LightBrown: ['#f1efe8', '#f1efe8', '#d8dde3', '#e9dfa8', '#a9c3de', '#2f3a55', '#9a9a96'], LightBlue: [...JEANS, '#a8946a'] },
@@ -128,11 +131,13 @@ export function crowdLook(id, n) {
   for (const k in set) colors[k] = set[k][Math.floor(r() * set[k].length)];
   const skin = SKIN[Math.floor(r() * SKIN.length)];
   colors.Skin = skin;
-  colors.Skin_Darker = '#' + new THREE.Color(skin).multiplyScalar(0.72).getHexString();
+  const lip = LIP[id.startsWith('woman') ? 'woman' : 'man'], c = new THREE.Color(skin);
+  colors.Lip = '#' + c.setRGB(c.r * lip[0], c.g * lip[1], c.b * lip[2]).getHexString();
   const h = r();
   if (id !== 'man-professor' && id !== 'man-grey') {       // (grey hair, and the dyed brown of 1997, stay)
     const hair = h < 0.74 ? '#141110' : h < 0.93 ? '#2b1f18' : '#4a3020';
-    for (const k of HAIR_PARTS) colors[k] = hair;
+    colors.Hair = hair;
+    colors.Brow = mixHex(hair, skin, 0.12);
   }
   const tall = 1 + 0.032 * ((r() + r() + r() - 1.5) / 0.5);            // about normal, sd 3.2 %
   const build = 1 + 0.02 * (r() + r() - 1);
