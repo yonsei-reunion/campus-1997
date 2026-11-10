@@ -32,7 +32,9 @@ const HERO_AT = 0.8, FRIEND_AT = -0.48;          // where you squat for the ankl
                                                   // the line of the carry from where the birthday student stands)
 const CARRY_AT = HERO_AT - 0.97;                  // the hips there once carried: your hands just reach the ankles
 const PALM = 0.08;                                // wrist to the middle of the palm
-const TAKE_T = 1.0, LIFT_T = 1.5;                 // taking hold (s), laying over and lifting (s)
+const TAKE_T = 1.15, LIFT_T = 1.5;                // taking hold (s), laying over and lifting (s)
+const RAISE_T = 0.7;                              // their arms from their sides, up in front and over to the friend (s)
+const ARM_BACK = new THREE.Vector3(0.09, 0.47, -0.34);   // the wrists from the shoulders once up and back (own frame)
 const SWING_T = 0.8, SWING_A = 0.32;              // one swing (s) and how far out / in it goes (m)
 const HEAVE_T = 0.42, HEAVE_X = 0.38, HEAVE_Y = 0.42;   // the last swing in: how long, and where they let go (in, up)
 const FLY_T = 0.8;                                // in the air (s)
@@ -399,6 +401,11 @@ export class Birthday {
           this.yaw0 = b.heading;
           b.holder.updateMatrixWorld(true);
           this.stand = this.bones.feet.map((x) => x.getWorldPosition(new THREE.Vector3()));
+          // their arms as the clip has them now (own frame): the shoulder to the wrist, and the arm's length
+          this.arm0 = this.bPose.arms.map((arm) => {
+            const [sh, el, w] = [arm.up, arm.low, arm.wrist].map((x) => b.holder.worldToLocal(x.getWorldPosition(new THREE.Vector3())));
+            return { w: w.clone().sub(sh), len: sh.distanceTo(el) + el.distanceTo(w) };
+          });
           this.hips0 = this.hipIdle.clone().applyAxisAngle(_Y, tanYaw).add(this.spot);
           this.hips1 = this.mid.clone().setY(F.h + CARRY_H);
           this.hR = reachOf(this.hero);
@@ -406,11 +413,13 @@ export class Birthday {
         break;
       }
       case 'take': {
-        // their arms go up and back to the friend's hands; you squat down to their ankles
+        // their arms go up in front of them and on over their head, back to the friend's hands (who reaches for
+        // the wrists once they are over); you squat down to their ankles
         this.pose(this.hips0, this.yaw0 + wrapAngle(tanYaw - this.yaw0) * ease(s / 0.3), 0, 0, 0);
-        this.armsUp = ease(s / 0.5);
+        this.armsUp = ease(s / 0.15);
+        this.raise = ease(s / RAISE_T);
         this.legW = ease(s / 0.3);
-        this.fW = ease((s - 0.25) / 0.45);
+        this.fW = ease((s - 0.5) / 0.45);
         this.hW = ease((s - 0.4) / 0.5);
         if (s > TAKE_T) this.go('lift');
         break;
@@ -739,8 +748,8 @@ export class Birthday {
     this.hT = this.hT.map((p) => p.clone().add(push));
   }
 
-  // the carried student's arms up over their head (in their own frame): straight out to the friend's hands while
-  // held, swaying a little as on a ride once let go
+  // the carried student's arms up over their head (in their own frame): raised in front of them and over to the
+  // friend's hands, straight out while held, swaying a little as on a ride once let go
   cheerArms(t, held) {
     const pose = this.bPose, h = this.b.holder;
     if (!pose.ok) return;
@@ -749,11 +758,24 @@ export class Birthday {
     for (let i = 0; i < 2; i++) {
       const sg = i ? -sL : sL, ph = i * 1.9;
       const sh = h.worldToLocal(pose.arms[i].up.getWorldPosition(new THREE.Vector3()));
-      const up = this.state === 'take' ? 0 : this.state === 'lift' ? ease(this.st / LIFT_T) : 1;   // up and back, then straight out
-      const loc = sh.add(held ? new THREE.Vector3(sg * (0.09 + 0.12 * up), 0.47 + 0.09 * up, -0.34 + 0.37 * up)
-        : new THREE.Vector3(sg * (0.2 + 0.05 * Math.sin(t * 5 + ph)), 0.5 + 0.04 * Math.sin(t * 6.3 + ph), 0.12 + 0.06 * Math.cos(t * 4.1 + ph)));
-      T.push(h.localToWorld(loc));
-      H.push(new THREE.Vector3(sg, 0, -0.5).applyQuaternion(h.quaternion));
+      const hint = new THREE.Vector3(sg, 0, -0.5);
+      let loc;
+      if (this.state === 'take') {
+        // from where the clip had the wrist, round the shoulder the way an arm goes up: forward, overhead, then back
+        // (blending the bones' turns instead takes the short way, up behind the back). The elbow gives a little on
+        // the way and points down and out
+        const a = this.raise, { w: w0, len } = this.arm0[i];
+        const A0 = Math.atan2(w0.z, -w0.y), A1 = Math.atan2(ARM_BACK.z, -ARM_BACK.y) + 2 * Math.PI;
+        const A = A0 + (A1 - A0) * a, bow = Math.sin(Math.PI * a);
+        const r = (Math.hypot(w0.y, w0.z) * (1 - a) + Math.min(len, Math.hypot(ARM_BACK.y, ARM_BACK.z)) * a) * (1 - 0.16 * bow);
+        loc = new THREE.Vector3(w0.x + (sg * ARM_BACK.x - w0.x) * a + sg * 0.09 * bow, -r * Math.cos(A), r * Math.sin(A));
+        hint.set(sg * (1 - 0.2 * bow), -0.7 * bow, -0.5);
+      } else if (held) {
+        const up = this.state === 'lift' ? ease(this.st / LIFT_T) : 1;   // up and back, then straight out
+        loc = new THREE.Vector3(sg * (ARM_BACK.x + 0.12 * up), ARM_BACK.y + 0.09 * up, ARM_BACK.z + 0.37 * up);
+      } else loc = new THREE.Vector3(sg * (0.2 + 0.05 * Math.sin(t * 5 + ph)), 0.5 + 0.04 * Math.sin(t * 6.3 + ph), 0.12 + 0.06 * Math.cos(t * 4.1 + ph));
+      T.push(h.localToWorld(loc.add(sh)));
+      H.push(hint.applyQuaternion(h.quaternion));
     }
     pose.apply(T, H, this.armsUp);
   }
