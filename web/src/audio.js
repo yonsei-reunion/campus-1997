@@ -202,6 +202,16 @@ export class Sound {
       this._chain(this._loop(this.white, 1.1), this._filter('highpass', 380, 0.5), this._filter('lowpass', 6200, 0.5), this.fountainG, this.fountain);
       this._chain(this._loop(this.pink, 0.7), this._filter('bandpass', 260, 0.8), this._gain(0.2), this.fountain);     // the basin's low gurgle
     }
+    // 성산로 (campus.json town.road): the many lanes' steady rumble and hiss from the nearest point of the road
+    const road = this.campus.town?.road;
+    if (road) {
+      this.road = this._panner(0, 0, 0, 22, 1.6);
+      this.roadPts = road.pts;
+      this.roadG = this._gain(0);
+      this._chain(this._loop(this.pink, 0.6), this._filter('lowpass', 240, 0.6), this._gain(0.9), this.roadG);
+      this._chain(this._loop(this.pink, 1.1), this._filter('bandpass', 900, 0.6), this._gain(0.22), this.roadG);
+      this.roadG.connect(this.road);
+    }
     // the cars' voices: a low sawtooth for the engine, a band of noise for the tyres
     for (let i = 0; i < CAR_VOICES; i++) {
       const pan = this._panner(0, 0, 0, 5, 1.5), out = this._gain(0);
@@ -242,6 +252,13 @@ export class Sound {
     if (this.fountainG) this.fountainG.gain.setTargetAtTime(0.3 + 0.06 * Math.sin(t * 1.7) + 0.04 * Math.sin(t * 4.1), now, 0.2);
     this._birds(t, s, x, y, cp.y, alt, leafy);
     this._cars(now, s.traffic, x, y);
+    if (this.road && (this.roadT = (this.roadT ?? 0) - dt) <= 0) {
+      this.roadT = 0.25;                                               // (the nearest point: four times a second)
+      let best = 1e18, bx = 0, by = 0;
+      for (const [px, py] of this.roadPts) { const d = (px - x) ** 2 + (py - y) ** 2; if (d < best) { best = d; bx = px; by = py; } }
+      this._place(this.road, bx, this.hf.height(bx, by) + 1, -by);
+      this.roadG.gain.setTargetAtTime(0.5 * low * (0.9 + 0.1 * Math.sin(t * 0.7)), now, 0.5);
+    }
     if (s.walking) this._steps(dt, s);
   }
 

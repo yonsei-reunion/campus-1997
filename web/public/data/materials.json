@@ -1260,5 +1260,17 @@
   ],
   "rough": 0.45,
   "metal": 0.1
+ },
+ "town_far": {
+  "_doc": "정문 밖의 동네 집 · 철둑 위 · 굴다리 (blender/town.py): one atlas, each band a storey of wall tiling along it (tools/make_textures.py town_atlas)",
+  "image": "town_atlas.jpg",
+  "rough": 0.9,
+  "repeat": true
+ },
+ "sign_sinchon": {
+  "_doc": "연세로 가게 간판 (2019 · 2021 문집의 신촌 약도, tools/make_textures.py sign_sinchon): 2 x 8 atlas",
+  "image": "sign_sinchon.png",
+  "rough": 0.5,
+  "emissiveMap": true
  }
 }

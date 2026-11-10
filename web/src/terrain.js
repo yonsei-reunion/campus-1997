@@ -211,6 +211,13 @@ export function makeNearTerrain(hf, campus, lib) {
           grass = mix(grass, worn, smoothstep(0.0, 0.6, dry));
         }
         vec3 albedo = grass * wg + asph * wa + pav * wpv + dirt * wd;
+        // past the map's rectangle the near ground is the town round the campus on the low ground, as the far ring
+        // paints it (makeFarTerrain), not a lawn; the hills stay green. A ragged edge 40 m wide towards the campus's
+        // lawns and woods; none in the south, where the map ends in the town's own streets (tools/gate_town.py)
+        vec2 outD = max(max(uRect.xy - wp, wp - uRect.zw), vec2(0.0));
+        float town = max(smoothstep(0.0, 1.0, (max(outD.x, wp.y - uRect.w) + (macro - 0.5) * 30.0) / 40.0), step(wp.y, uRect.y))
+          * (1.0 - smoothstep(55.0, 85.0, vWPos.y + (macro - 0.5) * 30.0));
+        albedo = mix(albedo, vec3(0.25, 0.245, 0.24) * mix(0.92, 1.1, n2), town);
         // fallen leaves / petals of the month on top, flat: the ground's relief pressed down under them
         vec3 litCol;
         float litCov = litter(wp, wg, litCol);

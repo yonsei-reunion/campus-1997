@@ -34,6 +34,7 @@ import { Decals } from './decals.js';
 import { Curbs } from './curbs.js';
 import { Verge } from './verge.js';
 import { Sound } from './audio.js';
+import { addTown, Street } from './town.js';
 import { $, MOBILE, versioned, safeGet, safeSet, mulberry, countBy, polylineLength, closestOnSegment, placeMatrix } from './util.js';
 
 const canvas = $('#view');
@@ -53,7 +54,7 @@ const MODELS = 'assets/models/';
 const CARS = ['sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'van'];
 const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'motorbike',
   ...CARS.flatMap((k) => [`car_${k}`, `car_${k}_far`]), 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard',
-  'tent_kiosk', 'notice_board', 'haetae', 'parking_booth'];
+  'tent_kiosk', 'notice_board', 'haetae', 'parking_booth', 'bus'];
 const CAR_FAR = 20;     // parked cars farther than this from the camera: their lighter models (a fifth of the triangles)
 const SHRUB_FAR = 25;   // shrubs, hedges and flower beds farther than this: theirs (blender/shrubs.py far_version)
 // the vegetation campus.json plants: two models of each tree species, one of each shrub (and its lighter one, _far)
@@ -73,7 +74,7 @@ async function main() {
   texCount.onChange = () => loading.textures(texCount.asked, texCount.done);
   // every model of the loading screen asked for at once (world.js prefetch), the vegetation once campus.json names it;
   // the halls first, the rest at low priority. The environment map comes down with the data.
-  const halls = ['campus_buildings.glb', 'campus_landmarks.glb', 'baekyangro.glb'].map((f) => MODELS + f);
+  const halls = ['campus_buildings.glb', 'campus_landmarks.glb', 'baekyangro.glb', 'campus_town.glb'].map((f) => MODELS + f);
   prefetch(halls);
   prefetch([...PROPS.map((n) => `${MODELS}props/${n}.glb`), ...castFiles(Object.keys(PEOPLE))], 'low');
   const envHdr = new RGBELoader().loadAsync(versioned('assets/hdri/env_1k_nosun.hdr'));
@@ -183,16 +184,19 @@ async function main() {
 
   // ---------------------------------------------------------------- GLB assets
   const load = async (u, label, weight) => { const g = await loadGLB(MODELS + u); progress(label, weight); return g; };
-  const [bld, lms, road] = await Promise.all([
+  const [bld, lms, road, townG] = await Promise.all([
     load('campus_buildings.glb', '건물을 세우는 중…', 115),
     load('campus_landmarks.glb', '언더우드관에 담쟁이를 심는 중…', 115),
     load('baekyangro.glb', '백양로에 차선을 긋는 중…', 115),
+    load('campus_town.glb', '굴다리 너머 신촌에 불을 켜는 중…', 20).catch(() => null),      // 정문 밖 (src/town.js)
   ]);
   bindMaterials(bld.scene, lib, false, true);
   bindMaterials(lms.scene, lib, false, true);
   drapeTerrain(lms.scene, terrain.material);          // 대강당 앞 둑: the ground's own material (src/terrain.js)
   bindMaterials(road.scene, lib);
   const verge = new Verge(road.scene, campus);        // 백양로's verge and planting strip: lawn (src/verge.js)
+  // 정문 밖: 성산로, the railway's bank and the town beyond; the banks' trees stand on the banks' own meshes
+  const townBanks = townG && campus.town ? addTown(scene, townG, lib, terrain.material) : [];
   grass.verge = verge;
 
   // walkable surfaces: terrain + road + amphitheater terraces
@@ -211,7 +215,7 @@ async function main() {
   road.scene.traverse((o) => { if (o.isMesh) { o.receiveShadow = true; roadMeshes.push(o); } });
   scene.add(road.scene);
   road.scene.updateMatrixWorld(true);
-  for (const m of [...roadMeshes, ...amph, ...stairWalk]) walkables.push(m);
+  for (const m of [...roadMeshes, ...amph, ...stairWalk, ...townBanks]) walkables.push(m);
   for (const m of walkables) m.geometry.computeBoundsTree();
 
   const amphGroup = new THREE.Group();
@@ -448,6 +452,9 @@ async function main() {
   const traffic = new Traffic(scene, { sedan: P.car_sedan, sedan2: P.car_sedan2, hatch: P.car_hatch, tico: P.car_tico, taxi: P.car_taxi, van: P.car_van }, lanes, 14, cast, STUDENTS.concat(['man-professor', 'man-staff', 'woman-staff']));
   for (const c of traffic.cars) shadows.addDynamic(c.root, c.len / 2 + 1.5);
   const gates = new BoothGates(scene, P.barrier_arm, R.booth, lanes, groundAt, shadows);
+  // 성산로's cars and city buses (src/town.js); the sound hears them with 백양로's
+  const street = campus.town && townG ? new Street(scene, campus.town, P, groundAt, { shadows }) : null;
+  const heard = { cars: street ? traffic.cars.concat(street.cars) : traffic.cars };
 
   // ---------------------------------------------------------------- player / UI / post
   progress('가방을 메는 중…', 36);
@@ -494,7 +501,7 @@ async function main() {
   const blobs = renderer.shadowMap.enabled ? null : new Blobs(scene, hfNear, sunMap);
   if (blobs) {
     for (const p of crowd.people) blobs.addPerson(p.a);
-    for (const c of traffic.cars) blobs.addCar(c);
+    for (const c of heard.cars) blobs.addCar(c);
     blobs.hero = () => player.actor;
     blobs.ball = ball;
   }
@@ -776,12 +783,13 @@ async function main() {
     crowd.bubbles.update(tAcc, started && !bird.active);
     birds.update(dt, tAcc, started ? player : NOBODY, crowd.people, focus);
     traffic.update(dt, started ? player : NOBODY, focus);
+    street?.update(dt, focus);
     gates.update(dt, traffic);
     fountainWater?.update(dt, camera);
     lib.uniforms.uWindT.value = tAcc;     // the wind in the leaves, branches and banners (materials.js sway)
     ball?.update(dt, tAcc, started && !bird.active);
     blobs?.update(camera.position);
-    sound.update(dt, tAcc, { player, walking: started && !bird.active, crowd, traffic, birds, season });
+    sound.update(dt, tAcc, { player, walking: started && !bird.active, crowd, traffic: heard, birds, season });
     decals.update(camera.position);
     curbs.update(camera.position);
     // the shadow frustum follows the view in texel-snapped steps; people and cars are redrawn into it every frame
@@ -847,7 +855,7 @@ async function main() {
       renderer.setAnimationLoop(frame);
     },
   };
-  window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, cast, traffic, bird, toggleBird, shadows, fountainWater,
+  window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, cast, traffic, street, bird, toggleBird, shadows, fountainWater,
     startWalk, enterBird, leaveBird, record, ball, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds,
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
     // (the kits whole for it: it draws them from above, tile by tile)

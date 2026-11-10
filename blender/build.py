@@ -1,6 +1,6 @@
 """Build every 3D asset of the Yonsei-1997 campus and export GLBs for the web app.
 
-usage: blender -b --factory-startup --python blender/build.py -- [buildings] [landmarks] [road] [veg] [shrubs] [props] [cars] [polyhaven] [preview]
+usage: blender -b --factory-startup --python blender/build.py -- [buildings] [landmarks] [road] [town] [veg] [shrubs] [props] [cars] [polyhaven] [preview]
 (no argument = everything; add noao to skip the occlusion / weathering bake of the halls and landmarks, blender/bake.py)
 """
 import sys, os, math, random, json
@@ -9,7 +9,7 @@ import bpy
 from mathutils import Vector, Matrix
 import common
 from common import CAMPUS, OUT, reset_scene, export_glb, tri_count, ground
-import generic, landmarks, vegetation, props, road, statues, bake, shrubs
+import generic, landmarks, vegetation, props, road, statues, bake, shrubs, town
 
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 ALL = not argv
@@ -115,6 +115,22 @@ if want('road'):
     stats['road'] = tri_count(objs)
     export_glb(objs, os.path.join(OUT, 'baekyangro.glb'))
     json.dump({'crossings': crossings}, open(os.path.join(common.ROOT, 'web/public/data/road_meta.json'), 'w'))
+
+if want('town'):          # 정문 밖 (blender/town.py): 성산로, the 경의선's bank and bridge, the town south of it; the city bus
+    reset_scene()
+    objs = [m.build() for m in town.build()]
+    if objs:
+        stats['town'] = tri_count(objs)
+        export_glb(objs, os.path.join(OUT, 'campus_town.glb'))
+    reset_scene()
+    mb, wheels = town.bus()
+    objs = [mb.build()]
+    for w in wheels:
+        o = w.build()
+        o.location = w.wheel_pos
+        objs.append(o)
+    stats['bus'] = tri_count(objs)
+    export_glb(objs, os.path.join(OUT, 'props', 'bus.glb'))
 
 if want('veg'):
     for sp in vegetation.SPECIES:

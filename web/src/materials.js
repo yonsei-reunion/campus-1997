@@ -698,7 +698,7 @@ export class MaterialLibrary {
     } else if (d.rooms) {
       m = windowGlass(d);
     } else if (d.image) {
-      m = new THREE.MeshStandardMaterial({ map: loadTex('assets/textures/' + d.image, { repeat: false }), roughness: d.rough ?? 0.6 });
+      m = new THREE.MeshStandardMaterial({ map: loadTex('assets/textures/' + d.image, { repeat: !!d.repeat }), roughness: d.rough ?? 0.6 });
       if (d.emissiveMap) {
         m.emissiveMap = m.map;
         m.emissive = new THREE.Color(0.35, 0.35, 0.35);

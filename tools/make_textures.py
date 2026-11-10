@@ -632,6 +632,151 @@ def notice_posters():
 
 notice_posters()
 
+
+# ---------------------------------------------------------------- 정문 밖: the town's atlas and 연세로's shop signs
+# town_atlas.jpg (blender/town.py, material town_far): eight bands of 128 px, each tiling along the texture.  A band is
+# one storey (3 m) of a wall, four bays of 3 m across: red brick, cream plaster, grey plaster and white tile with a
+# window to the bay, a shop front; then plain colours in eighths (the four walls, gravel, concrete, the roof tanks'
+# yellow and blue), roofs in quarters (red tiles, blue-grey tiles, green waterproofing, grey slab) and the railway
+# track (3.2 m across the band, 12 m along: sleepers every 0.6 m, the two rails).
+# sign_sinchon.png: the shops of 연세로 from the bridge south as the anthologies' street maps name them (2019 문집
+# 25쪽, 2021 문집 22쪽), 2 x 8 like sign_shops.png; east side first, each from the bridge on (tools/gate_town.py names).
+def town_textures():
+    if ONLY and not ({'town_atlas', 'sign_sinchon'} & ONLY):
+        return
+    rs = np.random.RandomState(4801)
+    rnd = random.Random(4801)
+    S, BH, BAYW = 1024, 128, 256
+    A = np.zeros((S, S, 3), np.float32)
+
+    def fill(k, x0, x1, col, noise=7.0, grain=1):
+        h = rs.randn(BH // grain + 1, (x1 - x0) // grain + 1)
+        h = np.kron(h, np.ones((grain, grain)))[:BH, :x1 - x0]
+        A[k * BH:(k + 1) * BH, x0:x1] = np.array(col, np.float32) + h[..., None] * noise
+
+    walls = [(146, 72, 56), (212, 200, 174), (150, 149, 144), (222, 222, 216)]
+    for k, col in enumerate(walls):
+        fill(k, 0, S, col, 6.0 if k else 9.0)
+        y0 = k * BH
+        if k == 0:                                   # brick courses
+            for yy in range(y0, y0 + BH, 3):
+                A[yy, :] *= 0.86
+        if k == 3:                                   # tile joints
+            for yy in range(y0, y0 + BH, 6):
+                A[yy, :] *= 0.9
+            for xx in range(0, S, 6):
+                A[y0:y0 + BH, xx] *= 0.93
+        A[y0:y0 + 5, :] = np.array((168, 166, 160), np.float32) * (0.9 if k == 0 else 1.0)      # the slab's edge
+        A[y0 + 5, :] *= 0.75
+        for b in range(4):
+            x0 = b * BAYW
+            wide = k == 3
+            wx0, wx1 = (x0 + 28, x0 + 228) if wide else (x0 + 64, x0 + 192)
+            wy0, wy1 = y0 + 34, y0 + 88
+            A[wy0 - 3:wy0, wx0 - 4:wx1 + 4] *= 0.8                                   # lintel shadow
+            A[wy0:wy1, wx0:wx1] = (196, 198, 200)                                    # aluminium frame
+            g0, g1 = np.array((34, 44, 56), np.float32), np.array((70, 86, 102), np.float32)
+            panes = 4 if wide else 2
+            pw = (wx1 - wx0 - 3) // panes
+            for pi in range(panes):
+                px0 = wx0 + 3 + pi * pw
+                shade = rnd.random()
+                for yy in range(wy0 + 3, wy1 - 3):
+                    f = (yy - wy0) / (wy1 - wy0)
+                    c = g1 * (1 - f) + g0 * f
+                    if shade < 0.3:                                                  # a curtain behind the glass
+                        c = c * 0.45 + np.array((180, 172, 150), np.float32) * 0.55
+                    A[yy, px0:px0 + pw - 3] = c
+            A[wy1:wy1 + 4, wx0 - 6:wx1 + 6] = (176, 174, 168)                        # the sill
+            A[wy1 + 4:wy1 + 6, wx0 - 6:wx1 + 6] *= 0.8
+            if k != 3 and rnd.random() < 0.35:                                       # an air conditioner's box below
+                A[wy1 + 8:wy1 + 24, wx1 - 34:wx1 - 4] = (205, 203, 196)
+                A[wy1 + 11:wy1 + 21, wx1 - 30:wx1 - 18] = (60, 62, 66)
+    # the shop front
+    k = 4
+    fill(k, 0, S, (150, 149, 144), 5.0)
+    y0 = k * BH
+    fasc = [(176, 40, 36), (24, 70, 150), (240, 196, 40), (30, 110, 70)]
+    for b in range(4):
+        x0 = b * BAYW
+        A[y0:y0 + 5, :] = (168, 166, 160)
+        A[y0 + 7:y0 + 30, x0 + 6:x0 + BAYW - 6] = fasc[b]                             # the sign's board
+        xx = x0 + 22
+        while xx < x0 + BAYW - 40:                                                   # (its letters, far off)
+            w_ = rnd.randint(14, 26)
+            A[y0 + 12:y0 + 25, xx:xx + w_] = (250, 246, 232) if b != 2 else (30, 28, 26)
+            xx += w_ + rnd.randint(5, 9)
+        A[y0 + 34:y0 + 118, x0 + 10:x0 + BAYW - 10] = (190, 192, 194)                # frame
+        for px0, px1 in ((x0 + 14, x0 + 96), (x0 + 100, x0 + 160), (x0 + 164, x0 + BAYW - 14)):
+            for yy in range(y0 + 38, y0 + 115):
+                f = (yy - y0 - 38) / 77
+                A[yy, px0:px1] = np.array((60, 74, 86), np.float32) * (1 - f) + np.array((36, 42, 48), np.float32) * f
+        A[y0 + 60:y0 + 100, x0 + 20:x0 + 90] = np.array(rnd.choice([(200, 180, 120), (170, 60, 50), (210, 210, 200)]), np.float32) * 0.8
+        A[y0 + 118:y0 + BH, x0:x0 + BAYW] = (120, 118, 112)                          # the step
+    # plain colours
+    plain = walls + [(122, 113, 100), (166, 164, 157), (226, 182, 44), (58, 108, 168)]
+    for c, col in enumerate(plain):
+        fill(5, c * 128, (c + 1) * 128, col, 14.0 if c == 4 else 5.0, 2 if c == 4 else 1)
+    # roofs
+    roofs = [(178, 86, 54), (94, 110, 130), (60, 122, 90), (158, 156, 150)]
+    for c, col in enumerate(roofs):
+        fill(6, c * 256, (c + 1) * 256, col, 7.0, 2)
+        if c < 2:
+            for yy in range(6 * BH, 7 * BH, 5):
+                A[yy, c * 256:(c + 1) * 256] *= 0.8
+    # the track
+    k = 7
+    fill(k, 0, S, (120, 111, 98), 15.0, 2)
+    y0 = k * BH
+    step = S / 20.0
+    for i in range(20):
+        x0 = int(round(i * step + step / 2 - 10))
+        A[y0 + 14:y0 + 114, x0:x0 + 20] = np.array((72, 56, 44), np.float32) + rs.randn(100, 20, 1) * 6
+    for yc in (y0 + 35, y0 + 93):
+        A[yc - 3:yc + 3, :] = (104, 70, 52)
+        A[yc - 1:yc + 2, :] = (176, 178, 184)
+    if not ONLY or 'town_atlas' in ONLY:
+        Image.fromarray(np.clip(A, 0, 255).astype(np.uint8), 'RGB').save(os.path.join(OUT, 'town_atlas.jpg'), quality=88)
+        print('town_atlas')
+    if ONLY and 'sign_sinchon' not in ONLY:
+        return
+    fb = '/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc'
+
+    def fnt(size):
+        for i in (1, 0, 2, 3):
+            try:
+                return ImageFont.truetype(fb, size, index=i)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+    signs = [('연세식품', (250, 248, 236), (190, 30, 30)), ('사 진 관', (20, 60, 150), (255, 255, 255)),
+             ('독수리다방', (120, 60, 30), (255, 236, 190)), ('초 원 각', (190, 30, 30), (255, 226, 120)),
+             ('독수리약국', (252, 252, 250), (30, 130, 70)), ('알 서 림', (40, 80, 60), (245, 240, 220)),
+             ('새마을금고', (30, 110, 60), (255, 255, 255)), ('오 락 실', (20, 20, 24), (255, 90, 70)),
+             ('독수리문구', (250, 210, 40), (30, 40, 120)), ('시골분식', (230, 96, 34), (255, 255, 255)),
+             ('연세문화사', (30, 60, 140), (255, 255, 255)), ('상아탑분식', (250, 246, 230), (200, 40, 30)),
+             ('자 뎅', (60, 36, 24), (240, 210, 150)), ('연희식당', (252, 252, 248), (30, 30, 30)),
+             ('오늘의 책', (246, 240, 220), (40, 60, 50)), ('신촌반점', (180, 24, 24), (255, 220, 90))]
+    img = Image.new('RGB', (1024, 1024), (200, 200, 200))
+    d = ImageDraw.Draw(img)
+    for i, (txt, bg, fg) in enumerate(signs):
+        x0, y0 = (i % 2) * 512, (i // 2) * 128
+        d.rectangle([x0, y0, x0 + 511, y0 + 127], fill=bg)
+        d.rectangle([x0 + 6, y0 + 6, x0 + 505, y0 + 121], outline=tuple(int(c * 0.75) for c in fg), width=4)
+        size = 96
+        while True:
+            f = fnt(size)
+            w = d.textlength(txt, font=f)
+            if w < 440 or size < 30:
+                break
+            size -= 4
+        d.text((x0 + 256 - w / 2, y0 + 64), txt, font=f, fill=fg, anchor='lm')
+    img.save(os.path.join(OUT, 'sign_sinchon.png'), optimize=True)
+    print('sign_sinchon')
+
+
+town_textures()
+
 if ONLY:
     raise SystemExit(0)
 

@@ -66,6 +66,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `player.js` · `touch.js` | 걷기 · 카메라(등 뒤 3인칭, 눈높이 1인칭) · 충돌, 모바일 스틱 |
 | `birdseye.js` | 캠퍼스 위로 날아가기 |
 | `characters.js` · `armpose.js` · `life.js` · `talk.js` | 사람 모델과 애니메이션, 팔 IK, 군중 · 차 · 현수막 · 초소, 말풍선 대사 |
+| `town.js` | 정문 밖: 성산로 · 철둑 · 창천동 모델을 장면에 넣음, 성산로의 차와 시내버스 |
 | `hoops.js` | 농구공 |
 | `audio.js` | 소리: Web Audio 합성(바람 · 나뭇잎 · 새 · 분수 · 차 · 발소리 · 농구공 · 물보라), 카메라가 듣는 자리 |
 | `birthday.js` | 활천대 앞 생일 축하(두 학생, 들어 올려 분수로) |
@@ -99,6 +100,16 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
   - 건물마다 현관(`porch`)이 있고 자리는 `build_campus.py` `_entry`. 1996년 졸업 앨범 사진의 현관들을 따랐습니다.
   - 계단은 걸어 오를 수 있는 보이지 않는 `walk_stairs` 메시를 따로 냅니다.
 - 건물 · 랜드마크의 정점에는 `blender/bake.py` 가 AO, 처마 아래 비 자국, 햇빛 여부를 구워 `COLOR_0` 으로 내보냅니다. 웹은 이를 `bake` 속성으로 읽습니다.
+
+### 정문 밖
+
+- 성산로, 경의선 철둑과 연세로 굴다리, 창천동(고증 4.8). 자리는 `tools/gate_town.py`(`build_campus.py` 가 부름), 모양은 `blender/town.py`, 차는 `web/src/town.js`.
+- 철도 선형과 창천동의 길 · 건물 외곽선은 `tools/fetch_gate_osm.py` 가 받은 `data/raw/osm_gate_south.json`(OSM API 의 상자 하나).
+- 동네 집 1,600여 동은 상자와 모임지붕뿐이고 아틀라스 한 장(`town_atlas.jpg`: 띠 하나가 벽 한 층, 가로로 반복)으로 그립니다. 320 m 칸마다 한 메시.
+- 철둑 비탈은 땅의 재질(`terrain_drape`)로 그리고, 둑 메시(`town_bank_*`)는 걷는 면 목록에 넣어 둑의 나무가 그 위에 섭니다.
+- 성산로의 차는 먼 거리용 모델(`car_*_far`)을 한 메시로 합치고 재질 색을 정점에 적어 한 대가 draw call 하나입니다(바퀴는 돌지 않음). 백양로의 차는 그대로.
+- 정문 앞 연석 안쪽에 보이지 않는 충돌 띠(`campus.json` `colliders`)가 있어 차도로는 나가지 못합니다.
+- 땅 지도 밖의 근경 지형은 낮은 곳을 먼 도시와 같은 회색으로 칠합니다(`terrain.js`).
 
 ### 재질
 
@@ -191,7 +202,7 @@ python3 -m venv .venv && .venv/bin/pip install numpy scipy shapely pillow
 python3 tools/fetch_polyhaven.py textures 1k <이름…>   # CC0 텍스처/모델/HDRI 내려받기 (assets_src/)
 .venv/bin/python tools/fetch_terrain.py near && .venv/bin/python tools/fetch_terrain.py far   # Copernicus GLO-30 (data/raw/copernicus/, git 밖)
 .venv/bin/python tools/build_campus.py            # OSM + 지형 -> data/campus.json, 지형 bin, 스플랫맵
-.venv/bin/python tools/make_textures.py           # 잎 아틀라스, 은행잎 · 벚꽃잎 타일, 간판, 정문 현판
+.venv/bin/python tools/make_textures.py           # 잎 아틀라스, 은행잎 · 벚꽃잎 타일, 간판, 정문 현판, 정문 밖 동네 아틀라스 · 연세로 간판
 .venv/bin/python tools/make_shrub_textures.py     # 관목 · 꽃의 겉면과 잔가지 아틀라스 (먼저 fetch_polyhaven.py models 2k periwinkle_plant)
 .venv/bin/python tools/prepare_web_textures.py    # PBR 텍스처 -> web/public
 blender -b --factory-startup --python blender/build.py            # 모든 GLB 빌드
@@ -201,7 +212,7 @@ node tools/bake_sun_shadows.mjs <포트>   # (web 에서 npx vite 를 띄운 뒤
 blender -b --factory-startup --python blender/characters.py       # 사람 14명 + 리그 2개 (assets_src/quaternius/ 필요)
 ```
 
-- `blender/build.py` 에 `buildings landmarks road veg shrubs props cars polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다(`shrubs`: 나무를 빼고 관목만, `cars`: 다른 소품을 빼고 차만). `noao` 를 더하면 베이크를 건너뜁니다.
+- `blender/build.py` 에 `buildings landmarks road town veg shrubs props cars polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다(`town`: 정문 밖 `campus_town.glb` 와 시내버스 `props/bus.glb`, `shrubs`: 나무를 빼고 관목만, `cars`: 다른 소품을 빼고 차만). `noao` 를 더하면 베이크를 건너뜁니다.
 - 순서가 있습니다: 일반 건물과 랜드마크는 서로의 그림자를 상대의 마지막 GLB 에서 읽어 굽습니다. 한쪽을 크게 바꿨으면 `landmarks` → `buildings` → `landmarks` 로 돕니다. 그림자를 지거나 걷는 면이 바뀌면 마지막에 `bake_sun_shadows.mjs`.
 - `bake_sun_shadows.mjs` 는 Playwright 의 Chromium 이 필요합니다(`npx playwright install chromium`).
 

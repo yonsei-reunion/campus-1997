@@ -17,6 +17,7 @@ from shapely.geometry import Polygon, LineString, Point, MultiPolygon
 from shapely.ops import unary_union, substring
 import shapely
 from PIL import Image, ImageDraw
+import gate_town
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -140,6 +141,8 @@ LATE_FOOTPRINT_1997.update({
 # side is the strip of the OSM outline north-west of the line through its east re-entrant corner, a car park in the
 # 2008 roadview.
 GONE_1997.update({472648570: None, 429249489: None})
+# (and OSM's two outlines of the 2006 신촌역 building over the rails, tools/gate_town.py MODERN: its site is town)
+GONE_1997.update({k_: None for k_ in gate_town.MODERN})
 LATE_FOOTPRINT_1997.update({
     324328481: [(131.9, -123.48), (133.01, -124.74), (150.94, -107.92), (161.79, -119.1), (144.13, -135.18),
                 (151.61, -142.42), (121.68, -168.17), (119.94, -166.35), (118.02, -168.03), (109.95, -158.47),
@@ -4090,6 +4093,18 @@ _sx, _sy, _ = along_raw(30, E_VERGE + ROAD['walk'] * 0.5)        # on the west s
 SPAWN = dict(pos=[round(_sx, 1), round(_sy, 1)], yaw=math.radians(-14))
 
 # ---------------------------------------------------------------------------
+# 정문 밖 (tools/gate_town.py, reference/고증/4.8_정문_밖.md): 성산로's bed levelled and the rails' bed cut where the
+# ground stands over it, after the planting and everything else that reads the ground inside the gate.  The gate's
+# wall: blender/props.py gate, 31.5 m either way from the gate's middle (STATUES['gate']).
+# ---------------------------------------------------------------------------
+_gate_c, _gate_r = np.array(STATUES['gate']['pos']), STATUES['gate']['rot']
+_gate_w = np.array([math.cos(_gate_r), math.sin(_gate_r)]) * 31.5
+TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, bys[0], along_raw(0.0, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h)
+TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h)
+print('정문 밖: 성산로 %.0f m, 철둑 %.0f m, 레일 높이 %.2f m (정문 앞 길 %.2f m)' % (
+    TOWN_PLAN['road'].cum[-1], TOWN_PLAN['rail'].cum[-1], TOWN_PLAN['rail_z'], TOWN_PLAN['rail_z'] - gate_town.RAIL_UP))
+
+# ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
 os.makedirs(os.path.join(ROOT, 'web/public/data'), exist_ok=True)
@@ -4739,6 +4754,21 @@ for _lo, _hi, _ds in ((CENT_TERRACE['box']['s'], CENT_TERRACE['box']['d'], 0.7),
             shrubs.append(['hedge_low', *ct_xy(float(_ss), float(_dd))[:2], 0.9, _ang])
 out['centennial_terrace'] = CENT_TERRACE
 out.update(trees=trees, shrubs=shrubs, props=props, cars=cars)
+# 정문 밖: the town's own lists (its banks' trees, the road's lamps, the walker's barrier along the kerb), added after
+# everything drawn from `rng`; what stood in its ground before (OSM's later walks there) goes
+out['town'], TOWN = gate_town.layout(TOWN_PLAN, TOWN_SECS, ground_h, [Polygon(b_['footprint']) for b_ in buildings], E_CURB0)
+_tz = TOWN['road_poly'].union(TOWN['bank']).buffer(1.0)
+shapely.prepare(_tz)
+for _lst in (trees, shrubs, props):
+    _lst[:] = [t_ for t_ in _lst if not shapely.contains_xy(_tz, t_[1], t_[2])]
+trees += TOWN['trees']
+shrubs += TOWN['shrubs']
+props += TOWN['props']
+out['colliders'] += TOWN['colliders']
+shapely.prepare(TOWN['zone'])
+out['paths'] = [p_ for p_ in out['paths'] if not all(shapely.contains_xy(TOWN['zone'], x_, y_) for x_, y_ in p_['pts'])] + TOWN['paths']
+print('정문 밖: blocks', len(out['town']['blocks']), 'signs', len(out['town']['signs']), 'trees', len(TOWN['trees']),
+      'shrubs', len(TOWN['shrubs']), 'lamps', len(TOWN['props']), 'barrier', len(TOWN['colliders']))
 
 
 def _ypaint(geoms, img, width=None):
@@ -4815,6 +4845,25 @@ spl[..., 0] *= 1.0 - _gbm
 spl[..., 1] *= 1.0 - _gbm
 spl[..., 2] = spl[..., 2] * (1.0 - _gbm) + 178.0 * _gbm
 
+# 정문 밖 (tools/gate_town.py): its ground cleared of what OSM's roads and the town's houses had painted there, then
+# 성산로, the gate's mouth, 연세로 and the town's alleys (asphalt), the sidewalks (paving) and the banks' slopes (the
+# woods' floor, drawn by the bank's own mesh: blender/town.py)
+_tl = {k_: Image.new('L', (SW, SH), 0) for k_ in ('clear', 'asphalt', 'pavers', 'dirt')}
+for k_, im_ in _tl.items():
+    _YN[id(im_)] = '_t' + k_[0]
+    _ypaint(TOWN['paints'][k_], im_)
+
+
+def town_splat(S, c, a, p, d):
+    """the town's four layers (0..255) laid on a splat array in place"""
+    S *= (1.0 - c / 255.0)[..., None]
+    S[..., 0] = np.maximum(S[..., 0], a)
+    S[..., 1] = np.minimum(np.maximum(S[..., 1], p), 255.0 - S[..., 0])
+    S[..., 2] = np.clip(np.minimum(np.maximum(S[..., 2], d * (170.0 / 255.0)), 255.0 - S[..., 0] - S[..., 1]), 0, 255)
+
+
+town_splat(spl, *(ndimage.gaussian_filter(np.array(_tl[k_], np.float32), 0.7) for k_ in ('clear', 'asphalt', 'pavers', 'dirt')))
+
 # ---------------------------------------------------------------------------
 # The ground map the game reads, and the curbs along its paving
 # ---------------------------------------------------------------------------
@@ -4840,6 +4889,8 @@ _gbA = splat_aa(['_gb'])['_gb'] / 255.0           # (대강당 앞 둑, as in sp
 spl_aa[..., 0] *= 1.0 - _gbA
 spl_aa[..., 1] *= 1.0 - _gbA
 spl_aa[..., 2] = spl_aa[..., 2] * (1.0 - _gbA) + 178.0 * _gbA
+_tA = splat_aa(['_tc', '_ta', '_tp', '_td'])       # (정문 밖, as in spl above)
+town_splat(spl_aa, _tA['_tc'], _tA['_ta'], _tA['_tp'], ndimage.gaussian_filter(_tA['_td'], 0.7))
 Image.fromarray(np.clip(np.round(spl_aa), 0, 255).astype(np.uint8), 'RGB').save(
     os.path.join(ROOT, 'web/public/assets/textures/ground_splat.png'), optimize=True)
 
