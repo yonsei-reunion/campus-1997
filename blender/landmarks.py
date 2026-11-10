@@ -4223,27 +4223,29 @@ def aud_bank():
     the terrace's edge beyond it drawn in the terrain's own material ('terrain_drape': web/src/terrain.js
     drapeTerrain), so the woods' floor under the shrubs and the lawn at the top are the ground's; walked on (the
     'walk_stairs' mesh), the shrubs and the ginkgo row stand on it.  One section a metre: s, the wall face's foot
-    (x, y), the heading into the bank, the sidewalk, the wall top, the bank's top, the terrace 7 / 9.8 / 12.55 m
-    behind the wall.  The flight up to the forecourt (aud_flight) stands in a gap in it, B['gap']: the wall and the
-    bank end there against its side walls."""
+    (x, y), the heading into the bank, the sidewalk, the wall top, the bank's top, the ground beyond at the top edge,
+    halfway and out, the bank's depth and how far out the ground beyond is drawn: 7 and 12.55 m behind the wall,
+    less in the wedge between the wall and the drive up to the terrace (its west kerb).  The flight up to the
+    forecourt (aud_flight) stands in a gap in it, B['gap']: the wall and the bank end there against its side walls."""
     B = CAMPUS.get('aud_bank')
     if not B or B.get('side', -1) != -1:          # (laid out for the east side: the bank to the right going along)
         return []
     gA, gB = B.get('gap', (1e9, 1e9))
     mb = MeshBuilder('lm_aud_bank')
     cap, top_o, ext_o = B['cap'], B['top'], B['ext']
-    mid_o = (top_o + ext_o) / 2
-
-    def bank_z(top, tp, o):
-        t_ = min(1.0, max(0.0, (o - cap) / (top_o - cap)))
-        return top + (tp - top) * t_ * t_ * (3 - 2 * t_)
-    OS = [cap + (top_o - cap) * k / 6 for k in range(7)]           # the slope, then the terrace's edge
     secs = []
-    for s, x, y, ang, zb, top, tp, f1, f2, f3 in B['sections']:
+    for sec in B['sections']:
+        s, x, y, ang, zb, top, tp, f1, f2, f3 = sec[:10]
+        # the bank's depth and how far out the ground beyond is drawn: 7 / 12.55 m, less in the wedge by the drive
+        to, ex = (sec[10], sec[11]) if len(sec) > 11 else (top_o, ext_o)
+        mo = (to + ex) / 2
+        OS = [cap + (to - cap) * k / 6 for k in range(7)]           # the slope, then the terrace's edge
         n = (math.cos(ang), math.sin(ang))
-        f_at = lambda o: (f1 + (f2 - f1) * (o - top_o) / (mid_o - top_o)) if o <= mid_o else (f2 + (f3 - f2) * (o - mid_o) / (ext_o - mid_o))
-        prof = [(o, bank_z(top, tp, o) + 0.04 * (o - cap) / (top_o - cap)) for o in OS] + \
-               [(o, f_at(o)) for o in (top_o + 1.45, mid_o, ext_o)]
+        f_at = lambda o, to=to, mo=mo, ex=ex, f1=f1, f2=f2, f3=f3: \
+            (f1 + (f2 - f1) * (o - to) / (mo - to)) if o <= mo else (f2 + (f3 - f2) * (o - mo) / (ex - mo))
+        bz = lambda o, to=to: (lambda t_: top + (tp - top) * t_ * t_ * (3 - 2 * t_))(min(1.0, max(0.0, (o - cap) / (to - cap))))
+        prof = [(o, bz(o) + 0.04 * (o - cap) / (to - cap)) for o in OS] + \
+               [(o, f_at(o)) for o in (to + 0.26 * (ex - to), mo, ex)]
         secs.append(dict(s=s, P=lambda o, z, x=x, y=y, n=n: (x + n[0] * o, y + n[1] * o, z), zb=zb, top=top, prof=prof))
     BATTER = 0.05                                                 # the wall leans back a little
     for a, b in zip(secs[:-1], secs[1:]):
