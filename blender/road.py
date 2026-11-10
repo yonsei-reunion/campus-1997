@@ -70,6 +70,9 @@ def build():
     RV, VC = (e_verge - e_lane) / 2, (e_lane + e_verge) / 2
     RD, DC = (e_verge - 0.2 - e_curb) / 2, (e_curb + e_verge - 0.2) / 2
     walls = R.get('walls', [])          # [side, s0, s1]: no planting strip there (a retaining wall, landmarks.aud_bank)
+    # [side, s0, s1]: no planting strip either, the ground beyond comes up to the sidewalk, which gets a kerb there
+    # (the forecourt before 제1공학관's door)
+    sbreaks = R.get('strip_breaks', [])
     mb = MeshBuilder('baekyangro')
     marks = MeshBuilder('baekyangro_paint')
     L = samples[-1][0]
@@ -301,7 +304,7 @@ def build():
             f = [P(u, e_strip + 0.6, -0.8), P(v, e_strip + 0.6, -0.8), P(v, e_strip + 0.6, 0), P(u, e_strip + 0.6, 0)]
             quad([f[1], f[0], f[3], f[2]])
 
-    def strip_pieces(sa, sb, side):
+    def strip_pieces(sa, sb, side, walls=walls):
         # the stretches of [sa, sb] where the outer planting strip stands: not where the bank behind a retaining wall
         # rises from the sidewalk's edge (campus.json baekyangro walls, blender/landmarks.py aud_bank)
         out = [(sa, sb)]
@@ -384,11 +387,20 @@ def build():
                 riser(e_verge, WZ, VZ, 'curb', outward=True)
             band(e_verge, e_walk, WZ, WZ, 'pavers')
             # outer planting strip (ginkgo + hedge), then a skirt down to the terrain
-            for rg in strip_pieces(a[0], b[0], side):
+            for rg in strip_pieces(a[0], b[0], side, walls + sbreaks):
                 band(e_walk, e_walk + 0.18, WZ + 0.05, WZ + 0.05, 'curb', rg)
                 riser(e_walk, WZ, WZ + 0.05, 'curb', outward=False, rng=rg)
                 band(e_walk + 0.18, e_strip, WZ, WZ, LAWN, rg)
                 riser(e_strip, -0.8, WZ, 'curb', outward=True, rng=rg)
+            for sd, w0, w1 in sbreaks:
+                u, v = max(a[0], w0), min(b[0], w1)
+                if sd == side and v - u > 1e-3:
+                    riser(e_walk, -0.8, WZ, 'curb', outward=True, rng=(u, v))
+                for w in (w0, w1):              # the strip's ends, towards the opening (both windings)
+                    if sd == side and a[0] < w < b[0]:
+                        q = [at_s(w, o(e_walk), -0.8), at_s(w, o(e_strip), -0.8), at_s(w, o(e_strip), WZ), at_s(w, o(e_walk), WZ)]
+                        mb.face(q, KERB)
+                        mb.face(q[::-1], KERB)
 
     # paint ---------------------------------------------------------------
     def strip_(s0, s1, off, width, mat, dz=0.012):

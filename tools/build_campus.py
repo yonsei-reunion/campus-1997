@@ -2194,7 +2194,16 @@ _mouth_n = round(s_at(*photo_ground(930, 1118)), 1)                  # the sidew
 _verge_n = round(s_at(*photo_ground(905, 1095)), 1)                  # the round end of the verge
 MOUTH = (1, 62.0, _mouth_n, 3.0, 0.6, round(_verge_n - _mouth_n, 1))
 _ms, _m0, _m1 = MOUTH[0], MOUTH[1], MOUTH[2]
-BUMP_S = round(s_at(*photo_ground(1050, 1145)), 1)                   # the hatched speed bump, just short of the mouth's end
+# 제1공학관 앞 진입로 (reference/고증/3.8): a paved forecourt from 백양로's sidewalk straight to the hall's door, the
+# planting strip (hedge, ginkgo) open before it: the 1994 aerial photo has the band, 12 m wide, between two planted
+# blocks; Kakao roadview August 2008 2381234, December 2010 1016785994 and April 2011 1017220165 the asphalt forecourt
+# with the verge open at s 161.3 - 173.0 (2008) and 161.9 - 173.4 (2011), each pano's heading from the yellow edge
+# lines' vanishing point, its place across the road from their slopes, along it from the hall's south-east corner
+# (tools/roadview/eng/mouth.py).  Photo A (May 1997) has the boxwood verge whole over the north half of that, and the
+# sidewalk too: the opening is the strip's only (blender/road.py strip_breaks), the verge and the sidewalk stay.
+# (side, s0, s1)
+ENG_MOUTH = (1, 161.6, 173.2)
+BUMP_S =round(s_at(*photo_ground(1050, 1145)), 1)                   # the hatched speed bump, just short of the mouth's end
 
 
 def photo_line(p, q):
@@ -2698,6 +2707,12 @@ def in_break(s, side, pad=0.0):
     return any(sd == side and b0 - pad < s < b1 + pad for sd, b0, b1 in VERGE_BREAKS)
 
 
+def in_eng_mouth(s, side, pad=0.0):
+    # 제1공학관 앞 진입로 (ENG_MOUTH): only the hedge's appends ask, after its random draw, and the row's ginkgo goes
+    # at the end (ENG_COURT), so that the planting elsewhere keeps its layout
+    return side == ENG_MOUTH[0] and ENG_MOUTH[1] - pad < s < ENG_MOUTH[2] + pad
+
+
 def in_gap_old(s, side, pad=0.0):
     # the gaps before the side-road mouth (a 10 m opening in the verge only); used to keep the random draws
     if any(abs(s - c) < 3.0 + pad for c in CROSS):
@@ -2722,7 +2737,7 @@ for side in (-1, 1):
             x, y, a = along_raw(s, side * (E_WALK + ROAD['strip'] * 0.5))
             if not ball.buffer(1).contains(Point(x, y)):
                 sc_ = round(rng.uniform(0.95, 1.05), 2)
-                if not in_gap(s, side, 0.6, outer=True):
+                if not in_gap(s, side, 0.6, outer=True) and not in_eng_mouth(s, side, 0.6):
                     shrubs.append(['hedge_low', round(x, 2), round(y, 2), sc_, round(a, 3)])
         s += 1.5
     # (the verge: every other shrub a 향나무 clipped in two tiers on a bare trunk -- the April 2011 roadview has
@@ -4320,6 +4335,7 @@ out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
 out['baekyangro']['booth'] = BOOTH
 # 대강당 앞 둑: blender/road.py leaves the planting strip out where the wall stands, blender/landmarks.py aud_bank builds it
 out['baekyangro']['walls'] = [[AUD_BANK['side'], AUD_BANK['s0'], AUD_BANK['s1']]]
+out['baekyangro']['strip_breaks'] = [list(ENG_MOUTH)]     # (제1공학관 앞 진입로)
 out['baekyangro']['breaks'] = VERGE_BREAKS          # (the verge's openings besides crossings and gaps, above)
 # yellow-and-black bollards on the ramps of the openings, where the 2008 and the 2010 roadview both have them
 # (side, s; 1997 unknown): 백주년기념관 앞 건널목 (the one south of the grate), 학생회관 앞 (a row across the forecourt)
@@ -4878,6 +4894,28 @@ shapely.prepare(TOWN['zone'])
 out['paths'] = [p_ for p_ in out['paths'] if not all(shapely.contains_xy(TOWN['zone'], x_, y_) for x_, y_ in p_['pts'])] + TOWN['paths']
 print('정문 밖: blocks', len(out['town']['blocks']), 'signs', len(out['town']['signs']), 'trees', len(TOWN['trees']),
       'shrubs', len(TOWN['shrubs']), 'lamps', len(TOWN['props']), 'barrier', len(TOWN['colliders']))
+# 제1공학관 앞 진입로 (ENG_MOUTH): the forecourt, as wide as the opening, from the sidewalk to the hall's front
+# (asphalt: painted with 의료원's car parks below, _ga); nothing planted or parked on it or in the strip's opening.  The
+# row's ginkgo there gives its place in the list to the last tree (the game picks each tree's model in the list's
+# order, web/src/world.js Forest, so no other tree changes its looks).  (2008 - 2011 have a row of bollards across it
+# on the strip's line, left out with the verge's opening)
+_eng_fp = Polygon(next(b_ for b_ in buildings if b_['id'] == 205583531)['footprint'])
+ENG_COURT = Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((ENG_MOUTH[1], E_WALK - 0.2), (ENG_MOUTH[2], E_WALK - 0.2),
+                                                         (ENG_MOUTH[2], 48.0), (ENG_MOUTH[1], 48.0))]).difference(_eng_fp)
+_ez = ENG_COURT.union(Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((ENG_MOUTH[1] - 0.6, E_WALK), (ENG_MOUTH[2] + 0.6, E_WALK),
+                                                                    (ENG_MOUTH[2] + 0.6, ROAD_HALF + 0.6),
+                                                                    (ENG_MOUTH[1] - 0.6, ROAD_HALF + 0.6))]))
+_nf = (len(trees), len(shrubs), len(props), len(cars))
+for _i in sorted((i_ for i_, t_ in enumerate(trees) if _ez.contains(Point(t_[1], t_[2]))), reverse=True):
+    trees[_i] = trees[-1]
+    trees.pop()
+shrubs[:] = [s_ for s_ in shrubs if not _ez.buffer(0.5).contains(Point(s_[1], s_[2]))]
+props[:] = [p_ for p_ in props if not _ez.contains(Point(p_[1], p_[2]))]
+cars[:] = [c_ for c_ in cars if not _ez.buffer(1.0).contains(Point(c_[1], c_[2]))]
+print('제1공학관 앞 진입로: cleared (trees, shrubs, props, cars)', _nf[0] - len(trees), _nf[1] - len(shrubs),
+      _nf[2] - len(props), _nf[3] - len(cars))
+out['paths'].append(dict(kind='service', w=round(ENG_MOUTH[2] - ENG_MOUTH[1], 1),
+                         pts=[[round(v_, 1) for v_ in along_raw((ENG_MOUTH[1] + ENG_MOUTH[2]) / 2, o_)[:2]] for o_ in (ROAD_HALF, 38.0)]))
 
 
 def _ypaint(geoms, img, width=None):
@@ -4935,6 +4973,7 @@ AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), co
     .difference(bline.buffer(ROAD_HALF)).difference(AUD_BANK_POLY).difference(AUD_RAMP_BAND) \
     .difference(unary_union(AUD_TREE_BEDS))
 _ypaint([AUD_YARD], _ga)
+_ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
 _ypaint([AUD_RAMP_WALK.difference(bline.buffer(ROAD_HALF)).difference(AUD_BANK_POLY)], _gp)   # (its walk: paving)
 _gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
 spl[..., 1] *= 1.0 - _gd / 255.0
