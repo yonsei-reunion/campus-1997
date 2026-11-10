@@ -562,6 +562,13 @@ async function main() {
   const toggleFilm = () => setFilm(!$('#opt-film').checked);
   $('#opt-film').addEventListener('change', (e) => setFilm(e.target.checked));
   $('#opt-hq').addEventListener('change', (e) => { post.setHQ(e.target.checked); sun.shadow.mapSize.set(e.target.checked ? 4096 : 2048, e.target.checked ? 4096 : 2048); sun.shadow.map?.dispose(); sun.shadow.map = null; shadows.invalidate(); });
+  // first person (src/player.js): V, the HUD button, the wheel or a pinch on past the closest view; remembered
+  player.onView = (first) => {
+    safeSet('y97-view', first ? 'first' : 'third');
+    $('#viewbtn span').textContent = first ? '3인칭' : '1인칭';
+    if (started) ui.toast(first ? '1인칭 시점' : '3인칭 시점');
+  };
+  player.setFpv(safeGet('y97-view') === 'first');
   const openNearby = () => {
     if (ui.memoryOpen) { ui.closeMemory(); return; }
     if (ball && !bird.active && ball.action()) { ui.setPrompt(ball.prompt()); return; }
@@ -680,6 +687,7 @@ async function main() {
     else if (e.code === 'Space' && ball?.held && !bird.active && player.enabled) ball.action();
     else if (e.code === 'KeyM') toggleMap();
     else if (e.code === 'KeyF') toggleFilm();
+    else if (e.code === 'KeyV' && !e.repeat) player.setFpv(!player.fpv);
     else if (SEASON_KEYS[e.code]) setSeason(SEASON_KEYS[e.code]);
     else if (e.code === 'Escape') {
       if (ui.memoryOpen) ui.closeMemory();
@@ -695,6 +703,7 @@ async function main() {
   tap('#minimap', toggleMap);
   tap('#mapbtn', toggleMap);
   tap('#menubtn', pause);
+  tap('#viewbtn', () => player.setFpv(!player.fpv));
 
   addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;

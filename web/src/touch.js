@@ -3,7 +3,8 @@
 //     Push it the way you want to go on screen (up = ahead, right = to the right, down = towards the camera);
 //     push it all the way to run.
 //   rest of the screen: one finger drags the camera round (up to look up at the roofs and the sky, down to look over
-//     the walker), two fingers pinch to come closer or go farther.
+//     the walker), two fingers pinch to come closer or go farther; spread on past the closest view for first person
+//     (player.js zoomBy), pinch to come back out.
 //   A thumb put on the left part while a finger already drags the camera still takes the stick: a pinch is two
 //   fingers on the camera's part.
 // The bird's-eye tour has its own touch handling (birdseye.js): everything here sleeps while the walker is parked.
@@ -43,7 +44,8 @@ export class TouchControls {
       if (this.looks.size === 2) {
         f.x = e.clientX; f.y = e.clientY;
         const s = this.spread();
-        if (this.pinch > 10 && s > 10) c.dist = clamp(c.dist * this.pinch / s, 2.4, 16);
+        // (spread 110 px on past the closest view: into first person; pinched back as far: out behind the walker again)
+        if (this.pinch > 10 && s > 10) player.zoomBy(this.pinch / s, Math.abs(s - this.pinch) / 110);
         this.pinch = s;
         return;
       }

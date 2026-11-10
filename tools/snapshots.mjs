@@ -93,6 +93,7 @@ for (const s of shots) {
   } else {
     await page.evaluate((w) => {
       const p = window.__y97.player;
+      p.setFpv(!!w.fpv);             // (first person only where the shot asks for it)
       p.teleport(w.x, w.y, w.yaw);
       p.cam.dist = w.dist ?? 5.4; p.cam.lift = w.lift ?? 0; p.cam.orbit = w.orbit ?? 0; p.cam.ready = false;
     }, s.walk);

@@ -63,7 +63,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `grass.js` · `litter.js` | 카메라 주위의 풀, 계절별 떨어진 잎 |
 | `shadows.js` · `bakedshadow.js` · `blobs.js` | 실시간 그림자 캐시, 구운 땅 그림자, 폰용 블롭 그림자 |
 | `post.js` | 후처리: N8AO → TAA/SMAA → 블룸 → 1997 필름 → 출력 |
-| `player.js` · `touch.js` | 걷기 · 카메라 · 충돌, 모바일 스틱 |
+| `player.js` · `touch.js` | 걷기 · 카메라(등 뒤 3인칭, 눈높이 1인칭) · 충돌, 모바일 스틱 |
 | `birdseye.js` | 캠퍼스 위로 날아가기 |
 | `characters.js` · `armpose.js` · `life.js` · `talk.js` | 사람 모델과 애니메이션, 팔 IK, 군중 · 차 · 현수막 · 초소, 말풍선 대사 |
 | `hoops.js` | 농구공 |

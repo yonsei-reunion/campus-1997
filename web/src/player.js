@@ -7,6 +7,10 @@
 // walker turns that way; the camera keeps its direction and only drifts back behind you while you head away from it.
 // Collisions: building footprints and circles (trees, lamps, statues, people); ground follows the
 // terrain, the 백양로 curbs and the amphitheater terraces through a BVH raycast.
+// First person (V, the HUD button, the wheel or a pinch on past the closest view): the camera in the walker's eyes,
+// at 0.93 of their height over the ground they walk on. A drag looks round and up and down; the keys turn the body
+// and the view together, and the body comes round to where you look as you set off. The walker's own body is not
+// drawn (its shadow still is); the head bobs a little with the steps of the walk clip.
 import * as THREE from 'three';
 import { computeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 import { locomotion } from './characters.js';
@@ -31,6 +35,25 @@ export const LIFT_MAX = 1.1, LOOK_UP = -1;
 const PITCH_MAX = 1.05, CAM_LOW = 0.5, LOOK_KEY = 1.1, LOOK_BACK = 1.0;
 // how far down the camera has sunk at a look up of u (0..1): all the way by u = 0.6, quickly at first
 const sink = (u) => { const t = Math.min(1, u / 0.6); return 1 - (1 - t) * (1 - t); };
+const DIST_MIN = 2.4, DIST_MAX = 16;
+// First person. The eye is on the walker's own axis (never nearer a wall than the walker's circle: the near plane's
+// corners are 0.19 m out), EYE of their height up. cam.lift is the vertical axis here too: the view tips FP_UP rad
+// up at lift -1 and FP_DOWN rad down per unit of lift (72 degrees down at LIFT_MAX).
+const EYE = 0.93, FP_UP = 1.3, FP_DOWN = 1.14;
+// walking, a steep look comes back slowly as far as FP_EASY_UP / FP_EASY_DOWN rad (you see where you go); less
+// than that stays where you left it: looking up at the trees and the roofs as you walk is what the view is for
+const FP_EASY_UP = 0.45, FP_EASY_DOWN = 0.3, FP_EASY_RATE = 0.8;
+// seconds into the eyes (from behind the walker; from the tour's or a scene's camera) and back out
+const FP_IN = 0.35, FP_SWOOP = 0.8, FP_OUT = 0.3;
+const FP_BODY = 0.45;    // the body is not drawn while the camera is this close to the eyes (m)
+// the head bob: the walk clip's own rise and fall of the head (6 cm from top to bottom walking, 7 cm running, lowest
+// as a foot lands), this share of it: 1.3 cm walking, 2 cm running. BOB_MAX: never more than this off the middle
+const BOB_WALK = 0.25, BOB_RUN = 0.42, BOB_MAX = 0.02;
+const VIEW_LAYER = 0;    // (the hidden body leaves the layer the view draws; shadows.js draws its shadow from layer 1)
+const eyeHeight = (a) => (a.id?.startsWith('woman') ? 1.61 : 1.73) * (a.tall || 1) * EYE;
+const fpPitch = (lift) => (lift < 0 ? -lift * FP_UP : -lift * FP_DOWN);
+const fpLift = (pitch) => (pitch > 0 ? -pitch / FP_UP : -pitch / FP_DOWN);
+const smooth = (u) => u * u * (3 - 2 * u);
 
 // numeric grid-cell key (no string building in the per-frame lookups); unique for |i|, |j| < 32768
 const cellKey = (i, j) => (i + 32768) * 65536 + (j + 32768);
@@ -152,9 +175,17 @@ export class Player {
     this.down = new THREE.Vector3(0, -1, 0);
     this._from = new THREE.Vector3();
     this._want = new THREE.Vector3(); this._head = new THREE.Vector3(); this._q = new THREE.Vector3(); this._look = new THREE.Vector3();
+    this._eye = new THREE.Vector3(); this._eq = new THREE.Quaternion(); this._eul = new THREE.Euler(0, 0, 0, 'YXZ');
+    this.fpv = false;                 // first person chosen (setFpv)
+    this.onView = null;               // (fpv) => {}: the view was changed (V, the button, the wheel, a pinch)
     // camera rig
     // up: the look up actually shown (follows -lift, smoothed like the camera's position)
-    this.cam = { pos: new THREE.Vector3(), look: new THREE.Vector3(), ready: false, orbit: 0, lift: 0, up: 0, dist: 5.4, drag: null };
+    // fp: how far the camera is into the walker's eyes (0 = behind the walker, 1 = first person), fpT: seconds the way
+    // in takes, stale: the rig behind was not kept up (all the way in); eyeY: the eye's height, eased over kerbs;
+    // bob, hop: the head bob and a shot's hop (hoops.js); aim: a point the first-person view turns to (a shot's
+    // basket); set: where the camera was left last frame
+    this.cam = { pos: new THREE.Vector3(), look: new THREE.Vector3(), ready: false, orbit: 0, lift: 0, up: 0, dist: 5.4, drag: null,
+      fp: 0, fpT: FP_IN, stale: false, eyeY: null, bob: 0, headAvg: null, hop: 0, aim: null, set: new THREE.Vector3() };
     addEventListener('keydown', (e) => { if (!/INPUT|TEXTAREA/.test(e.target.tagName)) this.keys.add(e.code); if (/Arrow|Space|Page(Up|Down)/.test(e.code) && this.enabled) e.preventDefault(); });
     addEventListener('keyup', (e) => this.keys.delete(e.code));
     addEventListener('blur', () => this.keys.clear());
@@ -176,7 +207,8 @@ export class Player {
     dom.addEventListener('wheel', (e) => {
       if (!this.enabled) return;
       e.preventDefault();
-      this.cam.dist = clamp(this.cam.dist * (e.deltaY > 0 ? 1.1 : 0.9), 2.4, 16);
+      const dy = Math.abs(e.deltaY) * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+      this.zoomBy(e.deltaY > 0 ? 1.1 : 0.9, clamp(dy / 200, 0.05, 0.5));     // (two notches on past the end)
     }, { passive: false });
   }
 
@@ -185,9 +217,58 @@ export class Player {
       const old = this.actor.holder;
       actor.holder.position.copy(old.position);
       old.parent?.remove(old);
+      this.showBody(true);
     }
     this.actor = actor;
     this.pos = actor.holder.position;
+    this.eyeH = eyeHeight(actor);
+    this.headBone = actor.root.getObjectByName('Head') || null;
+    if (this.cam) this.cam.headAvg = null;
+    // first person: one more ring of wall rays at the eyes (a sill, a pilaster or a rail the footprint leaves out)
+    this.wallRaysFp = [...WALL_RAY_H, this.eyeH];
+  }
+
+  // first person on / off (the camera eases in and out: updateCamera)
+  setFpv(on) {
+    on = !!on;
+    if (on === this.fpv) return;
+    this.fpv = on;
+    this._push = 0;
+    this.onView?.(on);
+  }
+
+  // the wheel and the pinch: f < 1 comes closer, f > 1 goes farther. Pushing on past the closest view goes into the
+  // walker's eyes, pulling back comes out behind them again. push: how much of that push this step is (1 = enough)
+  zoomBy(f, push = 1) {
+    const c = this.cam;
+    if (this.fpv) {
+      this._push = f > 1 ? (this._push || 0) + push : 0;
+      if (this._push >= 1) { c.dist = DIST_MIN; this.setFpv(false); }
+      return;
+    }
+    if (f < 1 && c.dist <= DIST_MIN + 1e-3) {
+      this._push = (this._push || 0) + push;
+      if (this._push >= 1) this.setFpv(true);
+      return;
+    }
+    this._push = 0;
+    c.dist = clamp(c.dist * f, DIST_MIN, DIST_MAX);
+  }
+
+  // turn the body to heading h at once (a shot at the basket); in first person the view keeps its direction
+  face(h) {
+    const d = wrapAngle(h - this.heading);
+    this.heading = h;
+    if (this.cam.fp > 0) this.cam.orbit = wrapAngle(this.cam.orbit - d);
+  }
+
+  // the walker's own body drawn or not (first person). Its meshes only leave the layer the view draws: the holder
+  // stays visible, so the shadow map (shadows.js draws the moving casters from their own layer) and the phones' blob
+  // (blobs.js) still have it
+  showBody(on) {
+    if (this._body === this.actor && this._bodyOn === on) return;
+    this._body = this.actor; this._bodyOn = on;
+    this.actor.holder.traverse((o) => { if (o.isMesh) { if (on) o.layers.enable(VIEW_LAYER); else o.layers.disable(VIEW_LAYER); } });
   }
 
   // campus (x east, y north) placement; yaw: view direction with forward = (-sin yaw, -cos yaw) in three (0 = north)
@@ -199,7 +280,7 @@ export class Player {
     this.actor.holder.rotation.y = this.heading;
     this.cam.ready = false;
     this.cam.orbit = 0;
-    this.cam.lift = Math.max(0, this.cam.lift);      // arrive looking level
+    this.cam.lift = this.fpv ? 0 : Math.max(0, this.cam.lift);      // arrive looking level
   }
 
   // push the walker out of the walls of the real meshes: rays round a circle from ankle to chest height, so columns,
@@ -218,7 +299,7 @@ export class Player {
       if (dx * dx + dy * dy + dz * dz < (sp.radius + 1) * (sp.radius + 1)) near.push(this.walls[i]);
     }
     if (!near.length) return [x, z];
-    for (const h of this.wallRays) {
+    for (const h of (this.fpv ? this.wallRaysFp : this.wallRays)) {
       for (let k = 0; k < 8; k++) {
         const a = k * Math.PI / 4;
         d.set(Math.cos(a), 0, Math.sin(a));
@@ -289,6 +370,12 @@ export class Player {
       inp.fwd = inp.stick.m;
       // drift back behind the walker only while walking away from the camera (never while coming towards it)
       inp.recenter = 1.3 * Math.max(0, Math.cos(inp.stick.rel));
+    } else if (this.fpv && !this.camOverride && (inp.fwd || inp.turn)) {
+      // first person, keys: the body comes round to where you look as you set off (the view itself stays), so you
+      // walk where you look, and a drag steers while you walk
+      const c = this.cam, o = wrapAngle(c.orbit), d = o * Math.min(1, dt * 12);
+      this.heading += d;
+      c.orbit = o - d;
     }
     this.heading += inp.turn * TURN * dt;
     const target = inp.fwd * (inp.run && inp.fwd > 0 ? RUN : WALK * (inp.fwd < 0 ? 0.6 : 1));
@@ -314,19 +401,61 @@ export class Player {
   }
 
   updateCamera(dt, inp = { fwd: 0, turn: 0 }) {
-    const c = this.cam, p = this.pos;
+    const c = this.cam, cam = this.camera;
+    // first person, but for a scene that stages its own view (birthday.js: camOverride, scripted)
+    const first = this.fpv && !this.scripted && !this.camOverride;
+    // somebody else has had the camera since the last frame (the tour: birdseye.js)
+    const taken = c.set.x !== cam.position.x || c.set.y !== cam.position.y || c.set.z !== cam.position.z;
+    if (first) {
+      if (!c.ready) { c.fp = 1; c.fpT = FP_IN; c.eyeY = null; c.ready = true; }      // set down somewhere: there at once
+      // back from the tour (main.js leaveBird has put the rig at its camera): down into the eyes from there
+      else if (taken) { c.fp = 0; c.fpT = FP_SWOOP; }
+      else if (c.fp < 1) { c.fp = Math.min(1, c.fp + dt / c.fpT); if (c.fp === 1) c.fpT = FP_IN; }
+    } else if (c.fp > 0) {
+      if (this.fpv || taken) {
+        // a scene takes the view from the eyes: its camera sets off from where they are
+        c.pos.copy(cam.position);
+        c.look.copy(cam.position).add(this._q.set(0, 0, -3).applyQuaternion(cam.quaternion));
+        c.up = 0; c.fp = 0; c.stale = false; c.ready = true; c.eyeY = null;
+        c.fpT = FP_SWOOP;                             // (and the way back in afterwards takes as long)
+      } else c.fp = Math.max(0, c.fp - dt / FP_OUT);
+    }
     if (this.camOverride) {
       const o = this.camOverride, k = o.k ?? 1 - Math.exp(-dt * 2.2);
       c.pos.lerp(o.pos, k);
       c.look.lerp(o.look, k);
       c.up *= 1 - k;
       c.ready = true;
-      this.camera.position.copy(c.pos);
-      this.camera.lookAt(c.look);
+      cam.position.copy(c.pos);
+      cam.lookAt(c.look);
+      this.cameraSet();
       return;
     }
+    if (c.fp < 1) this.behindCamera(dt, inp, first);
+    else c.stale = true;                              // (the rig behind the walker is not kept up meanwhile)
+    if (c.fp > 0) {
+      const eye = this.eyeCamera(dt, inp, first);
+      if (c.fp < 1) { const s = smooth(c.fp); cam.position.lerp(eye, s); cam.quaternion.slerp(this._eq, s); }
+      else { cam.position.copy(eye); cam.quaternion.copy(this._eq); }
+    } else c.eyeY = null;
+    this.cameraSet();
+  }
+
+  // the camera is placed for this frame: the body is not drawn while the view is in its head or on its way through
+  // it (into first person and out, a scene's camera leaving the eyes)
+  cameraSet() {
+    const c = this.cam, p = this.pos, at = this.camera.position;
+    const inHead = (this.fpv || c.fp > 0) && at.distanceToSquared(this._eye.set(p.x, c.eyeY ?? p.y + this.eyeH, p.z)) < FP_BODY * FP_BODY;
+    this.showBody(!inHead);
+    c.set.copy(at);
+  }
+
+  // the camera behind and above the walker
+  behindCamera(dt, inp, first) {
+    const c = this.cam, p = this.pos;
+    if (c.stale) { c.stale = false; c.ready = false; }      // out of first person: the rig straight to its place
     // walking: the camera swings back behind you and a look up comes back to level (a camera raised to look down stays)
-    if (!c.drag && (inp.fwd || inp.turn)) {
+    if (!first && !c.drag && (inp.fwd || inp.turn)) {
       c.orbit = wrapAngle(c.orbit);
       c.orbit *= Math.exp(-dt * (inp.recenter ?? 1.6));
       if (c.lift < 0 && !inp.tilt) c.lift *= Math.exp(-dt * LOOK_BACK);
@@ -363,9 +492,49 @@ export class Player {
     if (c.up > 1e-4) this.camera.rotateX(c.up * PITCH_MAX);
   }
 
+  // the camera in the walker's eyes: where it is (returned) and how it is turned (this._eq)
+  eyeCamera(dt, inp, first) {
+    const c = this.cam, p = this.pos;
+    if (first) {
+      if (c.aim) {
+        // a shot: the view turns to the basket
+        const dx = c.aim.x - p.x, dz = c.aim.z - p.z, k = 1 - Math.exp(-dt * 6);
+        const pitch = Math.min(0.9, Math.atan2(c.aim.y - (p.y + this.eyeH), Math.hypot(dx, dz)));
+        c.orbit += wrapAngle(Math.atan2(dx, dz) - this.heading - c.orbit) * k;
+        c.lift += (fpLift(pitch) - c.lift) * k;
+      } else if (inp.stick && !c.drag) {
+        // the stick: the view comes round to the way you walk, as the camera behind does (the walker heads
+        // stick.rel off the view, so it is the view that turns by a share of that)
+        c.orbit += inp.stick.rel * (1 - Math.exp(-dt * inp.recenter));
+      }
+      if (inp.fwd && !c.drag && !inp.tilt && !c.aim) {
+        const easy = clamp(c.lift, fpLift(FP_EASY_UP), fpLift(-FP_EASY_DOWN));
+        c.lift = easy + (c.lift - easy) * Math.exp(-dt * FP_EASY_RATE);
+      }
+    }
+    // the eye's height follows the walked surface; a kerb's 15 cm in one frame is taken in a few
+    const ey = p.y + this.eyeH;
+    if (c.eyeY === null || Math.abs(ey - c.eyeY) > 1.5) c.eyeY = ey;
+    else c.eyeY += (ey - c.eyeY) * (1 - Math.exp(-dt * 16));
+    // head bob: the clip's own head height about its running mean (the mixer has run: in step with the footfalls)
+    let bob = 0;
+    const sp = Math.abs(this.speed);
+    if (this.headBone && sp > 0) {
+      const hy = this.headBone.getWorldPosition(this._q).y - p.y;
+      if (c.headAvg === null) c.headAvg = hy;
+      c.headAvg += (hy - c.headAvg) * (1 - Math.exp(-dt * 2.5));
+      const run = clamp((sp - WALK) / (RUN - WALK), 0, 1);
+      bob = clamp((hy - c.headAvg) * (BOB_WALK + (BOB_RUN - BOB_WALK) * run) * Math.min(1, sp / 1.2), -BOB_MAX, BOB_MAX);
+    } else c.headAvg = null;
+    c.bob += (bob - c.bob) * (1 - Math.exp(-dt * 25));
+    this._eq.setFromEuler(this._eul.set(fpPitch(c.lift), this.heading + c.orbit + Math.PI, 0));
+    return this._eye.set(p.x, c.eyeY + c.bob + c.hop * 0.5, p.z);
+  }
+
   // the walker's body on screen, head to knees, in CSS px [left, top, right, bottom] (for the HUD to keep clear of it)
   screenBox(camera, out = this._sbox || (this._sbox = [0, 0, 0, 0])) {
     const v = this._sb || (this._sb = new THREE.Vector3());
+    if (this._bodyOn === false) { out[0] = out[1] = out[2] = out[3] = -1e4; return out; }      // first person: no body there
     v.set(this.pos.x, this.pos.y + 1.75, this.pos.z).project(camera);
     const x = (v.x + 1) / 2 * innerWidth, top = (1 - v.y) / 2 * innerHeight;
     v.set(this.pos.x, this.pos.y + 0.45, this.pos.z).project(camera);

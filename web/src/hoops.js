@@ -12,6 +12,10 @@ const T_GATHER = 0.3, T_RELEASE = 0.7, T_END = 1.25;
 const HOLD = new THREE.Vector3(0, 1.2, 0.34);               // ball held at the chest, in the walker's own frame (+Z = forward)
 const LOW = new THREE.Vector3(0, 0.98, 0.3);
 const HIGH = new THREE.Vector3(0, 2.18, 0.26);
+// First person (player.js): the walker's body is not drawn, so the ball is carried out in front, at the lower edge
+// of a level view, and the shot dips and goes up half a metre before the face instead of past the chin. Each is
+// [metres over the eyes, metres ahead].
+const FP_HOLD = [-0.3, 0.56], FP_LOW = [-0.5, 0.48], FP_HIGH = [0.52, 0.42];
 const ease = (u) => u * u * (3 - 2 * u);
 
 function ballTexture() {
@@ -127,7 +131,8 @@ export class Basketball {
   shoot() {
     const pl = this.player, p = pl.pos;
     const hoop = this.nearestHoop(16);
-    if (hoop) pl.heading = Math.atan2(hoop.rim.x - p.x, hoop.rim.z - p.z);     // turn to face the basket
+    if (hoop) pl.face(Math.atan2(hoop.rim.x - p.x, hoop.rim.z - p.z));         // turn to face the basket
+    pl.cam.aim = hoop ? hoop.rim : null;                                       // (first person: the view turns to it)
     this.shot = { hoop };
     this.t = 0;
     this.idle = 0;
@@ -164,18 +169,22 @@ export class Basketball {
   carryAndPose(dt) {
     const pl = this.player, holder = pl.actor.holder;
     holder.updateMatrixWorld(true);
-    let local = HOLD, hop = 0, spread = 0.115, follow = 0;
+    // where the ball is held: at the chest, or before the eyes as far as the view is in them (player.js cam.fp)
+    const fp = pl.cam.fp;
+    const at = (P, F) => (fp > 0 ? new THREE.Vector3(0, pl.eyeH + F[0], F[1]).lerp(P, 1 - fp) : P);
+    let local = at(HOLD, FP_HOLD), hop = 0, spread = 0.115, follow = 0;
     if (this.shot) {
       if (!this.freeze) this.t += dt;      // (freeze: for stepping through the shot while testing)
-      const t = this.t;
-      if (t < T_GATHER) local = HOLD.clone().lerp(LOW, ease(t / T_GATHER));
-      else if (t < T_RELEASE) local = LOW.clone().lerp(HIGH, ease((t - T_GATHER) / (T_RELEASE - T_GATHER)));
-      else local = HIGH;
+      const t = this.t, low = at(LOW, FP_LOW), high = at(HIGH, FP_HIGH);
+      if (t < T_GATHER) local = local.clone().lerp(low, ease(t / T_GATHER));
+      else if (t < T_RELEASE) local = low.clone().lerp(high, ease((t - T_GATHER) / (T_RELEASE - T_GATHER)));
+      else local = high;
       hop = t > 0.35 && t < 0.95 ? 0.13 * Math.sin(Math.PI * (t - 0.35) / 0.6) : 0;
       if (t >= T_RELEASE && this.state === 'held') this.release();
       if (t >= T_RELEASE) follow = Math.min(1, (t - T_RELEASE) / 0.3);
       if (t > T_RELEASE) spread = 0.115 - 0.05 * follow;
     }
+    pl.cam.hop = hop;                      // (the first-person eye hops with the shot)
     if (this.state === 'held') {
       this.carry.copy(local);
       holder.localToWorld(this.pos.copy(this.carry));
@@ -211,6 +220,7 @@ export class Basketball {
     if (this.state === 'held' || this.shot || this.armW > 0) this.carryAndPose(dt);
     if (this.shot && this.t >= T_END) {                // shot finished: the walker may move again
       this.shot = null;
+      pl.cam.aim = null;
       const open = this.ui.memoryOpen || this.ui.mapOpen || !document.getElementById('pause').hidden;
       if (!open) pl.enabled = true;
     }
