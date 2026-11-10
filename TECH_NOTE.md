@@ -66,7 +66,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `player.js` · `touch.js` | 걷기 · 카메라(등 뒤 3인칭, 눈높이 1인칭) · 충돌, 모바일 스틱 |
 | `birdseye.js` | 캠퍼스 위로 날아가기 |
 | `characters.js` · `armpose.js` · `life.js` · `talk.js` | 사람 모델과 애니메이션, 팔 IK, 군중 · 차 · 현수막 · 초소, 말풍선 대사 |
-| `town.js` | 정문 밖: 성산로 · 철둑 · 창천동 모델을 장면에 넣음, 성산로의 차와 시내버스 |
+| `town.js` | 정문 밖: 성산로 · 철둑 · 창천동 · 신촌 로터리 모델을 장면에 넣음, 성산로 · 연세로 · 로터리의 차와 시내버스, 신호등 |
 | `hoops.js` | 농구공 |
 | `audio.js` | 소리: Web Audio 합성(바람 · 나뭇잎 · 새 · 분수 · 차 · 발소리 · 농구공 · 물보라), 카메라가 듣는 자리 |
 | `birthday.js` | 활천대 앞 생일 축하(두 학생, 들어 올려 분수로) |
@@ -110,6 +110,17 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 성산로의 차는 먼 거리용 모델(`car_*_far`)을 한 메시로 합치고 재질 색을 정점에 적어 한 대가 draw call 하나입니다(바퀴는 돌지 않음). 백양로의 차는 그대로.
 - 정문 앞 연석 안쪽에 보이지 않는 충돌 띠(`campus.json` `colliders`)가 있어 차도로는 나가지 못합니다.
 - 땅 지도 밖의 근경 지형은 낮은 곳을 먼 도시와 같은 회색으로 칠합니다(`terrain.js`).
+
+### 신촌 로터리
+
+- 굴다리 남쪽 연세로에서 신촌 로터리까지(고증 4.10). 자리는 `tools/sinchon_rotary.py`(`build_campus.py` 가 `gate_town.layout` 뒤에 부름), 모양은 `blender/town.py`(`signs2` · `entrances`), 차 · 신호는 `web/src/town.js`.
+- 길 선형 · 건물 외곽선 · 지하철 출입구는 `tools/fetch_rotary_osm.py` 가 받은 `data/raw/osm_rotary.json`(건물 관계는 바깥 고리마다 한 외곽선, id 10¹² + 관계 id × 10 + k).
+- 땅: 5 m 격자(±800 m) 남쪽에 같은 방법의 조각 `terrain_south.bin`(x −600 ~ 400, y −1200 ~ −800 m, `campus.json` `terrain.south`). 웹 `Heightfield.setPatch` · `makeSouthTerrain`, Blender `common.ground` 가 읽고, 격자를 읽는 셰이더(벽의 흙 튐, 해 그림자 높이)는 격자만 씁니다.
+- 땅 칠: 캠퍼스 땅 지도 밖은 따로 그린 `ground_splat_town.png`(`campus.json` `tsplat`, 0.5 m: R 아스팔트, G 보도, B 지하철 계단 구멍). 칠하지 않은 곳(가운데 섬)은 잔디.
+- 무작위: `random.Random(4802)` 하나. 4.8의 집 가운데 새 길에 걸리는 것은 `b[6] = −층수` 로 남겨 Blender 가 모양을 그대로 뽑고 그리지는 않음. 새 나무는 `trees` 끝에.
+- 걷기: 걸을 수 있는 보도 · 건널목의 바깥 둘레에 1.5 m 길이의 얇은 충돌 상자(`campus.json` `colliders`)를 둘러, 차도 · 옆길 · 가게로는 나가지 못합니다. 성산로 북쪽 연석의 띠는 건널목 자리만 비움.
+- 차: `town.lanes` 의 `stops` 가 [s, 신호 묶음, 단계]. 차마다 앞 16 m 안의 다른 길 차와 걷는 사람을 봄(성산로끼리는 전처럼 같은 길만). 신호 주기는 `town.signals`, 신호등은 `town.heads`.
+- 연세로 보도의 사람은 `town.walks` 위의 두 번째 `Crowd`(`main.js` `townCrowd`, 씨앗 11).
 
 ### 재질
 

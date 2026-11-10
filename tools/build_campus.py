@@ -18,6 +18,7 @@ from shapely.ops import unary_union, substring
 import shapely
 from PIL import Image, ImageDraw
 import gate_town
+import sinchon_rotary
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -166,6 +167,13 @@ JJ, II = np.meshgrid(ii, ii, indexing='ij')                          # rows = y,
 Hn = ndimage.map_coordinates(H10, [JJ, II], order=3)
 Hn = ndimage.gaussian_filter(Hn, 1.5)
 Hn_orig = Hn.copy()
+
+
+def raw_grid(xs, ys):
+    """the ground on another 5 m grid made as Hn is (tools/sinchon_rotary.py: the patch south of it)"""
+    JJ_, II_ = np.meshgrid((np.asarray(ys, float) + tn['half']) / tn['step'], (np.asarray(xs, float) + tn['half']) / tn['step'],
+                           indexing='ij')
+    return ndimage.gaussian_filter(ndimage.map_coordinates(H10, [JJ_, II_], order=3), 1.5)
 
 
 def sample(H, half, step, x, y):
@@ -4165,12 +4173,24 @@ TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, bys[0], along_raw(0.0, 0.0)
 TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h)
 print('정문 밖: 성산로 %.0f m, 철둑 %.0f m, 레일 높이 %.2f m (정문 앞 길 %.2f m)' % (
     TOWN_PLAN['road'].cum[-1], TOWN_PLAN['rail'].cum[-1], TOWN_PLAN['rail_z'], TOWN_PLAN['rail_z'] - gate_town.RAIL_UP))
+# 신촌 로터리 (tools/sinchon_rotary.py, reference/고증/4.10_신촌_로터리.md): the near terrain's patch south of the grid
+# (y -1200 .. -800), and the bed of 연세로 south of the bridge and of the junction, levelled across
+HS = sinchon_rotary.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP)
+ROT_GEO = sinchon_rotary.streets(TOWN_PLAN)
+ROT_LEVEL = sinchon_rotary.level(Hn, HS, NEAR_HALF, NEAR_STEP, ROT_GEO, ground_h)
+print('신촌 로터리: 교차로 높이 %.2f m, 연세로 %s, 길 %s' % (ROT_LEVEL['z_junction'], ROT_LEVEL['z_yonsei'], ROT_LEVEL['arms']))
+
+
+def ground_t(x, y):
+    """the ground as saved, the patch south of the grid too"""
+    return sinchon_rotary.sample_s(HS, x, y) if sinchon_rotary.in_patch(x, y) else ground_h(x, y)
 
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
 os.makedirs(os.path.join(ROOT, 'web/public/data'), exist_ok=True)
 Hn.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_near.bin'))
+HS.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_south.bin'))
 Hf = np.array(tf['rows_south_to_north'], dtype=np.float32)
 Hf = ndimage.gaussian_filter(Hf, 0.7).astype(np.float32)
 Hf.tofile(os.path.join(ROOT, 'web/public/data/terrain_far.bin'))
@@ -4317,8 +4337,10 @@ GAPS = [g_ for g_ in GAPS if g_[0] < BY_END_S - 3.0]
 out = dict(
     origin=[LAT0, LON0],
     terrain=dict(near=dict(half=NEAR_HALF, step=NEAR_STEP, n=n_near, file='data/terrain_near.bin'),
+                 south={**sinchon_rotary.SOUTH, 'file': 'data/terrain_south.bin'},
                  far=dict(half=tf['half'], step=tf['step'], n=tf['n'], file='data/terrain_far.bin')),
     splat=SPLAT,
+    tsplat=sinchon_rotary.TSPLAT,
     baekyangro=dict(pts=[[round(x, 2), round(y, 2)] for x, y in bys], profile_s=[round(v, 1) for v in ss[::2]],
                     profile_h=[round(float(v), 3) for v in prof[::2]], crossings=CROSS, bump=BUMP_S,
                     gaps=[list(g) for g in GAPS], mouths=[list(MOUTH)], apron_paint=APRON_PAINT, **ROAD),
@@ -4916,6 +4938,16 @@ print('제1공학관 앞 진입로: cleared (trees, shrubs, props, cars)', _nf[0
       _nf[2] - len(props), _nf[3] - len(cars))
 out['paths'].append(dict(kind='service', w=round(ENG_MOUTH[2] - ENG_MOUTH[1], 1),
                          pts=[[round(v_, 1) for v_ in along_raw((ENG_MOUTH[1] + ENG_MOUTH[2]) / 2, o_)[:2]] for o_ in (ROAD_HALF, 38.0)]))
+# 신촌 로터리: 연세로 on south of gate_town's rows to the junction, its corners and the town south of the grid; the
+# walks there open to the walker (barrier round them), the lamps, the subway's entrances, the town's ground map
+ROT = sinchon_rotary.layout(ROT_GEO, out['town'], TOWN, ground_t, None)
+props += ROT['props']
+shrubs += ROT['shrubs']
+trees += ROT['trees']                       # (at the list's end: the web picks each tree's model by its place in it)
+markers += ROT['markers']
+out['colliders'] += ROT['colliders']
+out['paths'] += ROT['paths']
+sinchon_rotary.town_splat(ROT['paints'], os.path.join(ROOT, 'web/public/assets/textures/ground_splat_town.png'))
 
 
 def _ypaint(geoms, img, width=None):
@@ -5222,6 +5254,7 @@ out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
 np.save(os.path.join(ROOT, 'data/terrain_near.npy'), Hn.astype(np.float32))
+np.save(os.path.join(ROOT, 'data/terrain_south.npy'), HS.astype(np.float32))
 print('baekyangro length %.0f m, rise %.1f -> %.1f m' % (L, prof[0], prof[-1]))
 
 # ---------------------------------------------------------------------------

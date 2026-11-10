@@ -42,7 +42,8 @@ export class UI {
 
   // ---------------------------------------------------------------- base map (1 px = 0.6 m)
   _renderMap() {
-    const S = this.c.splat;
+    // (the splat's rectangle, down to 신촌 로터리 where the town's own map reaches it: tools/sinchon_rotary.py)
+    const S = this.c.tsplat ? { ...this.c.splat, y0: Math.min(this.c.splat.y0, -1060) } : this.c.splat;
     const k = 1 / 0.6;
     const W = Math.round((S.x1 - S.x0) * k), H = Math.round((S.y1 - S.y0) * k);
     const cv = document.createElement('canvas');
@@ -52,6 +53,19 @@ export class UI {
     this.toMap = P;
     this.mapScale = k;
     x.fillStyle = '#b5cf9a'; x.fillRect(0, 0, W, H);
+    // the town south of the rails (정문 밖), its houses
+    const T = this.c.town;
+    if (T) {
+      x.fillStyle = '#cfc9bd';
+      x.fillRect(0, P(0, -470)[1], W, H);
+      x.fillStyle = '#b9b2a6'; x.strokeStyle = '#968e82'; x.lineWidth = 1;
+      for (const b of T.blocks) {
+        if (b[6] <= 0) continue;
+        const [cx, cy, L, Wd, a] = b, c = Math.cos(a), sn = Math.sin(a);
+        trace(x, [[-L / 2, -Wd / 2], [L / 2, -Wd / 2], [L / 2, Wd / 2], [-L / 2, Wd / 2]].map(([u, v]) => [cx + u * c - v * sn, cy + u * sn + v * c]), P);
+        x.closePath(); x.fill(); x.stroke();
+      }
+    }
     // paths & roads
     x.lineCap = 'round'; x.lineJoin = 'round';
     for (const p of this.c.paths) {
@@ -85,6 +99,7 @@ export class UI {
     x.beginPath(); x.ellipse(ax, ay, A.arena_rx * k, A.arena_ry * k, -A.rot, 0, Math.PI * 2); x.fill();
     // trees
     for (const t of this.c.trees) dot(x, ...P(t[1], t[2]), 2.2 * k * t[3], 'rgba(60,110,50,.45)');
+    if (T?.island) dot(x, ...P(T.island.c[0], T.island.c[1]), T.island.r * k, '#7fa868');     // 신촌 로터리's island
     // labels (minimap only; the big map draws its own)
     x.font = `bold ${Math.round(13 * k / 1.6)}px "Noto Sans KR", sans-serif`;
     x.textAlign = 'center';

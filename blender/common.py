@@ -21,9 +21,24 @@ _TH = CAMPUS['terrain']['near']['half']
 _TS = CAMPUS['terrain']['near']['step']
 
 
-def ground(x, y):
+# the patch south of the grid (tools/sinchon_rotary.py SOUTH: 신촌 로터리), its own rows and columns
+_SS = CAMPUS['terrain'].get('south')
+_S = np.load(os.path.join(ROOT, 'data', 'terrain_south.npy')) if _SS else None
+
+
+def _grid(x, y):
+    """the grid that holds (x, y), its frame, and the fractional cell"""
+    if _S is not None and y < _SS['y0'] + (_SS['ny'] - 1) * _SS['step'] and _SS['x0'] <= x <= _SS['x0'] + (_SS['nx'] - 1) * _SS['step']:
+        fx = min(max((x - _SS['x0']) / _SS['step'], 0), _S.shape[1] - 1.001)
+        fy = min(max((y - _SS['y0']) / _SS['step'], 0), _S.shape[0] - 1.001)
+        return _S, fx, fy
     fx = min(max((x + _TH) / _TS, 0), _T.shape[1] - 1.001)
     fy = min(max((y + _TH) / _TS, 0), _T.shape[0] - 1.001)
+    return _T, fx, fy
+
+
+def ground(x, y):
+    _T, fx, fy = _grid(x, y)
     i, j = int(fx), int(fy)
     ax, ay = fx - i, fy - j
     return float(_T[j, i] * (1 - ax) * (1 - ay) + _T[j, i + 1] * ax * (1 - ay)
@@ -34,8 +49,7 @@ def ground_top(x, y):
     """The higher of the bilinear height and the terrain the web app draws: each 5 m cell is two triangles split along
     (i+1, j)-(i, j+1) (web/src/terrain.js), which stand up to a few tens of cm over the bilinear surface on curved
     slopes.  What a flight's foot and a porch must clear so that the grass never comes up through the stone."""
-    fx = min(max((x + _TH) / _TS, 0), _T.shape[1] - 1.001)
-    fy = min(max((y + _TH) / _TS, 0), _T.shape[0] - 1.001)
+    _T, fx, fy = _grid(x, y)
     i, j = int(fx), int(fy)
     ax, ay = fx - i, fy - j
     a, b, c, d = _T[j, i], _T[j, i + 1], _T[j + 1, i], _T[j + 1, i + 1]

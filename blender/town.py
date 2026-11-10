@@ -125,7 +125,11 @@ def houses():
     """the town's blocks, a mesh per 300 m square (so the web app can cull them)"""
     rnd = random.Random(1997)
     cells = {}
-    for b in T['blocks']:
+    gone = MeshBuilder('town_gone')          # (blocks that went for 신촌 로터리's streets: b[6] = -storeys; their
+    for b in T['blocks']:                    #  random looks still drawn, so the blocks after them keep theirs)
+        if b[6] < 0:
+            house(gone, b[:6] + [-b[6]] + b[7:], rnd)
+            continue
         key = (int(b[0] // 300), int(b[1] // 300))
         mb = cells.setdefault(key, MeshBuilder('town_houses_%d_%d' % key))
         house(mb, b, rnd)
@@ -143,6 +147,59 @@ def signs():
         b = (x + tx * w / 2, y + ty * w / 2)
         mb.face([(a[0], a[1], z - h / 2), (b[0], b[1], z - h / 2), (b[0], b[1], z + h / 2), (a[0], a[1], z + h / 2)], 'sign_sinchon',
                 uvs=[(u0, v0), (u0 + 0.5, v0), (u0 + 0.5, v0 + 0.125), (u0, v0 + 0.125)])
+    return mb
+
+
+def signs2():
+    """신촌 로터리 (tools/sinchon_rotary.py): the shop signs on 연세로 south of the side streets and the landmarks' over
+    their tops, sign_sinchon2 (2 x 8 cells): [x, y, z of its middle, the way it faces, width, height, cell]"""
+    mb = MeshBuilder('town_signs2')
+    for x, y, z, ang, w, h, idx in T.get('signs2', []):
+        nx, ny = math.cos(ang), math.sin(ang)
+        tx, ty = -ny, nx
+        u0, v0 = (idx % 2) / 2, 1 - (idx // 2 + 1) / 8
+        a = (x - tx * w / 2, y - ty * w / 2)
+        b = (x + tx * w / 2, y + ty * w / 2)
+        mb.face([(a[0], a[1], z - h / 2), (b[0], b[1], z - h / 2), (b[0], b[1], z + h / 2), (a[0], a[1], z + h / 2)], 'sign_sinchon2',
+                uvs=[(u0, v0), (u0 + 0.5, v0), (u0 + 0.5, v0 + 0.125), (u0, v0 + 0.125)])
+        # (a shallow box behind it: the sign stands off the wall)
+        d = 0.18
+        for p_, q_ in ((a, b),):
+            pa = (p_[0] - nx * d, p_[1] - ny * d)
+            pb = (q_[0] - nx * d, q_[1] - ny * d)
+            for c0, c1 in ((pa, p_), (q_, pb)):
+                mb.face([(c0[0], c0[1], z - h / 2), (c1[0], c1[1], z - h / 2), (c1[0], c1[1], z + h / 2), (c0[0], c0[1], z + h / 2)], 'metal_dark')
+            mb.face([(p_[0], p_[1], z + h / 2), (q_[0], q_[1], z + h / 2), (pb[0], pb[1], z + h / 2), (pa[0], pa[1], z + h / 2)], 'metal_dark')
+    return mb
+
+
+def entrances():
+    """2호선 신촌역's stairs down at the junction's corners: a stairwell walled on three sides to the hip with a rail on
+    top, open at the end towards the street's way; the flight goes 3 m down into it; a pole with the line's green
+    sign at the open end.  [x, y, the long side's way (rad), length, width, number, ground z]"""
+    mb = MeshBuilder('town_subway')
+    for x, y, ang, L, W, no, z in T.get('entrances', []):
+        c, s_ = math.cos(ang), math.sin(ang)
+        P = lambda u, v, dz: (x + u * c - v * s_, y + u * s_ + v * c, z + dz)
+        t = 0.2
+        # the walls: two long sides and the closed end (u = -L/2), 1.0 m over the walk, down 3.2 m inside
+        for (u0, v0, u1, v1) in ((-L / 2, -W / 2, L / 2, -W / 2 + t), (-L / 2, W / 2 - t, L / 2, W / 2), (-L / 2, -W / 2, -L / 2 + t, W / 2)):
+            cx, cy = (u0 + u1) / 2, (v0 + v1) / 2
+            q = P(cx, cy, 0.0)
+            mb.box((q[0], q[1], z + (1.0 - 3.2) / 2), (u1 - u0, v1 - v0, 4.2), 'curb_road', rotz=ang)
+            mb.box((q[0], q[1], z + 1.06), (u1 - u0 + 0.04, max(0.08, v1 - v0) + 0.04, 0.12), 'metal_dark', rotz=ang)
+        # the flight: from the walk at the open end (u = L/2) down 3 m to the closed end, 0.3 m treads
+        n = 12
+        for i in range(n):
+            ua = L / 2 - (i + 1) * (L - t) / n
+            ub = L / 2 - i * (L - t) / n
+            zz = -3.0 * (i + 1) / n
+            mb.face([P(ub, -W / 2 + t, zz), P(ub, W / 2 - t, zz), P(ua, W / 2 - t, zz), P(ua, -W / 2 + t, zz)][::-1], 'curb_road')
+            mb.face([P(ub, -W / 2 + t, zz + 3.0 / n), P(ub, W / 2 - t, zz + 3.0 / n), P(ub, W / 2 - t, zz), P(ub, -W / 2 + t, zz)], 'curb_road')
+        # the sign: a pole at the open end's corner, a box with the line's green
+        q = P(L / 2 - 0.2, W / 2 + 0.35, 0.0)
+        mb.box((q[0], q[1], z + 1.4), (0.08, 0.08, 2.8), 'metal', rotz=ang)
+        mb.box((q[0], q[1], z + 2.95), (0.5, 0.16, 0.5), 'metal_green', rotz=ang)
     return mb
 
 
@@ -366,7 +423,7 @@ def stops():
 def build():
     if not T:
         return []
-    return houses() + [signs(), bridge(), poles(), road(), stops()] + bank()
+    return houses() + [signs(), signs2(), entrances(), bridge(), poles(), road(), stops()] + bank()
 
 
 # ----------------------------------------------------------------------------- the city bus

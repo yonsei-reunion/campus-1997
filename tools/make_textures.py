@@ -777,6 +777,51 @@ def town_textures():
 
 town_textures()
 
+
+# sign_sinchon2.png: 신촌 로터리 (tools/sinchon_rotary.py): the shops on 연세로 south of the anthologies' maps (the kinds
+# of shop the 1996 photos show, not their names; but 홍익문고), the junction's landmarks over their tops (the 1995 ·
+# 1996 photos 52095 · 52108: 그레이스백화점 dark grey on white, 그랜드백화점 red, 외환은행 white on the dark tower)
+def sinchon2_signs():
+    if ONLY and 'sign_sinchon2' not in ONLY:
+        return
+    fb = '/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc'
+
+    def fnt(size):
+        for i in (1, 0, 2, 3):
+            try:
+                return ImageFont.truetype(fb, size, index=i)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+    signs = [('레 코 드', (60, 20, 100), (255, 230, 120)), ('안 경 원', (252, 252, 248), (20, 60, 150)),
+             ('분식 · 떡볶이', (230, 96, 34), (255, 255, 255)), ('당 구 장', (20, 20, 24), (255, 90, 70)),
+             ('커 피 숍', (80, 44, 28), (245, 225, 180)), ('홍익문고', (24, 70, 150), (255, 255, 255)),
+             ('약 국', (252, 252, 250), (30, 130, 70)), ('서 점', (30, 110, 60), (255, 255, 230)),
+             ('호프 · 생맥주', (120, 30, 20), (255, 220, 120)), ('노 래 방', (200, 30, 120), (255, 240, 120)),
+             ('경 양 식', (250, 246, 230), (120, 40, 30)), ('제 과 점', (250, 220, 200), (150, 40, 60)),
+             ('그레이스백화점', (236, 236, 232), (70, 72, 78)), ('그랜드백화점', (240, 238, 234), (190, 30, 40)),
+             ('신 촌 역', (30, 140, 70), (255, 255, 255)), ('외 환 은 행', (24, 28, 34), (236, 236, 236))]
+    img = Image.new('RGB', (1024, 1024), (200, 200, 200))
+    d = ImageDraw.Draw(img)
+    for i, (txt, bg, fg) in enumerate(signs):
+        x0, y0 = (i % 2) * 512, (i // 2) * 128
+        d.rectangle([x0, y0, x0 + 511, y0 + 127], fill=bg)
+        if i < 12:
+            d.rectangle([x0 + 6, y0 + 6, x0 + 505, y0 + 121], outline=tuple(int(c * 0.75) for c in fg), width=4)
+        size = 96
+        while True:
+            f = fnt(size)
+            w = d.textlength(txt, font=f)
+            if w < 450 or size < 30:
+                break
+            size -= 4
+        d.text((x0 + 256 - w / 2, y0 + 64), txt, font=f, fill=fg, anchor='lm')
+    img.save(os.path.join(OUT, 'sign_sinchon2.png'), optimize=True)
+    print('sign_sinchon2')
+
+
+sinchon2_signs()
+
 if ONLY:
     raise SystemExit(0)
 

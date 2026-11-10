@@ -463,14 +463,22 @@ def layout(pl, secs, ground, taken, e_curb0):
         for kk in range(LANES):
             pts = road.off(sgn * (MID / 2 + LANE_W * (kk + 0.5)))[drive]
             lanes.append(dict(kind='bus' if kk == LANES - 1 else 'car', pts=R2(pts if sgn < 0 else pts[::-1])))
-    # ---- the walker's barrier: along the north kerb, the carriageway side
+    # ---- the walker's barrier: along the north kerb, the carriageway side; open at the crossing (tools/
+    # sinchon_rotary.py walls the crossing's sides and the walks beyond it)
     barrier = []
     bl = road.off(HW - 0.9)
     bh = road.off(HW - 0.1)
+    gap = Polygon([(cross_x[0], ks - 1.0), (cross_x[1], ks - 1.0), (cross_x[1], kn + 1.0), (cross_x[0], kn + 1.0)])
     for k in range(0, len(bl) - 3, 3):
         if not (-480 < bl[k][0] < 340):
             continue
-        barrier.append(R2([bl[k], bl[k + 3], bh[k + 3], bh[k]]))
+        q = Polygon([tuple(bl[k]), tuple(bl[k + 3]), tuple(bh[k + 3]), tuple(bh[k])])
+        if not q.intersects(gap):
+            barrier.append(R2([bl[k], bl[k + 3], bh[k + 3], bh[k]]))
+            continue
+        for g in getattr(q.difference(gap), 'geoms', [q.difference(gap)]):
+            if g.geom_type == 'Polygon' and g.area > 0.01:
+                barrier.append(R2(list(g.exterior.coords)[:-1]))
     # ---- bus stops (the 1995 photo: two green-roofed shelters at the kerb west of the mouth) and lamps
     stops = []
     for x in (-203.0, -184.0):
@@ -556,4 +564,4 @@ def layout(pl, secs, ground, taken, e_curb0):
     paths = [dict(kind='primary', w=2 * HW, pts=[[round(float(x), 1), round(float(y), 1)] for x, y in road.P[::3]]),
              dict(kind='tertiary', w=2 * YONSEI_HALF, pts=[[YONSEI_X, round(y_top, 1)], [YONSEI_X, -640.0]])]       # (the map)
     return town, dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, paths=paths,
-                      road_poly=road_poly.union(walk_s))
+                      road_poly=road_poly.union(walk_s), cross_box=(cross_x[0], cross_x[1], ks, kn), walk_s=walk_s)

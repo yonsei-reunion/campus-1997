@@ -1272,5 +1272,11 @@
   "image": "sign_sinchon.png",
   "rough": 0.5,
   "emissiveMap": true
+ },
+ "sign_sinchon2": {
+  "_doc": "신촌 로터리의 연세로 가게 간판과 모퉁이 건물 간판 (tools/make_textures.py sign_sinchon2, tools/sinchon_rotary.py): 2 x 8 atlas",
+  "image": "sign_sinchon2.png",
+  "rough": 0.5,
+  "emissiveMap": true
  }
 }

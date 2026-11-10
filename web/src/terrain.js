@@ -48,9 +48,25 @@ const PAVE_GLSL = `
 export class Heightfield {
   constructor(data, half, step, n) {
     Object.assign(this, { data, half, step, n });
+    this.ext = null;
+  }
+  // a patch of the same 5 m ground past the grid's south edge (campus.json terrain.south, tools/sinchon_rotary.py:
+  // 신촌 로터리), its top row the grid's bottom row; height() reads it there, the shaders that sample the grid do not
+  setPatch(data, S) {
+    this.ext = { data, ...S, x1: S.x0 + (S.nx - 1) * S.step, y1: S.y0 + (S.ny - 1) * S.step };
+  }
+  inPatch(x, y) {
+    const e = this.ext;
+    return !!e && y < e.y1 && x >= e.x0 && x <= e.x1;
   }
   // x = east, y = north (campus frame)
   height(x, y) {
+    if (this.inPatch(x, y)) {
+      const e = this.ext;
+      const fx = Math.min(Math.max((x - e.x0) / e.step, 0), e.nx - 1.001), fy = Math.min(Math.max((y - e.y0) / e.step, 0), e.ny - 1.001);
+      const i = fx | 0, j = fy | 0, ax = fx - i, ay = fy - j, d = e.data, n = e.nx;
+      return d[j * n + i] * (1 - ax) * (1 - ay) + d[j * n + i + 1] * ax * (1 - ay) + d[(j + 1) * n + i] * (1 - ax) * ay + d[(j + 1) * n + i + 1] * ax * ay;
+    }
     const { half, step, n, data } = this;
     let fx = (x + half) / step, fy = (y + half) / step;
     fx = Math.min(Math.max(fx, 0), n - 1.001);
@@ -61,7 +77,10 @@ export class Heightfield {
   }
 }
 
-function gridGeometry(hf, { skirt = 0, hole = 0, colorFn = null } = {}) {
+// (the far ring's second hole: the patch's rectangle, x0 y0 x1 y1)
+const inRect = (r, x0, y0, x1, y1) => !!r && x0 >= r[0] && x1 <= r[2] && y0 >= r[1] && y1 <= r[3];
+
+function gridGeometry(hf, { skirt = 0, hole = 0, hole2 = null, colorFn = null } = {}) {
   const { n, half, step, data } = hf;
   const pos = [], idx = [], col = [];
   for (let j = 0; j < n; j++) {
@@ -77,6 +96,7 @@ function gridGeometry(hf, { skirt = 0, hole = 0, colorFn = null } = {}) {
       if (hole) {
         const x0 = -half + i * step, y0 = -half + j * step;
         if (x0 >= -hole && x0 + step <= hole && y0 >= -hole && y0 + step <= hole) continue;
+        if (inRect(hole2, x0, y0, x0 + step, y0 + step)) continue;
       }
       const a = j * n + i, b = a + 1, c = a + n, d = c + 1;
       idx.push(a, b, c, b, d, c);
@@ -108,6 +128,36 @@ function gridGeometry(hf, { skirt = 0, hole = 0, colorFn = null } = {}) {
   return g;
 }
 
+// The patch south of the grid (Heightfield.setPatch): the same triangles (split along (i+1, j)-(i, j+1)) in the near
+// terrain's material, a skirt down its outer edges; its top row is the grid's bottom row, so no seam
+export function makeSouthTerrain(hf, material) {
+  const e = hf.ext;
+  const pos = [], idx = [];
+  for (let j = 0; j < e.ny; j++) for (let i = 0; i < e.nx; i++) pos.push(e.x0 + i * e.step, e.data[j * e.nx + i], -(e.y0 + j * e.step));
+  for (let j = 0; j < e.ny - 1; j++) for (let i = 0; i < e.nx - 1; i++) {
+    const a = j * e.nx + i, b = a + 1, c = a + e.nx, d = c + 1;
+    idx.push(a, b, c, b, d, c);
+  }
+  const ring = [];
+  for (let j = e.ny - 1; j > 0; j--) ring.push(j * e.nx);                  // west, north to south
+  for (let i = 0; i < e.nx; i++) ring.push(i);                             // south
+  for (let j = 1; j < e.ny; j++) ring.push(j * e.nx + e.nx - 1);           // east
+  const base = pos.length / 3;
+  for (const v of ring) pos.push(pos[v * 3], pos[v * 3 + 1] - 40, pos[v * 3 + 2]);
+  for (let k = 0; k < ring.length - 1; k++) {
+    const a = ring[k], b = ring[k + 1], a2 = base + k, b2 = base + k + 1;
+    idx.push(a, a2, b, b, a2, b2);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  const mesh = new THREE.Mesh(g, material);
+  mesh.receiveShadow = true;
+  mesh.name = 'terrain_south';
+  return mesh;
+}
+
 export function makeNearTerrain(hf, campus, lib) {
   const g = gridGeometry(hf, { skirt: 40 });
   const S = campus.splat;
@@ -120,6 +170,10 @@ export function makeNearTerrain(hf, campus, lib) {
     uDry: { value: loadTex('assets/textures/ground_dry.png', { srgb: false, repeat: false }) },
     uPaveAng: { value: new THREE.Vector2(...(campus.pave?.ang ?? [0, 0])) },
     uRect: { value: new THREE.Vector4(S.x0, S.y0, S.x1, S.y1) },
+    // 신촌 로터리's own map past the campus's (tools/sinchon_rotary.py town_splat): R asphalt, G paving, B the subway's
+    // stairwells (dark), the rest of its rectangle the ground's own (the round island's lawn)
+    uTSplat: { value: campus.tsplat ? loadTex('assets/textures/ground_splat_town.png', { srgb: false, repeat: false }) : null },
+    uTRect: { value: campus.tsplat ? new THREE.Vector4(campus.tsplat.x0, campus.tsplat.y0, campus.tsplat.x1, campus.tsplat.y1) : new THREE.Vector4(0, 0, -1, -1) },
     gD: { value: T('leafy_grass/diff.jpg') }, gN: { value: T('leafy_grass/nor.jpg', false) },
     aD: { value: T('asphalt_02/diff.jpg') }, aN: { value: T('asphalt_02/nor.jpg', false) },
     pD: { value: T('patterned_concrete_pavers/diff.jpg') }, pN: { value: T('patterned_concrete_pavers/nor.jpg', false) },
@@ -143,8 +197,8 @@ export function makeNearTerrain(hf, campus, lib) {
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec3 vWPos; varying vec3 vWNrm;
-        uniform sampler2D uSplat, uDry, gD, gN, aD, aN, pD, pN, dD, dN, fD;
-        uniform vec4 uRect; uniform vec3 uGrass; uniform vec2 uPaveAng;
+        uniform sampler2D uSplat, uDry, gD, gN, aD, aN, pD, pN, dD, dN, fD, uTSplat;
+        uniform vec4 uRect, uTRect; uniform vec3 uGrass; uniform vec2 uPaveAng;
         vec3 gTN; float gRough;
         vec3 nrm(sampler2D t, vec2 uv) { return texture2D(t, uv).xyz * 2.0 - 1.0; }
         float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
@@ -156,6 +210,11 @@ export function makeNearTerrain(hf, campus, lib) {
         vec3 sp = texture2D(uSplat, suv).rgb;
         float inside = step(0.0, suv.x) * step(suv.x, 1.0) * step(0.0, suv.y) * step(suv.y, 1.0);
         sp *= inside;
+        vec2 tuv = vec2((wp.x - uTRect.x) / (uTRect.z - uTRect.x), (uTRect.w - wp.y) / (uTRect.w - uTRect.y));
+        float insideT = (1.0 - inside) * step(0.0, tuv.x) * step(tuv.x, 1.0) * step(0.0, tuv.y) * step(tuv.y, 1.0);
+        vec3 tsp = texture2D(uTSplat, tuv).rgb;
+        float pit = tsp.b * insideT;
+        sp = mix(sp, vec3(tsp.rg, 0.0), insideT);
         // the paving's edge: the map holds how much of each texel the asphalt and the paving cover (anti-aliased,
         // tools/build_campus.py splat_aa), so the edge is where that crosses one half: cut there as sharp as the
         // screen allows instead of blending grass into paving over a metre (the kerbs of curbs.js stand on it), and
@@ -217,7 +276,8 @@ export function makeNearTerrain(hf, campus, lib) {
         vec2 outD = max(max(uRect.xy - wp, wp - uRect.zw), vec2(0.0));
         float town = max(smoothstep(0.0, 1.0, (max(outD.x, wp.y - uRect.w) + (macro - 0.5) * 30.0) / 40.0), step(wp.y, uRect.y))
           * (1.0 - smoothstep(55.0, 85.0, vWPos.y + (macro - 0.5) * 30.0));
-        albedo = mix(albedo, vec3(0.25, 0.245, 0.24) * mix(0.92, 1.1, n2), town);
+        albedo = mix(albedo, vec3(0.25, 0.245, 0.24) * mix(0.92, 1.1, n2), town * (1.0 - insideT));
+        albedo *= 1.0 - 0.96 * smoothstep(0.3, 0.7, pit);      // (the stairwell's dark)
         // fallen leaves / petals of the month on top, flat: the ground's relief pressed down under them
         vec3 litCol;
         float litCov = litter(wp, wg, litCol);
@@ -260,7 +320,10 @@ export function groundLipCut(sh) {
 // low-frequency 0..1 noise over the far ring: where the woods start on the hills (terrain colour and canopy clumps)
 const hillNoise = (x, y) => Math.sin(x * 0.013) * Math.cos(y * 0.011) * 0.5 + 0.5;
 
-export function makeFarTerrain(hf, nearHalf) {
+const patchRect = (S) => S ? [S.x0, S.y0, S.x0 + (S.nx - 1) * S.step, S.y0 + (S.ny - 1) * S.step] : null;
+const nearPatch = (r, x, y, m) => !!r && x > r[0] - m && x < r[2] + m && y > r[1] - m && y < r[3] + m;
+
+export function makeFarTerrain(hf, nearHalf, south = null) {
   const wc = new THREE.Color();
   const col = (x, y, h) => {
     // forest on the hills (안산, 인왕산, 북한산 ...), dense grey city in the valleys
@@ -276,7 +339,7 @@ export function makeFarTerrain(hf, nearHalf) {
     const c = city.map((v, k) => v * (1 - forest) + wood[k] * forest);
     return river ? [0.32, 0.4, 0.45] : c;
   };
-  const g = gridGeometry(hf, { hole: nearHalf, colorFn: col });
+  const g = gridGeometry(hf, { hole: nearHalf, hole2: patchRect(south), colorFn: col });
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 });
   const mesh = new THREE.Mesh(g, m);
   mesh.name = 'terrain_far';
@@ -286,7 +349,8 @@ export function makeFarTerrain(hf, nearHalf) {
 
 // Forest canopy on the far hills (안산, 인왕산 …): clumps of low-poly crowns so the slopes read as woodland
 // rather than a smooth green dome.
-export function makeFarForest(hf, nearHalf, maxR = 3800) {
+export function makeFarForest(hf, nearHalf, maxR = 3800, south = null) {
+  const pr = patchRect(south);
   const rnd = mulberry(77);
   const pts = [];
   const { n, half, step, data } = hf;
@@ -294,6 +358,7 @@ export function makeFarForest(hf, nearHalf, maxR = 3800) {
     for (let i = 0; i < n; i++) {
       const x = -half + i * step, y = -half + j * step;
       if (Math.abs(x) < nearHalf - 50 && Math.abs(y) < nearHalf - 50) continue;
+      if (nearPatch(pr, x, y, -50)) continue;
       const r = Math.hypot(x, y);
       if (r > maxR) continue;
       const h = data[j * n + i];
@@ -352,7 +417,8 @@ export function makeSummitTower(hf, near = [710, 1400]) {
 }
 
 // Distant 1990s Seoul: instanced apartment blocks scattered on the low ground of the far ring.
-export function makeCity(hf, nearHalf, count = 1600) {
+export function makeCity(hf, nearHalf, count = 1600, south = null) {
+  const pr = patchRect(south);
   const c = document.createElement('canvas');
   c.width = 64; c.height = 128;
   const x = c.getContext('2d');
@@ -381,6 +447,7 @@ export function makeCity(hf, nearHalf, count = 1600) {
     if (h > 60 || h < 8) continue;
     const apt = rnd() < 0.45;
     s.set(apt ? 14 : 10 + rnd() * 20, apt ? 25 + rnd() * 20 : 6 + rnd() * 12, apt ? 60 + rnd() * 40 : 10 + rnd() * 20);
+    if (nearPatch(pr, X, Y, 150)) s.setScalar(1e-4);    // (over the patch south of the grid: drawn, not seen, so the rest stay)
     im.setMatrixAt(k++, placeMatrix(m4, X, h - 1, Y, rnd() < 0.7 ? 0.25 : rnd() * 3, s));
   }
   im.count = k;

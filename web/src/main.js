@@ -7,7 +7,7 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { MaterialLibrary, SEASONS, texturesReady, texCount, updatePcss, uploadEarly } from './materials.js';
 import { loading, fetchCounted } from './loading.js';
 import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materials.js';
-import { Heightfield, makeNearTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeTerrain } from './terrain.js';
+import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeTerrain } from './terrain.js';
 import { loadGLB, prefetch, glbMaterials, bindMaterials, mergeStatic, InstancedKit, KitCuller, Forest } from './world.js';
 import { Grass } from './grass.js';
 import { Fall } from './fall.js';
@@ -78,11 +78,12 @@ async function main() {
   prefetch(halls);
   prefetch([...PROPS.map((n) => `${MODELS}props/${n}.glb`), ...castFiles(Object.keys(PEOPLE))], 'low');
   const envHdr = new RGBELoader().loadAsync(versioned('assets/hdri/env_1k_nosun.hdr'));
-  const [campus, matDefs, skyMeta, nearData, farData, entrances] = await Promise.all([
+  const [campus, matDefs, skyMeta, nearData, farData, entrances, southData] = await Promise.all([
     json('data/campus.json').then((c) => { prefetch(vegFiles(c).map((f) => MODELS + f), 'low'); return c; }),
     json('data/materials.json'), json('data/sky.json'),
     bin('data/terrain_near.bin'), bin('data/terrain_far.bin'),
     json('data/entrances.json').catch(() => ({ entrances: [] })),
+    bin('data/terrain_south.bin').catch(() => null),        // 신촌 로터리: the patch south of the grid
   ]);
   progress('지형 데이터를 펼치는 중…', 60);
 
@@ -159,6 +160,7 @@ async function main() {
   // ---------------------------------------------------------------- terrain
   const T = campus.terrain;
   const hfNear = new Heightfield(nearData, T.near.half, T.near.step, T.near.n);
+  if (T.south && southData) hfNear.setPatch(southData, T.south);
   lib.setTerrain(hfNear);
   const hfFar = new Heightfield(farData, T.far.half, T.far.step, T.far.n);
   // the campus's static sun shadow baked into one texture (src/bakedshadow.js): the phones' only sun shadow, the
@@ -168,15 +170,17 @@ async function main() {
   const terrain = makeNearTerrain(hfNear, campus, lib);
   sunMap.patch(terrain.material, 0);
   scene.add(terrain);
+  const terrainSouth = hfNear.ext ? makeSouthTerrain(hfNear, terrain.material) : null;   // (신촌 로터리)
+  if (terrainSouth) scene.add(terrainSouth);
   const grass = new Grass(renderer, scene, lib, hfNear, campus, sun);     // blades on the lawn round the camera
   const fall = new Fall(renderer, scene, lib, hfNear, campus, sunMap);   // petals / leaves coming down round it
-  scene.add(makeFarTerrain(hfFar, T.near.half));
-  scene.add(makeCity(hfFar, T.near.half));
+  scene.add(makeFarTerrain(hfFar, T.near.half, hfNear.ext && T.south));
+  scene.add(makeCity(hfFar, T.near.half, 1600, hfNear.ext && T.south));
   // the kits placed for good, the forest and the far hills' trees, drawn only where in view (world.js); whole into
   // the shadow cache
   const kitCull = new KitCuller();
   shadows.wholeSets = (on) => kitCull.shadowPass(on);
-  const farForest = makeFarForest(hfFar, T.near.half);
+  const farForest = makeFarForest(hfFar, T.near.half, 3800, hfNear.ext && T.south);
   kitCull.add([farForest]);
   scene.add(farForest);
   scene.add(makeSummitTower(hfFar));
@@ -216,6 +220,7 @@ async function main() {
   scene.add(road.scene);
   road.scene.updateMatrixWorld(true);
   for (const m of [...roadMeshes, ...amph, ...stairWalk, ...townBanks]) walkables.push(m);
+  if (terrainSouth) walkables.push(terrainSouth);
   for (const m of walkables) m.geometry.computeBoundsTree();
 
   const amphGroup = new THREE.Group();
@@ -433,6 +438,14 @@ async function main() {
   // small talk over their heads; what they say follows the month (crowd.season)
   crowd.season = season;
   crowd.bubbles = new Bubbles($('#bubbles'), camera);
+  // 연세로's two sidewalks to 신촌 로터리 (campus.json town.walks): a crowd of their own, its own random stream
+  const townCrowd = campus.town?.walks ? new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'man-staff', 'woman-staff'],
+    campus.town.walks.map((w) => new Path(w, groundAt)), [], MOBILE ? 10 : 30, 11) : null;
+  if (townCrowd) {
+    for (const p of townCrowd.people) shadows.addDynamic(p.a.holder);
+    townCrowd.season = season;
+    townCrowd.bubbles = crowd.bubbles;
+  }
   const lanes = [];
   // one lane each way on the 1997 two-lane road (right-hand traffic); both bend out 0.5 m round the guard booth's
   // island on the centre line (tools/build_campus.py BOOTH: 1.7 m across), the mirrors 0.3 - 0.4 m clear of its kerb
@@ -501,6 +514,7 @@ async function main() {
   const blobs = renderer.shadowMap.enabled ? null : new Blobs(scene, hfNear, sunMap);
   if (blobs) {
     for (const p of crowd.people) blobs.addPerson(p.a);
+    for (const p of townCrowd?.people ?? []) blobs.addPerson(p.a);
     for (const c of heard.cars) blobs.addCar(c);
     blobs.hero = () => player.actor;
     blobs.ball = ball;
@@ -519,6 +533,7 @@ async function main() {
   const setSeason = (v) => {
     season = v;
     crowd.season = v;
+    if (townCrowd) townCrowd.season = v;
     safeSet('y97-season', v);
     lib.setSeason(v);
     fall.setSeason(v);
@@ -779,11 +794,12 @@ async function main() {
     grass.update(camera.position, tAcc);
     fall.update(camera);
     crowd.update(dt, tAcc, started ? player : NOBODY, focus);
+    townCrowd?.update(dt, tAcc, started ? player : NOBODY, focus);
     birthday?.update(dt, tAcc, started && !bird.active, focus);
     crowd.bubbles.update(tAcc, started && !bird.active);
     birds.update(dt, tAcc, started ? player : NOBODY, crowd.people, focus);
     traffic.update(dt, started ? player : NOBODY, focus);
-    street?.update(dt, focus);
+    street?.update(dt, focus, started ? player : null);
     gates.update(dt, traffic);
     fountainWater?.update(dt, camera);
     lib.uniforms.uWindT.value = tAcc;     // the wind in the leaves, branches and banners (materials.js sway)
@@ -855,7 +871,7 @@ async function main() {
       renderer.setAnimationLoop(frame);
     },
   };
-  window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, cast, traffic, street, bird, toggleBird, shadows, fountainWater,
+  window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, townCrowd, cast, traffic, street, bird, toggleBird, shadows, fountainWater,
     startWalk, enterBird, leaveBird, record, ball, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds,
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
     // (the kits whole for it: it draws them from above, tile by tile)
