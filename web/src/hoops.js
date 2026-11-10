@@ -242,6 +242,7 @@ export class Basketball {
     if (pos.y < gy) {
       pos.y = gy;
       if (vel.y < -0.8) {
+        this.onSound?.('bounce', pos, -vel.y);
         vel.y = -vel.y * 0.72; vel.x *= 0.92; vel.z *= 0.92;
         this.state = 'flying';
       } else {
@@ -261,6 +262,7 @@ export class Basketball {
         // reflect the velocity component along the court's long axis
         const vl = vel.x * this.cos + -vel.z * this.sin;
         if (vl * h.sg > 0) {
+          this.onSound?.('board', pos, Math.abs(vl));
           const k = (1 + 0.55) * vl;
           vel.x -= k * this.cos; vel.z -= -k * this.sin;
           const [nx, ny] = [bx - h.sg * R * 1.2, ly];
@@ -276,13 +278,17 @@ export class Basketball {
       if (dist < R + 0.02 && dist > 1e-6) {
         nrm.divideScalar(dist);
         const vn = vel.dot(nrm);
-        if (vn < 0) vel.addScaledVector(nrm, -(1 + 0.5) * vn);
+        if (vn < 0) {
+          if (vn < -0.5) this.onSound?.('rim', pos, -vn);
+          vel.addScaledVector(nrm, -(1 + 0.5) * vn);
+        }
         pos.copy(rp).addScaledVector(nrm, R + 0.025);
       }
       // through the hoop, downwards
       if (prevY >= h.rim.y && pos.y < h.rim.y && vel.y < 0 && dh < RIM_R - R * 0.6 && !this.scored && this.hoopShot) {
         this.scored = true;
         this.makes++;
+        this.onSound?.('swish', pos, 3);
         this.ui.toast(`골인! ${this.shotFrom >= 6.25 ? '3점슛 · ' : ''}${this.makes}골 / ${this.shots}번 시도`, 3200);
       }
       if (pos.y < h.rim.y && pos.y > h.rim.y - 0.5 && dh < RIM_R) { vel.x *= 0.92; vel.z *= 0.92; vel.y *= 0.985; }   // the net slows it

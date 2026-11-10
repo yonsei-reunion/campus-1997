@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { mulberry, wrapAngle } from './util.js';
 import { patchShader, restShadow } from './materials.js';
-import { play, locomotion, gesturing } from './characters.js';
+import { play, locomotion, gesturing, crowdLook } from './characters.js';
 import { crowdBag, carriesInHand } from './bags.js';
 import { kindOf, meeting, chatter, hello, excuse, lineTime } from './talk.js';
 
@@ -279,9 +279,15 @@ const FAR2 = 190 * 190;
 const TALK_NEAR2 = 45 * 45;        // talk only where it can be seen
 const MAX_TALKS = 4;               // conversations at once round the view
 const height = (id) => (id.startsWith('woman') ? 1.61 : 1.73);
+// Sitting (the benches: 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg, three people to a bench): the 'sit' clip, the hips
+// THIGH over the seat. A seated person keeps still but for the head, which turns to whoever is speaking or to you.
+const THIGH = 0.085;
+const _hip = new THREE.Vector3(), _head = new THREE.Vector3();
 
 export class Crowd {
-  constructor(scene, cast, ids, paths, groups, count, rndSeed = 3) {
+  // extras: { seats: [[{x, y, h, heading}, ...], ...] people sitting together (h: the seat's top),
+  //           lines: [[{x, y, heading}, ...], ...] people standing in a row (the queue at the phone booths) }
+  constructor(scene, cast, ids, paths, groups, count, rndSeed = 3, extras = {}) {
     this.scene = scene;
     this.people = [];
     const rnd = mulberry(rndSeed);
@@ -289,11 +295,11 @@ export class Crowd {
     // about 70 % carry a bag (bags.js: its own random stream, so the walkers' paths stay where they were)
     for (let i = 0; i < count; i++) {
       const id = pick();
-      const a = cast.make(id, crowdBag(id, i));
+      const a = cast.make(id, crowdBag(id, i), crowdLook(id, i));
       const path = paths[Math.floor(rnd() * paths.length)];
       const p = { a, path, s: rnd() * path.length, dir: rnd() < 0.5 ? 1 : -1, speed: 1.15 + rnd() * 0.4, side: (rnd() - 0.5) * 0.8,
         heading: 0, walking: true, gestureAt: 5 + rnd() * 30, tick: i & 1,
-        kind: kindOf(a.id), top: height(a.id), x: 1e9, y: 1e9, fx: 0, fy: 0,
+        kind: kindOf(a.id), top: height(a.id) * a.tall, x: 1e9, y: 1e9, fx: 0, fy: 0,
         chatUntil: 0, chatAfter: 2 + rnd() * 10, face: null, blockedT: 0, excuseAfter: 0 };
       a.mixer.setTime(rnd() * 2);
       scene.add(a.holder);
@@ -309,16 +315,64 @@ export class Crowd {
         const ang = (k / n) * Math.PI * 2 + rnd() * 0.4;
         const x = gx + Math.cos(ang) * 0.85, y = gy + Math.sin(ang) * 0.85;
         const id = pick();
-        const a = cast.make(id, crowdBag(id, 1000 + this.people.length));
+        const nth = 1000 + this.people.length;
+        const a = cast.make(id, crowdBag(id, nth), crowdLook(id, nth));
         a.mixer.setTime(rnd() * 2);
         a.holder.position.set(x, h, -y);
         const heading = Math.atan2(gx - x, -(gy - y));
         a.holder.rotation.y = heading;
         scene.add(a.holder);
         const p = { a, walking: false, heading, home: heading, gestureAt: 3 + rnd() * 20, tick: k & 1, x, y,
-          kind: kindOf(a.id), top: height(a.id), group: g };
+          kind: kindOf(a.id), top: height(a.id) * a.tall, group: g };
         g.people.push(p);
         this.people.push(p);
+      }
+    }
+    // people of the extras: their own random stream (the walkers and the groups above stay who and where they were)
+    const rx = mulberry(rndSeed * 31 + 7);
+    const pickX = () => ids[Math.floor(rx() * ids.length)];
+    const join = (g, a, x, y, heading, more) => {
+      a.holder.rotation.y = heading;
+      scene.add(a.holder);
+      const p = { a, walking: false, heading, home: heading, gestureAt: 3 + rx() * 20, tick: this.people.length & 1, x, y,
+        kind: kindOf(a.id), top: height(a.id) * a.tall, group: g, ...more };
+      g.people.push(p);
+      this.people.push(p);
+      return p;
+    };
+    for (const row of extras.lines || []) {
+      // (they wait, each looking at the back of the one ahead: no chatting round a circle, but they greet you)
+      const g = { people: [], next: Infinity, busyUntil: 0, greetAfter: 0, near: false };
+      this.groups.push(g);
+      for (const m of row) {
+        const id = pickX(), n = 3000 + this.people.length;
+        const a = cast.make(id, crowdBag(id, n), crowdLook(id, n));
+        a.mixer.setTime(rx() * 2);
+        a.holder.position.set(m.x, m.h, -m.y);
+        join(g, a, m.x, m.y, m.heading);
+      }
+    }
+    for (const bench of extras.seats || []) {
+      const g = { people: [], next: 3 + rx() * 20, busyUntil: 0, greetAfter: 0, near: false };
+      this.groups.push(g);
+      for (const m of bench) {
+        const id = pickX(), n = 2000 + this.people.length;
+        // (nothing on the back against the bench's; a bag in the hand would hang through the seat)
+        const a = cast.make(id, null, crowdLook(id, n));
+        play(a, 'sit', { fade: 0 });
+        a.mixer.update(0);
+        // the hips THIGH over the seat: where the clip holds them over the holder, at this person's size
+        a.holder.position.set(m.x, 0, -m.y);
+        a.holder.rotation.y = m.heading;
+        a.holder.updateMatrixWorld(true);
+        const legs = ['UpperLegL', 'UpperLegR'].map((b) => a.root.getObjectByName(b)).filter(Boolean);
+        let hip = 0.29 * a.tall;
+        if (legs.length) hip = legs.reduce((sum, b) => sum + b.getWorldPosition(_hip).y, 0) / legs.length;
+        a.holder.position.y = m.h + THIGH - hip;
+        const head = a.root.getObjectByName('Head');
+        const top = head ? head.getWorldPosition(_head).y + 0.24 * a.tall : hip + 0.75;
+        const p = join(g, a, m.x, m.y, m.heading, { seated: true, head, look: 0, lookTo: 0, lookAt: rx() * 6 });
+        p.top = top;
       }
     }
     this.v = new THREE.Vector2();
@@ -381,6 +435,18 @@ export class Crowd {
             if (t > this.excuseAt && Math.random() < 0.6) { this.excuseAt = t + 10; this.say(p, excuse(p.kind, this.season), t); }
           }
         } else p.blockedT = 0;
+      } else if (p.seated) {
+        // only the head turns: to you close by, else now and then to a bench mate or along the path
+        if (t > p.lookAt) {
+          p.lookAt = t + 2.5 + Math.random() * 6;
+          const tx = player.x - p.x, ty = player.y - p.y, mates = p.group.people;
+          const o = mates.length > 1 && Math.random() < 0.6 ? mates[Math.floor(Math.random() * mates.length)] : null;
+          let to = null;
+          if (Math.hypot(tx, ty) < 3.5) to = Math.atan2(tx, -ty);
+          else if (o && o !== p) to = Math.atan2(o.x - p.x, -(o.y - p.y));
+          p.lookTo = to === null ? (Math.random() - 0.5) * 1.2 : Math.max(-1.1, Math.min(1.1, wrapAngle(to - p.heading)));
+        }
+        p.look += (p.lookTo - p.look) * (1 - Math.exp(-dt * 3));
       } else {
         const tx = player.x - p.x, ty = player.y - p.y;
         want = Math.hypot(tx, ty) < 2.6 ? Math.atan2(tx, -ty) : p.home;      // turn to greet you
@@ -392,6 +458,11 @@ export class Crowd {
       // far away: out of the scene graph altogether (hiding it would still update its ~60 bones every frame)
       if (far > FAR2) { if (a.holder.parent) this.scene.remove(a.holder); continue; }
       if (!a.holder.parent) this.scene.add(a.holder);
+      if (p.seated) {
+        // (the clip is one held pose: set again every frame only so the head's turn starts from it)
+        if (far < 45 * 45 || !p.posed) { p.posed = true; a.mixer.update(dt); if (p.head) p.head.rotateY(p.look); }
+        continue;
+      }
       if (!p.walking && t > p.gestureAt) {
         p.gestureAt = t + 12 + Math.random() * 20;
         // (a bag carried in the right hand: wave with the left)
@@ -405,7 +476,7 @@ export class Crowd {
     for (let i = this.cues.length - 1; i >= 0; i--) {
       const c = this.cues[i];
       if (t < c.at) continue;
-      if (c.p.a.holder.parent) playGesture(c.p.a, 'emote-yes');
+      if (c.p.a.holder.parent && !c.p.seated) playGesture(c.p.a, 'emote-yes');     // (a wave would stand them up)
       this.cues.splice(i, 1);
     }
     this.scanT -= dt;

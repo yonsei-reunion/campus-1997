@@ -32,6 +32,7 @@ import { flagWind } from './flags.js';
 import { Decals } from './decals.js';
 import { Curbs } from './curbs.js';
 import { Verge } from './verge.js';
+import { Sound } from './audio.js';
 import { $, MOBILE, versioned, safeGet, safeSet, mulberry, countBy, polylineLength, closestOnSegment, placeMatrix } from './util.js';
 
 const canvas = $('#view');
@@ -394,7 +395,32 @@ async function main() {
   }
   const groups = [[-40, -45], [-36, -70], [3, -58], [-2, -92], [-96, -400], [58, 200], [-46, -26], [12, -30], [-20, 30], [110, 150], [-88, -186]]
     .map(([x, y]) => [x, y, groundAt(x, y)]);
-  const crowd = new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'man-professor', 'man-staff', 'woman-staff'], paths, groups, MOBILE ? 40 : 110);
+  // people on the benches (about half of them taken, one to three to a bench; a third of that on phones) and the
+  // queue at 학생회관's phone booths: one on the phone in two of the three, two more waiting behind the middle one
+  const seats = [], lines = [];
+  {
+    const rnd = mulberry(41);
+    const SLOTS = [[], [[0], [-0.45], [0.45]], [[-0.42, 0.42], [-0.55, 0.02], [-0.02, 0.55]], [[-0.6, 0, 0.6]]];
+    for (const [kind, x, y, rot] of campus.props) {
+      if (kind !== 'bench') continue;
+      const r = rnd(), pick = rnd(), jit = rnd();
+      const n = MOBILE ? (r < 0.82 ? 0 : r < 0.94 ? 1 : 2) : r < 0.48 ? 0 : r < 0.72 ? 1 : r < 0.92 ? 2 : 3;
+      if (!n) continue;
+      // the bench faces (cos rot, sin rot), its length runs along (-sin rot, cos rot); the seat's top is 0.43 m up
+      const slots = SLOTS[n][Math.floor(pick * SLOTS[n].length)], h = groundAt(x, y) + 0.43;
+      const fx = Math.cos(rot), fy = Math.sin(rot);
+      seats.push(slots.map((t, k) => ({ x: x - fy * t + fx * 0.03, y: y + fx * t + fy * 0.03, h,
+        heading: Math.atan2(fx, -fy) + (((jit * 7 + k * 0.37) % 1) - 0.5) * 0.22 })));
+    }
+    const booths = campus.props.filter((pr) => pr[0] === 'payphone');
+    booths.forEach(([, x, y, rot], i) => {
+      if (booths.length > 1 && i === booths.length - 1) return;        // (one booth free)
+      const fx = Math.cos(rot), fy = Math.sin(rot), heading = Math.atan2(-fx, fy);
+      const at = (d, side = 0) => { const px = x + fx * d - fy * side, py = y + fy * d + fx * side; return { x: px, y: py, h: groundAt(px, py), heading }; };
+      lines.push(i === Math.floor((booths.length - 1) / 2) && !MOBILE ? [at(0.85), at(1.95, 0.1), at(2.8, -0.12)] : [at(0.85)]);
+    });
+  }
+  const crowd = new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'man-professor', 'man-staff', 'woman-staff'], paths, groups, MOBILE ? 40 : 110, 3, { seats, lines });
   for (const p of crowd.people) shadows.addDynamic(p.a.holder);
   // small talk over their heads; what they say follows the month (crowd.season)
   crowd.season = season;
@@ -555,6 +581,14 @@ async function main() {
     return h ? h.point.y : -1e9;
   };
   const birds = new Birds(scene, { groundAt, surfaceAt, colliders, forest, sunMap, mobile: MOBILE });   // 까치 · 비둘기 (src/birds.js)
+  // sound (src/audio.js): synthesized, started by the first click of the title card
+  const sound = new Sound({ camera, campus, hf: hfNear });
+  birds.onTakeOff = (b) => sound.flap(b.x, b.h + 0.3, -b.y);
+  if (ball) ball.onSound = (what, p, k) => sound.ball(what, p, k);
+  if (birthday) birthday.onSplash = (p) => sound.splash(p);
+  $('#opt-sound').checked = sound.on;
+  $('#opt-sound').addEventListener('change', (e) => sound.setOn(e.target.checked));
+  for (const id of ['#start', '#tour-start']) $(id).addEventListener('click', () => sound.start());
   const SEASON_ORDER = ['spring', 'summer', 'autumn'];
   const SEASON_KEYS = { Digit1: 'spring', Digit2: 'summer', Digit3: 'autumn' };
   const bird = new BirdsEye({
@@ -731,6 +765,7 @@ async function main() {
     lib.uniforms.uWindT.value = tAcc;     // the wind in the leaves, branches and banners (materials.js sway)
     ball?.update(dt, tAcc, started && !bird.active);
     blobs?.update(camera.position);
+    sound.update(dt, tAcc, { player, walking: started && !bird.active, crowd, traffic, birds, season });
     decals.update(camera.position);
     curbs.update(camera.position);
     // the shadow frustum follows the view in texel-snapped steps; people and cars are redrawn into it every frame
@@ -794,7 +829,7 @@ async function main() {
     },
   };
   window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, cast, traffic, bird, toggleBird, shadows, fountainWater,
-    startWalk, enterBird, leaveBird, record, ball, birthday, post, grass, sunMap, blobs, curbs, verge,
+    startWalk, enterBird, leaveBird, record, ball, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds,
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
     // (the kits whole for it: it draws them from above, tile by tile)
     bakeSunMap: async () => {

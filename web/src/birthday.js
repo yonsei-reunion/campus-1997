@@ -475,6 +475,7 @@ export class Birthday {
           this.hit = hips.clone();
           const dir = this.v0.clone().setY(0).normalize();
           this.splash.burst(hips.x, this.land.y, hips.z, dir);
+          this.onSplash?.(hips);        // (audio.js)
           this.water?.splash(hips.x, hips.z, 0.06, 0.5);
           this.setWet(1);
           this.say(this.anchor, this.bTop, '아~ 시원하다!', t + 0.55);

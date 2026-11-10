@@ -353,6 +353,7 @@ export class Birds {
     // (the ground patch stays under it near either end; none in a tree's crown)
     b.f = { x0: b.x, y0: b.y, g0: b.gh, x1: dest.x, y1: dest.y, g1: dest.perch === 'tree' ? -1e9 : h1, T, A: Math.min(A, 30), t0: t, base, dest };
     b.state = 'fly';
+    this.onTakeOff?.(b);              // (audio.js: the wings)
     b.leg = null;
     b.fleeAt = 0;
     b.follow = null;

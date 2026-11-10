@@ -67,6 +67,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `birdseye.js` | 캠퍼스 위로 날아가기 |
 | `characters.js` · `armpose.js` · `life.js` · `talk.js` | 사람 모델과 애니메이션, 팔 IK, 군중 · 차 · 현수막 · 초소, 말풍선 대사 |
 | `hoops.js` | 농구공 |
+| `audio.js` | 소리: Web Audio 합성(바람 · 나뭇잎 · 새 · 분수 · 차 · 발소리 · 농구공 · 물보라), 카메라가 듣는 자리 |
 | `birthday.js` | 활천대 앞 생일 축하(두 학생, 들어 올려 분수로) |
 | `water/fountain.js` | 활천대 분수 물(Ultra Water) |
 | `ui.js` · `labels.js` · `places.js` · `news.js` · `notes.js` | 화면 UI, 건물 이름표, 추억 카드, 새 소식 |
@@ -122,7 +123,17 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - Quaternius 의 CC0 모듈러 캐릭터를 `blender/characters.py` 가 부품을 섞고 1997년 옷차림으로 칠해 14명을 만듭니다(sim-office 의 `tools/office-characters.py` 를 고쳐 씀). 키는 실제 크기(남 1.73 m, 여 1.61 m).
 - 애니메이션은 남녀 리그 파일 둘에 들어 있고, 이동 속도에 맞춰 재생 속도를 바꿔 발이 미끄러지지 않습니다.
 - 단색 부품을 정점 색 메시 하나로 합쳐 한 명당 draw call 1번. 화면 밖이면 그리지 않습니다.
-- 군중 행동(걷기, 멈춤, 무리, 인사)은 `life.js`, 대사는 `talk.js`.
+- 군중 행동(걷기, 멈춤, 무리, 인사, 벤치에 앉기, 공중전화 줄)은 `life.js`, 대사는 `talk.js`.
+- 군중은 사람마다 키 · 몸집 · 옷 색 · 피부색 · 머리색을 달리합니다(`characters.js` `crowdLook`). 색만 다른 지오메트리를 따로 두고 나머지 버퍼는 함께 씁니다. 주인공 · 운전자 · 생일 장면의 두 학생은 모델 그대로입니다.
+- 앉은 사람은 `sit` 클립의 엉덩이 높이를 재서 벤치 앉는 면(0.43 m)에 맞추고, 머리만 돌립니다.
+
+### 소리
+
+- `audio.js` 가 잡음 버퍼와 오실레이터로 모든 소리를 합성합니다. 녹음 파일이 없어 내려받을 것도, 라이선스도 없습니다.
+- 듣는 자리는 카메라입니다. 분수 · 차 · 새 · 다른 사람의 발소리는 `PannerNode` 로 제자리에서 들립니다.
+- 내 발소리는 걷기 · 뛰기 클립에서 발 뼈가 내려오는 순간에 내고, 땅 종류는 `ground_splat.png`(포장 · 흙 · 잔디)에서 읽습니다.
+- 다른 모듈은 콜백으로 알립니다: `birds.onTakeOff`, `ball.onSound`, `birthday.onSplash`.
+- 크기를 맞출 때는 헤드리스 Chromium(`--autoplay-policy=no-user-gesture-required`)에서 `sound.tap`(AnalyserNode)을 녹음해 대역별 크기를 잽니다.
 
 ### 자동차
 
