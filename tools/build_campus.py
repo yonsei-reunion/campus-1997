@@ -1826,8 +1826,9 @@ AUD_T = AUD_HEAD
 # from 백양로 at the wall's south end north-east up to the terrace, the bank a wedge between it and the street, and
 # 학생회관 별관's ground floor and the yard before it down at the street's level (the court's slab had stood there on a
 # 5 m stone skirt).  The ramp's middle and width from the skyview; its head stands at the terrace's level, which makes
-# it 15 % (seen from 1017220191 its head is about 38.8 +- 0.7 m, so the real terrace may fall 1 - 1.5 m to the south:
-# not measured, reference/고증.md 4.5).
+# it 15.8 % over 32 m.  Measured in four frames looking up it (1017220188 - 191, the horizon of each set by the
+# bollards at its foot): the head 39.8 +- 0.45 m, 22 m from the bollards, 19 % (17 - 22 %), the carriageway 4.7 m wide
+# with a walk beside it.  So the game's drive is the gentler one, and is left as it is (reference/고증.md 4.5).
 AUD_RAMP = dict(pts=[(3.0, -17.0), (9.0, -13.0), (15.0, -7.5), (21.5, 1.5), (28.5, 12.0)], w=7.0)
 _rl = LineString(AUD_RAMP['pts'])
 _rl0 = _rl.project(Point(AUD_RAMP['pts'][1]))                        # (level across the sidewalk, then up)
