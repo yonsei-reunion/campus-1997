@@ -1829,11 +1829,12 @@ AUD_T = AUD_HEAD                              # (the forecourt and the terrace a
 # ground floor and the yard before it down at the street's level.  At its foot three bollards stand across the
 # carriageway 1.3 m apart and one more on the walk; from them it climbs 22 m on a bearing of 38 deg to the head,
 # 39.8 +- 0.45 m (four frames looking up it, the horizon of each set by the bollards' feet): 20 % here (17 - 22 %).
-# The carriageway 4.7 m wide, a walk 1.8 m wide up its east side and beyond that a strip of clipped shrubs down to
-# the yard.  The foot: the middle bollard, from 190 and 192 (its distance from 188 - 191 agrees with the bollards'
+# The carriageway 4.7 m wide, a walk 1.8 m wide up its east side and beyond that a strip of clipped shrubs 4.5 m wide
+# on the slope down to the yard, from 2.5 m below the bollards (its lower end and its outer edge from 190 - 193: 0.1 m
+# apart in three; 학생회관 별관's ground floor stands 10 m beyond it, the yard between).  The foot: the middle bollard, from 190 and 192 (its distance from 188 - 191 agrees with the bollards'
 # heights in those frames to 4 %; the skyview has it 3.5 m further east).  The terrace beyond the head is not level
 # but falls with 백양로, from the flight's head (40.33 m) to the drive's head.
-AUD_RAMP = dict(foot=(7.56, -9.22), bearing=38.0, run=22.0, w=4.7, walk=1.8, band=3.2, mouth=5.0, z1=39.8,
+AUD_RAMP = dict(foot=(7.56, -9.22), bearing=38.0, run=22.0, w=4.7, walk=1.8, band=4.45, band_t0=-2.5, mouth=5.0, z1=39.8,
                 bollards=(-1.3, 0.0, 1.3, 3.05))
 _ru = np.array([math.sin(math.radians(AUD_RAMP['bearing'])), math.cos(math.radians(AUD_RAMP['bearing']))])  # (up it)
 _rn = np.array([_ru[1], -_ru[0]])                                      # (across it, east)
@@ -1887,7 +1888,7 @@ _bk = Polygon([along_raw(s_, AUD_BANK['side'] * (E_WALK - 2.0))[:2] for s_ in np
 AUD_RAMP_CW = ramp_strip(-AUD_RAMP['w'] / 2, AUD_RAMP['w'] / 2, -AUD_RAMP['mouth'], AUD_RAMP['run'])
 AUD_RAMP_WALK = ramp_strip(AUD_RAMP['w'] / 2, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], -AUD_RAMP['mouth'], AUD_RAMP['run'])
 AUD_RAMP_BAND = ramp_strip(AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], AUD_RAMP['w'] / 2 + AUD_RAMP['walk'] + AUD_RAMP['band'],
-                           1.5, AUD_RAMP['run'] - 1.0)                 # (the shrubs east of the walk)
+                           AUD_RAMP['band_t0'], AUD_RAMP['run'] - 1.0)  # (the shrubs east of the walk)
 AUD_RAMP_POLY = unary_union([ramp_strip(-AUD_RAMP['w'] / 2, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], 0.0, AUD_RAMP['run'])]) \
     .difference(_bk)
 COURT_Z = round(aud_terrace_z(s_at(*COURT['pos'])), 3)              # (the court level: the terrace at its middle)
@@ -4743,11 +4744,12 @@ shrubs = [s_ for s_ in shrubs if not _tz.contains(Point(s_[1], s_[2]))]
 props = [p_ for p_ in props if not _tz.contains(Point(p_[1], p_[2]))]
 cars = [c_ for c_ in cars if not _tz.contains(Point(c_[1], c_[2]))]
 print('대강당 앞 진입로 나무: ginkgo row', _nf, '->', len(AUD_ROW_S), 'and', len(AUD_TREES), 'round the drive')
-# the strip east of the walk: two staggered rows of clipped mounds (green in April 2011); the bollards at the foot
+# the strip east of the walk: three staggered rows of clipped mounds grown into one mass (green in April 2011), down
+# to the yard below the bollards; the bollards at the foot
 _ob = AUD_RAMP['w'] / 2 + AUD_RAMP['walk']
-for _t in np.arange(2.2, AUD_RAMP['run'] - 1.4, 1.5):
-    for _k, _o in enumerate((0.75, 1.9)):
-        _x, _y = ramp_xy(_t + 0.75 * _k + _rt.uniform(-0.2, 0.2), _ob + _o + _rt.uniform(-0.15, 0.15))
+for _t in np.arange(AUD_RAMP['band_t0'] + 0.6, AUD_RAMP['run'] - 1.4, 1.4):
+    for _k, _o in enumerate((0.7, 1.95, 3.2)):
+        _x, _y = ramp_xy(_t + 0.7 * (_k % 2) + _rt.uniform(-0.2, 0.2), _ob + _o + _rt.uniform(-0.15, 0.15))
         _sc, _rot = round(_rt.uniform(0.95, 1.3), 2), round(_rt.uniform(0, 6.28), 2)
         if _tz.buffer(0.3).contains(Point(_x, _y)):
             continue
