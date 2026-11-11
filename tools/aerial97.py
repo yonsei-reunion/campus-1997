@@ -56,8 +56,35 @@ def game_to_5179(x, y):
     return tm5179(LAT0 + y / KY, LON0 + x / KX)
 
 
-def to_px(frame, x, y):
+# 맞춘 카메라(reference/고증/1_자료.md 「자료 Q」): 사진 주점을 영상 가운데로, 고도를 815 m 로 두고 연직 사진으로 봄.
+# (x0, y0): 카메라 바로 아래의 게임 좌표, k: 사진 위쪽이 북에서 시계 방향으로 돈 각(rad), f: 초점 거리(화소)
+CAM = {
+    (26, 15): dict(x0=-273.84, y0=234.14, k=0.03691, f=1414.71, hc=815.0),
+}
+_H = None
+
+
+def ground(x, y):
+    """그 점의 땅 높이(data/terrain_near.npy, 5 m 격자)"""
+    global _H
+    import numpy as np
+    if _H is None:
+        _H = np.load(os.path.join(ROOT, 'data/terrain_near.npy'))
+    fx, fy = (x + 800) / 5.0, (y + 800) / 5.0
+    i, j = max(0, min(_H.shape[1] - 2, int(fx))), max(0, min(_H.shape[0] - 2, int(fy)))
+    u, v = fx - i, fy - j
+    return float(_H[j, i] * (1 - u) * (1 - v) + _H[j, i + 1] * u * (1 - v) + _H[j + 1, i] * (1 - u) * v + _H[j + 1, i + 1] * u * v)
+
+
+def to_px(frame, x, y, z=None):
+    """게임 좌표 -> 화소. 카메라를 맞춘 사진은 높이 z(없으면 땅)까지 넣어 투영하고, 아니면 사이트의 범위에 편다."""
     (x0, y0, x1, y1), (w, h) = FRAMES[frame]
+    c = CAM.get(frame)
+    if c:
+        z = ground(x, y) if z is None else z
+        dx, dy, dz = x - c['x0'], y - c['y0'], z - c['hc']
+        ck, sk = math.cos(c['k']), math.sin(c['k'])
+        return w / 2 - c['f'] * (ck * dx + sk * dy) / dz, h / 2 + c['f'] * (-sk * dx + ck * dy) / dz
     e, n = game_to_5179(x, y)
     return (e - x0) / (x1 - x0) * w, (y1 - n) / (y1 - y0) * h
 
@@ -67,8 +94,8 @@ def frames_at(x, y, margin=120):
     for fr, (_, (w, h)) in FRAMES.items():
         px, py = to_px(fr, x, y)
         if margin < px < w - margin and margin < py < h - margin:
-            out.append((math.hypot(px - w / 2, py - h / 2), fr, px, py))      # (주점에 가까운 것부터)
-    return sorted(out)
+            out.append((0 if fr in CAM else 1, math.hypot(px - w / 2, py - h / 2), fr, px, py))      # (맞춘 사진, 주점에 가까운 것부터)
+    return [o[1:] for o in sorted(out)]
 
 
 def path(frame):
@@ -87,17 +114,20 @@ if __name__ == '__main__':
         fr = tuple(int(v) for v in sys.argv[6].split('/')) if len(sys.argv) > 6 and sys.argv[6] != '-' else frames_at(x, y)[0][1]
         zoom = float(sys.argv[7]) if len(sys.argv) > 7 else 3.0
         im = Image.open(path(fr)).convert('RGB')
-        a, b = to_px(fr, x - half, y + half), to_px(fr, x + half, y - half)
-        box = tuple(int(round(v)) for v in (*a, *b))
+        cpx = to_px(fr, x, y)
+        hp = half / (0.54 if fr in CAM else 0.513)
+        box = tuple(int(round(v)) for v in (cpx[0] - hp, cpx[1] - hp, cpx[0] + hp, cpx[1] + hp))
         c = ImageEnhance.Contrast(im.crop(box)).enhance(1.2)
         c = c.resize((int(c.width * zoom), int(c.height * zoom)), Image.LANCZOS)
         d = ImageDraw.Draw(c)
         P = lambda gx, gy: tuple((v - o) * zoom for v, o in zip(to_px(fr, gx, gy), box[:2]))
         campus = json.load(open(os.path.join(ROOT, 'web/public/data/campus.json')))
-        for bd in campus['buildings']:
+        for bd in campus['buildings']:                       # 발치(노랑)와 지붕(주황: 바닥 + 높이)
             f = bd['footprint']
             if any(abs(q[0] - x) < half and abs(q[1] - y) < half for q in f):
-                d.line([P(*q) for q in f + [f[0]]], fill=(255, 220, 0), width=1)
+                zb = bd.get('base', ground(*f[0]))
+                d.line([tuple((v - o) * zoom for v, o in zip(to_px(fr, q[0], q[1], zb), box[:2])) for q in f + [f[0]]], fill=(255, 220, 0), width=1)
+                d.line([tuple((v - o) * zoom for v, o in zip(to_px(fr, q[0], q[1], zb + bd.get('height', 0)), box[:2])) for q in f + [f[0]]], fill=(255, 120, 0), width=1)
         g = 10 if half <= 80 else 50
         for gx in range(int((x - half) // g * g), int(x + half) + 1, g):
             for gy in range(int((y - half) // g * g), int(y + half) + 1, g):
