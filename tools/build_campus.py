@@ -255,6 +255,21 @@ def along_raw(s, off):
     n_ = math.hypot(tx, ty)
     return p.x - ty / n_ * off, p.y + tx / n_ * off, math.atan2(ty, tx)
 
+# ---------------------------------------------------------------------------
+# 정문의 자리 (reference/고증/4.8_정문_밖.md 「정문의 남북 자리」).  The gate stood on the line through its pillars, at
+# y -396 (± 1.5) on 백양로's centre line, not at the road's south end: Kakao's 2010 skyview has the east pillar's foot at
+# (-102.4, -397.0), the pre-rebuild roadview (2011-04 drive 1017220149 - 152, headings and places unknown, tied by
+# 공학원's tower tops to the panos up the road that see 제1공학관's old south-east corner) its middle at (-102.6, -398.8)
+# ± 3.8 m (tied to Kakao's places: -397.3 ± 1.5); photo A, taken from over the gate, has its camera at y -395.7; the
+# 1994 photo with the rails on the bridge as its nearest marks -401 ~ -411 (± 8).  The line `bys`
+# and its arc length s keep their place (everything set along 백양로 by s stays where it is): s 0 .. GATE_S is now
+# the gate's mouth outside it, 백양로 proper starts at the gate.  (Before: the gate at s 4, y -423.7, on the middle
+# of OSM's north carriageway of 성산로, which had to be pushed 14.5 m south and narrowed to fit.)
+# ---------------------------------------------------------------------------
+GATE_Y = -396.0
+GATE_S = float(next(s_ for s_ in np.arange(0.0, 80.0, 0.05) if bline.interpolate(s_).y >= GATE_Y))
+GATE_C = along_raw(GATE_S, 0.0)[:2]           # the gate's middle, on 백양로's centre line (the opening's: 3 m east)
+
 # Height profile along 백양로 (issue #8).  Sampled along the road, the 5 m grid smears the hall blocks and the wooded
 # hill behind 언더우드관 down onto it.  The designers of the 2015 rebuilding (Annual Technical Report(지하융복합)_2023,
 # 2.1: 「정문에서 본관 앞 삼거리까지 약 12m의 레벨 차가 있는 완만한 경사」, about 8 m of it over the 360 m of the
@@ -4206,7 +4221,7 @@ Image.fromarray(np.clip(_lv * 255, 0, 255).astype(np.uint8), 'RGB').save(
 print('leaf mask: ginkgo %.0f, cherry %.0f, broadleaf %.0f m2' % tuple((_lv > 0.3).sum((0, 1)) * DRY_RES ** 2))
 
 LANDMARKS = [
-    dict(id='gate', name='정문', pos=[-106, -410], r=22, photo=None,
+    dict(id='gate', name='정문', pos=[round(GATE_C[0] + 2.0, 1), round(GATE_C[1] + 2.0, 1)], r=22, photo=None,     # (just inside it)
          title='연세대학교 정문', year='1997',
          text='신촌 로터리에서 걸어 올라오면 만나는 정문. 1997년의 정문 앞에는 학교 버스와 오토바이, 그리고 오늘도 늦은 학생들이 뒤섞였다. 여기서 백양로가 북쪽 본관까지 곧게 뻗어 있다.'),
     dict(id='baekyangro', name='백양로', pos=[-82, -300], r=26, photo=['photos/baekyangro_1997_pano.jpg', 'photos/yongo_banner_news_1997.jpg'],
@@ -4275,7 +4290,7 @@ STATUES = dict(
     underwood_statue=dict(pos=list(UW_STATUE), rot=math.radians(-14)),
     court=dict(pos=COURT['pos'], rot=COURT['rot'], L=COURT['L'], W=COURT['W']),
     fountain=dict(FOUNTAIN, rot=0.0),                            # (the column's arms face the compass points)
-    gate=dict(pos=[round(GATE[0], 2), round(GATE[1] + 4, 2)], rot=math.radians(-14)),
+    gate=dict(pos=[round(GATE_C[0], 2), round(GATE_C[1], 2)], rot=math.radians(-14)),      # (정문의 자리, above)
 )
 _tn = dict(TENNIS, rot=round(TENNIS['rot'], 5))
 for v in STATUES.values():
@@ -4303,7 +4318,7 @@ _gn = min(range(len(GONGWON_RING)), key=lambda k_: math.hypot(GONGWON_RING[k_][0
 STATUES['gongwon_site'] = dict(ring=GONGWON_RING, gate=[_gn - 1, _gn + 1])     # (the gate: ring points either side)
 print('공학원 site', round(GONGWON_SITE.area), 'm2, hoarding', round(_gr.length), 'm')
 
-_sx, _sy, _ = along_raw(30, E_VERGE + ROAD['walk'] * 0.5)        # on the west sidewalk just inside the gate
+_sx, _sy, _ = along_raw(GATE_S + 6.0, E_VERGE + ROAD['walk'] * 0.5)        # on the west sidewalk just inside the gate (s 30 before)
 SPAWN = dict(pos=[round(_sx, 1), round(_sy, 1)], yaw=math.radians(-14))
 
 # ---------------------------------------------------------------------------
@@ -4313,7 +4328,7 @@ SPAWN = dict(pos=[round(_sx, 1), round(_sy, 1)], yaw=math.radians(-14))
 # ---------------------------------------------------------------------------
 _gate_c, _gate_r = np.array(STATUES['gate']['pos']), STATUES['gate']['rot']
 _gate_w = np.array([math.cos(_gate_r), math.sin(_gate_r)]) * 31.5
-TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, bys[0], along_raw(0.0, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h)
+TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h)
 TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h)
 print('정문 밖: 성산로 %.0f m, 철둑 %.0f m, 레일 높이 %.2f m (정문 앞 길 %.2f m)' % (
     TOWN_PLAN['road'].cum[-1], TOWN_PLAN['rail'].cum[-1], TOWN_PLAN['rail_z'], TOWN_PLAN['rail_z'] - gate_town.RAIL_UP))
@@ -4500,6 +4515,10 @@ out = dict(
 )
 out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
 out['baekyangro']['booth'] = BOOTH
+# 정문 앞 어귀: short of the gate (s 0 .. GATE_S) no verge, sidewalk or planting strip on either side, the asphalt flush
+# out to the gate's mouth (blender/road.py mouths; [side, s0, s1, r0, r1]); they start a metre past the wall's line,
+# clear of the gate's pillars (blender/props.py gate: 1.9 m square on its line)
+out['baekyangro']['mouths'] += [[1, -2.0, round(GATE_S + 1.0, 2), 0.0, 0.0], [-1, -2.0, round(GATE_S + 1.0, 2), 0.0, 0.0]]
 # 대강당 앞 둑: blender/road.py leaves the planting strip out where the wall stands, blender/landmarks.py aud_bank builds it
 out['baekyangro']['walls'] = [[AUD_BANK['side'], AUD_BANK['s0'], AUD_BANK['s1']]]
 out['baekyangro']['strip_breaks'] = [list(o_) for o_ in STRIP_OPEN]     # (제1공학관 앞 진입로, 백양관 앞)
@@ -5063,6 +5082,58 @@ _tz = TOWN['road_poly'].union(TOWN['bank']).buffer(1.0)
 shapely.prepare(_tz)
 for _lst in (trees, shrubs, props):
     _lst[:] = [t_ for t_ in _lst if not shapely.contains_xy(_tz, t_[1], t_[2])]
+# ---------------------------------------------------------------------------
+# 정문 앞 어귀 (정문의 자리, above; 고증 4.8).  South of the gate's wall, in its mouth and on 백양로's line short of the
+# gate (s 0 .. GATE_S, whose verges, sidewalks and planting strips are flush asphalt now: blender/road.py mouths,
+# below) nothing stands: the shrubs, props and decals the planting put there go, and its trees are moved, each in its
+# own place in the list (web/src/world.js picks a tree's model by its index), onto the lawns inside the wall, past
+# its paved strip (gate_town inside) and clear of 백양로.  Their own random stream, nothing drawn from `rng`.
+# ---------------------------------------------------------------------------
+_gw_t = np.array([math.cos(STATUES['gate']['rot']), math.sin(STATUES['gate']['rot'])])
+_gw_n = np.array([-_gw_t[1], _gw_t[0]])
+_gc = np.array(STATUES['gate']['pos'], float)
+_south = Polygon([tuple(_gc + _gw_t * u_ + _gw_n * v_) for u_, v_ in ((-300, -0.6), (300, -0.6), (300, -300), (-300, -300))])
+_gband = Polygon([along_raw(s_, ROAD_HALF + 0.6)[:2] for s_ in np.arange(0.0, GATE_S + 6.01, 2.0)]
+                 + [along_raw(s_, -(ROAD_HALF + 0.6))[:2] for s_ in np.arange(GATE_S + 6.0, -0.01, -2.0)])
+GATE_OUT = TOWN['mouth'].union(_gband).intersection(_south).buffer(0.3)
+shapely.prepare(GATE_OUT)
+_gate_rng = random.Random(1380)
+_gate_moved = []
+for _i, _t in enumerate(trees):
+    if not shapely.contains_xy(GATE_OUT, _t[1], _t[2]):
+        continue
+    for _ in range(400):
+        _u, _v = _gate_rng.uniform(15.0, 30.0), _gate_rng.uniform(15.5, 30.0)       # (the east lawn: the west one is open grass in photo A)
+        _q = _gc + _gw_t * _u + _gw_n * _v
+        if bline.distance(Point(*_q)) < ROAD_HALF + 1.5 or any(Polygon(b_['footprint']).buffer(3.0).contains(Point(*_q)) for b_ in buildings
+                                                              if abs(b_['footprint'][0][0] - _q[0]) < 120):
+            continue
+        if min(math.hypot(o_[1] - _q[0], o_[2] - _q[1]) for o_ in trees) < 5.0:
+            continue
+        _gate_moved.append((_i, _t[0], (_t[1], _t[2]), (round(float(_q[0]), 2), round(float(_q[1]), 2))))
+        trees[_i] = [_t[0], round(float(_q[0]), 2), round(float(_q[1]), 2)] + list(_t[3:])
+        break
+shrubs[:] = [s_ for s_ in shrubs if not shapely.contains_xy(GATE_OUT, s_[1], s_[2])]
+props[:] = [p_ for p_ in props if not shapely.contains_xy(GATE_OUT, p_[1], p_[2])]
+out['decals'] = [d_ for d_ in out['decals'] if not shapely.contains_xy(GATE_OUT, d_[1], d_[2])]
+print('정문 앞 어귀: gate at s %.1f (%.1f, %.1f); trees moved %s' % (GATE_S, *GATE_C, _gate_moved))
+# The web picks each tree's model by its place in the list (web/src/world.js Forest: one draw a tree, in order), so
+# the town's share of it is held at TOWN_TREE_SLOTS: the trees after it (대강당 진입로's, 신촌 로터리's) keep their
+# looks whatever the town plants.  Short of it, more trees on the banks west of the bridge, beside the town's own;
+# over it, the last go.  (Its own random stream.)
+TOWN_TREE_SLOTS = 113
+_tt, _trng = list(TOWN['trees'])[:TOWN_TREE_SLOTS], random.Random(1381)
+_bank_src = [t_ for t_ in _tt if t_[0] in ('poplar', 'zelkova', 'oak', 'zelkova_young') and t_[1] < gate_town.BRIDGE[0] - 12]
+for _ in range(2000):
+    if len(_tt) >= TOWN_TREE_SLOTS or not _bank_src:
+        break
+    _src = _trng.choice(_bank_src)
+    _q = (round(_src[1] + _trng.choice((-1, 1)) * _trng.uniform(3.5, 6.0), 2), _src[2])
+    if min(math.hypot(o_[1] - _q[0], o_[2] - _q[1]) for o_ in _tt) < 3.0 or not TOWN['bank'].contains(Point(*_q)):
+        continue
+    _tt.append([_src[0], _q[0], _q[1], round(_trng.uniform(0.5, 0.8), 2), round(_trng.uniform(0, 6.28), 2)])
+assert len(_tt) == TOWN_TREE_SLOTS, len(_tt)
+TOWN['trees'] = _tt
 trees += TOWN['trees']
 trees += AUD_NEW_TREES                         # (대강당 진입로 둘레: last, so that no other tree changes its model)
 shrubs += TOWN['shrubs']

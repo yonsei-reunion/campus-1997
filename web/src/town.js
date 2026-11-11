@@ -79,7 +79,7 @@ function painted(base, color) {
 const BUS_COLORS = ['#1e7a4c', '#1e7a4c', '#2458a8', '#b02a2e'];
 const KINDS = ['sedan', 'sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'taxi', 'van'];
 
-// Cars on 성산로's six inner lanes and city buses on its two kerb lanes (campus.json town.lanes), and on 연세로 and
+// Cars on 성산로's eight inner lanes and city buses on its two kerb lanes (campus.json town.lanes), and on 연세로 and
 // through 신촌 로터리 (tools/sinchon_rotary.py: lanes with `stops`, round the island). Each keeps its lane and its
 // distance to whatever is ahead of it (a car of another lane merging or turning, the walker), waits at its stop
 // lines while its signal is red, and comes round again at the lane's start.

@@ -9,10 +9,13 @@ the town's blocks and their looks come from random.Random streams of their own.
 Where things stand (고증 4.8):
 - The rails and 연세로 are OSM's as fetched by tools/fetch_gate_osm.py (two tracks of the 경의선, 10 m apart at the
   bridge; the alignment has not moved, the 1995 aerial photo has the two decks).
-- 성산로 is OSM's (the middle between its two carriageways) pushed up to 14.5 m south before the gate and narrowed
-  to eight lanes: the game's gate stands some 40 m south of where the 1994 / 1995 photos have it, so the deep fan of
-  asphalt before it and the ten lanes do not fit between the gate and the rails.  The strip of the real road that is
-  left over north of it is sidewalk.
+- The gate stands where the 2010 skyview and the pre-rebuild roadview have its pillars, y -396 on 백양로's centre
+  line (tools/build_campus.py GATE_C; 고증 4.8 「정문의 남북 자리」).  From its wall to 성산로's north kerb runs its
+  mouth, a fan of asphalt (the 1995 photo: the west wall rounding off, the east one running out at a slant), some
+  16 m deep at its east end and 31 m at its west.
+- 성산로 is OSM's, the middle between its two carriageways, ten lanes (the 1995 photo: 30 - 35 m, four or more dashed
+  lines a side; OSM's carriageways and the gate square's south edge: kerb to kerb about 35 m).  (Before, with the
+  gate 25 m further south, it was pushed up to 14.5 m south before the gate and narrowed to eight lanes.)
 """
 import json, math, os, random
 import numpy as np
@@ -43,9 +46,9 @@ TRACK_N = [(-576, -365), (-559, -381), (-531, -402), (-495, -426), (-453, -447),
 TRACK_S = [(-579, -368), (-560, -386), (-535, -406), (-498, -429), (-466, -446), (-451, -454), (-413, -467),
            (-369, -480), (-321, -488), (-284, -491), (-225, -490), (-126, -487), (-113, -487), (-79, -486),
            (-68, -486), (89, -481), (207, -478), (275, -476), (288, -476), (541, -467), (751, -454)]
-SHIFT = 14.5                 # 성산로 pushed south before the gate, m
-LANES, LANE_W, MID = 4, 3.2, 0.9       # lanes each way, their width, the double yellow line's strip
-HW = LANES * LANE_W + MID / 2          # the carriageway's half width (13.25 m)
+SHIFT = 0.0                  # 성산로 pushed south before the gate, m (14.5 while the gate stood at y -423.7; kept at 0)
+LANES, LANE_W, MID = 5, 3.2, 0.9       # lanes each way, their width, the double yellow line's strip
+HW = LANES * LANE_W + MID / 2          # the carriageway's half width (16.45 m)
 SW_S = 1.6                   # the south sidewalk under the bank
 RAIL_UP = 5.7                # the rails over 성산로 before the gate
 BALLAST = 0.25               # the rails over the top of the bank
@@ -127,7 +130,8 @@ class Line:
 
 def plan(Hn, half, step, gate, heading, wall, sample):
     """Levels 성산로's bed and cuts the rails' bed into the ground where it stands higher (Hn in place).
-    gate: 백양로's south end, heading: its direction there (rad), wall: the gate wall's two ends (west, east),
+    gate: the gate's middle on 백양로's centre line, heading: the road's direction there (rad), wall: the gate wall's two
+    ends (west, east),
     sample(x, y): the ground as it stands."""
     gx = np.linspace(-half, half, Hn.shape[0])
     X, Y = np.meshgrid(gx, gx)
@@ -275,22 +279,28 @@ def layout(pl, secs, ground, taken, e_curb0):
             yw = (w0 + wt * u)[1] - 0.45
             if q[1] > yw:
                 bound[k] = (q[0], yw)
-    zone = Polygon([tuple(p) for p in bound] + [(road.P[-1][0] + 300, road.P[-1][1]), (720, -810), (-660, -810),
-                                                 (-660, road.P[0][1])]).buffer(0)
-    road_poly = Polygon([tuple(p) for p in kerb_n] + [tuple(p) for p in kerb_s[::-1]]).buffer(0)
-    walk_n = Polygon([tuple(p) for p in bound] + [tuple(p) for p in kerb_n[::-1]]).buffer(0)
-    walk_s = Polygon([tuple(p) for p in kerb_s] + [tuple(p) for p in back_s[::-1]]).buffer(0)
-    # ---- the gate's mouth: 백양로's carriageway fanning out to the road (the 1995 photo's fan, as deep as fits)
+    # ---- the gate's mouth (고증 4.8): from under the gate's wall to the road, the 1995 photo's fan: the west wall
+    # rounding off towards the road, the east one running out at a slant.  (u, v): along the wall eastwards from its
+    # middle, northwards from its line; clipped at 성산로's middle.  The 2008 / 2011 roadview: asphalt from the wall's
+    # foot to the lanes, no kerb between (the buses' bays and the stop's waiting cars along its west half)
     g0, a0 = np.array(pl['gate']), pl['heading']
     t = np.array([math.cos(a0), math.sin(a0)])
     nl = np.array([-t[1], t[0]])
-    fan = [(e_curb0 + 0.35, -1.0), (e_curb0 + 0.35, 0.0), (5.5, 2.0), (9.0, 4.5), (15.0, 6.8), (22.0, 8.4), (30.0, 9.4), (30.0, 14.0)]
-    fan = fan + [(-o, d) for o, d in fan[::-1]]
-    mouth = Polygon([tuple(g0 - t * d + nl * o) for o, d in fan]).buffer(0)
+    wc, wl = (w0 + w1) / 2, float(np.linalg.norm(w1 - w0))
+    wnn = np.array([-wt[1], wt[0]])
+    hw_ = wl / 2
+    fan = [(-hw_, -0.4), (hw_, -0.4)] + [(hw_ + 0.62 * d, -d) for d in (8.0, 20.0, 45.0)] + \
+          [(-hw_ - 12.5, -45.0), (-hw_ - 12.0, -28.0), (-hw_ - 10.5, -22.0), (-hw_ - 8.0, -17.0), (-hw_ - 4.8, -12.0),
+           (-hw_ - 2.3, -7.5), (-hw_ - 0.7, -3.5)]
+    north_of_road = Polygon([tuple(p) for p in road.P] + [(road.P[-1][0], road.P[-1][1] + 600), (road.P[0][0], road.P[0][1] + 600)]).buffer(0)
+    mouth = Polygon([tuple(wc + wt * u + wnn * v) for u, v in fan]).buffer(0).intersection(north_of_road).buffer(0)
+    zone = Polygon([tuple(p) for p in bound] + [(road.P[-1][0] + 300, road.P[-1][1]), (720, -810), (-660, -810),
+                                                 (-660, road.P[0][1])]).buffer(0).union(mouth).buffer(0)
+    road_poly = Polygon([tuple(p) for p in kerb_n] + [tuple(p) for p in kerb_s[::-1]]).buffer(0)
+    walk_n = Polygon([tuple(p) for p in bound] + [tuple(p) for p in kerb_n[::-1]]).buffer(0)
+    walk_s = Polygon([tuple(p) for p in kerb_s] + [tuple(p) for p in back_s[::-1]]).buffer(0)
     # just inside the wall: the old game's forecourt strokes of asphalt along it go, paved like the gate's square
     # (백양로's own mesh covers its 12 m either side of the centre line)
-    wl = float(np.linalg.norm(w1 - w0))
-    wnn = np.array([-wt[1], wt[0]])
     inside = Polygon([tuple(w0 - wt * 2.0 - wnn * 0.5), tuple(w0 + wt * (wl + 2.0) - wnn * 0.5), tuple(w0 + wt * (wl + 2.0) + wnn * 14.0),
                       tuple(w0 - wt * 2.0 + wnn * 14.0)]).difference(
         Polygon([tuple(g0 + t * d + nl * o) for o, d in ((12.6, -3.0), (12.6, 40.0), (-12.6, 40.0), (-12.6, -3.0))])).buffer(0)
@@ -311,7 +321,7 @@ def layout(pl, secs, ground, taken, e_curb0):
     # west of the traffic island, the station's side in the east)
     south = Polygon([tuple(p) for p in cs] + [(720, cs[-1][1]), (720, -810), (-660, -810), (-660, cs[0][1])]).buffer(0)
     between = zone.difference(south).difference(bank.buffer(2.0)).difference(Polygon(
-        [tuple(p) for p in bound] + [tuple(p) for p in back_s[::-1]]).buffer(0))
+        [tuple(p) for p in bound] + [tuple(p) for p in back_s[::-1]]).buffer(0)).difference(mouth.buffer(1.0))
     yards = unary_union([g for g in getattr(between, 'geoms', [between])
                          if g.geom_type == 'Polygon' and g.area > 200]).intersection(
         unary_union([Polygon([(-660, -810), (-345, -810), (-345, 0), (-660, 0)]),
@@ -454,8 +464,8 @@ def layout(pl, secs, ground, taken, e_curb0):
         if len(cur) > 1:
             out.append(R2(cur))
         return out
-    mx = [p[0] for p in mouth.exterior.coords]
-    kerbs = runs(kerb_n, [(min(mx) + 0.5, max(mx) - 0.5)]) + runs(kerb_s, [(BRIDGE[0] + 0.4, BRIDGE[1] - 0.4)])
+    mx = [q[0] for q in kerb_n if mouth.buffer(0.5).contains(Point(*q))]       # (where the mouth meets the kerb's line)
+    kerbs = runs(kerb_n, [(min(mx) - 1.5, max(mx) + 1.5)]) + runs(kerb_s, [(BRIDGE[0] + 0.4, BRIDGE[1] - 0.4)])
     # ---- lanes for the cars (west -> east on the south side), the kerb lanes for the buses
     lanes = []
     drive = (sx > -500) & (sx < 345)
@@ -527,12 +537,16 @@ def layout(pl, secs, ground, taken, e_curb0):
         if wdt < 7.0:
             continue
         q = road.P[k] + road.N[k] * (HW + min(wdt - 2.0, 9.0))
+        if mouth.buffer(2.0).contains(Point(*q)):
+            continue
         trees.append(['ginkgo', round(float(q[0]), 2), round(float(q[1]), 2), round(rnd.uniform(0.8, 1.0), 2), round(rnd.uniform(0, 6.28), 2)])
     # along the campus's edge of the wide sidewalk west of the gate, the dark row of big trees of the 1995 photo
     for k in range(2, len(sx) - 2, 2):
         if not (-420 < sx[k] < -150) or b_off[k] - HW < 9.0:
             continue
         q = bound[k] - road.N[k] * 2.2 + road.T[k] * rnd.uniform(-1.5, 1.5)
+        if mouth.buffer(2.0).contains(Point(*q)):
+            continue
         trees.append([rnd.choice(['zelkova', 'zelkova', 'pine', 'oak']), round(float(q[0]), 2), round(float(q[1]), 2),
                       round(rnd.uniform(0.6, 0.85), 2), round(rnd.uniform(0, 6.28), 2)])
     # the strip between the road and the bank west of the gate (the 1995 photo's traffic island: lawn and clipped
@@ -561,4 +575,5 @@ def layout(pl, secs, ground, taken, e_curb0):
     paths = [dict(kind='primary', w=2 * HW, pts=[[round(float(x), 1), round(float(y), 1)] for x, y in road.P[::3]]),
              dict(kind='tertiary', w=2 * YONSEI_HALF, pts=[[YONSEI_X, round(y_top, 1)], [YONSEI_X, -640.0]])]       # (the map)
     return town, dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, paths=paths,
+                      mouth=mouth,
                       road_poly=road_poly.union(walk_s), cross_box=(cross_x[0], cross_x[1], ks, kn), walk_s=walk_s)
