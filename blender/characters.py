@@ -17,7 +17,7 @@ Sources (CC0, quaternius.com), copied to assets_src/quaternius/:
   (the women are the pack's FBX converted by poly.pizza; normalize_fbx() undoes the converter's scale and timing)
 
 Output: web/public/assets/models/people/<id>.glb  (feet at y=0, facing +Z, real-world height in metres,
-colour materials only, texture coordinates into faces.png), faces.png, and rig-umc.glb / rig-women.glb with the
+colour materials only, texture coordinates into faces.png), faces(_rims).png and rig-umc.glb / rig-women.glb with the
 clips idle walk sprint sit emote-yes emote-no interact-right and glTF extras walk_speed / run_speed (m/s of the feet
 in the walk / run cycle).
 """
@@ -34,6 +34,7 @@ from mathutils import Matrix, Quaternion, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import faces  # noqa: E402
+faces_mod = faces              # (the module, inside functions that have a list of faces)
 from faces import FACE  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
@@ -616,8 +617,8 @@ def paint(ob, rules):
 #   - hair as a shell around the skull: columns run from the crown down to a hem whose height is given by azimuth
 #     (HAIR_STYLES), lie `vol` off the scalp and hang free below it; the hanging part has an inner side.
 # Lengths are in the source's units (men x 0.93, women x 0.90 in the game), heights `dz` from the brow line.
-# Everything is skinned to the bone Head (long hair shares its ends with Neck), so bags.js, which reads the build
-# off the vertices of the other bones, and the clips see the same body as before.
+# Everything is skinned to the bone Head (long hair shares its ends with Neck and Chest: hair_follow), so bags.js,
+# which reads the build off the vertices of the other bones, and the clips see the same body as before.
 # The materials are named Skin, Hair, Glasses (Band, Bridge): web/src/characters.js crowdLook recolours them by
 # these names and leaves the glasses out by 'Glasses'.
 # the columns of the hair, by the styles' azimuth (either side): closer together where the hem turns quickly - the
@@ -723,7 +724,6 @@ HAIR_STYLES = {
                  part=(28, .006, 7), fall=.5, sheet=.018, curl=.006, rows=8, rough=.35, ragged=.003, ears=False),
 }
 PART_COLORS = {'Band': '#27345a', 'Glasses': '#77736c'}       # the tie of a tail, thin metal rims
-GLASSES = {'umc': (1.36, 1.02), 'women': (1.26, .92)}          # the rims' half width and height, of the eye's half width
 ATLAS_UV = 'atlas'                                             # the UV layer into faces.png
 BLANK_UV = (faces.uv(faces.BLANK, 0.0, faces.TOP - faces.HALF)[0], 1 - faces.uv(faces.BLANK, 0.0, faces.TOP - faces.HALF)[1])
 
@@ -1038,7 +1038,7 @@ def hair_grow(pid, surf, st):
     a, b, c = (pts[i] for i in faces[0])
     if (b - a).cross(c - a).z < 0:
         faces = [tuple(reversed(f)) for f in faces]
-    neck = [0.7 * _smooth(C.z - 0.17, C.z - 0.36, p.z) for p in pts]
+    follow = [hair_follow(C, p) for p in pts]
     tail = st.get('tail')
     band = []
     if tail:
@@ -1046,8 +1046,22 @@ def hair_grow(pid, surf, st):
         band = [len(faces) + i for i in band]
         pts += tp
         faces += tf
-        neck += [0.6 * _smooth(C.z - 0.10, C.z - 0.30, p.z) for p in tp]
-    return pts, faces, neck, (cols, ends), band, streak
+        follow += [(0.6 * _smooth(C.z - 0.10, C.z - 0.30, p.z), 0.0) for p in tp]       # (tied to the head)
+    return pts, faces, follow, (cols, ends), band, streak
+
+
+def hair_follow(C, p):
+    """How much of the hair at the point p follows the neck and the chest rather than the head: (neck, chest).  Hair
+    that hangs below the jaw lies on the back and the shoulders and stays there as the head turns (a shake, a seated
+    person looking round to a bench mate): its ends follow the neck and the chest alone, the hair above them twists.
+    Behind the ears that starts higher, by the nape (the hair over the shoulders turned with the head and the shoulders
+    showed through it); beside the face lower, under the jaw (the locks there keep with the cheeks).  The neck keeps
+    the larger share of the two everywhere, so the main bone of every point of the hair is still the head or the neck
+    (bags.js leaves those out of the build it fits a bag to)."""
+    back = _smooth(80.0, 130.0, abs(math.degrees(math.atan2(p.x - C.x, -(p.y - C.y)))))
+    off = _smooth(C.z - 0.17 + 0.07 * back, C.z - 0.36, p.z)
+    chest = 0.45 * _smooth(C.z - 0.22, C.z - 0.36, p.z)
+    return off - chest, chest
 
 
 def hair_tail(surf, st, tail, base):
@@ -1141,13 +1155,19 @@ def face_map(head, surf, L, face, rig, cell):
         raise SystemExit(f'{head.name}: only {n} faces of the mesh lie on the drawn face')
 
 
-def face_glasses(surf, L, hw, ex, glasses):
-    """Round-cornered rims a centimetre off the eyes, a bridge, and temples back to the ears: (points, faces)."""
+def glasses_line(L):
+    """The height of the glasses' middle (faces.py draws them that far under the eye line: RIM_DZ)."""
+    return (L['eyes'][0][0].z + L['eyes'][0][1].z) / 2 - 0.001
+
+
+def face_glasses(surf, L, rig, face):
+    """Round-cornered rims a centimetre off the eyes, a bridge, and temples back to the ears: (points, faces).  The
+    frame and the rims' thickness are faces.py's, which draws the same glasses for the game to show from further off."""
     pts, faces = [], []
-    ez = (L['eyes'][0][0].z + L['eyes'][0][1].z) / 2 - 0.001
+    ez = glasses_line(L)
     ear = max(L['ears'], key=lambda box: box[1].x)
-    gw, gh = glasses
-    W, H, T, N = hw * gw, hw * gh, 0.0024, 16
+    _, ex, W, H = faces_mod.rim_frame(rig, face)
+    T, N = faces_mod.RIM_T, 16
     for box in L['eyes']:
         sx = 1 if box[0].x + box[1].x > 0 else -1
         y = surf.front(sx * ex, ez)[0].y - 0.011
@@ -1228,8 +1248,9 @@ def head_trim(ob, surf, st, ends):
     bm.free()
 
 
-def head_part(name, arm, pieces, neck=None):
-    """A mesh of [(material, points, faces)] skinned to the head (and, by `neck` per point of the first piece, the neck)."""
+def head_part(name, arm, pieces, follow=None):
+    """A mesh of [(material, points, faces)] skinned to the head (and, by `follow`: (neck, chest) for each point of the
+    pieces in turn, to the neck and the chest)."""
     me = bpy.data.meshes.new(name)
     pts, faces, mats = [], [], []
     for mname, p, fs in pieces:
@@ -1246,12 +1267,14 @@ def head_part(name, arm, pieces, neck=None):
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
     ob.parent = arm
-    head, nk = ob.vertex_groups.new(name='Head'), ob.vertex_groups.new(name='Neck')
+    groups = {}
     for i in range(len(pts)):
-        w = neck[i] if neck and i < len(neck) else 0.0
-        head.add([i], 1.0 - w, 'REPLACE')
-        if w > 0:
-            nk.add([i], w, 'REPLACE')
+        n, c = follow[i] if follow and i < len(follow) else (0.0, 0.0)
+        for bone, w in (('Head', 1.0 - n - c), ('Neck', n), ('Chest', c)):
+            if w > 0:
+                if bone not in groups:
+                    groups[bone] = ob.vertex_groups.new(name=bone)
+                groups[bone].add([i], w, 'REPLACE')
     ob.modifiers.new('Armature', 'ARMATURE').object = arm
     return ob
 
@@ -1270,24 +1293,28 @@ def head_1997(pid, head, body, arm, spec):
     surf = HeadSurface(head, body, L)
     if spec.get('bridge'):
         st = dict(st, bridge=spec['bridge'])
-    pts, faces, neck, ends, band, streak = hair_grow(pid, surf, st)
+    pts, faces, follow, ends, band, streak = hair_grow(pid, surf, st)
     head_trim(head, surf, st, ends)
     other = set(band) | set(streak)
     pieces = [('Hair', pts, [f for i, f in enumerate(faces) if i not in other])]
-    for name, part in (('Band', band), ('Bridge', streak)):  # (these have points of their own)
+    weights = list(follow)
+    for name, part in (('Band', band), ('Bridge', streak)):  # (these have points of their own, weighted as the hair's)
         if part:
             ring = sorted({i for b in part for i in faces[b]})
             at = {i: n for n, i in enumerate(ring)}
             pieces.append((name, [pts[i] * 1.0 for i in ring], [tuple(at[i] for i in faces[b]) for b in part]))
+            weights += [follow[i] for i in ring]
     col = spec['colors']
     hair = col.get('Hair', HAIR['black'])
     defaults = dict(PART_COLORS, Hair=hair, Bridge=hex_mix(hair, '#d9a35a', 0.5))
     for name in ('Hair', 'Band', 'Glasses', 'Bridge'):
         colour_material(name, srgb_to_linear(col.get(name, defaults[name])))
-    hob = head_part(pid + '-hair', arm, pieces, neck)
-    hw = FACE[rig]['eye'][0] * face.get('eye', 1.0)
-    fob = head_part(pid + '-glasses', arm, [('Glasses', *face_glasses(surf, L, hw, FACE[rig]['gap'] / 2 + hw, GLASSES[rig]))])
+    hob = head_part(pid + '-hair', arm, pieces, weights)
+    fob = head_part(pid + '-glasses', arm, [('Glasses', *face_glasses(surf, L, rig, face))])
     face_map(head, surf, L, face, rig, list(PEOPLE).index(pid))
+    if abs(glasses_line(L) - eye_line(L, face) - faces_mod.RIM_DZ) > 0.0005:
+        raise SystemExit(f'{pid}: the glasses are {glasses_line(L) - eye_line(L, face):.4f} under the eyes; faces.py '
+                         f'draws them at {faces_mod.RIM_DZ}')
     for o in (hob, fob):
         atlas_layer(o)
     bpy.ops.object.select_all(action='DESELECT')
@@ -1688,7 +1715,8 @@ def check(pid, path):
 # ---------- main ----------
 
 def face_atlas():
-    """faces.png: everybody's face in the order of PEOPLE (the cells face_map lays the faces on)."""
+    """faces.png: everybody's face in the order of PEOPLE (the cells face_map lays the faces on); faces_rims.png:
+    everybody's glasses in the same cells (the game shows them on whoever wears glasses, from a few metres off)."""
     rows = []
     for sp in PEOPLE.values():
         col = sp['colors']
@@ -1698,6 +1726,9 @@ def face_atlas():
     path = os.path.join(OUT, 'faces.png')
     faces.write_atlas(path, rows)
     print(f'faces: png {os.path.getsize(path) // 1024} KB  ({len(rows)} faces, {faces.GRID * faces.CELL} px)')
+    rims = os.path.join(OUT, 'faces_rims.png')
+    faces.write_rims(rims, [(sp['rig'], sp.get('face', {})) for sp in PEOPLE.values()])
+    print(f'faces_rims: png {os.path.getsize(rims) // 1024} KB  ({faces.GRID * faces.RIM_CELL} px)')
 
 
 def main():

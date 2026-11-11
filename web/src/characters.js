@@ -7,7 +7,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { loadGLB } from './world.js';
 import { pcss } from './materials.js';
 import { HERO_BAGS, baggedGeometry } from './bags.js';
-import { mulberry, versioned } from './util.js';
+import { MOBILE, mulberry, versioned } from './util.js';
 
 export const PEOPLE = {
   'man-tee': '흰 티 · 청바지',
@@ -36,35 +36,69 @@ export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'man-grey', 'woman-t
 // front of a face lies on its own cell, everything else on the blank cell, and the picture multiplies the vertex
 // colour. So the lines keep to whatever skin a person of the crowd has, and fade into it with distance (mip maps).
 // The picture's alpha is how much of that shows: the rest is the white of the eye.
+// Glasses: everybody's model has a pair, a few millimetres thin. Thinner than a pixel, they glitter on and off from
+// frame to frame where nothing smooths the edges (phones have no anti-aliasing, nor TAA): so a person who wears glasses
+// has the rims' geometry drawn only while the rims are RIM_PX pixels or more across (rimLod: the index puts the glasses'
+// triangles last, and the draw stops short of them), and from somewhat nearer than that on the same glasses drawn on
+// the face from a second atlas (faces_rims.png), which the mip maps fade evenly with distance. Who wears them, and
+// which rims, rides along as the attribute `glass` (0 none, 1 thin metal, 2 dark horn).
 const PERSON_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, envMapIntensity: 0.8 });
 PERSON_MAT.name = 'person';
 const FACE_BIAS = '-0.75', EYE_WHITE = '0.84, 0.83, 0.80';     // (faces.py WHITE)
 const BLANK_UV = 0.875;            // the middle of the atlas' blank cell (u and v): faces.py BLANK
-function loadFaces() {
-  return new Promise((res, rej) => new THREE.TextureLoader().load(versioned(PEOPLE_DIR + 'faces.png'), (t) => {
-    t.colorSpace = THREE.SRGBColorSpace;
+const RIM_W = 0.0022;              // the rims' thickness in the game, m (faces.py RIM_T, scaled as the people)
+const RIM_UV = 0.004;              // the same on the atlas: RIM_T / (2 HALF) / GRID
+const RIM_PX = MOBILE ? 1.2 : 0.35;   // the rims' geometry from this many pixels across (desktop: TAA resolves less)
+const RIMS = ['#77736c', '#2a2420'];  // thin metal, dark horn (crowdLook picks one; the shader's drawn ones alike)
+const glsl = (hex) => { const c = new THREE.Color(hex); return `vec3(${c.r.toFixed(4)}, ${c.g.toFixed(4)}, ${c.b.toFixed(4)})`; };
+const RIMS_TEX = { value: null };
+function loadTexture(file, srgb) {
+  return new Promise((res, rej) => new THREE.TextureLoader().load(versioned(PEOPLE_DIR + file), (t) => {
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
     t.flipY = false;               // (glTF texture coordinates: v from the top)
     t.anisotropy = 4;
-    PERSON_MAT.map = t;
-    PERSON_MAT.needsUpdate = true;
-    res();
+    res(t);
   }, undefined, rej));
 }
+async function loadFaces() {
+  // (without the drawn glasses the far ones are only left out: no reason to hold the people up)
+  const [face, rims] = await Promise.all([loadTexture('faces.png', true), loadTexture('faces_rims.png', false).catch(() => null)]);
+  PERSON_MAT.map = face;
+  RIMS_TEX.value = rims;
+  PERSON_MAT.needsUpdate = true;
+}
 PERSON_MAT.onBeforeCompile = (sh) => {
+  sh.uniforms.uRims = RIMS_TEX;
   sh.vertexShader = sh.vertexShader
-    .replace('#include <common>', '#include <common>\nattribute float rough;\nvarying float vRough;')
-    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRough = rough;');
+    .replace('#include <common>', '#include <common>\nattribute float rough, glass;\nvarying float vRough, vGlass;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRough = rough;\nvGlass = glass;');
   sh.fragmentShader = sh.fragmentShader
-    .replace('#include <common>', '#include <common>\nvarying float vRough;')
+    .replace('#include <common>', '#include <common>\nvarying float vRough, vGlass;\nuniform sampler2D uRims;')
     .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = vRough;')
     // the drawn face, laid on after the vertex colour (the white of the eye is white on any skin), read most of a
     // mip level sharper than the screen asks for: thin strokes hold a little further away
     .replace('#include <map_fragment>', '')
     .replace('#include <color_fragment>', `#include <color_fragment>
       vec4 drawn = texture2D( map, vMapUv, ${FACE_BIAS} );
-      diffuseColor.rgb = mix( vec3( ${EYE_WHITE} ), diffuseColor.rgb * drawn.rgb, drawn.a );`);
+      diffuseColor.rgb = mix( vec3( ${EYE_WHITE} ), diffuseColor.rgb * drawn.rgb, drawn.a );
+      // the drawn glasses: in as the rims' geometry goes (how many pixels a rim is across, from the atlas' scale here)
+      vec2 rimD = vec2( length( dFdx( vMapUv ) ), length( dFdy( vMapUv ) ) );
+      float rimPx = ${RIM_UV} / max( max( rimD.x, rimD.y ), 1e-7 );
+      float rim = texture2D( uRims, vMapUv ).r * step( 0.5, vGlass ) * smoothstep( ${(2 * RIM_PX).toFixed(2)}, ${RIM_PX.toFixed(2)}, rimPx );
+      diffuseColor.rgb = mix( diffuseColor.rgb, vGlass > 1.5 ? ${glsl(RIMS[1])} : ${glsl(RIMS[0])}, rim );`);
 };
 pcss(PERSON_MAT);
+
+// (onBeforeRender of a person who wears glasses) the rims' geometry only while it is RIM_PX pixels or more across: the
+// glasses' triangles are the index's last (dressed), the draw stops short of them otherwise
+const _vp = new THREE.Vector4(), _head = new THREE.Vector3(), _eye = new THREE.Vector3();
+function rimLod(renderer, scene, camera, geometry) {
+  if (!camera.isPerspectiveCamera) return;           // (the shadow pass: as the view left it)
+  renderer.getCurrentViewport(_vp);
+  _head.setFromMatrixPosition(this.matrixWorld).y += 1.5;
+  const d = Math.max(0.1, _head.distanceTo(_eye.setFromMatrixPosition(camera.matrixWorld)));
+  geometry.drawRange.count = RIM_W * camera.projectionMatrix.elements[5] * _vp.w / (2 * d) >= RIM_PX ? Infinity : geometry.userData.rims;
+}
 
 // The bounds the frustum (and shadow frustum) test uses: the rest pose sphere, grown to hold swinging arms,
 // strides, gestures and the seated pose.
@@ -130,7 +164,6 @@ function mergeParts(root) {
 const JEANS = ['#46638f', '#2b3c5c', '#7f9cc0', '#8fa8c8'];
 const SKIN = ['#f0c9a4', '#e6b991', '#d9a77d', '#c99168'];
 const SKIN_FAIR = '#f7ddc8', SKIN_TAN = '#b9825a';      // now and then somebody fair, or tanned (가무잡잡)
-const RIMS = ['#77736c', '#2a2420'];       // thin metal, dark horn
 // material name -> the colours to draw from (the first is the model's own)
 const LOOKS = {
   'man-tee': { LightBrown: ['#f1efe8', '#f1efe8', '#d8dde3', '#e9dfa8', '#a9c3de', '#2f3a55', '#9a9a96'], LightBlue: [...JEANS, '#a8946a'] },
@@ -186,24 +219,32 @@ export function crowdLook(id, n) {
   return { colors, scale: [clamp(tall * build), clamp(tall)], glasses };
 }
 
-// the triangles of `geo` without the glasses: an index of its own, kept with the index it was taken from
-const bareIndex = new WeakMap();
-function withoutGlasses(geo, ranges) {
+// the triangles of `geo` with the glasses' last: { index, bare: how many of its entries come before the glasses' },
+// kept with the index it was made from. Everybody draws the one index, those without glasses short of the end.
+const glassesOrder = new WeakMap();
+function glassesLast(geo, ranges) {
   const part = ranges?.find((p) => p.name === 'Glasses');
-  if (!part) return geo.index;
-  let idx = bareIndex.get(geo.index);
-  if (!idx) {
-    const a = geo.index.array, keep = [];
-    for (let i = 0; i < a.length; i += 3) if (a[i] < part.start || a[i] >= part.start + part.count) keep.push(a[i], a[i + 1], a[i + 2]);
-    idx = new THREE.BufferAttribute(new a.constructor(keep), 1);
-    bareIndex.set(geo.index, idx);
+  if (!part || !geo.index) return null;
+  let o = glassesOrder.get(geo.index);
+  if (!o) {
+    const a = geo.index.array, rest = [], glass = [];
+    for (let i = 0; i < a.length; i += 3) (a[i] >= part.start && a[i] < part.start + part.count ? glass : rest).push(a[i], a[i + 1], a[i + 2]);
+    o = { index: new THREE.BufferAttribute(new a.constructor([...rest, ...glass]), 1), bare: rest.length };
+    glassesOrder.set(geo.index, o);
   }
-  return idx;
+  return o;
+}
+// the attribute `glass` of a geometry of n vertices, all v: one shared buffer for each
+const glassBuffers = new Map();
+function glassAttribute(n, v) {
+  const k = n * 4 + v;
+  if (!glassBuffers.has(k)) glassBuffers.set(k, new THREE.Uint8BufferAttribute(new Uint8Array(n).fill(v), 1));
+  return glassBuffers.get(k);
 }
 
 // `geo` (a person's merged geometry, or that with a bag: the person's vertices come first) as one person wears it:
 // the parts named in `colors` in those colours, with the glasses or without. A geometry sharing every buffer but
-// the colours (and the index, without glasses); people who wear the model as it is share one.
+// the colours; people who wear the model as it is share one.
 const worn = new WeakMap();        // geometry -> [without glasses, with]
 function dressed(geo, ranges, colors, glasses) {
   if (!ranges || !geo.attributes.color) return geo;
@@ -213,7 +254,11 @@ function dressed(geo, ranges, colors, glasses) {
   }
   const g = new THREE.BufferGeometry();
   for (const k in geo.attributes) if (k !== 'color') g.setAttribute(k, geo.attributes[k]);
-  g.setIndex(glasses ? geo.index : withoutGlasses(geo, ranges));
+  const order = glassesLast(geo, ranges);
+  g.setIndex(order ? order.index : geo.index);
+  if (order && !glasses) g.setDrawRange(0, order.bare);
+  if (order && glasses) g.userData.rims = order.bare;           // (rimLod)
+  g.setAttribute('glass', glassAttribute(geo.attributes.position.count, !order || !glasses ? 0 : colors.Glasses === RIMS[1] ? 2 : 1));
   if (!Object.keys(colors).length) {
     g.setAttribute('color', geo.attributes.color);
     g.boundingSphere = geo.boundingSphere;
@@ -269,7 +314,9 @@ export class Cast {
     const root = skeletonClone(src.scene);
     if (bag) root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = baggedGeometry(o, id, bag); });
     root.traverse((o) => {
-      if (o.isSkinnedMesh) o.geometry = dressed(o.geometry, src.ranges, look?.colors, look ? look.glasses : src.glasses);
+      if (!o.isSkinnedMesh) return;
+      o.geometry = dressed(o.geometry, src.ranges, look?.colors, look ? look.glasses : src.glasses);
+      if (o.geometry.userData.rims) o.onBeforeRender = rimLod;
     });
     const [wide, tall] = look?.scale || [1, 1];
     holder.scale.set(wide, tall, wide);

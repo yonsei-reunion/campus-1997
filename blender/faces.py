@@ -13,7 +13,12 @@ corners turn up.  The eyes stand where they stand on a person and are a little l
 look is the slant of the eyes, the weight and the angle of the brows and the corners of the mouth (the `face` of
 PEOPLE in characters.py).
 
-    blender -b --factory-startup --python blender/characters.py -- faces       # only the atlas
+A second, smaller atlas of the same cells (faces_rims.png) holds the glasses as drawn lines: how much of each pixel a
+rim covers.  Rims of geometry a few millimetres thin are thinner than a pixel from a few metres off and, where nothing
+smooths the edges (phones: no anti-aliasing), they glitter on and off from frame to frame; so from there on the game
+draws the glasses of whoever wears them from this picture instead (web/src/characters.js), and the mip maps fade them.
+
+    blender -b --factory-startup --python blender/characters.py -- faces       # only the atlases
 
 Needs numpy only (Blender's Python has it), so the same code runs outside Blender.
 """
@@ -28,6 +33,10 @@ HALF = 0.075               # the frame of a cell on the face, in the source's un
 TOP = 0.042                # game): HALF either side of the nose, from TOP over the eye line down to TOP - 2 HALF
 BLANK = GRID * GRID - 1    # the cell everything but a face points at: left white
 MARGIN = 0.004             # nothing is drawn, and no face of the mesh is mapped, this close to a cell's edge
+RIM_CELL = 128             # pixels a cell of faces_rims.png
+RIM_T = 0.0024             # the glasses: the rims' thickness (characters.py face_glasses builds them by the same)
+RIM_DZ = -0.001            # the rims' middle under the eye line (characters.py checks it on the heads)
+GLASSES = {'umc': (1.36, 1.02), 'women': (1.26, .92)}     # a rim's half width and height, of the eye's half width
 
 # The features, as lengths on the face in the source's units (reference/고증 4.9 has them in the game's).
 #   eye: half width, opening below the middle; lid: opening above the middle by the kind of eyelid (mono 홑꺼풀, inner
@@ -278,6 +287,53 @@ def draw_face(rig, face, skin, brow):
         raise SystemExit('a face is drawn over the edge of its cell')
     w = cv.white[..., None]
     return np.concatenate([cv.rgb * (1 - w) + w, 1 - w], axis=2)        # (colour, how much of it is skin)
+
+
+def rim_frame(rig, face):
+    """The glasses of a face: the eye's half width, a rim's middle from the nose, a rim's half width and height."""
+    hw = FACE[rig]['eye'][0] * face.get('eye', 1.0)
+    gw, gh = GLASSES[rig]
+    return hw, FACE[rig]['gap'] / 2 + hw, hw * gw, hw * gh
+
+
+def draw_rims(rig, face, n=RIM_CELL, ss=4):
+    """A face's glasses seen from the front, as coverage (0 .. 1) on a cell n pixels a side: the two rims (rounded
+    rectangles, as face_glasses makes them), the bridge, and the temples as far as the face reaches.  Drawn ss times
+    finer and averaged."""
+    hw, ex, W, H = rim_frame(rig, face)
+    m = n * ss
+    px = 2 * HALF / m
+    X, Z = np.meshgrid(-HALF + (np.arange(m) + 0.5) * px, TOP - (np.arange(m) + 0.5) * px)
+    ez = RIM_DZ
+    on = np.zeros((m, m), bool)
+    for sx in (1, -1):
+        rho = ((np.abs(X - sx * ex) / W) ** 2.6 + (np.abs(Z - ez) / H) ** 2.6) ** (1 / 2.6)
+        on |= (rho >= 1.0) & (rho <= 1.0 + RIM_T / H)
+        x0, z0 = ex + W * 0.98, ez + H * 0.45                      # the temple: from the rim's outer top corner back
+        t = np.clip((sx * X - x0) / 0.02, 0.0, 1.0)
+        on |= (sx * X >= x0) & (sx * X <= HALF - MARGIN - 0.001) & (Z >= z0 + 0.006 * t) & (Z <= z0 + 0.006 * t + RIM_T)
+    xi = ex - W                                                     # the bridge
+    on |= (np.abs(X) <= xi) & (Z >= ez + H * 0.25) & (Z <= ez + H * 0.25 + RIM_T)
+    return on.reshape(n, ss, n, ss).mean(axis=(1, 3))
+
+
+def write_rims(path, people):
+    """faces_rims.png: people [(rig, face)] in the order of their cells; grey, white where a rim covers it all."""
+    img = np.zeros((GRID * RIM_CELL, GRID * RIM_CELL))
+    for i, (rig, face) in enumerate(people):
+        x, y = (i % GRID) * RIM_CELL, (i // GRID) * RIM_CELL
+        img[y:y + RIM_CELL, x:x + RIM_CELL] = draw_rims(rig, face)
+    g8 = np.round(img * 255).astype(np.uint8)
+    h, w = g8.shape
+    raw = b''.join(b'\x00' + g8[r].tobytes() for r in range(h))
+
+    def chunk(tag, data):
+        return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff)
+
+    with open(path, 'wb') as fh:
+        fh.write(b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 0, 0, 0, 0))
+                 + chunk(b'IDAT', zlib.compress(raw, 9)) + chunk(b'IEND', b''))
+    return img
 
 
 def _srgb8(lin):
