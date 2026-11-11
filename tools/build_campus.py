@@ -14,7 +14,7 @@ import json, math, os, random
 import numpy as np
 from scipy import ndimage
 from shapely.geometry import Polygon, LineString, Point, MultiPolygon
-from shapely.ops import unary_union, substring
+from shapely.ops import unary_union, substring, linemerge
 import shapely
 from PIL import Image, ImageDraw
 import gate_town
@@ -5340,9 +5340,10 @@ town_splat(spl, *(ndimage.gaussian_filter(np.array(_tl[k_], np.float32), 0.7) fo
 # photos and the 2008 - 2011 roadview have none such; their walks join something at both ends.  For the game's map
 # only (spl above, which the planting and the decals read, keeps them, so the random draws stay): a walk's end that
 # (or OSM's steps, painted as paving) stops in the lawn, clear of every hall (3 m), flight's foot (3 m), landmark (6 m),
-# the woods' floor and 백양로, loses
-# its stretch back to where it meets other paving if that is 12 m or less (its stroke in SPLAT_OPS cut short, so the
-# edge is drawn again as smooth as the rest); a patch under 60 m² touching no asphalt, hall or flight goes (spl_aa)
+# the woods' floor and 백양로, loses its stretch back to where it meets other paving if that is PRUNE_TAIL or less
+# (its stroke in SPLAT_OPS cut short, so the edge is drawn again as smooth as the rest), and an end run a few metres
+# past a road or walk it crosses goes back to the crossing; a patch under PRUNE_PATCH touching no asphalt, hall or
+# flight goes (spl_aa).  The walks the game reads (out['paths']: minimap, crowd) and the decals lose the same
 _pav0 = (spl[..., 0] + spl[..., 1] > 127.5) | (np.array(_ga) > 127) | (np.array(_gp) > 127) | (np.array(_yp) > 127) \
     | (np.array(_gw) > 127)
 _dirt0 = spl[..., 2] > 127.5
@@ -5351,6 +5352,28 @@ try:
 except (OSError, ValueError, KeyError):
     _ents = []
 _halls = [Polygon(b_['footprint']) for b_ in out['buildings'] if b_['style'] != 'city']
+# (#151, looked at one by one from above; reference/고증/2.3 「섬처럼 놓인 포장」)
+# PRUNE_SCRAP: OSM walks taken out whole, by their two ends: side strands and jogs a few metres off another walk
+# PRUNE_TAILS: walk ends cut back whatever they stop near, up to the length given, to where they meet other paving
+# (or, False, only to the walk they join: a strip lying along an apron or another walk)
+PRUNE_SCRAP = [(((-115.7, -135.7), (-108.5, -138.0)), '도서관 남서쪽 꺾인 길: 3 m 곁의 나란한 가닥'),
+               (((-115.7, -135.7), (-116.7, -139.0)), '  〃 가닥과 본 길 사이'),
+               (((-116.7, -139.0), (-128.7, -140.8)), '  〃 가닥의 꺾인 끝'),
+               (((-96.5, -138.5), (-98.7, -133.6)), '  〃 독수리상 서쪽 옆길 가의 턱진 이음'),
+               (((-93.9, -143.0), (-99.9, -137.6)), '  〃'),
+               (((-77.8, -158.9), (-81.0, -184.5)), '독수리상과 활천대 사이 반원 길 (2015년 백양누리 정원)'),
+               (((-16.7, -413.0), (-28.6, -399.4)), '정문 동쪽 잔디밭으로 드는 계단 (2015년 산책로, EAST_LAWN)'),
+               (((179.6, 184.5), (193.2, 198.8)), '옛 노천극장: 1999년 객석 통로 계단이 꼭대기 길을 건너 남은 토막'),
+               (((193.2, 198.8), (195.4, 201.1)), '  〃'), (((195.4, 201.1), (190.4, 204.9)), '  〃'),
+               (((184.8, 141.7), (200.5, 132.8)), '  〃'), (((178.3, 134.4), (191.0, 125.5)), '  〃')]
+PRUNE_TAILS = [((-128.9, 24.1), 30.0, True),    # (도서관 북쪽 길이 서쪽 잔디에서 끝나는 26 m)
+               ((146.2, -28.9), 25.0, False),   # (음악관 남쪽 잔디로 나온 두 꼬리: 곁의 포장에 닿아 남았던 것)
+               ((162.5, -51.1), 20.0, False),
+               ((198.9, 181.3), 12.0, False),   # (옛 노천극장: 동쪽 길로 이어지는 1999년 계단의 객석 쪽 끝)
+               ((111.9, 66.2), 45.0, True)]     # (대강당 동쪽 41 m: 2008 · 2010년 스카이뷰에 포장 길 없음)
+PRUNE_TAIL = 18.0                                # (12 -> 18 m: the 12 - 18 m tails were all stubs into the lawn)
+PRUNE_PATCH = 200.0                              # (60 -> 200 m²: two lone walks of 120 and 155 m², west of 과학관
+#                                                   and north of 어린이생활지도연구원, touching nothing)
 PRUNE_KEEP = unary_union([p_.buffer(3.0) for p_ in _halls]
                          + [Point(e_['o'][0] + e_['v'][0] * e_['len'], e_['o'][1] + e_['v'][1] * e_['len']).buffer(3.0)
                             for e_ in _ents]
@@ -5361,14 +5384,116 @@ _res = SPLAT['res']
 _pav_ops = [k_ for k_, op_ in enumerate(SPLAT_OPS) if op_[0] == 'line' and op_[1] == 'pavers' and len(op_[2]) > 1]
 _op_a = np.array([SPLAT_OPS[k_][2][0][:2] for k_ in _pav_ops])
 _op_b = np.array([SPLAT_OPS[k_][2][-1][:2] for k_ in _pav_ops])
-PRUNED = []                                           # (the stretches taken off, for the decals left on them)
-for p_ in out['paths']:
-    if p_['kind'] not in ('footway', 'path', 'pedestrian', 'steps') or len(p_['pts']) < 2:
-        continue                                      # (OSM's steps: painted as paving, no flight of their own)
-    ls_ = LineString(p_['pts'])
-    w_, L_ = p_['w'], ls_.length
-    if L_ < 1.0:
+PRUNED = []                                           # (the stretches taken off: the decals left on them go too)
+# (#151) A walk's end that lies on another walk or road (within its half width + 0.3 m of its centre line), and that
+# one still painted there, is not a tail.  The raster test alone took a walk going straight on for one ending in
+# the lawn, the other's first metres lying under this one's own stroke: OSM's steps between a drive's end and a walk
+# (과학관 북쪽, 12 m and 8 m) were cut out whole, the walk and the drive left 2 - 3 m apart.  And the walks are taken
+# as OSM's ways joined end to end where just two meet (linemerge), so that a tail is measured back to its junction,
+# not to where OSM happens to split it
+_WALK = ('footway', 'path', 'pedestrian', 'steps')
+_wk = [(k_, LineString(p_['pts']), p_['w']) for k_, p_ in enumerate(out['paths']) if len(p_['pts']) > 1]
+_wtree = shapely.STRtree([g_ for _, g_, _ in _wk])
+_wmax = max(w_ for _, _, w_ in _wk)
+_kept = {}                                            # path index -> the stretch still drawn (None: all of it gone)
+WALK_SCRAP = []                                      # (paths taken out whole by hand below, PRUNE_SCRAP)
+
+
+def _wpaved(x, y):
+    i_, j_ = int((SPLAT['y1'] - y) / _res), int((x - SPLAT['x0']) / _res)
+    return 0 <= i_ < SH and 0 <= j_ < SW and bool(_pav0[i_, j_])
+
+
+def _wjoin(own, q_, w_):
+    for j_ in _wtree.query(q_.buffer(w_ / 2 + _wmax / 2 + 0.3)):
+        k2_, g2_, w2_ = _wk[j_]
+        if k2_ in own:
+            continue
+        g2_ = _kept.get(k2_, g2_)
+        if g2_ is None or g2_.distance(q_) > w2_ / 2 + 0.3:
+            continue
+        # (and still painted there, clear of this walk's own stroke: walks whose paving a later bed, garden or the
+        # old amphitheater's bowl took away do not count)
+        t_, d_ = g2_.project(q_), w_ / 2 + 1.0
+        s_ = [g_ for g_ in (g2_.interpolate(max(0.0, t_ - d_)), g2_.interpolate(min(g2_.length, t_ + d_)))
+              if g_.distance(q_) >= w_ / 2 + 0.8]
+        if not s_ or any(_wpaved(g_.x, g_.y) for g_ in s_):
+            return True
+    return False
+
+
+def _wcross(own, ls_, end_, w_):
+    """how far back from a walk's end it crosses another walk or road still painted there, within 6 m (None if not):
+    OSM's walks often run a few metres past a road and stop in the lawn on its far side"""
+    L_ = ls_.length
+    pc_ = substring(ls_, 0.0, min(6.0, L_)) if end_ == 0 else substring(ls_, max(0.0, L_ - 6.0), L_)
+    best_ = None
+    for j_ in _wtree.query(pc_.buffer(0.1)):
+        k2_, g2_, w2_ = _wk[j_]
+        g2_ = _kept.get(k2_, g2_)
+        if k2_ in own or g2_ is None:
+            continue
+        x_ = pc_.intersection(g2_)
+        for p_ in (x_.geoms if hasattr(x_, 'geoms') else [x_]):
+            if p_.is_empty or p_.geom_type != 'Point':
+                continue
+            t_ = ls_.project(p_) if end_ == 0 else L_ - ls_.project(p_)
+            u_ = g2_.project(p_)
+            if 0.75 <= t_ <= 6.0 and (best_ is None or t_ < best_) and \
+                    any(_wpaved(*g2_.interpolate(min(max(u_ + s_, 0.0), g2_.length)).coords[0])
+                        for s_ in (-w_ / 2 - 1.0, w_ / 2 + 1.0)):
+                best_ = t_
+    return best_
+
+
+def _wnear(pts, P, tol=0.3):
+    a_, b_ = np.array(pts[0], float), np.array(pts[-1], float)
+    p0_, p1_ = np.array(P[0], float), np.array(P[1], float)
+    return bool(max(np.hypot(*(a_ - p0_)), np.hypot(*(b_ - p1_))) < tol
+                or max(np.hypot(*(a_ - p1_)), np.hypot(*(b_ - p0_))) < tol)
+
+
+for k_, p_ in enumerate(out['paths']):
+    if len(p_['pts']) > 1 and p_['kind'] in _WALK and any(_wnear(p_['pts'], P_) for P_, _ in PRUNE_SCRAP):
+        _kept[k_] = None
+        WALK_SCRAP.append(k_)
+        PRUNED.append(LineString(p_['pts']).buffer(p_['w'] / 2 + 0.3))
+_force = [(Point(*q_), (L_, r_)) for q_, L_, r_ in PRUNE_TAILS]
+_widx = [k_ for k_, p_ in enumerate(out['paths']) if p_['kind'] in _WALK and len(p_['pts']) > 1 and k_ not in _kept]
+_mg = linemerge([LineString(out['paths'][k_]['pts']) for k_ in _widx])
+_chains = list(_mg.geoms) if hasattr(_mg, 'geoms') else [_mg]
+_cways = [[] for _ in _chains]
+_ctree = shapely.STRtree(_chains)
+for k_ in _widx:
+    g_ = LineString(out['paths'][k_]['pts'])
+    for c_ in _ctree.query(g_):
+        if all(_chains[c_].distance(Point(q_)) < 0.01
+               for q_ in (g_.coords[0], g_.coords[-1], g_.interpolate(0.5, normalized=True).coords[0])):
+            _cways[c_].append(k_)
+            break
+for c_, ch_ in enumerate(_chains):                     # (one walk: OSM's ways end to end; steps painted as paving)
+    own = set(_cways[c_])
+    if not own or ch_.is_closed:
         continue
+    Lc_ = ch_.length
+    w_ = max(out['paths'][k_]['w'] for k_ in own)
+    if Lc_ < 1.0:
+        continue
+    # (its ends as seen: where a later bed, garden or the old amphitheater's bowl took the paving away, from
+    # where it is still painted; the 1999 theatre's aisles stop at the bowl's edge, their stretch to the top path
+    # a tail like any other)
+    _ta = next((t_ for t_ in np.arange(0.0, Lc_, 0.5) if _wpaved(*ch_.interpolate(t_).coords[0])), None)
+    if _ta is None:
+        continue
+    _tb = next(t_ for t_ in np.arange(0.0, Lc_, 0.5) if _wpaved(*ch_.interpolate(Lc_ - t_).coords[0]))
+    ls_ = ch_
+    if _ta > 1.0 or _tb > 1.0:
+        ls_ = substring(ch_, _ta, Lc_ - _tb)
+        if ls_.geom_type != 'LineString' or ls_.length < 1.0:
+            continue
+    else:
+        _ta = _tb = 0.0
+    L_ = ls_.length
     x0_, y0_, x1_, y1_ = ls_.bounds
     pad_ = w_ + 3.0
     j0_, j1_ = max(0, int((x0_ - pad_ - SPLAT['x0']) / _res)), min(SW, int((x1_ + pad_ - SPLAT['x0']) / _res) + 1)
@@ -5377,35 +5502,50 @@ for p_ in out['paths']:
         continue
     own_ = Image.new('L', (j1_ - j0_, i1_ - i0_), 0)
     do_ = ImageDraw.Draw(own_)
-    pp_ = [((x - SPLAT['x0']) / _res - j0_, (SPLAT['y1'] - y) / _res - i0_) for x, y in p_['pts']]
+    pp_ = [((x - SPLAT['x0']) / _res - j0_, (SPLAT['y1'] - y) / _res - i0_) for x, y in ls_.coords]
     wpx_ = max(1, int(round((w_ + 0.6) / _res)))
     do_.line(pp_, fill=255, width=wpx_, joint='curve')
     for (u_, v_) in (pp_[0], pp_[-1]):
         do_.ellipse([u_ - wpx_ / 2, v_ - wpx_ / 2, u_ + wpx_ / 2, v_ + wpx_ / 2], fill=255)
     other_ = _pav0[i0_:i1_, j0_:j1_] & ~(np.array(own_) > 0)
     if not other_.any():
-        continue                                      # (a walk on its own: the patch pass below)
+        continue                              # (a walk on its own: the patch pass below)
     D_ = ndimage.distance_transform_edt(~other_) * _res
     cut_ = [0.0, L_]
     for end_ in (0, 1):
-        q_ = Point(p_['pts'][0] if end_ == 0 else p_['pts'][-1])
-        if PRUNE_KEEP.contains(q_):
+        q_ = Point(ls_.coords[0] if end_ == 0 else ls_.coords[-1])
+        lim_, ras_ = next((Lf_ for P_, Lf_ in _force if P_.distance(q_) < 3.0), (None, True))   # (PRUNE_TAILS)
+        if lim_ is None:
+            if PRUNE_KEEP.contains(q_):
+                continue
+            qi_, qj_ = int((SPLAT['y1'] - q_.y) / _res), int((q_.x - SPLAT['x0']) / _res)
+            if _dirt0[max(0, qi_ - 3):qi_ + 4, max(0, qj_ - 3):qj_ + 4].any():
+                continue                      # (a trail going on into the woods)
+        if _wjoin(own, q_, w_):
             continue
-        qi_, qj_ = int((SPLAT['y1'] - q_.y) / _res), int((q_.x - SPLAT['x0']) / _res)
-        if _dirt0[max(0, qi_ - 3):qi_ + 4, max(0, qj_ - 3):qj_ + 4].any():
-            continue                                  # (a trail going on into the woods)
         hit_ = None
-        for t_ in np.arange(0.0, min(L_, 12.25), 0.25):
+        for t_ in np.arange(0.0, min(L_, (lim_ or PRUNE_TAIL) + 0.25), 0.25):
             g_ = ls_.interpolate(t_ if end_ == 0 else L_ - t_)
-            if PRUNE_KEEP.contains(g_):
+            if lim_ is None and PRUNE_KEEP.contains(g_):
                 break
             ii_, jj_ = int((SPLAT['y1'] - g_.y) / _res) - i0_, int((g_.x - SPLAT['x0']) / _res) - j0_
-            if 0 <= ii_ < D_.shape[0] and 0 <= jj_ < D_.shape[1] and D_[ii_, jj_] <= w_ / 2 + 0.6:
+            if (ras_ and 0 <= ii_ < D_.shape[0] and 0 <= jj_ < D_.shape[1] and D_[ii_, jj_] <= w_ / 2 + 0.6) or \
+                    (t_ >= 0.75 and _wjoin(own, g_, w_)):          # (PRUNE_TAILS: back to the walk it joins)
                 hit_ = t_
                 break
+        if hit_ is not None and hit_ < 0.75:
+            # (touching: but if it only runs past a road or walk it crossed, into the lawn beyond, back to the
+            # crossing, its round end inside what it crossed)
+            e_ = np.array(q_.coords[0])
+            f_ = np.array(ls_.interpolate(min(1.0, L_) if end_ == 0 else max(0.0, L_ - 1.0)).coords[0])
+            d_ = (e_ - f_) / max(1e-6, np.linalg.norm(e_ - f_))
+            hx_ = None if _wpaved(*(e_ + d_ * (w_ / 2 + 0.8))) else _wcross(own, ls_, end_, w_)
+            if hx_ is None:
+                continue
+            hit_ = hx_ + 0.2
         if hit_ is None or hit_ < 0.75:
             continue
-        keep_t = max(0.0, hit_ - 0.2)                 # (up to the edge of what it meets)
+        keep_t = max(0.0, hit_ - 0.2)         # (up to the edge of what it meets)
         if end_ == 0:
             cut_[0] = keep_t
         else:
@@ -5415,16 +5555,38 @@ for p_ in out['paths']:
     for t0_, t1_ in ((0.0, cut_[0]), (cut_[1], L_)):
         if t1_ - t0_ > 0.05:
             PRUNED.append(substring(ls_, t0_, t1_).buffer(w_ / 2 + 0.3))
-    keep_ls = substring(ls_, cut_[0], cut_[1]) if cut_[1] - cut_[0] > 0.3 else None
+    # (back onto OSM's ways along the walk: the chain's own metres, its unpainted ends dropped where cut)
+    c0_ = _ta + cut_[0] if cut_[0] > 0.0 else 0.0
+    c1_ = _ta + cut_[1] if cut_[1] < L_ else Lc_
+    if cut_[1] - cut_[0] <= w_ + 0.5:
+        c1_ = c0_                                     # (what is left lies in what it met: no nub of round ends)
+    for k_ in own:
+        g_ = LineString(out['paths'][k_]['pts'])
+        a_, b_ = sorted((ch_.project(Point(g_.coords[0])), ch_.project(Point(g_.coords[-1]))))
+        s0_, s1_ = max(a_, c0_), min(b_, c1_)
+        if s1_ - s0_ <= 0.3:
+            _kept[k_] = None
+        elif s0_ > a_ + 0.05 or s1_ < b_ - 0.05:
+            _kept[k_] = substring(ch_, s0_, s1_)
+for k_, keep_ls in _kept.items():
+    p_ = out['paths'][k_]
+    ls_ = LineString(p_['pts'])
     _pa, _pb = np.array(p_['pts'][0]), np.array(p_['pts'][-1])
     for m_ in np.flatnonzero((np.hypot(*(_op_a - _pa).T) < 0.2) & (np.hypot(*(_op_b - _pb).T) < 0.2)):
-        k_ = _pav_ops[m_]
-        op_ = SPLAT_OPS[k_]
+        k2_ = _pav_ops[m_]
+        op_ = SPLAT_OPS[k2_]
         if len(op_[2]) != len(p_['pts']) or LineString(op_[2]).hausdorff_distance(ls_) > 0.2:
             continue
-        SPLAT_OPS[k_] = ('line', 'pavers', list(keep_ls.coords), op_[3], op_[4]) if keep_ls is not None else ('line', 'pavers', [], 0, False)
+        SPLAT_OPS[k2_] = ('line', 'pavers', list(keep_ls.coords), op_[3], op_[4]) if keep_ls is not None else ('line', 'pavers', [], 0, False)
 SPLAT_OPS[:] = [op_ for op_ in SPLAT_OPS if not (op_[0] == 'line' and len(op_[2]) < 2)]
-print('섬처럼 놓인 포장: walk stubs cut', len(PRUNED), '%.0f m²' % unary_union(PRUNED).area if PRUNED else '')
+# (the walks the game reads, out['paths']: the minimap draws them and the crowd walks them, so they lose the same)
+for k_ in sorted(_kept, reverse=True):
+    if _kept[k_] is None:
+        out['paths'].pop(k_)
+    else:
+        out['paths'][k_]['pts'] = [[round(x, 1), round(y, 1)] for x, y in _kept[k_].coords]
+print('섬처럼 놓인 포장: walk stubs cut', len(PRUNED) - len(WALK_SCRAP), 'walks taken out', len(WALK_SCRAP),
+      '%.0f m²' % unary_union(PRUNED).area if PRUNED else '')
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -5448,8 +5610,8 @@ spl_aa[..., 1] *= 1.0 - _gbA
 spl_aa[..., 2] = spl_aa[..., 2] * (1.0 - _gbA) + 178.0 * _gbA
 _tA = splat_aa(['_tc', '_ta', '_tp', '_td'])       # (정문 밖, as in spl above)
 town_splat(spl_aa, _tA['_tc'], _tA['_ta'], _tA['_tp'], ndimage.gaussian_filter(_tA['_td'], 0.7))
-# (섬처럼 놓인 포장, above: the lone patches) paving touching no asphalt, under 60 m², nowhere near a hall, a flight's
-# foot, a landmark or 백양로 (PRUNE_KEEP)
+# (섬처럼 놓인 포장, above: the lone patches) paving touching no asphalt, under PRUNE_PATCH, nowhere near a hall, a
+# flight's foot, a landmark or 백양로 (PRUNE_KEEP)
 _pvA = (spl_aa[..., 0] + spl_aa[..., 1] > 127.5) & (spl_aa[..., 1] >= spl_aa[..., 0])
 _asA = ndimage.binary_dilation(spl_aa[..., 0] > 127.5, iterations=2)
 _lab, _nlab = ndimage.label(_pvA)
@@ -5457,7 +5619,7 @@ _gone = np.zeros_like(_pvA)
 _np = 0
 for _k, _sl in enumerate(ndimage.find_objects(_lab), 1):
     _m = _lab[_sl] == _k
-    if _m.sum() * SPLAT['res'] ** 2 >= 60.0 or (_asA[_sl] & _m).any():
+    if _m.sum() * SPLAT['res'] ** 2 >= PRUNE_PATCH or (_asA[_sl] & _m).any():
         continue
     _ii, _jj = np.nonzero(_m)
     _xs = SPLAT['x0'] + (_jj + _sl[1].start + 0.5) * SPLAT['res']
@@ -5471,6 +5633,22 @@ for _k, _sl in enumerate(ndimage.find_objects(_lab), 1):
 _gone = ndimage.binary_dilation(_gone, iterations=2) & (spl_aa[..., 0] < 127.5)
 spl_aa[..., 1][_gone] = 0.0
 print('섬처럼 놓인 포장: lone patches', _np)
+# (and the walks drawn only there go from the walks the game reads; the decals placed on what is gone, cracks and
+# stains read off spl above, go with it)
+_pg = unary_union(PRUNED).buffer(0.3) if PRUNED else Polygon()
+shapely.prepare(_pg)
+out['paths'] = [p_ for p_ in out['paths'] if not (p_['kind'] in ('footway', 'path', 'pedestrian', 'steps') and len(p_['pts']) > 1
+                                                  and _pg.contains(LineString(p_['pts'])))]
+_nd = len(out['decals'])
+
+
+def _still_paved(x, y):
+    i_, j_ = int((SPLAT['y1'] - y) / SPLAT['res']), int((x - SPLAT['x0']) / SPLAT['res'])
+    return 0 <= i_ < SH and 0 <= j_ < SW and spl_aa[i_, j_, 0] + spl_aa[i_, j_, 1] > 127.5
+
+
+out['decals'] = [d_ for d_ in out['decals'] if not shapely.contains_xy(_pg, d_[1], d_[2]) or _still_paved(d_[1], d_[2])]
+print('섬처럼 놓인 포장: decals taken off with the paving', _nd - len(out['decals']))
 Image.fromarray(np.clip(np.round(spl_aa), 0, 255).astype(np.uint8), 'RGB').save(
     os.path.join(ROOT, 'web/public/assets/textures/ground_splat.png'), optimize=True)
 

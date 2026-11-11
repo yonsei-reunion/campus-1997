@@ -12,11 +12,14 @@
 | `roll94.py` · `longf94.py` · `dist94.py` | roll 고정/자유, 긴 초점 강제, 렌즈 왜곡 k1. 독수리상 기둥 발치(1307, 1195 px)의 자리도 함께 냄 |
 | `gutter94.py` | 두 번 인쇄된 띠가 똑같은지 확인 |
 | `fountain94.py` | 독수리상 · 활천대 기둥 발치(1307, 1195 · 1299.6, 1243 px)를 역투영해 두 조형물이 게임 자리에서 옮겨 간 양을 견줌 |
+| `mapfit.py` · `map90.json` · `map94.json` · `map95.json` | 1990 · 1994 · 1995년 캠퍼스 지도(입체 그림)를 건물 남쪽 발치로 게임 좌표에 맞춤(사영 + 매끈한 박판 보정). `fit`은 잔차 표, `warp`은 지도의 한 구역을 게임 좌표로 펴고 `campus.json`의 길 · 건물을 겹침. 1995년은 1990년과 같은 그림이라 번호 자리로 옮겨 씀(`reference/고증/2.3` 「1997년 길과 지도」) |
 
 ```sh
 uv run --with numpy --with scipy --with shapely --with pillow --with DracoPy python tools/photofit/roll94.py
 uv run --with numpy --with scipy --with shapely --with pillow --with DracoPy python tools/photofit/run_fit.py tools/photofit/a94.json /tmp/cam94.json
 python3 tools/photofit/gutter94.py
+.venv/bin/python tools/photofit/mapfit.py fit tools/photofit/map94.json
+.venv/bin/python tools/photofit/mapfit.py warp tools/photofit/map90.json -200,-180,-40,-20 4 /tmp/map90_libsw.png
 ```
 
 주의
