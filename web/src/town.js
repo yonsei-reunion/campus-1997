@@ -9,6 +9,7 @@ import { pcss, globalPatch } from './materials.js';
 import { MOBILE, mulberry } from './util.js';
 
 const SEEN = 380;          // cars farther than this from the view are not drawn
+const WAKE = SEEN + 20;    // nor moved: they stand where they were till the view comes back (update below)
 
 // The town's GLB into the scene. The banks (meshes named town_bank_*) stay meshes of their own, drawn with the ground's
 // material where they are slope: returned, for main.js to stand the banks' trees on them. The rest is merged, a mesh a
@@ -129,6 +130,11 @@ export class Street {
     });
     for (const c of this.cars) shadows?.addDynamic(c.root, c.len / 2 + 1.5);
     this.p = new THREE.Vector2(); this.d = new THREE.Vector2();
+    for (const c of this.cars) {                               // (where each stands before its first move)
+      c.lane.at(c.s, this.p); c.lane.dir(c.s, this.d);
+      c.x = this.p.x; c.y = this.p.y; c.dx = this.d.x; c.dy = this.d.y;
+      c.awake = true;
+    }
     // the signals (campus.json town.signals): per group a cycle of its phases' greens, each followed by amber and
     // all red; t runs on from the page's start
     const G = T.signals?.groups ?? [];
@@ -155,17 +161,24 @@ export class Street {
   update(dt, camPos, walker = null) {
     const p = this.p, d = this.d;
     for (const g of this.groups) g.t += dt;
+    // Only the cars within WAKE of the view move, and only they look out for one another: on the campus, north of the
+    // gate, that is a few of 성산로's or none, where all 67 once looked at all 67 every frame. A sleeping car stands
+    // unseen where it was; one coming awake on another (both stood or ran on past WAKE) waits behind it.
     for (const c of this.cars) {
+      c.awake = !camPos || (c.x - camPos.x) ** 2 + (c.y + camPos.z) ** 2 < WAKE * WAKE;
+      if (!c.awake) { c.root.visible = false; continue; }
       c.lane.at(c.s, p); c.lane.dir(c.s, d);
       c.x = p.x; c.y = p.y; c.dx = d.x; c.dy = d.y;
     }
     const n = this.cars.length;
     for (let i = 0; i < n; i++) {
       const c = this.cars[i];
+      if (!c.awake) continue;
       let target = c.speed;
       for (let j = 0; j < n; j++) {
         if (j === i) continue;
         const o = this.cars[j];
+        if (!o.awake) continue;
         if (o.lane === c.lane) {
           const gap = o.s - c.s - (o.len + c.len) / 2;
           if (gap > -1 && gap < 14) target = Math.min(target, gap < 4 ? 0 : o.v * 0.92);
@@ -264,14 +277,30 @@ class SignalHeads {
     scene.add(frame);
     for (const k in this.meshes) { this.meshes[k].name = 'town_signal_' + k; scene.add(this.meshes[k]); }
     this.off = new THREE.Color(0.06, 0.06, 0.06);
+    // (where the heads stand, for the update's distance test)
+    this.frame = frame;
+    this.cx = heads.reduce((a, h) => a + h[0], 0) / heads.length;
+    this.cy = heads.reduce((a, h) => a + h[1], 0) / heads.length;
+    this.reach = Math.max(...heads.map(([x, y]) => Math.hypot(x - this.cx, y - this.cy))) + SEEN;
+    this.last = heads.map(() => -1);
   }
-  update(street) {
+  // Out of sight (the view farther than SEEN from every head: they are thumb-wide there) the poles and lamps are not
+  // drawn and the lamps keep their colours; in sight a lamp's colour goes up only when its light has changed.
+  update(street, camPos) {
+    const near = !camPos || (this.cx - camPos.x) ** 2 + (this.cy + camPos.z) ** 2 < this.reach * this.reach;
+    this.frame.visible = near;
+    for (const k in this.meshes) this.meshes[k].visible = near;
+    if (!near) return;
+    let changed = false;
     this.heads.forEach(([, , , g, ph], i) => {
       const l = street.light(g, ph);
+      if (l === this.last[i]) return;
+      this.last[i] = l;
+      changed = true;
       this.meshes.r.setColorAt(i, l === 0 ? LAMP_ON.r : this.off);
       this.meshes.a.setColorAt(i, l === 1 ? LAMP_ON.a : this.off);
       this.meshes.g.setColorAt(i, l === 2 ? LAMP_ON.g : this.off);
     });
-    for (const k in this.meshes) this.meshes[k].instanceColor.needsUpdate = true;
+    if (changed) for (const k in this.meshes) this.meshes[k].instanceColor.needsUpdate = true;
   }
 }

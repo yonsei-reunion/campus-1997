@@ -22,7 +22,6 @@ import json, math, os, random
 import numpy as np
 from scipy import ndimage
 from shapely.geometry import Polygon, LineString, Point, box
-from shapely.geometry.polygon import orient
 from shapely.ops import unary_union
 import shapely
 from PIL import Image, ImageDraw
@@ -268,7 +267,6 @@ def layout(geo, town, extras, ground, taken_z):
       campus grid's edge (OSM's outlines and the fill of low houses); gate_town's blocks that stand in the streets go
       (b[6] = -storeys: blender/town.py still draws their random looks, so the others keep theirs)
     - kerbs, lane paint, crossings and stop lines; the cars' lanes through the junction with their signals
-    - the walker's barrier round the walks open to them (연세로's two sidewalks, the junction's corners and crossings)
     - lamps, the subway's entrances, the town's ground map.
     ground(x, y): the terrain as saved; taken_z: the campus's outlines (unused south of the rails)."""
     rnd = random.Random(4802)
@@ -585,42 +583,9 @@ def layout(geo, town, extras, ground, taken_z):
     # the island's own pole (52158 · 52145 · 52142: on its north edge, the arm out over the lanes to the north-east)
     fb = math.radians(ROT_POLE['face'])
     heads.append([ROT_POLE['at'][0], ROT_POLE['at'][1], round(math.atan2(math.cos(fb), math.sin(fb)), 4), 0, 1, ROT_POLE['reach']])
-    # ---- the walks open to the walker: 연세로's two sidewalks from 성산로, the junction's corners within REACH, the
-    # crossings; a barrier of thin boxes round them (not along 성산로's north kerb, where gate_town's barrier now runs
-    # unbroken over its crossing too: the walker stays on the campus's side, and these walls are out of reach)
-    near = Point(*JC).buffer(REACH)
-    W_parts = [walk.intersection(near)]
-    yw = walk.intersection(Polygon([(-140, geo['y_top'] + 3.0), (-50, geo['y_top'] + 3.0), (-50, JC[1] - 10), (-140, JC[1] - 10)]))
-    W_parts.append(yw)
-    for k, a in A.items():
-        s_x = xs[k]
-        W_parts.append(a.poly(-a.half - 0.5, a.half + 0.5, s_x - 0.25, s_x + 4.75))
-    W_parts.append(ya.poly(-ya.half - 0.5, ya.half + 0.5, s_mid - 0.25, s_mid + 4.75))
-    cx0, cx1, cy0, cy1 = extras['cross_box']          # (gate_town's crossing over 성산로, kerb to kerb)
-    W_parts.append(box(cx0, cy0 - 0.5, cx1, cy1 + 0.8))
-    W_parts.append(extras['walk_s'].intersection(box(-135.0, -480.0, -60.0, -440.0)))
-    Wk = unary_union(W_parts).buffer(0.05).buffer(-0.05)
-    barrier = []
-    y_open = cy1 + 0.1                             # (north of this: the campus's side of 성산로)
-    for pg in (Wk.geoms if hasattr(Wk, 'geoms') else [Wk]):
-        if pg.geom_type != 'Polygon' or pg.area < 4.0:
-            continue
-        pg = orient(pg, 1.0)
-        for lr in [pg.exterior] + list(pg.interiors):
-            c = list(lr.coords)
-            for p, q in zip(c[:-1], c[1:]):
-                p, q = np.array(p), np.array(q)
-                d = q - p
-                L = float(np.linalg.norm(d))
-                if L < 1e-3:
-                    continue
-                nrm = np.array([d[1], -d[0]]) / L                 # (outward: right of a counter-clockwise ring)
-                m = max(1, int(math.ceil(L / 1.5)))
-                for i in range(m):
-                    a_, b_ = p + d * (i / m), p + d * ((i + 1) / m)
-                    if (a_[1] + b_[1]) / 2 > y_open:
-                        continue
-                    barrier.append(R2([a_ - nrm * 0.05, b_ - nrm * 0.05, b_ + nrm * 0.85, a_ + nrm * 0.85]))
+    # ---- no walls round 연세로's walks and the junction's corners: since 2026-11-11 the walker stays on 성산로's north
+    # sidewalk (gate_town's barrier along its north kerb, over its crossing too), and the 5,000 thin boxes that kept
+    # the walker on these walks were out of reach, read by every push-out near the gate (web/src/player.js Colliders)
     # ---- lamps along the kerbs (every 30 m, both sides; none in a crossing), the subway's entrances at the corners
     props = []
     for k, a in A.items():
@@ -746,8 +711,8 @@ def layout(geo, town, extras, ground, taken_z):
         s1 = float(ya.ls.project(Point(gt.YONSEI_X, geo['y_top'] - 3.0)))
         walks_.append(R2(lane_pts('yonsei', o, s1, xs['yonsei'] + 7.0, 3.0)))
     town['walks'] = walks_
-    print('신촌 로터리: blocks +%d (rows %d, fill %d, gone %d), kerbs %d, lanes %d, barrier %d, lamps %d' % (
-        len(new), sum(len(v) for v in fronts.values()), n_fill, n_gone, len(kerbs), len(lanes), len(barrier), len(props)))
+    print('신촌 로터리: blocks +%d (rows %d, fill %d, gone %d), kerbs %d, lanes %d, lamps %d' % (
+        len(new), sum(len(v) for v in fronts.values()), n_fill, n_gone, len(kerbs), len(lanes), len(props)))
     town['island'] = dict(c=list(ISLAND['c']), r=ISLAND['r'])
     # people standing about (web/src/main.js: the town's crowd) and the blue sign over 연세로 (blender/town.py)
     waiting['groups'] += rot_waiting(fronts[1][-1], corner, A, waiting['singles'])
@@ -761,7 +726,7 @@ def layout(geo, town, extras, ground, taken_z):
         dict(name='홍익문고', pos=[hk[0], hk[1]], top=top(hk)),
         dict(name='신촌 로터리', pos=list(ISLAND['c']), top=round(ground(*ISLAND['c']) + 9.0, 1)),
         dict(name='신촌역 (2호선)', pos=[entrances[1][0], entrances[1][1]], top=round(entrances[1][6] + 5.0, 1))]
-    return dict(markers=markers, props=props, colliders=barrier + coll, paints=paints, paths=paths, corner=corner, trees=trees, shrubs=shrubs)
+    return dict(markers=markers, props=props, colliders=coll, paints=paints, paths=paths, corner=corner, trees=trees, shrubs=shrubs)
 
 
 # ----------------------------------------------------------------------------- the 1995 · 1996 rooftop photos

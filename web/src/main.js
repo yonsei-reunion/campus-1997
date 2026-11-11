@@ -438,7 +438,9 @@ async function main() {
   // small talk over their heads; what they say follows the month (crowd.season)
   crowd.season = season;
   crowd.bubbles = new Bubbles($('#bubbles'), camera);
-  // 연세로's two sidewalks to 신촌 로터리 (campus.json town.walks): a crowd of their own, its own random stream
+  // 연세로's two sidewalks to 신촌 로터리 (campus.json town.walks): a crowd of their own, its own random stream. Seen
+  // from the gate and from above only (nobody walks there): six walking on a phone. Updated only while the view is
+  // within reach of them (life.js Crowd: 190 m), and once more after, to take them out of the scene.
   // 신촌 로터리 (tools/sinchon_rotary.py town.waiting): standing about in front of 홍익문고 and 그레이스백화점 and at
   // the two bus stops, alone (looking out for someone) or in twos and threes; fewer on the phone
   const rotWait = campus.town?.waiting;
@@ -446,11 +448,17 @@ async function main() {
   const rotLines = rotWait ? rotWait.singles.filter((s, i) => !MOBILE || i % 4 === 0)
     .map(([x, y, fx, fy]) => [{ x, y, h: groundAt(x, y), heading: Math.atan2(fx, -fy) }]) : [];
   const townCrowd = campus.town?.walks ? new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'man-staff', 'woman-staff'],
-    campus.town.walks.map((w) => new Path(w, groundAt)), rotGroups, MOBILE ? 10 : 30, 11, { lines: rotLines }) : null;
+    campus.town.walks.map((w) => new Path(w, groundAt)), rotGroups, MOBILE ? 6 : 30, 11, { lines: rotLines }) : null;
+  let townCrowdNear = () => false;
   if (townCrowd) {
     for (const p of townCrowd.people) shadows.addDynamic(p.a.holder);
     townCrowd.season = season;
     townCrowd.bubbles = crowd.bubbles;
+    townCrowd.shown = true;
+    const pts = [...campus.town.walks.flat(), ...rotGroups, ...(rotWait?.singles ?? [])], reach = 200;
+    const x0 = Math.min(...pts.map((q) => q[0])) - reach, x1 = Math.max(...pts.map((q) => q[0])) + reach;
+    const y0 = Math.min(...pts.map((q) => q[1])) - reach, y1 = Math.max(...pts.map((q) => q[1])) + reach;
+    townCrowdNear = (f) => f.x > x0 && f.x < x1 && -f.z > y0 && -f.z < y1;
   }
   const lanes = [];
   // one lane each way on the 1997 two-lane road (right-hand traffic); both bend out 0.5 m round the guard booth's
@@ -824,7 +832,10 @@ async function main() {
     grass.update(camera.position, tAcc);
     fall.update(camera);
     crowd.update(dt, tAcc, started ? player : NOBODY, focus);
-    townCrowd?.update(dt, tAcc, started ? player : NOBODY, focus);
+    if (townCrowd && (townCrowd.shown || townCrowdNear(focus))) {
+      townCrowd.update(dt, tAcc, started ? player : NOBODY, focus);
+      townCrowd.shown = townCrowd.people.some((p) => p.a.holder.parent);
+    }
     birthday?.update(dt, tAcc, started && !bird.active, focus);
     crowd.bubbles.update(tAcc, started && !bird.active);
     birds.update(dt, tAcc, started ? player : NOBODY, crowd.people, focus);

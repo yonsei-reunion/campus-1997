@@ -58,8 +58,13 @@ const smooth = (u) => u * u * (3 - 2 * u);
 // numeric grid-cell key (no string building in the per-frame lookups); unique for |i|, |j| < 32768
 const cellKey = (i, j) => (i + 32768) * 65536 + (j + 32768);
 
+// The walker's walls (the halls' outlines, campus.json colliders, circles round trunks, lamps, shrubs, benches) on a
+// grid of 8 m cells. A push-out reads only the cells under the circle and a margin round it, and passes by every
+// collider whose box it does not touch. (The 3 x 3 cells of 24 m it read before held 1,181 colliders at 언더우드관's
+// front: 40 µs a push-out, and 290 µs at the gate while the thin walls round 연세로's walks stood there.)
+const MARGIN = 1.0;       // round the circle, for the three passes of a push-out (they move it centimetres)
 export class Colliders {
-  constructor(cell = 24) {
+  constructor(cell = 8) {
     this.cell = cell;
     this.grid = new Map();
     this._near = [];
@@ -67,6 +72,7 @@ export class Colliders {
   }
   _put(o, minx, miny, maxx, maxy) {
     const c = this.cell;
+    Object.assign(o, { minx, miny, maxx, maxy });
     for (let i = Math.floor(minx / c); i <= Math.floor(maxx / c); i++)
       for (let j = Math.floor(miny / c); j <= Math.floor(maxy / c); j++) {
         const k = cellKey(i, j);
@@ -82,14 +88,14 @@ export class Colliders {
   addCircle(x, y, r) {
     this._put({ type: 'circle', x, y, r }, x - r, y - r, x + r, y + r);
   }
-  // colliders in the 3x3 cells round (x, y), each once (reused array: valid until the next call)
-  near(x, y) {
-    const c = this.cell, ci = Math.floor(x / c), cj = Math.floor(y / c);
+  // colliders in the cells that meet the square (x, y) ± m, each once (reused array: valid until the next call)
+  near(x, y, m = this.cell) {
+    const c = this.cell, i0 = Math.floor((x - m) / c), i1 = Math.floor((x + m) / c), j0 = Math.floor((y - m) / c), j1 = Math.floor((y + m) / c);
     const res = this._near, stamp = ++this._stamp;
     res.length = 0;
-    for (let i = -1; i <= 1; i++)
-      for (let j = -1; j <= 1; j++) {
-        const a = this.grid.get(cellKey(ci + i, cj + j));
+    for (let i = i0; i <= i1; i++)
+      for (let j = j0; j <= j1; j++) {
+        const a = this.grid.get(cellKey(i, j));
         if (!a) continue;
         for (const o of a) if (o.seen !== stamp) { o.seen = stamp; res.push(o); }
       }
@@ -101,10 +107,14 @@ export class Colliders {
   }
   // push a circle (x,y,r) out of every collider (and the moving circles); returns corrected [x,y]
   resolve(x, y, r, movers = []) {
-    // the push-outs move the circle by centimetres: one neighbourhood (±1 cell = 24 m) serves all three passes
-    const near = this.near(x, y);
+    // one neighbourhood serves the three passes, but where a push has moved the circle out of it (out of a hall's
+    // inside, across its floor) the cells there are read again
+    const m = r + MARGIN;
+    let qx = x, qy = y, near = this.near(x, y, m);
     for (let it = 0; it < 3; it++) {
+      if (Math.abs(x - qx) > MARGIN || Math.abs(y - qy) > MARGIN) { qx = x; qy = y; near = this.near(x, y, m); }
       for (const o of near) {
+        if (x + r < o.minx || x - r > o.maxx || y + r < o.miny || y - r > o.maxy) continue;
         if (o.type === 'circle') {
           const dx = x - o.x, dy = y - o.y, d = Math.hypot(dx, dy), m = o.r + r;
           if (d < m && d > 1e-6) { x = o.x + dx / d * m; y = o.y + dy / d * m; }
