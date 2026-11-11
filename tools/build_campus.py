@@ -1921,7 +1921,17 @@ ball = unary_union(bpolys)
 # and the bank are a mesh (blender/landmarks.py aud_bank, its slope drawn with the terrain's own material:
 # web/src/terrain.js drapeTerrain); the 5 m grid under it is kept below it, and below the sidewalk in front of the
 # wall, and under the flight below the sidewalk.
-AUD_BANK = dict(s0=433.1, s1=545.0, wall=0.7, cap=0.35, top=7.0, ext=12.55, side=-1, walk_z=0.15)   # (walk_z: road.py WZ)
+# 대강당 북쪽 곁길 어귀 (용재관 아래, reference/고증/4.5 「옹벽과 둑」): the side road east between 대강당 and 용재관 (the
+# 1990 map) leaves 백양로 where the rubble wall and its bank turn into it (Kakao roadview 2008-08 2381323, 2010-12
+# 1016786034: the camera at s 553 - 557 looks straight up it, the wall's kerb curving in on the right and the island's
+# on the left; the planting strip and the verge open across its mouth).  ± 2 m (the panos' headings unsolved)
+AUD_SIDE_MOUTH = (-1, 552.5, 561.0)
+# ... and the yard before 학생회관 별관 (the drive's foot, AUD_RAMP below) opens to 백양로 in the same way: the 1990 ·
+# 1994 · 1995 maps' road north of 학생회관 leaves its east side here; Kakao roadview April 2011: the verge's round north
+# end south of the opening at s 420.8 (1017220190) and 421.8 (1017220191), the next piece's south end at s 430.0
+# (1017220191; 1016786021 of December 2010 about 429), the poses as for the drive (reference/고증/4.5)
+AUD_YARD_MOUTH = (-1, 421.3, 429.6)
+AUD_BANK = dict(s0=433.1, s1=AUD_SIDE_MOUTH[1] - 0.5, wall=0.7, cap=0.35, top=7.0, ext=12.55, side=-1, walk_z=0.15)   # (walk_z: road.py WZ)
 AUD_BANK['gap'] = [round(AUD_FLIGHT['s_range'][0] + 0.05, 2), round(AUD_FLIGHT['s_range'][1] - 0.05, 2)]  # (the flight)
 AUD_T = AUD_HEAD                              # (the forecourt and the terrace at the flight's head)
 # the drive (AUD_RAMP): Kakao roadview April 2011 1017220188 - 196 (the poses of the panos solved from 대강당's front
@@ -1935,8 +1945,9 @@ AUD_T = AUD_HEAD                              # (the forecourt and the terrace a
 # apart in three; 학생회관 별관's ground floor stands 10 m beyond it, the yard between).  The foot: the middle bollard, from 190 and 192 (its distance from 188 - 191 agrees with the bollards'
 # heights in those frames to 4 %; the skyview has it 3.5 m further east).  The terrace beyond the head is not level
 # but falls with 백양로, from the flight's head (40.33 m) to the drive's head.
+# (the bollards: the triangulated row, 1.22 · 1.16 · 1.75 m apart; their spacing in 2008 · 2010 frames agrees, 4.5)
 AUD_RAMP = dict(foot=(7.56, -9.22), bearing=38.0, run=22.0, w=4.7, walk=1.8, band=4.45, band_t0=-2.5, mouth=5.0, z1=39.8,
-                bollards=(-1.3, 0.0, 1.3, 3.05))
+                bollards=(-1.22, 0.0, 1.16, 2.91))
 _ru = np.array([math.sin(math.radians(AUD_RAMP['bearing'])), math.cos(math.radians(AUD_RAMP['bearing']))])  # (up it)
 _rn = np.array([_ru[1], -_ru[0]])                                      # (across it, east)
 _rf = np.array(AUD_RAMP['foot'])
@@ -1992,26 +2003,54 @@ AUD_RAMP_BAND = ramp_strip(AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], AUD_RAMP['w'] /
                            AUD_RAMP['band_t0'], AUD_RAMP['run'] - 1.0)  # (the shrubs east of the walk)
 AUD_RAMP_POLY = unary_union([ramp_strip(-AUD_RAMP['w'] / 2, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], 0.0, AUD_RAMP['run'])]) \
     .difference(_bk)
+# 학생회관 별관 북쪽의 윗단 길 (AUD_UPPER, reference/고증/4.5): from the drive's head the paved terrace runs on east
+# along the annex's north side between it and 대강당's south wing (the 1990 and 1994 maps' road between 학생회관 and
+# 대강당 towards 루스채플; Kakao skyview 2008 (winter): cars parked in a row 8 - 12 m off the annex's north wall,
+# on from the terrace; roadview 2010-12 · 2011-04: a lamp up on that level behind the annex's north-west corner).
+# The game had the road there (OSM, 12 m off the wall) dip to 37.1 m between the terrace and the slope east of the
+# annex.  The strip 4.5 - 14 m off the OSM north wall (6.8 - 16.3 m off the game's, ANNEX_1997), from the terrace's
+# level at the drive's head (39.80 m) to the ground past the annex's north-east corner; the ground by the wall as it was
+AUD_ANNEX_N = (np.array([31.91, -1.15]), np.array([63.48, -9.21]))   # (the annex's north wall, OSM 1444448646)
+_uu = (AUD_ANNEX_N[1] - AUD_ANNEX_N[0]) / np.linalg.norm(AUD_ANNEX_N[1] - AUD_ANNEX_N[0])
+_un = np.array([-_uu[1], _uu[0]])                                    # (north, away from the annex)
+AUD_UPPER = dict(u0=-6.0, u1=35.0, v0=4.5, v1=14.0, z0=AUD_RAMP['z1'])
+AUD_UPPER['z1'] = round(sample(Hn, NEAR_HALF, NEAR_STEP, *(AUD_ANNEX_N[0] + _uu * AUD_UPPER['u1'] + _un * 9.0)), 2)
+AUD_UPPER_POLY = Polygon([tuple(AUD_ANNEX_N[0] + _uu * u_ + _un * v_) for u_, v_ in
+                          ((AUD_UPPER['u0'], AUD_UPPER['v0']), (AUD_UPPER['u1'], AUD_UPPER['v0']),
+                           (AUD_UPPER['u1'], AUD_UPPER['v1']), (AUD_UPPER['u0'], AUD_UPPER['v1']))])
+
+
+def aud_upper_z(x, y):
+    """the upper road north of 학생회관 별관: from the terrace's level at the drive's head to the ground past the annex"""
+    u_ = float((np.array([x, y]) - AUD_ANNEX_N[0]) @ _uu)
+    f_ = min(1.0, max(0.0, (u_ - AUD_UPPER['u0']) / (AUD_UPPER['u1'] - AUD_UPPER['u0'])))
+    return AUD_UPPER['z0'] + (AUD_UPPER['z1'] - AUD_UPPER['z0']) * f_
+
+
 COURT_Z = round(aud_terrace_z(s_at(*COURT['pos'])), 3)              # (the court level: the terrace at its middle)
 _tw = shapely.contains_xy(AUD_TERRACE, X, Y)
 _rw = shapely.contains_xy(AUD_RAMP_POLY.buffer(1.5), X, Y) & ~_tw
 _cw = shapely.contains_xy(court_poly(5.0), X, Y)
+_uw = shapely.contains_xy(AUD_UPPER_POLY, X, Y) & ~_tw & ~_rw
 _zt = np.full(X.shape, AUD_T)
 for _j, _i in zip(*np.nonzero(_tw)):
     _zt[_j, _i] = COURT_Z if _cw[_j, _i] else aud_terrace_z(s_at(X[_j, _i], Y[_j, _i]))
 for _j, _i in zip(*np.nonzero(_rw)):
     _zt[_j, _i] = aud_ramp_z(X[_j, _i], Y[_j, _i])
-_in = _tw | _rw
+for _j, _i in zip(*np.nonzero(_uw)):
+    _zt[_j, _i] = aud_upper_z(X[_j, _i], Y[_j, _i])
+_in = _tw | _rw | _uw
 _ni = ndimage.distance_transform_edt(~_in, return_distances=False, return_indices=True)
 _zt = _zt[_ni[0], _ni[1]]                                           # (beyond them: the nearest node's level)
 _tw = np.maximum(_in.astype(float), ndimage.gaussian_filter(ndimage.binary_dilation(_in, iterations=1).astype(float), 1.0))
 _tw *= np.clip((dist - ROAD_HALF - 1.0) / 3.0, 0, 1)
-_tw[(near_buildings(11.0) & ~_rw & ~_cw) | near_buildings(3.0) | FIXED] = 0.0   # (the court's margin: level)
+_tw[(near_buildings(11.0) & ~_rw & ~_cw & ~_uw) | near_buildings(3.0) | FIXED] = 0.0   # (the court's margin: level)
 Hn[:] = Hn * (1 - _tw) + _zt * _tw
 FIXED[_tw > 0.999] = True
 print('대강당 앞 진입로: z %.2f -> %.2f over %.1f m (%.1f %%), head at s %.1f; terrace %.2f -> %.2f, court %.2f'
       % (AUD_RAMP['z0'], AUD_RAMP['z1'], AUD_RAMP['run'], 100 * (AUD_RAMP['z1'] - AUD_RAMP['z0']) / AUD_RAMP['run'],
          AUD_RAMP['s_head'], AUD_RAMP['z1'], AUD_T, COURT_Z))
+print('별관 북쪽 윗단 길: %.2f -> %.2f m, grid nodes %d' % (AUD_UPPER['z0'], AUD_UPPER['z1'], int(_uw.sum())))
 
 
 def aud_bank_z(top, tp, o, to=None):
@@ -2325,6 +2364,10 @@ BK_MOUTH = (1, 545.5, 552.8)
 # the planting strip's place, so the strip (its hedge and ginkgos) gives way to it
 BK_ISLAND_S = (552.8, 567.7)
 STRIP_OPEN = [ENG_MOUTH, BK_WALK, BK_MOUTH, (1, *BK_ISLAND_S)]            # (blender/road.py strip_breaks)
+# (대강당 북쪽 곁길 어귀 · 별관 앞마당 어귀, AUD_BANK above; the planting strip stays open on north of the yard's mouth
+# to the wall's south end: the drive's flat mouth before its bollards, paved from the sidewalk, reference/고증/4.5)
+AUD_YARD_STRIP = (AUD_YARD_MOUTH[0], AUD_YARD_MOUTH[1], AUD_BANK['s0'])
+STRIP_OPEN += [AUD_SIDE_MOUTH, AUD_YARD_STRIP]
 BUMP_S =round(s_at(*photo_ground(1050, 1145)), 1)                   # the hatched speed bump, just short of the mouth's end
 
 
@@ -2829,6 +2872,7 @@ VERGE_BREAKS = [[-1, 496.5, 503.5]]                 # (the foot of 대강당's f
 # takes the 6 m between A and B (CROSS); the last opening, 2.4 m, is the passage to the plaza north of the hall
 VERGE_BREAKS += [[-1, 368.3, 371.9], [-1, 386.5, 393.6], [-1, 396.1, 398.4], [-1, 401.9, 404.3]]
 VERGE_BREAKS.append([BK_MOUTH[0], BK_MOUTH[1], BK_MOUTH[2]])      # (백양관 북쪽 주차장 어귀)
+VERGE_BREAKS += [list(AUD_SIDE_MOUTH), list(AUD_YARD_MOUTH)]      # (대강당 북쪽 곁길 어귀 · 별관 앞마당 어귀)
 
 
 def in_break(s, side, pad=0.0):
@@ -4946,9 +4990,13 @@ print('대강당 앞 코트 · 진입로: cleared (trees, shrubs, props, cars)',
 # drive's west kerb, a pine and a zelkova in the strip of shrubs east of its walk, a pine and a zelkova in front of
 # 학생회관 별관's west face (in round beds in the yard), another zelkova off its north-west corner.  (The weeping
 # cherry the 2011 frames have on the terrace by the drive's head stands where the court was, and is left out.)
+# 1997 sizes (4.5, #143): the ginkgos as the rest of 백양로's row (photo A, May 1997, matched the row at the model's
+# height); the others 14 years younger than measured in April 2011 (tops over the panoramas' horizon at their solved
+# distances): the zelkova north of the annex ~18.5 m then -> 15 m, the one at the drive's head ~11 m -> 7.5 m (young
+# crown; the one by the annex's corner, hidden in theirs, as it), the pines 5.5 · 6 · 7.6 m -> three quarters
 AUD_ROW_S = (438.4, 444.4, 450.5, 456.9, 463.2, 469.5, 475.7, 480.6)
-AUD_TREES = [('pine', 12.4, 1.5, 0.72), ('pine', 18.2, -5.6, 0.68), ('zelkova', 21.1, -0.1, 0.95),
-             ('pine', 27.3, -8.8, 0.7), ('zelkova', 28.7, -2.8, 0.92), ('zelkova', 35.1, 1.7, 0.85)]
+AUD_TREES = [('pine', 12.4, 1.5, 0.38), ('pine', 18.2, -5.6, 0.41), ('zelkova_young', 21.1, -0.1, 0.83),
+             ('pine', 27.3, -8.8, 0.52), ('zelkova_young', 28.7, -2.8, 0.83), ('zelkova', 35.1, 1.7, 1.15)]
 AUD_TREE_BEDS = [Point(x_, y_).buffer(1.6) for _, x_, y_, _ in AUD_TREES[3:5]]
 # (the planting's row trees there are moved in place, the rest added at the very end, after the town's: the game picks
 # each tree's model in the list's order, web/src/world.js Forest, so the campus keeps its trees' looks)
@@ -5331,6 +5379,33 @@ for o_ in (6.6, 8.6):
 print('경영학교실단 앞 길 · 북쪽 주차장: cleared (trees, shrubs, props, cars)', len(LATE_GONE_TREES), _nf[1] - len(shrubs),
       _nf[2] - len(props), _nf[3] - len(cars), '- walk s %.1f - %.1f to %.1f m' % (BK_WALK[1], BK_WALK[2], _bk_off),
       '- island %.0f m², bays %d' % (BK_ISLAND.area, len(_bk_st)))
+# 대강당 북쪽 곁길 어귀 (AUD_SIDE_MOUTH) and 별관 앞마당 어귀 (AUD_YARD_MOUTH): asphalt (_ga below) through the strip's
+# opening from the sidewalk (it stays: cars cross it) to the road or the yard behind it; nothing planted or parked in
+# it.  The row's ginkgo in each moves in place along the row to 2 m past the opening's nearer end (so that no other
+# tree changes its place in the list, and so its model)
+
+
+def aud_mouth_poly(m_, o1_, pad_=0.0, o0_=E_WALK - 0.2):
+    return Polygon([along_raw(s_, m_[0] * o_)[:2] for s_, o_ in ((m_[1] - pad_, o0_), (m_[2] + pad_, o0_), (m_[2] + pad_, o1_),
+                                                                (m_[1] - pad_, o1_))])
+
+
+AUD_SIDE_POLY = unary_union([aud_mouth_poly(AUD_SIDE_MOUTH, ROAD_HALF + 3.0), aud_mouth_poly(AUD_YARD_STRIP, 19.5)])
+_sz = unary_union([AUD_SIDE_POLY] + [aud_mouth_poly(m_, ROAD_HALF + 0.6, 0.6, E_WALK) for m_ in (AUD_SIDE_MOUTH, AUD_YARD_STRIP)])
+_nf = (0, len(shrubs), len(props), len(cars))
+for t_ in trees:
+    if not _sz.buffer(0.8).contains(Point(t_[1], t_[2])):
+        continue
+    _s, _o = s_off(t_[1], t_[2])
+    _m = min((AUD_SIDE_MOUTH, AUD_YARD_STRIP), key=lambda m_: abs(_s - (m_[1] + m_[2]) / 2))
+    _s = _m[1] - 2.0 if _s - _m[1] < _m[2] - _s else _m[2] + 2.0
+    t_[1:3] = [round(v_, 2) for v_ in along_raw(_s, _o)[:2]]
+    _nf = (_nf[0] - 1, *_nf[1:])
+shrubs[:] = [s_ for s_ in shrubs if not _sz.buffer(0.5).contains(Point(s_[1], s_[2]))]
+props[:] = [p_ for p_ in props if not _sz.contains(Point(p_[1], p_[2]))]
+cars[:] = [c_ for c_ in cars if not _sz.buffer(1.0).contains(Point(c_[1], c_[2]))]
+print('대강당 북쪽 곁길 · 별관 앞마당 어귀: cleared (trees moved, shrubs, props, cars)', -_nf[0],
+      _nf[1] - len(shrubs), _nf[2] - len(props), _nf[3] - len(cars), '- s %.1f - %.1f, %.1f - %.1f' % (*AUD_SIDE_MOUTH[1:], *AUD_YARD_MOUTH[1:]))
 out['paths'].append(dict(kind='footway', w=round(BK_WALK[2] - BK_WALK[1], 1),
                          pts=[[round(v_, 1) for v_ in along_raw(_bk_s, o_)[:2]] for o_ in (E_WALK, _bk_off - 1.0)]))
 # 정문 동쪽 잔디 주차 (LOT_C_CARS): photo A's pale car park under them, asphalt (_ga below), from just in front of the
@@ -5468,10 +5543,11 @@ _ypaint([Polygon([tuple(_fo + _fu * u_ + _fv * v_) for u_, v_ in ((-4.5, AUD_FLI
                                                                    (6.0, 26.0), (-6.0, 26.0))])], _ga)
 # 대강당 앞: the terrace and the drive up to it asphalt, and the yard before 학생회관 별관 where the court first stood
 # (the 1994 aerial photo: one paved yard from 별관's foot to the hall)
-AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), court_poly(1.0, COURT_OLD)]) \
-    .difference(bline.buffer(ROAD_HALF)).difference(AUD_BANK_POLY).difference(AUD_RAMP_BAND) \
-    .difference(unary_union(AUD_TREE_BEDS))
+AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), court_poly(1.0, COURT_OLD),
+                        AUD_UPPER_POLY]).difference(bline.buffer(ROAD_HALF)).difference(AUD_BANK_POLY) \
+    .difference(AUD_RAMP_BAND).difference(unary_union(AUD_TREE_BEDS))
 _ypaint([AUD_YARD], _ga)
+_ypaint([AUD_SIDE_POLY], _ga)                 # (대강당 북쪽 곁길 어귀 · 별관 앞마당 어귀)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
 _ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
 _ypaint(ANNEX_YARD_HALVES, _ga)               # (학생회관 별관 앞마당)

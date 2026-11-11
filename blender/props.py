@@ -458,16 +458,19 @@ def motorbike():
 
 # ----------------------------------------------------------------------------- 2003 사진의 소품 (reference/고증.md 3.18)
 def bollard():
-    """노랑 · 검정 볼라드 (2003_봄_언더우드관_앞길_벚나무.jpg, rows across the road before 언더우드관): a steel post about
-    0.85 m high and 13 cm across in yellow and black bands, a black domed cap."""
+    """노랑 · 검정 볼라드 (2003_봄_언더우드관_앞길_벚나무.jpg, rows across the road before 언더우드관): a steel post
+    13 cm across in yellow and black bands, a black domed cap, 0.70 m high to the cap's top (Kakao roadview 2008-08,
+    2010-12 and 2011-04 at 대강당 진입로: 0.65 - 0.75 m against the row's spacing and the panoramas' distances;
+    reference/고증/4.5; before 0.85 m to the cap's foot, an estimate)."""
     mb = MeshBuilder('bollard')
     r = 0.065
     z = -0.1
+    k = 0.664 / 0.85                                   # (the bands as before, scaled: cap foot 0.664, top 0.70)
     for z1, m in ((0.24, 'paint_yellow'), (0.34, 'paint_black'), (0.58, 'paint_yellow'), (0.68, 'paint_black'),
                   (0.8, 'paint_yellow'), (0.85, 'paint_black')):
-        mb.cylinder((0, 0), r, z, z1, m, seg=12, cap_top=False)
-        z = z1
-    mb.sphere((0, 0, 0.85), r, 'paint_black', seg=12, rings=6, sz=0.55)
+        mb.cylinder((0, 0), r, z, z1 * k, m, seg=12, cap_top=False)
+        z = z1 * k
+    mb.sphere((0, 0, 0.85 * k), r, 'paint_black', seg=12, rings=6, sz=0.55)
     return mb
 
 
