@@ -137,7 +137,7 @@ export class Blobs {
     }
     for (const { c, hl, hw } of this.cars) {
       const p = c.root.position;
-      if (!c.root.parent || !near(p)) continue;
+      if (!c.root.parent || !c.root.visible || !near(p)) continue;
       this._put(p.x, p.y, p.z, c.root.rotation.y, hl, hw, 0.55, 0.1, 0.35, 0.65);
     }
     const b = this.ball;

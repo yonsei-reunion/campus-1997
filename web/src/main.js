@@ -472,13 +472,32 @@ async function main() {
     const u = Math.min(1, Math.max(0, t));
     return u * u * (3 - 2 * u);
   };
-  for (const off of [R.median + R.lane * 0.5]) {
-    lanes.push(new Path(center.offset((s) => -(off + 0.5 * roundBooth(s))), groundAt));            // northbound
-    lanes.push(new Path(center.offset((s) => off + 0.5 * roundBooth(s)).reverse(), groundAt));    // southbound
+  // The cars' way is one loop (campus.json traffic, tools/build_campus.py TRAFFIC): up 백양로's northbound lane, left at
+  // the 삼거리 before 언더우드관 onto the drive past 스팀슨관, behind 언더우드관, past 연희관's west wing and round 대우관 to
+  // the car park behind it (the way Kakao's roadview car took in 2008), round the car park's aisles and back down the
+  // drive's other side into the southbound lane.  (They ran to the foot of the steps and vanished there before.)
+  {
+    const off = R.median + R.lane * 0.5, TR = campus.traffic;
+    const north = center.offset((s) => -(off + 0.5 * roundBooth(s)));            // (a point every 3 m)
+    const south = center.offset((s) => off + 0.5 * roundBooth(s));
+    if (TR) {
+      const n = Math.ceil((TR.s_out - 0.5) / 3);
+      const pts = [...north.slice(0, n), ...TR.pts, ...south.slice(0, n).reverse()];
+      const lim = [...Array(n).fill(Infinity), ...TR.v, ...Array(n).fill(Infinity)];
+      lanes.push(new Path(pts, groundAt).setLimits(lim).setTracks());
+      lanes[0].loop = true;                // (its two ends side by side at the gate: life.js Traffic)
+    } else {
+      lanes.push(new Path(north, groundAt));
+      lanes.push(new Path(south.reverse(), groundAt));
+    }
   }
-  const traffic = new Traffic(scene, { sedan: P.car_sedan, sedan2: P.car_sedan2, hatch: P.car_hatch, tico: P.car_tico, taxi: P.car_taxi, van: P.car_van }, lanes, 14, cast, STUDENTS.concat(['man-professor', 'man-staff', 'woman-staff']));
+  // (more of them: the loop is nearly twice the two lanes' length and slow off 백양로, which still carries a few
+  // fewer than it did)
+  const traffic = new Traffic(scene, { sedan: P.car_sedan, sedan2: P.car_sedan2, hatch: P.car_hatch, tico: P.car_tico, taxi: P.car_taxi, van: P.car_van }, lanes,
+    campus.traffic ? (MOBILE ? 18 : 26) : 14, cast, STUDENTS.concat(['man-professor', 'man-staff', 'woman-staff']));
   for (const c of traffic.cars) shadows.addDynamic(c.root, c.len / 2 + 1.5);
-  const gates = new BoothGates(scene, P.barrier_arm, R.booth, lanes, groundAt, shadows);
+  const walkers = crowd.people.filter((p) => p.path);        // (the cars wait for them: life.js Traffic)
+  const gates = new BoothGates(scene, P.barrier_arm, R.booth, groundAt, shadows);
   // 성산로's cars and city buses (src/town.js); the sound hears them with 백양로's
   const street = campus.town && townG ? new Street(scene, campus.town, P, groundAt, { shadows }) : null;
   const heard = { cars: street ? traffic.cars.concat(street.cars) : traffic.cars };
@@ -855,7 +874,7 @@ async function main() {
     birthday?.update(dt, tAcc, started && !bird.active, focus);
     crowd.bubbles.update(tAcc, started && !bird.active);
     birds.update(dt, tAcc, started ? player : NOBODY, crowd.people, focus);
-    traffic.update(dt, started ? player : NOBODY, focus);
+    traffic.update(dt, started ? player : NOBODY, focus, walkers);
     street?.update(dt, focus, started ? player : null);
     gates.update(dt, traffic);
     fountainWater?.update(dt, camera);

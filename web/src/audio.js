@@ -349,6 +349,7 @@ export class Sound {
     // the nearest moving cars take the voices; a voice whose car has left fades out before it takes another
     const near = [];
     for (const c of traffic.cars) {
+      if (!c.root.visible) continue;                        // (out of the gate: life.js Traffic)
       const d = (c.root.position.x - x) ** 2 + (c.root.position.z + y) ** 2;
       if (d < CAR_R * CAR_R) near.push([d, c]);
     }

@@ -44,6 +44,43 @@ export class Path {
     const f = Math.max(0, s) / 2, i = Math.min(this.hs.length - 2, f | 0);
     return this.hs[i] + (this.hs[i + 1] - this.hs[i]) * (f - i);
   }
+  // A lane's speed limit by the metre: the limit given at each vertex (m/s, Infinity = the car's own pace), no faster
+  // than a bend allows (latAcc sideways), and falling ahead of a slower stretch as a car brakes for it (dec).
+  // vmax(s) reads it.
+  setLimits(lim, latAcc = 1.7, dec = 1.6) {
+    const n = Math.ceil(this.length) + 1, v = new Float32Array(n);
+    const a = new THREE.Vector2(), b = new THREE.Vector2(), c = new THREE.Vector2();
+    let k = 1;
+    for (let i = 0; i < n; i++) {
+      while (k < this.cum.length - 1 && this.cum[k] < i) k++;
+      v[i] = Math.min(lim[k - 1], lim[k]);
+      // the bend over 3 m either side: the heading's turn per metre
+      this.at(i - 3, a); this.at(i, b); this.at(i + 3, c);
+      const t1 = Math.atan2(b.y - a.y, b.x - a.x), t2 = Math.atan2(c.y - b.y, c.x - b.x);
+      const turn = Math.abs(Math.atan2(Math.sin(t2 - t1), Math.cos(t2 - t1))) / 3;
+      if (i > 3 && i < n - 4 && turn > 1e-3) v[i] = Math.min(v[i], Math.sqrt(latAcc / turn));
+    }
+    for (let i = n - 2; i >= 0; i--) v[i] = Math.min(v[i], Math.sqrt(v[i + 1] * v[i + 1] + 2 * dec));
+    this.lim = v;
+    return this;
+  }
+  vmax(s) { return this.lim ? this.lim[Math.max(0, Math.min(this.lim.length - 1, Math.round(s)))] : Infinity; }
+  // The ground under a car's two wheel tracks (half m either side of the line), by the metre: [left, right]
+  setTracks(half = 0.72) {
+    const n = Math.ceil(this.length) + 2, l = new Float32Array(n), r = new Float32Array(n);
+    const p = new THREE.Vector2(), d = new THREE.Vector2();
+    for (let i = 0; i < n; i++) {
+      this.at(i, p); this.dir(i, d);
+      l[i] = this.heightFn(p.x - d.y * half, p.y + d.x * half);
+      r[i] = this.heightFn(p.x + d.y * half, p.y - d.x * half);
+    }
+    this.tracks = [l, r];
+    return this;
+  }
+  track(side, s) {
+    const t = this.tracks[side], f = Math.max(0, Math.min(t.length - 1.001, s)), i = f | 0;
+    return t[i] + (t[i + 1] - t[i]) * (f - i);
+  }
   // a parallel line `off` m to the left; off may also be a function of the arc length (a lane bending round an island)
   offset(off) {
     const out = [];
@@ -573,7 +610,7 @@ function playGesture(a, name) {
 // The guard booth on 백양로's centre line (1997 aerial photo; tools/build_campus.py BOOTH): a red-and-white arm across
 // each lane, down as in the photo, swung up while a car on that lane comes within ~22 m of it and until it is past.
 export class BoothGates {
-  constructor(scene, armGltf, booth, lanes, groundAt, shadows = null) {
+  constructor(scene, armGltf, booth, groundAt, shadows = null) {
     this.arms = [];
     if (!booth || !armGltf) return;
     for (const a of booth.arms) {
@@ -584,16 +621,17 @@ export class BoothGates {
       root.position.set(a.x, groundAt(a.x, a.y) + a.z, -a.y);
       scene.add(root);
       shadows?.addDynamic(root, 3);
-      // the road heading there, and the way the lane's cars run along it (+1 northbound, the arm pointing east)
+      // the road heading there, and the way its side's cars run along it (+1 northbound, the arm pointing east)
       const head = a.dir - a.side * Math.PI / 2;
-      this.arms.push({ root, a, lane: lanes[a.side > 0 ? 1 : 0], fx: Math.cos(head) * -a.side, fy: Math.sin(head) * -a.side, lift: 0 });
+      this.arms.push({ root, a, fx: Math.cos(head) * -a.side, fy: Math.sin(head) * -a.side, lift: 0 });
     }
   }
   update(dt, traffic) {
     for (const g of this.arms) {
       let open = false;
       for (const c of traffic.cars) {
-        if (c.lane !== g.lane) continue;
+        // (the cars heading its way: both ways are one loop now, main.js)
+        if (Math.cos(c.root.rotation.y) * g.fx + Math.sin(c.root.rotation.y) * g.fy < 0.5) continue;
         const dx = c.root.position.x - g.a.x, dy = -c.root.position.z - g.a.y;
         const along = dx * g.fx + dy * g.fy;          // < 0 still coming
         if (along > -22 && along < 4 + c.len / 2 && Math.abs(dx * g.fy - dy * g.fx) < 6) { open = true; break; }
@@ -608,6 +646,9 @@ export class BoothGates {
 // ---------------------------------------------------------------- traffic
 // Cars from blender/cars.py: wheels spin with the distance travelled, brake lights come on when slowing,
 // a seated driver (Quaternius 'sit' clip) behind the wheel; they keep their distance and stop for you.
+// A lane may carry speed limits (Path.setLimits: the drives off 백양로, their bends, the car park) and the ground
+// under its wheel tracks (Path.setTracks): the car then stands on its four tyres, nose up on a climb and leaning
+// with a cross fall, as the parked ones do (main.js parkedMatrix).
 // 1997 paint: lots of white, silver and dark navy, the mid-90s dark green (진녹색), a few wine / gunmetal / gold
 export const CAR_COLORS = ['#eeeeea', '#f2f1ec', '#b9bdc3', '#a9aeb5', '#1b2333', '#2a2d33', '#6e1b1f', '#244a3a', '#1d3b30', '#3a3f45', '#b59a6a', '#2c4a78'];
 // sedan 쏘나타Ⅱ type, sedan2 프린스 type, hatch 프라이드 type, tico 티코 type, van 그레이스 type (blender/cars.py)
@@ -636,6 +677,12 @@ export class Traffic {
       });
       const box = new THREE.Box3().setFromObject(root);
       const len = box.max.x - box.min.x;
+      // where the tyres meet the ground (model frame: +X forward, -Z left): front and rear axles, left and right tracks
+      const wx = [], wz = [], wv = new THREE.Vector3();
+      root.updateMatrixWorld(true);
+      for (const w of wheels) { w.getWorldPosition(wv); wx.push(wv.x); wz.push(wv.z); }
+      const tyres = wx.length ? { f: Math.max(...wx), r: Math.min(...wx), l: Math.min(...wz), rt: Math.max(...wz) } : { f: 1.4, r: -1.4, l: -0.75, rt: 0.75 };
+      root.rotation.order = 'YZX';             // yaw, then pitch about its own Z, then roll about its own X
       let driver = null;
       if (cast && driverIds.length) {
         driver = cast.make(driverIds[Math.floor(rnd() * driverIds.length)], null);     // (no bag at the wheel)
@@ -649,26 +696,49 @@ export class Traffic {
       }
       scene.add(root);
       const lane = lanes[i % lanes.length];
+      const k = 0.88 + rnd() * 0.2;            // how briskly this driver takes a lane's limits
       // wheel radius from the model, so the tyres roll without slipping
       const radius = wheels.length ? new THREE.Box3().setFromObject(wheels[0]).getSize(new THREE.Vector3()).y / 2 : 0.3;
-      this.cars.push({ root, lane, s: (i / n) * lane.length * 2 % lane.length + rnd() * 20, speed: 8 + rnd() * 4,
-        v: 8, len, wheels, brake, radius, driver, kind });
+      this.cars.push({ root, lane, s: ((i / n) * lane.length * lanes.length + rnd() * 20) % lane.length, speed: 8 + rnd() * 4,
+        v: 8, len, wheels, brake, radius, driver, kind, k, tyres, pitch: 0, roll: 0 });
     }
   }
-  // camPos: the view's centre (three coords); drivers of cars farther than the crowd's reach leave the car
-  update(dt, player, camPos = null) {
+  // camPos: the view's centre (three coords); drivers of cars farther than the crowd's reach leave the car.
+  // walkers: the crowd's people who walk (life.js Crowd, {x, y}): a car waits for one crossing just ahead of it
+  // (the west sidewalk crosses the drive's mouth at the 삼거리, walks cross the drives), a few seconds at most
+  update(dt, player, camPos = null, walkers = null) {
     const p = this.p ||= new THREE.Vector2(), d = this.d ||= new THREE.Vector2();
     for (const c of this.cars) {
+      // out of the gate and away for a while (a loop's two ends are one spot, side by side: the car that left would
+      // be the one coming in), then in again once the lane's first metres are clear
+      if (c.away > 0) {
+        c.away -= dt;
+        if (c.away > 0) continue;
+        if (this.cars.some((o) => o !== c && o.lane === c.lane && !(o.away > 0) && o.s < 16)) { c.away = 0.6; continue; }
+        c.s = 0; c.v = c.speed * 0.7; c.root.visible = true;
+      }
       c.lane.at(c.s, p);
       c.lane.dir(c.s, d);
       // brake for the player standing in the lane ahead, and keep a gap to the car in front
       const rx = player.x - p.x, ry = player.y - p.y;
       const ahead = rx * d.x + ry * d.y, lateral = Math.abs(-rx * d.y + ry * d.x);
       const reach = c.len / 2 + 4;
-      let target = c.speed;
+      let target = Math.min(c.speed, c.lane.vmax(c.s) * c.k);
       if (ahead > 0 && ahead < reach + 10 && lateral < 2.0) target = ahead < reach ? 0 : c.speed * (ahead - reach) / 10;
+      if (walkers && !(c.pushOn > 0)) {
+        const near = c.len / 2 + 2.2;
+        for (const w of walkers) {
+          const wx = w.x - p.x, wy = w.y - p.y;
+          if (wx > 12 || wx < -12 || wy > 12 || wy < -12) continue;
+          const a = wx * d.x + wy * d.y;
+          if (a > 0 && a < near + 5 && Math.abs(-wx * d.y + wy * d.x) < 1.5) target = Math.min(target, a < near ? 0 : c.speed * (a - near) / 5);
+        }
+        // (somebody standing in the way for long: on round them, slowly)
+        c.waited = target === 0 && c.v < 0.2 ? (c.waited || 0) + dt : 0;
+        if (c.waited > 5) { c.pushOn = 4; c.waited = 0; }
+      } else if (c.pushOn > 0) { c.pushOn -= dt; target = Math.min(target, 2.5); }
       for (const o of this.cars) {
-        if (o === c || o.lane !== c.lane) continue;
+        if (o === c || o.lane !== c.lane || o.away > 0) continue;
         const gap = o.s - c.s - (o.len + c.len) / 2;
         if (gap > -1 && gap < 9) target = Math.min(target, gap < 3 ? 0 : o.v * 0.9);
       }
@@ -677,12 +747,29 @@ export class Traffic {
       const braking = c.v < prev - 0.02 || c.v < 0.3;
       for (const m of c.brake) m.emissiveIntensity = braking ? 3.0 : 0.35;
       c.s += c.v * dt;
-      if (c.s > c.lane.length) c.s = 0;
+      if (c.s > c.lane.length) {
+        if (c.lane.loop) { c.away = 2 + Math.random() * 9; c.root.visible = false; continue; }
+        c.s = 0;
+      }
       c.lane.at(c.s, p);
       c.lane.dir(c.s, d);
-      c.root.position.set(p.x, c.lane.h(c.s), -p.y);
       // car model: +X forward
       c.root.rotation.y = Math.atan2(d.y, d.x);
+      if (c.lane.tracks) {
+        const t = c.tyres, L = c.lane;
+        const fl = L.track(0, c.s + t.f), fr = L.track(1, c.s + t.f), rl = L.track(0, c.s + t.r), rr = L.track(1, c.s + t.r);
+        const pitch = Math.max(-0.3, Math.min(0.3, Math.atan2((fl + fr - rl - rr) / 2, t.f - t.r)));
+        // (the lean held to 7 deg: where a yard or a road at another height stands right beside the drive, the 5 m
+        // grid tips the drive's edge towards it, tools/build_campus.py TR_LEVEL)
+        const roll = Math.max(-0.12, Math.min(0.12, Math.atan2((fl + rl - fr - rr) / 2, t.rt - t.l)));    // + : the left side up
+        // (eased: the terrain's facets and the tracks' metre steps would nod it otherwise)
+        const e = Math.min(1, dt * 9);
+        c.pitch += (pitch - c.pitch) * e; c.roll += (roll - c.roll) * e;
+        const mx = (t.f + t.r) / 2, mz = (t.l + t.rt) / 2;
+        c.root.position.set(p.x, (fl + fr + rl + rr) / 4 - mx * Math.tan(c.pitch) + mz * Math.tan(c.roll), -p.y);
+        c.root.rotation.z = c.pitch;
+        c.root.rotation.x = c.roll;
+      } else c.root.position.set(p.x, c.lane.h(c.s), -p.y);
       for (const w of c.wheels) w.rotation.z -= (c.v * dt) / c.radius;
       if (c.driver) {
         const near = !camPos || (p.x - camPos.x) ** 2 + (p.y + camPos.z) ** 2 < FAR2;
@@ -697,7 +784,7 @@ export class Traffic {
   movers(px, py, out) {
     for (const c of this.cars) {
       const x = c.root.position.x, y = -c.root.position.z;
-      if (Math.abs(x - px) > 12 || Math.abs(y - py) > 12) continue;
+      if (Math.abs(x - px) > 12 || Math.abs(y - py) > 12 || c.away > 0) continue;
       const fx = Math.cos(c.root.rotation.y), fy = Math.sin(c.root.rotation.y);
       const n = Math.max(1, Math.round(c.len / 1.6));
       const circles = (c.circles ||= Array.from({ length: n }, () => ({ x: 0, y: 0, r: 0.9 })));

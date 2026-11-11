@@ -1676,6 +1676,190 @@ _w = np.clip(_w, 0, 1)                         # (the nodes under the wings too,
 DW_APRON = round(DAEWOO['floor'] - 0.15, 2)
 Hn[_jj, _ii] = Hn[_jj, _ii] * (1 - _w) + DW_APRON * _w
 print('daewoo sides apron', DW_APRON, 'nodes', int((_w > 0).sum()))
+# 대우관 서쪽 옆길 (reference/고증/3.6 「서쪽 옆길」): the drive from the 상뜰's west side up the west wing to the back
+# yard and its car park, the way the cars of 백양로 go (TRAFFIC below).  Kakao roadview of August 2008 (2381738 on the
+# drive abreast of the 상뜰, 2381759 at the wing's north-west corner) has it climb evenly along the wing, a car's
+# width and a low hedge strip off the wall, whose rusticated foot comes down to it, then turn along the hall's back
+# into the yard.  The game had OSM's line 1.3 m off the wall (the wall stood in its east lane) and the side apron
+# above start at the wing's front end, which stood the drive up 5 m in 9 m there.  So: the drive's middle DW_RD_OFF
+# off the west wall, one grade from the 상뜰's drive to the yard's level at the back corner, the ground from the wall
+# out to its west edge on that grade (the wall goes down to it: its base is the plaza's level), then level with the
+# yard round the corner and along the lawn north of the hall's back apron to the car park's cross aisle.
+
+
+def dw_xy(u, v, o_=_a.copy(), t_=_t.copy(), n_=_nl.copy()):       # (대우관's frame, DW_U / DW_V, as a point)
+    return tuple(float(c_) for c_ in np.round(o_ + t_ * u + n_ * v, 2))
+
+
+DW_RD_OFF = 5.0
+_ru = DAEWOO['u0'] - DW_RD_OFF
+_yz_ = lambda u, v: _db['h0'] + _db['su'] * (u - _db['u0']) + _db['sv'] * max(0.0, v - _db['v0'])     # (the yard's plane)
+DW_AISLE_V = 54.2                                    # the car park's cross aisle (between the stalls at v 48.6 and 59.0)
+DW_DRIVE_UV = [(-15.2, -26.0), (_ru, -14.0), (_ru, 24.4), (_ru + 1.6, 30.6), (-9.0, 34.5), (2.5, 38.5), (10.5, 48.0),
+               (16.5, 54.4), (25.0, DW_AISLE_V)]
+DW_DRIVE = [dw_xy(*q_) for q_ in DW_DRIVE_UV]         # (its middle line; rounded off in TRAFFIC)
+_v0, _v1 = DW_DRIVE_UV[0][1], DW_DRIVE_UV[2][1]
+_z0, _z1 = sample(Hn, NEAR_HALF, NEAR_STEP, *DW_DRIVE[0]), _yz_(_ru, _v1)
+_side = (DW_V >= _v0) & (DW_V <= _v1) & (DW_U > _ru - 4.2) & (DW_U < np.where(DW_V < -10.5, DAEWOO['u0'] - 0.4, DAEWOO['u0'] + 5.2)) \
+    & ~_court & ~_strip
+Hn[_side] = _z0 + (_z1 - _z0) * (DW_V[_side] - _v0) / (_v1 - _v0)
+FIXED[_side] = True
+_zc = [_z1, _yz_(*DW_DRIVE_UV[5]), _yz_(*DW_DRIVE_UV[-1])]
+DW_OWN = _side | fix_strip(DW_DRIVE[2:6], _zc[0], _zc[1], 3.6) | fix_strip(DW_DRIVE[5:], _zc[1], _zc[2], 3.6)
+_free = shapely.contains_xy(LineString(DW_DRIVE).buffer(15.0), X, Y) & ~FIXED & ~near_buildings(1.0) & ~_yard
+harmonic_fill(_free)
+print('daewoo west drive %.2f -> %.2f m, %.1f %%; back %.2f -> %.2f; nodes %d, filled %d' % (
+    _z0, _z1, 100 * (_z1 - _z0) / (_v1 - _v0), _zc[1], _zc[2], int(_side.sum()), int(_free.sum())))
+# ---------------------------------------------------------------------------
+# 찻길 (TRAFFIC, reference/고증/2.9): where 백양로's cars go on from the 삼거리.  They ran to the foot of the steps before
+# 언더우드관 and vanished there.  Kakao's roadview car drove on in August 2008, December 2010 and April 2011: left at
+# the 삼거리 up the drive past 스팀슨관's west side (2381781; 2011: 1017220216), north-east behind 언더우드관 to 한경길
+# (2381767), up between 교육관 and 연희관's garden (2381722), past 연희관's west wing and the 상뜰's west side (2381738) and
+# round 대우관's west wing (2381759) to the car park behind it, and back the same way: an asphalt drive of about 6 m with
+# yellow edge lines and no centre line, two cars passing slowly.  The 2008 skyview has the same drive all the way.
+# (The other fork, right at the 삼거리 past 용재관 towards 노천극장, is as real, 2381332 · 2381343; the game has 용재관's
+# azalea bank over its first 30 m and unshaped ground beyond: left for later, 「남은 한계」.)
+# So: one loop for the cars (web/src/main.js joins it to 백양로's two lanes at s_out): off the northbound lane, left
+# through the kerb's gap, up the drive on its right-hand side, in by the car park's cross aisle, round the two aisles
+# and out again, down the drive on the other side and right into the southbound lane.  The drive's middle is OSM's,
+# rounded at the corners, held off the halls' walls (연희관's west wing stood 2.9 m from it) as far as the asphalt
+# allows, and 대우관's west side as laid out above (DW_DRIVE).  Here its middle line (the ground under it is levelled
+# across next); the lanes, the car park's round and the asphalt follow with the splat (TRAFFIC below).
+# ---------------------------------------------------------------------------
+def _fillet(pts, r):
+    """a polyline with every corner rounded by an arc of radius r (one for all, or one for each point), as far as
+    the two sides meeting there allow"""
+    P_ = [np.array(q_, float) for q_ in pts]
+    rr_ = list(r) if hasattr(r, '__len__') else [r] * len(P_)
+    out_ = [P_[0]]
+    for i_ in range(1, len(P_) - 1):
+        u_, v_ = P_[i_ - 1] - P_[i_], P_[i_ + 1] - P_[i_]
+        lu_, lv_ = np.linalg.norm(u_), np.linalg.norm(v_)
+        u_, v_ = u_ / lu_, v_ / lv_
+        ang_ = math.acos(float(np.clip(u_ @ v_, -1.0, 1.0)))             # (the angle between the two sides)
+        if ang_ > math.pi - 0.02:
+            out_.append(P_[i_])
+            continue
+        t_ = min(rr_[i_] / math.tan(ang_ / 2), 0.48 * lu_, 0.48 * lv_)
+        r_ = t_ * math.tan(ang_ / 2)
+        b_ = (u_ + v_) / np.linalg.norm(u_ + v_)
+        o_ = P_[i_] + b_ * (r_ / math.sin(ang_ / 2))
+        a0_, a1_ = (math.atan2(q_[1] - o_[1], q_[0] - o_[0]) for q_ in (P_[i_] + u_ * t_, P_[i_] + v_ * t_))
+        da_ = (a1_ - a0_ + math.pi) % (2 * math.pi) - math.pi
+        n_ = max(2, int(abs(da_) * r_ / 0.6) + 1)
+        out_ += [o_ + r_ * np.array([math.cos(a0_ + da_ * k_ / n_), math.sin(a0_ + da_ * k_ / n_)]) for k_ in range(n_ + 1)]
+    return out_ + [P_[-1]]
+
+
+def _resample(pts, step):
+    ls_ = LineString([tuple(q_) for q_ in pts])
+    n_ = max(1, int(round(ls_.length / step)))
+    return [np.array(ls_.interpolate(ls_.length * k_ / n_).coords[0]) for k_ in range(n_ + 1)]
+
+
+TR_LANE, TR_LANE_BY = 1.35, ROAD['median'] + ROAD['lane'] * 0.5       # a lane's middle off the drive's, off 백양로's
+TR_V = dict(by=11.0, drive=6.5, back=4.5, lot=2.8)                   # m/s: 백양로, the drive, 대우관's back, the car park
+_wd = LineString([(39.8, 121.9), (34.2, 122.7), (28.2, 124.1), (24.2, 125.3), (19.6, 127.2), (14.2, 131.1)])
+_jq = LineString([(24.2, 125.3), (14.2, 131.1)])                      # (the drive where it leaves the carriageway)
+_jd = np.array(_jq.coords[1]) - np.array(_jq.coords[0])
+_jx = LineString([tuple(np.array(_jq.coords[0]) - _jd * 2.0), _jq.coords[1]]).intersection(bline)
+TR_SJ = float(bline.project(_jx))                                    # the corner of the two middle lines
+TR_S0 = round(TR_SJ - 36.0, 1)                                        # the loop leaves 백양로's lanes here
+_c_raw = [along_raw(TR_S0, 0.0)[:2], along_raw(TR_SJ - 16.0, 0.0)[:2], along_raw(TR_SJ + 0.4, 0.0)[:2],   # (through the kerb's gap, GAPS)
+          (14.2, 131.1), (8.7, 136.9), (4.4, 143.6), (1.6, 149.5), (-2.0, 160.5), (-7.9, 178.7), (-12.9, 194.7), (-14.5, 204.6),
+          (-2.3, 250.4), (0.4, 254.3), (18.8, 281.7), (27.1, 292.5), (40.0, 301.4),
+          (45.5, 327.4), (51.7, 354.5), (50.7, 363.9), (54.7, 378.7), (61.7, 398.7), (66.6, 414.3), (71.8, 436.3)] + DW_DRIVE
+_c_r = [14.0] * len(_c_raw)
+_c_r[2] = 9.0                                                         # (the 삼거리: the inner lane turns on 7.5 m)
+TR_CP = _resample(_fillet(_c_raw, _c_r), 1.0)
+_halls_tr = unary_union([footprint(ways[w_]) for w_ in B if w_ in ways])
+_cls = LineString([tuple(q_) for q_ in TR_CP])
+TR_KDW = int(round(_cls.project(Point(*DW_DRIVE[0]))))                 # (from here on laid out by hand: DW_DRIVE)
+for k_ in range(1, TR_KDW):                                            # off the walls, at most 0.6 m (the asphalt's width)
+    q_ = Point(*TR_CP[k_])
+    d_ = _halls_tr.distance(q_)
+    if d_ < 4.0:
+        n_ = shapely.ops.nearest_points(_halls_tr, q_)[0]
+        TR_CP[k_] = TR_CP[k_] + (TR_CP[k_] - np.array([n_.x, n_.y])) / max(d_, 1e-6) * min(4.0 - d_, 0.6)
+for _ in range(3):                                                    # (the corners' ends and the push eased)
+    TR_CP = [TR_CP[0]] + [(TR_CP[k_ - 1] + 2 * TR_CP[k_] + TR_CP[k_ + 1]) / 4 for k_ in range(1, len(TR_CP) - 1)] + [TR_CP[-1]]
+TR_CP = _resample(TR_CP, 1.0)
+TR_CENTRE = [tuple(np.round(q_, 2)) for q_ in TR_CP]
+TR_CSS = np.arange(len(TR_CP)) * (LineString(TR_CENTRE).length / (len(TR_CP) - 1))
+_ct = [(TR_CP[min(k_ + 1, len(TR_CP) - 1)] - TR_CP[max(k_ - 1, 0)]) for k_ in range(len(TR_CP))]
+TR_CN = [np.array([-t_[1], t_[0]]) / np.linalg.norm(t_) for t_ in _ct]                    # (to the left)
+TR_SJC = TR_SJ - TR_S0
+TR_CO = np.interp(TR_CSS, [TR_SJC - 9.0, TR_SJC + 12.0], [TR_LANE_BY, TR_LANE])
+TR_KBACK = int(round(LineString(TR_CENTRE).project(Point(*DW_DRIVE[2]))))               # 대우관's back corner
+TR_CV = np.where(TR_CSS < TR_SJC - 12.0, TR_V['by'], np.where(np.arange(len(TR_CP)) < TR_KBACK, TR_V['drive'], TR_V['back']))
+# The drive's ground, level across.  The cars stand on their four tyres (web/src/life.js Traffic: the ground under the
+# two wheel tracks), and the 5 m grid laid the drive over the hillsides with the slope's own cross fall: a car leant
+# 6 - 15 deg all the way up behind 스팀슨관 and 언더우드관, 22 deg at the bend behind 언더우드관, 5 - 11 deg along the
+# 상뜰.  A drive is cut level across its slope: every grid node of a cell the wheel tracks pass over takes the height of
+# the drive's middle abreast of it (its profile as it was, the grid's facets eased out), and the ground beside eases
+# to it over the next 10 m.  The nodes others have set stay (FIXED: 한경길, the drive along 연희관's garden and the
+# garden's own levels, the halls' aprons and the 상뜰), 백양로's own mesh, and the ground inside the halls' walls.
+# What is left leans where such ground stands beside the drive at another height: abreast of 교육관's north yard
+# (2.6 m under the drive) and 연희관's front road (1 m over it), printed below; the cars' lean is held to 7 deg there.
+def tr_tilt():
+    """the lean (pitch, roll in degrees) of a car on each lane along the drive, on the ground as it is now"""
+    rows_ = []
+    for sg_ in (-1.0, 1.0):
+        for k_ in range(TR_K0, len(TR_CP) - 2):
+            n_ = TR_CN[k_]
+            t_ = np.array([n_[1], -n_[0]])
+            c_ = TR_CP[k_] + n_ * sg_ * TR_CO[k_]
+            h_ = [sample(Hn, NEAR_HALF, NEAR_STEP, *(c_ + t_ * a_ + n_ * b_)) for a_, b_ in ((1.33, 0.72), (1.33, -0.72), (-1.33, 0.72), (-1.33, -0.72))]
+            rows_.append((sg_, k_, math.degrees(math.atan2((h_[0] + h_[1] - h_[2] - h_[3]) / 2, 2.66)),
+                          math.degrees(math.atan2((h_[0] + h_[2] - h_[1] - h_[3]) / 2, 1.44))))
+    return rows_
+
+
+def tr_tilt_report(tag):
+    rows_ = tr_tilt()
+    rl_ = np.abs([r_[3] for r_ in rows_])
+    pt_ = np.abs([r_[2] for r_ in rows_])
+    print('traffic tilt (%s): roll max %.1f deg, over 4 deg on %d of %d m; pitch max %.1f deg, over 9 deg on %d m' % (
+        tag, rl_.max(), int((rl_ > 4).sum()), len(rows_), pt_.max(), int((pt_ > 9).sum())))
+    return rows_
+
+
+TR_K0 = next(k_ for k_, q_ in enumerate(TR_CENTRE) if bline.distance(Point(*q_)) > ROAD_HALF + 1.0)     # (past 백양로's mesh)
+tr_tilt_report('before')
+_tz = np.array([sample(Hn, NEAR_HALF, NEAR_STEP, *q_) for q_ in TR_CENTRE[TR_K0:]])
+_tzs = ndimage.gaussian_filter1d(_tz, 3.0, mode='nearest')
+_te = np.clip(np.minimum(np.arange(len(_tz)), len(_tz) - 1 - np.arange(len(_tz))) / 8.0, 0, 1)       # (its ends as they are)
+_tzs = _tz + (_tzs - _tz) * _te
+_tls = LineString(TR_CENTRE[TR_K0:])
+_cells = set()
+for k_ in range(TR_K0, len(TR_CP)):
+    for o_ in np.arange(-2.7, 2.71, 0.9):
+        x_, y_ = TR_CP[k_] + TR_CN[k_] * o_
+        _cells.add((int(math.floor((y_ + NEAR_HALF) / NEAR_STEP)), int(math.floor((x_ + NEAR_HALF) / NEAR_STEP))))
+_nodes = sorted({(j_ + a_, i_ + b_) for j_, i_ in _cells for a_ in (0, 1) for b_ in (0, 1)})
+_keep = (FIXED & ~DW_OWN) | near_buildings(0.3) | (dist < ROAD_HALF + 1.0)
+TR_LEVEL = np.zeros(X.shape, bool)
+for j_, i_ in _nodes:
+    if not _keep[j_, i_]:
+        Hn[j_, i_] = float(np.interp(_tls.project(Point(X[j_, i_], Y[j_, i_])), np.arange(len(_tzs)) * (_tls.length / (len(_tzs) - 1)), _tzs))
+        TR_LEVEL[j_, i_] = True
+FIXED[TR_LEVEL] = True
+_free = shapely.contains_xy(_tls.buffer(13.0), X, Y) & ~FIXED & ~near_buildings(1.0) & (dist > ROAD_HALF + 1.0)
+harmonic_fill(_free)
+print('traffic: drive levelled across, nodes %d of %d (kept %d), eased beside %d' % (
+    int(TR_LEVEL.sum()), len(_nodes), len(_nodes) - int(TR_LEVEL.sum()), int(_free.sum())))
+TR_TILT = tr_tilt_report('after')
+_run = None
+for sg_, k_, pt_, rl_ in TR_TILT + [(0, 0, 0, 0)]:
+    if abs(rl_) > 4 or abs(pt_) > 9:
+        if _run is None or _run[0] != sg_ or k_ != _run[2] + 1:
+            if _run:
+                print('   lane %+d  %s .. %s  pitch %.0f .. %.0f  roll %.0f .. %.0f' % (_run[0], TR_CENTRE[_run[1]], TR_CENTRE[_run[2]], *_run[3:]))
+            _run = [sg_, k_, k_, pt_, pt_, rl_, rl_]
+        _run[2:] = [k_, min(_run[3], pt_), max(_run[4], pt_), min(_run[5], rl_), max(_run[6], rl_)]
+    elif _run:
+        print('   lane %+d  %s .. %s  pitch %.0f .. %.0f  roll %.0f .. %.0f' % (_run[0], TR_CENTRE[_run[1]], TR_CENTRE[_run[2]], *_run[3:]))
+        _run = None
 # 상뜰's west drive (OSM 6 m service road, (71.8, 436.3) -> (66.6, 414.3)): Kakao roadview of August 2008 (pano 2381737,
 # on the drive abreast of the 상뜰's west lawn; 2026 the same stones) shows the lawn along its east side held up by a
 # bank of natural boulders behind the granite kerb, shrubs between them, from the mouth of the 상뜰's west walk to the
@@ -5549,11 +5733,78 @@ AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), co
 _ypaint([AUD_YARD], _ga)
 _ypaint([AUD_SIDE_POLY], _ga)                 # (대강당 북쪽 곁길 어귀 · 별관 앞마당 어귀)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
+# 찻길 (TRAFFIC, its middle line TR_CENTRE above): the two lanes, the car park's round, the loop the game reads
+_up = [(*(q_ - n_ * o_), v_) for q_, n_, o_, v_ in zip(TR_CP, TR_CN, TR_CO, TR_CV)]
+_dn = [(*(q_ + n_ * o_), v_) for q_, n_, o_, v_ in zip(TR_CP, TR_CN, TR_CO, TR_CV)][::-1]
+# the car park: in along the cross aisle's south half, right down the west aisle, along the lane before the hall's
+# back, up the east aisle and out along the cross aisle's north half (no car crosses another's way)
+_la = (DAEWOO_BACK['rows'][0][0] + DAEWOO_BACK['rows'][1][0]) / 2, (DAEWOO_BACK['rows'][2][0] + DAEWOO_BACK['rows'][3][0]) / 2
+_lv = DAEWOO_BACK['row_v'][0] - DAEWOO_BACK['stall'] / 2 - 3.4          # the lane south of the rows
+_lot = _fillet([dw_xy(25.0, DW_AISLE_V - TR_LANE), dw_xy(_la[0], DW_AISLE_V - TR_LANE), dw_xy(_la[0], _lv), dw_xy(_la[1], _lv),
+                dw_xy(_la[1], DW_AISLE_V + TR_LANE), dw_xy(25.0, DW_AISLE_V + TR_LANE)], [0, 3.4, 3.8, 3.8, 3.4, 0])
+_loop = _up[:-1] + [(*q_, TR_V['lot']) for q_ in _lot] + _dn[1:]
+_ll = LineString([q_[:2] for q_ in _loop])
+_lc = np.concatenate([[0.0], np.cumsum([math.dist(a_[:2], b_[:2]) for a_, b_ in zip(_loop[:-1], _loop[1:])])])
+_ln = int(round(_ll.length / 1.25))
+TRAFFIC = dict(s_out=TR_S0, pts=[], v=[])
+for k_ in range(_ln + 1):
+    s_ = _ll.length * k_ / _ln
+    q_ = _ll.interpolate(s_)
+    TRAFFIC['pts'].append([round(q_.x, 2), round(q_.y, 2)])
+    TRAFFIC['v'].append(float(_loop[min(len(_loop) - 1, int(np.searchsorted(_lc, s_)))][2]))
+out['traffic'] = TRAFFIC
+# the 삼거리: the drive's mouth in 백양로's west side.  It was a gap in the kerb and the verge only (GAPS: where OSM's
+# drive crosses), the sidewalk's paving running on across it, so the cars would cross a paved walk; the 2008 roadview
+# (2381332, looking west over the 삼거리) has asphalt from the carriageway into the drive, kerbed lawn corners either
+# side.  A mouth as at the gate's side road (blender/road.py mouths: the verge, the sidewalk and the planting strip
+# stop, the asphalt runs out flush), wide enough for the two lanes turning through it on the slant; the verge's and the
+# strip's shrubs in it go (the planting keeps reading GAPS, so no other draw changes)
+TR_MOUTH = [1, round(TR_SJ - 3.0, 1), round(TR_SJ + 8.4, 1), 3.0, 1.5]
+out['baekyangro']['mouths'].append(TR_MOUTH)
+out['baekyangro']['gaps'] = [g_ for g_ in out['baekyangro']['gaps'] if not (g_[1] == TR_MOUTH[0] and TR_MOUTH[1] - 4 < g_[0] < TR_MOUTH[2] + 4)]
+_n0 = len(shrubs)
+shrubs[:] = [s_ for s_ in shrubs if not (TR_MOUTH[1] + 0.5 < s_at(s_[1], s_[2]) < TR_MOUTH[2] + 0.3
+                                         and E_CURB0 - 0.5 < s_off(s_[1], s_[2])[1] * TR_MOUTH[0] < ROAD_HALF + 0.8)]
+TRAFFIC['mouth'] = TR_MOUTH[1:3]                # (web/src/main.js: the west sidewalk's walkers cross the drive here)
+print('traffic: the 삼거리 mouth', TR_MOUTH, 'shrubs taken out', _n0 - len(shrubs), 'trees in it',
+      [t_[:3] for t_ in trees if TR_MOUTH[1] - 0.6 < s_at(t_[1], t_[2]) < TR_MOUTH[2] + 0.6
+       and E_CURB0 < s_off(t_[1], t_[2])[1] * TR_MOUTH[0] < ROAD_HALF + 1.0])
+_ypaint([TR_CENTRE[:int(TR_SJC) + 24]], _ga, width=7.4)       # (the drive's asphalt out to meet it, both lanes' width)
+# (한경길 어귀: the corner the cars cut on the 교육관 side, a metre of asphalt inside OSM's angle)
+_ypaint([[q_ for q_ in TR_CENTRE if math.dist(q_, (40.0, 301.4)) < 12.0]], _ga, width=5.6)
+print('traffic: 삼거리 s %.1f, leaves 백양로 at %.1f, drive %.0f m, loop %.0f m, %d points' % (
+    TR_SJ, TR_S0, LineString(TR_CENTRE).length, _ll.length, len(TRAFFIC['pts'])))
+# 대우관's west side: the asphalt on the drive's new line and along the hall's back to the car park, paving in the
+# place of the old line's along the wall (a walk of 2 m at the wall's foot); the shrubs of the old kerb line go to
+# the new one's
+_dwl = LineString(TR_CENTRE[TR_KDW - 22:])
+_dws = _dwl.buffer(3.1, cap_style='flat')
+_ypaint([_dws], _ga)
+DW_WALL_WALK = Polygon([dw_xy(u_, v_) for u_, v_ in ((DAEWOO['u0'] - 3.0, -30.0), (DAEWOO['u0'] + 2.0, -30.0),
+                                                     (DAEWOO['u0'] + 2.0, 27.0), (DAEWOO['u0'] - 3.0, 27.0))]).difference(_dws)
+_dw_moved = []
+for s_ in shrubs:
+    q_ = Point(s_[1], s_[2])
+    if _dwl.distance(q_) < 3.9 and not _dws.buffer(0.8).disjoint(q_):
+        f_ = _dwl.project(q_)
+        a_, b_ = np.array(_dwl.interpolate(max(0.0, f_ - 0.5)).coords[0]), np.array(_dwl.interpolate(min(_dwl.length, f_ + 0.5)).coords[0])
+        n_ = np.array([-(b_ - a_)[1], (b_ - a_)[0]]) / np.linalg.norm(b_ - a_)
+        side_ = 1.0 if (np.array([s_[1], s_[2]]) - a_) @ n_ >= 0 else -1.0
+        s_[1], s_[2] = (round(float(v_), 2) for v_ in np.array(_dwl.interpolate(f_).coords[0]) + n_ * side_ * 4.1)
+        _dw_moved.append(s_[0])
+# (the small pine on the island by the car park's way in stood a car's width from the lane: 1.8 m back onto the island,
+# in its place in the list)
+for k_, t_ in enumerate(trees):
+    if t_[0] == 'pine' and math.dist(t_[1:3], (128.96, 520.05)) < 0.05:
+        trees[k_] = [t_[0], 128.49, 518.31] + list(t_[3:])
+print('daewoo west drive: shrubs moved to its kerbs', len(_dw_moved), 'trees within 3.6 m',
+      [t_[:3] for t_ in trees if _dwl.distance(Point(t_[1], t_[2])) < 3.6])
 _ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
 _ypaint(ANNEX_YARD_HALVES, _ga)               # (학생회관 별관 앞마당)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
 _YN[id(_gw)] = '_gw'
 _ypaint([BK_COURT], _gw)
+_ypaint([DW_WALL_WALK], _gw)               # (대우관 서쪽 벽 발치: the old line's asphalt along the wall)
 _ypaint([AUD_RAMP_WALK.difference(bline.buffer(ROAD_HALF)).difference(AUD_BANK_POLY)], _gp)   # (its walk: paving)
 _gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
 spl[..., 1] *= 1.0 - _gd / 255.0
@@ -6205,6 +6456,19 @@ CURB_RAISE_PROBE = 6.0                            # (how far the paving behind a
 #    2381274: level concrete, a row of yellow-and-black bollards on the line instead of a kerb; the hall's south wall
 #    stands in the asphalt)
 CURB_FLUSH = [('학생회관 뒤', Polygon([(28.0, -126.0), (72.0, -126.0), (72.0, -95.0), (28.0, -95.0)]))]
+# (TRAFFIC: the cars' loop stays on the asphalt, a car's half width either side of it; 백양로 itself is its own mesh)
+_tp = np.array(TRAFFIC['pts'])
+_tt = np.gradient(_tp, axis=0)
+_tn = np.stack([-_tt[:, 1], _tt[:, 0]], 1) / np.linalg.norm(_tt, axis=1)[:, None]
+_toff = []
+for k_, (q_, n_) in enumerate(zip(_tp, _tn)):
+    if bline.distance(Point(*q_)) < ROAD_HALF + 1.0:        # (blender/road.py's own mesh, its gap at the 삼거리)
+        continue
+    for o_ in (-0.85, 0.85):
+        x_, y_ = q_ + n_ * o_
+        if spl_aa[int((SPLAT['y1'] - y_) / SPLAT['res']), int((x_ - SPLAT['x0']) / SPLAT['res']), 0] < 128:
+            _toff.append((k_, round(float(x_), 1), round(float(y_), 1)))
+print('traffic: wheel tracks off the asphalt', len(_toff), _toff[:40])
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
