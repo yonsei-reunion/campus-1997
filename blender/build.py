@@ -69,6 +69,7 @@ if want('landmarks'):
     for mb in landmarks.amphitheater() + landmarks.basketball_court() + landmarks.fountain() + landmarks.tennis() + landmarks.gongwon_site() + \
             landmarks.underwood_steps() + landmarks.aud_bank():
         objs.append(mb.build())
+    objs += [mb.build() for mb in landmarks.parking_lines()]      # (the car parks' painted bays)
     # statues and the gate are modelled in their own frame (front = -Y) and placed by object transform
     # (a MeshBuilder's xf only affects vertices added after it is set)
     S = CAMPUS['statues']

@@ -2221,12 +2221,17 @@ _bkt0 /= np.linalg.norm(_bkt0)
 _bk_s = round(s_at(*(np.array([-20.74, 45.64]) + _bkt0 * 45.66 + np.array([_bkt0[1], -_bkt0[0]]) * 5.1)), 1)
 BK_WALK = (1, round(_bk_s - 3.4, 1), round(_bk_s + 3.4, 1))
 # 백양관 북쪽 주차장 어귀: the drive from 백양로 into the car park before the hall's north wing.  The same three years'
-# roadview (2008 2381322 · 2381323, 2010 1016786034) have the verge ending round and the planting strip open there,
-# yellow-and-black bollards across the mouth and the cars nose in along the wing (BK_LOT below); the game had the
-# drive (OSM, its centre at s 548.7) end at the hedge.  Kept on the drive's line, ± 3 m (the panos' bearings put the
-# verge's round end at s 546 - 553): the verge and the strip open 7 m round it, the sidewalk stays (cars cross it)
-BK_MOUTH = (1, 545.2, 552.2)
-STRIP_OPEN = [ENG_MOUTH, BK_WALK, BK_MOUTH]            # (blender/road.py strip_breaks)
+# roadview (2008 2381322 · 2381323, 2010 1016786032 · 1016786034) have the verge ending round and the planting strip
+# open there, yellow-and-black bollards across the sidewalk at its south side and the cars nose in along the wing
+# (BK_LOT below); the game had the drive (OSM, its centre at s 548.7) end at the hedge.  From the verge's round end
+# (Kakao skyview 2008 s 544.8, 2010 s 545.4; the 2010 pano 1016786032 with its heading from the yellow lines' vanishing
+# point and its place from the north wing's two east corners 546.4) to the hedge island's south tip (skyview 552.8):
+# the verge and the strip open there, the sidewalk stays (cars cross it).  (reference/고증/3.15-3.17 「북쪽 주차장」)
+BK_MOUTH = (1, 545.5, 552.8)
+# ... and north of it the clipped hedge island between the car park's aisle and 백양로 (BK_ISLAND below): it stands in
+# the planting strip's place, so the strip (its hedge and ginkgos) gives way to it
+BK_ISLAND_S = (552.8, 567.7)
+STRIP_OPEN = [ENG_MOUTH, BK_WALK, BK_MOUTH, (1, *BK_ISLAND_S)]            # (blender/road.py strip_breaks)
 BUMP_S =round(s_at(*photo_ground(1050, 1145)), 1)                   # the hatched speed bump, just short of the mouth's end
 
 
@@ -3956,6 +3961,19 @@ _lc_nf = max(2, min(len(LOT_C), int(_lc_span / 5.6) + 1))
 _lc_sp = _lc_span / (_lc_nf - 1) if _lc_nf > 1 else 5.6
 LOT_C_CARS = [(*(_lc0 + _lcd * (_lc_sp * k)), a_) if k < _lc_nf else (*(_lc0 + _lcd * (2.8 + 5.6 * (k - _lc_nf)) + _lcn * 8.0), a_)
               for k, (_, _, a_) in enumerate(LOT_C)]
+# (2026-11-11, reference/고증/2.3 「주차」) re-read through PHOTO_A: the red car's wheels at x 1630 and 1677 px put it
+# 0.3 m on along the row from the pixel it was placed by; behind it the cars that show between the trees, each
+# placed by the foot of what shows of it (the near side of one side-on, the nose of one facing the camera, half a
+# car's length or width short of its middle): a maroon one side-on 2.3 m along the row and 13.3 m back, a silver one
+# facing the camera 6.9 m along and 11.3 m back, a red one side-on 14.8 m along and 9.1 m back (and a blue van facing
+# the camera behind that one, 13.7 m back: LOT_C_VAN, at the list's end).  Before, the three behind were guessed 8 m
+# back, side-on and 5.6 m apart
+LOT_C_BACK = [(2.3, 13.25, 0.0), (6.9, 11.3, -math.pi / 2), (14.8, 9.05, 0.0)]
+LOT_C_VAN = (14.7, 13.7, -math.pi / 2)
+_lca = math.atan2(_lcd[1], _lcd[0])
+LOT_C_CARS[0] = (*(_lc0 + _lcd * 0.3), LOT_C_CARS[0][2])
+for k_, (u_, v_, h_) in zip(range(_lc_nf, len(LOT_C_CARS)), LOT_C_BACK):
+    LOT_C_CARS[k_] = (*(_lc0 + _lcd * u_ + _lcn * v_), _lca + h_ if h_ == 0.0 else math.atan2(-_lcn[1], -_lcn[0]))
 print('정문 동쪽 잔디 주차: photo row %.1f m, front %d cars %.1f m apart, %d behind' % (_lc_span, _lc_nf, _lc_sp, len(LOT_C) - _lc_nf))
 for k_, (x, y, a) in enumerate(LOT_C_CARS):     # the first is the photo's red car (web/src/main.js PARKED_COLORS[6])
     if k_ == 0 or rng3.random() < 0.85:
@@ -4967,21 +4985,91 @@ print('제1공학관 앞 진입로: cleared (trees, shrubs, props, cars)', _nf[0
       _nf[2] - len(props), _nf[3] - len(cars))
 out['paths'].append(dict(kind='service', w=round(ENG_MOUTH[2] - ENG_MOUTH[1], 1),
                          pts=[[round(v_, 1) for v_ in along_raw((ENG_MOUTH[1] + ENG_MOUTH[2]) / 2, o_)[:2]] for o_ in (ROAD_HALF, 38.0)]))
+# ---------------------------------------------------------------------------------------------------------------------
+# 주차 칸 (park_…): every car park's stalls, in rows, and their painted lines where a photo or the roadview shows them
+# (campus.json `parking`; blender/landmarks.py parking_lines lays them on the ground, as 대우관 뒤 had them alone
+# before).  A row: k stalls w wide side by side from its corner o along t, each d deep along n (from the aisle towards
+# the cars' noses); skew (deg) turns the stalls off n towards t (angled bays, the stall w measured square to its sides).
+# Its lines: the sides between the stalls and at both ends of the row, and the line across their heads if `head`.
+# Nothing here draws from a shared random stream: the cars of these lots are placed with their own (above).
+PARK_LOTS = []
+
+
+def park_lot(name, paint=None, w=0.12):
+    """a car park in campus.json `parking`: paint 'white' / 'yellow' (None: no lines in any source), line width w"""
+    lot = dict(name=name, paint=paint, w=w, stalls=[], lines=[])
+    PARK_LOTS.append(lot)
+    return lot
+
+
+def park_row(lot, o, t, n, k, w=2.6, d=5.0, skew=0.0, head=False):
+    """k stalls in a row (above) into `lot`; returns their middles and the cars' headings (nose along the stall)"""
+    o, t, n = np.asarray(o, float), np.asarray(t, float), np.asarray(n, float)
+    sk = math.radians(skew)
+    a_ = n * math.cos(sk) + t * math.sin(sk)                    # (along the stall's sides, towards the nose)
+    pitch = w / max(0.2, math.cos(sk))                           # (along the row from one side line to the next)
+    out_ = []
+    for i in range(k + 1):
+        p_ = o + t * pitch * i
+        lot['lines'].append([round(float(v_), 2) for v_ in (*p_, *(p_ + a_ * d))])
+    if head and k:
+        lot['lines'].append([round(float(v_), 2) for v_ in (*(o + a_ * d), *(o + t * pitch * k + a_ * d))])
+    for i in range(k):
+        c_ = o + t * pitch * (i + 0.5) + a_ * (d / 2)
+        out_.append((float(c_[0]), float(c_[1]), math.atan2(a_[1], a_[0])))
+        lot['stalls'].append([round(float(c_[0]), 2), round(float(c_[1]), 2), round(math.atan2(a_[1], a_[0]), 3)])
+    return out_
+
+
+# 대우관 뒤 (DAEWOO_BACK, the cars above): white lines either side of every stall (Street View 2009), as before
+_lot = park_lot('대우관 뒤', 'white')
+_wu = np.array(WD(1, 0)) - np.array(WD(0, 0))
+_wv = np.array(WD(0, 1)) - np.array(WD(0, 0))
+for (_uc, _face) in DAEWOO_BACK['rows']:
+    _runs = [[]]
+    _v = DAEWOO_BACK['row_v'][0]
+    while _v <= DAEWOO_BACK['row_v'][1] + 0.01:
+        if DAEWOO_BACK['gap'][0] < _v < DAEWOO_BACK['gap'][1]:
+            _runs.append([])                                     # (the cross aisle)
+        else:
+            _runs[-1].append(_v)
+        _v += DAEWOO_BACK['stall']
+    for _run in [r_ for r_ in _runs if r_]:
+        park_row(_lot, np.array(WD(_uc - 2.5 * _face, _run[0] - DAEWOO_BACK['stall'] / 2)), _wv, _wu * _face, len(_run),
+                 w=DAEWOO_BACK['stall'], d=5.0)
 # 경영학교실단(백양관) 앞 (BK_WALK): the walk through the strip's opening from the sidewalk to the front flight's paved
 # foot (paving, as the sidewalk: _gp below); the car park before the north wing (BK_LOT, asphalt: _ga below), its
-# drive's mouth through the strip (BK_MOUTH).  The 2008 roadview (2381322 · 2381323) has the cars nose in against the
-# wing in a row along it, white bays, an aisle and a clipped hedge island between them and 백양로; the game had the
-# drive end in a loop on the lawn with no car.  BK_LOT: from the front block's north wall along the wing's east face
-# 16.5 m, a 1.5 m walk along the face and the bays 5 m deep and the aisle 5 m beyond.  Nothing planted or parked on
-# the walk, the openings or the car park but its cars; the row's ginkgos give their places to the last trees as above
+# drive's mouth through the strip (BK_MOUTH) and the clipped hedge island north of it (BK_ISLAND); the game had the
+# drive end in a loop on the lawn with no car.  (reference/고증/3.15-3.17 「북쪽 주차장」)
+# BK_LOT: Kakao skyview 2008 (winter) and 2010 (summer), co-registered to 0.1 m and 0.125 m a pixel, with the 2008 ·
+# 2010 roadview (2381322 · 2381323, 1016786032 · 1016786034): asphalt from the front block's north wall and the wing's
+# east face out to the narrow planted island along its east side (x 2.5) and north past the wing's north-east corner,
+# 4 m west round it, to a row along the north edge (y 132).  Its bays: a row nose in towards the wing, seven cars in
+# 2008 between the front block's wall and 16 m north (3.5 m off the face: the walk and the ramp along the annex), and
+# five nose north along the north edge (2008 and 2010 both); white lines either side of them and across their heads
+# (2008 roadview).  Nothing planted or parked on the walk, the openings, the car park or the island but its cars
 _bk_off = float(bline.distance(Point(*BK_FOOT)))
 BK_COURT = Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((BK_WALK[1], E_WALK - 0.2), (BK_WALK[2], E_WALK - 0.2),
                                                         (BK_WALK[2], _bk_off - 1.5), (BK_WALK[1], _bk_off - 1.5))])
 _bkq = np.array([-14.58, 108.14])                       # (the front block's north wall meets the wing's east face)
-BK_LOT = Polygon([tuple(_bkq + BK_T * u_ + BK_N * v_) for u_, v_ in ((0.0, 1.5), (16.5, 1.5), (16.5, 11.5), (0.0, 11.5))])
-_bz = unary_union([BK_COURT, BK_LOT] + [Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((o0_ - 0.6, E_WALK), (o1_ + 0.6, E_WALK),
-                                                                                     (o1_ + 0.6, ROAD_HALF + 0.6), (o0_ - 0.6, ROAD_HALF + 0.6))])
-                                        for _, o0_, o1_ in (BK_WALK, BK_MOUTH)])
+_bkne = np.array([-13.1, 113.6])                        # (the wing's north-east corner, its north face going west)
+_bknf = (np.array([-59.0, 125.8]) - _bkne) / np.linalg.norm(np.array([-59.0, 125.8]) - _bkne)
+BK_LOT = Polygon([tuple(_bkq), tuple(_bkne), tuple(_bkne + _bknf * 4.0), (-17.0, 132.0), (2.5, 132.0), (2.5, 109.0),
+                  (-4.6, 105.49)])
+# (the drive from it to the mouth, over the lawn the OSM drive crossed)
+BK_DRIVE = Polygon([(-4.6, 105.49), (2.5, 103.8), tuple(along_raw(BK_MOUTH[1], E_WALK - 0.2)[:2]),
+                    tuple(along_raw(BK_MOUTH[2] - 0.5, E_WALK - 0.2)[:2]), (2.5, 112.0)]).buffer(0)
+# BK_ISLAND: the skyview's island, 8.2 m wide, its round ends at s 552.8 and 567.7, 6.2 m in from the carriageway's kerb
+# beside it (the cars park on the asphalt between); here in from the game's kerb as much: from just behind the
+# sidewalk (E_WALK) back over the strip's place.  A clipped boxwood hedge round a lawn, two pines in it (the 2008 /
+# 2010 roadview: the south one leaning on three props)
+_bki0 = E_WALK + 0.2
+BK_ISLAND = LineString([along_raw(s_, _bki0 + 4.1)[:2] for s_ in np.arange(BK_ISLAND_S[0] + 4.1, BK_ISLAND_S[1] - 4.1 + 0.01, 0.5)]
+                       ).buffer(4.1, quad_segs=8)
+_bz = unary_union([BK_COURT, BK_LOT, BK_DRIVE, BK_ISLAND]
+                  + [Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((o0_ - 0.6, E_WALK), (o1_ + 0.6, E_WALK),
+                                                                  (o1_ + 0.6, ROAD_HALF + 0.6), (o0_ - 0.6, ROAD_HALF + 0.6))])
+                     for _, o0_, o1_ in (BK_WALK, BK_MOUTH)])
 _nf = (len(trees), len(shrubs), len(props), len(cars))
 # (the trees go once 신촌 로터리's are in, below: each gives its place to the very last one, so that only that one
 # tree, far off in the town, may change its model)
@@ -4990,21 +5078,38 @@ shrubs[:] = [s_ for s_ in shrubs if not _bz.buffer(0.5).contains(Point(s_[1], s_
 props[:] = [p_ for p_ in props if not _bz.contains(Point(p_[1], p_[2]))]
 cars[:] = [c_ for c_ in cars if not _bz.buffer(1.0).contains(Point(c_[1], c_[2]))]
 _rbk = random.Random(1997 + 548)
-_bkh = math.atan2(-BK_N[1], -BK_N[0])                    # (nose in: towards the wing)
-for k_ in range(6):
+_lot = park_lot('백양관 북쪽', 'white')
+_bk_st = park_row(_lot, _bkq + BK_T * 1.0 + BK_N * 8.5, BK_T, -BK_N, 7, w=2.3, d=5.0, head=True)       # (nose in)
+_bk_st += park_row(_lot, np.array([-13.0, 126.8]), np.array([1.0, 0.0]), np.array([0.0, 1.0]), 5, w=2.3, d=5.0, head=True)
+for x_, y_, h_ in _bk_st:
     if _rbk.random() < 0.85:
-        q_ = _bkq + BK_T * (2.2 + 2.6 * k_) + BK_N * (1.5 + 0.3 + 2.35)
-        cars.append([_rbk.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(float(q_[0]), 2), round(float(q_[1]), 2),
-                     round(_bkh + _rbk.uniform(-.04, .04), 3), _rbk.randrange(8)])
+        cars.append([_rbk.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(x_, 2), round(y_, 2),
+                     round(h_ + _rbk.uniform(-.04, .04), 3), _rbk.randrange(8)])
+# the island's hedge, a pine at each end inside it (appended to the trees at the very end, below: BK_ISLAND_TREES),
+# and the two bollards across the sidewalk at the mouth's south side (2010 1016786032 · 1016786034, 2008 2381322)
+hedge_line(list(BK_ISLAND.buffer(-0.45).exterior.coords)[:-1], 'hedge_low', 1.0, step=1.5)
+BK_ISLAND_TREES = [['pine', *[round(float(v_), 2) for v_ in along_raw(BK_ISLAND_S[0] + 4.5, _bki0 + 4.6)[:2]], 0.95, 0.6],
+                   ['pine', *[round(float(v_), 2) for v_ in along_raw(BK_ISLAND_S[1] - 5.0, _bki0 + 3.6)[:2]], 0.8, 2.9]]
+for o_ in (6.6, 8.6):
+    P('bollard', *along_raw(BK_MOUTH[1] - 1.5, o_)[:2], 0.0)
 print('경영학교실단 앞 길 · 북쪽 주차장: cleared (trees, shrubs, props, cars)', len(LATE_GONE_TREES), _nf[1] - len(shrubs),
-      _nf[2] - len(props), _nf[3] - len(cars), '- walk s %.1f - %.1f to %.1f m' % (BK_WALK[1], BK_WALK[2], _bk_off))
+      _nf[2] - len(props), _nf[3] - len(cars), '- walk s %.1f - %.1f to %.1f m' % (BK_WALK[1], BK_WALK[2], _bk_off),
+      '- island %.0f m², bays %d' % (BK_ISLAND.area, len(_bk_st)))
 out['paths'].append(dict(kind='footway', w=round(BK_WALK[2] - BK_WALK[1], 1),
                          pts=[[round(v_, 1) for v_ in along_raw(_bk_s, o_)[:2]] for o_ in (E_WALK, _bk_off - 1.0)]))
 # 정문 동쪽 잔디 주차 (LOT_C_CARS): photo A's pale car park under them, asphalt (_ga below), from just in front of the
-# red car back 10.5 m (the cars on it behind the red one stand 5 - 9 m deeper at the photo's camera), and the trees
-# that stood in a car moved out of it, off the car park's edge (the photo's shade trees stand round it)
+# red car back 16 m (LOT_C_BACK: the cars on it behind the red one, the farthest 13.7 m back; it was 10.5 m), and the
+# trees that stood in a car moved out of it, off the car park's edge (the photo's shade trees stand round it).  Not the
+# zelkova whose trunk stands by the red car's nose: its foot (1610, 932.5 px) is 2.0 m west of the red car's wheels'
+# middle on the line of its near wheels (+- 0.4 m for +- 2 px), beside the car, not in it (it had been moved 1.9 m
+# out in front of the row as if it stood in the car)
+LOT_C_TRUNK = photo_ground(1610, 932.5)
 _lc_len = max(_lc_span, 2.8 + 5.6 * (len(LOT_C) - _lc_nf - 1), 4.6 * (len(LOT_C) - 1)) + 3.5    # (over the old row's trodden earth)
-LOT_C_PAD = Polygon([tuple(_lc0 + _lcd * u_ + _lcn * v_) for u_, v_ in ((-3.5, -1.4), (_lc_len, -1.4), (_lc_len, 10.5), (-3.5, 10.5))])
+LOT_C_PAD = Polygon([tuple(_lc0 + _lcd * u_ + _lcn * v_) for u_, v_ in ((-3.5, -1.4), (_lc_len, -1.4), (_lc_len, 16.0), (-3.5, 16.0))])
+_rlc = random.Random(1997 + 12)
+_q = _lc0 + _lcd * LOT_C_VAN[0] + _lcn * LOT_C_VAN[1]
+cars.append(['sedan', round(float(_q[0]), 2), round(float(_q[1]), 2), round(math.atan2(-_lcn[1], -_lcn[0]) + _rlc.uniform(-.06, .06), 3),
+             _rlc.randrange(8)])
 _lct = []
 for c_ in cars:
     if not LOT_C_PAD.contains(Point(c_[1], c_[2])):
@@ -5012,15 +5117,18 @@ for c_ in cars:
     _ct_ = np.array([math.cos(c_[3]), math.sin(c_[3])])
     _cn_ = np.array([-_ct_[1], _ct_[0]])
     for t_ in trees:
+        if math.hypot(t_[1] - LOT_C_TRUNK[0], t_[2] - LOT_C_TRUNK[1]) < 0.6:
+            continue
         d_ = np.array([t_[1] - c_[1], t_[2] - c_[2]])
         u_, v_ = float(d_ @ _ct_), float(d_ @ _cn_)
         if abs(u_) < 2.35 + 0.6 and abs(v_) < 0.88 + 0.6:
             q_ = np.array([t_[1], t_[2]])
             _back = float((np.array([c_[1], c_[2]]) - _lc0) @ _lcn) > 4.0
-            v_to = 10.5 + 0.8 if _back else -1.4 - 0.8               # (beyond the car park's far edge, or before it)
+            v_to = 16.0 + 0.8 if _back else -1.4 - 0.8               # (beyond the car park's far edge, or before it)
             q_ = q_ + _lcn * (v_to - float((q_ - _lc0) @ _lcn))
             _lct.append((t_[0], round(t_[1], 1), round(t_[2], 1)))
             t_[1], t_[2] = round(float(q_[0]), 2), round(float(q_[1]), 2)
+park_lot('정문 동쪽 잔디', None)['stalls'] = [[c_[1], c_[2], c_[3]] for c_ in cars if LOT_C_PAD.contains(Point(c_[1], c_[2]))]
 print('정문 동쪽 잔디 주차: trees moved out of the cars', _lct)
 # 교육관 북쪽 마당 (the 2003 autumn photo: asphalt, yellow lines, the cars nose in towards the hall): the yard paved
 # from the hall's apron out to the drive, between its east corner and the flight's paved foot; the game had a lawn
@@ -5031,6 +5139,28 @@ _nf = (len(LATE_GONE_TREES), len(shrubs))
 LATE_GONE_TREES |= {i_ for i_, t_ in enumerate(trees) if GY_YARD.buffer(0.5).contains(Point(t_[1], t_[2]))}
 shrubs[:] = [s_ for s_ in shrubs if not GY_YARD.buffer(0.4).contains(Point(s_[1], s_[2]))]
 print('교육관 북쪽 마당: cleared (trees, shrubs)', len(LATE_GONE_TREES) - _nf[0], _nf[1] - len(shrubs))
+
+
+# the car parks with no painted line in their sources: 독수리상 서쪽 옆길 (photo A), 교육관 북쪽 마당 (the 2003 photo's
+# yellow line runs along the lawn's kerb at the cars' noses, the bays' own lines do not show), 정문 동쪽 잔디 (above)
+park_lot('독수리상 서쪽 옆길', None)['stalls'] = [[round(float(x_), 2), round(float(y_), 2), round(float(a_ + math.pi / 2), 3)]
+                                              for x_, y_, a_ in LOT_W]
+park_lot('교육관 북쪽 마당', None)['stalls'] = [[*[round(float(v_), 2) for v_ in np.array([44.15, 345.23]) + _gyt0 * s_ + _gyn0 * 8.2],
+                                             round(math.atan2(-_gyn0[1], -_gyn0[0]), 3)] for s_ in (1.8, 4.4, 7.0, 9.6)]
+# (the oil under the stalls of the car parks that decal_spots, above, does not know: 백양관 북쪽; their own random
+# numbers, at the end of the decals' list, so that no other decal moves)
+_rpo = random.Random(1997 + 4581)
+for l_ in PARK_LOTS:
+    if l_['name'] not in ('백양관 북쪽',):
+        continue
+    for x_, y_, h_ in l_['stalls']:
+        if _rpo.random() < 0.8:
+            f_ = _rpo.uniform(0.9, 1.5)
+            out['decals'].append(['oil', round(x_ + math.cos(h_) * f_, 2), round(y_ + math.sin(h_) * f_, 2),
+                                  round(_rpo.uniform(0, 2 * math.pi), 3), round(_rpo.uniform(0.6, 1.1), 2)])
+print('주차 칸:', ', '.join('%s %d stalls %d lines' % (l_['name'], len(l_['stalls']), len(l_['lines'])) for l_ in PARK_LOTS))
+out['parking'] = [dict(name=l_['name'], paint=l_['paint'], w=l_['w'], stalls=l_['stalls'], lines=l_['lines'])
+                  for l_ in PARK_LOTS]
 # 신촌 로터리: 연세로 on south of gate_town's rows to the junction, its corners and the town south of the grid; the
 # walks there open to the walker (barrier round them), the lamps, the subway's entrances, the town's ground map
 ROT = sinchon_rotary.layout(ROT_GEO, out['town'], TOWN, ground_t, None)
@@ -5040,6 +5170,7 @@ trees += ROT['trees']                       # (at the list's end: the web picks 
 for _i in sorted(LATE_GONE_TREES, reverse=True):     # (백양관 앞 길 · 북쪽 주차장, 교육관 북쪽 마당, above)
     trees[_i] = trees[-1]
     trees.pop()
+trees += BK_ISLAND_TREES                    # (백양관 북쪽 주차장 앞 섬: last, so that no other tree changes its model)
 markers += ROT['markers']
 out['colliders'] += ROT['colliders']
 out['paths'] += ROT['paths']
@@ -5063,6 +5194,7 @@ _yz, _yg, _yp = (Image.new('L', (SW, SH), 0) for _ in range(3))
 _YN = {id(_yz): '_yz', id(_yg): '_yg', id(_yp): '_yp'}
 _ypaint([_yclear], _yz)
 _ypaint([YJ_GARDEN.difference(_kept)], _yg)
+_ypaint([BK_ISLAND], _yg)                   # (백양관 북쪽 주차장 앞 섬: lawn over the strip's place)
 _ypaint([Polygon(b_['footprint']).buffer(3.5, join_style=2) for b_ in YONGJAE_BUILDINGS] +
         [yongjae_poly(-4.5, 2.8, -1.0, 21.0)], _yp)
 _ypaint([YJ_WALK], _yp, width=2.6)
@@ -5102,7 +5234,7 @@ AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), co
     .difference(unary_union(AUD_TREE_BEDS))
 _ypaint([AUD_YARD], _ga)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
-_ypaint([BK_LOT, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
+_ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
 _YN[id(_gw)] = '_gw'
 _ypaint([BK_COURT], _gw)

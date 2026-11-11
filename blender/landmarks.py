@@ -3628,17 +3628,7 @@ def daewoo_back(mb, z0):
         zs = lambda u, v: hy(u, v) + ht - 0.15
         mb.quad((ua + th, v0 + th, zs(ua, v0)), (ub - th, v0 + th, zs(ub, v0)), (ub - th, v1 - th, zs(ub, v1)),
                 (ua + th, v1 - th, zs(ua, v1)), 'soil')
-    # parking bays: white lines either side of every stall (cars nose in along u)
-    for (uc, face) in db['rows']:
-        vk = db['row_v'][0]
-        while vk <= db['row_v'][1] + 0.01:
-            if not (db['gap'][0] < vk < db['gap'][1]):
-                for v in (vk - db['stall'] / 2, vk + db['stall'] / 2):
-                    ua, ub = uc - 2.5, uc + 2.5
-                    z = lambda u: max(hy(u, v), gl(u, v)) + 0.03
-                    mb.quad((ua, v - 0.06, z(ua)), (ub, v - 0.06, z(ub)), (ub, v + 0.06, z(ub)), (ua, v + 0.06, z(ua)),
-                            'paint_white')
-            vk += db['stall']
+    # (the parking bays' white lines: parking_lines, with every other car park's)
     # the iron fence along the road to 북문, posts every 2.4 m on the ground and pickets between
     pts = [Vector(p) for p in db['fence']]
     for pa, pb in zip(pts, pts[1:]):
@@ -4214,6 +4204,32 @@ def basketball_court():
                 mb.face(q, 'paint_white')
                 mb.face(q[::-1], 'paint_white')
     return [mb]
+
+
+def parking_lines():
+    """The car parks' painted bays (tools/build_campus.py PARK_LOTS: campus.json `parking`, each lot's lines as
+    [x0, y0, x1, y1] and its paint): a strip of the line's width cut every half metre and laid 3 cm over the ground the
+    web app draws (ground_top), so that on a sloping car park it neither floats nor sinks.  One mesh for all, a draw call
+    per paint."""
+    mb = MeshBuilder('lm_parking_lines')
+    mats = {'white': 'paint_white', 'yellow': 'paint_yellow'}
+    for lot in CAMPUS.get('parking', []):
+        mat = mats.get(lot.get('paint'))
+        if not mat:
+            continue
+        hw = lot.get('w', 0.12) / 2
+        for x0, y0, x1, y1 in lot['lines']:
+            L = math.hypot(x1 - x0, y1 - y0)
+            if L < 0.05:
+                continue
+            dx, dy = (x1 - x0) / L, (y1 - y0) / L
+            nx, ny = -dy * hw, dx * hw                     # (half the width, to the left)
+            n = max(1, int(math.ceil(L / 0.5)))
+            pts = [(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n) for k in range(n + 1)]
+            zs = [ground_top(x, y) + 0.03 for x, y in pts]
+            for (xa, ya), (xb, yb), za, zb in zip(pts, pts[1:], zs, zs[1:]):
+                mb.quad((xa - nx, ya - ny, za), (xb - nx, yb - ny, zb), (xb + nx, yb + ny, zb), (xa + nx, ya + ny, za), mat)
+    return [mb] if mb.faces else []
 
 
 def aud_bank():
