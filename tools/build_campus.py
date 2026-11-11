@@ -5595,9 +5595,10 @@ def curb_runs(F3):
                                            (P[:, 0] - SPLAT['x0']) / SPLAT['res'] - 0.5], order=1, mode='nearest')
     runs, lawns = [], []
 
-    def emit(P, lab, closed, behind, kinds):
+    def emit(P, lab, closed, behind, kinds, probe=3.0):
         # the kerbs of one chain (lab per point: 0 none, else an index into kinds) and how far `behind` (> 128) reaches
-        # on their left (the lawn, or the paving behind a drive's kerb), every CURB_LAWN_STEP m along each in dm
+        # on their left (the lawn, or the paving behind a drive's kerb; at most `probe` m), every CURB_LAWN_STEP m
+        # along each in dm
         if closed and (lab == lab[0]).all():
             pieces = [(np.r_[np.arange(len(P)), 0], lab[0])] if lab[0] else []
         else:
@@ -5617,7 +5618,10 @@ def curb_runs(F3):
             if len(idx) < 3:
                 continue
             ls_ = LineString(P[idx])
-            if ls_.length < 2.0:
+            # (a piece on its own under 2 m goes; one running on from or into another kind's stays from 0.5 m, so
+            # that a drive's kerb meets the lowered stretch beside it with no gap)
+            joined = (idx[0] > 0 and lab[idx[0] - 1] != 0) or lab[idx[-1] % len(lab)] != k_
+            if ls_.length < (0.5 if joined else 2.0):
                 continue
             q_ = np.round(np.array(ls_.simplify(0.015).coords) * 100).astype(int)
             q_[1:] -= q_[:-1].copy()
@@ -5626,11 +5630,11 @@ def curb_runs(F3):
             # CURB_LAWN_STEP m along the run in dm: the raised lawn's edge (issue #86, web/src/curbs.js) spans a narrow
             # strip from kerb to kerb and on a wide lawn eases back down; behind a drive's kerb the same for the paving
             Pi, Ni = P[idx], N[idx]
-            dd_ = np.arange(0.3, 3.01, 0.1)
+            dd_ = np.arange(0.3, probe + 0.01, 0.1)
             lawn_ = np.ones((len(Pi), len(dd_)), bool)
             for m_, d_ in enumerate(dd_):
                 lawn_[:, m_] = at(behind, Pi + Ni * d_) > 128
-            Dp = np.where(lawn_.all(1), 3.0, dd_[np.argmin(lawn_, 1)] - 0.05)
+            Dp = np.where(lawn_.all(1), probe, dd_[np.argmin(lawn_, 1)] - 0.05)
             Dp = ndimage.minimum_filter1d(Dp, 11, mode='nearest')          # (about 1 m: smooth_chain's 0.1 m points)
             cum = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(Pi, axis=0).T))])
             lawns.append(np.round(np.interp(np.arange(0.0, cum[-1] + CURB_LAWN_STEP, CURB_LAWN_STEP), cum, Dp) * 10).astype(int).tolist())
@@ -5659,21 +5663,105 @@ def curb_runs(F3):
     # 연석 between a drive or a car park and the paving beside it (issue: 「아스팔트와 보도블록의 경계가 흐림」): the two
     # met level, one texture cut into the other.  The 2008 - 2011 roadview has a granite kerb along every one of them
     # (대우관 서쪽 차로, the eagle's side road and its brick walks, 백양관 앞 · 북쪽 주차장, 학생회관 앞), the paving's side
-    # up to its top: kind 'k', the paving on the left, raised behind it as the lawn is behind the others (curbs.js)
-    pave = F3[..., 1]
-    for P, closed in iso_chains(F3[..., 0], 127.5):
+    # up to its top: kind 'k', the paving on the left, raised behind it as the lawn is behind the others (curbs.js).
+    # (issue 「연석: 낮춘 곳 · 같은 높이였던 곳」, reference/고증/2.3)
+    #  - 낮춘 곳 (kind 'd', 2 cm over the asphalt, nothing raised behind it): where the paving behind the kerb is a
+    #    strip running away from it, not along it, the kerb crosses the strip's end: a walk meeting the drive (on both
+    #    sides where it crosses), or a drive passing through a sidewalk (the kerb along the drive's side across the
+    #    sidewalk), with paving again across the asphalt.  0.8 m behind the kerb the paving reaches CURB_LOW_SPAN m or
+    #    less along the kerb and on away from it CURB_LOW_DEPTH m or more.  백양로's crossings have the walk ramped
+    #    down to the road in the 2008 - 2010 roadview, and a drive's mouth can't keep a standing kerb; the kerbs beside
+    #    them ramp down to it (curbs.js)
+    #  - 같은 높이 (CURB_FLUSH): no kerb at all where the 2008 roadview has the paving run flush into the asphalt
+    #  - the kerb runs on to the lawn's kerb ('a', the loop above) along the same edge and over a gap under
+    #    CURB_BRIDGE m, so a corner where the two meet has no tooth missing
+    pave, asp = F3[..., 1], F3[..., 0]
+    flush = unary_union([p_ for _, p_ in CURB_FLUSH])
+    shapely.prepare(flush)
+    dd_low = np.arange(0.3, CURB_LOW_DEPTH + 0.01, 0.1)
+    ss_low = np.arange(0.0, CURB_LOW_SPAN + 0.01, 0.1)
+    for P, closed in iso_chains(asp, 127.5):
         if len(P) < 4:
             continue
-        P, N = chain(F3[..., 0], P, closed)                        # (the asphalt on the right)
-        ok = (at(pave, P + N * 0.45) > 150) & (at(F3[..., 0], P - N * 0.45) > 160) & inside(P)
-        ok = ndimage.binary_opening(ok, np.ones(9, bool)) if ok.any() else ok      # (no stones on a texel's corner)
-        emit(P, ok.astype(np.int8), closed, pave, (None, 'k'))
+        P, N = chain(asp, P, closed)                               # (the asphalt on the right)
+        T = np.stack([N[:, 1], -N[:, 0]], 1)
+        ins = inside(P)
+        pv = (at(pave, P + N * 0.45) > 150) & (at(asp, P - N * 0.45) > 160) & ins
+        lw = (at(grass, P + N * 0.45) > 150) & (at(paved, P - N * 0.45) > 160) & ins    # (the lawn's kerb, 'a')
+        ok = curb_bridge(pv, lw, closed, int(round(CURB_BRIDGE / 0.1)))
+        if ok.any():                                               # (no stones on a texel's corner)
+            ok = ndimage.binary_opening(np.r_[ok[-4:], ok, ok[:4]] if closed else ok, np.ones(9, bool))
+            ok = ok[4:-4] if closed else ok
+        ok &= ~shapely.contains_xy(flush, P[:, 0], P[:, 1])
+        # the paving behind: how far on away from the kerb, and how far along it 0.8 m in (or half way, if shallower)
+        deep = np.ones(len(P), bool)
+        depth = np.full(len(P), CURB_LOW_DEPTH)
+        for d_ in dd_low:
+            hit = deep & (at(pave, P + N * d_) <= 128)
+            depth[hit] = d_
+            deep &= ~hit
+        Q = P + N * np.minimum(0.8, depth / 2)[:, None]
+        span = np.zeros(len(P))
+        for sg_ in (1, -1):
+            go = np.ones(len(P), bool)
+            for s_ in ss_low[1:]:
+                go &= at(pave, Q + T * (sg_ * s_)) > 128
+                span += go * 0.1
+        # (and straight across the asphalt, within CURB_LOW_ACROSS m, paving again: the walk goes on over the road, or
+        # the sidewalk on past the drive's mouth; a walk ending at a road with the lawn across keeps its kerb, as the
+        # brick flight to the eagle's terrace does in the 2008 roadview, 2381990)
+        across = np.zeros(len(P), bool)
+        live = np.ones(len(P), bool)
+        for d_ in np.arange(0.5, CURB_LOW_ACROSS + 0.01, 0.25):
+            R_ = P - N * d_
+            off = live & (at(asp, R_) <= 128)
+            across |= off & (at(pave, R_) > 128)
+            live &= ~off
+        low = ok & (span < CURB_LOW_SPAN) & (depth >= CURB_LOW_DEPTH - 0.05) & across
+        low = ndimage.median_filter(low.astype(np.int8), 9, mode='wrap' if closed else 'nearest').astype(bool) & ok
+        if low.any():                                              # (a lowered stretch 1.5 m long at least)
+            low = ndimage.binary_opening(np.r_[low[-8:], low, low[:8]] if closed else low, np.ones(15, bool))
+            low = low[8:-8] if closed else low
+        lab = np.where(ok, np.where(low, 2, 1), 0).astype(np.int8)
+        emit(P, lab, closed, pave, (None, 'k', 'd'), probe=CURB_RAISE_PROBE)
     print('curbs: %d runs, %.0f m' % (len(runs), sum(np.hypot(*np.reshape(r_[3:], (-1, 2)).T).sum() / 100 for r_ in runs)),
-          'lawn behind them < 2 m: %.0f %%' % (100 * np.mean([v_ < 20 for l_ in lawns for v_ in l_])))
+          'lawn behind them < 2 m: %.0f %%' % (100 * np.mean([v_ < 20 for l_ in lawns for v_ in l_])),
+          '- lowered %d runs, %.0f m' % (sum(r_[0] == 'd' for r_ in runs),
+                                         sum(np.hypot(*np.reshape(r_[3:], (-1, 2)).T).sum() / 100 for r_ in runs if r_[0] == 'd')))
     return runs, lawns
 
 
+def curb_bridge(k, other, closed, gap):
+    # k with its gaps of up to `gap` points filled where k is on both sides of the gap, or k on one side and `other`
+    # (another kerb along the same edge) on the other
+    lab = np.where(k, 1, np.where(other, 2, 0)).astype(np.int8)
+    n = len(lab)
+    if not k.any() or (lab == 0).all():
+        return k.copy()
+    sh = int(np.flatnonzero(lab != 0)[0]) if closed else 0
+    L = np.roll(lab, -sh)
+    out = L == 1
+    z = np.r_[0, (L == 0).astype(np.int8), 0]
+    starts, ends = np.flatnonzero(np.diff(z) == 1), np.flatnonzero(np.diff(z) == -1)    # [s, e) runs of zeros
+    for s, e in zip(starts, ends):
+        if e - s > gap:
+            continue
+        a = L[s - 1] if s > 0 else (L[-1] if closed else 0)
+        b = L[e] if e < n else (L[0] if closed else 0)
+        if (a == 1 and b in (1, 2)) or (b == 1 and a == 2):
+            out[s:e] = True
+    return np.roll(out, sh)
+
+
 CURB_LAWN_STEP = 2.0
+CURB_LOW_SPAN, CURB_LOW_DEPTH, CURB_LOW_ACROSS = 7.0, 3.0, 14.0      # (curb_runs: 낮춘 곳)
+CURB_BRIDGE = 1.5                                 # (curb_runs: the longest gap a drive's kerb runs on over)
+CURB_RAISE_PROBE = 6.0                            # (how far the paving behind a drive's kerb is measured, m)
+# 같은 높이였던 곳 (reference/고증/2.3): the paving meets the asphalt with no kerb, level
+#  - 학생회관 뒤: the service yard and the walk along the hall's east wall north of the drive (2008-08 2381272 ·
+#    2381274: level concrete, a row of yellow-and-black bollards on the line instead of a kerb; the hall's south wall
+#    stands in the asphalt)
+CURB_FLUSH = [('학생회관 뒤', Polygon([(28.0, -126.0), (72.0, -126.0), (72.0, -95.0), (28.0, -95.0)]))]
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))

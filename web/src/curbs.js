@@ -1,12 +1,15 @@
 // Curbs (경계석) where the painted asphalt and paving meet the lawn. tools/build_campus.py traces the edges of the
 // paving in the ground map (campus.json curbs: [kind, x0, y0, dx1, dy1, ...] in cm, the lawn on the left going along:
 // kind 'p' by the paving, 'a' by the asphalt of the drives and car parks; 'k' between a drive or a car park and the
-// paving beside it, the paving on the left; none along 백양로, whose own road mesh has its kerbs, nor along the walls
-// of the halls or in the woods). Each run gets a low granite kerb standing on the lawn (or the paving) side over the
+// paving beside it, the paving on the left, and 'd' the same kerb lowered where a walk crosses the drive or the drive
+// a sidewalk (reference/고증/2.3); none along 백양로, whose own road mesh has its kerbs, nor along the walls of the
+// halls or in the woods, nor where the paving runs level into the asphalt). Each run gets a low granite kerb standing on the lawn (or the paving) side over the
 // edge, so the cut between the two ground textures (terrain.js) lies under its face to the lower side:
 //  - by the paving 15 cm wide and 15 cm high, by the asphalt 18 cm wide (the 상뜰's kerbs in
 //    reference/대우관_2024_정면과_상뜰.jpg, the drives' and the 백양로 islands' in the 2008 / 2011 roadview); between
-//    asphalt and paving 15 cm wide, 14 cm over the asphalt, the paving behind it raised to 2 cm under its top
+//    asphalt and paving 15 cm wide, 12 cm over the asphalt (the drives' kerbs in the 2010 roadview: 10 - 12 cm), the
+//    paving behind it raised to 2 cm under its top; lowered 2 cm over the asphalt, the drive's kerb either side
+//    ramping down to it over RAMP m and the paving behind with it
 //  - the top arris on the paving side rounded, a joint every metre and each stone a shade lighter or darker
 //    (the shared 'curb' material of 백양로's kerbs, with the joints and the tones as a shader edit)
 // The kerbs are built in CELL m squares as the camera comes within reach, on the terrain as it is drawn (each 5 m
@@ -18,8 +21,10 @@
 // material (terrain.js groundLipCut) rises LIP over the ground at the kerb's lawn face. On a lawn wider than about 2 m
 // it eases back down to the ground 1.6 m out; a narrower strip (campus.json curb_lawn: how far the lawn reaches behind
 // each kerb) is raised from kerb to kerb, the two edges meeting level. Behind a 'k' kerb the paving is raised the same
-// way (aPave: terrain.js groundLipCut keeps the paving there, not the lawn). Built and drawn with the kerbs (one more
-// draw call); lift() gives its height for the walker and the grass blades standing on it.
+// way (aPave: terrain.js groundLipCut keeps the paving there, not the lawn), a sidewalk up to about 4 m wide level to
+// its far edge and a wider forecourt easing down 4 m out (PAVE_O / PAVE_Z: before, 1.6 m out, the slope showed on the
+// forecourts). Built and drawn with the kerbs (one more draw call); lift() gives its height for the walker and the
+// grass blades standing on it.
 import * as THREE from 'three';
 import { MOBILE } from './util.js';
 import { derivedCopy, patchShader } from './materials.js';
@@ -30,14 +35,24 @@ const FAR = MOBILE ? 80 : 140;       // reach from the camera, m
 const STEP = 6;                      // look again after the camera has moved this far
 const PIECE = 1.0;                   // stone length, m
 const SUB = 2.5;                     // longest straight stretch between two sections (half a terrain cell)
-const KINDS = [{ w: 0.15, h: 0.15 }, { w: 0.18, h: 0.15 }, { w: 0.15, h: 0.14 }];      // 'p', 'a', 'k'
+// 'p', 'a', 'k' and 'd' (a drive's kerb lowered where a walk or a drive crosses it; nothing raised behind it)
+const KINDS = [{ w: 0.15, h: 0.15 }, { w: 0.18, h: 0.15 }, { w: 0.15, h: 0.12 }, { w: 0.15, h: 0.02 }];
+const KIND = { p: 0, a: 1, k: 2, d: 3 };
+const RAMP = 1.2;                    // a drive's kerb ramps down to a lowered stretch over this many metres
 const LAP = 0.04;                    // how far the stone reaches over the edge onto the paving
 const ARRIS = 0.025;                 // radius of the rounded top edge on the paving side
 const SINK = 0.1;                    // how far the faces go down into the ground
 const FLOATS = 8;                    // position 3, normal 3, uv 2
+const FACES = MOBILE ? 3 : 5;        // faces a stone (_build)
 const LIP = 0.12;                    // the lawn's edge over the ground at the kerb (3 cm under the kerb's top)
+const LIP_PAVE = 0.10;               // the paving's behind a drive's kerb (2 cm under its top)
 const LIP_O = [0.0, 0.5, 1.0, 1.6];  // a wide lawn's edge: out from the kerb's face (m) ...
 const LIP_Z = [1.0, 0.95, 0.5, -0.25];      // ... and its height there, a share of LIP (sunk under the ground at the end)
+// the paving behind a drive's kerb: a sidewalk up to about 4 m wide raised level to its far edge (the lawn's kerb, a
+// wall, the next drive's kerb), a wider forecourt easing down to the ground 4 m out (the 5 m grid can't raise it all)
+const PAVE_O = [0.0, 1.2, 2.6, 4.0];
+const PAVE_Z = [1.0, 0.95, 0.45, -0.1];
+const REACH = 4.7;                   // the farthest the raised edge reaches behind a kerb (lift)
 const LIP_FLOATS = 7;                // position 3, normal 3, aPave 1 (the paving's edge behind a 'k' kerb)
 const LAWN_STEP = 2.0;               // campus.json curb_lawn: a value every this many metres along the run (dm)
 const BIN = 4;                       // lift(): the kerbs near a point, by squares of this size
@@ -69,19 +84,20 @@ function terrainNormal(hf, x, y, out) {
 
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 // the lawn's edge across, from the kerb's lawn face: offsets o and heights z over the ground for `room` m of lawn to
-// the next kerb's face (narrow: level all the way; wide: easing down as LIP_O / LIP_Z)
-function lipProfile(room, o, z) {
-  const k = smooth(1.2, 2.2, room);
+// the next kerb's face (narrow: level all the way; wide: easing down as LIP_O / LIP_Z); `pave`: the paving behind a
+// drive's kerb (PAVE_O / PAVE_Z)
+function lipProfile(room, o, z, pave) {
+  const k = pave ? smooth(3.6, 4.6, room) : smooth(1.2, 2.2, room), LO = pave ? PAVE_O : LIP_O, LZ = pave ? PAVE_Z : LIP_Z;
   for (let i = 0; i < 4; i++) {
     const on = (room + 0.03) * i / 3;
-    o[i] = on + (LIP_O[i] - on) * k;
-    z[i] = LIP * (1 + (LIP_Z[i] - 1) * k);
+    o[i] = on + (LO[i] - on) * k;
+    z[i] = (pave ? LIP_PAVE : LIP) * (1 + (LZ[i] - 1) * k);
   }
 }
 const _po = new Float32Array(4), _pz = new Float32Array(4);
-function lipAt(room, d) {
+function lipAt(room, d, pave) {
   if (room < 0.1) return 0;
-  lipProfile(room, _po, _pz);
+  lipProfile(room, _po, _pz, pave);
   if (d < -0.02 || d > _po[3]) return 0;
   for (let i = 1; i < 4; i++) {
     if (d <= _po[i]) return Math.max(0, _pz[i - 1] + (_pz[i] - _pz[i - 1]) * Math.max(0, d - _po[i - 1]) / Math.max(1e-4, _po[i] - _po[i - 1]));
@@ -117,9 +133,15 @@ export class Curbs {
     this.over = over;
     this.ray = new THREE.Raycaster();
     this.ray.firstHitOnly = true;
-    // every run's points, subdivided to SUB m, in flat arrays; segments by cell; D: the lawn behind the kerb there, m
-    const X = [], Y = [], U = [], MX = [], MY = [], K = [], D = [];
+    // every run's points, subdivided to SUB m, in flat arrays; segments by cell; D: the lawn behind the kerb there, m;
+    // F: a drive's kerb's share of its full height (ramping down to a lowered stretch beside it)
+    const X = [], Y = [], U = [], MX = [], MY = [], K = [], D = [], F = [];
     let ri = -1;
+    // the ends of the lowered stretches ('d'): a drive's kerb starting or ending on one ramps down to it
+    const runPts = (r) => { const P = []; let x = 0, y = 0; for (let k = 1; k < r.length; k += 2) { x += r[k]; y += r[k + 1]; P.push([x / 100, y / 100]); } return P; };
+    const lowEnds = [];
+    for (const r of list) if (r[0] === 'd') { const P = runPts(r); lowEnds.push(P[0], P.at(-1)); }
+    const onLow = (p) => lowEnds.some((q) => Math.abs(q[0] - p[0]) < 0.05 && Math.abs(q[1] - p[1]) < 0.05);
     this.cells = new Map();                 // key -> {segs: start indices, data: Float32Array | null}
     const seg = (i) => {
       const key = this._key((X[i] + X[i + 1]) / 2, (Y[i] + Y[i + 1]) / 2);
@@ -130,14 +152,15 @@ export class Curbs {
     let seed = 1;
     for (const r of list) {
       const lw = lawn[++ri];
-      const kind = r[0] === 'a' ? 1 : r[0] === 'k' ? 2 : 0;
-      const P = [];
-      let x = 0, y = 0;
-      for (let k = 1; k < r.length; k += 2) { x += r[k]; y += r[k + 1]; P.push([x / 100, y / 100]); }
+      const kind = KIND[r[0]] ?? 0;
+      const P = runPts(r);
       const closed = P.length > 3 && Math.hypot(P[0][0] - P.at(-1)[0], P[0][1] - P.at(-1)[1]) < 0.01;
       if (closed) P.pop();
       const m = P.length;
       if (m < 2) continue;
+      let runLen = 0;
+      for (let k = 1; k < m; k++) runLen += Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1]);
+      const ramp0 = kind === 2 && !closed && onLow(P[0]), ramp1 = kind === 2 && !closed && onLow(P[m - 1]);
       // the left normal of each segment, and the mitred one at each point (its length: the offset there per metre)
       const nrm = [];
       for (let k = 0; k < (closed ? m : m - 1); k++) {
@@ -160,6 +183,7 @@ export class Curbs {
         const f = Math.min(Math.max((uu - u0) / LAWN_STEP, 0), lw.length - 1), k0 = Math.min(f | 0, lw.length - 2);
         return lw.length < 2 ? lw[0] / 10 : (lw[k0] + (lw[k0 + 1] - lw[k0]) * (f - k0)) / 10;
       };
+      const full = (uu) => Math.min(ramp0 ? smooth(0, RAMP, uu - u0) : 1, ramp1 ? smooth(0, RAMP, u0 + runLen - uu) : 1);
       const first = X.length;
       for (let k = 0; k < (closed ? m + 1 : m); k++) {
         const a = P[k % m], ma = miter(k % m);
@@ -170,16 +194,16 @@ export class Curbs {
           for (let t = 1; t < nsub; t++) {
             const f = t / nsub;
             X.push(b[0] + (a[0] - b[0]) * f); Y.push(b[1] + (a[1] - b[1]) * f);
-            MX.push(sn[0]); MY.push(sn[1]); U.push(u + L * f); K.push(kind); D.push(depth(u + L * f));
+            MX.push(sn[0]); MY.push(sn[1]); U.push(u + L * f); K.push(kind); D.push(depth(u + L * f)); F.push(full(u + L * f));
           }
           u += L;
         }
-        X.push(a[0]); Y.push(a[1]); MX.push(ma[0]); MY.push(ma[1]); U.push(u); K.push(kind); D.push(depth(u));
+        X.push(a[0]); Y.push(a[1]); MX.push(ma[0]); MY.push(ma[1]); U.push(u); K.push(kind); D.push(depth(u)); F.push(full(u));
       }
       for (let i = first; i < X.length - 1; i++) seg(i);       // (none from a run's last point to the next run)
     }
     const f32 = (a) => Float32Array.from(a);
-    Object.assign(this, { X: f32(X), Y: f32(Y), U: f32(U), MX: f32(MX), MY: f32(MY), K: Uint8Array.from(K), D: f32(D) });
+    Object.assign(this, { X: f32(X), Y: f32(Y), U: f32(U), MX: f32(MX), MY: f32(MY), K: Uint8Array.from(K), D: f32(D), F: f32(F) });
     this.state = new Uint8Array(X.length);            // 0 not looked at, 1 on the ground, 2 under something
     this.lipOk = new Uint8Array(X.length);            // the lawn behind it may be raised (once looked at)
     this.g0 = new Float32Array(X.length);             // ground under the paving side, the lawn side
@@ -222,6 +246,12 @@ export class Curbs {
 
   _key(x, y) { return `${Math.floor(x / CELL)},${Math.floor(y / CELL)}`; }
 
+  // the stone's top over the ground at point i: a drive's kerb ramps down to the lowered stretch beside it
+  _height(i) {
+    const k = this.K[i];
+    return k === 2 ? KINDS[3].h + (KINDS[2].h - KINDS[3].h) * this.F[i] : KINDS[k].h;
+  }
+
   // ground at point i (both sides of the stone), or under a flight / terrace / the road
   _look(i) {
     if (this.state[i]) return this.state[i] === 1;
@@ -247,9 +277,10 @@ export class Curbs {
     return ok;
   }
 
-  // the stones of one cell: 5 faces (paving face, two facets of the rounded arris, top, lawn face) per segment
+  // the stones of one cell: 5 faces (paving face, two facets of the rounded arris, top, lawn face) per segment; on a
+  // phone 3, the arris left square (2.5 cm, under a pixel there: 40 % fewer triangles)
   _build(c) {
-    const out = new Float32Array(c.segs.length * 20 * FLOATS);
+    const out = new Float32Array(c.segs.length * 4 * FACES * FLOATS);
     let n = 0;
     const put = (x, z, y, nx, ny, nz, u, v) => {
       out[n++] = x; out[n++] = z; out[n++] = -y; out[n++] = nx; out[n++] = nz; out[n++] = -ny; out[n++] = u; out[n++] = v;
@@ -259,12 +290,21 @@ export class Curbs {
       if (!this._look(i) || !this._look(i + 1)) continue;
       for (const j of [i, i + 1]) {
         const x = this.X[j], y = this.Y[j], mx = this.MX[j], my = this.MY[j], u = this.U[j];
-        const { w, h } = KINDS[this.K[j]];
+        const { w } = KINDS[this.K[j]], h = this._height(j);
         const ml = Math.hypot(mx, my), nx = mx / ml, ny = my / ml;    // the lawn side, unit
         const s0 = -LAP, s1 = w - LAP, g0 = this.g0[j], g1 = this.g1[j];
         const top = (g0 + g1) / 2 + h;
         const P = (s) => [x + mx * s, y + my * s];
         const [ax, ay] = P(s0), [bx, by] = P(s0 + ARRIS * 0.3), [cx, cy] = P(s0 + ARRIS), [dx, dy] = P(s1);
+        if (FACES === 3) {
+          put(ax, g0 - SINK, ay, -nx, -ny, 0, u, 0);                            // paving face
+          put(ax, top, ay, -nx, -ny, 0, u, h + SINK);
+          put(ax, top, ay, 0, 0, 1, u, 0);                                      // top
+          put(dx, top, dy, 0, 0, 1, u, w);
+          put(dx, top, dy, nx, ny, 0, u, 0);                                    // lawn face
+          put(dx, g1 - SINK, dy, nx, ny, 0, u, h + SINK);
+          continue;
+        }
         put(ax, g0 - SINK, ay, -nx, -ny, 0, u, 0);                              // paving face
         put(ax, top - ARRIS, ay, -nx, -ny, 0, u, h + SINK - ARRIS);
         put(ax, top - ARRIS, ay, -nx, -ny, 0, u, 0);                            // arris, lower facet
@@ -287,12 +327,14 @@ export class Curbs {
     const o = new Float32Array(4), z = new Float32Array(4), tn = [0, 0, 1];
     for (const i of c.segs) {
       if (!this._look(i) || !this._look(i + 1) || !this.lipOk[i] || !this.lipOk[i + 1]) continue;
+      if (this.K[i] === 3) continue;                                       // (lowered: nothing raised behind it)
       const room = (j) => this.D[j] - 2 * (KINDS[this.K[j]].w - LAP);      // to the next paving's kerb, m
       if (room(i) < 0.1 && room(i + 1) < 0.1) continue;
       for (const j of [i, i + 1]) {
         const x = this.X[j], y = this.Y[j], mx = this.MX[j], my = this.MY[j], s1 = KINDS[this.K[j]].w - LAP;
         const ml = Math.hypot(mx, my), ux = mx / ml, uy = my / ml;
-        lipProfile(Math.max(0.1, room(j)), o, z);
+        lipProfile(Math.max(0.1, room(j)), o, z, this.K[j] === 2);
+        for (let k = 0; k < 4; k++) z[k] *= this.F[j];
         for (let k = 0; k < 4; k++) {
           const px = x + mx * (s1 + o[k]), py = y + my * (s1 + o[k]);
           const k0 = Math.max(0, k - 1), k1 = Math.min(3, k + 1);
@@ -326,8 +368,10 @@ export class Curbs {
       const t = ((x - ax) * dx + (y - ay) * dy) / L2;
       if (t < -0.05 || t > 1.05) continue;
       const L = Math.sqrt(L2), d = ((x - ax) * -dy + (y - ay) * dx) / L;    // out on the lawn side (the left)
+      if (this.K[i] === 3) continue;
       const tc = Math.min(1, Math.max(0, t)), s1 = KINDS[this.K[i]].w - LAP;
-      const z = lipAt(this.D[i] + (this.D[i + 1] - this.D[i]) * tc - 2 * s1, d - s1);
+      const z = lipAt(this.D[i] + (this.D[i + 1] - this.D[i]) * tc - 2 * s1, d - s1, this.K[i] === 2)
+        * (this.F[i] + (this.F[i + 1] - this.F[i]) * tc);
       if (z > best && this._look(i) && this._look(i + 1) && this.lipOk[i] && this.lipOk[i + 1]) best = z;
     }
     return best;
@@ -335,7 +379,7 @@ export class Curbs {
 
   // the segments whose raised lawn may reach into the square (bi, bj)
   _binSegs(bi, bj) {
-    const x0 = bi * BIN - 2.5, x1 = (bi + 1) * BIN + 2.5, y0 = bj * BIN - 2.5, y1 = (bj + 1) * BIN + 2.5;
+    const x0 = bi * BIN - REACH, x1 = (bi + 1) * BIN + REACH, y0 = bj * BIN - REACH, y1 = (bj + 1) * BIN + REACH;
     const out = [];
     for (let ci = Math.floor((x0 - SUB) / CELL); ci <= Math.floor((x1 + SUB) / CELL); ci++) {
       for (let cj = Math.floor((y0 - SUB) / CELL); cj <= Math.floor((y1 + SUB) / CELL); cj++) {
@@ -411,7 +455,8 @@ export class Curbs {
     for (const k of keys) total += this.cells.get(k).data.length;
     const verts = total / FLOATS;
     if (verts > this.cap) {
-      this.cap = Math.ceil(verts * 1.3 / 20) * 20;
+      const SV = 4 * FACES;                     // (vertices a segment: two sections of 2 a face)
+      this.cap = Math.ceil(verts * 1.3 / SV) * SV;
       this.buf = new Float32Array(this.cap * FLOATS);
       const ib = new THREE.InterleavedBuffer(this.buf, FLOATS).setUsage(THREE.DynamicDrawUsage);
       this.geo.dispose();
@@ -421,11 +466,11 @@ export class Curbs {
       this.geo.setAttribute('uv', new THREE.InterleavedBufferAttribute(ib, 2, 6));
       // aAlong is the uv's u (metres along the run): the joints and tones read it
       this.geo.setAttribute('aAlong', new THREE.InterleavedBufferAttribute(ib, 1, 6));
-      const quads = (this.cap / 20) * 5;
+      const quads = (this.cap / SV) * FACES;
       const idx = new Uint32Array(quads * 6);
       for (let q = 0, k = 0; q < quads; q++) {
-        // two sections of 10 vertices make five quads; vertex 2f, 2f+1 at section A, +10 at section B
-        const seg = Math.floor(q / 5), f = q % 5, a = seg * 20 + f * 2, b = a + 10;
+        // two sections of 2 FACES vertices make FACES quads; vertex 2f, 2f+1 at section A, + 2 FACES at section B
+        const seg = Math.floor(q / FACES), f = q % FACES, a = seg * SV + f * 2, b = a + 2 * FACES;
         idx[k++] = a; idx[k++] = b; idx[k++] = a + 1; idx[k++] = a + 1; idx[k++] = b; idx[k++] = b + 1;
       }
       this.geo.setIndex(new THREE.BufferAttribute(idx, 1));
@@ -434,7 +479,7 @@ export class Curbs {
     let o = 0;
     for (const k of keys) { const d = this.cells.get(k).data; this.buf.set(d, o); o += d.length; }
     this.geo.attributes.position.data.needsUpdate = true;
-    this.geo.setDrawRange(0, (verts / 20) * 30);
+    this.geo.setDrawRange(0, (verts / (4 * FACES)) * FACES * 6);
     this.mesh.visible = verts > 0;
     if (this.lipMesh) this._showLip(keys);
   }
