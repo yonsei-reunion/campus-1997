@@ -2,7 +2,7 @@
 with real recessed windows, sills, floor bands, parapets, roofs and rooftop clutter)."""
 import math, random
 from mathutils import Vector, Matrix
-from common import MeshBuilder, ground, offset_poly, min_area_rect, poly_area
+from common import MeshBuilder, ground, ground_top, offset_poly, min_area_rect, poly_area
 import windows, backs
 
 STYLE = {
@@ -147,25 +147,43 @@ ENTRY = {
     'stone_pale': dict(kind='arch', w=2.3, spring=2.5, rec=0.7, step='stone_step', side='stone_rubble', porch=0.6),
     'house':      dict(kind='house', w=1.0, h=2.1, canopy=1.0, rec=0.15, step='concrete', side='concrete'),
 }
-MUSIC_CANOPY = 3.6    # 음악관's canopy: how far it reaches out over the landing
+MUSIC_CANOPY = 3.6    # 음악관's landing under the canopy, out to the columns' front
+MUSIC_ARC = (5.0, 3.9)    # the canopy's half-round front: half its width at the wall, its depth in the middle
 
 
 def music_canopy(mb, P, sc, w, zc, ang, zd):
-    """음악관's porch (기악과's 1996 album photo): a deep flat canopy, its soffit lined with slim white slats running out
-    from the wall, a thick white fascia, carried at its outer corners on two round white columns."""
+    """음악관's porch (기악과's 1996 album photo; 신관's door, Kakao roadview 2008 · 2010 and skyview): a deep flat
+    canopy with a half-round front, its soffit lined with slim white slats running out from the wall, a thick white
+    fascia, carried near its front on two round white columns either side of the doors."""
     import landmarks as LM
-    cd, cw = MUSIC_CANOPY, w + 2.4
-    mb.box(P(sc, zc + 0.3, cd / 2), (cw, cd, 0.6), 'plaster_white', rotz=ang)
-    for k in range(int(cw / 0.32) + 1):                                     # the slatted soffit
-        s = sc - cw / 2 + 0.16 + k * 0.32
-        if s > sc + cw / 2 - 0.1:
+    cd = MUSIC_CANOPY
+    r0, h = MUSIC_ARC
+    c = (h * h - r0 * r0) / (2 * h)                     # (the arc's circle: through the wall at +-r0 and h out)
+    rr = h - c
+    dep = lambda x: c + math.sqrt(max(rr * rr - x * x, 0.0))
+    xs = [-r0 + 2 * r0 * k / 24 for k in range(25)]
+    zt = zc + 0.6
+    top = [P(sc + x, zt, dep(x)) for x in xs]
+    bot = [P(sc + x, zc, dep(x)) for x in xs]
+    mb.face(top, 'plaster_white')
+    mb.face(bot[::-1], 'plaster_white')
+    for k in range(24):                                                     # the fascia, and its drip edge
+        mb.quad(bot[k], bot[k + 1], top[k + 1], top[k], 'plaster_white')
+        q = [P(sc + x, z, dep(x) + 0.03) for x, z in ((xs[k], zt - 0.1), (xs[k + 1], zt - 0.1), (xs[k + 1], zt + 0.02),
+                                                      (xs[k], zt + 0.02))]
+        mb.quad(*q, 'concrete_dark')
+    for k in range(int(2 * r0 / 0.32) + 1):                                 # the slatted soffit
+        s = -r0 + 0.16 + k * 0.32
+        if s > r0 - 0.16:
             break
-        LM.bar(mb, P, s - 0.045, zc - 0.07, s + 0.045, zc - 0.07, 0.07, 0.05, cd - 0.08, 'frame_silver', ends=True)
-    mb.box(P(sc, zc + 0.62, cd - 0.02), (cw + 0.1, 0.12, 0.08), 'concrete_dark', rotz=ang)   # drip edge
+        LM.bar(mb, P, sc + s - 0.045, zc - 0.07, sc + s + 0.045, zc - 0.07, 0.07, 0.05,
+               min(dep(s - 0.045), dep(s + 0.045)) - 0.08, 'frame_silver', ends=True)
+    # the columns: 0.44 m thick, 2.37 m either side of the doors' middle, on the landing's front (fitted to the 1996
+    # photo with the doors' frame, reference/고증/3.11_음악관.md)
     for sg in (-1, 1):
-        x, y, _ = P(sc + sg * (w / 2 + 0.55), 0, cd - 0.55)
-        mb.cylinder((x, y), 0.42, zd - 0.3, zc, 'plaster_white', seg=20)
-        mb.cylinder((x, y), 0.5, zd - 0.3, zd + 0.08, 'stone_granite', seg=20)
+        x, y, _ = P(sc + sg * (w / 2 - 0.3), 0, cd - 0.55)
+        mb.cylinder((x, y), 0.22, zd - 0.3, zc, 'plaster_white', seg=20)
+        mb.cylinder((x, y), 0.28, zd - 0.3, zd + 0.08, 'stone_granite', seg=20)
 
 
 def music_planters(mb, fw, y_foot, gfn):
@@ -291,9 +309,18 @@ def porch(mb, a, b, s0, s1, zf, fh, st, style, opts=None):
         zs = zd + E['spring']
         zo = max(z for _, z in LM.arch_points(o0, o1, zs, 'tudor', 14))
     else:
-        # (a door on rising ground gets lower, rather than cutting into the storey above)
+        # (a door on rising ground gets lower, rather than cutting into the storey above; where the ground would then
+        # cover the landing at the flight's ends, as on a cross slope before 특별병동 and 국제학사, the transom over the
+        # door thins, down to 0.1 m, for the sill to clear it by 0.1 m)
         top = E.get('top', 0.0)
-        zd = min(zd, zt - 0.25 - 2.15 - top)
+        cap = zt - 0.25 - 2.15 - top
+        if zd > cap and top > 0.1:
+            fw_ = opts.get('stair_w', w + 0.9)
+            ld_ = MUSIC_CANOPY if opts.get('music') else opts.get('landing', 1.6)
+            ge = max(ground_top(*P(sc + u, 0, k)[:2]) for u in (-fw_ / 2, fw_ / 2) for k in (0.3, ld_ / 2, ld_))
+            thin = min(top - 0.1, ge + 0.1 - cap) if ge > cap - 0.02 else 0.0
+            top, cap = top - thin, cap + thin
+        zd = min(zd, cap)
         zo = zd + min(E['h'], zt - 0.25 - zd - top) + top
     rec = E['rec']
     zw = zt                                     # the top of the face round the door

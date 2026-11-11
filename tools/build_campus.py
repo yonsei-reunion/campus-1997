@@ -839,6 +839,54 @@ def level_forecourt(wid, front, depth, blend=18.0, side_blend=7.0, max_half=20.0
 for wid, front, depth, opt in FORECOURTS:
     level_forecourt(wid, front, depth, **opt)
 
+# --- 음악관 (reference/고증/3.11_음악관.md).  The 1996 album photo's porch (a deep canopy on two round white columns
+# over glass doors, white square tiles, blue frames) is 신관's (429077790, 1991): its main door in the middle of the
+# south front under the curved stair tower, which Kakao roadview 2008-08 · 2010-12 · 2026 show unchanged and the
+# skyview's half-round canopy puts 33 m along the front.  구관 (429077789, 1982) has plain doors under its first floor's
+# overhang.  The 5 m grid ran the slope up across both fronts (4.9 m along 구관's 61 m, burying its ground floor towards
+# the east end and the porch; 1.6 m up to 신관's door), where the roadview shows:
+# - 구관: the road and the sidewalk beside it about level along the whole front, both doors five or six risers over
+#   the road (three or two over the sidewalk, which is three or two over the road)
+# - 신관: its door five risers over a level forecourt at the road's level
+# - the glazed corridor between them runs from 구관's first floor into 신관's ground floor: 신관 stands a storey higher
+# So 신관's floor stays at its lowest corner and its forecourt is levelled five risers under it; 구관's floor goes a
+# storey under 신관's, the road and sidewalk along its front levelled 0.8 m under that, easing into the slope west of
+# it and rising past its east end to 신관's forecourt (MUSIC_BASE: the halls' floors, set after the outlines below).
+MUSIC_A, MUSIC_B = 429077789, 429077790
+MUSIC_B_FLOOR = round(corner_level(MUSIC_B), 2)
+MUSIC_A_FLOOR = round(MUSIC_B_FLOOR - FLOOR_H['white'], 2)
+MUSIC_A_ROAD = round(MUSIC_A_FLOOR - 0.8, 2)
+MUSIC_B_YARD = round(MUSIC_B_FLOOR - 0.68, 2)
+MUSIC_BASE = {MUSIC_A: MUSIC_A_FLOOR, MUSIC_B: MUSIC_B_FLOOR}
+MU_O = np.array([130.15, -8.06])                                      # 구관's south front, west -> east
+MU_T = (np.array([189.49, -23.68]) - MU_O) / np.linalg.norm(np.array([189.49, -23.68]) - MU_O)
+MU_N = np.array([MU_T[1], -MU_T[0]])                                  # out of it (south)
+MB_O = np.array([207.41, -12.61])                                     # 신관's south front
+MB_T = (np.array([261.16, -26.9]) - MB_O) / np.linalg.norm(np.array([261.16, -26.9]) - MB_O)
+
+
+def music_grade(s_end=61.4, s_yard=100.0):
+    """구관's front (S along it from its south-west corner, D out of it): level from its west end to its east end
+    (s_end), then a ramp along the road to 신관's forecourt (s_yard), over the road and a little beyond (D 13 m),
+    in front of its set-back east block too; easing back over 15 m west, 7 m south, 4 m in under the hall (12 m
+    north of its west end, where the road runs on behind it)"""
+    S = (X - MU_O[0]) * MU_T[0] + (Y - MU_O[1]) * MU_T[1]
+    D = (X - MU_O[0]) * MU_N[0] + (Y - MU_O[1]) * MU_N[1]
+    z = MUSIC_A_ROAD + (MUSIC_B_YARD - MUSIC_A_ROAD) * np.clip((S - s_end) / (s_yard - s_end), 0, 1)
+    inside = 1.0 + 5.0 * np.clip((S - s_end + 3.0) / 4.0, 0, 1)
+    in_blend = 4.0 + 8.0 * np.clip(-S / 4.0, 0, 1)
+    e = np.maximum.reduce([-S / 15.0, (S - s_yard) / 6.0, (D - 13.0) / 7.0, (-D - inside) / in_blend, np.zeros_like(S)])
+    w = np.clip(1 - e, 0, 1) * np.clip((dist - (ROAD_HALF + 4)) / 8.0, 0, 1)
+    Hn[:] = Hn * (1 - w) + z * w
+    FIXED[w > 0.999] = True
+
+
+level_forecourt(MUSIC_B, None, 14.0, face=(tuple(MB_O + MB_T * 20.0), tuple(MB_O + MB_T * 56.5)), max_half=18.5,
+                blend=8.0, side_blend=8.0, level=MUSIC_B_YARD, inside=1.0)
+music_grade()
+print('음악관: 신관 floor %.2f, forecourt %.2f; 구관 floor %.2f, front %.2f' % (MUSIC_B_FLOOR, MUSIC_B_YARD,
+                                                                        MUSIC_A_FLOOR, MUSIC_A_ROAD))
+
 # --- 논지당 (one storey, 1956) stands across the hillside east of 언더우드관.  The 5 m grid rose 5.4 m over its
 # outline (about 1 in 4.5), more than the hall's 4.6 m, so the east end stood in the ground up to the eaves and only
 # the roof showed.  Give it a level terrace at the ground before its door (the south-west front, the low side) under
@@ -1645,6 +1693,8 @@ for wid, (style, lv, label) in B.items():
                           height=round(lv * fh + (1.2 if not style.startswith('lm') else 0), 2),
                           base=round(min(hs), 2), top_ground=round(max(hs), 2),
                           footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]))
+for b_ in buildings:                    # (음악관's floors: MUSIC_BASE, from before its fronts were levelled)
+    b_['base'] = MUSIC_BASE.get(b_['id'], b_['base'])
 
 # 용재관 (1957 - 2013; 경영관 has stood on its site since 2015, so it is not in OSM; reference/고증.md 3.13).  From
 # reference/용재관.jpg (April, 1990s: from 언더우드관 over the Underwood statue's back, looking SSE, a long lens), the
@@ -3415,15 +3465,22 @@ ENTRY_STYLES = ('modern', 'white', 'stone', 'brick', 'tile', 'stone_pale', 'gym'
 # 생화학과 and 지질학과 on it); its walls cream, as in the aerial photo.  (point near the door, door options)
 # Its flight is as wide as the photos (16 m: fifteen risers down to the levelled car park, FORECOURTS), with the
 # five-globe lamp at its head.  음악관 (기악과's photo): a deep canopy on two round white columns over four bays of
-# aluminium-framed glass, white tile walls and tiled planters either side of three granite steps, blue window frames.
+# aluminium-framed glass, white tile walls and tiled planters either side of the granite steps, blue window frames:
+# 신관's door (MUSIC_B; its ENTRY_AT below).
 # 빌링슬리관: in the middle of its long south front, under a window group (the 1996 album photo of 의류환경학과:
 # the arched door between equal piers, a group of three lights over it).  The 1994 campus map draws the arched door
 # there, in the middle between the gabled end bays with a walk running south from it; and OSM's footway from the south
 # ends there too, 22.6 m along the 45.1 m front (the door had gone to the short east end, the slope having buried this
 # front: FORECOURTS).
 ENTRY_AT = {222843398: ((-242.7, 13.8), dict(span=3, canopy=3.0, stair_w=16.0, lamp5=True, floor=2)),
-            429077789: ((144.08, -11.73), dict(span=2, music=True)),
             245623193: ((35.93, 412.08), dict(floor=0))}
+# 음악관 (MUSIC_B above): 신관's porch 33 m along its south front (the skyview's canopy; 34.6 m from the 2008
+# roadview's bearing), five risers (2010 roadview); 구관's door 18 m along its south front (14.5 - 20.0 m from three 2008
+# panoramas' bearings; its second door, 47 m along, is left out).  The planting's zones before the doors
+# (ENTRY_ZONE_AT) stay where they were drawn when the porch was 구관's, so that the trees and the decals keep their draws.
+ENTRY_AT[MUSIC_A] = ((147.65, -12.67), {})
+ENTRY_AT[MUSIC_B] = ((239.30, -21.09), dict(span=2, music=True, risers=5))
+ENTRY_ZONE_AT = {MUSIC_A: ((144.08, -11.73), 2), MUSIC_B: ((240.66, -21.45), 1)}
 # (제2인문관, GONE_1997: its door where the ground before 외솔관2's road lowering put it, so that the paving drawn
 # there before the site is laid bare, and with it the decals' random draws, stay as they were)
 ENTRY_AT[246156119] = ((-4.35, 348.6), {})
@@ -3500,11 +3557,12 @@ for b, bp in zip(buildings, _bp_all):
         continue
     _, px_, py_, nx, ny = e_
     b['entry'] = dict(p=[round(px_, 2), round(py_, 2)], n=[round(nx, 4), round(ny, 4)], **ENTRY_AT.get(b['id'], (0, {}))[1])
-    hw_ = (3.4 if b['style'] in ('modern', 'gym') else 2.6) * b['entry'].get('span', 1)
+    (zx_, zy_), zs_ = ENTRY_ZONE_AT.get(b['id'], ((px_, py_), b['entry'].get('span', 1)))
+    hw_ = (3.4 if b['style'] in ('modern', 'gym') else 2.6) * zs_
     tx, ty = -ny, nx                                              # along the wall
-    ENTRY_ZONES.append(Polygon([(px_ - tx * hw_, py_ - ty * hw_), (px_ + tx * hw_, py_ + ty * hw_),
-                                (px_ + tx * hw_ + nx * 8.0, py_ + ty * hw_ + ny * 8.0),
-                                (px_ - tx * hw_ + nx * 8.0, py_ - ty * hw_ + ny * 8.0)]))
+    ENTRY_ZONES.append(Polygon([(zx_ - tx * hw_, zy_ - ty * hw_), (zx_ + tx * hw_, zy_ + ty * hw_),
+                                (zx_ + tx * hw_ + nx * 8.0, zy_ + ty * hw_ + ny * 8.0),
+                                (zx_ - tx * hw_ + nx * 8.0, zy_ - ty * hw_ + ny * 8.0)]))
     n_entry += 1
 # 백주년기념관's paved court towards 광혜원, 과학관's broad flight (wider than the door's own zone)
 _ca, _cb = np.array(CENT_NE[0]), np.array(CENT_NE[1])
