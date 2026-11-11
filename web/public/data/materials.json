@@ -1278,5 +1278,16 @@
   "image": "sign_sinchon2.png",
   "rough": 0.5,
   "emissiveMap": true
+ },
+ "sign_yonseiro": {
+  "_doc": "연세로 가게 벽에서 튀어나온 세로 간판 (tools/make_textures.py sign_yonseiro, tools/sinchon_rotary.py yro_wall_signs): 8 x 2 cells over the banner's strip",
+  "image": "sign_yonseiro.png",
+  "rough": 0.5,
+  "emissiveMap": true
+ },
+ "banner_yonseiro": {
+  "_doc": "연세로를 가로지른 제5회 신촌문화축제 현수막 (1996.5, sign_yonseiro.png 아래 띠)",
+  "image": "sign_yonseiro.png",
+  "rough": 0.85
  }
 }

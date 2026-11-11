@@ -822,6 +822,67 @@ def sinchon2_signs():
 
 sinchon2_signs()
 
+
+# sign_yonseiro.png: the signs that stand out from the walls of 연세로's shops (tools/sinchon_rotary.py yro_wall_signs,
+# blender/town.py yro_signs), 8 x 2 cells of 128 x 468 px, the words stacked down; the kinds and some names the 1996
+# photos 51979 · 52106 · 52006 show (당구장, 비디오방, M 비디오, 서영외과, 허리우드 비디오, 여인숙, PISA, …).  Under them,
+# 1024 x 88 px, 제5회 신촌문화축제's banner over the street (51979: the big green words read only as 「… 시범공연」).
+def yro_signs():
+    if ONLY and 'sign_yonseiro' not in ONLY:
+        return
+    fb = '/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc'
+
+    def fnt(size):
+        for i in (1, 0, 2, 3):
+            try:
+                return ImageFont.truetype(fb, size, index=i)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+    # (words, background, letters, small words over them)
+    signs = [('당구장', (250, 250, 246), (206, 30, 30), None), ('비디오방', (248, 206, 40), (196, 30, 30), '연세'),
+             ('M비디오', (196, 28, 36), (255, 255, 255), None), ('서영외과', (186, 30, 30), (255, 255, 255), None),
+             ('허리우드', (28, 118, 70), (255, 255, 255), '비디오'), ('여인숙', (250, 250, 250), (30, 60, 150), None),
+             ('PISA', (248, 248, 250), (30, 60, 150), 'coffee'), ('노래방', (30, 60, 160), (255, 230, 80), None),
+             ('호프', (110, 50, 24), (255, 220, 110), '생맥주'), ('치과의원', (252, 252, 248), (20, 120, 60), None),
+             ('한의원', (248, 244, 232), (20, 40, 100), None), ('영어학원', (20, 90, 170), (255, 255, 255), None),
+             ('약국', (252, 252, 250), (30, 130, 70), None), ('포켓볼', (200, 30, 40), (255, 255, 255), '당구'),
+             ('레코드', (90, 30, 120), (255, 230, 120), None), ('다방', (240, 228, 196), (110, 50, 20), '전원')]
+    CW, CH = 128, 468
+    img = Image.new('RGB', (1024, 1024), (200, 200, 200))
+    d = ImageDraw.Draw(img)
+    for i, (txt, bg, fg, top) in enumerate(signs):
+        x0, y0 = (i % 8) * CW, (i // 8) * CH
+        d.rectangle([x0, y0, x0 + CW - 1, y0 + CH - 1], fill=bg)
+        d.rectangle([x0 + 5, y0 + 5, x0 + CW - 6, y0 + CH - 6], outline=tuple(int(c * 0.75) for c in fg), width=4)
+        yy = y0 + 16
+        if top:
+            f = fnt(24)
+            w = d.textlength(top, font=f)
+            d.text((x0 + CW / 2 - w / 2, yy), top, font=f, fill=fg)
+            yy += 36
+        chars = list(txt)
+        room = y0 + CH - 18 - yy
+        step = min(104, room / len(chars))
+        f = fnt(int(min(96, step * 0.92)))
+        yy += (room - step * len(chars)) / 2                         # (short words in the middle of the board)
+        for k, ch in enumerate(chars):
+            w = d.textlength(ch, font=f)
+            d.text((x0 + CW / 2 - w / 2, yy + step * (k + 0.5)), ch, font=f, fill=fg, anchor='lm')
+    # the banner: white cloth, the festival in blue, the show in green, when and where in red
+    y0 = 2 * CH
+    d.rectangle([0, y0, 1023, 1023], fill=(244, 244, 238))
+    f1, f2, f3 = fnt(26), fnt(46), fnt(18)
+    d.text((60, y0 + 20), '제5회 신촌문화축제', font=f1, fill=(30, 50, 150), anchor='lm')
+    d.text((640, y0 + 20), '주최: 신촌문화축제 추진위원회', font=f3, fill=(30, 50, 150), anchor='lm')
+    d.text((300, y0 + 58), '시범공연', font=f2, fill=(30, 120, 70), anchor='lm')
+    d.text((560, y0 + 66), '일시: 96.5.4 16:00 ~ 17:00    T. 325-6282', font=f3, fill=(200, 40, 40), anchor='lm')
+    img.save(os.path.join(OUT, 'sign_yonseiro.png'), optimize=True)
+    print('sign_yonseiro')
+
+
+yro_signs()
+
 if ONLY:
     raise SystemExit(0)
 

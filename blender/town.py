@@ -173,6 +173,52 @@ def signs2():
     return mb
 
 
+def yro_signs():
+    """연세로 (tools/sinchon_rotary.py yro_wall_signs): the signs standing out from the shops' walls up the floors, a board
+    with its two faces along the street (sign_yonseiro, 8 x 2 cells over the banner's strip), dark edges.
+    [x, y, z of its middle, the wall's outward way, out, height, cell]"""
+    mb = MeshBuilder('town_yro_signs')
+    V0 = 88 / 1024                               # (the banner's strip under the cells)
+    for x, y, z, ang, w, h, cell in T.get('vsigns', []):
+        ox, oy = math.cos(ang), math.sin(ang)
+        tx, ty = -oy, ox
+        th = 0.14
+        u0, u1 = (cell % 8) / 8 + 0.004, (cell % 8 + 1) / 8 - 0.004
+        v1 = 1 - (cell // 8) * (1 - V0) / 2 - 0.002
+        v0 = v1 - (1 - V0) / 2 + 0.004
+        P = lambda a, b, dz: (x + ox * a + tx * b, y + oy * a + ty * b, z + dz)
+        zb, zt = -h / 2, h / 2
+        # the face towards +t reads from the outer edge to the wall, the one towards -t from the wall out
+        mb.face([P(w / 2, th, zb), P(-w / 2, th, zb), P(-w / 2, th, zt), P(w / 2, th, zt)], 'sign_yonseiro',
+                uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
+        mb.face([P(-w / 2, -th, zb), P(w / 2, -th, zb), P(w / 2, -th, zt), P(-w / 2, -th, zt)], 'sign_yonseiro',
+                uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
+        mb.face([P(w / 2, -th, zb), P(w / 2, th, zb), P(w / 2, th, zt), P(w / 2, -th, zt)], 'metal_dark')        # (outer edge)
+        mb.face([P(-w / 2, -th, zt), P(w / 2, -th, zt), P(w / 2, th, zt), P(-w / 2, th, zt)], 'metal_dark')     # (top)
+        mb.face([P(-w / 2, th, zb), P(w / 2, th, zb), P(w / 2, -th, zb), P(-w / 2, -th, zb)], 'metal_dark')     # (bottom)
+    return mb
+
+
+def yro_banner():
+    """제5회 신촌문화축제's banner over 연세로 (1996.5): white cloth between two slim poles behind the kerbs, both faces
+    reading right (banner_yonseiro: sign_yonseiro.png's bottom strip).  [x0, y0, x1, y1, z road, bottom, height]"""
+    mb = MeshBuilder('town_yro_banner')
+    b = T.get('banner')
+    if not b:
+        return mb
+    x0, y0, x1, y1, zr, bot, hh = b
+    za, zb_ = zr + bot, zr + bot + hh
+    V1 = 88 / 1024 - 0.002
+    mb.face([(x0, y0, za), (x1, y1, za), (x1, y1, zb_), (x0, y0, zb_)], 'banner_yonseiro',
+            uvs=[(0.0, 0.002), (1.0, 0.002), (1.0, V1), (0.0, V1)])
+    mb.face([(x1, y1, za), (x0, y0, za), (x0, y0, zb_), (x1, y1, zb_)], 'banner_yonseiro',
+            uvs=[(0.0, 0.002), (1.0, 0.002), (1.0, V1), (0.0, V1)])
+    for px, py in ((x0, y0), (x1, y1)):
+        g = ground(px, py)
+        mb.box((px, py, (g + zb_ + 0.4) / 2), (0.1, 0.1, zb_ + 0.4 - g), 'metal')
+    return mb
+
+
 def entrances():
     """2호선 신촌역's stairs down at the junction's corners: a stairwell walled on three sides to the hip with a rail on
     top, open at the end towards the street's way; the flight goes 3 m down into it; a pole with the line's green
@@ -423,7 +469,7 @@ def stops():
 def build():
     if not T:
         return []
-    return houses() + [signs(), signs2(), entrances(), bridge(), poles(), road(), stops()] + bank()
+    return houses() + [signs(), signs2(), entrances(), bridge(), poles(), road(), stops()] + bank() + [yro_signs(), yro_banner()]
 
 
 # ----------------------------------------------------------------------------- the city bus
