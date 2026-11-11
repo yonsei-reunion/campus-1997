@@ -582,6 +582,12 @@ FRAME = {429077789: 'frame_blue', 429077790: 'frame_blue'}      # (and blue wind
 FH_AT = {222843398: 4.1}
 SILL_AT = {222843398: dict(sill=1.0, head=1.3)}
 WING_UP = {222843398: _science_wing}
+# 학생회관 별관 (1997 photo reference/1997_학생회관.jpg; tools/build_campus.py ANNEX_1997): two 3.8 m storeys of pale
+# grey concrete, each a band of broad lights between plain piers (the shops and the bank of the 2008 roadview below,
+# the same band above), a plain parapet.  (Its colour draw is still made: the halls after it keep theirs.)
+WALL[1444448646] = 'concrete'
+FH_AT[1444448646] = 3.8
+SILL_AT[1444448646] = dict(bay=4.2, ww=0.84, sill=0.85, head=0.55, mull=2, depth=0.3)
 
 
 def build_generic(b, rnd):

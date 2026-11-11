@@ -47,7 +47,7 @@ ways = {e['id']: e for e in osm if e.get('geometry')}
 B = {
     163525865: ('lm:library', 6, '중앙도서관'),         # 1979 five storeys, six since 1992
     1444448640: ('lm:union', 4, '학생회관'),
-    1444448646: ('white', 3, '학생회관 별관'),
+    1444448646: ('white', 2, '학생회관 별관'),       # two storeys in 1997 (ANNEX_1997 below)
     324328422: ('lm:centennial', 4, '백주년기념관'),
     246156115: ('lm:underwood', 3, '언더우드관'),
     246156116: ('lm:appenzeller', 3, '아펜젤러관'),   # two storeys and the attic storey in the roof
@@ -149,8 +149,23 @@ LATE_FOOTPRINT_1997.update({
                 (151.61, -142.42), (121.68, -168.17), (119.94, -166.35), (118.02, -168.03), (109.95, -158.47),
                 (111.97, -156.58), (105.47, -149.2), (138.32, -116.73)],
 })
+# 학생회관 별관 (ANNEX_1997; reference/고증/4.5): in the 1997 photo (reference/1997_학생회관.jpg) a flat-roofed box of
+# two storeys in pale grey concrete, broad window bands, a plain parapet.  The pointed-arch arcade on its roof (「Global
+# Lounge」, opened in November 2002) is in the 2008 · 2010 · 2011 roadview and the April 2009 photo, not in 1997.  OSM
+# (and the skyview of 2008, 2010 and now) is the roof of the arcade: its slab runs 2 - 3 m on past the north end of the
+# storeys below (the 2008 and 2010 frames from 191 and 192), so the 1997 hall's north wall stands 2.3 m south of
+# OSM's.  Its south-west corner (the pylon of the lounge's banner) is OSM's within 1.5 m (six 2010 panos, held on
+# 학생회관's north-west corner a few degrees off it); its west face OSM's (the roofline straight past the slab's end).
+ANNEX_1997 = dict(id=1444448646, osm_nw=(31.91, -1.15), osm_ne=(63.48, -9.21), north_in=2.3, floor=3.8)
+_anw, _ane = np.array(ANNEX_1997['osm_nw']), np.array(ANNEX_1997['osm_ne'])
+_aw = np.array([25.68, -27.72]) - _anw
+_ae = np.array([55.93, -35.41]) - _ane
+LATE_FOOTPRINT_1997[ANNEX_1997['id']] = [(25.68, -27.72), (55.93, -35.41)] + [
+    tuple(round(float(v_), 2) for v_ in p_ + d_ / np.linalg.norm(d_) * ANNEX_1997['north_in'])
+    for p_, d_ in ((_ane, _ae), (_anw, _aw))]                        # (NE and NW moved down the east and west walls)
 FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
 FLOOR_H_AT = {222843398: 4.1}        # 과학관's 4.1 m storeys (blender/generic.py FH_AT, reference/고증.md 3.10)
+FLOOR_H_AT[ANNEX_1997['id']] = ANNEX_1997['floor']   # (학생회관 별관: its top 8.5 m over the yard in the 2008 frames)
 
 # ---------------------------------------------------------------------------
 # Terrain
@@ -5002,6 +5017,47 @@ for _s in np.arange(AUD_BANK['s0'] + 2.0, AUD_BANK['s1'] - 0.5, 1.5):
     _x, _y, _a = along_raw(_s, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] - 0.2))
     shrubs.append(['hedge_low', round(_x, 2), round(_y, 2), 1.0, round(_a, 3)])
 print('대강당 앞 둑: strip hedge cleared', _n0, 'bank shrubs', len(shrubs) - _nb0)
+# 학생회관 별관 앞마당 (ANNEX_YARD, reference/고증/4.5): Kakao skyview 2008 (winter) · 2010 and the 2008 · 2010 roadview
+# (1017220187 - 193): asphalt from the foot of the drive's shrub strip to the hall's shop fronts and on south to the
+# paved plaza before 학생회관's flight, cars parked in two rows before the shops (2008 skyview); a long lawn island with
+# kerbs, its north tip 7 m short of the hall's south end, round clipped shrubs and pines on it (the 1997 photo: the
+# drive in the foreground, the kerbed island with its pines before 학생회관); west of it an asphalt lane, then the lawn
+# along 백양로.  The game had a lawn over all of it south of the hall's middle.  (After the planting: its own random
+# numbers; the island's pines go at the very end of the tree list, below.)
+ANNEX_ISLAND = LineString([(16.5, -22.9), (16.5, -46.4)]).buffer(2.7)
+ANNEX_YARD = Polygon([(8.5, -21.0), (11.5, -21.0), (11.5, -56.7), (17.0, -59.5), (18.3, -56.0), (40.0, -56.0), (40.0, -1.0),
+                      (8.5, -1.0)]).difference(unary_union([Polygon(b_['footprint']) for b_ in buildings])) \
+    .difference(unary_union([Polygon(LATE_FOOTPRINT_1997[ANNEX_1997['id']]), ANNEX_ISLAND, AUD_RAMP_BAND, AUD_BANK_POLY,
+                             bline.buffer(ROAD_HALF), ramp_strip(-AUD_RAMP['w'] / 2 - 1.0, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'],
+                                                                 -AUD_RAMP['mouth'] - 1.0, AUD_RAMP['run'])] + AUD_TREE_BEDS))
+_n0 = (len(shrubs), len(props), len(cars))
+_az = ANNEX_YARD.union(ANNEX_ISLAND)
+shrubs = [s_ for s_ in shrubs if not _az.contains(Point(s_[1], s_[2]))]
+props = [p_ for p_ in props if not _az.contains(Point(p_[1], p_[2]))]
+cars = [c_ for c_ in cars if not _az.contains(Point(c_[1], c_[2]))]
+print('학생회관 별관 앞마당: cleared (shrubs, props, cars)', _n0[0] - len(shrubs), _n0[1] - len(props), _n0[2] - len(cars),
+      '- island %.0f m², yard %.0f m²' % (ANNEX_ISLAND.area, ANNEX_YARD.area))
+# (painted in two halves split down the island: _ypaint fills a polygon's outer ring only, and the yard rings the island)
+ANNEX_YARD_HALVES = [ANNEX_YARD.intersection(Polygon([(0.0, -70.0), (16.5, -70.0), (16.5, 0.0), (0.0, 0.0)])),
+                     ANNEX_YARD.intersection(Polygon([(16.5, -70.0), (45.0, -70.0), (45.0, 0.0), (16.5, 0.0)]))]
+_ra = random.Random(141)
+ANNEX_TREES = [['pine', 16.4, -29.4, 0.62, round(_ra.uniform(0, 6.28), 2)],
+               ['pine', 16.6, -40.8, 0.66, round(_ra.uniform(0, 6.28), 2)]]
+for _x, _y in ((16.5, -21.6), (16.5, -24.2), (16.4, -35.2), (16.6, -45.6)):        # (the tip's and the planters' mounds)
+    shrubs.append(['topiary_round', round(_x + _ra.uniform(-0.3, 0.3), 2), round(_y + _ra.uniform(-0.3, 0.3), 2),
+                   round(_ra.uniform(1.15, 1.4), 2), round(_ra.uniform(0, 6.28), 2)])
+for _y in np.arange(-26.0, -45.0, -2.4):                                             # (low ones down its sides)
+    for _x in (14.6, 18.4):
+        if min(abs(_y - t_[2]) for t_ in ANNEX_TREES) < 2.0:
+            continue
+        shrubs.append(['topiary_round', round(_x + _ra.uniform(-0.2, 0.2), 2), round(float(_y) + _ra.uniform(-0.4, 0.4), 2),
+                       round(_ra.uniform(0.75, 0.95), 2), round(_ra.uniform(0, 6.28), 2)])
+# the cars before the shops, end on to the hall, in the 2008 skyview's two rows (fewer; their stalls: park_lot below)
+ANNEX_CARS = []
+for _x, _y in ((22.0, -15.4), (16.8, -15.6), (23.2, -18.7), (18.0, -18.9)):
+    ANNEX_CARS.append([_ra.choice(['sedan', 'sedan', 'hatch']), _x, _y,
+                       round(math.radians(_ra.choice((0.0, 180.0)) - 13.0), 3), _ra.randrange(8)])
+cars += ANNEX_CARS
 # In front of 스팀슨관's south end (reference/고증.md 3.5.2; the Dec. 2010 walk past it, panoramas 1016786683 - 686,
 # placed by the bearings of the end's corners and its bay): a bed of bare low shrubs in a boxwood band with round
 # corners west of the walk, benches and a bin along its west side under the trees of a low bank, the walk and the
@@ -5327,6 +5383,7 @@ park_lot('독수리상 서쪽 옆길', None)['stalls'] = [[round(float(x_), 2), 
                                               for x_, y_, a_ in LOT_W]
 park_lot('교육관 북쪽 마당', None)['stalls'] = [[*[round(float(v_), 2) for v_ in np.array([44.15, 345.23]) + _gyt0 * s_ + _gyn0 * 8.2],
                                              round(math.atan2(-_gyn0[1], -_gyn0[0]), 3)] for s_ in (1.8, 4.4, 7.0, 9.6)]
+park_lot('학생회관 별관 앞', None)['stalls'] = [[c_[1], c_[2], c_[3]] for c_ in ANNEX_CARS]   # (ANNEX_YARD, above)
 # (the oil under the stalls of the car parks that decal_spots, above, does not know: 백양관 북쪽; their own random
 # numbers, at the end of the decals' list, so that no other decal moves)
 _rpo = random.Random(1997 + 4581)
@@ -5351,6 +5408,7 @@ for _i in sorted(LATE_GONE_TREES, reverse=True):     # (백양관 앞 길 · 북
     trees[_i] = trees[-1]
     trees.pop()
 trees += BK_ISLAND_TREES                    # (백양관 북쪽 주차장 앞 섬: last, so that no other tree changes its model)
+trees += ANNEX_TREES                        # (학생회관 별관 앞 섬의 소나무: after every other tree, none changes its model)
 markers += ROT['markers']
 out['colliders'] += ROT['colliders']
 out['paths'] += ROT['paths']
@@ -5375,6 +5433,7 @@ _YN = {id(_yz): '_yz', id(_yg): '_yg', id(_yp): '_yp'}
 _ypaint([_yclear], _yz)
 _ypaint([YJ_GARDEN.difference(_kept)], _yg)
 _ypaint([BK_ISLAND], _yg)                   # (백양관 북쪽 주차장 앞 섬: lawn over the strip's place)
+_ypaint([ANNEX_ISLAND], _yg)                 # (학생회관 별관 앞 섬: lawn, the later walks across it cleared)
 _ypaint([Polygon(b_['footprint']).buffer(3.5, join_style=2) for b_ in YONGJAE_BUILDINGS] +
         [yongjae_poly(-4.5, 2.8, -1.0, 21.0)], _yp)
 _ypaint([YJ_WALK], _yp, width=2.6)
@@ -5415,6 +5474,7 @@ AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), co
 _ypaint([AUD_YARD], _ga)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
 _ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
+_ypaint(ANNEX_YARD_HALVES, _ga)               # (학생회관 별관 앞마당)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
 _YN[id(_gw)] = '_gw'
 _ypaint([BK_COURT], _gw)
