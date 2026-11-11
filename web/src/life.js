@@ -646,6 +646,8 @@ export class BoothGates {
 // ---------------------------------------------------------------- traffic
 // Cars from blender/cars.py: wheels spin with the distance travelled, brake lights come on when slowing,
 // a seated driver (Quaternius 'sit' clip) behind the wheel; they keep their distance and stop for you.
+// A lane may carry a stall (main.js: det, rev, stops): the car turns off into it, stands there a while with its driver
+// gone, backs out and drives on.
 // A lane may carry speed limits (Path.setLimits: the drives off 백양로, their bends, the car park) and the ground
 // under its wheel tracks (Path.setTracks): the car then stands on its four tyres, nose up on a climb and leaning
 // with a cross fall, as the parked ones do (main.js parkedMatrix).
@@ -657,7 +659,8 @@ const WEIGHTS = { sedan: 4, sedan2: 3, hatch: 3, tico: 2, taxi: 3, van: 2 };
 const DRIVER = { sedan: [-0.05, 0.40], sedan2: [-0.03, 0.40], hatch: [-0.27, 0.39], tico: [-0.32, 0.33], taxi: [-0.05, 0.40], van: [0.98, 0.40] };
 
 export class Traffic {
-  constructor(scene, carGltfs, lanes, n = 12, cast = null, driverIds = [], rndSeed = 9) {
+  // single: the first `single` lanes take one car each (a stall a car cannot pass by: main.js)
+  constructor(scene, carGltfs, lanes, n = 12, cast = null, driverIds = [], rndSeed = 9, single = 0) {
     this.cars = [];
     const rnd = mulberry(rndSeed);
     const bag = Object.entries(WEIGHTS).filter(([k]) => carGltfs[k]).flatMap(([k, w]) => Array(w).fill(k));
@@ -695,35 +698,58 @@ export class Traffic {
         root.add(driver.holder);
       }
       scene.add(root);
-      const lane = lanes[i % lanes.length];
+      const lane = i < single || lanes.length === single ? lanes[i % lanes.length] : lanes[single + (i - single) % (lanes.length - single)];
       const k = 0.88 + rnd() * 0.2;            // how briskly this driver takes a lane's limits
       // wheel radius from the model, so the tyres roll without slipping
       const radius = wheels.length ? new THREE.Box3().setFromObject(wheels[0]).getSize(new THREE.Vector3()).y / 2 : 0.3;
-      this.cars.push({ root, lane, s: ((i / n) * lane.length * lanes.length + rnd() * 20) % lane.length, speed: 8 + rnd() * 4,
-        v: 8, len, wheels, brake, radius, driver, kind, k, tyres, pitch: 0, roll: 0 });
+      let s0 = ((i / n) * lane.length * lanes.length + rnd() * 20) % lane.length;
+      if (lane.det && s0 > lane.det[0] - 12 && s0 < lane.det[1] + 6) s0 = lane.det[1] + 6 + rnd() * 20;   // (not inside a stall)
+      this.cars.push({ root, lane, s: s0, speed: 8 + rnd() * 4, v: 8, len, wheels, brake, radius, driver, kind, k, tyres, pitch: 0, roll: 0,
+        x: lane.at(s0).x, y: lane.at(s0).y, hx: 1, hy: 0, stopK: lane.stops ? lane.stops.filter((q) => q.s < s0).length : 0 });
     }
   }
   // camPos: the view's centre (three coords); drivers of cars farther than the crowd's reach leave the car.
   // walkers: the crowd's people who walk (life.js Crowd, {x, y}): a car waits for one crossing just ahead of it
   // (the west sidewalk crosses the drive's mouth at the 삼거리, walks cross the drives), a few seconds at most
   update(dt, player, camPos = null, walkers = null) {
-    const p = this.p ||= new THREE.Vector2(), d = this.d ||= new THREE.Vector2();
+    const p = this.p ||= new THREE.Vector2(), d = this.d ||= new THREE.Vector2(), q = this.q ||= new THREE.Vector2();
     for (const c of this.cars) {
+      const L = c.lane;
       // out of the gate and away for a while (a loop's two ends are one spot, side by side: the car that left would
-      // be the one coming in), then in again once the lane's first metres are clear
+      // be the one coming in), then in again once the lane's first metres are clear (every lane starts up 백양로)
       if (c.away > 0) {
         c.away -= dt;
         if (c.away > 0) continue;
-        if (this.cars.some((o) => o !== c && o.lane === c.lane && !(o.away > 0) && o.s < 16)) { c.away = 0.6; continue; }
-        c.s = 0; c.v = c.speed * 0.7; c.root.visible = true;
+        if (this.cars.some((o) => o !== c && !(o.away > 0) && o.s < 16)) { c.away = 0.6; continue; }
+        c.s = 0; c.v = c.speed * 0.7; c.root.visible = true; c.stopK = 0;
       }
-      c.lane.at(c.s, p);
-      c.lane.dir(c.s, d);
+      // in its stall for a while (the driver gone meanwhile), or stopped a moment at the end of backing out
+      if (c.parkT > 0) {
+        c.parkT -= dt;
+        const away = c.parked && c.parkT > 2 && c.parkT < c.parkT0 - 2.5;
+        if (c.driver) {
+          const h = c.driver.holder;
+          if (away && h.parent) c.root.remove(h);
+          else if (!away && !h.parent && (!camPos || (c.x - camPos.x) ** 2 + (c.y + camPos.z) ** 2 < FAR2)) c.root.add(h);
+        }
+        for (const m of c.brake) m.emissiveIntensity = c.parked && c.parkT < c.parkT0 - 1 && c.parkT > 1.2 ? 0.35 : 3.0;
+        if (c.parkT > 0) continue;
+        c.parked = false;
+      }
+      // a stall another car of this lane is in: past it, along the aisle (the way out ends where the way in began)
+      if (L.det) {
+        if (!c.inDet && c.s >= L.det[0] && c.s < L.det[1]) {
+          if (L.user && L.user !== c && L.shared) { c.s = L.det[1] + (c.s - L.det[0]); c.stopK = L.stops.length; }
+          else { L.user = c; c.inDet = true; }
+        } else if (c.inDet && c.s >= L.det[1] + c.len) { c.inDet = false; if (L.user === c) L.user = null; }
+      }
+      L.at(c.s, p);
+      L.dir(c.s, d);
       // brake for the player standing in the lane ahead, and keep a gap to the car in front
       const rx = player.x - p.x, ry = player.y - p.y;
       const ahead = rx * d.x + ry * d.y, lateral = Math.abs(-rx * d.y + ry * d.x);
       const reach = c.len / 2 + 4;
-      let target = Math.min(c.speed, c.lane.vmax(c.s) * c.k);
+      let target = Math.min(c.speed, L.vmax(c.s) * c.k);
       if (ahead > 0 && ahead < reach + 10 && lateral < 2.0) target = ahead < reach ? 0 : c.speed * (ahead - reach) / 10;
       if (walkers && !(c.pushOn > 0)) {
         const near = c.len / 2 + 2.2;
@@ -737,30 +763,68 @@ export class Traffic {
         c.waited = target === 0 && c.v < 0.2 ? (c.waited || 0) + dt : 0;
         if (c.waited > 5) { c.pushOn = 4; c.waited = 0; }
       } else if (c.pushOn > 0) { c.pushOn -= dt; target = Math.min(target, 2.5); }
-      for (const o of this.cars) {
-        if (o === c || o.lane !== c.lane || o.away > 0) continue;
-        const gap = o.s - c.s - (o.len + c.len) / 2;
-        if (gap > -1 && gap < 9) target = Math.min(target, gap < 3 ? 0 : o.v * 0.9);
-      }
+      // The car in the way, whatever lane it is on (the lanes share the roads; they cross at the 삼거리 and in the
+      // car parks): another car standing on this car's own line within the next metres.  One coming the other way on
+      // its own side is not in the way (a tight bend's inner lane passes close to it); of two in each other's way
+      // the one that has already given way waits; a car stuck behind another for long edges on.
+      c.yieldTo = null;
+      if (!(c.edge > 0)) {
+        for (const o of this.cars) {
+          if (o === c || o.away > 0 || o.yieldTo === c) continue;
+          const ox = o.x - p.x, oy = o.y - p.y;
+          if (ox > 18 || ox < -18 || oy > 18 || oy < -18) continue;
+          let at = -1;
+          for (let a = 1.5; a < c.len / 2 + 10.5; a += 1.5) {
+            L.at(c.s + a, q);
+            if ((q.x - o.x) ** 2 + (q.y - o.y) ** 2 < 2.4) { at = a; break; }
+          }
+          if (at < 0) continue;
+          L.dir(c.s + at, q);
+          if (o.v > 0.3 && o.hx * q.x + o.hy * q.y < -0.5) continue;
+          const gap = at - (o.len + c.len) / 2;
+          if (gap < 9) { target = Math.min(target, gap < 3 ? 0 : Math.max(0, o.v * (o.hx * q.x + o.hy * q.y)) * 0.9); c.yieldTo = o; }
+        }
+        c.stuck = c.yieldTo && c.v < 0.2 ? (c.stuck || 0) + dt : 0;
+        if (c.stuck > 14) { c.edge = 3; c.stuck = 0; }
+      } else { c.edge -= dt; target = Math.min(target, 1.5); }
+      // the next stop on its lane: its stall, and the end of the way out backwards
+      const stop = L.stops && c.stopK < L.stops.length ? L.stops[c.stopK] : null;
+      if (stop) target = Math.min(target, Math.sqrt(2.4 * Math.max(0, stop.s - c.s - 0.04)) + 0.15);
       const prev = c.v;
       c.v += (target - c.v) * Math.min(1, dt * (target < c.v ? 3.5 : 1.2));
       const braking = c.v < prev - 0.02 || c.v < 0.3;
       for (const m of c.brake) m.emissiveIntensity = braking ? 3.0 : 0.35;
       c.s += c.v * dt;
-      if (c.s > c.lane.length) {
-        if (c.lane.loop) { c.away = 2 + Math.random() * 9; c.root.visible = false; continue; }
+      if (stop && c.s >= stop.s - 0.08) {
+        c.s = stop.s; c.v = 0; c.stopK++;
+        c.parked = !!stop.park;
+        c.parkT = c.parkT0 = stop.park ? 18 + Math.random() * 45 : 0.9;
+      }
+      if (c.s > L.length) {
+        if (L.loop) { c.away = 2 + Math.random() * 9; c.root.visible = false; continue; }
         c.s = 0;
       }
-      c.lane.at(c.s, p);
-      c.lane.dir(c.s, d);
+      L.at(c.s, p);
+      // the way it points: along the lane, or against it while it backs out of its stall; one-sided at the stall and
+      // at the end of the way out, where the line turns back on itself
+      const back = !!L.rev && c.s > L.rev[0] - 1e-3 && c.s < L.rev[1] - 1e-3 && !(c.s <= L.rev[0] + 1e-3 && c.parkT > 0 && !c.parked);
+      if (L.rev && Math.abs(c.s - L.rev[0]) < 1.6) {
+        if (c.s <= L.rev[0] + 1e-3) d.copy(p).sub(L.at(c.s - 1.5, q)); else d.copy(L.at(c.s + 1.5, q)).sub(p);
+        d.normalize();
+      } else if (L.rev && Math.abs(c.s - L.rev[1]) < 1.6) {
+        if (c.s < L.rev[1] - 1e-3) d.copy(p).sub(L.at(c.s - 1.5, q)); else d.copy(L.at(c.s + 1.5, q)).sub(p);
+        d.normalize();
+      } else L.dir(c.s, d);
+      const g = back ? -1 : 1;
+      c.x = p.x; c.y = p.y; c.hx = d.x * g; c.hy = d.y * g;
       // car model: +X forward
-      c.root.rotation.y = Math.atan2(d.y, d.x);
-      if (c.lane.tracks) {
-        const t = c.tyres, L = c.lane;
-        const fl = L.track(0, c.s + t.f), fr = L.track(1, c.s + t.f), rl = L.track(0, c.s + t.r), rr = L.track(1, c.s + t.r);
+      c.root.rotation.y = Math.atan2(c.hy, c.hx);
+      if (L.tracks) {
+        const t = c.tyres, li = back ? 1 : 0;
+        const fl = L.track(li, c.s + g * t.f), fr = L.track(1 - li, c.s + g * t.f), rl = L.track(li, c.s + g * t.r), rr = L.track(1 - li, c.s + g * t.r);
         const pitch = Math.max(-0.3, Math.min(0.3, Math.atan2((fl + fr - rl - rr) / 2, t.f - t.r)));
         // (the lean held to 7 deg: where a yard or a road at another height stands right beside the drive, the 5 m
-        // grid tips the drive's edge towards it, tools/build_campus.py TR_LEVEL)
+        // grid tips the drive's edge towards it, tools/build_campus.py tr_grade)
         const roll = Math.max(-0.12, Math.min(0.12, Math.atan2((fl + rl - fr - rr) / 2, t.rt - t.l)));    // + : the left side up
         // (eased: the terrain's facets and the tracks' metre steps would nod it otherwise)
         const e = Math.min(1, dt * 9);
@@ -769,8 +833,8 @@ export class Traffic {
         c.root.position.set(p.x, (fl + fr + rl + rr) / 4 - mx * Math.tan(c.pitch) + mz * Math.tan(c.roll), -p.y);
         c.root.rotation.z = c.pitch;
         c.root.rotation.x = c.roll;
-      } else c.root.position.set(p.x, c.lane.h(c.s), -p.y);
-      for (const w of c.wheels) w.rotation.z -= (c.v * dt) / c.radius;
+      } else c.root.position.set(p.x, L.h(c.s), -p.y);
+      for (const w of c.wheels) w.rotation.z -= g * (c.v * dt) / c.radius;
       if (c.driver) {
         const near = !camPos || (p.x - camPos.x) ** 2 + (p.y + camPos.z) ** 2 < FAR2;
         const h = c.driver.holder;

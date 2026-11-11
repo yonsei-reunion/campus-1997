@@ -472,20 +472,37 @@ async function main() {
     const u = Math.min(1, Math.max(0, t));
     return u * u * (3 - 2 * u);
   };
-  // The cars' way is one loop (campus.json traffic, tools/build_campus.py TRAFFIC): up 백양로's northbound lane, left at
-  // the 삼거리 before 언더우드관 onto the drive past 스팀슨관, behind 언더우드관, past 연희관's west wing and round 대우관 to
-  // the car park behind it (the way Kakao's roadview car took in 2008), round the car park's aisles and back down the
-  // drive's other side into the southbound lane.  (They ran to the foot of the steps and vanished there before.)
+  // The cars' ways are two loops (campus.json traffic, tools/build_campus.py TRAFFIC): up 백양로's northbound lane and,
+  // at the 삼거리 before 언더우드관, right up the east fork past 용재관 and round 성암관 and 대우관 별관 to the car park
+  // behind 대우관, or left up the drive past 스팀슨관 and round the island there down to the stalls beside 핀슨관; into
+  // a stall, out again after a while, and back down the roads' other side into the southbound lane.  (An alumnus
+  // remembers no cars on the drives right beside 언더우드관 and 연희관, where the 2008 roadview's car went.)  One lane
+  // for every free stall: the loop with the way into that stall and the way out backwards spliced in (life.js Traffic).
+  let westLanes = 0;
   {
     const off = R.median + R.lane * 0.5, TR = campus.traffic;
     const north = center.offset((s) => -(off + 0.5 * roundBooth(s)));            // (a point every 3 m)
     const south = center.offset((s) => off + 0.5 * roundBooth(s));
     if (TR) {
-      const n = Math.ceil((TR.s_out - 0.5) / 3);
-      const pts = [...north.slice(0, n), ...TR.pts, ...south.slice(0, n).reverse()];
-      const lim = [...Array(n).fill(Infinity), ...TR.v, ...Array(n).fill(Infinity)];
-      lanes.push(new Path(pts, groundAt).setLimits(lim).setTracks());
-      lanes[0].loop = true;                // (its two ends side by side at the gate: life.js Traffic)
+      const n = Math.ceil((TR.s_out - 0.5) / 3), vLot = TR.v_lot ?? 2.8;
+      const head = north.slice(0, n), tail = south.slice(0, n).reverse(), free = Array(n).fill(Infinity);
+      for (const L of TR.loops.slice().reverse()) {                              // (west first: one car to each of its stalls)
+        if (L.name === 'west') westLanes = L.stalls.length;
+        for (const st of L.stalls) {
+          const k = st.a.length + st.b.length - 2;
+          const pts = [...head, ...L.pts.slice(0, st.i + 1), ...st.a.slice(1), ...st.b.slice(1), ...L.pts.slice(st.j + 1), ...tail];
+          const lim = [...free, ...L.v.slice(0, st.i + 1), ...Array(k).fill(vLot), ...L.v.slice(st.j + 1), ...free];
+          const lane = new Path(pts, groundAt).setLimits(lim).setTracks();
+          lane.loop = true;                // (its two ends side by side at the gate)
+          const k0 = n + st.i, k1 = k0 + st.a.length - 1, k2 = k1 + st.b.length - 1;
+          // the stall's turn-off, the stall (stop there for a while) and where the way out backwards ends (stop, then on)
+          lane.det = [lane.cum[k0], lane.cum[k2]];
+          lane.rev = [lane.cum[k1], lane.cum[k2]];
+          lane.stops = [{ s: lane.cum[k1], park: true }, { s: lane.cum[k2] }];
+          lane.shared = st.i === st.j;     // (the way out ends where the way in began: a car may pass the stall by)
+          lanes.push(lane);
+        }
+      }
     } else {
       lanes.push(new Path(north, groundAt));
       lanes.push(new Path(south.reverse(), groundAt));
@@ -494,7 +511,7 @@ async function main() {
   // (more of them: the loop is nearly twice the two lanes' length and slow off 백양로, which still carries a few
   // fewer than it did)
   const traffic = new Traffic(scene, { sedan: P.car_sedan, sedan2: P.car_sedan2, hatch: P.car_hatch, tico: P.car_tico, taxi: P.car_taxi, van: P.car_van }, lanes,
-    campus.traffic ? (MOBILE ? 18 : 26) : 14, cast, STUDENTS.concat(['man-professor', 'man-staff', 'woman-staff']));
+    campus.traffic ? (MOBILE ? 18 : 26) : 14, cast, STUDENTS.concat(['man-professor', 'man-staff', 'woman-staff']), 9, westLanes);
   for (const c of traffic.cars) shadows.addDynamic(c.root, c.len / 2 + 1.5);
   const walkers = crowd.people.filter((p) => p.path);        // (the cars wait for them: life.js Traffic)
   const gates = new BoothGates(scene, P.barrier_arm, R.booth, groundAt, shadows);

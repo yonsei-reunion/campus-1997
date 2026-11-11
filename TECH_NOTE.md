@@ -189,7 +189,9 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 운전석의 인물이 꼿꼿이 앉으므로 차는 실제보다 7 % 크게 내보냅니다(`CAR_SCALE`).
 - 도장은 클리어코트 재질, 바퀴는 달린 거리만큼 굴러가고 감속하면 브레이크등이 켜집니다.
 - 세워 둔 차는 20 m 밖에서 `car_<종류>_far.glb` 로 그립니다(`build.py` 의 `cars` 단계): 10° 안으로 굽은 면을 재질 경계 안에서 합치고 바퀴만 접어, 삼각형이 5분의 1.
-- 달리는 차의 길은 한 바퀴입니다(`tools/build_campus.py` `TRAFFIC` → `campus.json` `traffic`, `web/src/main.js` 가 백양로 두 차로에 이음): 백양로 → 삼거리 서쪽 어귀 → 스팀슨관 서쪽 길 → 대우관 뒤 주차장을 돌아 같은 길로 정문까지(고증 2.9).
+- 달리는 차의 길은 두 고리입니다(`tools/build_campus.py` `TR_E` · `TR_W` · `TRAFFIC` → `campus.json` `traffic.loops`, `web/src/main.js` 가 백양로 두 차로에 이음): 백양로 → 삼거리에서 오른쪽으로 용재관 옆 · 성암관 동쪽 · 대우관 별관 동쪽을 돌아 대우관 뒤 주차장, 또는 왼쪽으로 스팀슨관 서쪽 길 · 화단 섬 · 한경관 앞을 지나 핀슨관 옆 주차 칸 → 같은 길의 반대쪽으로 정문까지(고증 2.9).
+  - 빈 주차 칸마다 차로 하나를 만듭니다(`loops[].stalls`: 고리에서 꺾는 점 `i`, 칸으로 드는 길 `a`, 후진해 나오는 길 `b`, 고리로 돌아오는 점 `j`). 차는 칸에 섰다가(`lane.stops`) 후진해(`lane.rev`) 나옵니다.
+  - 차로가 달라도 자기 길 앞에 선 차를 기다립니다(`web/src/life.js` `Traffic.update` 의 「The car in the way」). 길을 고치면 헤드리스로 2 ~ 3분 돌려 오래 멈춘 차가 없는지 봅니다.
   - `Path.setLimits`: 구간마다의 제한 빠르기에 굽은 곳(옆 가속도)과 미리 줄이는 거리를 더한 1 m 간격 표. `Path.setTracks`: 두 바퀴 자리의 땅 높이.
   - 차는 네 바퀴 자리의 땅에 맞춰 앞뒤 · 좌우로 기웁니다(`life.js` `Traffic`, 세워 둔 차의 `parkedMatrix` 와 같은 식). 5 m 지형 격자는 비탈을 가로지르는 길을 옆으로 기울게 담으므로, 바퀴 자리가 지나는 격자 칸의 꼭짓점을 길 가운데 높이로 맞춥니다(`TR_LEVEL`). 빌드가 좌우 기울기 4° 넘는 구간을 찍습니다.
   - 길을 고치면 빌드 끝의 `traffic: wheel tracks off the asphalt` 가 0인지 봅니다(바퀴 자리가 아스팔트 밖으로 나가는 점).
