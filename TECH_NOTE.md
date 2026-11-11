@@ -115,14 +115,15 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 
 - 굴다리 남쪽 연세로에서 신촌 로터리까지(고증 4.10). 자리는 `tools/sinchon_rotary.py`(`build_campus.py` 가 `gate_town.layout` 뒤에 부름), 모양은 `blender/town.py`(`signs2` · `entrances`), 차 · 신호는 `web/src/town.js`.
 - 길 선형 · 건물 외곽선 · 지하철 출입구는 `tools/fetch_rotary_osm.py` 가 받은 `data/raw/osm_rotary.json`(건물 관계는 바깥 고리마다 한 외곽선, id 10¹² + 관계 id × 10 + k).
-- 땅: 5 m 격자(±800 m) 남쪽에 같은 방법의 조각 `terrain_south.bin`(x −600 ~ 400, y −1200 ~ −800 m, `campus.json` `terrain.south`). 웹 `Heightfield.setPatch` · `makeSouthTerrain`, Blender `common.ground` 가 읽고, 격자를 읽는 셰이더(벽의 흙 튐, 해 그림자 높이)는 격자만 씁니다.
+- 땅: 5 m 격자(±800 m) 남쪽에 같은 방법의 조각 `terrain_south.bin`(x −600 ~ 400, y −1200 ~ −800 m, `campus.json` `terrain.south`). 웹 `Heightfield.setPatch` · `makeSouthTerrain`, Blender `common.ground` 가 읽고, 격자를 읽는 셰이더 가운데 벽의 흙 튐은 격자만, 해 그림자 높이(`bakedshadow.js` `sunTerrainH`)는 조각도 씁니다.
 - 땅 칠: 캠퍼스 땅 지도 밖은 따로 그린 `ground_splat_town.png`(`campus.json` `tsplat`, 0.5 m: R 아스팔트, G 보도, B 지하철 계단 구멍). 칠하지 않은 곳(가운데 섬)은 잔디.
 - 무작위: `random.Random(4802)` 하나. 4.8의 집 가운데 새 길에 걸리는 것은 `b[6] = −층수` 로 남겨 Blender 가 모양을 그대로 뽑고 그리지는 않음. 새 나무는 `trees` 끝에.
 - 연세로 가게 줄(`yro_rows`, `random.Random(4805)`): 1996년 사진에서 읽은 집(`YRO_FIXED`)과 사진의 층수 섞임(`YRO_MIX`). 전 줄은 같은 흐름으로 뽑아 `b[6] < 0` 으로 두고, 새 줄은 `blocks` 끝에 더해 다른 집 · OSM 상자 · 채운 집과 Blender 의 집 모양 흐름이 그대로.
 - 세로 간판(`town.vsigns`, `yro_wall_signs`)과 축제 현수막(`town.banner`)은 `blender/town.py` `yro_signs` · `yro_banner`, 아틀라스 `sign_yonseiro.png`(`make_textures.py sign_yonseiro`: 128 × 468 px 칸 16개 밑에 현수막 띠).
-- 걷기: 걸을 수 있는 보도 · 건널목의 바깥 둘레에 1.5 m 길이의 얇은 충돌 상자(`campus.json` `colliders`)를 둘러, 차도 · 옆길 · 가게로는 나가지 못합니다. 성산로 북쪽 연석의 띠는 건널목 자리까지 이어서 연세로 · 로터리로는 건너가지 못합니다. 그 띠의 북쪽 가장자리(`campus.json` `town.limit`)보다 남쪽으로는 하늘 시점 · 지도 · 출발 목록에서도 내려서지 않고 정문에 섭니다(`main.js` `beyondGate`).
+- 걷기: 성산로 북쪽 연석의 충돌 띠(`gate_town.py`)를 건널목 자리까지 이어서 연세로 · 로터리로는 건너가지 못합니다. 그 띠의 북쪽 가장자리(`campus.json` `town.limit`)보다 남쪽으로는 하늘 시점 · 지도 · 출발 목록에서도 내려서지 않고 정문에 섭니다(`main.js` `beyondGate`).
 - 차: `town.lanes` 의 `stops` 가 [s, 신호 묶음, 단계]. 차마다 앞 16 m 안의 다른 길 차와 걷는 사람을 봄(성산로끼리는 전처럼 같은 길만). 신호 주기는 `town.signals`, 신호등은 `town.heads`.
-- 연세로 보도의 사람은 `town.walks` 위의 두 번째 `Crowd`(`main.js` `townCrowd`, 씨앗 11).
+- 연세로 보도의 사람은 `town.walks` 위의 두 번째 `Crowd`(`main.js` `townCrowd`, 씨앗 11, 폰 6명). 시점이 연세로에서 200 m 안일 때만 갱신합니다.
+- 차는 시점에서 400 m 안의 것만 움직이고 서로를 봅니다(`town.js` `Street` `WAKE`). 나머지는 제자리에 서서 그리지 않습니다. 신호등도 380 m 밖이면 그리지 않고, 불빛 색은 바뀔 때만 올립니다.
 
 ### 재질
 
@@ -211,12 +212,45 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 그림자
   - 4096² 섀도 맵. 해는 고정이므로 정적인 것은 캐시하고 매 프레임엔 가까운 사람 · 차만 그립니다(`shadows.js`).
   - 캠퍼스 전체의 땅 그림자를 한 장으로 구워 둡니다(`bakedshadow.js`, `tools/bake_sun_shadows.mjs`). 섀도 맵 밖과 폰에서 씁니다.
+    - 캠퍼스 칸(x −440 ~ 560, y −505 ~ 745 m, 31 cm)의 동쪽에 정문 밖 · 연세로 · 신촌 로터리(x −845 ~ 701, y −1195 ~ −505 m)를 70 cm 텍셀로 세 조각 내어 위아래로 붙였습니다(3968 × 4000, 밉맵까지 21 MB). 재질마다 텍스처를 하나 더 읽지 않게 한 장에 둡니다.
+    - 그 땅 높이는 근경 격자와 그 남쪽 조각(`terrain_south.bin`)으로 읽습니다.
   - 폰은 섀도 맵이 일부 GPU 드라이버를 죽여서 끄고 블롭 그림자를 씁니다.
   - 데스크톱 HQ 는 PCSS(해의 시직경에 따른 부드러운 반영).
 - 대기: 높이 안개와 구름 그림자를 모든 재질에 셰이더 패치로 넣습니다(`materials.js` `ATMOS`).
 - 후처리(`post.js`): N8AO → TAA(서브픽셀 지터 · 깊이 재투영) 또는 SMAA → 두 단계 블룸 → 1997 필름 → AgX 톤매핑. 폰은 `RenderPass` + 4x MSAA 만.
 - 셰이더 패치는 `materials.js` `patchShader` 로 쌓습니다. 캐시 키를 함께 관리해 같은 프로그램이 여러 번 컴파일되지 않게 합니다.
 - 폰은 텍스처를 1024 이하로 줄여 올립니다(2K 세트는 밉맵 포함 약 1 GB).
+
+### 성능: 정문 밖 · 신촌 로터리
+
+2026-11-11. 헤드리스 Chromium(인텔 GPU, ANGLE Vulkan)에서 CPU를 4배 느리게 하고, 시점마다 60 프레임을 `record.step` 으로 넘기며 1픽셀을 읽어 GPU까지 끝낸 시간을 쟀습니다. 폰 경로는 `?touch`(960 × 432 px, 배율 1.5). 두 번씩 번갈아 잰 중앙값이며, 다른 세션이 함께 돌아 프레임 시간은 ±30 % 흔들립니다. 실제 폰(Pixel)의 fps 는 아직 재지 못했습니다.
+
+정문 밖 · 로터리가 더한 것(폰 경로, draw call · 삼각형 · GPU 시간):
+
+| 시점 | 정문 밖 전 (45a5e52) | 로터리 전 (4689e2c) | 로터리 뒤 (ade09d1) |
+|---|---|---|---|
+| 정문에서 남쪽 | 30 · 33만 · 12.8 ms | 71 · 48만 · 15.4 ms | 99 · 66만 · 17.6 ms |
+| 하늘에서 정문 위 | 30 · 31만 · 10.6 ms | 82 · 49만 · 10.9 ms | 107 · 72만 · 15.8 ms |
+| 백양로 가운데 · 언더우드관 앞 | 1,228 · 568 call | 1,279 · 588 call | 1,274 · 592 call |
+
+캠퍼스 안 시점에서는 정문 밖이 그려지지 않고(320 m 칸 메시가 시야 밖), CPU 쪽 일만 남아 있었습니다. 그것을 줄인 결과(한 프레임, CPU 4배):
+
+| | 전 | 뒤 |
+|---|---|---|
+| 차 갱신, 언더우드관 앞 (폰 27대 · 데스크톱 67대) | 0.21 · 0.65 ms | 0.02 · 0.01 ms |
+| 차 갱신, 정문 앞 (폰) | 0.26 ms | 0.06 ms |
+| 연세로 사람 갱신, 언더우드관 앞 | 0.08 ms | 0 |
+| 충돌 밀어내기 한 번, 정문 앞 · 언더우드관 앞 | 0.27 · 0.29 ms | 0.0007 · 0.004 ms |
+| 언더우드관 앞 draw call (신호등) | 592 | 589 |
+
+- 충돌: 칸 안 콜라이더가 정문 앞 175개(연세로 둘레 얇은 상자), 언더우드관 앞 1,181개(관목 · 나무) → 3개, 236개를 상자로 거른 뒤 몇 개. 충돌 상자 5,038 → 90개.
+- 땅 조각 `terrain_south`: 정점 1.6만 · 삼각형 3.2만, draw call 하나(땅 재질, 시야 밖이면 빠짐), 파일 65 KB.
+- `ground_splat_town.png`: 파일 32 KB, GPU 데스크톱 8.9 MB · 폰 5.5 MB(1008 × 1024로 줄임, 밉맵 포함).
+- 구운 해 그림자에 정문 밖을 더한 뒤: GPU 17.1 → 21.2 MB(밉맵 포함), 파일 2.2 → 2.5 MB.
+- 정문 밖 GLB: 0.59 MB(로터리 전) → 1.19 MB. 연세로 세로 간판 · 현수막: draw call +3, 삼각형 +1천.
+- 같은 날 정문을 28 m 북쪽으로 옮기고 성산로를 열 차로로, 로터리에 정류장 · 서 있는 사람을 더한 뒤(폰 경로, 정문 y −412 m에서 남쪽): 125 call · 68만, 하늘에서 정문 위 103 call · 72만.
+  정문 밖 사람은 폰 22명(걷는 6, 로터리 앞에 서 있는 16), 데스크톱 79명이고, 시점 190 m 안에서만 장면에 듭니다.
+- 땅 셰이더가 읽는 텍스처는 폰 17개(로터리 전 16개, `uTSplat`), 데스크톱 18개입니다. WebGL 2가 보장하는 것은 16개라, 16개만 주는 GPU(ANGLE D3D11 · Metal, GLES 안드로이드 다수)에서는 땅 셰이더가 컴파일되지 않을 수 있습니다. 이 기계(32개)에서는 확인하지 못했습니다.
 
 ## 에셋 파이프라인 (다시 빌드하기)
 

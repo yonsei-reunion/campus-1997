@@ -5,6 +5,7 @@
 // person's feet, the body's outline under a car. In the baked shadow of a building or a tree they are fainter (no
 // sun to block there, only the sky).
 import * as THREE from 'three';
+import { SUN_MAP_GLSL } from './bakedshadow.js';
 
 const MAX = 320;
 const FAR = 70;                                   // farther from the view than this: no blob
@@ -27,6 +28,7 @@ const VERT = `
 const FRAG = `
   uniform sampler2D uSunMap;
   uniform vec4 uSunRect;
+  ${SUN_MAP_GLSL}
   uniform vec3 uView;
   varying vec2 vP; varying vec4 vShape; varying vec2 vSoft; varying vec3 vW;
   void main() {
@@ -37,8 +39,7 @@ const FRAG = `
     float a = vSoft.y * exp( -t * t );
     // in the shade (baked sun shadow) only the sky is blocked: fainter
     vec2 p = vec2( vW.x, -vW.z );
-    vec2 uv = vec2( ( p.x - uSunRect.x ) / ( uSunRect.z - uSunRect.x ), ( uSunRect.w - p.y ) / ( uSunRect.w - uSunRect.y ) );
-    float sun = texture2D( uSunMap, clamp( uv, 0.0, 1.0 ) ).r;
+    float sun = sunMapAt( p, dFdx( p ), dFdy( p ) );
     a *= mix( 0.45, 1.0, sun );
     a *= 1.0 - smoothstep( ${(FAR - 20).toFixed(1)}, ${FAR.toFixed(1)}, distance( vW, uView ) );
     gl_FragColor = vec4( vec3( 1.0 - a ), 1.0 );

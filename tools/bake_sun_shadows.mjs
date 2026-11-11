@@ -1,5 +1,7 @@
 // Bake the campus's static sun shadow (web/src/bakedshadow.js) into web/public/assets/textures/sun_shadow.png, and
 // the height of the walked surface over the terrain it lies on (terraces, plinths, flights) into sun_ground.png.
+// sun_shadow.png holds the town south of the campus too (정문 밖, 연세로, 신촌 로터리), coarser, in slices east of the
+// campus's block (bakedshadow.js TOWN_RECT, SUN_MAP_GLSL).
 // Run it after anything that casts a shadow or is walked on has changed (buildings, trees, shrubs, props, parked
 // cars, the amphitheater) or the sun:
 //   cd web && npm run dev          (any port; the page is opened in desktop mode: the bake uses the shadow map)
@@ -91,9 +93,13 @@ fs.writeFileSync(OUT, png(w, h, data));
 fs.writeFileSync(OUT_GROUND, png(res.lw, res.lh, lift));
 let lit = 0, raised = 0, top = 0, full = 0;
 for (const v of data) lit += v;
+// (the town's slices: the columns east of the campus's 3200, the rows they fill)
+let tl = 0, tn = 0;
+for (let r = 0; r < h; r++) for (let c = 3200; c < w; c++) { const v = data[r * w + c]; if (v < 255) { tl += v; tn++; } }
 for (const v of lift) { if (v >= 10) raised++; if (v > top) top = v; if (v === 255) full++; }
 const MB = (f) => (fs.statSync(f).size / 1e6).toFixed(2);
 console.log(`baked ${w}x${h} in ${((Date.now() - t0) / 1000).toFixed(0)} s, mean ${(lit / data.length / 255).toFixed(3)} -> ${OUT} (${MB(OUT)} MB)`);
+console.log(`town slices: ${(tn / 1e6).toFixed(2)} M texels in some shadow, mean of those ${(tl / Math.max(1, tn) / 255).toFixed(3)}`);
 // (sun_ground: 0.05 m a level, src/bakedshadow.js LIFT_STEP; 255 = 12.75 m or more)
 console.log(`walked surface: ${(raised / lift.length * 100).toFixed(1)} % of the texels 0.5 m or more over the terrain, highest ${(top * 0.05).toFixed(2)} m` +
   `${full ? ` (${full} texels clipped)` : ''} -> ${OUT_GROUND} (${MB(OUT_GROUND)} MB)`);
