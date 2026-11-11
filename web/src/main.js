@@ -291,7 +291,7 @@ async function main() {
   // ---------------------------------------------------------------- props
   progress('가로등과 벤치를 놓는 중…', 16);
   const colliders = new Colliders();
-  for (const b of campus.buildings) colliders.addPolygon(b.style === 'lm:hanok' ? hanokWalls(b.footprint) : b.footprint);
+  for (const b of campus.buildings) colliders.addPolygon(b.style === 'lm:hanok' ? hanokWalls(b.footprint) : RECT_HALLS.has(b.style) ? minAreaRect(b.footprint) : b.footprint);
   for (const poly of campus.colliders || []) colliders.addPolygon(poly);     // parts outside the OSM outlines (백주년기념관's front block)
   {
     const byKind = {};
@@ -507,8 +507,20 @@ async function main() {
     }
     return false;
   };
+  // (and never in a pocket no walker gets out of: a garden's parterre, the gaps of a planting, inside a hall's walls;
+  // Colliders.walkOut). Nor under a roof: the first face of the halls and landmarks straight down from above, more than
+  // a storey over the walked surface there (inside walls the outlines miss; a porch or an arcade too, which only moves
+  // the walker out from under it)
+  const roofRay = new THREE.Raycaster();
+  roofRay.firstHitOnly = true;
+  const underRoof = (x, y) => {
+    roofRay.set(from.set(x, 900, -y), DOWN);
+    const h = roofRay.intersectObjects(player.walls, false)[0];
+    return !!h && h.point.y > (player.groundAt(x, -y, 400) ?? hfNear.height(x, y)) + 2.2;
+  };
+  const walkOut = (x, y) => colliders.walkOut(x, y, undefined, underRoof);
   const landAt = (x, y) => {
-    if (!beyondGate(x, y)) return [x, y, null];
+    if (!beyondGate(x, y)) return [...walkOut(x, y), null];
     setTimeout(() => ui.toast('신촌 쪽으로는 걸어갈 수 없어요 · 정문에서 걸어요', 3500), 0);   // (after the start's own)
     return [campus.spawn.pos[0], campus.spawn.pos[1], campus.spawn.yaw];
   };
@@ -613,7 +625,7 @@ async function main() {
   };
   $('#start').addEventListener('click', () => {
     const p = places[placeEl.value];         // '' → 정문 (the walker already stands at the spawn)
-    if (p) { player.teleport(p.x, p.y, p.yaw); forest.update(camera.position, true); }
+    if (p) { player.teleport(...walkOut(p.x, p.y), p.yaw); forest.update(camera.position, true); }
     startWalk(p ? (p.front ? `${p.name} 앞` : p.name) : null);
   });
   $('#resume').addEventListener('click', resume);
@@ -673,13 +685,17 @@ async function main() {
       const h = pickRay.intersectObjects(walkables, false)[0];
       return h ? [h.point.x, -h.point.z] : null;
     },
-    onWalkHere: (x, y) => {
-      [x, y] = colliders.resolve(x, y, 0.6);        // a building's tag sits inside its footprint: step out to the wall
+    onWalkHere: (x, y, l) => {
+      // a pin's walker stands where the start list puts it: before the door, facing it (a building's tag sits inside
+      // its footprint, a memory spot's pin in the middle of its ground: the parterres before 언더우드관, the azaleas
+      // round 용재관, the eagle's dais); 정문: the walk's own start
+      const p = l && (l.id === 'gate' ? { x: campus.spawn.pos[0], y: campus.spawn.pos[1], yaw: campus.spawn.yaw } : places.find((q) => q.name === l.name));
+      if (!p) [x, y] = colliders.resolve(x, y, 0.6);
       const fromTitle = !started;
       leaveBird();
-      const [lx, ly, yaw] = landAt(x, y);            // (신촌: at the gate)
+      const [lx, ly, yaw] = landAt(p ? p.x : x, p ? p.y : y);            // (신촌: at the gate)
       if (fromTitle) startWalk(ui.placeName(lx, ly, false));
-      player.teleport(lx, ly, yaw);
+      player.teleport(lx, ly, yaw ?? p?.yaw ?? null);
       player.cam.ready = false;
       forest.update(camera.position, true);
     },
@@ -935,6 +951,25 @@ async function main() {
   loading.done('1997년, 백양로에 도착했습니다.');
   $('#start').disabled = false;
   $('#tour-start').disabled = false;
+}
+
+// The halls with a pitched roof and the gym stand on the smallest rectangle round their OSM outline (blender/generic.py
+// build_generic, common.py min_area_rect): their walls are that rectangle's, so is the walker's. (On the outline, the
+// corner an L or a T leaves out was open ground inside the walls: 연합신학대학원's 626 m², 한경관's 400 m², 논지당's
+// 80 m²; put down there, the walker could not get out.)
+const RECT_HALLS = new Set(['stone', 'house', 'stone_pale', 'gym']);
+function minAreaRect(fp) {
+  let best = null;
+  for (let i = 0; i < fp.length; i++) {
+    const [ax, ay] = fp[i], [bx, by] = fp[(i + 1) % fp.length];
+    if (Math.hypot(bx - ax, by - ay) < 1e-3) continue;
+    const ang = Math.atan2(by - ay, bx - ax), c = Math.cos(ang), s = Math.sin(ang);
+    const us = fp.map(([x, y]) => x * c + y * s), vs = fp.map(([x, y]) => -x * s + y * c);
+    const u0 = Math.min(...us), u1 = Math.max(...us), v0 = Math.min(...vs), v1 = Math.max(...vs);
+    if (!best || (u1 - u0) * (v1 - v0) < best.area) best = { area: (u1 - u0) * (v1 - v0), c, s, u0, u1, v0, v1 };
+  }
+  const { c, s, u0, u1, v0, v1 } = best;
+  return [[u0, v0], [u1, v0], [u1, v1], [u0, v1]].map(([u, v]) => [u * c - v * s, u * s + v * c]);
 }
 
 // 광혜원's OSM outline takes in its whole stone platform (기단) and more; the walker collides with the hall's walls

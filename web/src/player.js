@@ -63,6 +63,9 @@ const cellKey = (i, j) => (i + 32768) * 65536 + (j + 32768);
 // collider whose box it does not touch. (The 3 x 3 cells of 24 m it read before held 1,181 colliders at 언더우드관's
 // front: 40 µs a push-out, and 290 µs at the gate while the thin walls round 연세로's walks stood there.)
 const MARGIN = 1.0;       // round the circle, for the three passes of a push-out (they move it centimetres)
+// Colliders.walkOut: the grid it walks (m), how far away counts as out (the largest shut-in lawn, by 정문, is 16 x 17 m),
+// how much ground round it does too (m²; the largest is 180), how far it looks for another spot
+const OUT_STEP = 0.5, OUT_REACH = 30, OUT_AREA = 2500, OUT_SEARCH = 60;
 export class Colliders {
   constructor(cell = 8) {
     this.cell = cell;
@@ -104,6 +107,65 @@ export class Colliders {
   insideBuilding(x, y) {
     const a = this.grid.get(cellKey(Math.floor(x / this.cell), Math.floor(y / this.cell)));
     return !!a && a.some((o) => o.type === 'poly' && pointInPoly(x, y, o.pts));
+  }
+  // whether a circle (x, y, r) touches no collider
+  clear(x, y, r = RADIUS) {
+    for (const o of this.near(x, y, r + MARGIN)) {
+      if (x + r < o.minx || x - r > o.maxx || y + r < o.miny || y - r > o.maxy) continue;
+      if (o.type === 'circle') {
+        if (Math.hypot(x - o.x, y - o.y) < o.r + r) return false;
+      } else {
+        const p = o.pts;
+        if (pointInPoly(x, y, p)) return false;
+        for (let i = 0; i < p.length; i++) {
+          const [ax, ay] = p[i], [bx, by] = p[(i + 1) % p.length];
+          if (closestOnSegment(x, y, ax, ay, bx, by)[2] < r) return false;
+        }
+      }
+    }
+    return true;
+  }
+  // A spot to put the walker down at (x, y) from which it can walk away. Where the walker is put down (a pin of the
+  // bird's eye view, the map, the start list) can lie among plantings no walker gets into: the parterres of
+  // 언더우드관's and 연희관's gardens, closed round by their boxwood edging; the 진달래동산 round 용재관, whose azaleas
+  // stand closer than the walker is wide, with pockets of a couple of metres between them. Put down there, it could
+  // not get out. So: a walk over a grid of OUT_STEP squares, from the spot through the gaps the walker fits through,
+  // until it is OUT_REACH m away (or has OUT_AREA m² round it); if it never gets there, the nearest spot it does
+  // from. shut(x, y): where the walker is not put down besides (main.js: under a hall's or a landmark's roof, inside
+  // walls the outlines miss); asked of the spot only, not along the way out (a ray each: too slow for the walk).
+  walkOut(x, y, r = RADIUS, shut = null) {
+    [x, y] = this.resolve(x, y, r + 0.02);
+    const open = (px, py) => this.clear(px, py, r) && !shut?.(px, py);
+    const tried = new Set();                          // grid squares round (x, y) already found shut in
+    const key = (i, j) => (i + 4096) * 8192 + (j + 4096);
+    const escapes = (sx, sy) => {
+      const seen = new Set(), qi = [0], qj = [0];
+      seen.add(key(0, 0));
+      const max = OUT_AREA / (OUT_STEP * OUT_STEP), far = (OUT_REACH / OUT_STEP) ** 2;
+      for (let h = 0; h < qi.length; h++) {
+        if (qi.length > max) return true;
+        for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const i = qi[h] + di, j = qj[h] + dj, k = key(i, j);
+          if (seen.has(k) || !this.clear(sx + i * OUT_STEP, sy + j * OUT_STEP, r)) continue;
+          if (i * i + j * j >= far) return true;
+          seen.add(k); qi.push(i); qj.push(j);
+        }
+      }
+      // shut in: remember its squares (on the search grid round the first spot)
+      for (let h = 0; h < qi.length; h++) tried.add(key(Math.round((sx - x) / OUT_STEP) + qi[h], Math.round((sy - y) / OUT_STEP) + qj[h]));
+      return false;
+    };
+    if (open(x, y) && escapes(x, y)) return [x, y];
+    // rings outwards from the spot, nearest first
+    for (let d = OUT_STEP; d <= OUT_SEARCH; d += OUT_STEP) {
+      const n = Math.max(8, Math.ceil(2 * Math.PI * d / OUT_STEP));
+      for (let k = 0; k < n; k++) {
+        const a = k * 2 * Math.PI / n, cx = x + d * Math.cos(a), cy = y + d * Math.sin(a);
+        if (tried.has(key(Math.round((cx - x) / OUT_STEP), Math.round((cy - y) / OUT_STEP))) || !open(cx, cy)) continue;
+        if (escapes(cx, cy)) return [cx, cy];
+      }
+    }
+    return [x, y];
   }
   // push a circle (x,y,r) out of every collider (and the moving circles); returns corrected [x,y]
   resolve(x, y, r, movers = []) {

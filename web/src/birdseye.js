@@ -50,7 +50,7 @@ export class BirdsEye {
     this.me.innerHTML = '<span>나</span>';
     this.layer.appendChild(this.me);
     this.bar.querySelector('.walk').addEventListener('click', () => {
-      if (this.selected) this.onWalkHere(this.selected.pos[0], this.selected.pos[1]);
+      if (this.selected) this.onWalkHere(this.selected.pos[0], this.selected.pos[1], this.selected);
     });
     this.bar.querySelector('.memory').addEventListener('click', () => { if (this.selected) this.onMemory(this.selected); });
     this.bar.querySelector('.close').addEventListener('click', () => this.select(null));
