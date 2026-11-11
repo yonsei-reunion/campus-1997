@@ -607,6 +607,54 @@ def paint(ob, rules):
     bm.free()
 
 
+# ---------- a skirt that sits ----------
+# The pack weights its clothes round the hips to the thighs well above the hip joints (a knit's hem 7 - 13 cm up is
+# still 0.3 - 0.7 a thigh's) and its skirt as two trouser legs (each half all its thigh's up to the joint). Walking that
+# holds; sitting (clip 'sit': the thighs 88 degrees forward) swings all a thigh holds round the joint, so the front of
+# the skirt there went up into the belly, turning the panel below it inside out (a hole from above), and the knit's hem
+# behind went down and out through the skirt (a white patch on the back). So for a person in a skirt:
+#  - the thighs' share eases out from SKIRT_FREE[0] below the hip joints to SKIRT_FREE[1] above, and goes to the other
+#    bones the vertex has (else Body, which the thighs hang from): the waistband and the knit stay on the hips
+#  - the skirt gets an inner side (its faces again, turned round), so a panel the pose still turns over (at the hip
+#    crease, under the lap) shows the cloth and not what is under it
+SKIRT_FREE = (0.12, 0.0)          # metres (the game's scale) below, above the hip joints
+
+
+def skirt_sit(arm, parts, s):
+    import bmesh
+    hz = sum((arm.matrix_world @ arm.data.bones['UpperLeg.' + side].head_local).z for side in 'LR') / 2
+    lo, hi = hz - SKIRT_FREE[0] / s, hz + SKIRT_FREE[1] / s
+    for ob in parts:
+        me, mw = ob.data, ob.matrix_world
+        legs = {g.index for g in ob.vertex_groups if g.name in ('UpperLeg.L', 'UpperLeg.R')}
+        body = ob.vertex_groups.get('Body') or ob.vertex_groups.new(name='Body')
+        for v in me.vertices:
+            keep = 1 - _smooth(lo, hi, (mw @ v.co).z)
+            ws = {g.group: g.weight for g in v.groups if g.weight > 0}
+            free = sum(w for gi, w in ws.items() if gi in legs) * (1 - keep)
+            if free < 1e-6:
+                continue
+            rest = {gi: w for gi, w in ws.items() if gi not in legs}
+            tot = sum(rest.values())
+            for gi in legs & ws.keys():
+                ob.vertex_groups[gi].add([v.index], ws[gi] * keep, 'REPLACE')
+            if tot > 1e-6:
+                for gi, w in rest.items():
+                    ob.vertex_groups[gi].add([v.index], w + free * w / tot, 'REPLACE')
+            else:
+                body.add([v.index], free, 'REPLACE')
+        names = [m.name if m else '' for m in me.materials]
+        if 'Skirt~new' not in names:
+            continue
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        k = names.index('Skirt~new')
+        dup = bmesh.ops.duplicate(bm, geom=[f for f in bm.faces if f.material_index == k])
+        bmesh.ops.reverse_faces(bm, faces=[g for g in dup['geom'] if isinstance(g, bmesh.types.BMFace)])
+        bm.to_mesh(me)
+        bm.free()
+
+
 # ---------- 1997 heads: a softened face, calm features, hair grown here ----------
 # The packs' heads are the same face under clumped anime hair (a pony tail and a beard among the men), with block
 # eyes under scowling brows and no mouth.  Each person takes the pack's one head with a whole skull (men: Worker,
@@ -1357,6 +1405,8 @@ def build_person(pid, spec):
         atlas_layer(ob)
         ob.name = f'{pid}-{part}'
         parts.append(ob)
+    if any(m and m.name == 'Skirt~new' for o in parts for m in o.data.materials):         # (recolour's names)
+        skirt_sit(arm, [o for o in parts if o.name.endswith(('-body', '-legs'))], s)
     keep = set(parts) | {arm}
     for o in list(bpy.data.objects):
         if o not in keep:
