@@ -125,20 +125,18 @@ def build():
         return (q.x, q.y, fa[4] + (fb[4] - fa[4]) * t + dz)
 
     def break_at(sa, sb, side):
-        for br in vbreaks[side]:
-            if br[0] - RV - 0.5 < sb and br[1] + RV + 0.5 > sa:
-                return br
-        return None
+        # the openings whose round ends reach into [sa, sb] (several where the verge is cut into short islands, the
+        # forecourt of 학생회관), south to north
+        return [br for br in vbreaks[side] if br[0] - RV - 0.5 < sb and br[1] + RV + 0.5 > sa] or None
 
     def ramp(o):
         # the opening's ramp from the kerb line up to the sidewalk
         return WZ * (o - e_lane) / (e_verge - e_lane)
 
-    def break_segment(a, b, side, br):
-        """one 2 m step of the road beside an opening in the verge, from the gutter out to the sidewalk: the gutter, the
-        verge's round kerbed ends, the gutter round them, the ramp between"""
+    def break_segment(a, b, side, brs):
+        """one 2 m step of the road beside openings in the verge (brs, south to north), from the gutter out to the
+        sidewalk: the gutter, the verge's round kerbed ends, the gutter round them, the ramp between"""
         sa, sb = a[0], b[0]
-        s0, s1 = br[0], br[1]
         INF = 1e6
 
         def P(s, off, dz):
@@ -157,19 +155,26 @@ def build():
 
         def pieces(o, kind):
             """[(from, to, mat, z)] along the road at offset o, from the south verge piece to the north one; kind: the
-            strip's band ('road': the carriageway's gutter strip, 'soil': the verge's soil, 'kerb': its kerbs)"""
+            strip's band ('road': the carriageway's gutter strip, 'soil': the verge's soil, 'kerb': its kerbs).  Per
+            opening six pieces (the verge before it, its kerb, gutter, ramp, gutter, kerb), then the last verge piece"""
+            out, prev = [], -INF
             if kind == 'road':
                 g = circ(RV + GUT, VC, o)
-                return [(-INF, s0 - RV + g, GUTTER, 0.0), (s0 - RV + g, s1 + RV - g, 'asphalt', 0.0), (s1 + RV - g, INF, GUTTER, 0.0)]
+                for s0, s1, _ in brs:
+                    out += [(prev, s0 - RV + g, GUTTER, 0.0), (s0 - RV + g, s1 + RV - g, 'asphalt', 0.0)]
+                    prev = s1 + RV - g
+                return out + [(prev, INF, GUTTER, 0.0)]
             v = circ(RV, VC, o)
             g = circ(RV + GUT, VC, o) if o <= VC else v
             d = circ(RD, DC, o) if kind == 'soil' else v
             z = ramp(o)
             top = LAWN if kind == 'soil' else 'curb'
-            return [(-INF, s0 - RV + d, top, VZ), (s0 - RV + d, s0 - RV + v, 'curb', VZ),
-                    (s0 - RV + v, s0 - RV + g, GUTTER, z + 0.004), (s0 - RV + g, s1 + RV - g, 'pavers', z),
-                    (s1 + RV - g, s1 + RV - v, GUTTER, z + 0.004), (s1 + RV - v, s1 + RV - d, 'curb', VZ),
-                    (s1 + RV - d, INF, top, VZ)]
+            for s0, s1, _ in brs:
+                out += [(prev, s0 - RV + d, top, VZ), (s0 - RV + d, s0 - RV + v, 'curb', VZ),
+                        (s0 - RV + v, s0 - RV + g, GUTTER, z + 0.004), (s0 - RV + g, s1 + RV - g, 'pavers', z),
+                        (s1 + RV - g, s1 + RV - v, GUTTER, z + 0.004), (s1 + RV - v, s1 + RV - d, 'curb', VZ)]
+                prev = s1 + RV - d
+            return out + [(prev, INF, top, VZ)]
 
         cuts = [(e_gut, e_lane, 3, 'road'), (e_lane, e_curb, 2, 'kerb'), (e_curb, e_verge - 0.2, 12, 'soil'),
                 (e_verge - 0.2, e_verge, 2, 'kerb')]
@@ -187,7 +192,10 @@ def build():
                 if kind == 'road':
                     continue
                 # the kerb's face round the verge's ends, from the ramp up to the verge's top
-                for e0, e1, end in ((A[1][1], B[1][1], True), (A[5][0], B[5][0], False)):
+                ends = []
+                for j in range(len(brs)):
+                    ends += [(A[6 * j + 1][1], B[6 * j + 1][1], True), (A[6 * j + 5][0], B[6 * j + 5][0], False)]
+                for e0, e1, end in ends:
                     if not (sa < e0 < sb or sa < e1 < sb):
                         continue
                     e0, e1 = min(max(e0, sa), sb), min(max(e1, sa), sb)
@@ -195,8 +203,13 @@ def build():
                     uv = [(e0, ramp(p0)), (e1, ramp(p1)), (e1, VZ), (e0, VZ)]
                     quad(f if end else [f[1], f[0], f[3], f[2]], KERB, uv if end else [uv[1], uv[0], uv[3], uv[2]])
         # the kerbs' faces along the road where the verge stands: to the carriageway, and the low lip to the sidewalk
+        stands, prev = [], sa
+        for s0, s1, _ in brs:
+            stands.append((prev, min(sb, s0 - RV)))
+            prev = max(prev, s1 + RV)
+        stands.append((max(sa, prev), sb))
         for off, z0_, z1_, inward in ((e_lane, 0.0, VZ, True), (e_verge, WZ, VZ, False)):
-            for u, v in ((sa, min(sb, s0 - RV)), (max(sa, s1 + RV), sb)):
+            for u, v in stands:
                 if v - u > 1e-3:
                     f = [P(u, off, z0_), P(v, off, z0_), P(v, off, z1_), P(u, off, z1_)]
                     uv = [(u, z0_), (v, z0_), (v, z1_), (u, z1_)]
@@ -372,10 +385,10 @@ def build():
             if med > 0:
                 band(0, med, 0, 0, 'asphalt')
             band(med, e_gut, 0, 0, 'asphalt')
-            br = break_at(a[0], b[0], side)
-            if br is not None:
+            brs = break_at(a[0], b[0], side)
+            if brs is not None:
                 # an opening in the verge (a crossing, a side road, a flight's foot): round kerbed ends, a ramp between
-                break_segment(a, b, side, br)
+                break_segment(a, b, side, brs)
             else:
                 # the gutter, the granite curb, then the raised boxwood verge with its own kerb
                 if GUT > 0:

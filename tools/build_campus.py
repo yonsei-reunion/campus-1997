@@ -301,6 +301,19 @@ def prof_h(s):
 # zebra crossings (arc length): 백주년기념관, 학생회관-중앙도서관, 대강당, 삼거리.  Near the gate the 1997 photo
 # shows a yellow/white hatched speed bump (raised, striped) instead.  The carriageway itself stays clear of objects.
 CROSS = [round(s_at(-55, -200), 1), round(s_at(-20, -62), 1), round(s_at(5, 40), 1), round(L - 30, 1)]
+# --- 화단 띠가 끊기는 곳 (reference/고증/2.3_길의_단면과_길가.md, #131).  CROSS_RNG keeps the crossings where they were
+# first put: the verge's and the strip's planting and the sidewalk's decals take their random draws by it, so that
+# moving a crossing changes nothing away from it (strip_fill below plants the old opening from its own numbers)
+CROSS_RNG = list(CROSS)
+# 백주년기념관 앞: the verges' openings on both sides with their round ends, the bollard and the grates, from the
+# 2008-08, 2010-12 and 2011-04 roadview at node 171 solved together (heading and tilt free; 활천대, the eagle and the
+# hall's north-west corner): the east opening's tips at s 224.2 - 229.5, the west's 224.9 - 229.7 (2011 pano held at
+# its position from tools/roadview/statues.py: +0.9 m; the corner at Kakao's base map: -0.9 m); photo A's white
+# stripes about s 229.5.  It was at the Kakao node (235.4)
+CROSS[0] = 227.4
+# 학생회관 앞: the crossing in the 6 m opening between the forecourt's first two islands (VERGE_BREAKS below), east
+# 375.5 - 381.5 (it was 377.7, at the Kakao node)
+CROSS[1] = 378.5
 
 X, Y = grid_pts()
 pts = np.stack([X.ravel(), Y.ravel()], 1)
@@ -2435,7 +2448,7 @@ LIB_CROSS = lf_rect(34.5, 42.5, 11.0, 60.0).difference(_lib_road)     # to the m
 LIB_DIAG = [(-23.2, 9.0), LF(39.0, 12.0)]
 LIB_DIAG_W = 4.2
 # and one from the 학생회관 crossing to the south end of the arcade
-LIB_SDIAG = [along_raw(CROSS[1], E_WALK - 0.3)[:2], LF(9.0, 11.0)]
+LIB_SDIAG = [along_raw(CROSS_RNG[1], E_WALK - 0.3)[:2], LF(9.0, 11.0)]      # (from the crossing as first put)
 LIB_SDIAG_W = 3.2
 LIB_WALKS = unary_union([LIB_APRON, LIB_CROSS, LineString(LIB_DIAG).buffer(LIB_DIAG_W / 2, cap_style=2),
                          LineString(LIB_SDIAG).buffer(LIB_SDIAG_W / 2, cap_style=2)])
@@ -2730,6 +2743,11 @@ def in_gap(s, side, pad=0.0, outer=False, verge=False):
 # 500 m (4.5), the roadview's opening with its round south end just short of it.  Only the verge's shrubs make way
 # (after their random draw, so the planting elsewhere keeps its layout)
 VERGE_BREAKS = [[-1, 496.5, 503.5]]                 # (the foot of 대강당's flight: its posts' outer faces at s 497.4 - 502.9)
+# 학생회관 앞: the verge cut into four short islands (A - D) with round ends, the openings at the carriageway's level
+# with a row of bollards each (2008-08 2480542 - 2480547 and 2010-12 1016786015 - 018, nodes 186 - 189, solved together
+# on the library's, 학생회관's and 백양관's corners: tips within 0.3 m in both years, the frame +-1.2 m).  The crossing
+# takes the 6 m between A and B (CROSS); the last opening, 2.4 m, is the passage to the plaza north of the hall
+VERGE_BREAKS += [[-1, 368.3, 371.9], [-1, 386.5, 393.6], [-1, 396.1, 398.4], [-1, 401.9, 404.3]]
 VERGE_BREAKS.append([BK_MOUTH[0], BK_MOUTH[1], BK_MOUTH[2]])      # (백양관 북쪽 주차장 어귀)
 
 
@@ -2745,13 +2763,15 @@ def in_eng_mouth(s, side, pad=0.0):
 
 
 def in_gap_old(s, side, pad=0.0):
-    # the gaps before the side-road mouth (a 10 m opening in the verge only); used to keep the random draws
-    if any(abs(s - c) < 3.0 + pad for c in CROSS):
+    # the gaps before the side-road mouth (a 10 m opening in the verge only) and the crossings where they were first
+    # put (CROSS_RNG); used to keep the random draws
+    if any(abs(s - c) < 3.0 + pad for c in CROSS_RNG):
         return True
     return any(sd == side and abs(s - g) < hw + pad for g, sd, hw in GAPS + [(82.3, 1, 5.0)])
 
 
 # 백양로 ginkgo rows (은행나무 가로수) in the outer planting strip with a clipped hedge, and the boxwood verges
+strip_fill = random.Random(131)          # (the shrubs where a crossing first stood, CROSS_RNG)
 for side in (-1, 1):
     s = 22.0
     while s < L - 30:
@@ -2770,6 +2790,11 @@ for side in (-1, 1):
                 sc_ = round(rng.uniform(0.95, 1.05), 2)
                 if not in_gap(s, side, 0.6, outer=True) and not in_eng_mouth(s, side, 0.6):
                     shrubs.append(['hedge_low', round(x, 2), round(y, 2), sc_, round(a, 3)])
+        elif not in_gap(s, side, 0.6, outer=True) and not in_eng_mouth(s, side, 0.6):
+            # (where a crossing first stood: planted from strip_fill's numbers)
+            x, y, a = along_raw(s, side * (E_WALK + ROAD['strip'] * 0.5))
+            if not ball.buffer(1).contains(Point(x, y)):
+                shrubs.append(['hedge_low', round(x, 2), round(y, 2), round(strip_fill.uniform(0.95, 1.05), 2), round(a, 3)])
         s += 1.5
     # (the verge: every other shrub a 향나무 clipped in two tiers on a bare trunk -- the April 2011 roadview has
     # them 5 - 6 m apart along every verge from the gate to the library, the May 1997 photo flat-topped pads twice as
@@ -2784,8 +2809,22 @@ for side in (-1, 1):
                     shrubs.append(['juniper_tiers', round(x, 2), round(y, 2), sc_, round((k_ * 2.39996) % 6.2832, 3)])
                 else:
                     shrubs.append(['topiary_round', round(x, 2), round(y, 2), sc_, 0])
+        elif not in_gap(s, side, 0.8, verge=True) and not in_break(s, side, 0.8):
+            # (where a crossing first stood: planted from strip_fill's numbers)
+            x, y, _ = along_raw(s, side * (E_CURB + ROAD['verge'] * 0.5))
+            sc_ = round(strip_fill.uniform(0.95, 1.1), 2)
+            if k_ % 2 == 0:
+                shrubs.append(['juniper_tiers', round(x, 2), round(y, 2), sc_, round((k_ * 2.39996) % 6.2832, 3)])
+            else:
+                shrubs.append(['topiary_round', round(x, 2), round(y, 2), sc_, 0])
         s += 2.6
         k_ += 1
+# 학생회관 앞의 짧은 섬(VERGE_BREAKS): the 2008 / 2010 roadview has a clipped two-tier 향나무 in the middle of the
+# islands A, C and D (B has the lamp and a shrub of the row above); the row's 2.6 m steps miss them (strip_fill's
+# numbers, no draw from rng)
+for _s in (373.7, 394.85, 400.15):                   # (the islands' middles: A 371.9 - 375.5, C 393.6 - 396.1, D 398.4 - 401.9)
+    x, y, _ = along_raw(_s, -(E_CURB + ROAD['verge'] * 0.5))
+    shrubs.append(['juniper_tiers', round(x, 2), round(y, 2), round(strip_fill.uniform(0.9, 1.0), 2), round(strip_fill.uniform(0, 6.28), 3)])
 N_ROWS = len(trees)
 
 # 정문 화단섬: hedge border, red azaleas massed along the south and east edges, pine + maple + zelkova
@@ -4380,6 +4419,7 @@ def _ui_paths():
 # skyview's zebra across the road's end), not 30 m before the old end on the bank
 bys = [tuple(c_) for c_ in substring(bline, 0.0, BY_END_S).coords]
 CROSS = [c_ for c_ in CROSS if c_ < BY_END_S - 20.0] + [round(BY_END_S - 14.0, 1)]
+CROSS_RNG = [c_ for c_ in CROSS_RNG if c_ < BY_END_S - 20.0] + [round(BY_END_S - 14.0, 1)]
 GAPS = [g_ for g_ in GAPS if g_[0] < BY_END_S - 3.0]
 out = dict(
     origin=[LAT0, LON0],
@@ -4407,7 +4447,8 @@ out['baekyangro']['walls'] = [[AUD_BANK['side'], AUD_BANK['s0'], AUD_BANK['s1']]
 out['baekyangro']['strip_breaks'] = [list(o_) for o_ in STRIP_OPEN]     # (제1공학관 앞 진입로, 백양관 앞)
 out['baekyangro']['breaks'] = VERGE_BREAKS          # (the verge's openings besides crossings and gaps, above)
 # yellow-and-black bollards on the ramps of the openings, where the 2008 and the 2010 roadview both have them
-# (side, s; 1997 unknown): 백주년기념관 앞 건널목 (the one south of the grate), 학생회관 앞 (a row across the forecourt)
+# (side, s; 1997 unknown): 백주년기념관 앞 건널목 (the one south of the grate), 학생회관 앞 (two, two, three, two and
+# two in the forecourt's five openings, VERGE_BREAKS)
 _bsm = [np.array(p_, float) for p_ in bys]
 for _ in range(3):                                   # (the road mesh's own frame, Chaikin x3 as blender/road.py)
     _q = [_bsm[0]]
@@ -4415,7 +4456,8 @@ for _ in range(3):                                   # (the road mesh's own fram
         _q += [a_ + (b_ - a_) * 0.25, a_ + (b_ - a_) * 0.75]
     _bsm = _q + [_bsm[-1]]
 _bsm = LineString(_bsm)
-for _sd, _s in ((-1, 234.5), (-1, 375.5), (-1, 377.7), (-1, 379.9)):
+for _sd, _s in ((-1, 226.9), (-1, 369.6), (-1, 370.7), (-1, 378.6), (-1, 380.0), (-1, 388.3), (-1, 390.2), (-1, 392.1),
+                 (-1, 396.9), (-1, 397.75), (-1, 402.6), (-1, 403.5)):
     _p, _p0, _p1 = _bsm.interpolate(_s), _bsm.interpolate(_s - 2), _bsm.interpolate(_s + 2)
     _tx, _ty = _p1.x - _p0.x, _p1.y - _p0.y
     _n = math.hypot(_tx, _ty)
@@ -4492,16 +4534,19 @@ def decal_spots():
 
     e_lane = ROAD['median'] + ROAD['lane']
 
-    def near_cross(s, pad):
-        return any(abs(s - c_) < pad for c_ in CROSS) or abs(s - BUMP_S) < pad - 1.0
+    def near_cross(s, pad, cr=None):
+        return any(abs(s - c_) < pad for c_ in (cr or CROSS)) or abs(s - BUMP_S) < pad - 1.0
 
+    # (the random draws below follow the crossings where they were first put, CROSS_RNG)
     # manholes every 50 m, in the middle of one lane or the other (clear of the booth's island)
     for k, s in enumerate(np.arange(30.0, Ls - 10, 50.0)):
         s += rnd.uniform(-6, 6)
-        if near_cross(s, 6.0) or BOOTH['s'] - 9 < s < BOOTH['s'] + 4:
+        if near_cross(s, 6.0, CROSS_RNG) or BOOTH['s'] - 9 < s < BOOTH['s'] + 4:
             continue
         x, y, h = fr(s, (1 if k % 2 else -1) * (e_lane * 0.5 + rnd.uniform(-0.3, 0.3)))
-        add('manhole', x, y, rnd.uniform(0, 2 * math.pi))
+        a_ = rnd.uniform(0, 2 * math.pi)
+        if not near_cross(s, 6.0):
+            add('manhole', x, y, a_)
     # gully grates against both kerbs every 30 m (none in a crossing, a side road's opening, an opening in the verge or
     # the mouth by the gate): in the concrete gutter, filling its 0.3 m against the kerb (2008 / 2010 roadview, the
     # grates 0.28 m across; the decal's 1.0 x 0.42 m scaled to 0.7 x 0.29 m)
@@ -4513,6 +4558,12 @@ def decal_spots():
                 continue
             x, y, h = fr(s, side * (e_lane - ROAD['gutter'] / 2))
             add('drain', x, y, h, 0.7)
+    # the big grates in the crossings' openings against the kerb line (2008 / 2010 / 2011 roadview: 백주년기념관 앞 on
+    # both sides, the east one half under a loose steel plate; 학생회관 앞 east, between the bollards): the gully grate's
+    # decal at full size (1.0 x 0.42 m; the grates 0.6 - 0.8 m, no square decal)
+    for c_i, side, ds in ((0, -1, 0.1), (0, 1, 0.4), (1, -1, 0.8)):
+        x, y, h = fr(CROSS[c_i] + ds, side * (e_lane - 0.2))
+        add('drain', x, y, h, 1.0)
     # the zebra stripes (road.py: centred on the 2 m frame nearest the crossing, 0.5 m wide, 4 m long, 1 m apart):
     # worn where the wheels run, 0.75 m either side of each lane's middle. Each stripe is a flat quad 12 mm over its
     # frame's height, so on the slope its uphill end sinks under the asphalt: only the part that shows (the scale is
@@ -4535,12 +4586,12 @@ def decal_spots():
     for side in (-1, 1):
         for s in np.arange(5.0, Ls - 5, 7.0):
             s += rnd.uniform(-2.5, 2.5)
-            if near_cross(s, 4.0) or (side == MOUTH[0] and MOUTH[1] - 4 < s < MOUTH[2] + 4) or rnd.random() > 0.75:
+            if near_cross(s, 4.0, CROSS_RNG) or (side == MOUTH[0] and MOUTH[1] - 4 < s < MOUTH[2] + 4) or rnd.random() > 0.75:
                 continue
             x, y, h = fr(s, side * (E_VERGE_ + 0.8 + rnd.random() * (WALK_ - 1.6)))
             add('crack' if rnd.random() < 0.6 else 'stain', x, y, rnd.uniform(0, 2 * math.pi), rnd.uniform(0.8, 1.3))
         for s in np.arange(20.0 + (side > 0) * 20, Ls - 10, 45.0):
-            if near_cross(s, 5.0) or (side == MOUTH[0] and MOUTH[1] - 4 < s < MOUTH[2] + 4) or rnd.random() > 0.7:
+            if near_cross(s, 5.0, CROSS_RNG) or (side == MOUTH[0] and MOUTH[1] - 4 < s < MOUTH[2] + 4) or rnd.random() > 0.7:
                 continue
             x, y, h = fr(s, side * (E_VERGE_ + 0.45))
             add('lid', x, y, h)
