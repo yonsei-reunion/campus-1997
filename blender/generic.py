@@ -571,9 +571,9 @@ def _science_wing(b, poly):
 
 ROOF_EXTRAS = {222843398: observatory}
 # 과학관: cream square glazed tiles, about ten to a window bay (the 1996 album photos reference/과학관_계단_1996_*.jpg;
-# the 2008 roadview, 200 mm tiles); 음악관: white square tiles with grey joints (기악과's 1996 album photo;
-# reference/학교연혁_음악관.jpg still shows them)
-WALL = {222843398: 'tile_cream', 429077789: 'tile_white', 429077790: 'tile_white'}
+# the 2008 roadview, 200 mm tiles); 음악관 신관: white square tiles with grey joints (기악과's 1996 album photo at its
+# door; reference/학교연혁_음악관.jpg still shows them); 구관: smooth white panels (the 2008 roadview, 2381382 - 2381391)
+WALL = {222843398: 'tile_cream', 429077789: 'panel_white', 429077790: 'tile_white'}
 WALL.update({990021: 'plaster_white', 990022: 'plaster_white'})   # (경영학교실단's south wing and front: as its north wing)
 FRAME = {429077789: 'frame_blue', 429077790: 'frame_blue'}      # (and blue window frames in the 1996 photo)
 # per hall: its storey height and window heights instead of its style's, and a wing a storey higher (_science_wing).

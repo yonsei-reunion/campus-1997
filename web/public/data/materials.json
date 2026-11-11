@@ -1102,6 +1102,19 @@
   "rough": 0.65,
   "nor": 0.5
  },
+ "panel_white": {
+  "_doc": "음악관 구관's smooth white panels (2008 roadview): stone_panel_white's texture at 1.2 m panels",
+  "weather": 0.15,
+  "tex": "white_stone_panels",
+  "tile": 4.8,
+  "tint": [
+   1.0,
+   1.0,
+   0.98
+  ],
+  "rough": 0.65,
+  "nor": 0.5
+ },
  "frame_blue": {
   "color": [
    0.1,

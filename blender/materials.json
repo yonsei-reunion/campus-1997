@@ -1011,6 +1011,7 @@
  "tile_white": {"weather": 0.3, "streak": 0.4, "tex": "white_square_tiles", "tile": 1.2, "tint": [1.0, 1.0, 0.99], "rough": 0.45},
  "tile_cream": {"weather": 0.3, "streak": 0.4, "tex": "white_square_tiles", "tile": 1.6, "tint": [0.9, 0.79, 0.55], "rough": 0.45},
  "stone_panel_white": {"weather": 0.15, "tex": "white_stone_panels", "tile": 2.6, "tint": [1.0, 1.0, 0.98], "rough": 0.65, "nor": 0.5},
+ "panel_white": {"_doc": "음악관 구관's smooth white panels (2008 roadview): stone_panel_white's texture at 1.2 m panels", "weather": 0.15, "tex": "white_stone_panels", "tile": 4.8, "tint": [1.0, 1.0, 0.98], "rough": 0.65, "nor": 0.5},
  "frame_blue": {"color": [0.1, 0.27, 0.6], "rough": 0.45, "metal": 0.3},
  "court_clay": {"color": [0.5, 0.24, 0.13], "rough": 0.95},
  "court_hard": {"color": [0.12, 0.25, 0.18], "rough": 0.8},
