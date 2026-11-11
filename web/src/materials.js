@@ -18,9 +18,56 @@ export const texCount = { asked: 0, done: 0, onChange: null };
 const texIn = () => { texCount.done++; texCount.onChange?.(); };
 // The renderer, once main.js has one: each texture goes up to the GPU as soon as its image is in, while the rest still
 // come down, not all at the first frame (there decoding the campus's hundred images held the page for 2 s)
-let gpu = null;
-export function uploadEarly(renderer) { gpu = renderer; }
+let gpu = null, gpuIn;
+const gpuReady = new Promise((r) => (gpuIn = r));
+export function uploadEarly(renderer) { gpu = renderer; gpuIn(renderer); }
 export function upload(t) { gpu?.initTexture(t); }
+
+// One texture from the channels of several, drawn on the GPU once they are in (mipmapped, tiled). For a shader that
+// would read more textures than a device has units: WebGL2 promises 16, and many Android phones and the browsers on
+// Windows and macOS give no more. srcs: textures (loadTex); glsl: the body of `vec4 pack(vec2 uv)`, reading source i
+// with tex<i>(uv) (GLSL 3); srgb: the RGB is colour (stored as sRGB; the alpha stays linear); scale: the size, of the
+// largest source's (each source read at the mip level that fits). The sources are let go after, but where another
+// material shows the same image (the library's lawn, dirt, asphalt and pavers) that one stays on the GPU: the packed
+// texture is memory on top.
+export function packTextures(srcs, glsl, { srgb = false, scale = 1 } = {}) {
+  const rt = new THREE.WebGLRenderTarget(1, 1, {
+    depthBuffer: false, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter,
+    wrapS: THREE.RepeatWrapping, wrapT: THREE.RepeatWrapping, anisotropy: 8,
+    colorSpace: srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace,
+  });
+  const pr = Promise.all([gpuReady, ...srcs.map((s) => loading.get(s))]).then(([renderer]) => {
+    const w = Math.max(1, Math.round(Math.max(...srcs.map((s) => s.image?.width || 1)) * scale));
+    const h = Math.max(1, Math.round(Math.max(...srcs.map((s) => s.image?.height || 1)) * scale));
+    rt.setSize(w, h);
+    const lod = (s) => Math.max(0, Math.log2((s.image?.width || 1) / w)).toFixed(3);
+    const mat = new THREE.RawShaderMaterial({
+      glslVersion: THREE.GLSL3,
+      uniforms: Object.fromEntries(srcs.map((s, i) => [`s${i}`, { value: s }])),
+      vertexShader: 'in vec3 position; out vec2 vUv; void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: `precision highp float;
+        ${srcs.map((s, i) => `uniform sampler2D s${i}; vec4 tex${i}(vec2 uv) { return textureLod(s${i}, uv, ${lod(s)}); }`).join('\n')}
+        in vec2 vUv; out vec4 o;
+        vec4 pack(vec2 uv) { ${glsl} }
+        void main() { o = pack(vUv); }`,
+      depthTest: false, depthWrite: false,
+    });
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat);
+    quad.frustumCulled = false;
+    const scene = new THREE.Scene().add(quad);
+    const prev = renderer.getRenderTarget();
+    renderer.setRenderTarget(rt);
+    renderer.render(scene, new THREE.Camera());
+    renderer.setRenderTarget(prev);
+    quad.geometry.dispose();
+    mat.dispose();
+    for (const s of srcs) s.dispose();
+    pending.delete(pr);
+  });
+  pending.add(pr);
+  loading.set(rt.texture, pr);
+  return rt.texture;
+}
 
 // every texture asked for so far, or (objects) only those the materials under them use
 export function texturesReady(objects) {

@@ -2,7 +2,7 @@
 // and the sky dome.  World frame: X = east, Y = up, Z = -north.
 import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
-import { loadTex, shrinkImage, pcss, upload } from './materials.js';
+import { loadTex, shrinkImage, pcss, upload, packTextures } from './materials.js';
 import { MOBILE, mulberry, placeMatrix, versioned } from './util.js';
 import { ATMOS, ATMOS_GLSL, SKY_DRIFT } from './materials.js';
 import { LITTER_GLSL, litterMagnolias } from './litter.js';
@@ -158,11 +158,38 @@ export function makeSouthTerrain(hf, material) {
   return mesh;
 }
 
+// The ground's tiled textures, six packed in three (materials.js packTextures): the near terrain's shader read 18
+// textures on the desktop and 17 on phones, more than the 16 every WebGL2 device has (there the ground may not be
+// drawn at all); now 15 and 14. Of the normal maps only the slope (x, y) is read, of the lawn only its brightness:
+//  - gdN: the lawn's normal (x, y) and the raked dirt's (z, w), both tiled every 4 m: one read for both
+//  - apN: the asphalt's normal (x, y) and the pavers' (z, w)
+//  - gfD: the forest floor's colour (rgb, sRGB) and the lawn's linear luminance (a; its green channel was read as a
+//    noise before: the two agree to within 0.03, linear means 0.24 and 0.25)
+// The library's lawn, dirt, asphalt and pavers keep the source images on the GPU, so the packs are memory on top: the
+// normals at half the size (1024 px, phones 512: a 4 mm texel on the lawn, a little blur at one's feet), 28 MB on the
+// desktop and 3 MB on phones with their mipmaps (the forest floor's own map, 6 MB, is let go).
+// Shared with the grass blades (grass.js) and the verge (verge.js).
+let packs = null;
+export function groundPacks() {
+  if (packs) return packs;
+  const P = 'assets/textures/pbr/';
+  const T = (n, srgb = true) => loadTex(P + n, { srgb });
+  const xy2 = 'return vec4(tex0(uv).xy, tex1(uv).xy);';
+  packs = {
+    gdN: packTextures([T('leafy_grass/nor.jpg', false), T('raked_dirt/nor.jpg', false)], xy2, { scale: 0.5 }),
+    apN: packTextures([T('asphalt_02/nor.jpg', false), T('patterned_concrete_pavers/nor.jpg', false)], xy2, { scale: 0.5 }),
+    gfD: packTextures([T('forest_ground_04/diff.jpg'), T('leafy_grass/diff.jpg')],
+      'return vec4(tex0(uv).rgb, dot(tex1(uv).rgb, vec3(0.299, 0.587, 0.114)));', { srgb: true }),
+  };
+  return packs;
+}
+
 export function makeNearTerrain(hf, campus, lib) {
   const g = gridGeometry(hf, { skirt: 40 });
   const S = campus.splat;
   const P = 'assets/textures/pbr/';
   const T = (n, srgb = true) => loadTex(P + n, { srgb });
+  const { gdN, apN, gfD } = groundPacks();
   const uniforms = {
     uSplat: { value: loadTex('assets/textures/ground_splat.png', { srgb: false, repeat: false, mobileMax: 2048 }) },
     // worn, dry lawn (the east lawn and the 화단섬 of the May 1997 photo): same rectangle, 1 m texels
@@ -174,11 +201,9 @@ export function makeNearTerrain(hf, campus, lib) {
     // stairwells (dark), the rest of its rectangle the ground's own (the round island's lawn)
     uTSplat: { value: campus.tsplat ? loadTex('assets/textures/ground_splat_town.png', { srgb: false, repeat: false }) : null },
     uTRect: { value: campus.tsplat ? new THREE.Vector4(campus.tsplat.x0, campus.tsplat.y0, campus.tsplat.x1, campus.tsplat.y1) : new THREE.Vector4(0, 0, -1, -1) },
-    gD: { value: T('leafy_grass/diff.jpg') }, gN: { value: T('leafy_grass/nor.jpg', false) },
-    aD: { value: T('asphalt_02/diff.jpg') }, aN: { value: T('asphalt_02/nor.jpg', false) },
-    pD: { value: T('patterned_concrete_pavers/diff.jpg') }, pN: { value: T('patterned_concrete_pavers/nor.jpg', false) },
-    dD: { value: T('raked_dirt/diff.jpg') }, dN: { value: T('raked_dirt/nor.jpg', false) },
-    fD: { value: T('forest_ground_04/diff.jpg') },
+    aD: { value: T('asphalt_02/diff.jpg') }, pD: { value: T('patterned_concrete_pavers/diff.jpg') },
+    dD: { value: T('raked_dirt/diff.jpg') },
+    gdN: { value: gdN }, apN: { value: apN }, gfD: { value: gfD },
     uGrass: lib.uniforms.uGrass,
     // the month's fallen leaves (litter.js): shared with 백양로's road materials, over the same rectangle
     uLeaf: lib.uniforms.uLeaf, uLitter: lib.uniforms.uLitter, uLeafRect: lib.uniforms.uLeafRect, uFall: lib.uniforms.uFall,
@@ -197,10 +222,9 @@ export function makeNearTerrain(hf, campus, lib) {
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec3 vWPos; varying vec3 vWNrm;
-        uniform sampler2D uSplat, uDry, gD, gN, aD, aN, pD, pN, dD, dN, fD, uTSplat;
+        uniform sampler2D uSplat, uDry, aD, pD, dD, gdN, apN, gfD, uTSplat;
         uniform vec4 uRect, uTRect; uniform vec3 uGrass; uniform vec2 uPaveAng;
         vec3 gTN; float gRough;
-        vec3 nrm(sampler2D t, vec2 uv) { return texture2D(t, uv).xyz * 2.0 - 1.0; }
         float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
         ${PAVE_GLSL}
         ${LITTER_GLSL}`)
@@ -229,13 +253,12 @@ export function makeNearTerrain(hf, campus, lib) {
         sp.g = pvS * (1.0 - raS);
         // break up hard splat edges with a little texture-driven noise
         float macro = texture2D(dD, wp / 61.0).r;
-        float n2 = texture2D(gD, wp / 23.0).g;
+        float n2 = texture2D(gfD, wp / 23.0).a;
         sp.b = clamp(sp.b + (macro - 0.45) * 0.25 * step(0.05, sp.b), 0.0, 1.0 - pvS);
         float wa = sp.r, wpv = sp.g, wd = sp.b;
         float wg = max(0.0, 1.0 - wa - wpv - wd);
         vec2 ug = wp / 4.0, ua = wp / 7.0, up = wp / 2.4, ud = wp / 4.0;
-        vec3 cg = texture2D(gD, ug).rgb;
-        float lum = dot(cg, vec3(0.299, 0.587, 0.114));
+        float lum = texture2D(gfD, ug).a;
         vec3 grass = uGrass * (0.45 + 1.6 * lum) * mix(0.82, 1.15, macro) * mix(0.92, 1.06, n2);
         grass = mix(grass, grass * vec3(1.15, 1.05, 0.7), smoothstep(0.55, 0.75, macro) * 0.5);
         // asphalt: the 1997 photo's roads are even, so the texture's cracks and patches are toned down (issue #11:
@@ -243,7 +266,7 @@ export function makeNearTerrain(hf, campus, lib) {
         vec3 aTex = texture2D(aD, ua).rgb;
         vec3 asph = mix(texture2D(aD, ua, 9.0).rgb, aTex, 0.55) * 0.85;
         vec3 pav = texture2D(pD, up).rgb * vec3(1.08, 0.94, 0.92);
-        vec3 pavN = nrm(pN, up);
+        vec3 pavN = vec3(texture2D(apN, up).zw * 2.0 - 1.0, 1.0);
         vec3 dryK = texture2D(uDry, suv).rgb * inside;      // R the dry lawn, G and B the paving's kind
         vec2 kfw = fwidth(dryK.gb);
         vec2 pfw2 = fwidth(wp);
@@ -255,7 +278,7 @@ export function makeNearTerrain(hf, campus, lib) {
           pavN = mix(pavN, kn, kw);
         }
         vec3 dirt = texture2D(dD, ud).rgb;
-        vec3 forest = texture2D(fD, wp / 5.0).rgb * 0.8;
+        vec3 forest = texture2D(gfD, wp / 5.0).rgb * 0.8;
         float forestMask = smoothstep(0.55, 0.7, sp.b) * (1.0 - smoothstep(0.85, 0.95, sp.b));
         dirt = mix(dirt, forest, forestMask);
         // dry lawn: the grass goes to straw, with patches of bare trodden earth where the macro noise is high
@@ -283,7 +306,9 @@ export function makeNearTerrain(hf, campus, lib) {
         float litCov = litter(wp, wg, litCol);
         albedo = mix(albedo, litCol, litCov);
         diffuseColor.rgb *= albedo;
-        gTN = nrm(gN, ug) * wg + nrm(aN, ua) * wa * 0.45 + pavN * wpv + nrm(dN, ud) * wd;
+        // (only the normals' x and y are read below; the lawn's and the dirt's lie at the same 4 m tiling: one read)
+        vec4 gdn = texture2D(gdN, ug) * 2.0 - 1.0;
+        gTN = vec3(gdn.xy * wg + (texture2D(apN, ua).xy * 2.0 - 1.0) * wa * 0.45 + gdn.zw * wd, 0.0) + pavN * wpv;
         gTN *= 1.0 - 0.75 * litCov;
         gRough = mix(0.98 * wg + 0.92 * wa + 0.85 * wpv + 1.0 * wd, 0.8, litCov);
       `)

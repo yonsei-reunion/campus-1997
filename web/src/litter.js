@@ -21,8 +21,8 @@ let tiles = null;
 // corner of 연희관 앞 정원 the fallen petals whiten the ground under the whole crown, the cherries' ground beside it
 // all but bare). There are only a few magnolias, so where they lie is worked out from the trees themselves (uMag: x,
 // y, crown radius, how much a tree sheds: the young one before 언더우드관 hardly any) instead of a mask channel, and
-// the petals are drawn in the shader rather than from a tile: the terrain's shader is already at sixteen samplers on
-// the phone path, the most many phones take.
+// the petals are drawn in the shader rather than from a tile: the terrain's shader has few samplers to spare (16 is
+// the most many phones take; terrain.js groundPacks).
 export const MAG_N = 4;
 export const MAG_GLSL = `
   uniform vec4 uMag[${MAG_N}];

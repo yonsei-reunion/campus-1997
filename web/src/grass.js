@@ -11,6 +11,7 @@
 // Farther clumps thin out one by one (a per-clump dither by rank).
 import * as THREE from 'three';
 import { loadTex } from './materials.js';
+import { groundPacks } from './terrain.js';
 import { MAG_GLSL } from './litter.js';
 import { MOBILE, mulberry, versioned } from './util.js';
 
@@ -156,7 +157,8 @@ export class Grass {
       uSunMatrix: { value: sun.shadow.matrix },
       uRect: { value: new THREE.Vector4(S.x0, S.y0, S.x1, S.y1) },
       // the terrain's own textures (loadTex hands back the same objects): the clump's colour is the ground's
-      gD: { value: loadTex(P + 'leafy_grass/diff.jpg') }, dD: { value: loadTex(P + 'raked_dirt/diff.jpg') },
+      // (the lawn's brightness: the alpha of the packed forest floor, terrain.js groundPacks)
+      gfD: { value: groundPacks().gfD }, dD: { value: loadTex(P + 'raked_dirt/diff.jpg') },
       uDry: { value: loadTex('assets/textures/ground_dry.png', { srgb: false, repeat: false }) },
       uGrass: lib.uniforms.uGrass,
       uLeaf: lib.uniforms.uLeaf, uLeafRect: lib.uniforms.uLeafRect, uFall: lib.uniforms.uFall,
@@ -324,7 +326,7 @@ export class Grass {
         attribute vec2 aBlade;
         attribute vec2 aInst;
         uniform float uTime, uShadowOn;
-        uniform sampler2D uShadow, gD, dD, uDry, uLeaf;
+        uniform sampler2D uShadow, gfD, dD, uDry, uLeaf;
         uniform vec2 uShadowSize;
         uniform mat4 uSunMatrix;
         uniform vec4 uRect, uLeafRect;
@@ -345,8 +347,8 @@ export class Grass {
             vec2 wp = vec2(root.x, -root.z);
             vec2 suv = vec2((wp.x - uRect.x) / (uRect.z - uRect.x), (uRect.w - wp.y) / (uRect.w - uRect.y));
             float macro = textureLod(dD, wp / 61.0, 4.0).r;
-            float n2 = textureLod(gD, wp / 23.0, 4.0).g;
-            float lum = dot(textureLod(gD, wp / 4.0, 4.0).rgb, vec3(0.299, 0.587, 0.114));
+            float n2 = textureLod(gfD, wp / 23.0, 4.0).a;
+            float lum = textureLod(gfD, wp / 4.0, 4.0).a;
             vec3 g = uGrass * (0.45 + 1.6 * lum) * mix(0.82, 1.15, macro) * mix(0.92, 1.06, n2);
             g = mix(g, g * vec3(1.15, 1.05, 0.7), smoothstep(0.55, 0.75, macro) * 0.5);
             float onVerge = step(1.5, aInst.y), tone = aInst.y - 2.0 * onVerge;

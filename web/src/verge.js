@@ -40,8 +40,8 @@ function vergeEdit(uniforms) {
           vec2 vd = wp - uVergeF.zw;
           vec2 vq = vec2(dot(vd, vec2(-uVergeF.y, uVergeF.x)), dot(vd, uVergeF.xy));
           float vm = texture2D(uVergeBare, (vq - uVergeR.xy) * uVergeR.zw).r;
-          // (the lawn texture's green: linear mean 0.24, spread 0.1)
-          float vf = texture2D(gD, wp / 1.3).g * 0.6 + texture2D(gD, wp / 4.7 + 0.31).g * 0.4 - 0.24;
+          // (the lawn texture's brightness: linear mean 0.25, spread 0.1)
+          float vf = texture2D(gfD, wp / 1.3).a * 0.6 + texture2D(gfD, wp / 4.7 + 0.31).a * 0.4 - 0.25;
           wd = smoothstep(0.42, 0.6, vm + vf * 2.2);
           wg = 1.0 - wd;
         }`);
