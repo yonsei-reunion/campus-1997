@@ -1034,5 +1034,6 @@
  "sign_sinchon": {"_doc": "연세로 가게 간판 (2019 · 2021 문집의 신촌 약도, tools/make_textures.py sign_sinchon): 2 x 8 atlas", "image": "sign_sinchon.png", "rough": 0.5, "emissiveMap": true},
  "sign_sinchon2": {"_doc": "신촌 로터리의 연세로 가게 간판과 모퉁이 건물 간판 (tools/make_textures.py sign_sinchon2, tools/sinchon_rotary.py): 2 x 8 atlas", "image": "sign_sinchon2.png", "rough": 0.5, "emissiveMap": true},
  "sign_yonseiro": {"_doc": "연세로 가게 벽에서 튀어나온 세로 간판 (tools/make_textures.py sign_yonseiro, tools/sinchon_rotary.py yro_wall_signs): 8 x 2 cells over the banner's strip", "image": "sign_yonseiro.png", "rough": 0.5, "emissiveMap": true},
- "banner_yonseiro": {"_doc": "연세로를 가로지른 제5회 신촌문화축제 현수막 (1996.5, sign_yonseiro.png 아래 띠)", "image": "sign_yonseiro.png", "rough": 0.85}
+ "banner_yonseiro": {"_doc": "연세로를 가로지른 제5회 신촌문화축제 현수막 (1996.5, sign_yonseiro.png 아래 띠)", "image": "sign_yonseiro.png", "rough": 0.85},
+ "sign_rotary": {"_doc": "신촌 로터리 북쪽 연세로 위의 파란 방향 표지 「모래내 · 독립문」 (tools/make_textures.py sign_rotary, 1996년 사진 51979)", "image": "sign_rotary.png", "rough": 0.45, "emissiveMap": true}
 }

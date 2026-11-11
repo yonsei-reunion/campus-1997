@@ -47,6 +47,7 @@
 | ![백양로 끝 계단 2003년 봄 사진](docs/compare/uw_steps_photo.jpg)<br>**백양로 끝 계단** · 언더우드관 앞길 볼라드 · 2003년 봄 | ![게임의 백양로 끝 계단](docs/compare/uw_steps_game.jpg) |
 | ![해태상과 연희관 앞 매점 2003년 사진](docs/compare/haetae_kiosk_photo.jpg)<br>**해태상** · 연희관 녹색 천막 매점 · 2003년 | ![게임의 해태상과 매점](docs/compare/haetae_kiosk_game.jpg) |
 | ![연세로 1996년 사진](docs/compare/yonsei_ro_photo.jpg)<br>**연세로** · 1996년 5월, 신촌 로터리에서 굴다리와 정문 쪽(서울연구원, CC BY 4.0) | ![게임의 연세로](docs/compare/yonsei_ro_game.jpg) |
+| ![신촌 로터리 1996년 사진](docs/compare/sinchon_rotary_photo.jpg)<br>**신촌 로터리** 가운데 섬 · 1996년 5월, 그레이스백화점 옥상에서(서울연구원, CC BY 4.0. 게임은 사진에서 푼 카메라) | ![게임의 신촌 로터리](docs/compare/sinchon_rotary_game.jpg) |
 
 ## 게임 화면
 

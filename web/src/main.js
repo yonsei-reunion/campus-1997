@@ -439,8 +439,14 @@ async function main() {
   crowd.season = season;
   crowd.bubbles = new Bubbles($('#bubbles'), camera);
   // 연세로's two sidewalks to 신촌 로터리 (campus.json town.walks): a crowd of their own, its own random stream
+  // 신촌 로터리 (tools/sinchon_rotary.py town.waiting): standing about in front of 홍익문고 and 그레이스백화점 and at
+  // the two bus stops, alone (looking out for someone) or in twos and threes; fewer on the phone
+  const rotWait = campus.town?.waiting;
+  const rotGroups = rotWait ? rotWait.groups.filter((g, i) => !MOBILE || i % 3 === 0).map(([x, y]) => [x, y, groundAt(x, y)]) : [];
+  const rotLines = rotWait ? rotWait.singles.filter((s, i) => !MOBILE || i % 4 === 0)
+    .map(([x, y, fx, fy]) => [{ x, y, h: groundAt(x, y), heading: Math.atan2(fx, -fy) }]) : [];
   const townCrowd = campus.town?.walks ? new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'man-staff', 'woman-staff'],
-    campus.town.walks.map((w) => new Path(w, groundAt)), [], MOBILE ? 10 : 30, 11) : null;
+    campus.town.walks.map((w) => new Path(w, groundAt)), rotGroups, MOBILE ? 10 : 30, 11, { lines: rotLines }) : null;
   if (townCrowd) {
     for (const p of townCrowd.people) shadows.addDynamic(p.a.holder);
     townCrowd.season = season;

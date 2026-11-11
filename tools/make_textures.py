@@ -883,6 +883,55 @@ def yro_signs():
 
 yro_signs()
 
+
+# sign_rotary.png: the blue direction sign over 연세로 north of 신촌 로터리 (1996 photo 51979, reference/고증/4.10):
+# 「모래내 ← · → 독립문」 with route 64 in a small shield at each arm of the T, 「130m」 under it (2 : 1); the romanisation of
+# the time (McCune-Reischauer, 1984 - 2000)
+def rot_signs():
+    if ONLY and 'sign_rotary' not in ONLY:
+        return
+    fb = '/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc'
+
+    def fnt(size):
+        for i in (1, 0, 2, 3):
+            try:
+                return ImageFont.truetype(fb, size, index=i)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+    W_, H_ = 1024, 512
+    blue, white = (18, 74, 160), (246, 246, 242)
+    img = Image.new('RGB', (W_, H_), blue)
+    d = ImageDraw.Draw(img)
+    d.rectangle([10, 10, W_ - 11, H_ - 11], outline=white, width=8)
+    # the T: a stem from the foot up to a bar with an arrowhead at each end
+    cx, ybar = W_ // 2, 250
+    d.line([(cx, H_ - 120), (cx, ybar)], fill=white, width=26)
+    d.line([(150, ybar), (W_ - 150, ybar)], fill=white, width=26)
+    for sgn in (-1, 1):
+        xe = cx + sgn * (cx - 110)
+        d.polygon([(xe, ybar), (xe - sgn * 70, ybar - 46), (xe - sgn * 70, ybar + 46)], fill=white)
+        # the route's shield, 64
+        xs_ = cx + sgn * 120
+        d.rounded_rectangle([xs_ - 46, ybar + 34, xs_ + 46, ybar + 104], radius=16, fill=white)
+        f = fnt(52)
+        w = d.textlength('64', font=f)
+        d.text((xs_ - w / 2, ybar + 69), '64', font=f, fill=blue, anchor='lm')
+    for txt, xa, rom in (('모래내', 80, 'Moraenae'), ('독립문', W_ - 80, 'Tongnimmun')):
+        f, fr = fnt(112), fnt(40)
+        w, wr = d.textlength(txt, font=f), d.textlength(rom, font=fr)
+        x0 = xa if xa < cx else xa - w
+        d.text((x0, 110), txt, font=f, fill=white, anchor='lm')
+        d.text((x0 + (w - wr) / 2, 190), rom, font=fr, fill=white, anchor='lm')
+    f = fnt(64)
+    w = d.textlength('130m', font=f)
+    d.text((cx - w / 2, H_ - 70), '130m', font=f, fill=white, anchor='lm')
+    img.save(os.path.join(OUT, 'sign_rotary.png'), optimize=True)
+    print('sign_rotary')
+
+
+rot_signs()
+
 if ONLY:
     raise SystemExit(0)
 

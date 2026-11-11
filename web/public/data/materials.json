@@ -1289,5 +1289,11 @@
   "_doc": "연세로를 가로지른 제5회 신촌문화축제 현수막 (1996.5, sign_yonseiro.png 아래 띠)",
   "image": "sign_yonseiro.png",
   "rough": 0.85
+ },
+ "sign_rotary": {
+  "_doc": "신촌 로터리 북쪽 연세로 위의 파란 방향 표지 「모래내 · 독립문」 (tools/make_textures.py sign_rotary, 1996년 사진 51979)",
+  "image": "sign_rotary.png",
+  "rough": 0.45,
+  "emissiveMap": true
  }
 }

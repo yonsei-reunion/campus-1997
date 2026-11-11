@@ -448,7 +448,9 @@ def stops():
     """bus shelters at the kerb west of the gate (the 1995 photo: two long green roofs on posts), a bench under each
     and the stop's round sign"""
     mb = MeshBuilder('town_stops')
-    for x, y, ang, L in T['stops']:
+    for st in T['stops']:
+        x, y, ang, L = st[:4]
+        roof = st[4] if len(st) > 4 else 'metal_green'     # (신촌 로터리's: pale flat roofs, tools/sinchon_rotary.py)
         c, s = math.cos(ang), math.sin(ang)
         z = ground_top(x, y)
         P = lambda u, v, dz: (x + u * c - v * s, y + u * s + v * c, z + dz)
@@ -456,7 +458,7 @@ def stops():
             for v in (-0.9, 0.9):
                 q = P(u, v, 1.25)
                 mb.box(q, (0.09, 0.09, 2.5), 'metal_dark', rotz=ang)
-        mb.box(P(0, 0, 2.56), (L, 2.5, 0.12), 'metal_green', rotz=ang)
+        mb.box(P(0, 0, 2.56), (L, 2.5, 0.12), roof, rotz=ang)
         mb.box(P(0, 0.75, 0.43), (L - 2.0, 0.4, 0.06), 'wood_bench', rotz=ang)
         for u in (-L / 2 + 1.4, L / 2 - 1.4):
             mb.box(P(u, 0.75, 0.2), (0.08, 0.36, 0.4), 'metal_dark', rotz=ang)
@@ -466,10 +468,63 @@ def stops():
     return mb
 
 
+def rot_dirsign():
+    """신촌 로터리: the blue direction sign over 연세로's northbound lanes (tools/sinchon_rotary.py rot_dirsign, the 1996
+    photo 51979): a pole on the kerb, an arm over the lanes, the panel (sign_rotary) with a dark back"""
+    mb = MeshBuilder('town_rot_sign')
+    ds = T.get('dirsign')
+    if not ds:
+        return mb
+    (px, py), (cx, cy), w, h, z0 = ds['pole'], ds['c'], ds['w'], ds['h'], ds['z0']
+    fx, fy = math.cos(ds['face']), math.sin(ds['face'])
+    tx, ty = -fy, fx                                          # (along the panel, to its right seen from the front)
+    zp = ground_top(px, py)
+    top = zp + z0 + h + 0.3
+    mb.box((px, py, (zp + top) / 2), (0.26, 0.26, top - zp), 'metal', rotz=ds['face'])
+    # the arm from the pole out past the panel's far edge, a little behind it
+    ex, ey = cx + (cx - px) / max(1e-6, math.hypot(cx - px, cy - py)) * (w / 2 + 0.3), cy + (cy - py) / max(1e-6, math.hypot(cx - px, cy - py)) * (w / 2 + 0.3)
+    for dz in (z0 + h * 0.25, z0 + h * 0.75):
+        mx, my = (px + ex) / 2 - fx * 0.2, (py + ey) / 2 - fy * 0.2
+        mb.box((mx, my, zp + dz), (math.hypot(ex - px, ey - py), 0.14, 0.14), 'metal', rotz=math.atan2(ey - py, ex - px))
+    a = (cx - tx * w / 2, cy - ty * w / 2)
+    b = (cx + tx * w / 2, cy + ty * w / 2)
+    z1, z2 = zp + z0, zp + z0 + h
+    mb.face([(a[0], a[1], z1), (b[0], b[1], z1), (b[0], b[1], z2), (a[0], a[1], z2)], 'sign_rotary',
+            uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
+    d = 0.08
+    a2, b2 = (a[0] - fx * d, a[1] - fy * d), (b[0] - fx * d, b[1] - fy * d)
+    mb.face([(b2[0], b2[1], z1), (a2[0], a2[1], z1), (a2[0], a2[1], z2), (b2[0], b2[1], z2)], 'metal_dark')
+    for p_, q_ in ((a2, a), (b, b2)):
+        mb.face([(p_[0], p_[1], z1), (q_[0], q_[1], z1), (q_[0], q_[1], z2), (p_[0], p_[1], z2)], 'metal_dark')
+    mb.face([(a[0], a[1], z2), (b[0], b[1], z2), (b2[0], b2[1], z2), (a2[0], a2[1], z2)], 'metal_dark')
+    return mb
+
+
+def rot_fence():
+    """신촌 로터리: the fence round the empty lot at the north-east corner (tools/sinchon_rotary.py rot_fence, 52005 ·
+    52006): grey panels 2.2 m high on posts every 2 m, a yellow banner along their top half facing the street"""
+    mb = MeshBuilder('town_rot_fence')
+    pts = T.get('rot_fence') or []
+    for p, q in zip(pts[:-1], pts[1:]):
+        dx, dy = q[0] - p[0], q[1] - p[1]
+        L = math.hypot(dx, dy)
+        if L < 0.05:
+            continue
+        ang = math.atan2(dy, dx)
+        mx, my = (p[0] + q[0]) / 2, (p[1] + q[1]) / 2
+        z = min(ground_top(*p), ground_top(*q))
+        mb.box((mx, my, z + 1.1), (L, 0.06, 2.2), 'metal', rotz=ang)
+        # (the banner on the street side: the street is to the right of the line's way, as rot_fence draws it)
+        nx, ny = math.sin(ang), -math.cos(ang)
+        mb.box((mx + nx * 0.05, my + ny * 0.05, z + 1.75), (L, 0.02, 0.8), 'paint_yellow', rotz=ang)
+        mb.box((p[0], p[1], z + 1.15), (0.09, 0.09, 2.3), 'metal_dark', rotz=ang)
+    return mb
+
+
 def build():
     if not T:
         return []
-    return houses() + [signs(), signs2(), entrances(), bridge(), poles(), road(), stops()] + bank() + [yro_signs(), yro_banner()]
+    return houses() + [signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), rot_dirsign(), rot_fence()] + bank() + [yro_signs(), yro_banner()]
 
 
 # ----------------------------------------------------------------------------- the city bus

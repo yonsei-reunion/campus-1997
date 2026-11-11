@@ -58,9 +58,16 @@ ARMS = {
 }
 CORNER_R = 9.0                 # the kerbs' rounding at the corners
 # the rotary's round island in the middle (서울연구원 1995 · 1996 photos from the roof of 그레이스백화점, 52142 · 52145 ·
-# 52158 · 52187: a kerbed round bed, a ring of yellow flowers round a lawn, a tall lamp in it; some 15 m across against
-# the cars, a white dashed ring round it)
-ISLAND = dict(c=(-100.0, -976.0), r=7.5, ring=10.5)
+# 52158 · 52187).  52158's camera solved from the bed's outline and two city buses (고증 4.10 「옥상 사진의 카메라」):
+# the lawn's edge 15.2 m across (r 7.6 +- 0.15), the kerb's outside 7.8; the white ring of short dashes just outside
+# it, r 8.4 (the ring over the bed 1.10 there, 1.14 in 52142); the bed's rings from the middle out (BED: outer radius,
+# what grows there); a tall signal pole on its north edge, its mast arm out to the north-east; no lamp in the middle
+ISLAND = dict(c=(-100.0, -976.0), r=7.8, ring=8.45)
+BED = [(2.5, 'lawn'), (4.3, 'yellow'), (5.6, 'dark'), (6.1, 'white'), (7.6, 'lawn')]
+ROT_POLE = dict(at=(-99.6, -968.9), face=325.0, reach=9.0)          # bearing the lamps face; the arm to their right
+# 「연세대」 on the road north of the island (52158; the same white block in 52142 · 52145): its middle, the bearing its
+# top points along (the drivers who read it head that way), letters 1.1 m across and 3.9 m long
+ROT_LETTERS = dict(c=(-102.3, -964.0), up=122.0, w=1.1, h=3.9)
 # 연세로's crossing between the junction and the bridge (51979: a zebra with its own signals a third of the way up)
 MID_CROSS_Y = -790.0
 # the junction's landmarks (the photos 52095 · 52108, 서울연구원 labels; 연세춘추, 위키백과): OSM outline (a point in
@@ -457,8 +464,10 @@ def layout(geo, town, extras, ground, taken_z):
         ss = np.arange(s_stop + 1.0, s_end, 2.0)
         if len(ss) < 2:
             continue
+        ssy = ss[ss >= s_x + ROT_HATCH[0] + ROT_HATCH[1]]          # (the centre line from the painted triangle's base)
         for sgn in (1, -1):
-            paint.append(dict(kind='yellow', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * sgn * 0.16 for s in ss])))
+            if len(ssy) > 1:
+                paint.append(dict(kind='yellow', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * sgn * 0.16 for s in ssy])))
             for kk in range(1, a.lanes):
                 o = sgn * (0.3 + (a.half - 0.3) / a.lanes * kk)
                 paint.append(dict(kind='white_dash', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * o for s in ss[2:]])))
@@ -471,15 +480,17 @@ def layout(geo, town, extras, ground, taken_z):
     for s_, o0, o1 in ((s_mid + 6.0, 0.3, ya.half - 0.3), (s_mid - 2.0, -ya.half + 0.3, -0.3)):
         zebra.append(R2([ya.at(s_)[0] + ya.at(s_)[2] * o0, ya.at(s_ + 0.5)[0] + ya.at(s_ + 0.5)[2] * o0,
                          ya.at(s_ + 0.5)[0] + ya.at(s_ + 0.5)[2] * o1, ya.at(s_)[0] + ya.at(s_)[2] * o1]))
-    # the island: its kerb a ring, the white dashed ring round it
+    # the island: its kerb a ring, the white ring of short dashes round it (52158: some 0.6 m long, as long apart)
     ic, ir = np.array(ISLAND['c']), ISLAND['r']
     kerbs.append(R2([tuple(ic + ir * np.array([math.cos(a_), math.sin(a_)])) for a_ in np.linspace(0, 2 * math.pi, 49)]))
-    for i in range(36):
-        if i % 2:
-            continue
-        a0, a1 = 2 * math.pi * i / 36, 2 * math.pi * (i + 1) / 36
-        paint.append(dict(kind='white', w=0.15, pts=R2([tuple(ic + ISLAND['ring'] * np.array([math.cos(a_), math.sin(a_)]))
-                                                        for a_ in np.linspace(a0, a1, 4)])))
+    nd = int(round(2 * math.pi * ISLAND['ring'] / 1.2))
+    for i in range(nd):
+        a0, a1 = 2 * math.pi * i / nd, 2 * math.pi * (i + 0.5) / nd
+        paint.append(dict(kind='white', w=0.25, pts=R2([tuple(ic + ISLAND['ring'] * np.array([math.cos(a_), math.sin(a_)]))
+                                                        for a_ in np.linspace(a0, a1, 3)])))
+    paint += rot_letters()
+    paint += rot_hatches(A, xs)
+    paint += rot_arrows(A, xs)
     # the crossing over 성산로 before the bridge is gate_town's
     # ---- the cars' lanes through the junction, each with the signal phase it waits for at its stop line
     lanes = []
@@ -571,6 +582,9 @@ def layout(geo, town, extras, ground, taken_z):
         q = p + n * sgn * (ya.half + 0.8)
         heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(t[1] * sgn, t[0] * sgn), 4), 1, 0,
                       round(ya.half * 0.75, 1)])
+    # the island's own pole (52158 · 52145 · 52142: on its north edge, the arm out over the lanes to the north-east)
+    fb = math.radians(ROT_POLE['face'])
+    heads.append([ROT_POLE['at'][0], ROT_POLE['at'][1], round(math.atan2(math.cos(fb), math.sin(fb)), 4), 0, 1, ROT_POLE['reach']])
     # ---- the walks open to the walker: 연세로's two sidewalks from 성산로, the junction's corners within REACH, the
     # crossings; a barrier of thin boxes round them (not along 성산로's north kerb, where gate_town's barrier now runs
     # unbroken over its crossing too: the walker stays on the campus's side, and these walls are out of reach)
@@ -655,14 +669,18 @@ def layout(geo, town, extras, ground, taken_z):
                     continue
                 trees.append(['ginkgo', round(float(q[0]), 2), round(float(q[1]), 2), round(rnd.uniform(0.62, 0.78), 2),
                               round(rnd.uniform(0, 6.28), 2)])
-    # the island's bed: yellow flowers in a ring round its lawn, a tall lamp in the middle
+    # the island's bed (52158, May 1996): the yellow band (BED, r 2.5 - 4.3) two rows of the pansy border round the
+    # inner lawn; the dark and the white bands and the outer lawn are the ground's grass
     shrubs = []
-    for rr_, nn in ((5.6, 26), (4.3, 20)):
+    for rr_, nn in ((3.0, 10), (3.85, 13)):
         for i in range(nn):
-            a_ = 2 * math.pi * (i + 0.5 * (rr_ < 5)) / nn
+            a_ = 2 * math.pi * (i + 0.5 * (rr_ < 3.5)) / nn
             shrubs.append(['pansy_bed', round(float(ic[0] + rr_ * math.cos(a_)), 2), round(float(ic[1] + rr_ * math.sin(a_)), 2),
                            0.9, round(a_ + math.pi / 2, 2)])
-    props.append(['lamp_quad', round(float(ic[0]), 2), round(float(ic[1]), 2), 0.0])
+    # ---- 신촌 로터리's bus stops (52145 · 52142: flat pale roofs at the kerb, buses pulled in and people waiting on
+    # 양화로's south walk at the 그랜드백화점 corner; 52145 · 52187: on 신촌로's south walk in front of 한일은행)
+    stops_r, waiting = rot_stops(A)
+    town['stops'] = town.get('stops', []) + stops_r
     # ---- signs: the shops on the rows' ground floors (2019 · 2021 문집의 신촌 약도 have the rows north of the side
     # street at y -552; these are the next ones down towards the junction, sign_sinchon2)
     # (the names are of the kinds of shop the 1990s photos show along it, not of real shops; but 홍익문고, the east
@@ -731,6 +749,11 @@ def layout(geo, town, extras, ground, taken_z):
     print('신촌 로터리: blocks +%d (rows %d, fill %d, gone %d), kerbs %d, lanes %d, barrier %d, lamps %d' % (
         len(new), sum(len(v) for v in fronts.values()), n_fill, n_gone, len(kerbs), len(lanes), len(barrier), len(props)))
     town['island'] = dict(c=list(ISLAND['c']), r=ISLAND['r'])
+    # people standing about (web/src/main.js: the town's crowd) and the blue sign over 연세로 (blender/town.py)
+    waiting['groups'] += rot_waiting(fronts[1][-1], corner, A, waiting['singles'])
+    town['waiting'] = waiting
+    town['dirsign'] = rot_dirsign(ya, s_mid)
+    town['rot_fence'] = rot_fence(A)
     # the names over them (campus.json markers: the walk's tags, the bird's-eye pins, the map)
     hk = fronts[1][-1]
     top = lambda b: round(b[5] + 0.3 + 3.0 * b[6] + 1.0, 1)
@@ -739,6 +762,175 @@ def layout(geo, town, extras, ground, taken_z):
         dict(name='신촌 로터리', pos=list(ISLAND['c']), top=round(ground(*ISLAND['c']) + 9.0, 1)),
         dict(name='신촌역 (2호선)', pos=[entrances[1][0], entrances[1][1]], top=round(entrances[1][6] + 5.0, 1))]
     return dict(markers=markers, props=props, colliders=barrier + coll, paints=paints, paths=paths, corner=corner, trees=trees, shrubs=shrubs)
+
+
+# ----------------------------------------------------------------------------- the 1995 · 1996 rooftop photos
+# (고증 4.10 「옥상 사진의 카메라」 · 「게임에 옮긴 것」): the paint on the junction, its bus stops, people standing about
+ROT_HATCH = (7.0, 12.0)        # the yellow triangle on each arm's middle: its tip past the crossing, its length
+# 「연세대」 in strokes on a glyph's unit box (u across, v up the text; road lettering is drawn long along the way)
+ROT_GLYPHS = [
+    [[(0.28 + 0.2 * math.cos(t), 0.79 + 0.13 * math.sin(t)) for t in np.linspace(0, 2 * math.pi, 13)],      # 연: ㅇ
+     [(0.74, 1.0), (0.74, 0.52)], [(0.5, 0.88), (0.74, 0.88)], [(0.5, 0.68), (0.74, 0.68)],                 #  ㅕ
+     [(0.14, 0.44), (0.14, 0.08), (0.86, 0.08)]],                                                          #  ㄴ
+    [[(0.34, 0.95), (0.06, 0.08)], [(0.3, 0.62), (0.56, 0.08)],                                            # 세: ㅅ
+     [(0.92, 1.0), (0.92, 0.0)], [(0.74, 0.92), (0.74, 0.12)], [(0.6, 0.55), (0.74, 0.55)]],                #  ㅔ
+    [[(0.52, 0.88), (0.08, 0.88), (0.08, 0.12), (0.54, 0.12)],                                             # 대: ㄷ
+     [(0.94, 1.0), (0.94, 0.0)], [(0.74, 0.92), (0.74, 0.1)], [(0.74, 0.55), (0.94, 0.55)]]]                #  ㅐ
+
+
+def rot_letters():
+    """「연세대」 north of the island (ROT_LETTERS): white strokes, 0.2 m wide"""
+    L = ROT_LETTERS
+    b = math.radians(L['up'])
+    ev = np.array([math.sin(b), math.cos(b)])                 # (up the text: the way its readers drive)
+    eu = np.array([ev[1], -ev[0]])                            # (along a line of it: to their right)
+    c = np.array(L['c'])
+    out = []
+    for i, glyph in enumerate(ROT_GLYPHS):
+        u0 = (i - 1) * (L['w'] + 0.1) - L['w'] / 2
+        for st in glyph:
+            pts = [tuple(c + eu * (u0 + u * L['w']) + ev * ((v - 0.5) * L['h'])) for u, v in st]
+            out.append(dict(kind='white', w=0.2, pts=[[round(float(x), 2), round(float(y), 2)] for x, y in pts]))
+    return out
+
+
+def rot_hatches(A, xs):
+    """the yellow triangles on each arm's middle past its crossing, a smaller one inside it and a third in that
+    (52158: sides of 13 - 15 m, the inner ones about a half and a fifth; 52145 · 52142: one at every arm's mouth)"""
+    out = []
+    for k, a in A.items():
+        s_t = xs[k] + ROT_HATCH[0]
+        s_b = s_t + ROT_HATCH[1]
+        hw = min(0.4 * a.half, 3.0)
+        tip = a.at(s_t)[0]
+        pb, _, nb = a.at(s_b)
+        tri = np.array([tip, pb + nb * hw, pb - nb * hw])
+        cen = tri.mean(0)
+        for f in (1.0, 0.52, 0.2):
+            q = cen + (tri - cen) * f
+            out.append(dict(kind='yellow', w=0.2, pts=[[round(float(x), 2), round(float(y), 2)] for x, y in list(q) + [q[0]]]))
+    return out
+
+
+def rot_arrows(A, xs):
+    """a straight-on arrow in every lane coming in, just behind its stop line (52145 · 52158)"""
+    out = []
+    R2_ = lambda pts: [[round(float(x), 2), round(float(y), 2)] for x, y in pts]
+    for k, a in A.items():
+        s0 = xs[k] + 8.0                                     # (the head's tip; the tail 4.6 m further out)
+        for j in range(a.lanes):
+            o = 0.3 + (a.half - 0.3) / a.lanes * (j + 0.5)
+            P = lambda s, oo: a.at(s)[0] + a.at(s)[2] * oo
+            out.append(dict(kind='white', w=0.18, pts=R2_([P(s0 + 1.5, o), P(s0 + 4.6, o)])))
+            for d_ in (-0.5, -0.25, 0.0, 0.25, 0.5):
+                out.append(dict(kind='white', w=0.22, pts=R2_([P(s0, o), P(s0 + 1.6, o + d_)])))
+    return out
+
+
+def rot_stops(A):
+    """the rotary's four bus stops, [x, y, the way along, length, the roof's material] (blender/town.py stops), and the
+    people waiting at them: {groups: [[x, y]], singles: [[x, y, facing x, facing y]]}.
+    52142 · 52145 (1995.10): 양화로's south walk at the 그랜드백화점 corner, 신촌로's south walk before 한일은행;
+    52005 (1996.8, from the 외환은행 roof): flat white roofs on 양화로's north walk before 금강제화 and on 신촌로's north
+    walk before the fenced corner lot, people under them"""
+    stops, wait = [], dict(groups=[], singles=[])
+    rnd = random.Random(4811)
+    # (the side: +1 the arm's left of its outward way (+n), -1 its right; 양화로 (sinchon_w) runs west, 신촌로 east)
+    for k, s, side in (('sinchon_w', 40.0, 1), ('sinchon_e', 52.0, -1), ('sinchon_w', 28.0, -1), ('sinchon_e', 24.0, 1)):
+        a = A[k]
+        p, t, n = a.at(s)
+        q = p + n * side * (a.half + 2.2)
+        tt = t * side
+        stops.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(tt[1], tt[0]), 4), 9.0, 'metal'])
+        for u in (-2.6, -0.9, 0.7, 2.4):
+            m = q + tt * (u + rnd.uniform(-0.3, 0.3)) - n * side * rnd.uniform(0.1, 0.6)
+            ang = rnd.uniform(-0.5, 0.5)
+            f = -n * side
+            f = np.array([f[0] * math.cos(ang) - f[1] * math.sin(ang), f[0] * math.sin(ang) + f[1] * math.cos(ang)])
+            wait['singles'].append([round(float(m[0]), 2), round(float(m[1]), 2), round(float(f[0]), 3), round(float(f[1]), 3)])
+        g = q + n * side * 1.6 + tt * rnd.uniform(-3, 3)
+        wait['groups'].append([round(float(g[0]), 2), round(float(g[1]), 2)])
+    return stops, wait
+
+
+def rot_waiting(hk, corner, A, singles):
+    """「홍익문고 앞에서 만나」: people waiting on the walk in front of 홍익문고 and of 그레이스백화점, looking out for
+    someone (singles, appended) and a few in twos and threes (the groups returned)"""
+    rnd = random.Random(4812)
+    groups = []
+
+    def row(c, n_, t_, us, d, gs):
+        for u in us:
+            m = c + n_ * (d + rnd.uniform(-0.3, 0.4)) + t_ * (u + rnd.uniform(-0.3, 0.3))
+            ang = rnd.uniform(-0.9, 0.9)
+            f = np.array([n_[0] * math.cos(ang) - n_[1] * math.sin(ang), n_[0] * math.sin(ang) + n_[1] * math.cos(ang)])
+            singles.append([round(float(m[0]), 2), round(float(m[1]), 2), round(float(f[0]), 3), round(float(f[1]), 3)])
+        for u, dd in gs:
+            g = c + n_ * dd + t_ * u
+            groups.append([round(float(g[0]), 2), round(float(g[1]), 2)])
+
+    # 홍익문고: its front on 연세로 (the block's L axis points away from the street)
+    na = np.array([math.cos(hk[4]), math.sin(hk[4])])
+    row(np.array(hk[:2]) - na * (hk[2] / 2), -na, np.array([-na[1], na[0]]), (-3.4, -2.1, -0.6, 1.0, 2.6), 1.4,
+        [(-1.2, 3.0), (2.2, 3.1)])
+    # 그레이스백화점: its face towards 양화로, the east half of it
+    for lm, b in corner:
+        if lm['name'] != '그레이스백화점':
+            continue
+        c, sn = math.cos(b[4]), math.sin(b[4])
+        faces = [(np.array([c, sn]), b[2] / 2, b[3]), (-np.array([c, sn]), b[2] / 2, b[3]),
+                 (np.array([-sn, c]), b[3] / 2, b[2]), (-np.array([-sn, c]), b[3] / 2, b[2])]
+        ctr = np.array(b[:2])
+        near = np.array(A['sinchon_w'].ls.interpolate(A['sinchon_w'].ls.project(Point(*ctr))).coords[0])
+        v = near - ctr
+        nrm, off, wid = max(faces, key=lambda f_: float(f_[0] @ v) / np.linalg.norm(v))
+        t_ = np.array([-nrm[1], nrm[0]])
+        if float(t_ @ (np.array(JC) - ctr)) < 0:
+            t_ = -t_                                           # (t_ towards the junction's end of the face)
+        cf = ctr + nrm * off + t_ * (wid * 0.25)
+        row(cf, nrm, t_, (-2.8, -1.2, 0.6, 2.4), 1.8, [(-0.2, 3.4), (3.6, 3.0)])
+    return groups
+
+
+def rot_fence(A):
+    """the fence round the empty corner lot south of 홍익문고 (52005 · 52006, 1996.8: grey panels with yellow banners
+    along their tops, at the back of 연세로's east walk and of 신촌로's north walk; today 엘리트 빌딩): its line, from
+    홍익문고's south wall (y -912.6, tools/sinchon_rotary.py yro_rows) to the corner and east along 신촌로 for 36 m"""
+    ya, ae = A['yonsei'], A['sinchon_e']
+    out = []
+    s0 = float(ya.ls.project(Point(gt.YONSEI_X, -912.4)))
+    for s in np.linspace(s0, 0.0, 30):
+        p, t, n = ya.at(s)
+        out.append(p - n * (ya.half + ya.walk + 0.15))                  # (east: -n on 연세로)
+    east = [ae.at(s)[0] + ae.at(s)[2] * (ae.half + ae.walk + 0.15) for s in np.linspace(0.0, 60.0, 61)]
+    line_e = LineString([tuple(q) for q in east])
+    # the corner where the two back edges meet; the 연세로 line stops there, the 신촌로 one starts there
+    cut = None
+    for i in range(1, len(out)):
+        seg = LineString([tuple(out[i - 1]), tuple(out[i])])
+        if seg.intersects(line_e):
+            cut = (i, seg.intersection(line_e))
+            break
+    if cut is None:
+        return []
+    i, x = cut
+    xc = np.array(x.coords[0]) if x.geom_type == 'Point' else np.array(x.centroid.coords[0])
+    pts = out[:i] + [xc]
+    se = float(line_e.project(Point(*xc)))
+    pts += [np.array(line_e.interpolate(d).coords[0]) for d in np.arange(se + 2.0, se + 36.0, 2.0)]
+    return [[round(float(q[0]), 2), round(float(q[1]), 2)] for q in pts]
+
+
+def rot_dirsign(ya, s_mid):
+    """the blue direction sign over 연세로's northbound lanes (51979: 「모래내 ← · → 독립문」, a pole on the east kerb
+    with an arm, just north of the crossing in the middle): its pole, the panel's middle, the way it faces, w, h,
+    the panel's foot over the road"""
+    s = s_mid + 14.0
+    p, t, n = ya.at(s)
+    pole = p - n * (ya.half + 0.6)
+    c = p - n * (ya.half * 0.48)
+    return dict(pole=[round(float(pole[0]), 2), round(float(pole[1]), 2)], c=[round(float(c[0]), 2), round(float(c[1]), 2)],
+                face=round(math.atan2(-t[1], -t[0]), 4), w=4.4, h=2.2, z0=5.2)
 
 
 def town_splat(paints, path):
