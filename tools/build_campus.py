@@ -1641,48 +1641,121 @@ for _j, _i, _h in _sv:
 SEONGAM_FLOOR = round(sample(Hn, NEAR_HALF, NEAR_STEP, *_sd_edge(*SEONGAM_DOOR)[0]) + 7 * 0.16 - 1.2, 2)
 print('성암관 west front: %d nodes held at the drive\'s edge, floor %.2f' % (len(_sv), SEONGAM_FLOOR))
 
-# --- 대우관 (reference/대우관_정면_전경.jpg, 대우관_2024_정면과_상뜰.jpg, 대우관_측면_2012.jpg): the hall stands on a
-# terrace about 6 m over the 상뜰.  A white stone podium projects from the tower with the main door at the plaza level
-# (no steps: a wide low arch, a glazed lobby behind) and flights climb to the terrace beside it; the tower's own
-# pointed door opens onto the terrace.  The 5 m grid smooths all this into one 20% slope down to the 상뜰, so: the
-# courtyard between the wings goes down to the plaza level (under the terrace, out of sight), the plaza in front of the
-# podium is level, falling 4% away from it, and the ground around meets it with one smooth surface.
-# The hall itself stays where it stood (its floor from the ground just in front of the tower, as blender's gothic()
-# measured it), and blender reads the levels back from campus.json (daewoo_front).
+# --- 대우관 (reference/고증/3.6; reference/대우관_정면_전경.jpg, 대우관_2024_정면과_상뜰.jpg, 대우관_측면_2012.jpg, the vertical
+# aerial photos of 1997-07-28 and Kakao's skyview of 2008): the hall stands at the back of a terrace 5 m over the 상뜰.
+# A drive crosses the terrace before the wings' fronts, from the drive up the 상뜰's west side to the one up its east
+# side; lawns with clipped cones lie between the wings either side of the paving before the tower's door.  South of
+# the drive the terrace ends at a wall with a hedge along its top, and before the tower a white stone podium stands
+# out from it, its ends rounded: the main door is a wide low arch in its face at the 상뜰's level, and either side of
+# the door's forecourt a flight climbs outwards along the face to a landing in the rounded end and turns back up along
+# the top of the face to the terrace.  Beside the podium the ground steps down in two lawn tiers to the 상뜰.
+# The 5 m grid cannot hold the terrace wall's drop, so (as behind the hall, DAEWOO_BACK): every cell the wall crosses
+# is level at its low side, and the terrace over those cells is a mesh of its own (`deck`, the ground's own material).
+#
+# The frames.  OSM's outline is 4 m short on the east and turned: the photos' roofs, the terrace's hedge lines and the
+# line through the tower's lantern, the podium, the 상뜰's walk and its round lawn all stand 0.84 degrees anticlockwise
+# of OSM's recessed front (DW_U / DW_V below, the frame the yard behind the hall was read in), about one axis.  So the
+# hall's own frame (DH_U / DH_V, dh_xy): OSM's turned DW_ROT about (DW_UC, 0), the axis at u = DW_UC; the wings stand
+# 11.5 m wide either side of it, 24.1 .. 35.6 m out, from v -10.4 back to 27.55.
 _fp = list(footprint(ways[242897922]).exterior.coords)
 _a, _b = np.array(_fp[3]), np.array(_fp[4])
 _t = (_b - _a) / np.linalg.norm(_b - _a)
 _nl = np.array([-_t[1], _t[0]])                                  # into the hall
-DW_U = (X - _a[0]) * _t[0] + (Y - _a[1]) * _t[1]                 # along the recessed front, from its west end
-DW_V = (X - _a[0]) * _nl[0] + (Y - _a[1]) * _nl[1]              # towards the hall (its front wall at v = 0)
-_door = _a + _t * 23.55 + _nl * -3.3
-_floor = sample(Hn, NEAR_HALF, NEAR_STEP, *_door) + 1.3          # the door threshold (blender: z0 + plinth - 0.1)
-DAEWOO = dict(floor=round(_floor, 2), terrace=round(_floor - 0.45, 2), plaza=round(_floor - 0.45 - 6.0, 2),
-              podium=-17.0, fall=0.04, u0=-12.1, u1=55.5)
-_P = DAEWOO['plaza']
-_court = (((DW_U > -1.0) & (DW_U < 48.2) & (DW_V > -17.5) & (DW_V < 1.0))         # under the podium and the terrace
-          | ((DW_U > -12.0) & (DW_U < 55.4) & (DW_V > -17.5) & (DW_V < -10.5)))    # and its planted steps before the wings
-_strip = (DW_U > -12.0) & (DW_U < 59.0) & (DW_V <= -17.0) & (DW_V > -31.0)        # the plaza in front of it
-Hn[_court] = _P
-Hn[_strip] = _P - DAEWOO['fall'] * (-17.0 - DW_V[_strip])
-# 상뜰 (issue #39; reference/대우관_정면_전경.jpg, 대우관_2024_정면과_상뜰.jpg): a level terrace, not the 11 - 16 % slope the
-# smooth fill made south of the plaza.  From the plaza's level at the diamond's north node it falls 2.5 % southwards
-# and 1.5 % west / 1 % east of its axis, so its side nodes meet the drives (east within 0.2 m, west by a short ramp).
-# At its south node a broad granite flight with steel handrails on both sides goes down through the trees to the
-# footway (OSM 1451337739, 7 m: 22 risers of 15.5 cm), which runs straight between its ends but for the foot of the
-# flight; the bank round it and under the diamond's lower walks is filled smoothly (and planted, below).
-# (SG: e east along the hall, n north, from the round lawn's centre.)
-SANG = (106.8, 427.1)
-SG_E = np.array([0.964, -0.263])
-SG_N = np.array([0.263, 0.964])
+DW_U = (X - _a[0]) * _t[0] + (Y - _a[1]) * _t[1]                 # along OSM's recessed front, from its west end
+DW_V = (X - _a[0]) * _nl[0] + (Y - _a[1]) * _nl[1]              # towards the hall (OSM's front wall at v = 0)
+DW_ROT, DW_UC = math.radians(0.84), 24.86
+_ht = np.array([_t[0] * math.cos(DW_ROT) - _t[1] * math.sin(DW_ROT), _t[0] * math.sin(DW_ROT) + _t[1] * math.cos(DW_ROT)])
+_hn = np.array([-_ht[1], _ht[0]])
+_ha = _a + _t * DW_UC - _ht * DW_UC
+DH_U = (X - _ha[0]) * _ht[0] + (Y - _ha[1]) * _ht[1]
+DH_V = (X - _ha[0]) * _hn[0] + (Y - _ha[1]) * _hn[1]
+
+
+def dh_xy(u, v, o_=_ha.copy(), t_=_ht.copy(), n_=_hn.copy()):     # (the hall's own frame as a point)
+    return tuple(float(c_) for c_ in np.round(o_ + t_ * u + n_ * v, 2))
+
+
+def dh_uv(p_, o_=_ha.copy(), t_=_ht.copy(), n_=_hn.copy()):       # (and back)
+    d_ = np.asarray(p_, float)[:2] - o_
+    return float(d_ @ t_), float(d_ @ n_)
+
+
+# The levels are the photos' (tools/aerial97.py z; the terrace's asphalt 70.2 - 70.6 m in twelve places, the landings
+# in the podium's ends 68.5 - 68.8, the tier beside it 68.2 - 68.4, the lower lawn 66.4 - 67.0, the 상뜰 65.0 - 65.5):
+# the terrace is where the game had it (70.55), the 상뜰 1.5 m higher than it was.
+DW_WI, DW_WO = 24.1, 35.6                                          # the wings' inner and outer walls from the axis
+DAEWOO = dict(floor=70.9, terrace=70.45, mid=68.6, plaza=65.6, tier=68.4, lawn=66.6,
+              frame=dict(o=[round(float(c_), 3) for c_ in _ha], ang=round(math.atan2(_ht[1], _ht[0]), 5)), uc=DW_UC,
+              wi=DW_WI, wo=DW_WO, wing_v=(-10.4, 27.55), u0=round(DW_UC - DW_WO, 2), u1=round(DW_UC + DW_WO, 2),
+              # the terrace: its drive (v), its ends (u: where its wall dies into the drives' banks)
+              drive=(-18.3, -10.4), tu=(-12.2, 62.5),
+              # the podium: half width, its face (v), the front of the lower flights, the forecourt's half width
+              podium=dict(hw=13.0, face=-24.5, front=-28.5, court=4.0, end=-29.5))
+_T, _P = DAEWOO['terrace'], DAEWOO['plaza']
+_tu0, _tu1 = DAEWOO['tu']
+_tv0, _tv1 = DAEWOO['drive']
+_uvh = lambda pts_: Polygon([dh_xy(*q_) for q_ in pts_])
+# the terrace's own ground: the drive and the lawns and paving between the wings (the hall's floor over the rest)
+DW_TERR = _uvh([(_tu0, _tv0), (_tu1, _tv0), (_tu1, _tv1), (DW_UC + DW_WI, _tv1), (DW_UC + DW_WI, 0.0),
+                (DW_UC - DW_WI, 0.0), (DW_UC - DW_WI, _tv1), (_tu0, _tv1)])
+
+
+def dw_low(u, v):
+    """the ground south of the terrace wall: the podium's own at the forecourt's level, beside it the tier under the
+    wall, the lower lawn and the 상뜰's north edge"""
+    return np.where((np.abs(u - DW_UC) < DAEWOO['podium']['hw'] + 0.5) & (v > DAEWOO['podium']['end']), _P,
+                    np.interp(v, [-29.5, -26.5, -21.5], [_P - 0.1, DAEWOO['lawn'], DAEWOO['tier']]))
+
+
+DW_TW = (_tu0 + 10.2, _tu1 - 8.0)
+_m_terr = (DH_V > _tv0) & (DH_V < 15.0) & (DH_U > _tu0 - 0.5) & (DH_U < _tu1 + 0.5) & \
+    ((DH_V < _tv1) | (np.abs(DH_U - DW_UC) < DW_WO))              # the terrace, and the ground the hall stands on
+_m_low = (DH_V <= _tv0) & (DH_V > -30.0) & (DH_U > DW_TW[0]) & (DH_U < DW_TW[1])
+Hn[_m_terr] = _T
+Hn[_m_low] = dw_low(DH_U[_m_low], DH_V[_m_low])
+# (every cell the terrace wall crosses, level at its low side; the drop is held from DW_TW[0], two cells off the west
+# drive -- whose own cells must stay the drive's, level across for the cars -- to the east drive's west kerb: at its
+# two ends the terrace comes down to the drives' banks as the grid has it)
+_twall = LineString([dh_xy(DW_TW[0], _tv0), dh_xy(DW_TW[1], _tv0)])
+_tcells = set()
+for _k in range(int(_twall.length / 0.5) + 1):
+    _q = _twall.interpolate(_k * 0.5)
+    _tcells.add((int(math.floor((_q.y + NEAR_HALF) / NEAR_STEP)), int(math.floor((_q.x + NEAR_HALF) / NEAR_STEP))))
+_tforced = np.zeros(X.shape, bool)
+for _j, _i in _tcells:
+    for _a_, _b_ in ((0, 0), (0, 1), (1, 0), (1, 1)):
+        Hn[_j + _a_, _i + _b_] = float(dw_low(DH_U[_j + _a_, _i + _b_], min(DH_V[_j + _a_, _i + _b_], _tv0 - 0.01)))
+        _tforced[_j + _a_, _i + _b_] = True
+_cell_box0 = lambda j_, i_: shapely.geometry.box(gx[i_], gx[j_], gx[i_] + NEAR_STEP, gx[j_] + NEAR_STEP)
+DW_FDECK_CELLS = {(j_ + a_, i_ + b_) for j_, i_ in zip(*np.nonzero(_tforced)) for a_ in (-1, 0) for b_ in (-1, 0)}
+DW_FDECK_POLY = unary_union([_cell_box0(j_, i_) for j_, i_ in DW_FDECK_CELLS]).intersection(DW_TERR)
+_court = _m_terr | _m_low | _tforced                             # (what this block sets: the smooth fills leave it)
+_strip = np.zeros(X.shape, bool)
+FIXED[_court] = True
+# 상뜰 (issue #39; reference/대우관_정면_전경.jpg, 대우관_2024_정면과_상뜰.jpg; the same photos of 1997): a level terrace on
+# the hall's axis.  Its round lawn's middle (SANG) is the photos' (five frames within 0.1 m: 1.7 m east and 1.0 m
+# north of OSM's ring), its walks' ends where the photos have them: north at the podium's forecourt, south at the
+# head of the flight, west and east at the two drives.  From 65.4 m at its north node it falls 1.5 % southwards and
+# 1 % west of its axis.  At its south node a broad granite flight with steel handrails on both sides goes down
+# through the trees to the footway (OSM 1451337739; the photos have the node at 64.8 m and the footway at 61.9: 19
+# risers of 15.5 cm), which runs straight between its ends but for the foot of the flight; the bank round it and
+# under the diamond's lower walks is filled smoothly (and planted, below).
+# (SG: e east along the hall, n north, from the round lawn's centre.  *_RNG: as the 상뜰 was first laid out on OSM's
+# ring, what the random planting read.)
+SANG_RNG = (106.8, 427.1)
+SG_RNG = lambda e, n: tuple(np.array(SANG_RNG) + np.array([0.964, -0.263]) * e + np.array([0.263, 0.964]) * n)
+SANG_DIAMOND_RNG = [SG_RNG(-0.8, 14.2), SG_RNG(-26.5, 0.0), SG_RNG(0.0, -15.3), SG_RNG(26.6, 0.4)]
+SANG = (108.5, 428.1)
+SG_E = _ht.copy()
+SG_N = _hn.copy()
 SG = lambda e, n: tuple(np.array(SANG) + SG_E * e + SG_N * n)
-SANG_DIAMOND = [SG(-0.8, 14.2), SG(-26.5, 0.0), SG(0.0, -15.3), SG(26.6, 0.4)]       # N, W, S, E nodes of the walks
-_vN = float((np.array(SANG_DIAMOND[0]) - _a) @ _nl)
-SANG_LV = dict(top=round(_P - DAEWOO['fall'] * (-17.0 - _vN), 2), fall=0.025, west=0.015, east=0.01)
+SANG_NODES = dict(N=(0.0, 12.6), W=(-28.3, 0.6), S=(-0.3, -18.0), E=(31.5, 1.0))     # (e, n) of the walks' four ends
+SANG_DIAMOND = [SG(*SANG_NODES[k_]) for k_ in 'NWSE']                                # N, W, S, E nodes of the walks
+SANG_LV = dict(top=65.4, fall=0.015, west=0.01, east=0.0)
 
 
 def sang_h(e, n):
-    return SANG_LV['top'] + SANG_LV['fall'] * (n - 14.2) - np.where(e < 0, SANG_LV['west'], SANG_LV['east']) * np.abs(e)
+    return SANG_LV['top'] + SANG_LV['fall'] * (n - SANG_NODES['N'][1]) - np.where(e < 0, SANG_LV['west'], SANG_LV['east']) * np.abs(e)
 
 
 _SE = (X - SANG[0]) * SG_E[0] + (Y - SANG[1]) * SG_E[1]
@@ -1690,20 +1763,35 @@ _SN = (X - SANG[0]) * SG_N[0] + (Y - SANG[1]) * SG_N[1]
 _sg = shapely.contains_xy(Polygon(SANG_DIAMOND).buffer(3.0), X, Y) & ~_court
 Hn[_sg] = sang_h(_SE[_sg], _SN[_sg])
 FIXED[_sg] = True
-_zS = float(sang_h(0.0, -15.3))
-_ds_ = np.array([101.2, 405.4]) - np.array(SANG_DIAMOND[2])
+_zS = float(sang_h(*SANG_NODES['S']))
+SANG_FOOT = (101.2, 405.4)                                      # (the footway under the flight, OSM)
+_ds_ = np.array(SANG_FOOT) - np.array(SANG_DIAMOND[2])
 DAEWOO['sang'] = SANG_LV
-DAEWOO['stair'] = flight_at('sang_south', SANG_DIAMOND[2], _ds_, _zS, _zS - 22 * 0.155, 5.5, landing=0.5, tread=0.30,
+DAEWOO['stair'] = flight_at('sang_south', SANG_DIAMOND[2], _ds_, _zS, _zS - 19 * 0.155, 5.5, landing=0.5, tread=0.30,
                             maxrise=0.155, rails=True, cheek=0.25)
 _fwW, _fwE = sample(Hn, NEAR_HALF, NEAR_STEP, 66.6, 414.3), sample(Hn, NEAR_HALF, NEAR_STEP, 137.7, 396.5)
-fix_strip([(66.6, 414.3), (101.2, 405.4)], _fwW, DAEWOO['stair']['z_foot'], 1.8)
-fix_strip([(101.2, 405.4), (137.7, 396.5)], DAEWOO['stair']['z_foot'], _fwE, 1.8)
+fix_strip([(66.6, 414.3), SANG_FOOT], _fwW, DAEWOO['stair']['z_foot'], 1.8)
+fix_strip([SANG_FOOT, (137.7, 396.5)], DAEWOO['stair']['z_foot'], _fwE, 1.8)
 _st = DAEWOO['stair']
 fix_strip([_st['top'], _st['foot']], _st['z_top'] - 0.35, _st['z_foot'] - 0.25, _st['width'] / 2 + 1.6, top=True)
 print('상뜰', SANG_LV, 'S node %.2f, footway %.2f .. %.2f .. %.2f' % (_zS, _fwW, _st['z_foot'], _fwE))
-_free = (DW_U > -32) & (DW_U < 80) & (DW_V > -74) & (DW_V < 4) & ~_court & ~_strip & ~FIXED & ~near_buildings(1.0)
+_free = (DW_U > -32) & (DW_U < 80) & (DW_V > -74) & (DW_V < 4) & ~_court & ~FIXED & ~near_buildings(1.0)
 harmonic_fill(_free)
-print('daewoo', DAEWOO)
+# the two drives up to the terrace.  West: from abreast of the 상뜰's west node (as the ground runs there, about a
+# metre over the 상뜰: the 2008 roadview has the drive 0.5 - 1.5 m over it) up to the terrace's level where the
+# terrace drive leaves it.  East: the same from abreast of the east node.  (The photos' heights along both are lost
+# under the trees.)
+DW_WEST_RD = [dh_xy(-19.3, -46.0), dh_xy(-19.3, -38.0), dh_xy(-16.5, -26.0), dh_xy(DAEWOO['u0'] - 5.0, _tv0 + 3.9)]
+DW_EAST_RD = [dh_xy(59.3, -44.0), dh_xy(59.3, _tv0 + 2.0)]
+DW_RD_OWN = []                                   # (the west one's nodes: the cars' drive, levelled across again below)
+for _rd in (DW_WEST_RD, DW_EAST_RD):
+    _z0r = max(sample(Hn, NEAR_HALF, NEAR_STEP, *_rd[0]), SANG_LV['top'] + 0.6)
+    DW_RD_OWN.append(fix_strip(_rd, _z0r, _T, 3.6))
+    print('daewoo drive to the terrace: %.2f -> %.2f m over %.1f m, %.1f %%' % (
+        _z0r, _T, LineString(_rd).length, 100 * (_T - _z0r) / LineString(_rd).length))
+_free = (DW_U > -36) & (DW_U < 84) & (DW_V > -60) & (DW_V < 4) & ~_court & ~FIXED & ~near_buildings(1.0)
+harmonic_fill(_free)
+print('daewoo', {k_: v_ for k_, v_ in DAEWOO.items() if k_ not in ('stair',)}, 'terrace deck cells', len(DW_FDECK_CELLS))
 # --- 대우관 뒤 (reference/고증/3.6.2): the yard behind the hall as the vertical aerial photos of 1997-07-28 have it
 # (four frames; the same plan in Kakao's skyview of 2008 and 2010, in OSM's aisles and steps and in Naver's street view
 # of 2010-09 from the road north of it), in the hall's frame (u along it from the west end of its recessed front, v
@@ -1718,9 +1806,10 @@ print('daewoo', DAEWOO)
 #    fanned round the hedge belt, a short row west of its aisle, a long row along its east side under the bank of the
 #    road to 북문; south of it a wall (w4) down to the areaway behind the east wing.
 # The photos' heights (tools/aerial97.py z, ±0.3 m on the open asphalt): court 72.4, floor of the theatre 73.7, upper
-# car park 76.0 - 76.8 m.  The hall's ground floor stands a step over the theatre's floor (its back door opens onto it;
-# the 2010 street view shows the basement's rusticated band over the court), and the game has that floor at 71.0 from
-# the terrace in front: so the photos' heights less 3.0 m here, the levels' differences as measured.
+# car park 76.0 - 76.8 m.  They are the yard's as they stand: the terrace before the hall is 70.4 m in the same photos,
+# so the yard lies a storey over it (the hall's back door opens onto the theatre's floor from the storey over the
+# terrace's; the 2010 street view shows that lower storey's rusticated band just over the court).  (The game first had
+# them 3.0 m lower, on the guess that the back door was on the terrace's storey.)
 # The 5 m grid cannot hold the walls' drops, so: every cell a wall crosses is level at its low side's height, and the
 # upper level over those cells and the ones behind them is a mesh of its own (`deck`: the ground's own material, walked
 # and driven on; blender/landmarks.py daewoo_back), its outer edge on cell edges whose nodes hold the same heights.
@@ -1745,13 +1834,15 @@ def dwb_arc(r_, a0_, a1_, step_=3.0):
              DWB_C[1] + r_ * math.sin(math.radians(a0_ + (a1_ - a0_) * k_ / (n_ - 1)))) for k_ in range(n_)]
 
 
-_low = round(DAEWOO['floor'] - 1.6, 2)
+_low = round(DAEWOO['floor'] + 1.4, 2)
 DAEWOO_BACK = dict(
     c=DWB_C, low=_low, stage=round(_low + 1.3, 2), top=round(_low + 3.7, 2),
     r_stage=8.3, r_seat=13.6, r_walk=15.0, r_belt=18.5, tiers=6, seat_a=(0.0, 108.0), landing=(108.0, 132.0, 9.0),
     # the hall's back as the same photos' roofs have it (the plane of the parapet, four frames): the tower 8 m out and
     # 13.2 m wide, a block either side of it 5.8 m out, the wings' back ends 2.5 and 3.8 m past OSM's
-    tower=(17.8, 31.0, 22.8), blocks=((6.2, 17.8, 20.6), (31.0, 42.6, 20.6)), wing_v=(27.0, 28.1),
+    # (in the hall's own frame, DH: about its axis)
+    tower=(DW_UC - 6.6, DW_UC + 6.6, 22.8), blocks=((DW_UC - 18.2, DW_UC - 6.6, 20.6), (DW_UC + 6.6, DW_UC + 18.2, 20.6)),
+    wing_v=(DAEWOO['wing_v'][1], DAEWOO['wing_v'][1]),
     w1=[(24.5, 47.3), (24.5, 61.7)], portal=(50.0, 56.0), w2=[(17.0, 61.7), (24.5, 61.7)],
     w3=[(24.5, 47.3), (19.8, 45.0)], w4=[(38.64, 35.5), (61.0, 35.5)],
     stair=[(14.6, 47.0), (18.9, 43.8), 3.0],
@@ -1769,8 +1860,9 @@ DAEWOO_BACK = dict(
     # the mound's kerbs along the mouth and the lawn island east of it with the round cooling tower
     mound_tip=(45.4, 72.0), island=[(46.3, 80.3), (54.8, 69.3), (61.0, 68.5)], tower_c=(52.3, 84.8),
     fence=[(74.5, 25.0), (71.5, 38.0), (67.8, 68.0), (67.2, 79.0)])
+DAEWOO_BACK['o'], DAEWOO_BACK['ang'] = [round(float(c_), 3) for c_ in _a], round(math.atan2(_t[1], _t[0]), 5)   # (its frame: OSM's front)
 _db = DAEWOO_BACK
-# the road north of the hall: its middle line (OSM, x, y) and heights (the photos', less 1.5 m)
+# the road north of the hall: its middle line (OSM, x, y) and heights (the photos')
 DWB_ROAD = [((89.9, 506.8), None), ((105.0, 517.0), _low - 0.05), ((125.0, 535.0), _low + 1.0), ((147.1, 547.2), _low + 4.1),
             ((153.6, 551.6), _low + 5.1), ((162.8, 555.6), _low + 6.2), ((171.9, 559.7), _low + 7.5), ((181.1, 563.8), _low + 8.9)]
 DWB_RLS = LineString([q_ for q_, _ in DWB_ROAD])
@@ -1882,22 +1974,27 @@ harmonic_fill(_free)
 print('daewoo back yard: court %.2f, floor %.2f, upper %.2f .. %.2f; nodes %d (pulled down %d), deck cells %d, %.0f m2' % (
     DAEWOO_BACK['low'], DAEWOO_BACK['stage'], dwb_lot_z(36.0), dwb_lot_z(75.0), int(_m_yard.sum()), int(_forced.sum()), len(_dk_cells), _dk_poly.area))
 # 대우관's sides and back ends.  The grid nodes within a metre of a hall are left out of the smooth fills above, so
-# the old surface (the elevation data still holding a little of the hall's own bulk) stayed against its walls: a
-# mound up to 1 m over the ground floor along the east wing's back and side, half burying the lowest windows, and on
-# the west the bare slope 2-3 m under the floor, baring the dark granite foundation all along the wing.  The 2012
-# photo (reference/대우관_측면_2012.jpg) and Street View show the hall standing on its ground floor all round, the
-# lawns falling away from a walk along its walls: a 3 m apron at the floor's height round the wings' sides and the
-# back, blending into the ground over the next 7 m (not across the front court, the yard or the other aprons).
-_dwp = footprint(ways[242897922])
-_bb = (DW_U > -40) & (DW_U < 95) & (DW_V > -14) & (DW_V < 60) & ~FIXED & ~_court & ~_strip
+# the old surface (the elevation data still holding a little of the hall's own bulk) stayed against its walls.  The
+# 2012 photo (reference/대우관_측면_2012.jpg) and Street View show the hall standing on its ground all round, the lawns
+# falling away from a walk along its walls: a 3 m apron round the wings' sides and the back, blending into the ground
+# over the next 7 m (not across the terrace, the yard or the other aprons).  Its height runs with the hall's two
+# levels: the terrace's at the wings' fronts, the low court's at their back ends (DAEWOO_BACK: a storey higher).
+DW_OUTLINE_UV = [(DW_UC - DW_WO, 27.55), (DW_UC - DW_WO, -10.4), (DW_UC - DW_WI, -10.4), (DW_UC - DW_WI, 0.0),
+                 (DW_UC + DW_WI, 0.0), (DW_UC + DW_WI, -10.4), (DW_UC + DW_WO, -10.4), (DW_UC + DW_WO, 27.55),
+                 (DW_UC + DW_WI, 27.55), (DW_UC + DW_WI, 14.8), (DW_UC + 18.2, 14.8), (DW_UC + 18.2, 20.6),
+                 (DW_UC + 6.6, 20.6), (DW_UC + 6.6, 22.8), (DW_UC - 6.6, 22.8), (DW_UC - 6.6, 20.6), (DW_UC - 18.2, 20.6),
+                 (DW_UC - 18.2, 14.8), (DW_UC - DW_WI, 14.8), (DW_UC - DW_WI, 27.55)]     # (the hall as the photos' roofs have it)
+_dwp = _uvh(DW_OUTLINE_UV)
+assert _dwp.is_valid
+_bb = (DH_U > -40) & (DH_U < 95) & (DH_V > -10.0) & (DH_V < 60) & ~FIXED & ~_court & ~_strip
 _jj, _ii = np.nonzero(_bb)
 _dd = shapely.distance(_dwp, shapely.points(X[_jj, _ii], Y[_jj, _ii]))
-_uu, _vv = DW_U[_jj, _ii], DW_V[_jj, _ii]
-_w = np.clip(1 - (_dd - 3.0) / 7.0, 0, 1) * (((_uu < 0.5) | (_uu > 46.5)) * np.clip((_vv + 12.0) / 4.0, 0, 1) + (_vv > 14.0))     # (beside and under the wings)
+_uu, _vv = DH_U[_jj, _ii], DH_V[_jj, _ii]
+_w = np.clip(1 - (_dd - 3.0) / 7.0, 0, 1) * (((_uu < DW_UC - DW_WI) | (_uu > DW_UC + DW_WI)) * np.clip((_vv + 10.0) / 4.0, 0, 1) + (_vv > 14.0))     # (beside and under the wings)
 _w = np.clip(_w, 0, 1)                         # (the nodes under the wings too, or the walls' foot dips between nodes)
-DW_APRON = round(DAEWOO['floor'] - 0.15, 2)
+DW_APRON = np.interp(_vv, [-10.4, 27.55], [DAEWOO['terrace'], DAEWOO_BACK['low']])
 Hn[_jj, _ii] = Hn[_jj, _ii] * (1 - _w) + DW_APRON * _w
-print('daewoo sides apron', DW_APRON, 'nodes', int((_w > 0).sum()))
+print('daewoo sides apron %.2f .. %.2f' % (DAEWOO['terrace'], DAEWOO_BACK['low']), 'nodes', int((_w > 0).sum()))
 # 대우관 서쪽 옆길 (reference/고증/3.6 「서쪽 옆길」): the drive from the 상뜰's west side up the west wing to the back
 # yard and its car park, the way the cars of 백양로 go (TRAFFIC below).  Kakao roadview of August 2008 (2381738 on the
 # drive abreast of the 상뜰, 2381759 at the wing's north-west corner) has it climb evenly along the wing, a car's
@@ -1912,20 +2009,22 @@ DW_RD_OFF = 5.0
 _ru = DAEWOO['u0'] - DW_RD_OFF
 _yz_ = lambda u, v: DAEWOO_BACK['low']                       # (the low court's level)
 DW_AISLE_V = 53.0                                    # (its end: the mouth of the underground car park in w1, DAEWOO_BACK)
-DW_DRIVE_UV = [(-15.2, -26.0), (_ru, -14.0), (_ru, 24.4), (_ru + 1.6, 30.6), (-9.0, 34.5), (2.5, 38.5), (10.5, 48.0),
-               (16.5, 53.4), (23.5, DW_AISLE_V)]
-DW_DRIVE = [dw_xy(*q_) for q_ in DW_DRIVE_UV]         # (its middle line; rounded off in TRAFFIC)
-_v0, _v1 = DW_DRIVE_UV[0][1], DW_DRIVE_UV[2][1]
-_z0, _z1 = sample(Hn, NEAR_HALF, NEAR_STEP, *DW_DRIVE[0]), _yz_(_ru, _v1)
-_side = (DW_V >= _v0) & (DW_V <= _v1) & (DW_U > _ru - 4.2) & (DW_U < np.where(DW_V < -10.5, DAEWOO['u0'] - 0.4, DAEWOO['u0'] + 5.2)) \
+# (its middle line; rounded off in TRAFFIC.  Along the wing in the hall's frame, DW_WEST_RD above; round the back in
+# the yard's, as it was read)
+_vj = DAEWOO['drive'][0] + 3.9                       # (where the terrace drive leaves it)
+DW_DRIVE = [dh_xy(-16.5, -26.0), dh_xy(_ru, _vj), dh_xy(_ru, 24.8), dh_xy(_ru + 1.6, 31.0)] + \
+    [dw_xy(*q_) for q_ in ((-9.0, 34.5), (2.5, 38.5), (10.5, 48.0), (16.5, 53.4), (23.5, DW_AISLE_V))]
+_v0, _v1 = _vj, 24.8
+_z0, _z1 = DAEWOO['terrace'], _yz_(_ru, _v1)
+_side = (DH_V >= _v0) & (DH_V <= _v1) & (DH_U > _ru - 4.2) & (DH_U < np.where(DH_V < -9.9, DAEWOO['u0'] - 0.4, DAEWOO['u0'] + 5.2)) \
     & ~_court & ~_strip
-Hn[_side] = _z0 + (_z1 - _z0) * (DW_V[_side] - _v0) / (_v1 - _v0)
+Hn[_side] = _z0 + (_z1 - _z0) * (DH_V[_side] - _v0) / (_v1 - _v0)
 FIXED[_side] = True
-_zc = [_z1, _yz_(*DW_DRIVE_UV[5]), _yz_(*DW_DRIVE_UV[-1])]
-DW_OWN = _side | fix_strip(DW_DRIVE[2:6], _zc[0], _zc[1], 3.6) | fix_strip(DW_DRIVE[5:], _zc[1], _zc[2], 3.6)
+_zc = [_z1, DAEWOO_BACK['low'], DAEWOO_BACK['low']]
+DW_OWN = _side | fix_strip(DW_DRIVE[2:6], _zc[0], _zc[1], 3.6) | fix_strip(DW_DRIVE[5:], _zc[1], _zc[2], 3.6) | DW_RD_OWN[0]
 _free = shapely.contains_xy(LineString(DW_DRIVE).buffer(15.0), X, Y) & ~FIXED & ~near_buildings(1.0) & ~_m_yard
 harmonic_fill(_free)
-print('daewoo west drive %.2f -> %.2f m, %.1f %%; back %.2f -> %.2f; nodes %d, filled %d' % (
+print('daewoo west drive along the wing %.2f -> %.2f m, %.1f %%; back %.2f -> %.2f; nodes %d, filled %d' % (
     _z0, _z1, 100 * (_z1 - _z0) / (_v1 - _v0), _zc[1], _zc[2], int(_side.sum()), int(_free.sum())))
 # ---------------------------------------------------------------------------
 # 찻길 (TRAFFIC, reference/고증/2.9): where 백양로's cars go on from the 삼거리.  They ran to the foot of the steps before
@@ -3312,11 +3411,13 @@ for _f in YEONHUI['flights']:
 # outside the diamond, under the terrace, carry the big spreading pines.  (SG: e east along the hall, n north.)
 WD = frame_from(242897922)
 SANG_LAWN = 3.25                                         # (SANG, SG, SANG_DIAMOND: with the 상뜰's levels above)
-daewoo_garden = Point(*SANG).buffer(17).union(Polygon(SANG_DIAMOND).buffer(3.0))
-draw_poly('pavers', Point(*SANG).buffer(7.2))
-draw_line('pavers', [WD(23.5, 0), SANG], 6.0)
-draw_line('pavers', [SG(0.0, -6.5), SANG_DIAMOND[2], (101.2, 405.4)], 6.0)        # the broad walk to the south steps
-draw_poly('pavers', Point(*SANG).buffer(SANG_LAWN + 0.1), 0)    # (the lawn inside the curb: after the walks, not under them)
+# (here as it was first laid out on OSM's ring, what the random planting reads: PAV_PRE, GARDEN_ZONES; the 상뜰 of the
+# photos is painted after that, DW_FRONT below)
+daewoo_garden = Point(*SANG_RNG).buffer(17).union(Polygon(SANG_DIAMOND_RNG).buffer(3.0))
+draw_poly('pavers', Point(*SANG_RNG).buffer(7.2))
+draw_line('pavers', [WD(23.5, 0), SANG_RNG], 6.0)
+draw_line('pavers', [SG_RNG(0.0, -6.5), SANG_DIAMOND_RNG[2], (101.2, 405.4)], 6.0)        # the broad walk to the south steps
+draw_poly('pavers', Point(*SANG_RNG).buffer(SANG_LAWN + 0.1), 0)    # (the lawn inside the curb: after the walks, not under them)
 # 대우관 뒤: the car park and the drive asphalt, paving round the planter in the recess (DAEWOO_BACK above)
 # (the car park of five rows the game had there, as the random planting first read it: PAV_PRE, ASPH_PRE; the yard
 # of 1997 is painted after that, DWB_ZONE below)
@@ -3410,6 +3511,37 @@ for _ly in ('asphalt', 'pavers'):
     draw_poly(_ly, DWB_ZONE.difference(_dw_road), 0)
 draw_poly('asphalt', DWB_COURT_ASPH)
 draw_poly('asphalt', DWB_LOT_ASPH)
+# 대우관 앞 · 상뜰 (DAEWOO, SANG above; reference/고증/3.6): OSM's drives and walks before the hall and the 상뜰 as first
+# laid out give way to the photos': the asphalt drive across the terrace from the west drive to the east one, paving
+# before the tower's door, and the 상뜰 on the hall's axis -- the round lawn in its paved ring, the broad walk from the
+# podium's forecourt through it to the head of the south flight, the diamond's four walks and the cross walk out to
+# the two drives.  (OSM's drive along the east wing's side goes: the wing stands there, and the photos have lawn and
+# trees between it and the road to 북문.)
+_pd = DAEWOO['podium']
+DW_FRONT_ZONE = _uvh([(_tu0, _tv0 - 1.0), (64.5, _tv0 - 1.0), (64.5, 28.5), (_tu0, 28.5)])
+DW_FRONT_PAV = _uvh([(_tu0 - 1.3, -30.5), (56.0, -30.5), (56.0, _tv0 - 1.0), (_tu0 - 1.3, _tv0 - 1.0)])
+_sgn = {k_: SG(*v_) for k_, v_ in SANG_NODES.items()}
+_sfw = LineString([(66.6, 414.3), SANG_FOOT, (137.7, 396.5)])
+SANG_ZONE = unary_union([Polygon(SANG_DIAMOND_RNG).buffer(4.5), Polygon(SANG_DIAMOND).buffer(4.5),
+                         LineString([SG_RNG(0.0, -6.5), SANG_DIAMOND_RNG[2], SANG_FOOT]).buffer(3.6),
+                         LineString([WD(23.5, 0), SANG_RNG]).buffer(3.6)]).difference(_sfw.buffer(2.2))
+SANG_WALKS = dict(                       # (the walks' middle lines and widths)
+    axis=([dh_xy(DW_UC, _pd['end']), SANG, _sgn['S']], 4.7),
+    diamond=([_sgn['N'], _sgn['W'], _sgn['S'], _sgn['E'], _sgn['N']], 3.4),
+    cross=([SG(SANG_NODES['W'][0] - 12.0, SANG_NODES['W'][1]), _sgn['W'], _sgn['E'], SG(SANG_NODES['E'][0] + 1.5, SANG_NODES['E'][1])], 3.8))
+SANG_PAVE = unary_union([Point(*SANG).buffer(6.85), LineString([_sgn['S'], SANG_FOOT]).buffer(2.75, cap_style='flat'),
+                         _uvh([(DW_UC - _pd['court'], _pd['end']), (DW_UC + _pd['court'], _pd['end']),
+                               (DW_UC + _pd['court'], _pd['face']), (DW_UC - _pd['court'], _pd['face'])])] +
+                        [LineString(l_).buffer(w_ / 2, cap_style='flat', join_style='mitre') for l_, w_ in SANG_WALKS.values()])
+DW_TERR_DRIVE = _uvh([(DAEWOO['u0'] - 5.0, _tv0), (62.3, _tv0), (62.3, _tv1), (DAEWOO['u0'] - 5.0, _tv1)])
+for _ly in ('asphalt', 'pavers'):
+    draw_poly(_ly, DW_FRONT_ZONE, 0)
+draw_poly('pavers', DW_FRONT_PAV.union(SANG_ZONE), 0)
+draw_poly('asphalt', DW_TERR_DRIVE)
+draw_line('asphalt', [dh_xy(59.3, _tv0 - 6.0), dh_xy(59.3, _tv0 + 0.5)], 4.0)        # (the east drive's head)
+draw_poly('pavers', _uvh([(DW_UC - 5.5, _tv1), (DW_UC + 5.5, _tv1), (DW_UC + 5.5, 0.0), (DW_UC - 5.5, 0.0)]))
+draw_poly('pavers', SANG_PAVE)
+draw_poly('pavers', Point(*SANG).buffer(SANG_LAWN + 0.1), 0)    # (the lawn inside the curb)
 # (the road north of the hall where the cars use it, from the bend to the mouth: OSM's line bows up to 1.2 m north
 # of their way there, and the 1997 photos' road is 6.2 - 6.5 m wide)
 draw_line('asphalt', [tuple(q_) for q_ in TR_E[TR_EKH + 4:]], 6.6)
@@ -3493,8 +3625,7 @@ def _kind_cover(geoms, W_, H_, res=DRY_RES):
 
 
 _DW, _DH = _dry.shape[1], _dry.shape[0]
-_sang_pave = unary_union([Polygon(SANG_DIAMOND).buffer(3.0), LineString([SG(0.0, -6.5), SANG_DIAMOND[2], (101.2, 405.4)]).buffer(3.5),
-                          LineString([WD(23.5, 0), SANG]).buffer(3.5)])       # (and the broad walk up to the arcade)
+_sang_pave = SANG_PAVE.buffer(0.6)
 _eu = EAGLE_WALK_W / 2 + 0.2
 _eband = Polygon([eagle_xy(-40.0, -_eu), eagle_xy(40.0, -_eu), eagle_xy(40.0, _eu), eagle_xy(-40.0, _eu)])
 _brick_ew = EAGLE_PAVED.intersection(_eband)
@@ -4159,9 +4290,13 @@ for r_ in YEONHUI['wall']:
 # walks towards the terrace
 ang_d = axis_angle(WD)
 rng6 = random.Random(1997 + 61)
+# (SGX: a place given on the diamond as OSM had it -- W -26.5, E 26.6, N 14.2, S -15.3 -- at the same place on the
+# photos')
+SGX = lambda e, n: SG(e * (SANG_NODES['W'][0] / -26.5 if e < 0 else SANG_NODES['E'][0] / 26.6),
+                      n * (SANG_NODES['N'][1] / 14.2 if n > 0 else SANG_NODES['S'][1] / -15.3))
 trees.append(['pine', SANG[0], SANG[1], 0.55, 0.4])
 for (e_, n_, kind_, sc_) in ((-8.5, 4.5, 'zelkova', 0.75), (9.0, 6.0, 'zelkova', 0.8), (13.0, -2.5, 'pine', 0.45)):
-    x_, y_ = SG(e_, n_)
+    x_, y_ = SGX(e_, n_)
     trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
 # the planted bank under the diamond's lower walks, down to the footway, the south flight going down between its
 # trees (issue #39; reference/대우관_정면_전경.jpg: spreading conifers east of the flight, broadleaves west of it)
@@ -4169,15 +4304,15 @@ for (e_, n_, kind_, sc_) in ((-7.5, -18.6, 'zelkova', 0.85), (-15.0, -15.5, 'map
                              (-30.5, -8.0, 'oak', 0.85), (-11.0, -20.5, 'cherry', 0.7), (7.5, -18.8, 'pine', 0.95),
                              (14.5, -16.0, 'pine', 0.8), (22.0, -12.0, 'zelkova', 0.85), (30.0, -8.5, 'pine', 0.85),
                              (11.5, -19.5, 'maple', 0.65)):          # (up the bank, off the footway's edge)
-    x_, y_ = SG(e_, n_)
+    x_, y_ = SGX(e_, n_)
     trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
 for sg in (-1, 1):
-    for (e_, n_, sc_) in ((-19.5, 7.0, 0.95), (-12.0, 10.2, 0.85), (-25.5, 5.5, 0.8)):
+    for (e_, n_, sc_) in ((-20.0, 9.6, 0.95), (-16.8, 16.0, 0.85), (-27.0, 7.2, 0.8)):   # (clear of the walks and the podium)
         x_, y_ = SG(sg * e_, n_)
         trees.append(['pine', round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
     for t_ in (0.3, 0.5, 0.72):                              # shrubs along the inside of the upper (NW / NE) walk
-        e_, n_ = -0.8 + (-26.5 + 0.8) * t_, 14.2 * (1 - t_)
-        x_, y_ = SG(-sg * (e_ + 0.9), n_ - 1.9)
+        e_, n_ = -26.5 * t_, 14.2 * (1 - t_)
+        x_, y_ = SGX(-sg * (e_ + 0.9), n_ - 1.9)
         shrubs.append(['bush', round(x_, 2), round(y_, 2), round(rng6.uniform(0.8, 1.05), 2), round(rng6.uniform(0, 6.28), 2)])
 # 대우관 뒤 (Street View 2009): pointed conifers 4-5 m tall in a row along the two planters (none before the tower);
 # on the lawn mound west of the car park young clipped pines and round shrubs; a few trees between the rows of cars
@@ -4821,7 +4956,7 @@ for (p0, p1), ks in (((_FRONT_RD[0], _FRONT_RD[1]), (4, 6)), ((_FRONT_RD[1], _FR
 # 대우관 상뜰: along the two lower (SW / SE) walks of the diamond, two benches on the lawn triangle inside facing the
 # walk and two on the far side facing back (the photos; a bench model faces its rot angle, see bench_along)
 for sg in (-1, 1):
-    _w0, _w1 = np.array([sg * 26.5, 0.0]), np.array([0.0, -15.3])
+    _w0, _w1 = np.array(SANG_NODES['E' if sg > 0 else 'W']), np.array(SANG_NODES['S'])
     _d = (_w1 - _w0) / np.linalg.norm(_w1 - _w0)
     _in = np.array([-_d[1], _d[0]]) * (1 if sg < 0 else -1)          # into the triangle (towards the ring)
     for t_, side in ((0.5, 1), (0.78, 1), (0.25, -1), (0.65, -1)):
@@ -5350,10 +5485,13 @@ bys = [tuple(c_) for c_ in substring(bline, 0.0, BY_END_S).coords]
 CROSS = [c_ for c_ in CROSS if c_ < BY_END_S - 20.0] + [round(BY_END_S - 14.0, 1)]
 CROSS_RNG = [c_ for c_ in CROSS_RNG if c_ < BY_END_S - 20.0] + [round(BY_END_S - 14.0, 1)]
 GAPS = [g_ for g_ in GAPS if g_[0] < BY_END_S - 3.0]
-def dwb_deck():
+def dwb_deck(cells=None, poly=None, hfun=None):
     """DAEWOO_BACK's upper level over the cells whose nodes the walls pulled down (above): triangles on a 1.25 m
     lattice cut to the level's outline, on its surface (dwb_h, 2.5 cm over it against the ground's own triangles under
-    it), but along the edges it shares with whole cells of the ground exactly as the ground runs; its rim, for a skirt"""
+    it), but along the edges it shares with whole cells of the ground exactly as the ground runs; its rim, for a skirt.
+    (cells, poly, hfun: another level's, the terrace before the hall.)"""
+    DWB_DECK_CELLS, DWB_DECK_POLY, dwb_h = (globals()['DWB_DECK_CELLS'], globals()['DWB_DECK_POLY'], globals()['dwb_h']) \
+        if cells is None else (cells, poly, hfun)
     sub_ = NEAR_STEP / 4
     V_, F_ = {}, []
 
@@ -5392,19 +5530,16 @@ def dwb_deck():
 
 
 DAEWOO_BACK['deck'] = dwb_deck()
+DAEWOO['deck'] = dwb_deck(DW_FDECK_CELLS, DW_FDECK_POLY, lambda x_, y_: DAEWOO['terrace'])
 DAEWOO_BACK['lot_z'] = [round(dwb_lot_z(v_), 3) for v_ in (36.0, 75.0, 86.0)]
 print('daewoo back deck: %d vertices, %d triangles, rim %d' % (len(DAEWOO_BACK['deck']['v']), len(DAEWOO_BACK['deck']['f']),
                                                              sum(len(r_) for r_ in DAEWOO_BACK['deck']['rim'])))
-# the hall's outline with its back as the 1997 photos' roofs have it (DAEWOO_BACK: the tower, the two blocks, the
-# wings' back ends); its front and its east wing's width stay OSM's (reference/고증/3.6 「남은 한계」).  The planting and
-# the ground were laid out round OSM's outline; the points keep their order (3 -> 4 is the hall's frame)
+# the hall's outline as the 1997 photos' roofs have it (DW_OUTLINE_UV, in the hall's own frame: the wings 11.5 m wide
+# either side of the axis, the back tower and the two blocks).  The planting and the ground were first laid out round
+# OSM's outline (what stands in the new one's way goes below, DW_FRONT); points 3 -> 4 are the recessed front
 _dwb_b = next(b_ for b_ in buildings if b_['id'] == 242897922)
-_fp_uv = [dw_uv(q_) for q_ in _dwb_b['footprint']]
-assert len(_fp_uv) == 13 and abs(_fp_uv[10][0] - 17.4) < 0.3, _fp_uv
-(_tu0, _tu1, _tv), ((_b0, _b1, _bv), (_c0, _c1, _cv)), (_wv0, _wv1) = DAEWOO_BACK['tower'], DAEWOO_BACK['blocks'], DAEWOO_BACK['wing_v']
-_fp_uv = [(_fp_uv[0][0], _wv0)] + _fp_uv[1:7] + [(_fp_uv[7][0], _wv1), (_fp_uv[8][0], _wv1), _fp_uv[9],
-          (_c1, 14.8), (_c1, _cv), (_c0, _cv), (_tu1, _tv), (_tu0, _tv), (_b1, _bv), (_b0, _bv), (_b0, 14.8), _fp_uv[11], (_fp_uv[12][0], _wv0)]
-_dwb_b['footprint'] = [[round(c_, 2) for c_ in dw_xy(*q_)] for q_ in _fp_uv]
+DW_FP_RNG = Polygon(_dwb_b['footprint'])
+_dwb_b['footprint'] = [[round(c_, 2) for c_ in dh_xy(*q_)] for q_ in DW_OUTLINE_UV]
 out = dict(
     origin=[LAT0, LON0],
     terrain=dict(near=dict(half=NEAR_HALF, step=NEAR_STEP, n=n_near, file='data/terrain_near.bin'),
@@ -5769,11 +5904,48 @@ for p_ in paths_out:
             _ypaths.append(dict(p_, pts=[[round(x, 1), round(y, 1)] for x, y in g_.coords]))
 paths_out[:] = _ypaths + [dict(kind='footway', w=2.6, pts=[[round(x, 1), round(y, 1)] for x, y in YJ_WALK])]
 out['paths'] = _ui_paths()                  # (out was made above, from the walks before this)
+# 대우관 앞 · 상뜰 (DW_FRONT_ZONE, SANG_PAVE above): OSM's walks and drives there go the same way, and the photos' come
+# in: the terrace's drive, the 상뜰's walks, its flight
+_fz_walk = unary_union([DW_FRONT_ZONE, DW_FRONT_PAV, SANG_ZONE])
+_fpaths = []
+for p_ in paths_out:
+    ls_ = LineString(p_['pts']) if len(p_['pts']) > 1 else None
+    z_ = _fz_walk if p_['kind'] in ('footway', 'path', 'steps', 'pedestrian') else DW_FRONT_ZONE
+    if ls_ is None or not ls_.intersects(z_):
+        _fpaths.append(p_)
+        continue
+    rest_ = ls_.difference(z_)
+    for g_ in (rest_.geoms if hasattr(rest_, 'geoms') else [rest_]):
+        if g_.geom_type == 'LineString' and g_.length >= 3.0:
+            _fpaths.append(dict(p_, pts=[[round(x, 1), round(y, 1)] for x, y in g_.coords]))
+_rp = lambda l_: [[round(x, 1), round(y, 1)] for x, y in l_]
+paths_out[:] = _fpaths + [dict(kind='service', w=7.9, pts=_rp(LineString(DW_TERR_DRIVE.exterior.coords[:2]).parallel_offset(
+    (DAEWOO['drive'][1] - DAEWOO['drive'][0]) / 2, 'left').coords))] + \
+    [dict(kind='footway', w=w_, pts=_rp(l_)) for l_, w_ in SANG_WALKS.values()] + \
+    [dict(kind='steps', w=5.5, pts=_rp([SANG_DIAMOND[2], SANG_FOOT]))]
+print('대우관 앞 · 상뜰: walks', len(paths_out), 'of them cut or gone', len(_ypaths) + 1 - len(_fpaths))
+out['paths'] = _ui_paths()
 _kept = unary_union([LineString(p_['pts']).buffer(p_['w'] / 2) for p_ in paths_out
                      if len(p_['pts']) > 1 and LineString(p_['pts']).distance(YJ_GARDEN) < 10.0])
 _yclear = YJ_PAD.union(unary_union([Polygon(b_['footprint']).buffer(4.0) for b_ in YONGJAE_SCATTER])).difference(YJ_DRIVE.buffer(3.6))
 _ydz = _yclear.union(YJ_GARDEN)
 out['decals'] = [d_ for d_ in out['decals'] if not _ydz.contains(Point(d_[1], d_[2]))]
+# (대우관 앞 · 상뜰: what the random planting and the first layout left on the hall as the photos have it, on the terrace
+# and its podium and on the 상뜰's walks goes; a tree as those under the moved 백양로 do, the last one taking its place)
+_fzt = unary_union([_dwp.buffer(1.2), DW_TERR, DW_TERR_DRIVE,
+                    _uvh([(DW_UC - _pd['hw'] - 0.5, _pd['end']), (DW_UC + _pd['hw'] + 0.5, _pd['end']),
+                          (DW_UC + _pd['hw'] + 0.5, _tv0), (DW_UC - _pd['hw'] - 0.5, _tv0)]),
+                    SANG_PAVE.difference(Point(*SANG).buffer(SANG_LAWN)).buffer(0.5)])
+_n0 = (len(DROP_TREES), len(shrubs), len(props), len(out['decals']))
+for t_ in trees:
+    if _fzt.contains(Point(t_[1], t_[2])):
+        drop_tree(t_)
+        print('   대우관 앞: tree in the way', t_[:3])
+shrubs = [s_ for s_ in shrubs if not _fzt.contains(Point(s_[1], s_[2]))]
+props = [p_ for p_ in props if not _fzt.contains(Point(p_[1], p_[2]))]
+out['decals'] = [d_ for d_ in out['decals'] if not _fzt.union(DW_FRONT_ZONE).union(SANG_ZONE).contains(Point(d_[1], d_[2]))]
+print('대우관 앞 · 상뜰: trees dropped, shrubs, props, decals gone', len(DROP_TREES) - _n0[0], _n0[1] - len(shrubs), _n0[2] - len(props),
+      _n0[3] - len(out['decals']))
 # the planting (reference/용재관.jpg, April): the bank one sheet of violet 진달래, in flower before their leaves, either
 # side of the walk; a clipped hedge along the walk's west side, a few red 영산홍 at the foot of the bank, a double-
 # globe lamp at the head of the flight by the canopy, a cherry in flower on the bank by the foot of the walk; a tall
@@ -6673,8 +6845,8 @@ print('traffic: 삼거리 s %.1f, leaves 백양로 at %.1f' % (TR_SJ, TR_S0))
 _dwl = LineString(TR_CENTRE[TR_KDW - 22:])
 _dws = _dwl.buffer(3.1, cap_style='flat')
 _ypaint([_dws], _ga)
-DW_WALL_WALK = Polygon([dw_xy(u_, v_) for u_, v_ in ((DAEWOO['u0'] - 3.0, -30.0), (DAEWOO['u0'] + 2.0, -30.0),
-                                                     (DAEWOO['u0'] + 2.0, 27.0), (DAEWOO['u0'] - 3.0, 27.0))]).difference(_dws)
+DW_WALL_WALK = Polygon([dh_xy(u_, v_) for u_, v_ in ((DAEWOO['u0'] - 3.0, DAEWOO['wing_v'][0]), (DAEWOO['u0'] + 2.0, DAEWOO['wing_v'][0]),
+                                                     (DAEWOO['u0'] + 2.0, 27.4), (DAEWOO['u0'] - 3.0, 27.4))]).difference(_dws)
 _dw_moved = []
 for s_ in shrubs:
     q_ = Point(s_[1], s_[2])

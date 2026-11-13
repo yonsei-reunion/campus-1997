@@ -3290,9 +3290,11 @@ def amphitheater():
 
 
 # ============================================================================= 대우관 (1984)
-def gable_hall(mb, u0, u1, v0, v1, floors, fh, wall, pitch=1.3, plinth=1.0, bay=3.3, iv=None, ivy=0.0, seed=0, gothic_trim=False):
+def gable_hall(mb, u0, u1, v0, v1, floors, fh, wall, pitch=1.3, plinth=1.0, bay=3.3, iv=None, ivy=0.0, seed=0, gothic_trim=False,
+               blind=()):
     """A stone hall in the builder's local frame whose ridge runs along v, with steep gables on its two v ends
-    (the end pavilions of 대우관: their gables face the forecourt)."""
+    (the end pavilions of 대우관: their gables face the forecourt).  blind: the sides (0 front, 1, 2 back, 3) whose
+    ground storey has no windows (the ground stands a storey higher there)."""
     W = u1 - u0
     Hw = plinth + floors * fh + 0.6
     hz = Hw + W / 2 * pitch
@@ -3301,7 +3303,11 @@ def gable_hall(mb, u0, u1, v0, v1, floors, fh, wall, pitch=1.3, plinth=1.0, bay=
     gl = local_ground(mb)
     for i in range(4):
         P, Le, t, n = edge_P(body[i], body[(i + 1) % 4])
-        window_grid(mb, P, Le, plinth, floors, fh, bay, wall, ww=0.5, trim='stone_trim', mull=2)
+        if i in blind:
+            flat_wall(mb, P, 0, Le, plinth, plinth + fh, wall)
+            window_grid(mb, P, Le, plinth + fh, floors - 1, fh, bay, wall, ww=0.5, trim='stone_trim', mull=2)
+        else:
+            window_grid(mb, P, Le, plinth, floors, fh, bay, wall, ww=0.5, trim='stone_trim', mull=2)
         if plinth > 1.2:
             basement_windows(mb, P, 0, Le, bay, plinth, gl, wall)
         flat_wall(mb, P, 0, Le, plinth + floors * fh, Hw, wall)
@@ -3338,16 +3344,22 @@ def gable_hall(mb, u0, u1, v0, v1, floors, fh, wall, pitch=1.3, plinth=1.0, bay=
     mb.box((uc, (v0 + v1) / 2, hz + 0.1), (0.35, v1 - v0, 0.3), 'metal_dark')
 
 
-def daewoo_front(mb, zT, zP, u0, u1, uc=23.55, vp=-17.0):
-    """대우관's terrace and podium (reference/대우관_2024_정면과_상뜰.jpg, 대우관_정면_전경.jpg, 대우관_블로그_본관_정면_상뜰.jpg,
-    대우관_측면_2012.jpg), in the recess frame: u along the front from its west end, v into the hall (front wall v = 0),
-    z from the hall's z0; zT the terrace, zP the plaza (the 상뜰 level) ~6 m below.
-    The main door is not up a flight at all: a white stone podium stands 14 m out from the tower, 18 m wide, and the
-    door is in its face at the plaza level, glass doors at the back of a deep porch under one wide low arch, a blue
-    name board above, a clipped hedge along its top.  Flights climb to the terrace between high walls on either side
-    of it; beyond them the front steps back, a planted tier and then the terrace wall, across the fronts of the wings.
-    The tower's own pointed door opens onto the terrace three steps up."""
-    hp, sw, ow = 9.0, 2.8, 8.6                   # podium half width, stair well width, arch span
+def daewoo_front(mb, lv, z0):
+    """대우관's terrace and podium (reference/고증/3.6: the vertical aerial photos of 1997-07-28, Kakao's skyview of 2008,
+    reference/대우관_정면_전경.jpg, 대우관_2024_정면과_상뜰.jpg, 대우관_블로그_본관_정면_상뜰.jpg), in the hall's own frame
+    (tools/build_campus.py DAEWOO): u along the front, v into the hall (the front wall at v = 0), z from the hall's z0.
+    The terrace itself is ground (a drive crosses it before the wings; lawns with clipped cones between them): here
+    its south wall with the hedge and the row of conifers along its top, the planters of the tier under it, and the
+    white stone podium that stands out from it before the tower, its ends rounded.  The main door is a wide low arch
+    in the podium's face at the 상뜰's level, glass doors at the back of a deep porch, a blue name board over it and a
+    planter of clipped shrubs on top.  Either side of the door's forecourt a flight climbs outwards along the face,
+    stepped planters before it, to a landing in the rounded end, and turns back up behind the face's stepped parapet
+    to the terrace."""
+    uc, pd = lv['uc'], lv['podium']
+    zT, zM, zP, zR = (lv[k] - z0 for k in ('terrace', 'mid', 'plaza', 'tier'))
+    (tu0, tu1), (tv0, tv1) = lv['tu'], lv['drive']
+    hw, vf, vs, cw = pd['hw'], pd['face'], pd['front'], pd['court']
+    ow = 8.6                                     # the arch's span
     gnd = zP - 0.6
     W_ = lambda u, v, z: tuple(mb.xf @ Vector((u, v, z)))
 
@@ -3355,91 +3367,147 @@ def daewoo_front(mb, zT, zP, u0, u1, uc=23.55, vp=-17.0):
         WALK_FACES.append([W_(ua, va, z), W_(ub, va, z), W_(ub, vb, z), W_(ua, vb, z)])
 
     def block(ua, ub, va, vb, za, zb, mat='stone_white', top=None):
+        ua, ub = sorted((ua, ub))
         mb.box(((ua + ub) / 2, (va + vb) / 2, (za + zb) / 2), (ub - ua, vb - va, zb - za), mat,
                mats={'top': top} if top else None, skip=('bottom',) if za <= gnd else ())
 
     def parapet(ua, ub, va, vb, z, h=1.0):
         block(ua, ub, va, vb, z, z + h - 0.12)
+        ua, ub = sorted((ua, ub))
         block(ua - 0.06, ub + 0.06, va - 0.06, vb + 0.06, z + h - 0.12, z + h, 'stone_trim')
 
-    # --- the podium, built round its porch (v from the face to -14) and the lit lobby behind the glass (to -8.5)
-    pa, pb = uc - hp, uc + hp
+    def prism(pts, za, zb, mat='stone_white', top='stone_step'):
+        """a solid on a convex outline (u, v), anticlockwise seen from above"""
+        mb.face([(u, v, zb) for u, v in pts], top)
+        for (ua, va), (ub, vb) in zip(pts, pts[1:] + pts[:1]):
+            mb.quad((ua, va, za), (ub, vb, za), (ub, vb, zb), (ua, va, zb), mat)
+        WALK_FACES.append([W_(u, v, zb) for u, v in pts])
+
+    def cone(u, v, z, h=2.9, r=0.8):
+        mb.cylinder((u, v), r, z, z + h, 'shrub_green', seg=10, r1=0.06)
+
+    def globe(u, v, z, r=0.8):
+        mb.cylinder((u, v), r, z, z + 0.75, 'shrub_green', seg=10, r1=r + 0.05)
+        mb.cylinder((u, v), r + 0.05, z + 0.75, z + 1.15, 'shrub_green', seg=10, r1=0.4)
+
+    # --- the terrace's south wall either side of the podium: the wall, a planter along its top with a clipped hedge
+    # and the row of pointed conifers (the photos' dark band with pale posts, v -18.3 .. -20.5)
+    for ua, ub in ((tu0, uc - hw), (uc + hw, tu1 - 8.0)):
+        block(ua, ub, tv0 - 2.2, tv0, zR - 1.2, zT + 0.3, top='soil')
+        block(ua - 0.08, ub + 0.08, tv0 - 2.28, tv0 - 2.0, zT + 0.18, zT + 0.34, 'stone_trim')
+        mb.box(((ua + ub) / 2, tv0 - 1.5, zT + 0.75), (abs(ub - ua) - 0.6, 0.9, 0.9), 'shrub_green')
+        n = max(2, int(abs(ub - ua) / 3.6))
+        for k in range(n):
+            cone(min(ua, ub) + (k + 0.5) * abs(ub - ua) / n, tv0 - 0.6, zT + 0.3, h=3.4, r=0.95)
+    # the planters of the tier under it (white kerbs round dark clipped shrubs), 13.3 .. 23.4 m either side of the axis
+    for sg in (-1, 1):
+        ua, ub = sorted((uc + sg * 13.3, uc + sg * 23.4))
+        block(ua, ub, -23.4, -21.0, zR - 0.8, zR + 0.45, 'stone_trim', top='soil')
+        mb.box(((ua + ub) / 2, -22.2, zR + 0.85), (ub - ua - 0.5, 1.9, 0.8), 'shrub_green')
+    # --- between the wings: clipped cones along the hall and round shrubs towards the drive, either side of the paving
+    for sg in (-1, 1):
+        ua, ub = sorted((uc + sg * 7.0, uc + sg * (lv['wi'] - 1.5)))
+        for k in range(5):
+            u = ua + (k + 0.5) * (ub - ua) / 5
+            cone(u, -2.4, zT, h=3.0, r=0.8)
+            globe(u, -8.4, zT)
+    # --- the podium.  Its middle: the block over the porch, built round the porch (v from the face to +3) and the lit
+    # lobby behind the glass (to +6)
     oa, ob = uc - ow / 2, uc + ow / 2
+    ia, ib = uc - 5.2, uc + 5.2                  # the head of the upper flights
     zs = zP + 2.2                                # springing of the segmental arch
     zc = zs + ow * 0.16                          # its crown = the porch ceiling
-    vr, vl = vp + 3.0, vp + 8.5                  # glass screen / back of the lobby
-    block(pa, oa, vp, 0.0, gnd, zT, top='stone_step')
-    block(ob, pb, vp, 0.0, gnd, zT, top='stone_step')
-    block(oa, ob, vp, 0.0, zc, zT, top='stone_step')
-    block(oa, ob, vl, 0.0, gnd, zc)
-    Pf, _, _, _ = edge_P((pa, vp), (pb, vp))     # the podium face: s from its west end, d outwards (-v)
-    arch_fill(mb, Pf, oa - pa, ob - pa, zs, zc + 0.01, 0.6, 'stone_white', 'segment', 16, intrados_mat='stone_trim')
-    ring = arch_points(oa - pa, ob - pa, zs, 'segment', 16)
+    vr, vl = vf + 3.0, vf + 5.6                  # glass screen / back of the lobby
+    block(ia, oa, vf, tv0, gnd, zT, top='stone_step')
+    block(ob, ib, vf, tv0, gnd, zT, top='stone_step')
+    block(oa, ob, vf, tv0, zc, zT, top='stone_step')
+    block(oa, ob, vl, tv0, gnd, zc)
+    walk(ia, ib, vf, tv0, zT)
+    Pf, _, _, _ = edge_P((ia, vf), (ib, vf))     # the podium face: s from its west end, d outwards (-v)
+    fa = oa - ia
+    arch_fill(mb, Pf, fa, fa + ow, zs, zc + 0.01, 0.6, 'stone_white', 'segment', 16, intrados_mat='stone_trim')
+    ring = arch_points(fa, fa + ow, zs, 'segment', 16)
     for (sa, za), (sb, zb) in zip(ring, ring[1:]):                     # a pale moulded ring round the arch
         bar(mb, Pf, sa, za + 0.16, sb, zb + 0.16, 0.32, 0.0, 0.06, 'stone_trim')
-    for s in (oa - pa - 0.16, ob - pa + 0.16):                         # and down the jambs
+    for s in (fa - 0.16, fa + ow + 0.16):                              # and down the jambs
         bar(mb, Pf, s, zP, s, zs + 0.1, 0.32, 0.0, 0.06, 'stone_trim')
-    mb.quad(Pf(oa - pa, zP + 0.02, 0.3), Pf(ob - pa, zP + 0.02, 0.3), Pf(ob - pa, zP + 0.02, -3.0), Pf(oa - pa, zP + 0.02, -3.0), 'stone_step')
-    walk(oa, ob, vp - 0.3, vr, zP + 0.02)
-    shopfront(mb, Pf, oa - pa + 0.05, ob - pa - 0.05, zP, zc - 0.01, -3.0)
-    vestibule(mb, Pf, oa - pa + 0.03, ob - pa - 0.03, zP + 0.005, zc - 0.03, -3.02, vl - vr - 0.05, lights=3)
+    mb.quad(Pf(fa, zP + 0.02, 0.3), Pf(fa + ow, zP + 0.02, 0.3), Pf(fa + ow, zP + 0.02, -3.0), Pf(fa, zP + 0.02, -3.0), 'stone_step')
+    walk(oa, ob, vf - 0.3, vr, zP + 0.02)
+    shopfront(mb, Pf, fa + 0.05, fa + ow - 0.05, zP, zc - 0.01, -3.0)
+    vestibule(mb, Pf, fa + 0.03, fa + ow - 0.03, zP + 0.005, zc - 0.03, -3.02, vl - vr - 0.05, lights=3)
+    hp = (ib - ia) / 2
     zb0 = zc + 0.45                                                    # the blue name board over the arch
-    mb.quad(Pf(hp - 5.2, zb0, 0.05), Pf(hp + 5.2, zb0, 0.05), Pf(hp + 5.2, zb0 + 0.62, 0.05), Pf(hp - 5.2, zb0 + 0.62, 0.05), 'sign_blue')
-    bar(mb, Pf, hp - 5.3, zb0 + 0.31, hp + 5.3, zb0 + 0.31, 0.72, 0.0, 0.04, 'stone_trim', ends=True)
-    mb.quad(Pf(hp - 4.2, zb0 + 0.27, 0.06), Pf(hp + 4.2, zb0 + 0.27, 0.06), Pf(hp + 4.2, zb0 + 0.35, 0.06), Pf(hp - 4.2, zb0 + 0.35, 0.06), 'paint_white')
-    block(pa - 0.12, pb + 0.12, vp - 0.12, vp + 0.5, zT - 0.3, zT, 'stone_trim')        # coping band
-    for k in range(6):                                                 # horizontal joints of the ashlar face
-        z = zP + 0.6 + k * (zT - zP - 0.6) / 6
+    mb.quad(Pf(hp - 4.6, zb0, 0.05), Pf(hp + 4.6, zb0, 0.05), Pf(hp + 4.6, zb0 + 0.62, 0.05), Pf(hp - 4.6, zb0 + 0.62, 0.05), 'sign_blue')
+    bar(mb, Pf, hp - 4.7, zb0 + 0.31, hp + 4.7, zb0 + 0.31, 0.72, 0.0, 0.04, 'stone_trim', ends=True)
+    mb.quad(Pf(hp - 3.8, zb0 + 0.27, 0.06), Pf(hp + 3.8, zb0 + 0.27, 0.06), Pf(hp + 3.8, zb0 + 0.35, 0.06), Pf(hp - 3.8, zb0 + 0.35, 0.06), 'paint_white')
+    for k in range(5):                                                 # horizontal joints of the ashlar face
+        z = zP + 0.6 + k * (zT - zP - 0.6) / 5
         if zs - 0.3 < z < zc + 1.2:
             continue
         mb.quad(Pf(0, z, 0.012), Pf(2 * hp, z, 0.012), Pf(2 * hp, z + 0.03, 0.012), Pf(0, z + 0.03, 0.012), 'stone_trim')
-    # on top: a parapet with the clipped hedge behind it, the walk to the tower, side parapets over the wells
-    parapet(pa, pb, vp, vp + 0.4, zT)
-    block(pa + 0.4, pb - 0.4, vp + 0.4, vp + 1.6, zT, zT + 0.45, 'stone_trim', top='soil')
-    mb.box((uc, vp + 1.0, zT + 0.8), (2 * hp - 1.2, 0.95, 0.75), 'shrub_green')
-    walk(pa, pb, vp + 1.6, 0.0, zT)
-
-    # --- the flights either side, two of ~18 risers with a landing between, from the plaza up to the terrace
-    n1, n2, tr = 18, 19, 0.31
-    rise = (zT - zP) / (n1 + n2)
-    zm = zP + n1 * rise
-    top_v = None
+    parapet(ia, ib, vf, vf + 0.4, zT)                                  # the parapet over the face
+    # on top: the planter of dark clipped shrubs (the photos' dark rectangle, 5.5 m by 3.8 m)
+    block(uc - 2.75, uc + 2.75, -23.4, -19.6, zT, zT + 0.45, 'stone_trim', top='soil')
+    mb.box((uc, -21.5, zT + 0.85), (5.0, 3.3, 0.8), 'shrub_green')
+    # --- its two sides: the strip along the terrace, the upper flight behind the face's stepped parapet, the landing
+    # in the rounded end, the lower flight before the face with its stepped planters
+    n1, n2 = 19, 12
+    r1, r2 = (zM - zP) / n1, (zT - zM) / n2
+    t1, t2 = 0.30, 0.30
+    v_up0, v_up1 = -23.2, -21.3                  # the upper flight's well
+    v_lo0, v_lo1 = vs, vs + 2.5                  # the lower flight
     for sg in (-1, 1):
-        ux = uc + sg * (hp + sw / 2)
-        yf1 = vp + 1.4 + n1 * tr
-        stair_flight(mb, ux, yf1, sw, zm, n=n1, mat='stone_step', landing=1.4, tread=tr, flare=0.0, ground=gnd, zbot=zP)
-        yf2 = yf1 + 1.0 + n2 * tr
-        stair_flight(mb, ux, yf2, sw, zT, n=n2, mat='stone_step', landing=1.0, tread=tr, flare=0.0, ground=gnd, zbot=zm)
-        top_v = yf2 + 1.2
-        block(ux - sw / 2, ux + sw / 2, top_v, 0.0, gnd, zT, top='stone_step')       # the terrace behind the well
-        walk(ux - sw / 2, ux + sw / 2, top_v - 0.05, 0.0, zT)
-        parapet(*sorted((uc + sg * hp, uc + sg * (hp + 0.4))), vp + 0.4, top_v, zT)    # podium side over the well
-    # --- beyond the wells: a planted tier, then the terrace wall, across the wings' fronts to the roads
-    vA = vp + 2.5
-    for ua, ub in ((u0, uc - hp - sw), (uc + hp + sw, u1)):
-        block(ua, ub, vp, vA, gnd, zP + 2.8, top='soil')
-        for k in range(int((ub - ua) / 2.6)):
-            c = (ua + 1.3 + k * (ub - ua - 2.6) / max(1, int((ub - ua) / 2.6) - 1), vp + 1.25)
-            mb.cylinder(c, 0.95, zP + 2.7, zP + 3.4, 'shrub_green', seg=10, r1=1.0)
-            mb.cylinder(c, 1.0, zP + 3.4, zP + 3.8, 'shrub_green', seg=10, r1=0.45)
-        block(ua - 0.1, ub + 0.1, vp - 0.1, vp + 0.25, zP + 2.65, zP + 2.85, 'stone_trim')
-        block(ua, ub, vA, 0.0, gnd, zT, top='pavers')
-        walk(ua, ub, vA + 0.35, 0.0, zT)
-        parapet(ua, ub, vA, vA + 0.35, zT)
-        inner = ub if ua < uc else ua                                  # parapet along the well
-        parapet(*sorted((inner, inner + (-0.35 if ua < uc else 0.35))), vA + 0.35, top_v, zT)
-        end = ua if ua < uc else ub                                    # and at the road end, up to the wing
-        parapet(*sorted((end, end + (0.35 if ua < uc else -0.35))), vA + 0.35, -10.4, zT)
-        # on the terrace between the wings and the stairs: a kerbed lawn along the hall with a row of clipped cones
-        ba, bb = (1.4, ub - 1.3) if ua < uc else (ua + 1.3, 45.7)
-        block(ba, bb, -11.8, -2.2, zT - 0.3, zT + 0.28, 'stone_trim', top='grass')
+        U = lambda d, sg=sg: uc + sg * d         # (d: out from the axis)
+        d_in, d_out = 5.2, hw - 3.0              # the upper flight runs between them (its head by the axis)
+        d_top = d_in + n2 * t2                   # ... its foot, on the landing
+        block(U(d_in), U(d_out), v_up1, tv0, gnd, zT, top='stone_step')             # the strip along the terrace
+        walk(*sorted((U(d_in), U(d_out))), v_up1, tv0, zT)
+        parapet(U(d_in + 0.4), U(d_out), v_up1, v_up1 + 0.35, zT)                    # ... its rail over the well
+        for k in range(n2):                                                         # the upper flight, up towards the axis
+            da, db = d_in + k * t2, d_in + (k + 1) * t2
+            z = zT - (k + 1) * r2
+            block(U(da), U(db), v_up0, v_up1, gnd, z, top='stone_step')
+            walk(*sorted((U(da), U(db))), v_up0, v_up1, z)
+        d_lo = cw + n1 * t1                      # the head of the lower flight
+        block(U(d_top), U(d_lo), v_up0, v_up1, gnd, zM, top='stone_step')
+        walk(*sorted((U(d_top), U(d_lo))), v_up0, v_up1, zM)
+        # the face beside the middle block, under the stepped parapet: from the terrace's height by the axis down to the
+        # landing's at the end
+        steps_ = 4
+        for k in range(steps_):
+            da, db = d_in + (d_out - d_in) * k / steps_, d_in + (d_out - d_in) * (k + 1) / steps_
+            ztop = zT + 1.0 - (zT - zM) * k / (steps_ - 1)
+            block(U(da), U(db), vf, v_up0, gnd, ztop - 0.12)
+            ua, ub = sorted((U(da), U(db)))
+            block(ua - 0.05, ub + 0.05, vf - 0.05, v_up0 + 0.05, ztop - 0.12, ztop, 'stone_trim')
+        # the landing in the rounded end: a half round on the podium's end, from the upper flight's foot to the lower one's head
+        cv, R = (v_lo0 + v_up1) / 2, (v_up1 - v_lo0) / 2
+        arc = [(U(d_out + R * math.cos(math.radians(a_)) * (hw - d_out) / R), cv + R * math.sin(math.radians(a_))) for a_ in range(-90, 91, 15)]
+        pts = [(U(d_lo), v_lo0)] + arc + [(U(d_lo), v_up1)]
+        if sg > 0:
+            prism(pts, gnd, zM)
+        else:
+            prism(pts[::-1], gnd, zM)
+        for (ua, va), (ub, vb) in zip(arc, arc[1:]):                               # its low parapet round the end
+            c = ((ua + ub) / 2, (va + vb) / 2, zM + 0.45)
+            mb.box(c, (math.hypot(ub - ua, vb - va) + 0.05, 0.3, 0.9), 'stone_white', rotz=math.atan2(vb - va, ub - ua),
+                   mats={'top': 'stone_trim'}, skip=('bottom',))
+        # (the landing's inner part, between the two flights, is solid under the upper flight's foot and the face)
+        for k in range(n1):                                                        # the lower flight, up away from the axis
+            da, db = cw + k * t1, cw + (k + 1) * t1
+            z = zP + (k + 1) * r1
+            block(U(da), U(db), v_lo0, v_lo1, gnd, z, top='stone_step')
+            walk(*sorted((U(da), U(db))), v_lo0, v_lo1, z)
+        # the stepped planters between the lower flight and the face, a round shrub on each (대우관_2024_정면과_상뜰.jpg),
+        # and a low cheek wall on the flight's outer side
         for k in range(4):
-            c = (ba + 1.2 + k * (bb - ba - 2.4) / 3, -4.0)
-            mb.cylinder(c, 0.75, zT + 0.25, zT + 2.9, 'shrub_green', seg=10, r1=0.06)
-            mb.cylinder((c[0], -9.6), 0.8, zT + 0.25, zT + 1.0, 'shrub_green', seg=10, r1=0.85)
-            mb.cylinder((c[0], -9.6), 0.85, zT + 1.0, zT + 1.4, 'shrub_green', seg=10, r1=0.4)
-    for sg in (-1, 1):                                                 # globe lamps on the plaza by the flights
-        lamp_post(mb, uc + sg * (hp + sw + 1.2), vp - 1.6, h=3.4, z=zP - 0.04 * 1.6)
+            da, db = cw + (d_lo - cw) * k / 4, cw + (d_lo - cw) * (k + 1) / 4
+            ztop = zP + 0.9 + (zM - zP) * (k + 0.5) / 4
+            block(U(da), U(db), v_lo1, vf, gnd, ztop, top='soil')
+            globe((U(da) + U(db)) / 2, (v_lo1 + vf) / 2, ztop - 0.05, r=0.55)
+            block(U(da), U(db), v_lo0 - 0.3, v_lo0, gnd, zP + 0.9 + (zM - zP) * (k + 1) / 4)
+    for sg in (-1, 1):                                                 # globe lamps on the 상뜰 before the tier's planters
+        lamp_post(mb, uc + sg * 17.0, vs - 1.6, h=3.4, z=zP - 0.05)
 
 
 def sang_stone_bank(pts):
@@ -3551,26 +3619,33 @@ def daewoo_rear(mb, P, Le, plinth, floors, fh, Hw, wall):
     screen with a plain box over it on the roof, the tower's middle part the highest with a row of vent pipes, a back
     door at its foot onto the floor of the open-air theatre.  P: the back wall, s from its east end."""
     db = CAMPUS['daewoo_back']
-    S = lambda u: 46.7 - u                                   # (daewoo(): the centre block runs u 0.4 .. 46.7)
+    lvf = CAMPUS['daewoo_front']
+    S = lambda u: lvf['uc'] + lvf['wi'] - u                  # (daewoo(): the centre block runs wi either side of the axis)
     (tu0, tu1, tv), blocks = db['tower'], db['blocks']
     tc, tw, tp = S((tu0 + tu1) / 2), (tu1 - tu0) / 2, tv - 14.8
     zt = plinth + floors * fh       # top of the window floors
     sw = 1.6                        # half width of the stairs' glazing
     lo = -1.6
+    # (the yard lies a storey over the terrace before the hall: the storey at the terrace's level is blind at the back,
+    # its top just over the low court)
+    p1 = plinth + fh
     for a, b in ((0.0, S(blocks[1][1])), (S(blocks[0][0]), Le)):
-        window_grid(mb, P, Le, plinth, floors, fh, 3.3, wall, ww=0.42, trim='stone_trim', mull=1, s_start=a, s_end=b)
+        window_grid(mb, P, Le, p1, floors - 1, fh, 3.3, wall, ww=0.42, trim='stone_trim', mull=1, s_start=a, s_end=b)
+        flat_wall(mb, P, a, b, plinth, p1, wall)
     flat_wall(mb, P, 0, Le, zt, Hw, wall)
     bar(mb, P, -0.15, Hw + 0.15, Le + 0.15, Hw + 0.15, 0.3, -0.3, 0.12, 'stone_trim', ends=True)   # coping
     for bu0, bu1, bv in blocks:
         a, b, d = S(bu1), S(bu0), bv - 14.8
         B = lambda s, z, dd=0.0, d=d: P(s, z, dd + d)
         c = (a + b) / 2
-        window_grid(mb, B, Le, plinth, floors, fh, 3.3, wall, ww=0.42, trim='stone_trim', mull=1, s_start=a, s_end=c - sw - 0.7)
-        window_grid(mb, B, Le, plinth, floors, fh, 3.3, wall, ww=0.42, trim='stone_trim', mull=1, s_start=c + sw + 0.7, s_end=b)
-        hole = (c - sw, c + sw, plinth + 0.9, zt - 0.3)
+        window_grid(mb, B, Le, p1, floors - 1, fh, 3.3, wall, ww=0.42, trim='stone_trim', mull=1, s_start=a, s_end=c - sw - 0.7)
+        window_grid(mb, B, Le, p1, floors - 1, fh, 3.3, wall, ww=0.42, trim='stone_trim', mull=1, s_start=c + sw + 0.7, s_end=b)
+        flat_wall(mb, B, a, c - sw - 0.7, plinth, p1, wall)
+        flat_wall(mb, B, c + sw + 0.7, b, plinth, p1, wall)
+        hole = (c - sw, c + sw, p1 + 0.9, zt - 0.3)
         wall_holes(mb, B, c - sw - 0.7, c + sw + 0.7, plinth, zt, wall, [hole])
         reveal(mb, B, *hole, 0.25, wall)
-        glazing(mb, B, *hole, -0.25, 3, floors * 2, 'frame_dark')
+        glazing(mb, B, *hole, -0.25, 3, (floors - 1) * 2, 'frame_dark')
         flat_wall(mb, B, a, b, zt, Hw, wall)
         flat_wall(mb, B, a, b, lo, plinth, wall)
         mb.quad(P(a, lo, 0.0), P(a, lo, d), P(a, Hw, d), P(a, Hw, 0.0), wall)             # its sides
@@ -3586,14 +3661,14 @@ def daewoo_rear(mb, P, Le, plinth, floors, fh, Hw, wall):
     ht1, ht2, mid = Hw + 3.9, Hw + 5.4, 3.3
     zd = db['stage'] - mb.xf.translation.z if hasattr(mb, 'xf') and mb.xf is not None else 0.9     # the theatre's floor
     for a, b in ((tc - tw, tc - mid), (tc + mid, tc + tw)):
-        window_grid(mb, T, Le, plinth, floors, fh, b - a, wall, ww=0.3, trim='stone_trim', mull=0, s_start=a, s_end=b)
+        window_grid(mb, T, Le, p1, floors - 1, fh, b - a, wall, ww=0.3, trim='stone_trim', mull=0, s_start=a, s_end=b)
         flat_wall(mb, T, a, b, zt, ht1, wall)
-        flat_wall(mb, T, a, b, lo, plinth, wall)
+        flat_wall(mb, T, a, b, lo, p1, wall)
         mb.quad(P(a, ht1, -6.0), P(b, ht1, -6.0), P(b, ht1, tp), P(a, ht1, tp), 'roof_flat')
-    window_grid(mb, T, Le, plinth + fh, floors - 1, fh, 3.3, wall, ww=0.55, trim='stone_trim', mull=1,
+    window_grid(mb, T, Le, p1 + fh, floors - 2, fh, 3.3, wall, ww=0.55, trim='stone_trim', mull=1,
                 s_start=tc - mid, s_end=tc + mid)
     door = (tc - 1.5, tc + 1.5, zd + 0.02, zd + 2.6)           # the back door, at the theatre's floor
-    wall_holes(mb, T, tc - mid, tc + mid, lo, plinth + fh, wall, [door])
+    wall_holes(mb, T, tc - mid, tc + mid, lo, p1 + fh, wall, [door])
     reveal(mb, T, *door, 0.4, wall)
     shopfront(mb, T, door[0], door[1], door[2], door[3], -0.4, bays=4, door_h=2.3)
     vestibule(mb, T, door[0] - 0.2, door[1] + 0.2, door[2] + 0.002, door[3] - 0.05, -0.42, 2.0, lights=1)
@@ -3847,34 +3922,43 @@ def daewoo():
     It stands on a terrace over the 상뜰 with the main door down in the podium in front (daewoo_front); the tower
     door on the terrace is a tall pointed arch of dark glass (reference/대우관_정면_전경.jpg)."""
     b = bld(242897922)
-    fp = b['footprint']
-    a, bb = Vector(fp[3]), Vector(fp[4])                 # the recessed front between the pavilions
-    t = (bb - a).normalized()
+    lv = CAMPUS['daewoo_front']                           # the frame and levels from tools/build_campus.py (DAEWOO)
+    # the hall's own frame: OSM's outline is 4 m short on the east and 0.84 degrees off (reference/고증/3.6): the origin,
+    # the heading of the front; the axis at u = uc, the wings wi .. wo either side of it
+    a, ang = Vector(lv['frame']['o']), lv['frame']['ang']
+    t = Vector((math.cos(ang), math.sin(ang)))
     nl = Vector((-t.y, t.x))                              # into the building (north); the front faces -nl
-    ang = math.atan2(t.y, t.x)
     W = lambda u, v: tuple(a + t * u + nl * v)
-    lv = CAMPUS['daewoo_front']                           # levels from tools/build_campus.py (DAEWOO)
-    centre = dict(b, footprint=[W(0.4, 0), W(46.7, 0), W(46.7, 14.8), W(0.4, 14.8)])
+    uc, wi, wo = lv['uc'], lv['wi'], lv['wo']
+    centre = dict(b, footprint=[W(uc - wi, 0), W(uc + wi, 0), W(uc + wi, 14.8), W(uc - wi, 14.8)])
     out = gothic('daewoo', centre, tuple(-nl), 6, tower_w=9.0, tower_extra=2.5, ivy=0, wings=False, fh=3.6,
                  wall='stone_white', stairs=dict(none=True), door=dict(w=3.0, arch='pointed', spring=2.45, style='modern'),
                  z_floor=lv['floor'], rear=daewoo_rear)
     z0 = out[0].z_base
     zT, zP = lv['terrace'] - z0, lv['plaza'] - z0
-    # three steps from the terrace up to the tower door
+    # three steps from the terrace's paving up to the tower door
     stair_flight(out[0], 0, out[0].tower_front, 6.4, 1.2, n=3, mat='stone_step', landing=1.0, tread=0.35, flare=0.4,
-                 ground=zP, zbot=zT)
+                 ground=zT - 1.0, zbot=zT)
     mb = MeshBuilder('lm_daewoo_pavilions')
     mb.xf = local_frame(a.x, a.y, ang, z0)
-    wv = CAMPUS['daewoo_back']['wing_v']                  # (the wings' back ends: the 1997 aerial photos' roofs)
-    gable_hall(mb, -12.1, 0.0, -12.2, wv[0], 6, 3.6, 'stone_white')
-    gable_hall(mb, 47.1, 55.5, -10.9, wv[1], 6, 3.6, 'stone_white')
+    v0w, v1w = lv['wing_v']                               # (the wings' two ends: the 1997 aerial photos' roofs)
+    gable_hall(mb, uc - wo, uc - wi, v0w, v1w, 6, 3.6, 'stone_white', blind=(2,))
+    gable_hall(mb, uc + wi, uc + wo, v0w, v1w, 6, 3.6, 'stone_white', blind=(2,))
     fr = MeshBuilder('lm_daewoo_front')
     fr.xf = local_frame(a.x, a.y, ang, z0)
-    daewoo_front(fr, zT, zP, lv['u0'], lv['u1'], vp=lv['podium'])
+    daewoo_front(fr, lv, z0)
     bk = MeshBuilder('lm_daewoo_back')
-    bk.xf = local_frame(a.x, a.y, ang, z0)
+    bk.xf = local_frame(CAMPUS['daewoo_back'].get('o', a)[0], CAMPUS['daewoo_back'].get('o', a)[1], CAMPUS['daewoo_back'].get('ang', ang), z0)
     dk = daewoo_back(bk, z0)
     out += [mb, fr, bk] + ([dk] if dk.faces else [])
+    fd = lv.get('deck')                                   # the terrace over the cells its wall's drop pulls down
+    if fd:
+        tk = MeshBuilder('lm_daewoo_terrace')
+        for f in fd['f']:
+            q = [tuple(fd['v'][i]) for i in f]
+            tk.face(q, 'terrain_drape')
+            WALK_FACES.append(q)
+        out.append(tk)
     # 상뜰: the round lawn in the middle of the paved circle (tools/build_campus.py SANG); the low pale kerb round it
     # is drawn with every other kerb along the paving's edge (web/src/curbs.js)
     sg = CAMPUS.get('sang')
