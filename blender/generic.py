@@ -424,7 +424,8 @@ def entry_edge(poly, entry):
     return best and (best[1], best[2])
 
 
-def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True):
+def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True, at=None):
+    """at: (x, y, length, width, angle) of the stretch of roof the clutter goes on, instead of the outline's middle"""
     inner = offset_poly(poly, -0.3)
     zp = zt + 0.9
     # coping
@@ -443,6 +444,8 @@ def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True):
     if area > 200:
         # stair penthouse
         _, _, L, W, ang = min_area_rect(poly)
+        if at:
+            cx, cy, L, W, ang = at
         mb.box((cx, cy, zt + 1.6), (min(6, L * 0.3), min(4, W * 0.4), 3.2), st['wall'], rotz=ang,
                mats={'top': 'roof_flat'})
         for k in range(rnd.randint(1, 4)):
@@ -538,46 +541,61 @@ def dome_tower(mb, c, ang, zt, st, T, Ht, R, seg, rings, slit, drum, win, seam=0
 
 
 def observatory(mb, b, zt, st):
-    """과학관's two domes on its east wing (zt: the wing's roof).  The observatory (reference/학교연혁_과학관.jpg,
-    top right; reference/활천대_2009_연세춘추.jpg, far left): a square white tower near the east end carrying a
-    silver dome with an observing slit.  Measured (reference/고증.md 3.10): the 1994 aerial photo with its fitted
-    camera (tools/photofit) has the dome 5.6 m across at half brightness, its centre 10 m west of the east face, the
-    tower's top 4.7 m over the parapet; three 2010 roadview panoramas from the south (1016786788 · 7072 · 7073) 5.1 -
-    5.4 m, the dome 0.83 - 0.86 of the tower as seen.  So a 5.4 m dome on a 5.6 m tower, its top 8.5 m over the roof.
-    And near the junction with the front block a small tower with a small silver dome (학교연혁_과학관.jpg, x 213
-    y 55 in the 454 px print; the 2010 roadview from the south, a dome of 1.5 - 2 m 1 - 5 m west of the junction; the
-    1994 photo, a narrow white post 2.2 - 2.6 m wide 7 m west of it, and a white tower with a rounded top 17 m west):
-    the old proportions to the large one (3.6 m on a 4.4 m tower against 7.6 on 9) scaled with it, 2.6 m on a 2.8 m
-    tower, 4.5 m west of the junction."""
-    fp = b['footprint']
-    e0, e1 = Vector(fp[0]), Vector(fp[1])                # the east face of the east wing (south -> north)
-    w = (Vector(fp[14]) - e0).normalized()               # along the wing, westwards
-    ang = math.atan2(w.y, w.x)
+    """과학관's roof over its east wing and link (zt: their roof; tools/build_campus.py SCI, reference/고증/3.10).  The
+    observatory (reference/학교연혁_과학관.jpg, top right; reference/활천대_2009_연세춘추.jpg, far left): a square white
+    tower near the east end carrying a silver dome with an observing slit.  Where and how big: the 1997-07-28 vertical
+    aerial photos (two frames: the dome's rim 5.8 m across and 6 m over the roof, its middle 9.4 m west of the east
+    face and 9.6 m north of the south one) and the 2010 skyview (5.6 m, the same place to 1 m); the 1994 aerial photo
+    and three 2010 roadview panoramas had given 5.1 - 5.6 m.  Where the link meets the east wing a penthouse block
+    9 m by 10.5 m stands 5.7 m over the roof (both frames), two white things under 2 m across on it: the one 7 m west
+    of the junction is the 1994 photo's white post with a rounded end, the small silver dome (the 2010 roadview: 1.5 -
+    2 m).  On the south-west wing's roof, at its west end, a round tank 3.5 m across."""
+    r = b['roof']
+    o, t = Vector(r['o']), Vector(r['t'])
+    n = Vector((-t.y, t.x))
+    P = lambda u, v: o + t * u + n * v
+    ang = math.atan2(-t.y, -t.x)                         # westwards along the wing
     # (the slit two gores wide, facing south-west: u westwards, v southwards)
-    dome_tower(mb, (e0 + e1) / 2 + w * 10.0, ang, zt, st, T=5.6, Ht=5.0, R=2.7, seg=24, rings=7, slit=(5, 6),
-               drum=0.51, win=(0.4, 2.2, 3.6))
-    # the small one west of the junction with the front block (whose east face meets the wing 49.5 m from its east
-    # face), its slit one gore wide, the same way
-    dome_tower(mb, (e0 + e1) / 2 + w * ((Vector(fp[14]) - e0).length + 4.5), ang, zt, st, T=2.8, Ht=4.4, R=1.3,
-               seg=16, rings=5, slit=(4,), drum=0.25, win=(0.25, 1.8, 3.1), seam=0.02, phase=-math.pi / 16)
+    dome_tower(mb, P(*r['dome']), ang, zt, st, T=6.0, Ht=6.0, R=2.8, seg=24, rings=7, slit=(5, 6),
+               drum=0.51, win=(0.4, 2.6, 4.2))
+    u0, u1, v0, v1 = r['pent']
+    hp = 5.7
+    c = P((u0 + u1) / 2, (v0 + v1) / 2)
+    mb.box((c.x, c.y, zt + hp / 2), (u1 - u0, v1 - v0, hp), st['wall'], rotz=ang, mats={'top': 'roof_flat'}, skip=('bottom',))
+    mb.box((c.x, c.y, zt + hp + 0.12), (u1 - u0 + 0.3, v1 - v0 + 0.3, 0.24), 'concrete', rotz=ang, skip=('bottom',))
+    # the small dome on it, its slit one gore wide, the same way; the other white thing a plain box
+    dome_tower(mb, P(*r['dome2']), ang, zt + hp + 0.24, st, T=2.0, Ht=0.5, R=0.9, seg=16, rings=5, slit=(4,), drum=0.2,
+               win=(0.0, 0.1, 0.1), seam=0.02, phase=-math.pi / 16)
+    q = P(r['dome2'][0] - 4.0, r['dome2'][1])
+    mb.box((q.x, q.y, zt + hp + 0.24 + 0.6), (1.6, 1.6, 1.2), 'paint_white', rotz=ang, skip=('bottom',))
+    q = P(*r['tank'])
+    mb.cylinder((q.x, q.y), 1.75, zt - b['fh_up'], zt - b['fh_up'] + 2.4, 'concrete', seg=16, mat_cap='roof_flat')
 
 
 def _science_wing(b, poly):
-    """과학관's east wing stands a storey over the front block (reference/고증.md 3.10: seven rows of windows at its east
-    end in the 1994 aerial photo and the 2008 · 2010 roadview, six on the front block's south face, two of the wing's
-    rows over the front block's roof at the junction in the 1994 photo).  The wing: a slab from the east face
-    (footprint[0] -> [1]) west to footprint[2], as deep as the east face is long.  Returns the outline's edges that
-    run its full height (as vertex pairs), the wing's own outline (CCW) and its two walls over the lower roof."""
-    fp = [tuple(p) for p in b['footprint']]
-    e0, e1, nw, j = Vector(fp[0]), Vector(fp[1]), Vector(fp[2]), Vector(fp[14])
-    w = (j - e0).normalized()                            # westwards along the wing
-    n = Vector((-w.y, w.x))                              # northwards across it
-    if n.dot(e1 - e0) < 0:
-        n = -n
-    sw = nw - n * (nw - e0).dot(n)                       # its south-west corner, on the south face's line
-    sw = (sw.x, sw.y)
-    full = {frozenset((fp[14], fp[0])), frozenset((fp[0], fp[1])), frozenset((fp[1], fp[2]))}
-    return full, [fp[0], fp[1], fp[2], sw], [(fp[2], sw), (sw, fp[14])]
+    """과학관's east wing and link stand a storey over the south-west wing (reference/고증/3.10: seven rows of windows
+    at the east end in the 1994 aerial photo and the 2008 · 2010 roadview, six on the south-west wing's south face;
+    the 1997-07-28 vertical aerial photos: the roofs 4.1 m apart), with a long penthouse of the same height along
+    that wing's north side.  The part a storey higher is b['wing'] (tools/build_campus.py SCI).  Returns the
+    outline's edges that run its full height (as vertex pairs), the higher part's outline (CCW) and its walls over
+    the lower roof."""
+    fp = [tuple(p) for p in poly]
+    wg = [tuple(p) for p in b['wing']]
+
+    def on(p, ring):
+        """p on the ring's line"""
+        for i in range(len(ring)):
+            a, c = Vector(ring[i]), Vector(ring[(i + 1) % len(ring)])
+            d = c - a
+            s_ = max(0.0, min(1.0, (Vector(p) - a).dot(d) / d.length_squared))
+            if (a + d * s_ - Vector(p)).length < 0.05:
+                return True
+        return False
+    mid = lambda a, c: ((a[0] + c[0]) / 2, (a[1] + c[1]) / 2)
+    full = {frozenset((fp[i], fp[(i + 1) % len(fp)])) for i in range(len(fp))
+            if on(fp[i], wg) and on(fp[(i + 1) % len(fp)], wg) and on(mid(fp[i], fp[(i + 1) % len(fp)]), wg)}
+    over = [(wg[i], wg[(i + 1) % len(wg)]) for i in range(len(wg)) if not on(mid(wg[i], wg[(i + 1) % len(wg)]), fp)]
+    return full, wg, over
 
 
 ROOF_EXTRAS = {222843398: observatory}
@@ -588,9 +606,10 @@ WALL = {222843398: 'tile_cream', 429077789: 'panel_white', 429077790: 'tile_whit
 WALL.update({990021: 'plaster_white', 990022: 'plaster_white'})   # (경영학교실단's south wing and front: as its north wing)
 FRAME = {429077789: 'frame_blue', 429077790: 'frame_blue'}      # (and blue window frames in the 1996 photo)
 # per hall: its storey height and window heights instead of its style's, and a wing a storey higher (_science_wing).
-# 과학관: 4.1 m storeys (the 1994 aerial photo's camera: 4.06 - 4.13 m a row; the 2008 roadview square on to the east
-# face, 2.1 window bays a storey), windows 1.8 m high (0.44 of the storey in the 2008 roadview)
-FH_AT = {222843398: 4.1}
+# 과학관: 3.9 m storeys (the 1997-07-28 vertical aerial photos: the east wing's roof 25.7 m and the south-west wing's
+# 21.6 m over the courtyard, which is fourteen-odd risers under the second floor; the 2008 roadview, 3.9 m; the 1994
+# aerial photo's camera had given 4.06 - 4.13 m a row), windows 1.8 m high (0.44 of the storey in the 2008 roadview)
+FH_AT = {222843398: 3.9}
 SILL_AT = {222843398: dict(sill=1.0, head=1.3)}
 WING_UP = {222843398: _science_wing}
 # 학생회관 별관 (1997 photo reference/1997_학생회관.jpg; tools/build_campus.py ANNEX_1997): two 3.8 m storeys of pale
@@ -666,8 +685,15 @@ def build_generic(b, rnd):
         barrel_roof(mb, cx, cy, L, W, ang, zt)
     else:
         roof = 'roof_green' if (style == 'city' and rnd.random() < 0.6) else 'roof_flat'
-        parapet_and_roof(mb, poly, zt, st, rnd, roof_mat=roof, clutter=style != 'city')
+        at = None
+        if 'roof' in b and 'clutter' in b['roof']:      # (과학관: on the south-west wing, south of the penthouse)
+            r_ = b['roof']
+            at = (r_['o'][0] + r_['t'][0] * r_['clutter'][0] - r_['t'][1] * r_['clutter'][1],
+                  r_['o'][1] + r_['t'][1] * r_['clutter'][0] + r_['t'][0] * r_['clutter'][1],
+                  60.0, 8.0, math.atan2(r_['t'][1], r_['t'][0]))
+        parapet_and_roof(mb, poly, zt, st, rnd, roof_mat=roof, clutter=style != 'city', at=at)
         if b['id'] in ROOF_EXTRAS:
+            b['fh_up'] = fh if wing else 0.0
             ROOF_EXTRAS[b['id']](mb, b, zt + (fh if wing else 0.0), st)
         if style == 'city':
             n = len(poly)

@@ -201,10 +201,59 @@ LATE_FOOTPRINT_1997[UTS] = [tuple(round(float(c_), 2) for c_ in _uo + _ut * u_ +
                             for u_, v_ in ((UTS_UV['u'][0], UTS_UV['v'][0]), (UTS_UV['u'][1], UTS_UV['v'][0]),
                                            (UTS_UV['u'][1], UTS_UV['v'][1]), (UTS_UV['u'][0], UTS_UV['v'][1]))]
 FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
-FLOOR_H_AT = {222843398: 4.1}        # 과학관's 4.1 m storeys (blender/generic.py FH_AT, reference/고증.md 3.10)
+FLOOR_H_AT = {222843398: 3.9}        # 과학관's 3.9 m storeys (blender/generic.py FH_AT, reference/고증/3.10)
 FLOOR_H_AT[ANNEX_1997['id']] = ANNEX_1997['floor']   # (학생회관 별관: its top 8.5 m over the yard in the 2008 frames)
 FLOOR_H_AT.update({324328481: 3.55, 990036: 3.3})    # (심장혈관병원, 특별병동: their roofs in the 1997 aerial photos, above)
 FLOOR_H_AT[UTS] = 3.4                                # (연합신학대학원: its eaves 6.7 m over the ground in the aerial photos)
+# 과학관 as the 1997-07-28 vertical aerial photos have it (reference/고증/3.10; frames 26/15 and 26/16, from the north
+# and the south, each roof read on its own plane where the two agree; the 2008 · 2010 skyview shows the same plan).
+# OSM's outline is one mass round the yard north-west of the hall and 3 m short on the east wing's north side.  The
+# hall: an east wing 18.1 m deep (OSM 14.9), a link south from its west end, a south-west wing; the link, the east
+# wing and a long penthouse along the south-west wing's north side stand a storey over that wing's roof (roofs 76.5
+# and 72.4 m on the photos' datum, the courtyard 50.8 m).  In the corner north-west of the link a low fan-shaped
+# hall (a quarter circle of 23.2 m, its roof 57.5 m) and a low block against the south-west wing; the rest of OSM's
+# outline is a yard with parked cars (52.5 m).  The frame: o the east wing's south-east corner as OSM has it, u east-
+# south-east along the wing, v north-north-east.  The planting ran with OSM's outline: the hall goes in after it
+# (LATE_FOOTPRINT_1997), its floor pinned (SCI['base'], the lowest corner of OSM's outline on the ground as it was).
+_sa = math.radians(-15.06)
+SCI = dict(o=np.array([-218.78, 7.32]), t=np.array([math.cos(_sa), math.sin(_sa)]), n=np.array([-math.sin(_sa), math.cos(_sa)]),
+           base=49.22, court=50.8, yard=52.6,
+           hall=[(0.6, 0.3), (0.6, 18.4), (-72.4, 18.4), (-72.4, 0.3), (-67.7, 0.3), (-67.7, -25.6), (-102.0, -25.6),
+                 (-118.7, -25.6), (-118.7, -43.6), (-45.5, -43.6), (-45.5, -25.6), (-53.6, -25.6), (-53.6, 0.3)],
+           # the part a storey higher: the east wing, the link, the penthouse along the south-west wing's north side
+           wing=[(0.6, 0.3), (0.6, 18.4), (-72.4, 18.4), (-72.4, 0.3), (-67.7, 0.3), (-67.7, -25.6), (-102.0, -25.6),
+                 (-102.0, -34.0), (-53.6, -34.0), (-53.6, -25.6), (-53.6, 0.3)],
+           # the roof: the observatory's dome (5.6 m, its rim 6 m over the roof), the penthouse block where the link
+           # meets the east wing (5.7 m over the roof) with a small dome on it, a round tank at the west end
+           dome=(-8.8, 9.9), pent=(-64.3, -55.2, 0.5, 11.0), dome2=(-56.3, 6.2), tank=(-116.3, -36.7),
+           clutter=(-82.0, -39.0),                               # (the lower roof's middle, south of the penthouse)
+           fan=dict(c=(-72.6, -18.5), r=23.2, south=-21.0), annex=(-112.0, -99.0, -25.6, -18.5))
+
+
+def sci_xy(u, v):
+    return tuple(round(float(c_), 2) for c_ in SCI['o'] + SCI['t'] * u + SCI['n'] * v)
+
+
+def sci_poly(pts):
+    return Polygon([sci_xy(u_, v_) for u_, v_ in pts])
+
+
+LATE_FOOTPRINT_1997[222843398] = [sci_xy(u_, v_) for u_, v_ in SCI['hall']]
+# 연구관's frame (the 1997 aerial photos; OLD_HALLS below): o on the bar's middle line, a along it north-north-east, v
+# across it (west-north-west); its ground 49.5 m west of it, 45.5 m east (JK_YARD, JK_TERRACE)
+JK_O, _ja = np.array([-179.75, 15.0]), math.radians(63.4)
+JK_A, JK_V = np.array([math.cos(_ja), math.sin(_ja)]), np.array([-math.sin(_ja), math.cos(_ja)])
+JK_YARD, JK_TERRACE = 49.5, 45.5
+LATE_NO_SIMPLIFY = {222843398}      # (its outline keeps the point where the penthouse's west end meets the north face)
+BASE_1997 = {222843398: SCI['base']}
+# 어린이생활지도연구원: OSM's hall (a curved wing with a drum) is the one built in 2001 - 2002 「어린이 교육장으로 쓰이던 두
+# 건물을 헐고」 (연세춘추 제1423호); the 1997-07-28 aerial photos (frames 27/16 and 27/17) have two smaller halls on its
+# site, a gabled one 18 x 13 m and a flat-roofed one 9 m square east of it, and the square hall north-west of them
+# that the 2008 · 2010 skyview still shows (OSM's 「연구동」, twice too long there).  The new hall goes after the
+# planting (its site lawn: GONE_LAWN), the three of 1997 go in with OLD_HALLS.
+GONE_1997[472512292] = None
+GONE_LAWN = {472512292}
+GONE_NEW = {472512292}              # (left out since the planting was laid: the trees by them go at the list's end)
 
 # ---------------------------------------------------------------------------
 # Terrain
@@ -873,15 +922,39 @@ CENT_MUSEUM = dict(s=21.9, door=[round(float(v), 2) for v in _cnw - _tw * 21.9],
 # 과학관's courtyard flight (blender/generic.py porch, ENTRY_AT): in the 1996 photos of 생물학과, 생화학과 and 지질학과
 # fifteen-odd granite risers climb the whole width of the picture to the cream wall, between sloped granite side walls
 # with clipped junipers on banks either side, a five-globe lamp at the top.  The 5 m grid ran the courtyard's slope
-# up to the doors (five risers); the car park below is levelled 2.8 m under them and banks back up beside the flight
-# (4.9 m over the hall's lowest corner: 58.9 m on the old terrain; 5.9 m since the hall's storeys are 4.1 m, which
-# put the doors a metre higher).  On Copernicus the ground falls away south of it, so the car park reaches out 30 m,
-# to where compare/science's camera (fitted to the 1996 photos) stands on it.
+# up to the doors; the game first levelled a car park 2.8 m under doors on the third floor (5.9 m over the hall's
+# lowest corner).  The 1997-07-28 aerial photos (reference/고증/3.10) have the courtyard a paved court 43 m by 39 m at
+# 50.8 m, level with the road past the hall's east end to 2 - 3 m and 25.7 m under the east wing's roof: the doors
+# are on the second floor (a storey over the hall's floor, 2.3 m over the court), the bank with its bushes 5 m deep
+# all along the wing's south face (sci_grade below, after the other forecourts).
 SCI_DOOR, SCI_N = np.array([-242.6, 13.81]), np.array([-0.2629, -0.9648])
 SCI_T = np.array([-SCI_N[1], SCI_N[0]])
-_sf = SCI_DOOR + SCI_N * 1.6                         # the head of the flight (the plaza runs in under it)
-FORECOURTS.append((222843398, None, 30.0, dict(face=(tuple(_sf - SCI_T * 8.8), tuple(_sf + SCI_T * 8.8)), max_half=12.0,
-                                                blend=12.0, side_blend=6.0, level='corner', rise=5.9, inside=0.0)))
+
+
+def sci_grade():
+    """과학관: the courtyard level (SCI['court']) from the link's wall to 4 m short of the east end and 44 m out of the
+    east wing's south face, running in under the flight (8.8 m either side of the door); beside the flight a bank
+    from the doors' level at the wall down to the court 5.8 m out.  The yard north-west of the link (the fan-shaped
+    hall and the low block on it) level at SCI['yard']."""
+    U = (X - SCI['o'][0]) * SCI['t'][0] + (Y - SCI['o'][1]) * SCI['t'][1]
+    V = (X - SCI['o'][0]) * SCI['n'][0] + (Y - SCI['o'][1]) * SCI['n'][1]
+    D = 0.3 - V
+    ud = float((SCI_DOOR - SCI['o']) @ SCI['t'])
+    bank = np.clip((np.abs(U - ud) - 8.8) / 3.0, 0, 1) * np.clip((5.8 - D) / 5.0, 0, 1)
+    z = SCI['court'] + (SCI['base'] + FLOOR_H_AT[222843398] - 0.1 - SCI['court']) * bank
+    e = np.maximum.reduce([(-53.6 - U) / 3.0, (U + 4.0) / 6.0, (D - 44.5) / 6.0, -D / 6.0, np.zeros_like(U)])
+    w = np.clip(1 - e, 0, 1)
+    Hn[:] = Hn * (1 - w) + z * w
+    FIXED[w > 0.999] = True
+    yard = sci_poly([(-118.7, -25.6), (-121.0, -12.0), (-86.0, 15.5), (-72.4, 18.4), (-72.4, 0.3), (-67.7, 0.3), (-67.7, -25.6)])
+    m = (np.abs(X + 300) < 70) & (np.abs(Y - 20) < 60)
+    wy = np.zeros_like(U)
+    wy[m] = np.clip(1.0 - shapely.distance(yard, shapely.points(X[m], Y[m])) / 5.0, 0, 1)
+    Hn[:] = Hn * (1 - wy) + SCI['yard'] * wy
+    FIXED[wy > 0.999] = True
+    print('과학관: court %.2f, doors %.2f, yard %.2f' % (SCI['court'], SCI['base'] + FLOOR_H_AT[222843398], SCI['yard']))
+
+
 # 빌링슬리관's south front (its door: ENTRY_AT).  The 5 m grid ran the slope from the north-west across it, 3.7 m
 # along the 45 m front, so the door in its middle stood 1.6 m under the ground and the west half of the ground floor
 # was buried.  reference/학교연혁_빌링슬리관_옛생활과학관.jpg, from the lawn at the west end, shows the ground floor
@@ -979,6 +1052,30 @@ def level_forecourt(wid, front, depth, blend=18.0, side_blend=7.0, max_half=20.0
 
 for wid, front, depth, opt in FORECOURTS:
     level_forecourt(wid, front, depth, **opt)
+sci_grade()
+
+
+def jk_grade():
+    """연구관 · 장기원 기념관 (the 1997-07-28 aerial photos, reference/고증/3.15-3.17): the yard west of 연구관's bar level at
+    JK_YARD out to 16 m from its middle line, the ground east of it a terrace at JK_TERRACE as far as 장기원 기념관's
+    block, whose east wall stands 8.5 m lower by the road past the library's back (the 5 m grid ran one slope across
+    it all)."""
+    jk = lambda u_, v_: tuple(JK_O + JK_A * u_ + JK_V * v_)
+    mid = [jk(-30.5, -0.75), jk(21.0, -0.75), jk(37.0, -0.75)]
+    west = Polygon(mid + [jk(40.0, 16.0), jk(-30.0, 16.0)])
+    # (as far as the middle line of 장기원 기념관's block: its east wall stands on the low ground)
+    east = Polygon(mid[::-1] + [(-173.0, -45.0), (-161.7, -45.0), (-160.6, -40.4), (-151.9, -7.6), (-146.0, -5.0),
+                                (-143.0, 30.0), (-156.0, 45.0)])
+    m = (np.abs(X + 170) < 70) & (np.abs(Y - 5) < 75)
+    for poly_, z_ in ((west, JK_YARD), (east, JK_TERRACE)):
+        w = np.zeros(X.shape)
+        w[m] = np.clip(1.0 - shapely.distance(poly_, shapely.points(X[m], Y[m])) / 5.0, 0, 1)
+        Hn[:] = Hn * (1 - w) + z_ * w
+        FIXED[w > 0.999] = True
+
+
+# (jk_grade() runs once the planting, the doors' zones and the walks are laid, just before the ground is saved: the
+# old halls' doors, and with them the trees and the paving's stains, were first found on the ground without it)
 
 # --- 음악관 (reference/고증/3.11_음악관.md).  The 1996 album photo's porch (a deep canopy on two round white columns
 # over glass doors, white square tiles, blue frames) is 신관's (429077790, 1991): its main door in the middle of the
@@ -2748,6 +2845,22 @@ OLD_HALLS = [
     (990038, '', 'white', 2, med_rect(39.0, 59.0, -78.4, -68.0, -0.7)),
     (990039, '', 'white', 1, med_rect(39.0, 59.0, 33.0, 47.5, -1.1)),
     (990040, '', 'white', 2, med_poly([(135.0, 11.0), (171.8, 11.0), (171.8, -1.8), (184.6, -1.8), (184.6, 28.6), (135.0, 28.6)])),
+    # 과학관 (SCI above): the low fan-shaped hall in the corner north-west of the link and the low block against the
+    # south-west wing's north face, both on the yard
+    (990060, '과학관', 'white', 1, Polygon([sci_xy(SCI['fan']['c'][0] + SCI['fan']['r'] * math.cos(math.radians(a_)),
+                                                 SCI['fan']['c'][1] + SCI['fan']['r'] * math.sin(math.radians(a_)))
+                                          for a_ in range(90, 181, 10)]
+                                         + [sci_xy(SCI['fan']['c'][0] - SCI['fan']['r'], SCI['fan']['south']),
+                                            sci_xy(SCI['fan']['c'][0], SCI['fan']['south'])])),
+    (990061, '과학관', 'white', 1, sci_poly([(SCI['annex'][0], SCI['annex'][2]), (SCI['annex'][1], SCI['annex'][2]),
+                                            (SCI['annex'][1], SCI['annex'][3]), (SCI['annex'][0], SCI['annex'][3])])),
+    # 연구관's north block (JK above), a storey over the bar
+    (990014, '연구관', 'white', 4, block_poly(JK_O + JK_A * 29.0, JK_A, 8.0, 8.5)),
+    # 어린이생활지도연구원 in 1997 (GONE_1997 above): the gabled hall and the small flat-roofed one on the site of the
+    # 2002 hall, the square hall north-west of them
+    (990050, '어린이생활지도연구원', 'house', 1, block_poly((313.0, 59.5), (0.988, 0.153), 9.0, 6.5)),
+    (990051, '어린이생활지도연구원', 'white', 1, block_poly((332.5, 60.5), (0.988, 0.153), 4.5, 4.5)),
+    (990052, '어린이생활지도연구원', 'white', 2, block_poly((293.5, 89.5), (0.819, 0.574), 7.5, 7.5)),
 ]
 # (the 의료원 rows as the trees were first cleared round them, before the 1997 aerial photos: the clearing still asks
 # these, so that the list of trees keeps its order; None: a hall that was not there to clear for)
@@ -2761,6 +2874,26 @@ MED_SITES_RNG = {
     990037: None, 990038: None, 990039: None, 990040: None,
     429079067: None,
 }
+# 연구관 · 장기원 기념관 as the 1997-07-28 aerial photos have them (reference/고증/3.15-3.17; frames 26/15, 26/16 and
+# 27/17, the roofs read on their own planes).  The halls above (990010 - 990012, from the maps' drawing) stay for the
+# planting; these go in after it (LATE_FOOTPRINT_1997):
+# - 연구관: a straight bar 11.5 m wide with a rounded south end, 51.5 m from its tip north-north-east to a square
+#   block a storey higher (990014 above); its roof 56 m on the photos' datum, the yard west of it 49 - 50 m, the
+#   ground east of it 45 - 46 m (three storeys on that side, as 연세춘추 has it)
+# - the round hall (the maps' drum; 장기원 기념관's 원탁회의실): a roof 15 m across at 49 - 51 m, 9.5 m north of where
+#   the maps' drawing had put it
+# - 장기원 기념관's block: no four-storey slab; a flat roof at 46 m from the round hall's east side north and south,
+#   8.5 m over the road past the library's back (two storeys on that side), under the trees' crowns east of it
+# The ground between them is a terrace at 45.5 m (jk_grade), where the 5 m grid ran one slope down to the library.
+LATE_FOOTPRINT_1997[990010] = list(block_poly(JK_O + JK_A * -1.875 + JK_V * -0.75, JK_A, 22.875, 5.75,
+                                              round_end=True).exterior.coords)[:-1]
+LATE_FOOTPRINT_1997[990011] = list(block_poly((-156.25, -24.0), _lib_u, 17.0, 4.75).exterior.coords)[:-1]
+LATE_FOOTPRINT_1997[990012] = list(Point(-163.5, -24.0).buffer(7.5, 3).exterior.coords)[:-1]
+LATE_LEVELS = {990011: 2, 990012: 1}
+BASE_1997.update({990010: 45.2, 990014: 45.2, 990011: 39.0, 990012: 45.3, 990060: SCI['yard'], 990061: SCI['yard']})
+# (the outlines and halls put back since the planting was laid, as MED_SITES_RNG's None: no clearing was made for
+# them, so the trees by them step aside in their places in the list)
+SITES_NEW_1997 = {222843398, 990010, 990011, 990012, 990014, 990060, 990061, 990050, 990051, 990052}
 # The rows after the first four go in after the random planting, cars and decals, as LATE_FOOTPRINT_1997 (below), so
 # that the rest of the campus keeps its layout
 OLD_HALLS_EARLY = {990010, 990011, 990012, 990013}
@@ -4644,7 +4777,7 @@ ENTRY_STYLES = ('modern', 'white', 'stone', 'brick', 'tile', 'stone_pale', 'gym'
 # (1995 aerial photo: a broad flight up from the car park there; OSM's two short flights below it), three bays of
 # glass under a long canopy at the top of a wide granite flight with side walls (the 1996 album photos of 생물학과,
 # 생화학과 and 지질학과 on it); its walls cream, as in the aerial photo.  (point near the door, door options)
-# Its flight is as wide as the photos (16 m: fifteen risers down to the levelled car park, FORECOURTS), with the
+# Its flight is as wide as the photos (16 m: fourteen risers down to the court, sci_grade), with the
 # five-globe lamp at its head.  음악관 (기악과's photo): a deep canopy on two round white columns over four bays of
 # aluminium-framed glass, white tile walls and tiled planters either side of the granite steps, blue window frames:
 # 신관's door (MUSIC_B; its ENTRY_AT below).
@@ -4653,7 +4786,7 @@ ENTRY_STYLES = ('modern', 'white', 'stone', 'brick', 'tile', 'stone_pale', 'gym'
 # there, in the middle between the gabled end bays with a walk running south from it; and OSM's footway from the south
 # ends there too, 22.6 m along the 45.1 m front (the door had gone to the short east end, the slope having buried this
 # front: FORECOURTS).
-ENTRY_AT = {222843398: ((-242.7, 13.8), dict(span=3, canopy=3.0, stair_w=16.0, lamp5=True, floor=2)),
+ENTRY_AT = {222843398: ((-242.7, 13.8), dict(span=3, canopy=3.0, stair_w=16.0, lamp5=True, floor=1)),
             245623193: ((35.93, 412.08), dict(floor=0))}
 # 음악관 (MUSIC_B above): 신관's porch 33 m along its south front (the skyview's canopy; 34.6 m from the 2008
 # roadview's bearing), five risers (2010 roadview); 구관's door 18 m along its south front (14.5 - 20.0 m from three 2008
@@ -5604,6 +5737,7 @@ def ground_t(x, y):
     """the ground as saved, the patch south of the grid too"""
     return sinchon_rotary.sample_s(HS, x, y) if sinchon_rotary.in_patch(x, y) else ground_h(x, y)
 
+jk_grade()             # (연구관 · 장기원 기념관's terrace: above, with the other grading)
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
@@ -5640,7 +5774,8 @@ for pid, nm, style, lv, poly in OLD_HALLS:
     hs = [ground_h(x, y) for x, y in poly.exterior.coords]
     LATE_HALLS.append(dict(id=pid, name=nm, style=style, levels=lv,
                            height=round(lv * FLOOR_H_AT.get(pid, FLOOR_H[style]) + 1.2, 2),
-                           base=BK_FRONT_BASE if pid == 990022 else round(min(hs), 2), top_ground=round(max(hs), 2),
+                           base=BK_FRONT_BASE if pid == 990022 else BASE_1997.get(pid, round(min(hs), 2)),
+                           top_ground=round(max(hs), 2),
                            footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]))
 buildings += LATE_HALLS
 # (연합신학대학원: the 1997 hall's door in the middle of its east wall, where OSM's walk from the road east of it comes
@@ -5653,18 +5788,26 @@ LATE_SITES_RNG = []        # (as the trees were first cleared: MED_SITES_RNG)
 for b in buildings:
     if b['id'] not in LATE_FOOTPRINT_1997:
         continue
-    poly = shapely.geometry.polygon.orient(Polygon(LATE_FOOTPRINT_1997[b['id']]).simplify(0.35), 1.0)
+    poly = Polygon(LATE_FOOTPRINT_1997[b['id']])
+    poly = shapely.geometry.polygon.orient(poly if b['id'] in LATE_NO_SIMPLIFY else poly.simplify(0.35), 1.0)
     hs = [ground_h(x, y) for x, y in poly.exterior.coords]
-    b.update(base=round(min(hs), 2), top_ground=round(max(hs), 2),
+    b.update(base=BASE_1997.get(b['id'], round(min(hs), 2)), top_ground=round(max(hs), 2),
              footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]])
+    if b['id'] in LATE_LEVELS:
+        b.update(levels=LATE_LEVELS[b['id']], height=round(LATE_LEVELS[b['id']] * FLOOR_H[b['style']] + 1.2, 2))
+    if b['id'] == 222843398:           # (blender/generic.py: the part a storey higher, the roof's domes and penthouse)
+        b['wing'] = [list(sci_xy(u_, v_)) for u_, v_ in SCI['wing']]
+        b['roof'] = dict(o=[float(v_) for v_ in SCI['o']], t=[round(float(v_), 5) for v_ in SCI['t']],
+                         dome=SCI['dome'], pent=SCI['pent'], dome2=SCI['dome2'], tank=SCI['tank'], clutter=SCI['clutter'])
     _bp_all = [Polygon(b_['footprint']) for b_ in buildings]
     poly = next(q for q, b_ in zip(_bp_all, buildings) if b_ is b)
     b.pop('entry', None)
     e_ = _entry(b, poly) if b['style'] in ENTRY_STYLES else None       # (the landmarks make their own doors)
     if e_:
-        b['entry'] = dict(p=[round(e_[1], 2), round(e_[2], 2)], n=[round(e_[3], 4), round(e_[4], 4)])
+        b['entry'] = dict(p=[round(e_[1], 2), round(e_[2], 2)], n=[round(e_[3], 4), round(e_[4], 4)],
+                          **ENTRY_AT.get(b['id'], (0, {}))[1])
     LATE_SITES.append(poly)
-    if MED_SITES_RNG.get(b['id'], poly) is not None:
+    if b['id'] not in SITES_NEW_1997 and MED_SITES_RNG.get(b['id'], poly) is not None:
         LATE_SITES_RNG.append(MED_SITES_RNG.get(b['id'], poly))
 _bp_all = [Polygon(b_['footprint']) for b_ in buildings]
 for b in LATE_HALLS:
@@ -5675,7 +5818,7 @@ for b in LATE_HALLS:
                           **ENTRY_AT.get(b['id'], (0, {}))[1])
     if not ball.buffer(0.5).contains(poly):                  # (not the parts of an outline that stood at the planting)
         LATE_SITES.append(poly)
-    q_ = MED_SITES_RNG.get(b['id'], poly)
+    q_ = None if b['id'] in SITES_NEW_1997 else MED_SITES_RNG.get(b['id'], poly)
     if q_ is not None and b['id'] in MED_SITES_RNG:           # (rounded as its footprint was)
         q_ = Polygon([(round(x, 2), round(y, 2)) for x, y in
                       list(shapely.geometry.polygon.orient(q_.simplify(0.05), 1.0).exterior.coords)[:-1]])
@@ -6335,7 +6478,12 @@ _gz = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for
                   [GONGWON_SITE.buffer(1.5), GW_CLEAR])
 _gwd = GONGWON_SITE.buffer(1.0).union(GW_YARD)
 out['decals'] = [d_ for d_ in out['decals'] if not _gwd.contains(Point(d_[1], d_[2]))]
-_gz_rng = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [Polygon(ENG_FP_RNG).buffer(2.0)] +
+# (the halls left out or put back since the planting was laid, GONE_NEW · SITES_NEW_1997: off the list as first
+# cleared)
+_gone_new = [Polygon(g_['footprint']) for g_ in RND_GHOSTS if g_['id'] in GONE_NEW]
+_gone_lawn = [Polygon(g_['footprint']) for g_ in RND_GHOSTS if g_['id'] in GONE_LAWN]
+_gz_rng = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES if not any(p_.equals(q_) for q_ in _gone_new)] +
+                      [Polygon(ENG_FP_RNG).buffer(2.0)] +
                       [p_.buffer(2.0) for p_ in LATE_SITES_RNG if not p_.intersects(Polygon(ENG_FP_RNG).buffer(-1.0))] + [GONGWON_SITE_RNG.buffer(1.5)])
 # the trees that stand in what the site has gained keep their places in the list (the web picks each tree's model by
 # it) and go to the lawn between the car park and 백양로, a dense clump in the 1997 photos
@@ -6375,12 +6523,66 @@ for t_ in trees:
         _mn += 1
 print('의료원: trees moved off the 1997 halls', _mn, '- spots left', len(_msp))
 # (the trees go as first cleared, with 제1공학관 as first put back: ENG_FP_RNG)
-clear_trees(_gz, _gz_rng)
+# (과학관 · 연구관 · 장기원 기념관 · 어린이생활지도연구원: the trees left standing where the outlines put back since
+# are (SITES_NEW_1997) step aside, each in its place in the list, 3.5 m off the walls)
+_gzn = unary_union([Polygon(b_['footprint']).buffer(2.0) for b_ in buildings
+                    if b_['id'] in SITES_NEW_1997])
+_gzo = unary_union([g_.buffer(1.5).exterior for g_ in (_gzn.geoms if hasattr(_gzn, 'geoms') else [_gzn])])
+_n_aside = 0
+for t_ in trees:
+    if _gzn.contains(Point(t_[1], t_[2])) and not _gz_rng.contains(Point(*rxy(t_))):
+        q_ = shapely.ops.nearest_points(_gzo, Point(t_[1], t_[2]))[0]
+        if len(t_) < 6:
+            t_.append((t_[1], t_[2]))
+        t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
+        _n_aside += 1
+# (the site of the hall left out since, GONE_NEW, keeps its trees: those on the halls of 1997 there have stepped aside)
+clear_trees(_gz.difference(unary_union([q_.buffer(6.0) for q_ in _gone_new])), _gz_rng)
 shrubs = [s for s in shrubs if not _gz.contains(Point(s[1], s[2]))]
 props = [p for p in props if not _gz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _gz.contains(Point(c[1], c[2]))]
 print('1997 sites: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees), _n0[1] - len(shrubs), _n0[2] - len(props),
-      _n0[3] - len(cars))
+      _n0[3] - len(cars), '- trees stepped aside', _n_aside)
+# 과학관 (SCI; the 1997-07-28 aerial photos, reference/고증/3.10): the courtyard a paved court (a chequered paving in the
+# photos), no tree on it; four clipped hedges in kerbed beds in its north half; cars nose to tail in two rows round
+# its south-east corner and along its south side.  The yard north-west of the link asphalt, a few cars by the fan-
+# shaped hall.  (The trees the planting put there go as those under the moved 백양로 do; the junipers by the flight
+# and the lamp stay.)
+SCI_COURT = sci_poly([(-53.6, -5.8), (-4.0, -5.8), (-4.0, -44.5), (-45.5, -44.5), (-45.5, -25.6), (-53.6, -25.6)])
+SCI_YARD = sci_poly([(-118.7, -25.6), (-121.0, -12.0), (-86.0, 15.5), (-72.4, 18.4), (-72.4, 0.3), (-67.7, 0.3), (-67.7, -25.6)])
+_scz = unary_union([SCI_COURT.buffer(1.0), SCI_YARD.buffer(1.0)])
+_n0 = (len(DROP_TREES), len(shrubs), len(props))
+# (its trees go to the clump the photos have between the court's east end and the road, in their places in the list)
+_spots = [sci_xy(u_, v_) for u_, v_ in ((1.5, -24.0), (2.0, -31.0), (0.5, -38.0), (4.0, -43.0))]
+for t_ in trees:
+    if _scz.contains(Point(t_[1], t_[2])):
+        if not _spots:
+            drop_tree(t_)
+            continue
+        if len(t_) < 6:
+            t_.append((t_[1], t_[2]))
+        t_[1], t_[2] = _spots.pop(0)
+shrubs = [s_ for s_ in shrubs if not _scz.contains(Point(s_[1], s_[2])) or s_[0].startswith('topiary')]
+props = [p_ for p_ in props if not _scz.contains(Point(p_[1], p_[2])) or p_[0] == 'lamp5']
+for u0_, u1_, v_ in ((-36.0, -31.0, -11.0), (-28.0, -23.0, -11.0), (-14.0, -6.0, -11.0), (-36.0, -22.0, -19.5)):
+    hedge_line([sci_xy(u0_, v_), sci_xy(u1_, v_)], 'hedge_low', 1.1, step=1.4, closed=False)
+hedge_line([sci_xy(-121.0, -10.6), sci_xy(-87.0, 16.2)], 'hedge_low', 1.2, step=1.4, closed=False)   # (the yard's north-west edge)
+_rs = random.Random(1997 + 163)
+SCI_CARS = []          # (at the end of the cars' list, so that no other car changes its model)
+for row_ in ([(-8.5, -19.0), (-9.5, -25.0), (-12.5, -31.0), (-17.5, -36.5), (-24.0, -40.0), (-37.0, -41.0)],
+             [(-13.5, -19.5), (-14.5, -25.0), (-17.0, -29.5), (-21.0, -33.0), (-26.0, -35.5), (-37.0, -36.5)]):
+    _rl = LineString([sci_xy(u_, v_) for u_, v_ in row_])
+    for d_ in np.arange(1.3, _rl.length - 1.0, 2.6):
+        q_, q2_ = _rl.interpolate(d_), _rl.interpolate(d_ + 0.5)
+        if _rs.random() < 0.85:
+            SCI_CARS.append([_rs.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(q_.x, 2), round(q_.y, 2),
+                             round(math.atan2(q2_.y - q_.y, q2_.x - q_.x) + math.pi / 2 + _rs.uniform(-.05, .05), 3), _rs.randrange(8)])
+for u_, v_ in ((-102.0, -9.5), (-102.0, -12.1), (-102.0, -14.7), (-102.0, -17.3), (-108.5, -16.0), (-111.0, -16.0)):
+    if _rs.random() < 0.85:
+        x_, y_ = sci_xy(u_, v_)
+        SCI_CARS.append([_rs.choice(['sedan', 'sedan', 'hatch']), x_, y_,
+                         round(_sa + (0.0 if u_ > -105 else math.pi / 2) + _rs.uniform(-.05, .05), 3), _rs.randrange(8)])
+print('과학관: off the court and the yard (trees, shrubs, props)', len(DROP_TREES) - _n0[0], _n0[1] - len(shrubs), _n0[2] - len(props))
 # 대운동장 (FIELD): the 1997 photos have the oval bare from edge to edge, and the random planting had put trees on its
 # east end (they go to the woods round it, below); and what stood round the two outlines left out at its north end
 # (FIELD_GONE)
@@ -7232,6 +7434,7 @@ for u_, v_, d_ in [(60.0, 75.5, 1), (62.8, 75.5, 1)] + [(u_, 79.5, 1) for u_ in 
     if _rgw.random() < 0.85:
         cars.append([_rgw.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(x_, 2), round(y_, 2),
                      round(h_ + _rgw.uniform(-.05, .05), 3), _rgw.randrange(8)])
+cars += SCI_CARS                    # (과학관's court and yard: last, so that no other car changes its model)
 # (the oil under the stalls of the car parks that decal_spots, above, does not know: 백양관 북쪽; their own random
 # numbers, at the end of the decals' list, so that no other decal moves)
 _rpo = random.Random(1997 + 4581)
@@ -7298,6 +7501,13 @@ _ypaint([BK_ISLAND], _yg)                   # (백양관 북쪽 주차장 앞 �
 _ypaint([ANNEX_ISLAND], _yg)                 # (학생회관 별관 앞 섬: lawn, the later walks across it cleared)
 _ypaint([p_.buffer(5.5) for p_ in FIELD_GONE_SITES], _yg)    # (대운동장 북쪽 끝: the two later halls' aprons out)
 _ypaint([GONGWON_SITE.buffer(0.5), GW_LOT, GW_ROW, GW_YARD], _yg)    # (공학원 공사장: OSM's later roads and walks across it out)
+# (the aprons of the halls left out or moved since the planting was laid, GONE_LAWN · SITES_NEW_1997: lawn where no hall of
+# 1997 stands; 과학관's court paved to the bank's foot and under its flight)
+_old_aprons = unary_union([Polygon(g_['footprint']) for g_ in RND_GHOSTS if g_['id'] in GONE_LAWN] +
+                          [q_ for pid_, _, _, _, q_ in OLD_HALLS if pid_ in (990010, 990011, 990012)]).buffer(4.2)
+_ypaint([_old_aprons.difference(unary_union(LATE_SITES).buffer(3.5))], _yg)
+_ypaint([SCI_COURT.union(flight_zone(SCI_DOOR, SCI_N, 8.8, 7.0))], _yp)
+_ypaint([sci_poly([(-121.0, -12.0), (-86.0, 15.5), (-88.5, 18.6), (-123.5, -8.9)])], _yg)   # (the hedge's bed: SCI_YARD)
 _ypaint([Polygon(b_['footprint']).buffer(3.5, join_style=2) for b_ in YONGJAE_BUILDINGS] +
         [yongjae_poly(-4.5, 2.8, -1.0, 21.0)], _yp)
 _ypaint([YJ_WALK], _yp, width=2.6)
@@ -7335,12 +7545,13 @@ _ypaint([LIB97_TERRACE, LIB97_OUTER] + list(LIB97_SLANT.geoms if hasattr(LIB97_S
 # 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'
-_ypaint([p_ for n_, p_ in GONE_SITES if not n_], _ga)
+_ypaint([p_ for n_, p_ in GONE_SITES if not n_ and not any(p_.equals(q_) for q_ in _gone_lawn)], _ga)
 _li = LIB97['island']
 _ypaint([lf_rect(LIB97['plaza'][0], _li[0], LIB97['depth'], _l9st + 0.4), lf_rect(_li[1], LIB97['plaza'][1], LIB97['depth'], _l9st + 0.4),
          lf_rect(_li[0] - 0.1, _li[1] + 0.1, LIB97['depth'], _li[2]), lf_rect(_li[0] - 0.1, _li[1] + 0.1, _li[3], _l9st + 0.4),
          LIB97_NORTH, LIB97_WALK], _ga)         # (중앙도서관 앞 광장 · 북쪽 찻길 · 관목 띠를 따르는 찻길)
 _ypaint([JUNC], _ga, width=JUNC_W)            # (독수리상 서쪽 옆길이 백양로와 만나는 길)
+_ypaint([SCI_YARD.difference(unary_union([Polygon(b_['footprint']) for b_ in LATE_HALLS if b_['id'] in (990060, 990061)]).buffer(0.5))], _ga)
 # 용재관's car park and the drive to 노천극장 (YJ_LOT, YJ_BRANCH), a paved strip along the walls
 _ypaint([YJ_LOT.difference(unary_union([Polygon(b_['footprint']).buffer(1.0) for b_ in YONGJAE_BUILDINGS])),
          YJ_BRANCH.buffer(3.0)], _ga)
@@ -7870,7 +8081,8 @@ out['paths'] = [p_ for p_ in out['paths'] if not (p_['kind'] in ('footway', 'pat
 # 의료원: OSM's walks and drives there are today's.  Where one runs through a hall of the 1997 aerial photos
 # (MED_SITES_RNG), the walk the game reads (the minimap, the crowd) keeps its longest stretch outside the hall, in its
 # place in the list; a short one mostly inside goes
-_mh = [Polygon(b_['footprint']) for b_ in buildings if b_['id'] in MED_SITES_RNG]
+# (and through 연구관 · 장기원 기념관 · 과학관 · 어린이생활지도연구원 as put back since: SITES_NEW_1997)
+_mh = [Polygon(b_['footprint']) for b_ in buildings if b_['id'] in MED_SITES_RNG or b_['id'] in SITES_NEW_1997]
 _mh0, _mh1 = unary_union([q_.buffer(-0.5) for q_ in _mh]), unary_union([q_.buffer(1.0) for q_ in _mh])
 _nm = [0, 0]
 for p_ in list(out['paths']):
