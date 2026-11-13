@@ -130,11 +130,17 @@ LATE_FOOTPRINT_1997 = {1178743320: [(482.62, 70.11), (489.63, 62.96), (493.39, 6
 #   face.  That line meets the east face at the south-east corner the roadview of before the wings puts at
 #   (-124.0, -280) (tools/roadview/eng), 26 m north of OSM's slanted tip; photo A's camera ends the 14-bay front at
 #   OSM's north face (86 - 88 m along; the 2011 roadview and the 1994 photo see it 2 - 7 m short, reference/고증.md
-#   5장).  The south wing (303 m2) and the 공AS block (508 m2) then make up the 800 m2 a floor that the wings added.
+#   5장).  The 1997-07-28 vertical aerial photos (reference/고증/3.8) end the roof 64.2 m north of that corner, three
+#   frames within 0.5 m (the south end on the roadview's corner to 0.4 m): 2.6 m past OSM's north face, as every
+#   north edge of the halls west of it stands 2.6 - 3 m north of OSM's there.  The hall goes on to there.
+_ENG_N = 2.6
+_ent = np.array([16.14, 59.49]) / 61.64                       # along the east face, south to north
+ENG_FP_RNG = [(-124.14, -280.18), (-108.0, -220.69), (-121.44, -216.91), (-137.84, -276.66)]
 LATE_FOOTPRINT_1997.update({
     429249499: [(62.85, -84.25), (106.77, -95.8), (113.08, -72.16), (69.16, -60.6)],
     256933753: [(-59.05, 125.82), (-13.1, 113.6), (-18.23, 94.69), (-64.14, 106.9)],
-    205583531: [(-124.14, -280.18), (-108.0, -220.69), (-121.44, -216.91), (-137.84, -276.66)],
+    205583531: [ENG_FP_RNG[0]] + [tuple(round(float(c_), 2) for c_ in np.array(q_) + _ent * _ENG_N) for q_ in ENG_FP_RNG[1:3]]
+               + [ENG_FP_RNG[3]],
 })
 # 의료원 (1990 · 1995 지도, 1990년 무렵 항공 사진; reference/고증.md 3.1.2).  The new 세브란스병원 (2005.5) and
 # 의료원 종합관 (2008) go; a name of None leaves the site a car park (asphalt), with no 공사중 marker: the old halls
@@ -5617,7 +5623,9 @@ _gz = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for
                   [GONGWON_SITE.buffer(1.5)])
 out['decals'] = [d_ for d_ in out['decals'] if not GONGWON_SITE.buffer(1.0).contains(Point(d_[1], d_[2]))]
 _n0 = (len(trees), len(shrubs), len(props), len(cars))
-clear_trees(_gz)
+# (the trees go as first cleared, with 제1공학관 as first put back: ENG_FP_RNG)
+clear_trees(_gz, unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [Polygon(ENG_FP_RNG).buffer(2.0)] +
+                             [p_.buffer(2.0) for p_ in LATE_SITES if not p_.intersects(Polygon(ENG_FP_RNG).buffer(-1.0))] + [GONGWON_SITE.buffer(1.5)]))
 shrubs = [s for s in shrubs if not _gz.contains(Point(s[1], s[2]))]
 props = [p for p in props if not _gz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _gz.contains(Point(c[1], c[2]))]

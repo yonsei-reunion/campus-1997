@@ -3077,7 +3077,7 @@ def engineering():
     mb.prism(offset_poly(body, 0.2), -4, 0.4, 'stone_granite')
     st = dict(generic.STYLE['modern'])
     # windows as in the 1997 aerial photo (reference/1997_백양로_항공사진.jpg): five rows on the 백양로 front, 14 wide
-    # sliding windows a row across the 62 m (a 4.4 m bay, narrow piers between them), and deep plain spandrels: the
+    # sliding windows a row across the 64 m (a 4.6 m bay, narrow piers between them), and deep plain spandrels: the
     # glass is under half the storey height
     st.update(wall='plaster_white', alt='plaster_white', ww=0.88, bay=L / 14.0, sill=1.0, head=1.05, mull=1)
     for i in range(4):
@@ -3096,7 +3096,7 @@ def engineering():
     for i in (0, 2):
         generic.wall_edge(mbw, world[i], world[(i + 1) % 4], z0 + 0.4, z0 + H + 0.9, nf, fh, st, rnd_)
     generic.parapet_and_roof(mbw, world, z0 + H, st, rnd_)
-    # the hall is the 1997 one (tools/build_campus.py LATE_FOOTPRINT_1997: 62 m, before the 2014 - 2015 wings).  As
+    # the hall is the 1997 one (tools/build_campus.py LATE_FOOTPRINT_1997: 64 m, before the 2014 - 2015 wings).  As
     # photo A shows it through its camera (reference/고증.md 3.8): a white rooftop storey over the south 25 m (the
     # sixth floor was only built out in 2007), 2.2 m over the parapet, with two windows on the 백양로 side 11 and 19 m
     # from the south end; and a flat canopy on columns along the 백양로 front from 25 to 45 m (its north front corner
