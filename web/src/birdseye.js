@@ -182,12 +182,12 @@ export class BirdsEye {
       this.fovGoal = this.baseFov;
     } else if (what === 'photo') {       // the 1997 aerial photo (reference/1997_백양로_항공사진.jpg): taken ~19 m over the gate with a
       this.stopAuto();                   // normal lens, up 백양로 to 언더우드관 and 대우관 (any other control returns to the orbit view).
-      // Camera fitted by least squares to the vertical edges, lines and vanishing points of the unchanged halls,
-      // 제1공학관's south-east corner before its 2014 - 2015 wings (solved from the roadview) and 백주년기념관's drum
-      // (3.1 px rms on the 2100 px scan, roll 0; issues #82, #83: tools/build_campus.py PHOTO_A)
-      this.fixed = { x: -111.0, y: -395.7, h: 44.5, tx: 53.1, ty: 181.4, th: 6.75 };
-      this.fovGoal = 32.13;
-      this.camera.fov = 32.13;
+      // Camera fitted by least squares to the unchanged halls and to 백양로's carriageway and the eagle where the 1997
+      // vertical aerial photos have them (halls within 5 px, the ground within 7 px; issues #82, #83, #162:
+      // tools/build_campus.py PHOTO_A)
+      this.fixed = { x: -106.87, y: -396.83, h: 45.22, tx: 54.38, ty: 181.1, th: 4.95 };
+      this.fovGoal = 33.06;
+      this.camera.fov = 33.06;
       this.camera.updateProjectionMatrix();
     }
     this.labels();

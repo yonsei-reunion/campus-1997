@@ -208,26 +208,51 @@ for w in ways.values():
         bys = [xy(p) for p in w['geometry']]
 bys = list(reversed(bys))                       # gate (south) -> north
 bys = [(-108.0, -428.0)] + bys[1:] + [(33.0, 145.0), (38.0, 168.0)]
-# The road was rebuilt in 2015 (백양로 재창조) and OSM follows the new walk.  Measured in the 1997 aerial photo
-# (reference/1997_백양로_항공사진.jpg, its camera fitted to 제1공학관, 중앙도서관, 백주년기념관 and the towers of
-# 언더우드관 and 대우관; the ground points back-projected onto the terrain): the 1997 carriageway ran ~4 m further
-# west, all the way from the gate to past 백주년기념관 (4.1 m at 100 m, 4.0 at 185 m, 3.5 at 320 m).  Shift the line,
-# easing back onto OSM towards the 삼거리 where the photo shows nothing.
+# The road was rebuilt in 2015 (백양로 재창조) and OSM follows the new walk.  The 1997 vertical aerial photos of 28 July
+# 1997 (자료 Q, reference/고증/2.1-2.2 「2.2.2」: four frames from two flight lines, within 0.3 - 0.6 m of each other)
+# have the carriageway's middle between the two hedges 1.1 - 1.7 m east of OSM's walk up to s 300 m and 0.5 - 1.0 m
+# from there to the 삼거리; the roadview of 2008 - 2011 agrees once 백주년기념관 stands where those photos have it.
+# Shift the line, easing back onto OSM at the 삼거리.  (Before #162 it ran 4 m west of OSM, from the first camera of
+# photo A, an oblique view held on the corners at the photo's edges.)
 _bl0 = LineString(bys)
 
 
 def _west(s):
+    """the shift of the line off OSM's walk, m to the west (negative: east)"""
+    return -float(np.interp(s, [0.0, 300.0, 360.0, 480.0, 540.0], [1.4, 1.4, 0.8, 0.8, 0.0]))
+
+
+def _west_rng(s):
+    """the line as first laid (4 m west of OSM, back onto it by s 520): BLINE_RNG below"""
     return 4.0 if s <= 300 else 4.0 * max(0.0, (520 - s) / 220)
 
 
-_shifted = []
-for _x, _y in bys:
-    _s = _bl0.project(Point(_x, _y))
-    _p0, _p1 = _bl0.interpolate(max(0, _s - 2)), _bl0.interpolate(min(_bl0.length, _s + 2))
-    _tx, _ty = _p1.x - _p0.x, _p1.y - _p0.y
-    _n = math.hypot(_tx, _ty)
-    _shifted.append((round(_x - _ty / _n * _west(_s), 2), round(_y + _tx / _n * _west(_s), 2)))
-bys = _shifted
+def _shift_line(pts, west):
+    out_ = []
+    for _x, _y in pts:
+        _s = _bl0.project(Point(_x, _y))
+        _p0, _p1 = _bl0.interpolate(max(0, _s - 2)), _bl0.interpolate(min(_bl0.length, _s + 2))
+        _tx, _ty = _p1.x - _p0.x, _p1.y - _p0.y
+        _n = math.hypot(_tx, _ty)
+        out_.append((round(_x - _ty / _n * west(_s), 2), round(_y + _tx / _n * west(_s), 2)))
+    return out_
+
+
+# The random planting (one stream of draws, rng) still reads the line as first laid: what it asks of 백양로 (is this
+# spot in a gap, on the road, how long is the row) it asks of BLINE_RNG, and what it plants along the road it puts
+# along the moved line, so that moving the road keeps the campus's draws (#162); the trees the moved road then runs
+# over are cleared at the end (drop_trees)
+BYS_RNG = _shift_line(bys, _west_rng)
+BLINE_RNG = LineString(BYS_RNG)
+L_RNG = BLINE_RNG.length
+bys = _shift_line(bys, _west)
+# (east of the first line, the moved one runs on the inside of the bend 40 m in from the gate and is shorter by ~1 m
+# past it: its south end is drawn out by as much, so that an s past the bend names the same spot on both lines and
+# the places measured along the road by s before #162 (crossings, openings, mouths, banners) stay where they were)
+_bl1 = LineString(bys)
+_ds = float(np.median([s_ - _bl1.project(BLINE_RNG.interpolate(s_)) for s_ in np.arange(80.0, 600.0, 5.0)]))
+_b0, _b1 = np.array(bys[0]), np.array(bys[1])
+bys[0] = tuple(np.round(_b0 + (_b0 - _b1) / np.linalg.norm(_b0 - _b1) * _ds, 2))
 GATE = bys[0]
 bline = LineString(bys)
 # Road cross-section, half widths from the centre line.  As in the 1997 aerial photo (reference/1997_백양로_항공사진.jpg):
@@ -254,6 +279,18 @@ def s_at(x, y):
     return float(bline.project(Point(x, y)))
 
 
+def along_rng(s, off):
+    """along_raw on the line as first laid (BLINE_RNG)"""
+    return along_raw(s, off, BLINE_RNG)
+
+
+def s_off_rng(x, y):
+    """s_off on the line as first laid (BLINE_RNG)"""
+    s_ = float(BLINE_RNG.project(Point(x, y)))
+    cx_, cy_, a_ = along_rng(s_, 0.0)
+    return s_, (x - cx_) * -math.sin(a_) + (y - cy_) * math.cos(a_)
+
+
 def s_off(x, y):
     """arc length along 백양로 and signed offset (+ west) of a point"""
     s_ = s_at(x, y)
@@ -261,11 +298,12 @@ def s_off(x, y):
     return s_, (x - cx_) * -math.sin(a_) + (y - cy_) * math.cos(a_)
 
 
-def along_raw(s, off):
+def along_raw(s, off, line=None):
     """point `off` m to the west (left) of the 백양로 centre line at arc length s, and the road heading there"""
-    p = bline.interpolate(s)
-    p2 = bline.interpolate(min(bline.length, s + 1))
-    p0 = bline.interpolate(max(0, s - 1))
+    line = line or bline
+    p = line.interpolate(s)
+    p2 = line.interpolate(min(line.length, s + 1))
+    p0 = line.interpolate(max(0, s - 1))
     tx, ty = p2.x - p0.x, p2.y - p0.y
     n_ = math.hypot(tx, ty)
     return p.x - ty / n_ * off, p.y + tx / n_ * off, math.atan2(ty, tx)
@@ -300,7 +338,9 @@ GATE_C = along_raw(GATE_S, 0.0)[:2]           # the gate's middle, on 백양로'
 # steps along.
 L = bline.length
 ss = np.arange(0, L + 0.1, 2.0)
-_dem = np.array([sample(Hn, NEAR_HALF, NEAR_STEP, *bline.interpolate(s).coords[0]) for s in ss])
+# (the ground is read along the line as first laid, BLINE_RNG: 5 m east the 30 m grid has the gate 0.1 m lower, and
+# every level set from 백양로's would follow it; the section is the road's, and s names the same spot on both lines)
+_dem = np.array([sample(Hn, NEAR_HALF, NEAR_STEP, *BLINE_RNG.interpolate(s).coords[0]) for s in ss])
 H_GATE = float(ndimage.gaussian_filter1d(_dem, 12)[0])
 # 그림 2.5 (a): (fraction of the way to the 삼거리, rise in m) at the ground line's turning points
 SECTION = [(0.0, 0.0), (0.019, 0.0), (0.083, 1.14), (0.252, 1.71), (0.359, 3.43), (0.487, 5.14), (0.592, 6.86),
@@ -318,7 +358,7 @@ def section_rise(s):
 prof = H_GATE + section_rise(ss)
 prof = ndimage.gaussian_filter1d(prof, 6, mode='nearest')
 prof += (H_GATE + float(section_rise(L)) - prof[-1]) * (ss / L) ** 2      # (keep the ends where they belong after smoothing)
-_band = np.array([np.mean([sample(Hn, NEAR_HALF, NEAR_STEP, *along_raw(s, o)[:2]) for o in np.arange(-60, 61, 10)])
+_band = np.array([np.mean([sample(Hn, NEAR_HALF, NEAR_STEP, *along_rng(s, o)[:2]) for o in np.arange(-60, 61, 10)])
                   for s in ss])
 _shift = ndimage.gaussian_filter1d(prof - ndimage.gaussian_filter1d(_band, 15, mode='nearest'), 10, mode='nearest')
 _shift *= np.clip(ss / 80.0, 0, 1) ** 2 * (3 - 2 * np.clip(ss / 80.0, 0, 1))     # (the town outside the gate stays)
@@ -334,7 +374,7 @@ CROSS = [round(s_at(-55, -200), 1), round(s_at(-20, -62), 1), round(s_at(5, 40),
 # --- 화단 띠가 끊기는 곳 (reference/고증/2.3_길의_단면과_길가.md, #131).  CROSS_RNG keeps the crossings where they were
 # first put: the verge's and the strip's planting and the sidewalk's decals take their random draws by it, so that
 # moving a crossing changes nothing away from it (strip_fill below plants the old opening from its own numbers)
-CROSS_RNG = list(CROSS)
+CROSS_RNG = [round(float(BLINE_RNG.project(Point(*p_))), 1) for p_ in ((-55, -200), (-20, -62), (5, 40))] + [round(L_RNG - 30, 1)]
 # 백주년기념관 앞: the verges' openings on both sides with their round ends, the bollard and the grates, from the
 # 2008-08, 2010-12 and 2011-04 roadview at node 171 solved together (heading and tilt free; 활천대, the eagle and the
 # hall's north-west corner): the east opening's tips at s 224.2 - 229.5, the west's 224.9 - 229.7 (2011 pano held at
@@ -351,8 +391,10 @@ from shapely import points as shp_points, distance as shp_distance, line_locate_
 P = shp_points(pts)
 dist = shp_distance(P, bline).reshape(X.shape)
 spos = line_locate_point(bline, P).reshape(X.shape)
-_fade = np.clip((dist - 50.0) / 180.0, 0, 1)
-Hn = Hn + np.interp(spos, ss, _shift) * (1 - _fade * _fade * (3 - 2 * _fade))
+# (the ground's trend round the road is moved by the line as first laid, BLINE_RNG: by the moved one, 5 m east, the
+# ground 50 - 230 m off would change by a few cm everywhere; the road's own band, hline below, follows the moved line)
+_fade = np.clip((shp_distance(P, BLINE_RNG).reshape(X.shape) - 50.0) / 180.0, 0, 1)
+Hn = Hn + np.interp(line_locate_point(BLINE_RNG, P).reshape(X.shape), ss, _shift) * (1 - _fade * _fade * (3 - 2 * _fade))
 print('백양로 section: gate %.2f, 삼거리 %.2f m; ground shifted by %.1f .. %.1f m' % (prof[0], prof[-1], _shift.min(), _shift.max()))
 hline = np.interp(spos, ss, prof)
 w = np.clip((dist - (ROAD_HALF + 4)) / 30.0, 0, 1)
@@ -416,19 +458,21 @@ COURT_OLD = dict(pos=[21.9, 2.5], rot=1.313, L=28.0, W=15.0)
 # 「연세대학교의 조형물을 찾아서!! 제3탄」, 2017).  Before 백양로 was rebuilt it stood beside the eagle (연세춘추
 # 「연세인도 모르는 연세대학교」, 2009.9: 「활천대는 독수리상 옆에 있는 분수대다」; since 2015 it is in front of
 # 제1공학관, where its old spot became the stairs down to 백양누리).
-# Where the eagle and 활천대 stood before 백양로 was rebuilt (reference/고증.md 4.1.4, 4.3): Kakao roadview of 2008-08,
-# 2010-12 and 2011-04, solved without Kakao's headings or positions (tools/roadview/resect.py: every pano has its own
-# unknown heading, and only the angles between things in one view count, tied to unchanged corners of 중앙도서관 and
-# 백주년기념관).  The eagle: 20.8 m west of 백양로's carriageway centre (1994 aerial photo 20.3 - 20.9 m, roadview 20.6 - 22 m,
-# photo A 20 - 23 m), ~80 m south of where the 2015 rebuilding put it, in front of 중앙도서관's south end (a flower
-# bed in 2011).  활천대's white cross column (the water off): 45 m south-south-west of the eagle, 27 m off the centre
-# line.  Both were first placed from Kakao's headings and positions as given, 4.6 and 2.5 m too far east (that drive's
-# headings are off by up to 3 deg and its positions there by ~2 m).  The 1995 campus map draws the same row along the
+# Where the eagle and 활천대 stood before 백양로 was rebuilt (reference/고증/2.1-2.2 「2.2.2」, 4.1.4, 4.3): the 1997
+# vertical aerial photos of 28 July (자료 Q) have the eagle's brick ring (r 5.7 m) and the basin's wall (r 4.7 - 4.8 m)
+# within 0.4 m in four frames from two flight lines; the eagle 22.8 m west of the carriageway's middle (1994 aerial
+# photo 20.3 - 20.9 m, roadview 20.6 - 22 m, photo A 22.0 - 22.4 m), ~80 m south of where the 2015 rebuilding put it,
+# in front of 중앙도서관's south end (a flower bed in 2011); 활천대's white cross column 45 m south-south-west of it.
+# The roadview of 2008-08, 2010-12 and 2011-04 (tools/roadview/c12/net.py, every pano's heading unknown) puts them
+# within 1 m of that with 백주년기념관's north-west corner where the aerial photos have it (BLD_MOVE).  (Before #162:
+# (-70.9, -159.8) and (-83.1, -202.6), from that roadview with the corner at OSM's outline; first, from Kakao's
+# headings and positions as given, 4.6 and 2.5 m further east.)  The 1995 campus map draws the same row along the
 # west side of 백양로 south of the library: a round plaza, then a round basin.  Its 2009 photo
 # (reference/활천대_2009_연세춘추.jpg) is then taken from the lawn 14 m south-south-east of the basin, looking
 # north-north-west past it at 중앙도서관's south front, with 과학관's dome far left and the eagle on the right (the camera
-# solved from the two columns and the south front's two corners: (-78.6, -216.2), 1.6 m up, heading 11.3 deg west of
-# north, tilted 3.5 deg up, vertical field 36 deg; 3 px rms, 7 px with the two where they first stood).
+# solved from the two columns and the south front's two corners: (-74.5, -218.8), 1.6 m up, heading 12.6 deg west of
+# north, tilted 3.4 deg up, vertical field 36 deg; 3.6 px rms; it was (-78.6, -216.2) with the two where they stood
+# before #162, tools/snapshots.json compare/hwalcheon).
 # The basin before the rebuilding (reference/고증.md 4.3): the old photo in the 2017 blog post (reference/
 # 활천대_공사전_연세대블로그.jpg, its camera solved from the rings and the column: 4 px rms) and a group snapshot of
 # about late 1999 - the early 2000s (reference/활천대_단체사진_*.jpg) show one round pool walled in rounded field
@@ -440,18 +484,22 @@ COURT_OLD = dict(pos=[21.9, 2.5], rot=1.313, L=28.0, W=15.0)
 # flagstones' outer edge, island the stone island under the sculpture; heights over the flagstones (level ground):
 # wall the wall's top, water, floor the pool's floor, isle the island's top (blender/landmarks.py fountain,
 # web/src/water/fountain.js).
-EAGLE = dict(pos=[-70.9, -159.8])
-FOUNTAIN = dict(pos=[-83.1, -202.6], r=4.45, rim=4.75, pave=5.85, island=0.95,
+EAGLE = dict(pos=[-67.95, -161.78])
+FOUNTAIN = dict(pos=[-79.45, -205.03], r=4.45, rim=4.75, pave=5.85, island=0.95,
                 wall=0.22, water=0.05, floor=-0.25, isle=0.13)
 # the random planting keeps its lawn hole where the fountain first stood, with the first basin's size (r 2.6), so
 # that the campus keeps its trees (one stream of draws, see below); the scattered trees round the moved basin are
 # cleared after the draws (_FOUNTAIN_LAWN)
 FOUNTAIN_SCATTER, FOUNTAIN_SCATTER_R = (-80.7, -203.2), 2.6 + 7
+# where the eagle and the basin stood before the 1997 aerial photos moved them (#162): the random planting reads them
+EAGLE_RNG, FOUNTAIN_RNG = (-70.9, -159.8), (-83.1, -202.6)
 # the eagle on a paved round (its platform is 8.4 m square, 5.9 m to the corners) with a straight walk east to
 # 백양로's sidewalk (the 2011 roadview from 백양로, between beds of azaleas)
 EAGLE_R = 6.0
 EAGLE_WALK = LineString([tuple(EAGLE['pos']), along_raw(s_at(*EAGLE['pos']), E_WALK - 0.3)[:2]])
 EAGLE_PLAZA = Point(*EAGLE['pos']).buffer(EAGLE_R).union(EAGLE_WALK.buffer(1.5, cap_style=2))   # (the OSM cut below)
+EAGLE_PLAZA_RNG = Point(*EAGLE_RNG).buffer(EAGLE_R).union(LineString([EAGLE_RNG, along_rng(
+    float(BLINE_RNG.project(Point(*EAGLE_RNG))), E_WALK - 0.3)[:2]]).buffer(1.5, cap_style=2))
 # Its precinct (Kakao roadview 2008-08, 2010-12 and 2011-04 from six points round it; the 1995 aerial photo): a low
 # round dais of light stone (r 4.6 m, 0.4 m) on a ring of brick paving a step up from the walks (r 5.6 m, 0.2 m); four
 # brick walks 3 m wide along the statue's axes through four quadrant beds of clipped azaleas (red-brown in winter,
@@ -476,6 +524,13 @@ EAGLE_WALKS = unary_union([LineString([eagle_xy(0, 0), eagle_xy(EAGLE_EDGE + 0.3
                           [LineString([eagle_xy(0, 0), eagle_xy(*uv_)]).buffer(EAGLE_WALK_W / 2, cap_style=2)
                            for uv_ in ((0, -EAGLE_BEDS_R - 1.0), (-EAGLE_BEDS_R - 1.0, 0), (0, EAGLE_BEDS_R + 1.0))])
 EAGLE_PAVED = Point(*EAGLE['pos']).buffer(EAGLE_RING[0], 64).union(EAGLE_WALKS)
+# (the same where the eagle first stood, by the line as first laid: what the clearing below asks, EAGLE_RNG)
+_e_edge_rng = BLINE_RNG.distance(Point(*EAGLE_RNG)) - E_WALK
+_exy_rng = lambda u, v: (EAGLE_RNG[0] + u * math.cos(EAGLE_ROT) - v * math.sin(EAGLE_ROT), EAGLE_RNG[1] + u * math.sin(EAGLE_ROT) + v * math.cos(EAGLE_ROT))
+EAGLE_PAVED_RNG = Point(*EAGLE_RNG).buffer(EAGLE_RING[0], 64).union(unary_union(
+    [LineString([_exy_rng(0, 0), _exy_rng(_e_edge_rng + 0.3, 0)]).buffer(EAGLE_WALK_W / 2, cap_style=2)] +
+    [LineString([_exy_rng(0, 0), _exy_rng(*uv_)]).buffer(EAGLE_WALK_W / 2, cap_style=2)
+     for uv_ in ((0, -EAGLE_BEDS_R - 1.0), (-EAGLE_BEDS_R - 1.0, 0), (0, EAGLE_BEDS_R + 1.0))]))
 EAGLE_BEDS = Point(*EAGLE['pos']).buffer(EAGLE_BEDS_R, 64).difference(EAGLE_PAVED.buffer(0.15)) \
     .difference(bline.buffer(E_WALK + 0.2))
 
@@ -635,8 +690,19 @@ def ground_h(x, y):
     return sample(Hn, NEAR_HALF, NEAR_STEP, x, y)
 
 
-def footprint(wv):
+# 백주년기념관 (#162, reference/고증/3.4 and 2.1-2.2 「2.2.2」): the 1997 vertical aerial photos have its 백양로 face
+# 2.5 - 2.9 m and its drum 3.7 m east-south-east of OSM's outline (the drum's rim from three frames, (-5.0, -242.8)),
+# as Kakao's base map does (3.2 m out of the face) and its skyview; the same photos put the carriageway 5.4 m east, so
+# that the hall's forecourt keeps the width they give it.  The hall moves 3.2 m straight out of its 백양로 face (along
+# it the aerial drum and the base map differ by 0.8 m: kept).  The random planting reads the outline as it was
+# (footprint(rng=True): ball_rng, the aprons of the ground it reads)
+BLD_MOVE = {324328422: (3.11, -0.73)}
+
+
+def footprint(wv, rng=False):
     pts_ = [xy(p) for p in wv['geometry']]
+    if not rng and wv['id'] in BLD_MOVE:
+        pts_ = [(x_ + BLD_MOVE[wv['id']][0], y_ + BLD_MOVE[wv['id']][1]) for x_, y_ in pts_]
     if pts_[0] == pts_[-1]:
         pts_ = pts_[:-1]
     poly = Polygon(pts_).buffer(0)
@@ -708,7 +774,7 @@ FORECOURTS = [  # OSM way, outward front direction (None: the recess edge footpr
     # 백주년기념관's 백양로 front: the smoothed DEM drapes the hall's own bulk over its west lawn, a 3-5 m mound
     # against its dark porch; the 1997 aerial photo shows level lawn (and parked cars) from the sidewalk to the porch.
     # Level it at the hall's floor (its lowest corner, a little over 백양로 alongside)
-    (324328422, None, 30.0, dict(face=((-11.05, -181.26), (-28.82, -256.68)), max_half=40.0, blend=8.0, level='corner',
+    (324328422, None, 30.0, dict(face=((-11.05 + 3.11, -181.26 - 0.73), (-28.82 + 3.11, -256.68 - 0.73)), max_half=40.0, blend=8.0, level='corner',
                                          inside=7.0)),              # (and under the 5 m deep porch)
 ]
 # 광복관 (blender/landmarks.py kwangbok): the 1996 album photos show a level gravel forecourt at the foot of its broad
@@ -730,7 +796,7 @@ FIXED = np.zeros(X.shape, bool)       # grid nodes a later harmonic fill must ke
 # (6.3 and 7.7 m from two panoramas; the 1997 photo's corner, y 642, with its refitted camera: 7 m).
 # The entrance spans 0.7 - 9.7 m from the corner (a door under a window band, then square piers).  blender/landmarks.py
 # builds it from this and cuts the podium round it.
-_cnw, _csw, _cse = np.array([-11.05, -181.26]), np.array([-28.82, -256.68]), np.array([-12.33, -261.24])
+_cnw, _csw, _cse = (np.array(p_) + BLD_MOVE[324328422] for p_ in ((-11.05, -181.26), (-28.82, -256.68), (-12.33, -261.24)))
 _tw = (_cnw - _csw) / np.linalg.norm(_cnw - _csw)                 # the 백양로 face, south -> north
 _ts = (_cse - _csw) / np.linalg.norm(_cse - _csw)                 # the south face, west -> east
 _nw = np.array([-_tw[1], _tw[0]])                                 # out of the 백양로 face (west)
@@ -750,7 +816,7 @@ FORECOURTS.append((324328422, None, 14.0, dict(face=(tuple(_c0), tuple(_c0 + _ts
 # 1996 album photos, is in the 백양로 porch (museum_porch, CENT_MUSEUM below).  The ground there stood 3 m over the
 # hall's floor (the hall's lowest corner, by 백양로); the court is levelled 2.6 m over that corner (42.7 m on the old
 # terrain, 광혜원's height there).
-CENT_NE = ((41.28, -200.97), (16.84, -168.65))       # the face, its outside to the right
+CENT_NE = ((41.28 + 3.11, -200.97 - 0.73), (16.84 + 3.11, -168.65 - 0.73))       # the face, its outside to the right
 
 
 def corner_level(wid):
@@ -988,7 +1054,7 @@ print('eagle precinct level', round(EAGLE_LEVEL, 2))
 # zf, kept): the apron falls from the sidewalk to the foot.  South of the flights a dressed granite retaining wall at
 # the foot line (its coping at the first landing, lawn on it), north a low planter box on the apron and a planter wall
 # beside the first landing.  The face frame: s along the 백양로 face from its north-west corner (south), d out of it.
-_ct0 = np.array([-11.05, -181.26])
+_ct0 = np.array([-11.05, -181.26]) + BLD_MOVE[324328422]
 CT_T = np.array([-28.82 + 11.05, -256.68 + 181.26]) / math.hypot(-28.82 + 11.05, -256.68 + 181.26)
 CT_N = np.array([CT_T[1], -CT_T[0]])                         # out of the face (west, towards 백양로)
 
@@ -1914,7 +1980,7 @@ def tr_grade(cp_, cn_, k0, k1, grades, tag, also=None, tail=True, mine=None):
         sa_, sb_ = ls_.project(Point(*pa_)), ls_.project(Point(*pb_))
         za_ = float(np.interp(sa_, ss_, zs_)) if za_ is None else za_
         zb_ = float(np.interp(sb_, ss_, zs_)) if zb_ is None else zb_
-        m_ = (ss_ >= sa_) & (ss_ <= sb_)
+        m_ = (ss_ >= sa_ - 1e-6) & (ss_ <= sb_ + 1e-6)             # (the end nodes too, whatever the rounding)
         zs_[m_] = za_ + (zb_ - za_) * (ss_[m_] - sa_) / (sb_ - sa_)
     zs_ = ndimage.gaussian_filter1d(zs_, 2.0, mode='nearest')
     te_ = np.clip(np.minimum(np.arange(len(z_)), (len(z_) - 1 - np.arange(len(z_))) if tail else 1e9) / 8.0, 0, 1)   # (its ends as they are)
@@ -2068,6 +2134,7 @@ print('상뜰 west drive boulder bank: %d points, %.1f m'
 
 buildings = []
 campus_polys = []
+_cp_rng = {}           # (the halls BLD_MOVE moves, as the random planting first read them: campus_zone_rng)
 for wid, (style, lv, label) in B.items():
     wv = ways.get(wid)
     if not wv:
@@ -2075,6 +2142,8 @@ for wid, (style, lv, label) in B.items():
         continue
     poly = Polygon(FOOTPRINT_1997[wid]) if wid in FOOTPRINT_1997 else footprint(wv)
     campus_polys.append(poly)
+    if wid in BLD_MOVE:
+        _cp_rng[len(campus_polys) - 1] = footprint(wv, rng=True)
     hs = [ground_h(x, y) for x, y in poly.exterior.coords]
     fh = FLOOR_H_AT.get(wid, FLOOR_H.get(style, 4.0))
     buildings.append(dict(id=wid, name=label, style=style, levels=lv,
@@ -2243,6 +2312,7 @@ for pid, nm, style, lv, poly in OLD_HALLS:
                           footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]))
 
 campus_zone = unary_union([p.buffer(60) for p in campus_polys]).buffer(-20)
+campus_zone_rng = unary_union([_cp_rng.get(i_, p).buffer(60) for i_, p in enumerate(campus_polys)]).buffer(-20)
 
 # unnamed buildings: neighbourhood houses outside the campus (1990s low-rise 주택가)
 n_city = 0
@@ -2267,6 +2337,10 @@ for wv in ways.values():
 print('buildings', len(buildings), 'city', n_city)
 bpolys = [Polygon(b['footprint']) for b in buildings]
 ball = unary_union(bpolys)
+# (the halls as the random planting first read them: BLD_MOVE)
+bpolys_rng = [Polygon([[round(x_, 2), round(y_, 2)] for x_, y_ in list(footprint(ways[b['id']], rng=True).exterior.coords)[:-1]])
+              if b['id'] in BLD_MOVE else bp_ for bp_, b in zip(bpolys, buildings)]
+ball_rng = unary_union(bpolys_rng)
 
 # --- 대강당 앞: the rubble wall and the bank of shrubs along 백양로's east sidewalk (issue #84).  Kakao roadview of
 # August 2008 (2381303) and April 2011 (1017220192 - 1017220198), reference/대강당_2009_앞길_계단.jpg: from the drive
@@ -2499,32 +2573,65 @@ def to_px(x, y):
 
 layers = {k: Image.new('L', (SW, SH), 0) for k in ('asphalt', 'pavers', 'dirt')}
 dr = {k: ImageDraw.Draw(v) for k, v in layers.items()}
+# ... and the ground as the random planting reads it (PAV_PRE, ASPH_PRE below): every stroke up to there goes on these
+# too, but where a stroke follows 백양로 or what stands by it, these get it as first laid (BLINE_RNG; pre=False on the
+# stroke, the first one by rng_line / rng_poly)
+layers_rng = {k: Image.new('L', (SW, SH), 0) for k in ('asphalt', 'pavers')}
+dr_rng = {k: ImageDraw.Draw(v) for k, v in layers_rng.items()}
 # every stroke is also kept (in metres) to be drawn again finer for the map the game reads (splat_aa below): the
 # random planting, the decals and the leaf mask go on reading these 0.5 m layers as before
 SPLAT_OPS = []
 
 
-def draw_line(layer, coords, width):
+def _line_on(d_, coords, width):
     pp = [to_px(x, y) for x, y in coords]
     wpx = max(1, int(width / SPLAT['res']))
-    dr[layer].line(pp, fill=255, width=wpx, joint='curve')
+    d_.line(pp, fill=255, width=wpx, joint='curve')
     r = wpx / 2
     for x, y in pp:
-        dr[layer].ellipse([x - r, y - r, x + r, y + r], fill=255)
+        d_.ellipse([x - r, y - r, x + r, y + r], fill=255)
+    return wpx
+
+
+def _poly_on(d_, poly, val):
+    for g in (poly.geoms if hasattr(poly, 'geoms') else [poly]):
+        if g.geom_type != 'Polygon':
+            continue
+        d_.polygon([to_px(x, y) for x, y in g.exterior.coords], fill=val)
+        for hole in g.interiors:
+            d_.polygon([to_px(x, y) for x, y in hole.coords], fill=0)
+
+
+def rng_line(layer, coords, width):
+    """a stroke on the ground the random planting reads only (as first laid)"""
+    if dr_rng is not None and layer in dr_rng:
+        _line_on(dr_rng[layer], coords, width)
+
+
+def rng_poly(layer, poly, val=255):
+    if dr_rng is not None and layer in dr_rng and not poly.is_empty:
+        _poly_on(dr_rng[layer], poly, val)
+
+
+def draw_line(layer, coords, width, pre=True):
+    wpx = _line_on(dr[layer], coords, width)
+    if pre:
+        rng_line(layer, coords, width)
     SPLAT_OPS.append(('line', layer, [tuple(c[:2]) for c in coords], wpx, True))
 
 
-def draw_poly(layer, poly, val=255):
+def draw_poly(layer, poly, val=255, pre=True):
     if poly.is_empty:
         return
+    _poly_on(dr[layer], poly, val)
+    if pre:
+        rng_poly(layer, poly, val)
     geoms = poly.geoms if hasattr(poly, 'geoms') else [poly]
     for g in geoms:
         if g.geom_type != 'Polygon':
             continue
-        dr[layer].polygon([to_px(x, y) for x, y in g.exterior.coords], fill=val)
         SPLAT_OPS.append(('poly', layer, list(g.exterior.coords), val))
         for hole in g.interiors:
-            dr[layer].polygon([to_px(x, y) for x, y in hole.coords], fill=0)
             SPLAT_OPS.append(('poly', layer, list(hole.coords), 0))
 
 
@@ -2588,6 +2695,7 @@ WID = {'primary': 24, 'primary_link': 9, 'secondary': 14, 'tertiary': 10, 'resid
        'living_street': 6, 'service': 6, 'unclassified': 6, 'road': 6, 'busway': 8,
        'footway': 2.6, 'path': 2.0, 'steps': 3.0, 'pedestrian': 4}
 bcorr = bline.buffer(ROAD_HALF + 12)
+bcorr_rng = BLINE_RNG.buffer(ROAD_HALF + 12)
 # Photo A's camera (reference/고증.md 2.2; the 「1997 사진 시점」 of web/src/birdseye.js, compare/baekyangro in
 # tools/snapshots.json): the ray through a pixel of the 2100 x 1338 photo, and the ground point under it on the terrain
 # as built.  The gate's side road, island, booth and banners below are kept as the pixels read off the photo, so they
@@ -2603,24 +2711,33 @@ bcorr = bline.buffer(ROAD_HALF + 12)
 # 15.8, pitch -2.13, fov 27.9, fitted to a 52 m drum).
 # (an optional 'roll' in degrees, + clockwise as tools/photofit/cam.py; the bird's-eye view and compare/baekyangro
 # have none, so the camera is kept without)
-PHOTO_A = dict(pos=(-111.0, -395.7, 44.5), yaw=15.87, pitch=-3.60, fov=32.13, size=(2100, 1338))
+# Moved with the road (#162, reference/고증/2.1-2.2 「2.2.2」): photo A was taken from over the carriageway, so when
+# the 1997 vertical aerial photos put the carriageway 5.4 m east the camera goes with it.  The camera fitted to the
+# halls and to the points on the ground at once (the carriageway's middle and the eagle where the aerial photos have
+# them): those within 7 px rms, 중앙도서관 and the towers within 5 px, 제1공학관's south-east corner and 백주년기념관's
+# north-west corner and drum 23 - 48 px off (the photo and the aerial ones cannot be fitted by one camera).  It was
+# (-111.0, -395.7, 44.5), yaw 15.87, pitch -3.60, fov 32.13: PHOTO_A_RNG, through which the random planting still
+# reads the photo's pixels.
+PHOTO_A = dict(pos=(-106.87, -396.83, 45.22), yaw=15.59, pitch=-3.84, fov=33.06, size=(2100, 1338))
+PHOTO_A_RNG = dict(pos=(-111.0, -395.7, 44.5), yaw=15.87, pitch=-3.60, fov=32.13, size=(2100, 1338))
 
 
-def photo_ray(px, py):
-    W_, H_ = PHOTO_A['size']
-    f_ = H_ / 2 / math.tan(math.radians(PHOTO_A['fov'] / 2))
-    yw, pt_ = math.radians(PHOTO_A['yaw']), math.radians(PHOTO_A['pitch'])
+def photo_ray(px, py, cam=None):
+    cam = cam or PHOTO_A
+    W_, H_ = cam['size']
+    f_ = H_ / 2 / math.tan(math.radians(cam['fov'] / 2))
+    yw, pt_ = math.radians(cam['yaw']), math.radians(cam['pitch'])
     fwd = np.array([math.sin(yw) * math.cos(pt_), math.cos(yw) * math.cos(pt_), math.sin(pt_)])
     rgt = np.array([math.cos(yw), -math.sin(yw), 0.0])
     up = np.cross(rgt, fwd)
-    rl = math.radians(PHOTO_A.get('roll', 0.0))
+    rl = math.radians(cam.get('roll', 0.0))
     rgt, up = rgt * math.cos(rl) + up * math.sin(rl), -rgt * math.sin(rl) + up * math.cos(rl)
-    return np.array(PHOTO_A['pos']), fwd + (px - W_ / 2) / f_ * rgt - (py - H_ / 2) / f_ * up
+    return np.array(cam['pos']), fwd + (px - W_ / 2) / f_ * rgt - (py - H_ / 2) / f_ * up
 
 
-def photo_ground(px, py, dz=0.0):
+def photo_ground(px, py, dz=0.0, cam=None):
     """where the ray through a pixel of photo A meets the terrain (or the surface dz over it)"""
-    o_, d_ = photo_ray(px, py)
+    o_, d_ = photo_ray(px, py, cam)
     z_ = 36.0
     for _ in range(12):
         x_, y_ = o_[:2] + d_[:2] * (z_ - o_[2]) / d_[2]
@@ -2628,18 +2745,18 @@ def photo_ground(px, py, dz=0.0):
     return round(float(x_), 2), round(float(y_), 2)
 
 
-def photo_top(x, y, py_top, px):
+def photo_top(x, y, py_top, px, cam=None):
     """the height over the ground at (x, y) of the point in pixel column px, row py_top straight over it (a crown's top)"""
-    o_, d_ = photo_ray(px, py_top)
+    o_, d_ = photo_ray(px, py_top, cam)
     t_ = float(np.dot(np.array([x, y]) - o_[:2], d_[:2]) / np.dot(d_[:2], d_[:2]))
     return float(o_[2] + d_[2] * t_ - sample(Hn, NEAR_HALF, NEAR_STEP, x, y))
 
 
-def photo_on_line(px, p0, dv, lo=-80.0, hi=80.0):
+def photo_on_line(px, p0, dv, lo=-80.0, hi=80.0, cam=None):
     """the point of the 2D line p0 + t dv (lo <= t <= hi, in front of the camera) seen in pixel column px (for feet
     that stand on a known line, where the ground ray runs too flat or the foot is out of the frame)"""
     def col(t):
-        q = photo_px(p0[0] + dv[0] * t, p0[1] + dv[1] * t, 30.0)
+        q = photo_px(p0[0] + dv[0] * t, p0[1] + dv[1] * t, 30.0, cam)
         return q[0] - px if q[2] > 1.0 else None             # (None: behind or beside the camera)
     ts = np.linspace(lo, hi, 161)
     cs = [col(t) for t in ts]
@@ -2652,14 +2769,15 @@ def photo_on_line(px, p0, dv, lo=-80.0, hi=80.0):
     return round(float(p0[0] + dv[0] * a), 2), round(float(p0[1] + dv[1] * a), 2)
 
 
-def photo_px(x, y, z):
+def photo_px(x, y, z, cam=None):
     """photo A pixel of a point (the inverse of photo_ray) and its depth along the view"""
-    W_, H_ = PHOTO_A['size']
-    o_, _ = photo_ray(W_ / 2, H_ / 2)
-    f_ = H_ / 2 / math.tan(math.radians(PHOTO_A['fov'] / 2))
-    fwd = photo_ray(W_ / 2, H_ / 2)[1]
-    rgt = photo_ray(W_ / 2 + f_, H_ / 2)[1] - fwd
-    up = fwd - photo_ray(W_ / 2, H_ / 2 + f_)[1]
+    cam = cam or PHOTO_A
+    W_, H_ = cam['size']
+    o_, _ = photo_ray(W_ / 2, H_ / 2, cam)
+    f_ = H_ / 2 / math.tan(math.radians(cam['fov'] / 2))
+    fwd = photo_ray(W_ / 2, H_ / 2, cam)[1]
+    rgt = photo_ray(W_ / 2 + f_, H_ / 2, cam)[1] - fwd
+    up = fwd - photo_ray(W_ / 2, H_ / 2 + f_, cam)[1]
     v = np.array([x, y, z]) - o_
     zf = float(v @ fwd)
     return W_ / 2 + f_ * float(v @ rgt) / zf, H_ / 2 - f_ * float(v @ up) / zf, zf
@@ -2679,12 +2797,12 @@ ISL_SOUTH = LineString([photo_ground(*p) for p in _ISL_PX[1:10]])      # the ker
 # (the island and side road as first read, before the camera was fitted again: what the random planting reads, so
 # that the rest of the campus keeps its layout)
 ISL_OLD = Polygon([(-105.9, -337.3), (-112.5, -334.2), (-119.4, -328.8), (-128.2, -322.5), (-128.0, -310.0),
-                   (-119.0, -303.5), (-100.0, -306.0)]).difference(bline.buffer(ROAD_HALF + 0.6))
+                   (-119.0, -303.5), (-100.0, -306.0)]).difference(BLINE_RNG.buffer(ROAD_HALF + 0.6))
 ISL_SOUTH_OLD = LineString([(-105.9, -337.3), (-119.4, -328.8), (-128.2, -322.5)])
 ISL_ROAD_OLD = [(-103.5, -345.5), (-113, -344.5), (-120, -341.5), (-126, -337), (-134, -331), (-148, -327)]
-GATE_APRON_OLD = Polygon([along_raw(86.5, ROAD_HALF + 0.5)[:2], (-105.9, -337.3), (-112.5, -334.2), (-119.4, -328.8),
+GATE_APRON_OLD = Polygon([along_rng(86.5, ROAD_HALF + 0.5)[:2], (-105.9, -337.3), (-112.5, -334.2), (-119.4, -328.8),
                           (-128.2, -322.5), (-146, -320), (-148, -334), (-127, -348), (-123.1, -350.9), (-117.0, -354.3),
-                          along_raw(66.0, ROAD_HALF + 0.5)[:2]])
+                          along_rng(66.0, ROAD_HALF + 0.5)[:2]])
 # The side road joins 백양로 without a kerb (photo A): the west sidewalk ends square across, from the island's
 # south-east corner to the carriageway, 85 m in from the gate (its boxwood verge 3.4 m before, with a round end); from
 # there to below the bottom of the photo the west side is one sheet of asphalt flush with the carriageway, opening into
@@ -2793,6 +2911,7 @@ print('gate apron: mouth s %.1f - %.1f (verge to %.1f), bump %.1f, line by the b
 # east of 백양로 between the gate and 백주년기념관: in 1997 a lawn with scattered trees and a shaded car park
 # (the curving promenade paths in OSM belong to the 2015 백양로 garden)
 EAST_LAWN = Polygon([(-86, -404), (-18, -404), (-18, -266), (-50, -258)]).difference(bline.buffer(ROAD_HALF + 1))
+EAST_LAWN_RNG = Polygon([(-86, -404), (-18, -404), (-18, -266), (-50, -258)]).difference(BLINE_RNG.buffer(ROAD_HALF + 1))
 paths_out = []
 for wv in ways.values():
     t = wv.get('tags', {})
@@ -2808,19 +2927,23 @@ for wv in ways.values():
     if ls.intersects(ISL_OLD.buffer(-0.5)) and hw not in ('footway', 'path', 'steps', 'pedestrian'):
         continue
     if hw in ('footway', 'path', 'steps', 'pedestrian'):
-        if EAST_LAWN.contains(ls.centroid):
-            continue
-        # (and none across 활천대's basin or the eagle's round: OSM's walks there are the 2015 백양누리 garden's)
-        ls = ls.difference(bcorr).difference(ISL_OLD.buffer(1.0)).difference(Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['pave'] + 0.3)) \
-            .difference(EAGLE_PLAZA.buffer(1.0))
-        if ls.is_empty:
-            continue
-        lsl = ls.geoms if hasattr(ls, 'geoms') else [ls]
-        for l in lsl:
-            if l.length < 3:
+        # (and none across 활천대's basin or the eagle's round: OSM's walks there are the 2015 백양누리 garden's;
+        # the ground the random planting reads has them cut as first laid: BLINE_RNG)
+        # (the moved road's corridor cuts them as the first one did too: OSM's walks along the 2015 road are its garden's)
+        for lawn_, corr_, fp_, ep_, pre_ in ((EAST_LAWN, bcorr.union(bcorr_rng), FOUNTAIN['pos'], EAGLE_PLAZA, False),
+                                             (EAST_LAWN_RNG, bcorr_rng, FOUNTAIN_RNG, EAGLE_PLAZA_RNG, True)):
+            if lawn_.contains(ls.centroid):
                 continue
-            draw_line('pavers', l.coords, WID[hw])
-            paths_out.append(dict(kind=hw, w=WID[hw], pts=[[round(x, 1), round(y, 1)] for x, y in l.coords]))
+            ls_ = ls.difference(corr_).difference(ISL_OLD.buffer(1.0)).difference(Point(*fp_).buffer(FOUNTAIN['pave'] + 0.3)) \
+                .difference(ep_.buffer(1.0))
+            for l in (ls_.geoms if hasattr(ls_, 'geoms') else [ls_]):
+                if l.is_empty or l.length < 3:
+                    continue
+                if pre_:
+                    rng_line('pavers', l.coords, WID[hw])
+                    continue
+                draw_line('pavers', l.coords, WID[hw], pre=False)
+                paths_out.append(dict(kind=hw, w=WID[hw], pts=[[round(x, 1), round(y, 1)] for x, y in l.coords]))
     else:
         draw_line('asphalt', g, WID[hw])
         paths_out.append(dict(kind=hw, w=WID[hw], pts=[[round(x, 1), round(y, 1)] for x, y in g]))
@@ -2832,6 +2955,7 @@ extra_roads = [
     [GATE, (-150, -432), (-250, -428)], [GATE, (0, -440), (120, -440)],
     ISL_ROAD_OLD,
 ]
+_extra_rng = {2: [BYS_RNG[0], (-150, -432), (-250, -428)], 3: [BYS_RNG[0], (0, -440), (120, -440)]}   # (as first laid)
 # west of the eagle (1997 photo, back-projected with its camera): a row of parked cars ~48 m west of 백양로 between
 # s 250 and 300, a grey drive along their east side.  The drive runs parallel to 백양로 from the end of the road along
 # 제1공학관's north side up to the square south of 중앙도서관; the cars park nose in along its west side.
@@ -2839,19 +2963,22 @@ extra_roads = [
 SIDE_W = [(-119.9, -181.8)] + [tuple(round(c_, 1) for c_ in along_raw(s, 43.5)[:2]) for s in (240, 270, 300, 330, 352)]
 SIDE_W_W = 6.0
 LOT_W = [along_raw(s, 48.5) for s in np.arange(255, 300, 3.0)]
-draw_poly('asphalt', GATE_APRON_OLD.difference(bline.buffer(ROAD_HALF)))       # (as first read: ASPH_PRE below)
-for r in extra_roads:
-    draw_line('asphalt', r, 7 if r is ISL_ROAD_OLD else 8)
+draw_poly('asphalt', GATE_APRON_OLD.difference(BLINE_RNG.buffer(ROAD_HALF)))   # (as first read: ASPH_PRE below)
+for k_, r in enumerate(extra_roads):
+    draw_line('asphalt', r, 7 if r is ISL_ROAD_OLD else 8, pre=k_ not in _extra_rng)
+    if k_ in _extra_rng:
+        rng_line('asphalt', _extra_rng[k_], 8)
     paths_out.append(dict(kind='service', w=7 if r is ISL_ROAD_OLD else 8, pts=[list(p) for p in (ISL_ROAD if r is ISL_ROAD_OLD else r)]))
 
 
-def mouth_poly(s0, s1, r0, r1):
+def mouth_poly(s0, s1, r0, r1, line=None):
     # the mouth itself is road geometry (blender/road.py), asphalt under it too
-    return Polygon([along_raw(s, _ms * E_CURB0)[:2] for s in np.arange(s0 - r0, s1 + r1 + 0.1, 1.0)] +
-                   [along_raw(s, _ms * (ROAD_HALF + 1.0))[:2] for s in np.arange(s1, s0 - 0.1, -1.0)])
+    return Polygon([along_raw(s, _ms * E_CURB0, line)[:2] for s in np.arange(s0 - r0, s1 + r1 + 0.1, 1.0)] +
+                   [along_raw(s, _ms * (ROAD_HALF + 1.0), line)[:2] for s in np.arange(s1, s0 - 0.1, -1.0)])
 
 
-draw_poly('asphalt', mouth_poly(66.0, 86.5, 3.0, 2.0))
+draw_poly('asphalt', mouth_poly(66.0, 86.5, 3.0, 2.0), pre=False)
+rng_poly('asphalt', mouth_poly(66.0, 86.5, 3.0, 2.0, BLINE_RNG))
 
 # shaded car park on the lawn south-west of 백주년기념관 (red car under the trees in the 1997 photo)
 LOT_E = [along_raw(s, -(ROAD_HALF + 8.5)) for s in np.arange(150, 196, 3.2)]
@@ -2865,8 +2992,10 @@ LOT_C = [(round(float(q_[0]), 2), round(float(q_[1]), 2), round(math.atan2(_lcd[
          for q_ in (_lc0 + _lcd * 4.6 * k for k in range(7))]
 draw_line('dirt', [(x, y) for x, y, _ in LOT_C], 7.0)          # (on the trodden dry lawn, no paving)
 # 백양로 itself is real geometry (Blender) – paint asphalt below so seams never show grass
-draw_line('asphalt', bys, 2 * E_CURB0)
-draw_line('pavers', bys, 2 * ROAD_HALF)
+draw_line('asphalt', bys, 2 * E_CURB0, pre=False)
+draw_line('pavers', bys, 2 * ROAD_HALF, pre=False)
+rng_line('asphalt', BYS_RNG, 2 * E_CURB0)
+rng_line('pavers', BYS_RNG, 2 * ROAD_HALF)
 
 
 # 대강당: its forecourt is paved from the porch out to the drive (the 2009 photos: cars park in front of the porch)
@@ -2878,7 +3007,8 @@ AUD_FORECOURT = Polygon([tuple(_af0 - _av * 14), tuple(_af1 + _av * 14), tuple(_
 draw_poly('asphalt', AUD_FORECOURT)
 # building aprons (paved strips around campus buildings), library forecourt, 정문 plaza
 aprons = unary_union([bp.buffer(3.5) for bp, b in zip(bpolys, buildings) if b['style'] != 'city'])
-draw_poly('pavers', aprons)
+draw_poly('pavers', aprons, pre=False)
+rng_poly('pavers', unary_union([bp.buffer(3.5) for bp, b in zip(bpolys_rng, buildings) if b['style'] != 'city']))
 plazas = [
     Polygon([(-85, -72), (-66, 4), (-12, -8), (-30, -88)]),                     # 중앙도서관 앞 광장
     Polygon([(18, -60), (4, -112), (-14, -105), (2, -52)]),                     # 학생회관 앞
@@ -2890,14 +3020,18 @@ _pa, _pb = np.array(CENT_NE[0]), np.array(CENT_NE[1])
 _pn = np.array([(_pb - _pa)[1], -(_pb - _pa)[0]]) / np.linalg.norm(_pb - _pa)
 plazas.append(Polygon([tuple(_pa + (_pb - _pa) * 0.25), tuple(_pa + (_pb - _pa) * 0.95), tuple(_pa + (_pb - _pa) * 0.95 + _pn * 17.0),
                        tuple(_pa + (_pb - _pa) * 0.25 + _pn * 17.0)]))
+_PLAZA_RNG = {len(plazas) - 1: shapely.affinity.translate(plazas[-1], -BLD_MOVE[324328422][0], -BLD_MOVE[324328422][1])}
 plazas.append(Polygon([tuple(SCI_DOOR - SCI_T * 9.0), tuple(SCI_DOOR + SCI_T * 9.0), tuple(SCI_DOOR + SCI_T * 11.0 + SCI_N * 17.0),
                        tuple(SCI_DOOR - SCI_T * 11.0 + SCI_N * 17.0)]))
 # (the plaza before 언더우드관 정원: where the game had its steps and banks.  Kept as drawn then, for the random planting
 # below; 백양로's end steps, their banks and the square at their head are painted after it: UW_STEPS, PAV_PRE)
 UW_BANKS = Polygon([wu_xy(-31.0, -43.4), wu_xy(31.0, -43.4), wu_xy(31.0, -26.0), wu_xy(-31.0, -26.0)])
 plazas[3] = plazas[3].difference(UW_BANKS)
-for pz in plazas:
-    draw_poly('pavers', pz)
+for k_, pz in enumerate(plazas):
+    draw_poly('pavers', pz, pre=k_ != 2 and k_ not in _PLAZA_RNG)
+    if k_ in _PLAZA_RNG:
+        rng_poly('pavers', _PLAZA_RNG[k_])
+rng_poly('pavers', Point(BYS_RNG[0][0], BYS_RNG[0][1] + 10).buffer(22))       # (the 정문 plaza: by the gate as first laid)
 
 # --- 중앙도서관 앞 (1997).  Not one paved square from the hall to 백양로: the 1990 and 1995 campus maps
 # (reference/1990_캠퍼스_지도.png, 1995_캠퍼스_지도.jpg) draw a paved walk along the arcade and, between it and 백양로,
@@ -2922,25 +3056,34 @@ def lf_rect(s0, s1, o0, o1):
 
 
 LIB_OLD_SQUARE = plazas[0]
-_lib_road = bline.buffer(E_WALK)                                       # 백양로 to the outer edge of its sidewalk
 _lib_street = next(LineString(p_['pts']) for p_ in paths_out if p_['kind'] == 'living_street'
                    and p_['pts'][0] == [-60.4, 21.1])                  # the drive along the hall's north end
 LIB_APRON = lf_rect(-4.0, 79.0, 0.0, 12.0)                            # the walk along the arcade
-LIB_CROSS = lf_rect(34.5, 42.5, 11.0, 60.0).difference(_lib_road)     # to the main door, the middle bay
 # the slant walk: from the drive's kerb, just right of the photo's camera (README view: the game's camera there, fitted
 # to the hall's corners, roofline and arches), to the main door, where it meets the cross walk; 4.2 m wide (the
 # people on it)
 LIB_DIAG = [(-23.2, 9.0), LF(39.0, 12.0)]
 LIB_DIAG_W = 4.2
-# and one from the 학생회관 crossing to the south end of the arcade
-LIB_SDIAG = [along_raw(CROSS_RNG[1], E_WALK - 0.3)[:2], LF(9.0, 11.0)]      # (from the crossing as first put)
 LIB_SDIAG_W = 3.2
-LIB_WALKS = unary_union([LIB_APRON, LIB_CROSS, LineString(LIB_DIAG).buffer(LIB_DIAG_W / 2, cap_style=2),
-                         LineString(LIB_SDIAG).buffer(LIB_SDIAG_W / 2, cap_style=2)])
-LIB_BEDS = (unary_union([lf_rect(5.0, 34.5, 12.0, 60.0), lf_rect(42.5, 100.0, 12.0, 60.0)])
-            .difference(_lib_road.buffer(ROAD['strip'])).difference(_lib_street.buffer(3.6)).difference(LIB_WALKS))
-LIB_BEDS = unary_union([g_ for g_ in (LIB_BEDS.geoms if hasattr(LIB_BEDS, 'geoms') else [LIB_BEDS])
-                        if g_.area > 20 and g_.centroid.y < _lib_street.interpolate(_lib_street.project(g_.centroid)).y])
+
+
+def _lib_layout(line):
+    """the walks and beds before 중앙도서관 along 백양로's line (and as the random planting first read them: BLINE_RNG)"""
+    road_ = line.buffer(E_WALK)                                       # 백양로 to the outer edge of its sidewalk
+    cross_ = lf_rect(34.5, 42.5, 11.0, 60.0).difference(road_)        # to the main door, the middle bay
+    # and one from the 학생회관 crossing to the south end of the arcade (from the crossing as first put)
+    sdiag_ = [along_raw(CROSS_RNG[1], E_WALK - 0.3, line)[:2], LF(9.0, 11.0)]
+    walks_ = unary_union([LIB_APRON, cross_, LineString(LIB_DIAG).buffer(LIB_DIAG_W / 2, cap_style=2),
+                          LineString(sdiag_).buffer(LIB_SDIAG_W / 2, cap_style=2)])
+    beds_ = (unary_union([lf_rect(5.0, 34.5, 12.0, 60.0), lf_rect(42.5, 100.0, 12.0, 60.0)])
+             .difference(road_.buffer(ROAD['strip'])).difference(_lib_street.buffer(3.6)).difference(walks_))
+    beds_ = unary_union([g_ for g_ in (beds_.geoms if hasattr(beds_, 'geoms') else [beds_])
+                         if g_.area > 20 and g_.centroid.y < _lib_street.interpolate(_lib_street.project(g_.centroid)).y])
+    return road_, cross_, sdiag_, walks_, beds_
+
+
+_lib_road, LIB_CROSS, LIB_SDIAG, LIB_WALKS, LIB_BEDS = _lib_layout(bline)
+_, _, _, LIB_WALKS_RNG, LIB_BEDS_RNG = _lib_layout(BLINE_RNG)
 
 # ---------------------------------------------------------------------------
 # Front gardens laid out from the photos (reference/학교연혁_언더우드관.jpg, 언더우드관_2024_*, 학교연혁_연희관.jpg,
@@ -3013,7 +3156,7 @@ for _k in ('lot',):
     draw_poly('asphalt', fpoly(WD, DAEWOO_BACK[_k]))
 draw_poly('pavers', fpoly(WD, [(-0.6, 14.8), (46.0, 14.8), (46.0, 24.6), (-0.6, 24.6)]))
 draw_poly('pavers', court_poly(1.0, COURT_OLD))                # (as first read: PAV_PRE; the court's own below)
-draw_poly('pavers', Point(*FOUNTAIN['pos']).buffer(3.7))        # (the first basin's paved ring, as first read: PAV_PRE)
+rng_poly('pavers', Point(*FOUNTAIN_RNG).buffer(3.7))             # (the first basin's paved ring, as first read: PAV_PRE)
 GARDEN_ZONES = [garden, yeonhui_garden, daewoo_garden, court_poly(2.0, COURT_OLD), Point(*FOUNTAIN_SCATTER).buffer(FOUNTAIN_SCATTER_R)]
 
 # amphitheater (worn earth), sports field (dirt), tree-root patches done in web shader
@@ -3040,8 +3183,9 @@ for pg in amph_dirt:
     draw_poly('dirt', pg)
 # 중앙도서관 앞: lawn in the beds (over the old square and OSM's later walks), the 1997 walks paved.  The random
 # planting below still reads the paving as it was before (PAV_PRE), so that the rest of the campus keeps its draws.
-PAV_PRE = np.array(layers['pavers']) > 40
-ASPH_PRE = np.array(layers['asphalt']) > 40
+PAV_PRE = np.array(layers_rng['pavers']) > 40
+ASPH_PRE = np.array(layers_rng['asphalt']) > 40
+dr_rng = layers_rng = None
 # the gate's apron, side road and island as photo A has them (above: as first read)
 _erase = GATE_APRON_OLD.union(LineString(ISL_ROAD_OLD).buffer(3.6)).union(mouth_poly(66.0, 86.5, 3.0, 2.0)) \
     .difference(bline.buffer(E_CURB0))
@@ -3178,6 +3322,38 @@ Image.fromarray(np.clip(np.stack([_dry, _kind_g, _kind_b], -1), 0, 255).round().
 # Vegetation
 # ---------------------------------------------------------------------------
 trees = []        # [species, x, y, scale, rot]
+DROP_TREES = []   # trees planted by the line as first laid that the moved road (#162) runs over: cleared at the end
+
+
+def drop_tree(t_):
+    DROP_TREES.append(t_)
+
+
+def clear_trees(zone, zone_rng=None, old=None):
+    """trees[:] less those in the way: in zone_rng (zone if None) at their first places (rxy; or old(x, y) True), as
+    the list was first cleared, so that it keeps its order; those the moves of #162 brought into zone go at the end"""
+    gone_ = old or (lambda x_, y_: (zone if zone_rng is None else zone_rng).contains(Point(x_, y_)))
+    trees[:] = [t_ for t_ in trees if not gone_(*rxy(t_))]
+    for t_ in trees:
+        if zone.contains(Point(t_[1], t_[2])):
+            drop_tree(t_)
+
+
+def to_new(x, y):
+    """a point at its place along and across the line as first laid (BLINE_RNG), put at that place by the moved one:
+    what stands at (x, y) by the first line is in a zone laid out along the moved line if to_new(x, y) is"""
+    s_ = float(BLINE_RNG.project(Point(x, y)))
+    cx_, cy_, a_ = along_raw(s_, 0.0, BLINE_RNG)
+    return along_raw(s_, (x - cx_) * -math.sin(a_) + (y - cy_) * math.cos(a_))[:2]
+
+
+def rxy(t_):
+    """where a tree stood as the planting first put it: the trees that follow 백양로, photo A or the halls moved by
+    #162 carry it in a sixth place (dropped when written out); the clearing below asks it of them, so that the list
+    keeps the order it had (the web picks each tree's model by its place in it)"""
+    return tuple(t_[5]) if len(t_) > 5 else (t_[1], t_[2])
+
+
 shrubs = []       # [kind, x, y, scale, rot]
 asph = ASPH_PRE                        # (the ground before 중앙도서관's 1997 beds and the eagle's round: see above)
 pav = PAV_PRE
@@ -3193,6 +3369,7 @@ def blocked(x, y, pad=4.0):
     return bool(asph[y0:y1, x0:x1].any() or pav[y0:y1, x0:x1].any())
 
 ball_buf = ball.buffer(5)
+ball_buf_rng = ball_rng.buffer(5)
 # Openings in the verge / outer strip where side roads and the 정문 화단섬 road meet 백양로
 GAPS = []          # (s, side, half_width)
 for pth in paths_out:
@@ -3220,6 +3397,21 @@ def in_gap(s, side, pad=0.0, outer=False, verge=False):
     if side == MOUTH[0] and MOUTH[1] - r0 - pad < s < MOUTH[2] + r1 + pad + (MOUTH[5] if verge else 0.0):
         return True                 # the side-road mouth: no verge, sidewalk or planting strip (the verge stops short)
     return any(sd == side and abs(s - g) < hw + pad for g, sd, hw in GAPS)
+
+
+# (the gaps as the ginkgo rows first read them, on the line as first laid: the crossings where they stand now, the
+# side-road mouth through photo A's camera of before #162, the side roads' gaps (GAPS); the rows' draws follow these)
+MOUTH_RNG = (1, 62.0, 98.8, 3.0, 0.6, 2.7)
+GAPS_RNG = [(570.0, -1, 4.5), (570.2, 1, 4.5), (447.2, 1, 4.5), (604.8, -1, 4.5), (605.3, 1, 4.5)]
+
+
+def in_gap_rng(s, side, pad=0.0):
+    """in_gap(s, side, pad) as the ginkgo rows first read it"""
+    if any(abs(s - c) < 3.0 + pad for c in [CROSS[0], CROSS[1]] + CROSS_RNG[2:]):
+        return True
+    if side == MOUTH_RNG[0] and MOUTH_RNG[1] - MOUTH_RNG[3] - pad < s < MOUTH_RNG[2] + MOUTH_RNG[4] + pad:
+        return True
+    return any(sd == side and abs(s - g) < hw + pad for g, sd, hw in GAPS_RNG)
 
 
 # 화단 띠가 끊기는 곳 (reference/고증.md 2.3): besides the crossings and the side-road gaps, the openings in the verge
@@ -3253,28 +3445,32 @@ def in_gap_old(s, side, pad=0.0):
     # put (CROSS_RNG); used to keep the random draws
     if any(abs(s - c) < 3.0 + pad for c in CROSS_RNG):
         return True
-    return any(sd == side and abs(s - g) < hw + pad for g, sd, hw in GAPS + [(82.3, 1, 5.0)])
+    return any(sd == side and abs(s - g) < hw + pad for g, sd, hw in GAPS_RNG + [(82.3, 1, 5.0)])
 
 
 # 백양로 ginkgo rows (은행나무 가로수) in the outer planting strip with a clipped hedge, and the boxwood verges
 strip_fill = random.Random(131)          # (the shrubs where a crossing first stood, CROSS_RNG)
 for side in (-1, 1):
     s = 22.0
-    while s < L - 30:
+    while s < L_RNG - 30:
         x, y, _ = along_raw(s, side * (E_WALK + ROAD['strip'] * 0.5))
         # (1997 photo: on the west side the row only starts past the 화단섬; by the island, its hedge and young trees)
-        if not in_gap(s, side, 1.0) and not ball.buffer(2).contains(Point(x, y)) and not (side > 0 and s < 122):
-            trees.append(['ginkgo', round(x, 2), round(y, 2), round(rng.uniform(0.85, 1.0), 2), round(rng.uniform(0, 6.28), 2)])
+        if not in_gap_rng(s, side, 1.0) and not ball_rng.buffer(2).contains(Point(*along_rng(s, side * (E_WALK + ROAD['strip'] * 0.5))[:2])) \
+                and not (side > 0 and s < 122):
+            trees.append(['ginkgo', round(x, 2), round(y, 2), round(rng.uniform(0.85, 1.0), 2), round(rng.uniform(0, 6.28), 2),
+                          tuple(round(v_, 2) for v_ in along_rng(s, side * (E_WALK + ROAD['strip'] * 0.5))[:2])])
+            if in_gap(s, side, 1.0) or ball.buffer(2).contains(Point(x, y)):
+                drop_tree(trees[-1])        # (where the moved road has a gap or a hall: cleared at the end)
         s += 8.5
     # (the random draws follow the gaps as they were before the mouth was opened, so the rest of the campus keeps
     # its random layout)
     s = 18.0
-    while s < L - 24:
+    while s < L_RNG - 24:
         if not in_gap_old(s, side, 0.6):
             x, y, a = along_raw(s, side * (E_WALK + ROAD['strip'] * 0.5))
-            if not ball.buffer(1).contains(Point(x, y)):
+            if not ball_rng.buffer(1).contains(Point(*along_rng(s, side * (E_WALK + ROAD['strip'] * 0.5))[:2])):
                 sc_ = round(rng.uniform(0.95, 1.05), 2)
-                if not in_gap(s, side, 0.6, outer=True) and not in_eng_mouth(s, side, 0.6):
+                if not in_gap(s, side, 0.6, outer=True) and not in_eng_mouth(s, side, 0.6) and not ball.buffer(1).contains(Point(x, y)):
                     shrubs.append(['hedge_low', round(x, 2), round(y, 2), sc_, round(a, 3)])
         elif not in_gap(s, side, 0.6, outer=True) and not in_eng_mouth(s, side, 0.6):
             # (where a crossing first stood: planted from strip_fill's numbers)
@@ -3286,7 +3482,7 @@ for side in (-1, 1):
     # them 5 - 6 m apart along every verge from the gate to the library, the May 1997 photo flat-topped pads twice as
     # close, some with a darker skirt -- round boxwood between them; the kinds take no random numbers)
     s, k_ = 14.0, 0
-    while s < L - 20:
+    while s < L_RNG - 20:
         if not in_gap_old(s, side, 0.8):
             x, y, _ = along_raw(s, side * (E_CURB + ROAD['verge'] * 0.5))
             sc_ = round(rng.uniform(0.95, 1.1), 2)
@@ -3323,18 +3519,18 @@ for d_ in np.arange(0, ring.length, 1.5):
 # numbers; as many are taken from rng as the island as first read took, so that the rest of the campus keeps its layout)
 
 
-def _azalea_spots(isl, south):
+def _azalea_spots(isl, south, line=None):
     for off in (0.0, 1.15):
         rr = isl.buffer(-1.9 - off).exterior
         d_ = 0.0
         while d_ < rr.length:
             p = rr.interpolate(d_)
-            if south.distance(p) < 3.5 or bline.distance(p) < ROAD_HALF + 4.5:
+            if south.distance(p) < 3.5 or (line or bline).distance(p) < ROAD_HALF + 4.5:
                 yield p
             d_ += 1.25
 
 
-for _ in range(4 * sum(1 for _p in _azalea_spots(ISL_OLD, ISL_SOUTH_OLD))):
+for _ in range(4 * sum(1 for _p in _azalea_spots(ISL_OLD, ISL_SOUTH_OLD, BLINE_RNG))):
     rng.random()
 rng_i = random.Random(611)
 for p in _azalea_spots(ISL, ISL_SOUTH):
@@ -3344,21 +3540,24 @@ for p in _azalea_spots(ISL, ISL_SOUTH):
 # the trunk, through the photo's camera, gives the height (the island pine ~6 m, not 15)
 for sp, px_, py_, sc in (('pine', 431, 1004, 0.55), ('zelkova', 652, 1012, 0.75), ('zelkova', 588, 988, 0.9),
                          ('maple', 195, 1043, 0.8), ('cherry', 257, 1048, 0.7)):
-    trees.append([sp, *photo_ground(px_, py_), sc, round(rng.uniform(0, 6.28), 2)])
+    trees.append([sp, *photo_ground(px_, py_), sc, round(rng.uniform(0, 6.28), 2), photo_ground(px_, py_, cam=PHOTO_A_RNG)])
 
 # east lawn between the gate and 백주년기념관: a denser 1997 planting (zelkova, pine, cherry, maple)
 lot_line = LineString([(x, y) for x, y, _ in LOT_E]).buffer(4.5)
+lot_line_rng = LineString([along_rng(s, -(ROAD_HALF + 8.5))[:2] for s in np.arange(150, 196, 3.2)]).buffer(4.5)   # (as first laid)
 east_pts = []
 for k in range(6000):
     x, y = rng.uniform(-90, -18), rng.uniform(-404, -258)
     pt = Point(x, y)
-    if not EAST_LAWN.buffer(-2).contains(pt) or ball_buf.contains(pt) or lot_line.contains(pt) or blocked(x, y, 2.5):
+    if not EAST_LAWN_RNG.buffer(-2).contains(pt) or ball_buf_rng.contains(pt) or lot_line_rng.contains(pt) or blocked(x, y, 2.5):
         continue
     if any((x - u) ** 2 + (y - v) ** 2 < 8.0 ** 2 for u, v in east_pts):
         continue
     east_pts.append((x, y))
     trees.append([rng.choice(['zelkova', 'zelkova', 'pine', 'pine', 'cherry', 'maple']), round(x, 2), round(y, 2),
                   round(rng.uniform(0.85, 1.2), 2), round(rng.uniform(0, 6.28), 2)])
+    if not EAST_LAWN.buffer(-2).contains(pt) or lot_line.contains(pt) or ball_buf.contains(pt):
+        drop_tree(trees[-1])
 
 # 1997 photo: the east lawn is mostly open dry grass with a few big trees by 백주년기념관 and the car park; thin the planting
 # (a separate RNG so the rest of the campus keeps its layout)
@@ -3388,6 +3587,7 @@ N_EAST = (n0, n0 + len(east_keep))
 SPECIES_H = {'ginkgo': 9.8, 'zelkova': 13.0, 'cherry': 7.5, 'maple': 6.5, 'oak': 12.5, 'pine': 11.0,
              'zelkova_young': 9.0, 'cherry_young': 5.4, 'metasequoia': 13.5, 'magnolia': 8.0, 'poplar': 17.0}   # blender/vegetation.py
 _BLOCK_LINE = (np.array(CENT_BLOCK['corner']) - np.array(CENT_BLOCK['t_side']) * 2.0, np.array(CENT_BLOCK['t_front']))
+_BLOCK_LINE_RNG = (_BLOCK_LINE[0] - BLD_MOVE[324328422], _BLOCK_LINE[1])          # (the hall where first read)
 PHOTO_TREES = [('maple', 274, 965, 838, None), ('zelkova', 410, 905, 762, None),
                ('ginkgo', 530, 1373, None, 8.33), ('cherry', 97, 1330, None, 4.5),
                ('zelkova', 1462, 930, 695, None), ('zelkova', 1610, 933, 702, None), ('cherry', 1747, 966, 850, None),
@@ -3397,10 +3597,12 @@ for sp, px_, py_, pt_, h_ in PHOTO_TREES:
     if h_ == 'block':           # (height from foot to top in pixels at that depth: the ground there stands ~3 m over the
         x, y = photo_on_line(px_, *_BLOCK_LINE)                  # photo's through PHOTO_A, reference/고증.md 5장)
         h_ = (py_ - pt_) * photo_px(x, y, 30.0)[2] / (PHOTO_A['size'][1] / 2 / math.tan(math.radians(PHOTO_A['fov'] / 2)))
+        xy_rng = photo_on_line(px_, *_BLOCK_LINE_RNG, cam=PHOTO_A_RNG)
     else:
         x, y = photo_ground(px_, py_)
         h_ = photo_top(x, y, pt_, px_) if pt_ is not None else h_
-    trees.append([sp, x, y, round(h_ / SPECIES_H[sp], 2), round(rng2.uniform(0, 6.28), 2)])
+        xy_rng = photo_ground(px_, py_, cam=PHOTO_A_RNG)
+    trees.append([sp, x, y, round(h_ / SPECIES_H[sp], 2), round(rng2.uniform(0, 6.28), 2), xy_rng])
     print('photo tree %s (%.1f, %.1f) %.1f m' % (sp, x, y, h_))
 N_PHOTO_TREES = len(trees)          # trees up to here are placed and sized one by one (rows, island, photo trees)
 
@@ -3418,7 +3620,7 @@ def far_enough(x, y, r):
             return False
     return True
 
-zone_campus = campus_zone.buffer(30)
+zone_campus = campus_zone_rng.buffer(30)
 bbox = (-420, -430, 560, 600)
 cand = 0
 grid_cells = {}
@@ -3439,15 +3641,17 @@ for k in range(60000):
             for (qx, qy) in grid_cells.get((key[0] + dx, key[1] + dy), []):
                 if (qx - x) ** 2 + (qy - y) ** 2 < r * r:
                     ok = False
-    if not ok or ball_buf.contains(pt) or blocked(x, y, 3.5 if in_wood else 4.5) or bcorr.contains(pt):
+    if not ok or ball_buf_rng.contains(pt) or blocked(x, y, 3.5 if in_wood else 4.5) or bcorr_rng.contains(pt):
         continue
     if amph_poly is not None and Point(*AMPH_CLEAR[:2]).distance(pt) < AMPH_CLEAR[2]:
         continue
-    if any(z.contains(pt) for z in GARDEN_ZONES) or ISL_OLD.buffer(3).contains(pt) or EAST_LAWN.contains(pt) or lot_line.contains(pt) \
+    if any(z.contains(pt) for z in GARDEN_ZONES) or ISL_OLD.buffer(3).contains(pt) or EAST_LAWN_RNG.contains(pt) or lot_line_rng.contains(pt) \
             or FRONT_LAWN.contains(pt):
         continue
     sp = rng.choice(['pine', 'pine', 'oak', 'oak', 'zelkova']) if in_wood else rng.choice(species_campus)
     trees.append([sp, round(x, 2), round(y, 2), round(rng.uniform(0.8, 1.25), 2), round(rng.uniform(0, 6.28), 2)])
+    if bline.distance(pt) < ROAD_HALF + 3.0 or lot_line.contains(pt) or ball_buf.contains(pt):    # (as on the east lawn)
+        drop_tree(trees[-1])
     grid_cells.setdefault(key, []).append((x, y))
 # the wood round the old amphitheater (reference/1997_구노천극장_마지막모습.jpg): two rows round the rim beyond its path,
 # pines, oaks and zelkovas; behind the stage the tall narrow poplars of the photo (drawn with the narrow metasequoia,
@@ -3492,10 +3696,10 @@ n_young = 0
 for i, t_ in enumerate(trees):
     if i < N_ROWS + 5 or N_EAST[1] <= i < N_PHOTO_TREES:
         continue                            # ginkgo rows, island trees, the photo's own trees
-    pt = Point(t_[1], t_[2])
-    if bline.distance(pt) > 120:
+    pt = Point(*rxy(t_))                    # (the line and the places as first read, as the sizes were)
+    if BLINE_RNG.distance(pt) > 120:
         continue
-    f = float(np.interp(bline.project(pt), [0, 380, 480], [YOUNG, YOUNG, 1.0]))
+    f = float(np.interp(BLINE_RNG.project(pt), [0, 380, 480], [YOUNG, YOUNG, 1.0]))
     if f >= 0.999:
         continue
     sc_ = t_[3] * f
@@ -3512,7 +3716,7 @@ n_vase = 0
 for i, t_ in enumerate(trees):
     if i < N_ROWS or t_[0] not in ('zelkova', 'cherry') or t_[3] >= 0.9:
         continue
-    if bline.distance(Point(t_[1], t_[2])) > 120 or bline.project(Point(t_[1], t_[2])) > 430:
+    if BLINE_RNG.distance(Point(*rxy(t_))) > 120 or BLINE_RNG.project(Point(*rxy(t_))) > 430:
         continue
     young_sp = t_[0] + '_young'
     t_[3] = round(t_[3] * SPECIES_H[t_[0]] / SPECIES_H[young_sp], 2)
@@ -3524,15 +3728,21 @@ print('young crowns:', n_vase)
 # centre line), where the columns of the two crowns (photo x 1930 and 2080) cross those lines through PHOTO_A, their
 # heights from the crowns' tops (y 1000 and 1030; issue #83: first placed through the camera of before #8)
 METASEQ = [(1930, 1000, 14.7), (2080, 1030, 19.9)]       # crown column, top row (px), offset east (m)
-_mq = []
+_mq, _mq_rng = [], []
 for _px, _pt, _o in METASEQ:
     _a, _b = np.array(along_raw(20.0, -_o)[:2]), np.array(along_raw(70.0, -_o)[:2])
     _x, _y = photo_on_line(_px, _a, (_b - _a) / np.linalg.norm(_b - _a), 0.0, 100.0)
     _h = photo_top(_x, _y, _pt, _px)
     print('metasequoia s %.1f, %.1f m east: %.1f m' % (s_at(_x, _y), _o, _h))
     _mq.append((_x, _y))
-    trees.append(['metasequoia', round(_x, 2), round(_y, 2), round(_h / SPECIES_H['metasequoia'], 2), round(rng2.uniform(0, 6.28), 2)])
-trees[N_ROWS:] = [t_ for t_ in trees[N_ROWS:] if t_[0] == 'metasequoia' or min(math.hypot(t_[1] - x_, t_[2] - y_) for x_, y_ in _mq) > 5.0]
+    _a, _b = np.array(along_rng(20.0, -_o)[:2]), np.array(along_rng(70.0, -_o)[:2])
+    _mq_rng.append(photo_on_line(_px, _a, (_b - _a) / np.linalg.norm(_b - _a), 0.0, 100.0, cam=PHOTO_A_RNG))
+    trees.append(['metasequoia', round(_x, 2), round(_y, 2), round(_h / SPECIES_H['metasequoia'], 2), round(rng2.uniform(0, 6.28), 2),
+                  _mq_rng[-1]])
+trees[N_ROWS:] = [t_ for t_ in trees[N_ROWS:] if t_[0] == 'metasequoia' or min(math.hypot(rxy(t_)[0] - x_, rxy(t_)[1] - y_) for x_, y_ in _mq_rng) > 5.0]
+for t_ in trees[N_ROWS:]:
+    if t_[0] != 'metasequoia' and min(math.hypot(t_[1] - x_, t_[2] - y_) for x_, y_ in _mq) <= 5.0:
+        drop_tree(t_)
 def hedge_rect(W, u0, u1, v0, v1, gap=None, step=1.5):
     """low clipped boxwood round a bed; gap=(edge index, centre, half width) leaves an opening"""
     corners = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
@@ -3811,11 +4021,15 @@ for (u_, v_) in ((68.5, 34.0), (66.5, 58.0)):                     # on the bank 
 # eagle (the radii and draws of the first, 5.2 m basin's planting, moved out to the 9.5 m pool's flagstones)
 _fx, _fy = FOUNTAIN['pos']
 _FOUNTAIN_LAWN = Point(_fx, _fy).buffer(FOUNTAIN_SCATTER_R)
-trees = [t_ for t_ in trees if not _FOUNTAIN_LAWN.contains(Point(t_[1], t_[2]))]
+trees = [t_ for t_ in trees if not Point(*FOUNTAIN_RNG).buffer(FOUNTAIN_SCATTER_R).contains(Point(*rxy(t_)))]   # (as first cleared)
+for t_ in trees:
+    if _FOUNTAIN_LAWN.contains(Point(t_[1], t_[2])):
+        drop_tree(t_)
 for k, a_ in enumerate(np.radians([40, 105, 170, 235])):       # (none on the 2009 photo's side, south-east)
     rr_ = FOUNTAIN['pave'] + 2.6 + (k % 2) * 1.2
     trees.append(['pine', round(_fx + rr_ * math.cos(a_), 2), round(_fy + rr_ * math.sin(a_), 2), round(rng2.uniform(0.2, 0.26), 2),
-                  round(rng2.uniform(0, 6.28), 2)])
+                  round(rng2.uniform(0, 6.28), 2),
+                  (round(FOUNTAIN_RNG[0] + rr_ * math.cos(a_), 2), round(FOUNTAIN_RNG[1] + rr_ * math.sin(a_), 2))])
 for k in range(14):
     a_ = 2 * math.pi * (k + 0.5) / 14 + rng2.uniform(-0.12, 0.12)
     rr_ = FOUNTAIN['pave'] + 0.6 + rng2.uniform(0, 2.6) * 0.6
@@ -4025,8 +4239,13 @@ def flight_zone(p, n, hw, depth, inside=0.5):
 ENTRY_ZONES += [flight_zone((39.65, 327.89), (0.97, -0.25), 2.8, 9.0), flight_zone((117.18, 307.08), (-0.97, 0.24), 3.0, 9.0),
                 flight_zone((33.7, 347.9), (0.25, 0.97), 7.0, 5.5), flight_zone((30.29, 348.78), (0.25, 0.97), 2.4, 12.5)]
 _ez = unary_union(ENTRY_ZONES + [tennis_poly(pd_, 2.5) for pd_ in TENNIS['pads']])     # (and off the tennis courts)
+_ez_rng = unary_union([shapely.affinity.translate(z_, *(-v_ for v_ in BLD_MOVE[324328422])) if z_ is CENT_PLAZA else z_
+                       for z_ in ENTRY_ZONES] + [tennis_poly(pd_, 2.5) for pd_ in TENNIS['pads']])   # (as first cleared)
 _nt = len(trees)
-trees[N_ROWS:] = [t_ for t_ in trees[N_ROWS:] if not _ez.contains(Point(t_[1], t_[2]))]
+trees[N_ROWS:] = [t_ for t_ in trees[N_ROWS:] if not _ez_rng.contains(Point(*rxy(t_)))]
+for t_ in trees[N_ROWS:]:
+    if _ez.contains(Point(t_[1], t_[2])):
+        drop_tree(t_)
 _ns = len(shrubs)
 shrubs = [s_ for s_ in shrubs if not _ez.contains(Point(s_[1], s_[2]))]
 print('hall doors', n_entry, '- trees moved off them', _nt - len(trees), 'shrubs', _ns - len(shrubs))
@@ -4040,15 +4259,17 @@ for sg in (-1, 1):
         shrubs.append([kind_, round(float(x_), 2), round(float(y_), 2), round(rng5.uniform(1.5, 1.9) if kind_ == 'topiary_round' else 1.4, 2),
                        round(rng5.uniform(0, 6.28), 2)])
 
-# shrubs around building aprons
-for b, bp in zip(buildings, bpolys):
+# shrubs around building aprons (round the halls where the random planting first read them, moved with them: BLD_MOVE)
+for b, bp in zip(buildings, bpolys_rng):
     if b['style'] == 'city':
         continue
     ring = bp.buffer(5.5).exterior
     nshr = int(ring.length / 7)
+    _mv = BLD_MOVE.get(b['id'], (0.0, 0.0))
     for k in range(nshr):
         p = ring.interpolate(rng.uniform(0, ring.length))
-        if not blocked(p.x, p.y, 1.2) and not ball.contains(p) and not any(z.contains(p) for z in GARDEN_ZONES) and rng.random() < 0.55:
+        if not blocked(p.x, p.y, 1.2) and not ball_rng.contains(p) and not any(z.contains(p) for z in GARDEN_ZONES) and rng.random() < 0.55:
+            p = Point(p.x + _mv[0], p.y + _mv[1])
             sh_ = ['bush', round(p.x, 2), round(p.y, 2), round(rng.uniform(0.7, 1.3), 2), round(rng.uniform(0, 6.28), 2)]
             if not _ez.contains(p):              # (drawn all the same, so the rest of the campus keeps its random draws)
                 shrubs.append(sh_)
@@ -4061,7 +4282,10 @@ for b, bp in zip(buildings, bpolys):
 _lbz = LIB_BEDS.buffer(0.3)
 _lsz = LIB_WALKS.intersection(_lib_road.buffer(ROAD['strip'] + 0.3)).buffer(0.4)   # the walks' gaps in the strip
 _nt, _ns = len(trees), len(shrubs)
-trees = [t_ for t_ in trees if t_[0] == 'ginkgo' or not _lbz.contains(Point(t_[1], t_[2]))]
+trees = [t_ for t_ in trees if t_[0] == 'ginkgo' or not LIB_BEDS_RNG.buffer(0.3).contains(Point(*rxy(t_)))]   # (as first cleared)
+for t_ in trees:
+    if t_[0] != 'ginkgo' and _lbz.contains(Point(t_[1], t_[2])):
+        drop_tree(t_)
 shrubs = [s_ for s_ in shrubs if not (_lbz.contains(Point(s_[1], s_[2])) or _lsz.contains(Point(s_[1], s_[2])))]
 _lcleared = (_nt - len(trees), _ns - len(shrubs))
 _la, _lb = np.array(LIB_DIAG[0]), np.array(LIB_DIAG[1])
@@ -4075,6 +4299,7 @@ def LD(t, w):
 
 LIB_GROUPS = [Point(-46.0, -26.0), Point(-40.0, -45.0)]                # (web/src/main.js: people stand about here)
 _lok = LIB_BEDS.buffer(-0.4).difference(LIB_WALKS.buffer(0.8)).difference(unary_union([g_.buffer(4.5) for g_ in LIB_GROUPS]))
+_lok_rng = LIB_BEDS_RNG.buffer(-0.4).difference(LIB_WALKS_RNG.buffer(0.8)).difference(unary_union([g_.buffer(4.5) for g_ in LIB_GROUPS]))
 LIB_PLANT = [
     # right of the walk: clipped juniper mounds 1.2 m high (round the near lamp), two juniper cones and a big dark one,
     # mounds and round box on to the door, a round box by the hall's north end
@@ -4106,9 +4331,11 @@ for kind_, (x_, y_), sc_ in LIB_PLANT:
         shrubs.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng10.uniform(0, 6.28), 2)])
         _n_lib += 1
 for kind_, (x_, y_), sc_ in LIB_TREES:
-    if _lok.contains(Point(x_, y_)):
+    if _lok_rng.contains(Point(x_, y_)):              # (as first planted: the list keeps its order)
         trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng10.uniform(0, 6.28), 2)])
         _n_lib += 1
+        if not _lok.contains(Point(x_, y_)):
+            drop_tree(trees[-1])
 # green azalea clumps under the trees in the south bed and the east of the north bed, and the beds' low box hedges
 # along the walk by the arcade and the cross walk (the maps' dotted edges), broken where the slant walks run through
 for (s_, o_) in ((10.0, 26.0), (11.5, 27.2), (26.0, 24.0), (27.4, 23.0), (52.0, 36.0), (53.4, 37.0), (62.5, 42.0)):
@@ -4130,8 +4357,17 @@ print('library beds: cleared (trees, shrubs)', _lcleared, 'planted', _n_lib)
 _ecz = unary_union([EAGLE_PLAZA.buffer(0.6), Point(*EAGLE['pos']).buffer(EAGLE_BEDS_R + 0.8),
                     LineString([(x, y) for x, y, _ in LOT_W]).buffer(3.2), LineString(SIDE_W).buffer(SIDE_W_W / 2 + 1.5)])
 _strip = bline.buffer(ROAD_HALF + 0.3).difference(EAGLE_PAVED.buffer(0.8))
+# (as first cleared: the eagle, its walk, the side road and the stalls where they first stood, BLINE_RNG)
+_ecz_rng = unary_union([EAGLE_PLAZA_RNG.buffer(0.6), Point(*EAGLE_RNG).buffer(EAGLE_BEDS_R + 0.8),
+                        LineString([along_rng(s, 48.5)[:2] for s in np.arange(255, 300, 3.0)]).buffer(3.2),
+                        LineString([SIDE_W[0]] + [tuple(round(c_, 1) for c_ in along_rng(s, 43.5)[:2]) for s in (240, 270, 300, 330, 352)])
+                        .buffer(SIDE_W_W / 2 + 1.5)])
+_strip_rng = BLINE_RNG.buffer(ROAD_HALF + 0.3).difference(EAGLE_PAVED_RNG.buffer(0.8))
 _nt, _ns = len(trees), len(shrubs)
-trees = [t_ for t_ in trees if not _ecz.contains(Point(t_[1], t_[2])) or _strip.contains(Point(t_[1], t_[2]))]
+trees = [t_ for t_ in trees if not _ecz_rng.contains(Point(*rxy(t_))) or _strip_rng.contains(Point(*rxy(t_)))]
+for t_ in trees:
+    if _ecz.contains(Point(t_[1], t_[2])) and not _strip.contains(Point(t_[1], t_[2])):
+        drop_tree(t_)
 shrubs = [s_ for s_ in shrubs if not _ecz.contains(Point(s_[1], s_[2]))]
 print('eagle precinct, west cars: cleared (trees, shrubs)', (_nt - len(trees), _ns - len(shrubs)))
 # its four beds: clipped azaleas massed on a 1.1 m staggered grid, the outer rows a little lower (their own random
@@ -4189,8 +4425,8 @@ for s in np.arange(40, L - 20, 34):
 # hedge; the cloth hangs low, about 2.3 m up, its lettering towards the road.  Its ends are kept as the pixels of the
 # cloth's top (north end x 790, y 929; south end 742, 989), placed along the road through PHOTO_A where they stand 2.35 m
 # over the ground (issue #83; first read through the camera of before #8), the trees a little beyond either end.  Across
-# the road it stays just inside the strip's hedge, as in the photo: the pixels through PHOTO_A put it 8.1 - 8.7 m west,
-# on the game's sidewalk, as they put the photo's hedge ~2.6 m east of the game's (reference/고증.md 5장)
+# the road it stays just inside the strip's hedge, as in the photo: the pixels through PHOTO_A put it 9.9 - 10.5 m west,
+# at the sidewalk's outer edge (8.1 - 8.7 m through the camera of before #162; reference/고증/2.7)
 _pln, _pls = (s_off(*photo_ground(790, 929, 2.35)), s_off(*photo_ground(742, 989, 2.35)))
 _pl_s, _pl_o = (round(_pls[0], 1), round(_pln[0], 1)), (round(ROAD_HALF + 0.9, 1),) * 2
 print('bed placard: through the photo %.1f - %.1f m west' % (_pls[1], _pln[1]))
@@ -4552,12 +4788,15 @@ props = [p for p in props if not on_carriageway(p[1], p[2]) or _uw_kept(p)]
 # (nor on the halls' front steps: benches, bins and phone boxes stood beside the doors, not in them)
 props = [p for p in props if p[0] in ('lamp_arm', 'guard_booth') or not _ez.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not on_carriageway(c[1], c[2]) and not _ez.contains(Point(c[1], c[2]))]
-trees = [t for t in trees if not on_carriageway(t[1], t[2])]
+trees = [t for t in trees if not (BLINE_RNG.distance(Point(*rxy(t))) < E_CURB + 0.3 and BLINE_RNG.project(Point(*rxy(t))) < L_RNG - 1)]
+for t in trees:                                     # (as first cleared, on the line as first laid; the moved one's at the end)
+    if on_carriageway(t[1], t[2]):
+        drop_tree(t)
 shrubs = [t for t in shrubs if not on_carriageway(t[1], t[2])]
 print('removed from carriageway (props, cars, trees, shrubs):',
       n0[0] - len(props), n0[1] - len(cars), n0[2] - len(trees), n0[3] - len(shrubs))
 # ... nor in the 1997 photo's view over the old amphitheater
-trees = [t for t in trees if not _in_photo_view(t[1], t[2])]
+trees = [t for t in trees if not _in_photo_view(*rxy(t))]
 shrubs = [t for t in shrubs if not _in_photo_view(t[1], t[2], 1.0)]
 # ... nor on 백양로's end steps (UW_STEPS) and their banks, nor on the old extension of the road past them (planted
 # above along the full line, to keep the random draws) or the paved head of the steps (only the trees of the photos
@@ -4571,7 +4810,10 @@ props = [p for p in props if not _gone(p[1], p[2]) or _uw_kept(p)]
 cars = [c for c in cars if not _gone(c[1], c[2]) and not UW_BANK.contains(Point(c[1], c[2]))]
 _photo_xy = {(round(float(x_), 2), round(float(y_), 2)) for _, x_, y_, _ in PHOTO03}
 trees = [t for t in trees if (t[1], t[2]) in _photo_xy or t[0] in _keep_sp
-         or not (_gone(t[1], t[2]) or UW_HEAD.contains(Point(t[1], t[2])))]
+         or not (_gone(*rxy(t)) or UW_HEAD.contains(Point(*rxy(t))))]
+for t in trees:
+    if not ((t[1], t[2]) in _photo_xy or t[0] in _keep_sp) and (_gone(t[1], t[2]) or UW_HEAD.contains(Point(t[1], t[2]))):
+        drop_tree(t)
 shrubs = [t for t in shrubs if not (_gone(t[1], t[2]) or UW_BANK.contains(Point(t[1], t[2])) or UW_HEAD.contains(Point(t[1], t[2])))]
 rng10 = random.Random(1997 + 2005)
 _along = math.atan2(_stu[1], _stu[0])
@@ -4607,7 +4849,7 @@ def _ss(a, b, x):
 
 
 _lv = np.zeros((LH, LW, 3), np.float32)
-for _sp, _tx, _ty, _sc, _ in trees:
+for _sp, _tx, _ty, _sc, *_ in trees:
     if _sp not in LEAF_CH:
         continue
     _R = CROWN_RX[_sp] * _sc
@@ -5266,7 +5508,7 @@ YJ_BANK = YJ_BANK.intersection(Polygon([(-10, 181.5), (38, 163.5), (62, 155.5), 
                                         (160, 40), (-10, 40)]))      # (this side of the 삼거리's east fork)
 _yjz = YJ_PAD.buffer(1.0).union(YJ_BANK)
 _n0 = (len(trees), len(shrubs), len(props), len(cars))
-trees = [t for t in trees if not _yjz.contains(Point(t[1], t[2]))]
+clear_trees(_yjz)
 shrubs = [s for s in shrubs if not _yjz.contains(Point(s[1], s[2]))]
 props = [p for p in props if not _yjz.contains(Point(p[1], p[2])) or _uw_kept(p)]   # (the row at the steps' head)
 cars = [c for c in cars if not _yjz.contains(Point(c[1], c[2]))]
@@ -5302,7 +5544,7 @@ _gz = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for
                   [GONGWON_SITE.buffer(1.5)])
 out['decals'] = [d_ for d_ in out['decals'] if not GONGWON_SITE.buffer(1.0).contains(Point(d_[1], d_[2]))]
 _n0 = (len(trees), len(shrubs), len(props), len(cars))
-trees = [t for t in trees if not _gz.contains(Point(t[1], t[2]))]
+clear_trees(_gz)
 shrubs = [s for s in shrubs if not _gz.contains(Point(s[1], s[2]))]
 props = [p for p in props if not _gz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _gz.contains(Point(c[1], c[2]))]
@@ -5328,7 +5570,7 @@ AUD_FLIGHT_POLY = Polygon([tuple(_fo + _fu * u_ + _fv * v_) for u_, v_ in ((-_fh
                                                                           (-_fh, AUD_FLIGHT['run'] + 0.6))])
 _fz = AUD_FLIGHT_POLY.buffer(1.0)
 _nf = (len(trees), len(shrubs), len(props), len(cars))
-trees = [t for t in trees if not _fz.contains(Point(t[1], t[2]))]
+clear_trees(_fz, old=lambda x_, y_: _fz.contains(Point(*to_new(x_, y_))))
 shrubs = [s for s in shrubs if not _fz.contains(Point(s[1], s[2]))]
 props = [p for p in props if not _fz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _fz.contains(Point(c[1], c[2]))]
@@ -5337,10 +5579,10 @@ print('대강당 앞 돌계단: cleared (trees, shrubs, props, cars)', _nf[0] - 
 # the court on the terrace and the drive up to it, and its mouth before the bollards: no tree, shrub, prop or car
 # (laid after the planting)
 _cz = unary_union([court_poly(2.0), AUD_RAMP_CW.buffer(0.5), AUD_RAMP_WALK.buffer(0.5), AUD_RAMP_BAND,
-                   ramp_strip(-AUD_RAMP['w'] / 2 - 1.0, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], -AUD_RAMP['mouth'] - 3.0, 0.0)]) \
-    .difference(bline.buffer(E_WALK + 0.3))
+                   ramp_strip(-AUD_RAMP['w'] / 2 - 1.0, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], -AUD_RAMP['mouth'] - 3.0, 0.0)])
+_cz, _cz_rng = _cz.difference(bline.buffer(E_WALK + 0.3)), _cz.difference(BLINE_RNG.buffer(E_WALK + 0.3))
 _nf = (len(trees), len(shrubs), len(props), len(cars))
-trees = [t for t in trees if not _cz.contains(Point(t[1], t[2]))]
+clear_trees(_cz, _cz_rng)
 shrubs = [s for s in shrubs if not _cz.contains(Point(s[1], s[2]))]
 props = [p for p in props if not _cz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _cz.contains(Point(c[1], c[2]))]
@@ -5362,9 +5604,9 @@ AUD_TREES = [('pine', 12.4, 1.5, 0.38), ('pine', 18.2, -5.6, 0.41), ('zelkova_yo
 AUD_TREE_BEDS = [Point(x_, y_).buffer(1.6) for _, x_, y_, _ in AUD_TREES[3:5]]
 # (the planting's row trees there are moved in place, the rest added at the very end, after the town's: the game picks
 # each tree's model in the list's order, web/src/world.js Forest, so the campus keeps its trees' looks)
-_old = [i_ for i_, t_ in enumerate(trees) if t_[0] == 'ginkgo' and AUD_ROW_S[0] - 5.0 < s_off(t_[1], t_[2])[0] < AUD_ROW_S[-1] + 4.0
-        and abs(s_off(t_[1], t_[2])[1] + E_WALK + 1.1) < 0.6]
-_old.sort(key=lambda i_: s_off(trees[i_][1], trees[i_][2])[0])
+_old = [i_ for i_, t_ in enumerate(trees) if t_[0] == 'ginkgo' and AUD_ROW_S[0] - 5.0 < s_off_rng(*rxy(t_))[0] < AUD_ROW_S[-1] + 4.0
+        and abs(s_off_rng(*rxy(t_))[1] + E_WALK + 1.1) < 0.6]           # (as first found: their first places, BLINE_RNG)
+_old.sort(key=lambda i_: s_off_rng(*rxy(trees[i_]))[0])
 _rt = random.Random(139)
 AUD_NEW_TREES = []
 for _k, _s in enumerate(AUD_ROW_S):
@@ -5372,6 +5614,7 @@ for _k, _s in enumerate(AUD_ROW_S):
     _sc, _rot = round(_rt.uniform(0.86, 0.98), 2), round(_rt.uniform(0, 6.28), 2)
     if _k < len(_old):
         trees[_old[_k]][1:3] = [round(_x, 2), round(_y, 2)]
+        trees[_old[_k]][5:] = [tuple(round(v_, 2) for v_ in along_rng(_s, AUD_BANK['side'] * (E_WALK + 1.2))[:2])]   # (rxy)
     else:
         AUD_NEW_TREES.append(['ginkgo', round(_x, 2), round(_y, 2), _sc, _rot])
 for _sp, _x, _y, _sc in AUD_TREES:
@@ -5480,7 +5723,7 @@ ST_MASATO = unary_union([ST_BED.buffer(3.2), _stw.buffer(2.8, cap_style='flat'),
                          Polygon([(9.0, 201.0), (21.5, 201.0), (21.8, 210.6), (20.3, 210.8), (9.0, 213.8)])])
 _stz = unary_union([ST_MASATO, LineString(ST_PATH).buffer(2.2)])
 _n0 = (len(trees), len(shrubs), len(props))
-trees = [t for t in trees if not _stz.contains(Point(t[1], t[2]))]
+clear_trees(_stz)
 shrubs = [s for s in shrubs if not _stz.contains(Point(s[1], s[2]))]
 props = [p for p in props if not _stz.contains(Point(p[1], p[2]))]
 rng97 = random.Random(1997 + 97)
@@ -5577,7 +5820,7 @@ for _i, _t in enumerate(trees):
         if min(math.hypot(o_[1] - _q[0], o_[2] - _q[1]) for o_ in trees) < 5.0:
             continue
         _gate_moved.append((_i, _t[0], (_t[1], _t[2]), (round(float(_q[0]), 2), round(float(_q[1]), 2))))
-        trees[_i] = [_t[0], round(float(_q[0]), 2), round(float(_q[1]), 2)] + list(_t[3:])
+        trees[_i] = [_t[0], round(float(_q[0]), 2), round(float(_q[1]), 2)] + list(_t[3:5])
         break
 shrubs[:] = [s_ for s_ in shrubs if not shapely.contains_xy(GATE_OUT, s_[1], s_[2])]
 props[:] = [p_ for p_ in props if not shapely.contains_xy(GATE_OUT, p_[1], p_[2])]
@@ -5621,9 +5864,12 @@ _ez = ENG_COURT.union(Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((ENG_MOUTH[1
                                                                     (ENG_MOUTH[2] + 0.6, ROAD_HALF + 0.6),
                                                                     (ENG_MOUTH[1] - 0.6, ROAD_HALF + 0.6))]))
 _nf = (len(trees), len(shrubs), len(props), len(cars))
-for _i in sorted((i_ for i_, t_ in enumerate(trees) if _ez.contains(Point(t_[1], t_[2]))), reverse=True):
-    trees[_i] = trees[-1]
+for _i in sorted((i_ for i_, t_ in enumerate(trees) if _ez.contains(Point(*to_new(*rxy(t_))))), reverse=True):
+    trees[_i] = trees[-1]           # (as first cleared, along the line as first laid: to_new; the moved line's at the end)
     trees.pop()
+for t_ in trees:
+    if _ez.contains(Point(t_[1], t_[2])):
+        drop_tree(t_)
 shrubs[:] = [s_ for s_ in shrubs if not _ez.buffer(0.5).contains(Point(s_[1], s_[2]))]
 props[:] = [p_ for p_ in props if not _ez.contains(Point(p_[1], p_[2]))]
 cars[:] = [c_ for c_ in cars if not _ez.buffer(1.0).contains(Point(c_[1], c_[2]))]
@@ -5719,7 +5965,8 @@ _bz = unary_union([BK_COURT, BK_LOT, BK_DRIVE, BK_ISLAND]
 _nf = (len(trees), len(shrubs), len(props), len(cars))
 # (the trees go once 신촌 로터리's are in, below: each gives its place to the very last one, so that only that one
 # tree, far off in the town, may change its model)
-LATE_GONE_TREES = {i_ for i_, t_ in enumerate(trees) if _bz.buffer(0.8).contains(Point(t_[1], t_[2]))}
+LATE_GONE_TREES = {i_ for i_, t_ in enumerate(trees) if _bz.buffer(0.8).contains(Point(*to_new(*rxy(t_))))}   # (as first cleared)
+DROP_TREES += [t_ for i_, t_ in enumerate(trees) if i_ not in LATE_GONE_TREES and _bz.buffer(0.8).contains(Point(t_[1], t_[2]))]
 shrubs[:] = [s_ for s_ in shrubs if not _bz.buffer(0.5).contains(Point(s_[1], s_[2]))]
 props[:] = [p_ for p_ in props if not _bz.contains(Point(p_[1], p_[2]))]
 cars[:] = [c_ for c_ in cars if not _bz.buffer(1.0).contains(Point(c_[1], c_[2]))]
@@ -5762,6 +6009,7 @@ for t_ in trees:
     _m = min((AUD_SIDE_MOUTH, AUD_YARD_STRIP), key=lambda m_: abs(_s - (m_[1] + m_[2]) / 2))
     _s = _m[1] - 2.0 if _s - _m[1] < _m[2] - _s else _m[2] + 2.0
     t_[1:3] = [round(v_, 2) for v_ in along_raw(_s, _o)[:2]]
+    t_[5:] = [tuple(round(v_, 2) for v_ in along_rng(_s, _o)[:2])]          # (rxy: the same spot by the first line)
     _nf = (_nf[0] - 1, *_nf[1:])
 shrubs[:] = [s_ for s_ in shrubs if not _sz.buffer(0.5).contains(Point(s_[1], s_[2]))]
 props[:] = [p_ for p_ in props if not _sz.contains(Point(p_[1], p_[2]))]
@@ -5801,6 +6049,7 @@ for c_ in cars:
             q_ = q_ + _lcn * (v_to - float((q_ - _lc0) @ _lcn))
             _lct.append((t_[0], round(t_[1], 1), round(t_[2], 1)))
             t_[1], t_[2] = round(float(q_[0]), 2), round(float(q_[1]), 2)
+            del t_[5:]
 park_lot('정문 동쪽 잔디', None)['stalls'] = [[c_[1], c_[2], c_[3]] for c_ in cars if LOT_C_PAD.contains(Point(c_[1], c_[2]))]
 print('정문 동쪽 잔디 주차: trees moved out of the cars', _lct)
 # 교육관 북쪽 마당 (the 2003 autumn photo: asphalt, yellow lines, the cars nose in towards the hall): the yard paved
@@ -5809,7 +6058,7 @@ print('정문 동쪽 잔디 주차: trees moved out of the cars', _lct)
 _gyt0, _gyn0 = np.array([-0.969, 0.248]), np.array([0.248, 0.969])
 GY_YARD = Polygon([tuple(np.array([44.15, 345.23]) + _gyt0 * u_ + _gyn0 * v_) for u_, v_ in ((-3.0, 3.3), (11.4, 3.3), (11.4, 15.5), (-3.0, 15.5))])
 _nf = (len(LATE_GONE_TREES), len(shrubs))
-LATE_GONE_TREES |= {i_ for i_, t_ in enumerate(trees) if GY_YARD.buffer(0.5).contains(Point(t_[1], t_[2]))}
+LATE_GONE_TREES |= {i_ for i_, t_ in enumerate(trees) if GY_YARD.buffer(0.5).contains(Point(*rxy(t_)))}
 shrubs[:] = [s_ for s_ in shrubs if not GY_YARD.buffer(0.4).contains(Point(s_[1], s_[2]))]
 print('교육관 북쪽 마당: cleared (trees, shrubs)', len(LATE_GONE_TREES) - _nf[0], _nf[1] - len(shrubs))
 
@@ -5856,6 +6105,14 @@ trees += ROT['trees']                       # (at the list's end: the web picks 
 for _i in sorted(LATE_GONE_TREES, reverse=True):     # (백양관 앞 길 · 북쪽 주차장, 교육관 북쪽 마당, above)
     trees[_i] = trees[-1]
     trees.pop()
+_n_drop = 0
+for t_ in DROP_TREES:                               # (under the moved 백양로, #162: the same way)
+    _i = next((i_ for i_, q_ in enumerate(trees) if q_ is t_), None)
+    if _i is not None:
+        trees[_i] = trees[-1]
+        trees.pop()
+        _n_drop += 1
+print('trees under the moved 백양로 cleared:', _n_drop, 'of', len(DROP_TREES))
 trees += BK_ISLAND_TREES                    # (백양관 북쪽 주차장 앞 섬: last, so that no other tree changes its model)
 trees += ANNEX_TREES                        # (학생회관 별관 앞 섬의 소나무: after every other tree, none changes its model)
 markers += ROT['markers']
@@ -6743,6 +7000,7 @@ for lp_ in TRAFFIC['loops']:
             _toff.append((lp_['name'][0], k_, round(float(x_), 1), round(float(y_), 1)))
 print('traffic: wheel tracks off the asphalt', len(_toff), _toff[:40])
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
+out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
 np.save(os.path.join(ROOT, 'data/terrain_near.npy'), Hn.astype(np.float32))

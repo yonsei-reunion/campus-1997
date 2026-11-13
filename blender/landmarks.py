@@ -564,7 +564,9 @@ def drum_band(mb, pts, flat, za, zb, mat, zflat=None, tag=None):
 # photo, the 2010 north road).  Heights from photo A through PHOTO_A (tools/build_campus.py, reference/고증.md 2.2):
 # the box's north-west corner 17.2 m over the hall's floor, the drum's rim 0.2 m higher (18.4 - 18.9 m through the
 # other refitted cameras).
-CENT_DRUM = dict(c=(-8.6, -241.8), r=17.0, top=17.4)
+# Moved with the hall (tools/build_campus.py BLD_MOVE, #162): 3.2 m out of the 백양로 face, where the 1997 vertical
+# aerial photos have the hall (their drum's rim (-5.0, -242.8) ± (0.8, 0.7) from three frames, 1.0 m from this).
+CENT_DRUM = dict(c=(-8.6 + 3.11, -241.8 - 0.73), r=17.0, top=17.4)
 CENT_BOX_TOP = 16.7               # the box's walls over the hall's floor (its coping 0.5 m over)
 CENT_FACE_DRUM = 54.0             # where the box's 백양로 face meets the drum, m from the north-west corner (2011 roadview)
 

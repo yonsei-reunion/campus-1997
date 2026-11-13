@@ -66,7 +66,7 @@ await page.evaluate(({ W, H, FPS }) => {
   // the shots: camera position, the point looked at, vertical field of view
   const SHOT = {
     // the photo's camera (tools/snapshots.json compare/hwalcheon_old)
-    photo: { pos: P(-72.63, -209.14, 1.84), look: P(-83.1, -202.6, 1.4), fov: 34.3 },
+    photo: { pos: P(-68.98, -211.57, 1.84), look: P(-79.45, -205.03, 1.4), fov: 34.3 },
     // round to the south: the two by the wall, you coming up from the right
     approach: { pos: R(-70, 12.5, 1.9), look: at(S, -0.6, 1.4, 1.05), fov: 40 },
     // side on to the carry
@@ -77,7 +77,7 @@ await page.evaluate(({ W, H, FPS }) => {
     water: { pos: at(S, 2.9, 0.15, 2.25), look: at(bd.land, 0, 0, 0.75), fov: 46 },
     back: { pos: at(S, 4.0, 0.2, 1.6), look: at(S, -0.6, 0.1, 1.05), fov: 44 },
     // up and away: 활천대 with the eagle and the library beyond
-    sky: { pos: P(-83.5, -233, 15), look: P(-83.1, -199, 0), fov: 46 },
+    sky: { pos: P(-79.85, -235.43, 15), look: P(-79.45, -201.43, 0), fov: 46 },
   };
   const sprays = [];
   y.scene.traverse((o) => { for (const m of [].concat(o.material || [])) if (m.name === 'water_spray' && !sprays.includes(m)) sprays.push(m); });
@@ -85,7 +85,7 @@ await page.evaluate(({ W, H, FPS }) => {
   const setSpray = (k) => sprays.forEach((m, i) => { m.opacity = spray0[i] * k; m.visible = k > 0.002; });
   // you, coming from 백양로's side (out of the picture until the frame has widened), round the basin to them
   const hero = pl.actor;
-  const route = [P(-74.0, -202.5, 0), R(-40, 5.6, 0), at(S, 0.55, 2.7, 0)];
+  const route = [P(-70.35, -204.93, 0), R(-40, 5.6, 0), at(S, 0.55, 2.7, 0)];
   const start = route[0], stop = route[2];
   pl.teleport(start.x, -start.z, 0);
   hero.heading = Math.atan2(route[1].x - start.x, route[1].z - start.z);
