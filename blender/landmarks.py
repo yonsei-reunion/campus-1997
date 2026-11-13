@@ -4038,14 +4038,17 @@ def yeonhui():
     """연희관 (1956): a stone Gothic hall, H plan like 대우관 but in the dark rubble of the old halls, with a central
     tower and ivy over the walls (yonsei.ac.kr building history photo, reference/연희관_*.jpg)."""
     b = bld(245623759)
-    fp = b['footprint']
-    a, bb = Vector(fp[3]), Vector(fp[4])
+    yh = CAMPUS.get('yeonhui', {})
+    # the plan (tools/build_campus.py YH_HALL: the 1997 vertical aerial photos and Kakao's base map): the frame is OSM's
+    # recessed front, the end pavilions 10.4 m wide, 3.4 and 2.8 m out in front of the main block
+    hall = yh['hall']
+    a, bb = Vector(hall['a']), Vector(hall['b'])
     t = (bb - a).normalized()
     nl = Vector((-t.y, t.x))
     ang = math.atan2(t.y, t.x)
     W = lambda u, v: tuple(a + t * u + nl * v)
-    centre = dict(b, footprint=[W(0.4, 0), W(39.9, 0), W(39.9, 14.2), W(0.4, 14.2)])
-    yh = CAMPUS.get('yeonhui', {})
+    hm, hw, he = hall['main'], hall['west'], hall['east']
+    centre = dict(b, footprint=[W(hm[0] + 0.4, 0), W(hm[1] - 0.4, 0), W(hm[1] - 0.4, 14.2), W(hm[0] + 0.4, 14.2)])
     # the door 2.55 m over the road before it (tools/build_campus.py YEONHUI): seventeen risers of 0.15 in one flight,
     # no landing, down to the road between rubble side walls with pale copings (Kakao roadview from the road, 2026)
     # Heights from reference/연희관_정면_2023.jpg seen through the compare/yeonhui camera (fitted to the forecourt and
@@ -4059,10 +4062,12 @@ def yeonhui():
     mb = MeshBuilder('lm_yeonhui_pavilions')
     iv = MeshBuilder('lm_yeonhui_pavilions_ivy')
     mb.xf = iv.xf = local_frame(a.x, a.y, ang, out[0].z_base)
-    # (the OSM outline makes the two fronts 14.1 and 11.7 m wide; the photos' gables are about 9.2 m, so the pitches
-    # are set for the photos' apex height rather than their 1.1)
-    gable_hall(mb, -14.0, 0.0, -7.9, 28.8, 3, 3.95, 'stone_rubble', pitch=0.81, plinth=1.3, iv=iv, ivy=0.85, seed=3, gothic_trim=True)
-    gable_hall(mb, 40.3, 52.0, -6.7, 30.1, 3, 3.95, 'stone_rubble', pitch=0.97, plinth=1.3, iv=iv, ivy=0.85, seed=9, gothic_trim=True)
+    # (the gables' apex 18.3 m over the threshold, 5.67 m over their eaves, as the 2023 photo has them: on the 10.4 m
+    # fronts that is a pitch of 1.09, the photo's 1.1 and the aerial photos' 1.05; on OSM's 14.1 and 11.7 m fronts it
+    # had to be 0.81 and 0.97)
+    for (u0, u1, v0, v1), seed in ((hw, 3), (he, 9)):
+        gable_hall(mb, u0, u1, v0, v1, 3, 3.95, 'stone_rubble', pitch=round(5.67 / ((u1 - u0) / 2), 2), plinth=1.3, iv=iv,
+                   ivy=0.85, seed=seed, gothic_trim=True)
     return out + [mb, iv] + yeonhui_garden(yh)
 
 

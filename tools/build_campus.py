@@ -450,6 +450,17 @@ _band = np.array([np.mean([sample(Hn, NEAR_HALF, NEAR_STEP, *along_rng(s, o)[:2]
                   for s in ss])
 _shift = ndimage.gaussian_filter1d(prof - ndimage.gaussian_filter1d(_band, 15, mode='nearest'), 10, mode='nearest')
 _shift *= np.clip(ss / 80.0, 0, 1) ** 2 * (3 - 2 * np.clip(ss / 80.0, 0, 1))     # (the town outside the gate stays)
+# The section's north end by the vertical aerial photos of 1997-07-28 (자료 Q; reference/고증/2.8 「1997년 7월
+# 항공사진으로 잰 높이」).  The carriageway's height from the overlapping frames (tools/aerial97.py z, every frame pair
+# within 0.1 - 0.4 m of the others) is B's section to s 440 (0.2 - 0.5 m over it, inside the photos' datum) and
+# leaves it from there: 1.1 m over it by 대강당's crossing, 2.6 m at the foot of the end steps (41.1 m; the 1:25000
+# map's 40 m contour crosses at s 591).  B's drawing gives the designers' round 「약 12 m」 to the 삼거리; the photos
+# have 14.7 m from the gate.  (s, photo - B's section); past the foot of the steps the line is not drawn.  The
+# ground's trend round the road (_shift above) stays as B's section moved it: north of the 삼거리 the photos' own
+# heights go in (HILL_Q below), and what stands along the road takes its level from the road as before.
+PROF_Q = [(430.0, 0.0), (450.0, 0.4), (470.0, 0.9), (490.0, 1.1), (510.0, 1.15), (520.0, 1.5), (530.0, 1.8), (540.0, 2.0),
+          (560.0, 2.3), (580.5, 2.6)]
+prof = prof + np.interp(ss, [s_ for s_, _ in PROF_Q], [d_ for _, d_ in PROF_Q])
 
 
 def prof_h(s):
@@ -520,6 +531,72 @@ def north_drop(e, n):
 
 Hn = Hn - north_drop(GE, GN)
 print('north hill down %.1f m (%d grid nodes moved)' % (NORTH_DROP, int((north_drop(GE, GN) > 0.05).sum())))
+
+# --- the hill from the 삼거리 up to 연희관 by the vertical aerial photos of 1997-07-28 (자료 Q; reference/고증/2.8
+# 「삼거리에서 연희관까지」).  The ground's height read from the overlapping frames (tools/aerial97.py z: the median of
+# the frame pairs that correlate over 0.75, five to fifteen pairs a point within 0.1 - 0.2 m of each other) at open
+# ground: the square at the head of the end steps, the walks of 언더우드관's garden and before the three halls, the
+# lawns and walks of 연희관's garden, the car park behind 연희관.  Where the photos and the game agree (백양로 s 110 -
+# 440, 대우관's terrace) they do so to 0.5 m; between, B's section and its band had 언더우드관's quarter 3.4 - 5.7 m
+# too low (the 1:25000 map: 언더우드관 about 46 m, as the photos), the hill's drop (NORTH_DROP, from photo A's
+# camera, which the vertical photos have since shown cannot be trusted: 고증 2.2.2) 연희관's garden 3 - 4 m too low
+# and its back 2 - 3 m too high (the map's 60 m contour runs behind 연희관, as the photos).
+# HILL_Q: (x, y, photo height).  The ground between takes the difference from the nearest of them (a Barnes
+# analysis: Gaussian-weighted means in three passes, 16 -> 6 m), inside HILL_ZONE and fading out over 30 m round it:
+# the photos' heights further out are other halls' business (east of 성암관 and the road to 노천극장 1 - 4 m lower
+# than the game, the drive west of 연희관 and the 상뜰's footway: 고증 2.8 「남은 한계」).
+# HILL_KEEP: (x, y, difference) where the trees hide the ground.  The drive behind 스팀슨관 and 언더우드관 keeps its
+# own grade between its two ends the photos do see (+2.6 m at the 삼거리, +2.4 m where it meets 한경길).
+HILL_Q = [
+    (25.9, 114.4, 40.3), (28, 128, 40.4), (30.4, 133.9, 41.05), (17, 134, 41.1), (20, 140, 41.1), (8, 114, 40.55),   # the 삼거리
+    (6, 110, 40.4), (-10, 122, 40.9), (-14, 126, 41.3), (-10, 118, 41.4), (60, 132, 44.2),
+    (34, 162, 45.1), (42, 160, 45.2), (50, 158, 45.4), (58, 156, 45.3), (30, 170, 45.3), (40, 168, 45.3),   # the square
+    (52, 166, 45.1), (14, 168, 45.5), (12, 172, 46.0),
+    (47, 193, 45.85), (48, 205, 45.85), (41, 200, 45.6), (54, 198, 45.85), (33, 185, 45.4), (43, 180, 45.7),   # the garden
+    (57, 180, 45.65), (30, 198, 45.5), (64, 196, 45.7), (38, 214, 45.9), (58, 214, 46.05), (36, 228, 46.2),
+    (50, 238, 46.3), (40, 240, 46.5), (48, 216, 45.95), (46, 186, 45.7), (66, 184, 45.55), (32, 216, 45.9), (31, 208, 45.6),
+    (68, 195, 45.9), (72, 212, 46.1), (74, 224, 46.4), (70, 205, 45.9), (33, 236, 47.0), (35, 243, 47.0),   # by the side halls
+    (45, 252, 47.55), (54, 249, 47.6), (62, 247, 47.9), (70, 245, 47.75), (78, 243, 47.6), (38, 250, 47.75),   # 언더우드관's front
+    (84, 240, 48.2),
+    (88, 300, 54.0), (100, 304, 54.45), (74.4, 303.5, 54.0), (62, 322, 54.5), (95, 314, 54.8), (82, 333, 55.1),   # 연희관's garden
+    (54, 325, 54.5), (102, 312, 54.9), (60, 338, 54.9), (70, 338, 54.9), (77, 312, 54.5), (80, 325, 55.2),
+    (51.5, 358, 58.15),
+    (86, 395, 58.7), (90, 394, 59.5), (97, 392, 59.6), (105, 390, 58.85), (109, 389, 59.35), (117, 387, 58.9),   # behind 연희관
+    (121, 386, 59.1), (90, 390, 59.8), (110, 385, 60.0),
+]
+HILL_KEEP = [(4.4, 143.6, 2.6), (1.6, 149.5, 2.6), (-2.0, 160.5, 2.6), (-7.9, 178.7, 2.55), (-12.9, 194.7, 2.55),
+             (-14.5, 204.6, 2.5), (-8.0, 228.0, 2.5), (-2.3, 250.4, 2.5), (0.4, 254.3, 2.45), (10.0, 268.0, 2.45),
+             (18.8, 281.7, 2.4), (27.1, 292.5, 2.4),
+             # nothing moved where others' ground starts: the 상뜰's footway, the drive west of 연희관's back, 대우관
+             # 별관's side, 한경길's east end
+             (66.6, 414.3, 0.0), (78.0, 411.3, 0.0), (90.0, 408.3, 0.0), (101.2, 405.4, 0.0), (113.0, 402.5, 0.0),
+             (125.0, 399.5, 0.0), (137.7, 396.5, 0.0), (55.0, 378.0, 0.0), (58.0, 388.0, 0.0), (62.0, 399.0, 0.0),
+             (65.0, 408.0, 0.0), (142.0, 385.0, 0.0), (142.0, 370.0, 0.0), (138.0, 268.0, 0.0), (140.0, 280.0, 0.0),
+             (138.0, 292.0, 0.0)]
+HILL_ZONE = Polygon([(-24, 114), (40, 110), (66, 124), (78, 140), (96, 170), (104, 186), (106, 230), (100, 250), (108, 262),
+                     (126, 262), (130, 300), (128, 330), (134, 346), (134, 398), (82, 402), (76, 384), (50, 362), (44, 350),
+                     (36, 300), (22, 296), (4, 268), (-10, 252), (-24, 206), (-18, 160), (-24, 130)])
+
+
+def _hill_field():
+    """the photos' height less the ground's at HILL_Q (and HILL_KEEP), spread over the grid"""
+    q_ = np.array([(x_, y_, z_ - sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_)) for x_, y_, z_ in HILL_Q] + HILL_KEEP)
+    d2_ = (X[..., None] - q_[:, 0]) ** 2 + (Y[..., None] - q_[:, 1]) ** 2
+    f_ = np.zeros(X.shape)
+    for sig_ in (16.0, 10.0, 6.0):
+        r_ = q_[:, 2] - np.array([sample(f_, NEAR_HALF, NEAR_STEP, x_, y_) for x_, y_ in q_[:, :2]])
+        w_ = np.exp(-d2_ / (2 * sig_ * sig_))
+        f_ = f_ + (w_ * r_).sum(-1) / np.maximum(w_.sum(-1), 1e-9)
+    r_ = q_[:, 2] - np.array([sample(f_, NEAR_HALF, NEAR_STEP, x_, y_) for x_, y_ in q_[:, :2]])
+    out_ = shp_distance(P, HILL_ZONE).reshape(X.shape)
+    return f_ * (1 - _smooth(out_ / 30.0)), q_, r_
+
+
+_hf, _hq, _hr = _hill_field()
+Hn = Hn + _hf
+print('hill by the 1997 vertical photos: %d points, %.1f .. %+.1f m at them (left over: rms %.2f, max %.2f m), '
+      '%d grid nodes moved, %.1f .. %+.1f m' % (len(_hq), _hq[:, 2].min(), _hq[:, 2].max(), float(np.sqrt((_hr ** 2).mean())),
+                                              float(np.abs(_hr).max()), int((np.abs(_hf) > 0.05).sum()), _hf.min(), _hf.max()))
 
 # --- 대운동장 / pitches: flatten to their mean height
 for wv in ways.values():
@@ -785,12 +862,37 @@ def ground_h(x, y):
 # it the aerial drum and the base map differ by 0.8 m: kept).  The random planting reads the outline as it was
 # (footprint(rng=True): ball_rng, the aprons of the ground it reads)
 BLD_MOVE = {324328422: (3.11, -0.73)}
+# 연희관's end pavilions (reference/고증/3.5 「양끝 날개」).  In the hall's frame (YH_HALL_A -> YH_HALL_B: OSM's recessed
+# front, u along it eastwards, v into the hall) the vertical aerial photos of 1997-07-28 have the two pavilions' roofs
+# 11.1 and 11.0 m from eave to eave (each eave read on the 73 - 76 m planes from the camera that does not see its
+# wall, courses 26 and 27: u -11.3 .. -0.2 and 41.7 .. 52.7, the ridges midway at 79.4 - 79.9 m, the eaves at 73.7 -
+# 74.2), their south gables 3.4 and 2.8 m in front of the main block's eave and their north ends at v 27.6 and 29.1;
+# Kakao's base map draws the same plan (walls: u -11.0 .. -0.75 and 41.0 .. 51.5, v -3.3 and -2.15 to 27.5 and 28.75,
+# the front between them 41.75 m).  OSM has them 14.1 and 11.7 m wide, 7.9 and 6.7 m out and 1.2 m longer behind.
+# (u0, u1, v0, v1) of the walls; the random planting reads OSM's outline (footprint(rng=True)).
+YH_HALL_A, YH_HALL_B = (69.75, 363.79), (108.51, 352.64)
+YH_HALL = dict(main=(-0.6, 41.6, 0.0, 14.8), west=(-11.0, -0.6, -3.4, 27.6), east=(41.6, 52.0, -2.8, 29.0))
+
+
+def _yh_hall_xy(u, v):
+    t_ = np.array(YH_HALL_B) - np.array(YH_HALL_A)
+    t_ = t_ / np.linalg.norm(t_)
+    return tuple(float(c_) for c_ in np.array(YH_HALL_A) + t_ * u + np.array([-t_[1], t_[0]]) * v)
+
+
+BLD_SHAPE = {245623759: [_yh_hall_xy(*q_) for q_ in (
+    lambda m, w, e: [(w[0], w[3]), (w[0], w[2]), (w[1], w[2]), (m[0], m[2]), (m[1], m[2]), (e[0], e[2]), (e[1], e[2]),
+                     (e[1], e[3]), (e[0], e[3]), (m[1], m[3]), (m[0], m[3]), (w[1], w[3])])(
+    YH_HALL['main'], YH_HALL['west'], YH_HALL['east'])]}
+FRAME_AB = {245623759: (YH_HALL_A, YH_HALL_B)}       # (frame_from: the frame things were set out in stays OSM's)
 
 
 def footprint(wv, rng=False):
     pts_ = [xy(p) for p in wv['geometry']]
     if not rng and wv['id'] in BLD_MOVE:
         pts_ = [(x_ + BLD_MOVE[wv['id']][0], y_ + BLD_MOVE[wv['id']][1]) for x_, y_ in pts_]
+    if not rng and wv['id'] in BLD_SHAPE:
+        pts_ = list(BLD_SHAPE[wv['id']])
     if pts_[0] == pts_[-1]:
         pts_ = pts_[:-1]
     poly = Polygon(pts_).buffer(0)
@@ -850,9 +952,12 @@ print('대강당 앞 돌계단: axis at s %.2f, foot %.2f, head %.2f m (s %.2f -
 FORECOURTS = [  # OSM way, outward front direction (None: the recess edge footprint[3] -> [4] of an H plan), depth, options
     # 언더우드관 (first, from the untouched ground): the garden walk level up to the foot of its 16 steps
     # (reference/언더우드관_정면_2016.jpg); the garden beyond is filled smoothly from here (below), so only a short blend
-    (246156115, (0.27, -1.0), 12.0, dict(blend=8.0)),
-    (246156118, (1.0, -0.27), 11.0, {}),      # 스팀슨관
-    (246156116, (-1.0, 0.27), 11.0, {}),      # 아펜젤러관
+    # (the three halls' aprons at the heights the vertical aerial photos of 1997 give the walks before them, 고증 2.8:
+    # 언더우드관 47.55 - 47.9 m at five points along its front, the walk along 스팀슨관 45.9 - 47.0, along 아펜젤러관 45.9 -
+    # 46.4.  From the ground along the walls they came out a metre higher: the surface model climbs behind the fronts)
+    (246156115, (0.27, -1.0), 12.0, dict(blend=8.0, level=47.7)),
+    (246156118, (1.0, -0.27), 11.0, dict(level=46.3)),      # 스팀슨관
+    (246156116, (-1.0, 0.27), 11.0, dict(level=46.1)),      # 아펜젤러관
     # (연희관's front: YEONHUI below, with the garden before it)
     # 대강당: the 45 m wide flight under the canopy ran across a 2 m cross slope, its north end under the grass; level
     # at the head of the flight up from 백양로 (AUD_FLIGHT)
@@ -1398,8 +1503,8 @@ print('백주년기념관 앞 테라스: foot %.2f, landings %.2f / %.2f, porch 
 # --- 백양로 끝 계단 (reference/고증.md 3.18; 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg, Kakao roadview 2008-08 /
 # 2010-12 / 2011-04 / 2026, Kakao skyview).  백양로 ended at the 삼거리 at the foot of a bank, where the drives to 핀슨관 (west)
 # and 노천극장 (east) branch off; the steps go up the bank from the road to the paved square before 언더우드관 정원,
-# 3.3 m higher: three tiers of two granite flights either side of a lawn strip down the axis (eight, eight and six
-# risers of 0.15), a deep landing and a shorter one between them, the strip a broad bed with the crest tablet between
+# 4.0 m higher: three tiers of two granite flights either side of a lawn strip down the axis (eight, eight and six
+# risers of 0.18), a deep landing and a shorter one between them, the strip a broad bed with the crest tablet between
 # the lowest flights, narrowing above, and grass banks either side set with rows of clipped round shrubs.  The skyview
 # puts the foot at the road's edge (33.0, 134.8) and the head on the square 18.6 m on along the axis (bearing 11 deg),
 # about 10.6 m across the walls; the roadview shows the same flights, tablet and white poplar in 2008, 2010 and 2026
@@ -1471,7 +1576,10 @@ _H0 = sample(Hn, NEAR_HALF, NEAR_STEP, *st_xy(0.0, -3.0))     # the 삼거리 be
 # tiers: (v of the foot, risers, half width of the lawn strip between the inner cheeks, width of each flight); the
 # flights rise onto landings 5.6 and 2.9 m deep and the head landing (treads 0.42, cheeks 0.35)
 _TI = [(0.0, 8, 1.0, 3.6), (8.96, 8, 0.6, 3.8), (15.22, 6, 0.4, 3.7)]
-UW_STEPS = dict(rise=0.15, tread=0.42, cheek=0.35, h0=round(_H0, 2), v_head=18.6,
+# (the risers 0.18: the vertical aerial photos of 1997 have the square 4.0 +- 0.3 m over the road at the foot, 45.0 -
+# 45.3 over 41.1 m, and in the 2003 photo the nosings stand 0.16 - 0.18 m apart by the people on the flights; 0.15 was
+# a guess, reference/고증/2.8)
+UW_STEPS = dict(rise=0.18, tread=0.42, cheek=0.35, h0=round(_H0, 2), v_head=18.6,
                 frame=dict(o=[float(c) for c in _sto], u=[round(float(c), 5) for c in _stu], v=[round(float(c), 5) for c in _stv]))
 _US = UW_STEPS
 _zt, _tiers, _flights = _H0, [], []
@@ -1510,7 +1618,10 @@ _sq = shapely.contains_xy(UW_SQUARE, X, Y) & ~near_buildings(1.5)
 Hn[_sq] = UW_TOP
 FIXED[_sq] = True
 _stp = np.hypot(X - UW_STATUE[0], Y - UW_STATUE[1]) < 6.0     # the Underwood statue in the garden, its round steps level
-Hn[_stp] = UW_TOP                                            # (the garden level with the square: 2010 roadview)
+# (the aerial photos of 1997: the ring round the statue 45.6 - 45.9 m, 0.6 m over the square, itself 45.0 - 45.3;
+# level to the eye, as the 2010 roadview has it)
+UW_STATUE_Z = round(UW_TOP + 0.9, 2)
+Hn[_stp] = UW_STATUE_Z
 FIXED[_stp] = True
 _zc = np.full(X.shape, _H0)
 for _t in _tiers:
@@ -1553,6 +1664,14 @@ FIXED[_uwe] = True
 _free = shapely.contains_xy(GARDEN_FILL, X, Y) & ~FIXED & ~near_buildings(1.5)
 _free &= np.hypot(X - UW_STATUE[0], Y - UW_STATUE[1]) > 6.0   # the statue on its round steps
 harmonic_fill(_free)
+# The drive along 스팀슨관's front outside that edge stays six risers under it, as the surface model's hollow had it and
+# the garden's south-west flight was laid (below).  The aerial photos of 1997 raise the ground all round (HILL_Q) and
+# have this drive 45.8 - 46.4 m, 0.6 - 0.9 m OVER the garden's walks beside it: the flight would go down into the
+# garden, not up.  Not turned round on the photos alone (the 2008 and 2010 roadview were read as a flight up into the
+# garden): reference/고증/4.2 「남은 한계」.
+_uvg = ((X - _ugo[0]) * _wuu[0] + (Y - _ugo[1]) * _wuu[1], (X - _ugo[0]) * _wuv[0] + (Y - _ugo[1]) * _wuv[1])
+_uww = (_uvg[0] > -36.0) & (_uvg[0] < -24.0) & (_uvg[1] > -28.5) & (_uvg[1] < 6.0) & ~FIXED & ~near_buildings(1.5)
+Hn[_uww] = np.minimum(Hn[_uww], UW_TOP + (_uwa - UW_TOP) * np.clip((_uvg[1][_uww] + 28.5) / 32.5, 0, 1) - 6 * 0.17)
 
 
 def fix_strip(line_pts, h0, h1, half, top=False):
@@ -1569,7 +1688,12 @@ def fix_strip(line_pts, h0, h1, half, top=False):
 # the drive from the 삼거리 towards 노천극장 (OSM) climbs past the east end of the bank to the square's level, where it
 # meets the walk in front of the garden (roadview 2010: the square, the drive and the walk at one level there)
 _ed = [(51.5, 126.5), (63.3, 139.8), (69.1, 146.2)]
-fix_strip(_ed, sample(Hn, NEAR_HALF, NEAR_STEP, *_ed[0]), UW_TOP, 4.0)
+# (the aerial photos of 1997 have 44.1 m on it 28 m from 백양로's middle, 3.7 m over the 삼거리: it climbs the bank
+# from the kerb.  One grade from 1.0 m over the road at its first node, 42.7 m there: steeper and the cars pitch
+# over 9 deg at the mouth)
+fix_strip(_ed, prof_h(s_at(*_ed[0])) + 1.0, UW_TOP, 4.0)
+_ed0 = (41.0, 123.3)                                          # (its mouth, from the back of 백양로's sidewalk)
+fix_strip([_ed0, _ed[0]], prof_h(s_at(*_ed0)), prof_h(s_at(*_ed[0])) + 1.0, 4.0)
 
 # 외솔관2's sides (OESOL_LEVEL above): the passage to 종합관 (north, 5.5 - 6.6 m wide) and the gap to 인문관 (south,
 # ~7.6 m) fall from the car park's level at the west end to the ground at the east end, a storey lower
@@ -1599,21 +1723,39 @@ print('외솔관2: car park %.2f (road %.2f), east end %.2f m, %d nodes filled' 
 # --- 연희관 앞 정원: between 언더우드관's back and 연희관 (OSM; reference/연희관_정면_2023.jpg, 학교연혁_연희관.jpg from
 # its south walk, 대우관_블로그_연희관과_대우관_원경.jpg from above to the west, the 1995 map's star-shaped garden).
 # A diamond of walks round a round planter, a cross of walks through it, four beds edged with clipped boxwood.  It is
-# a terrace rising some 8 % northwards, ten risers over 한경길 at its south end; to the north a planted bank with a
+# a terrace rising some 3 % northwards, ten risers over 한경길 at its south end; to the north a planted bank with a
 # broad flight between low walls (OSM 10 m) climbs to the road before 연희관, whose entrance flight (seventeen risers,
 # no landing) rises from the road between the wings.  West and east, the ways in from the drives along 교육관 and
 # 성암관 are a landing between low coped cheeks and one step down; along 한경길 a rubble retaining wall with boxwood
-# on it (YH_WALL below).  The 5 m grid had one 30 % slope from 한경길 to the door; now:
-# 한경길 45.6 -> garden 47.1 (the S node) .. 49.8 (the N node) -> road 54.3 -> door 56.8.
+# on it (YH_WALL below).  The 5 m grid had one 30 % slope from 한경길 to the door.  The heights are the vertical
+# aerial photos' of 1997-07-28 (자료 Q; reference/고증/3.5.1 「1997년 7월 항공사진으로 잰 높이」; tools/aerial97.py z,
+# each from five to fifteen frame pairs within 0.2 m): 한경길 52.5 - 53.1 m all the way from the drive along 교육관 to
+# the one along 성암관, the garden 54.0 (the S node) .. 55.1 (the N node), the road before 연희관 58.1 - 58.6 from end
+# to end; the hall's eaves at 73.65 m put its door (12.6 m under them) at 61.0.  The risers counted in the roadview
+# fit them:
 #  - the south flight: ten granite risers between the rubble retaining walls along 한경길 (counted in Kakao roadview,
-#    2008-08 and 2026-06: the same blocks); 16 before, from the OSM length
-#  - the slope: from the roadview camera at the foot of that flight (about 3.4 m up, from the flight's own risers and
-#    treads) the rim of the planter stands level with the lens, 1.3 m over the forecourt 16 m away
+#    2008-08 and 2026-06: the same blocks; the photos: 1.4 m)
+#  - the slope: the photos' 1.1 m from the S node to the N node (3.2 %; the planter's ground 0.7 m over the S node)
+#  - the north flight: the photos' 3.3 m from the garden to the road, twenty-one risers of 0.16 (the 2008 roadview from
+#    the drive along 교육관 shows twenty-odd treads from the side)
 #  - 연희관's entrance: seventeen risers of 0.15 in one flight (roadview from the road before it, 2026)
+# (Before: the garden on 한경길 as the surface model had it and 8 % up from a roadview camera's tilt, the road 7 m
+# over the garden's side ways in, where photo A's camera had put the hall: a north flight of thirty risers.)
 YH_DIAMOND = [(74.4, 302.5), (52.7, 325.4), (82.5, 335.4), (103.4, 312.1)]      # S, W, N, E nodes of the walks
 YH_C = (78.4, 318.3)                                                            # the round planter (GF_C)
-_zh = sample(Hn, NEAR_HALF, NEAR_STEP, 73.1, 297.5)                             # 한경길 at the foot of the S flight
-YEONHUI = dict(garden=round(_zh + 10 * 0.15, 2), slope=0.08, planter=dict(c=list(YH_C), r=3.2, h=0.5))
+# 한경길 by the photos: (x, height) along it.  East of the drive along 성암관 it runs on to the road to 노천극장, where
+# the photos (53.0 - 54.2 m) stand 2 - 4 m under the game: left as it was from x 113 on (고증 2.8 「남은 한계」)
+HANGYEONG_Q = [(34.0, 52.4), (40.3, 52.5), (72.5, 52.7), (92.0, 52.9), (106.0, 52.6), (113.0, 52.7)]
+HANGYEONG_LINES = ([(154.1, 270.8), (149.3, 272.5), (105.3, 286.1), (72.5, 295.2), (52.5, 300.2), (40.3, 301.6)],
+                   [(40.3, 301.6), (52.2, 296.6), (71.4, 290.9), (104.1, 281.3), (147.7, 268.6)])
+for _ln in HANGYEONG_LINES:
+    _m = shapely.contains_xy(LineString(_ln).buffer(3.5, cap_style='flat'), X, Y)
+    _w = _smooth((X[_m] - 113.0) / 22.0)                      # (back to the ground as it was by x 135)
+    Hn[_m] = np.interp(X[_m], [q_[0] for q_ in HANGYEONG_Q], [q_[1] for q_ in HANGYEONG_Q]) * (1 - _w) + Hn[_m] * _w
+    FIXED[_m] = True
+hk_z = lambda x_: float(np.interp(x_, [q_[0] for q_ in HANGYEONG_Q], [q_[1] for q_ in HANGYEONG_Q]))
+_zh = hk_z(73.1)                                                                # 한경길 at the foot of the S flight
+YEONHUI = dict(garden=round(_zh + 10 * 0.15, 2), slope=0.032, planter=dict(c=list(YH_C), r=3.2, h=0.5))
 
 
 def yh_plane(e, n):
@@ -1638,7 +1780,8 @@ def flight_at(name, top, down, z_top, z_foot, width, landing=0.6, tread=0.30, ma
 # from its foot, the skyview's pale landing and OSM's stub of walk there): a short walled flight from the walk along
 # 스팀슨관 up into the garden (five or six risers).  blender/landmarks.py underwood_steps builds it.
 _ugt = np.array(uwg_xy(-23.6, -20.6))
-_ugz = (sample(Hn, NEAR_HALF, NEAR_STEP, *uwg_xy(-22.6, -20.6)), sample(Hn, NEAR_HALF, NEAR_STEP, *uwg_xy(-27.5, -20.6)))
+_ugz = sample(Hn, NEAR_HALF, NEAR_STEP, *uwg_xy(-22.6, -20.6))
+_ugz = (_ugz, _ugz - 6 * 0.17 + 0.01)      # (six risers, as the ground had it before the photos' heights: _uww above)
 UW_STEPS['garden'] = [flight_at('uw_garden_sw', _ugt, -_wuu, _ugz[0], _ugz[1], 3.0, landing=0.5,
                                 maxrise=0.17, cheek=0.35)]
 for _f in UW_STEPS['garden']:              # (the ground under it below its treads, the walk at its foot at its level)
@@ -1646,25 +1789,22 @@ for _f in UW_STEPS['garden']:              # (the ground under it below its trea
 print('언더우드관 정원 서남쪽 계단', _ugz, [(f_['n'], f_['z_top'], f_['z_foot']) for f_ in UW_STEPS['garden']])
 
 
-# the north flight: from the road's south edge on the OSM line down onto the garden's axis walk, risers of 0.16.  The
-# road (and with it 연희관) stays where the 1997 aerial photo put it (NORTH_DROP above): as high as it stood over the
-# old 4 % garden plane through a 32-riser flight; the flight takes what the steeper garden leaves
+# the north flight: from the road's south edge on the OSM line down onto the garden's axis walk, twenty-one risers of
+# 0.16 (the vertical aerial photos: the road 58.4 - 58.5 m on the axis, the garden 55.1 at its foot)
+YH_NORTH_N = 21
 _un = np.array([85.2 - 82.5, 345.0 - 335.4]) / math.hypot(85.2 - 82.5, 345.0 - 335.4)
 _tn = np.array([85.2, 345.0]) - _un * 3.0
-_fn = _tn - _un * (0.6 + 32 * 0.31)
-YEONHUI['road'] = round(_zh + 2.4 + 0.04 * (g_en(*_fn)[1] + 16.3) + 32 * 0.16, 2)   # the road before 연희관, on the axis
+_fn = _tn - _un * (0.6 + YH_NORTH_N * 0.31)
+YEONHUI['road'] = round(yh_plane(*g_en(*_fn)) + YH_NORTH_N * 0.16, 2)   # the road before 연희관, on the axis
 for _ in range(3):                                            # (the foot moves with the number of risers)
     _zfn = yh_plane(*g_en(*_fn))
     _fn = _tn - _un * (0.6 + math.ceil((YEONHUI['road'] - _zfn) / 0.16 - 1e-6) * 0.31)
 _zfn = yh_plane(*g_en(*_fn))
 YEONHUI['floor'] = round(YEONHUI['road'] + 17 * 0.15, 2)      # 연희관's door (blender: gothic z_floor), 17 risers up
-_rw, _rc, _re = YEONHUI['road'] + 1.3, YEONHUI['road'], YEONHUI['road'] - 1.5       # the road's west end, axis, east end
-_hw0 = sample(Hn, NEAR_HALF, NEAR_STEP, 40.3, 301.6)          # 한경길 where the west drive leaves it
-_he0 = sample(Hn, NEAR_HALF, NEAR_STEP, 106.6, 289.8)         # and the east one
-for _ln in ([(154.1, 270.8), (149.3, 272.5), (105.3, 286.1), (72.5, 295.2), (52.5, 300.2), (40.3, 301.6)],
-            [(40.3, 301.6), (52.2, 296.6), (71.4, 290.9), (104.1, 281.3), (147.7, 268.6)]):
-    _m = shapely.contains_xy(LineString(_ln).buffer(3.5, cap_style='flat'), X, Y)
-    FIXED[_m] = True                                          # 한경길 itself stays as it was
+YEONHUI['hall'] = dict(a=list(YH_HALL_A), b=list(YH_HALL_B), **{k_: list(v_) for k_, v_ in YH_HALL.items()})   # (BLD_SHAPE)
+# (the road all but level in the photos, 58.1 - 58.6 m from end to end: it fell 2.8 m eastwards)
+_rw, _rc, _re = YEONHUI['road'] - 0.2, YEONHUI['road'], YEONHUI['road']             # the road's west end, axis, east end
+_hw0, _he0 = hk_z(40.3), hk_z(106.6)                          # 한경길 where the west drive leaves it, and the east one
 _FRONT_RD = [(51.7, 354.5), (85.2, 345.0), (118.8, 335.6)]
 _W_RD = [(40.3, 301.6), (40.7, 306.0), (41.7, 310.2), (45.5, 327.4), (51.7, 354.5)]
 _E_RD = [(106.6, 289.8), (111.9, 310.1), (118.8, 335.6)]
@@ -1702,8 +1842,7 @@ _gd = shapely.contains_xy(Polygon(YH_DIAMOND).buffer(2.0), X, Y)
 Hn[_gd] = yh_plane(GE[_gd], GN[_gd])
 FIXED[_gd] = True
 # the court between 연희관's wings: from the foot of its walls (the floor less the 1.2 m plinth) down to the road
-_yfp = list(footprint(ways[245623759]).exterior.coords)
-_ya, _yb = np.array(_yfp[3]), np.array(_yfp[4])
+_ya, _yb = np.array(YH_HALL_A), np.array(YH_HALL_B)
 _yt = (_yb - _ya) / np.linalg.norm(_yb - _ya)
 _yn = np.array([-_yt[1], _yt[0]])
 YH_U = (X - _ya[0]) * _yt[0] + (Y - _ya[1]) * _yt[1]
@@ -1727,8 +1866,8 @@ YEONHUI['flights'] += [_fw, _fe]
 # at the road's edge from the drive along 교육관 round to the one along 성암관, the south flight going up through a
 # gap in it with the wall's own rubble for its sides; on top, all along, a bank of clipped boxwood in big mounds.
 # Over the road it stands about 0.7 m at the west drive, 0.75 m beside the flight (four or five of its ten risers)
-# and 1.1 m at the east drive (over a parked car's roof from the roadview camera); up the two drives its top stays
-# level while the drive climbs to it.  The lawn behind it is held at its top (the 5 m grid's nodes in a band behind
+# and 1.1 m at the east drive (over a parked car's roof from the roadview camera); up the two drives it runs out as the
+# drive climbs (_yh_up_drive).  The lawn behind it is held at its top (the 5 m grid's nodes in a band behind
 # it), the rest of the lawns down from the garden filling in between
 YH_WALL_OFF = 3.6                                            # wall face from the road's centre line, m
 _hk = LineString([(112.0, 284.1), (105.3, 286.1), (72.5, 295.2), (52.5, 300.2), (40.3, 301.6), (34.0, 302.3)])
@@ -1749,7 +1888,7 @@ _s0, _s1 = sorted((_lh.project(_cw), _lh.project(_ce)))
 _wall_h = substring(_lh, _s0, _s1)
 if Point(_wall_h.coords[0]).distance(_cw) > 1.0:
     _wall_h = LineString(list(_wall_h.coords)[::-1])          # (west -> east)
-_zr = lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, *(lambda q_: (q_.x, q_.y))(_hk.interpolate(_hk.project(Point(x_, y_)))))
+_zr = lambda x_, y_: hk_z(_hk.interpolate(_hk.project(Point(x_, y_))).x)       # (한경길 abreast: HANGYEONG_Q)
 _zd = lambda ln_, g_, x_, y_: float(np.interp(ln_.project(Point(x_, y_)), *g_))     # (a side drive at its grade)
 
 
@@ -1757,37 +1896,40 @@ def _yh_wall_top(x_):                                       # over the road, by 
     return float(np.interp(x_, [_cw.x, 73.5, _ce.x], [0.7, 0.75, 1.1]))
 
 
-def _yh_up_drive(lc, ln, g, corner, z_top, top_flight):
-    """the wall's run up a drive from its corner: level at z_top until the drive has climbed to it (or to 2.5 m short
-    of the drive's way into the garden)"""
+def _yh_up_drive(lc, ln, g, corner, z_top, top_flight, run=None):
+    """the wall's run up a drive from its corner, `run` m of it (or to 2.5 m short of the drive's way into the
+    garden): its height over the drive runs out evenly along it, its top climbing with the lawn it holds.  (The drives
+    climb 2.3 - 2.4 m from 한경길 to the garden's ways in by the aerial photos of 1997, 9 - 12 %: a wall with a level
+    top, as it was on the all but level drives the game had, would be gone in 7 m; the 2008 roadview has it some 11 m
+    up the west drive and to just short of the way in on the east one.)  Returns (x, y, z at its foot, z at its top)"""
     s_c = lc.project(corner)
     s_f = lc.project(Point(*top_flight))
     sgn = 1.0 if s_f > s_c else -1.0
+    run = abs(s_f - s_c) - 2.5 if run is None else run
+    h0_ = z_top - _zd(ln, g, corner.x, corner.y)
     pts_ = []
     for k in range(1, 60):
-        s_ = s_c + sgn * 0.8 * k
-        if (s_ - (s_f - sgn * 2.5)) * sgn > 0:
+        d_ = 0.8 * k
+        if d_ > run:
             break
-        q_ = lc.interpolate(s_)
+        q_ = lc.interpolate(s_c + sgn * d_)
         zf_ = _zd(ln, g, q_.x, q_.y)
-        if z_top - zf_ < 0.12:
-            break
-        pts_.append((q_.x, q_.y, zf_))
+        pts_.append((q_.x, q_.y, zf_, zf_ + h0_ + (0.12 - h0_) * d_ / run))
     return pts_
 
 
-# at the two corners the top is taken from the drive's mouth (0.6 m and 0.8 m over it: 한경길 itself falls away from
-# both mouths towards the flight, in the game 0.9 m in the 4 m to the east one), and along 한경길 it eases over 6 m
-# from there to its own height
+# at the two corners the top is no lower than 0.6 m and 0.8 m over the drive's mouth (한경길 runs level past both by
+# the aerial photos, HANGYEONG_Q: the surface model had it fall 0.9 m in the 4 m before the east one, and the wall
+# stood 1.8 m there), and along 한경길 it eases over 6 m from there to its own height
 _zc_w = max(_zr(_cw.x, _cw.y) + _yh_wall_top(_cw.x), _zd(_wrd, _gw, _cw.x, _cw.y) + 0.6)
 _zc_e = max(_zr(_ce.x, _ce.y) + _yh_wall_top(_ce.x), _zd(_erd, _ge, _ce.x, _ce.y) + 0.8)
-_run_w = _yh_up_drive(_lw, _wrd, _gw, _cw, _zc_w, _tw)[::-1]   # (top of the west drive's run -> the corner)
+_run_w = _yh_up_drive(_lw, _wrd, _gw, _cw, _zc_w, _tw, run=11.0)[::-1]   # (top of the west drive's run -> the corner)
 _run_e = _yh_up_drive(_le, _erd, _ge, _ce, _zc_e, _te)
 _fs = YEONHUI['flights'][1]                                  # the south flight: a gap in the wall
 _fs_ax = LineString([_fs['top'], _fs['foot']])
 _fs_hw = _fs['width'] / 2 + _fs['cheek']
 YH_WALL = []                                                 # runs of [x, y, z at its foot, z at its top]
-_run = [[x_, y_, zf_, _zc_w] for x_, y_, zf_ in _run_w]
+_run = [list(p_) for p_ in _run_w]
 for s_ in np.arange(0.0, _wall_h.length + 0.01, 0.8):
     q_ = _wall_h.interpolate(min(s_, _wall_h.length))
     zf_ = _zr(q_.x, q_.y)
@@ -1801,7 +1943,7 @@ for s_ in np.arange(0.0, _wall_h.length + 0.01, 0.8):
         f_ = max(0.0, 1.0 - c_.distance(q_) / 6.0)
         zt_ = max(zt_, zt_ + (zc_ - zt_) * f_)
     _run.append([q_.x, q_.y, zf_, zt_])
-_run += [[x_, y_, zf_, _zc_e] for x_, y_, zf_ in _run_e]
+_run += [list(p_) for p_ in _run_e]
 YH_WALL.append(_run)
 YH_WALL = [[[round(float(v_), 2) for v_ in p_] for p_ in r_] for r_ in YH_WALL if len(r_) > 1]
 _fs['wall_h'] = round(_yh_wall_top(_fs['foot'][0]), 2)
@@ -1847,6 +1989,15 @@ for _f in YEONHUI['flights']:            # keep the ground under each flight bel
         Hn[_m] = np.minimum(Hn[_m], _cap)
         FIXED[_m] = True
     fix_strip([_f['top'], _f['foot']], _f['z_top'] - 0.35, _f['z_foot'] - 0.25, _f['width'] / 2 + 1.6, top=True)
+# the garden's level runs on north of the diamond to the foot of the bank under the road (the aerial photos: 54.8 -
+# 55.1 m at four points 5 - 9 m from the road's edge): the bank is no wider than the north flight is long, not one
+# slope from the diamond's edge to the road
+_dfr = shp_distance(P, LineString(_FRONT_RD)).reshape(X.shape)
+_dsd = np.minimum(shp_distance(P, _wrd), shp_distance(P, _erd)).reshape(X.shape)
+_lawn_n = (shapely.contains_xy(Polygon(_W_RD[3:] + _FRONT_RD[1:] + [_E_RD[1]]), X, Y) & (_dfr > 3.5 + 0.6 + YH_NORTH_N * 0.31 + 1.0)
+           & (_dsd > 7.0) & ~FIXED & ~near_buildings(1.0))
+Hn[_lawn_n] = yh_plane(GE[_lawn_n], GN[_lawn_n])
+FIXED[_lawn_n] = True
 # the rest of the block (the banks, the lawns between the garden and 한경길, the verges along 교육관 and 성암관) one
 # smooth surface between all that
 _blk = Polygon(_W_RD + _FRONT_RD[1:] + _E_RD[::-1][1:] + [(105.3, 286.1), (72.5, 295.2), (52.5, 300.2)]).buffer(8.0)
@@ -2335,7 +2486,7 @@ _c_raw = [along_raw(TR_S0, 0.0)[:2], along_raw(TR_SJ - 16.0, 0.0)[:2], along_raw
 _c_r = [14.0] * len(_c_raw)
 _c_r[2] = 9.0                                                         # (the 삼거리: the inner lane turns on 7.5 m)
 TR_CP = _resample(_fillet(_c_raw, _c_r), 1.0)
-_halls_tr = unary_union([footprint(ways[w_]) for w_ in B if w_ in ways])
+_halls_tr = unary_union([footprint(ways[w_], rng=w_ in BLD_SHAPE) for w_ in B if w_ in ways])   # (연희관 as the drive was laid by it)
 _cls = LineString([tuple(q_) for q_ in TR_CP])
 TR_KDW = int(round(_cls.project(Point(*DW_DRIVE[0]))))                 # (from here on laid out by hand: DW_DRIVE)
 for k_ in range(1, TR_KDW):                                            # off the walls, at most 0.6 m (the asphalt's width)
@@ -2935,7 +3086,7 @@ bpolys = [Polygon(b['footprint']) for b in buildings]
 ball = unary_union(bpolys)
 # (the halls as the random planting first read them: BLD_MOVE)
 bpolys_rng = [Polygon([[round(x_, 2), round(y_, 2)] for x_, y_ in list(footprint(ways[b['id']], rng=True).exterior.coords)[:-1]])
-              if b['id'] in BLD_MOVE else bp_ for bp_, b in zip(bpolys, buildings)]
+              if b['id'] in BLD_MOVE or b['id'] in BLD_SHAPE else bp_ for bp_, b in zip(bpolys, buildings)]
 ball_rng = unary_union(bpolys_rng)
 
 # --- 대강당 앞: the rubble wall and the bank of shrubs along 백양로's east sidewalk (issue #84).  Kakao roadview of
@@ -3697,7 +3848,7 @@ def frame(ox, oy, ux, uy):
 def frame_from(bid):
     # the recessed front edge (footprint[3] -> [4]) of an H-plan hall; v points into the building
     fp_ = next(b for b in buildings if b['id'] == bid)['footprint']
-    (ax, ay), (bx, by) = fp_[3], fp_[4]
+    (ax, ay), (bx, by) = FRAME_AB.get(bid, (fp_[3], fp_[4]))
     return frame(ax, ay, bx - ax, by - ay)
 
 
