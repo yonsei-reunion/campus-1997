@@ -4568,13 +4568,13 @@ def yongjae():
       floor for five floors over a sunk panel, between three slim fins, broad blank bays either side, the top floor a
       blank crown with a V in each window bay, a thin roof slab standing out all round, a penthouse and a mast;
       on its north and south sides two columns of small windows near the fin face, two a floor
-    - the north wing, three storeys under a dark hipped roof, 2.8 m back from the fin face: four bays of three tall
+    - the north wing, three storeys under a dark hipped roof, 2.0 m back from the fin face: four bays of three tall
       lights between pilasters on its 백양로 front, a chimney box over its north end
     - the entrance in the corner: a one-storey porch with the notice board on its 백양로 side and the glass doors on
       its north side, under a flat canopy on one slim post, air-conditioner units on top; a flight down the bank
-    - behind: a five-storey gabled block east of the wing, a four-storey link, a three-storey block south of the
-      tower under a pale hipped roof (in the photo right of the fin face).  Footprints, floor and ground:
-      tools/build_campus.py YONGJAE."""
+    - behind (the 1997 aerial photos): a three-storey block east of the tower along the south under a pale hipped
+      roof, a three-storey link between them, and across a courtyard behind the wing a five-storey gabled block.
+      Footprints, floor and ground: tools/build_campus.py YONGJAE."""
     parts = {b['id']: b for b in CAMPUS['buildings'] if b['name'] == '용재관'}
     f = parts[990001]['frame']
     (ox, oy), a = f['o'], f['ang']
@@ -4770,8 +4770,9 @@ def yongjae():
 
     K = parts[990005]['frame']['uv']
     mb = MeshBuilder('lm_yongjae_link')
-    zk = z0 + 4 * fh
-    simple_walls(mb, K, 4, zk + 0.9)
+    nk = parts[990005]['levels']
+    zk = z0 + nk * fh
+    simple_walls(mb, K, nk, zk + 0.9)
     generic.parapet_and_roof(mb, world2(K), zk, st, rnd, clutter=False)
     out.append(mb)
 
@@ -4782,7 +4783,7 @@ def yongjae():
     dl = math.hypot(du, dv)
     du, dv = du / dl, dv / dl
     tu_ = (-7.0 - (-4.0)) / du                         # where the walk leaves the level ground (u = -7)
-    fu, fv = -4.0 + du * tu_, 24.0 + dv * tu_
+    fu, fv = -4.0 + du * tu_, 22.8 + dv * tu_
     wx, wy = U(fu, fv, 0)[:2]
     dx, dy = du * ca - dv * sa, du * sa + dv * ca      # the walk's direction (world): local -y
     mb.xf = local_frame(wx, wy, math.atan2(dx, -dy), z0)
