@@ -920,6 +920,22 @@
   "rough": 0.42,
   "metal": 0.75
  },
+ "bronze_underwood": {
+  "maps": "statues/underwood",
+  "color": [
+   0.075,
+   0.085,
+   0.07
+  ]
+ },
+ "bronze_eagle": {
+  "maps": "statues/eagle",
+  "color": [
+   0.06,
+   0.055,
+   0.045
+  ]
+ },
  "granite_light": {
   "weather": 0.12,
   "streak": 0.3,

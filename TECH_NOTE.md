@@ -93,6 +93,10 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 ### 건물
 
 - 랜드마크는 `blender/landmarks.py` 에서 직접 모델링합니다(건물마다의 근거는 고증 3장). 동상은 `blender/statues.py`.
+  - 청동(언더우드 동상의 몸, 독수리와 바위)은 정밀 원형을 빚어 가벼운 메시에 굽습니다(`blender/sculpt.py`).
+    - 원형: 겹친 덩어리를 복셀 격자에서 합치고 주름 · 깃 · 점토 자국을 눌러 넣은 백만 삼각형대의 메시
+    - 게임: 1만 ~ 1.5만 삼각형의 메시(`data/statues/<이름>.npz`)에 원형의 굴곡을 노멀맵으로, 풍화(하늘 보는 면과 빗물 길의 녹청, 골의 그을음, 닳은 모서리의 금속)를 색 · ORM 맵으로(`web/public/assets/textures/statues/`, 1024 px 세 장씩)
+    - 재질: `materials.json` 의 `maps`(`bronze_underwood`, `bronze_eagle`). 노멀맵은 glTF 관례(OpenGL)라 웹에서 `normalScale.y = −1`
 - 나머지 200여 동은 절차적 생성기 `blender/generic.py` 가 실제 외곽선 위에 세웁니다.
   - 창호(창틀 · 문설주 · 창대), 층 밴드, 파라펫, 옥상 설비, 녹색 방수 옥상, 물탱크, 상점 간판
   - 창의 7 %쯤은 미서기 한 짝을 열어 두고, 드물게 에어컨을 붙입니다(`blender/windows.py`)
@@ -284,9 +288,10 @@ blender -b --factory-startup --python blender/build.py -- blend   # + 편집용 
 blender -b --factory-startup --python blender/sky_bake.py         # 하늘 텍스처, 태양 방향, 해를 지운 환경광
 node tools/bake_sun_shadows.mjs <포트>   # (web 에서 npx vite 를 띄운 뒤) 폰용 구운 해 그림자 · 걷는 면 높이
 blender -b --factory-startup --python blender/characters.py       # 사람 14명 + 리그 2개 (assets_src/quaternius/ 필요)
+blender -b --factory-startup --python blender/build.py -- statues   # 청동 조각상의 원형 → 메시 · 텍스처 (assets_src/blender-human-base-meshes/ 필요, 출처.txt)
 ```
 
-- `blender/build.py` 에 `buildings landmarks road town veg shrubs props cars polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다(`town`: 정문 밖 `campus_town.glb` 와 시내버스 `props/bus.glb`, `shrubs`: 나무를 빼고 관목만, `cars`: 다른 소품을 빼고 차만). `noao` 를 더하면 베이크를 건너뜁니다.
+- `blender/build.py` 에 `buildings statues landmarks road town veg shrubs props cars polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다(`statues`: 청동 조각상의 원형을 빚어 메시와 텍스처로 구움, 하나에 2 ~ 3분. `landmarks` 는 구운 메시를 읽기만 하니 원형을 고쳤으면 `statues` → `landmarks`, `town`: 정문 밖 `campus_town.glb` 와 시내버스 `props/bus.glb`, `shrubs`: 나무를 빼고 관목만, `cars`: 다른 소품을 빼고 차만). `noao` 를 더하면 베이크를 건너뜁니다.
 - 순서가 있습니다: 일반 건물과 랜드마크는 서로의 그림자를 상대의 마지막 GLB 에서 읽어 굽습니다. 한쪽을 크게 바꿨으면 `landmarks` → `buildings` → `landmarks` 로 돕니다. 그림자를 지거나 걷는 면이 바뀌면 마지막에 `bake_sun_shadows.mjs`.
 - `bake_sun_shadows.mjs` 는 Playwright 의 Chromium 이 필요합니다(`npx playwright install chromium`).
 

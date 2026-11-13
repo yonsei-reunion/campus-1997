@@ -714,6 +714,19 @@ export class MaterialLibrary {
       if (d.joints) patchShader(m, `kerbJoints${d.joints}`, kerbJointEdit(d.joints));      // (kerbjoints.js)
       const wall = wallTone(name, d, ATMOS.uCloudTex);         // walls: broad and per-panel tone, no repeat
       if (wall) patchShader(m, wall.key, wall.edit);
+    } else if (d.maps) {
+      // a sculpted bronze (blender/sculpt.py): its own unwrapped colour, normal and occlusion / roughness / metalness
+      const base = `assets/textures/${d.maps}_`;
+      const orm = loadTex(base + 'orm.jpg', { srgb: false, repeat: false });
+      m = new THREE.MeshStandardMaterial({
+        map: loadTex(base + 'col.jpg', { repeat: false }),
+        normalMap: loadTex(base + 'nor.jpg', { srgb: false, repeat: false }),
+        aoMap: orm, roughnessMap: orm, metalnessMap: orm,
+        roughness: 1.0, metalness: 1.0,
+      });
+      // the map is baked with green towards the top of the image (OpenGL, as glTF); the shader builds its tangent
+      // frame from the UV's derivatives, whose v runs down the image (three's GLTFLoader flips y the same way)
+      m.normalScale.set(1, -1);
     } else if (d.leaf) {
       const species = d.leaf;
       const hedge = d.opaque && hedgeMaps(species, this.season);   // a clipped shrub's body (hedges.js)

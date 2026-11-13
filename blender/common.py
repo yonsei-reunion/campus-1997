@@ -123,6 +123,27 @@ def material(name):
             nm.inputs['Strength'].default_value = 0.8
             nt.links.new(ni.outputs['Color'], nm.inputs['Color'])
             nt.links.new(nm.outputs['Normal'], bsdf.inputs['Normal'])
+    elif 'maps' in d:       # a baked statue (blender/sculpt.py): colour, normal and occlusion / roughness / metalness
+        base = os.path.join(ROOT, 'web', 'public', 'assets', 'textures', d['maps'])
+        if os.path.exists(base + '_col.jpg'):
+            img = nt.nodes.new('ShaderNodeTexImage')
+            img.image = bpy.data.images.load(base + '_col.jpg', check_existing=False)
+            nt.links.new(img.outputs['Color'], bsdf.inputs['Base Color'])
+            ni = nt.nodes.new('ShaderNodeTexImage')
+            ni.image = bpy.data.images.load(base + '_nor.jpg', check_existing=False)
+            ni.image.colorspace_settings.name = 'Non-Color'
+            nm = nt.nodes.new('ShaderNodeNormalMap')
+            nt.links.new(ni.outputs['Color'], nm.inputs['Color'])
+            nt.links.new(nm.outputs['Normal'], bsdf.inputs['Normal'])
+            oi = nt.nodes.new('ShaderNodeTexImage')
+            oi.image = bpy.data.images.load(base + '_orm.jpg', check_existing=False)
+            oi.image.colorspace_settings.name = 'Non-Color'
+            sep = nt.nodes.new('ShaderNodeSeparateColor')
+            nt.links.new(oi.outputs['Color'], sep.inputs[0])
+            nt.links.new(sep.outputs[1], bsdf.inputs['Roughness'])
+            nt.links.new(sep.outputs[2], bsdf.inputs['Metallic'])
+        else:
+            bsdf.inputs['Base Color'].default_value = (*d.get('color', [0.08, 0.08, 0.07]), 1)
     elif 'leaf' in d:
         p = os.path.join(ROOT, 'web', 'public', 'assets', 'textures', f"leaf_{d['leaf']}.png")
         if os.path.exists(p):

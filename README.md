@@ -217,6 +217,7 @@
 - 텍스처 · HDRI · 일부 소품(공중전화): [Poly Haven](https://polyhaven.com), CC0
 - 관목 · 생울타리 · 꽃의 잎과 꽃: Poly Haven [Periwinkle Plant](https://polyhaven.com/a/periwinkle_plant)(Amal Kumar)의 스캔을 잘라 다시 칠함(`tools/make_shrub_textures.py`), CC0
 - 인물과 애니메이션: Quaternius [Ultimate Modular Men](https://quaternius.com/packs/ultimatemodularmen.html) · [Ultimate Modular Women](https://quaternius.com/packs/ultimatemodularwomen.html), CC0
+- 언더우드 동상의 머리 · 손 바탕: Blender 재단 [Human Base Meshes](https://www.blender.org/download/demo-files/#assets) v1.4.1, CC0
 - 글꼴: Noto Sans KR, Jua, Do Hyeon (SIL OFL)
 - 분수 물결 · 빛무늬: [Ultra Water](https://github.com/Humpalumps/Ultra-Water), MIT
 - 언더우드 동상 사진: Wikimedia Commons User:Thinkinglex (2009, 퍼블릭 도메인), Rickinasia (2019) · 콩가루 (2011, CC BY-SA 4.0), Fumihiko Ueno (2010, CC BY 3.0).

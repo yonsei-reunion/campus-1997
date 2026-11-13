@@ -1,6 +1,6 @@
 """Build every 3D asset of the Yonsei-1997 campus and export GLBs for the web app.
 
-usage: blender -b --factory-startup --python blender/build.py -- [buildings] [landmarks] [road] [town] [veg] [shrubs] [props] [cars] [polyhaven] [preview]
+usage: blender -b --factory-startup --python blender/build.py -- [buildings] [statues] [landmarks] [road] [town] [veg] [shrubs] [props] [cars] [polyhaven] [preview]
 (no argument = everything; add noao to skip the occlusion / weathering bake of the halls and landmarks, blender/bake.py)
 """
 import sys, os, math, random, json
@@ -53,6 +53,11 @@ if want('buildings'):
         bake.bake(objs, sun_glb=os.path.join(OUT, 'campus_landmarks.glb'))
     stats['buildings'] = tri_count(objs)
     export_glb(objs, os.path.join(OUT, 'campus_buildings.glb'), colors=BAKE)
+
+if want('statues'):         # the bronzes' sculpts, baked onto light meshes (blender/sculpt.py); the landmarks read them back
+    for fn in statues.SCULPTS.values():
+        reset_scene()
+        fn()
 
 if want('landmarks'):
     reset_scene()
