@@ -5213,8 +5213,10 @@ def gongwon_site():
     for key, name, bay, surf, line in (('pit', 'lm_gongwon_deck', 8.0, 'concrete', 'concrete_dark'),
                                        ('slab', 'lm_gongwon_slab', 4.0, 'concrete_dark', 'concrete')):
         u0, u1, v0, v1, z = G[key]
+        ins = 4.5 if key == 'pit' else 2.5       # (inside the levelled ground's 5 m grid cells, which slope up at its rim)
+        u0, u1, v0, v1 = u0 + ins, u1 - ins, v0 + ins, v1 - ins
         d = MeshBuilder(name)
-        d.xf = local_frame(G['o'][0], G['o'][1], G['rot'], z)
+        d.xf = local_frame(G['o'][0], G['o'][1], G['rot'], z + 0.1)
         d.box(((u0 + u1) / 2, (v0 + v1) / 2, -0.45), (u1 - u0, v1 - v0, 1.0), surf, skip=('bottom',))
         nu, nv = int((u1 - u0) / bay), int((v1 - v0) / bay)
         us = [u0 + (u1 - u0 - nu * bay) / 2 + bay * i for i in range(nu + 1)]
