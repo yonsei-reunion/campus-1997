@@ -1034,6 +1034,42 @@ def harmonic_fill(free, iters=3000):
     Hn[j0:j1, i0:i1][F] = H[F]
 
 
+# --- 대운동장 (46 육상경기장 on the 1990 map), 1997 (reference/고증/4.12).  The elevation grid smooths the cut the field
+# lies in into one slope from the hillside north of it (44 m) down to 성산로 (33 m), and the field stood at that
+# slope's mean, 37.1 m: level with the road past its east end and 4.7 m over the 야구장.  The vertical aerial photos of
+# 28 July 1997 (자료 Q, frames 26/15 · 26/16: 56 points) have the dirt oval level at 32.75 m (0.4 m rms about a plane
+# that tilts under 0.7 m in 100 m): 3.65 m under the junction on that road (36.4 m in the photos, 36.9 here), 10.7 m
+# under the road north-east of it, 1.75 m over the 야구장.  The roadview of December 2010 from the junction
+# (1016786888: people and a goal on the field 33 - 133 m off) has it 4.1 m under the road.  The photos' heights hang
+# on the game's roads campus-wide (+-1 m) and the ground round the field stands 0.3 - 0.9 m over them here, so the
+# field goes 3.7 m under the junction: 33.2 m.  OSM's outline (way 205583613) is the 1997 oval to 3 m.
+# Round it one smooth surface (harmonic_fill) from the oval's edge out to what stays as it was (FIELD_PATCH): the road
+# past its east end (4 m short of its middle), 22 m towards the 야구장, 성산로's north edge, 25 m of the hillside
+# north-west and north.  학군단, at the oval's west end, on the field's level (the photos: 31.9 - 32.4 m beside it).
+# Two OSM outlines at the oval's north end (a stand's building and a tower: the generic houses' loop below takes
+# them) are not in the 1997 photos, which have trees there and one framework 8 x 10 m; the 2008 skyview has both.
+# They go after the random planting (GONE_1997, without a site of their own: FIELD_GONE).
+FIELD = dict(way=205583613, z=33.2, pad_z=32.6)
+FIELD_POLY = Polygon([xy(p) for p in ways[FIELD['way']]['geometry']]).buffer(0)
+FIELD_PAD = Polygon([(-523.9, -176.1), (-514.7, -166.8), (-493.5, -188.5), (-507.0, -201.0)]).buffer(4.0)   # (학군단: OLD_HALLS)
+FIELD_PATCH = Polygon([(-400.0, -90.0), (-348.0, -90.0), (-332.0, -100.0), (-322.0, -118.0), (-313.0, -139.0),
+                       (-307.0, -148.0), (-300.0, -157.0), (-299.0, -164.0), (-302.0, -176.0), (-305.0, -184.0),
+                       (-309.0, -191.0), (-312.0, -198.0), (-321.0, -211.0), (-326.0, -226.0), (-338.0, -240.0),
+                       (-388.0, -276.0), (-410.0, -288.0), (-432.0, -292.0), (-448.7, -280.7), (-506.7, -215.7),
+                       (-540.0, -178.0), (-540.0, -165.0), (-518.0, -152.0), (-482.0, -159.0), (-422.7, -107.9)])
+FIELD_GONE = (1494935780, 1441572669)
+GONE_1997.update({k_: None for k_ in FIELD_GONE})
+_fm = shapely.contains_xy(FIELD_POLY.buffer(2.0), X, Y)
+_fpd = shapely.contains_xy(FIELD_PAD, X, Y) & ~_fm
+_ff = shapely.contains_xy(FIELD_PATCH, X, Y) & ~_fm & ~_fpd
+_f0 = float(Hn[_fm].mean())
+Hn[_fm] = FIELD['z']
+Hn[_fpd] = FIELD['pad_z']
+harmonic_fill(_ff)
+FIXED[_fm | _fpd] = True
+print('대운동장: %.2f -> %.2f m (%d grid nodes), the ground round it eased over %d' % (_f0, FIELD['z'], int(_fm.sum()), int(_ff.sum())))
+
+
 def near_buildings(pad):
     """Grid nodes within pad m of a campus building's footprint (whose own ground the fills must not move)."""
     m = np.zeros(X.shape, bool)
@@ -2711,8 +2747,14 @@ AUD_T = AUD_HEAD                              # (the forecourt and the terrace a
 # heights in those frames to 4 %; the skyview has it 3.5 m further east).  The terrace beyond the head is not level
 # but falls with 백양로, from the flight's head (40.33 m) to the drive's head.
 # (the bollards: the triangulated row, 1.22 · 1.16 · 1.75 m apart; their spacing in 2008 · 2010 frames agrees, 4.5)
-AUD_RAMP = dict(foot=(7.56, -9.22), bearing=38.0, run=22.0, w=4.7, walk=1.8, band=4.45, band_t0=-2.5, mouth=5.0, z1=39.8,
+AUD_RAMP = dict(foot_rng=(7.56, -9.22), bearing=38.0, run=22.0, w=4.7, walk=1.8, band=4.45, band_t0=-2.5, mouth=5.0, z1=39.8,
                 bollards=(-1.22, 0.0, 1.16, 2.91))
+# (the foot was solved against the wall's south end where the line as first laid put it: it goes with the wall to the
+# same place along and across the moved line (#162), 2.2 m across the drive.  The 1997 vertical aerial photos have the
+# strip of its asphalt and walk 2.6 +- 0.5 m that way from the first place in four frames, the skyview 2.7 m
+# (reference/고증/4.5).  foot_rng: the first place, by which the planting was cleared, AUD_RAMP_MOVE: from it)
+AUD_RAMP['foot'] = tuple(round(float(v_), 2) for v_ in along_raw(*s_off_rng(*AUD_RAMP['foot_rng']))[:2])
+AUD_RAMP_MOVE = (round(AUD_RAMP['foot'][0] - AUD_RAMP['foot_rng'][0], 2), round(AUD_RAMP['foot'][1] - AUD_RAMP['foot_rng'][1], 2))
 _ru = np.array([math.sin(math.radians(AUD_RAMP['bearing'])), math.cos(math.radians(AUD_RAMP['bearing']))])  # (up it)
 _rn = np.array([_ru[1], -_ru[0]])                                      # (across it, east)
 _rf = np.array(AUD_RAMP['foot'])
@@ -5414,7 +5456,9 @@ Hf.tofile(os.path.join(ROOT, 'web/public/data/terrain_far.bin'))
 # ---------------------------------------------------------------------------
 buildings[:] = [b for b in buildings if not any(b is q for q in YONGJAE_SCATTER)] + YONGJAE_BUILDINGS   # (above)
 # GONE_1997 / LATE_FOOTPRINT_1997 (with the hall table above): the planting is done
-GONE_SITES = [(GONE_1997[b['id']], Polygon(b['footprint'])) for b in buildings if b['id'] in GONE_1997]
+GONE_SITES = [(GONE_1997[b['id']], Polygon(b['footprint'])) for b in buildings if b['id'] in GONE_1997
+              and b['id'] not in FIELD_GONE]     # (대운동장 북쪽 끝의 둘: no site, cleared with the field below)
+FIELD_GONE_SITES = [Polygon(b['footprint']) for b in buildings if b['id'] in FIELD_GONE]
 # (blender/build.py draws each hall's colours and roof clutter from one stream in this list's order: it still draws
 # for these at their old place, `at`, so that the halls after them keep their looks)
 RND_GHOSTS = [{**{k_: v_ for k_, v_ in b.items() if k_ != 'entry'}, 'at': i_ - j_}
@@ -5471,6 +5515,7 @@ MARKER_NAME = {n: None for n in ('별동연구동', '영빈관', '영선실', '�
 EXTRA_MARKERS = [('청송대', 238.0, 284.0), ('농구장', COURT['pos'][0], COURT['pos'][1])]          # the wooded park east of 연희관 (OSM leisure=park)
 EXTRA_MARKERS += [(n, round(p.centroid.x, 1), round(p.centroid.y, 1)) for n, p in GONE_SITES if n]
 EXTRA_MARKERS += [('공학원 (공사중)', round(GONGWON_SITE.centroid.x, 1), round(GONGWON_SITE.centroid.y, 1))]
+EXTRA_MARKERS += [('대운동장', round(FIELD_POLY.centroid.x, 1), round(FIELD_POLY.centroid.y, 1))]
 LANDMARK_NAMES = {l['name'] for l in LANDMARKS}
 groups = {}
 for b in buildings:
@@ -5687,6 +5732,7 @@ def decal_spots():
 
     steps = [LineString(p_['pts']) for p_ in paths_out if p_['kind'] == 'steps' and len(p_['pts']) > 1]
     city = [Polygon(b['footprint']).buffer(25) for b in buildings if b['style'] == 'city']
+    city += [p_.buffer(25) for p_ in FIELD_GONE_SITES]      # (the two left out by 대운동장: the draws stay as they were)
     # (신촌로 and its bus lanes along the south are the city's road, not the campus's)
     trunk = [LineString(p_['pts']).buffer(p_['w'] / 2 + 3.0) for p_ in paths_out
              if p_['kind'] in ('primary', 'primary_link', 'secondary', 'busway') and len(p_['pts']) > 1]
@@ -6138,6 +6184,55 @@ props = [p for p in props if not _gz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _gz.contains(Point(c[1], c[2]))]
 print('1997 sites: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees), _n0[1] - len(shrubs), _n0[2] - len(props),
       _n0[3] - len(cars))
+# 대운동장 (FIELD): the 1997 photos have the oval bare from edge to edge, and the random planting had put trees on its
+# east end (they go to the woods round it, below); and what stood round the two outlines left out at its north end
+# (FIELD_GONE)
+_fdz = unary_union([FIELD_POLY.buffer(-0.5)] + [p_.buffer(5.5) for p_ in FIELD_GONE_SITES])
+_n0 = (len(shrubs), len(props), len(out['decals']))
+_f_moved = [t_ for t_ in trees if _fdz.contains(Point(t_[1], t_[2]))]
+shrubs = [s for s in shrubs if not _fdz.contains(Point(s[1], s[2]))]
+props = [p for p in props if not _fdz.contains(Point(p[1], p[2]))]
+out['decals'] = [d_ for d_ in out['decals'] if not _fdz.contains(Point(d_[1], d_[2]))]
+# The woods round it (the same photos: tree crowns edge to edge along the hillside north-west and north of the oval,
+# a band between it and the 야구장 (here one row, between the walk and the road OSM has there now), a band between it
+# and 성산로; the bank towards the road past its east end keeps what the planting gave it).  Not tree by tree: rows
+# 6.5 m apart along the oval's edge, so many deep by the side.  Their own random numbers; the trees taken off the
+# oval go to the first of these places (in place: the list keeps its length and order), the rest at the list's end.
+_frnd = random.Random(1997 + 161)
+_fex = shapely.geometry.polygon.orient(FIELD_POLY, 1.0).exterior
+_f_keep = unary_union([LineString(p_['pts']).buffer(p_['w'] / 2 + 1.5) for p_ in paths_out
+                       if len(p_['pts']) > 1 and LineString(p_['pts']).distance(FIELD_POLY) < 40.0]
+                      + [FIELD_PAD, FIELD_POLY.buffer(2.5)])
+_f_old = [(t_[1], t_[2]) for t_ in trees if FIELD_PATCH.buffer(6.0).contains(Point(t_[1], t_[2])) and not any(t_ is q_ for q_ in _f_moved)]
+FIELD_NEW_TREES = []
+for d_ in np.arange(0.0, _fex.length, 6.5):
+    p_, q_ = _fex.interpolate(d_), _fex.interpolate(d_ + 1.0)
+    tx_, ty_ = q_.x - p_.x, q_.y - p_.y
+    nx_, ny_ = ty_, -tx_                               # (out of the oval)
+    if nx_ < -0.2 and ny_ > 0.2:                       # the hillside north-west
+        rows_, kinds_ = (4.0, 10.5, 17.0, 23.0), ('oak', 'oak', 'pine', 'zelkova')
+    elif ny_ >= 0.2 and nx_ <= 0.5:                    # the north end (the way up out of it at x -365 left open)
+        rows_, kinds_ = (() if -374.0 < p_.x < -356.0 else (4.0, 11.0, 18.0)), ('oak', 'pine', 'zelkova')
+    elif nx_ > 0.2 and ny_ < -0.2:                     # towards the 야구장
+        rows_, kinds_ = (8.6,), ('zelkova', 'oak', 'oak')
+    elif ny_ <= -0.2:                                  # towards 성산로
+        rows_, kinds_ = (3.5,), ('oak', 'pine')
+    elif nx_ <= -0.8:                                  # the west end, beside 학군단
+        rows_, kinds_ = (4.0, 10.0), ('oak', 'pine')
+    else:
+        rows_, kinds_ = (), ()
+    for r_ in rows_:
+        o_, a_ = r_ + _frnd.uniform(-1.5, 1.5) * (0.5 if len(rows_) == 1 else 1.0), _frnd.uniform(-2.0, 2.0)
+        x_, y_ = p_.x + nx_ * o_ + tx_ * a_, p_.y + ny_ * o_ + ty_ * a_
+        t_ = [_frnd.choice(kinds_), round(x_, 2), round(y_, 2), round(_frnd.uniform(0.85, 1.25), 2), round(_frnd.uniform(0, 6.28), 2)]
+        if FIELD_PATCH.contains(Point(x_, y_)) and not _f_keep.contains(Point(x_, y_)) \
+                and all(math.hypot(x_ - u_, y_ - v_) > 3.5 for u_, v_ in _f_old + [(q_[1], q_[2]) for q_ in FIELD_NEW_TREES]):
+            FIELD_NEW_TREES.append(t_)
+_n_new = len(FIELD_NEW_TREES)
+for t_ in _f_moved:
+    t_[:] = FIELD_NEW_TREES.pop(0)
+print('대운동장: off the oval and the two sites (trees moved to the woods round it, shrubs, props, decals)', len(_f_moved),
+      _n0[0] - len(shrubs), _n0[1] - len(props), _n0[2] - len(out['decals']), '- woods', _n_new)
 # 대우관 뒤 (DAEWOO_BACK): nothing the random planting put down stays on the yard's asphalt and paving or in its walls'
 # way (a tree goes as those under the moved 백양로 do: the last one takes its place in the list); then the yard's own:
 # the hedge belt round the theatre, the planter round its west rim, the strip along the wall over the portal, the
@@ -6201,7 +6296,11 @@ print('대강당 앞 돌계단: cleared (trees, shrubs, props, cars)', _nf[0] - 
 # (laid after the planting)
 _cz = unary_union([court_poly(2.0), AUD_RAMP_CW.buffer(0.5), AUD_RAMP_WALK.buffer(0.5), AUD_RAMP_BAND,
                    ramp_strip(-AUD_RAMP['w'] / 2 - 1.0, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], -AUD_RAMP['mouth'] - 3.0, 0.0)])
-_cz, _cz_rng = _cz.difference(bline.buffer(E_WALK + 0.3)), _cz.difference(BLINE_RNG.buffer(E_WALK + 0.3))
+# (the list is cleared by the drive where it first lay, AUD_RAMP_MOVE: what the moved one runs over goes at the end)
+_cz_rng = unary_union([court_poly(2.0)] + [shapely.affinity.translate(g_, -AUD_RAMP_MOVE[0], -AUD_RAMP_MOVE[1]) for g_ in (
+    AUD_RAMP_CW.buffer(0.5), AUD_RAMP_WALK.buffer(0.5), AUD_RAMP_BAND,
+    ramp_strip(-AUD_RAMP['w'] / 2 - 1.0, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], -AUD_RAMP['mouth'] - 3.0, 0.0))])
+_cz, _cz_rng = _cz.difference(bline.buffer(E_WALK + 0.3)), _cz_rng.difference(BLINE_RNG.buffer(E_WALK + 0.3))
 _nf = (len(trees), len(shrubs), len(props), len(cars))
 clear_trees(_cz, _cz_rng)
 shrubs = [s for s in shrubs if not _cz.contains(Point(s[1], s[2]))]
@@ -6222,6 +6321,9 @@ print('대강당 앞 코트 · 진입로: cleared (trees, shrubs, props, cars)',
 AUD_ROW_S = (438.4, 444.4, 450.5, 456.9, 463.2, 469.5, 475.7, 480.6)
 AUD_TREES = [('pine', 12.4, 1.5, 0.38), ('pine', 18.2, -5.6, 0.41), ('zelkova_young', 21.1, -0.1, 0.83),
              ('pine', 27.3, -8.8, 0.52), ('zelkova_young', 28.7, -2.8, 0.83), ('zelkova', 35.1, 1.7, 1.15)]
+# (the three by the drive, solved in the same panos as its foot, go with it: AUD_RAMP_MOVE; those before the annex's
+# walls stay by the walls)
+AUD_TREES[:3] = [(sp_, round(x_ + AUD_RAMP_MOVE[0], 2), round(y_ + AUD_RAMP_MOVE[1], 2), sc_) for sp_, x_, y_, sc_ in AUD_TREES[:3]]
 AUD_TREE_BEDS = [Point(x_, y_).buffer(1.6) for _, x_, y_, _ in AUD_TREES[3:5]]
 # (the planting's row trees there are moved in place, the rest added at the very end, after the town's: the game picks
 # each tree's model in the list's order, web/src/world.js Forest, so the campus keeps its trees' looks)
@@ -6732,6 +6834,7 @@ trees += BK_ISLAND_TREES                    # (백양관 북쪽 주차장 앞 �
 trees += ANNEX_TREES                        # (학생회관 별관 앞 섬의 소나무: after every other tree, none changes its model)
 trees += YJ_NEW_TREES                       # (용재관 북쪽: the same)
 trees += DW_NEW_TREES                       # (대우관 뒤: the same)
+trees += FIELD_NEW_TREES                    # (대운동장 둘레 숲: the same)
 markers += ROT['markers']
 out['colliders'] += ROT['colliders']
 out['paths'] += ROT['paths']
@@ -6758,6 +6861,7 @@ _ypaint([YJ_GARDEN.difference(_kept)], _yg)
 _ypaint([YJ_EAST_LAWN], _yg)                   # (용재관 북동쪽: the 2015 forecourt's paving out; YJ_LOT, YJ_BRANCH below)
 _ypaint([BK_ISLAND], _yg)                   # (백양관 북쪽 주차장 앞 섬: lawn over the strip's place)
 _ypaint([ANNEX_ISLAND], _yg)                 # (학생회관 별관 앞 섬: lawn, the later walks across it cleared)
+_ypaint([p_.buffer(5.5) for p_ in FIELD_GONE_SITES], _yg)    # (대운동장 북쪽 끝: the two later halls' aprons out)
 _ypaint([Polygon(b_['footprint']).buffer(3.5, join_style=2) for b_ in YONGJAE_BUILDINGS] +
         [yongjae_poly(-4.5, 2.8, -1.0, 21.0)], _yp)
 _ypaint([YJ_WALK], _yp, width=2.6)
