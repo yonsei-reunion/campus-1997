@@ -86,11 +86,11 @@ B = {
     # medical quarter (old Severance)
     472648570: ('modern', 10, '세브란스병원'), 429249489: ('modern', 6, '의료원 종합관'),
     429249493: ('white', 5, '치과대학'), 429249490: ('modern', 7, '치과대학병원'),
-    429249494: ('white', 5, '간호대학'),
+    429249494: ('white', 6, '간호대학'),
     473006250: ('white', 5, '광혜관'), 473006251: ('white', 5, '제중관'),
-    324328456: ('white', 4, '의학도서관'), 473014379: ('modern', 5, '임상의학연구센터'),
-    1178739301: ('white', 4, '의과대학'), 1178739302: ('white', 4, '의과대학'),
-    473014385: ('white', 5, '동문회관'), 429079067: ('white', 6, '재활병원'),
+    324328456: ('white', 3, '의학도서관'), 473014379: ('modern', 6, '임상의학연구센터'),
+    1178739301: ('white', 1, '의과대학'), 1178739302: ('white', 1, '의과대학'),
+    473014385: ('white', 5, '동문회관'), 429079067: ('white', 5, '재활병원'),
     324328481: ('modern', 10, '심장혈관병원'), 324328472: ('white', 5, '안·이비인후과병원'),
     # in 1997 too, missing before
     246156110: ('stone', 2, '한경관'), 429249497: ('house', 1, '수경원 정자각'), 1178743320: ('white', 3, '미우학사'),
@@ -106,7 +106,8 @@ FOOTPRINT_1997 = {205583531: [(-127.6, -296.97), (-110.42, -233.76), (-124.96, -
 # the roof of the corridor between 인문관 and 종합관: three storeys with the corridor from the low east end, two over
 # the car park on its west side (2010 roadview);
 # 언더우드가 사택 rebuilt as one storey in 1955 (attic dormers); 재활병원 지하 1층 · 지상 6층 in 1987 (four more
-# floors in 2011); 동문회관 (1993) at least five (its 5층 소연회장).  reference/고증.md 3.1.1 has the table, hall by hall.
+# floors in 2011; five by its roof in the 1997 aerial photos, below); 동문회관 (1993) at least five (its 5층 소연회장).
+# reference/고증.md 3.1.1 has the table, hall by hall.
 # Two more are put right only after the random planting, cars and decals (their draws depend on every outline, as
 # for 용재관: YONGJAE_SCATTER), so that the rest of the campus keeps its layout:
 # - GONE_1997: 제2인문관 (위당관) broke ground on 29 May 1997 (착공 1997.5.29, 준공 1998.8.24), later than 새천년관
@@ -156,6 +157,22 @@ LATE_FOOTPRINT_1997.update({
                 (151.61, -142.42), (121.68, -168.17), (119.94, -166.35), (118.02, -168.03), (109.95, -158.47),
                 (111.97, -156.58), (105.47, -149.2), (138.32, -116.73)],
 })
+# 의료원 in the vertical aerial photos of 28 July 1997 (자료 Q; reference/고증/3.1.2 「1997년 7월 수직 항공사진」): each
+# roof read on its own height's plane in the frames from either side (27/17 east, 26/16 west), the roof heights where
+# the two agree, against Kakao's base-map outlines and the 2008 skyview for the halls still standing.
+# - 재활병원: OSM's outline lies 7.6 m off (4.0 m west, 6.5 m south of the roof in both frames, of Kakao's outline
+#   and of the 2008 roof); its roof 65.3 m, 15 - 20 m over the ground round it: four storeys over the high side,
+#   five from the low one (six would stand 22.8 m)
+# - floors by the roofs (table B above): 의학도서관 51.7 m, 10.4 m over the yard north of it (three storeys);
+#   임상의학연구센터 57.7 m over 33 m (six); 간호대학 77.5 m over 53 - 55 m (six, a penthouse block at 82 m); OSM's
+#   two 「의과대학」 outlines between 본관 and 신관 are low roofs (41 m and 38 m, the east one the lecture hall under
+#   the yard's level): one storey each.  The two ten-storey towers stand lower than ten of their style's storeys:
+#   심장혈관병원's roof 79.0 m (34.3 m over the car park), 특별병동's 77 m (32 m): FLOOR_H_AT below
+REHAB_MOVE = (4.0, 6.5)
+LATE_FOOTPRINT_1997[429079067] = [(round(x_ + REHAB_MOVE[0], 2), round(y_ + REHAB_MOVE[1], 2)) for x_, y_ in (
+    (191.3, -134.18), (207.04, -120.68), (212.11, -126.51), (242.71, -99.45), (232.68, -88.01), (214.36, -105.13),
+    (212.58, -103.84), (218.75, -98.01), (215.52, -94.29), (209.45, -99.72), (206.82, -96.21), (208.58, -94.42),
+    (204.02, -89.53), (189.68, -102.98), (196.31, -109.77), (181.08, -122.31))]
 # 학생회관 별관 (ANNEX_1997; reference/고증/4.5): in the 1997 photo (reference/1997_학생회관.jpg) a flat-roofed box of
 # two storeys in pale grey concrete, broad window bands, a plain parapet.  The pointed-arch arcade on its roof (「Global
 # Lounge」, opened in November 2002) is in the 2008 · 2010 · 2011 roadview and the April 2009 photo, not in 1997.  OSM
@@ -173,6 +190,7 @@ LATE_FOOTPRINT_1997[ANNEX_1997['id']] = [(25.68, -27.72), (55.93, -35.41)] + [
 FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
 FLOOR_H_AT = {222843398: 4.1}        # 과학관's 4.1 m storeys (blender/generic.py FH_AT, reference/고증.md 3.10)
 FLOOR_H_AT[ANNEX_1997['id']] = ANNEX_1997['floor']   # (학생회관 별관: its top 8.5 m over the yard in the 2008 frames)
+FLOOR_H_AT.update({324328481: 3.55, 990036: 3.3})    # (심장혈관병원, 특별병동: their roofs in the 1997 aerial photos, above)
 
 # ---------------------------------------------------------------------------
 # Terrain
@@ -2533,6 +2551,22 @@ def block_poly(c, u, hl, hw, round_end=0.0, n=8):
     return Polygon([tuple(p) for p in pts])
 
 
+def med_poly(uv, tilt=0.0):
+    """의료원's halls as read off the 1997 aerial photos: corners (u, v) on a grid 43 degrees round from east about
+    (150, -250), u north-east along the halls, v north-west across them; turned tilt degrees about their middle"""
+    uv = np.array(uv, float)
+    c_ = (uv.min(0) + uv.max(0)) / 2
+    t_ = math.radians(tilt)
+    uv = (uv - c_) @ np.array([[math.cos(t_), math.sin(t_)], [-math.sin(t_), math.cos(t_)]]) + c_
+    a_ = math.radians(43.0)
+    return Polygon([(round(150.0 + math.cos(a_) * u_ - math.sin(a_) * v_, 2), round(-250.0 + math.sin(a_) * u_ + math.cos(a_) * v_, 2))
+                    for u_, v_ in uv])
+
+
+def med_rect(u0, u1, v0, v1, tilt=0.0):
+    return med_poly([(u0, v0), (u1, v0), (u1, v1), (u0, v1)], tilt)
+
+
 _lib_u = np.array([0.2544, 0.9671])                   # 중앙도서관's long axis
 _med_u, _med_v = (0.755, 0.656), (-0.656, 0.755)       # 의료원's grid (its halls' long and short axes)
 _jk = np.array([-150.0, -25.0])
@@ -2555,14 +2589,44 @@ OLD_HALLS = [
     # east of 의과대학 신관 by 성산로, where the 2008 종합관 is), 36 선우학사 · 37 간호학관 · 38 향난숙사 (on the 2005
     # 세브란스병원 site) and 34 특별병동 (어린이병원 since 2006, 지상 10층).  On the quarter's grid (_med_u), placed with
     # the aerial photo's camera (tools/photofit), which puts the halls still standing there 35 ~ 95 px east of the photo.
-    (990030, '외래진료소', 'white', 3, block_poly((61.0, -301.0), _med_v, 35.0, 20.0)),
+    # Their outlines since from the vertical aerial photos of 28 July 1997 (med_poly; reference/고증/3.1.2 「1997년 7월
+    # 수직 항공사진」), each roof on its own height's plane in the frames from both sides (27/17, 26/16):
+    # - 외래진료소: the comb of four gabled wings and its head, 46 x 73 m (the 2008 skyview's roof too), 12 - 15 m
+    #   south-east of the box it had
+    # - 선우학사 · 간호학관: two gabled three-storey halls 54 x 18 m and 56 x 15 m, 28 m apart; 향난숙사 the short one
+    #   south-east of 간호학관's east half (half under trees: 25 x 20 m, within 3 m)
+    # - 의료원 종합관: the slab along 성산로 south-east of them, 83 x 19 m, its flat roof at 58.0 m: four rows of
+    #   windows (3.75 m apart) over the car park north-west of it (41.5 m), a floor or two more down the slope to 성산로
+    # - 특별병동: the slab 71 x 15 m, 5 - 9 m east and 2 m north of OSM's 어린이병원 (as Kakao's outline is)
+    (990030, '외래진료소', 'white', 3, med_rect(-129.0, -83.0, -26.4, 46.5)),
     (990031, '의과대학', 'white', 5, block_poly((140.5, -333.75), (0.705, 0.710), 59.0, 9.0)),
-    (990032, '의료원 종합관', 'white', 8, Polygon([(205.0, -300.0), (227.6, -325.4), (238.8, -315.4), (216.2, -290.0)])),
-    (990033, '선우학사', 'white', 3, block_poly((224.0, -226.0), _med_u, 18.0, 6.0)),
-    (990034, '간호학관', 'white', 3, block_poly((240.4, -244.9), _med_u, 18.0, 6.0)),
-    (990035, '향난숙사', 'white', 3, block_poly((256.8, -263.8), _med_u, 18.0, 6.0)),
-    (990036, '특별병동', 'white', 10, footprint(ways[324328432])),
+    (990032, '의료원 종합관', 'white', 5, med_rect(3.0, 86.0, -97.2, -78.4, -0.7)),
+    (990033, '선우학사', 'white', 3, med_rect(73.8, 127.5, -17.1, 0.6, -0.5)),
+    (990034, '간호학관', 'white', 3, med_rect(73.0, 128.8, -44.6, -29.6, -0.9)),
+    (990035, '향난숙사', 'white', 3, med_rect(72.5, 97.0, -74.0, -54.5, -0.7)),
+    (990036, '특별병동', 'white', 10, med_rect(38.2, 108.8, 48.6, 63.85, -1.1)),
+    # and in those photos, not in the game before (at the list's end: blender/build.py's draws for the rows above keep
+    # their order): 의과대학 신관 (1973, four storeys under a gabled roof then; two more in 2003) along 성산로, 82 x 22 m
+    # (Kakao's outline within 1 m); the two-storey block against 종합관's north-west side; the low wing at 특별병동's
+    # south-west end (part of OSM's outline); an L of two storeys north of 선우학사, across the road from 재활병원
+    # (on the 2005 세브란스병원 site; its name not found)
+    (990037, '의과대학', 'white', 4, med_rect(-83.2, -1.4, -115.2, -93.4, -0.5)),
+    (990038, '', 'white', 2, med_rect(39.0, 59.0, -78.4, -68.0, -0.7)),
+    (990039, '', 'white', 1, med_rect(39.0, 59.0, 33.0, 47.5, -1.1)),
+    (990040, '', 'white', 2, med_poly([(135.0, 11.0), (171.8, 11.0), (171.8, -1.8), (184.6, -1.8), (184.6, 28.6), (135.0, 28.6)])),
 ]
+# (the 의료원 rows as the trees were first cleared round them, before the 1997 aerial photos: the clearing still asks
+# these, so that the list of trees keeps its order; None: a hall that was not there to clear for)
+MED_SITES_RNG = {
+    990030: block_poly((61.0, -301.0), _med_v, 35.0, 20.0),
+    990032: Polygon([(205.0, -300.0), (227.6, -325.4), (238.8, -315.4), (216.2, -290.0)]),
+    990033: block_poly((224.0, -226.0), _med_u, 18.0, 6.0),
+    990034: block_poly((240.4, -244.9), _med_u, 18.0, 6.0),
+    990035: block_poly((256.8, -263.8), _med_u, 18.0, 6.0),
+    990036: footprint(ways[324328432]),
+    990037: None, 990038: None, 990039: None, 990040: None,
+    429079067: None,
+}
 # The rows after the first four go in after the random planting, cars and decals, as LATE_FOOTPRINT_1997 (below), so
 # that the rest of the campus keeps its layout
 OLD_HALLS_EARLY = {990010, 990011, 990012, 990013}
@@ -5364,11 +5428,13 @@ for pid, nm, style, lv, poly in OLD_HALLS:
         continue
     poly = shapely.geometry.polygon.orient(poly.simplify(0.05), 1.0)
     hs = [ground_h(x, y) for x, y in poly.exterior.coords]
-    LATE_HALLS.append(dict(id=pid, name=nm, style=style, levels=lv, height=round(lv * FLOOR_H[style] + 1.2, 2),
+    LATE_HALLS.append(dict(id=pid, name=nm, style=style, levels=lv,
+                           height=round(lv * FLOOR_H_AT.get(pid, FLOOR_H[style]) + 1.2, 2),
                            base=BK_FRONT_BASE if pid == 990022 else round(min(hs), 2), top_ground=round(max(hs), 2),
                            footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]))
 buildings += LATE_HALLS
 LATE_SITES = []
+LATE_SITES_RNG = []        # (as the trees were first cleared: MED_SITES_RNG)
 for b in buildings:
     if b['id'] not in LATE_FOOTPRINT_1997:
         continue
@@ -5383,6 +5449,8 @@ for b in buildings:
     if e_:
         b['entry'] = dict(p=[round(e_[1], 2), round(e_[2], 2)], n=[round(e_[3], 4), round(e_[4], 4)])
     LATE_SITES.append(poly)
+    if MED_SITES_RNG.get(b['id'], poly) is not None:
+        LATE_SITES_RNG.append(MED_SITES_RNG.get(b['id'], poly))
 _bp_all = [Polygon(b_['footprint']) for b_ in buildings]
 for b in LATE_HALLS:
     poly = next(q for q, b_ in zip(_bp_all, buildings) if b_ is b)
@@ -5392,6 +5460,12 @@ for b in LATE_HALLS:
                           **ENTRY_AT.get(b['id'], (0, {}))[1])
     if not ball.buffer(0.5).contains(poly):                  # (not the parts of an outline that stood at the planting)
         LATE_SITES.append(poly)
+    q_ = MED_SITES_RNG.get(b['id'], poly)
+    if q_ is not None and b['id'] in MED_SITES_RNG:           # (rounded as its footprint was)
+        q_ = Polygon([(round(x, 2), round(y, 2)) for x, y in
+                      list(shapely.geometry.polygon.orient(q_.simplify(0.05), 1.0).exterior.coords)[:-1]])
+    if q_ is not None and not ball.buffer(0.5).contains(q_):
+        LATE_SITES_RNG.append(q_)
 print('1997: left out', [n for n, _ in GONE_SITES], '- outlines put back', len(LATE_SITES))
 MARKER_NAME = {n: None for n in ('별동연구동', '영빈관', '영선실', '차량실', '행정동', '학생회관 별관', '광혜관')}
 EXTRA_MARKERS = [('청송대', 238.0, 284.0), ('농구장', COURT['pos'][0], COURT['pos'][1])]          # the wooded park east of 연희관 (OSM leisure=park)
@@ -6038,9 +6112,27 @@ _gz = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for
                   [GONGWON_SITE.buffer(1.5)])
 out['decals'] = [d_ for d_ in out['decals'] if not GONGWON_SITE.buffer(1.0).contains(Point(d_[1], d_[2]))]
 _n0 = (len(trees), len(shrubs), len(props), len(cars))
+# (의료원: the trees left standing where the halls of the 1997 aerial photos are move, each in its place in the list,
+# to the nearest free spot on the lawns of the two gardens south and east of 제중관, by 외래진료소's front and between
+# the two towers, so that the list keeps its length: no tree after them changes its model)
+MED_TREE_SPOTS = [(130.0, -297.0), (117.0, -284.0), (102.0, -291.0), (160.0, -265.0), (146.0, -250.0), (166.0, -236.0),
+                  (44.45, -334.76), (10.0, -320.0), (145.46, -157.15)]
+_mz = unary_union([Polygon(b_['footprint']).buffer(2.0) for b_ in buildings if b_['id'] in MED_SITES_RNG])
+_mzr = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for p_ in LATE_SITES_RNG])
+_msp = list(MED_TREE_SPOTS)
+_mn = 0
+for t_ in trees:
+    if _msp and _mz.contains(Point(t_[1], t_[2])) and not _mzr.contains(Point(*rxy(t_))):
+        q_ = min(_msp, key=lambda q_: math.hypot(q_[0] - t_[1], q_[1] - t_[2]))
+        _msp.remove(q_)
+        if len(t_) < 6:
+            t_.append((t_[1], t_[2]))      # (later clearings ask where it first stood: rxy)
+        t_[1], t_[2] = q_
+        _mn += 1
+print('의료원: trees moved off the 1997 halls', _mn, '- spots left', len(_msp))
 # (the trees go as first cleared, with 제1공학관 as first put back: ENG_FP_RNG)
 clear_trees(_gz, unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [Polygon(ENG_FP_RNG).buffer(2.0)] +
-                             [p_.buffer(2.0) for p_ in LATE_SITES if not p_.intersects(Polygon(ENG_FP_RNG).buffer(-1.0))] + [GONGWON_SITE.buffer(1.5)]))
+                             [p_.buffer(2.0) for p_ in LATE_SITES_RNG if not p_.intersects(Polygon(ENG_FP_RNG).buffer(-1.0))] + [GONGWON_SITE.buffer(1.5)]))
 shrubs = [s for s in shrubs if not _gz.contains(Point(s[1], s[2]))]
 props = [p for p in props if not _gz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _gz.contains(Point(c[1], c[2]))]
@@ -7220,6 +7312,28 @@ _pg = unary_union(PRUNED).buffer(0.3) if PRUNED else Polygon()
 shapely.prepare(_pg)
 out['paths'] = [p_ for p_ in out['paths'] if not (p_['kind'] in ('footway', 'path', 'pedestrian', 'steps') and len(p_['pts']) > 1
                                                   and _pg.contains(LineString(p_['pts'])))]
+# 의료원: OSM's walks and drives there are today's.  Where one runs through a hall of the 1997 aerial photos
+# (MED_SITES_RNG), the walk the game reads (the minimap, the crowd) keeps its longest stretch outside the hall, in its
+# place in the list; a short one mostly inside goes
+_mh = [Polygon(b_['footprint']) for b_ in buildings if b_['id'] in MED_SITES_RNG]
+_mh0, _mh1 = unary_union([q_.buffer(-0.5) for q_ in _mh]), unary_union([q_.buffer(1.0) for q_ in _mh])
+_nm = [0, 0]
+for p_ in list(out['paths']):
+    if len(p_['pts']) < 2:
+        continue
+    ls_ = LineString(p_['pts'])
+    in_ = ls_.intersection(_mh0).length
+    if in_ <= 1.0:
+        continue
+    d_ = ls_.difference(_mh1)
+    pcs_ = [g_ for g_ in getattr(d_, 'geoms', [d_]) if g_.geom_type == 'LineString' and g_.length >= 10.0]
+    if pcs_:
+        p_['pts'] = [[round(x, 1), round(y, 1)] for x, y in max(pcs_, key=lambda g_: g_.length).coords]
+        _nm[0] += 1
+    elif in_ > 0.5 * ls_.length:
+        out['paths'] = [q_ for q_ in out['paths'] if q_ is not p_]
+        _nm[1] += 1
+print('의료원: walks cut back at the 1997 halls', _nm[0], '- taken out', _nm[1])
 _nd = len(out['decals'])
 
 

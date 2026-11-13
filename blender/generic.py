@@ -587,6 +587,9 @@ WING_UP = {222843398: _science_wing}
 # the same band above), a plain parapet.  (Its colour draw is still made: the halls after it keep theirs.)
 WALL[1444448646] = 'concrete'
 FH_AT[1444448646] = 3.8
+# 심장혈관병원 · 특별병동 (ten storeys each): their roofs in the 1997 aerial photos stand 34.3 m and 32 m over the car
+# parks beside them (tools/build_campus.py FLOOR_H_AT; reference/고증/3.1.2)
+FH_AT.update({324328481: 3.55, 990036: 3.3})
 SILL_AT[1444448646] = dict(bay=4.2, ww=0.84, sill=0.85, head=0.55, mull=2, depth=0.3)
 
 
