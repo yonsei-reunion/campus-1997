@@ -406,7 +406,7 @@ async function main() {
     if (p.kind !== 'footway' || p.pts.length < 2) continue;
     if (polylineLength(p.pts) > 45 && Math.abs(p.pts[0][0]) < 260 && p.pts[0][1] > -380 && p.pts[0][1] < 420 && paths.length < 26) paths.push(new Path(p.pts, groundAt));
   }
-  const groups = [[-40, -45], [-36, -70], [3, -58], [-2, -92], [-96, -400], [58, 200], [-46, -26], [12, -30], [-20, 30], [110, 150], [-88, -186]]
+  const groups = [[-42.6, -37.9], [-53.6, -65.4], [3, -58], [-2, -92], [-96, -400], [58, 200], [-48.2, -25.5], [12, -30], [-20, 30], [110, 150], [-87.5, -178.6]]
     .map(([x, y]) => [x, y, groundAt(x, y)]);
   // people on the benches (about half of them taken, one to three to a bench; a third of that on phones) and the
   // queue at 학생회관's phone booths: one on the phone in two of the three, two more waiting behind the middle one

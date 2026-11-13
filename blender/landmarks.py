@@ -164,10 +164,15 @@ def library():
     deep in the bays, rows of windows between bronze-tan spandrel panels; panel joints over piers and attic."""
     b = bld(163525865)
     cx, cy, L, W, ang, z0 = frame_for(b, (1.0, -0.25))
-    # the piers stand on a low granite base only two steps over the forecourt (1997 photo: people walk at the foot of
-    # the piers; no flight up to a podium), and the ground is level all round it (tools/build_campus.py LIBRARY_APRON)
+    # the hall stands on a terrace 9.8 m deep along the 백양로 front and round both ends, its floor level with the
+    # arcade's (tools/build_campus.py LIB97, campus.json library_terrace: the vertical aerial photos of July 1997 and
+    # the 2008 - 2010 roadview): a rough granite retaining wall under a smooth coping, no parapet, and one broad flight
+    # before the three middle bays down to the plaza.  The 1997 photo (from the north-east, over the beds) has the
+    # piers' feet a metre over the walk.  g0 (the terrace, the arcade's floor) over z0 as before, so the hall keeps
+    # its height over its floor
+    TR = CAMPUS.get('library_terrace')
     g0 = 0.3
-    z0 = lift_base(z0, cx, cy, ang, W / 2 + 2.5, g0, 0.3)
+    z0 = TR['floor'] - g0 if TR else lift_base(z0, cx, cy, ang, W / 2 + 2.5, g0, 0.3)
     mb = MeshBuilder('lm_library')
     mb.xf = local_frame(cx, cy, ang, z0)
     H = 23.0                     # top of attic
@@ -304,9 +309,43 @@ def library():
         s = (k + 0.5) * Le_ / 5
         mb.quad(Pe(s - 0.75, H + 0.6, 0.02), Pe(s + 0.75, H + 0.6, 0.02), Pe(s + 0.75, H + 1.75, 0.02),
                 Pe(s - 0.75, H + 1.75, 0.02), 'glass')
-    # two broad granite steps along the whole 백양로 front, from the forecourt up onto the base
-    stair_flight(mb, 0, -W / 2 - 0.6, L + 1.2, g0, n=2, landing=0.0, tread=0.42, flare=0.0, cheek=0.0, rail=False,
-                 gfn=local_ground(mb))
+    if not TR:
+        # two broad granite steps along the whole 백양로 front, from the forecourt up onto the base
+        stair_flight(mb, 0, -W / 2 - 0.6, L + 1.2, g0, n=2, landing=0.0, tread=0.42, flare=0.0, cheek=0.0, rail=False,
+                     gfn=local_ground(mb))
+        return [mb]
+    # the terrace, in the front's own frame (s along the front from its south-east corner, o out of it)
+    inv = mb.xf.inverted()
+    o_, t_, n_ = Vector((*TR['o'], z0)), Vector((*TR['t'], 0.0)), Vector((*TR['n'], 0.0))
+    Lp = lambda s_, d_: inv @ (o_ + t_ * s_ + n_ * d_)
+    gfn = local_ground(mb)
+    mid, sw, dep = TR['len'] / 2, TR['stair_w'], TR['depth']
+    COPE = 0.16
+
+    def slab(s0, s1, d0, d1):
+        """a piece of the terrace: its floor at g0, walked on; rough granite sides under a smooth coping, down past
+        the lowest ground along them"""
+        c = [Lp(s0, d0), Lp(s1, d0), Lp(s1, d1), Lp(s0, d1)]
+        x0, x1 = min(v.x for v in c), max(v.x for v in c)
+        y0, y1 = min(v.y for v in c), max(v.y for v in c)
+        q = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+        zb = min(gfn(x, y) for x, y in q + [((x0 + x1) / 2, y0), ((x0 + x1) / 2, y1)]) - 0.6
+        mb.face([(x, y, g0) for x, y in q], 'stone_granite')
+        for (ax, ay), (bx, by) in zip(q, q[1:] + q[:1]):
+            mb.quad((ax, ay, zb), (bx, by, zb), (bx, by, g0 - COPE), (ax, ay, g0 - COPE), 'stone_ashlar')
+            mb.quad((ax, ay, g0 - COPE), (bx, by, g0 - COPE), (bx, by, g0), (ax, ay, g0), 'stone_trim')
+        WALK_FACES.append([W_(x, y, g0) for x, y in q])
+
+    slab(TR['south'], mid - sw / 2, 0.6, dep)                 # along the front, south and north of the flight
+    slab(mid + sw / 2, TR['north'], 0.6, dep)
+    slab(mid - sw / 2, mid + sw / 2, 0.6, dep - 2.4)          # behind the flight's head (its own landing block: the rest)
+    slab(TR['south'], -0.6, TR['south_w'], 0.6)               # round the south end, the hall's whole depth
+    slab(TR['len'] + 0.6, TR['north'], TR['north_w'], 0.6)    # round the north end, 23 m back from the corner
+    # the flight before the three middle bays (the door's and the two beside it): six risers of granite down to the
+    # plaza, no cheeks, no rail (the roadview: five or six risers of 0.15 - 0.16 m, 18.8 m across)
+    fc = Lp(mid, dep)
+    stair_flight(mb, fc.x, fc.y + 1.2, sw, g0, landing=1.2, tread=TR['tread'], flare=0.0, cheek=0.0, rail=False,
+                 gfn=gfn, risers=TR['risers'], mat='stone_step')
     return [mb]
 
 
