@@ -8,14 +8,20 @@ the town's blocks and their looks come from random.Random streams of their own.
 
 Where things stand (고증 4.8):
 - The rails and 연세로 are OSM's as fetched by tools/fetch_gate_osm.py (two tracks of the 경의선, 10 m apart at the
-  bridge; the alignment has not moved, the 1995 aerial photo has the two decks).
+  bridge; the 1995 aerial photo has the two decks).  The vertical aerial photos of 28 July 1997 (자료 Q, tools/
+  aerial97.py; frames 26/16 and 27/17) have the two tracks 2.5 m south of OSM's from 300 m west of the bridge to 150 m
+  east (the line was laid again for the 2009 double track), their rails 10.8 m over 성산로 before the gate (two frames'
+  stereo: the decks at 34.5 m where the box junction is at 23.7 m), the bridge's opening from x -108.5 to -78.5.
 - The gate stands where the 2010 skyview and the pre-rebuild roadview have its pillars, y -396 on 백양로's centre
   line (tools/build_campus.py GATE_C; 고증 4.8 「정문의 남북 자리」).  From its wall to 성산로's north kerb runs its
   mouth, a fan of asphalt (the 1995 photo: the west wall rounding off, the east one running out at a slant), some
   16 m deep at its east end and 31 m at its west.
 - 성산로 is OSM's, the middle between its two carriageways, ten lanes (the 1995 photo: 30 - 35 m, four or more dashed
-  lines a side; OSM's carriageways and the gate square's south edge: kerb to kerb about 35 m).  (Before, with the
-  gate 25 m further south, it was pushed up to 14.5 m south before the gate and narrowed to eight lanes.)
+  lines a side).  The 1997 vertical photos have it 2.7 m south of that middle before the gate (the south kerb at
+  y -455.4 at x -137, as in Kakao's 2008 skyview; the north kerb at -420: today's north kerb, -413, is the 2000s'
+  widening for the bus lanes in the middle), 35.4 m from kerb to kerb: five lanes of 3.1 m each way either side of a
+  2.7 m hatched strip (SHIFT, LANE_W, MID, GUTTER).  Their zebra crosses it east of the junction's box (x -75 .. -61.5,
+  the 2008 skyview's too), another crosses 연세로's mouth.
 """
 import json, math, os, random
 import numpy as np
@@ -46,15 +52,31 @@ TRACK_N = [(-576, -365), (-559, -381), (-531, -402), (-495, -426), (-453, -447),
 TRACK_S = [(-579, -368), (-560, -386), (-535, -406), (-498, -429), (-466, -446), (-451, -454), (-413, -467),
            (-369, -480), (-321, -488), (-284, -491), (-225, -490), (-126, -487), (-113, -487), (-79, -486),
            (-68, -486), (89, -481), (207, -478), (275, -476), (288, -476), (541, -467), (751, -454)]
-SHIFT = 0.0                  # 성산로 pushed south before the gate, m (14.5 while the gate stood at y -423.7; kept at 0)
-LANES, LANE_W, MID = 5, 3.2, 0.9       # lanes each way, their width, the double yellow line's strip
-HW = LANES * LANE_W + MID / 2          # the carriageway's half width (16.45 m)
+TRACK_DY = 2.5               # the 1997 tracks south of OSM's (the 1997 vertical photos at the rails' own height: 1.2 - 3.4 m
+#                              at seven stations from x -245 to 80, both tracks; eased out past x -300 and x 150)
+
+
+def _track_w(x):
+    return _smooth((x + 450) / 150.0) if x < -300 else 1.0 - _smooth((x - 150) / 150.0) if x > 150 else 1.0
+
+
+SHIFT = 2.7                  # 성산로 south of the middle of OSM's two carriageways before the gate, m (shift_w)
+LANES, LANE_W, MID = 5, 3.1, 2.7       # lanes each way, their width, the hatched strip between the two ways
+GUTTER = 0.75                # from the kerb lane's edge line to the kerb
+HW = LANES * LANE_W + MID / 2 + GUTTER  # the carriageway's half width (17.6 m)
+HW_RNG = 16.45               # ... as first laid, about OSM's middle (what the campus's planting was cleared by: layout)
 SW_S = 1.6                   # the south sidewalk under the bank
-RAIL_UP = 5.7                # the rails over 성산로 before the gate
+RAIL_UP = 10.8               # the rails over 성산로 before the gate
 BALLAST = 0.25               # the rails over the top of the bank
 SHOULDER = 3.6               # the top of the bank past each track's centre line
 SLOPE = 1.6                  # the banks: run per rise
-BRIDGE = (-109.0, -83.0)     # the opening for 연세로 (x), its piers in the middle
+DMAX_N, DMAX_S = 18.0, 13.0  # how far out a slope's foot may stand (a wall holds it up from there: the south side's
+#                              white wall above the town's roofs in the 1997 photos)
+BRIDGE = (-108.5, -78.5)     # the opening for 연세로 (x), its piers in the middle
+CROSS_X = (-75.0, -61.5)     # the zebra over 성산로, east of the junction's box
+BOX_X = (-108.7, -79.5)      # the box junction's white frame before 연세로 (x; 2.9 m in from the north kerb, 1.9 m from
+#                              the south one)
+YZEBRA = (-459.5, -466.5)    # the zebra over 연세로's mouth (y)
 YONSEI_X = -96.0
 YONSEI_HALF, YONSEI_WALK = 7.0, 5.0
 X0, X1 = -575.0, 700.0       # the banks are built between these
@@ -70,12 +92,17 @@ def _smooth(t):
     return t * t * (3 - 2 * t)
 
 
+TRACK_N = [(x, round(y - TRACK_DY * _track_w(x), 2)) for x, y in TRACK_N]
+TRACK_S = [(x, round(y - TRACK_DY * _track_w(x), 2)) for x, y in TRACK_S]
+
+
 def shift_w(x):
-    """how much of SHIFT the road is pushed south at x: all of it from 200 m west of the gate to 90 m east"""
-    if x < -200:
-        return _smooth((x + 380) / 180.0)
-    if x > -20:
-        return 1.0 - _smooth((x + 20) / 180.0)
+    """how much of SHIFT the road is south of OSM's middle at x: all of it from x -260 to -40 (the 1997 photos: 3.3 m at
+    x -185, 2.7 at -137, 2.6 at -40, 1 m at x 20), none past x -400 and x 100"""
+    if x < -260:
+        return _smooth((x + 400) / 140.0)
+    if x > -40:
+        return 1.0 - _smooth((x + 40) / 140.0)
     return 1.0
 
 
@@ -209,7 +236,7 @@ def bank_fix(pl, Hn, sample):
         row = [round(float(p[0]), 2), round(float(p[1]), 2), round(float(n[0]), 4), round(float(n[1]), 4), round(float(hw), 2)]
         for side in (1, -1):
             e = p + n * side * hw
-            dmax = 18.0
+            dmax = DMAX_N if side > 0 else DMAX_S
             wall_z = None
             if side > 0:                       # towards 성산로: no further than the back of its sidewalk
                 far = LineString([tuple(e), tuple(e + n * 40.0)])
@@ -308,8 +335,13 @@ def layout(pl, secs, ground, taken, e_curb0):
     y_top = float(np.interp(YONSEI_X, kerb_s[:, 0], kerb_s[:, 1])) + 1.0
     yonsei = Polygon([(YONSEI_X - YONSEI_HALF, y_top), (YONSEI_X + YONSEI_HALF, y_top), (YONSEI_X + YONSEI_HALF, -640),
                       (YONSEI_X - YONSEI_HALF, -640)])
-    yonsei_walk = Polygon([(BRIDGE[0] + 0.4, y_top - SW_S - 1.0), (BRIDGE[1] - 0.4, y_top - SW_S - 1.0), (BRIDGE[1] - 0.4, -640),
-                           (BRIDGE[0] + 0.4, -640)]).difference(yonsei)
+    # (its walks: 5.6 m either side down to the rows of shop houses; under the bridge and before it the whole opening,
+    # wider on the east side as in the 1997 photos)
+    fw = YONSEI_HALF + YONSEI_WALK + 0.6
+    yonsei_walk = unary_union([
+        Polygon([(YONSEI_X - fw, y_top - SW_S - 1.0), (YONSEI_X + fw, y_top - SW_S - 1.0), (YONSEI_X + fw, -640), (YONSEI_X - fw, -640)]),
+        Polygon([(BRIDGE[0] + 0.4, y_top - SW_S - 1.0), (BRIDGE[1] - 0.4, y_top - SW_S - 1.0), (BRIDGE[1] - 0.4, -507.0),
+                 (BRIDGE[0] + 0.4, -507.0)])]).difference(yonsei)
     # ---- the banks' footprint
     sec = np.array([[v if v is not None else np.nan for v in r] for r in secs], float)
     cn = sec[:, :2] + sec[:, 2:4] * (sec[:, 4] + sec[:, 5])[:, None]
@@ -436,21 +468,42 @@ def layout(pl, secs, ground, taken, e_curb0):
     paint = []
     sx = road.P[:, 0]
     inner = (sx > -470) & (sx < 330)
-    for sgn in (1, -1):
-        paint.append(dict(kind='yellow', w=0.12, pts=R2(road.off(sgn * 0.16)[inner])))
-        for kk in range(1, LANES):
-            paint.append(dict(kind='white_dash', w=0.12, pts=R2(road.off(sgn * (MID / 2 + LANE_W * kk))[inner])))
-    cross_x = (BRIDGE[0] + 0.6, BRIDGE[0] + 5.6)      # onto 연세로's west sidewalk under the bridge
+    # (the 1997 vertical photos: a strip between the two ways, hatched from 60 m west of the junction's box to it and
+    # planted for 45 m west of that; three dashed lines and the kerb lane's each side; the junction's box before 연세로
+    # and the gate's mouth, the zebra east of it, the stop lines before the box and east of the zebra, another zebra
+    # over 연세로's mouth)
+    at = lambda x, o=0.0: (x, float(np.interp(x, road.P[:, 0], road.P[:, 1])) + o)
+    open_x = (BOX_X[0] - 3.5, CROSS_X[1] + 3.5)        # (no lines through the junction and the zebra)
+    for a, b in ((-470.0, open_x[0]), (open_x[1], 330.0)):
+        part = (sx > a) & (sx < b)
+        for sgn in (1, -1):
+            paint.append(dict(kind='yellow', w=0.15, pts=R2(road.off(sgn * (MID / 2 - 0.08))[part])))
+            for kk in range(1, LANES):
+                paint.append(dict(kind='white_dash', w=0.12, pts=R2(road.off(sgn * (MID / 2 + LANE_W * kk))[part])))
+    hatch_x = (BOX_X[0] - 48.0, BOX_X[0] - 4.5)
+    for x in np.arange(hatch_x[0], hatch_x[1], 3.0):   # the hatched strip's bars
+        paint.append(dict(kind='yellow', w=0.3, pts=R2([at(x, -MID / 2 + 0.2), at(x + 1.6, MID / 2 - 0.2)])))
+    cross_x = CROSS_X
     zebra = []
     kn = float(np.interp(sum(cross_x) / 2, kerb_n[:, 0], kerb_n[:, 1]))
     ks = float(np.interp(sum(cross_x) / 2, kerb_s[:, 0], kerb_s[:, 1]))
     yy = kn - 0.7
-    while yy - 0.45 > ks + 0.5:
-        zebra.append(R2([(cross_x[0], yy), (cross_x[1], yy), (cross_x[1], yy - 0.45), (cross_x[0], yy - 0.45)]))
-        yy -= 0.95
-    cmid = float(np.interp(sum(cross_x) / 2, road.P[:, 0], road.P[:, 1]))
-    for xs, ya, yb in ((cross_x[0] - 3.0, cmid - 0.45, ks + 0.3), (cross_x[1] + 3.0, kn - 0.3, cmid + 0.45)):   # stop lines
+    while yy - 0.6 > ks + 0.5:
+        zebra.append(R2([(cross_x[0], yy), (cross_x[1], yy), (cross_x[1], yy - 0.6), (cross_x[0], yy - 0.6)]))
+        yy -= 1.2
+    for xs, sgn in ((BOX_X[0] - 3.5, -1), (cross_x[1] + 3.5, 1)):                # stop lines: eastbound, westbound
+        ya, yb = at(xs, sgn * MID / 2)[1], at(xs, sgn * (HW - GUTTER))[1]
         zebra.append(R2([(xs - 0.25, ya), (xs + 0.25, ya), (xs + 0.25, yb), (xs - 0.25, yb)]))
+    bn, bs = at(sum(BOX_X) / 2, HW - 2.9)[1], at(sum(BOX_X) / 2, -(HW - 1.9))[1]
+    for xa, ya, xb, yb in ((BOX_X[0], bn, BOX_X[1], bn - 0.4), (BOX_X[0], bs + 0.4, BOX_X[1], bs),
+                           (BOX_X[0], bn, BOX_X[0] + 0.4, bs), (BOX_X[1] - 0.4, bn, BOX_X[1], bs)):      # the box
+        zebra.append(R2([(xa, ya), (xb, ya), (xb, yb), (xa, yb)]))
+    ym = sum(YZEBRA) / 2
+    xx = YONSEI_X - YONSEI_HALF + 0.5
+    while xx + 0.55 < YONSEI_X + YONSEI_HALF - 0.4:    # 연세로's zebra: two rows of bars
+        for ya, yb in ((YZEBRA[0], ym + 0.3), (ym - 0.3, YZEBRA[1])):
+            zebra.append(R2([(xx, ya), (xx + 0.55, ya), (xx + 0.55, yb), (xx, yb)]))
+        xx += 1.1
     # kerbs: runs of each line, broken at the gate's mouth and at 연세로
     def runs(line, gaps):
         out, cur = [], []
@@ -562,6 +615,14 @@ def layout(pl, secs, ground, taken, e_curb0):
             if g2.contains(Point(*q)):
                 shrubs.append([rnd.choice(['topiary_round', 'topiary_round', 'hedge_blob']), round(q[0], 2), round(q[1], 2),
                                round(rnd.uniform(0.8, 1.3), 2), round(rnd.uniform(0, 6.28), 2)])
+    # the planted strip between the two ways west of the hatched one (the 1997 photos: dark round crowns in a row,
+    # 45 m): clipped shrubs
+    for x in np.arange(hatch_x[0] - 45.0, hatch_x[0] - 1.0, 3.2):
+        shrubs.append(['topiary_round', round(float(x), 2), round(at(float(x))[1], 2), round(rnd.uniform(0.7, 0.9), 2),
+                       round(rnd.uniform(0, 6.28), 2)])
+    # (the campus's list holds a fixed number of the town's trees, tools/build_campus.py TOWN_TREE_SLOTS: those
+    # nearest the gate first, so that the higher banks' many trees are not all spent far west of it)
+    trees.sort(key=lambda t_: abs(t_[1] - YONSEI_X))
     town = dict(
         road=dict(pts=R2(road.P), z=[round(float(v), 2) for v in pl['road_z']], half=HW, lanes=LANES, lane_w=LANE_W),
         rail=dict(z=rail_z, top=round(top, 2), n=[list(p) for p in TRACK_N if X0 <= p[0] <= X1],

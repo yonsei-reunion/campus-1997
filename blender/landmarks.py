@@ -5179,7 +5179,7 @@ def gongwon_site():
     """The hoarding round 공학원's building site, where the 정구장 had been (tools/build_campus.py GONGWON_SITE): steel
     sheet panels 2.4 m high on posts every 2.5 m following the ground, white over a blue foot band, both faces (6 cm
     apart: coincident faces would read as fully occluded in the AO bake, black on the phones); a steel gate on the
-    service road to the north."""
+    service road to the north.  Inside it the deck in the pit and the slab, east of it the prefab offices (below)."""
     G = CAMPUS.get('statues', {}).get('gongwon_site')
     if not G:
         return []
@@ -5203,7 +5203,56 @@ def gongwon_site():
                 'metal_dark')
         h = H + (0.45 if g0 <= i <= g1 else 0.1)
         mb.box((xa, ya, za + (h - sink) / 2), (0.1, 0.1, h + sink), 'metal_dark', rotz=math.atan2(yb - ya, xb - xa))
-    return [mb]
+    out = [mb]
+    if 'pit' not in G:
+        return out
+    # Behind the hoarding, as the vertical aerial photos of 28 July 1997 have it (reference/고증/4.4): no storey over
+    # the ground yet.  A concrete deck 3 m under the ground with its grid of beams and the columns' stubs standing out
+    # of it (8 m bays, as the photos' grid), and along the west side a slab at the ground's own height, darker, in
+    # narrower strips.  (u, v): the site's own frame
+    for key, name, bay, surf, line in (('pit', 'lm_gongwon_deck', 8.0, 'concrete', 'concrete_dark'),
+                                       ('slab', 'lm_gongwon_slab', 4.0, 'concrete_dark', 'concrete')):
+        u0, u1, v0, v1, z = G[key]
+        d = MeshBuilder(name)
+        d.xf = local_frame(G['o'][0], G['o'][1], G['rot'], z)
+        d.box(((u0 + u1) / 2, (v0 + v1) / 2, -0.45), (u1 - u0, v1 - v0, 1.0), surf, skip=('bottom',))
+        nu, nv = int((u1 - u0) / bay), int((v1 - v0) / bay)
+        us = [u0 + (u1 - u0 - nu * bay) / 2 + bay * i for i in range(nu + 1)]
+        vs = [v0 + (v1 - v0 - nv * bay) / 2 + bay * j for j in range(nv + 1)]
+        bw, bh = (0.5, 0.22) if key == 'pit' else (0.18, 0.06)
+        for u in us:
+            d.box((u, (v0 + v1) / 2, 0.05 + bh / 2), (bw, v1 - v0 - 0.4, bh), line)
+        for v in vs:
+            d.box(((u0 + u1) / 2, v, 0.05 + bh / 2), (u1 - u0 - 0.4, bw, bh), line)
+        if key == 'pit':
+            for u in us:
+                for v in vs:
+                    d.box((u, v, 0.05 + 0.7), (0.6, 0.6, 1.4), 'concrete')
+        out.append(d)
+    # the site's prefab offices east of it: white panel walls on a blue foot band, a low grey roof, a band of windows to
+    # each floor on the long sides (the photos give their plans and the long one's two storeys, not their faces)
+    for k, (u0, u1, v0, v1, z, h) in enumerate(G.get('sheds', [])):
+        d = MeshBuilder('lm_gongwon_shed_%d' % k)
+        d.xf = local_frame(G['o'][0], G['o'][1], G['rot'], z)
+        cu, cv, L, W = (u0 + u1) / 2, (v0 + v1) / 2, u1 - u0, v1 - v0
+        d.box((cu, cv, 0.2), (L, W, 1.0), 'paint_blue', skip=('bottom', 'top'))
+        d.box((cu, cv, 0.7 + (h - 0.7) / 2), (L, W, h - 0.7), 'paint_white', skip=('bottom', 'top'))
+        d.box((cu, cv, h + 0.06), (L + 0.3, W + 0.3, 0.12), 'roof_metal')
+        long_u = L >= W
+        n = max(1, int((L if long_u else W) / 3.0))
+        for fl in range(max(1, int(round(h / 2.6)))):
+            zc = fl * 2.5 + 1.55
+            if zc + 0.5 > h:
+                break
+            for i in range(n):
+                t = ((i + 0.5) / n - 0.5) * (L if long_u else W)
+                for sg in (-1, 1):
+                    if long_u:
+                        d.box((cu + t, cv + sg * (W / 2 + 0.02), zc), (1.5, 0.05, 0.9), 'glass')
+                    else:
+                        d.box((cu + sg * (L / 2 + 0.02), cv + t, zc), (0.05, 1.5, 0.9), 'glass')
+        out.append(d)
+    return out
 
 
 # ============================================================================= 광복관 (법과대학)

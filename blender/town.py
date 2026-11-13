@@ -315,7 +315,9 @@ def bank():
 
 def bridge():
     """The two decks over 연세로 (the 1995 photo: a concrete deck for each track on abutments faced with concrete, a row of
-    piers in the middle of the road), and the abutments: the bank's own section as a wall each side of the opening."""
+    piers in the middle of the road), and the abutments: the bank's own section as a wall each side of the opening.
+    (The rails 10.8 m over 성산로, tools/gate_town.py RAIL_UP: some 9.5 m clear over 연세로, as the 1996 photo 51979 has
+    the pier, 170 px where the opening's 30 m would be 550.)"""
     R, B = T['rail'], T['bridge']
     S = R['sections']
     top, rz = R['top'], R['z']
@@ -335,7 +337,7 @@ def bridge():
     v0, v1 = band(B_TRACK)
     for name in ('n', 's'):
         ya, yb = _track_y(R[name], x0), _track_y(R[name], x1)
-        hw, zb, zs = 2.3, rz - 1.45, top
+        hw, zb, zs = 2.3, rz - 1.9, top             # (the 1996 photo 51979: a deck 2.6 m deep under its railing)
         xa, xb = x0 - 0.3, x1 + 0.3
         c = [(xa, ya - hw), (xb, yb - hw), (xb, yb + hw), (xa, ya + hw)]
         for i in range(4):                         # the girder's sides and ends

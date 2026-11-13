@@ -5505,14 +5505,78 @@ _gw = unary_union([footprint(ways[218430716])] + [tennis_poly(pd_, 1.0) for pd_ 
 _gw = _gw.difference(unary_union([LineString(p_['pts']).buffer(p_['w'] / 2 + 1.0) for p_ in paths_out
                                   if p_['kind'] in ('service', 'residential', 'primary', 'secondary', 'tertiary', 'road')
                                   and len(p_['pts']) > 1 and LineString(p_['pts']).distance(_gw) < 5.0]))
-GONGWON_SITE = shapely.geometry.polygon.orient(max(getattr(_gw, 'geoms', [_gw]), key=lambda g_: g_.area).simplify(0.6), 1.0)
+GONGWON_SITE_RNG = shapely.geometry.polygon.orient(max(getattr(_gw, 'geoms', [_gw]), key=lambda g_: g_.area).simplify(0.6), 1.0)
+# The vertical aerial photos of 28 July 1997 (자료 Q, tools/aerial97.py: frames 26/16 and 26/15, the east side in 27/17
+# too; resampled into the courts' own frame, TENNIS, at the ground's height: reference/고증/4.4) have the site itself,
+# a rectangle 134.5 x 84.5 m behind its hoarding (the frames within 1 m of each other), 14.5 m further west, 11.5 m
+# further east and 11.5 m further south than the hull of the hall's outline and the pads above; its south side steps
+# 7 m north for its east 43 m.  (u, v): TENNIS's frame, along the site and up its slope.
+#  - Inside, no storey over the ground yet: a deck with a grid of beams 3 m under the ground round it (two frames'
+#    stereo: 24.7 - 25.6 m at eight places where the roads round it are at 28.0 - 28.8 m) over all but the west 28 m,
+#    which is a slab at the ground's own height (28.0 m).
+#  - East of it the site's own ground between the hoarding and the lawn's trees: a car park of some twenty cars (the
+#    booth and the lanes of photo A lead into it), a row of cars along the north hoarding, a two-storey prefab office
+#    31 x 5.5 m north of the lane (its roof 4.9 m over the ground) with a smaller one west of it, and south of the
+#    car park a yard behind three low prefab rows down to the gate's forecourt.
+#  - No court is left: the whole block is the site.
+_gc_, _gs_ = math.cos(TENNIS['rot']), math.sin(TENNIS['rot'])
+
+
+def site_xy(u, v):
+    return (TENNIS['o'][0] + u * _gc_ - v * _gs_, TENNIS['o'][1] + u * _gs_ + v * _gc_)
+
+
+def site_poly(pts):
+    return Polygon([site_xy(u_, v_) for u_, v_ in pts])
+
+
+GONGWON_SITE = shapely.geometry.polygon.orient(site_poly([(-80.5, -4.5), (10.5, -4.5), (10.5, 2.5), (51.0, 2.5), (54.0, 6.0),
+                                                          (54.0, 80.0), (-80.5, 80.0)]), 1.0)
+GW_LOT = site_poly([(54.6, 56.5), (54.6, 91.8), (77.5, 91.8), (89.5, 83.5), (89.5, 56.5)])       # the car park (asphalt)
+GW_ROW = site_poly([(-16.0, 80.6), (54.6, 80.6), (54.6, 88.5), (-16.0, 88.5)])                   # the row along the hoarding
+GW_YARD = site_poly([(54.6, 8.0), (54.6, 56.5), (76.0, 56.5), (76.0, 30.0), (70.5, 30.0), (70.5, 22.0), (62.0, 8.0)])   # (bare)
+GW_SHEDS = [(46.7, 77.4, 92.2, 97.7, 5.0), (37.0, 46.3, 93.2, 101.0, 2.7),           # the offices: u0, u1, v0, v1, height
+            (76.0, 90.0, 49.0, 53.0, 2.8), (77.3, 80.0, 28.0, 49.0, 2.6), (71.0, 79.0, 23.5, 29.0, 2.8)]
+GW_SHED_POLYS = [site_poly([(u0_, v0_), (u1_, v0_), (u1_, v1_), (u0_, v1_)]) for u0_, u1_, v0_, v1_, _ in GW_SHEDS]
+assert not any(Polygon(b_['footprint']).intersects(p_) for b_ in buildings for p_ in GW_SHED_POLYS + [GONGWON_SITE])
+GW_PIT, GW_SLAB = (-50.0, 47.0, 9.0, 74.0), (-74.5, -53.0, 2.0, 74.0)      # the deck in the pit, the slab at the ground's height
 _gr, GONGWON_RING = GONGWON_SITE.exterior, []
 for k_ in range(int(math.ceil(_gr.length / 2.5))):
     q_ = _gr.interpolate(k_ * _gr.length / math.ceil(_gr.length / 2.5))
     GONGWON_RING.append([round(q_.x, 2), round(q_.y, 2), round(ground_h(q_.x, q_.y), 2)])
-_gn = min(range(len(GONGWON_RING)), key=lambda k_: math.hypot(GONGWON_RING[k_][0] + 205.0, GONGWON_RING[k_][1] + 312.0))
-STATUES['gongwon_site'] = dict(ring=GONGWON_RING, gate=[_gn - 1, _gn + 1])     # (the gate: ring points either side)
-print('공학원 site', round(GONGWON_SITE.area), 'm2, hoarding', round(_gr.length), 'm')
+_gq = site_xy(6.0, 80.0)                # (the gate: the gap in the row of cars along the north hoarding)
+_gn = min(range(len(GONGWON_RING)), key=lambda k_: math.hypot(GONGWON_RING[k_][0] - _gq[0], GONGWON_RING[k_][1] - _gq[1]))
+# the pit and the slab: level, the pit 3 m under the ground as it stood there (after the planting: nothing reads it)
+_gzz = []
+for (u0_, u1_, v0_, v1_), dz_ in ((GW_PIT, -3.0), (GW_SLAB, 0.0)):
+    _in = shapely.contains_xy(site_poly([(u0_, v0_), (u1_, v0_), (u1_, v1_), (u0_, v1_)]), X, Y)
+    _gzz.append(round(float(np.median(Hn[_in])) + dz_, 2))
+    Hn[_in] = _gzz[-1]
+_gz0 = _gzz[1]
+STATUES['gongwon_site'] = dict(ring=GONGWON_RING, gate=[_gn - 1, _gn + 1],     # (the gate: ring points either side)
+                               o=list(TENNIS['o']), rot=round(TENNIS['rot'], 5), pit=[*GW_PIT, _gzz[0]],
+                               slab=[*GW_SLAB, _gzz[1]],
+                               sheds=[[u0_, u1_, v0_, v1_, round(min(ground_h(*site_xy(u_, v_)) for u_ in (u0_, u1_) for v_ in (v0_, v1_)), 2), h_]
+                                      for u0_, u1_, v0_, v1_, h_ in GW_SHEDS])
+print('공학원 site', round(GONGWON_SITE.area), 'm2 (first', round(GONGWON_SITE_RNG.area), '), hoarding', round(_gr.length), 'm, ground',
+      _gz0)
+# the walks and service roads OSM has across it now go (the minimap, the crowd's walks: gw_cut, once the decals are
+# laid along the walks as they were: decal_spots draws its random numbers walk by walk)
+_gwz = unary_union([GONGWON_SITE.buffer(1.0), GW_YARD, GW_LOT.difference(GATE_APRON.buffer(1.0))] + [p_.buffer(0.8) for p_ in GW_SHED_POLYS])
+
+
+def gw_cut(lst):
+    po_ = []
+    for p_ in lst:
+        if len(p_['pts']) < 2 or not LineString(p_['pts']).intersects(_gwz) or p_['pts'] in _fork_pts:
+            po_.append(p_)
+            continue
+        rest_ = LineString(p_['pts']).difference(_gwz)
+        for l_ in (rest_.geoms if hasattr(rest_, 'geoms') else [rest_]):
+            if l_.geom_type == 'LineString' and l_.length > 4.0:
+                po_.append(dict(p_, pts=[[round(x_, 1), round(y_, 1)] for x_, y_ in l_.coords]))
+    print('공학원 site: walks and roads cut', len(lst), '->', len(po_))
+    lst[:] = po_
 
 _sx, _sy, _ = along_raw(GATE_S + 6.0, E_VERGE + ROAD['walk'] * 0.5)        # on the west sidewalk just inside the gate (s 30 before)
 SPAWN = dict(pos=[round(_sx, 1), round(_sy, 1)], yaw=math.radians(-14))
@@ -5782,7 +5846,8 @@ out = dict(
     centennial_block=CENT_BLOCK, sang=dict(c=list(SANG), r=SANG_LAWN), yeonhui=YEONHUI, underwood_steps=UW_STEPS,
     gyoyuk_floor=GYOYUK_FLOOR,
     seongam_floor=SEONGAM_FLOOR,
-    colliders=[CENT_BLOCK['poly']] + [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(GONGWON_SITE.exterior.coords)[:-1]]]
+    colliders=[CENT_BLOCK['poly']] + [[[round(x_, 2), round(y_, 2)] for x_, y_ in list(g_.exterior.coords)[:-1]]
+                                      for g_ in [GONGWON_SITE] + GW_SHED_POLYS]
     + YH_WALL_COLL,
 )
 out['rnd_ghosts'] = RND_GHOSTS                # (GONE_1997: blender/build.py)
@@ -6091,6 +6156,8 @@ def decal_spots():
 
 
 out['decals'] = decal_spots()
+gw_cut(paths_out)                          # (공학원 공사장: above)
+gw_cut(out['paths'])
 out['decals'] = [d_ for d_ in out['decals'] if not court_poly(1.0).contains(Point(d_[1], d_[2]))]   # (the court's slab)
 out['decals'] = [d_ for d_ in out['decals'] if not _uwz.contains(Point(d_[1], d_[2]))]   # (the old garden's paving)
 print('decals', len(out['decals']), {k_: sum(1 for d_ in out['decals'] if d_[0] == k_) for k_ in sorted({d_[0] for d_ in out['decals']})})
@@ -6261,9 +6328,33 @@ print('yongjae: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees) + 2, 
       _n0[2] - len(props) + 1, _n0[3] - len(cars), '- 진달래동산', len(_yjp))
 # the 1997 sites (GONE_1997, LATE_FOOTPRINT_1997): off the bare site and its ring of shrubs, off the walls put back,
 # off 공학원's building site and the pavement decals there
+# (공학원's site as the 1997 photos have it, with its car park, yard and offices: GW_CLEAR; not the part of the car
+# park that photo A's apron already was, where its booth and planters stand)
+GW_CLEAR = unary_union([GW_LOT.difference(GATE_APRON.buffer(1.0)), GW_ROW, GW_YARD] + [p_.buffer(1.0) for p_ in GW_SHED_POLYS])
 _gz = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for p_ in LATE_SITES] +
-                  [GONGWON_SITE.buffer(1.5)])
-out['decals'] = [d_ for d_ in out['decals'] if not GONGWON_SITE.buffer(1.0).contains(Point(d_[1], d_[2]))]
+                  [GONGWON_SITE.buffer(1.5), GW_CLEAR])
+_gwd = GONGWON_SITE.buffer(1.0).union(GW_YARD)
+out['decals'] = [d_ for d_ in out['decals'] if not _gwd.contains(Point(d_[1], d_[2]))]
+_gz_rng = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [Polygon(ENG_FP_RNG).buffer(2.0)] +
+                      [p_.buffer(2.0) for p_ in LATE_SITES_RNG if not p_.intersects(Polygon(ENG_FP_RNG).buffer(-1.0))] + [GONGWON_SITE_RNG.buffer(1.5)])
+# the trees that stand in what the site has gained keep their places in the list (the web picks each tree's model by
+# it) and go to the lawn between the car park and 백양로, a dense clump in the 1997 photos
+# (north of the gate wall's paved strip)
+_gw_spots = [site_xy(u_, v_) for u_, v_ in ((93.0, 40.0), (99.5, 43.5), (94.0, 48.0), (99.0, 52.5), (95.0, 57.0), (99.5, 61.5),
+                                            (94.5, 66.0), (99.0, 70.5), (95.5, 75.0), (91.5, 53.0), (91.5, 62.0), (91.5, 71.0))]
+_gw_moved = []
+_gw_new = GONGWON_SITE.buffer(1.5).union(GW_CLEAR)
+for t_ in trees:
+    if not _gw_new.contains(Point(t_[1], t_[2])) or _gz_rng.contains(Point(*rxy(t_))):
+        continue
+    q_ = next((q_ for q_ in _gw_spots if min(math.hypot(o_[1] - q_[0], o_[2] - q_[1]) for o_ in trees) > 4.5), None)
+    if q_ is None:
+        continue                                  # (no room left: cleared below, the list's last tree in its place)
+    _gw_moved.append((t_[0], t_[1], t_[2]))
+    if len(t_) < 6:
+        t_.append((t_[1], t_[2]))      # (later clearings ask where it first stood: rxy)
+    t_[1], t_[2] = round(q_[0], 2), round(q_[1], 2)
+print('공학원 site: trees moved to the lawn by the car park', _gw_moved)
 _n0 = (len(trees), len(shrubs), len(props), len(cars))
 # (의료원: the trees left standing where the halls of the 1997 aerial photos are move, each in its place in the list,
 # to the nearest free spot on the lawns of the two gardens south and east of 제중관, by 외래진료소's front and between
@@ -6284,8 +6375,7 @@ for t_ in trees:
         _mn += 1
 print('의료원: trees moved off the 1997 halls', _mn, '- spots left', len(_msp))
 # (the trees go as first cleared, with 제1공학관 as first put back: ENG_FP_RNG)
-clear_trees(_gz, unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [Polygon(ENG_FP_RNG).buffer(2.0)] +
-                             [p_.buffer(2.0) for p_ in LATE_SITES_RNG if not p_.intersects(Polygon(ENG_FP_RNG).buffer(-1.0))] + [GONGWON_SITE.buffer(1.5)]))
+clear_trees(_gz, _gz_rng)
 shrubs = [s for s in shrubs if not _gz.contains(Point(s[1], s[2]))]
 props = [p for p in props if not _gz.contains(Point(p[1], p[2]))]
 cars = [c for c in cars if not _gz.contains(Point(c[1], c[2]))]
@@ -7126,6 +7216,22 @@ for k_, (x_, y_, h_) in enumerate(_pst):
                      round(h_ + _rpn.uniform(-.04, .04), 3), _rpn.randrange(8)])
     else:
         PINSON_FREE.append((round(x_, 2), round(y_, 2)))
+# 공학원 공사장 앞 (GW_LOT, GW_ROW above; the 1997 vertical photos): the car park's rows as the photos have them (no line
+# shows at 0.54 m a pixel), noses north and south, and the row nose in along the north hoarding either side of its
+# gate.  Their own random stream
+_lot = park_lot('공학원 공사장 앞', None)
+_rgw = random.Random(1997 + 4404)
+_gw_h = math.atan2(_gc_, -_gs_)                         # (up the site's v)
+for u_, v_, d_ in [(60.0, 75.5, 1), (62.8, 75.5, 1)] + [(u_, 79.5, 1) for u_ in (68.0, 70.8, 73.6, 78.2)] + \
+        [(74.7 + 2.8 * k_, 69.0, -1) for k_ in range(6)] + [(72.5 + 2.9 * k_, 63.3, 1) for k_ in range(4)] + \
+        [(75.0, 58.9, -1), (78.0, 58.9, -1)] + [(u_, 84.3, 1) for u_ in np.arange(12.5, 53.0, 2.9)] + \
+        [(u_, 84.3, 1) for u_ in np.arange(-14.0, 1.0, 2.9)]:
+    x_, y_ = site_xy(float(u_), v_)
+    h_ = _gw_h + (0.0 if d_ > 0 else math.pi) + (0.45 if v_ > 84 else 0.0)
+    _lot['stalls'].append([round(x_, 2), round(y_, 2), round(h_, 3)])
+    if _rgw.random() < 0.85:
+        cars.append([_rgw.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(x_, 2), round(y_, 2),
+                     round(h_ + _rgw.uniform(-.05, .05), 3), _rgw.randrange(8)])
 # (the oil under the stalls of the car parks that decal_spots, above, does not know: 백양관 북쪽; their own random
 # numbers, at the end of the decals' list, so that no other decal moves)
 _rpo = random.Random(1997 + 4581)
@@ -7191,6 +7297,7 @@ _ypaint([YJ_EAST_LAWN], _yg)                   # (용재관 북동쪽: the 2015 
 _ypaint([BK_ISLAND], _yg)                   # (백양관 북쪽 주차장 앞 섬: lawn over the strip's place)
 _ypaint([ANNEX_ISLAND], _yg)                 # (학생회관 별관 앞 섬: lawn, the later walks across it cleared)
 _ypaint([p_.buffer(5.5) for p_ in FIELD_GONE_SITES], _yg)    # (대운동장 북쪽 끝: the two later halls' aprons out)
+_ypaint([GONGWON_SITE.buffer(0.5), GW_LOT, GW_ROW, GW_YARD], _yg)    # (공학원 공사장: OSM's later roads and walks across it out)
 _ypaint([Polygon(b_['footprint']).buffer(3.5, join_style=2) for b_ in YONGJAE_BUILDINGS] +
         [yongjae_poly(-4.5, 2.8, -1.0, 21.0)], _yp)
 _ypaint([YJ_WALK], _yp, width=2.6)
@@ -7208,7 +7315,7 @@ spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.arra
 # its own walls
 _gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
 _YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
-_ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5)], _gd)
+_ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5), GW_YARD], _gd)
 # (and 경영학교실단's front flight: paved to 2 m past its foot; 교육관's north flight, which comes down 9.5 m out of
 # the gable onto the yard (blender/landmarks.py gyoyuk_north_flight): paved round its foot and the low wall past it)
 _bkc = _bk_a + BK_T * 45.66
@@ -7405,6 +7512,7 @@ print('daewoo west drive: shrubs moved to its kerbs', len(_dw_moved), 'trees wit
       [t_[:3] for t_ in trees if _dwl.distance(Point(t_[1], t_[2])) < 3.6])
 _ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
 _ypaint(ANNEX_YARD_HALVES, _ga)               # (학생회관 별관 앞마당)
+_ypaint([GW_LOT, GW_ROW], _ga)                # (공학원 공사장 앞 주차장, 북쪽 가림막 앞 줄)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
 _YN[id(_gw)] = '_gw'
 _ypaint([BK_COURT], _gw)
