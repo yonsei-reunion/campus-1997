@@ -452,20 +452,31 @@ def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True):
             mb.box((x, y, zt + 0.6), (1.6, 1.0, 1.2), 'metal', rotz=ang, skip=('bottom',))
 
 
-def hip_roof(mb, cx, cy, L, W, ang, zt, mat, pitch=0.6, over=0.5, fascia='frame_white'):
+def hip_roof(mb, cx, cy, L, W, ang, zt, mat, pitch=0.6, over=0.5, fascia='frame_white', gable=None):
+    """A hipped roof over the L x W rectangle at (cx, cy), its ridge along ang; gable: the end walls' material, for a
+    gabled roof instead (the ridge runs the whole length, the end walls go up to it, the roof sails `over` past them)"""
     L2, W2 = L / 2 + over, W / 2 + over
     h = W2 * pitch
     c, s = math.cos(ang), math.sin(ang)
 
     def P(x, y, z):
         return (cx + x * c - y * s, cy + x * s + y * c, z)
-    r = max(0.0, L2 - W2)
+    r = L2 if gable else max(0.0, L2 - W2)
     z0 = zt - over * pitch
     A, B, C, D = P(-L2, -W2, z0), P(L2, -W2, z0), P(L2, W2, z0), P(-L2, W2, z0)
     zr = z0 + h
     R1, R2 = P(-r, 0, zr), P(r, 0, zr)
     mb.face([A, B, R2, R1], mat)
     mb.face([C, D, R1, R2], mat)
+    if gable:
+        for x in (-L / 2, L / 2):                    # the gables
+            q = [P(x, -W / 2, zt), P(x, W / 2, zt), P(x, 0, zr)]
+            mb.face(q if x > 0 else q[::-1], gable)
+        mb.face([R1, R2, B, A], 'plaster_white')      # the undersides (seen under the verges and the eaves)
+        mb.face([R2, R1, D, C], 'plaster_white')
+        for p, q in ((A, B), (C, D), (B, R2), (R2, C), (D, R1), (R1, A)):
+            mb.quad(p, q, (q[0], q[1], q[2] - 0.25), (p[0], p[1], p[2] - 0.25), fascia)
+        return
     mb.face([B, C, R2], mat)
     mb.face([D, A, R1], mat)
     # soffit + fascia
@@ -591,6 +602,12 @@ FH_AT[1444448646] = 3.8
 # parks beside them (tools/build_campus.py FLOOR_H_AT; reference/고증/3.1.2)
 FH_AT.update({324328481: 3.55, 990036: 3.3})
 SILL_AT[1444448646] = dict(bay=4.2, ww=0.84, sill=0.85, head=0.55, mull=2, depth=0.3)
+# 연합신학대학원 (1964 - 2003; tools/build_campus.py UTS, reference/고증/3.1 「3.1.1」): the 1997 aerial photos have
+# one pale roof, a ridge down its middle from end to end (the east half lighter in every frame), the eaves 6.7 m over
+# the ground and the ridge 2.5 - 3 m over them: a low gabled roof (the 1990 and 1994 maps draw a gable), two storeys
+# of 3.4 m.  (Like the hipped roof it had, it draws nothing from rnd.)
+ROOF_AT = {246156121: dict(mat='roof_cement', pitch=0.45, gable=True)}
+FH_AT[246156121] = 3.4
 
 
 def build_generic(b, rnd):
@@ -639,7 +656,10 @@ def build_generic(b, rnd):
         for a_, b_ in wing[2]:          # the wing's storey over the lower roof
             wall_edge(mb, a_, b_, zt, zt + fh + 0.9, 1, fh, st, rnd, found=False)
         parapet_and_roof(mb, wing[1], zt + fh, st, rnd, clutter=False)
-    if pitched:
+    if pitched and b['id'] in ROOF_AT:
+        ra = ROOF_AT[b['id']]
+        hip_roof(mb, cx, cy, L, W, ang, zt, ra['mat'], pitch=ra['pitch'], gable=st['wall'] if ra.get('gable') else None)
+    elif pitched:
         hip_roof(mb, cx, cy, L, W, ang, zt, rnd.choice(['roof_slate', 'roof_giwa']) if style == 'house' else 'roof_slate',
                  pitch=0.55 if style == 'house' else 0.75)
     elif style == 'gym':

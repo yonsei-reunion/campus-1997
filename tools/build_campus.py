@@ -187,10 +187,24 @@ _ae = np.array([55.93, -35.41]) - _ane
 LATE_FOOTPRINT_1997[ANNEX_1997['id']] = [(25.68, -27.72), (55.93, -35.41)] + [
     tuple(round(float(v_), 2) for v_ in p_ + d_ / np.linalg.norm(d_) * ANNEX_1997['north_in'])
     for p_, d_ in ((_ane, _ae), (_anw, _aw))]                        # (NE and NW moved down the east and west walls)
+# 연합신학대학원 (1964.12 - 2003.1; reference/고증/3.1 「3.1.1」): OSM's outline is the 신학관 of 2005, an L of 17 x 53 m
+# and a south wing.  The 1997-07-28 vertical aerial photos have one pale gabled roof where its west wing stands, on
+# the same axis (within 0.3 deg): 11.9 x 30.8 m, the six frames of both flight lines within 0.15 m of each other at
+# the eaves' height (68.2 m, 6.7 m over the yard south of it; blender/generic.py ROOF_AT).  In UTS_UV: u east, v north
+# from the OSM outline's south-west corner along its west face.  The random planting ran with OSM's outline, which
+# contains it: the hall goes in after it (the trees keep their list).
+UTS = 246156121
+UTS_UV = dict(o=(-129.51, 183.5), n=(13.14, 51.78), u=(3.0, 14.9), v=(7.0, 37.8))
+_uo, _un = np.array(UTS_UV['o']), np.array(UTS_UV['n']) / np.linalg.norm(UTS_UV['n'])
+_ut = np.array([_un[1], -_un[0]])
+LATE_FOOTPRINT_1997[UTS] = [tuple(round(float(c_), 2) for c_ in _uo + _ut * u_ + _un * v_)
+                            for u_, v_ in ((UTS_UV['u'][0], UTS_UV['v'][0]), (UTS_UV['u'][1], UTS_UV['v'][0]),
+                                           (UTS_UV['u'][1], UTS_UV['v'][1]), (UTS_UV['u'][0], UTS_UV['v'][1]))]
 FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
 FLOOR_H_AT = {222843398: 4.1}        # 과학관's 4.1 m storeys (blender/generic.py FH_AT, reference/고증.md 3.10)
 FLOOR_H_AT[ANNEX_1997['id']] = ANNEX_1997['floor']   # (학생회관 별관: its top 8.5 m over the yard in the 2008 frames)
 FLOOR_H_AT.update({324328481: 3.55, 990036: 3.3})    # (심장혈관병원, 특별병동: their roofs in the 1997 aerial photos, above)
+FLOOR_H_AT[UTS] = 3.4                                # (연합신학대학원: its eaves 6.7 m over the ground in the aerial photos)
 
 # ---------------------------------------------------------------------------
 # Terrain
@@ -876,6 +890,12 @@ FORECOURTS.append((222843398, None, 30.0, dict(face=(tuple(_sf - SCI_T * 8.8), t
 BILL_FRONT = ((14.11, 417.87), (57.73, 406.29))      # the south front, west -> east (the outside to the right)
 FORECOURTS.append((245623193, None, 12.0, dict(face=BILL_FRONT, max_half=23.0, blend=10.0, side_blend=9.0,
                                                 level='corner', rise=-0.1, inside=2.0)))
+# 연합신학대학원 (UTS above; reference/고증/3.1 「3.1.1」): the 5 m grid runs the hillside 4.3 m up across the 1997
+# hall, its north-west corner in the ground to the upper floor.  The aerial photos have the yard south of it and the
+# strip along its east wall level (61.4 - 61.7 m in their datum; the grid 60.9 - 62.6 m along that wall): a level
+# shelf under the hall and 5 m out of its east wall, at the ground along that wall, cut into the hill behind it.
+FORECOURTS.append((UTS, None, 5.0, dict(face=(LATE_FOOTPRINT_1997[UTS][1], LATE_FOOTPRINT_1997[UTS][2]), max_half=17.0,
+                                        blend=6.0, side_blend=7.0, inside=13.0)))
 # 교육관 (blender/landmarks.py gyoyuk): its west side stands three full storeys over the drive below 제2인문관
 # (reference/2003_가을_교육관_서쪽면.jpg, taken from there) and its north end's outside flight starts from a yard of
 # parked cars at the ground floor (2003_가을_연희관앞정원과_교육관_북쪽계단.jpg).  The 5 m grid ran the hill from 종합관
@@ -969,15 +989,24 @@ for wid, front, depth, opt in FORECOURTS:
 # - 구관: the road and the sidewalk beside it about level along the whole front, both doors five or six risers over
 #   the road (three or two over the sidewalk, which is three or two over the road)
 # - 신관: its door five risers over a level forecourt at the road's level
-# - the glazed corridor between them runs from 구관's first floor into 신관's ground floor: 신관 stands a storey higher
-# So 신관's floor stays at its lowest corner and its forecourt is levelled five risers under it; 구관's floor goes a
-# storey under 신관's, the road and sidewalk along its front levelled 0.8 m under that, easing into the slope west of
-# it and rising past its east end to 신관's forecourt (MUSIC_BASE: the halls' floors, set after the outlines below).
+# - the glazed corridor between them leaves 구관 a storey over its doors and comes into 신관 over the open ground
+#   under its west end
+# The game first read that corridor as 구관's first floor into 신관's ground floor and stood 구관 a storey (3.6 m)
+# lower, the road climbing 9 % between the halls.  The 1997-07-28 vertical aerial photos (reference/고증/3.11) have the
+# road along 구관's front a little over 신관's forecourt, not a storey under it: 59.2 m (26 points, 58.3 - 59.6) against
+# 58.6 m (61 points, 57.7 - 58.8; 58.7 between the halls) in their datum, and the roofs 1.5 m apart (72.7 and
+# 74.2 m); the 2010 roadview from between the halls looks along a road about level both ways.  So 신관's floor stays
+# at its lowest corner and its forecourt is levelled five risers under it; the road and sidewalk along 구관's front
+# stand 0.7 m over that forecourt (falling to it between the halls) and 구관's floor 0.8 m over them (MUSIC_BASE: the
+# halls' floors, set after the outlines below).  West of 구관 the photos keep that height round the hall's end and
+# north along the road behind it (58 - 60 m as far as y 115), where the game's ground is 4 - 8 m lower
+# (reference/고증/2.8: this side of the campus is that much low): the front eases into it past the hall's west end,
+# and the road round that end climbs to it (music_grade).
 MUSIC_A, MUSIC_B = 429077789, 429077790
 MUSIC_B_FLOOR = round(corner_level(MUSIC_B), 2)
-MUSIC_A_FLOOR = round(MUSIC_B_FLOOR - FLOOR_H['white'], 2)
-MUSIC_A_ROAD = round(MUSIC_A_FLOOR - 0.8, 2)
 MUSIC_B_YARD = round(MUSIC_B_FLOOR - 0.68, 2)
+MUSIC_A_ROAD = round(MUSIC_B_YARD + 0.7, 2)
+MUSIC_A_FLOOR = round(MUSIC_A_ROAD + 0.8, 2)
 MUSIC_BASE = {MUSIC_A: MUSIC_A_FLOOR, MUSIC_B: MUSIC_B_FLOOR}
 MU_O = np.array([130.15, -8.06])                                      # 구관's south front, west -> east
 MU_T = (np.array([189.49, -23.68]) - MU_O) / np.linalg.norm(np.array([189.49, -23.68]) - MU_O)
@@ -986,20 +1015,35 @@ MB_O = np.array([207.41, -12.61])                                     # 신관's
 MB_T = (np.array([261.16, -26.9]) - MB_O) / np.linalg.norm(np.array([261.16, -26.9]) - MB_O)
 
 
+MU_WEST = (np.array([124.2, -6.8]), np.array([125.5, 51.8]))         # the road round 구관's west end, north behind it (OSM)
+
+
 def music_grade(s_end=61.4, s_yard=100.0):
-    """구관's front (S along it from its south-west corner, D out of it): level from its west end to its east end
-    (s_end), then a ramp along the road to 신관's forecourt (s_yard), over the road and a little beyond (D 13 m),
-    in front of its set-back east block too; easing back over 15 m west, 7 m south, 4 m in under the hall (12 m
-    north of its west end, where the road runs on behind it)"""
+    """구관's front (S along it from its south-west corner, D out of it): level from 11 m past its west end (the road
+    round that end) to 신관's forecourt (s_yard), over the road, the walk south of it and a little beyond (D 19 m), in
+    front of its set-back east block too, and under the hall to 5 m behind its back wall (the ground round its west
+    end and behind it stands at its front's height in the aerial photos); easing back over 15 m west, 12 m south,
+    10 m north; from its east end (s_end) it falls to 신관's forecourt (s_yard).  The road north behind the hall
+    (MU_WEST) keeps that level past the hall's north-west corner, then comes down to the ground it had 52 m on, a
+    band 4 m either side of its middle easing out over 8 m."""
     S = (X - MU_O[0]) * MU_T[0] + (Y - MU_O[1]) * MU_T[1]
     D = (X - MU_O[0]) * MU_N[0] + (Y - MU_O[1]) * MU_N[1]
     z = MUSIC_A_ROAD + (MUSIC_B_YARD - MUSIC_A_ROAD) * np.clip((S - s_end) / (s_yard - s_end), 0, 1)
-    inside = 1.0 + 5.0 * np.clip((S - s_end + 3.0) / 4.0, 0, 1)
-    in_blend = 4.0 + 8.0 * np.clip(-S / 4.0, 0, 1)
-    e = np.maximum.reduce([-S / 15.0, (S - s_yard) / 6.0, (D - 13.0) / 7.0, (-D - inside) / in_blend, np.zeros_like(S)])
+    inside = np.where(S < s_end + 12.0, 21.5 + 6.5 * np.clip((S - s_end + 3.0) / 4.0, 0, 1), 6.0)
+    e = np.maximum.reduce([(-S - 11.0) / 15.0, (S - s_yard) / 6.0, (D - 19.0) / 12.0, (-D - inside) / 10.0,
+                           np.zeros_like(S)])
     w = np.clip(1 - e, 0, 1) * np.clip((dist - (ROAD_HALF + 4)) / 8.0, 0, 1)
+    ra, rb = MU_WEST
+    rt = (rb - ra) / np.linalg.norm(rb - ra)
+    z1 = sample(Hn, NEAR_HALF, NEAR_STEP, *(ra + rt * 72.0))
     Hn[:] = Hn * (1 - w) + z * w
     FIXED[w > 0.999] = True
+    R = (X - ra[0]) * rt[0] + (Y - ra[1]) * rt[1]
+    Q = np.abs((X - ra[0]) * rt[1] - (Y - ra[1]) * rt[0])
+    zr = MUSIC_A_ROAD + (z1 - MUSIC_A_ROAD) * np.clip((R - 20.0) / 52.0, 0, 1)
+    wr = np.clip(1 - (Q - 4.0) / 8.0, 0, 1) * np.clip((R + 6.0) / 6.0, 0, 1) * np.clip((78.0 - R) / 6.0, 0, 1)
+    Hn[:] = Hn * (1 - wr) + zr * wr
+    FIXED[wr > 0.999] = True
 
 
 level_forecourt(MUSIC_B, None, 14.0, face=(tuple(MB_O + MB_T * 20.0), tuple(MB_O + MB_T * 56.5)), max_half=18.5,
@@ -5519,6 +5563,9 @@ FIELD_GONE_SITES = [Polygon(b['footprint']) for b in buildings if b['id'] in FIE
 RND_GHOSTS = [{**{k_: v_ for k_, v_ in b.items() if k_ != 'entry'}, 'at': i_ - j_}
               for j_, (i_, b) in enumerate((i_, b) for i_, b in enumerate(buildings) if b['id'] in GONE_1997)]
 buildings[:] = [b for b in buildings if b['id'] not in GONE_1997]
+# (연합신학대학원, UTS above: a pitched stone hall draws nothing from that stream, with OSM's outline or with the one put in
+# its place below, so it keeps its place in the list)
+UTS_OSM = Polygon(next(b for b in buildings if b['id'] == UTS)['footprint'])
 # the OLD_HALLS put back after the planting (OLD_HALLS_EARLY): at the end of the halls list, so that blender/build.py's
 # colour and roof draws for the halls before them stay as they were (their doors once the outlines below are in)
 LATE_HALLS = []
@@ -5532,6 +5579,11 @@ for pid, nm, style, lv, poly in OLD_HALLS:
                            base=BK_FRONT_BASE if pid == 990022 else round(min(hs), 2), top_ground=round(max(hs), 2),
                            footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]))
 buildings += LATE_HALLS
+# (연합신학대학원: the 1997 hall's door in the middle of its east wall, where OSM's walk from the road east of it comes
+# in; the photos do not show it.  Set here: the planting ran with the door of OSM's outline)
+UTS_FP = Polygon(LATE_FOOTPRINT_1997[UTS])
+UTS_DOOR = tuple((np.array(LATE_FOOTPRINT_1997[UTS][1]) + np.array(LATE_FOOTPRINT_1997[UTS][2])) / 2)
+ENTRY_AT[UTS] = (UTS_DOOR, {})
 LATE_SITES = []
 LATE_SITES_RNG = []        # (as the trees were first cleared: MED_SITES_RNG)
 for b in buildings:
@@ -6288,6 +6340,39 @@ for t_ in _f_moved:
     t_[:] = FIELD_NEW_TREES.pop(0)
 print('대운동장: off the oval and the two sites (trees moved to the woods round it, shrubs, props, decals)', len(_f_moved),
       _n0[0] - len(shrubs), _n0[1] - len(props), _n0[2] - len(out['decals']), '- woods', _n_new)
+# 연합신학대학원 (UTS): the ring of bushes round OSM's outline and the stains on its apron go; the walk from the road
+# east of it runs on to the 1997 hall's door; the ground OSM's outline and its apron leave is lawn again (UTS_LAWN,
+# painted below) with trees as on the hill round it (the aerial photos: crowns up to the hall's north and west walls,
+# open ground south of it and along its east wall), at the list's end
+_n0 = (len(shrubs), len(out['decals']))
+shrubs = [s for s in shrubs if not (s[0] == 'bush' and abs(UTS_OSM.exterior.distance(Point(s[1], s[2])) - 5.5) < 0.2
+                                    and not UTS_OSM.contains(Point(s[1], s[2])))]
+out['decals'] = [d_ for d_ in out['decals'] if not UTS_OSM.buffer(4.0).contains(Point(d_[1], d_[2]))]
+UTS_WALK = _uw0 = None
+for p_ in paths_out:
+    if len(p_['pts']) == 2 and p_['kind'] == 'footway' and UTS_OSM.buffer(1.0).contains(Point(p_['pts'][0])) \
+            and not UTS_OSM.buffer(1.0).contains(Point(p_['pts'][1])) and Point(p_['pts'][0]).distance(Point(UTS_DOOR)) < 12.0:
+        _uw0 = LineString(p_['pts']).buffer(p_['w'] / 2 + 0.4)       # (the walk as OSM has it, to the later hall's door)
+        p_['pts'][0] = [round(float(UTS_DOOR[0] + _ut[0] * 1.2), 1), round(float(UTS_DOOR[1] + _ut[1] * 1.2), 1)]
+        UTS_WALK = [tuple(q_) for q_ in p_['pts']]
+out['paths'] = _ui_paths()
+_uk = unary_union([LineString(p_['pts']).buffer(p_['w'] / 2 + 0.4) for p_ in paths_out
+                   if len(p_['pts']) > 1 and LineString(p_['pts']).distance(UTS_OSM) < 10.0])
+UTS_LAWN = unary_union([UTS_OSM.buffer(3.6, join_style=2)] + ([_uw0] if _uw0 is not None else [])).difference(_uk)
+_uzt = UTS_OSM.buffer(1.5).difference(UTS_FP.buffer(5.0)).difference(_uk.buffer(2.5))
+_tpts = [(t_[1], t_[2]) for t_ in trees if UTS_OSM.buffer(18.0).contains(Point(t_[1], t_[2]))]
+UTS_NEW_TREES = []
+_rt = random.Random(1997 + 1964)
+_ub = _uzt.bounds
+for _k in range(600):
+    x_, y_ = _rt.uniform(_ub[0], _ub[2]), _rt.uniform(_ub[1], _ub[3])
+    if not _uzt.contains(Point(x_, y_)) or any((x_ - a_) ** 2 + (y_ - b_) ** 2 < 5.5 ** 2 for a_, b_ in _tpts):
+        continue
+    _tpts.append((x_, y_))
+    UTS_NEW_TREES.append([_rt.choice(['zelkova', 'oak', 'oak', 'pine']), round(x_, 2), round(y_, 2),
+                          round(_rt.uniform(0.9, 1.15), 2), round(_rt.uniform(0, 6.28), 2)])
+print('연합신학대학원: bushes %d, decals %d gone; walk to the door %s; new trees %d' % (
+    _n0[0] - len(shrubs), _n0[1] - len(out['decals']), UTS_WALK, len(UTS_NEW_TREES)))
 # 대우관 뒤 (DAEWOO_BACK): nothing the random planting put down stays on the yard's asphalt and paving or in its walls'
 # way (a tree goes as those under the moved 백양로 do: the last one takes its place in the list); then the yard's own:
 # the hedge belt round the theatre, the planter round its west rim, the strip along the wall over the portal, the
@@ -7078,6 +7163,7 @@ trees += YJ_NEW_TREES                       # (용재관 북쪽: the same)
 trees += DW_NEW_TREES                       # (대우관 뒤: the same)
 trees += FIELD_NEW_TREES                    # (대운동장 둘레 숲: the same)
 trees += LIB97_NEW_TREES                    # (중앙도서관 앞: the same)
+trees += UTS_NEW_TREES                      # (연합신학대학원: where OSM's later outline stood)
 markers += ROT['markers']
 out['colliders'] += ROT['colliders']
 out['paths'] += ROT['paths']
@@ -7109,6 +7195,9 @@ _ypaint([Polygon(b_['footprint']).buffer(3.5, join_style=2) for b_ in YONGJAE_BU
         [yongjae_poly(-4.5, 2.8, -1.0, 21.0)], _yp)
 _ypaint([YJ_WALK], _yp, width=2.6)
 _ypaint([LIB97_ZONE.difference(LIB97_TERRACE.buffer(-0.2))], _yg)   # (중앙도서관 앞: lawn; its walks and plaza below, _gp · _ga)
+_ypaint([UTS_LAWN], _yg)                     # (연합신학대학원: OSM's outline and its apron lawn again; the 1997 hall's: _gp)
+if UTS_WALK:
+    _ypaint([UTS_WALK], _yp, width=2.6)
 _yz = ndimage.gaussian_filter(np.array(_yz, np.float32) / 255.0, 0.7)
 _yg = ndimage.gaussian_filter(np.array(_yg, np.float32) / 255.0, 0.7)
 spl[..., 0] *= 1.0 - _yg
