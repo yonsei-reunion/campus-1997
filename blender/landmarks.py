@@ -3542,96 +3542,267 @@ def sang_stone_bank(pts):
 
 
 def daewoo_rear(mb, P, Le, plinth, floors, fh, Hw, wall):
-    """The back of 대우관 (Google Street View 2009-11, from the drive behind it; the hall dates from 1996): none of the
-    buttresses and battlements of the old halls but a plain coped parapet with the slate roof behind; single windows
-    in pairs; in the middle a broad tower 2.5 m out that rises a storey and a half over the parapet, its middle part
-    the highest, with a row of five vent pipes on top and a back door at its foot; either side, half way out to the
-    wings, a stair glazed from the ground floor to the top in one tall dark screen, a plain box over it on the roof;
-    a few downpipes.  P: the back wall, s from its east end (the tower's axis at Le / 2, as the front tower's)."""
-    sc = Le / 2
-    tw, tp = 6.0, 2.5               # back tower: half width, projection
-    st, sw = 12.6, 1.6              # stair bays: distance from the middle, half width of the glazing
+    """The back of 대우관 (the hall dates from 1996).  Its masses as the roofs of the vertical aerial photos of 1997-07-28
+    have them (tools/build_campus.py DAEWOO_BACK; Kakao's base map has the same outline): a tower 13.2 m wide stands 8 m
+    out of the back wall, a storey and a half over the parapet; either side of it a block 5.8 m out to the height of
+    the parapet, so that the back wall itself shows only in the corners by the wings.  Their faces as Naver's street
+    view of 2010-09 and Google's of 2009-11 show them from the road north of the hall: a plain coped parapet, single
+    windows in pairs, in the middle of each block a stair glazed from the ground floor to the top in one tall dark
+    screen with a plain box over it on the roof, the tower's middle part the highest with a row of vent pipes, a back
+    door at its foot onto the floor of the open-air theatre.  P: the back wall, s from its east end."""
+    db = CAMPUS['daewoo_back']
+    S = lambda u: 46.7 - u                                   # (daewoo(): the centre block runs u 0.4 .. 46.7)
+    (tu0, tu1, tv), blocks = db['tower'], db['blocks']
+    tc, tw, tp = S((tu0 + tu1) / 2), (tu1 - tu0) / 2, tv - 14.8
     zt = plinth + floors * fh       # top of the window floors
-    for a, b in ((0.0, sc - st - sw - 0.7), (sc - st + sw + 0.7, sc - tw - 0.2), (sc + tw + 0.2, sc + st - sw - 0.7),
-                 (sc + st + sw + 0.7, Le)):
+    sw = 1.6                        # half width of the stairs' glazing
+    lo = -1.6
+    for a, b in ((0.0, S(blocks[1][1])), (S(blocks[0][0]), Le)):
         window_grid(mb, P, Le, plinth, floors, fh, 3.3, wall, ww=0.42, trim='stone_trim', mull=1, s_start=a, s_end=b)
-    for c in (sc - st, sc + st):
-        hole = (c - sw, c + sw, plinth + 0.9, zt - 0.3)
-        wall_holes(mb, P, c - sw - 0.7, c + sw + 0.7, plinth, zt, wall, [hole])
-        reveal(mb, P, *hole, 0.25, wall)
-        glazing(mb, P, *hole, -0.25, 3, floors * 2, 'frame_dark')
-        mb.box(P(c, Hw + 1.3, -1.5), (2 * sw + 1.8, 3.0, 3.6), wall, mats={'top': 'roof_flat'})
-        bar(mb, P, c - sw - 0.95, Hw + 3.12, c + sw + 0.95, Hw + 3.12, 0.16, 0.0, 0.1, 'stone_trim', ends=True)
-    flat_wall(mb, P, sc - tw - 0.2, sc + tw + 0.2, plinth, zt, wall)              # (behind the tower)
     flat_wall(mb, P, 0, Le, zt, Hw, wall)
     bar(mb, P, -0.15, Hw + 0.15, Le + 0.15, Hw + 0.15, 0.3, -0.3, 0.12, 'stone_trim', ends=True)   # coping
-    for s in (sc - 18.2, sc - 8.4, sc + 8.4, sc + 18.2):                              # downpipes
-        bar(mb, P, s, -0.6, s, Hw, 0.14, 0.0, 0.14, 'metal_dark')
-    # the tower: the flanks to ht1, the middle (|s - sc| < 3) to ht2; its upper part runs back into the roof
+    for bu0, bu1, bv in blocks:
+        a, b, d = S(bu1), S(bu0), bv - 14.8
+        B = lambda s, z, dd=0.0, d=d: P(s, z, dd + d)
+        c = (a + b) / 2
+        window_grid(mb, B, Le, plinth, floors, fh, 3.3, wall, ww=0.42, trim='stone_trim', mull=1, s_start=a, s_end=c - sw - 0.7)
+        window_grid(mb, B, Le, plinth, floors, fh, 3.3, wall, ww=0.42, trim='stone_trim', mull=1, s_start=c + sw + 0.7, s_end=b)
+        hole = (c - sw, c + sw, plinth + 0.9, zt - 0.3)
+        wall_holes(mb, B, c - sw - 0.7, c + sw + 0.7, plinth, zt, wall, [hole])
+        reveal(mb, B, *hole, 0.25, wall)
+        glazing(mb, B, *hole, -0.25, 3, floors * 2, 'frame_dark')
+        flat_wall(mb, B, a, b, zt, Hw, wall)
+        flat_wall(mb, B, a, b, lo, plinth, wall)
+        mb.quad(P(a, lo, 0.0), P(a, lo, d), P(a, Hw, d), P(a, Hw, 0.0), wall)             # its sides
+        mb.quad(P(b, lo, d), P(b, lo, 0.0), P(b, Hw, 0.0), P(b, Hw, d), wall)
+        mb.quad(P(a, Hw, 0.0), P(a, Hw, d), P(b, Hw, d), P(b, Hw, 0.0), 'roof_flat')
+        bar(mb, B, a - 0.15, Hw + 0.15, b + 0.15, Hw + 0.15, 0.3, -0.3, 0.12, 'stone_trim', ends=True)
+        mb.box(B(c, Hw + 1.3, -1.5), (2 * sw + 1.8, 3.0, 3.6), wall, mats={'top': 'roof_flat'})
+        bar(mb, B, c - sw - 0.95, Hw + 3.12, c + sw + 0.95, Hw + 3.12, 0.16, 0.0, 0.1, 'stone_trim', ends=True)
+        for s in (a + 1.0, b - 1.0):                                                     # downpipes
+            bar(mb, B, s, lo, s, Hw, 0.14, 0.0, 0.14, 'metal_dark')
+    # the tower: the flanks to ht1, the middle (|s - tc| < mid) to ht2; its upper part runs back into the roof
     T = lambda s, z, d=0.0: P(s, z, d + tp)
-    ht1, ht2, mid = Hw + 3.9, Hw + 5.4, 3.0
-    for a, b in ((sc - tw, sc - mid), (sc + mid, sc + tw)):
+    ht1, ht2, mid = Hw + 3.9, Hw + 5.4, 3.3
+    zd = db['stage'] - mb.xf.translation.z if hasattr(mb, 'xf') and mb.xf is not None else 0.9     # the theatre's floor
+    for a, b in ((tc - tw, tc - mid), (tc + mid, tc + tw)):
         window_grid(mb, T, Le, plinth, floors, fh, b - a, wall, ww=0.3, trim='stone_trim', mull=0, s_start=a, s_end=b)
         flat_wall(mb, T, a, b, zt, ht1, wall)
-        flat_wall(mb, T, a, b, -1.0, plinth, wall)
+        flat_wall(mb, T, a, b, lo, plinth, wall)
         mb.quad(P(a, ht1, -6.0), P(b, ht1, -6.0), P(b, ht1, tp), P(a, ht1, tp), 'roof_flat')
-    window_grid(mb, T, Le, plinth + fh, floors - 1, fh, 3.0, wall, ww=0.55, trim='stone_trim', mull=1,
-                s_start=sc - mid, s_end=sc + mid)
-    door = (sc - 1.5, sc + 1.5, 0.9, 3.5)                      # the back door, from the yard (about 1 m up here)
-    wall_holes(mb, T, sc - mid, sc + mid, -1.0, plinth + fh, wall, [door])
+    window_grid(mb, T, Le, plinth + fh, floors - 1, fh, 3.3, wall, ww=0.55, trim='stone_trim', mull=1,
+                s_start=tc - mid, s_end=tc + mid)
+    door = (tc - 1.5, tc + 1.5, zd + 0.02, zd + 2.6)           # the back door, at the theatre's floor
+    wall_holes(mb, T, tc - mid, tc + mid, lo, plinth + fh, wall, [door])
     reveal(mb, T, *door, 0.4, wall)
     shopfront(mb, T, door[0], door[1], door[2], door[3], -0.4, bays=4, door_h=2.3)
     vestibule(mb, T, door[0] - 0.2, door[1] + 0.2, door[2] + 0.002, door[3] - 0.05, -0.42, 2.0, lights=1)
-    flat_wall(mb, T, sc - mid, sc + mid, zt, ht2, wall)
-    mb.quad(P(sc - mid, ht2, -6.0), P(sc + mid, ht2, -6.0), P(sc + mid, ht2, tp), P(sc - mid, ht2, tp), 'roof_flat')
-    for s0, z1, z0_ in ((sc - tw, ht1, -1.0), (sc - mid, ht2, ht1)):                  # the sides (east-facing)
+    flat_wall(mb, T, tc - mid, tc + mid, zt, ht2, wall)
+    mb.quad(P(tc - mid, ht2, -6.0), P(tc + mid, ht2, -6.0), P(tc + mid, ht2, tp), P(tc - mid, ht2, tp), 'roof_flat')
+    for s0, z1, z0_ in ((tc - tw, ht1, lo), (tc - mid, ht2, ht1)):                  # the sides (east-facing)
         mb.quad(P(s0, z0_, -6.0), P(s0, z0_, tp), P(s0, z1, tp), P(s0, z1, -6.0), wall)
-    for s1, z1, z0_ in ((sc + tw, ht1, -1.0), (sc + mid, ht2, ht1)):                  # (west-facing)
+    for s1, z1, z0_ in ((tc + tw, ht1, lo), (tc + mid, ht2, ht1)):                  # (west-facing)
         mb.quad(P(s1, z0_, tp), P(s1, z0_, -6.0), P(s1, z1, -6.0), P(s1, z1, tp), wall)
-    for s0, s1, z1 in ((sc - tw, sc + tw, ht1), (sc - mid, sc + mid, ht2)):            # its back, in the roof
+    for s0, s1, z1 in ((tc - tw, tc + tw, ht1), (tc - mid, tc + mid, ht2)):            # its back, in the roof
         mb.quad(P(s1, Hw - 0.5, -6.0), P(s0, Hw - 0.5, -6.0), P(s0, z1, -6.0), P(s1, z1, -6.0), wall)
-    for s in (sc - tw, sc - mid, sc + mid, sc + tw):                                  # strips up the tower
-        bar(mb, T, s, -1.0, s, (ht2 if abs(s - sc) < mid + 0.1 else ht1) + 0.25, 0.45, 0.0, 0.22, wall, ends=True)
-    for a, b, z in ((sc - tw - 0.15, sc - mid, ht1), (sc + mid, sc + tw + 0.15, ht1), (sc - mid - 0.15, sc + mid + 0.15, ht2)):
+    for s in (tc - tw, tc - mid, tc + mid, tc + tw):                                  # strips up the tower
+        bar(mb, T, s, lo, s, (ht2 if abs(s - tc) < mid + 0.1 else ht1) + 0.25, 0.45, 0.0, 0.22, wall, ends=True)
+    for a, b, z in ((tc - tw - 0.15, tc - mid, ht1), (tc + mid, tc + tw + 0.15, ht1), (tc - mid - 0.15, tc + mid + 0.15, ht2)):
         bar(mb, T, a, z + 0.12, b, z + 0.12, 0.25, -0.2, 0.3, 'stone_trim', ends=True)
     for k in range(5):                                                                # vent pipes
-        c = P(sc - 2.0 + k, 0.0, tp - 1.3)
+        c = P(tc - 2.0 + k, 0.0, tp - 1.3)
         mb.cylinder((c[0], c[1]), 0.15, ht2, ht2 + 1.6, 'metal', seg=8)
         mb.cylinder((c[0], c[1]), 0.22, ht2 + 1.6, ht2 + 1.75, 'metal', seg=8)
 
 
 def daewoo_back(mb, z0):
-    """The yard behind 대우관 (Street View 2009-11; levels from tools/build_campus.py DAEWOO_BACK), in the hall frame
-    (u, v): the long planter in the recess between the wings, low concrete walls round soil and pointed conifers;
-    the parking bays painted on the car park; the iron fence along the road to 북문 above its east side."""
+    """The yard behind 대우관 as the vertical aerial photos of 1997-07-28 have it (tools/build_campus.py DAEWOO_BACK,
+    reference/고증/3.6.2; Naver street view 2010-09 for what stands up), in the hall's frame (u, v, height over z0):
+    the half-round open-air theatre behind the back tower (a paved floor, six stepped seats round its north and east,
+    the walk round their top and the landing at the head of the flight from the low court), the planter round its
+    west rim, the retaining walls of the upper car park with the mouth of the underground one, the flight, the round
+    cooling tower by the upper car park's mouth and the iron fence along the road to 북문.  Returns the upper level's
+    deck (world coordinates): the ground's own material over the cells of the 5 m grid the walls' drops pull down."""
     db = CAMPUS['daewoo_back']
-    hy = lambda u, v: db['h0'] + db['su'] * (u - db['u0']) + db['sv'] * max(0.0, v - db['v0']) - z0
+    C = Vector(db['c'])
+    LOW, ST, TOP = db['low'] - z0, db['stage'] - z0, db['top'] - z0
+    lot = lambda v: TOP - 0.1 + 0.0215 * (min(v, 75.0) - 40.0) + 0.04 * max(0.0, v - 75.0)
     gl = local_ground(mb)
-    (u0, v0), (u1, _), (_, v1) = db['planter'][0], db['planter'][1], db['planter'][2]
-    th, ht = 0.25, 0.85
+    W_ = lambda p: tuple(mb.xf @ Vector(p))
+    pol = lambda r, a: (C.x + r * math.cos(math.radians(a)), C.y + r * math.sin(math.radians(a)))
+    STONE, STEP, PAVE, CAP = 'stone_granite', 'stone_step', 'granite_light', 'stone_trim'
+    rr = random.Random(157)
 
-    def wall_run(a, b, inward):
-        """a planter wall from a to b (u, v), its inside towards `inward` (unit 2D), top following the yard"""
-        a, b, nn = Vector(a), Vector(b), Vector(inward) * th
-        pts = [(a, 0), (b, 0), (b, 1), (a, 1)]
-        q = lambda p, k, top: (*(p + nn * k), hy(*p) + (ht if top else -0.3))
-        mb.quad(q(a, 0, False), q(b, 0, False), q(b, 0, True), q(a, 0, True), 'concrete')
-        mb.quad(q(b, 1, False), q(a, 1, False), q(a, 1, True), q(b, 1, True), 'concrete')
-        mb.quad(q(a, 0, True), q(b, 0, True), q(b, 1, True), q(a, 1, True), 'stone_trim')
-        mb.quad(q(a, 1, False), q(a, 0, False), q(a, 0, True), q(a, 1, True), 'concrete')
-        mb.quad(q(b, 0, False), q(b, 1, False), q(b, 1, True), q(b, 0, True), 'concrete')
+    def flat(pts, zs, mat, walk=True):
+        """a face seen from above; zs: one height or one for each point"""
+        zs = zs if hasattr(zs, '__len__') else [zs] * len(pts)
+        q = [(p[0], p[1], z) for p, z in zip(pts, zs)]
+        ar = sum(q[i][0] * q[(i + 1) % len(q)][1] - q[(i + 1) % len(q)][0] * q[i][1] for i in range(len(q)))
+        q = q if ar > 0 else q[::-1]
+        mb.face(q, mat)
+        if walk:
+            WALK_FACES.append([W_(p) for p in q])
 
-    # two planters, either side of the paved space in front of the back tower and its door
-    for ua, ub in ((u0, 17.0), (30.1, u1)):
-        wall_run((ua, v0), (ub, v0), (0, 1))
-        wall_run((ub, v0), (ub, v1), (-1, 0))
-        wall_run((ub, v1), (ua, v1), (0, -1))
-        wall_run((ua, v1), (ua, v0), (1, 0))
-        zs = lambda u, v: hy(u, v) + ht - 0.15
-        mb.quad((ua + th, v0 + th, zs(ua, v0)), (ub - th, v0 + th, zs(ub, v0)), (ub - th, v1 - th, zs(ub, v1)),
-                (ua + th, v1 - th, zs(ua, v1)), 'soil')
-    # (the parking bays' white lines: parking_lines, with every other car park's)
-    # the iron fence along the road to 북문, posts every 2.4 m on the ground and pickets between
+    def prism(pts, zb, zt, mat, cap=CAP, top=True):
+        """an upright body on a convex outline; zb, zt: a height or one for each corner"""
+        n = len(pts)
+        zb = zb if hasattr(zb, '__len__') else [zb] * n
+        zt = zt if hasattr(zt, '__len__') else [zt] * n
+        ar = sum(pts[i][0] * pts[(i + 1) % n][1] - pts[(i + 1) % n][0] * pts[i][1] for i in range(n))
+        idx = list(range(n)) if ar > 0 else list(range(n))[::-1]
+        for a, b in zip(idx, idx[1:] + idx[:1]):
+            mb.quad((*pts[a], zb[a]), (*pts[b], zb[b]), (*pts[b], zt[b]), (*pts[a], zt[a]), mat)
+        if top:
+            mb.face([(*pts[i], zt[i]) for i in idx], cap or mat)
+
+    def wall(a, b, zb, zt, th=0.4, mat=STONE, left=True, cap=CAP):
+        """a wall with one face on a -> b and its body to the left of it (or the right); zt: a height or (at a, at b)"""
+        a, b = Vector(a), Vector(b)
+        d = (b - a).normalized()
+        o = Vector((-d.y, d.x)) * (th if left else -th)
+        za, zb_ = zt if hasattr(zt, '__len__') else (zt, zt)
+        prism([tuple(a), tuple(b), tuple(b + o), tuple(a + o)], zb, [za, zb_, zb_, za], mat, cap)
+
+    def arc_wall(r, a0, a1, zb, zt, th=0.3, mat=STONE, inward=True, step=6.0):
+        n = max(1, int(abs(a1 - a0) / step))
+        for k in range(n):
+            wall(pol(r, a0 + (a1 - a0) * k / n), pol(r, a0 + (a1 - a0) * (k + 1) / n), zb, zt, th, mat, left=(a1 > a0) == inward)
+
+    def sector(r0, r1, a0, a1, z, mat, step=5.0, walk=True):
+        n = max(1, int(round(abs(a1 - a0) / step)))
+        for k in range(n):
+            a, b = a0 + (a1 - a0) * k / n, a0 + (a1 - a0) * (k + 1) / n
+            pts = [pol(r0, a), pol(r1, a), pol(r1, b), pol(r0, b)] if r0 > 1e-6 else [tuple(C), pol(r1, a), pol(r1, b)]
+            zs = z if not hasattr(z, '__len__') else ([z[0], z[1], z[1], z[0]] if r0 > 1e-6 else [z[0], z[1], z[1]])
+            flat(pts, zs, mat, walk)
+
+    # --- the theatre's floor: the half disc before the seats, the paving south of it to the hall's back, the floor
+    # west of the seats out to the rim
+    (sa0, sa1), (la0, la1, lr), n_t = db['seat_a'], db['landing'], db['tiers']
+    r_s, r_t, r_w = db['r_stage'], db['r_seat'], db['r_walk']
+    sector(0.0, r_s, 0.0, 180.0, ST, PAVE, step=7.5)
+    sector(r_s, r_w, la1, 180.0, ST, PAVE)
+    sector(r_s, lr, la0, la1, ST, PAVE)
+    x0, x1 = C.x - r_w, C.x + r_w
+    for q in ([(x0, 14.8), (x1, 14.8), (x1, C.y), (x0, C.y)], [(0.2, 14.8), (x0, 14.8), (x0, 29.0), (0.2, 28.0)],
+              [(x1, 14.8), (48.4, 14.8), (48.4, 20.6), (x1, 20.6)], [(x1, 20.6), (42.6, 20.6), (42.6, 24.5), (x1, 24.5)]):
+        flat(q, ST, PAVE)
+    # its east end over the areaway behind the east wing, its south-west corner over the low court: low parapets
+    for a, b in (((42.6, 20.6), (42.6, 24.5)), ((42.6, 24.5), (x1, 24.5)), ((x1, 24.5), (x1, C.y)), ((x0, 29.0), (0.2, 28.0))):
+        wall(a, b, LOW - 0.4, ST + 0.45, 0.3)
+    # --- the seats, the walk round their top
+    dr = (r_t - r_s) / n_t
+    for k in range(n_t):
+        r0, zk, zp = r_s + k * dr, ST + (TOP - ST) * (k + 1) / n_t, ST + (TOP - ST) * k / n_t
+        sector(r0, r0 + dr, sa0, sa1, zk, STEP)
+        n = int(round((sa1 - sa0) / 5.0))
+        for j in range(n):                                              # the riser, towards the floor
+            a, b = sa0 + (sa1 - sa0) * j / n, sa0 + (sa1 - sa0) * (j + 1) / n
+            mb.quad((*pol(r0, b), zp), (*pol(r0, a), zp), (*pol(r0, a), zk), (*pol(r0, b), zk), STEP)
+        mb.quad((*pol(r0, sa0), ST - 0.4), (*pol(r0 + dr, sa0), ST - 0.4), (*pol(r0 + dr, sa0), zk), (*pol(r0, sa0), zk), STONE)   # their east end
+        if r0 + dr > lr:                                                # (their west end, against the landing)
+            ra = max(r0, lr)
+            mb.quad((*pol(ra, sa1), zk), (*pol(r0 + dr, sa1), zk), (*pol(r0 + dr, sa1), TOP), (*pol(ra, sa1), TOP), STONE)
+        if r0 < lr:
+            rb = min(r0 + dr, lr)
+            mb.quad((*pol(rb, sa1), ST), (*pol(r0, sa1), ST), (*pol(r0, sa1), zk), (*pol(rb, sa1), zk), STONE)
+    sector(r_t, r_w, sa0, sa1, TOP, PAVE)
+    mb.quad((*pol(r_t, sa0), ST - 0.4), (*pol(r_w, sa0), ST - 0.4), (*pol(r_w, sa0), TOP), (*pol(r_t, sa0), TOP), STONE)
+    # the walk's rim over the areaway (east of the car park's south wall w4), and that wall
+    a4 = math.degrees(math.asin((db['w4'][0][1] - C.y) / r_w))
+    arc_wall(r_w, sa0, a4, LOW - 0.4, TOP + 0.9, inward=True)
+    wall(pol(r_w, sa0), pol(r_w - 1.4, sa0), LOW - 0.4, TOP + 0.9, 0.3, left=True)       # (the walk's east end)
+    (wa, wb) = db['w4']
+    wall(wa, wb, LOW - 0.4, lot(wa[1]) + 0.9, 0.4, left=True)
+    # --- the landing west of the seats, at the head of the flight: a square planter on it
+    sector(lr, r_w, la0, la1, TOP, PAVE)
+    arc_wall(lr, la0, la1, ST - 0.4, TOP + 0.45, inward=False)
+    wall(pol(r_w, la1), pol(lr, la1), ST - 0.4, TOP + 0.45, 0.3, left=True)
+    pu, pv = 19.9, 40.8
+    for a, b in (((pu - 0.9, pv - 0.9), (pu + 0.9, pv - 0.9)), ((pu + 0.9, pv - 0.9), (pu + 0.9, pv + 0.9)),
+                 ((pu + 0.9, pv + 0.9), (pu - 0.9, pv + 0.9)), ((pu - 0.9, pv + 0.9), (pu - 0.9, pv - 0.9))):
+        wall(a, b, TOP - 0.05, TOP + 0.4, 0.18, left=True)
+    flat([(pu - 0.75, pv - 0.75), (pu + 0.75, pv - 0.75), (pu + 0.75, pv + 0.75), (pu - 0.75, pv + 0.75)], TOP + 0.3, 'soil')
+    # --- the floor's west rim: a low parapet, outside it the planter that stands a metre over the low court (the
+    # clipped pines and shrubs behind the cars)
+    arc_wall(r_w, la1, 187.0, LOW - 0.4, ST + 0.45, inward=True)
+    ro = 17.0
+    arc_wall(ro, 126.0, 187.0, LOW - 0.4, LOW + 0.95, th=0.25, mat='concrete', inward=True)
+    sector(r_w + 0.3, ro - 0.25, 126.0, 187.0, (ST - 0.1, LOW + 0.8), 'soil')
+    wall(pol(r_w, 187.0), pol(ro, 187.0), LOW - 0.4, LOW + 0.95, 0.25, mat='concrete')
+    # --- the upper car park's west walls: w1 with the mouth of the underground car park, w2 west of its north end
+    # with the mound against its other side, w3 down to the head of the flight
+    (p0, p1), (v0, v1) = db['w1'], db['portal']
+    u1 = p0[0]
+    zp = LOW + 2.6
+    wall((u1, p1[1]), (u1, v1), LOW - 0.4, (lot(p1[1]) + 0.9, lot(v1) + 0.9), 0.45)
+    wall((u1, v0), (u1, p0[1]), LOW - 0.4, (lot(v0) + 0.9, lot(p0[1]) + 0.9), 0.45)
+    wall((u1, v1), (u1, v0), zp, (lot(v1) + 0.9, lot(v0) + 0.9), 0.45)
+    for va, vb in ((v1, v1 + 0.7), (v0 - 0.7, v0)):                 # rusticated piers either side, a band over the mouth
+        prism([(u1 - 0.18, va), (u1 - 0.18, vb), (u1 + 0.05, vb), (u1 + 0.05, va)], LOW - 0.4, zp + 0.75, 'stone_ashlar', cap='stone_ashlar')
+    prism([(u1 - 0.18, v0), (u1 - 0.18, v1), (u1 + 0.05, v1), (u1 + 0.05, v0)], zp, zp + 0.75, 'stone_ashlar', cap='stone_ashlar')
+    prism([(u1 - 0.22, v0 + 0.5), (u1 - 0.22, v1 - 0.5), (u1 - 0.17, v1 - 0.5), (u1 - 0.17, v0 + 0.5)], zp + 0.12, zp + 0.5, 'paint_white', cap='paint_white')
+    # (inside: the way down, dark)
+    dep, fall = 6.5, 0.9
+    flat([(u1, v0), (u1 + dep, v0), (u1 + dep, v1), (u1, v1)], [LOW, LOW - fall, LOW - fall, LOW], 'asphalt')
+    mb.quad((u1, v0, LOW - 0.4), (u1 + dep, v0, LOW - fall - 0.2), (u1 + dep, v0, zp), (u1, v0, zp), 'concrete_dark')
+    mb.quad((u1 + dep, v1, LOW - fall - 0.2), (u1, v1, LOW - 0.4), (u1, v1, zp), (u1 + dep, v1, zp), 'concrete_dark')
+    mb.quad((u1, v1, zp), (u1, v0, zp), (u1 + dep, v0, zp), (u1 + dep, v1, zp), 'concrete_dark')
+    mb.quad((u1 + dep, v0, LOW - fall - 0.2), (u1 + dep, v1, LOW - fall - 0.2), (u1 + dep, v1, zp), (u1 + dep, v0, zp), 'void_black')
+    (q0, q1) = db['w2']
+    wall(q0, q1, LOW - 0.4, lot(q0[1]) + 0.9, 0.45, left=True)
+    (r0_, r1_) = db['w3']
+    wall(r0_, r1_, LOW - 0.4, TOP + 0.9, 0.4, left=False)
+    lm = (Vector(r0_) + Vector(r1_)) / 2
+    ld = (Vector(r1_) - Vector(r0_)).normalized()
+    ln = Vector((ld.y, -ld.x))
+    prism([tuple(lm - ld * 1.5 + ln * 0.04), tuple(lm + ld * 1.5 + ln * 0.04), tuple(lm + ld * 1.5), tuple(lm - ld * 1.5)],
+          LOW + 1.3, LOW + 2.7, 'metal_dark', cap='metal_dark')       # (the louvre in it)
+    # boulders at w2's west end, where the mound comes down to the road
+    for (bu, bv, ln_, hh) in ((16.2, 61.2, 1.3, 0.8), (15.2, 62.0, 1.1, 0.6), (16.5, 63.0, 1.4, 0.9), (17.8, 63.0, 1.0, 0.7), (14.5, 60.9, 0.9, 0.5),
+                              (18.9, 63.6, 1.2, 0.6)):
+        g = gl(bu, bv)
+        seg, rings = 9, 3
+        jit = [[1 + rr.uniform(-0.2, 0.2) for _ in range(seg)] for _ in range(rings + 1)]
+        yaw = rr.uniform(0, 3.1)
+        Q = []
+        for j in range(rings + 1):
+            th = (math.pi / 2) * j / rings
+            row = []
+            for i in range(seg):
+                ph = 2 * math.pi * i / seg + yaw
+                r = jit[j][i] * (1.0 if j < rings else 0.0)
+                row.append((bu + 0.5 * ln_ * r * math.cos(th) * math.cos(ph), bv + 0.38 * ln_ * r * math.cos(th) * math.sin(ph),
+                            g - 0.2 + (hh + 0.2) * (math.sin(th) ** 0.55)))
+            Q.append(row)
+        for j in range(rings):
+            for i in range(seg):
+                k = (i + 1) % seg
+                mb.face([Q[j][i], Q[j][k], Q[j + 1][k], Q[j + 1][i]], 'stone_boulder', smooth='rock%d' % int(bu * 10))
+    # --- the flight from the low court up to the landing: granite steps between cheek walls
+    (sb, st_, sw_) = db['stair']
+    T_ = Vector(st_)
+    d = (T_ - Vector(sb)).normalized()
+    nn = Vector((-d.y, d.x))
+    n_st, tread = 22, 0.28
+    rise = (TOP - LOW) / n_st
+    B_ = T_ - d * (n_st * tread)
+    hw = sw_ / 2
+    for i in range(n_st):
+        a, b, z = B_ + d * (i * tread), B_ + d * ((i + 1) * tread), LOW + rise * (i + 1)
+        flat([tuple(a - nn * hw), tuple(b - nn * hw), tuple(b + nn * hw), tuple(a + nn * hw)], z, STEP, walk=False)
+        mb.quad((*(a + nn * hw), z - rise), (*(a - nn * hw), z - rise), (*(a - nn * hw), z), (*(a + nn * hw), z), STEP)
+    WALK_FACES.append([W_((*(B_ - nn * hw), LOW)), W_((*(B_ + nn * hw), LOW)), W_((*(T_ + nn * hw), TOP)), W_((*(T_ - nn * hw), TOP))])
+    for sg in (-1, 1):
+        a, b = B_ + nn * (sg * hw), T_ + nn * (sg * hw)
+        wall(tuple(a), tuple(b), LOW - 0.4, (LOW + 0.9, TOP + 0.9), 0.3, left=sg > 0)
+    # --- the round cooling tower on the lawn east of the upper car park's mouth
+    tx, ty = db['tower_c']
+    g = gl(tx, ty)
+    mb.cylinder((tx, ty), 2.5, g - 0.3, g + 0.35, 'concrete', seg=24)
+    mb.cylinder((tx, ty), 2.3, g + 0.35, g + 2.5, 'plastic_grey', seg=24, r1=2.1)
+    mb.cylinder((tx, ty), 1.3, g + 2.5, g + 3.1, 'plastic_grey', seg=20, mat_cap='metal_dark')
+    # --- the iron fence along the road to 북문, posts every 2.4 m on the ground and pickets between
     pts = [Vector(p) for p in db['fence']]
     for pa, pb in zip(pts, pts[1:]):
         d = pb - pa
@@ -3648,10 +3819,25 @@ def daewoo_back(mb, z0):
             npk = int((b - a).length / 0.16)
             for j in range(1, npk):
                 p_ = a + (b - a) * (j / npk)
-                zp = za + (zb - za) * (j / npk)
-                mb.box((p_.x, p_.y, zp + 0.63), (0.025, 0.025, 0.9 if j % 2 else 0.72), 'metal_dark', rotz=rz)
+                zp_ = za + (zb - za) * (j / npk)
+                mb.box((p_.x, p_.y, zp_ + 0.63), (0.025, 0.025, 0.9 if j % 2 else 0.72), 'metal_dark', rotz=rz)
         bpt = pts[-1]
         mb.box((bpt.x, bpt.y, gl(*bpt) + 0.62), (0.07, 0.07, 1.25), 'metal_dark')
+    # --- the deck
+    dk = MeshBuilder('lm_daewoo_deck')
+    deck = db.get('deck')
+    if deck:
+        V = deck['v']
+        for f in deck['f']:
+            q = [tuple(V[i]) for i in f]
+            dk.face(q, 'terrain_drape')
+            WALK_FACES.append(q)
+        for ring in deck['rim']:                                   # a skirt under its rim
+            for a, b in zip(ring, ring[1:]):
+                q = [(a[0], a[1], a[2] - 1.6), (b[0], b[1], b[2] - 1.6), tuple(b), tuple(a)]
+                dk.face(q, STONE)
+                dk.face(q[::-1], STONE)
+    return dk
 
 
 def daewoo():
@@ -3679,15 +3865,16 @@ def daewoo():
                  ground=zP, zbot=zT)
     mb = MeshBuilder('lm_daewoo_pavilions')
     mb.xf = local_frame(a.x, a.y, ang, z0)
-    gable_hall(mb, -12.1, 0.0, -12.2, 24.5, 6, 3.6, 'stone_white')
-    gable_hall(mb, 47.1, 55.5, -10.9, 24.3, 6, 3.6, 'stone_white')
+    wv = CAMPUS['daewoo_back']['wing_v']                  # (the wings' back ends: the 1997 aerial photos' roofs)
+    gable_hall(mb, -12.1, 0.0, -12.2, wv[0], 6, 3.6, 'stone_white')
+    gable_hall(mb, 47.1, 55.5, -10.9, wv[1], 6, 3.6, 'stone_white')
     fr = MeshBuilder('lm_daewoo_front')
     fr.xf = local_frame(a.x, a.y, ang, z0)
     daewoo_front(fr, zT, zP, lv['u0'], lv['u1'], vp=lv['podium'])
     bk = MeshBuilder('lm_daewoo_back')
     bk.xf = local_frame(a.x, a.y, ang, z0)
-    daewoo_back(bk, z0)
-    out += [mb, fr, bk]
+    dk = daewoo_back(bk, z0)
+    out += [mb, fr, bk] + ([dk] if dk.faces else [])
     # 상뜰: the round lawn in the middle of the paved circle (tools/build_campus.py SANG); the low pale kerb round it
     # is drawn with every other kerb along the paving's edge (web/src/curbs.js)
     sg = CAMPUS.get('sang')
