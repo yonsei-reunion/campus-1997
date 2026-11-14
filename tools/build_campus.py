@@ -9113,7 +9113,8 @@ _gyc, _gyt, _gyn = np.array([30.29, 348.78]), np.array([-0.969, 0.248]), np.arra
 # (빌링슬리관 stands on its lawn, no apron: the scans have the lawn and the planting up to its walls; only the landing
 # before its door, out to the walk's end, BILL_UV)
 _bll = BILL_UV['landing']
-_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES if not BILL_POLY.buffer(0.5).contains(p_)
+# (not over the court east of 외솔관2, jonghap97.GRASS: lawn between the two aprons there)
+_ypaint([p_.buffer(3.5, join_style=2).difference(unary_union(jonghap97.GRASS)) for p_ in LATE_SITES if not BILL_POLY.buffer(0.5).contains(p_)
          and not kwangbok97.hall().buffer(0.5).contains(p_)]      # (광복관: the scans' asphalt runs up to its walls, cars against them)
         + [Polygon([bill_xy(u_, v_) for u_, v_ in ((_bll[0], _bll[2]), (_bll[1], _bll[2]), (_bll[1], _bll[3]), (_bll[0], _bll[3]))])]
         + [Polygon([tuple(_bkc + BK_T * u + BK_N * v) for u, v in ((-4.5, 0.0), (4.5, 0.0), (4.5, 7.1), (-4.5, 7.1))])]

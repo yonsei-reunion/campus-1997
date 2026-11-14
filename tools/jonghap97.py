@@ -211,7 +211,7 @@ _apron = _lin(Z_APRON)
 # halls' outlines, where the 5 m grid's slopes are not seen.
 ZONES = [
     ('west of the slab', poly([(-16.0, -3.0), (-1.6, -3.0), (-1.6, 17.5), (-5.0, 17.5), (-5.0, 24.0), (-16.0, 12.0)]), _const(Z_YARD)),
-    ('외솔관2 west end', rect(-16.0, -4.5, -18.25, -3.0),                    # (level along its end wall, up to the yard north of it)
+    ('외솔관2 west end', rect(-16.0, -4.5, -20.5, -3.0),                     # (level along its end wall, up to the yard north of it)
      lambda u, v: np.interp(v, [-5.3, -3.0], [Z_OESOL_W, Z_YARD])),
     ('passage', rect(-4.5, 52.0, -11.0, 17.5), _pass),                      # (under the slab's open storey too)
     ('court', rect(38.4, 52.0, -18.25, 0.0), _const(Z_COURT)),                # (the trees between 외솔관2 and the low block)
@@ -223,8 +223,11 @@ ZONES = [
     ('south wing, east', rect(58.0, 76.5, -17.5, 12.0), lambda u, v: np.interp(v, *zip(*Z_SWING_E))),
     ('apron', rect(44.0, 84.0, -40.0, -19.6), _apron),                      # (before 인문관's east end, falling east)
     ('low block, south', rect(45.2, 64.6, -17.5, -11.0), _apron),
-    ('lane', rect(-33.5, 46.0, -46.0, -19.6), _const(Z_LANE)),              # (behind 인문관 and round its west end)
+    # (behind 인문관 and round its west end; west of 외솔관2 its north edge 3 m further south, the bank up to the ground
+    # at 외솔관2's west end clear of that hall's door)
+    ('lane', poly([(-33.5, -46.0), (46.0, -46.0), (46.0, -19.6), (-2.0, -19.6), (-2.0, -23.5), (-33.5, -23.5)]), _const(Z_LANE)),
     ('외솔관2 south', rect(5.0, 34.0, -18.25, -11.0), _const(Z_LANE)),
+    ('외솔관2 west end, inside', rect(-4.5, 5.0, -18.25, -11.0), _const(Z_OESOL_W)),   # (its end wall's foot level)
     ('인문관', rect(-29.3, 42.2, -45.5, -24.1), _const(Z_INMUN)),             # (its porch and the low strip along its south too)
     ('인문관 south-west', rect(-33.5, -17.7, -51.0, -42.8), _const(Z_INMUN)),  # (west and east of 인문관 남쪽 길, INM97)
     ('인문관 south-east', rect(31.3, 42.2, -53.0, -42.8), _const(Z_INMUN)),
