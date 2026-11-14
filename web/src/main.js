@@ -15,6 +15,7 @@ import { Player, Colliders } from './player.js';
 import { UI } from './ui.js';
 import { Post } from './post.js';
 import { Path, makeBanners, Crowd, Traffic, BoothGates, CAR_COLORS } from './life.js';
+import { makeGatePosters } from './posters.js';
 import { Cast, PEOPLE, STUDENTS, HEROES, portraits, castFiles } from './characters.js';
 import { BirdsEye } from './birdseye.js';
 import { SunShadows } from './shadows.js';
@@ -390,6 +391,9 @@ async function main() {
   const banners = makeBanners(campus.banners, lib);
   flagWind(lib);                    // the white flag's cloth stirs in the wind too (src/flags.js)
   scene.add(banners);
+  const posters = makeGatePosters(campus.statues.gate, groundAt);     // 정문 흰 담의 대자보 (src/posters.js)
+  posters.userData.setSeason(season);
+  scene.add(posters);
   scene.add(makeBoard(campus.landmarks.find((l) => l.id === 'events'), groundAt));
   const decals = new Decals(scene, campus.decals || [], walkables, hfNear, sunMap);   // manholes, oil, patches (src/decals.js)
   const curbs = new Curbs(scene, campus.curbs || [], hfNear, walkables.slice(1), lib,     // kerbs along the paving (src/curbs.js)
@@ -625,6 +629,7 @@ async function main() {
     lib.setSeason(v);
     fall.setSeason(v);
     banners.userData.setSeason(v);
+    posters.userData.setSeason(v);
     seasonButtons(v);
     $('#datestamp').textContent = SEASONS[v].date;
     bird.labels({ seasonLabel: SEASONS[v].short });
