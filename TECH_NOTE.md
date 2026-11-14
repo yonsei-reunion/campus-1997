@@ -23,7 +23,7 @@ npm run build        # web/dist 정적 사이트
 
 ## 캠퍼스 사람들 페이지
 
-`people.html`(`web/src/people.js`)은 캠퍼스를 싣지 않고 사람 15명만 보여 줍니다. 제목 화면과 「잠시 멈춤」 창에서 새 탭으로 엽니다.
+`people.html`(`web/src/people.js`)은 캠퍼스를 싣지 않고 사람 17명만 보여 줍니다. 제목 화면과 「잠시 멈춤」 창에서 새 탭으로 엽니다.
 
 - 렌더러 하나가 카드마다의 사각형에 그 사람을 그림(가위질한 뷰포트). 캔버스는 문서에 붙여 두고 프레임마다 스크롤만큼 옮김
 - 동작(서 있기 · 둘러보기 · 팔짱 · 이야기 · 전화 · 인사 · 걷기 · 뛰기 · 앉기), 보는 방향(앞 · 오른쪽 · 뒤 · 왼쪽, 좌우로 끌기, 천천히 돌리기), 가방
@@ -81,7 +81,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `birthday.js` | 활천대 앞 생일 축하(두 학생, 들어 올려 분수로) |
 | `water/fountain.js` | 활천대 분수 물(Ultra Water) |
 | `ui.js` · `labels.js` · `places.js` · `news.js` · `notes.js` | 화면 UI, 건물 이름표, 추억 카드, 새 소식 |
-| `people.js` | 캠퍼스 사람들 페이지(`people.html`): 사람 15명만 그리는 구경 화면 |
+| `people.js` | 캠퍼스 사람들 페이지(`people.html`): 사람 17명만 그리는 구경 화면 |
 | `loading.js` | 첫 화면의 불러오기: 퍼센트 막대, 기다리는 동안의 삐삐 암호 · 캠퍼스 이야기 카드 |
 
 ## 구현 방식
@@ -168,7 +168,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 
 ### 사람
 
-- Quaternius 의 CC0 모듈러 캐릭터를 `blender/characters.py` 가 부품을 섞고 1997년 옷차림으로 칠해 15명을 만듭니다(sim-office 의 `tools/office-characters.py` 를 고쳐 씀). 키는 실제 크기(남 1.73 m, 여 1.61 m).
+- Quaternius 의 CC0 모듈러 캐릭터를 `blender/characters.py` 가 부품을 섞고 1997년 옷차림으로 칠해 17명을 만듭니다(sim-office 의 `tools/office-characters.py` 를 고쳐 씀). 키는 실제 크기(남 1.73 m, 여 1.61 m).
 - 애니메이션은 남녀 리그 파일 둘(`rig-umc.glb` · `rig-women.glb`, 각 약 250 KB)에 들어 있습니다. 서기 · 걷기 · 뛰기 · 앉기는 모션 캡처를 리그에 옮긴 것입니다(`blender/mocap.py`, 자료는 `tools/fetch_mocap.py` 가 `assets_src/mocap/` 에 받음).
   - 여자의 ACCAD 테이크는 어깨를 2.6 cm 내려 두고 섬: `level` 로 쇄골의 평균 회전을 빼고 `posture` 로 목을 세움. Quaternius 의 서 있는 클립(팔짱 · 전화 · 남자의 이야기)은 한 발을 앞에 두고 16° 숙인 자세: `upright` · `stride` 로 세우고 발을 모음(고증 4.13)
   - 「둘러보라」는 연기의 테이크는 고개가 어깨 너머까지 돌아감(남 −123° ~ +105°): `CLIPS` 의 `look`(가슴에 대한 목 · 머리 회전을 줄임) · `calm`(그 회전을 눅임) · `turn`(골반이 도는 폭) · `sway` 로 ±30° 안팎까지 줄임(고증 4.13)
@@ -181,20 +181,20 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 게임 쪽(`characters.js` `locomotion`): 이동 속도에 가장 가까운 걸음 클립을 고르고(속도가 그 클립의 0.78 ~ 1.28배를 벗어날 때만 바꿈) 재생 속도를 맞춰 발이 미끄러지지 않습니다. 걸음끼리 · 뛰기로 넘어갈 때는 걸음의 같은 지점에서 이어 받습니다. 서 있을 때는 `a.stand` 의 클립을 틉니다.
 - 머리와 얼굴은 팩의 것을 그대로 쓰지 않고 `characters.py` 「1997 heads」가 다시 만듭니다.
   - 얼굴형: 두개골이 온전한 머리 하나(남 Worker, 여 Adventurer)를 한 단계 세분하고 면을 눅임. 코는 짧게(높이 · 콧대 · 콧방울은 사람마다), 긴 턱은 줄이고 볼 ~ 턱을 넓혀 둥글게
-  - 눈 · 눈썹 · 입: 형상이 아니라 선 그림. `blender/faces.py` 가 15명의 얼굴을 아틀라스 한 장(`people/faces.png`, 1280², 5 × 5칸, RGBA 101 KB)에 그림
+  - 눈 · 눈썹 · 입: 형상이 아니라 선 그림. `blender/faces.py` 가 17명의 얼굴을 아틀라스 한 장(`people/faces.png`, 1280², 5 × 5칸, RGBA 101 KB)에 그림
     - 얼굴 앞면의 면만 자기 칸의 UV, 나머지(몸 · 옷 · 머리카락 · 안경)는 빈 칸. GLB 에는 피부 부품에만 `TEXCOORD_0`(16비트)
     - 그림의 색은 정점 색에 곱하는 값(선은 피부를 어둡게), 알파는 흰자(0 = 흰색). 그래서 군중의 피부색을 바꿔도 선이 따라감
     - 윗눈꺼풀 한 줄, 흰자 위의 짙은 눈동자와 반사 점, 눈썹 한 줄, 작은 입 한 줄. 눈은 실제보다 조금 큼(가로 3.1 cm, 치수는 고증 4.9)
     - 그림만 고칠 때: `blender -b --factory-startup --python blender/characters.py -- faces` (GLB 는 그대로)
   - 사람마다 눈꺼풀(홑꺼풀 · 속쌍꺼풀 · 쌍꺼풀) · 눈꼬리 · 눈썹(굵기 · 길이 · 꼭대기 · 꺾임 · 꼬리) · 코 · 입꼬리 · 턱 폭을 달리함(`PEOPLE` 의 `face`). 교수님 · 교직원은 주름 선
   - 머리카락: 정수리에서 내려오는 62열의 껍질(앞머리 6°, 관자놀이 ~ 귀 둘레 4°, 뒤 7 ~ 10°). 방위마다 끝 높이 · 두께를 준 표(`HAIR_STYLES`)가 5:5 · 6:4 · 2:8 가르마의 긴 앞머리 · 투블럭컷(긴 윗머리 껍질 아래에 짧게 친 속 껍질 `under`) · 앞을 세워 넘긴 짧은 머리 · 긴 생머리 · 귀 뒤로 넘긴 단발 · 쇼트커트 · 윗머리만 묶은 긴 머리를 만듦. 브릿지는 몇 열만 다른 재질로. 늘어진 부분은 안쪽 면이 있고, 가려진 두피는 지움. 비틀린 사각형은 바깥으로 접히는 대각선으로 나눔(안으로 접히면 피부가 비침)
-  - 안경: 15명 모두 한 벌(가는 테 형상, 두께 2.4 mm). 쓰는지는 게임이 정함(아래). 같은 안경을 앞에서 본 선 그림을 작은 아틀라스(`people/faces_rims.png`, 512², 같은 4 × 4칸)에 따로 그림
+  - 안경: 17명 모두 한 벌(가는 테 형상, 두께 2.4 mm). 쓰는지는 게임이 정함(아래). 같은 안경을 앞에서 본 선 그림을 작은 아틀라스(`people/faces_rims.png`, 512², 같은 4 × 4칸)에 따로 그림
   - 옷: 한 벌이 한 색인 팩의 옷에서 줄무늬 · 깃 · 긴소매 · 치마는 `PEOPLE` 의 `paint` 가 T 자세의 상자로 잘라 다른 재질로 칠함(고증 4.11). 상자에 닿는 면만 자름
   - 티셔츠의 깃: 품을 넓힐 때 목 둘레는 그대로 두고, 팩의 높은 테를 낮춤(`loosen` 의 `COLLAR`)
   - 신발: 흰 운동화의 옆 줄 · 뒤꿈치 · 끈(`trainers`), 캔버스화의 고무 앞코 · 끈(`canvas`)도 `paint` 로
   - 재질 이름은 Skin · Hair · Glasses(+ Band · Bridge), 칠한 곳은 Stripe · Stripe2 · Collar · Skirt, 신발은 Bar-feet · Lace-feet · Sole-feet. 모두 `Head` 뼈에 붙어 가방 맞춤 · 팔 IK 는 전과 같음. 턱 아래로 늘어진 긴 머리는 끝으로 갈수록 `Neck` · `Chest` 를 따름(`hair_follow`, 뒤쪽은 목덜미부터): 고개를 저어도 등에 걸친 끝은 그대로
   - 한 명 약 6,500 ~ 7,900 삼각형
-- 몸과 자세(고증 4.13): 팩의 몸을 그대로 쓰되 휴지 자세를 고칩니다(`characters.py` `relax_fingers`). 리그와 15명이 같은 값을 써서 클립이 그대로 맞습니다.
+- 몸과 자세(고증 4.13): 팩의 몸을 그대로 쓰되 휴지 자세를 고칩니다(`characters.py` `relax_fingers`). 리그와 17명이 같은 값을 써서 클립이 그대로 맞습니다.
   - 손: 손가락 마디 2 ~ 4를 굽힌 모양이 휴지 자세(`FINGER_CURL`). 1번 뼈는 손허리뼈라 그대로. 클립에 손가락 채널은 없음
   - 비례(`BUILD`): 어깨 관절을 바깥으로, 위팔 · 아래팔을 1.06배, 남자의 고관절과 발(`Foot` · `PT`: Root 의 자식)을 안으로. 옮기는 뼈는 부모 꼬리에서 떼고(`use_connect`), 자세를 메시에 적용한 뒤 휴지 자세로 삼음
   - 손은 손목에서 0.88배, 손가락은 첫 마디에서 다시 0.88배(자세 뼈의 크기로). 목 · 여자 허리는 뼈는 두고 메시만 넓힘(`shape_body`: 가중치가 아니라 높이와 목 축에서의 거리로, 머리 · 몸 · 깃이 함께 움직이게)
@@ -211,7 +211,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 옷의 글자(고증 4.11): `faces.png` 의 얼굴 칸 다음 한 칸(`faces.py` `PRINT`)을 세 띠로 나눠 아치 모양 「YONSEI」(흰 글자 · 파란 잉크)와 영화 「건축학개론」의 「GEUSS」 역삼각형을 그립니다(`draw_prints`, 획 글꼴 `GLYPHS`).
   - `PEOPLE` 의 `prints` 가 가슴 앞면을 틀대로 잘라 그 띠에 폄(`print_map`). 얼굴과 같은 길로 그려지므로 셰이더는 그대로: 잉크는 옷 색에 곱하고 흰 글자는 그림의 알파
   - 군중은 일부만 입음(`characters.js` `PRINTED`): 안 입는 사람은 그 점들의 텍스처 좌표를 빈 칸으로 돌린 버퍼를 씀(`plainUv`, 모델마다 하나)
-- 주인공 열하나는 이름 · 단과대 · 출발 건물이 있습니다(`woman-stripe` 는 주인공으로만 나오고 군중의 모델 목록 `STUDENTS` 에는 없음)(`characters.js` `HERO`). `height` 가 있으면(성구 1.79 m) 주인공일 때만 모델보다 크게 그립니다(`heroScale`: 리그는 모델 키로 구워져 있어 실행할 때 늘림). 제목 화면에서 고르면 「어디서 걸어 볼까요?」가 그 단과대 건물로 맞춰집니다(`main.js` `heroPlace`).
+- 주인공 열셋은 이름 · 단과대 · 출발 건물이 있습니다(`woman-stripe` · `man-shirt` · `woman-denim` 은 주인공으로만 나오고 군중의 모델 목록 `STUDENTS` 에는 없음)(`characters.js` `HERO`). `height` 가 있으면(성구 1.79 m) 주인공일 때만 모델보다 크게 그립니다(`heroScale`: 리그는 모델 키로 구워져 있어 실행할 때 늘림). 제목 화면에서 고르면 「어디서 걸어 볼까요?」가 그 단과대 건물로 맞춰집니다(`main.js` `heroPlace`).
 - 군중 행동(걷기, 멈춤, 무리, 인사, 벤치에 앉기, 공중전화 줄)은 `life.js`, 대사는 `talk.js`.
   - 서로 비켜 가기(`Crowd.steer`, 고증 4.13): 걷는 사람이 앞 2.4 m · 옆 0.78 m 안의 사람(걷는 사람 · 서 있는 사람 · 주인공)을 보면 걸으면서 옆으로 비키고(`off`, 정면이면 제 오른쪽), 지나면 제 줄(`side`)로 돌아옴. 같은 쪽으로 가는 사람 뒤에서는 보폭을 줄임(`slow`). 시점 60 m 안에서만, 한 프레임 걸러
   - 주인공이 바로 앞을 막으면 멈춰서 말을 걸고 2.6초 뒤 돌아서 감. 주인공은 서 있을 때도 걸어오는 사람 · 차의 원에 밀림(`player.js`)
@@ -335,7 +335,7 @@ blender -b --factory-startup --python blender/build.py -- blend   # + 편집용 
 blender -b --factory-startup --python blender/sky_bake.py         # 하늘 텍스처, 태양 방향, 해를 지운 환경광
 node tools/bake_sun_shadows.mjs <포트>   # (web 에서 npx vite 를 띄운 뒤) 폰용 구운 해 그림자 · 걷는 면 높이
 python3 tools/fetch_mocap.py                                      # 사람 리그의 모션 캡처 원본 (assets_src/mocap/, 33 MB)
-blender -b --factory-startup --python blender/characters.py       # 사람 15명 + 리그 2개 (assets_src/quaternius/ · assets_src/mocap/ 필요)
+blender -b --factory-startup --python blender/characters.py       # 사람 17명 + 리그 2개 (assets_src/quaternius/ · assets_src/mocap/ 필요)
 blender -b --factory-startup --python blender/build.py -- statues   # 청동 조각상의 원형 → 메시 · 텍스처 (assets_src/blender-human-base-meshes/ 필요, 출처.txt)
 ```
 

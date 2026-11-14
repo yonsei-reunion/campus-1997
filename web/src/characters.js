@@ -29,15 +29,17 @@ export const PEOPLE = {
   'woman-cardigan': '노란 카디건',
   'woman-staff': '교직원',
   'woman-stripe': '줄무늬 티 · 청바지',
+  'man-shirt': '초록 남방 · 면바지',
+  'woman-denim': '청남방 · 면바지',
 };
 export const STUDENTS = ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man-grey', 'man-blazer',
   'woman-tee', 'woman-pink', 'woman-dress', 'woman-dress-blue', 'woman-cardigan'];
 export const HEROES = ['man-tee', 'woman-dress', 'man-cheer', 'woman-tee', 'man-check', 'woman-cardigan', 'man-blazer', 'woman-pink',
-  'woman-dress-blue', 'man-hoodie', 'woman-stripe'];
-// the eleven you can walk as: a name of the class of 1997 (the first two from the film 건축학개론, 2012, whose first half
+  'woman-dress-blue', 'man-hoodie', 'woman-stripe', 'man-shirt', 'woman-denim'];
+// the thirteen you can walk as: a name of the class of 1997 (the first two from the film 건축학개론, 2012, whose first half
 // is a campus of 1996), the college they are of, and the hall their walk starts at (a name of campus.json's markers
 // or landmarks: places.js startPlaces); height: taller or shorter than the model (men 1.73 m, women 1.61 m)
-// short: the college as students called it (the title card's eleven buttons have room for no more)
+// short: the college as students called it (the title card's thirteen buttons have room for no more)
 export const HERO = {
   'man-tee': { name: '승민', college: '공과대학', short: '공대', place: '제1공학관' },
   'woman-dress': { name: '서연', college: '음악대학', short: '음대', place: '음악대학' },
@@ -49,8 +51,10 @@ export const HERO = {
   'woman-pink': { name: '지영', college: '교육과학대학', short: '교과대', place: '용재관' },
   'woman-dress-blue': { name: '수진', college: '생활과학대학', short: '생과대', place: '가정관' },
   'man-hoodie': { name: '동현', college: '의과대학', short: '의대', place: '의과대학' },
-  // (the one model that is nobody of the crowd: STUDENTS, the crowd's pool, stays as it was)
+  // (the three models from here on are nobody of the crowd: STUDENTS, the crowd's pool, stays as it was)
   'woman-stripe': { name: '혜진', college: '간호대학', short: '간호대', place: '간호대학' },
+  'man-shirt': { name: '정우', college: '신과대학', short: '신과대', place: '아펜젤러관' },
+  'woman-denim': { name: '현정', college: '치과대학', short: '치대', place: '치과대학' },
 };
 
 // Every part of a person (skin, clothes, hair ...) is a flat colour, so one vertex-coloured material serves

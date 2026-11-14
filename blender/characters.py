@@ -283,6 +283,21 @@ PEOPLE = {
                                  'feet': trainers('women', 'Grey')},
                           face=dict(lid='inner', slant=.06, eye=1.04, jaw=1.0, smile=.0027, mouth=1.0, brow=1.0, arch=.9, brow_len=1.0,
                                     brow_soft=1.5, nose=.80, bridge=.28, nose_w=1.0, nose_up=.001)),
+    'man-shirt': man('curtain', 'Adventurer', 'Casual_2', 'Casual_2',
+                     {'Green': '#2f5a45', 'LightGreen': '#1f1f24', 'LightBlue': '#b9a67e', 'Red_Dark': '#3a2c24', 'Skin': SKIN['b'],
+                      'Hair': HAIR['black']},
+                     'forest-green shirt worn open over a black tee, beige cotton trousers; a long fringe parted in the middle, '
+                     'metal glasses',
+                     face=dict(lid='inner', slant=.04, jaw=1.0, eye=1.0, smile=.0020, mouth=1.0, glasses=True, brow=1.15, arch=.7,
+                               brow_len=.98, brow_taper=1.3, nose=.96, bridge=.32, nose_w=1.0)),
+    'woman-denim': woman('bang', 'Suit', 'Casual', 'Casual',
+                         {'Black': '#5d7fae', 'White': '#f2efe6', 'Orange': '#cdb994', 'Grey': '#f0eee8', 'feet:Bar': '#2f5a45',
+                          'feet:Lace': '#d6d3cc', 'feet:Sole': '#cfccc4', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
+                         'denim shirt (청남방) worn open over a white tee, beige cotton trousers, white trainers; hair to the '
+                         'shoulders with a straight fringe',
+                         paint={'feet': trainers('women', 'Grey')},
+                         face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
+                                   brow_soft=1.6, nose=.78, bridge=.27, nose_w=.98, nose_up=.001)),
 }
 RIGS = {'rig-umc': 'umc', 'rig-women': 'women'}
 PART_MESH = {'head': '_Head', 'body': '_Body', 'legs': '_Legs', 'feet': '_Feet'}
@@ -1189,7 +1204,7 @@ def cut_skirt(ob, arm, C):
     world = lambda v: mw @ v.co
     is_mid = lambda v: abs(world(v).x) < 1e-4 and world(v).z < zj
     skirt_faces = [f for f in bm.faces if f.material_index == k]
-    seam = list({e for f in skirt_faces for e in f.edges if all(is_mid(v) for v in e.verts)})
+    seam = sorted({e for f in skirt_faces for e in f.edges if all(is_mid(v) for v in e.verts)}, key=lambda e: e.index)
     cy = sum(c.y for c in co.values()) / len(co)
     bmesh.ops.split_edges(bm, edges=seam)
     gl, gr = ob.vertex_groups['UpperLeg.L'].index, ob.vertex_groups['UpperLeg.R'].index
@@ -1234,9 +1249,10 @@ def cut_skirt(ob, arm, C):
             if f.material_index == k:
                 for e in f.edges:
                     edges[e] = edges.get(e, 0) + 1
-        ring = list({v for e, n in edges.items() if n == 1 for v in e.verts if world(v).z < zj - 0.1})
+        bm.verts.index_update()
+        ring = sorted({v for e, n in edges.items() if n == 1 for v in e.verts if world(v).z < zj - 0.1}, key=lambda v: v.index)
         mid = sum((v.co for v in ring), Vector()) / len(ring)
-        ring.sort(key=lambda v: (round(math.atan2(v.co.y - mid.y, v.co.x - mid.x), 3), v.co.x))
+        ring.sort(key=lambda v: (round(math.atan2(v.co.y - mid.y, v.co.x - mid.x), 3), v.co.x, v.index))
         up = (inv.to_3x3() @ Vector((0, 0, 1))).normalized()
         lift = up * 0.012                                # (just inside the hem: the hem's own edge stays the skirt's)
         new = []
@@ -1431,6 +1447,11 @@ HAIR_STYLES = {
                  vol=[(-180, .016), (-90, .015), (-45, .013), (6, .011), (45, .013), (90, .015), (180, .016)], top=.017, edge=.010,
                  part=(6, .007, 7),
                  fall=.10, sheet=.014, rows=12, rough=.08, ragged=.004, ears=False),
+    # hair to the shoulders with a straight fringe to just over the brows, no parting (일자 앞머리)
+    'bang': dict(tip=[(-180, -.205), (-135, -.20), (-90, -.175), (-60, -.185), (-53, -.10), (-47, -.020), (-41, .007), (-20, .005),
+                      (0, .006), (20, .005), (41, .007), (47, -.020), (53, -.10), (60, -.185), (90, -.175), (135, -.20), (180, -.205)],
+                 vol=[(-180, .017), (-90, .016), (-40, .016), (0, .017), (40, .016), (90, .016), (180, .017)], top=.021, edge=.011,
+                 fall=.10, sheet=.015, curl=.010, rows=10, rough=.08, ragged=.002, ears=False),
     'shoulder': dict(tip=[(-180, -.205), (-135, -.20), (-90, -.175), (-60, -.185), (-52, -.10), (-42, -.035), (-22, .006),
                           (0, .024), (15, .038), (26, .048), (33, .030), (40, -.012), (49, -.10), (58, -.185), (90, -.175), (135, -.20),
                           (180, -.205)],
