@@ -1438,14 +1438,13 @@ def rot_fence(A):
 
 def rot_dirsign(ya, s_mid):
     """the blue direction sign over 연세로's northbound lanes (51979: 「모래내 ← · → 독립문」, a pole on the east kerb
-    with an arm, just north of the crossing in the middle): its pole, the panel's middle, the way it faces, w, h,
-    the panel's foot over the road"""
-    s = s_mid + 14.0
+    with an arm; DIRSIGN): its pole, the panel's middle, the way it faces, w, h, the panel's foot over the road"""
+    s = float(ya.ls.project(Point(gt.YONSEI_X, DIRSIGN[0])))
     p, t, n = ya.at(s)
     pole = p - n * (ya.half + 0.6)
     c = p - n * (ya.half * 0.48)
     return dict(pole=[round(float(pole[0]), 2), round(float(pole[1]), 2)], c=[round(float(c[0]), 2), round(float(c[1]), 2)],
-                face=round(math.atan2(-t[1], -t[0]), 4), w=4.4, h=2.2, z0=5.2)
+                face=round(math.atan2(-t[1], -t[0]), 4), w=4.4, h=2.2, z0=DIRSIGN[1])
 
 
 def town_splat(paints, path):
@@ -1503,7 +1502,12 @@ YRO_GINKGO_STEP = 8.0         # 연세로's ginkgos apart (2010 skyview, 고증 
 YRO_TREE_SLOTS = 102          # (the places the 7 m row had in campus.json's tree list)
 YRO_GINKGO_DRAWS = 327        # (the draws 4802 gave the old 7 m row on the old line: 123 places, 102 trees)
 YRO_CROSS2_Y = -690.0         # the zebra over 연세로 at y -687.5 .. -692.4 (1997 frames 26/16 · 27/17), its middle
-YRO_BANNER_Y = -805.0         # the festival's banner (51979 · 52106, 1996.5): just south of the crossing in the middle
+# 51979 (1996.5, from 홍익문고's roof: compare/yonsei_ro, solved again on the 1997 ground 2026-11-15, 고증 4.10.2) has the two
+# crossings of the July 1997 frames (-575, -690) with a signal head hung before each; between them and the camera the
+# sign and the festival's banner, set where their pixels put a 2.2 m panel 5.4 m over the road and the cloth's foot 4.6 m
+# over it (they had been at -776 and -805 through the camera solved on the old ground, 10 and 9 m up on the new one)
+DIRSIGN = (-720.0, 5.4)        # (y, the panel's foot over the road)
+YRO_BANNER_Y = -756.0         # the festival's banner (51979 · 52106, 1996.5)
 
 
 def yro_walk_poly(a, s_kerb, yx=None, old=False):
