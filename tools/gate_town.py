@@ -22,6 +22,11 @@ Where things stand (고증 4.8):
   widening for the bus lanes in the middle), 35.4 m from kerb to kerb: five lanes of 3.1 m each way either side of a
   2.7 m hatched strip (SHIFT, LANE_W, MID, GUTTER).  Their zebra crosses it east of the junction's box (x -75 .. -61.5,
   the 2008 skyview's too), another crosses 연세로's mouth.
+- 연세로's middle is x -94 from the bridge south (고증 4.10.1): the bridge's opening above (its middle
+  -93.5), the box junction (-94.1), the 1997 frames' centre line (-93.0 .. -94.5) and the 2008 · 2010 skyview's yellow
+  one (-93.3 .. -94.5).  OSM's line today, x -96, is the 2014 transit mall's.  What the town's random streams decide
+  (the blocks kept clear of the street and its rows, which of them are 「on the main street」, the trees' order) is
+  still decided round the old line (YONSEI_X_RNG), so that no house or tree away from 연세로 changes.
 """
 import json, math, os, random
 import numpy as np
@@ -78,8 +83,14 @@ BOX_X = (-108.7, -79.5)      # the box junction's white frame before 연세로 (
 #                              the south one)
 EAST_TURN = 19.5            # where the gate's east low wall turns south-east, along its line from its middle (m)
 YZEBRA = (-459.5, -466.5)    # the zebra over 연세로's mouth (y)
-YONSEI_X = -96.0
-YONSEI_HALF, YONSEI_WALK = 7.0, 5.0
+YONSEI_X = -94.0             # 연세로's middle from the bridge south (고증 4.10.1)
+YONSEI_X_RNG = -96.0         # (where it was: what the random streams decide is decided round it)
+YONSEI_HALF, YONSEI_WALK = 6.5, 5.5    # (13 m of carriageway, 고증 4.10; the rows' fronts 12 m out as before)
+YZEBRA2 = (-572.0, -577.5)   # the zebra over 연세로 south of the bridge (1997 frames 26/16 · 27/17, y)
+# 창천교회 (OSM 324258395: 40 x 23 m, three storeys): its outline's box, the two spires at the west face's corners
+# (1996 photos 52004 · 52006; the 2008 - 2011 roadview's net, 고증 4.8), the old box only for the draws
+CHURCH = dict(c=(-30.3, -533.1), L=40.4, W=22.4, ang=0.0713)
+CHURCH_RNG = (-50.0, -523.0, 27.0, 13.0)
 X0, X1 = -575.0, 700.0       # the banks are built between these
 MODERN = {230178502, 628197716}        # OSM outlines that are the 2006 station building
 
@@ -342,6 +353,8 @@ def layout(pl, secs, ground, taken, e_curb0):
     y_top = float(np.interp(YONSEI_X, kerb_s[:, 0], kerb_s[:, 1])) + 1.0
     yonsei = Polygon([(YONSEI_X - YONSEI_HALF, y_top), (YONSEI_X + YONSEI_HALF, y_top), (YONSEI_X + YONSEI_HALF, -640),
                       (YONSEI_X - YONSEI_HALF, -640)])
+    yonsei_rng = Polygon([(YONSEI_X_RNG - 7.0, y_top), (YONSEI_X_RNG + 7.0, y_top), (YONSEI_X_RNG + 7.0, -640),
+                          (YONSEI_X_RNG - 7.0, -640)])                  # (the old 14 m)
     # (its walks: 5.6 m either side down to the rows of shop houses; under the bridge and before it the whole opening,
     # wider on the east side as in the 1997 photos)
     fw = YONSEI_HALF + YONSEI_WALK + 0.6
@@ -392,12 +405,17 @@ def layout(pl, secs, ground, taken, e_curb0):
                 rows.append(b)
                 fronts[side].append(b)
                 yy -= wdt
-    ch = (-50.0, -523.0, 27.0, 13.0)
-    church = [ch[0], ch[1], ch[2], ch[3], 0.0, round(min(ground(ch[0] + u, ch[1] + v) for u in (-13, 13) for v in (-6, 6)) - 0.3, 2),
-              3, 0, 1, 2, 0, 0]
-    row_poly = unary_union([Polygon([(b[0] - b[2] / 2, b[1] - b[3] / 2), (b[0] + b[2] / 2, b[1] - b[3] / 2),
-                                     (b[0] + b[2] / 2, b[1] + b[3] / 2), (b[0] - b[2] / 2, b[1] + b[3] / 2)]) for b in rows + [church]])
-    busy = unary_union([p.buffer(3.0) for p in taken] + [yonsei.buffer(YONSEI_WALK - 0.5), bank.buffer(3.0), row_poly.buffer(1.5)])
+    cc, cL, cW, ca = CHURCH['c'], CHURCH['L'], CHURCH['W'], CHURCH['ang']
+    cq = [(cc[0] + u * math.cos(ca) - v * math.sin(ca), cc[1] + u * math.sin(ca) + v * math.cos(ca))
+          for u in (-cL / 2, cL / 2) for v in (-cW / 2, cW / 2)]
+    church = [cc[0], cc[1], cL, cW, ca, round(min(ground(*q) for q in cq) - 0.3, 2), 3, 0, 1, 2, 0, 0]
+    box_ = lambda b: Polygon([(b[0] - b[2] / 2, b[1] - b[3] / 2), (b[0] + b[2] / 2, b[1] - b[3] / 2),
+                              (b[0] + b[2] / 2, b[1] + b[3] / 2), (b[0] - b[2] / 2, b[1] + b[3] / 2)])
+    # (the rows and the church where they stood before 연세로 moved east and the church onto its outline: what the
+    # stream decides round them is decided there; what stands in the new ones goes at the end, b[6] < 0)
+    dx_rng = YONSEI_X_RNG - YONSEI_X
+    row_poly = unary_union([box_([b[0] + dx_rng] + b[1:]) for b in rows] + [box_(CHURCH_RNG)])
+    busy = unary_union([p.buffer(3.0) for p in taken] + [yonsei_rng.buffer(5.0 - 0.5), bank.buffer(3.0), row_poly.buffer(1.5)])
     shapely.prepare(busy)
     blocks = rows + [church]
     for e in els:
@@ -422,7 +440,7 @@ def layout(pl, secs, ground, taken, e_curb0):
         mc = pg.minimum_rotated_rectangle.centroid
         area = L * W
         r = rnd.random()
-        on_main = abs(mc.x - YONSEI_X) < 45 and mc.y > -640
+        on_main = abs(mc.x - YONSEI_X_RNG) < 45 and mc.y > -640
         if on_main:
             lv = 3 + int(r * 2.4)
         elif area < 95:
@@ -443,7 +461,8 @@ def layout(pl, secs, ground, taken, e_curb0):
     streets = unary_union([LineString([_xy(q) for q in e['geometry']]).buffer(
         {'primary': 13.0, 'secondary': 8.0, 'tertiary': 7.0}.get(e['tags']['highway'].replace('_link', ''), 3.6))
         for e in els if 'highway' in e['tags'] and len(e['geometry']) > 1])
-    used = unary_union([_rect(b).buffer(2.2) for b in blocks] + [streets, rail.ls.buffer(25.0), busy])
+    blocks_rng = [[b[0] + dx_rng] + b[1:] for b in rows] + [list(CHURCH_RNG) + [0.0]] + blocks[len(rows) + 1:]
+    used = unary_union([_rect(b).buffer(2.2) for b in blocks_rng] + [streets, rail.ls.buffer(25.0), busy])
     shapely.prepare(used)
     n_fill = 0
     for gy in np.arange(-792.0, -300.0, 11.5):
@@ -461,6 +480,17 @@ def layout(pl, secs, ground, taken, e_curb0):
             b[5] = round(min(ground(x_, y_) for x_, y_ in cs_[:4]) - 0.3, 2)
             blocks.append(b)
             n_fill += 1
+    # what now stands in 연세로's street and walks, in its rows or in the church (all drawn round the old ones above)
+    # goes: b[6] < 0, blender/town.py still draws its random looks so that the houses after it keep theirs
+    fw_ = YONSEI_HALF + YONSEI_WALK
+    now = unary_union([Polygon([(YONSEI_X - fw_, y_top), (YONSEI_X + fw_, y_top), (YONSEI_X + fw_, -640), (YONSEI_X - fw_, -640)]),
+                       unary_union([box_(b) for b in rows]).buffer(0.3), _rect(church).buffer(1.0)])
+    shapely.prepare(now)
+    n_moved = 0
+    for b in blocks[len(rows) + 1:]:
+        if b[6] > 0 and shapely.intersects(now, _rect(b).buffer(-0.2)):
+            b[6] = -b[6]
+            n_moved += 1
     # the shops on 연세로 from the bridge south, as the anthologies' street maps name them (2019 문집 25쪽, 2021 문집
     # 22쪽), a sign over each ground floor on the street's side
     names = {1: ['연세식품', '사진관', '독수리다방', '초원각', '독수리약국', '알서림', '새마을금고', '오락실'],
@@ -511,6 +541,18 @@ def layout(pl, secs, ground, taken, e_curb0):
         for ya, yb in ((YZEBRA[0], ym + 0.3), (ym - 0.3, YZEBRA[1])):
             zebra.append(R2([(xx, ya), (xx + 0.55, ya), (xx + 0.55, yb), (xx, yb)]))
         xx += 1.1
+    # the zebra over 연세로 a hundred metres south of the bridge (the 1997 frames: a band of bars across the street at
+    # y -572 .. -578 in 26/16 and 27/17, its west half under the ginkgos' crowns), the same two rows of bars, and the
+    # stop lines 2 m before it either way
+    ym2 = sum(YZEBRA2) / 2
+    xx = YONSEI_X - YONSEI_HALF + 0.5
+    while xx + 0.55 < YONSEI_X + YONSEI_HALF - 0.4:
+        for ya, yb in ((YZEBRA2[0], ym2 + 0.3), (ym2 - 0.3, YZEBRA2[1])):
+            zebra.append(R2([(xx, ya), (xx + 0.55, ya), (xx + 0.55, yb), (xx, yb)]))
+        xx += 1.1
+    for ys_, x0_, x1_ in ((YZEBRA2[1] - 2.0, YONSEI_X + 0.3, YONSEI_X + YONSEI_HALF - 0.3),      # northbound: east half
+                          (YZEBRA2[0] + 2.0, YONSEI_X - YONSEI_HALF + 0.3, YONSEI_X - 0.3)):
+        zebra.append(R2([(x0_, ys_ + 0.25), (x1_, ys_ + 0.25), (x1_, ys_ - 0.25), (x0_, ys_ - 0.25)]))
     # kerbs: runs of each line, broken at the gate's mouth and at 연세로
     def runs(line, gaps):
         out, cur = [], []
@@ -629,14 +671,14 @@ def layout(pl, secs, ground, taken, e_curb0):
                        round(rnd.uniform(0, 6.28), 2)])
     # (the campus's list holds a fixed number of the town's trees, tools/build_campus.py TOWN_TREE_SLOTS: those
     # nearest the gate first, so that the higher banks' many trees are not all spent far west of it)
-    trees.sort(key=lambda t_: abs(t_[1] - YONSEI_X))
+    trees.sort(key=lambda t_: abs(t_[1] - YONSEI_X_RNG))
     town = dict(
         road=dict(pts=R2(road.P), z=[round(float(v), 2) for v in pl['road_z']], half=HW, lanes=LANES, lane_w=LANE_W),
         rail=dict(z=rail_z, top=round(top, 2), n=[list(p) for p in TRACK_N if X0 <= p[0] <= X1],
                   s=[list(p) for p in TRACK_S if X0 <= p[0] <= X1], shoulder=SHOULDER, sections=secs),
         bridge=dict(x=list(BRIDGE), pier=YONSEI_X, yonsei=[YONSEI_X, YONSEI_HALF, YONSEI_WALK]),
         paint=paint, zebra=zebra, kerbs=kerbs, lanes=lanes, stops=stops, blocks=blocks, signs=signs,
-        church=church[:4], names=names[1] + names[-1], filled=n_fill, limit=R2(limit))
+        church=church[:5], names=names[1] + names[-1], filled=n_fill, moved=n_moved, limit=R2(limit))
     paints = dict(clear=[zone, inside], asphalt=[road_poly, mouth_a, yonsei, ground_town],
                   pavers=[walk_n.difference(mouth), walk_s, yonsei_walk, inside],
                   dirt=[bank_paint])

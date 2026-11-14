@@ -37,9 +37,9 @@ REACH = 125.0                  # how far from it the walks are open along each s
 # two carriageways; 백범로 near the junction one-way today, its line).  half: the carriageway's half width, walk:
 # the sidewalk's width, lanes: each way
 ARMS = {
-    'yonsei': dict(half=7.0, walk=5.0, lanes=2, pts=[(-101.5, -962.0), (-101.5, -945.0), (-101.0, -925.0), (-100.0, -890.0),
-                                                     (-99.0, -853.0), (-98.0, -809.0), (-96.0, -753.0), (-96.0, -740.0),
-                                                     (-96.0, -455.0)]),
+    'yonsei': dict(half=6.5, walk=5.0, lanes=2, pts=[(-98.6, -962.0), (-98.4, -945.0), (-98.25, -912.0), (-97.5, -885.0),
+                                                     (-96.4, -850.0), (-95.2, -810.0), (-94.3, -780.0), (-94.4, -740.0),
+                                                     (-94.0, -700.0), (-94.0, -455.0)]),
     'sinchon_w': dict(half=14.0, walk=5.5, lanes=4, pts=[(-100.4, -971.6), (-114.8, -970.2), (-125.4, -966.7), (-139.7, -962.1),
                                                          (-153.8, -957.5), (-167.1, -951.8), (-193.8, -939.5), (-221.0, -927.0),
                                                          (-262.1, -908.1), (-303.2, -889.8), (-344.9, -871.8), (-398.4, -849.8),
@@ -55,6 +55,14 @@ ARMS = {
                                                        (-94.0, -1059.0), (-92.0, -1077.0), (-86.0, -1120.0), (-80.0, -1168.0),
                                                        (-75.0, -1205.0)]),
 }
+# 연세로's line before 2026-11-14 (OSM's today, the 2014 transit mall's): what the random streams decide along it is
+# still decided round it (layout: the old rows' draws, the blocks kept clear of the streets; the ginkgos' draws), so
+# that nothing away from 연세로 moves.  The line above is the 1990s' road (고증 4.10.1): x -94 from the
+# bridge to y -780 (the bridge's opening, the 1997 frames' centre line, the 2008 · 2010 skyview's yellow line and
+# kerbs), then bending west to the kerbs' middle at y -885 (-97.5, 2008 · 2010) and -930 (-97.8, 2010) and on into
+# the junction 1.4 m east of the island's middle
+YONSEI_RNG_PTS = [(-101.5, -962.0), (-101.5, -945.0), (-101.0, -925.0), (-100.0, -890.0), (-99.0, -853.0), (-98.0, -809.0),
+                  (-96.0, -753.0), (-96.0, -740.0), (-96.0, -455.0)]
 CORNER_R = 9.0                 # the kerbs' rounding at the corners
 # the rotary's round island in the middle (서울연구원 1995 · 1996 photos from the roof of 그레이스백화점, 52142 · 52145 ·
 # 52158 · 52187).  52158's camera solved from the bed's outline and two city buses (고증 4.10 「옥상 사진의 카메라」):
@@ -91,9 +99,12 @@ MODERN = set()                 # OSM outlines (osm_rotary.json) that are later t
 # (52006) has walk : carriageway : walk = 0.20 : 0.55 : 0.25 at the junction's mouth; 서울시 2013 has 3 - 4 m walks.
 # With the 14 m carriageway of four lanes kept, 3.75 m.  North of y -640 (gate_town, 4.8) OSM's walls are 23.5 m apart
 # and gate_town's 5 m stays.
-YRO_WALK = 3.75
+YRO_WALK = 3.75               # (the walk of the old line, 2026-11-11 .. 14: for the streams' decisions)
 YRO_OLD_WALK = 5.0             # (the walk the rows had before: the old rows are still drawn, unused, for the streams)
-ARMS['yonsei']['walk'] = YRO_WALK
+# 2026-11-14 (고증 4.10.1): 13 m of carriageway (ARMS half 6.5), the fronts 10.5 m west and 9.5 m east
+# of its middle (the 2008 · 2010 skyview's crossings and kerbs, 52006's mouth, 홍익문고's outline)
+YRO_WALK_W, YRO_WALK_E = 4.0, 3.0
+ARMS['yonsei']['walk'] = (YRO_WALK_W + YRO_WALK_E) / 2
 
 
 def _xy(lat, lon):
@@ -161,17 +172,26 @@ def in_patch(x, y):
 
 def streets(pl):
     """연세로 and the junction: the carriageways' union with its corners rounded, the sidewalks round it, the arms.
-    pl: gate_town.plan's dict (성산로's south kerb: where 연세로 begins)."""
-    A = arms()
+    pl: gate_town.plan's dict (성산로's south kerb: where 연세로 begins).  geo['rng']: the same with 연세로 on its old
+    line (YONSEI_RNG_PTS), for what the random streams decide"""
+    geo = _streets(pl, arms())
+    A0 = arms()
+    A0['yonsei'] = Arm('yonsei', {**ARMS['yonsei'], 'pts': YONSEI_RNG_PTS, 'half': 7.0, 'walk': YRO_WALK})
+    geo['rng'] = _streets(pl, A0, gt.YONSEI_X_RNG, old=True)
+    return geo
+
+
+def _streets(pl, A, yx=None, old=False):
+    yx = gt.YONSEI_X if yx is None else yx
     road_ = pl['road']
     ks = road_.off(-gt.HW)
-    y_top = float(np.interp(gt.YONSEI_X, ks[:, 0], ks[:, 1])) + 1.0        # (gate_town.layout's 연세로)
-    s_top = float(A['yonsei'].ls.project(Point(gt.YONSEI_X, y_top)))
-    s_kerb = float(A['yonsei'].ls.project(Point(gt.YONSEI_X, y_top - 1.2)))      # (성산로's south kerb)
+    y_top = float(np.interp(yx, ks[:, 0], ks[:, 1])) + 1.0        # (gate_town.layout's 연세로)
+    s_top = float(A['yonsei'].ls.project(Point(yx, y_top)))
+    s_kerb = float(A['yonsei'].ls.project(Point(yx, y_top - 1.2)))      # (성산로's south kerb)
     cw, walks = {}, {}
     for k, a in A.items():
         cw[k] = a.poly(-a.half, a.half, 0.0, s_top if k == 'yonsei' else a.cum[-1])
-        walks[k] = yro_walk_poly(a, s_kerb) if k == 'yonsei' else a.poly(-a.half - a.walk, a.half + a.walk, 0.0, a.cum[-1])
+        walks[k] = yro_walk_poly(a, s_kerb, yx, old) if k == 'yonsei' else a.poly(-a.half - a.walk, a.half + a.walk, 0.0, a.cum[-1])
     road = unary_union(list(cw.values()))
     road = road.buffer(CORNER_R, join_style=1).buffer(-CORNER_R, join_style=1).union(road)
     # (the corners rounded: closing the union fills the wedges between the arms)
@@ -273,12 +293,16 @@ def layout(geo, town, extras, ground, taken_z):
     A, road, street, walk = geo['arms'], geo['road'], geo['street'], geo['walk']
     R2 = lambda a: [[round(float(x), 2), round(float(y), 2)] for x, y in a]
     ya = A['yonsei']
+    # (the old line's streets: what the stream decides is decided round them, see YONSEI_RNG_PTS)
+    g0 = geo['rng']
+    ya0, street0 = g0['arms']['yonsei'], g0['street']
+    yx0 = gt.YONSEI_X_RNG
     blocks = town['blocks']
     new = []
     # ---- 연세로's shop rows as they were (wall to wall, three to five storeys, as gate_town's, behind a 5 m walk): still
     # drawn from the stream and kept as gone blocks (b[6] < 0), so that everything after them keeps its looks; the rows
     # that stand now are yro_rows' (from the 1996 photos), appended at the end of the blocks
-    corner_cut = geo['cross_streets'].buffer(1.0)
+    corner_cut = g0['cross_streets'].buffer(1.0)
     shapely.prepare(corner_cut)
     old_fronts = {1: [], -1: []}
     for side in (1, -1):                         # +1 east, -1 west
@@ -289,16 +313,16 @@ def layout(geo, town, extras, ground, taken_z):
         segs.append((y0, None))
         for ya_, yb_ in segs:
             # (the arm runs from the junction north: s falls going south)
-            s = float(ya.ls.project(Point(gt.YONSEI_X, ya_)))
-            stop = float(ya.ls.project(Point(gt.YONSEI_X, yb_))) if yb_ is not None else 0.0
+            s = float(ya0.ls.project(Point(yx0, ya_)))
+            stop = float(ya0.ls.project(Point(yx0, yb_))) if yb_ is not None else 0.0
             while s > stop + 4.0:
                 wdt = rnd.uniform(6.0, 11.5)
                 if s - wdt < stop + 6.0:
                     wdt = s - stop
                 dep = rnd.uniform(10.0, 15.0)
-                p, t, n = ya.at(s - wdt / 2)
+                p, t, n = ya0.at(s - wdt / 2)
                 # n: left of the arm's way north, i.e. west; the east side is at -n
-                c = p - n * side * (ya.half + YRO_OLD_WALK + dep / 2)
+                c = p - n * side * (ya0.half + YRO_OLD_WALK + dep / 2)
                 ang = math.atan2(-n[1] * side, -n[0] * side)          # (L, the depth, away from the street)
                 bb = [round(float(c[0]), 2), round(float(c[1]), 2), round(dep, 2), round(wdt - 0.15, 2), round(ang, 4), 0.0,
                       3 + int(rnd.random() * 2.6), rnd.choice([0, 1, 2, 3, 3]), 3 if rnd.random() < 0.6 else 2, 0, 2,
@@ -315,7 +339,7 @@ def layout(geo, town, extras, ground, taken_z):
         bb[6] = -bb[6]
     # (the street as it was with the 5 m walk, for what is cleared and placed round the old rows: the same blocks and
     # the same draws; what stands in the new rows goes in yro_rows)
-    street_b = street.union(ya.poly(-ya.half - YRO_OLD_WALK, ya.half + YRO_OLD_WALK, 0.0, float(ya.ls.project(Point(gt.YONSEI_X, Y_ROWS)))))
+    street_b = street0.union(ya0.poly(-ya0.half - YRO_OLD_WALK, ya0.half + YRO_OLD_WALK, 0.0, float(ya0.ls.project(Point(yx0, Y_ROWS)))))
     # ---- what stands in the streets or where the rows go now goes (gate_town's blocks south of its own rows)
     clear = unary_union([street_b.buffer(-0.3), rows_poly.buffer(-0.3)])
     shapely.prepare(clear)
@@ -414,6 +438,18 @@ def layout(geo, town, extras, ground, taken_z):
             new.append(b)
             n_fill += 1
     blocks += new
+    # what stands in the streets where they are now (연세로 east of its old line by 2 - 3 m) goes too, b[6] < 0
+    # (only what the move put in them: boxes that stood over the old streets' edges stay as they were)
+    clear_now, clear_old = street.buffer(-0.3), street0.buffer(-0.3)
+    shapely.prepare(clear_now)
+    shapely.prepare(clear_old)
+    lm_ids = {id(b) for _, b in corner}
+    n_moved = 0
+    for b in blocks:
+        if b[6] > 0 and b[1] < Y_ROWS + 30.0 and id(b) not in lm_ids and shapely.intersects(clear_now, _box(b)) and \
+                not shapely.intersects(clear_old, _box(b)):
+            b[6] = -b[6]
+            n_moved += 1
     fronts, n_yro_gone = yro_rows(geo, blocks, ground)           # (연세로's rows from the 1996 photos, at the end)
     # ---- kerbs: the carriageways' edge (gate_town's 연세로 north of y -560 has its own), lane paint, crossings
     kerbs, paint, zebra = [], [], []
@@ -471,13 +507,16 @@ def layout(geo, town, extras, ground, taken_z):
                 paint.append(dict(kind='white_dash', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * o for s in ss[2:]])))
     # 연세로's crossing between the junction and the bridge, with stop lines either side
     s_mid = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS_Y)))
-    for o in np.arange(-ya.half + 0.5, ya.half - 0.4, 0.95):
-        c = [ya.at(s_mid)[0] + ya.at(s_mid)[2] * o, ya.at(s_mid + 4.5)[0] + ya.at(s_mid + 4.5)[2] * o,
-             ya.at(s_mid + 4.5)[0] + ya.at(s_mid + 4.5)[2] * (o + 0.45), ya.at(s_mid)[0] + ya.at(s_mid)[2] * (o + 0.45)]
-        zebra.append(R2(c))
-    for s_, o0, o1 in ((s_mid + 6.0, 0.3, ya.half - 0.3), (s_mid - 2.0, -ya.half + 0.3, -0.3)):
-        zebra.append(R2([ya.at(s_)[0] + ya.at(s_)[2] * o0, ya.at(s_ + 0.5)[0] + ya.at(s_ + 0.5)[2] * o0,
-                         ya.at(s_ + 0.5)[0] + ya.at(s_ + 0.5)[2] * o1, ya.at(s_)[0] + ya.at(s_)[2] * o1]))
+    # (and the one further up at y -690 the 1997 frames show, 4.9 m across: no signals of its own in the game)
+    s_c2 = float(ya.ls.project(Point(gt.YONSEI_X, YRO_CROSS2_Y))) - 2.45
+    for s_z in (s_mid, s_c2):
+        for o in np.arange(-ya.half + 0.5, ya.half - 0.4, 0.95):
+            c = [ya.at(s_z)[0] + ya.at(s_z)[2] * o, ya.at(s_z + 4.5)[0] + ya.at(s_z + 4.5)[2] * o,
+                 ya.at(s_z + 4.5)[0] + ya.at(s_z + 4.5)[2] * (o + 0.45), ya.at(s_z)[0] + ya.at(s_z)[2] * (o + 0.45)]
+            zebra.append(R2(c))
+        for s_, o0, o1 in ((s_z + 6.0, 0.3, ya.half - 0.3), (s_z - 2.0, -ya.half + 0.3, -0.3)):
+            zebra.append(R2([ya.at(s_)[0] + ya.at(s_)[2] * o0, ya.at(s_ + 0.5)[0] + ya.at(s_ + 0.5)[2] * o0,
+                             ya.at(s_ + 0.5)[0] + ya.at(s_ + 0.5)[2] * o1, ya.at(s_)[0] + ya.at(s_)[2] * o1]))
     # the island: its kerb a ring, the white ring of short dashes round it (52158: some 0.6 m long, as long apart)
     ic, ir = np.array(ISLAND['c']), ISLAND['r']
     kerbs.append(R2([tuple(ic + ir * np.array([math.cos(a_), math.sin(a_)])) for a_ in np.linspace(0, 2 * math.pi, 49)]))
@@ -609,7 +648,8 @@ def layout(geo, town, extras, ground, taken_z):
         s = float(best.ls.project(Point(x, y)))
         p, t, n = best.at(s)
         side = 1 if float((np.array([x, y]) - p) @ n) > 0 else -1
-        q = p + n * side * (best.half + best.walk - 2.0)
+        w_ = (YRO_WALK_W if side > 0 else YRO_WALK_E) if best.name == 'yonsei' else best.walk
+        q = p + n * side * (best.half + w_ - 2.0)
         ang = math.atan2(t[1], t[0])
         L, Wd = 7.4, 2.6
         e = [round(float(q[0]), 2), round(float(q[1]), 2), round(ang, 4), L, Wd, no, round(ground(*q), 2)]
@@ -623,17 +663,43 @@ def layout(geo, town, extras, ground, taken_z):
                          [a.poly(-a.half - 6, a.half + 6, xs[k] - 3.0, xs[k] + 8.0) for k, a in A.items()] +
                          [ya.poly(-ya.half - 6, ya.half + 6, s_mid - 3.0, s_mid + 8.0)])
     s_top_t = float(ya.ls.project(Point(gt.YONSEI_X, -508.0)))           # (south of the baked sun shadow's edge)
-    for k, s0, s1 in (('yonsei', xs['yonsei'] + 9.0, s_top_t), ('baekbeom', xs['baekbeom'] + 9.0, A['baekbeom'].cum[-1] - 20.0)):
+    # 연세로's row from its own stream (random.Random(4813)), 8 m apart (2010 skyview: the crowns' autocorrelation
+    # 8.1 - 8.4 m along both walks from y -517 to -790; 7 m before); 4802 skips the draws the old row took, so that
+    # 백범로's row keeps its own
+    rnd_y = random.Random(4813)
+    for _ in range(YRO_GINKGO_DRAWS):
+        rnd.random()
+    busy_t = busy_t.union(unary_union([ya.poly(-ya.half - 6, ya.half + 6, float(ya.ls.project(Point(gt.YONSEI_X, y_))) - 5.0,
+                                               float(ya.ls.project(Point(gt.YONSEI_X, y_))) + 5.0) for y_ in (YRO_CROSS2_Y, gt.YZEBRA2[0] - 2.75)]))
+    for k, s0, s1, r_, step in (('yonsei', xs['yonsei'] + 9.0, s_top_t, rnd_y, YRO_GINKGO_STEP),
+                                ('baekbeom', xs['baekbeom'] + 9.0, A['baekbeom'].cum[-1] - 20.0, rnd, 7.0)):
         a = A[k]
         for side in (1, -1):
             gaps = GAPS[-side] if k == 'yonsei' else []          # (+n is west on 연세로: side +1 west)
-            for s in np.arange(s0 + (2.0 if side > 0 else 5.5), s1, 7.0):
+            for s in np.arange(s0 + (2.0 if side > 0 else 5.5), s1, step):
                 p, t, n = a.at(s)
-                q = p + n * side * (a.half + 1.1) + t * rnd.uniform(-0.4, 0.4)
+                q = p + n * side * (a.half + 1.1) + t * r_.uniform(-0.4, 0.4)
                 if any(g1 - 4.0 < q[1] < g0 + 4.0 for g0, g1 in gaps) or busy_t.contains(Point(*q)):
                     continue
-                trees.append(['ginkgo', round(float(q[0]), 2), round(float(q[1]), 2), round(rnd.uniform(0.62, 0.78), 2),
-                              round(rnd.uniform(0, 6.28), 2)])
+                trees.append(['ginkgo', round(float(q[0]), 2), round(float(q[1]), 2), round(r_.uniform(0.62, 0.78), 2),
+                              round(r_.uniform(0, 6.28), 2)])
+        if k == 'yonsei':
+            # (the row holds YRO_TREE_SLOTS places in campus.json's list, as the 7 m row had, so that the trees after it
+            # keep their models: short of it, more trees on the banks west of the bridge beside gate_town's own, as
+            # tools/build_campus.py TOWN_TREE_SLOTS does; random.Random(4814))
+            assert len(trees) <= YRO_TREE_SLOTS, len(trees)
+            rb = random.Random(4814)
+            src = [t_ for t_ in extras['trees'] if t_[0] in ('poplar', 'zelkova', 'oak', 'zelkova_young') and t_[1] < gt.BRIDGE[0] - 12]
+            for _ in range(4000):
+                if len(trees) >= YRO_TREE_SLOTS or not src:
+                    break
+                t0 = rb.choice(src)
+                q = (round(t0[1] + rb.choice((-1, 1)) * rb.uniform(3.5, 6.0), 2), round(t0[2] + rb.uniform(-1.5, 1.5), 2))
+                if min(math.hypot(o_[1] - q[0], o_[2] - q[1]) for o_ in extras['trees'] + trees) < 3.0 or \
+                        not extras['bank'].contains(Point(*q)):
+                    continue
+                trees.append([t0[0], q[0], q[1], round(rb.uniform(0.5, 0.8), 2), round(rb.uniform(0, 6.28), 2)])
+            n_bank = len(trees) - sum(1 for t_ in trees if t_[0] == 'ginkgo')
     # the island's bed (52158, May 1996): the yellow band (BED, r 2.5 - 4.3) two rows of the pansy border round the
     # inner lawn; the dark and the white bands and the outer lawn are the ground's grass
     shrubs = []
@@ -696,7 +762,8 @@ def layout(geo, town, extras, ground, taken_z):
     town['names2'] = names[1] + names[-1]
     town['vsigns'] = yro_wall_signs(blocks)                    # (연세로's wall signs and banner: yro_)
     town['banner'] = yro_banner(geo, ground)
-    print('연세로: rows %d + %d, gone %d, wall signs %d' % (len(fronts[1]), len(fronts[-1]), n_yro_gone, len(town['vsigns'])))
+    print('연세로: rows %d + %d, gone %d, wall signs %d, ginkgos %d (+ %d on the banks)' % (
+        len(fronts[1]), len(fronts[-1]), n_yro_gone, len(town['vsigns']), YRO_TREE_SLOTS - n_bank, n_bank))
     town['rotary'] = dict(c=list(JC), reach=REACH, arms={k: dict(half=a.half, walk=a.walk, cross=round(xs[k], 1))
                                                           for k, a in A.items()})
     paths = [dict(kind='primary', w=2 * A[k].half, pts=[[round(float(x), 1), round(float(y), 1)] for x, y in A[k].P[::4]])
@@ -707,12 +774,12 @@ def layout(geo, town, extras, ground, taken_z):
     # the walkers' sidewalks (web: a crowd of its own on 연세로): each side's middle, the bridge to the corner
     walks_ = []
     for side in (1, -1):
-        o = side * (ya.half + ya.walk / 2)
+        o = side * (ya.half + (YRO_WALK_W if side > 0 else YRO_WALK_E) / 2)
         s1 = float(ya.ls.project(Point(gt.YONSEI_X, geo['y_top'] - 3.0)))
         walks_.append(R2(lane_pts('yonsei', o, s1, xs['yonsei'] + 7.0, 3.0)))
     town['walks'] = walks_
-    print('신촌 로터리: blocks +%d (rows %d, fill %d, gone %d), kerbs %d, lanes %d, lamps %d' % (
-        len(new), sum(len(v) for v in fronts.values()), n_fill, n_gone, len(kerbs), len(lanes), len(props)))
+    print('신촌 로터리: blocks +%d (rows %d, fill %d, gone %d + %d for the moved 연세로), kerbs %d, lanes %d, lamps %d' % (
+        len(new), sum(len(v) for v in fronts.values()), n_fill, n_gone, n_moved, len(kerbs), len(lanes), len(props)))
     town['island'] = dict(c=list(ISLAND['c']), r=ISLAND['r'])
     # people standing about (web/src/main.js: the town's crowd) and the blue sign over 연세로 (blender/town.py)
     waiting['groups'] += rot_waiting(fronts[1][-1], corner, A, waiting['singles'])
@@ -866,7 +933,7 @@ def rot_fence(A):
     s0 = float(ya.ls.project(Point(gt.YONSEI_X, -912.4)))
     for s in np.linspace(s0, 0.0, 30):
         p, t, n = ya.at(s)
-        out.append(p - n * (ya.half + ya.walk + 0.15))                  # (east: -n on 연세로)
+        out.append(p - n * (ya.half + YRO_WALK_E + 0.15))               # (east: -n on 연세로)
     east = [ae.at(s)[0] + ae.at(s)[2] * (ae.half + ae.walk + 0.15) for s in np.linspace(0.0, 60.0, 61)]
     line_e = LineString([tuple(q) for q in east])
     # the corner where the two back edges meet; the 연세로 line stops there, the 신촌로 one starts there
@@ -949,14 +1016,20 @@ YRO_FIXED = {
 # frontages 5.5 - 12 m, every wall band (red brick seldom), flat roofs with tanks
 YRO_MIX = dict(lv=[2, 3, 4, 5, 6, 7], p=[0.12, 0.25, 0.30, 0.18, 0.10, 0.05], w=(5.5, 12.0), dep=(10.0, 14.0),
                wall=[0, 1, 2, 2, 3, 3])
+YRO_GINKGO_STEP = 8.0         # 연세로's ginkgos apart (2010 skyview, 고증 4.10)
+YRO_TREE_SLOTS = 102          # (the places the 7 m row had in campus.json's tree list)
+YRO_GINKGO_DRAWS = 327        # (the draws 4802 gave the old 7 m row on the old line: 123 places, 102 trees)
+YRO_CROSS2_Y = -690.0         # the zebra over 연세로 at y -687.5 .. -692.4 (1997 frames 26/16 · 27/17), its middle
 YRO_BANNER_Y = -805.0         # the festival's banner (51979 · 52106, 1996.5): just south of the crossing in the middle
 
 
-def yro_walk_poly(a, s_kerb):
-    """연세로's two sidewalks: YRO_WALK from the junction to y -640, gate_town's north of it (4.8)"""
-    s640 = float(a.ls.project(Point(gt.YONSEI_X, Y_ROWS)))
-    return unary_union([a.poly(-a.half - a.walk, a.half + a.walk, 0.0, s640 + 0.5),
-                        a.poly(-a.half - gt.YONSEI_WALK, a.half + gt.YONSEI_WALK, s640, s_kerb)])
+def yro_walk_poly(a, s_kerb, yx=None, old=False):
+    """연세로's two sidewalks: YRO_WALK_W / _E from the junction to y -640, gate_town's north of it (4.8).
+    old: as they were on the old line (YRO_WALK, gate_town's 14 m and 5 m walks), for the streams' decisions"""
+    s640 = float(a.ls.project(Point(gt.YONSEI_X if yx is None else yx, Y_ROWS)))
+    ww, we, wn = (YRO_WALK, YRO_WALK, 7.0 + 5.0 - a.half) if old else (YRO_WALK_W, YRO_WALK_E, gt.YONSEI_WALK)
+    return unary_union([a.poly(-a.half - we, a.half + ww, 0.0, s640 + 0.5),
+                        a.poly(-a.half - wn, a.half + wn, s640, s_kerb)])
 
 
 def yro_rows(geo, blocks, ground):
@@ -967,12 +1040,12 @@ def yro_rows(geo, blocks, ground):
     ya = geo['arms']['yonsei']
     corner_cut = geo['cross_streets'].buffer(1.0)
     shapely.prepare(corner_cut)
-    face = ya.half + YRO_WALK
+    face_ = {1: ya.half + YRO_WALK_E, -1: ya.half + YRO_WALK_W}     # (side +1: the east row, at -n)
     S = lambda y: float(ya.ls.project(Point(gt.YONSEI_X if y > -740 else -100.0, y)))
 
     def mk(s_mid, wdt, lv, wall, dep, side, draw=True):
         p, t, n = ya.at(s_mid)
-        c = p - n * side * (face + dep / 2)
+        c = p - n * side * (face_[side] + dep / 2)
         ang = math.atan2(-n[1] * side, -n[0] * side)
         b = [round(float(c[0]), 2), round(float(c[1]), 2), round(dep, 2), round(wdt - 0.15, 2), round(ang, 4), 0.0, int(lv),
              int(wall), (3 if rnd.random() < 0.6 else 2) if draw else 3, 0, 2, int(rnd.random() < 0.7) if draw else 0]

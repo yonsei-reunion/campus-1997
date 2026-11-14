@@ -79,7 +79,7 @@ def house(mb, b, rnd):
         flat(mb, [E[3], E[0], R0], B_ROOF, roof, 4)
         flat(mb, [E[3], E[2], E[1], E[0]], B_PLAIN, wk)          # (the eaves from below)
         return
-    if hip == 2:                                   # the church: a gabled roof, a square tower at the west end
+    if hip == 2:                                   # the church (창천교회): a gabled nave, two spires at the west front
         zr = zt + W / 2 * 0.8
         r0, r1 = P(-L / 2, 0), P(L / 2, 0)
         E = [(p[0], p[1], zt) for p in q]
@@ -88,20 +88,33 @@ def house(mb, b, rnd):
         flat(mb, [E[2], E[3], R0, R1], B_ROOF, 1, 4)
         flat(mb, [E[1], E[2], R1], B_PLAIN, 0)
         flat(mb, [E[3], E[0], R0], B_PLAIN, 0)
-        tw = 4.2
+        # (the square tower it had: its sixteen walls still drawn from the stream, into nothing, so that the houses
+        # after it keep their looks)
+        scrap, tw = MeshBuilder('town_scrap'), 4.2
         t = [P(-L / 2 - tw, -tw / 2), P(-L / 2, -tw / 2), P(-L / 2, tw / 2), P(-L / 2 - tw, tw / 2)]
-        zz = base
-        for f in range(5):
+        for f in range(4):
             for i in range(4):
-                if f < 4:
-                    wall(mb, t[i], t[(i + 1) % 4], zz, zz + 3.3, B_BRICK, rnd, bays=1)
-                else:                              # the belfry: plain brick
-                    a_, b_ = t[i], t[(i + 1) % 4]
-                    flat(mb, [(a_[0], a_[1], zz), (b_[0], b_[1], zz), (b_[0], b_[1], zz + 3.3), (a_[0], a_[1], zz + 3.3)], B_PLAIN, 0)
-            zz += 3.3
-        tc = P(-L / 2 - tw / 2, 0)
-        for i in range(4):
-            flat(mb, [(t[i][0], t[i][1], zz), (t[(i + 1) % 4][0], t[(i + 1) % 4][1], zz), (tc[0], tc[1], zz + 6.0)], B_ROOF, 2, 4)
+                wall(scrap, t[i], t[(i + 1) % 4], 0.0, 3.3, B_BRICK, rnd, bays=1)
+        # the 1996 photos 52004 · 52006: dark brick towers at the west face's two corners, a tall slender spire on each
+        # (the tops about 26 m and the tips about 39 m over the ground, against the bridge's deck in 52006: 고증 4.8)
+        rt = random.Random(5240)
+        tw, top, tip = 5.0, base + 26.0, base + 39.0
+        for side in (-1, 1):
+            u0, v0 = -L / 2, side * (W / 2 - tw / 2)
+            t = [P(u0, v0 - tw / 2), P(u0 + tw, v0 - tw / 2), P(u0 + tw, v0 + tw / 2), P(u0, v0 + tw / 2)]
+            zz, nf = base, 8
+            for f in range(nf):
+                z1 = base + (top - base) * (f + 1) / nf
+                for i in range(4):
+                    if f < nf - 1:
+                        wall(mb, t[i], t[(i + 1) % 4], zz, z1, B_BRICK, rt, bays=1)
+                    else:                          # the belfry: plain dark brick
+                        a_, b_ = t[i], t[(i + 1) % 4]
+                        flat(mb, [(a_[0], a_[1], zz), (b_[0], b_[1], zz), (b_[0], b_[1], z1), (a_[0], a_[1], z1)], B_PLAIN, 0)
+                zz = z1
+            tc = P(u0 + tw / 2, v0)
+            for i in range(4):
+                flat(mb, [(t[i][0], t[i][1], top), (t[(i + 1) % 4][0], t[(i + 1) % 4][1], top), (tc[0], tc[1], tip)], B_ROOF, 1, 4)
         return
     flat(mb, [(p[0], p[1], zt) for p in q], B_ROOF, roof, 4)
     if lv >= 3 and rnd.random() < 0.55:            # the stair head
