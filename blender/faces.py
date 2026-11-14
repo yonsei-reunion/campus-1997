@@ -149,7 +149,8 @@ def eye_curves(f, face, sx):
     """The lids of one eye (sx: +1 the person's left): the middle's x, the half width, and the upper and the lower
     edge as z over t = -1 (the inner corner) .. 1 (the outer).  characters.py sets the glasses by the same."""
     k = face.get('eye', 1.0)
-    hw, lo, up = f['eye'][0] * k, f['eye'][1] * k, f['lid'][face.get('lid', 'inner')] * k
+    wide = face.get('eye_open', 1.0)                        # (how far the lids part, of the kind's: narrow eyes less)
+    hw, lo, up = f['eye'][0] * k, f['eye'][1] * k * wide, f['lid'][face.get('lid', 'inner')] * k * wide
     slant = face.get('slant', f['slant'])
     ex = sx * (f['gap'] / 2 + face.get('eyes_apart', 0.0) + hw)
 

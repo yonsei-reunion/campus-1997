@@ -132,8 +132,9 @@ def canvas(upper, rubber):
 # nose nose, bridge, nose_curve, nose_w, nose_up (NOSE below).  paint: parts of the outfit in colours of their own
 # (see '1997 wardrobe').
 PEOPLE = {
-    # 승민 (the film 건축학개론, 2012: a first-year of 1996 in the knock-off sweatshirt): a long, quiet face with narrow
-    # single-lidded eyes under straight heavy brows, a straight nose, a mouth that does not smile
+    # 승민 (the film 건축학개론, 2012: a first-year of 1996 in the knock-off sweatshirt): a long oval face, narrow
+    # gentle eyes (the lids' fold only at the outer corner) under straight heavy brows that fall a little outward, a
+    # straight nose, a full lower lip and a shy smile
     'man-tee': man('fringe', 'Casual_2', 'Casual_2', 'Casual_2',
                    {'LightBrown': '#f1efe8', 'LightBlue': JEANS['light'], 'Red_Dark': '#e8e6e0', 'feet:White': '#c9c6be',
                     'feet:Bar': '#27345a', 'feet:Lace': '#cfccc4', 'Skin': SKIN['b'], 'Hair': HAIR['black']},
@@ -141,9 +142,9 @@ PEOPLE = {
                    'fringe down over the forehead',
                    paint={'body': [dict(of=('Skin',), to='LightBrown', x=(0, .592))], 'feet': trainers('umc', 'Red_Dark')},
                    prints={'body': [dict(name='geuss', of=('LightBrown',), w=.28, z=1.33)]}, cut='wide',
-                   face=dict(lid='mono', slant=.07, eye=.94, jaw=.94, chin=1.06, brow=1.3, brow_tilt=-.03, arch=.4, brow_len=1.02,
-                             brow_taper=1.3, brow_soft=1.6, smile=.0004, mouth=.94, nose=1.04, bridge=.38, nose_curve=1.1,
-                             nose_w=.94)),
+                   face=dict(lid='inner', slant=.0, eye=1.0, eye_open=.84, jaw=.92, chin=1.10, brow=1.35, brow_tilt=-.05,
+                             arch=.3, brow_len=1.02, brow_taper=1.3, brow_soft=1.6, smile=.0018, mouth=1.08, lip=1.3,
+                             nose=1.04, bridge=.38, nose_curve=1.1, nose_w=.98)),
     # 성훈: a beige checked shirt (체크 남방) worn open over a white tee, its long sleeves down (the pack's short-sleeved
     # shirt and the bare arms to the wrists).  The checks are not in the model: the game draws them on whatever is of
     # the material 'Check' (web/src/characters.js)
@@ -167,8 +168,9 @@ PEOPLE = {
                       face=dict(lid='mono', slant=.14, jaw=.97, eye=.98, smile=.0027, mouth=1.08, brow=1.5, brow_tilt=.09,
                                 brow_corner=True, brow_peak=.70, brow_drop=1.2, brow_taper=1.3, brow_soft=1.4, nose=1.04,
                                 bridge=.40, nose_curve=1.3)),
-    # 성구 (the maker's request: the look of an actor and singer born in 1978, from memory): a long face with a firm
-    # jaw, large eyes with double lids under heavy straight brows set low, a high straight nose, a wide ready smile
+    # 성구 (the maker's request: the look of an actor and singer born in 1978; from two photographs, 2011 and 2014): a
+    # long face coming down to a round chin, eyes that narrow as he smiles under heavy straight brows set low, a
+    # long high nose, a wide grin
     'man-cheer': man('two-block', 'Casual_Hoodie', 'Casual_2', 'Casual_2',
                      {'Purple': '#1d3fa0', 'LightBlue': JEANS['black'], 'Red_Dark': '#f2f2ee', 'feet:Bar': '#1d3fa0',
                       'feet:Lace': '#d6d3cc', 'Skin': SKIN['c'], 'Hair': HAIR['black']},
@@ -176,9 +178,9 @@ PEOPLE = {
                      'the long top swept from a 7:3 parting',
                      paint={'feet': trainers('umc', 'Red_Dark')}, cut='wide',
                      prints={'body': [dict(name='yonsei', of=('Purple',), w=.27, z=1.36)]},
-                     face=dict(lid='double', slant=.0, jaw=1.03, chin=1.09, eye=1.04, mouth=1.15, smile=.0034, lip=1.1,
-                               brow=1.6, arch=.75, brow_len=1.1, brow_peak=.6, brow_up=-.0014, brow_taper=1.5, brow_soft=1.5,
-                               nose=1.13, bridge=.45, nose_curve=1.15, nose_w=1.02)),
+                     face=dict(lid='double', slant=.03, jaw=1.0, chin=1.14, eye=1.04, eye_open=.82, mouth=1.25, smile=.0040,
+                               lip=1.2, brow=1.7, arch=.55, brow_len=1.1, brow_peak=.6, brow_up=-.0022, brow_taper=1.5,
+                               brow_soft=1.5, nose=1.18, bridge=.5, nose_curve=1.15, nose_w=1.06)),
     'man-grey': man('curtain-64', 'Casual_2', 'Casual_2', 'Casual_2',
                     {'LightBrown': '#1f2f55', 'Stripe': '#1f8580', 'Stripe2': '#d8742c', 'Collar': '#ece8dc',
                      'LightBlue': JEANS['dark'], 'Red_Dark': '#3a2c24', 'Skin': SKIN['b'], 'Hair': HAIR['dyed'], 'Brow': '#1c1410'},
@@ -221,7 +223,7 @@ PEOPLE = {
                          'feet:Sole': '#cfccc4', 'Skin': SKIN['fair'], 'Hair': HAIR['dark']},
                         'pink knit, wide beige trousers, white trainers; short bob, one side behind the ear',
                         paint={'feet': trainers('women', 'Grey')},
-                        face=dict(lid='inner', slant=.03, jaw=1.04, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
+                        bust=1.3, face=dict(lid='inner', slant=.03, jaw=1.04, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
                                   nose=.72, bridge=.24, nose_w=1.02, nose_up=.002)),
     # 서연 (the film 건축학개론, 2012: a first-year of the college of music in 1996): a round, soft face, large eyes with
     # double lids, straight soft brows, a small nose, a ready smile; long straight hair worn down
@@ -242,9 +244,9 @@ PEOPLE = {
                                 'legs': [dict(of=('LimeGreen',), to='Skirt')],
                                 'head': [dict(of=('Hair',), to='Band', y=(-.090, -.062), z=(1.690, None))]},
                          skirt='denim',
-                         face=dict(lid='double', slant=.04, eye=1.12, lash=1.15, jaw=1.03, brow=.95, arch=.35, brow_len=1.05,
-                                   brow_soft=2.0, smile=.0031, mouth=.98, lip=1.15, nose=.74, bridge=.26, nose_w=.94,
-                                   nose_up=.0015)),
+                         face=dict(lid='double', slant=.03, eye=1.18, lash=1.25, jaw=1.04, chin=.92, brow=1.2, arch=.25,
+                                   brow_len=1.0, brow_soft=2.0, smile=.0024, mouth=.90, lip=1.4, nose=.74, bridge=.26,
+                                   nose_w=.94, nose_up=.0015)),
     'woman-dress-blue': woman('shoulder', 'Formal', 'Casual', 'Casual',
                               {'LimeGreen': '#ece4cc', 'Rib': '#dcd2b4', 'Orange': JEANS['black'], 'Grey': '#1f1f24', 'Skin': SKIN['b'],
                                'Hair': HAIR['brown'], 'Bridge': '#9c6c3a', 'Brow': HAIR['dark']},
@@ -303,7 +305,7 @@ PEOPLE = {
                          'denim shirt (청남방) worn open over a white tee, beige cotton trousers, white trainers; hair to the '
                          'shoulders with a straight fringe',
                          paint={'feet': trainers('women', 'Grey')},
-                         face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
+                         bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
                                    brow_soft=1.6, nose=.78, bridge=.27, nose_w=.98, nose_up=.001)),
 }
 RIGS = {'rig-umc': 'umc', 'rig-women': 'women'}
@@ -638,6 +640,77 @@ def hold_chest(ob, arm, C):
             chest.add([v.index], free, 'REPLACE')
 
 
+# ---------- the women's bust ----------
+# The pack's bust is a shelf across the chest whose side view is a triangle: a line down from the collarbone to a
+# corner 8 cm under the shoulder joints, and a straight line back from it to the ribs at 45 degrees, on rows of
+# points 2 - 4 cm apart.  Seen from the side it is a point.  The faces there are cut finer and the side view is
+# redrawn, every upright section for itself: over the chest wall (the line between the surface at `top` and at
+# `under`, heights under the shoulder joints) it stands as far out as the pack's did there (x `out`), at `apex`; it
+# comes up to that from above as a quarter of a sine and turns back underneath in a round (`round`: 0.5 a quarter of
+# an ellipse, 1 a parabola).  Across the chest the shelf is the pack's; `fade`: by the armholes nothing moves.
+# A person's own `bust` makes it stand further out (between the armholes) and reach a little lower.
+# Lengths in the source's units (x 0.90 in the game).
+BUST = dict(top=0.0, under=0.128, apex=0.078, out=0.86, round=0.70, fade=(0.098, 0.117), cuts=2)
+
+
+def round_bust(ob, arm, size=1.0):
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+    B = BUST
+    me, mw = ob.data, ob.matrix_world.copy()
+    inv = mw.inverted()
+    head = lambda name: arm.matrix_world @ arm.data.bones[name].head_local
+    js, cn = head('UpperArm.L'), head('Neck')
+    top, reach = B['top'], B['fade'][1]
+    under = B['under'] + 0.030 * (size - 1)
+    apex = B['apex'] + 0.016 * (size - 1)
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    w = lambda v: mw @ v.co
+    front = lambda c: c.y < cn.y - 0.04 and abs(c.x) < reach and top - 0.012 < js.z - c.z < under + 0.012
+    faces = [f for f in bm.faces if all(front(w(v)) for v in f.verts)]
+    edges = sorted({e for f in faces for e in f.edges}, key=lambda e: e.index)
+    bmesh.ops.subdivide_edges(bm, edges=edges, cuts=B['cuts'], use_grid_fill=True)
+    bm.verts.ensure_lookup_table()
+    tree = BVHTree.FromBMesh(bm)
+    back = inv.to_3x3() @ Vector((0, 1, 0))
+
+    def surface(x, dz):
+        # the front of the top, seen from the front (three rays: one through a point of the mesh can slip between
+        # the faces round it and come back with the person's back)
+        ys = []
+        for ox, oz in ((0.0, 0.0), (0.0004, 0.0003), (-0.0003, -0.0004)):
+            hit = tree.ray_cast(inv @ Vector((x + ox, cn.y - 0.6, js.z - dz + oz)), back)[0]
+            if hit:
+                ys.append((mw @ hit).y)
+        return min(ys) if ys else None
+    n = 24
+    moved = {}
+    for v in bm.verts:
+        c = w(v)
+        dz, ax = js.z - c.z, abs(c.x)
+        if not (c.y < cn.y - 0.04 and ax < reach and top < dz < under):
+            continue
+        col = [surface(c.x, top + (under - top) * i / n) for i in range(n + 1)]
+        ys = surface(c.x, dz)
+        if ys is None or None in col:
+            continue
+        wall = lambda d: col[0] + (col[n] - col[0]) * (d - top) / (under - top)
+        out = max(wall(top + (under - top) * i / n) - col[i] for i in range(n + 1))       # (the pack's shelf here)
+        mid = 1 - _smooth(*B['fade'], ax)
+        out *= B['out'] + (size - 1) * mid
+        t = (dz - apex) / ((apex - top) if dz < apex else (under - apex))
+        h = math.cos(math.pi / 2 * t) if t < 0 else (1 - t * t) ** B['round']
+        moved[v] = (wall(dz) - out * h - ys) * mid
+    for v, dy in moved.items():
+        c = w(v)
+        c.y += dy
+        v.co = inv @ c
+    bm.to_mesh(me)
+    bm.free()
+    me.update()
+
+
 def shape_body(ob, arm, rig):
     """The neck, the trapezius, the waist and the trunk's girth of BUILD on one part of a person, in the source's T
     pose: the bones stay where they are.  Both by place alone (the height, and for the neck how far from its axis), so that the head's neck, the neck's
@@ -836,6 +909,99 @@ def loosen(ob, part, outfit, arm, roomy=None):
     for v in me.vertices:
         if v.index in co:
             v.co = inv @ co[v.index]
+
+
+# ---------- an even arm ----------
+# The men's pack models the arm as muscle under the cloth: thick at the biceps, drawn in at the elbow (4.4 cm from the
+# axis on a long-sleeved tee), out again on the forearm (5.8 cm) and in to the wrist.  And the top of a sleeve runs
+# out level from the shoulder for 5 cm, 10 cm over the axis, and drops to 6 cm at once: a ledge, which stands out as
+# a puffed cap over a groove when the arm hangs.  A sleeve hangs as a tube, and an arm at rest is not flexed.
+# The thickness along the arm, on every side of it for itself (the mean distance from the axis, shoulder joint to
+# elbow to wrist, of the points within EVEN['near'] along the arm and `round` radians round it), is brought `by` of
+# the way to a straight taper fitted to it beyond `cap`, and from the joint to `cap` to an even slope down from what
+# the shoulder has at the joint; every point moves to or from the axis by what its place asks, cloth and bare skin
+# each for themselves (a short sleeve keeps its hem off the arm).
+# Nothing moves at the joint itself or by the wrist (`wrist`: m from it, where it fades and where it is nothing).
+EVEN = dict(by=(1.0, 0.6), near=0.016, round=0.7, cap=0.10, wrist=(0.065, 0.025), knob=0.78, slope=0.07)    # (by: cloth, skin)
+
+
+def even_arms(ob, arm):
+    me, mw = ob.data, ob.matrix_world.copy()
+    inv = mw.inverted()
+    head = lambda name: arm.matrix_world @ arm.data.bones[name].head_local
+    skin = _skin_verts(me)
+    E = EVEN
+    for side in ('L', 'R'):
+        held = {g.index for g in ob.vertex_groups if g.name in ('UpperArm.' + side, 'LowerArm.' + side)}
+        a, b, c = head('UpperArm.' + side), head('LowerArm.' + side), head('Wrist.' + side)
+        la, lb = (b - a).length, (c - b).length
+
+        def place(p):
+            """How far along the arm p is, the point of the axis there and how far p is from it."""
+            best = None
+            for p0, p1, s0, lo, hi in ((a, b, 0.0, -1.0, 1.0), (b, c, la, 0.0, 1.0)):
+                t = max(lo, min(hi, (p - p0).dot(p1 - p0) / (p1 - p0).length_squared))
+                q = p0.lerp(p1, t)
+                if best is None or (p - q).length < best[2]:
+                    best = (s0 + t * (p1 - p0).length, q, (p - q).length)
+            return best
+        # the shoulder's top: the joint lies 9.5 cm under it, so what the arm carries of it swings out as a knob when
+        # the arm hangs.  Lower toward the joint (to `knob` of its height over the axis, on the upper side only)
+        near = held | {g.index for g in ob.vertex_groups if g.name == 'Shoulder.' + side}
+        d = (b - a).normalized()
+        for v in me.vertices:
+            if sum(g.weight for g in v.groups if g.group in near) < 0.15:
+                continue
+            p = mw @ v.co
+            sv = (p - a).dot(d)
+            q = a + d * sv
+            up = (p.z - q.z) / max((p - q).length, 1e-6)
+            if -E['slope'] < sv < E['cap'] and up > 0:
+                f = 1 - (1 - E['knob']) * up * _smooth(-E['slope'], 0.0, sv)
+                v.co = inv @ (q + (p - q) * f)
+        pts = {}
+        for v in me.vertices:
+            w = sum(g.weight for g in v.groups if g.group in held)
+            if w < 0.3:
+                continue
+            p = mw @ v.co
+            sv, q, r = place(p)
+            if 0 < sv < la + lb and r > 1e-4:
+                pts[v.index] = (sv, q, r, _smooth(0.3, 0.55, w), math.atan2(p.z - q.z, p.y - q.y))
+        for kind in (True, False):
+            mine = {i: x for i, x in pts.items() if (i in skin) == kind}
+            if len(mine) < 12:
+                continue
+            ss = [x[0] for x in mine.values()]
+            s0 = min(ss)
+            if max(ss) - s0 < 0.10:
+                continue
+            out = {}
+            for i, (sv, q, r, w, th) in mine.items():
+                # the others by how nearly they lie on this point's side of the arm (the top, the front ...)
+                rnd = [(math.exp(-(((x[4] - th + math.pi) % (2 * math.pi) - math.pi) / E['round']) ** 2), x[0], x[2])
+                       for x in mine.values()]
+
+                def here(at):
+                    wts = [(g * math.exp(-((x - at) / E['near']) ** 2), y) for g, x, y in rnd]
+                    tot = sum(g for g, _ in wts)
+                    return sum(g * y for g, y in wts) / tot if tot > 1e-9 else None
+                # the straight taper of that side: least squares on what lies between the shoulder's cap and the wrist
+                fit = [(g, x, y) for g, x, y in rnd if E['cap'] < x < la + lb - E['wrist'][1]]
+                n = sum(g for g, _, _ in fit)
+                if n < 1e-6:
+                    continue
+                ms, mr = sum(g * x for g, x, _ in fit) / n, sum(g * y for g, _, y in fit) / n
+                var = sum(g * (x - ms) ** 2 for g, x, _ in fit)
+                k = sum(g * (x - ms) * (y - mr) for g, x, y in fit) / var if var > 1e-9 else 0.0
+                line = lambda at: mr + k * (at - ms)
+                top = here(s0) if s0 < 0.03 else None        # (what the shoulder stands over the taper at the joint)
+                goal = line(sv) + (max(0.0, top - line(s0)) * (1 - _smooth(s0, E['cap'], sv)) if top else 0.0)
+                m = E['by'][kind] * w * (1 - _smooth(la + lb - E['wrist'][0], la + lb - E['wrist'][1], sv))
+                out[i] = q + (mw @ me.vertices[i].co - q) * (1 + (goal / here(sv) - 1) * m)
+            for i, p in out.items():
+                me.vertices[i].co = inv @ p
+    me.update()
 
 
 # ---------- a shirt's long sleeves ----------
@@ -1586,13 +1752,13 @@ HAIR_STYLES = {
     # long hair, the top half tied back: the sides drawn back over the ears' tops (not above them: see `tuck`)
     # all of it drawn back into one tail (포니테일): the sides over the ears' tops as `half`, the back up to the nape's
     # hairline, a tail from the back of the head to the shoulders
-    'pony': dict(tip=_both([(-47, .036), (-26, .030), (-6, .030), (14, .040), (30, .052), (47, .040)],
+    'pony': dict(tip=_both([(-47, .034), (-36, .046), (-20, .055), (0, .059), (20, .055), (36, .046), (47, .034)],
                            [(57, .016), (62, -.004), (67, -.028), (73, -.036), (78, -.029), (82, -.027), (97, -.027),
                             (101, -.046), (105, -.066), (112, -.080), (135, -.102), (180, -.110)]),
                  vol=[(-180, .010), (-100, .009), (-60, .008), (-20, .012), (20, .010), (60, .008), (100, .009), (180, .010)],
                  top=.015, edge=[(0, .004), (60, .004), (100, .006), (180, .005)], part=(30, .004, 7), rows=8, rough=.08,
                  ragged=.003, tail=dict(dz=.012, length=.25, r=.034)),
-    'half': dict(tip=_both([(-47, .036), (-26, .030), (-6, .030), (14, .040), (30, .052), (47, .040)],
+    'half': dict(tip=_both([(-47, .030), (-35, .042), (-18, .052), (0, .057), (10, .059), (24, .054), (37, .043), (47, .030)],
                            [(57, .016), (62, -.004), (67, -.028), (73, -.036), (78, -.029), (82, -.027), (97, -.027),
                             (101, -.048), (104, -.09), (111, -.22), (135, -.31), (180, -.33)]),
                  vol=[(-180, .016), (-100, .015), (-60, .008), (-20, .013), (20, .011), (60, .008), (100, .015), (180, .016)],
@@ -2196,6 +2362,7 @@ def face_map(head, surf, L, face, rig, cell):
             break
         last = p.y
         z -= 0.002
+    z = nz - (nz - z) / face.get('chin', 1.0)              # (a person's own chin is longer or shorter under the mouth)
     mz = z + (nz - z) * 0.53                               # the mouth: between the nose and the chin
     if abs(mz - ez0 - f['mouth_dz']) > 0.002 or abs(nz - ez0 - f['nose_dz']) > 0.002:
         raise SystemExit(f'{head.name}: the mouth is {mz - ez0:.4f}, the nose {nz - ez0:.4f} under the eyes; faces.py '
@@ -2448,6 +2615,8 @@ def build_person(pid, spec):
                 m.object = arm
         if part == 'head':
             ob = head_1997(pid, ob, parts[0], arm, spec)
+        if part == 'body' and rig == 'women':
+            round_bust(ob, arm, spec.get('bust', 1.0))
         if part in spec.get('paint', {}):
             paint(ob, spec['paint'][part])
         if part in spec.get('prints', {}):
@@ -2457,6 +2626,8 @@ def build_person(pid, spec):
         loosen(ob, part, outfit, arm, spec.get('roomy'))
         if part == 'body' and spec.get('sleeves'):
             long_sleeves(ob, arm, **spec['sleeves'])
+        elif part == 'body' and rig == 'umc':
+            even_arms(ob, arm)
         atlas_layer(ob)
         ob.name = f'{pid}-{part}'
         parts.append(ob)
