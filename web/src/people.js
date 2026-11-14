@@ -13,8 +13,10 @@ import { windTime } from './materials.js';
 
 // the thirteen you can walk as first (by their names and colleges), then the others
 const IDS = [...HEROES, ...Object.keys(PEOPLE).filter((id) => !HEROES.includes(id))];
-const title = (id) => (HERO[id] ? `${HERO[id].name} · ${HERO[id].college}` : PEOPLE[id]);
-const sub = (id) => (HERO[id] ? PEOPLE[id] + (HERO[id].height ? ` · ${Math.round(HERO[id].height * 100)} cm` : '') : kind(id));
+// a name and a college: the thirteen's, and of the others whoever has one (in the crowd only)
+const NAMED = { ...HERO, 'man-grey': { name: '민수', college: '공과대학' } };
+const title = (id) => (NAMED[id] ? `${NAMED[id].name} [${NAMED[id].college}]` : kind(id));
+const sub = (id) => (HERO[id] ? (HERO[id].height ? `${Math.round(HERO[id].height * 100)} cm` : '') : NAMED[id] ? kind(id) : '');
 const $ = (s) => document.querySelector(s);
 const kind = (id) => (STUDENTS.includes(id) ? (id.startsWith('woman') ? '여학생' : '남학생') : id.endsWith('professor') ? '교수님' : '교직원');
 // the clips to show: [label, clip, once, ball motion (over the clip)]
@@ -244,7 +246,7 @@ function openZoom(id, push = true) {
   zoom.id = id; zoom.look = null;
   dress(zoom);
   zoomEl.querySelector('b').textContent = title(id);
-  zoomEl.querySelector('small').textContent = sub(id) + (HERO[id] ? ` · ${HERO[id].place}에서 산책을 시작하는 주인공` : '');
+  zoomEl.querySelector('small').textContent = [sub(id), HERO[id] ? `${HERO[id].place}에서 산책을 시작하는 주인공` : ''].filter(Boolean).join(' · ');
   zoomEl.querySelector('.own').hidden = true;
   zoomEl.hidden = false;
   if (push && location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
