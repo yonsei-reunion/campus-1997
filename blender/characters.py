@@ -447,8 +447,18 @@ FINGER_MORE = {'Index': .8, 'Middle': 1.0, 'Ring': 1.12, 'Pinky': 1.25, 'Thumb':
 # (not in front, where the collarbones are): by (m, the source's units) at the neck's own radius, easing to nothing
 # at the outer radius (short of the shoulder joint: what the upper arm holds is left alone, or it would swing out
 # with the arm), so the shoulder line runs up into the neck in a curve and less of the neck stands free.
-BUILD = {'umc': dict(shoulder=.020, hip=-.022, arm=1.06, hand=.88, finger=.88, neck=.25, waist=0.0, trap=(.030, .056, .140)),
-         'women': dict(shoulder=.030, hip=0.0, arm=1.06, hand=.88, finger=.88, neck=.38, waist=.14, trap=(.030, .048, .112))}
+# The men's trunk is a wedge: a chest of 30 cm over a waist of 26 and a pelvis of 23 - 25 cm at the hip joints (clothes
+# and all), where a young man's waist is about 29 - 30 cm across and his hips 32 - 33: a cartoon's build.  `girth`
+# widens the trunk by height, [(m over the hip joints, the source's units; how much wider)], eased between; `deep` is
+# the share of that the trunk also grows from front to back, `seat` how much further the buttocks stand out behind
+# at the hips' height.  By place, as the rest: a tee's hem, the waistband under it and the thighs' tops move as one,
+# and the trousers are cut on what comes of it (cut_trousers).  The women: wider hips and more of a seat under a
+# waist left narrow (`waist` less than it was).
+BUILD = {'umc': dict(shoulder=.020, hip=-.022, arm=1.06, hand=.88, finger=.88, neck=.25, waist=0.0, trap=(.030, .056, .140),
+                     girth=[(-.24, 0), (-.16, .06), (-.08, .16), (-.02, .26), (.03, .26), (.08, .20), (.16, .15), (.26, .13),
+                            (.34, .06), (.42, 0)], deep=.35, seat=.06),
+         'women': dict(shoulder=.030, hip=0.0, arm=1.06, hand=.88, finger=.88, neck=.38, waist=.08, trap=(.020, .048, .112),
+                       girth=[(-.26, 0), (-.16, .06), (-.08, .11), (.0, .11), (.07, .05), (.13, 0)], deep=.2, seat=.20)}
 # The packs' clips hold the arms away from the body (the standing, walking and sitting clips are motion capture now,
 # blender/mocap.py; the pack's wave and reach are kept).  The arm that is not gesturing in toward the body, as the
 # standing clips hold it: clip -> the side, degrees in, degrees the forearm is turned about its length
@@ -537,8 +547,8 @@ def relax_fingers(arm, meshes, rig, s):
 
 
 def shape_body(ob, arm, rig):
-    """The neck, the trapezius and the waist of BUILD on one part of a person, in the source's T pose: the bones stay where they
-    are.  Both by place alone (the height, and for the neck how far from its axis), so that the head's neck, the neck's
+    """The neck, the trapezius, the waist and the trunk's girth of BUILD on one part of a person, in the source's T
+    pose: the bones stay where they are.  Both by place alone (the height, and for the neck how far from its axis), so that the head's neck, the neck's
     foot on the body, the collar round it and the hair on it move as one: by the bones' weights the neck stood out
     over its own foot (a step half way up) and through the rim of a tee's collar."""
     b = BUILD[rig]
@@ -550,8 +560,15 @@ def shape_body(ob, arm, rig):
     zw, sw = (head('Abdomen').z + head('Torso').z) / 2, 0.09
     tr = b.get('trap')
     arms = {g.index for g in ob.vertex_groups if g.name.startswith(('UpperArm.', 'LowerArm.', 'Wrist.'))}
+    girth, zj = b.get('girth'), head('UpperLeg.L').z
     for v in me.vertices:
         c = mw @ v.co
+        if girth and abs(c.x) < .3 and girth[0][0] < c.z - zj < girth[-1][0]:
+            f = _cos_interp(girth, c.z - zj)
+            c.x *= 1 + f
+            c.y = cn.y + (c.y - cn.y) * (1 + b['deep'] * f)
+            if c.y > cn.y:                          # (the buttocks: behind the middle, about the hip joints' height)
+                c.y = cn.y + (c.y - cn.y) * (1 + b['seat'] * _smooth(-.20, -.06, c.z - zj) * (1 - _smooth(.02, .14, c.z - zj)))
         if b['waist'] and abs(c.x) < .3:
             f = b['waist'] * math.exp(-((c.z - zw) / sw) ** 2)
             c.x *= 1 + f

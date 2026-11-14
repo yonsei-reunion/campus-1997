@@ -170,6 +170,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 
 - Quaternius 의 CC0 모듈러 캐릭터를 `blender/characters.py` 가 부품을 섞고 1997년 옷차림으로 칠해 14명을 만듭니다(sim-office 의 `tools/office-characters.py` 를 고쳐 씀). 키는 실제 크기(남 1.73 m, 여 1.61 m).
 - 애니메이션은 남녀 리그 파일 둘(`rig-umc.glb` · `rig-women.glb`, 각 약 250 KB)에 들어 있습니다. 서기 · 걷기 · 뛰기 · 앉기는 모션 캡처를 리그에 옮긴 것입니다(`blender/mocap.py`, 자료는 `tools/fetch_mocap.py` 가 `assets_src/mocap/` 에 받음).
+  - 여자의 ACCAD 테이크는 어깨를 2.6 cm 내려 두고 섬: `level` 로 쇄골의 평균 회전을 빼고 `posture` 로 목을 세움. Quaternius 의 서 있는 클립(팔짱 · 전화 · 남자의 이야기)은 한 발을 앞에 두고 16° 숙인 자세: `upright` · `stride` 로 세우고 발을 모음(고증 4.13)
   - 「둘러보라」는 연기의 테이크는 고개가 어깨 너머까지 돌아감(남 −123° ~ +105°): `CLIPS` 의 `look`(가슴에 대한 목 · 머리 회전을 줄임) · `calm`(그 회전을 눅임) · `turn`(골반이 도는 폭) · `sway` 로 ±30° 안팎까지 줄임(고증 4.13)
   - 클립: `walk-slow` · `walk` · `walk-fast`(남 0.80 · 1.38 · 1.60 m/s, 여 0.76 · 1.14 · 1.52 m/s) · `sprint`, `idle` · `idle-shift`(체중 이동) · `idle-look`(두리번) · `idle-fold`(팔짱) · `talk` · `phone`, `sit` · `sit-talk`. 손 흔들기(`emote-yes`) · 손 뻗기(`interact-right`)는 팩의 것, 고개 젓기(`emote-no`)는 `idle` 첫 자세에서 만듦
   - 원본과 구간은 `mocap.py` `CLIPS`(`characters.py -- --list` 가 표로 찍음). 남자 걸음은 CMU, 여자 걸음은 ACCAD, 서 있는 클립은 100STYLE · ACCAD, 앉기 · 대화는 Quaternius Universal Animation Library

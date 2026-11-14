@@ -641,7 +641,7 @@ def _calm(R, seconds, fps, loop):
 
 
 def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, posture=None, tall=True, seat=None,
-          twist=0.0, elbow=0.0, stride=1.0, sway=1.0, s=1.0, look=1.0, turn=1.0, calm=0.0):
+          twist=0.0, elbow=0.0, stride=1.0, sway=1.0, s=1.0, look=1.0, turn=1.0, calm=0.0, level=0.0, upright=0.0):
     """The motion on the rig: {bone: (n, 4, 4) armature-space matrices} for the bones that get keys, and a report.
     arm_out: degrees the hanging arms are held further from the body; twist: degrees the forearms and hands are
     turned out (thumbs forward); hold_feet: the feet stay in one place; stance: the feet's distance from the middle
@@ -652,7 +652,13 @@ def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, 
     elbows bend more (hands resting on the lap, off thicker thighs); look: the neck's and the head's turn against the
     chest scaled, calm: and eased over this many seconds (an actor asked to look about turns the head to the
     shoulder and whips it back: in a crowd of people doing it every little while that reads as a tic); turn: the
-    hips' turn about where they face on average scaled (the chest, the arms and the head go with them)."""
+    hips' turn about where they face on average scaled (the chest, the arms and the head go with them); level: the
+    share taken off the turn the collar bones are held at on average against the chest (an actor whose shoulders hang
+    lower than the skeleton's T pose has them: on the rig the shoulder joints then sit centimetres under where the
+    body was modelled, a slump); upright: degrees the chest is stood back up from a forward lean, the arms, the
+    neck and the head with it (the Universal Animation Library's standing loops lean 16 degrees forward on this rig,
+    one foot 30 cm before the other: `stride` brings a stand's feet together fore and aft as it shortens a cycle's
+    steps)."""
     tk, j, n = mo.take, mo.j, len(mo)
     k = rig.legs / source_legs(tk, j)
     if pose is not None:
@@ -743,8 +749,12 @@ def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, 
     if sway != 1.0 or turn != 1.0:
         rel = m_pow(rel, np.full(n, sway))
         Dc = Dp @ rel
-    # (with the hips turned less, what hangs on the chest goes with the chest: K takes it from where the take has it)
-    K = Dc @ np.swapaxes(Dc0, -1, -2) if turn != 1.0 else None
+    if upright:                                             # (the chest back up, about the hips' own side to side)
+        Dc = rot_axis(np.einsum('nij,j->ni', Dp, np.array([1., 0, 0])), -np.radians(upright)) @ Dc
+        rel = np.swapaxes(Dp, -1, -2) @ Dc
+    # (with the hips turned less or the chest stood up, what hangs on the chest goes with the chest: K takes it from
+    # where the take has it)
+    K = Dc @ np.swapaxes(Dc0, -1, -2) if turn != 1.0 or upright else None
     with_chest = (lambda M: K @ M) if K is not None else (lambda M: M)
     for bone, share in SPINE:
         turns[bone] = Dp @ m_pow(rel, np.full(n, share))
@@ -758,7 +768,12 @@ def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, 
         turns[bone] = Dh
     fwd = np.einsum('nij,j->ni', Dc, FWD)
     for sd, sign in (('L', 1), ('R', -1)):
-        turns['Shoulder.' + sd] = Dc @ m_pow(np.swapaxes(Dc, -1, -2) @ with_chest(D(('collar', sd))), np.full(n, COLLAR))
+        collar = np.swapaxes(Dc, -1, -2) @ with_chest(D(('collar', sd)))
+        if level:                                           # (the turn the take holds them at all the while, taken off)
+            q = q_from_m(collar)
+            q = np.where((q @ q[0])[:, None] < 0, -q, q)
+            collar = m_pow(m_from_q(_unit(q.mean(0))).T, level) @ collar
+        turns['Shoulder.' + sd] = Dc @ m_pow(collar, np.full(n, COLLAR))
         extra = None
         for part, bone in (('upper', 'UpperArm.'), ('lower', 'LowerArm.'), ('hand', 'Wrist.')):
             Db = with_chest(D((part, sd)))
@@ -924,6 +939,9 @@ SIT = (0.29, -0.225)        # seated clips: the hip joints this high over the mo
 #                             the game lifts a seated person by the hips), the ground a 0.43 m bench leaves the feet
 _SIT = dict(take=('ual1', 'Sitting_Idle_Loop'), stand=(0, 50), fade=0, fps=15, seat=SIT, elbow=6)
 _SIT_TALK = dict(take=('ual1', 'Sitting_Talking_Loop'), stand=(0, 88), fade=0, fps=15, seat=SIT)
+# ACCAD's Female 1 holds her shoulders 2.6 cm lower on the rig than its rest pose has them (the men's takes 0.7 cm)
+# and her neck 3 - 6 degrees forward: with the women's narrow shoulders that reads as a stoop.  Both taken off
+_F1 = dict(level=1.0, posture={'neck': 4.0})
 CLIPS = {
     'umc': {
         'walk': dict(take=('cmu', '07_01'), cycle=(71, 202)),
@@ -935,23 +953,26 @@ CLIPS = {
         'idle-look': dict(take=('accad', 'Male2_A4_LookAround'), stand=(1020, 1800), fps=15, hold_feet=True, pose=-5,
                           turn=0.3, sway=0.5, look=0.26, calm=0.3),
         'idle-fold': dict(take=('100style', 'ArmsFolded_ID'), stand=(600, 900), fps=15, hold_feet=True),
-        'talk': dict(take=('ual1', 'Idle_Talking_Loop'), stand=(0, 88), fade=0, fps=15, hold_feet=True, stance=0.7),
+        'talk': dict(take=('ual1', 'Idle_Talking_Loop'), stand=(0, 88), fade=0, fps=15, hold_feet=True, stance=0.7, upright=12, stride=0.35),
         'phone': dict(take=('100style', 'OnPhoneRight_ID'), stand=(600, 900), fps=15, hold_feet=True),
         'sit': _SIT,
         'sit-talk': _SIT_TALK,
     },
     'women': {
-        'walk': dict(take=('accad', 'Female1_B03_Walk1'), cycle=(96, 134)),
+        'walk': dict(take=('accad', 'Female1_B03_Walk1'), cycle=(96, 134), **_F1),
         'walk-slow': dict(take=('100style', 'Neutral_FW'), cycle=(1170, 1252), stride=0.92, sway=0.7, arm_out=9),
         'walk-fast': dict(take=('cmu', '08_01'), cycle=(94, 215), stride=0.92, sway=0.7, arm_out=10),
         'sprint': dict(take=('cmu', '35_17'), cycle=(35, 126), run=True, fps=30, stride=0.92, sway=0.7, arm_out=10),
-        'idle': dict(take=('accad', 'Female1_A01_Stand'), stand=(5, 70), fps=15, hold_feet=True),
-        'idle-shift': dict(take=('accad', 'Female1_A02_Sway'), stand=(15, 200), fps=15, hold_feet=True, arm_out=4),
-        'idle-look': dict(take=('accad', 'Female1_A04_Look'), stand=(10, 200), fps=15, hold_feet=True, look=0.42, calm=0.3),
-        'idle-fold': dict(take=('ual2', 'Idle_FoldArms_Loop'), stand=(0, 75), fade=0, fps=15, hold_feet=True, stance=0.7),
+        'idle': dict(take=('accad', 'Female1_A01_Stand'), stand=(5, 70), fps=15, hold_feet=True, **_F1),
+        'idle-shift': dict(take=('accad', 'Female1_A02_Sway'), stand=(15, 200), fps=15, hold_feet=True, arm_out=4, **_F1),
+        'idle-look': dict(take=('accad', 'Female1_A04_Look'), stand=(10, 200), fps=15, hold_feet=True, look=0.42, calm=0.3,
+                          **_F1),
+        'idle-fold': dict(take=('ual2', 'Idle_FoldArms_Loop'), stand=(0, 75), fade=0, fps=15, hold_feet=True, stance=0.7,
+                          upright=12, stride=0.35),
         'talk': dict(take=('accad', 'Female1_D3_ConversationGestures'), stand=(30, 240), fps=15, hold_feet=True, arm_out=5,
-                     look=0.5, calm=0.4),
-        'phone': dict(take=('ual2', 'Idle_TalkingPhone_Loop'), stand=(0, 88), fade=0, fps=15, hold_feet=True, stance=0.7),
+                     look=0.5, calm=0.4, **_F1),
+        'phone': dict(take=('ual2', 'Idle_TalkingPhone_Loop'), stand=(0, 88), fade=0, fps=15, hold_feet=True, stance=0.7,
+                      upright=12, stride=0.35),
         'sit': dict(_SIT, elbow=14),
         'sit-talk': _SIT_TALK,
     },
