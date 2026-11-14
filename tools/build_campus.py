@@ -182,7 +182,11 @@ LATE_FOOTPRINT_1997[429079067] = [(round(x_ + REHAB_MOVE[0], 2), round(y_ + REHA
 # storeys below (the 2008 and 2010 frames from 191 and 192), so the 1997 hall's north wall stands 2.3 m south of
 # OSM's.  Its south-west corner (the pylon of the lounge's banner) is OSM's within 1.5 m (six 2010 panos, held on
 # 학생회관's north-west corner a few degrees off it); its west face OSM's (the roofline straight past the slab's end).
-ANNEX_1997 = dict(id=1444448646, osm_nw=(31.91, -1.15), osm_ne=(63.48, -9.21), north_in=2.3, floor=3.8)
+# Its height from the 1997-07-28 aerial photos' scans (reference/고증/4.5 「높이: 원본 스캔」): the roof 6.7 m over the
+# yard (eleven points on the roof against four on the yard), the parapet's top 7.4 m: storeys of 3.1 m (the 8.0 - 9.4 m
+# of the 2008 frame hung on a camera distance taken from Kakao's node).  The scans' roof is 33.1 m wide (OSM 31.2), but
+# where it stands is only good to 1.5 m there, so the outline stays.
+ANNEX_1997 = dict(id=1444448646, osm_nw=(31.91, -1.15), osm_ne=(63.48, -9.21), north_in=2.3, floor=3.1)
 _anw, _ane = np.array(ANNEX_1997['osm_nw']), np.array(ANNEX_1997['osm_ne'])
 _aw = np.array([25.68, -27.72]) - _anw
 _ae = np.array([55.93, -35.41]) - _ane
@@ -204,7 +208,7 @@ LATE_FOOTPRINT_1997[UTS] = [tuple(round(float(c_), 2) for c_ in _uo + _ut * u_ +
                                            (UTS_UV['u'][1], UTS_UV['v'][1]), (UTS_UV['u'][0], UTS_UV['v'][1]))]
 FLOOR_H = {'modern': 3.8, 'white': 3.6, 'stone': 4.2, 'house': 3.4, 'gym': 6.5, 'city': 3.0, 'brick': 3.6, 'tile': 3.4, 'stone_pale': 4.0}
 FLOOR_H_AT = {222843398: 3.9}        # 과학관's 3.9 m storeys (blender/generic.py FH_AT, reference/고증/3.10)
-FLOOR_H_AT[ANNEX_1997['id']] = ANNEX_1997['floor']   # (학생회관 별관: its top 8.5 m over the yard in the 2008 frames)
+FLOOR_H_AT[ANNEX_1997['id']] = ANNEX_1997['floor']   # (학생회관 별관: its roof 6.7 m over the yard in the 1997 scans)
 FLOOR_H_AT.update({324328481: 3.55, 990036: 3.3})    # (심장혈관병원, 특별병동: their roofs in the 1997 aerial photos, above)
 FLOOR_H_AT[UTS] = 3.4                                # (연합신학대학원: its eaves 6.7 m over the ground in the aerial photos)
 # 과학관 as the 1997-07-28 vertical aerial photos have it (reference/고증/3.10; frames 26/15 and 26/16, from the north
@@ -7517,14 +7521,20 @@ print('대강당 앞 둑: strip hedge cleared', _n0, 'bank shrubs', len(shrubs) 
 # drive in the foreground, the kerbed island with its pines before 학생회관); west of it an asphalt lane, then the lawn
 # along 백양로.  The game had a lawn over all of it south of the hall's middle.  (After the planting: its own random
 # numbers; the island's pines go at the very end of the tree list, below.)
-ANNEX_ISLAND = LineString([(16.5, -22.9), (16.5, -46.4)]).buffer(2.7)
+# In 1997 the island was a wedge (the 1997-07-28 aerial photos' scans, frames 26/16, 27/17 and 26/15 alike on the
+# yard's plane, reference/고증/4.5): its broad end along the yard's north side from (13.4, -21.7) to (20.4, -21.7), its
+# sides closing to a round tip at (15.7, -39.0), two dark crowns in it at y -25 and -32, a round shrub at its north-east
+# corner and at its tip; the long island of 2008 - 2010 (to y -48.9) came later.  (ANNEX_ISLAND_RNG: the island as
+# the game first had it, which the cars' clearing and the random numbers below still read.)
+ANNEX_ISLAND_RNG = LineString([(16.5, -22.9), (16.5, -46.4)]).buffer(2.7)
+ANNEX_ISLAND = Polygon([(13.4, -21.7), (20.4, -21.7), (15.95, -38.4), (15.45, -38.4)]).union(Point(15.7, -38.4).buffer(0.75, 16))
 ANNEX_YARD = Polygon([(8.5, -21.0), (11.5, -21.0), (11.5, -56.7), (17.0, -59.5), (18.3, -56.0), (40.0, -56.0), (40.0, -1.0),
                       (8.5, -1.0)]).difference(unary_union([Polygon(b_['footprint']) for b_ in buildings])) \
     .difference(unary_union([Polygon(LATE_FOOTPRINT_1997[ANNEX_1997['id']]), ANNEX_ISLAND, AUD_RAMP_BAND, AUD_BANK_POLY,
                              bline.buffer(ROAD_HALF), ramp_strip(-AUD_RAMP['w'] / 2 - 1.0, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'],
                                                                  -AUD_RAMP['mouth'] - 1.0, AUD_RAMP['run'])] + AUD_TREE_BEDS))
 _n0 = (len(shrubs), len(props), len(cars))
-_az = ANNEX_YARD.union(ANNEX_ISLAND)
+_az = ANNEX_YARD.union(ANNEX_ISLAND).union(ANNEX_ISLAND_RNG)
 shrubs = [s_ for s_ in shrubs if not _az.contains(Point(s_[1], s_[2]))]
 props = [p_ for p_ in props if not _az.contains(Point(p_[1], p_[2]))]
 cars = [c_ for c_ in cars if not _az.contains(Point(c_[1], c_[2]))]
@@ -7534,17 +7544,27 @@ print('학생회관 별관 앞마당: cleared (shrubs, props, cars)', _n0[0] - l
 ANNEX_YARD_HALVES = [ANNEX_YARD.intersection(Polygon([(0.0, -70.0), (16.5, -70.0), (16.5, 0.0), (0.0, 0.0)])),
                      ANNEX_YARD.intersection(Polygon([(16.5, -70.0), (45.0, -70.0), (45.0, 0.0), (16.5, 0.0)]))]
 _ra = random.Random(141)
-ANNEX_TREES = [['pine', 16.4, -29.4, 0.62, round(_ra.uniform(0, 6.28), 2)],
-               ['pine', 16.6, -40.8, 0.66, round(_ra.uniform(0, 6.28), 2)]]
-for _x, _y in ((16.5, -21.6), (16.5, -24.2), (16.4, -35.2), (16.6, -45.6)):        # (the tip's and the planters' mounds)
-    shrubs.append(['topiary_round', round(_x + _ra.uniform(-0.3, 0.3), 2), round(_y + _ra.uniform(-0.3, 0.3), 2),
-                   round(_ra.uniform(1.15, 1.4), 2), round(_ra.uniform(0, 6.28), 2)])
-for _y in np.arange(-26.0, -45.0, -2.4):                                             # (low ones down its sides)
+ANNEX_TREES = [['pine', 16.4, -25.0, 0.62, round(_ra.uniform(0, 6.28), 2)],          # (the two crowns of the 1997 scans)
+               ['pine', 16.3, -32.2, 0.66, round(_ra.uniform(0, 6.28), 2)]]
+# (the long island's shrubs as first drawn: their draws are made and dropped, so that the cars below keep theirs)
+for _x, _y in ((16.5, -21.6), (16.5, -24.2), (16.4, -35.2), (16.6, -45.6)):
+    [_ra.uniform(-0.3, 0.3), _ra.uniform(-0.3, 0.3), _ra.uniform(1.15, 1.4), _ra.uniform(0, 6.28)]
+for _y in np.arange(-26.0, -45.0, -2.4):
     for _x in (14.6, 18.4):
-        if min(abs(_y - t_[2]) for t_ in ANNEX_TREES) < 2.0:
+        if min(abs(_y - t_[2]) for t_ in [[0, 16.4, -29.4], [0, 16.6, -40.8]]) < 2.0:
             continue
-        shrubs.append(['topiary_round', round(_x + _ra.uniform(-0.2, 0.2), 2), round(float(_y) + _ra.uniform(-0.4, 0.4), 2),
-                       round(_ra.uniform(0.75, 0.95), 2), round(_ra.uniform(0, 6.28), 2)])
+        [_ra.uniform(-0.2, 0.2), _ra.uniform(-0.4, 0.4), _ra.uniform(0.75, 0.95), _ra.uniform(0, 6.28)]
+_rw2 = random.Random(1411)                     # (the wedge's own: a round shrub at its north-east corner and its tip)
+for _x, _y in ((20.0, -21.9), (15.7, -38.3)):
+    shrubs.append(['topiary_round', round(_x + _rw2.uniform(-0.2, 0.2), 2), round(_y + _rw2.uniform(-0.2, 0.2), 2),
+                   round(_rw2.uniform(1.15, 1.4), 2), round(_rw2.uniform(0, 6.28), 2)])
+for _y in np.arange(-22.6, -36.0, -2.2):                                             # (low ones down its two sides)
+    _f = (-21.7 - _y) / (-21.7 + 38.4)
+    for _x in (13.4 + 2.3 * _f + 0.7, 20.4 - 4.45 * _f - 0.7):
+        if min(math.hypot(_x - t_[1], _y - t_[2]) for t_ in ANNEX_TREES) < 2.0:
+            continue
+        shrubs.append(['topiary_round', round(_x + _rw2.uniform(-0.15, 0.15), 2), round(float(_y) + _rw2.uniform(-0.3, 0.3), 2),
+                       round(_rw2.uniform(0.75, 0.95), 2), round(_rw2.uniform(0, 6.28), 2)])
 # the cars before the shops, end on to the hall, in the 2008 skyview's two rows (fewer; their stalls: park_lot below)
 ANNEX_CARS = []
 # (the north row a metre east of where it was: its west car stood in the round shrubs of the bed beside it)

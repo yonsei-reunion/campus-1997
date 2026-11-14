@@ -612,11 +612,11 @@ FRAME = {429077789: 'frame_blue', 429077790: 'frame_blue'}      # (and blue wind
 FH_AT = {222843398: 3.9}
 SILL_AT = {222843398: dict(sill=1.0, head=1.3)}
 WING_UP = {222843398: _science_wing}
-# 학생회관 별관 (1997 photo reference/1997_학생회관.jpg; tools/build_campus.py ANNEX_1997): two 3.8 m storeys of pale
-# grey concrete, each a band of broad lights between plain piers (the shops and the bank of the 2008 roadview below,
+# 학생회관 별관 (1997 photo reference/1997_학생회관.jpg; tools/build_campus.py ANNEX_1997): two 3.1 m storeys of pale
+# grey concrete (the roof 6.7 m over the yard in the 1997-07-28 aerial photos' scans, reference/고증/4.5), each a band of broad lights between plain piers (the shops and the bank of the 2008 roadview below,
 # the same band above), a plain parapet.  (Its colour draw is still made: the halls after it keep theirs.)
 WALL[1444448646] = 'concrete'
-FH_AT[1444448646] = 3.8
+FH_AT[1444448646] = 3.1
 # 심장혈관병원 · 특별병동 (ten storeys each): their roofs in the 1997 aerial photos stand 34.3 m and 32 m over the car
 # parks beside them (tools/build_campus.py FLOOR_H_AT; reference/고증/3.1.2)
 FH_AT.update({324328481: 3.55, 990036: 3.3})
