@@ -3422,34 +3422,30 @@ def daewoo_front(mb, lv, z0):
             mb.quad((ua, va, za), (ub, vb, za), (ub, vb, zb), (ua, va, zb), mat)
         WALK_FACES.append([W_(u, v, zb) for u, v in pts])
 
-    def cone(u, v, z, h=2.9, r=0.8):
-        mb.cylinder((u, v), r, z, z + h, 'shrub_green', seg=10, r1=0.06)
+    def ramp(ua, za, ub, zb, va, vb):
+        WALK_FACES.append([W_(ua, va, za), W_(ub, va, zb), W_(ub, vb, zb), W_(ua, vb, za)])
 
-    def globe(u, v, z, r=0.8):
-        mb.cylinder((u, v), r, z, z + 0.75, 'shrub_green', seg=10, r1=r + 0.05)
-        mb.cylinder((u, v), r + 0.05, z + 0.75, z + 1.15, 'shrub_green', seg=10, r1=0.4)
+    def bed(ua, ub, va, vb, z):
+        """the soil of a planter as ground for what is planted in it (campus.json shrubs stand on the walked faces;
+        tools/build_campus.py DW_BEDS plants them): set in from the planter's edges, so that no step up from the
+        paving beside it reaches it (web/src/player.js stepBehind) and the walker stays out"""
+        ua, ub = sorted((ua, ub))
+        walk(ua + 0.2, ub - 0.2, va + 0.2, vb - 0.2, z)
 
     # --- the terrace's south wall either side of the podium: the wall, a planter along its top with a clipped hedge
-    # and the row of pointed conifers (the photos' dark band with pale posts, v -18.3 .. -20.5)
+    # and the row of pointed conifers (the photos' dark band with pale posts, v -18.3 .. -20.5).  The plants
+    # themselves, here and in the planters below, are the campus' clipped shrubs (tools/build_campus.py DW_BEDS)
     for ua, ub in ((tu0, uc - hw), (uc + hw, tu1 - 8.0)):
-        block(ua, ub, tv0 - 2.2, tv0, zR - 1.2, zT + 0.3, top='soil')
+        block(ua, ub, tv0 - 2.2, tv0, gnd, zT + 0.3, top='soil')        # (down into the ground all along)
         block(ua - 0.08, ub + 0.08, tv0 - 2.28, tv0 - 2.0, zT + 0.18, zT + 0.34, 'stone_trim')
-        mb.box(((ua + ub) / 2, tv0 - 1.5, zT + 0.75), (abs(ub - ua) - 0.6, 0.9, 0.9), 'shrub_green')
-        n = max(2, int(abs(ub - ua) / 3.6))
-        for k in range(n):
-            cone(min(ua, ub) + (k + 0.5) * abs(ub - ua) / n, tv0 - 0.6, zT + 0.3, h=3.4, r=0.95)
+        bed(ua, ub, tv0 - 2.2, tv0, zT + 0.3)
     # the planters of the tier under it (white kerbs round dark clipped shrubs), 13.3 .. 23.4 m either side of the axis
     for sg in (-1, 1):
         ua, ub = sorted((uc + sg * 13.3, uc + sg * 23.4))
-        block(ua, ub, -23.4, -21.0, zR - 0.8, zR + 0.45, 'stone_trim', top='soil')
-        mb.box(((ua + ub) / 2, -22.2, zR + 0.85), (ub - ua - 0.5, 1.9, 0.8), 'shrub_green')
-    # --- between the wings: clipped cones along the hall and round shrubs towards the drive, either side of the paving
-    for sg in (-1, 1):
-        ua, ub = sorted((uc + sg * 7.0, uc + sg * (lv['wi'] - 1.5)))
-        for k in range(5):
-            u = ua + (k + 0.5) * (ub - ua) / 5
-            cone(u, -2.4, zT, h=3.0, r=0.8)
-            globe(u, -8.4, zT)
+        block(ua, ub, -23.4, -21.0, gnd, zR + 0.45, 'stone_trim', top='soil')
+        bed(ua, ub, -23.4, -21.0, zR + 0.45)
+    # (between the wings: clipped cones along the hall and round shrubs towards the drive, either side of the paving,
+    # on the terrace's own ground)
     # --- the podium.  Its middle: the block over the porch, built round the porch (v from the face to +3) and the lit
     # lobby behind the glass (to +6)
     oa, ob = uc - ow / 2, uc + ow / 2
@@ -3461,7 +3457,9 @@ def daewoo_front(mb, lv, z0):
     block(ob, ib, vf, tv0, gnd, zT, top='stone_step')
     block(oa, ob, vf, tv0, zc, zT, top='stone_step')
     block(oa, ob, vl, tv0, gnd, zc)
-    walk(ia, ib, vf, tv0, zT)
+    # (walked faces overlap their neighbours by a hand's breadth -- the terrace's own edge, the strips either side:
+    # between two faces that only share an edge the walker's ground ray could slip through into the podium)
+    walk(ia - 0.1, ib + 0.1, vf, tv0 + 0.15, zT)
     Pf, _, _, _ = edge_P((ia, vf), (ib, vf))     # the podium face: s from its west end, d outwards (-v)
     fa = oa - ia
     arch_fill(mb, Pf, fa, fa + ow, zs, zc + 0.01, 0.6, 'stone_white', 'segment', 16, intrados_mat='stone_trim')
@@ -3487,7 +3485,7 @@ def daewoo_front(mb, lv, z0):
     parapet(ia, ib, vf, vf + 0.4, zT)                                  # the parapet over the face
     # on top: the planter of dark clipped shrubs (the photos' dark rectangle, 5.5 m by 3.8 m)
     block(uc - 2.75, uc + 2.75, -23.4, -19.6, zT, zT + 0.45, 'stone_trim', top='soil')
-    mb.box((uc, -21.5, zT + 0.85), (5.0, 3.3, 0.8), 'shrub_green')
+    bed(uc - 2.75, uc + 2.75, -23.4, -19.6, zT + 0.45)
     # --- its two sides: the strip along the terrace, the upper flight behind the face's stepped parapet, the landing
     # in the rounded end, the lower flight before the face with its stepped planters
     n1, n2 = 19, 12
@@ -3499,17 +3497,24 @@ def daewoo_front(mb, lv, z0):
         U = lambda d, sg=sg: uc + sg * d         # (d: out from the axis)
         d_in, d_out = 5.2, hw - 3.0              # the upper flight runs between them (its head by the axis)
         d_top = d_in + n2 * t2                   # ... its foot, on the landing
-        block(U(d_in), U(d_out), v_up1, tv0, gnd, zT, top='stone_step')             # the strip along the terrace
-        walk(*sorted((U(d_in), U(d_out))), v_up1, tv0, zT)
-        parapet(U(d_in + 0.4), U(d_out), v_up1, v_up1 + 0.35, zT)                    # ... its rail over the well
+        # the strip along the terrace, out to the podium's end (it stopped at the upper flight's foot, 3 m short of
+        # the wall beside the podium: an open pit from the terrace down to the forecourt's level), its rail over the
+        # well and the landing, and round its end to the wall's planter
+        block(U(d_in), U(hw), v_up1, tv0, gnd, zT, top='stone_step')
+        walk(*sorted((U(d_in), U(hw))), v_up1, tv0 + 0.15, zT)
+        parapet(U(d_in + 0.4), U(hw), v_up1, v_up1 + 0.35, zT)
+        parapet(U(hw - 0.35), U(hw), v_up1, tv0 - 2.0, zT)
         for k in range(n2):                                                         # the upper flight, up towards the axis
             da, db = d_in + k * t2, d_in + (k + 1) * t2
             z = zT - (k + 1) * r2
             block(U(da), U(db), v_up0, v_up1, gnd, z, top='stone_step')
-            walk(*sorted((U(da), U(db))), v_up0, v_up1, z)
+        # walked on: one ramp through the treads' nosings, as every other flight has it.  (A flat face on each tread
+        # kept the walker's feet under the next riser: stepping over it, the low wall rays met its back and threw the
+        # walker forwards, at an angle through the wall beside the flight and into the podium.)
+        ramp(U(d_in), zT, U(d_top), zM, v_up0, v_up1)
         d_lo = cw + n1 * t1                      # the head of the lower flight
         block(U(d_top), U(d_lo), v_up0, v_up1, gnd, zM, top='stone_step')
-        walk(*sorted((U(d_top), U(d_lo))), v_up0, v_up1, zM)
+        walk(*sorted((U(d_top - 0.1), U(d_lo + 0.1))), v_up0, v_up1, zM)
         # the face beside the middle block, under the stepped parapet: from the terrace's height by the axis down to the
         # landing's at the end
         steps_ = 4
@@ -3536,14 +3541,15 @@ def daewoo_front(mb, lv, z0):
             da, db = cw + k * t1, cw + (k + 1) * t1
             z = zP + (k + 1) * r1
             block(U(da), U(db), v_lo0, v_lo1, gnd, z, top='stone_step')
-            walk(*sorted((U(da), U(db))), v_lo0, v_lo1, z)
+        ramp(U(cw - t1), zP, U(d_lo - t1), zM, v_lo0, v_lo1)                       # (from a tread before the first riser)
+        walk(*sorted((U(d_lo - t1), U(d_lo + 0.1))), v_lo0, v_lo1, zM)
         # the stepped planters between the lower flight and the face, a round shrub on each (대우관_2024_정면과_상뜰.jpg),
         # and a low cheek wall on the flight's outer side
         for k in range(4):
             da, db = cw + (d_lo - cw) * k / 4, cw + (d_lo - cw) * (k + 1) / 4
             ztop = zP + 0.9 + (zM - zP) * (k + 0.5) / 4
             block(U(da), U(db), v_lo1, vf, gnd, ztop, top='soil')
-            globe((U(da) + U(db)) / 2, (v_lo1 + vf) / 2, ztop - 0.05, r=0.55)
+            bed(U(da), U(db), v_lo1, vf, ztop)
             block(U(da), U(db), v_lo0 - 0.3, v_lo0, gnd, zP + 0.9 + (zM - zP) * (k + 1) / 4)
     for sg in (-1, 1):                                                 # globe lamps on the 상뜰 before the tier's planters
         lamp_post(mb, uc + sg * 17.0, vs - 1.6, h=3.4, z=zP - 0.05)
@@ -3802,7 +3808,8 @@ def daewoo_back(mb, z0):
               [(x1, 14.8), (48.4, 14.8), (48.4, 20.6), (x1, 20.6)], [(x1, 20.6), (42.6, 20.6), (42.6, 24.5), (x1, 24.5)]):
         flat(q, ST, PAVE)
     # its east end over the areaway behind the east wing, its south-west corner over the low court: low parapets
-    for a, b in (((42.6, 20.6), (42.6, 24.5)), ((42.6, 24.5), (x1, 24.5)), ((x1, 24.5), (x1, C.y)), ((x0, 29.0), (0.2, 28.0))):
+    for a, b in (((48.4, 20.6), (42.6, 20.6)), ((42.6, 20.6), (42.6, 24.5)), ((42.6, 24.5), (x1, 24.5)), ((x1, 24.5), (x1, C.y)),
+                 ((x0, 29.0), (0.2, 28.0))):
         wall(a, b, LOW - 0.4, ST + 0.45, 0.3)
     # --- the seats, the walk round their top
     dr = (r_t - r_s) / n_t
@@ -3826,10 +3833,53 @@ def daewoo_back(mb, z0):
     a4 = math.degrees(math.asin((db['w4'][0][1] - C.y) / r_w))
     arc_wall(r_w, sa0, a4, LOW - 0.4, TOP + 0.9, inward=True)
     wall(pol(r_w, sa0), pol(r_w - 1.4, sa0), LOW - 0.4, TOP + 0.9, 0.3, left=True)       # (the walk's east end)
+    # (and down the seats' east end to the floor: a cheek wall, its coping a rail's height over each tier)
+    wall(pol(r_s, sa0), pol(r_t, sa0), ST - 0.4, (ST + 0.9, TOP + 0.9), 0.3, left=False)
     (wa, wb) = db['w4']
     wall(wa, wb, LOW - 0.4, lot(wa[1]) + 0.9, 0.4, left=True)
+    # (it turns the corner at its east end: the deck's edge there stands 2 - 3 m over the lawn's hollow beside it)
+    wall(wb, (wb[0], wb[1] + 8.0), LOW - 0.4, (lot(wb[1]) + 0.9, lot(wb[1] + 8.0) + 0.9), 0.4, left=True)
+    # (walked only: a lip round the walk's rim under the upper level's edge.  The walk's chords and the deck's left
+    # slits of a centimetre between them, through which the walker's ground ray met the low ground under the deck)
+    n = int(round((sa1 - a4) / 3.0))
+    for k in range(n):
+        a, b = a4 + (sa1 - a4) * k / n, a4 + (sa1 - a4) * (k + 1) / n
+        WALK_FACES.append([W_((*pol(r_w - 0.1, a), TOP)), W_((*pol(r_w + 0.3, a), TOP)), W_((*pol(r_w + 0.3, b), TOP)),
+                           W_((*pol(r_w - 0.1, b), TOP))])
     # --- the landing west of the seats, at the head of the flight: a square planter on it
-    sector(lr, r_w, la0, la1, TOP, PAVE)
+    # (the flight from the low court comes up into it at an angle: its top steps lie inside the rim, so the landing's
+    # floor is cut along the flight's cheeks and its top riser, and the rim south of the flight has a parapet)
+    (fb, ft, fw) = db['stair']
+    fT = Vector(ft)
+    fd = (fT - Vector(fb)).normalized()
+    fn = Vector((-fd.y, fd.x))
+    fhw = fw / 2 + 0.3                                                  # (out to the cheeks' outer faces)
+
+    def clip(poly, p0, nrm):
+        """the part of a convex outline (u, v) on the side of the line through p0 that nrm points to"""
+        out = []
+        for a, b in zip(poly, poly[1:] + poly[:1]):
+            da, db_ = (Vector(a) - p0).dot(nrm), (Vector(b) - p0).dot(nrm)
+            if da >= 0:
+                out.append(tuple(a))
+            if (da >= 0) != (db_ >= 0):
+                t = da / (da - db_)
+                out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+        return out
+    n_l = max(1, int(round((la1 - la0) / 5.0)))
+    for k in range(n_l):
+        a, b = la0 + (la1 - la0) * k / n_l, la0 + (la1 - la0) * (k + 1) / n_l
+        q = [pol(lr, a), pol(r_w, a), pol(r_w, b), pol(lr, b)]
+        below = clip(q, fT, -fd)                                        # (abreast of the flight)
+        for piece in (clip(q, fT, fd), clip(below, fT + fn * fhw, fn), clip(below, fT - fn * fhw, -fn)):
+            if len(piece) >= 3 and abs(sum(piece[i][0] * piece[(i + 1) % len(piece)][1] - piece[(i + 1) % len(piece)][0] * piece[i][1]
+                                           for i in range(len(piece)))) > 0.02:
+                flat(piece, TOP, PAVE)
+    # (where the south cheek's outer face crosses the rim)
+    fo = fT - fn * fhw - C
+    fs = -fo.dot(fd) - math.sqrt(max(0.0, fo.dot(fd) ** 2 - (fo.length_squared - r_w ** 2)))
+    fa = math.degrees(math.atan2((fo + fd * fs).y, (fo + fd * fs).x))
+    arc_wall(r_w, fa, la1, LOW - 0.4, TOP + 0.9, inward=True)
     arc_wall(lr, la0, la1, ST - 0.4, TOP + 0.45, inward=False)
     wall(pol(r_w, la1), pol(lr, la1), ST - 0.4, TOP + 0.45, 0.3, left=True)
     pu, pv = 19.9, 40.8
@@ -3906,7 +3956,12 @@ def daewoo_back(mb, z0):
         a, b, z = B_ + d * (i * tread), B_ + d * ((i + 1) * tread), LOW + rise * (i + 1)
         flat([tuple(a - nn * hw), tuple(b - nn * hw), tuple(b + nn * hw), tuple(a + nn * hw)], z, STEP, walk=False)
         mb.quad((*(a + nn * hw), z - rise), (*(a - nn * hw), z - rise), (*(a - nn * hw), z), (*(a + nn * hw), z), STEP)
-    WALK_FACES.append([W_((*(B_ - nn * hw), LOW)), W_((*(B_ + nn * hw), LOW)), W_((*(T_ + nn * hw), TOP)), W_((*(T_ - nn * hw), TOP))])
+    # walked on: one ramp through the treads' nosings, from a tread before the first riser to the top one's, and the
+    # top tread (through the risers' feet it ran a riser under the treads: the walker's low wall rays, web/src/player.js,
+    # met every riser from inside the step and no walker got up it)
+    N0, N1 = B_ - d * tread, B_ + d * ((n_st - 1) * tread)
+    WALK_FACES.append([W_((*(N0 - nn * hw), LOW)), W_((*(N0 + nn * hw), LOW)), W_((*(N1 + nn * hw), TOP)), W_((*(N1 - nn * hw), TOP))])
+    WALK_FACES.append([W_((*(N1 - nn * hw), TOP)), W_((*(N1 + nn * hw), TOP)), W_((*(T_ + nn * hw), TOP)), W_((*(T_ - nn * hw), TOP))])
     for sg in (-1, 1):
         a, b = B_ + nn * (sg * hw), T_ + nn * (sg * hw)
         wall(tuple(a), tuple(b), LOW - 0.4, (LOW + 0.9, TOP + 0.9), 0.3, left=sg > 0)

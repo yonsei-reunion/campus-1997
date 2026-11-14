@@ -2342,10 +2342,13 @@ for _j, _i in zip(*np.nonzero(_m_high)):
 _walls = [LineString([dw_xy(*q_) for q_ in l_]) for l_ in (
     [DAEWOO_BACK['w2'][0], DAEWOO_BACK['w1'][1], DAEWOO_BACK['w1'][0], DAEWOO_BACK['w3'][1], DWB_STAIR_UV[2], DWB_STAIR_UV[1]],                 # w2, w1, w3, the flight
     DAEWOO_BACK['w4'], dwb_arc(DAEWOO_BACK['r_walk'], 18.26, -25.0) + [(42.6, 24.5), (42.6, 20.6)],                         # w4 and the floor's east end
-    dwb_arc(DAEWOO_BACK['r_walk'], 132.0, 187.0) + [(0.2, 28.0)])]                                                   # the floor's west rim
+    dwb_arc(DAEWOO_BACK['r_walk'], 132.0, 187.0) + [(0.2, 28.0)],                                                    # the floor's west rim
+    # the walk's rim along the hedge belt: no drop, but the nodes inside it lie under the seats, and the cells that
+    # straddle it sloped down to them (a hollow up to 2 m deep in the belt at 35 - 55 degrees)
+    dwb_arc(DAEWOO_BACK['r_walk'], 105.0, 18.26))]
 _forced = np.zeros(X.shape, bool)
 _cells = set()
-for _wl, _zl in zip(_walls, (DAEWOO_BACK['low'], DAEWOO_BACK['low'], DAEWOO_BACK['low'])):
+for _wl, _zl in zip(_walls, [DAEWOO_BACK['low']] * len(_walls)):
     for _k in range(int(_wl.length / 0.5) + 1):
         _q = _wl.interpolate(_k * 0.5)
         _cells.add((int(math.floor((_q.y + NEAR_HALF) / NEAR_STEP)), int(math.floor((_q.x + NEAR_HALF) / NEAR_STEP))))
@@ -7883,6 +7886,47 @@ for k_, t_ in enumerate(trees):
         trees[k_] = [t_[0], 128.49, 518.31] + list(t_[3:])
 print('daewoo west drive: shrubs moved to its kerbs', len(_dw_moved), 'trees within 3.6 m',
       [t_[:3] for t_ in trees if _dwl.distance(Point(t_[1], t_[2])) < 3.6])
+# 대우관 테라스 · 석축에 심은 것 (reference/고증/3.6 「테라스와 석축의 나무」): the hall's own mesh drew them as plain green
+# cones, domes and boxes.  They are the campus' clipped shrubs now (blender/shrubs.py), in the hall's frame; the
+# planters' soil is a walked face in blender/landmarks.py daewoo_front (`bed`), so they stand on it.  At the list's
+# end, with draws of their own.
+#  - the wall's planter either side of the podium: a clipped hedge, the row of pointed conifers standing out of it
+#  - the tier's planters under it: clipped hedge blocks; the one on the podium: a low clipped block
+#  - the stepped planters before the lower flights: a round shrub on each
+#  - between the wings: clipped cones along the hall, round shrubs towards the drive
+_bd_r = random.Random(1997 + 166)
+_bd_ang = DAEWOO['frame']['ang']
+DW_BEDS = []
+
+
+def _dw_bed(kind_, u_, v_, sc_, along_=False):
+    DW_BEDS.append([kind_, *dh_xy(u_, v_), round(sc_, 2), round(_bd_ang if along_ else _bd_r.uniform(0, 6.28), 3)])
+
+
+for _bd_a, _bd_b in ((DAEWOO['tu'][0], DW_UC - DAEWOO['podium']['hw']), (DW_UC + DAEWOO['podium']['hw'], DAEWOO['tu'][1] - 8.0)):
+    _bd_n = int(math.ceil((_bd_b - _bd_a - 0.5) / 1.8))
+    for _bd_k in range(_bd_n):                                           # (pieces 1.9 m long)
+        _dw_bed('hedge_blob', _bd_a + 1.2 + _bd_k * (_bd_b - _bd_a - 2.4) / (_bd_n - 1), DAEWOO['drive'][0] - 1.4, 0.95, True)
+    _bd_n = max(2, int((_bd_b - _bd_a) / 3.6))
+    for _bd_k in range(_bd_n):                                           # (3.0 - 3.4 m tall)
+        _dw_bed('topiary_cone', _bd_a + (_bd_k + 0.5) * (_bd_b - _bd_a) / _bd_n + _bd_r.uniform(-0.15, 0.15), DAEWOO['drive'][0] - 1.05, _bd_r.uniform(1.22, 1.38))
+for _bd_s in (-1, 1):
+    _bd_a, _bd_b = sorted((DW_UC + _bd_s * 13.3, DW_UC + _bd_s * 23.4))
+    for _bd_k in range(5):
+        _dw_bed('hedge_blob', _bd_a + 1.35 + _bd_k * (_bd_b - _bd_a - 2.7) / 4, -22.2, 1.05, True)
+    for _bd_k in range(4):                                            # (blender/landmarks.py daewoo_front: cw, d_lo)
+        _bd_d0, _bd_d1 = DAEWOO['podium']['court'], DAEWOO['podium']['court'] + 19 * 0.30
+        _dw_bed('topiary_round', DW_UC + _bd_s * (_bd_d0 + (_bd_d1 - _bd_d0) * (_bd_k + 0.5) / 4), (DAEWOO['podium']['front'] + 2.5 + DAEWOO['podium']['face']) / 2, 0.7)
+    _bd_a, _bd_b = sorted((DW_UC + _bd_s * 7.0, DW_UC + _bd_s * (DW_WI - 1.5)))
+    for _bd_k in range(5):
+        _bd_u = _bd_a + (_bd_k + 0.5) * (_bd_b - _bd_a) / 5
+        _dw_bed('topiary_cone', _bd_u + _bd_r.uniform(-0.12, 0.12), -2.4, _bd_r.uniform(1.1, 1.3))
+        _dw_bed('topiary_round', _bd_u + _bd_r.uniform(-0.12, 0.12), -8.4, _bd_r.uniform(0.95, 1.12))
+for _bd_du in (-1.22, 1.22):
+    for _bd_dv in (-1.05, 0.0, 1.05):
+        _dw_bed('hedge_low', DW_UC + _bd_du, -21.5 + _bd_dv, 1.35, True)
+shrubs += DW_BEDS
+print('대우관 테라스 · 석축: clipped shrubs', len(DW_BEDS), {k_: sum(1 for b_ in DW_BEDS if b_[0] == k_) for k_ in sorted({b_[0] for b_ in DW_BEDS})})
 _ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
 _ypaint(ANNEX_YARD_HALVES, _ga)               # (학생회관 별관 앞마당)
 _ypaint([GW_LOT, GW_ROW], _ga)                # (공학원 공사장 앞 주차장, 북쪽 가림막 앞 줄)

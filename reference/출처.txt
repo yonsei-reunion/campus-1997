@@ -15,6 +15,7 @@ reference/ 사진 출처
 - 대우관_정면_전경.jpg: 나무위키 「연세대학교/신촌캠퍼스」 513 대우관 항목 이미지 (https://namu.wiki/w/연세대학교/신촌캠퍼스)
 - 대우관_정면_겨울.jpg: 연세대학교 건물의 역사 페이지 (https://www.yonsei.ac.kr/sc/349/subview.do, img-build13.jpg)
 - 대우관_측면_2012.jpg: Wikimedia Commons "Yonsei university in Seoul, South korea 05.JPG" (2012-07-25, User:콩가루, CC BY-SA 4.0)
+- 대우관의 1997년 이름(reference/고증/3.6_대우관.md 「이름」): 연세대학교 기록관 「제12대 송자 총장」 (https://archives.yonsei.ac.kr/Contents_PlanContents/view/437, 「1996 6 상경관 봉헌」), 1997년 학교 홈페이지 「캠퍼스 구경」 지도 범례 (http://web.archive.org/web/19980211120636/http://www.yonsei.ac.kr/Html/Tour/map28.html, 「31. 상대신관」; 그림은 저장하지 않음), 연세춘추 1998.3.9 독자 투고 (https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=31, 「신상경관」 · 「상본」), 1998.9.28 (idxno=536, 「상대별관」), 1999.3.22 (idxno=733, 「상경관 앞뜰」), 1999.8.30 「대우 흔들림에도 연세 이상무!」 (idxno=1362, 「정식명칭은 '김우중 기념관'」), 2007.6.4 (idxno=10864, 「대우관」), 경영대학 「한눈에 보는 역사」 (https://ysb.yonsei.ac.kr/ysb/intro/history.do, 「1996 상경관(대우관) 봉헌」)
 - 학생회관_정면_2009.jpg, 학생회관_측면_2009.jpg: https://younghwan12.tistory.com/1325 (2010-08-29 글. 사진에 EXIF가 없어, 같은 날 올린 대강당 사진의 EXIF 2009-04-12를 촬영일로 봄)
 - 학생회관_정면_2025.jpg: 연세대학교 홍보 아카이브 사진 「학생회관」 (홍보팀, 2025 촬영)
 - 학생회관_외벽상세.jpg: https://brunch.co.kr/@ratm820309n85i/525 (김정수 건축가 학생회관 글)
