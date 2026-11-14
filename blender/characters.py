@@ -1272,6 +1272,22 @@ def cut_skirt(ob, arm, C):
         legs[3 * i:3 * i + 3] = (0.5 + 0.5 * math.cos(a), 0.5 + 0.5 * math.sin(a), v / LEG_TOP)
         me.vertices[i].co = inv @ c
     att.data.foreach_set('vector', legs)
+    # Each half is all its own thigh's below the hip joints.  The pack leaves a tenth of the middle of a half's back
+    # to the other thigh and the hips: walking, that much of it stayed behind the thigh swinging back (3 cm at the
+    # hem, more than the ease there), and the thigh came out through the cloth.
+    own = {1: ob.vertex_groups['UpperLeg.L'], -1: ob.vertex_groups['UpperLeg.R']}
+    lent = [g for g in (own[1], own[-1], ob.vertex_groups.get('Body')) if g]
+    for i, c in co.items():
+        if c.z >= zj or abs(c.x) < 1e-4:
+            continue
+        mine = own[1 if c.x > 0 else -1]
+        ws = {g.group: g.weight for g in me.vertices[i].groups}
+        back = sum(ws.get(g.index, 0.0) for g in lent if g is not mine)
+        if back > 0:
+            mine.add([i], ws.get(mine.index, 0.0) + back, 'REPLACE')
+            for g in lent:
+                if g is not mine and g.index in ws:
+                    g.remove([i])
     me.update()
     # The two halves hang on a thigh each, but the points down the middle, front and back, were half one's and half
     # the other's: walking, the leg that swings back (or forward) came out through the cloth beside them.  So the
@@ -1433,12 +1449,23 @@ def skirt_sit(arm, parts, s):
 # fringe, the temple, the sideburn and round the ear
 HAIR_AZ = [0, 6, 12, 18, 24, 30, 36, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86, 90, 95, 100, 105, 110, 116, 123, 131,
            140, 150, 160, 170, 180]
-NOSE_LENGTH = 0.042        # the packs' noses run from the brow down: this long at most
-# the nose, a wedge on the face, as everybody has it unless their `face` says otherwise: how far it stands out (of the
-# pack's), how much of that is left of the bridge between the eyes, and the profile between them (1: a straight
-# bridge, less: a scooped one with the tip standing out, more: a high bridge).  Also of a face: nose_w (the wings'
-# width, a scale), nose_up (the tip higher, m)
+# the nose: the pack's is a wedge stuck on the face, which the easing of the face (head_clean, head_soften) left
+# standing up to a centimetre off it.  It is taken away and one sheet is let into the skin instead (head_nose): from
+# between the brows down the bridge, over a round tip and under it back to the lip, with a wing either side.
+# Of a face: nose (how far the tip stands off the face, of NOSE_TIP), bridge (how much of that is left between the
+# eyes), nose_curve (the profile between them: 1 a straight bridge, more: a high one, less: a scooped one with the
+# tip standing out), nose_w (the wings' width, a scale), nose_up (the tip higher, m)
 NOSE = dict(nose=0.92, bridge=0.30, nose_curve=1.0)
+NOSE_TIP = {'umc': 0.0145, 'women': 0.0188}       # (what the packs' wedges stood off the face)
+NOSE_ROOT = 0.012          # the bridge dies away this far over the eye line
+NOSE_UNDER = 0.0065        # the tip over the underside (where the nose meets the lip)
+NOSE_RIDGE = (0.0120, 0.0120)      # half the bridge's foot on the face: between the eyes, at the tip
+NOSE_WING = dict(x=0.0098, rx=0.0072, z=0.0058, up=0.0135, tall=0.50)   # a wing: its middle from the nose's and
+#                         over the underside, its half width, how far up the side it dies away, its height of the tip's
+NOSE_HOLE = dict(x=0.0055, rx=0.0032, h=0.42, rh=0.30, deep=0.0022)     # a nostril: its middle from the nose's, its
+#                         half width, its middle and half depth as heights off the face (of the tip's), how deep it is
+NOSE_GRID = (16, 5)        # rows down the nose, columns either side of the ridge
+NOSE_APRON = 0.004         # the strip of the face round the nose that is made with it
 HAIR_RN = 0.115            # nominal radius of the head of hair: arc length on the scalp = HAIR_RN x angle from the crown
 
 
@@ -1635,9 +1662,9 @@ def head_islands(bm):
 
 
 def head_clean(ob, style, face, rig):
-    """The head as one skull with its ears and nose: the doll's eyes and brows, the hat and the moustache go (where
-    the eyes were is returned), the cap painted on the scalp becomes the material 'Hair'.  The nose, a wedge stuck on
-    the face, is made lower and a little wider."""
+    """The head as one skull with its ears: the doll's eyes and brows, its nose (a wedge stuck on the face: head_nose
+    makes another), the hat and the moustache go (where they were is returned), the cap painted on the scalp becomes
+    the material 'Hair'."""
     import bmesh
     me = ob.data
     mw = ob.matrix_world
@@ -1663,19 +1690,7 @@ def head_clean(ob, style, face, rig):
                 if keep is True or keep == 'left' and box[0].x > 0:
                     continue
             else:
-                L['nose'] = box
-                inv = mw.inverted()
-                tip, bridge, curve = (face.get(k, NOSE[k]) for k in ('nose', 'bridge', 'nose_curve'))
-                for v in {v for f in comp for v in f.verts}:
-                    p = mw @ v.co
-                    h = (p.z - box[0].z) / (box[1].z - box[0].z)            # 0 at the tip's underside .. 1 at the brow
-                    p.y = box[1].y + (p.y - box[1].y) * tip * (1 - (1 - bridge) * h ** curve)
-                    p.z = box[0].z + (p.z - box[0].z) * min(1.0, NOSE_LENGTH / (box[1].z - box[0].z)) \
-                        + face.get('nose_up', 0.0) * (1 - h) ** 2
-                    p.x *= (1.1 - 0.3 * h) * (1 + (face.get('nose_w', 1.0) - 1) * (1 - h) ** 0.7)
-                    v.co = inv @ p
-                soft += [v for f in comp for v in f.verts]
-                continue
+                L['nose'] = box                             # (goes: head_nose makes another)
         elif mats <= {'Eye', 'Brown'}:
             L['eyes'].append(box)
         kill += comp
@@ -1728,7 +1743,7 @@ def head_soften(ob, L):
     soft = set()
     for comp in head_islands(bm):
         vs = {v for f in comp for v in f.verts}
-        if abs(sum((mw @ v.co).x for v in vs) / len(vs)) < 0.04:            # the skull and the nose
+        if abs(sum((mw @ v.co).x for v in vs) / len(vs)) < 0.04:            # the skull
             soft |= {v for v in vs if not v.is_boundary}
     bmesh.ops.smooth_vert(bm, verts=list(soft), factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
     zc = L['top'] - 0.106
@@ -1740,6 +1755,196 @@ def head_soften(ob, L):
         p = mw @ v.co
         v.co = inv @ (c + (p - c) * (1 + (k - 1) * _smooth(zc - 0.04, zc + 0.02, p.z)))
     bm.to_mesh(ob.data)
+    bm.free()
+
+
+def _inside(poly, x, z):
+    """Whether (x, z) lies in the polygon [(x, z), ...]."""
+    n, hit = len(poly), False
+    for i in range(n):
+        (x0, z0), (x1, z1) = poly[i], poly[(i + 1) % n]
+        if (z0 > z) != (z1 > z) and x < x0 + (z - z0) / (z1 - z0) * (x1 - x0):
+            hit = not hit
+    return hit
+
+
+def _crosses(a, b, c, d):
+    """Whether the segments a-b and c-d (2D) cross."""
+    def side(p, q, r):
+        return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+    return side(a, b, c) * side(a, b, d) < 0 and side(c, d, a) * side(c, d, b) < 0
+
+
+def nose_shape(fy, ez, nb, face, rig):
+    """The nose as heights off the face: rows [[(x, z, height), ...], ...] from over the eye line (ez) down to the
+    underside (nb), every row from the person's right to their left; the first two and the last two rows and both
+    ends of every row lie on the face (height 0).  fy(x, z) is the face seen from the front."""
+    tip, bridge, curve = (face.get(k, NOSE[k]) for k in ('nose', 'bridge', 'nose_curve'))
+    wide = face.get('nose_w', 1.0)
+    T = NOSE_TIP[rig] * tip
+    zt, z1 = nb + NOSE_UNDER + face.get('nose_up', 0.0), ez + NOSE_ROOT
+    W, H = NOSE_WING, NOSE_HOLE
+    # the profile: the ridge is a straight line (by `curve`) over the chord of the face from the tip to the eye
+    # line, whatever the face does between them; over the eye line it dies away, and under the tip it turns back
+    # to the lip.  Sampled every half millimetre and eased, which rounds the tip.
+    N = int(round((z1 - nb) / 0.0005))
+    zs = [z1 - (z1 - nb) * i / N for i in range(N + 1)]
+    y_t, y_r = fy(0, zt), fy(0, ez)
+    M = []
+    for z in zs:
+        if z >= zt:
+            h = (z - zt) / (ez - zt)
+            m = fy(0, z) - (y_t + (y_r - y_t) * h - T * (1 - (1 - bridge) * min(h, 1.25) ** curve))
+            m = max(0.0, m) * (1 - _smooth(ez - NOSE_ROOT, z1, z))
+        else:
+            m = T * (1 - ((zt - z) / (zt - nb)) ** 2.0) ** 0.7
+        M.append(m)
+    for _ in range(60):
+        M = [M[0]] + [(M[i - 1] + 2 * M[i] + M[i + 1]) / 4 for i in range(1, N)] + [M[N]]
+    k = T / max(M)
+    M = [m * k for m in M]
+    # rows: closer together where the profile turns (the tip and the underside)
+    arc = [0.0]
+    for i in range(N):
+        arc.append(arc[-1] + math.hypot(zs[i + 1] - zs[i], M[i + 1] - M[i]) * (2.0 if zs[i] < zt + 0.008 else 1.0))
+    NR, NC = NOSE_GRID
+    za, xa, rx = nb + W['z'], W['x'] * wide, W['rx'] * wide ** 0.5
+    rows, i = [], 0
+    for r in range(NR + 1):
+        a = arc[-1] * r / NR
+        while i < N - 1 and arc[i + 1] < a:
+            i += 1
+        t = (a - arc[i]) / max(1e-9, arc[i + 1] - arc[i])
+        z, m = zs[i] + (zs[i + 1] - zs[i]) * t, M[i] + (M[i + 1] - M[i]) * t
+        if r in (0, NR):
+            z, m = (z1, 0.0) if r == 0 else (nb, 0.0)
+        g = _smooth(ez, zt, z)                                # 0 between the eyes .. 1 at the tip and under it
+        w = NOSE_RIDGE[0] + (NOSE_RIDGE[1] * wide ** 0.5 - NOSE_RIDGE[0]) * g
+        dz = (z - za) / (W['up'] if z > za else za - nb)
+        X = max(w, xa + rx * math.sqrt(max(0.0, 1 - dz * dz)))
+        row = []
+        for c in range(-NC, NC + 1):
+            x = X * c / NC
+            ridge = m * max(0.0, 1 - (abs(x) / w) ** 2) ** (1.9 - 0.7 * g)      # (fuller at the tip)
+            d2 = ((abs(x) - xa) / rx) ** 2 + dz * dz
+            wing = W['tall'] * T * max(0.0, 1 - d2) ** 1.5
+            h = 0.0 if abs(c) == NC or r in (0, NR) else (ridge ** 4 + wing ** 4) ** 0.25
+            # a nostril: the underside drawn up either side of the middle
+            up = 0.0
+            if z < zt and h > 0:
+                up = H['deep'] * max(0.0, 1 - ((abs(x) - H['x'] * wide) / H['rx']) ** 2 - ((h / T - H['h']) / H['rh']) ** 2)
+            row.append((x, z + up, h))
+        rows.append([(row[0][0] - NOSE_APRON, z, 0.0)] + row + [(row[-1][0] + NOSE_APRON, z, 0.0)])
+    # a strip of the face round the nose belongs to the sheet too: the shade under the nose ends on it
+    return [[(x, z1 + NOSE_APRON, 0.0) for x, _, _ in rows[0]]] + rows + [[(x, nb - NOSE_APRON, 0.0) for x, _, _ in rows[-1]]]
+
+
+def head_nose(ob, L, face, rig):
+    """The nose (see NOSE): a sheet of heights off the face, let into the skin.  The faces of the skull under it go,
+    and the ring between the hole and the sheet's rim, which lies on the face, is filled with triangles: one skin, so
+    the nose is shaded with the face and nothing shows where it begins."""
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+    from mathutils.geometry import delaunay_2d_cdt
+    me = ob.data
+    mw = ob.matrix_world
+    inv = mw.inverted()
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bm.verts.ensure_lookup_table()
+    cos = [mw @ v.co for v in bm.verts]
+    tree = BVHTree.FromPolygons(cos, [[v.index for v in f.verts] for f in bm.faces])
+
+    def fy(x, z):
+        return tree.ray_cast(Vector((x, -0.6, z)), Vector((0, 1, 0)))[0].y
+    rows = nose_shape(fy, eye_line(L, face), L['nose'][0].z, face, rig)
+    NR, NC = len(rows) - 1, (len(rows[0]) - 1) // 2
+    grid = [[Vector((x, fy(x, z) - h, z)) for x, z, h in row] for row in rows]
+    # the rim, round the nose, and the faces of the skull that reach under it (a little more than it)
+    ring = [(r, 0) for r in range(NR)] + [(NR, c) for c in range(2 * NC)] + [(r, 2 * NC) for r in range(NR, 0, -1)] \
+        + [(0, c) for c in range(2 * NC, 0, -1)]
+    rim = [(grid[r][c].x, grid[r][c].z) for r, c in ring]
+    cx, cz = 0.0, sum(z for _, z in rim) / len(rim)
+    out = [(x + 0.0015 * (x - cx) / math.hypot(x - cx, z - cz), z + 0.0015 * (z - cz) / math.hypot(x - cx, z - cz))
+           for x, z in rim]
+    x0, x1 = min(x for x, _ in out), max(x for x, _ in out)
+    z0, z1 = min(z for _, z in out), max(z for _, z in out)
+    front = min(p.y for row in grid for p in row) - 0.01, max(p.y for row in grid for p in row) + 0.01
+    gone = []
+    for f in bm.faces:
+        ps = [cos[v.index] for v in f.verts]
+        if (mw.to_3x3() @ f.normal).y > -0.2 or not all(front[0] < p.y < front[1] for p in ps):
+            continue
+        q = [(p.x, p.z) for p in ps]
+        if max(x for x, _ in q) < x0 or min(x for x, _ in q) > x1 or max(z for _, z in q) < z0 or min(z for _, z in q) > z1:
+            continue
+        if (any(_inside(out, x, z) for x, z in q) or any(_inside(q, x, z) for x, z in out)
+                or any(_crosses(q[i], q[(i + 1) % len(q)], out[j], out[(j + 1) % len(out)])
+                       for i in range(len(q)) for j in range(len(out)))):
+            gone.append(f)
+    if not gone:
+        raise SystemExit(f'{ob.name}: no face of the skull under the nose')
+    mat = gone[0].material_index
+    dead = set(gone)
+    edge = [e for f in gone for e in f.edges if any(g not in dead for g in e.link_faces)]
+    edge = sorted(set(edge), key=lambda e: e.index)
+    nxt = {}
+    for e in edge:
+        for v in e.verts:
+            nxt.setdefault(v, []).append(e)
+    if any(len(es) != 2 for es in nxt.values()):
+        raise SystemExit(f'{ob.name}: the hole for the nose is not one loop')
+    hole, e = [edge[0].verts[0]], edge[0]
+    while True:
+        v = e.other_vert(hole[-1])
+        if v is hole[0]:
+            break
+        hole.append(v)
+        e = next(x for x in nxt[v] if x is not e)
+    if len(hole) != len(edge):
+        raise SystemExit(f'{ob.name}: the hole for the nose is not one loop')
+    bmesh.ops.delete(bm, geom=gone, context='FACES')
+    dl = bm.verts.layers.deform.verify()
+    hp = [mw @ v.co for v in hole]
+
+    def new_vert(p):
+        v = bm.verts.new(inv @ p)
+        src = min(range(len(hole)), key=lambda i: (hp[i] - p).length_squared)
+        for g, w in hole[src][dl].items():
+            v[dl][g] = w
+        return v
+    gv = [[new_vert(p) for p in row] for row in grid]
+    made = []
+
+    def new_face(vs):
+        f = bm.faces.new(vs)
+        f.normal_update()
+        if (mw.to_3x3() @ f.normal).y > 0:
+            f.normal_flip()
+        f.material_index = mat
+        f.smooth = True
+        made.append(f)
+    for r in range(NR):
+        for c in range(2 * NC):
+            new_face([gv[r][c], gv[r][c + 1], gv[r + 1][c + 1], gv[r + 1][c]])
+    # the ring between the hole and the rim, seen from the front
+    rv = [gv[r][c] for r, c in ring]
+    pts = [(p.x, p.z) for p in hp] + rim
+    nh, nr = len(hole), len(rim)
+    loops = [(i, (i + 1) % nh) for i in range(nh)] + [(nh + i, nh + (i + 1) % nr) for i in range(nr)]
+    res = delaunay_2d_cdt([Vector(p) for p in pts], loops, [], 0, 1e-7)
+    if len(res[0]) != len(pts):
+        raise SystemExit(f'{ob.name}: the hole for the nose crosses its rim')
+    both = hole + rv
+    for tri in res[2]:
+        x, z = (sum(pts[i][k] for i in tri) / 3 for k in (0, 1))
+        if _inside(pts[:nh], x, z) and not _inside(rim, x, z):
+            new_face([both[i] for i in tri])
+    bmesh.ops.recalc_face_normals(bm, faces=made)
+    for f in made:
+        if (mw.to_3x3() @ f.normal).y > 0:
+            raise SystemExit(f'{ob.name}: a face of the nose looks back')
+    bm.to_mesh(me)
     bm.free()
 
 
@@ -2152,6 +2357,7 @@ def head_1997(pid, head, body, arm, spec):
     face = spec.get('face', {})
     L = head_clean(head, st, face, rig)
     head_soften(head, L)
+    head_nose(head, L, face, rig)
     surf = HeadSurface(head, body, L)
     if spec.get('bridge'):
         st = dict(st, bridge=spec['bridge'])
