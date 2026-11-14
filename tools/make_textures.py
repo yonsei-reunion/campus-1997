@@ -885,9 +885,13 @@ def yro_signs():
 yro_signs()
 
 
-# sign_rotary.png: the blue direction sign over 연세로 north of 신촌 로터리 (1996 photo 51979, reference/고증/4.10):
-# 「모래내 ← · → 독립문」 with route 64 in a small shield at each arm of the T, 「130m」 under it (2 : 1); the romanisation of
-# the time (McCune-Reischauer, 1984 - 2000)
+# sign_rotary.png: 신촌 로터리's blue signs (tools/sinchon_rotary.py rot_dirsign, blender/town.py rot_dirsign), 1024 x 1024:
+# - rows 0 - 704: the direction sign over 연세로 north of the junction (1996 photo 51979, reference/고증/4.10.2): 「모래내 ←
+#   · → 독립문」 with route 64 in a small shield at each arm of the T, 「130m」 beside its stem; 1.45 : 1 as the photo has
+#   it (2 : 1 before 2026-11-15); the romanisation of the time (McCune-Reischauer, 1984 - 2000)
+# - rows 704 - 944: the sign of three panels over 연세로's mouth for the cars coming up from 서강로 (52206 · 52141 · 52140,
+#   1996.6 - 8): 「양화대교 ←」, 「연희IC ↑ 연세대」, 「아현교차로 →」
+# - rows 944 - 1024, the left 170 px: the junction's name plate on the signal arm there, 「신촌로터리」
 def rot_signs():
     if ONLY and 'sign_rotary' not in ONLY:
         return
@@ -900,33 +904,59 @@ def rot_signs():
             except Exception:
                 continue
         return ImageFont.load_default()
-    W_, H_ = 1024, 512
+    W_, H_ = 1024, 704
     blue, white = (18, 74, 160), (246, 246, 242)
-    img = Image.new('RGB', (W_, H_), blue)
+    img = Image.new('RGB', (1024, 1024), blue)
     d = ImageDraw.Draw(img)
     d.rectangle([10, 10, W_ - 11, H_ - 11], outline=white, width=8)
     # the T: a stem from the foot up to a bar with an arrowhead at each end
-    cx, ybar = W_ // 2, 250
-    d.line([(cx, H_ - 120), (cx, ybar)], fill=white, width=26)
-    d.line([(150, ybar), (W_ - 150, ybar)], fill=white, width=26)
+    cx, ybar = W_ // 2, 400
+    d.line([(cx, H_ - 60), (cx, ybar)], fill=white, width=30)
+    d.line([(120, ybar), (W_ - 120, ybar)], fill=white, width=30)
     for sgn in (-1, 1):
-        xe = cx + sgn * (cx - 110)
-        d.polygon([(xe, ybar), (xe - sgn * 70, ybar - 46), (xe - sgn * 70, ybar + 46)], fill=white)
-        # the route's shield, 64
-        xs_ = cx + sgn * 120
-        d.rounded_rectangle([xs_ - 46, ybar + 34, xs_ + 46, ybar + 104], radius=16, fill=white)
-        f = fnt(52)
+        xe = cx + sgn * (cx - 70)
+        d.polygon([(xe, ybar), (xe - sgn * 84, ybar - 56), (xe - sgn * 84, ybar + 56)], fill=white)
+        # the route's shield, 64, on the bar
+        xs_ = cx + sgn * 190
+        d.rounded_rectangle([xs_ - 66, ybar - 52, xs_ + 66, ybar + 52], radius=22, fill=white, outline=blue, width=6)
+        f = fnt(74)
         w = d.textlength('64', font=f)
-        d.text((xs_ - w / 2, ybar + 69), '64', font=f, fill=blue, anchor='lm')
-    for txt, xa, rom in (('모래내', 80, 'Moraenae'), ('독립문', W_ - 80, 'Tongnimmun')):
-        f, fr = fnt(112), fnt(40)
+        d.text((xs_ - w / 2, ybar), '64', font=f, fill=blue, anchor='lm')
+    for txt, xa, rom in (('모래내', 70, 'Moraenae'), ('독립문', W_ - 70, 'Tongnimmun')):
+        f, fr = fnt(150), fnt(50)
         w, wr = d.textlength(txt, font=f), d.textlength(rom, font=fr)
         x0 = xa if xa < cx else xa - w
-        d.text((x0, 110), txt, font=f, fill=white, anchor='lm')
-        d.text((x0 + (w - wr) / 2, 190), rom, font=fr, fill=white, anchor='lm')
-    f = fnt(64)
+        d.text((x0, 150), txt, font=f, fill=white, anchor='lm')
+        d.text((x0 + (w - wr) / 2, 262), rom, font=fr, fill=white, anchor='lm')
+    f = fnt(84)
     w = d.textlength('130m', font=f)
-    d.text((cx - w / 2, H_ - 70), '130m', font=f, fill=white, anchor='lm')
+    d.text((cx - 40 - w, H_ - 110), '130m', font=f, fill=white, anchor='lm')
+    # the mouth's three panels
+    y0, ph = 704, 240
+    pw = 1024 / 3
+    for k, (top, rom, arrow) in enumerate((('양화대교', 'Yanghwa Brg.', 'l'), ('연희IC · 연세대', 'Yonhui IC · Yonsei Univ.', 'u'),
+                                         ('아현교차로', 'Ahyon Jct.', 'r'))):
+        x0 = k * pw
+        d.rectangle([x0 + 5, y0 + 5, x0 + pw - 6, y0 + ph - 6], outline=white, width=5)
+        f, fr = fnt(58 if k != 1 else 44), fnt(22)
+        w, wr = d.textlength(top, font=f), d.textlength(rom, font=fr)
+        d.text((x0 + pw / 2 - w / 2, y0 + 62), top, font=f, fill=white, anchor='lm')
+        d.text((x0 + pw / 2 - wr / 2, y0 + 112), rom, font=fr, fill=white, anchor='lm')
+        ax, ay = x0 + pw / 2, y0 + 176
+        if arrow == 'u':
+            d.line([(ax, ay + 38), (ax, ay - 20)], fill=white, width=16)
+            d.polygon([(ax, ay - 46), (ax - 30, ay - 12), (ax + 30, ay - 12)], fill=white)
+        else:
+            sg = -1 if arrow == 'l' else 1
+            d.line([(ax - sg * 70, ay), (ax + sg * 40, ay)], fill=white, width=16)
+            d.polygon([(ax + sg * 78, ay), (ax + sg * 36, ay - 30), (ax + sg * 36, ay + 30)], fill=white)
+    # the name plate
+    y0 = 944
+    d.rectangle([3, y0 + 3, 166, y0 + 76], outline=white, width=3)
+    f, fr = fnt(28), fnt(13)
+    w, wr = d.textlength('신촌로터리', font=f), d.textlength('Sinchon Rotary', font=fr)
+    d.text((85 - w / 2, y0 + 30), '신촌로터리', font=f, fill=white, anchor='lm')
+    d.text((85 - wr / 2, y0 + 58), 'Sinchon Rotary', font=fr, fill=white, anchor='lm')
     img.save(os.path.join(OUT, 'sign_rotary.png'), optimize=True)
     print('sign_rotary')
 

@@ -756,14 +756,37 @@ def rot_dirsign():
     a = (cx - tx * w / 2, cy - ty * w / 2)
     b = (cx + tx * w / 2, cy + ty * w / 2)
     z1, z2 = zp + z0, zp + z0 + h
+    # (sign_rotary.png, tools/make_textures.py rot_signs: this panel its top 704 of 1024 rows, the mouth's sign the
+    # 240 under it, the name plate the left 170 px of the last 80)
+    V_T, V_M = 1 - 704 / 1024, 1 - 944 / 1024
     mb.face([(a[0], a[1], z1), (b[0], b[1], z1), (b[0], b[1], z2), (a[0], a[1], z2)], 'sign_rotary',
-            uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
+            uvs=[(0, V_T), (1, V_T), (1, 1), (0, 1)])
     d = 0.08
     a2, b2 = (a[0] - fx * d, a[1] - fy * d), (b[0] - fx * d, b[1] - fy * d)
     mb.face([(b2[0], b2[1], z1), (a2[0], a2[1], z1), (a2[0], a2[1], z2), (b2[0], b2[1], z2)], 'metal_dark')
     for p_, q_ in ((a2, a), (b, b2)):
         mb.face([(p_[0], p_[1], z1), (q_[0], q_[1], z1), (q_[0], q_[1], z2), (p_[0], p_[1], z2)], 'metal_dark')
     mb.face([(a[0], a[1], z2), (b[0], b[1], z2), (b2[0], b2[1], z2), (a2[0], a2[1], z2)], 'metal_dark')
+    # over 연세로's mouth, both facing south (tools/sinchon_rotary.py MOUTH_SIGN · MOUTH_SIGNAL; 52206 · 52141 · 52140):
+    # the north-west corner's pole and arm with the direction sign of three panels; the junction's name plate on the
+    # north-east pole's signal arm (the pole, the arm and its heads are the web's: town.heads)
+    mo = ds.get('mouth')
+    if mo:
+        (px, py), (x0, x1), h, z0 = mo['pole'], mo['x'], mo['h'], mo['z0']
+        zp = ground_top(px, py)
+        top = zp + z0 + h + 0.5
+        mb.box((px, py, (zp + top) / 2), (0.26, 0.26, top - zp), 'metal')
+        mb.box(((px + x1 + 0.2) / 2, py, zp + z0 + h + 0.2), (x1 + 0.2 - px, 0.16, 0.16), 'metal')
+        ys = py - 0.14
+        mb.face([(x0, ys, zp + z0), (x1, ys, zp + z0), (x1, ys, zp + z0 + h), (x0, ys, zp + z0 + h)], 'sign_rotary',
+                uvs=[(0, V_M), (1, V_M), (1, V_T), (0, V_T)])
+        mb.face([(x1, ys + 0.06, zp + z0), (x0, ys + 0.06, zp + z0), (x0, ys + 0.06, zp + z0 + h), (x1, ys + 0.06, zp + z0 + h)], 'metal_dark')
+        pl = mo['plate']
+        zq = ground_top(*pl['pole']) + pl['z']
+        xa, xb, yq = pl['x'] - pl['w'] / 2, pl['x'] + pl['w'] / 2, pl['pole'][1] - 0.1
+        mb.face([(xa, yq, zq - pl['h'] / 2), (xb, yq, zq - pl['h'] / 2), (xb, yq, zq + pl['h'] / 2), (xa, yq, zq + pl['h'] / 2)], 'sign_rotary',
+                uvs=[(0, 0), (170 / 1024, 0), (170 / 1024, V_M), (0, V_M)])
+        mb.face([(xb, yq + 0.04, zq - pl['h'] / 2), (xa, yq + 0.04, zq - pl['h'] / 2), (xa, yq + 0.04, zq + pl['h'] / 2), (xb, yq + 0.04, zq + pl['h'] / 2)], 'metal_dark')
     return mb
 
 

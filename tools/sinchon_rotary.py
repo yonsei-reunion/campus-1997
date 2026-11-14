@@ -348,6 +348,30 @@ LM_SHAPE = {
                  tanks=[(-127.2, -1052.5, 1.9, 3.5)],
                  signs=[dict(cell=14, side=4, at=12.7, w=12.0, h=2.0, top=1.3), dict(cell=15, side=4, at=12.7, w=8.5, h=1.7, up=9.6)]),
 }
+# ---- 2호선 신촌역's stairs as they stood in July 1997 (2026-11-15, 고증 4.10.2 「지하철 출입구의 지붕」).  The white roofs
+# of the scans 27/18 · 27/19 at the four corners (five of 11 x 5 m and the 「white kiosk」 east of the island) are the
+# stairs' canopies, not bus shelters or kiosks: 서울연구원 52206 (1996.6, from 외환은행's roof: a tiled stairwell walled to
+# the hip under a flat white roof on posts, someone going down, a black sign box on the roof's street end), 52146
+# (1995.10: both of 양화로's north walk, the buses pulled in at the kerb beside them), 52141 · 52105 (the north-east
+# pair), 52204 (1996.6: two before 한일은행, a small eight-sided kiosk between them), 52145 (before 그랜드백화점).
+# The roofs resampled at their own height in both scans (within 0.3 m of each other): [number: the roof's middle, the
+# way from its closed end to its open end where the sign box stands (deg, from east counter-clockwise), the roof's
+# length and width].  The numbers are OSM's of today (EXITS in layout: the four north ones 2 - 6 m from OSM's nodes);
+# no roof found for 8.  Their tops 2.8 - 3.1 m over the road (the scans' windows, 0.86 - 0.99)
+ENT97 = {1: ((-130.8, -941.9), 205.7, 10.8, 4.5), 2: ((-112.8, -932.6), 26.4, 10.4, 4.65),
+         3: ((-81.55, -933.6), 151.4, 10.25, 4.4), 4: ((-63.7, -943.7), -27.6, 10.3, 4.9),
+         5: ((-31.3, -978.4), 21.4, 10.0, 4.0), 6: ((-45.6, -994.6), -98.8, 10.35, 5.6),
+         7: ((-150.45, -984.75), -90.0, 9.8, 5.8)}
+ENT97_ROOF = 2.9               # the canopy's top over the walk (m)
+ENT97_KIOSK = (-38.8, -982.95, 2.4)    # the eight-sided kiosk between 5 and 6 (52204: a green hipped roof; the scan: 4.8 m across)
+# Over 연세로's mouth (52206 · 52141 · 52140, 1996.6 - 8; the scan of 27/19 has the east arm, (-88.8, -928.4) to
+# (-97.6, -929.1)): from a pole on the north-east corner an arm west over the lanes coming up from 서강로, 6.0 m over
+# the road, two signal heads on it (x -95.9, -92.8) and the junction's name plate; from a pole on the north-west
+# corner, behind the kiosk east of stairs 2, an arm east with the blue direction sign of three panels, 「양화대교 ← ·
+# 연희IC 연세대 ↑ · 아현교차로 →」, 5.3 x 1.25 m, its foot about 5 m up (its depth, so its height, +- 2 m: 52140 has it
+# beyond the signal arm).  Both face south
+MOUTH_SIGNAL = dict(pole=(-88.8, -928.4), heads=(-95.9, -92.8), plate=(-90.3, 1.5, 0.7), h=6.0)
+MOUTH_SIGN = dict(pole=(-104.2, -925.5), x=(-102.9, -97.6), h=1.25, z0=5.0)
 LANE_W = 3.25
 # 연세로's side streets (OSM: 명물길, 연세로4길, 연세로2길 on the east; 연세로5길, 연세로 (to 신촌로), on the west):
 # where its shop rows break, y of the gap's two sides
@@ -985,6 +1009,8 @@ def layout(geo, town, extras, ground, taken_z):
     s_mid = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS_Y)))
     # (and the one further up at y -690 the 1997 frames show, 4.9 m across: no signals of its own in the game)
     s_c2 = float(ya.ls.project(Point(gt.YONSEI_X, YRO_CROSS2_Y))) - 2.45
+    # (its other two crossings with the signals 51979 has over them: [s of the south edge, depth]; -575 is gate_town's)
+    yro_cross = [(s_c2, 4.5), (float(ya.ls.project(Point(gt.YONSEI_X, gt.YZEBRA2[1]))), gt.YZEBRA2[0] - gt.YZEBRA2[1])]
     for s_z in (s_mid, s_c2):
         for o in np.arange(-ya.half + 0.5, ya.half - 0.4, 0.95):
             c = [ya.at(s_z)[0] + ya.at(s_z)[2] * o, ya.at(s_z + 4.5)[0] + ya.at(s_z + 4.5)[2] * o,
@@ -1056,12 +1082,15 @@ def layout(geo, town, extras, ground, taken_z):
         ls = LineString(pts)
         stops = [[round(float(ls.project(Point(a_in[-1]))) - 0.5, 1), 0, phase]]
         # 연세로's crossing: northbound cars stop south of it, southbound north of it (group 1: 0 cars go, 1 walkers)
+        # (and at its other two, -690 and -575, as they come: yro_cross; the same group, they turn together)
         if k_in == 'yonsei':
-            q = ya.at(s_mid + 6.0)[0] + ya.at(s_mid + 6.0)[2] * o_in
-            stops.insert(0, [round(float(ls.project(Point(*q))) - 0.5, 1), 1, 0])
+            for s_q in [s_z + dep_ + 1.5 for s_z, dep_ in yro_cross[::-1]] + [s_mid + 6.0]:
+                q = ya.at(s_q)[0] + ya.at(s_q)[2] * o_in
+                stops.insert(len(stops) - 1, [round(float(ls.project(Point(*q))) - 0.5, 1), 1, 0])
         if k_out == 'yonsei':
-            q = ya.at(s_mid - 2.0)[0] + ya.at(s_mid - 2.0)[2] * o_out
-            stops.append([round(float(ls.project(Point(*q))) - 0.5, 1), 1, 0])
+            for s_q in [s_mid - 2.0] + [s_z - 2.0 for s_z, _ in yro_cross]:
+                q = ya.at(s_q)[0] + ya.at(s_q)[2] * o_out
+                stops.append([round(float(ls.project(Point(*q))) - 0.5, 1), 1, 0])
         return dict(kind='car', pts=R2(pts), stops=stops)
 
     def route_via(k_in, o_in, s_leave, via, k_out, o_out, s_join, phase, s_far_in=None, s_far_out=None):
@@ -1154,6 +1183,22 @@ def layout(geo, town, extras, ground, taken_z):
     # the island's own pole (52158 · 52145 · 52142: on its north-north-west edge, the arm out over the lanes north)
     fb = math.radians(ROT_POLE['face'])
     heads.append([ROT_POLE['at'][0], ROT_POLE['at'][1], round(math.atan2(math.cos(fb), math.sin(fb)), 4), 0, 1, ROT_POLE['reach']])
+    # 연세로's mouth, the far side for the cars coming up from 서강로 (MOUTH_SIGNAL: 52206 · 52141, the scan of 27/19): the
+    # north-east corner's pole, its arm west over their lanes, a head over each (the web hangs a head at 0.8 of the reach)
+    mx_, my_ = MOUTH_SIGNAL['pole']
+    for hx_ in MOUTH_SIGNAL['heads']:
+        heads.append([mx_, my_, round(-math.pi / 2, 4), 0, 0, round((mx_ - hx_) / 0.8, 2)])
+    # 연세로's other two crossings (y -690 and gate_town's at -575): 51979 (1996.5) through its camera solved on the 1997
+    # ground has two heads hung over the road just beyond each for the cars going north, on an arm from the east walk
+    # (5.5 - 6.2 m up: y -679 .. -693 and -568 .. -580; x 1.3 m east and 0.9 m west of the middle at the near one, 0.3 and
+    # 2.7 m east at the far one).  A pole each side, its head beyond the crossing for the cars it faces (the ones going
+    # south: taken to mirror them); they turn with the crossing at -790 (group 1)
+    for s_z, dep_ in yro_cross:
+        for sgn, s_ in ((1, s_z - 2.5), (-1, s_z + dep_ + 2.5)):          # (beyond the crossing for those they face)
+            p, t, n = ya.at(s_)
+            q = p + n * sgn * (ya.half + 0.8)
+            heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(t[1] * sgn, t[0] * sgn), 4), 1, 0,
+                          round(ya.half * 0.75, 1)])
     # ---- the walks open to the walker again (2026-11-14, user's request; shut 2026-11-11): from 성산로's crossing over
     # its south walk, 연세로's two sidewalks with their three crossings, the junction's corners within REACH and the
     # crossings July 1997 had there (서강로's in front of 외환은행 and the south-west arm's: none over 연세로's,
@@ -1697,13 +1742,21 @@ def rot_fence(A):
 
 def rot_dirsign(ya, s_mid):
     """the blue direction sign over 연세로's northbound lanes (51979: 「모래내 ← · → 독립문」, a pole on the east kerb
-    with an arm; DIRSIGN): its pole, the panel's middle, the way it faces, w, h, the panel's foot over the road"""
+    with an arm; DIRSIGN): its pole, the panel's middle, the way it faces, w, h, the panel's foot over the road.
+    The panel is 1.45 : 1 in the photo (121 x 84 px): 3.2 m across at the 2.2 m the depth was set by, its right end
+    half a metre inside the east kerb, its middle 4.4 m east of the road's (51979's camera; 4.4 m across and 3.1 m east
+    of the middle before 2026-11-15).
+    `mouth`: the sign and the name plate over 연세로's mouth (MOUTH_SIGN · MOUTH_SIGNAL: blender/town.py rot_dirsign
+    draws them, the signal heads on the plate's arm are the web's)"""
     s = float(ya.ls.project(Point(gt.YONSEI_X, DIRSIGN[0])))
     p, t, n = ya.at(s)
     pole = p - n * (ya.half + 0.6)
-    c = p - n * (ya.half * 0.48)
+    c = p - n * DIRSIGN_E
+    ms, mg = MOUTH_SIGN, MOUTH_SIGNAL
+    mouth = dict(pole=list(ms['pole']), x=list(ms['x']), h=ms['h'], z0=ms['z0'],
+                 plate=dict(pole=list(mg['pole']), x=mg['plate'][0], w=mg['plate'][1], h=mg['plate'][2], z=mg['h'] - 0.55))
     return dict(pole=[round(float(pole[0]), 2), round(float(pole[1]), 2)], c=[round(float(c[0]), 2), round(float(c[1]), 2)],
-                face=round(math.atan2(-t[1], -t[0]), 4), w=4.4, h=2.2, z0=DIRSIGN[1])
+                face=round(math.atan2(-t[1], -t[0]), 4), w=DIRSIGN_W, h=2.2, z0=DIRSIGN[1], mouth=mouth)
 
 
 def town_splat(paints, path):
@@ -1767,6 +1820,7 @@ YRO_CROSS2_Y = -690.0         # the zebra over 연세로 at y -687.5 .. -692.4 (
 # sign and the festival's banner, set where their pixels put a 2.2 m panel 5.4 m over the road and the cloth's foot 4.6 m
 # over it (they had been at -776 and -805 through the camera solved on the old ground, 10 and 9 m up on the new one)
 DIRSIGN = (-720.0, 5.4)        # (y, the panel's foot over the road)
+DIRSIGN_W, DIRSIGN_E = 3.2, 4.4    # its width (1.45 : 1), its middle east of the road's
 YRO_BANNER_Y = -756.0         # the festival's banner (51979 · 52106, 1996.5)
 
 
