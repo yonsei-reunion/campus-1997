@@ -4,14 +4,14 @@
 // a click opens one person large from the four sides at once; there the looks the crowd gives that model
 // (characters.js crowdLook) can be tried on. people.html#<id> opens that person.
 import * as THREE from 'three';
-import { Cast, PEOPLE, STUDENTS, HEROES, HERO, crowdLook, play } from './characters.js';
+import { Cast, PEOPLE, STUDENTS, HEROES, HERO, heroScale, crowdLook, play } from './characters.js';
 import { HERO_BAGS, crowdBag } from './bags.js';
 import { windTime } from './materials.js';
 
 // the six you can walk as first (by their names and colleges), then the others
 const IDS = [...HEROES, ...Object.keys(PEOPLE).filter((id) => !HEROES.includes(id))];
 const title = (id) => (HERO[id] ? `${HERO[id].name} · ${HERO[id].college}` : PEOPLE[id]);
-const sub = (id) => (HERO[id] ? PEOPLE[id] : kind(id));
+const sub = (id) => (HERO[id] ? PEOPLE[id] + (HERO[id].height ? ` · ${Math.round(HERO[id].height * 100)} cm` : '') : kind(id));
 const $ = (s) => document.querySelector(s);
 const kind = (id) => (STUDENTS.includes(id) ? (id.startsWith('woman') ? '여학생' : '남학생') : id.endsWith('professor') ? '교수님' : '교직원');
 // the clips to show: [label, clip, once]
@@ -59,7 +59,7 @@ function dress(slot) {
   if (slot.a) { slot.pivot.remove(slot.a.holder); slot.a.mixer.stopAllAction(); }
   const n = slot.look;
   const bag = !bags || move[1] === 'sit' ? null : n == null ? HERO_BAGS[id] ?? crowdBag(id, 7) : crowdBag(id, n);
-  slot.a = cast.make(id, bag, n == null ? null : crowdLook(id, n));
+  slot.a = cast.make(id, bag, n == null ? null : crowdLook(id, n), n == null ? heroScale(id) : null);
   slot.pivot.add(slot.a.holder);
   pose(slot);
 }

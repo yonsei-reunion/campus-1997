@@ -154,11 +154,15 @@ PEOPLE = {
                                brow_len=.86, brow_taper=1.6, nose=.84, bridge=.24, nose_w=1.10)),
     'man-hoodie': man('up', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
                       {'Purple': '#23345e', 'LightBlue': '#a8946a', 'feet:White': '#e8e6e0', 'Skin': SKIN['tan'],
-                       'Hair': HAIR['black'], 'Brow': '#0e0b0a'}, 'oversized navy hoodie, wide khaki cargo trousers, canvas shoes; short hair swept up and back, tanned',
+                       'Hair': HAIR['black'], 'Brow': '#0e0b0a'},
+                      'oversized navy hoodie, wide khaki cargo trousers, canvas shoes; short hair swept up and back, the sides '
+                      'and the back run over with clippers (the scalp shows through), tanned',
                       paint={'feet': canvas('Purple', 'White')},
                       face=dict(lid='mono', slant=.14, jaw=.97, eye=.98, smile=.0027, mouth=1.08, brow=1.5, brow_tilt=.09,
                                 brow_corner=True, brow_peak=.70, brow_drop=1.2, brow_taper=1.3, brow_soft=1.4, nose=1.04,
                                 bridge=.40, nose_curve=1.3)),
+    # 성구 (the maker's request: the look of an actor and singer born in 1978, from memory): a long face with a firm
+    # jaw, large eyes with double lids under heavy straight brows set low, a high straight nose, a wide ready smile
     'man-cheer': man('two-block', 'Casual_Hoodie', 'Casual_2', 'Casual_2',
                      {'Purple': '#1d3fa0', 'LightBlue': JEANS['black'], 'Red_Dark': '#f2f2ee', 'feet:Bar': '#1d3fa0',
                       'feet:Lace': '#d6d3cc', 'Skin': SKIN['c'], 'Hair': HAIR['black']},
@@ -166,8 +170,9 @@ PEOPLE = {
                      'the long top swept from a 7:3 parting',
                      paint={'feet': trainers('umc', 'Red_Dark')}, cut='wide',
                      prints={'body': [dict(name='yonsei', of=('Purple',), w=.27, z=1.36)]},
-                     face=dict(lid='double', slant=.04, jaw=1.02, eye=1.05, mouth=1.1, smile=.0032, brow=1.4, arch=1.7,
-                               brow_len=1.06, brow_peak=.55, nose=.96, bridge=.30, nose_w=1.08, nose_up=.0015)),
+                     face=dict(lid='double', slant=.0, jaw=1.03, chin=1.09, eye=1.04, mouth=1.15, smile=.0034, lip=1.1,
+                               brow=1.6, arch=.75, brow_len=1.1, brow_peak=.6, brow_up=-.0014, brow_taper=1.5, brow_soft=1.5,
+                               nose=1.13, bridge=.45, nose_curve=1.15, nose_w=1.02)),
     'man-grey': man('curtain-64', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
                     {'Purple': '#e8e0b0', 'Collar': '#3b3a3c', 'LightBlue': JEANS['mid'],
                      'feet:Purple': '#2a2a2e', 'Skin': SKIN['b'], 'Hair': HAIR['dyed'], 'Brow': '#1c1410'},
@@ -1069,8 +1074,8 @@ def skirt_sit(arm, parts, s):
 # Lengths are in the source's units (men x 0.93, women x 0.90 in the game), heights `dz` from the brow line.
 # Everything is skinned to the bone Head (long hair shares its ends with Neck and Chest: hair_follow), so bags.js,
 # which reads the build off the vertices of the other bones, and the clips see the same body as before.
-# The materials are named Skin, Hair, Glasses (Band, Bridge): web/src/characters.js crowdLook recolours them by
-# these names and leaves the glasses out by 'Glasses'.
+# The materials are named Skin, Hair, Glasses (Band, Bridge, HairFade, HairFade2): web/src/characters.js crowdLook
+# recolours them by these names and leaves the glasses out by 'Glasses'.
 # the columns of the hair, by the styles' azimuth (either side): closer together where the hem turns quickly - the
 # fringe, the temple, the sideburn and round the ear
 HAIR_AZ = [0, 6, 12, 18, 24, 30, 36, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86, 90, 95, 100, 105, 110, 116, 123, 131,
@@ -1121,9 +1126,17 @@ HAIR_STYLES = {
     #      `edge` at the hem.  part: (azimuth, depth, width in degrees).  fall: how fast free hair may close in on
     #      the neck (m per m).  curl: the hem turns in.  sheet: thickness of hanging hair.  rough, ragged: how uneven
     #      the volume and the hem are from lock to lock.  The cuts and what they were taken from: reference/고증 4.9.
-    'up': dict(tip=[(0, .042), (24, .043), (40, .038), (50, .026)] + _MEN_EAR,
+    # the top swept up and back; the sides and the back clipped (바리캉으로 올려 친 머리): the top hair ends 2.5 cm
+    # over the ear and level with its top behind, and under it a second shell lies close on the scalp (`under`) in two
+    # bands that let the skin show through (`fade`: the materials above and below the height dz, their colours the
+    # hair's mixed with the skin's), down to the short hairline
+    'up': dict(tip=[(0, .042), (24, .043), (40, .038), (50, .030), (58, .022), (70, .016), (86, .012), (100, .008),
+                    (112, .000), (135, -.016), (180, -.026)],
                vol=[(0, .046), (26, .038), (48, .016), (75, .008), (180, .010)], top=.024,
-               edge=[(0, .005), (40, .005), (55, .003), (180, .003)], hem=1.2, rows=9, rough=.5, ragged=.004),
+               edge=[(0, .005), (40, .005), (55, .003), (180, .003)], hem=1.2, rows=9, rough=.5, ragged=.004,
+               under=dict(tip=[(0, .047), (44, .040), (51, .026)] + _ear(burn=-.030, back=(-.050, -.088, -.096)),
+                          vol=[(0, .0025), (180, .0025)], top=.0025, edge=.0015, rows=9, rough=.0,
+                          fade=('HairFade', 'HairFade2', -.038))),
     'crop': dict(tip=[(0, .047), (28, .047), (44, .040), (51, .026)] + _MEN_EAR,
                  vol=[(0, .026), (40, .019), (70, .008), (180, .009)], top=.026,
                  edge=[(0, .010), (36, .008), (52, .004), (180, .003)], sheet=.014, rows=7, rough=.25, ragged=.003),
@@ -1193,12 +1206,21 @@ HAIR_STYLES = {
                  part=(28, .006, 7), fall=.5, sheet=.018, curl=.006, rows=8, rough=.35, ragged=.003, ears=False),
 }
 PART_COLORS = {'Band': '#27345a', 'Glasses': '#77736c'}       # the tie of a tail, thin metal rims
+FADE = (0.40, 0.62)        # clipped hair: how much of the skin shows in the upper and the lower band (the game's FADED)
 ATLAS_UV = 'atlas'                                             # the UV layer into faces.png
 BLANK_UV = (faces.uv(faces.BLANK, 0.0, faces.TOP - faces.HALF)[0], 1 - faces.uv(faces.BLANK, 0.0, faces.TOP - faces.HALF)[1])
 
 
 def hex_mix(a, b, t):
     return '#' + ''.join('%02x' % round(int(a[i:i + 2], 16) * (1 - t) + int(b[i:i + 2], 16) * t) for i in (1, 3, 5))
+
+
+def hex_fade(hair, skin, t):
+    """Stubble over skin: the hair's colour with t of the skin's, half way to grey (black hair over warm skin mixes
+    to a brown that reads as dyed hair; clipped hair looks cooler).  web/src/characters.js fadeHex is the same."""
+    ch = [int(hair[i:i + 2], 16) * (1 - t) + int(skin[i:i + 2], 16) * t for i in (1, 3, 5)]
+    grey = 0.3 * ch[0] + 0.59 * ch[1] + 0.11 * ch[2]
+    return '#' + ''.join('%02x' % round((c + grey) / 2) for c in ch)
 
 
 def _cos_interp(pts, x):
@@ -1776,18 +1798,25 @@ def head_1997(pid, head, body, arm, spec):
             j = min(range(len(cols)), key=lambda k: abs((cols[k] - a + math.pi) % (2 * math.pi) - math.pi))
             return arc > ends[1][j] - 0.02
         kept = [f for f in u_faces if any(shows(u_pts[i]) for i in f)]
-        ring = sorted({i for f in kept for i in f})
-        at = {i: n for n, i in enumerate(ring)}
-        under = ('Hair', [u_pts[i] for i in ring], [tuple(at[i] for i in f) for f in kept]), [u_follow[i] for i in ring]
+        fade = st['under'].get('fade')                       # (clipped so short that the skin shows: two bands)
+        bands = {'Hair': kept}
+        if fade:
+            high = lambda f: sum(u_pts[i].z for i in f) / len(f) >= C.z + fade[2]         # noqa: E731
+            bands = {fade[0]: [f for f in kept if high(f)], fade[1]: [f for f in kept if not high(f)]}
+        under = []
+        for name, fs in bands.items():
+            ring = sorted({i for f in fs for i in f})
+            at = {i: n for n, i in enumerate(ring)}
+            under.append(((name, [u_pts[i] for i in ring], [tuple(at[i] for i in f) for f in fs]), [u_follow[i] for i in ring]))
         head_trim(head, surf, st['under'], u_ends)
     else:
         head_trim(head, surf, st, ends)
     other = set(band) | set(streak)
     pieces = [('Hair', pts, [f for i, f in enumerate(faces) if i not in other])]
     weights = list(follow)
-    if under:
-        pieces.append(under[0])
-        weights += under[1]
+    for piece, fol in under or ():
+        pieces.append(piece)
+        weights += fol
     for name, part in (('Band', band), ('Bridge', streak)):  # (these have points of their own, weighted as the hair's)
         if part:
             ring = sorted({i for b in part for i in faces[b]})
@@ -1796,8 +1825,10 @@ def head_1997(pid, head, body, arm, spec):
             weights += [follow[i] for i in ring]
     col = spec['colors']
     hair = col.get('Hair', HAIR['black'])
-    defaults = dict(PART_COLORS, Hair=hair, Bridge=hex_mix(hair, '#d9a35a', 0.5))
-    for name in ('Hair', 'Band', 'Glasses', 'Bridge'):
+    skin = col.get('Skin', SKIN['b'])
+    defaults = dict(PART_COLORS, Hair=hair, Bridge=hex_mix(hair, '#d9a35a', 0.5),
+                    HairFade=hex_fade(hair, skin, FADE[0]), HairFade2=hex_fade(hair, skin, FADE[1]))
+    for name in ('Hair', 'Band', 'Glasses', 'Bridge', 'HairFade', 'HairFade2'):
         colour_material(name, srgb_to_linear(col.get(name, defaults[name])))
     hob = head_part(pid + '-hair', arm, pieces, weights)
     fob = head_part(pid + '-glasses', arm, [('Glasses', *face_glasses(surf, L, rig, face))])

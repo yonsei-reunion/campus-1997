@@ -34,11 +34,11 @@ export const STUDENTS = ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man
 export const HEROES = ['man-tee', 'woman-dress', 'man-cheer', 'woman-tee', 'man-check', 'woman-cardigan'];
 // the six you can walk as: a name of the class of 1997 (the first two from the film 건축학개론, 2012, whose first half
 // is a campus of 1996), the college they are of, and the hall their walk starts at (a name of campus.json's markers
-// or landmarks: places.js startPlaces)
+// or landmarks: places.js startPlaces); height: taller or shorter than the model (men 1.73 m, women 1.61 m)
 export const HERO = {
   'man-tee': { name: '승민', college: '공과대학', place: '제1공학관' },
   'woman-dress': { name: '서연', college: '음악대학', place: '음악대학' },
-  'man-cheer': { name: '준호', college: '상경대학', place: '상대신관' },
+  'man-cheer': { name: '성구', college: '상경대학', place: '상대신관', height: 1.79 },
   'woman-tee': { name: '지은', college: '문과대학', place: '인문관' },
   'man-check': { name: '성훈', college: '이과대학', place: '과학관' },
   'woman-cardigan': { name: '은정', college: '사회과학대학', place: '연희관' },
@@ -361,6 +361,16 @@ const LOOKS_MORE = {
 // the bars and the heel tab of a pair of trainers (blender/characters.py trainers()), from a stream of their own
 const TRAINERS = { 'man-tee': 1, 'man-cheer': 1, 'woman-tee': 1, 'woman-pink': 1, 'woman-cardigan': 1 };
 const BARS = ['#27345a', '#b3262e', '#2f5a45', '#1f1f24', '#8d8f92', '#1d3fa0'];
+// the sides and the back clipped so short that the skin shows (blender/characters.py `fade`, FADE): how much of it in
+// the upper and the lower band
+const FADED = { 'man-hoodie': [0.40, 0.62] };
+// stubble over skin: the hair's colour with t of the skin's, half way to grey (blender/characters.py hex_fade)
+function fadeHex(hair, skin, t) {
+  const h = parseInt(hair.slice(1), 16), s = parseInt(skin.slice(1), 16);
+  const ch = [16, 8, 0].map((k) => ((h >> k) & 255) * (1 - t) + ((s >> k) & 255) * t);
+  const grey = 0.3 * ch[0] + 0.59 * ch[1] + 0.11 * ch[2];
+  return '#' + ch.map((v) => Math.round((v + grey) / 2).toString(16).padStart(2, '0')).join('');
+}
 // about one striped tee in three is plain: its stripes and collar in the tee's own colour
 const PLAIN = { 'man-check': ['LightBrown', ['Stripe', 'Stripe2', 'Collar'], 0.35] };
 // what is printed on a chest (blender/faces.py PRINTS, characters.py print_map): the material it lies on, how many of
@@ -394,9 +404,22 @@ export function crowdLook(id, n) {
   const plain = PLAIN[id];
   if (plain && r2() < plain[2]) for (const k of plain[1]) colors[k] = colors[plain[0]];
   if (TRAINERS[id]) colors['Bar-feet'] = BARS[Math.floor(mulberry(n * 9973 + 59)() * BARS.length)];
+  if (FADED[id]) {                                    // (clipped hair: this person's hair over this person's skin)
+    colors.HairFade = fadeHex(colors.Hair, colors.Skin, FADED[id][0]);
+    colors.HairFade2 = fadeHex(colors.Hair, colors.Skin, FADED[id][1]);
+  }
   const pr = PRINTED[id];
   const print = !!pr && mulberry(n * 7919 + 101)() < pr[1] && (!pr[2] || light(colors[pr[0]]));
   return { colors, scale: [clamp(tall * build), clamp(tall)], glasses, blink, print };
+}
+
+// a hero's own size, [width, height] of the model's (the drivers and the crowd in the same model keep theirs):
+// broader by half as much as taller
+export function heroScale(id) {
+  const h = HERO[id]?.height;
+  if (!h) return null;
+  const tall = h / (id.startsWith('woman') ? 1.61 : 1.73);
+  return [1 + (tall - 1) / 2, tall];
 }
 
 // the triangles of `geo` with the glasses' last: { index, bare: how many of its entries come before the glasses' },
@@ -505,7 +528,8 @@ export class Cast {
 
   // bag: what the person carries (bags.js: merged into their one mesh), null for nothing; a hero has their own
   // look: colours, size and glasses of their own (crowdLook), null for the model as it is
-  make(id, bag = HERO_BAGS[id] ?? null, look = null) {
+  // scale: [width, height] of the model as it is (heroScale: the one you walk as)
+  make(id, bag = HERO_BAGS[id] ?? null, look = null, scale = null) {
     const src = this.models[id];
     const holder = new THREE.Group();
     const root = skeletonClone(src.scene);
@@ -515,7 +539,7 @@ export class Cast {
       o.geometry = dressed(o.geometry, src.ranges, look?.colors, look ? look.glasses : src.glasses, look?.blink, look ? look.print !== false : true);
       if (o.geometry.userData.rims) o.onBeforeRender = rimLod;
     });
-    const [wide, tall] = look?.scale || [1, 1];
+    const [wide, tall] = scale || look?.scale || [1, 1];
     holder.scale.set(wide, tall, wide);
     // frustum culled by the posed bounds above (off-screen people cost nothing, in the shadow pass too)
     root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
@@ -602,11 +626,11 @@ export function portraits(cast, ids, w = 150, h = 190) {
     const d = new THREE.DirectionalLight(0xffffff, 2.4);
     d.position.set(2, 4, 3);
     sc.add(d);
-    const a = cast.make(id);
+    const a = cast.make(id, undefined, null, heroScale(id));
     a.mixer.update(0.5);
     a.holder.rotation.y = 0.45;
     sc.add(a.holder);
-    const top = id.startsWith('woman') ? 1.61 : 1.73;
+    const top = (id.startsWith('woman') ? 1.61 : 1.73) * a.tall;
     const cam = new THREE.PerspectiveCamera(24, w / h, 0.1, 50);
     cam.position.set(0, top * 0.62, 5.2);
     cam.lookAt(0, top * 0.5, 0);

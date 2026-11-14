@@ -16,7 +16,7 @@ import { UI } from './ui.js';
 import { Post } from './post.js';
 import { Path, makeBanners, Crowd, Traffic, BoothGates, CAR_COLORS } from './life.js';
 import { makeGatePosters } from './posters.js';
-import { Cast, PEOPLE, STUDENTS, HEROES, HERO, portraits, castFiles } from './characters.js';
+import { Cast, PEOPLE, STUDENTS, HEROES, HERO, heroScale, portraits, castFiles } from './characters.js';
 import { BirdsEye } from './birdseye.js';
 import { SunShadows } from './shadows.js';
 import { TouchControls } from './touch.js';
@@ -529,7 +529,7 @@ async function main() {
   progress('가방을 메는 중…', 36);
   let heroId = safeGet('y97-hero');
   if (!HEROES.includes(heroId)) heroId = HEROES[0];
-  const hero = cast.make(heroId);
+  const hero = cast.make(heroId, undefined, null, heroScale(heroId));
   scene.add(hero.holder);
   shadows.addDynamic(hero.holder);
   const player = new Player(camera, canvas, colliders, walkables, hfNear, hero);
@@ -585,7 +585,7 @@ async function main() {
     heroId = id;
     safeSet('y97-hero', id);
     pickEl.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.id === id));
-    if (player.actor.id !== id) { const a = cast.make(id); scene.add(a.holder); shadows.addDynamic(a.holder); player.setActor(a); }
+    if (player.actor.id !== id) { const a = cast.make(id, undefined, null, heroScale(id)); scene.add(a.holder); shadows.addDynamic(a.holder); player.setActor(a); }
     heroPlace(id);
   };
   let heroPlace = () => {};          // (the places come further down: the walk starts at the hero's own college)
