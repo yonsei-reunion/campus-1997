@@ -16,7 +16,7 @@ const IDS = [...HEROES, ...Object.keys(PEOPLE).filter((id) => !HEROES.includes(i
 // a name and a college: the thirteen's, and of the others whoever has one (in the crowd only)
 const NAMED = { ...HERO, 'man-grey': { name: '민수', college: '공과대학' } };
 const title = (id) => (NAMED[id] ? `${NAMED[id].name} [${NAMED[id].college}]` : kind(id));
-const sub = (id) => (HERO[id] ? (HERO[id].height ? `${Math.round(HERO[id].height * 100)} cm` : '') : NAMED[id] ? kind(id) : '');
+const sub = (id) => (!HERO[id] && NAMED[id] ? kind(id) : '');
 const $ = (s) => document.querySelector(s);
 const kind = (id) => (STUDENTS.includes(id) ? (id.startsWith('woman') ? '여학생' : '남학생') : id.endsWith('professor') ? '교수님' : '교직원');
 // the clips to show: [label, clip, once, ball motion (over the clip)]
