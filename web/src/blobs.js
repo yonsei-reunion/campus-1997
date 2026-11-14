@@ -52,7 +52,7 @@ export class Blobs {
     this.people = [];             // {a: actor, feet: [bone, bone]}
     this.cars = [];               // {c: traffic car, hl, hw}
     this.hero = null;             // () => actor
-    this.ball = null;             // hoops.js Basketball
+    this.ball = null;             // hoops.js Basketball (its balls), once loaded
     const geo = new THREE.PlaneGeometry(2, 2);
     geo.rotateX(-Math.PI / 2);    // in the ground plane, facing up
     this.shape = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 4), 4);
@@ -140,11 +140,11 @@ export class Blobs {
       if (!c.root.parent || !c.root.visible || !near(p)) continue;
       this._put(p.x, p.y, p.z, c.root.rotation.y, hl, hw, 0.55, 0.1, 0.35, 0.65);
     }
-    const b = this.ball;
-    if (b && b.state !== 'held' && near(b.pos)) {
-      const g = b.floorAt(b.pos.x, b.pos.z, b.pos.y), up = Math.max(0, b.pos.y - 0.12 - g);
-      const k = 1 + up * 1.5;
-      this._put(b.pos.x, g, b.pos.z, 0, 0.12 * k, 0.12 * k, 0.12 * k, 0.06 * k, 0.08 * k, 0.5 / (k * k));
+    for (const b of this.ball?.balls ?? []) {
+      if (b.state === 'held' || b.state === 'away' || !near(b.pos)) continue;
+      const g = this.ball.floorAt(b.pos.x, b.pos.z, b.pos.y), up = Math.max(0, b.pos.y - 0.12 - g);
+      const k = (1 + up * 1.5) * b.mesh.scale.x;
+      this._put(b.pos.x, g, b.pos.z, 0, 0.12 * k, 0.12 * k, 0.12 * k, 0.06 * k, 0.08 * k, 0.5 / (k * k || 1));
     }
     this.mesh.instanceMatrix.needsUpdate = true;
     this.shape.needsUpdate = true;

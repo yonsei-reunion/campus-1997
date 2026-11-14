@@ -52,32 +52,38 @@ export class ArmPose {
     this.actor.holder.updateMatrixWorld(true);
     if (bodyUp) this.body.position.y += bodyUp;
     if (w <= 0.001) return;
-    this.arms.forEach((arm, i) => {
-      const q0 = arm.up.quaternion.clone(), q1 = arm.low.quaternion.clone();
-      arm.up.getWorldPosition(_b);                         // shoulder joint
-      arm.low.getWorldPosition(_c);                        // elbow
-      arm.wrist.getWorldPosition(_d);
-      const l1 = _b.distanceTo(_c), l2 = _c.distanceTo(_d);
-      const S = _b.clone(), H = targets[i].clone();
-      const v = H.clone().sub(S);
-      let d = v.length();
-      d = Math.min(Math.max(d, Math.abs(l1 - l2) + 0.02), l1 + l2 - 0.01);
-      v.normalize();
-      const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d);
-      const h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
-      const pole = hints[i].clone();
-      pole.addScaledVector(v, -pole.dot(v)).normalize();
-      const E = S.clone().addScaledVector(v, a).addScaledVector(pole, h);
-      const Hn = S.clone().addScaledVector(v, d);
-      aim(arm.up, E.clone().sub(S).normalize());
-      aim(arm.low, Hn.sub(E).normalize());
-      if (w < 0.999) {                                     // blend towards the pose from the clip's own arms
-        const n0 = arm.up.quaternion.clone(), n1 = arm.low.quaternion.clone();
-        arm.up.quaternion.copy(q0).slerp(n0, w);
-        arm.low.quaternion.copy(q1).slerp(n1, w);
-        arm.up.updateWorldMatrix(false, true);
-      }
-    });
+    for (let i = 0; i < 2; i++) this.applyArm(i, targets[i], hints[i], w);
+  }
+
+  // one arm (0 = L, 1 = R): its wrist to the world point H, the elbow towards pole, w of the way from the clip's arm.
+  // The holder's world matrix must be current
+  applyArm(i, H, pole, w) {
+    if (!this.ok || w <= 0.001) return;
+    const arm = this.arms[i];
+    const q0 = arm.up.quaternion.clone(), q1 = arm.low.quaternion.clone();
+    arm.up.getWorldPosition(_b);                           // shoulder joint
+    arm.low.getWorldPosition(_c);                          // elbow
+    arm.wrist.getWorldPosition(_d);
+    const l1 = _b.distanceTo(_c), l2 = _c.distanceTo(_d);
+    const S = _b.clone();
+    const v = H.clone().sub(S);
+    let d = v.length();
+    d = Math.min(Math.max(d, Math.abs(l1 - l2) + 0.02), l1 + l2 - 0.01);
+    v.normalize();
+    const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d);
+    const h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+    const p = pole.clone();
+    p.addScaledVector(v, -p.dot(v)).normalize();
+    const E = S.clone().addScaledVector(v, a).addScaledVector(p, h);
+    const Hn = S.clone().addScaledVector(v, d);
+    aim(arm.up, E.clone().sub(S).normalize());
+    aim(arm.low, Hn.sub(E).normalize());
+    if (w < 0.999) {                                       // blend towards the pose from the clip's own arms
+      const n0 = arm.up.quaternion.clone(), n1 = arm.low.quaternion.clone();
+      arm.up.quaternion.copy(q0).slerp(n0, w);
+      arm.low.quaternion.copy(q1).slerp(n1, w);
+      arm.up.updateWorldMatrix(false, true);
+    }
   }
 }
 
@@ -188,12 +194,12 @@ export class Hands {
     for (const g of this.sides[i].fingers) g.b.quaternion.copy(g.rest).multiply(_bq.setFromAxisAngle(g.axis, g.a * c));
   }
 
-  // G: per hand { h: the way the hand points, n: the way the palm faces } (world, unit, at right angles); w: 0..1.
-  // After ArmPose.apply
-  grip(G, w) {
+  // G: per hand { h: the way the hand points, n: the way the palm faces } (world, unit, at right angles); w: 0..1;
+  // c: how far the fingers close (w: round a wrist or an ankle; less to lie spread on a ball). After ArmPose.apply
+  grip(G, w, c = w) {
     if (!this.ok) return;
     this.sides.forEach((sd, i) => {
-      this.curl(i, w);
+      this.curl(i, c);
       if (w <= 0.001 || !G) return;
       const { h, n } = G[i];
       _m1.makeBasis(sd.along, sd.palm, _t.crossVectors(sd.along, sd.palm));

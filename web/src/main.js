@@ -25,7 +25,6 @@ import { WalkLabels } from './labels.js';
 import { Bubbles } from './talk.js';
 import { FountainWater } from './water/fountain.js';
 import { Birthday } from './birthday.js';
-import { Basketball } from './hoops.js';
 import { startPlaces } from './places.js';
 import { SunMap, bakeSunMap } from './bakedshadow.js';
 import { Blobs } from './blobs.js';
@@ -39,6 +38,8 @@ import { addTown, Street } from './town.js';
 import { $, MOBILE, versioned, safeGet, safeSet, mulberry, countBy, polylineLength, closestOnSegment, placeMatrix } from './util.js';
 
 const canvas = $('#view');
+// ./?game=shoot: the title card is the 1-minute basketball game's (style.css body.game-shoot)
+if (new URLSearchParams(location.search).get('game') === 'shoot') document.body.classList.add('game-shoot');
 let season = safeGet('y97-season');
 if (!SEASONS[season]) season = 'summer';
 const NOBODY = { x: 1e9, y: 1e9 };       // the player before the walk starts: nobody in the way
@@ -585,7 +586,9 @@ async function main() {
     },
     onClose: () => resume(),
   });
-  const ball = S.court ? new Basketball({ scene, player, ui, court: S.court, hf: hfNear, mobile: MOBILE }) : null;   // 대강당 앞 농구장
+  // 대강당 앞 농구장 (src/hoops.js): loaded when the walk or the view comes near the court, or for the 1-minute game
+  // (src/shootout.js, loaded when it starts); neither comes with the page (loadBall, startShoot below)
+  let ball = null, ballLoad = null, shootout = null;
   // hero picker on the title card (portraits rendered from the real models)
   const pics = portraits(cast, HEROES);
   const pickEl = $('#hero-pick');
@@ -619,7 +622,6 @@ async function main() {
     for (const p of townCrowd?.people ?? []) blobs.addPerson(p.a);
     for (const c of heard.cars) blobs.addCar(c);
     blobs.hero = () => player.actor;
-    blobs.ball = ball;
   }
   // 활천대 앞 생일 축하: two students on the flagstones; you and the friend throw the birthday one in (src/birthday.js)
   const birthday = S.fountain ? new Birthday({ scene, cast, player, F: S.fountain, water: fountainWater, bubbles: crowd.bubbles, ui, shadows, blobs, mobile: MOBILE }) : null;
@@ -668,9 +670,10 @@ async function main() {
     if (!started || ui.memoryOpen || ui.mapOpen) return;
     paused = true;
     player.enabled = false;
+    $('#shoot-quit').hidden = !shootout?.on;
     $('#pause').hidden = false;
   };
-  const startWalk = (where = null) => {
+  const startWalk = (where = null, msg = null) => {
     if (started) return;
     started = true;
     $('#intro').hidden = true;
@@ -678,7 +681,7 @@ async function main() {
     if (MOBILE) $('#touch').hidden = false;
     resume();
     const how = MOBILE ? '화면 왼쪽을 누른 채 밀어서 걸어요' : '↑↓(W·S)로 걷고 ←→(A·D)로 방향을 바꿔요';
-    ui.toast(`${how} · ${where ? `${where}에서 출발해요` : '정문에서 백양로를 따라 걸어 보세요'}`, 5000);
+    ui.toast(msg || `${how} · ${where ? `${where}에서 출발해요` : '정문에서 백양로를 따라 걸어 보세요'}`, 5000);
   };
   $('#start').addEventListener('click', () => {
     const p = places[placeEl.value];         // '' → 정문 (the walker already stands at the spawn)
@@ -694,18 +697,26 @@ async function main() {
   player.onView = (first) => {
     safeSet('y97-view', first ? 'first' : 'third');
     $('#viewbtn span').textContent = first ? '3인칭' : '1인칭';
+    document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('on', (b.dataset.view === 'first') === first));
     if (started) ui.toast(first ? '1인칭 시점' : '3인칭 시점');
   };
-  player.setFpv(safeGet('y97-view') === 'first');
+  // (the game's address may say which: ./?game=shoot&view=first)
+  const viewParam = new URLSearchParams(location.search).get('view');
+  player.setFpv(viewParam ? viewParam === 'first' : safeGet('y97-view') === 'first');
+  document.querySelectorAll('[data-view]').forEach((b) => {
+    b.classList.toggle('on', (b.dataset.view === 'first') === player.fpv);
+    b.addEventListener('click', (e) => { e.stopPropagation(); player.setFpv(b.dataset.view === 'first'); });
+  });
   const openNearby = () => {
     if (ui.memoryOpen) { ui.closeMemory(); return; }
+    if (shootout?.on) return;                 // (the game: the key is the shot, shotDown)
     if (ball && !bird.active && ball.action()) { ui.setPrompt(ball.prompt()); return; }
     if (birthday && !bird.active && birthday.action()) { ui.setPrompt(null); return; }
     const l = ui.nearestLandmark(player.x, player.y);
     if (l) { player.enabled = false; ui.openMemory(l); }
   };
   const toggleMap = () => {
-    if (!started) return;
+    if (!started || shootout?.on) return;
     if (ui.mapOpen) { ui.toggleMap(false); return; }
     player.enabled = false;
     ui.toggleMap(true, player.x, player.y);
@@ -726,11 +737,51 @@ async function main() {
   // sound (src/audio.js): synthesized, started by the first click of the title card
   const sound = new Sound({ camera, campus, hf: hfNear });
   birds.onTakeOff = (b) => sound.flap(b.x, b.h + 0.3, -b.y);
-  if (ball) ball.onSound = (what, p, k) => sound.ball(what, p, k);
+  const loadBall = () => (ballLoad ||= !S.court ? Promise.resolve(null) : import('./hoops.js').then(({ Basketball }) => {
+    ball = new Basketball({ scene, player, ui, court: S.court, hf: hfNear, shadows, mobile: MOBILE, patch: globalPatch });
+    ball.onSound = (what, p, k) => sound.ball(what, p, k);
+    if (blobs) blobs.ball = ball;
+    return ball;
+  }));
+  // the shot: held down with the ball in hand and let go (hoops.js), by E, Space or the prompt button; `by` says which,
+  // so only that one coming up shoots
+  let shotBy = null;
+  const shotDown = (by) => {
+    if (!ball?.mine || ball.shot || bird.active || !player.enabled || !ball.press()) return false;
+    shotBy = by;
+    ui.setPrompt(ball.prompt());
+    return true;
+  };
+  const shotUp = (by) => { if (by && by === shotBy) { shotBy = null; ball?.letGo(); ui.setPrompt(ball?.prompt()); } };
+  // 농구 1분 슛 게임 (src/shootout.js): from the title card (straight to it from ./?game=shoot)
+  const startShoot = async () => {
+    if (shootout?.on) return;
+    const btn = $('#shoot-start');
+    btn.disabled = true;
+    try {
+      const [{ Shootout }] = await Promise.all([import('./shootout.js'), loadBall()]);
+      if (!ball) return;
+      shootout ||= new Shootout({ scene, cast, player, ball, ui, bubbles: crowd.bubbles, shadows, blobs, sound, mobile: MOBILE,
+        onQuit: () => { document.body.classList.remove('shootout'); resume(); ui.toast('농구장에서 산책을 이어 가요'); } });
+    } finally { btn.disabled = false; }
+    if (bird.active) leaveBird();
+    const how = MOBILE ? '공을 받으면 「슛」을 꾹 눌렀다가' : '공을 받으면 E나 스페이스를 꾹 눌렀다가';
+    const msg = `1분 동안 몇 골? ${how} 막대가 초록 칸에 올 때 떼세요`;
+    document.body.classList.add('shootout');
+    if (!started) startWalk(null, msg); else { paused = false; $('#pause').hidden = true; resume(); ui.toast(msg, 5000); }
+    shootout.start();
+    forest.update(camera.position, true);
+  };
+  $('#shoot-start').addEventListener('click', startShoot);
+  $('#shoot-quit').addEventListener('click', (e) => { e.stopPropagation(); shootout?.stop(); });
+  {
+    const best = +(safeGet('y97-shoot-best') || 0);
+    if (best) $('#shoot-best').textContent = `최고 기록 ${best}골`;
+  }
   if (birthday) birthday.onSplash = (p) => sound.splash(p);
   $('#opt-sound').checked = sound.on;
   $('#opt-sound').addEventListener('change', (e) => sound.setOn(e.target.checked));
-  for (const id of ['#start', '#tour-start']) $(id).addEventListener('click', () => sound.start());
+  for (const id of ['#start', '#tour-start', '#shoot-start']) $(id).addEventListener('click', () => sound.start());
   const SEASON_ORDER = ['spring', 'summer', 'autumn'];
   const SEASON_KEYS = { Digit1: 'spring', Digit2: 'summer', Digit3: 'autumn' };
   const bird = new BirdsEye({
@@ -764,7 +815,7 @@ async function main() {
     },
   });
   const enterBird = () => {
-    if (bird.active) return;
+    if (bird.active || shootout?.on) return;
     if (ui.memoryOpen) ui.closeMemory();
     if (ui.mapOpen) ui.toggleMap(false);
     paused = false;
@@ -815,9 +866,10 @@ async function main() {
       return;
     }
     if (!started) return;
+    if (shootout?.resultsOpen) { if (e.code === 'Escape') shootout.stop(); return; }
     if (e.code === 'KeyB' && !ui.memoryOpen) { enterBird(); return; }
+    if ((e.code === 'KeyE' || e.code === 'Space') && !e.repeat && shotDown(e.code)) return;
     if (e.code === 'KeyE' || e.code === 'Enter') openNearby();
-    else if (e.code === 'Space' && ball?.held && !bird.active && player.enabled) ball.action();
     else if (e.code === 'KeyM') toggleMap();
     else if (e.code === 'KeyF') toggleFilm();
     else if (e.code === 'KeyV' && !e.repeat) player.setFpv(!player.fpv);
@@ -828,11 +880,18 @@ async function main() {
       else if (paused) resume(); else pause();
     }
   });
+  addEventListener('keyup', (e) => shotUp(e.code));
+  addEventListener('blur', () => shotUp(shotBy));
   const walkLabels = new WalkLabels(campus.markers || [], camera, $('#blabels'));
   // HUD buttons (the only way in on a phone: no keys there)
   const touch = new TouchControls(player, canvas, $('#stick'));
   const tap = (sel, fn) => $(sel).addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); fn(); });
-  tap('#prompt', openNearby);
+  // the prompt: a tap does what E does; with the ball in hand it is the shot, held down and let go (shotDown)
+  let swallow = false;
+  $('#prompt').addEventListener('pointerdown', (e) => { if (shotDown('p' + e.pointerId)) { swallow = true; e.preventDefault(); } });
+  addEventListener('pointerup', (e) => shotUp('p' + e.pointerId));
+  addEventListener('pointercancel', (e) => shotUp('p' + e.pointerId));
+  tap('#prompt', () => { if (swallow) swallow = false; else openNearby(); });
   tap('#minimap', toggleMap);
   tap('#mapbtn', toggleMap);
   tap('#menubtn', pause);
@@ -881,6 +940,7 @@ async function main() {
       crowd.movers(player.x, player.y, player.movers);
       traffic.movers(player.x, player.y, player.movers);
       birthday?.movers(player.x, player.y, player.movers);
+      shootout?.movers(player.x, player.y, player.movers);
       player.update(dt);
     }
     let span = SH;
@@ -917,7 +977,9 @@ async function main() {
     gates.update(dt, traffic);
     fountainWater?.update(dt, camera);
     lib.uniforms.uWindT.value = tAcc;     // the wind in the leaves, branches and banners (materials.js sway)
+    if (!ballLoad && S.court && (focus.x - S.court.pos[0]) ** 2 + (focus.z + S.court.pos[1]) ** 2 < 150 * 150) loadBall();
     ball?.update(dt, tAcc, started && !bird.active);
+    shootout?.update(dt, tAcc, paused || ui.memoryOpen || ui.mapOpen);
     blobs?.update(camera.position);
     sound.update(dt, tAcc, { player, walking: started && !bird.active, crowd, traffic: heard, birds, season });
     decals.update(camera.position);
@@ -939,8 +1001,8 @@ async function main() {
         lastPlace = tAcc;
         const l = ui.nearestLandmark(player.x, player.y);
         ui.setPlace(ui.placeName(player.x, player.y, onRoad(player.x, player.y)));
-        const bp = ball?.prompt() || birthday?.prompt();
-        ui.setPrompt(bp ? bp : l && !ui.memoryOpen ? `${l.name} · ${MOBILE ? '눌러서 ' : ''}그때의 추억 보기` : null);
+        const game = shootout?.on, bp = game ? ball.prompt() : ball?.prompt() || birthday?.prompt();
+        ui.setPrompt(bp ? bp : l && !game && !ui.memoryOpen ? `${l.name} · ${MOBILE ? '눌러서 ' : ''}그때의 추억 보기` : null);
       }
       if (MOBILE) ui.clearWalker(player.screenBox(camera));     // the prompt button off the walker (phones)
     }
@@ -986,14 +1048,15 @@ async function main() {
     },
   };
   window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, townCrowd, cast, traffic, street, bird, toggleBird, shadows, fountainWater,
-    startWalk, enterBird, leaveBird, record, ball, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds,
+    startWalk, enterBird, leaveBird, record, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds,
+    get ball() { return ball; }, loadBall, startShoot, get shootout() { return shootout; },
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
     // (the kits whole for it: it draws them from above, tile by tile)
     bakeSunMap: async () => {
       kitCull.whole();
       kitCull.enabled = false;
       try {
-        return await bakeSunMap({ renderer, scene, sun, sunDir, shadows, forest, hf: hfNear, walk: walkables, hide: [banners, ball?.mesh], skip: farScenery });
+        return await bakeSunMap({ renderer, scene, sun, sunDir, shadows, forest, hf: hfNear, walk: walkables, hide: [banners, ...(ball?.balls.map((b) => b.mesh) ?? [])], skip: farScenery });
       } finally {
         kitCull.enabled = true;
       }
@@ -1008,6 +1071,7 @@ async function main() {
   loading.done('1997년, 백양로에 도착했습니다.');
   $('#start').disabled = false;
   $('#tour-start').disabled = false;
+  $('#shoot-start').disabled = false;
 }
 
 // The halls with a pitched roof and the gym stand on the smallest rectangle round their OSM outline (blender/generic.py

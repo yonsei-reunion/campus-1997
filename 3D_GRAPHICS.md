@@ -423,7 +423,7 @@ $r_y \to 0$ 이면 마지막 항이 1로 수렴하므로, 코드는 $k\,r_y$ 가
 
 $$\cos\gamma = \frac{a^2 + b^2 - c^2}{2ab}$$
 
-**이 게임에서**: Quaternius 모듈러 캐릭터를 `SkinnedMesh` 하나로 합치고, 사람마다 `AnimationMixer` 를 둔다(`characters.js`). 농구공을 들 때 두 손을 공에 붙이는 두 뼈 IK는 `armpose.js` 에 있다.
+**이 게임에서**: Quaternius 모듈러 캐릭터를 `SkinnedMesh` 하나로 합치고, 사람마다 `AnimationMixer` 를 둔다(`characters.js`). 농구공을 들 때 두 손을 공에 붙이는 두 뼈 IK는 `armpose.js` 에, 그것으로 짠 슛 · 패스 동작은 `ballpose.js` 에 있다. 공의 길을 어깨 자리에서 정하고 손을 IK 로 보낸 뒤, 공을 손이 실제로 간 자리로 옮겨 팔이 덜 닿아도 공이 뜨지 않게 한다.
 
 ### 14. 충돌과 공간 질의
 

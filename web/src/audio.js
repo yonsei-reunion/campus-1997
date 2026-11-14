@@ -8,7 +8,7 @@
 //  - cars: engine and tyres of the nearest few, by their speed
 //  - footsteps: yours when a foot of the walk or run cycle comes down, on what you walk on (ground_splat.png: paving
 //    and asphalt, earth, lawn; steps and terraces are stone); those of the people walking close by
-//  - the basketball (bounce, rim, backboard, net) and the birthday splash
+//  - the basketball (bounce, rim, backboard, net, a catch), the 1-minute game's beeps and buzzer, and the birthday splash
 // The listener is the camera. The context starts on the first click (browsers allow no sound before one) and
 // sleeps while the tab is hidden. 「소리」 in the pause card turns it off (remembered).
 import * as THREE from 'three';
@@ -455,10 +455,24 @@ export class Sound {
     } else if (what === 'board') {
       this._tone(out, { at: t0, f: 170, f1: 110, gain: 0.5 * (0.4 + w), attack: 0.002, decay: 0.14 });
       this._burst(out, { at: t0, f: 700, q: 0.8, gain: 0.3, attack: 0.001, decay: 0.05 });
+    } else if (what === 'catch') {
+      // the leather slapped into the palms
+      this._burst(out, { at: t0, f: 900, q: 0.6, gain: 0.35, attack: 0.001, decay: 0.04 });
+      this._tone(out, { at: t0, f: 150, f1: 90, gain: 0.25, attack: 0.002, decay: 0.07 });
     } else {
       // through the net
       this._burst(out, { at: t0, f: 5200, f1: 2600, q: 0.8, gain: 0.3, attack: 0.02, decay: 0.2 });
     }
+  }
+
+  // the 1-minute game's clock (shootout.js), not placed: beep (3, 2, 1), go, and the buzzer at the end
+  cue(what) {
+    const ctx = this.ctx;
+    if (!ctx || ctx.state !== 'running') return;
+    const t0 = ctx.currentTime;
+    if (what === 'buzzer') {
+      for (const f of [196, 198.5]) this._tone(this.master, { at: t0, type: 'sawtooth', f, gain: 0.07, attack: 0.01, hold: 0.85, decay: 0.12 });
+    } else this._tone(this.master, { at: t0, type: 'square', f: what === 'go' ? 1320 : 880, gain: 0.05, attack: 0.004, hold: what === 'go' ? 0.32 : 0.12, decay: 0.05 });
   }
 
   // somebody thrown into the fountain (birthday.js): the body's thump, the burst of water, the drops coming back

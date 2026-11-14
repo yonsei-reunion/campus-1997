@@ -16,7 +16,8 @@
     <div class="intro-card">
       <p class="eyebrow">설레던 백양로, 첫 시작의 기억 <button class="newsbtn" type="button">새 소식<i hidden></i></button><a class="newsbtn" href="people.html" target="_blank" rel="noopener">캠퍼스 사람들</a></p>
       <h1>신촌 캠퍼스 1997<br /><span>그 시절 우리 학교는</span></h1>
-      <p class="lead">1997년 봄과 가을, 신촌 연세대학교 캠퍼스. 정문에서 백양로를 따라 걸으며 그때의 중앙도서관, 학생회관, 옛 노천극장과 언더우드관을 다시 만나 보세요.</p>
+      <p class="lead walk-only">1997년 봄과 가을, 신촌 연세대학교 캠퍼스. 정문에서 백양로를 따라 걸으며 그때의 중앙도서관, 학생회관, 옛 노천극장과 언더우드관을 다시 만나 보세요.</p>
+      <p class="lead game-only"><b>농구 1분 슛 게임</b> · 대강당 앞 농구장에서 1분 동안 몇 골이나 넣을 수 있을까요? 옆에서 친구가 계속 공을 패스해 줘요. 버튼을 꾹 눌렀다가 점프가 가장 높을 때 떼면 들어가요. 골대에서 멀수록 타이밍이 어려워요.</p>
       <div id="loadblock">
         <div class="loadrow">
           <div id="loadbar" role="progressbar" aria-label="불러오기" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="loadfill"></div></div>
@@ -33,12 +34,23 @@
         <button data-season="summer" class="on">5월 · 신록</button>
         <button data-season="autumn">10월 · 단풍</button>
       </div>
-      <p class="pick-label">누구로 걸어 볼까요? <span id="hero-who"></span></p>
+      <p class="pick-label"><span class="walk-only">누구로 걸어 볼까요?</span><span class="game-only">누구로 슛해 볼까요?</span> <span id="hero-who"></span></p>
       <div id="hero-pick" role="radiogroup" aria-label="캐릭터"></div>
       <label class="pick-label" for="place-pick">어디서 걸어 볼까요?</label>
       <select id="place-pick" disabled><option value="">정문</option></select>
       <button id="start" disabled>캠퍼스 산책하기</button>
       <button id="tour-start" class="ghost" disabled title="하늘에서 1997년 캠퍼스를 날아다니며 구경합니다">캠퍼스 위로 날아가기</button>
+      <div id="minigame">
+        <p class="pick-label"><span class="walk-only">미니 게임</span><span class="game-only">시점</span> <span id="shoot-best"></span></p>
+        <div class="mg-row">
+          <button id="shoot-start" disabled title="대강당 앞 농구장에서 1분 동안 슛을 몇 개나 넣는지 겨뤄 봅니다 (주소: ?game=shoot)">농구 1분 슛 게임</button>
+          <div class="view-pick" role="radiogroup" aria-label="미니 게임 시점">
+            <button type="button" data-view="third">3인칭</button>
+            <button type="button" data-view="first">1인칭</button>
+          </div>
+        </div>
+        <a class="walk-link game-only" href="./">캠퍼스 산책하러 가기</a>
+      </div>
       <dl class="keys pc-only">
         <div><dt>↑ ↓ 또는 W S</dt><dd>앞뒤로 걷기</dd></div>
         <div><dt>← → 또는 A D</dt><dd>방향 돌기</dd></div>
@@ -47,6 +59,7 @@
         <div><dt>위로 끌기·PgUp</dt><dd>올려보기</dd></div>
         <div><dt>V</dt><dd>1인칭 · 3인칭</dd></div>
         <div><dt>E · Enter</dt><dd>추억 보기</dd></div>
+        <div><dt>Space 꾹·떼기</dt><dd>농구공 슛</dd></div>
         <div><dt>M</dt><dd>캠퍼스 지도</dd></div>
         <div><dt>B</dt><dd>캠퍼스 위로 날아가기</dd></div>
         <div><dt>F · 1 2 3</dt><dd>필름 · 계절</dd></div>
@@ -58,6 +71,7 @@
         <li><b>화면 오른쪽</b>을 끌면 둘러보고(위로 끌면 하늘까지 올려다봐요), 두 손가락으로 벌리면 가까이</li>
         <li>추억 장소에 가면 나오는 <b>「추억 보기」</b>를 누르세요</li>
         <li>오른쪽 위 <b>지도</b>를 누르면 원하는 곳으로 바로 이동, <b>1인칭</b>을 누르면 내 눈높이로 봐요</li>
+        <li>농구공을 들면 <b>「슛」</b>을 꾹 눌렀다가 막대가 초록 칸에 올 때 떼세요</li>
       </ul>
     </div>
   </section>
@@ -145,6 +159,7 @@
       <button class="newsbtn" type="button">새 소식 · 업데이트 내역<i hidden></i></button>
       <a class="newsbtn" href="people.html" target="_blank" rel="noopener">캠퍼스 사람들 · 캐릭터 구경</a>
       <label class="toggle pc-only"><input type="checkbox" id="opt-hq" checked /> 고품질 그림자 · 앰비언트 오클루전</label>
+      <button id="shoot-quit" type="button" hidden>1분 슛 게임 그만하기</button>
       <button id="resume">계속 걷기</button>
     </div>
   </div>

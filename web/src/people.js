@@ -3,6 +3,9 @@
 // context. Drag turns them all (or the chips: front, right, back, left), other chips pick the clip everybody plays,
 // a click opens one person large from the four sides at once; there the looks the crowd gives that model
 // (characters.js crowdLook) can be tried on. people.html#<id> opens that person.
+// 슛 and 패스 are the basketball game's motions (ballpose.js, loaded when one is picked): each person catches a pass
+// and shoots as they do on the court (the men one-handed, the women the two-handed set shot), or picks a ball up off
+// the ground and chest-passes it as the friend in the 1-minute game does.
 import * as THREE from 'three';
 import { Cast, PEOPLE, STUDENTS, HEROES, HERO, heroScale, crowdLook, play } from './characters.js';
 import { HERO_BAGS, crowdBag } from './bags.js';
@@ -14,9 +17,10 @@ const title = (id) => (HERO[id] ? `${HERO[id].name} · ${HERO[id].college}` : PE
 const sub = (id) => (HERO[id] ? PEOPLE[id] + (HERO[id].height ? ` · ${Math.round(HERO[id].height * 100)} cm` : '') : kind(id));
 const $ = (s) => document.querySelector(s);
 const kind = (id) => (STUDENTS.includes(id) ? (id.startsWith('woman') ? '여학생' : '남학생') : id.endsWith('professor') ? '교수님' : '교직원');
-// the clips to show: [label, clip, once]
+// the clips to show: [label, clip, once, ball motion (over the clip)]
 const MOVES = [['서 있기', 'idle'], ['둘러보기', 'idle-look'], ['팔짱', 'idle-fold'], ['이야기', 'talk'], ['전화', 'phone'],
-  ['인사', 'emote-yes', true], ['걷기', 'walk'], ['뛰기', 'sprint'], ['앉기', 'sit']];
+  ['인사', 'emote-yes', true], ['걷기', 'walk'], ['뛰기', 'sprint'], ['앉기', 'sit'], ['슛', 'idle', false, 'shoot'], ['패스', 'idle', false, 'pass']];
+let BP = null;                           // ballpose.js, once a ball motion is picked
 // the sides to look from: the person turned by this much (0: facing the view; their left is +x)
 const SIDES = [['앞', 0], ['오른쪽', Math.PI / 2], ['뒤', Math.PI], ['왼쪽', -Math.PI / 2]];
 const SEAT = 0.43, THIGH = 0.085;       // a bench's seat and the hips over it (life.js)
@@ -64,9 +68,20 @@ function dress(slot) {
   pose(slot);
 }
 function pose(slot) {
-  const a = slot.a, [, clip, once] = move;
+  const a = slot.a, [, clip, once, ball] = move;
   a.holder.position.y = 0;
   slot.bench.visible = clip === 'sit';
+  slot.form?.rest();
+  slot.form = null;
+  if (slot.ball) slot.ball.visible = false;
+  if (ball && BP) {
+    play(a, 'idle', { fade: 0 });
+    a.mixer.update(0.3);
+    slot.form = new BP.BallForm(a);
+    if (!slot.ball) { slot.ball = BP.makeBall(); slot.pivot.add(slot.ball); }
+    slot.bt = 0;
+    return;
+  }
   if (once) play(a, clip, { once: true, then: 'idle', fade: 0.2 });
   else play(a, a.actions[clip] ? clip : 'idle', { fade: 0.3 });
   if (clip === 'sit') {
@@ -78,6 +93,88 @@ function pose(slot) {
     a.holder.position.y = SEAT + THIGH - hip;
   }
 }
+// the ball motions, looped: catch a pass from the right, hold, shoot (let go at the top of the jump); or pick a ball up
+// off the ground, hold it and chest-pass it forward. The ball hangs on the pivot (it turns with the person)
+const SHOOT_T = 3.0, PASS_T = 2.7;
+let ballAt = null;                       // (window.__people.ballAt: hold every ball motion at this time, for looking at a pose)
+const _w = new THREE.Vector3(), _l = new THREE.Vector3();
+function ballStep(slot, dt) {
+  const f = slot.form, a = slot.a, b = slot.ball, pv = slot.pivot;
+  if (!f || !b) return;
+  const { SHOT, PASS, PICK, hopAt, R, G } = BP;
+  pv.updateMatrixWorld(true);
+  const kind = move[3], T = kind === 'shoot' ? SHOOT_T : PASS_T;
+  if (ballAt !== null) { slot.bt = ballAt; slot.flying = null; dt = 0; }
+  slot.bt = (slot.bt + dt) % T;
+  const u = slot.bt;
+  const toWorld = (v) => pv.localToWorld(_w.copy(v));
+  const put = (world) => b.position.copy(pv.worldToLocal(_l.copy(world)));
+  a.holder.position.y = 0;
+  b.visible = true; b.scale.setScalar(1);
+  if (kind === 'shoot') {
+    const CATCH = 0.45, HOLD = 0.5, t = u - CATCH - HOLD, tr = SHOT.TOP;
+    if (u < CATCH) {
+      // the pass coming in from the right, at the chest
+      const k = u / CATCH, to = pv.worldToLocal(f.holdPoint(0, 1.6, new THREE.Vector3()));
+      b.position.set(-f.sx * 2.6, 1.15, 1.6).lerp(to, k);
+      b.position.y += 0.15 * 4 * k * (1 - k);
+      f.pose('catch', { at: toWorld(b.position), w: Math.min(1, k * 2.2) });
+      slot.flying = null;
+    } else if (u < CATCH + HOLD) {
+      f.pose('hold', { w: 1 });
+      put(f.ball);
+    } else if (!slot.flying) {
+      a.holder.position.y = hopAt(f.one, t);
+      f.pose('shot', { t, tr, w: 1 });
+      if (f.ball) put(f.ball);
+      else {
+        // let go: towards a rim 4.2 m ahead, 3.05 m up (out of the picture)
+        const p0 = pv.worldToLocal(f.from.clone()), Tf = 1.05;
+        slot.flying = { p0, v: new THREE.Vector3(-p0.x / Tf, (3.05 - p0.y + 0.5 * G * Tf * Tf) / Tf, (4.2 - p0.z) / Tf), t: 0 };
+      }
+    }
+    if (slot.flying) {
+      const fl = slot.flying;
+      fl.t += dt;
+      b.position.copy(fl.p0).addScaledVector(fl.v, fl.t);
+      b.position.y -= 0.5 * G * fl.t * fl.t;
+      b.rotation.x -= dt * 8;
+      if (t < tr + SHOT.FLICK + SHOT.FOLLOW) { a.holder.position.y = hopAt(f.one, t); f.pose('shot', { t, tr, w: 1 }); }
+      else f.pose('free', { w: Math.max(0, 1 - (t - tr - SHOT.FLICK - SHOT.FOLLOW) / 0.3) });
+    }
+  } else {
+    const HOLD = 0.35, t = u - PICK.UP - HOLD;
+    const ground = toWorld(f.K.ground);
+    if (u < PICK.UP) {
+      f.pose('pick', { t: u, at: ground, w: 1 });
+      if (f.ball) put(f.ball); else put(ground);
+      slot.flying = null;
+    } else if (u < PICK.UP + HOLD) {
+      f.pose('hold', { w: 1 });
+      put(f.ball);
+    } else if (!slot.flying) {
+      f.pose('pass', { t, w: 1 });
+      if (f.ball) put(f.ball);
+      else {
+        const p0 = pv.worldToLocal(f.from.clone()), Tf = 0.55;
+        slot.flying = { p0, v: new THREE.Vector3(0, 0.4 / Tf + 0.5 * G * Tf, 4 / Tf), t: 0 };
+      }
+    }
+    if (slot.flying) {
+      const fl = slot.flying;
+      fl.t += dt;
+      b.position.copy(fl.p0).addScaledVector(fl.v, fl.t);
+      b.position.y -= 0.5 * G * fl.t * fl.t;
+      if (t < PASS.FOLLOW) f.pose('pass', { t, w: 1 });
+      else f.pose('free', { w: Math.max(0, 1 - (t - PASS.FOLLOW) / 0.3) });
+      // the next ball on the ground, growing in
+      const back = T - u;
+      if (back < 0.35) { b.position.copy(pv.worldToLocal(_l.copy(ground))); b.scale.setScalar(Math.max(0.01, 1 - back / 0.35)); }
+      else if (fl.t > 0.6) b.visible = false;
+    }
+  }
+}
+
 function addSlot(id, el, look = null) {
   const pivot = new THREE.Group();
   const slot = { id, el, x: slots.length * GAP, a: null, pivot, bench: new THREE.Mesh(benchGeo, benchMat), look };
@@ -90,7 +187,8 @@ function addSlot(id, el, look = null) {
   return slot;
 }
 
-function setMove(m) {
+async function setMove(m) {
+  if (m[3] && !BP) BP = await import('./ballpose.js');
   move = m;
   document.querySelectorAll('#moves button').forEach((b) => { b.classList.toggle('on', b.textContent === m[0]); b.setAttribute('aria-checked', b.textContent === m[0]); });
   // (a seated person carries no bag: dress() sees to it either way)
@@ -186,9 +284,9 @@ function draw(slot, el = slot.el) {
   // (the opened person only) the head and the shoulders
   const near = face && slot === zoom;
   const top = (slot.id.startsWith('woman') ? 1.61 : 1.73) * slot.a.tall + slot.a.holder.position.y - (move[1] === 'sit' ? 0.42 * slot.a.tall : 0);
-  const tall = near ? 0.62 : 2.1, wide = near ? 0.5 : /^(walk|sprint|sit|emote)/.test(move[1]) ? 1.25 : 0.92;
+  const tall = near ? 0.62 : move[3] ? 2.6 : 2.1, wide = near ? 0.5 : move[3] ? 1.4 : /^(walk|sprint|sit|emote)/.test(move[1]) ? 1.25 : 0.92;
   const d = Math.max(tall, wide / camera.aspect) / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-  const y = near ? top - 0.2 : 0.9;
+  const y = near ? top - 0.2 : move[3] ? 1.15 : 0.9;
   camera.position.set(slot.x, y + (near ? 0.02 : 0.12), d);
   camera.lookAt(slot.x, y, 0);
   camera.updateProjectionMatrix();
@@ -212,6 +310,7 @@ function frame() {
   for (const s of slots) {
     if ((s === zoom) !== open) continue;
     s.a.mixer.update(dt);
+    if (move[3]) ballStep(s, dt);
     if (s === zoom && four) {
       for (const q of quarters) { s.pivot.rotation.y = +q.dataset.yaw * Math.PI; draw(s, q); }
       continue;
@@ -241,6 +340,7 @@ function frame() {
   }
   setMove(MOVES[0]);
   if (PEOPLE[location.hash.slice(1)]) openZoom(location.hash.slice(1), false);
-  window.__people = { slots, cast, scene, renderer, setMove, MOVES, openZoom, setFour, setFace, set yaw(v) { yaw = v; yawTo = null; }, set spin(v) { setSpin(v); } };
+  window.__people = { slots, cast, scene, renderer, setMove, MOVES, openZoom, setFour, setFace, set yaw(v) { yaw = v; yawTo = null; }, set spin(v) { setSpin(v); },
+    set ballAt(v) { ballAt = v; } };
   frame();
 })();

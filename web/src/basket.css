@@ -1,0 +1,63 @@
+/* 농구장 (hoops.js, shootout.js): loaded with them, when the walk comes near the court or the game starts */
+
+/* ------------------------------------------------------------ the shot meter */
+#shotmeter { position: fixed; left: 0; top: 0; width: 48px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  pointer-events: none; opacity: .55; transition: opacity .15s; will-change: transform; }
+#shotmeter.on { opacity: 1; }
+#shotmeter .bar { position: relative; width: 16px; height: 150px; border-radius: 9px; background: rgba(14, 22, 34, .62);
+  box-shadow: 0 0 0 2px rgba(255, 253, 246, .9), 0 4px 14px rgba(0, 0, 0, .3); overflow: hidden; }
+#shotmeter .zone { position: absolute; left: 0; right: 0; background: #57c46a; }
+#shotmeter .sweet { position: absolute; left: 0; right: 0; background: #d8ff9a; }
+#shotmeter .fill { position: absolute; left: 3px; right: 3px; bottom: 0; height: 0; border-radius: 5px; background: var(--yellow, #ffe76a);
+  box-shadow: 0 0 6px rgba(255, 231, 106, .8); mix-blend-mode: normal; opacity: .92; }
+#shotmeter .say { min-height: 1.3em; font: 400 19px var(--title, sans-serif); color: #fff; white-space: nowrap;
+  text-shadow: 0 2px 0 rgba(14, 22, 34, .55), 0 0 6px rgba(14, 22, 34, .6); }
+#shotmeter.perfect .say { color: #d8ff9a; font-size: 23px; }
+#shotmeter.good .say { color: #a8ef9a; }
+#shotmeter.early .say, #shotmeter.late .say { color: #ffd2c4; }
+#shotmeter.perfect .bar { box-shadow: 0 0 0 2px #d8ff9a, 0 0 16px #b6ff6a; }
+#shotmeter .dist { font: 700 11px var(--font, sans-serif); color: var(--hud-ink, #f4f1e8); background: rgba(14, 22, 34, .62);
+  padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+
+/* ------------------------------------------------------------ the 1-minute game */
+body.shootout #place, body.shootout #minimap, body.shootout #stamps, body.shootout #birdbtn, body.shootout #mapbtn,
+body.shootout #blabels { display: none !important; }
+#shoothud { position: fixed; top: calc(14px + var(--st, 0px)); left: 50%; transform: translateX(-50%); z-index: 11; display: flex; gap: 8px;
+  pointer-events: none; color: var(--hud-ink, #f4f1e8); font-family: var(--title, sans-serif); }
+#shoothud > div { background: var(--hud-bg, rgba(14, 22, 34, .62)); border-radius: 12px; padding: 6px 16px 8px; text-align: center; min-width: 96px;
+  backdrop-filter: blur(6px); }
+#shoothud small { display: block; font: 700 11px var(--font, sans-serif); opacity: .75; }
+#shoothud b { font-weight: 400; font-size: 34px; line-height: 1.05; }
+#shoothud .score b { color: var(--yellow, #ffe76a); }
+#shoothud .score span { display: block; font: 600 12px var(--font, sans-serif); opacity: .8; }
+#shoothud.hurry .clock b { color: #ff9b8a; }
+#shoothud.bump .score b { display: inline-block; animation: shootbump .4s ease-out; }
+@keyframes shootbump { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+#shoothud .best { display: block; font: 600 11px var(--font, sans-serif); opacity: .7; }
+
+#shootbig { position: fixed; left: 50%; top: 34%; transform: translate(-50%, -50%); z-index: 12; pointer-events: none;
+  font: 400 clamp(64px, 14vw, 120px) var(--title, sans-serif); color: #fff; text-shadow: 0 5px 0 rgba(14, 22, 34, .5), 0 0 24px rgba(14, 22, 34, .45); }
+#shootbig.pop { animation: shootpop .55s ease-out; }
+#shootbig.small { font-size: clamp(30px, 6vw, 46px); }
+@keyframes shootpop { 0% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { #shootbig.pop { animation: none; } }
+
+#shootresult { position: fixed; inset: 0; z-index: 26; display: grid; place-items: center; background: rgba(10, 18, 28, .45); padding: 16px; }
+#shootresult > div { background: var(--paper, #fffdf6); color: var(--ink, #16202e); padding: 24px 28px; border-radius: 8px; width: min(400px, 100%);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .35); text-align: center; transform: rotate(-0.6deg); }
+#shootresult h2 { font: 400 24px var(--title, sans-serif); margin: 0 0 4px; color: var(--mint-ink, #0e6f6b); }
+#shootresult .big { margin: 2px 0 6px; font: 400 64px/1 var(--title, sans-serif); color: var(--blue, #143c8c); }
+#shootresult .big small { font-size: 26px; margin-left: 4px; }
+#shootresult .detail { margin: 0 0 8px; font-size: 14px; color: #34404f; line-height: 1.6; }
+#shootresult .best { margin: 0 0 14px; font-weight: 700; font-size: 15px; }
+#shootresult .best.new { color: #c0392b; }
+#shootresult .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#shootresult button { border: 0; border-radius: 8px; padding: 12px 8px; font: 700 15px var(--font, sans-serif); }
+#shootresult .again { background: var(--blue, #143c8c); color: #fff; }
+#shootresult .quit { background: #fff; color: var(--ink, #16202e); border: 2px solid var(--ink, #16202e); }
+#shootresult .link { margin: 12px 0 0; font-size: 12px; color: #5c6572; word-break: break-all; }
+#shootresult .link a { color: var(--mint-ink, #0e6f6b); }
+@media (max-width: 640px) {
+  #shoothud b { font-size: 26px; }
+  #shoothud > div { min-width: 76px; padding: 5px 10px 6px; }
+}

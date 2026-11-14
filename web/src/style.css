@@ -253,6 +253,23 @@ body.birds #view.grabbing { cursor: grabbing; }
 body.birds #stamps { display: none; }
 #tour-start { margin-top: 8px; width: 100%; border: 2px solid var(--ink); background: #fff; color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); cursor: pointer; }
 #tour-start:disabled { opacity: .45; cursor: progress; }
+/* the 1-minute basketball game (src/shootout.js) and its view; ./?game=shoot makes it the card's own (body.game-shoot) */
+#minigame { margin-top: 12px; padding-top: 10px; border-top: 1.5px dashed #d8d0bb; }
+#minigame .pick-label { margin-bottom: 6px; }
+#shoot-best { margin-left: 6px; font-weight: 400; color: var(--mint-ink); }
+.mg-row { display: flex; gap: 8px; align-items: stretch; }
+#shoot-start { flex: 1; border: 2px solid var(--ink); background: var(--yellow); color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); }
+#shoot-start:disabled { opacity: .45; cursor: progress; }
+.view-pick { display: flex; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: #fff; }
+.view-pick button { border: 0; background: none; padding: 0 12px; font: 700 14px var(--font); color: var(--ink); }
+.view-pick button + button { border-left: 2px solid var(--ink); }
+.view-pick button.on { background: var(--ink); color: #fff; }
+.walk-link { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--mint-ink); }
+body:not(.game-shoot) .game-only, body.game-shoot .walk-only { display: none !important; }
+body.game-shoot #start, body.game-shoot #tour-start, body.game-shoot label[for="place-pick"], body.game-shoot #place-pick { display: none; }
+body.game-shoot #minigame { margin-top: 0; padding-top: 0; border-top: 0; }
+body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: 0 4px 0 #0b2659; }
+#shoot-quit { margin-top: 10px; width: 100%; border: 2px solid var(--ink); border-radius: 8px; padding: 10px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 700; }
 #birdpins { position: fixed; inset: 0; z-index: 9; pointer-events: none; overflow: hidden; --pin-scale: 1; }
 #birdpins .pin { position: absolute; left: 0; top: 0; pointer-events: auto; border: 0; padding: 0; background: none; cursor: pointer; }
 #birdpins .pin span { position: absolute; left: 0; bottom: 0; transform: translate(-50%, -10px) scale(var(--pin-scale)); transform-origin: 50% 100%;

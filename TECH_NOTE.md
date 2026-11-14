@@ -76,7 +76,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `birdseye.js` | 캠퍼스 위로 날아가기 |
 | `characters.js` · `armpose.js` · `life.js` · `talk.js` | 사람 모델과 애니메이션, 팔 IK, 군중 · 차 · 현수막 · 초소, 말풍선 대사 |
 | `town.js` | 정문 밖: 성산로 · 철둑 · 창천동 · 신촌 로터리 모델을 장면에 넣음, 성산로 · 연세로 · 로터리의 차와 시내버스, 신호등 |
-| `hoops.js` | 농구공 |
+| `hoops.js` · `ballpose.js` · `shootout.js` | 농구공 물리와 타이밍 슛, 농구 동작(슛 · 받기 · 줍기 · 패스), 1분 슛 게임. 처음 화면에서는 받지 않음 |
 | `audio.js` | 소리: Web Audio 합성(바람 · 나뭇잎 · 새 · 분수 · 차 · 발소리 · 농구공 · 물보라), 카메라가 듣는 자리 |
 | `birthday.js` | 활천대 앞 생일 축하(두 학생, 들어 올려 분수로) |
 | `water/fountain.js` | 활천대 분수 물(Ultra Water) |
@@ -270,7 +270,21 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 
 ### 농구
 
-- 림 · 그물 · 백보드는 코트 모델(`blender/landmarks.py`)에, 공 물리는 `hoops.js`, 두 손 IK 는 `armpose.js`.
+- 림 · 그물 · 백보드는 코트 모델(`blender/landmarks.py`)에, 공 물리와 슛 판정은 `hoops.js`, 동작은 `ballpose.js`, 1분 슛 게임은 `shootout.js`.
+- 늦게 불러옵니다. `main.js` 가 걷는 사람이나 하늘 시점이 농구장 150 m 안에 들어올 때 `hoops.js`(와 `ballpose.js`, `basket.css`)를, 1분 슛 게임을 고를 때 `shootout.js` 를 `import()` 합니다. `window.__y97.loadBall()` 은 그 약속(Promise)입니다.
+- 동작(`ballpose.js` `BallForm`)
+  - 공의 길은 사람의 어깨 자리에서 정합니다(모델마다 팔 길이 0.41 m 에 맞음). 손마다 공 위의 자리(옆에 댄 손바닥, 또는 공 밑의 슛하는 손)가 손목 자리와 손의 방향을 정하고, 팔은 두 뼈 IK(`armpose.js` `ArmPose.applyArm`), 손은 `Hands.grip` 으로 공에 얹습니다.
+  - 그다음 공을 손이 실제로 간 자리로 옮깁니다(손이 덜 닿아도 공이 뜨지 않음).
+  - 남자는 한 손 슛(오른손이 공 밑, 왼손은 옆), 여자는 두 손 세트슛(`oneHanded`). 점프는 사람 전체를 들어 올립니다(`hopAt`, `player.js` 가 다음 프레임에 땅으로 되돌림). 무릎은 `Stance`.
+  - 1인칭에서는 몸을 그리지 않으니 공을 눈앞 자리로 옮깁니다(`fp`).
+- 슛 판정(`hoops.js`)
+  - 누른 때부터 게임 시계로 잽니다(막대와 같은 시계, 프레임 사이에 뗀 시간은 `performance.now()` 로 더함). 점프 꼭대기 0.62 s 에서 벗어난 만큼을 창 폭(`windowAt`, 거리에 따라 80 → 22 ms)으로 나눈 `q` 가 공이 떨어질 자리를 정합니다(`miss`).
+  - 길게 간 공은 뒤 림 · 백보드에 맞고 들어가기 쉬워서 일찍 뗀 쪽을 덜 짧게 둡니다. 거리 · `q` 마다 성공률은 페이지 안에서 `launch` · `step` 을 수백 번 돌려 맞췄습니다.
+- 1분 슛 게임(`shootout.js`)
+  - 공 여섯 개. 친구(`man-grey`)는 발 앞 공 더미에서 줍고(`pick`), 걷는 사람의 슛이 손을 떠나면 체스트 패스합니다. 패스는 걷는 사람의 손 자리를 따라갑니다(`passTo`).
+  - 내려와 멈춘 공은 작아져 사라지고, 친구가 패스하는 동안 더미에 다시 나타납니다.
+  - 최고 기록은 `localStorage` 의 `y97-shoot-best`. `?game=shoot` 은 첫 화면을 게임 카드로(`body.game-shoot`), `&view=first|third` 는 시점을 정합니다.
+- `people.html` 의 「슛」 · 「패스」가 같은 `BallForm` 을 씁니다. `window.__people.ballAt = t` 로 그 순간에 멈춰 자세를 봅니다.
 
 ### 렌더링
 
