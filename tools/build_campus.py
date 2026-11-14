@@ -6351,8 +6351,9 @@ TOWN_SECS_RNG = gate_town.bank_fix(gate_town.plan(_hn_rng, NEAR_HALF, NEAR_STEP,
 TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h,
                            keep_nodes=near_buildings(1.5))
 TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h)
-print('정문 밖: 성산로 %.0f m, 철둑 %.0f m, 레일 높이 %.2f m (정문 앞 길 %.2f m)' % (
-    TOWN_PLAN['road'].cum[-1], TOWN_PLAN['rail'].cum[-1], TOWN_PLAN['rail_z'], TOWN_PLAN['rail_z'] - gate_town.RAIL_UP))
+print('정문 밖: 성산로 %.0f m, 철둑 %.0f m, 굴다리 위 레일 %.2f m (정문 앞 길 %.2f m), 둑 윗면 %.2f .. %.2f m' % (
+    TOWN_PLAN['road'].cum[-1], TOWN_PLAN['rail'].cum[-1], TOWN_PLAN['rail_z'],
+    float(np.interp(GATE_C[0], TOWN_PLAN['road'].P[:, 0], TOWN_PLAN['road_z'])), TOWN_PLAN['top'].min(), TOWN_PLAN['top'].max()))
 # 대운동장 남서쪽 · 야구장 (tools/west_ground.py, reference/고증/4.8.2 · 4.12), late (the planting has
 # read the ground as it was): 성산로's bed on north-west past gate_town's road on the 1997 photos (29 - 31 m, the game
 # had 35 - 39), the 야구장 2.2 m under the 대운동장 as they have it (31.0 m), and the ground between the oval, 학군단,

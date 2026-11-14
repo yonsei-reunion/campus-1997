@@ -73,7 +73,7 @@ GUTTER = 0.75                # from the kerb lane's edge line to the kerb
 HW = LANES * LANE_W + MID / 2 + GUTTER  # the carriageway's half width (17.6 m)
 HW_RNG = 16.45               # ... as first laid, about OSM's middle (what the campus's planting was cleared by: layout)
 SW_S = 1.6                   # the south sidewalk under the bank
-RAIL_UP = 10.8               # the rails over 성산로 before the gate
+RAIL_UP = 10.8               # the rails over 성산로 before the gate (as first laid, level: plan(old=True))
 BALLAST = 0.25               # the rails over the top of the bank
 SHOULDER = 3.6               # the top of the bank past each track's centre line
 SLOPE = 1.6                  # the banks: run per rise
@@ -131,6 +131,37 @@ SSR_E97 = [(-395.0, 26.3), (-365.0, 26.2), (-345.0, 26.3), (-330.0, 26.45), (-31
            (297.0, 29.55), (310.0, 29.8), (319.0, 30.02), (330.0, 30.45), (341.0, 30.78), (347.0, 31.0)]
 SSR_E_DATUM = 0.3
 SSR_E_DATUM_X = (250.0, 330.0)     # (the datum down to the photos' own from the first x to the second)
+
+
+# 경의선의 높이 (#189; 고증 4.8.2 「경의선 선로의 높이」): the game had the rails level, 10.8 m over 성산로 before the gate, from
+# x -380 to 250.  RAIL97: (x, y, z) of the bed's top (the ballast between the rails) on the rails' middle line, 게임 기준
+# less the datum (ssr_datum):
+# - x -174 .. 654: the 1997-07-28 scans (26/16 · 27/17 · 27/18 · 27/19), windows of 2 m on each track and between them
+#   every 24 m, every pair of frames on its own (the pairs along one course, whose base lies across the rails, and those
+#   across the courses agree within 0.1 - 0.2 m): 39 stations of 2 - 16 readings, spread 0.03 - 0.19 m, a running mean
+#   over 72 m.  Above sea level the bed is all but level: 33.4 m at x -174, 33.6 at the bridge, 34.0 at x 160, 34.2 - 34.3
+#   from x 260 to 500 (the station), 34.6 at x 650; what climbs east on the game's datum is its tilt T.
+# - The 2006 survey's spots on the bed (1:5000, 해발): (-177.4, -485.0) 33.59, (-61.3, -481.3) 33.70, (54.6, -479.6)
+#   33.67, (187.8, -475.2) 34.39, (294.6, -472.3) 34.23: the photos within +0.23, -0.04, -0.13, +0.37, 0.0 m.
+# - West of x -174 the 1997 photos are one frame (the 1998 one paired with it reads 1.1 m low where both can be had, and
+#   with that taken out the spots within 0.3 m): the spots (-290.4, -487.9) 32.95, (-383.4, -474.2) 32.03, (-474.9,
+#   -437.5) 32.17 m, held from there to the bank's west end.
+# The bed's top is RAIL97 + ssr_datum(x) (성산로 beside it is on the same photos and datum), the rails BALLAST over it.
+RAIL97 = [(-575.0, -370.6, 28.28), (-475.0, -438.6, 28.65), (-383.0, -474.1, 28.91), (-290.0, -488.7, 30.28),
+          (-174.0, -486.6, 31.29), (-126.0, -484.6, 31.69), (-78.0, -483.0, 32.07), (-30.0, -481.5, 32.42),
+          (18.0, -479.8, 32.71), (66.0, -478.1, 33.04), (114.0, -476.4, 33.39), (162.0, -474.7, 33.73),
+          (210.0, -473.1, 34.06), (258.0, -470.1, 34.43), (306.0, -468.4, 34.67), (354.0, -466.7, 34.97),
+          (402.0, -465.0, 35.28), (450.0, -463.3, 35.67), (498.0, -461.6, 35.81), (546.0, -459.7, 36.13),
+          (600.0, -457.0, 36.62), (654.0, -454.2, 36.97), (700.0, -452.0, 37.22)]
+
+
+def rail_bed(x):
+    """the top of the rails' bed at x along the line (RAIL97 + the datum), smoothed over 24 m"""
+    x = np.asarray(x, float)
+    xs, _, zs = zip(*RAIL97)
+    xx = np.arange(xs[0] - 60.0, xs[-1] + 60.1, 3.0)
+    zz = ndimage.gaussian_filter1d(np.interp(xx, xs, zs) + ssr_datum(xx), 4.0, mode='nearest')
+    return np.interp(x, xx, zz)
 
 
 SSR_W_EASE_RNG = (-413.0, -250.0)
@@ -290,12 +321,18 @@ def plan(Hn, half, step, gate, heading, wall, sample, old=False, keep_nodes=None
     rail = Line([(x, y) for x, y, _ in rm])
     sep = ndimage.gaussian_filter1d(np.array([p[2] for p in rm]), 3.0, mode='nearest')
     k_gate = int(np.argmin(np.abs(road.P[:, 0] - gate[0])))
-    rail_z = round(float(z[k_gate]) + RAIL_UP, 2)
-    # level over the valley; past x -380 in the west and x 250 in the east (the station's yard, the rise towards 이대) the
-    # bed follows the ground as it is (smoothed): the surface model there is not to be trusted with 10 m cuttings
-    gr = ndimage.gaussian_filter1d(np.array([sample(x, y) for x, y in rail.P]), 12.0, mode='nearest')
-    lvl = np.array([_smooth((x + 520) / 140.0) if x < 0 else 1.0 - _smooth((x - 250) / 150.0) for x in rail.P[:, 0]])
-    top = (rail_z - BALLAST) * lvl + (gr + 0.2) * (1 - lvl)
+    if old:
+        # (as first laid) level over the valley, 10.8 m over 성산로 before the gate; past x -380 in the west and x 250
+        # in the east the bed followed the ground as it was (smoothed)
+        rail_z = round(float(z[k_gate]) + RAIL_UP, 2)
+        gr = ndimage.gaussian_filter1d(np.array([sample(x, y) for x, y in rail.P]), 12.0, mode='nearest')
+        lvl = np.array([_smooth((x + 520) / 140.0) if x < 0 else 1.0 - _smooth((x - 250) / 150.0) for x in rail.P[:, 0]])
+        top = (rail_z - BALLAST) * lvl + (gr + 0.2) * (1 - lvl)
+    else:
+        # the bed on the 1997 photos and the survey's spots all along (RAIL97); rail_z: the rails over the middle of
+        # the bridge's opening
+        top = rail_bed(rail.P[:, 0])
+        rail_z = round(float(rail_bed(sum(BRIDGE) / 2)) + BALLAST, 2)
     # where the ground stands higher than the bed: cut down to it, easing out over 14 m
     dr = shapely.distance(P, rail.ls).reshape(X.shape)
     sr = shapely.line_locate_point(rail.ls, P).reshape(X.shape)
@@ -347,7 +384,10 @@ def bank_fix(pl, Hn, sample):
     X, Y = pl['X'], pl['Y']
     P = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
     dr = shapely.distance(P, rail.ls).reshape(X.shape)
-    near = np.argwhere(dr < 34.0)
+    # (not past the line's ends: the nearest section's footprint run on beyond them dug a trench one node wide into the
+    # ground there, 17 m deep at the west end once the bed lay on RAIL97 under 연희로's bank)
+    sr = shapely.line_locate_point(rail.ls, P).reshape(X.shape)
+    near = np.argwhere((dr < 34.0) & (sr > 0.5) & (sr < rail.cum[-1] - 0.5))
     arr = np.array([[r[0], r[1], r[4], r[5], r[6], r[8], r[9]] for r in secs], float)
     for j, i in near:
         q = np.array([X[j, i], Y[j, i]])

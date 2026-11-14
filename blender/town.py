@@ -550,15 +550,20 @@ def bank():
 def bridge():
     """The two decks over 연세로 (the 1995 photo: a concrete deck for each track on abutments faced with concrete, a row of
     piers in the middle of the road), and the abutments: the bank's own section as a wall each side of the opening.
-    (The rails 10.8 m over 성산로, tools/gate_town.py RAIL_UP: some 9.5 m clear over 연세로, as the 1996 photo 51979 has
-    the pier, 170 px where the opening's 30 m would be 550.)"""
+    (The rails 10.4 m over 성산로 before the gate, tools/gate_town.py RAIL97: 9.15 m clear over 연세로; the 1996 photo
+    51979 has the pier 170 px where the opening's 30 m would be 550, some 9.3 m.)"""
     R, B = T['rail'], T['bridge']
     S = R['sections']
-    top, rz = R['top'], R['z']
     x0, x1 = B['x']
+    # (the bed climbs east, 0.2 m across the opening: tools/gate_town.py RAIL97; each abutment at its section's top,
+    # the decks from the one to the other)
+    ta, tb = (min(S, key=lambda q: abs(q[0] - xb))[11] for xb in (x0, x1))
+    top_at = lambda x: ta + (tb - ta) * (x - x0) / (x1 - x0)
+    DEEP = 1.9 - (R['z'] - R['top'])               # the deck's underside under the bed's top
     mb = MeshBuilder('town_bridge')
     for xb, face in ((x0, 1), (x1, -1)):
         s = min(S, key=lambda q: abs(q[0] - xb))
+        top = s[11]
         P = lambda o, z: (s[0] + s[2] * o, s[1] + s[3] * o, z)
         gz = min(ground(*P(o, 0)[:2]) for o in (-s[4] - s[8], 0.0, s[4] + s[5])) - 0.6
         prof = [P(s[4] + s[5], gz), P(s[4] + s[5], s[6]), P(s[4], top), P(-s[4], top), P(-s[4] - s[8], s[9]), P(-s[4] - s[8], gz)]
@@ -571,31 +576,36 @@ def bridge():
     v0, v1 = band(B_TRACK)
     for name in ('n', 's'):
         ya, yb = _track_y(R[name], x0), _track_y(R[name], x1)
-        hw, zb, zs = 2.3, rz - 1.9, top             # (the 1996 photo 51979: a deck 2.6 m deep under its railing)
+        hw = 2.3                                    # (the 1996 photo 51979: a deck 2.6 m deep under its railing)
         xa, xb = x0 - 0.3, x1 + 0.3
+        za, zb_ = top_at(xa), top_at(xb)            # (the bed's top at the deck's two ends)
+        zs = lambda x_: za if x_ < (xa + xb) / 2 else zb_
+        zb = lambda x_: zs(x_) - DEEP
         c = [(xa, ya - hw), (xb, yb - hw), (xb, yb + hw), (xa, ya + hw)]
         for i in range(4):                         # the girder's sides and ends
             p_, q_ = c[i], c[(i + 1) % 4]
-            flat(mb, [(p_[0], p_[1], zb), (q_[0], q_[1], zb), (q_[0], q_[1], zs), (p_[0], p_[1], zs)], B_PLAIN, P_CONC)
-        flat(mb, [(p_[0], p_[1], zb) for p_ in c[::-1]], B_PLAIN, P_CONC)
+            flat(mb, [(p_[0], p_[1], zb(p_[0])), (q_[0], q_[1], zb(q_[0])), (q_[0], q_[1], zs(q_[0])), (p_[0], p_[1], zs(p_[0]))],
+                 B_PLAIN, P_CONC)
+        flat(mb, [(p_[0], p_[1], zb(p_[0])) for p_ in c[::-1]], B_PLAIN, P_CONC)
         u1 = (xb - xa) / (4 * BAY)
-        mb.face([(xa, ya - 1.6, zs + 0.01), (xb, yb - 1.6, zs + 0.01), (xb, yb + 1.6, zs + 0.01), (xa, ya + 1.6, zs + 0.01)], ATLAS,
+        mb.face([(xa, ya - 1.6, za + 0.01), (xb, yb - 1.6, zb_ + 0.01), (xb, yb + 1.6, zb_ + 0.01), (xa, ya + 1.6, za + 0.01)], ATLAS,
                 uvs=[(0, v0), (u1, v0), (u1, v1), (0, v1)])
         for sg in (-1, 1):                         # ballast shoulders and the low side walls
             y0a, y0b = ya + sg * 1.6, yb + sg * 1.6
             y1a, y1b = ya + sg * hw, yb + sg * hw
-            q_ = [(xa, y0a, zs), (xb, y0b, zs), (xb, y1b, zs), (xa, y1a, zs)]
+            q_ = [(xa, y0a, za), (xb, y0b, zb_), (xb, y1b, zb_), (xa, y1a, za)]
             flat(mb, q_ if sg > 0 else q_[::-1], B_PLAIN, P_GRAVEL)
             for yo, flip in ((hw, sg > 0), (hw - 0.25, sg < 0)):
-                w_ = [(xa, ya + sg * yo, zs), (xb, yb + sg * yo, zs), (xb, yb + sg * yo, zs + 0.9), (xa, ya + sg * yo, zs + 0.9)]
+                w_ = [(xa, ya + sg * yo, za), (xb, yb + sg * yo, zb_), (xb, yb + sg * yo, zb_ + 0.9), (xa, ya + sg * yo, za + 0.9)]
                 flat(mb, w_[::-1] if flip else w_, B_PLAIN, P_CONC)
-            flat(mb, [(xa, ya + sg * hw, zs + 0.9), (xb, yb + sg * hw, zs + 0.9), (xb, yb + sg * (hw - 0.25), zs + 0.9),
-                      (xa, ya + sg * (hw - 0.25), zs + 0.9)][::(1 if sg < 0 else -1)], B_PLAIN, P_CONC)
+            flat(mb, [(xa, ya + sg * hw, za + 0.9), (xb, yb + sg * hw, zb_ + 0.9), (xb, yb + sg * (hw - 0.25), zb_ + 0.9),
+                      (xa, ya + sg * (hw - 0.25), za + 0.9)][::(1 if sg < 0 else -1)], B_PLAIN, P_CONC)
         # the pier under it
         px = B['pier']
         py = _track_y(R[name], px)
         g = ground(px, py) - 0.5
-        mb.box((px, py, (g + zb) / 2), (0.9, 2 * hw - 0.6, zb - g), ATLAS)
+        zp = top_at(px) - DEEP
+        mb.box((px, py, (g + zp) / 2), (0.9, 2 * hw - 0.6, zp - g), ATLAS)
     # (the box's faces get auto UVs: put them in the concrete cell)
     u0, vv0, u1, vv1 = cell_uv(B_PLAIN, P_CONC)
     mb.faces = [(f[0], f[1], f[2] if f[2] is not None else [(u0, vv0), (u1, vv0), (u1, vv1), (u0, vv1)][:len(f[0])], f[3]) for f in mb.faces]
