@@ -22,7 +22,7 @@ clips idle walk sprint sit emote-yes emote-no interact-right and glTF extras wal
 in the walk / run cycle).
 
 Most clips are motion capture retargeted by blender/mocap.py (its CLIPS: walk, idle, sprint, sit over the pack's, and
-walk-slow walk-fast walk-pockets idle-shift idle-look idle-fold talk phone sit-talk), from the takes that
+walk-slow walk-fast idle-shift idle-look idle-fold talk phone sit-talk), from the takes that
 tools/fetch_mocap.py puts in assets_src/mocap/. The rig's extras also carry 'speeds': {clip: m/s} of every cycle.
 """
 import base64
@@ -53,7 +53,6 @@ TOP = {'umc': 1.856, 'women': 1.797}       # top of the hair in the source (Suit
 #                                            hair grown here ends within 1.5 cm of it (shorter cuts lower)
 FBX_FPS = 24 / 30                          # women: the FBX2glTF keys' time scale (see normalize_fbx)
 SEAT = 0.24                              # seat height of the Kenney chairs and benches (chair, chairDesk, bench)
-HIP_OVER_SEAT = 0.05                     # hip joint above the seat when sitting
 LIMIT = {'person': 400 * 1024, 'rig': 400 * 1024}   # base64 bytes
 
 # engine clip name -> source action (None: made here)
@@ -386,12 +385,11 @@ FINGER_MORE = {'Index': .8, 'Middle': 1.0, 'Ring': 1.12, 'Pinky': 1.25, 'Thumb':
 # (22 cm for about 17).  Metres in the game's scale, each side: the shoulder joints out, the hip joints (and the feet
 # under them) in; the upper arm and the forearm longer by `arm`.
 BUILD = {'umc': dict(shoulder=.020, hip=-.022, arm=1.06), 'women': dict(shoulder=.030, hip=0.0, arm=1.06)}
-# The packs' idle and walk hold the arms away from the body, the women's walk with the palms forward: the upper arms
-# in toward the body, the forearms turned about their length (degrees).
-ARMS_IN = {'umc': {'idle': (7, 0), 'walk': (7, 0)}, 'women': {'idle': (9, 45), 'walk': (6, 45)}}
-# Sitting, the hands lie on the thighs, palms down: the upper arm and the forearm forward, the forearm in over the
-# thigh and turned about its length (degrees)
-SIT_ARMS = {'umc': (-16, -44, 14, 80), 'women': (-16, -44, 24, 40)}
+# The packs' clips hold the arms away from the body (the standing, walking and sitting clips are motion capture now,
+# blender/mocap.py; the pack's wave and reach are kept).  The arm that is not gesturing in toward the body, as the
+# standing clips hold it: clip -> the side, degrees in, degrees the forearm is turned about its length
+ARMS_IN = {'umc': {'emote-yes': ('R', 7, 0), 'interact-right': ('L', 7, 0)},
+           'women': {'emote-yes': ('R', 9, 45), 'interact-right': ('L', 9, 45)}}
 
 
 def is_umc_finger(name):
@@ -1485,12 +1483,28 @@ def occlude(mesh):
     """How much of the sky each vertex sees past the rest of the person (the hair over the brow and the neck, the chin
     over the throat, sleeves, hems, the legs beside each other): 0 open, 1 shut in, kept on the vertices for the game
     to shade by (web/src/characters.js).  Rays over the hemisphere of the vertex's normal in the rest pose, a hit
-    counting less the further off it is; the glasses shade nothing (not everybody wears theirs)."""
+    counting less the further off it is; the glasses shade nothing (not everybody wears theirs), and neither does one
+    leg the other: side by side at rest, they part at every stride, and the shade between them would stay on the
+    inside of the thighs as a dark streak."""
     from mathutils.bvhtree import BVHTree
     me = mesh.data
     glass = {i for i, m in enumerate(me.materials) if m and m.name.split('~')[0] == 'Glasses'}
-    tree = BVHTree.FromPolygons([v.co.copy() for v in me.vertices],
-                                [tuple(p.vertices) for p in me.polygons if p.material_index not in glass])
+    # which leg a vertex belongs to (1 the left, 2 the right, 0 neither: a skirt hangs from both)
+    names = {g.index: g.name for g in mesh.vertex_groups}
+    leg = []
+    for v in me.vertices:
+        w = [0.0, 0.0]
+        for g in v.groups:
+            n = names.get(g.group, '')
+            if n.startswith(('UpperLeg.', 'LowerLeg.', 'Foot.')):
+                w[n.endswith('R')] += g.weight
+        leg.append(1 if w[0] > 0.6 else 2 if w[1] > 0.6 else 0)
+    cos = [v.co.copy() for v in me.vertices]
+    polys = [p for p in me.polygons if p.material_index not in glass]
+    side = [max(leg[v] for v in p.vertices) if len({leg[v] for v in p.vertices} - {0}) < 2 else 0 for p in polys]
+    trees = {0: BVHTree.FromPolygons(cos, [tuple(p.vertices) for p in polys])}
+    for k in (1, 2):                              # (what a vertex of the left leg sees: everything but the right leg)
+        trees[k] = BVHTree.FromPolygons(cos, [tuple(p.vertices) for p, sd in zip(polys, side) if sd != 3 - k])
     dirs = []
     for i in range(OCC_RAYS):                # cosine-weighted, on a spiral
         u = (i + 0.5) / OCC_RAYS
@@ -1509,7 +1523,7 @@ def occlude(mesh):
         shut = 0.0
         for x, y, z in dirs:
             d = n * z + t * (x * cs - y * sn) + b * (x * sn + y * cs)
-            hit = tree.ray_cast(o, d, OCC_FAR)
+            hit = trees[leg[i]].ray_cast(o, d, OCC_FAR)
             if hit[0] is not None:
                 shut += 1 - hit[3] / OCC_FAR
         vals.append(min(1.0, shut / OCC_RAYS * 1.5))
@@ -1602,40 +1616,6 @@ def new_action(arm, name, keys):
     return act
 
 
-def sit_pose(arm, base, s, poles=None, arms=(-14, -38, 0, 0)):
-    """From a standing pose (bone -> matrix_basis): the body down so the hips are SEAT + HIP_OVER_SEAT high, thighs
-    forward, shins straight down, the feet (bones of their own under the root) under the knees, forearms on the thighs.
-    Both rigs name these bones alike: Body, UpperLeg.L/R, LowerLeg.L/R, Foot.L/R, UpperArm.L/R, LowerArm.L/R."""
-    set_pose(arm, base)
-    pb = arm.pose.bones
-    hip_now = (pb['UpperLeg.L'].head.z + pb['UpperLeg.R'].head.z) / 2
-    pb['Body'].matrix = Matrix.Translation((0, 0, (SEAT + HIP_OVER_SEAT) / s - hip_now)) @ pb['Body'].matrix
-    bpy.context.view_layer.update()
-    for side in 'LR':
-        ul, ll, ft = pb['UpperLeg.' + side], pb['LowerLeg.' + side], pb['Foot.' + side]
-        out = 4 if side == 'L' else -4           # knees a little apart
-        ul.matrix = (Matrix.Translation(ul.matrix.translation) @ Matrix.Rotation(math.radians(out), 4, 'Z')
-                     @ Matrix.Rotation(math.radians(-88), 4, 'X') @ ul.bone.matrix_local.to_3x3().to_4x4())
-        bpy.context.view_layer.update()
-        knee = ll.matrix.translation.copy()
-        ll.matrix = Matrix.Translation(knee) @ Matrix.Rotation(math.radians(-4), 4, 'X') @ ll.bone.matrix_local.to_3x3().to_4x4()
-        bpy.context.view_layer.update()
-        ankle = ll.matrix @ Vector((0, ll.bone.length, 0))
-        rest_ankle = ll.bone.tail_local
-        ft.matrix = Matrix.Translation(ankle - rest_ankle) @ ft.bone.matrix_local
-        if poles and pb.get(poles + side):
-            pt = pb[poles + side]
-            pt.matrix = Matrix.Translation(ankle - rest_ankle + Vector((0, -0.3 / s * 0.05, 0.3 / s * 0.05))) @ pt.bone.matrix_local
-        bpy.context.view_layer.update()
-        sx = 1 if side == 'L' else -1
-        rotate_about_head(pb['UpperArm.' + side], 'X', arms[0])
-        rotate_about_head(pb['LowerArm.' + side], 'X', arms[1])
-        rotate_about_head(pb['LowerArm.' + side], 'Z', -sx * arms[2])
-        pb['LowerArm.' + side].matrix_basis = pb['LowerArm.' + side].matrix_basis @ Matrix.Rotation(math.radians(sx * arms[3]), 4, 'Y')
-        bpy.context.view_layer.update()
-    return {b.name: b.matrix_basis.copy() for b in pb}
-
-
 def head_shake(arm, base, head='Head', neck='Neck'):
     """Shake the head (a 'no'): yaw about the head bone's own axis (it points up)."""
     keys = []
@@ -1649,11 +1629,13 @@ def head_shake(arm, base, head='Head', neck='Neck'):
     return keys
 
 
-def arms_in(arm, act, add, twist):
-    """The upper arms of a clip turned in toward the body about the model's front-back axis by `add` degrees, the
-    forearms turned about their own length by `twist` (ARMS_IN): at every key of theirs."""
+def arms_in(arm, act, sides, add, twist):
+    """The upper arms (of `sides`) of a clip turned in toward the body about the model's front-back axis by `add`
+    degrees, the forearms turned about their own length by `twist` (ARMS_IN): at every key of theirs."""
     use_action(arm, act)
     for side, sx in (('L', 1), ('R', -1)):
+        if side not in sides:
+            continue
         for name, turn in (('UpperArm.' + side, lambda pb: rotate_about_head(pb, 'Y', sx * add)),
                            ('LowerArm.' + side, lambda pb: setattr(pb, 'matrix_basis', pb.matrix_basis @ Matrix.Rotation(math.radians(sx * twist), 4, 'Y')))):
             if not (add if name.startswith('Upper') else twist):
@@ -1685,23 +1667,6 @@ def arms_in(arm, act, add, twist):
         pb.matrix_basis = Matrix.Identity(4)
 
 
-def foot_speed(arm, act, foot, fps):
-    """Ground speed of an in-place cycle: how fast the foot moves back while it is down."""
-    use_action(arm, act)
-    f0, f1 = int(act.frame_range[0]), int(act.frame_range[1])
-    pts = []
-    for f in range(f0, f1 + 1):
-        bpy.context.scene.frame_set(f)
-        p = arm.matrix_world @ arm.pose.bones[foot].head
-        pts.append((p.y, p.z))
-    low = min(z for _, z in pts)
-    v = [abs(pts[i + 1][0] - pts[i][0]) * fps for i in range(len(pts) - 1)
-         if pts[i][1] < low + 0.02 * (max(z for _, z in pts) - low + 1e-6) + 0.01 and pts[i + 1][1] < low + 0.05]
-    v.sort()
-    use_action(arm, None)
-    return v[len(v) // 2] if v else 0.0
-
-
 def build_rig(rid):
     rig = RIGS[rid]
     objs = import_outfit(rig, RIG_SOURCE[rid])
@@ -1722,14 +1687,9 @@ def build_rig(rid):
             acts[clip] = a
     for clip, turn in ARMS_IN[rig].items():
         arms_in(arm, acts[clip], *turn)
-    idle0 = pose_from(arm, acts['idle'], 0)
-    sit = sit_pose(arm, idle0, s, poles='PT.', arms=tuple(float(v) for v in os.environ['SIT_ARMS'].split(',')) if os.environ.get('SIT_ARMS') else SIT_ARMS[rig])
-    acts['sit'] = new_action(arm, 'sit', [(0, sit), (1, sit)])
-    acts['emote-no'] = new_action(arm, 'emote-no', head_shake(arm, idle0))
-    meta = {'walk_speed': foot_speed(arm, acts['walk'], 'Foot.L', fps) * s,
-            'run_speed': foot_speed(arm, acts['sprint'], 'Foot.L', fps) * s,
-            'seat': SEAT}
-    meta.update(mocap.build(rig, arm, acts, s, fps))        # motion capture over the pack's clips, and more
+    meta = {'seat': SEAT}
+    meta.update(mocap.build(rig, arm, acts, s, fps))        # motion capture: standing, walking, running, sitting
+    acts['emote-no'] = new_action(arm, 'emote-no', head_shake(arm, pose_from(arm, acts['idle'], 0)))
     prune_actions(acts.values(), drop=is_umc_finger)
     for a in acts.values():
         for fc in fcurves(a):

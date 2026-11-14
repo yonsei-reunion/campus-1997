@@ -430,7 +430,8 @@ async function main() {
       if (booths.length > 1 && i === booths.length - 1) return;        // (one booth free)
       const fx = Math.cos(rot), fy = Math.sin(rot), heading = Math.atan2(-fx, fy);
       const at = (d, side = 0) => { const px = x + fx * d - fy * side, py = y + fy * d + fx * side; return { x: px, y: py, h: groundAt(px, py), heading }; };
-      lines.push(i === Math.floor((booths.length - 1) / 2) && !MOBILE ? [at(0.85), at(1.95, 0.1), at(2.8, -0.12)] : [at(0.85)]);
+      const on = { ...at(0.85), phone: true };                        // (the one in the booth)
+      lines.push(i === Math.floor((booths.length - 1) / 2) && !MOBILE ? [on, at(1.95, 0.1), at(2.8, -0.12)] : [on]);
     });
   }
   const crowd = new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'man-professor', 'man-staff', 'woman-staff'], paths, groups, MOBILE ? 40 : 110, 3, { seats, lines });

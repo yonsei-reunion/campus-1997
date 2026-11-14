@@ -892,7 +892,6 @@ CLIPS = {
         'walk': dict(take=('cmu', '07_01'), cycle=(71, 202)),
         'walk-slow': dict(take=('100style', 'Neutral_FW'), cycle=(1170, 1252)),
         'walk-fast': dict(take=('cmu', '08_01'), cycle=(94, 215)),
-        'walk-pockets': dict(take=('100style', 'HandsInPockets_FW'), cycle=(629, 708), arm_out=12),
         'sprint': dict(take=('cmu', '35_17'), cycle=(35, 126), run=True, fps=30, arm_out=8),
         'idle': dict(take=('100style', 'Neutral_ID'), stand=(600, 960), fps=15, hold_feet=True),
         'idle-shift': dict(take=('accad', 'Male2_A2_Sway'), stand=(100, 1000), fps=15, hold_feet=True, pose=-5, stance=0.85),

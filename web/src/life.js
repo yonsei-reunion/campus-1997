@@ -308,8 +308,11 @@ export function makeBanners(banners, lib) {
 }
 
 // ---------------------------------------------------------------- students (Quaternius people, sim-office style)
-// Walkers follow paths at their own pace and stop when you are in the way; groups stand and chat, nodding now and
-// then. Far away people (and the drivers of far cars) leave the scene and their animation is not updated.
+// Walkers follow paths at their own pace and stop when you are in the way; groups stand and chat. Far away people
+// (and the drivers of far cars) leave the scene and their animation is not updated.
+// Whoever stands does not stand like a post: every few seconds they take another of the standing clips (POSES:
+// shifting the weight, looking about, arms folded), talk with their hands while a line of theirs is up, and the one
+// in a phone booth holds the receiver to the ear. Seated people gesture while they speak.
 // Small talk (talk.js): two walkers coming towards each other near the view now and then stop, face each other, wave
 // and trade a line or two; groups talk among themselves and greet you; a walker you block asks to get by.
 const FAR2 = 190 * 190;
@@ -319,6 +322,15 @@ const height = (id) => (id.startsWith('woman') ? 1.61 : 1.73);
 // Sitting (the benches: 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg, three people to a bench): the 'sit' clip, the hips
 // THIGH over the seat. A seated person keeps still but for the head, which turns to whoever is speaking or to you.
 const THIGH = 0.085;
+// the standing clips and how often each is taken; waiting in a line one looks about more
+const POSES = [['idle', 5], ['idle-shift', 3], ['idle-look', 2], ['idle-fold', 1.2]];
+const POSES_LINE = [['idle', 3], ['idle-shift', 3], ['idle-look', 4], ['idle-fold', 1]];
+function nextPose(p, t) {
+  const set = (p.queue ? POSES_LINE : POSES).filter(([n]) => p.a.actions[n] && !(n === 'idle-fold' && carriesInHand(p.a.bag)));
+  let r = Math.random() * set.reduce((s, [, w]) => s + w, 0);
+  p.pose = set.find(([, w]) => (r -= w) < 0)?.[0] || 'idle';
+  p.poseUntil = t + 6 + Math.random() * 10;
+}
 const _hip = new THREE.Vector3(), _head = new THREE.Vector3();
 
 export class Crowd {
@@ -383,10 +395,12 @@ export class Crowd {
       this.groups.push(g);
       for (const m of row) {
         const id = pickX(), n = 3000 + this.people.length;
-        const a = cast.make(id, crowdBag(id, n), crowdLook(id, n));
+        // (the one on the phone holds the receiver in the right hand: nothing else in it)
+        const bag = crowdBag(id, n);
+        const a = cast.make(id, m.phone && carriesInHand(bag) ? null : bag, crowdLook(id, n));
         a.mixer.setTime(rx() * 2);
         a.holder.position.set(m.x, m.h, -m.y);
-        join(g, a, m.x, m.y, m.heading);
+        join(g, a, m.x, m.y, m.heading, { queue: true, phone: !!m.phone });
       }
     }
     for (const bench of extras.seats || []) {
@@ -420,6 +434,7 @@ export class Crowd {
     this.bubbles = null;           // talk.js Bubbles (main.js); without it people still stop and wave, silently
     this.talks = [];               // end times of the conversations going on
     this.cues = [];                // gestures timed to the lines: { at, p }
+    this.says = [];                // who speaks when: { at, until, p } (they talk with their hands meanwhile)
     this.scanT = 0;
     this.excuseAt = 0;             // the next time a blocked walker may speak up
     this._near = [];
@@ -488,6 +503,7 @@ export class Crowd {
       } else {
         const tx = player.x - p.x, ty = player.y - p.y;
         want = Math.hypot(tx, ty) < 2.6 ? Math.atan2(tx, -ty) : p.home;      // turn to greet you
+        if (t > (p.poseUntil || 0)) nextPose(p, t);
       }
       if (want !== null) {
         p.heading += wrapAngle(want - p.heading) * (1 - Math.exp(-dt * 7));
@@ -497,24 +513,29 @@ export class Crowd {
       if (far > FAR2) { if (a.holder.parent) this.scene.remove(a.holder); continue; }
       if (!a.holder.parent) this.scene.add(a.holder);
       if (p.seated) {
-        // (the clip is one held pose, and the mixer writes a bone only when its value has changed: the head would keep
-        // every frame's turn and spin round. So the turn starts from the held pose each time.)
+        // (the head's turn starts from the pose it had on sitting down each time, not from the frame before: the
+        // mixer writes a bone only when its value has changed, and a turn added to the last one would spin the head)
         if (far < 45 * 45 || !p.posed) {
           p.posed = true;
+          const clip = t < (p.talkUntil || 0) && a.actions['sit-talk'] ? 'sit-talk' : 'sit';
+          if (a.current !== a.actions[clip]) play(a, clip, { fade: 0.5 });
           a.mixer.update(dt);
           if (p.head) { p.head.quaternion.copy(p.headRest); p.head.rotateY(p.look); }
         }
         continue;
       }
-      if (!p.walking && t > p.gestureAt) {
-        p.gestureAt = t + 12 + Math.random() * 20;
-        // (a bag carried in the right hand: wave with the left)
-        playGesture(a, Math.random() < 0.7 || carriesInHand(a.bag) ? 'emote-yes' : 'interact-right');
-      }
+      // standing: on the phone, talking with the hands (not with a bag in one), or the pose of the moment
+      a.stand = p.phone ? 'phone' : t < (p.talkUntil || 0) && !carriesInHand(a.bag) ? 'talk' : p.pose || 'idle';
       locomotion(a, speed);
       // distant people animate at half rate
       if (far < 70 * 70) a.mixer.update(dt);
       else if ((this.frame & 1) === p.tick) a.mixer.update(dt * 2);
+    }
+    for (let i = this.says.length - 1; i >= 0; i--) {
+      const c = this.says[i];
+      if (t < c.at) continue;
+      c.p.talkUntil = c.until;
+      this.says.splice(i, 1);
     }
     for (let i = this.cues.length - 1; i >= 0; i--) {
       const c = this.cues[i];
@@ -527,7 +548,7 @@ export class Crowd {
   }
 
   // one line over p's head, now
-  say(p, text, t) { this.bubbles?.add(p.a.holder, p.top, text, t, t + lineTime(text)); }
+  say(p, text, t) { this.bubbles?.add(p.a.holder, p.top, text, t, t + lineTime(text)); p.talkUntil = t + lineTime(text); }
 
   // lines one after another from t0 (speakers[who] speaks each); returns when the last one is done
   converse(speakers, lines, t0) {
@@ -536,6 +557,7 @@ export class Crowd {
       const p = speakers[l.who], dur = lineTime(l.text);
       this.bubbles?.add(p.a.holder, p.top, l.text, at, at + dur);
       if (l.wave) this.cues.push({ at, p });
+      else this.says.push({ at, until: at + dur, p });
       at += dur + 0.15;
     }
     this.talks.push(at);

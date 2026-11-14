@@ -1,6 +1,10 @@
 // People: Quaternius CC0 modular characters (blender/characters.py) driven by the shared rig clips,
 // in the manner of the sim-office engine (actors.js): a holder group, an AnimationMixer per person,
 // cross-faded clips, and walk/run cycles whose playback speed follows the ground speed (no foot sliding).
+// The clips are motion capture fitted to the rigs (blender/mocap.py): three walks of different paces (each with its
+// own speed over the ground, the rig's `speeds`), a run, standing (idle, and shifting the weight, looking about, arms
+// folded, talking, on the phone), sitting and sitting talking; the wave, the reach and the shake of the head are
+// the pack's.  locomotion() takes the walk nearest the speed; whoever stands plays `a.stand` (life.js sets it).
 import * as THREE from 'three';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -379,7 +383,9 @@ export class Cast {
     await Promise.all(RIGS.map(async (r) => {
       const g = await loadGLB(base + r + '.glb');
       const u = g.scene.getObjectByName(r)?.userData || {};
-      this.rigs[r] = { clips: g.animations, walkSpeed: +u.walk_speed || 1.2, runSpeed: +u.run_speed || 2.8 };
+      let speeds = {};
+      try { speeds = JSON.parse(u.speeds || '{}'); } catch { /* an older rig: the one walk */ }
+      this.rigs[r] = { clips: g.animations, walkSpeed: +u.walk_speed || 1.2, runSpeed: +u.run_speed || 2.8, speeds };
       onEach?.();
     }));
     await Promise.all(ids.map(async (id) => {
@@ -417,8 +423,12 @@ export class Cast {
     const actions = {};
     for (const c of rig.clips) actions[c.name] = mixer.clipAction(c);
     // (longer legs: longer strides at the same cadence)
-    const a = { id, bag, holder, root, mixer, actions, current: null, walkSpeed: rig.walkSpeed * tall, runSpeed: rig.runSpeed * tall, after: null, tall };
-    mixer.addEventListener('finished', () => { const next = a.after || 'idle'; a.after = null; play(a, next, { fade: 0.3 }); });
+    const a = { id, bag, holder, root, mixer, actions, current: null, walkSpeed: rig.walkSpeed * tall, runSpeed: rig.runSpeed * tall, after: null, tall,
+      stand: 'idle', gait: null, walks: {} };
+    // the walks, slowest first: clip -> its speed over the ground at this person's size
+    for (const n of WALKS) if (actions[n] && rig.speeds[n]) a.walks[n] = rig.speeds[n] * tall;
+    if (!Object.keys(a.walks).length) a.walks.walk = a.walkSpeed;
+    mixer.addEventListener('finished', () => { const next = a.after || a.stand; a.after = null; play(a, next, { fade: 0.3 }); });
     play(a, 'idle', { fade: 0 });
     return a;
   }
@@ -443,17 +453,38 @@ export function play(a, name, opts = {}) {
 
 export const gesturing = (a) => a.current && a.current.loop === THREE.LoopOnce && a.current.isRunning();
 
-// the clip follows the ground speed: by the rig's measured foot speed, so feet do not slide
+const WALKS = ['walk-slow', 'walk', 'walk-fast'];
+const STANDS = /^(idle|talk|phone)/;
+// the clip follows the ground speed: by the clip's measured foot speed, so feet do not slide.  Of the walks the one
+// whose own pace is nearest is played (kept until the speed is a quarter off it, so that it does not flicker between
+// two), and a walk or the run comes in at the stride the one before had reached (the cycles start on the same foot).
+// Standing: the clip `a.stand`; from one standing clip to another slowly (the feet stand differently in each).
 export function locomotion(a, speed, runThreshold = 3.6) {
   if (gesturing(a)) return;
-  if (!speed) { play(a, 'idle'); return; }
-  if (Math.abs(speed) > runThreshold && a.actions.sprint) {
-    play(a, 'sprint');
-    a.current.timeScale = Math.abs(speed) / a.runSpeed;
-  } else {
-    play(a, 'walk');
-    a.current.timeScale = Math.sign(speed) * Math.abs(speed) / a.walkSpeed;
+  if (!speed) {
+    a.gait = null;
+    play(a, a.stand, { fade: a.current && STANDS.test(a.current.getClip().name) ? 0.9 : 0.3 });
+    return;
   }
+  const v = Math.abs(speed);
+  const from = a.current;
+  if (v > runThreshold && a.actions.sprint) {
+    a.gait = null;
+    inStep(from, play(a, 'sprint')).timeScale = v / a.runSpeed;
+    return;
+  }
+  let name = a.gait;
+  if (!name || v > a.walks[name] * 1.28 || v < a.walks[name] * 0.78) {
+    name = null;
+    for (const n in a.walks) if (!name || Math.abs(Math.log(v / a.walks[n])) < Math.abs(Math.log(v / a.walks[name]))) name = n;
+    a.gait = name;
+  }
+  inStep(from, play(a, name)).timeScale = Math.sign(speed) * v / a.walks[name];
+}
+// a walk or the run coming in after another: at the same point of the stride
+function inStep(from, act) {
+  if (from && from !== act && /^(walk|sprint)/.test(from.getClip().name)) act.time = (from.time / from.getClip().duration) * act.getClip().duration;
+  return act;
 }
 
 // Render a small portrait of each hero for the title screen (idle pose, three-quarter view).

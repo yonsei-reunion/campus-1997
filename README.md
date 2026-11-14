@@ -338,7 +338,12 @@
 - 고도: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved). 건물을 걷어 내고 씀(`tools/fetch_terrain.py`)
 - 텍스처 · HDRI · 일부 소품(공중전화): [Poly Haven](https://polyhaven.com), CC0
 - 관목 · 생울타리 · 꽃의 잎과 꽃: Poly Haven [Periwinkle Plant](https://polyhaven.com/a/periwinkle_plant)(Amal Kumar)의 스캔을 잘라 다시 칠함(`tools/make_shrub_textures.py`), CC0
-- 인물과 애니메이션: Quaternius [Ultimate Modular Men](https://quaternius.com/packs/ultimatemodularmen.html) · [Ultimate Modular Women](https://quaternius.com/packs/ultimatemodularwomen.html), CC0
+- 인물: Quaternius [Ultimate Modular Men](https://quaternius.com/packs/ultimatemodularmen.html) · [Ultimate Modular Women](https://quaternius.com/packs/ultimatemodularwomen.html), CC0
+- 인물의 움직임(리그에 옮기고 루프로 잘라 고침, `blender/mocap.py`)
+  - 걷기 · 서기 · 통화: [The 100STYLE Dataset](https://www.ianxmason.com/100style/) - Ian Mason (Mason, Starke, Komura 2022), CC BY 4.0
+  - 여자 걸음 · 서기 · 대화, 남자의 체중 이동 · 두리번: [Open Motion Project](https://accad.osu.edu/research/motion-lab/mocap-system-and-data) by ACCAD/The Ohio State University, CC BY 3.0
+  - 남자 걸음 · 뛰기: The data used in this project was obtained from [mocap.cs.cmu.edu](http://mocap.cs.cmu.edu). The database was created with funding from NSF EIA-0196217. (BVH 변환: B. Hahne, cgspeed.com)
+  - 앉기 · 대화 · 팔짱 · 손 흔들기: Quaternius [Universal Animation Library](https://quaternius.com/packs/universalanimationlibrary.html) 1 · 2 와 위 팩의 클립, CC0
 - 언더우드 동상의 머리 · 손 바탕: Blender 재단 [Human Base Meshes](https://www.blender.org/download/demo-files/#assets) v1.4.1, CC0
 - 글꼴: Noto Sans KR, Jua, Do Hyeon (SIL OFL)
 - 분수 물결 · 빛무늬: [Ultra Water](https://github.com/Humpalumps/Ultra-Water), MIT

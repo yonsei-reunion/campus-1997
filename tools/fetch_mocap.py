@@ -27,7 +27,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets_sr
 UA = {'User-Agent': 'mocap-fetch/1.0'}
 
 STYLE_ZIP = 'https://zenodo.org/api/records/8127870/files/100STYLE.zip/content'
-STYLE = ['Neutral_FW', 'Neutral_ID', 'HandsInPockets_FW', 'ArmsFolded_ID', 'OnPhoneRight_ID']
+STYLE = ['Neutral_FW', 'Neutral_ID', 'ArmsFolded_ID', 'OnPhoneRight_ID']
 STYLE_EXTRA = ['Dataset_List.csv', 'Frame_Cuts.csv']
 
 ACCAD_URL = 'https://accad.osu.edu/sites/accad.osu.edu/files/'

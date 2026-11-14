@@ -159,7 +159,14 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 ### 사람
 
 - Quaternius 의 CC0 모듈러 캐릭터를 `blender/characters.py` 가 부품을 섞고 1997년 옷차림으로 칠해 14명을 만듭니다(sim-office 의 `tools/office-characters.py` 를 고쳐 씀). 키는 실제 크기(남 1.73 m, 여 1.61 m).
-- 애니메이션은 남녀 리그 파일 둘에 들어 있고, 이동 속도에 맞춰 재생 속도를 바꿔 발이 미끄러지지 않습니다.
+- 애니메이션은 남녀 리그 파일 둘(`rig-umc.glb` · `rig-women.glb`, 각 약 250 KB)에 들어 있습니다. 서기 · 걷기 · 뛰기 · 앉기는 모션 캡처를 리그에 옮긴 것입니다(`blender/mocap.py`, 자료는 `tools/fetch_mocap.py` 가 `assets_src/mocap/` 에 받음).
+  - 클립: `walk-slow` · `walk` · `walk-fast`(남 0.80 · 1.38 · 1.60 m/s, 여 0.76 · 1.14 · 1.52 m/s) · `sprint`, `idle` · `idle-shift`(체중 이동) · `idle-look`(두리번) · `idle-fold`(팔짱) · `talk` · `phone`, `sit` · `sit-talk`. 손 흔들기(`emote-yes`) · 손 뻗기(`interact-right`)는 팩의 것, 고개 젓기(`emote-no`)는 `idle` 첫 자세에서 만듦
+  - 원본과 구간은 `mocap.py` `CLIPS`(`characters.py -- --list` 가 표로 찍음). 남자 걸음은 CMU, 여자 걸음은 ACCAD, 서 있는 클립은 100STYLE · ACCAD, 앉기 · 대화는 Quaternius Universal Animation Library
+  - 옮기는 법: 뼈마다 원본의 월드 회전을 휴지 자세 차이만큼 보정해 복사. 엉덩이 높이와 발 자리는 다리 길이 비로 줄이고, `Foot` · `PT`(Root 의 자식)를 원본 발목 궤적에서 직접 키한 뒤 다리를 2뼈 IK로 풂. 디딤 구간에서는 발을 땅에 고정. 치수는 빌드할 때의 휴지 뼈대에서 읽어, 비례(`BUILD`)를 바꿔도 다시 맞음
+  - 걷기 · 뛰기는 제자리 주기(좌우 한 걸음씩, 양 끝을 섞어 이음)이고 모두 같은 발에서 시작. 클립마다의 지면 속도는 리그 extras `speeds`(JSON 문자열)
+  - 서 있는 클립 15 fps, 걸음 24 fps, 뛰기 30 fps 로 재표본(걸음을 20 fps 로 하면 키 사이에서 정강이 끝과 `Foot` 뼈가 12 mm까지 벌어짐)
+  - 클립을 고치거나 더한 뒤에는 사람 GLB에 리그의 액션을 입혀 디딤 구간의 발 미끄럼 · 발 높이 · 이음매 · 손목이 몸통에 드는 프레임을 재고, 앞 · 옆 연속 프레임을 렌더해 봄
+- 게임 쪽(`characters.js` `locomotion`): 이동 속도에 가장 가까운 걸음 클립을 고르고(속도가 그 클립의 0.78 ~ 1.28배를 벗어날 때만 바꿈) 재생 속도를 맞춰 발이 미끄러지지 않습니다. 걸음끼리 · 뛰기로 넘어갈 때는 걸음의 같은 지점에서 이어 받습니다. 서 있을 때는 `a.stand` 의 클립을 틉니다.
 - 머리와 얼굴은 팩의 것을 그대로 쓰지 않고 `characters.py` 「1997 heads」가 다시 만듭니다.
   - 얼굴형: 두개골이 온전한 머리 하나(남 Worker, 여 Adventurer)를 한 단계 세분하고 면을 눅임. 코는 짧게(높이 · 콧대 · 콧방울은 사람마다), 긴 턱은 줄이고 볼 ~ 턱을 넓혀 둥글게
   - 눈 · 눈썹 · 입: 형상이 아니라 선 그림. `blender/faces.py` 가 14명의 얼굴을 아틀라스 한 장(`people/faces.png`, 1024², 4 × 4칸, RGBA 87 KB)에 그림
@@ -176,7 +183,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 몸과 자세(고증 4.13): 팩의 몸을 그대로 쓰되 휴지 자세를 고칩니다(`characters.py` `relax_fingers`). 리그와 14명이 같은 값을 써서 클립이 그대로 맞습니다.
   - 손: 손가락 마디 2 ~ 4를 굽힌 모양이 휴지 자세(`FINGER_CURL`). 1번 뼈는 손허리뼈라 그대로. 클립에 손가락 채널은 없음
   - 비례(`BUILD`): 어깨 관절을 바깥으로, 위팔 · 아래팔을 1.06배, 남자의 고관절과 발(`Foot` · `PT`: Root 의 자식)을 안으로. 옮기는 뼈는 부모 꼬리에서 떼고(`use_connect`), 자세를 메시에 적용한 뒤 휴지 자세로 삼음
-  - 팔: 팩의 서기 · 걷기 클립의 위팔을 몸 쪽으로, 여자는 아래팔을 길이 축으로(`ARMS_IN`, `arms_in` 이 키마다 다시 씀). 앉은 팔은 `SIT_ARMS`
+  - 팔: 팩의 손 흔들기 · 손 뻗기 클립에서 쉬는 쪽 위팔을 몸 쪽으로, 여자는 아래팔을 길이 축으로(`ARMS_IN`, `arms_in` 이 키마다 다시 씀)
   - 고칠 때 빨리 보기: `-- <id> rigs` 로 빌드(한 명 3초)하고, 사람 GLB에 리그의 액션을 입혀 Workbench 로 렌더
 - 그늘: `occlude` 가 정점마다 자기 몸에 가리는 정도를 구워 정점 속성 `_OCC`(바이트 0 ~ 255)로 내보냅니다. Blender 임포터가 정규화된 사용자 속성을 읽지 못해 정규화하지 않았습니다.
 - 단색 부품을 정점 색 메시 하나로 합쳐 한 명당 draw call 1번(재질 하나에 얼굴 아틀라스 한 장). 화면 밖이면 그리지 않습니다.
@@ -184,9 +191,11 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
   - 눈 깜박임: 얼굴 칸의 눈 자리를 피부로 덮고 속눈썹 선을 그림(셰이더). 사람마다의 박자는 속성 `glass` 에 함께(안경 0 ~ 2 + 4 × 박자 0 ~ 15), 시계는 바람의 `uWindT`
   - 셰이더(`characters.js` `PERSON_MAT`): 그늘, 옷의 물빛 · 보풀 빛 · 주름, 피부 윤기, 머리카락 가닥. 주름과 가닥은 텍스처가 아니라 휴지 자세의 자리(`vRest`)로 그린 높이를 화면 미분으로 범프. 폰은 주름 · 가닥 없이
 - 군중 행동(걷기, 멈춤, 무리, 인사, 벤치에 앉기, 공중전화 줄)은 `life.js`, 대사는 `talk.js`.
+  - 서 있는 사람은 6 ~ 16초마다 서 있는 클립을 바꿉니다(`POSES`: 서기 · 체중 이동 · 두리번 · 팔짱, 줄 선 사람은 두리번이 많음). 서 있는 클립끼리는 0.9초에 걸쳐 넘어갑니다(클립마다 발 자리가 다름)
+  - 자기 대사가 떠 있는 동안은 `talk`(앉은 사람은 `sit-talk`), 공중전화 칸의 사람은 `phone`. 손에 가방을 든 사람은 `talk` · 팔짱을 하지 않고, 통화하는 사람은 손가방을 들지 않음
 - 군중은 사람마다 키 · 몸집 · 옷 색 · 피부색 · 머리색 · 안경을 달리합니다(`characters.js` `crowdLook`). 얼굴의 선은 그림이 피부색에 곱해져 따라가고, 안경은 열에 셋(교수님은 일곱)이 씁니다. 색만 다른 지오메트리를 따로 두고 나머지 버퍼(인덱스도)는 함께 씁니다. 인덱스는 안경의 삼각형을 맨 뒤에 두어, 안경을 안 쓴 사람은 그 앞까지만 그립니다. 주인공 · 운전자 · 생일 장면의 두 학생은 모델 그대로입니다.
 - 먼 안경: 테가 화면에서 `RIM_PX` 픽셀(폰 1.2, 데스크톱 0.35)보다 가늘어지면 형상은 그리지 않고(`rimLod`, 거리와 화면 높이로 사람마다), 얼굴에 `faces_rims.png` 의 선을 밉맵으로 그립니다(가까이서부터 서서히). 누가 어떤 테를 쓰는지는 속성 `glass`(0 없음 · 1 금속 · 2 뿔테). 폰은 안티에일리어싱이 없어 1픽셀보다 가는 테가 프레임마다 켜졌다 꺼졌습니다
-- 앉은 사람은 `sit` 클립의 엉덩이 높이를 재서 벤치 앉는 면(0.43 m)에 맞추고, 머리만 돌립니다.
+- 앉은 사람은 `sit` 클립의 엉덩이 높이를 재서 벤치 앉는 면(0.43 m)에 맞추고, 머리는 앉을 때의 자세에서 돌립니다.
 
 ### 소리
 
@@ -296,7 +305,8 @@ blender -b --factory-startup --python blender/build.py            # 모든 GLB �
 blender -b --factory-startup --python blender/build.py -- blend   # + 편집용 assets_src/yonsei1997_campus.blend
 blender -b --factory-startup --python blender/sky_bake.py         # 하늘 텍스처, 태양 방향, 해를 지운 환경광
 node tools/bake_sun_shadows.mjs <포트>   # (web 에서 npx vite 를 띄운 뒤) 폰용 구운 해 그림자 · 걷는 면 높이
-blender -b --factory-startup --python blender/characters.py       # 사람 14명 + 리그 2개 (assets_src/quaternius/ 필요)
+python3 tools/fetch_mocap.py                                      # 사람 리그의 모션 캡처 원본 (assets_src/mocap/, 33 MB)
+blender -b --factory-startup --python blender/characters.py       # 사람 14명 + 리그 2개 (assets_src/quaternius/ · assets_src/mocap/ 필요)
 blender -b --factory-startup --python blender/build.py -- statues   # 청동 조각상의 원형 → 메시 · 텍스처 (assets_src/blender-human-base-meshes/ 필요, 출처.txt)
 ```
 
