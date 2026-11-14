@@ -50,7 +50,7 @@
      "cam": {"x": 104, "y": 392, "dh": 22, "tx": 108, "ty": 432, "tdh": 0, "fov": 50}, "size": [1400, 552],
      "out": [{"path": "docs/compare/sang_game.jpg", "width": 900}]},
     {"name": "compare/kwangbok", "doc": "reference/광복관_현관_1996_*.jpg",
-     "cam": {"x": -131.6, "y": 55.3, "dh": 3, "tx": -128.3, "ty": 67.9, "tdh": 4, "fov": 40}, "size": [1200, 500],
+     "cam": {"x": -130.35, "y": 67.13, "dh": 3, "tx": -127.05, "ty": 79.73, "tdh": 4, "fov": 40}, "size": [1200, 500],
      "out": [{"path": "docs/compare/kwangbok_game.jpg", "width": 900}]},
     {"name": "compare/science", "doc": "reference/과학관_계단_1996_*.jpg",
      "cam": {"x": -250.5, "y": -15.5, "h": 53.9, "tx": -242.6, "ty": 13.8, "th": 50.9, "fov": 55}, "size": [1200, 686],

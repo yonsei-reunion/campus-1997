@@ -6654,13 +6654,18 @@ _kb_took, KB97_GRADE = kwangbok97.grade(Hn, X, Y, FIXED, _kb_keep, harmonic_fill
 FIXED[_kb_took] = True
 print('광복관 · 핀슨관 둘레와 서쪽 찻길:', KB97_GRADE)
 tr_tilt_of(TR_W, TR_WN, TR_WO, next(k_ for k_, q_ in enumerate(TR_W) if bline.distance(Point(*q_)) > ROAD_HALF + 4.0), 'west (kwangbok97)')
-# (핀슨관 · 한경관 on the new ground: the lowest corner again.  핀슨관's eaves stay where the scans have them, so the hall
-# shows two storeys where the game's lower ground showed three; 한경관's roof comes up with its floor, to the scans')
+# (핀슨관 · 한경관 on the new ground: their floors at the ground before their doors (핀슨관's south door on the paved
+# place, 한경관's east door on its apron), the corners lower than that standing on their footings.  핀슨관's eaves stay
+# where the scans have them, so the hall shows two storeys where the game's lower ground showed three; 한경관's roof
+# comes up with its floor, to the scans')
 for b_ in buildings:
     if b_['id'] in (kwangbok97.PINSON, kwangbok97.HANGYEONG):
         hs = [ground_h(x, y) for x, y in b_['footprint']]
-        _kb_b0 = b_['base']
-        b_.update(base=round(min(hs), 2), top_ground=round(max(hs), 2))
+        _kb_b0, _kb_e = b_['base'], b_['entry']
+        b_.update(base=round(ground_h(_kb_e['p'][0] + _kb_e['n'][0] * 1.5, _kb_e['p'][1] + _kb_e['n'][1] * 1.5), 2),
+                  top_ground=round(max(hs), 2))
+        if b_['id'] == kwangbok97.HANGYEONG:        # (the road passes 4 m before its east wall, a metre under the door)
+            b_['base'] = round(kwangbok97.HK_FLOOR + float(kwangbok97.T(*_kb_e['p'])), 2)
         if b_['id'] == kwangbok97.PINSON:
             _kb_fh = (kwangbok97.PINSON_EAVES + float(kwangbok97.T(-67.1, 160.6)) - b_['base']) / 2
             b_.update(levels=2, fh=round(_kb_fh, 3), height=round(2 * _kb_fh + 1.2, 2))

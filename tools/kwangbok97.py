@@ -117,13 +117,15 @@ BENCH_PAVED_EAST = [(-85.0, 121.0), (-75.0, 118.5), (-70.5, 122.0), (-67.0, 127.
 ROAD_KB_W = [(-173.8, 55.1, 48.3), (-170.2, 60.0, 49.2), (-167.1, 65.0, 49.8), (-163.9, 70.1, 50.05), (-157.7, 80.4, 50.2),
              (-148.3, 95.8, 50.2), (-142.1, 106.1, 50.0), (-134.3, 115.1, 49.85)]
 # the road up 핀슨관's west side to the car park north of the hall: its middle line and the scans' heights on it
-ROAD_PIN_W = [(-93.2, 137.5, 49.9), (-92.1, 144.2, 51.4), (-90.7, 152.0, 52.6), (-89.3, 159.5, 54.0), (-87.6, 164.9, 54.1),
-              (-85.6, 170.7, 54.6), (-83.8, 176.8, 54.8), (-81.0, 181.5, 54.6), (-76.5, 184.5, 53.6), (-71.0, 185.0, 52.5)]
+ROAD_PIN_W = [(-93.2, 137.5, 49.9), (-92.1, 144.2, 51.4), (-91.05, 150.0, 52.4), (-90.3, 154.0, 53.2), (-89.75, 157.0, 53.85),
+              (-89.2, 160.0, 54.05), (-87.6, 164.9, 54.2), (-85.6, 170.7, 54.6), (-83.8, 176.8, 54.8), (-81.0, 181.5, 54.6),
+              (-76.5, 184.5, 53.6), (-71.0, 185.0, 52.5)]
 PIN_W_HALF = (3.2, 5.6)           # (west of the line, east of it: the lane and the cars along its east edge)
 PIN_LOT = Polygon([(-71.5, 175.3), (-57.6, 171.7), (-53.0, 190.0), (-71.0, 190.5)])       # the car park north of 핀슨관
 PIN_LOT_Z = 52.0                  # 해발 @ (-63, 181)
 HK_APRON = Polygon([(-41.9, 209.8), (-39.2, 209.1), (-36.0, 222.6), (-38.4, 223.2)])       # before 한경관's east front
-HK_APRON_Z = 52.1                 # 해발 @ (-37, 216)
+HK_APRON_Z = 52.1                 # 해발 @ (-40, 216)
+HK_FLOOR = 52.1                   # 해발 @ (-40.2, 216.4): 한경관's floor at its east door (the scans: 51.9 - 52.3 m at the wall's foot)
 # the cars' west road (TR_W): (x, y, 해발) on its middle line.  The 삼거리 and the first 30 m as the game has them
 # (the survey's 40 m contour crosses it at s 27 - 33 m, where the game stands at 39.7 - 40.4)
 ROAD_W = [(6.2, 140.7, 40.05), (1.6, 149.6, 41.25), (-1.5, 159.1, 42.55), (-4.6, 168.6, 43.7), (-7.7, 178.1, 44.6),
@@ -144,7 +146,7 @@ GRID_X0, GRID_Y0, GRID_D = -180.0, 50.0, 5.0
 GRID = np.array([[int(v) for v in r.split()] for r in """
 0 0 0 0 0 0 0 0 0 0 0 0 449 425 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 483 486 0 0 0 0 0 450 451 454 456 459 447 437 428 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-0 499 492 484 0 450 453 456 458 461 464 466 469 472 457 450 450 450 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 498 492 484 0 450 453 456 458 461 464 466 469 472 457 450 450 450 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 0 496 498 485 0 463 466 468 471 474 476 479 480 470 465 466 467 455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 0 509 500 501 487 473 476 478 480 480 480 480 480 476 475 480 498 477 458 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 0 0 501 501 502 490 485 480 480 480 480 480 480 480 480 480 498 498 477 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -160,13 +162,13 @@ GRID = np.array([[int(v) for v in r.split()] for r in """
 0 0 0 0 0 0 0 0 0 519 498 498 498 498 498 498 498 498 498 498 498 498 498 487 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 0 0 0 0 0 0 0 0 0 518 498 498 498 498 498 498 498 498 498 498 498 498 498 485 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 0 0 0 0 0 0 0 0 0 0 0 515 509 498 498 498 498 498 498 498 498 498 498 498 481 466 450 450 450 450 436 419 408 0 0 0 0
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 510 506 498 498 504 502 498 498 498 498 490 478 468 459 453 450 450 434 421 412 408 404 400
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 510 506 498 498 504 503 498 498 498 498 490 478 468 459 453 450 450 434 421 412 408 404 400
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 517 514 516 517 509 498 498 498 501 501 490 478 467 458 450 450 443 431 421 414 408 406
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 527 522 523 525 517 510 507 505 503 501 501 485 473 461 450 450 450 438 428 419 414 411
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 532 532 533 525 519 515 510 506 502 502 489 477 464 450 450 450 443 432 422 420 418
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 540 540 540 532 525 518 514 508 502 502 494 481 467 450 450 450 446 436 428 426 0
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 545 541 542 537 529 522 517 512 506 502 502 486 471 457 450 450 445 439 433 431 0
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 550 544 546 546 533 523 519 515 509 502 502 489 476 462 450 450 446 442 438 436 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 527 523 524 526 518 511 507 505 503 501 501 485 473 461 450 450 450 438 428 419 414 411
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 534 534 536 527 519 515 510 506 502 502 489 477 464 450 450 450 443 432 422 420 418
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 541 540 541 532 525 518 514 508 502 502 494 481 467 450 450 450 446 436 428 426 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 546 542 543 538 529 522 517 512 506 502 502 486 471 457 450 450 445 439 433 431 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 550 545 546 546 534 523 519 515 509 502 502 489 476 462 450 450 446 442 438 436 0
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 550 547 548 535 520 520 520 513 502 502 491 480 467 454 450 448 444 443 440 0
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 553 547 546 538 520 520 520 520 509 503 495 484 472 458 455 452 448 447 0 0
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 556 548 541 533 520 520 520 520 511 503 503 489 478 462 459 456 453 450 0 0
@@ -177,7 +179,7 @@ GRID = np.array([[int(v) for v in r.split()] for r in """
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 550 547 542 538 533 528 523 520 521 507 502 496 488 485 478 468 0 0
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 550 547 544 540 536 532 527 524 521 508 507 502 496 493 485 474 0 0
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 548 545 542 539 536 532 528 521 509 506 502 503 500 497 485 465 0
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 549 547 545 542 540 537 533 529 522 517 513 510 506 502 503 480 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 549 547 545 542 540 537 533 529 522 517 513 510 506 502 503 481 0
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 550 549 548 550 547 544 541 538 533 528 523 518 511 504 502 500 0
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 """.strip().splitlines()], float) / 10.0
@@ -191,7 +193,7 @@ REGION = Polygon([(-178.0, 52.0), (-176.0, 62.0), (-171.0, 71.0), (-166.0, 80.0)
                   (-81.0, 80.0), (-84.0, 71.0), (-86.0, 62.0), kb_xy(52.0, -1.0), kb_xy(34.5, -14.5), kb_xy(-5.5, -14.5),
                   kb_xy(-5.5, -1.0), (-156.0, 66.0), (-163.0, 60.0), (-168.0, 52.0)])
 RING = 15.0                       # eased out (harmonic) this far round REGION
-NORTH_Y = 230.0                   # (no easing north of it between x -80 and 4: the ground there is jonghap97's)
+NORTH_Y = 230.0                   # (no easing north of it: the ground there is jonghap97's)
 HALL_PAD = 2.6                    # the feet of the halls that stay (백양관 북쪽 날개, 연합신학대학원)
 ROAD_HALF = 3.0
 
@@ -221,6 +223,19 @@ def bench_z(x, y):
     return BENCH_Z + (z - BENCH_Z) * w
 
 
+def cars_1997():
+    """the cars read off the scans in this part (tools/cars97_new.json, labels kb-* · pin-*): (x, y, heading rad, label)"""
+    import json
+    import os
+    d = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cars97_new.json'), encoding='utf-8'))
+    out = []
+    for z in d.values():
+        for c in z.get('cars', []):
+            if len(c) > 5 and isinstance(c[5], str) and (c[5].startswith('kb-') or c[5].startswith('pin-')):
+                out.append((c[0], c[1], math.radians(c[2]), c[5]))
+    return out
+
+
 def grade(Hn, X, Y, FIXED, keep, fill, tr_pts, tr_n, step=5.0, half=800.0):
     """GRID + T inside REGION (FIXED there yields; `keep`, the feet of the halls that stay, does not), the cars' west
     road on ROAD_W level across (the cells its wheels cross), then eased out round REGION (fill: harmonic_fill) over
@@ -248,10 +263,31 @@ def grade(Hn, X, Y, FIXED, keep, fill, tr_pts, tr_n, step=5.0, half=800.0):
         Hn[j, i] = float(np.interp(s, qs, zs)) + Tn[j, i]
         road[j, i] = True
     info['road'] = (int(road.sum()), round(float((Hn - H0)[road].min()), 1), round(float((Hn - H0)[road].max()), 1))
-    took = inr | road
+    # the cars the scans have parked here (tools/cars97_new.json: the rows of the yard, the two roads and the car park
+    # north of 핀슨관): the grid cells under each car on its place's own level, so that a row along a kerb does not lean
+    # with the bank beside it
+    lot = np.zeros(X.shape, bool)
+    for x, y, h, lab in cars_1997():
+        t, n = (math.cos(h), math.sin(h)), (-math.sin(h), math.cos(h))
+        cells = {(int(math.floor((y + t[1] * a + n[1] * b + half) / step)), int(math.floor((x + t[0] * a + n[0] * b + half) / step)))
+                 for a in (-1.7, -0.6, 0.6, 1.7) for b in (-0.85, 0.85)}
+        for j, i in {(j + a, i + b) for j, i in cells for a in (0, 1) for b in (0, 1)}:
+            if keep[j, i] or road[j, i]:
+                continue
+            if lab.startswith('pin-R'):
+                z = float(_prof(ROAD_PIN_W, X[j, i], Y[j, i])[0])
+            elif lab.startswith('pin-P'):
+                z = PIN_LOT_Z
+            else:
+                z = float(bench_z(X[j, i], Y[j, i]))
+            Hn[j, i] = z + Tn[j, i]
+            lot[j, i] = True
+    info['cars'] = int(lot.sum())
+    took = inr | road | lot
     # round them
-    north = (Y > NORTH_Y + 1.0) & (X > -80.0) & (X < 4.0)
-    ring = shapely.contains_xy(REGION.buffer(RING), X, Y) & ~took & ~keep & ~FIXED & ~north
+    north = Y > NORTH_Y + 1.0                           # (jonghap97's ground)
+    east = ((X > 4.0) & (Y > 147.0)) | (X > 14.0)       # (스팀슨관's south yard and back, the 삼거리: as they are)
+    ring = shapely.contains_xy(REGION.buffer(RING), X, Y) & ~took & ~keep & ~FIXED & ~north & ~east
     if ring.any():
         fill(ring)
     info['ring'] = int(ring.sum())
