@@ -7131,7 +7131,18 @@ for _i, _t in enumerate(trees):
 shrubs[:] = [s_ for s_ in shrubs if not shapely.contains_xy(GATE_OUT, s_[1], s_[2])]
 props[:] = [p_ for p_ in props if not shapely.contains_xy(GATE_OUT, p_[1], p_[2])]
 out['decals'] = [d_ for d_ in out['decals'] if not shapely.contains_xy(GATE_OUT, d_[1], d_[2])]
-print('정문 앞 어귀: gate at s %.1f (%.1f, %.1f); trees moved %s' % (GATE_S, *GATE_C, _gate_moved))
+# The gate's own stones (blender/props.py gate, GATE_MAIN / GATE_SIDE / GATE_LODGE / GATE_SLAB; 고증 4.8.1): the main
+# pillars stand on the verges' south ends, the west walk's outer pillar and the lodge on the strip west of it, the
+# tall slab on the strip east of the east walk.  The verges' clipped shrubs and the strips' hedge give way to them.
+# (u0, u1 along the wall eastwards from the gate's middle, v0, v1 north of its line; 0.6 m clear)
+GATE_PARTS = [(-5.65, -4.25, -0.3, 2.1), (4.25, 5.65, -0.3, 2.1), (-11.65, -10.3, -0.3, 1.7), (-18.65, -11.65, -0.3, 4.9),
+              (10.25, 12.75, -0.2, 0.2)]
+_gparts = unary_union([Polygon([tuple(_gc + _gw_t * u_ + _gw_n * v_) for u_, v_ in ((a_, c_), (b_, c_), (b_, d_), (a_, d_))])
+                       for a_, b_, c_, d_ in GATE_PARTS]).buffer(0.6)
+_ngs = len(shrubs)
+shrubs[:] = [s_ for s_ in shrubs if not shapely.contains_xy(_gparts, s_[1], s_[2])]
+print('정문 앞 어귀: gate at s %.1f (%.1f, %.1f); trees moved %s; shrubs under the gate\'s stones -%d'
+      % (GATE_S, *GATE_C, _gate_moved, _ngs - len(shrubs)))
 # The web picks each tree's model by its place in the list (web/src/world.js Forest: one draw a tree, in order), so
 # the town's share of it is held at TOWN_TREE_SLOTS: the trees after it (대강당 진입로's, 신촌 로터리's) keep their
 # looks whatever the town plants.  Short of it, more trees on the banks west of the bridge, beside the town's own;

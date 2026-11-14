@@ -1052,5 +1052,7 @@
  "sign_sinchon2": {"_doc": "신촌 로터리의 연세로 가게 간판과 모퉁이 건물 간판 (tools/make_textures.py sign_sinchon2, tools/sinchon_rotary.py): 2 x 8 atlas", "image": "sign_sinchon2.png", "rough": 0.5, "emissiveMap": true},
  "sign_yonseiro": {"_doc": "연세로 가게 벽에서 튀어나온 세로 간판 (tools/make_textures.py sign_yonseiro, tools/sinchon_rotary.py yro_wall_signs): 8 x 2 cells over the banner's strip", "image": "sign_yonseiro.png", "rough": 0.5, "emissiveMap": true},
  "banner_yonseiro": {"_doc": "연세로를 가로지른 제5회 신촌문화축제 현수막 (1996.5, sign_yonseiro.png 아래 띠)", "image": "sign_yonseiro.png", "rough": 0.85},
- "sign_rotary": {"_doc": "신촌 로터리 북쪽 연세로 위의 파란 방향 표지 「모래내 · 독립문」 (tools/make_textures.py sign_rotary, 1996년 사진 51979)", "image": "sign_rotary.png", "rough": 0.45, "emissiveMap": true}
+ "sign_rotary": {"_doc": "신촌 로터리 북쪽 연세로 위의 파란 방향 표지 「모래내 · 독립문」 (tools/make_textures.py sign_rotary, 1996년 사진 51979)", "image": "sign_rotary.png", "rough": 0.45, "emissiveMap": true},
+ "gate_granite": {"_doc": "정문의 흰 화강석 판(기둥 양옆의 판, 수위실, 동쪽 담): 1996년 8월 사진 · 2011년 로드뷰의 빗물 줄무늬가 든 밝은 회색 (blender/props.py gate, 고증 4.8.1)", "weather": 0.3, "streak": 0.5, "tex": "concrete_wall_008", "tile": 3.0, "tint": [2.5, 2.46, 2.38], "sat": 0.14, "rough": 0.75},
+ "gate_rubble": {"_doc": "정문 기둥 속과 낮은 담의 검은 막돌 쌓기 (1996년 8월 사진, 2011년 로드뷰)", "weather": 0.3, "streak": 0.2, "tex": "old_stone_wall", "tile": 2.6, "tint": [0.66, 0.66, 0.7], "sat": 0.15, "rough": 0.9}
 }
