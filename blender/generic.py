@@ -636,7 +636,7 @@ def build_generic(b, rnd):
     poly = [tuple(p) for p in b['footprint']]
     if poly_area(poly) < 0:
         poly.reverse()
-    fh = FH_AT.get(b['id'], FH[style])
+    fh = b.get('fh', FH_AT.get(b['id'], FH[style]))      # (fh: build_campus.py's own storey height, tools/muak.py)
     st.update(SILL_AT.get(b['id'], {}))
     z0 = b['base']
     nf = b['levels']
@@ -651,6 +651,7 @@ def build_generic(b, rnd):
     if b['id'] in FRAME:
         st['frame'] = FRAME[b['id']]
     pitched = style in ('stone', 'house', 'stone_pale')
+    hip = b.get('hip')                 # (a hipped or gabled roof on a hall of another style: 무악학사, 농업개발원)
     if pitched or style == 'gym':
         cx, cy, L, W, ang = min_area_rect(poly)
         c, s = math.cos(ang), math.sin(ang)
@@ -668,7 +669,7 @@ def build_generic(b, rnd):
                            tops=[zt - backs.EAVE * backs.PITCH[style] if pitched else zt + up * fh for up in ups])
     for i in range(len(poly)):
         up = ups[i]
-        wall_edge(mb, poly[i], poly[(i + 1) % len(poly)], z0, (zt if pitched else zt + 0.9) + up * fh, nf + up, fh,
+        wall_edge(mb, poly[i], poly[(i + 1) % len(poly)], z0, (zt if pitched or hip else zt + 0.9) + up * fh, nf + up, fh,
                   st, rnd, ground_floor_shop=shop, door=(door[1], style, b['entry']) if door and door[0] == i else None,
                   back=back.edges[i].back if back.on else None)
     if wing:
@@ -681,6 +682,10 @@ def build_generic(b, rnd):
     elif pitched:
         hip_roof(mb, cx, cy, L, W, ang, zt, rnd.choice(['roof_slate', 'roof_giwa']) if style == 'house' else 'roof_slate',
                  pitch=0.55 if style == 'house' else 0.75)
+    elif hip:
+        cx, cy, L, W, ang = min_area_rect(poly)
+        hip_roof(mb, cx, cy, L, W, ang, zt, hip.get('mat', 'roof_slate'), pitch=hip.get('pitch', 0.45), over=hip.get('over', 0.5),
+                 gable=st['wall'] if hip.get('gable') else None)
     elif style == 'gym':
         barrel_roof(mb, cx, cy, L, W, ang, zt)
     else:

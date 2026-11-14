@@ -20,6 +20,7 @@ import shapely.validation
 from PIL import Image, ImageDraw
 import gate_town
 import sinchon_rotary
+import muak
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -3425,7 +3426,7 @@ print('대강당 앞 둑: terrace', AUD_T, 'wall s %.1f - %.1f' % (AUD_BANK['s0'
 # ---------------------------------------------------------------------------
 # Ground splat map  (R asphalt, G pavers, B dirt/forest floor ; rest = grass)
 # ---------------------------------------------------------------------------
-SPLAT = dict(x0=-560.0, y0=-560.0, x1=640.0, y1=680.0, res=0.5)
+SPLAT = dict(x0=-560.0, y0=-560.0, x1=640.0, y1=800.0, res=0.5)      # (to the grid's north edge: 무악학사로 가는 길, tools/muak.py)
 SW = int((SPLAT['x1'] - SPLAT['x0']) / SPLAT['res'])
 SH = int((SPLAT['y1'] - SPLAT['y0']) / SPLAT['res'])
 
@@ -6243,8 +6244,32 @@ _Hn0 = Hn.copy()
 print('daewoo back, the low court\'s north-west stall: node (125, 530) %.2f -> %.2f' % (Hn[_nj, _ni], DAEWOO_BACK['low']))
 Hn[_nj, _ni] = DAEWOO_BACK['low']
 FIXED[_nj, _ni] = True
+# 무악학사 · 북문으로 가는 길 (tools/muak.py, reference/고증/3.21_무악학사_북문.md): on the 1997 photos' line, its bed on
+# their profile (from the bend north-east of 대우관, 81.9 m, over the crest at y 760, 100.6 m), late: the planting has
+# read the ground as it was (no tree stood north of y 600)
+MUAK = muak.road()
+_mk_took, _mk_n, _mk_dz = muak.grade(Hn, X, Y, FIXED, MUAK)
+FIXED[_mk_took] = True
+print('무악학사 길: %d nodes graded (%d level), most moved %.1f m; the road %.1f m at s 10, %.1f m at the crest' % (
+    _mk_n, int(_mk_took.sum()), _mk_dz, float(np.interp(10.0, MUAK['s'], MUAK['z'])), float(MUAK['z'].max())))
 Hn.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_near.bin'))
 HS.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_south.bin'))
+# 무악학사 · 북문 (tools/muak.py NORTH): the patch north of the grid (x -60 .. 340, y 800 .. 1280), from the grid's last
+# change; the 1997 roads' beds on it and the courts' pads
+_mk_far = ndimage.gaussian_filter(np.array(tf['rows_south_to_north'], np.float64), 0.7)     # (the far ring as the web draws it)
+HN = muak.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP, lambda x_, y_: ndimage.map_coordinates(
+    _mk_far, [(np.asarray(y_) + tf['half']) / tf['step'], (np.asarray(x_) + tf['half']) / tf['step']], order=1, mode='nearest'))
+MUAK_ROADS = muak.lanes()
+MUAK_PROF, _mk_fixed = muak.level(HN, MUAK, MUAK_ROADS)
+MUAK_PADS = muak.pads(HN, [Polygon(muak.osm()[i_][1]).buffer(0) for i_ in muak.COURTS], _mk_fixed)
+HN.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_north.bin'))
+print('무악학사 · 북문 땅: %.1f .. %.1f m, roads %s, courts %s' % (HN.min(), HN.max(),
+      {k_: (round(float(v_[1][0]), 1), round(float(v_[1][-1]), 1)) for k_, v_ in MUAK_PROF.items()}, MUAK_PADS))
+
+
+def ground_tn(x, y):
+    """the ground as saved, both patches too"""
+    return muak.sample_n(HN, x, y) if muak.in_patch(x, y) else ground_t(x, y)
 Hf = np.array(tf['rows_south_to_north'], dtype=np.float32)
 Hf = ndimage.gaussian_filter(Hf, 0.7).astype(np.float32)
 Hf.tofile(os.path.join(ROOT, 'web/public/data/terrain_far.bin'))
@@ -8116,6 +8141,8 @@ def _ypaint(geoms, img, width=None):
 
 _yz, _yg, _yp = (Image.new('L', (SW, SH), 0) for _ in range(3))
 _YN = {id(_yz): '_yz', id(_yg): '_yg', id(_yp): '_yp'}
+MUAK_OLD = muak.takeup(paths_out)              # (무악학사 길: OSM's road north of the corner and its walk taken up)
+_ypaint([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD], _yg)
 _ypaint([_yclear], _yz)
 _ypaint([YJ_GARDEN.difference(_kept)], _yg)
 _ypaint([YJ_EAST_LAWN], _yg)                   # (용재관 북동쪽: the 2015 forecourt's paving out; YJ_LOT, YJ_BRANCH below)
@@ -8653,6 +8680,12 @@ print('한경길 · 연희관 앞: under the rows, shrubs taken out %d, props %d
     _n0[0] - len(shrubs), _n0[1] - len(props), len(_hk_moved)), _hk_moved)
 _ypaint(ANNEX_YARD_HALVES, _ga)               # (학생회관 별관 앞마당)
 _ypaint([GW_LOT, GW_ROW], _ga)                # (공학원 공사장 앞 주차장, 북쪽 가림막 앞 줄)
+MUAK_ROAD, MUAK_WALK = muak.paint(MUAK, muak.S_GRID + 6.0)      # (무악학사 길: the carriageway and the west walk)
+_ypaint([MUAK_ROAD], _ga)
+_ypaint([MUAK_WALK], _gp)
+MUAK_WOODS = muak.woods_strip(MUAK, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))
+_mk_floor = unary_union([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD]).intersection(woods_u.buffer(-1.0)).union(MUAK_WOODS)
+_ypaint([g_ for g_ in (_mk_floor.geoms if hasattr(_mk_floor, 'geoms') else [_mk_floor]) if g_.geom_type == 'Polygon' and g_.area > 0.5], _gf)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
 _YN[id(_gw)] = '_gw'
 _ypaint([BK_COURT], _gw)
@@ -9378,12 +9411,73 @@ for k_, t_ in enumerate(_cst):
         q_ = np.array(CENT_SW_C) + d_ * 2.5
     t_[1], t_[2] = round(float(q_[0]), 2), round(float(q_[1]), 2)
 print('백주년기념관 남서쪽 둥근 마당: trees off the ring', len(_cst))
+# 무악학사 길 (MUAK above): what stood on the new road and walk steps aside (a tree in its place in the list), the
+# closed crowns over it after every other tree; the map's way and walk on the new line
+_mk_c = MUAK_ROAD.union(MUAK_WALK).buffer(0.6)
+_n0 = (len(shrubs), len(props))
+shrubs[:] = [s_ for s_ in shrubs if not _mk_c.contains(Point(s_[1], s_[2]))]
+props[:] = [p_ for p_ in props if not _mk_c.contains(Point(p_[1], p_[2]))]
+_mk_e = _mk_c.buffer(1.0).exterior
+_mk_moved = 0
+for t_ in trees:
+    if _mk_c.buffer(0.3).contains(Point(t_[1], t_[2])):
+        n_ = nearest_points(_mk_e, Point(t_[1], t_[2]))[0]
+        t_[1], t_[2] = round(n_.x, 2), round(n_.y, 2)
+        _mk_moved += 1
+MUAK_TREES = muak.trees(MUAK, trees, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(2.0).union(_mk_c.buffer(1.0)))
+trees += MUAK_TREES
+MUAK_WOOD_TREES = muak.woods_fill(MUAK_WOODS, trees)      # (the wood either side, on its floor painted above)
+trees += MUAK_WOOD_TREES
+_mk_paths = []
+for p_ in out['paths']:
+    if p_['kind'] == 'service' and math.dist(p_['pts'][-1], (226.3, 709.9)) < 1.0:
+        l_ = LineString(p_['pts']).intersection(Polygon([(150, 380), (300, 380), (300, 573.5), (150, 573.5)]))
+        if l_.geom_type == 'LineString' and l_.length > 2:
+            _mk_paths.append(dict(p_, pts=[[round(x_, 1), round(y_, 1)] for x_, y_ in l_.coords]))
+    elif not (p_['kind'] == 'footway' and math.dist(p_['pts'][0], (223.4, 725.9)) < 1.0):
+        _mk_paths.append(p_)
+_mk_paths += [dict(kind='service', w=2 * muak.HALF, pts=[[round(float(c_), 1) for c_ in muak.at(MUAK, s_)] for s_ in np.arange(0.0, muak.S_GRID + 0.1, 6.0)]),
+              dict(kind='footway', w=round(muak.WALK[1] - muak.WALK[0], 2),
+                   pts=[[round(float(c_), 1) for c_ in muak.at(MUAK, s_, sum(muak.WALK) / 2)] for s_ in np.arange(8.0, muak.S_GRID + 0.1, 6.0)])]
+out['paths'][:] = _mk_paths
+print('무악학사 길: shrubs taken out %d, props %d, trees moved aside %d, new trees %d (and %d in the wood), old ways %d' % (
+    _n0[0] - len(shrubs), _n0[1] - len(props), _mk_moved, len(MUAK_TREES), len(MUAK_WOOD_TREES), len(MUAK_OLD)))
+# 무악학사 · 북문 (tools/muak.py): the halls that stood north of the grid in July 1997 at the list's end (blender/build.py
+# draws each hall's looks in its order), 연희동's houses inside the patch, the rows over the roads after every other
+# tree, the patch's ground map beside the town's, the far forest kept off what is built or paved there (web/src/terrain.js)
+MUAK_HALLS = muak.halls(ground_tn)
+_mk_taken = unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS] + [muak.SITE] +
+                        [ln_['ls'].buffer(hw_ + 3.0) for _, ln_, hw_, _ in MUAK_ROADS] + [MUAK['ls'].buffer(6.5)])
+MUAK_HOUSES = muak.houses(ground_tn, _mk_taken, random.Random(15993))
+buildings += MUAK_HALLS + MUAK_HOUSES
+_mk_gm = muak.ground_map(MUAK, MUAK_ROADS, [Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HOUSES])
+out['tsplat'] = dict(sinchon_rotary.TSPLAT, **muak.pack(os.path.join(ROOT, 'web/public/assets/textures/ground_splat_town.png'),
+                                                         muak.draw_map(_mk_gm)))
+MUAK_N_TREES = muak.trees_n(MUAK, MUAK_ROADS, _mk_taken.difference(MUAK['ls'].buffer(6.5)).union(
+    unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HOUSES]).buffer(2.5)).union(unary_union(_mk_gm['courts']).buffer(1.5)), trees)
+trees += MUAK_N_TREES
+_mk_clear = unary_union([_mk_gm['asphalt'].buffer(4.0), _mk_gm['pavers'].buffer(3.0), _mk_gm['dirt'].buffer(4.0),
+                         unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HOUSES]).buffer(6.0)]).simplify(1.5)
+_mk_woods = _mk_gm['woods'].simplify(1.5)
+out['terrain']['north'] = dict(muak.NORTH, file='data/terrain_north.bin',
+                               clear=[[[round(x_, 1), round(y_, 1)] for x_, y_ in g_.exterior.coords]
+                                      for g_ in (_mk_clear.geoms if hasattr(_mk_clear, 'geoms') else [_mk_clear]) if g_.area > 20],
+                               woods=[[[round(x_, 1), round(y_, 1)] for x_, y_ in g_.exterior.coords]
+                                      for g_ in (_mk_woods.geoms if hasattr(_mk_woods, 'geoms') else [_mk_woods]) if g_.area > 200])
+for nm_ in ('무악학사', '무악학사 3 · 4학사 (공사중)', '우유처리장', '농업개발원', '북문'):
+    _mb = [b_ for b_ in MUAK_HALLS if b_['name'] == nm_]
+    _mp = unary_union([Polygon(b_['footprint']) for b_ in _mb]).representative_point() if nm_ != '북문' else Point(15.0, 915.0)
+    out['markers'].append(dict(name=nm_, pos=[round(_mp.x, 1), round(_mp.y, 1)],
+                               top=round(max(b_['base'] + b_['height'] for b_ in _mb) + (4.0 if nm_ == '무악학사' else 1.0), 1)))
+print('무악학사 · 북문: halls %d, houses %d, trees %d, cleared for the far forest %d pieces' % (
+    len(MUAK_HALLS), len(MUAK_HOUSES), len(MUAK_N_TREES), len(out['terrain']['north']['clear'])))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
 np.save(os.path.join(ROOT, 'data/terrain_near.npy'), Hn.astype(np.float32))
 np.save(os.path.join(ROOT, 'data/terrain_south.npy'), HS.astype(np.float32))
+np.save(os.path.join(ROOT, 'data/terrain_north.npy'), HN.astype(np.float32))
 print('baekyangro length %.0f m, rise %.1f -> %.1f m' % (L, prof[0], prof[-1]))
 
 # ---------------------------------------------------------------------------

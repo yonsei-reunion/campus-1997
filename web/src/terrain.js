@@ -49,20 +49,32 @@ export class Heightfield {
   constructor(data, half, step, n) {
     Object.assign(this, { data, half, step, n });
     this.ext = null;
+    this.patches = [];
   }
   // a patch of the same 5 m ground past the grid's south edge (campus.json terrain.south, tools/sinchon_rotary.py:
-  // 신촌 로터리), its top row the grid's bottom row; height() reads it there, the shaders that sample the grid do not
-  setPatch(data, S) {
-    this.ext = { data, ...S, x1: S.x0 + (S.nx - 1) * S.step, y1: S.y0 + (S.ny - 1) * S.step };
+  // 신촌 로터리), its top row the grid's bottom row; height() reads it there, the shaders that sample the grid do not.
+  // north: past the north edge (terrain.north, tools/muak.py: 무악학사 · 북문), its bottom row the grid's top row.
+  // ext stays the south one (bakedshadow.js reads it)
+  setPatch(data, S, north = false) {
+    const e = { data, ...S, x1: S.x0 + (S.nx - 1) * S.step, y1: S.y0 + (S.ny - 1) * S.step, north };
+    this.patches.push(e);
+    if (!north && !this.ext) this.ext = e;
+    return e;
+  }
+  patchAt(x, y) {
+    for (const e of this.patches) {
+      if (x < e.x0 || x > e.x1) continue;
+      if (e.north ? y > e.y0 && y <= e.y1 : y < e.y1) return e;
+    }
+    return null;
   }
   inPatch(x, y) {
-    const e = this.ext;
-    return !!e && y < e.y1 && x >= e.x0 && x <= e.x1;
+    return !!this.patchAt(x, y);
   }
   // x = east, y = north (campus frame)
   height(x, y) {
-    if (this.inPatch(x, y)) {
-      const e = this.ext;
+    const e = this.patchAt(x, y);
+    if (e) {
       const fx = Math.min(Math.max((x - e.x0) / e.step, 0), e.nx - 1.001), fy = Math.min(Math.max((y - e.y0) / e.step, 0), e.ny - 1.001);
       const i = fx | 0, j = fy | 0, ax = fx - i, ay = fy - j, d = e.data, n = e.nx;
       return d[j * n + i] * (1 - ax) * (1 - ay) + d[j * n + i + 1] * ax * (1 - ay) + d[(j + 1) * n + i] * (1 - ax) * ay + d[(j + 1) * n + i + 1] * ax * ay;
@@ -78,7 +90,7 @@ export class Heightfield {
 }
 
 // (the far ring's second hole: the patch's rectangle, x0 y0 x1 y1)
-const inRect = (r, x0, y0, x1, y1) => !!r && x0 >= r[0] && x1 <= r[2] && y0 >= r[1] && y1 <= r[3];
+const inRect = (r, x0, y0, x1, y1) => !!r && (Array.isArray(r[0]) ? r.some((q) => inRect(q, x0, y0, x1, y1)) : x0 >= r[0] && x1 <= r[2] && y0 >= r[1] && y1 <= r[3]);
 
 function gridGeometry(hf, { skirt = 0, hole = 0, hole2 = null, colorFn = null } = {}) {
   const { n, half, step, data } = hf;
@@ -129,9 +141,9 @@ function gridGeometry(hf, { skirt = 0, hole = 0, hole2 = null, colorFn = null } 
 }
 
 // The patch south of the grid (Heightfield.setPatch): the same triangles (split along (i+1, j)-(i, j+1)) in the near
-// terrain's material, a skirt down its outer edges; its top row is the grid's bottom row, so no seam
-export function makeSouthTerrain(hf, material) {
-  const e = hf.ext;
+// terrain's material, a skirt down its outer edges; its top row is the grid's bottom row, so no seam (the north patch:
+// its bottom row the grid's top row)
+export function makeSouthTerrain(hf, material, e = hf.ext) {
   const pos = [], idx = [];
   for (let j = 0; j < e.ny; j++) for (let i = 0; i < e.nx; i++) pos.push(e.x0 + i * e.step, e.data[j * e.nx + i], -(e.y0 + j * e.step));
   for (let j = 0; j < e.ny - 1; j++) for (let i = 0; i < e.nx - 1; i++) {
@@ -139,9 +151,15 @@ export function makeSouthTerrain(hf, material) {
     idx.push(a, b, c, b, d, c);
   }
   const ring = [];
-  for (let j = e.ny - 1; j > 0; j--) ring.push(j * e.nx);                  // west, north to south
-  for (let i = 0; i < e.nx; i++) ring.push(i);                             // south
-  for (let j = 1; j < e.ny; j++) ring.push(j * e.nx + e.nx - 1);           // east
+  if (e.north) {
+    for (let j = 0; j < e.ny - 1; j++) ring.push(j * e.nx);                  // west, south to north
+    for (let i = 0; i < e.nx; i++) ring.push((e.ny - 1) * e.nx + i);         // north
+    for (let j = e.ny - 2; j >= 0; j--) ring.push(j * e.nx + e.nx - 1);      // east, north to south
+  } else {
+    for (let j = e.ny - 1; j > 0; j--) ring.push(j * e.nx);                  // west, north to south
+    for (let i = 0; i < e.nx; i++) ring.push(i);                             // south
+    for (let j = 1; j < e.ny; j++) ring.push(j * e.nx + e.nx - 1);           // east
+  }
   const base = pos.length / 3;
   for (const v of ring) pos.push(pos[v * 3], pos[v * 3 + 1] - 40, pos[v * 3 + 2]);
   for (let k = 0; k < ring.length - 1; k++) {
@@ -154,7 +172,7 @@ export function makeSouthTerrain(hf, material) {
   g.computeVertexNormals();
   const mesh = new THREE.Mesh(g, material);
   mesh.receiveShadow = true;
-  mesh.name = 'terrain_south';
+  mesh.name = e.north ? 'terrain_north' : 'terrain_south';
   return mesh;
 }
 
@@ -201,6 +219,11 @@ export function makeNearTerrain(hf, campus, lib) {
     // stairwells (dark), the rest of its rectangle the ground's own (the round island's lawn)
     uTSplat: { value: campus.tsplat ? loadTex('assets/textures/ground_splat_town.png', { srgb: false, repeat: false }) : null },
     uTRect: { value: campus.tsplat ? new THREE.Vector4(campus.tsplat.x0, campus.tsplat.y0, campus.tsplat.x1, campus.tsplat.y1) : new THREE.Vector4(0, 0, -1, -1) },
+    // 무악학사 · 북문's map (tools/muak.py pack): beside the town's in the same texture; uTAtlas: the town's width and
+    // height in it, the north map's left edge, width and height (fractions)
+    uNRect: { value: campus.tsplat?.north ? new THREE.Vector4(...campus.tsplat.north) : new THREE.Vector4(0, 0, -1, -1) },
+    uTAtlas: { value: new THREE.Vector4(...(campus.tsplat?.atlas?.slice(0, 2) ?? [1, 1]), ...(campus.tsplat?.atlas?.slice(2, 4) ?? [0, 1])) },
+    uNAtlasH: { value: campus.tsplat?.atlas?.[4] ?? 1 },
     aD: { value: T('asphalt_02/diff.jpg') }, pD: { value: T('patterned_concrete_pavers/diff.jpg') },
     dD: { value: T('raked_dirt/diff.jpg') },
     gdN: { value: gdN }, apN: { value: apN }, gfD: { value: gfD },
@@ -223,7 +246,7 @@ export function makeNearTerrain(hf, campus, lib) {
       .replace('#include <common>', `#include <common>
         varying vec3 vWPos; varying vec3 vWNrm;
         uniform sampler2D uSplat, uDry, aD, pD, dD, gdN, apN, gfD, uTSplat;
-        uniform vec4 uRect, uTRect; uniform vec3 uGrass; uniform vec2 uPaveAng;
+        uniform vec4 uRect, uTRect, uNRect, uTAtlas; uniform float uNAtlasH; uniform vec3 uGrass; uniform vec2 uPaveAng;
         vec3 gTN; float gRough;
         float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
         ${PAVE_GLSL}
@@ -236,9 +259,13 @@ export function makeNearTerrain(hf, campus, lib) {
         sp *= inside;
         vec2 tuv = vec2((wp.x - uTRect.x) / (uTRect.z - uTRect.x), (uTRect.w - wp.y) / (uTRect.w - uTRect.y));
         float insideT = (1.0 - inside) * step(0.0, tuv.x) * step(tuv.x, 1.0) * step(0.0, tuv.y) * step(tuv.y, 1.0);
-        vec3 tsp = texture2D(uTSplat, tuv).rgb;
+        vec3 tsp = texture2D(uTSplat, tuv * uTAtlas.xy).rgb;
         float pit = tsp.b * insideT;
         sp = mix(sp, vec3(tsp.rg, 0.0), insideT);
+        vec2 nuv = vec2((wp.x - uNRect.x) / (uNRect.z - uNRect.x), (uNRect.w - wp.y) / (uNRect.w - uNRect.y));
+        float insideN = (1.0 - inside) * step(0.0, nuv.x) * step(nuv.x, 1.0) * step(0.0, nuv.y) * step(nuv.y, 1.0);
+        vec3 nsp = texture2D(uTSplat, vec2(uTAtlas.z + nuv.x * uTAtlas.w, nuv.y * uNAtlasH)).rgb;
+        sp = mix(sp, nsp, insideN);
         // the paving's edge: the map holds how much of each texel the asphalt and the paving cover (anti-aliased,
         // tools/build_campus.py splat_aa), so the edge is where that crosses one half: cut there as sharp as the
         // screen allows instead of blending grass into paving over a metre (the kerbs of curbs.js stand on it), and
@@ -299,7 +326,7 @@ export function makeNearTerrain(hf, campus, lib) {
         vec2 outD = max(max(uRect.xy - wp, wp - uRect.zw), vec2(0.0));
         float town = max(smoothstep(0.0, 1.0, (max(outD.x, wp.y - uRect.w) + (macro - 0.5) * 30.0) / 40.0), step(wp.y, uRect.y))
           * (1.0 - smoothstep(55.0, 85.0, vWPos.y + (macro - 0.5) * 30.0));
-        albedo = mix(albedo, vec3(0.25, 0.245, 0.24) * mix(0.92, 1.1, n2), town * (1.0 - insideT));
+        albedo = mix(albedo, vec3(0.25, 0.245, 0.24) * mix(0.92, 1.1, n2), town * (1.0 - insideT - insideN));
         albedo *= 1.0 - 0.96 * smoothstep(0.3, 0.7, pit);      // (the stairwell's dark)
         // fallen leaves / petals of the month on top, flat: the ground's relief pressed down under them
         vec3 litCol;
@@ -351,8 +378,22 @@ export function groundLipCut(sh) {
 // low-frequency 0..1 noise over the far ring: where the woods start on the hills (terrain colour and canopy clumps)
 const hillNoise = (x, y) => Math.sin(x * 0.013) * Math.cos(y * 0.011) * 0.5 + 0.5;
 
+// (south: one patch's dict or a list of them, terrain.south and terrain.north)
 const patchRect = (S) => S ? [S.x0, S.y0, S.x0 + (S.nx - 1) * S.step, S.y0 + (S.ny - 1) * S.step] : null;
+const patchRects = (S) => (Array.isArray(S) ? S : [S]).filter(Boolean).map(patchRect);
 const nearPatch = (r, x, y, m) => !!r && x > r[0] - m && x < r[2] + m && y > r[1] - m && y < r[3] + m;
+const nearAny = (rs, x, y, m) => rs.some((r) => nearPatch(r, x, y, m));
+// is (x, y) in one of the rings (campus.json terrain.north.clear: what is built or paved in the north patch)
+function inRings(rings, x, y) {
+  for (const r of rings) {
+    let c = false;
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      if ((r[i][1] > y) !== (r[j][1] > y) && x < (r[j][0] - r[i][0]) * (y - r[i][1]) / (r[j][1] - r[i][1]) + r[i][0]) c = !c;
+    }
+    if (c) return true;
+  }
+  return false;
+}
 
 export function makeFarTerrain(hf, nearHalf, south = null) {
   const wc = new THREE.Color();
@@ -370,7 +411,7 @@ export function makeFarTerrain(hf, nearHalf, south = null) {
     const c = city.map((v, k) => v * (1 - forest) + wood[k] * forest);
     return river ? [0.32, 0.4, 0.45] : c;
   };
-  const g = gridGeometry(hf, { hole: nearHalf, hole2: patchRect(south), colorFn: col });
+  const g = gridGeometry(hf, { hole: nearHalf, hole2: patchRects(south), colorFn: col });
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 });
   const mesh = new THREE.Mesh(g, m);
   mesh.name = 'terrain_far';
@@ -380,8 +421,10 @@ export function makeFarTerrain(hf, nearHalf, south = null) {
 
 // Forest canopy on the far hills (안산, 인왕산 …): clumps of low-poly crowns so the slopes read as woodland
 // rather than a smooth green dome.
-export function makeFarForest(hf, nearHalf, maxR = 3800, south = null) {
-  const pr = patchRect(south);
+export function makeFarForest(hf, nearHalf, maxR = 3800, south = null, north = null) {
+  const pr = patchRects(south);
+  // the north patch keeps its woods (무악학사 · 북문: 안산's slopes), the crowns on the patch's own ground and off what
+  // is built or paved there (north: { hf: the near Heightfield, rect, clear })
   const rnd = mulberry(77);
   const pts = [];
   const { n, half, step, data } = hf;
@@ -389,13 +432,24 @@ export function makeFarForest(hf, nearHalf, maxR = 3800, south = null) {
     for (let i = 0; i < n; i++) {
       const x = -half + i * step, y = -half + j * step;
       if (Math.abs(x) < nearHalf - 50 && Math.abs(y) < nearHalf - 50) continue;
-      if (nearPatch(pr, x, y, -50)) continue;
+      if (nearAny(pr, x, y, -50) && !(north && nearPatch(north.rect, x, y, -50))) continue;
       const r = Math.hypot(x, y);
       if (r > maxR) continue;
       const h = data[j * n + i];
       if (h < 70 + hillNoise(x, y) * 30) continue;
       const k = r < 2400 ? 14 : 6;
       for (let m = 0; m < k; m++) pts.push([x + (rnd() - 0.5) * step, y + (rnd() - 0.5) * step]);
+    }
+  }
+  // the north patch's woods (campus.json terrain.north.woods: OSM's woods round 무악학사 off the roads and halls) where
+  // the hills' threshold left none, from a stream of their own (the crowns above keep their draws)
+  if (north && north.woods) {
+    const rn = mulberry(78), [x0, y0, x1, y1] = north.rect;
+    for (let y = y0 + 10; y < y1; y += 20) {
+      for (let x = x0 + 10; x < x1; x += 20) {
+        const q = [x + (rn() - 0.5) * 16, y + (rn() - 0.5) * 16];
+        if (inRings(north.woods, q[0], q[1]) && !inRings(north.clear, q[0], q[1])) pts.push(q);
+      }
     }
   }
   // indexed: 42 corners a tree, not 240 (a sixth of the vertex work for the 6000; flat shaded, no uv read)
@@ -408,7 +462,9 @@ export function makeFarForest(hf, nearHalf, maxR = 3800, south = null) {
   pts.forEach(([x, y], i) => {
     const rr = 9 + rnd() * 8;
     sc.set(rr, rr * (0.55 + rnd() * 0.25), rr * (0.9 + rnd() * 0.2));
-    im.setMatrixAt(i, placeMatrix(m4, x, hf.height(x, y) + rr * 0.25, y, rnd() * 6.28, sc));
+    const onN = north && nearPatch(north.rect, x, y, 0);
+    if (onN && inRings(north.clear, x, y)) sc.setScalar(1e-4);      // (drawn, not seen: the rest keep their draws)
+    im.setMatrixAt(i, placeMatrix(m4, x, (onN ? north.hf.height(x, y) : hf.height(x, y)) + rr * 0.25, y, rnd() * 6.28, sc));
     c.setRGB(0.16 + rnd() * 0.08, 0.26 + rnd() * 0.08, 0.11 + rnd() * 0.05, THREE.SRGBColorSpace);
     im.setColorAt(i, c);
   });
@@ -449,7 +505,7 @@ export function makeSummitTower(hf, near = [710, 1400]) {
 
 // Distant 1990s Seoul: instanced apartment blocks scattered on the low ground of the far ring.
 export function makeCity(hf, nearHalf, count = 1600, south = null) {
-  const pr = patchRect(south);
+  const pr = patchRects(south);
   const c = document.createElement('canvas');
   c.width = 64; c.height = 128;
   const x = c.getContext('2d');
@@ -478,7 +534,7 @@ export function makeCity(hf, nearHalf, count = 1600, south = null) {
     if (h > 60 || h < 8) continue;
     const apt = rnd() < 0.45;
     s.set(apt ? 14 : 10 + rnd() * 20, apt ? 25 + rnd() * 20 : 6 + rnd() * 12, apt ? 60 + rnd() * 40 : 10 + rnd() * 20);
-    if (nearPatch(pr, X, Y, 150)) s.setScalar(1e-4);    // (over the patch south of the grid: drawn, not seen, so the rest stay)
+    if (nearAny(pr, X, Y, 150)) s.setScalar(1e-4);    // (over the patches past the grid: drawn, not seen, so the rest stay)
     im.setMatrixAt(k++, placeMatrix(m4, X, h - 1, Y, rnd() < 0.7 ? 0.25 : rnd() * 3, s));
   }
   im.count = k;

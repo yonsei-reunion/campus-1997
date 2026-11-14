@@ -81,12 +81,13 @@ async function main() {
   prefetch(halls);
   prefetch([...PROPS.map((n) => `${MODELS}props/${n}.glb`), ...castFiles(Object.keys(PEOPLE))], 'low');
   const envHdr = new RGBELoader().loadAsync(versioned('assets/hdri/env_1k_nosun.hdr'));
-  const [campus, matDefs, skyMeta, nearData, farData, entrances, southData] = await Promise.all([
+  const [campus, matDefs, skyMeta, nearData, farData, entrances, southData, northData] = await Promise.all([
     json('data/campus.json').then((c) => { prefetch(vegFiles(c).map((f) => MODELS + f), 'low'); return c; }),
     json('data/materials.json'), json('data/sky.json'),
     bin('data/terrain_near.bin'), bin('data/terrain_far.bin'),
     json('data/entrances.json').catch(() => ({ entrances: [] })),
     bin('data/terrain_south.bin').catch(() => null),        // 신촌 로터리: the patch south of the grid
+    bin('data/terrain_north.bin').catch(() => null),        // 무악학사 · 북문: the patch north of it
   ]);
   progress('지형 데이터를 펼치는 중…', 60);
 
@@ -164,6 +165,7 @@ async function main() {
   const T = campus.terrain;
   const hfNear = new Heightfield(nearData, T.near.half, T.near.step, T.near.n);
   if (T.south && southData) hfNear.setPatch(southData, T.south);
+  const northPatch = T.north && northData ? hfNear.setPatch(northData, T.north, true) : null;
   lib.setTerrain(hfNear);
   const hfFar = new Heightfield(farData, T.far.half, T.far.step, T.far.n);
   // the campus's static sun shadow baked into one texture (src/bakedshadow.js): the phones' only sun shadow, the
@@ -175,15 +177,19 @@ async function main() {
   scene.add(terrain);
   const terrainSouth = hfNear.ext ? makeSouthTerrain(hfNear, terrain.material) : null;   // (신촌 로터리)
   if (terrainSouth) scene.add(terrainSouth);
+  const terrainNorth = northPatch ? makeSouthTerrain(hfNear, terrain.material, northPatch) : null;   // (무악학사 · 북문)
+  if (terrainNorth) scene.add(terrainNorth);
   const grass = new Grass(renderer, scene, lib, hfNear, campus, sun);     // blades on the lawn round the camera
   const fall = new Fall(renderer, scene, lib, hfNear, campus, sunMap);   // petals / leaves coming down round it
-  scene.add(makeFarTerrain(hfFar, T.near.half, hfNear.ext && T.south));
-  scene.add(makeCity(hfFar, T.near.half, 1600, hfNear.ext && T.south));
+  const patches = [hfNear.ext && T.south, northPatch && T.north].filter(Boolean);
+  scene.add(makeFarTerrain(hfFar, T.near.half, patches));
+  scene.add(makeCity(hfFar, T.near.half, 1600, patches));
   // the kits placed for good, the forest and the far hills' trees, drawn only where in view (world.js); whole into
   // the shadow cache
   const kitCull = new KitCuller();
   shadows.wholeSets = (on) => kitCull.shadowPass(on);
-  const farForest = makeFarForest(hfFar, T.near.half, 3800, hfNear.ext && T.south);
+  const farForest = makeFarForest(hfFar, T.near.half, 3800, patches, northPatch &&
+    { hf: hfNear, rect: [northPatch.x0, northPatch.y0, northPatch.x1, northPatch.y1], clear: T.north.clear || [], woods: T.north.woods || [] });
   kitCull.add([farForest]);
   scene.add(farForest);
   scene.add(makeSummitTower(hfFar));
@@ -224,6 +230,7 @@ async function main() {
   road.scene.updateMatrixWorld(true);
   for (const m of [...roadMeshes, ...amph, ...stairWalk, ...townBanks]) walkables.push(m);
   if (terrainSouth) walkables.push(terrainSouth);
+  if (terrainNorth) walkables.push(terrainNorth);
   for (const m of walkables) m.geometry.computeBoundsTree();
 
   const amphGroup = new THREE.Group();

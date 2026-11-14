@@ -26,12 +26,21 @@ _SS = CAMPUS['terrain'].get('south')
 _S = np.load(os.path.join(ROOT, 'data', 'terrain_south.npy')) if _SS else None
 
 
+# the patch north of it (tools/muak.py NORTH: 무악학사 · 북문), its bottom row the grid's top row
+_NS = CAMPUS['terrain'].get('north')
+_N = np.load(os.path.join(ROOT, 'data', 'terrain_north.npy')) if _NS else None
+
+
 def _grid(x, y):
     """the grid that holds (x, y), its frame, and the fractional cell"""
     if _S is not None and y < _SS['y0'] + (_SS['ny'] - 1) * _SS['step'] and _SS['x0'] <= x <= _SS['x0'] + (_SS['nx'] - 1) * _SS['step']:
         fx = min(max((x - _SS['x0']) / _SS['step'], 0), _S.shape[1] - 1.001)
         fy = min(max((y - _SS['y0']) / _SS['step'], 0), _S.shape[0] - 1.001)
         return _S, fx, fy
+    if _N is not None and y > _NS['y0'] and _NS['x0'] <= x <= _NS['x0'] + (_NS['nx'] - 1) * _NS['step']:
+        fx = min(max((x - _NS['x0']) / _NS['step'], 0), _N.shape[1] - 1.001)
+        fy = min(max((y - _NS['y0']) / _NS['step'], 0), _N.shape[0] - 1.001)
+        return _N, fx, fy
     fx = min(max((x + _TH) / _TS, 0), _T.shape[1] - 1.001)
     fy = min(max((y + _TH) / _TS, 0), _T.shape[0] - 1.001)
     return _T, fx, fy
