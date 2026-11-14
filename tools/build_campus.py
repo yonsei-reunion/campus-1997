@@ -6618,6 +6618,17 @@ harmonic_fill(_yjf)
 FIXED[_yjm] = True
 print('용재관 북쪽 드는 길: %d nodes on the profile (%+.2f .. %+.2f), %d eased (%+.2f .. %+.2f)' % (
     int(_yjm.sum()), (Hn - _yjh0)[_yjm].min(), (Hn - _yjh0)[_yjm].max(), int(_yjf.sum()), (Hn - _yjh0)[_yjf].min(), (Hn - _yjh0)[_yjf].max()))
+# 노천극장 갈림길 남쪽 (reference/고증/3.13 「북쪽 드는 길의 높이」): between that drive, the east road and the foot of
+# 노천극장's west bank the grid had kept the ground from before the three were raised, a hole 3 - 7 m under them (the
+# 1997 photos have the ground there at the drive's own height: 16 points with five to ten frame pairs, 해발 50 - 51 m
+# where the grid had 43.3 - 47.8).  One smooth surface between the three, which stay
+YJ_NORTH97 = Polygon([(104.0, 163.5), (127.5, 160.5), (127.5, 184.0), (117.0, 188.0), (107.0, 177.0)])
+_ynh = shapely.contains_xy(YJ_NORTH97, X, Y) & ~FIXED
+_ynh0 = Hn.copy()
+harmonic_fill(_ynh)
+FIXED[_ynh] = True
+print('노천극장 갈림길 남쪽: %d nodes filled smoothly, %+.2f .. %+.2f m' % (
+    int(_ynh.sum()), (Hn - _ynh0)[_ynh].min(), (Hn - _ynh0)[_ynh].max()))
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
