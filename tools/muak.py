@@ -373,7 +373,7 @@ OTHER_HALLS = [  # (id, name, style, levels, OSM id or outline, shift, hip)
     (991032, '', 'white', 2, [(65.0, 862.0), (80.0, 862.0), (80.0, 892.0), (65.0, 892.0)], (0.0, 0.0), None),
 ]
 # 북문 (1997 frames 26/14, 27/15, 27/16, within 0.5 m): two concrete frames along the road, each a ㄇ that the iron
-# leaf folds into, 6 m apart, and on the south frame's inner side a flat-roofed lodge with a cut corner
+# leaf folds into, their inner faces 4.7 m apart, and on the south frame's inner side a flat-roofed lodge with a cut corner
 GATE_FRAMES = [[(11.8, 917.2), (16.8, 917.2), (16.8, 920.6), (11.8, 920.6)], [(13.5, 910.1), (17.5, 910.1), (17.5, 912.5), (13.5, 912.5)]]
 GATE_LODGE = [(14.5, 903.5), (23.0, 903.5), (23.0, 910.0), (16.0, 910.0), (14.5, 908.5)]
 COURTS = [429077768, 429077769, 429077775]
