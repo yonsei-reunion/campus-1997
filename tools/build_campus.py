@@ -493,9 +493,12 @@ del CROSS[2]
 CROSS.append(270.9)
 # 학생회관 · 대강당 · 경영학교실단 앞: the narrow zebras of the July 1997 scans (two flights, 2.3, #185), appended the same way
 CROSS += [332.2, 418.5, 507.9]
+# 정문 안: the zebra just inside the gate, from the west sidewalk's end (the side-road mouth starts at s 62) over to the
+# east one, s 61.9 - 63.8 in both July 1997 scans that see it (26/16 · 27/17; 고증 2.4 「정문 안 건널목」), outside photo A
+CROSS.append(62.8)
 # (the ginkgo rows keep their trees by these: one dropped tree would shift every tree appended after it in the list
 # and change its model in the web; in_gap below)
-CROSS_KEEP_ROWS = (270.9, 332.2, 418.5, 507.9, 381.2)
+CROSS_KEEP_ROWS = (270.9, 332.2, 418.5, 507.9, 381.2, 62.8)
 # 백주년기념관 앞 (227.4): the opening in both verges is there in 1997 (223.5 - 229.3) and in the roadview, but no
 # stripes in any photo (the roadview has none either): an opening people walk through, kept a crossing for the
 # planting and the decals, painted none (CROSS_PAINT; its verge openings VERGE_BREAKS below)
