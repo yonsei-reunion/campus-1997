@@ -15,7 +15,7 @@ the survey's above sea level): EAST_Z, NE_PROF, HEART_Z, DENT_Z.
   north) where the game's ground fell from 45 m at its north end to 31 m at its south (the 2005 hospital's site, painted
   asphalt).  Along its north-east side the road down to 성산로 falls 47 → 34 m past it (NE_PROF: across-road profiles
   every 5 m), 3.5 m under the lot at s 30 and 7 m at s 60: the lot is held up by a wall, its south-east edge by a wooded
-  bank 10 m down to 성산로.  The 5 m grid makes both a steep bank one cell wide (grass, BANK below).  The road's lower
+  bank 10 m down to 성산로.  The 5 m grid makes both a steep bank one cell wide (grass: BANK).  The road's lower
   end eases to 성산로 as the game has it (gate_town: 3 m under the photos there, left as it is).
 - 심장혈관병원 북쪽 (HEART_LOT): paved, three rows and a row along the east, 44 → 46 m to the north (5 %); the game had
   a lawn rising to 48.5 m.
@@ -46,6 +46,7 @@ NE_PROF = [(0.0, 44.7), (5.0, 44.1), (10.0, 43.4), (20.0, 41.8), (25.0, 41.3), (
            (45.0, 39.0), (50.0, 38.3), (55.0, 37.6), (60.0, 37.0), (65.0, 36.5), (70.0, 36.2), (75.0, 34.9), (80.0, 34.1),
            (85.0, 33.9), (90.0, 34.0), (95.0, 33.8)]
 NE_SIDE = (-4.0, 12.0)            # its bed across (the lot's wall at -6.5 m, the far sidewalk's back)
+SE_EDGE = ((350.8, -217.8), (300.0, -254.0))   # the lot's south-east edge (the wooded bank's top)
 NE_S = (8.0, 88.0)                # graded from here to where 성산로's bed begins
 # 심장혈관병원 북쪽 · 치과대학병원 서쪽: the paved yards' edges on the scans (the cars' rows 0.8 m in or more)
 HEART_LOT = Polygon([(134.0, -55.0), (158.0, -59.0), (167.0, -69.0), (181.0, -83.0), (186.0, -95.0), (174.0, -105.0),
@@ -58,7 +59,7 @@ LOTS = [('동쪽 큰 주차장', EAST_LOT, EAST_Z, 3.0), ('심장혈관병원 �
         ('치과대학병원 서쪽', DENT_LOT, DENT_Z, 2.0)]
 RING = 18.0                       # the ground eased in (harmonic) this far out of each lot
 HALL_PAD = 7.0                    # the halls' feet stay as they were (their bases read the ground under their corners)
-BANK = []                         # (set by grade: the steep cells round the east lot, for paint)
+BANK = []                         # (set by grade: the east lot's wall and bank, for paint)
 
 
 def ne_sd(x, y):
@@ -109,20 +110,18 @@ def grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw, step=5.0, half=800.0):
     if free.any():
         fill(free)
     info['ring'] = int(free.sum())
-    # the steep cells round the east lot (a wall and a bank in 1997): grass on the game's map
+    # the east lot's wall and bank (1997): grass on the game's map, between the lot's edge and the road's kerb on the
+    # north-east and down to 성산로's bed on the south-east (straight edges: the 5 m cells' outline would zigzag)
     BANK.clear()
-    jj, ii = np.nonzero(shapely.contains_xy(EAST_LOT.buffer(LOTS[0][3] + RING), X, Y))
-    cells = []
-    for j, i in zip(jj, ii):
-        if j + 1 >= Hn.shape[0] or i + 1 >= Hn.shape[1]:
-            continue
-        q = Hn[j:j + 2, i:i + 2]
-        if q.max() - q.min() > 2.5:
-            x0, y0 = -half + i * step, -half + j * step
-            cells.append(shapely.geometry.box(x0, y0, x0 + step, y0 + step))
-    if cells:
-        b = unary_union(cells).difference(EAST_LOT.buffer(0.5)).difference(ne_band(0.0, 100.0)).difference(road_ls.buffer(road_hw))
-        BANK.extend(g for g in getattr(b, 'geoms', [b]) if g.geom_type == 'Polygon' and g.area > 1.0)
+    q = lambda s_, o_: tuple(NE_O + NE_T * s_ + NE_N * o_)
+    ne = Polygon([q(12.0, -9.0), q(80.0, -11.0), q(80.0, NE_SIDE[0]), q(12.0, NE_SIDE[0])])
+    a_, b_ = np.array(SE_EDGE[0]), np.array(SE_EDGE[1])
+    t_ = (b_ - a_) / np.linalg.norm(b_ - a_)
+    n_ = np.array([-t_[1], t_[0]])                      # (south-east, away from the lot)
+    se = Polygon([tuple(a_ - t_ * 6.0), tuple(b_ + t_ * 4.0), tuple(b_ + t_ * 4.0 + n_ * 30.0), tuple(a_ - t_ * 6.0 + n_ * 30.0)])
+    band = unary_union([ne, se]).difference(EAST_LOT.buffer(0.3)).difference(ne_band(0.0, 100.0)) \
+        .difference(road_ls.buffer(road_hw))
+    BANK.extend(g for g in getattr(band, 'geoms', [band]) if g.geom_type == 'Polygon' and g.area > 1.0)
     moved = np.abs(Hn - H0)
     info['moved'] = (int((moved > 0.05).sum()), round(float(moved.max()), 1))
     return took | free, info
