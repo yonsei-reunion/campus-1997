@@ -73,6 +73,7 @@
   - `docs/compare/`(README 「사진과 비교」) · `docs/game/` · `docs/screenshots/` 는 모두 `tools/snapshots.json` 의 카메라로 `/update-snapshots` 가 다시 찍는다.
   - 고증 파일의 「비교」는 `docs/compare/` 에 짝이 있으면 그것을 가리킨다. 짝이 없는 대상만 `docs/screenshots/<이름>.jpg`(번호 없는 이름)로 찍고, 카메라를 `screenshots/<이름>` 으로 더한다.
 - 사진은 라이선스가 분명할 때만(퍼블릭 도메인, CC BY · BY-SA, KOGL 1유형 등) 줄여서 `reference/` 에 넣는다. 로드뷰 · 거리뷰 화면과 그 밖의 사진은 저장소에 넣지 않는다. 대신 `reference/출처.txt` 에 「보며 잼」과 파노라마 id · 촬영 연월(또는 URL)을 적는다.
+- 받아서 저장소 밖(`assets_src/`)에 두는 지도 · 항공사진 · 지형 자료의 목록은 `reference/고증/1.5_저장소_밖_자료.md` 한 곳에 둔다. 새로 받으면 그 표에 파일 · 받은 날 · 받는 법을 더하고, 다른 곳(1.1 자료 표, `출처.txt`, 도구 머리말, `assets_src/*/README.md`)은 그 파일을 가리키기만 한다.
 
 ## 생성 파일과 다시 만들기
 
