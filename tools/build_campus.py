@@ -9469,6 +9469,13 @@ for nm_ in ('무악학사', '무악학사 3 · 4학사 (공사중)', '우유처�
     _mp = unary_union([Polygon(b_['footprint']) for b_ in _mb]).representative_point() if nm_ != '북문' else Point(15.0, 915.0)
     out['markers'].append(dict(name=nm_, pos=[round(_mp.x, 1), round(_mp.y, 1)],
                                top=round(max(b_['base'] + b_['height'] for b_ in _mb) + (4.0 if nm_ == '무악학사' else 1.0), 1)))
+# 동문 쪽 학사 (reference/고증/3.1.2 「제중학사 · 법현학사」): the six-storey slab the 1997 frames 27/16 and 27/17 have
+# where 제중학사 · 에비슨하우스 (2017) stand, its roof 18.9 m over the yard south of it; which of the two dormitories
+# (1974, 1975) it is they cannot tell.  At the halls' end (blender/build.py draws the halls' looks in their order)
+_jj = shapely.geometry.polygon.orient(Polygon([(558.2, 186.6), (592.0, 154.4), (600.4, 161.0), (564.2, 194.6)]), 1.0)
+_jjh = [ground_tn(x_, y_) for x_, y_ in _jj.exterior.coords]
+buildings.append(dict(id=991051, name='', style='brick', levels=6, height=round(6 * 3.15, 2), fh=3.15, base=round(min(_jjh), 2),
+                      top_ground=round(max(_jjh), 2), footprint=[[x_, y_] for x_, y_ in list(_jj.exterior.coords)[:-1]]))
 print('무악학사 · 북문: halls %d, houses %d, trees %d, cleared for the far forest %d pieces' % (
     len(MUAK_HALLS), len(MUAK_HOUSES), len(MUAK_N_TREES), len(out['terrain']['north']['clear'])))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
