@@ -32,6 +32,7 @@ import town97
 import east97
 import kwangbok97
 import medwest97
+import jonghap97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -6687,6 +6688,20 @@ for b_ in buildings:
         print('   %s: floor %.2f -> %.2f m, %d storeys, eaves %.2f m' % (
             b_['name'], _kb_b0, b_['base'], b_['levels'], b_['base'] + b_['height'] - 1.2))
 BASE_1997[kwangbok97.KB] = kwangbok97.plan()['fore']
+# 종합관 · 외솔관2 · 인문관 둘레 (tools/jonghap97.py, reference/고증/3.1 「종합관 · 외솔관2 · 인문관: 1997년의 땅과 건물」; #189, jh):
+# the yard north of 종합관, the road east of it and down before 인문관's east end, the lane behind 인문관 and the ground
+# at 외솔관2's ends on the 1997 photos' levels, the wooded hill north-west of them and the slope south-east on the
+# 2006 survey's surface; #110's levels round 외솔관2 give way.  Late, here: the planting has read the ground as it
+# was.  The other halls' feet stay (한경관 · 스팀슨관 keep their floors whatever the ground: not padded), and 인문관
+# 남쪽 길 (INM97 above)
+_jh_own = (jonghap97.JONGHAP, jonghap97.OESOL2, jonghap97.INMUN, 246156110, 246156118)
+_jh_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997 and b_['id'] not in _jh_own] + \
+    [p_.buffer(0) for _, _, _, _, p_ in OLD_HALLS] + [Polygon(v_).buffer(0) for k_, v_ in LATE_FOOTPRINT_1997.items() if k_ not in _jh_own]
+_jh_took, JONGHAP97_GRADE = jonghap97.grade(
+    Hn, X, Y, FIXED, _jh_halls,
+    (_inm_u >= INM97['u'][0]) & (_inm_u <= INM97['u'][1]) & (_inm_v >= INM97['v'][0]) & (_inm_v <= INM97['v'][1]), harmonic_fill)
+FIXED[_jh_took] = True
+print('종합관 · 외솔관2 · 인문관 둘레:', JONGHAP97_GRADE)
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
@@ -6880,6 +6895,18 @@ SITES_NEW_1997.add(BILL)
 BASE_1997[BILL] = next(b_['base'] for b_ in buildings if b_['id'] == BILL)
 ENTRY_AT[BILL] = (bill_xy(BILL_UV['door'], BILL_UV['mid'][2]), dict(floor=0))
 BILL_POLY = Polygon(LATE_FOOTPRINT_1997[BILL])
+# 종합관 · 외솔관2 · 인문관 as the 1997-07-28 scans have them (tools/jonghap97.py, reference/고증/3.1 「종합관 · 외솔관2 ·
+# 인문관: 1997년의 땅과 건물」): 종합관 the slab alone (its low east block, 1994's, goes in at the halls' end: below),
+# 외솔관2 3.1 m west of OSM's and 5.4 m shorter at its east end, 인문관 without OSM's porch; their floors, storeys and
+# doors from the roofs' heights and the ground round them.  The planting ran with OSM's outlines; the halls go in
+# after it, the trees in what they gained step aside (SITES_NEW_1997)
+_jh_old = {b_['id']: {k_: v_ for k_, v_ in b_.items() if k_ != 'entry'} for b_ in buildings if b_['id'] == jonghap97.OESOL2}
+for _jid in (jonghap97.JONGHAP, jonghap97.OESOL2, jonghap97.INMUN):
+    LATE_FOOTPRINT_1997[_jid] = [(round(x_, 2), round(y_, 2)) for x_, y_ in list(jonghap97.OUTLINE[_jid].exterior.coords)[:-1]]
+    LATE_NO_SIMPLIFY.add(_jid)
+    SITES_NEW_1997.add(_jid)
+    BASE_1997[_jid] = jonghap97.FLOORS[_jid]['base']
+    ENTRY_AT[_jid] = jonghap97.DOORS[_jid]
 LATE_SITES = []
 LATE_SITES_RNG = []        # (as the trees were first cleared: MED_SITES_RNG)
 for b in buildings:
@@ -6916,6 +6943,16 @@ for b in buildings:
     LATE_SITES.append(poly)
     if b['id'] not in SITES_NEW_1997 and MED_SITES_RNG.get(b['id'], poly) is not None:
         LATE_SITES_RNG.append(MED_SITES_RNG.get(b['id'], poly))
+# (종합관 · 외솔관2 · 인문관, above: their storeys.  외솔관2's low white gabled roof draws nothing from blender/build.py's
+# stream, so its flat-roofed self draws in its place: RND_GHOSTS.  종합관's low block: its site cleared with the others)
+for b in buildings:
+    if b['id'] in jonghap97.FLOORS:
+        _jf = jonghap97.FLOORS[b['id']]
+        b.update(levels=_jf['levels'], fh=_jf['fh'], height=round(_jf['levels'] * _jf['fh'] + 1.2, 2))
+        if b['id'] == jonghap97.OESOL2:
+            b['hip'] = dict(jonghap97.OESOL2_ROOF)
+            RND_GHOSTS.append({**_jh_old[b['id']], 'at': next(i_ for i_, b_ in enumerate(buildings) if b_ is b)})
+LATE_SITES.append(shapely.geometry.polygon.orient(jonghap97.OUTLINE[jonghap97.PODIUM], 1.0))
 # 경영학교실단 (reference/고증/3.15-3.17 「날개와 강당의 높이」; the 1997-07-28 scans, four frames from both flight
 # lines): both wings' roofs at the same height, 58.4 m on the game's ground (58.6 · 58.8 on the photos' datum, which
 # stands 0.3 - 0.5 m over the game's at the front walk, the car park and the front block's roof), where the game had
@@ -9643,6 +9680,7 @@ _YN[id(_gw)] = '_gw'
 _ypaint([BK_COURT], _gw)
 _ypaint([DW_WALL_WALK], _gw)               # (대우관 서쪽 벽 발치: the old line's asphalt along the wall)
 _ypaint([AUD_RAMP_WALK.difference(bline.buffer(ROAD_HALF)).difference(AUD_BANK_POLY)], _gp)   # (its walk: paving)
+_ypaint(jonghap97.PAVED, _gp)                  # (종합관 북쪽 마당: the paved yard and the terrace of the 1997 scans)
 _gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
 spl[..., 1] *= 1.0 - _gd / 255.0
 spl[..., 2] = np.where(_gd > 0, np.minimum(np.maximum(spl[..., 2], _gd), 255.0 - spl[..., 0] - spl[..., 1]), spl[..., 2])
@@ -10479,6 +10517,20 @@ buildings += MUAK_HALLS_LATE                 # (무악학사 · 북문: after ev
 buildings += medwest97.halls()
 out['seomun'] = seomun.gate(ground_tn)
 out['markers'].append(dict(name='서문', pos=[-362.0, -18.4], top=round(out['seomun']['z'] + 4.0, 1)))
+# 종합관's low east block (tools/jonghap97.py PODIUM: 1994's two storeys across the slab's east end), at the halls' end
+# (blender/build.py draws each hall's looks in its order); its door on the road east of it
+_jhp = shapely.geometry.polygon.orient(jonghap97.OUTLINE[jonghap97.PODIUM], 1.0)
+_jhf = jonghap97.FLOORS[jonghap97.PODIUM]
+_jhb = dict(id=jonghap97.PODIUM, name='종합관', style='modern', levels=_jhf['levels'], fh=_jhf['fh'],
+            height=round(_jhf['levels'] * _jhf['fh'] + 1.2, 2), base=_jhf['base'],
+            top_ground=round(max(ground_tn(x_, y_) for x_, y_ in _jhp.exterior.coords), 2),
+            footprint=[[round(x_, 2), round(y_, 2)] for x_, y_ in list(_jhp.exterior.coords)[:-1]])
+ENTRY_AT[jonghap97.PODIUM] = jonghap97.DOORS[jonghap97.PODIUM]
+_bp_all = [Polygon(b_['footprint']) for b_ in buildings if b_['id'] != jonghap97.JONGHAP] + [_jhp]
+_jhe = _entry(_jhb, _jhp)
+_jhb['entry'] = dict(p=[round(_jhe[1], 2), round(_jhe[2], 2)], n=[round(_jhe[3], 4), round(_jhe[4], 4)],
+                     **ENTRY_AT[jonghap97.PODIUM][1])
+buildings.append(_jhb)
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
 # edges in their places in the list
@@ -10494,6 +10546,10 @@ _mw_nd = len(out['decals'])
 out['decals'] = [d_ for d_ in out['decals'] if not _mw_clr.contains(Point(d_[1], d_[2]))]
 print('의료원 서쪽: trees moved', _mw_moved, 'left on it', _mw_left, 'planted', len(_mw_new), 'shrubs -%d props -%d decals -%d' % (
     _mw_ns, _mw_np, _mw_nd - len(out['decals'])), 'walks (cut, gone, new)', medwest97.walks(out['paths']))
+# 종합관 북쪽 마당 (tools/jonghap97.py; #189, jh): the trees the random planting put on the paved yard and the terrace
+# and where the low block stands, out to their edges in their places in the list
+print('종합관 북쪽 마당: trees out of the yard and the low block',
+      jonghap97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
