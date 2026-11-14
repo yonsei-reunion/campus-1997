@@ -595,13 +595,14 @@ async function main() {
     pickEl.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.id === id));
     if (player.actor.id !== id) { const a = cast.make(id, undefined, null, heroScale(id)); scene.add(a.holder); shadows.addDynamic(a.holder); player.setActor(a); }
     heroPlace(id);
+    $('#hero-who').textContent = `${HERO[id].name} · ${HERO[id].college}`;
   };
   let heroPlace = () => {};          // (the places come further down: the walk starts at the hero's own college)
   for (const id of HEROES) {
     const b = document.createElement('button');
     b.dataset.id = id;
-    b.title = PEOPLE[id];
-    b.innerHTML = `<img src="${pics[id]}" alt=""><span><b>${HERO[id].name}</b>${HERO[id].college}</span>`;
+    b.title = `${HERO[id].college} · ${PEOPLE[id]}`;
+    b.innerHTML = `<img src="${pics[id]}" alt=""><span><b>${HERO[id].name}</b>${HERO[id].short}</span>`;
     b.addEventListener('click', () => pickHero(id));
     pickEl.appendChild(b);
   }

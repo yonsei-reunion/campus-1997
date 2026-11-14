@@ -12,6 +12,9 @@ const segDist = ([x, y], [ax, ay], [bx, by]) => {
 };
 const polyDist = (p, poly) => (pointInPoly(p[0], p[1], poly) ? 0 : Math.min(...poly.map((a, i) => segDist(p, poly[i ? i - 1 : poly.length - 1], a))));
 const yawTo = (dx, dy) => Math.atan2(-dx, dy);          // Player.teleport's yaw: the walker then faces (-sin yaw, cos yaw)
+// a building whose flights give on a court too narrow to stand back in (의과대학: between its two halls, a wall 6 m
+// before the door): where to stand instead, and the point of its wall to face (the long hall's open north-west side)
+const STAND = { 의과대학: { at: [128.9, -321.9], face: [134.5, -327.5] } };
 
 // → [{ name, group, x, y, yaw, front }] (front: standing at the door); resolve(x, y, r) pushes a circle out of the colliders
 export function startPlaces(campus, zones, resolve) {
@@ -60,8 +63,9 @@ export function startPlaces(campus, zones, resolve) {
   const taken = new Set(campus.landmarks.map((l) => l.name));
   const bld = (campus.markers || []).filter((m) => !taken.has(m.name)).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   for (const m of bld) {
-    const z = door.get(m.name);
-    out.push({ name: m.name, group: '건물', ...(z ? atDoor(z) : near(m.pos, null)) });
+    const z = door.get(m.name), s = STAND[m.name];
+    const p = s ? { x: s.at[0], y: s.at[1], yaw: yawTo(s.face[0] - s.at[0], s.face[1] - s.at[1]), front: false } : z ? atDoor(z) : near(m.pos, null);
+    out.push({ name: m.name, group: '건물', ...p });
   }
   return out;
 }

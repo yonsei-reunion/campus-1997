@@ -1,5 +1,5 @@
 // 캠퍼스 사람들 (people.html): every model of the cast on one page, without the campus. One renderer draws each
-// person into the rectangle of their card (a scissored viewport over the page), so fourteen people cost one WebGL
+// person into the rectangle of their card (a scissored viewport over the page), so fifteen people cost one WebGL
 // context. Drag turns them all (or the chips: front, right, back, left), other chips pick the clip everybody plays,
 // a click opens one person large from the four sides at once; there the looks the crowd gives that model
 // (characters.js crowdLook) can be tried on. people.html#<id> opens that person.
@@ -8,7 +8,7 @@ import { Cast, PEOPLE, STUDENTS, HEROES, HERO, heroScale, crowdLook, play } from
 import { HERO_BAGS, crowdBag } from './bags.js';
 import { windTime } from './materials.js';
 
-// the nine you can walk as first (by their names and colleges), then the others
+// the eleven you can walk as first (by their names and colleges), then the others
 const IDS = [...HEROES, ...Object.keys(PEOPLE).filter((id) => !HEROES.includes(id))];
 const title = (id) => (HERO[id] ? `${HERO[id].name} · ${HERO[id].college}` : PEOPLE[id]);
 const sub = (id) => (HERO[id] ? PEOPLE[id] + (HERO[id].height ? ` · ${Math.round(HERO[id].height * 100)} cm` : '') : kind(id));

@@ -25,27 +25,32 @@ export const PEOPLE = {
   'woman-tee': '연세 티 · 연청바지',
   'woman-pink': '분홍 니트',
   'woman-dress': '빨간 니트 · 청치마',
-  'woman-dress-blue': '배꼽티 · 블랙진',
+  'woman-dress-blue': '크림색 맨투맨 · 블랙진',
   'woman-cardigan': '노란 카디건',
   'woman-staff': '교직원',
+  'woman-stripe': '줄무늬 티 · 청바지',
 };
 export const STUDENTS = ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man-grey', 'man-blazer',
   'woman-tee', 'woman-pink', 'woman-dress', 'woman-dress-blue', 'woman-cardigan'];
 export const HEROES = ['man-tee', 'woman-dress', 'man-cheer', 'woman-tee', 'man-check', 'woman-cardigan', 'man-blazer', 'woman-pink',
-  'woman-dress-blue'];
-// the nine you can walk as: a name of the class of 1997 (the first two from the film 건축학개론, 2012, whose first half
+  'woman-dress-blue', 'man-hoodie', 'woman-stripe'];
+// the eleven you can walk as: a name of the class of 1997 (the first two from the film 건축학개론, 2012, whose first half
 // is a campus of 1996), the college they are of, and the hall their walk starts at (a name of campus.json's markers
 // or landmarks: places.js startPlaces); height: taller or shorter than the model (men 1.73 m, women 1.61 m)
+// short: the college as students called it (the title card's eleven buttons have room for no more)
 export const HERO = {
-  'man-tee': { name: '승민', college: '공과대학', place: '제1공학관' },
-  'woman-dress': { name: '서연', college: '음악대학', place: '음악대학' },
-  'man-cheer': { name: '성구', college: '상경대학', place: '상대신관', height: 1.79 },
-  'woman-tee': { name: '지은', college: '문과대학', place: '인문관' },
-  'man-check': { name: '성훈', college: '이과대학', place: '과학관' },
-  'woman-cardigan': { name: '은정', college: '사회과학대학', place: '연희관' },
-  'man-blazer': { name: '준호', college: '법과대학', place: '광복관' },
-  'woman-pink': { name: '지영', college: '교육과학대학', place: '용재관' },
-  'woman-dress-blue': { name: '수진', college: '생활과학대학', place: '가정관' },
+  'man-tee': { name: '승민', college: '공과대학', short: '공대', place: '제1공학관' },
+  'woman-dress': { name: '서연', college: '음악대학', short: '음대', place: '음악대학' },
+  'man-cheer': { name: '성구', college: '상경대학', short: '상경대', place: '상대신관', height: 1.79 },
+  'woman-tee': { name: '지은', college: '문과대학', short: '문과대', place: '인문관' },
+  'man-check': { name: '성훈', college: '이과대학', short: '이과대', place: '과학관' },
+  'woman-cardigan': { name: '은정', college: '사회과학대학', short: '사과대', place: '연희관' },
+  'man-blazer': { name: '준호', college: '법과대학', short: '법대', place: '광복관' },
+  'woman-pink': { name: '지영', college: '교육과학대학', short: '교과대', place: '용재관' },
+  'woman-dress-blue': { name: '수진', college: '생활과학대학', short: '생과대', place: '가정관' },
+  'man-hoodie': { name: '동현', college: '의과대학', short: '의대', place: '의과대학' },
+  // (the one model that is nobody of the crowd: STUDENTS, the crowd's pool, stays as it was)
+  'woman-stripe': { name: '혜진', college: '간호대학', short: '간호대', place: '간호대학' },
 };
 
 // Every part of a person (skin, clothes, hair ...) is a flat colour, so one vertex-coloured material serves
@@ -87,9 +92,9 @@ const SKIN_ROUGH = 0.5;
 const PERSON_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, envMapIntensity: 0.8 });
 PERSON_MAT.name = 'person';
 const FACE_BIAS = '-0.75', EYE_WHITE = '0.84, 0.83, 0.80';     // (faces.py WHITE)
-const BLANK_UV = 0.875;            // the middle of the atlas' blank cell (u and v): faces.py BLANK
+const BLANK_UV = 0.9;              // the middle of the atlas' blank cell (u and v): faces.py BLANK (the last of 5 x 5)
 const RIM_W = 0.0022;              // the rims' thickness in the game, m (faces.py RIM_T, scaled as the people)
-const RIM_UV = 0.004;              // the same on the atlas: RIM_T / (2 HALF) / GRID
+const RIM_UV = 0.0032;             // the same on the atlas: RIM_T / (2 HALF) / GRID
 const RIM_PX = MOBILE ? 1.2 : 0.35;   // the rims' geometry from this many pixels across (desktop: TAA resolves less)
 const RIMS = ['#77736c', '#2a2420'];  // thin metal, dark horn (crowdLook picks one; the shader's drawn ones alike)
 const glsl = (hex) => { const c = new THREE.Color(hex); return `vec3(${c.r.toFixed(4)}, ${c.g.toFixed(4)}, ${c.b.toFixed(4)})`; };
@@ -113,7 +118,7 @@ async function loadFaces() {
   RIMS_TEX.value = rims;
   PERSON_MAT.needsUpdate = true;
 }
-const GRID_F = '4.0';                  // (faces.py GRID)
+const GRID_F = '5.0';                  // (faces.py GRID)
 const LEG_TOP = '1.25';                // (characters.py LEG_TOP)
 const FINE = !MOBILE;               // the folds of cloth and the strands of hair
 PERSON_MAT.onBeforeCompile = (sh) => {
@@ -171,7 +176,7 @@ PERSON_MAT.onBeforeCompile = (sh) => {
         vec2 c = fract( vMapUv * ${GRID_F} );
         vec2 e = vec2( ( abs( c.x - 0.5 ) - ${EYE_U.toFixed(4)} ) / ${EYE_A.toFixed(4)}, ( c.y - ${(EYE_V - 0.02).toFixed(4)} ) / ${EYE_B.toFixed(4)} );
         float shut = step( fract( ( uBlinkT + pBlink * 1.37 ) / ( 3.0 + 0.19 * pBlink ) ) * ( 3.0 + 0.19 * pBlink ), 0.13 );
-        shut *= step( 0.5, vPart.y ) * step( vPart.y, 1.5 ) * ( 1.0 - step( 0.75, vMapUv.x ) * step( 0.75, vMapUv.y ) );      // (skin, not the blank cell)
+        shut *= step( 0.5, vPart.y ) * step( vPart.y, 1.5 ) * ( 1.0 - step( 0.8, vMapUv.x ) * step( 0.8, vMapUv.y ) );      // (skin, not the blank cell)
         float lid = shut * ( 1.0 - smoothstep( 0.8, 1.0, length( e ) ) );
         float lash = ( 1.0 - smoothstep( 0.09, 0.17, abs( e.y - 0.38 + 0.30 * e.x * e.x ) ) ) * ( 1.0 - smoothstep( 0.015, 0.04, length( fwidth( c ) ) ) );     // (the line from near only)
         drawn = mix( drawn, vec4( mix( vec3( 1.0 ), vec3( 0.07, 0.05, 0.05 ), lash * step( abs( e.x ), 0.92 ) ), 1.0 ), lid );
@@ -349,12 +354,12 @@ const LOOKS = {
   'woman-tee': { White: ['#f4f1e8', '#f4f1e8', '#f3d9de', '#cfe0ee', '#e9dfa8', '#2f3a55', '#b9c9a8'], Orange: [...JEANS, '#cdb994', '#2a2a2e'] },
   'woman-pink': { White: ['#e7a7b6', '#f0e6d2', '#a9c3de', '#c7b3dc', '#b5d6c3', '#e8c66a', '#c95a5a'], Orange: ['#cdb994', ...JEANS, '#2a2a2e', '#f0eee8'] },
   'woman-dress': { LimeGreen: ['#a3202c', '#f1ede1', '#f3d9de', '#cfe0ee', '#ecdf9e', '#2a2a2e', '#b9c9a8'] },
-  'woman-dress-blue': { Pink: ['#a9c6e6', '#f4f1e8', '#f3d9de', '#e9dfa8', '#2a2a2e', '#c95a5a'] },
+  'woman-dress-blue': { LimeGreen: ['#ece4cc', '#ece4cc', '#8d8f92', '#27345a', '#6e2430', '#2f5a45', '#f3d9de', '#a9c6e6'] },
   'woman-cardigan': { Black: ['#ecdf9e', '#f3d9de', '#6f7f5a', '#8d8f92', '#2f3a55', '#e6dcc6', '#c98a8a'], Orange: [JEANS[1], ...JEANS, '#2b2f3a', '#cdb994'] },
   'woman-staff': { Black: ['#2f3644', '#3a3f47', '#4a4038', '#5b6470'] },
 };
 // the parts painted on an outfit (blender/characters.py `paint`): the stripes and the collar of a tee, a jumper's
-// collar, a skirt, the jeans under a cropped tee. Drawn from a stream of their own, after everything else
+// collar, a skirt, a sweatshirt's ribbing. Drawn from a stream of their own, after everything else
 const LOOKS_MORE = {
   'man-check': { Stripe: ['#1f8580', '#e9e4d6', '#d8b23a', '#7f9cc0', '#b3262e'], Stripe2: ['#d8742c', '#e9e4d6', '#8d8f92', '#c95a5a'],
     Collar: ['#ece8dc', '#ece8dc', '#1f2f55'] },
@@ -378,7 +383,8 @@ function fadeHex(hair, skin, t) {
   return '#' + ch.map((v) => Math.round((v + grey) / 2).toString(16).padStart(2, '0')).join('');
 }
 // about one striped tee in three is plain: its stripes and collar in the tee's own colour
-const PLAIN = { 'man-check': ['LightBrown', ['Stripe', 'Stripe2', 'Collar'], 0.35] };
+// (and a sweatshirt's ribbing is always the sweatshirt's colour: the model's own is a shade darker)
+const PLAIN = { 'man-check': ['LightBrown', ['Stripe', 'Stripe2', 'Collar'], 0.35], 'woman-dress-blue': ['LimeGreen', ['Rib'], 1] };
 // what is printed on a chest (blender/faces.py PRINTS, characters.py print_map): the material it lies on, how many of
 // the crowd in that model wear it, and the cloth it shows on (ink on light cloth; the jumper is always Yonsei blue).
 // The heroes wear theirs.
@@ -461,7 +467,7 @@ function plainUv(uv) {
   let u = unprinted.get(uv);
   if (!u) {
     u = uv.clone();
-    for (let i = 0; i < u.count; i++) if (u.getX(i) >= 0.5 && u.getX(i) < 0.75 && u.getY(i) >= 0.75) u.setXY(i, BLANK_UV, BLANK_UV);
+    for (let i = 0; i < u.count; i++) if (u.getX(i) >= 0.6 && u.getX(i) < 0.8 && u.getY(i) >= 0.8) u.setXY(i, BLANK_UV, BLANK_UV);
     unprinted.set(uv, u);
   }
   return u;

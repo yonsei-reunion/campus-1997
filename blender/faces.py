@@ -27,7 +27,7 @@ import zlib
 
 import numpy as np
 
-GRID = 4                   # cells a side
+GRID = 5                   # cells a side (25: the people's faces, then free ones, the prints' and the blank one)
 CELL = 256                 # pixels a cell
 HALF = 0.075               # the frame of a cell on the face, in the source's units (men x 0.93, women x 0.90 in the
 TOP = 0.042                # game): HALF either side of the nose, from TOP over the eye line down to TOP - 2 HALF

@@ -118,7 +118,7 @@ def canvas(upper, rubber):
 
 # 1997 campus fashion (reference/고증 4.11): baggy stone-washed jeans and wide trousers, big tees and hoodies, a collared
 # tee in broad stripes, a jumper with a dark collar, a blazer over cotton trousers, the Yonsei-blue cheer jacket, a white
-# knit over a black skirt, a cropped tee, a pastel cardigan, a professor in a grey suit, staff in work vests.
+# knit over a denim skirt, a cream sweatshirt, a pastel cardigan, a professor in a grey suit, staff in work vests.
 # Hair (the first name, see HAIR_STYLES) and faces as students wore and had them about 1997 (reference/고증 4.9): most
 # of them plain, a few the cuts of the year.  Optional: flip (the parting on the other side), bridge (bleached locks:
 # [(azimuth, half width)]), face: what makes the one shared face a person's own.  Of the skull: jaw, chin (scales).
@@ -238,15 +238,20 @@ PEOPLE = {
                          face=dict(lid='double', slant=.04, eye=1.12, lash=1.15, jaw=1.03, brow=.95, arch=.35, brow_len=1.05,
                                    brow_soft=2.0, smile=.0031, mouth=.98, lip=1.15, nose=.74, bridge=.26, nose_w=.94,
                                    nose_up=.0015)),
-    'woman-dress-blue': woman('shoulder', 'Punk', 'Casual', 'Casual',
-                              {'Pink': '#a9c6e6', 'Orange': JEANS['black'], 'Grey': '#1f1f24', 'Skin': SKIN['b'],
+    'woman-dress-blue': woman('shoulder', 'Formal', 'Casual', 'Casual',
+                              {'LimeGreen': '#ece4cc', 'Rib': '#dcd2b4', 'Orange': JEANS['black'], 'Grey': '#1f1f24', 'Skin': SKIN['b'],
                                'Hair': HAIR['brown'], 'Bridge': '#9c6c3a', 'Brow': HAIR['dark']},
-                              'tight sky-blue cropped tee (배꼽티), wide black jeans; brown-dyed hair to the shoulders, bleached locks',
+                              'roomy cream sweatshirt (맨투맨) with a round neck, wide black jeans; brown-dyed hair to the shoulders, '
+                              'bleached locks',
                               bridge=[(-18, 3.5), (46, 3.5)],
-                              paint={'body': [dict(of=('Pink',), to='Skin', z=(None, 1.20)),
-                                              dict(of=('Black',), to='Skin', x=(.30, None)),
-                                              dict(of=('Black',), to='Skin', x=(0, .09), z=(1.47, None)),
-                                              dict(of=('Black',), to='Pink')]}, cut='wide',
+                              # (the pack's sleeveless top and its bare arms to the wrists, cut roomy; the belt and what is
+                              # under it the ribbed hem, a shade darker, as the cuffs and the neck)
+                              paint={'body': [dict(of=('Skin',), to='LimeGreen', x=(0, .585)),
+                                              dict(of=('Gold',), to='Rib'),
+                                              dict(of=('LimeGreen',), to='Rib', x=(0, .22), z=(None, 1.178)),
+                                              dict(of=('LimeGreen',), to='Rib', x=(.545, .585)),
+                                              dict(of=('LimeGreen',), to='Rib', x=(0, .082), z=(1.492, None))]},
+                              roomy=1.16, cut='wide',
                               face=dict(lid='double', slant=.10, eye=.99, jaw=.98, smile=.0022, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
                                         brow_peak=.68, brow_drop=1.0, brow_soft=1.3, nose=.84, bridge=.32, nose_w=.95)),
     'woman-cardigan': woman('pixie', 'Suit', 'Casual', 'Casual',
@@ -261,6 +266,23 @@ PEOPLE = {
                          {'Black': '#2f3644', 'White': '#eef0f2', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
                          'office staff: navy suit, short permed hair', face=dict(lid='inner', slant=.0, jaw=1.06, eye=.95, brow_tilt=-.03, smile=.0014, age='mid',
                                                                                  brow=.9, arch=1.25, brow_len=.96, brow_soft=1.4, nose=.84, bridge=.30, nose_w=1.10)),
+    # (added last: the faces' cells go by this order)
+    'woman-stripe': woman('pony', 'Formal', 'Casual', 'Casual',
+                          {'LimeGreen': '#f1eee6', 'Stripe': '#27345a', 'Orange': JEANS['mid'], 'Grey': '#f0eee8', 'feet:Bar': '#b3262e',
+                           'feet:Lace': '#d6d3cc', 'feet:Sole': '#cfccc4', 'Skin': SKIN['a'], 'Hair': HAIR['black'], 'Band': '#b3262e'},
+                          'tight white long-sleeved tee with navy stripes (쫄티), mid-blue jeans, white trainers; a pony tail in a '
+                          'red scrunchie',
+                          # (the pack's sleeveless top and its bare arms to the wrists; the stripes go on down the arms
+                          # at the heights the arms, let down, bring them to)
+                          paint={'body': [dict(of=('Skin',), to='LimeGreen', x=(0, .585)),
+                                          dict(of=('Gold',), to='LimeGreen'),
+                                          *bands('Stripe', ('LimeGreen',), [(z - .013, z + .013) for z in (1.150, 1.206, 1.262, 1.318, 1.374, 1.430)],
+                                                 x=(0, .172)),
+                                          *[dict(of=('LimeGreen',), to='Stripe', x=(x - .013, x + .013))
+                                            for x in (.193, .249, .305, .361, .417, .473, .529)]],
+                                 'feet': trainers('women', 'Grey')},
+                          face=dict(lid='inner', slant=.06, eye=1.04, jaw=1.0, smile=.0027, mouth=1.0, brow=1.0, arch=.9, brow_len=1.0,
+                                    brow_soft=1.5, nose=.80, bridge=.28, nose_w=1.0, nose_up=.001)),
 }
 RIGS = {'rig-umc': 'umc', 'rig-women': 'women'}
 PART_MESH = {'head': '_Head', 'body': '_Body', 'legs': '_Legs', 'feet': '_Feet'}
@@ -467,8 +489,9 @@ FINGER_MORE = {'Index': .8, 'Middle': 1.0, 'Ring': 1.12, 'Pinky': 1.25, 'Thumb':
 BUILD = {'umc': dict(shoulder=.020, hip=-.022, arm=1.06, hand=.88, finger=.88, neck=.25, waist=0.0, trap=(.030, .056, .140),
                      girth=[(-.24, 0), (-.16, .06), (-.08, .16), (-.02, .26), (.03, .26), (.08, .20), (.16, .15), (.26, .13),
                             (.34, .06), (.42, 0)], deep=.35, seat=.06),
-         'women': dict(shoulder=.030, hip=0.0, arm=1.06, hand=.88, finger=.88, neck=.38, waist=.08, trap=(.020, .048, .112),
-                       girth=[(-.26, 0), (-.16, .06), (-.08, .11), (.0, .11), (.07, .05), (.13, 0)], deep=.2, seat=.20)}
+         'women': dict(shoulder=.030, hip=0.0, arm=1.06, hand=.88, finger=.88, neck=.22, waist=.08, trap=(.024, .044, .125, 1.8),
+                       girth=[(-.26, 0), (-.16, .06), (-.08, .11), (.0, .11), (.07, .05), (.13, 0)], deep=.2, seat=.20,
+                       chest=(.15, .12, .09), collar=(.075, .01, .12))}
 # The packs' clips hold the arms away from the body (the standing, walking and sitting clips are motion capture now,
 # blender/mocap.py; the pack's wave and reach are kept).  The arm that is not gesturing in toward the body, as the
 # standing clips hold it: clip -> the side, degrees in, degrees the forearm is turned about its length
@@ -556,6 +579,43 @@ def relax_fingers(arm, meshes, rig, s):
         pb.matrix_basis = Matrix.Identity(4)
 
 
+def hold_chest(ob, arm, C):
+    """The women's pack hangs the upper chest on the collar bones (at the armpits' height 0.8 of a vertex is theirs,
+    the men's far less): with the arms let down the collar bones tip down and draw the chest in (25.6 cm in the T pose,
+    22.8 standing: narrower than the waist), with the arms out in talk they spread it to 28.9.  C: (below, above, floor)
+    - the collar bones keep their share from `above` under the shoulder joints up and out past the joints, lose it down
+    to `below` under them (all but `floor`), and what they lose goes to the spine's bones the vertex has (else Chest).
+    By place, in the source's T pose."""
+    if not C:
+        return
+    mw = ob.matrix_world
+    js = arm.matrix_world @ arm.data.bones['UpperArm.L'].head_local
+    col = {g.index for g in ob.vertex_groups if g.name.startswith('Shoulder.')}
+    spine = {g.index for g in ob.vertex_groups if g.name in ('Chest', 'Torso', 'Abdomen', 'Neck')}
+    if not col:
+        return
+    chest = ob.vertex_groups.get('Chest') or ob.vertex_groups.new(name='Chest')
+    for v in ob.data.vertices:
+        ws = {g.group: g.weight for g in v.groups if g.weight > 0}
+        held = sum(w for gi, w in ws.items() if gi in col)
+        if held < 1e-6:
+            continue
+        c = mw @ v.co
+        keep = max(C[2], _smooth(js.z - C[0], js.z - C[1], c.z), _smooth(abs(js.x) - .02, abs(js.x) + .02, abs(c.x)))
+        if keep >= 1:
+            continue
+        free = held * (1 - keep)
+        rest = {gi: w for gi, w in ws.items() if gi in spine}
+        tot = sum(rest.values())
+        for gi in col & ws.keys():
+            ob.vertex_groups[gi].add([v.index], ws[gi] * keep, 'REPLACE')
+        if tot > 1e-6:
+            for gi, w in rest.items():
+                ob.vertex_groups[gi].add([v.index], w + free * w / tot, 'REPLACE')
+        else:
+            chest.add([v.index], free, 'REPLACE')
+
+
 def shape_body(ob, arm, rig):
     """The neck, the trapezius, the waist and the trunk's girth of BUILD on one part of a person, in the source's T
     pose: the bones stay where they are.  Both by place alone (the height, and for the neck how far from its axis), so that the head's neck, the neck's
@@ -571,8 +631,15 @@ def shape_body(ob, arm, rig):
     tr = b.get('trap')
     arms = {g.index for g in ob.vertex_groups if g.name.startswith(('UpperArm.', 'LowerArm.', 'Wrist.'))}
     girth, zj = b.get('girth'), head('UpperLeg.L').z
+    chest, js = b.get('chest'), head('UpperArm.L')
+    hold_chest(ob, arm, b.get('collar'))
     for v in me.vertices:
         c = mw @ v.co
+        if chest and abs(c.x) < .3:
+            # the rib cage wider about the bust's height (not the arms: nothing past the shoulder joints)
+            f = chest[0] * math.exp(-((c.z - (js.z - chest[1])) / chest[2]) ** 2) * (1 - _smooth(abs(js.x), abs(js.x) + .05, abs(c.x)))
+            c.x *= 1 + f
+            c.y = cn.y + (c.y - cn.y) * (1 + .25 * f)
         if girth and abs(c.x) < .3 and girth[0][0] < c.z - zj < girth[-1][0]:
             f = _cos_interp(girth, c.z - zj)
             c.x *= 1 + f
@@ -595,7 +662,10 @@ def shape_body(ob, arm, rig):
                 # (full from the collarbones up to the neck's foot, fading up the neck so slowly that nothing folds)
                 up = _smooth(zn - .08, zn - .035, c.z) * (1 - _smooth(zn, zh + .03, c.z)) * _smooth(-.055, -.012, c.y - cn.y)
                 held = sum(g.weight for g in v.groups if g.group in arms)
-                c.z += tr[0] * (1 - _smooth(tr[1], tr[2], r)) * up * (1 - min(1.0, held))
+                # (tr[3]: the fall from the neck out, 1.8 steep by the neck and shallow toward the shoulder, as the
+                # muscle's line is; without it an even S)
+                fall = (1 - _smooth(tr[1], tr[2], r)) if len(tr) < 4 else max(0.0, 1 - (r - tr[1]) / (tr[2] - tr[1])) ** tr[3] if r > tr[1] else 1.0
+                c.z += tr[0] * fall * up * (1 - min(1.0, held))
         v.co = inv @ c
 
 
@@ -697,9 +767,9 @@ OPEN_NECK = ('Casual_Hoodie',)
 COLLAR = {'Casual_2': (.45, .010), 'Worker': (.45, .010)}
 
 
-def loosen(ob, part, outfit, arm):
-    """Widen the top (body) of one outfit part, in world space."""
-    F = ROOMY.get(outfit, 1.0) if part == 'body' else 1.0
+def loosen(ob, part, outfit, arm, roomy=None):
+    """Widen the top (body) of one outfit part, in world space: by ROOMY, or a person's own `roomy`."""
+    F = (roomy or ROOMY.get(outfit, 1.0)) if part == 'body' else 1.0
     if F <= 1.0:
         return
     me = ob.data
@@ -1052,7 +1122,10 @@ def print_map(ob, rules):
 # the front and the seat.  Its hem is `top` of a trouser leg's height (0 a trouser hem, 0.5 the knee, 1 the hip joint),
 # so no knee is worn pale on it; `back_turn`: how much further round a leg the back of a half of the skirt goes than
 # round itself.  Lengths in the source's units.
-SKIRTS = {'denim': dict(hem=0.075, front=0.022, back=0.034, flare=0.008, top=0.60, back_turn=1.58)}
+# `back` is all but nothing: seated, what the hem stands off the back of the thighs hangs under them, before the bench
+# and into it.  And the hem is closed by a dark face just inside it (`inside`: its colour), looking down: from the
+# front of somebody sitting one saw up the skirt to the inside of its back and the bench through it; now a shadow.
+SKIRTS = {'denim': dict(hem=0.075, front=0.016, back=0.026, flare=0.008, top=0.60, back_turn=1.58, inside='#0e1118')}
 
 
 def cut_skirt(ob, arm, C):
@@ -1080,8 +1153,10 @@ def cut_skirt(ob, arm, C):
     hem = zk + C['hem']
     ext = lambda cs: (max(abs(c.x) for c in cs), min(c.y for c in cs), max(c.y for c in cs))
     (x0, f0, b0), (x1, f1, b1) = ext([c for c in co.values() if abs(c.z - zj) < 0.035]), ext([co[i] for i in at_hem])
+    # (the legs under the hem; behind, as far back as the thighs come anywhere over the hem's lower third)
     thigh = [c for c in (mw @ me.vertices[i].co for i in body) if abs(c.z - hem) < 0.045]
-    X1, F1, B1 = x0 + C['flare'], min(c.y for c in thigh) - C['front'], max(c.y for c in thigh) + C['back']
+    hams = [c for c in (mw @ me.vertices[i].co for i in body) if hem - 0.02 < c.z < hem + (zj - hem) * 0.4]
+    X1, F1, B1 = x0 + C['flare'], min(c.y for c in thigh) - C['front'], max(c.y for c in hams) + C['back']
     att = me.attributes.get(LEG) or me.attributes.new(LEG, 'FLOAT_VECTOR', 'POINT')
     legs = [0.0] * (3 * len(me.vertices))
     att.data.foreach_get('vector', legs)
@@ -1101,6 +1176,97 @@ def cut_skirt(ob, arm, C):
         legs[3 * i:3 * i + 3] = (0.5 + 0.5 * math.cos(a), 0.5 + 0.5 * math.sin(a), v / LEG_TOP)
         me.vertices[i].co = inv @ c
     att.data.foreach_set('vector', legs)
+    me.update()
+    # The two halves hang on a thigh each, but the points down the middle, front and back, were half one's and half
+    # the other's: walking, the leg that swings back (or forward) came out through the cloth beside them.  So the
+    # middle is slit from under the hip joints down, each side's points all its own thigh's, and the slit is closed
+    # by a gusset: nothing wide standing, cloth drawn across from one thigh to the other as they part.
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    dl = bm.verts.layers.deform.verify()
+    uvl = bm.loops.layers.uv.get(ATLAS_UV)
+    world = lambda v: mw @ v.co
+    is_mid = lambda v: abs(world(v).x) < 1e-4 and world(v).z < zj
+    skirt_faces = [f for f in bm.faces if f.material_index == k]
+    seam = list({e for f in skirt_faces for e in f.edges if all(is_mid(v) for v in e.verts)})
+    cy = sum(c.y for c in co.values()) / len(co)
+    bmesh.ops.split_edges(bm, edges=seam)
+    gl, gr = ob.vertex_groups['UpperLeg.L'].index, ob.vertex_groups['UpperLeg.R'].index
+    sides = {}                                             # (front or back, height) -> {side: the vertex}
+    for v in bm.verts:
+        if not is_mid(v) or not any(f.material_index == k for f in v.link_faces):
+            continue
+        xs = [f.calc_center_median().x for f in v.link_faces]
+        if min(xs) < 0 < max(xs):                          # (the slit's upper end: still both sides')
+            continue
+        sd = 1 if (mw @ Vector((sum(xs) / len(xs), 0, 0))).x > 0 else -1
+        own, other = (gl, gr) if sd > 0 else (gr, gl)
+        w = v[dl].get(own, 0.0) + v[dl].get(other, 0.0)
+        if other in v[dl]:
+            del v[dl][other]
+        v[dl][own] = w
+        c = world(v)
+        sides.setdefault((c.y > cy, round(c.z, 4)), {})[sd] = v
+    for back in (False, True):
+        col = sorted((z, d) for (b_, z), d in sides.items() if b_ == back and len(d) == 2)
+        used = {v for _, d in col for v in d.values()}
+        ends = [v for v in bm.verts if v not in used and abs(world(v).x) < 1e-4 and (world(v).y > cy) == back and col
+                and col[-1][0] - 1e-3 < world(v).z < zj + 0.12 and any(f.material_index == k for f in v.link_faces)]
+        made = []
+        if col and ends:
+            apex = min(ends, key=lambda v: world(v).z)
+            made.append(bm.faces.new((apex, col[-1][1][1], col[-1][1][-1])))
+        for (z0, lo), (z1, hi) in zip(col, col[1:]):
+            made.append(bm.faces.new((lo[1], hi[1], hi[-1], lo[-1])))
+        for f in made:
+            f.material_index = k
+            f.smooth = True
+            if uvl is not None:
+                for lp in f.loops:
+                    lp[uvl].uv = BLANK_UV
+    if C.get('inside'):
+        if 'SkirtIn' not in MADE:
+            MADE['SkirtIn'] = colour_material('SkirtIn~new', srgb_to_linear(C['inside']))
+        me.materials.append(MADE['SkirtIn'])
+        edges = {}
+        for f in bm.faces:
+            if f.material_index == k:
+                for e in f.edges:
+                    edges[e] = edges.get(e, 0) + 1
+        ring = list({v for e, n in edges.items() if n == 1 for v in e.verts if world(v).z < zj - 0.1})
+        mid = sum((v.co for v in ring), Vector()) / len(ring)
+        ring.sort(key=lambda v: (round(math.atan2(v.co.y - mid.y, v.co.x - mid.x), 3), v.co.x))
+        up = (inv.to_3x3() @ Vector((0, 0, 1))).normalized()
+        lift = up * 0.012                                # (just inside the hem: the hem's own edge stays the skirt's)
+        new = []
+        for v in ring:
+            n = bm.verts.new(v.co + lift)
+            for g, w in v[dl].items():
+                n[dl][g] = w
+            new.append(n)
+        c = bm.verts.new(mid + lift)
+        tot = {}
+        for v in ring:
+            for g, w in v[dl].items():
+                tot[g] = tot.get(g, 0.0) + w / len(ring)
+        for g, w in tot.items():
+            c[dl][g] = w
+        k_in = len(me.materials) - 1
+        for a, b in zip(new, new[1:] + new[:1]):
+            if (a.co - b.co).length < 1e-6:
+                continue
+            f = bm.faces.new((c, a, b))
+            f.normal_update()
+            if f.normal.dot(up) > 0:                     # (it looks down, out of the skirt)
+                f.normal_flip()
+            f.material_index = k_in
+            f.smooth = True
+            if uvl is not None:                          # (nothing of it on a face's cell of the atlas)
+                for lp in f.loops:
+                    lp[uvl].uv = BLANK_UV
+    bm.to_mesh(me)
+    bm.free()
     me.update()
 
 
@@ -1289,6 +1455,14 @@ HAIR_STYLES = {
                   edge=[(0, .005), (70, .005), (79, .010), (98, .010), (108, .005), (180, .005)],
                   part=(30, .004, 7), rows=7, rough=.25, ragged=.004),
     # long hair, the top half tied back: the sides drawn back over the ears' tops (not above them: see `tuck`)
+    # all of it drawn back into one tail (포니테일): the sides over the ears' tops as `half`, the back up to the nape's
+    # hairline, a tail from the back of the head to the shoulders
+    'pony': dict(tip=_both([(-47, .036), (-26, .030), (-6, .030), (14, .040), (30, .052), (47, .040)],
+                           [(57, .016), (62, -.004), (67, -.028), (73, -.036), (78, -.029), (82, -.027), (97, -.027),
+                            (101, -.046), (105, -.066), (112, -.080), (135, -.102), (180, -.110)]),
+                 vol=[(-180, .010), (-100, .009), (-60, .008), (-20, .012), (20, .010), (60, .008), (100, .009), (180, .010)],
+                 top=.015, edge=[(0, .004), (60, .004), (100, .006), (180, .005)], part=(30, .004, 7), rows=8, rough=.08,
+                 ragged=.003, tail=dict(dz=.012, length=.25, r=.034)),
     'half': dict(tip=_both([(-47, .036), (-26, .030), (-6, .030), (14, .040), (30, .052), (47, .040)],
                            [(57, .016), (62, -.004), (67, -.028), (73, -.036), (78, -.029), (82, -.027), (97, -.027),
                             (101, -.048), (104, -.09), (111, -.22), (135, -.31), (180, -.33)]),
@@ -1972,7 +2146,7 @@ def build_person(pid, spec):
             print_map(ob, spec['prints'][part])
         recolour(ob, part, spec['colors'])
         shape_body(ob, arm, rig)                 # (the neck is the head's, the waist the body's and the legs')
-        loosen(ob, part, outfit, arm)
+        loosen(ob, part, outfit, arm, spec.get('roomy'))
         atlas_layer(ob)
         ob.name = f'{pid}-{part}'
         parts.append(ob)

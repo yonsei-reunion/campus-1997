@@ -34,7 +34,7 @@ const PALETTE = {
 };
 PALETTE.sling = PALETTE.backpack;
 
-// the player's characters (characters.js HEROES): four of the nine
+// the player's characters (characters.js HEROES): four of the eleven
 export const HERO_BAGS = {
   'man-tee': { type: 'backpack', color: '#1b1b1e', size: 1 },
   'man-cheer': { type: 'sling', color: '#55585e', side: -1, size: 1 },
@@ -235,7 +235,7 @@ class Kit {
     g.setAttribute('part', new THREE.Float32BufferAttribute(part, 3));
     g.setAttribute('leg', new THREE.Uint8BufferAttribute(new Uint8Array(n * 4), 4, true));     // (not trousers)
     // (the people's material draws the faces from an atlas: a bag lies on its blank cell, characters.js BLANK_UV)
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2).fill(0.875), 2));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2).fill(0.9), 2));
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
     this.geos.push(g);
