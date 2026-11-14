@@ -368,7 +368,7 @@ export class Sound {
       if (!c) continue;
       const p = c.root.position, sp = Math.abs(c.v);
       this._place(v.pan, p.x, p.y + 0.6, p.z);
-      const small = c.kind === 'tico' ? 1.25 : c.kind === 'van' ? 0.85 : 1;
+      const small = c.kind === 'scooter' ? 2.1 : c.kind === 'tico' ? 1.25 : c.kind === 'van' ? 0.85 : 1;      // (a scooter's two-stroke buzz)
       v.osc.frequency.setTargetAtTime((34 + sp * 5.5) * small, now, 0.12);       // idling to third gear
       v.tg.gain.setTargetAtTime(Math.min(1, sp / 12) ** 1.5 * 0.9, now, 0.1);
       v.tf.frequency.setTargetAtTime(600 + sp * 70, now, 0.2);

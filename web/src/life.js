@@ -727,8 +727,41 @@ export class BoothGates {
 export const CAR_COLORS = ['#eeeeea', '#f2f1ec', '#b9bdc3', '#a9aeb5', '#1b2333', '#2a2d33', '#6e1b1f', '#244a3a', '#1d3b30', '#3a3f45', '#b59a6a', '#2c4a78'];
 // sedan 쏘나타Ⅱ type, sedan2 프린스 type, hatch 프라이드 type, tico 티코 type, van 그레이스 type (blender/cars.py)
 const WEIGHTS = { sedan: 4, sedan2: 3, hatch: 3, tico: 2, taxi: 3, van: 2 };
-// driver's hips in the car frame (blender/cars.py driver_seat, times CAR_SCALE 1.07)
-const DRIVER = { sedan: [-0.05, 0.40], sedan2: [-0.03, 0.40], hatch: [-0.27, 0.39], tico: [-0.32, 0.33], taxi: [-0.05, 0.40], van: [0.98, 0.40] };
+// The driver's seat in the car frame (blender/cars.py driver_seat: x forward, y left), the seat's height and how far
+// the driver leans back (radians).  The cars are their real sizes, so the driver sits low and leaning back, as in a
+// car, the head under a 1.4 m roof (a van's driver sits upright over the front axle).
+const DRIVER = { sedan: [-0.05, 0.36, 0.20, 0.33], sedan2: [-0.05, 0.36, 0.20, 0.33], hatch: [-0.27, 0.36, 0.23, 0.30], tico: [-0.30, 0.31, 0.20, 0.33],
+  taxi: [-0.05, 0.36, 0.20, 0.33], van: [1.00, 0.38, 0.60, 0.10] };
+
+// 스쿠터 (blender/bikes.py SEAT, GRIP: x forward, z up, the left grip's y): where the rider sits and holds on; the
+// rider leans a little forward to the bars.  1990s scooter paint
+const BIKE = { seat: [-0.42, 0.742], grip: [0.17, 0.29, 0.985], lean: 0.2 };
+const BIKE_COLORS = ['#b3262b', '#e6e4dc', '#1f3f8f', '#d2a81c', '#1b1b1e', '#1f6f66', '#8e9399', '#7a1f2c'];
+const _s3 = new THREE.Vector3(), _e3 = new THREE.Vector3(), _w3 = new THREE.Vector3(), _d3 = new THREE.Vector3(), _p3 = new THREE.Vector3(),
+  _n3 = new THREE.Vector3(), _t3 = new THREE.Vector3(), _tg = new THREE.Vector3(), _pl = new THREE.Vector3(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _q3 = new THREE.Quaternion();
+// turn a bone about its head so that the direction `from` (world) comes to `to`
+function swing(bone, from, to) {
+  _q1.setFromUnitVectors(from.normalize(), to.normalize());
+  bone.parent.getWorldQuaternion(_q2).invert();
+  bone.getWorldQuaternion(_q3);
+  bone.quaternion.copy(_q2).multiply(_q1).multiply(_q3);
+  bone.updateMatrixWorld(true);
+}
+// an arm (upper, lower, wrist bones) reaching for `target` (world), the elbow off towards `pole`
+function reachFor([upper, lower, wrist], target, pole) {
+  upper.getWorldPosition(_s3); lower.getWorldPosition(_e3); wrist.getWorldPosition(_w3);
+  const l1 = _s3.distanceTo(_e3), l2 = _e3.distanceTo(_w3);
+  _d3.copy(target).sub(_s3);
+  const dist = Math.min(_d3.length(), (l1 + l2) * 0.985);
+  _d3.normalize();
+  const a = (l1 * l1 - l2 * l2 + dist * dist) / (2 * dist), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  _p3.copy(pole).addScaledVector(_d3, -pole.dot(_d3)).normalize();
+  _n3.copy(_s3).addScaledVector(_d3, a).addScaledVector(_p3, h);            // the elbow
+  _t3.copy(_s3).addScaledVector(_d3, dist);                                 // the wrist (the target, within reach)
+  swing(upper, _e3.sub(_s3), _p3.copy(_n3).sub(_s3));
+  lower.getWorldPosition(_e3); wrist.getWorldPosition(_w3);
+  swing(lower, _w3.sub(_e3), _t3.sub(_e3));
+}
 
 export class Traffic {
   // single: the first `single` lanes take one car each (a stall a car cannot pass by: main.js)
@@ -762,11 +795,12 @@ export class Traffic {
       if (cast && driverIds.length) {
         driver = cast.make(driverIds[Math.floor(rnd() * driverIds.length)], null);     // (no bag at the wheel)
         play(driver, 'sit', { fade: 0 });
-        const [dx, dy] = DRIVER[kind];
+        const [dx, dy, dz, lean] = DRIVER[kind];
         // car frame: +X forward, Blender +Y (left, the driver's side) is three -Z; the 'sit' clip puts the hips 0.22 above
-        // the holder, so 0.30 seats them low (~0.52 m) as in a real car and keeps the head under the roof
-        driver.holder.position.set(dx, 0.30, -dy);
-        driver.holder.rotation.y = Math.PI / 2;
+        // the holder (leaning back about the holder takes the hips back with it: the seat a little forward for that)
+        driver.holder.rotation.order = 'YXZ';
+        driver.holder.position.set(dx + 0.22 * Math.sin(lean), dz, -dy);
+        driver.holder.rotation.set(-lean, Math.PI / 2, 0);
         root.add(driver.holder);
       }
       scene.add(root);
@@ -778,6 +812,56 @@ export class Traffic {
       if (lane.det && s0 > lane.det[0] - 12 && s0 < lane.det[1] + 6) s0 = lane.det[1] + 6 + rnd() * 20;   // (not inside a stall)
       this.cars.push({ root, lane, s: s0, speed: 8 + rnd() * 4, v: 8, len, wheels, brake, radius, driver, kind, k, tyres, pitch: 0, roll: 0,
         x: lane.at(s0).x, y: lane.at(s0).y, hx: 1, hy: 0, stopK: lane.stops ? lane.stops.filter((q) => q.s < s0).length : 0 });
+    }
+  }
+  // 스쿠터를 탄 학생들 (blender/bikes.py): they ride the cars' loops round and out again, taking no stall.  The rider
+  // sits on the 'sit' clip, the arms brought to the grips (reachFor, above); the scooter leans into the bends
+  addBikes(scene, gltf, lanes, n, cast, riderIds, rndSeed = 31) {
+    const rnd = mulberry(rndSeed);
+    for (let i = 0; i < n && lanes.length; i++) {
+      const root = gltf.scene.clone(true);
+      const col = new THREE.Color(BIKE_COLORS[Math.floor(rnd() * BIKE_COLORS.length)]);
+      const brake = [], wheels = [];
+      root.traverse((o) => {
+        if (/^wheel_/.test(o.name)) wheels.push(o);
+        if (o.name === 'stand') o.visible = false;                  // (down on the parked ones: main.js)
+        if (!o.isMesh) return;
+        o.castShadow = true;
+        o.receiveShadow = true;
+        if (o.material.name === 'car_paint') { o.material = o.material.clone(); o.material.color = col; }
+        if (o.material.name === 'light_red') { o.material = o.material.clone(); brake.push(o.material); }
+      });
+      root.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(root);
+      const wx = wheels.map((w) => w.getWorldPosition(_s3).x);
+      const tyres = { f: Math.max(...wx), r: Math.min(...wx), l: 0, rt: 0 };
+      const radius = wheels.length ? new THREE.Box3().setFromObject(wheels[0]).getSize(_s3).y / 2 : 0.2;
+      root.rotation.order = 'YZX';
+      let driver = null, arms = null;
+      if (cast && riderIds.length) {
+        const id = riderIds[Math.floor(rnd() * riderIds.length)];
+        driver = cast.make(id, null, crowdLook(id, 4100 + i * 7));
+        play(driver, 'sit', { fade: 0 });
+        driver.mixer.update(0);
+        const h = driver.holder;
+        h.rotation.order = 'YXZ';
+        h.rotation.set(BIKE.lean, Math.PI / 2, 0);
+        h.position.set(0, 0, 0);
+        root.add(h);
+        root.updateMatrixWorld(true);
+        // the hips THIGH over the seat (as on the benches), on the scooter's middle line
+        const legs = ['UpperLegL', 'UpperLegR'].map((b) => driver.root.getObjectByName(b)).filter(Boolean);
+        _e3.set(0, 0.29 * driver.tall, 0);
+        if (legs.length) { _e3.set(0, 0, 0); for (const b of legs) _e3.add(b.getWorldPosition(_w3)); _e3.multiplyScalar(1 / legs.length); }
+        h.position.set(BIKE.seat[0] - _e3.x, BIKE.seat[1] + THIGH - _e3.y, -_e3.z);
+        arms = ['L', 'R'].map((sd) => ['UpperArm', 'LowerArm', 'Wrist'].map((b) => driver.root.getObjectByName(b + sd)));
+        if (arms.some((a) => a.some((b) => !b))) arms = null;
+      }
+      scene.add(root);
+      const lane = lanes[i % lanes.length];
+      const s0 = ((i + 0.37) / n * lane.length + rnd() * 30) % lane.length;
+      this.cars.push({ root, lane, s: s0, speed: 6.5 + rnd() * 2.5, v: 6, len: box.max.x - box.min.x, wheels, brake, radius, driver, kind: 'scooter',
+        k: 0.9 + rnd() * 0.15, tyres, pitch: 0, roll: 0, x: lane.at(s0).x, y: lane.at(s0).y, hx: 1, hy: 0, stopK: 0, bike: true, arms, hd0: null });
     }
   }
   // camPos: the view's centre (three coords); drivers of cars farther than the crowd's reach leave the car.
@@ -897,7 +981,15 @@ export class Traffic {
         const pitch = Math.max(-0.3, Math.min(0.3, Math.atan2((fl + fr - rl - rr) / 2, t.f - t.r)));
         // (the lean held to 7 deg: where a yard or a road at another height stands right beside the drive, the 5 m
         // grid tips the drive's edge towards it, tools/build_campus.py tr_grade)
-        const roll = Math.max(-0.12, Math.min(0.12, Math.atan2((fl + rl - fr - rr) / 2, t.rt - t.l)));    // + : the left side up
+        let roll = 0;
+        if (c.bike) {
+          // a scooter leans into the bend: by its speed and how fast its heading turns (left turn: the left side down)
+          const hd = c.root.rotation.y;
+          const w = c.hd0 === null || dt <= 0 ? 0 : wrapAngle(hd - c.hd0) / dt;
+          c.hd0 = hd;
+          c.turn = (c.turn || 0) + (w - (c.turn || 0)) * Math.min(1, dt * 2.5);
+          roll = Math.max(-0.42, Math.min(0.42, -Math.atan(c.v * c.turn / 9.8)));
+        } else roll = Math.max(-0.12, Math.min(0.12, Math.atan2((fl + rl - fr - rr) / 2, t.rt - t.l)));    // + : the left side up
         // (eased: the terrain's facets and the tracks' metre steps would nod it otherwise)
         const e = Math.min(1, dt * 9);
         c.pitch += (pitch - c.pitch) * e; c.roll += (roll - c.roll) * e;
@@ -913,6 +1005,15 @@ export class Traffic {
         if (near && !h.parent) c.root.add(h);
         else if (!near && h.parent) c.root.remove(h);
         if (near) c.driver.mixer.update(dt);
+        if (near && c.arms) {                 // the rider's hands to the grips
+          c.root.updateMatrixWorld(true);
+          for (let k = 0; k < 2; k++) {
+            const sd = k ? 1 : -1;            // (three z: the left grip at -z)
+            _tg.set(BIKE.grip[0] - 0.07, BIKE.grip[2] + 0.015, sd * BIKE.grip[1]).applyMatrix4(c.root.matrixWorld);
+            _pl.set(-0.2, -1, sd * 0.55).transformDirection(c.root.matrixWorld);
+            reachFor(c.arms[k], _tg, _pl);
+          }
+        }
       }
     }
   }

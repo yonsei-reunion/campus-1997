@@ -587,34 +587,6 @@ def underwood_statue():
     return mb
 
 
-# ----------------------------------------------------------------------------- wheel for the motorbike (cars: blender/cars.py)
-def _wheel(mb, x, y, r, w):
-    seg = 12
-    for k in range(seg):
-        a0, a1 = 2 * math.pi * k / seg, 2 * math.pi * (k + 1) / seg
-        p = lambda a, yy: (x + r * math.cos(a), yy, r + r * math.sin(a))
-        mb.quad(p(a0, y - w / 2), p(a1, y - w / 2), p(a1, y + w / 2), p(a0, y + w / 2), 'rubber', smooth='whl%d%d' % (int(x * 10), int(y * 10)))
-    for yy, sgn in ((y - w / 2, -1), (y + w / 2, 1)):
-        pts = [(x + r * math.cos(2 * math.pi * k / seg), yy, r + r * math.sin(2 * math.pi * k / seg)) for k in range(seg)]
-        mb.face(pts if sgn < 0 else pts[::-1], 'rubber')
-        hub = [(x + r * 0.6 * math.cos(2 * math.pi * k / seg), yy + sgn * 0.005, r + r * 0.6 * math.sin(2 * math.pi * k / seg)) for k in range(seg)]
-        mb.face(hub if sgn < 0 else hub[::-1], 'chrome')
-
-
-# ----------------------------------------------------------------------------- 오토바이 (delivery scooter)
-def motorbike():
-    mb = MeshBuilder('motorbike')
-    for x in (-0.62, 0.62):
-        _wheel(mb, x, 0, 0.27, 0.09)
-    mb.box((0, 0, 0.5), (0.9, 0.28, 0.25), 'car_paint')
-    mb.box((-0.35, 0, 0.78), (0.6, 0.26, 0.12), 'rubber')                  # seat
-    mb.box((0.48, 0, 0.75), (0.14, 0.2, 0.6), 'car_paint')                 # leg shield column
-    mb.box((0.55, 0, 1.08), (0.06, 0.62, 0.04), 'metal_dark')               # handlebar
-    mb.box((0.6, 0, 0.98), (0.12, 0.16, 0.1), 'light_white')
-    mb.box((-0.62, 0, 0.82), (0.36, 0.34, 0.1), 'metal_dark')               # rack
-    return mb
-
-
 # ----------------------------------------------------------------------------- 2003 사진의 소품 (reference/고증.md 3.18)
 def bollard():
     """노랑 · 검정 볼라드 (2003_봄_언더우드관_앞길_벚나무.jpg, rows across the road before 언더우드관): a steel post

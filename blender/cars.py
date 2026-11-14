@@ -9,6 +9,12 @@ rub strips, door seams and handles, mirrors, wipers, antenna, pre-2004 Korean tw
 interior seen through tinted glass, and four separate wheels (tyre with shoulders + full wheel cover or steel rim)
 whose origins sit on the axle so the game can spin them.
 
+The proportions are the real cars' (overall length x width x height, wheelbase, overhangs and tyre sizes of each
+maker's figures; the belt line and the glass by photographs of the cars side on): the body side from the sill to the
+belt is about 0.73 m of a 1.4 m saloon and the side glass 0.37 m, the roof 0.1 m over it.  The window outlines are
+cut into the lofted skin (split_poly), so the pillars lean with the windscreen and the rear window, and the glass
+keeps a margin of body below the roof and over the belt.
+
 Models (car-local frame: +X forward, +Y left, +Z up, ground at z=0), each in the manner of (not a copy of) a car
 that filled 1997 Seoul:
   sedan   — rounded mid-size saloon of 1993-97 (쏘나타Ⅱ type): body-coloured wrap-around bumpers with a rub band,
@@ -50,9 +56,10 @@ def sec_radii(half_w, zb, zt, rb, rt):
     return min(rb, h * 0.35, half_w * 0.4), min(rt, h * 0.45, half_w * 0.4)
 
 
-def section(half_w, zb, zt, rb, rt, tumble=0.0, crown=0.0, n_arc=4, n_top=6, zsplits=()):
+def section(half_w, zb, zt, rb, rt, tumble=0.0, crown=0.0, n_arc=4, n_top=6, zsplits=(), bow=0.0, n_fl=0):
     """Closed cross-section (y, z) around the car axis, counter-clockwise seen from +X.
-    zsplits: extra points on the flank (so a rub band can get its own faces)."""
+    zsplits: extra points on the flank (so a rub band can get its own faces).
+    bow, n_fl: the flank bowed out by `bow` at its middle, drawn through n_fl points (a pressed panel, not a slab)."""
     rb, rt = sec_radii(half_w, zb, zt, rb, rt)
     wt = half_w - tumble
     right = []                                    # y >= 0 half from bottom centre to top centre
@@ -64,6 +71,9 @@ def section(half_w, zb, zt, rb, rt, tumble=0.0, crown=0.0, n_arc=4, n_top=6, zsp
     for z in sorted(zsplits):                     # flank, from the bottom corner up to the top corner (clamped,
         z = min(max(z, z0 + 0.002), z1 - 0.002)   # so every section of a loft has the same point count)
         right.append((half_w + (wt - half_w) * (z - z0) / max(1e-4, z1 - z0), z))
+    for k in range(1, n_fl + 1):
+        t = k / (n_fl + 1)
+        right.append((half_w + (wt - half_w) * t + bow * 4 * t * (1 - t), z0 + (z1 - z0) * t))
     for i in range(n_arc + 1):                    # top corner
         a = (math.pi / 2) * i / n_arc
         right.append((wt - rt + rt * math.cos(a), zt - rt + rt * math.sin(a)))
@@ -74,7 +84,7 @@ def section(half_w, zb, zt, rb, rt, tumble=0.0, crown=0.0, n_arc=4, n_top=6, zsp
     return right + left
 
 
-def section_y(half_w, zb, zt, rb, rt, tumble, z):
+def section_y(half_w, zb, zt, rb, rt, tumble, z, bow=0.0):
     """half-width of section() at height z (ignoring the crown); -1 outside the section."""
     if z <= zb or z >= zt:
         return -1.0
@@ -84,10 +94,32 @@ def section_y(half_w, zb, zt, rb, rt, tumble, z):
         return half_w - rb + math.sqrt(max(0.0, rb * rb - (zb + rb - z) ** 2))
     if z > zt - rt:
         return wt - rt + math.sqrt(max(0.0, rt * rt - (z - zt + rt) ** 2))
-    return half_w + (wt - half_w) * (z - zb - rb) / max(1e-4, zt - rt - zb - rb)
+    t = (z - zb - rb) / max(1e-4, zt - rt - zb - rb)
+    return half_w + (wt - half_w) * t + bow * 4 * t * (1 - t)
 
 
-def loft(mb, xs, sec_fn, mat_fn, tag, cap_front=True, cap_back=True, cap_mat=None):
+def split_poly(pts, f):
+    """a convex polygon cut by the scalar field f (taken as linear along its edges): the part where f >= 0 and the
+    part where f < 0 (None where there is none)"""
+    vals = [f(p) for p in pts]
+    if min(vals) >= -1e-6:
+        return pts, None
+    if max(vals) <= 1e-6:
+        return None, pts
+    pos, neg = [], []
+    n = len(pts)
+    for i in range(n):
+        a, b, fa, fb = pts[i], pts[(i + 1) % n], vals[i], vals[(i + 1) % n]
+        (pos if fa >= 0 else neg).append(a)
+        if (fa >= 0) != (fb >= 0):
+            m = a + (b - a) * (fa / (fa - fb))
+            pos.append(m)
+            neg.append(m)
+    return (pos if len(pos) >= 3 else None), (neg if len(neg) >= 3 else None)
+
+
+def loft(mb, xs, sec_fn, mat_fn, tag, cap_front=True, cap_back=True, cap_mat=None, split_fn=None):
+    """split_fn(q, c, nrm) -> [(points, material)]: a face cut into parts (the window outlines)"""
     secs = [[Vector((x, y, z)) for (y, z) in sec_fn(x)] for x in xs]
     n = len(secs[0])
     for i in range(len(xs) - 1):
@@ -107,7 +139,11 @@ def loft(mb, xs, sec_fn, mat_fn, tag, cap_front=True, cap_back=True, cap_mat=Non
             if nrm.dot(out) < 0:
                 q = q[::-1]
                 nrm = -nrm
-            mb.face([tuple(v) for v in q], mat_fn(c, nrm), smooth=tag)
+            if split_fn:
+                for pts, mat in split_fn(q, c, nrm):
+                    mb.face([tuple(v) for v in pts], mat, smooth=tag)
+            else:
+                mb.face([tuple(v) for v in q], mat_fn(c, nrm), smooth=tag)
     for S, sgn, do in ((secs[0], -1, cap_back), (secs[-1], 1, cap_front)):
         if not do:
             continue
@@ -134,67 +170,74 @@ def stations(x0, x1, step, extra=()):
 
 
 # ----------------------------------------------------------------------------- specs
+# L is the body's length without the bumpers, which stand 0.06 m (body-coloured) or 0.07 m proud at either end: the
+# cars' overall lengths are the makers' (쏘나타Ⅱ 4.70 m, 프린스 4.80, 프라이드 3.57, 티코 3.34, 그레이스 4.70), as
+# are their widths, heights (the highest point of `roof`), wheelbases (`axles`) and tyres.
+# top: the body's upper line (hood, belt, boot lid); roof: the greenhouse's, from the boot lid over the roof down to
+# the scuttle; gh: where the greenhouse stands.  windshield / rear_window / side: the glass along x; the side glass
+# runs from 4 cm over the belt up to 4 cm under the roof's rounding along the screens (the pillars lean with them)
+# and no higher than `cant` under it on the roof (the cant rail; a van's deep roof panel).  rw_z: a tailgate's glass.
 # style keys: bumper 'body' | 'grey' | 'black'; lamps 'flush' | 'box'; grille 'slot' | 'chrome' | 'slit';
 # tail 'band' | 'blocks' | 'vertical'; trim (window surrounds, rub strips, handles) 'black' | 'chrome';
 # wheel 'cover' | 'steel'; plan = (inset, length) of the plan-view corner rounding; body_r = flank corner radii
 SPECS = {
     'sedan': dict(
-        L=4.70, W=1.75, axles=(1.36, -1.34), tyre=0.305, arch=0.375, sill=0.22, bumper_z=(0.25, 0.50),
-        top=[(-2.35, 0.78), (-2.26, 0.875), (-1.50, 0.885), (0.92, 0.845), (1.60, 0.795), (2.20, 0.72), (2.35, 0.665)],
-        roof=[(-1.56, 0.885), (-1.22, 1.17), (-0.88, 1.385), (-0.20, 1.41), (0.18, 1.385), (0.62, 1.10), (1.00, 0.845)],
-        gh=(-1.56, 1.00), roof_w=0.63, belt_w=0.83, gh_rt=0.10,
-        windshield=(0.20, 0.97), rear_window=(-1.52, -0.94), side=(-1.16, 0.82), pillars=[(-0.20, -0.10)],
-        doors=[0.88, -0.15, -1.18], lamp_h=(0.535, 0.625), tail_h=(0.60, 0.73), grille_w=0.25, plate_rear_z=0.625,
+        L=4.58, W=1.77, axles=(1.42, -1.28), tyre=0.314, arch=0.37, sill=0.185, bumper_z=(0.23, 0.52),
+        top=[(-2.29, 0.81), (-2.20, 0.925), (-1.50, 0.93), (0.95, 0.89), (1.60, 0.83), (2.15, 0.745), (2.29, 0.69)],
+        roof=[(-1.60, 0.93), (-1.28, 1.19), (-0.98, 1.37), (-0.30, 1.405), (0.14, 1.375), (0.60, 1.11), (1.03, 0.885)],
+        gh=(-1.60, 1.03), roof_w=0.60, belt_w=0.815, gh_rt=0.06, cant=0.045,
+        windshield=(0.17, 1.00), rear_window=(-1.56, -1.01), side=(-1.21, 0.86), pillars=[(-0.20, -0.10)],
+        doors=[0.90, -0.15, -1.17], lamp_h=(0.56, 0.65), tail_h=(0.63, 0.76), grille_w=0.25, plate_rear_z=0.655,
         plan=(0.13, 0.48), body_r=(0.08, 0.10), bumper='body', lamps='flush', grille='slot', tail='band',
-        trim='black', wheel='cover', rub_z=0.42, mirror='car_paint'),
+        trim='black', wheel='cover', rub_z=0.43, mirror='car_paint'),
     'sedan2': dict(
-        L=4.62, W=1.72, axles=(1.33, -1.30), tyre=0.295, arch=0.365, sill=0.22, bumper_z=(0.26, 0.47),
-        top=[(-2.31, 0.84), (-2.24, 0.90), (-1.40, 0.895), (0.80, 0.865), (1.55, 0.835), (2.22, 0.80), (2.31, 0.745)],
-        roof=[(-1.42, 0.895), (-1.22, 1.20), (-1.02, 1.395), (-0.20, 1.40), (0.18, 1.39), (0.50, 1.18), (0.82, 0.865)],
-        gh=(-1.42, 0.82), roof_w=0.66, belt_w=0.81, gh_rt=0.05,
-        windshield=(0.22, 0.80), rear_window=(-1.38, -1.05), side=(-1.06, 0.68), pillars=[(-0.18, -0.08)],
-        doors=[0.74, -0.13, -1.10], lamp_h=(0.575, 0.695), tail_h=(0.64, 0.79), grille_w=0.30, plate_rear_z=0.64,
+        L=4.66, W=1.72, axles=(1.45, -1.22), tyre=0.31, arch=0.365, sill=0.19, bumper_z=(0.25, 0.48),
+        top=[(-2.33, 0.86), (-2.26, 0.93), (-1.42, 0.925), (0.86, 0.90), (1.60, 0.87), (2.24, 0.83), (2.33, 0.775)],
+        roof=[(-1.46, 0.925), (-1.24, 1.21), (-1.04, 1.39), (-0.25, 1.42), (0.16, 1.395), (0.52, 1.17), (0.90, 0.90)],
+        gh=(-1.46, 0.90), roof_w=0.62, belt_w=0.795, gh_rt=0.05, cant=0.05,
+        windshield=(0.19, 0.87), rear_window=(-1.43, -1.08), side=(-1.13, 0.74), pillars=[(-0.20, -0.10)],
+        doors=[0.78, -0.15, -1.12], lamp_h=(0.60, 0.72), tail_h=(0.66, 0.81), grille_w=0.30, plate_rear_z=0.66,
         plan=(0.07, 0.28), body_r=(0.06, 0.045), bumper='grey', lamps='box', grille='chrome', tail='blocks',
-        trim='chrome', wheel='cover', rub_z=0.40, mirror='trim_black'),
+        trim='chrome', wheel='cover', rub_z=0.42, mirror='trim_black'),
     'hatch': dict(
-        L=3.56, W=1.60, axles=(1.10, -1.20), tyre=0.275, arch=0.34, sill=0.21, bumper_z=(0.24, 0.44),
-        top=[(-1.78, 0.82), (-1.73, 0.875), (0.60, 0.835), (1.20, 0.785), (1.70, 0.735), (1.78, 0.68)],
-        roof=[(-1.76, 0.875), (-1.745, 1.22), (-1.68, 1.42), (-0.30, 1.45), (0.05, 1.43), (0.36, 1.12), (0.62, 0.835)],
-        gh=(-1.76, 0.64), roof_w=0.62, belt_w=0.77, gh_rt=0.05, rw_z0=0.98,
-        windshield=(0.08, 0.62), rear_window=(-1.77, -1.62), side=(-1.54, 0.50), pillars=[(-0.40, -0.31)],
-        doors=[0.56, -0.36, -1.22], lamp_h=(0.52, 0.635), tail_h=(0.53, 0.84), grille_w=0.24, plate_rear_z=0.58,
+        L=3.43, W=1.605, axles=(1.08, -1.215), tyre=0.272, arch=0.33, sill=0.185, bumper_z=(0.24, 0.45),
+        top=[(-1.715, 0.86), (-1.67, 0.915), (0.62, 0.885), (1.20, 0.815), (1.64, 0.76), (1.715, 0.70)],
+        roof=[(-1.70, 0.915), (-1.685, 1.22), (-1.62, 1.43), (-0.30, 1.46), (0.05, 1.44), (0.36, 1.15), (0.64, 0.885)],
+        gh=(-1.70, 0.66), roof_w=0.61, belt_w=0.745, gh_rt=0.05, cant=0.075, rw_z=(1.00, 1.345),
+        windshield=(0.10, 0.64), rear_window=(-1.71, -1.57), side=(-1.50, 0.52), pillars=[(-0.42, -0.33), (-1.13, -1.07)],
+        doors=[0.58, -0.38, -1.10], lamp_h=(0.56, 0.675), tail_h=(0.56, 0.86), grille_w=0.24, plate_rear_z=0.60,
         plan=(0.07, 0.26), body_r=(0.06, 0.05), bumper='black', lamps='box', grille='slit', tail='vertical',
-        trim='black', wheel='steel', rub_z=0.40, mirror='trim_black', hatch=True),
+        trim='black', wheel='steel', rub_z=0.41, mirror='trim_black', hatch=True),
     'tico': dict(
-        L=3.34, W=1.40, axles=(1.02, -1.315), tyre=0.255, arch=0.315, sill=0.20, bumper_z=(0.22, 0.425),
-        top=[(-1.67, 0.80), (-1.625, 0.86), (0.52, 0.825), (1.00, 0.79), (1.55, 0.705), (1.67, 0.645)],
-        roof=[(-1.65, 0.86), (-1.635, 1.20), (-1.57, 1.375), (-0.35, 1.40), (0.00, 1.375), (0.30, 1.10), (0.56, 0.825)],
-        gh=(-1.65, 0.58), roof_w=0.54, belt_w=0.665, gh_rt=0.10, rw_z0=0.97,
-        windshield=(0.04, 0.56), rear_window=(-1.66, -1.52), side=(-1.47, 0.47), pillars=[(-0.45, -0.37)],
-        doors=[0.52, -0.41, -1.16], lamp_h=(0.49, 0.585), tail_h=(0.52, 0.80), grille_w=0.17, plate_rear_z=0.56,
+        L=3.20, W=1.40, axles=(1.11, -1.225), tyre=0.26, arch=0.31, sill=0.18, bumper_z=(0.22, 0.43),
+        top=[(-1.60, 0.82), (-1.555, 0.885), (0.52, 0.86), (1.00, 0.81), (1.48, 0.73), (1.60, 0.67)],
+        roof=[(-1.585, 0.885), (-1.57, 1.19), (-1.50, 1.37), (-0.35, 1.395), (0.00, 1.375), (0.30, 1.12), (0.57, 0.86)],
+        gh=(-1.585, 0.60), roof_w=0.53, belt_w=0.645, gh_rt=0.06, cant=0.05, rw_z=(0.98, 1.29),
+        windshield=(0.05, 0.57), rear_window=(-1.60, -1.46), side=(-1.40, 0.48), pillars=[(-0.45, -0.37), (-1.06, -1.00)],
+        doors=[0.53, -0.41, -1.03], lamp_h=(0.52, 0.615), tail_h=(0.55, 0.82), grille_w=0.17, plate_rear_z=0.58,
         plan=(0.14, 0.46), body_r=(0.07, 0.09), bumper='black', lamps='box', grille='slit', tail='vertical',
-        trim='black', wheel='steel', rub_z=0.38, mirror='trim_black', hatch=True),
+        trim='black', wheel='steel', rub_z=0.39, mirror='trim_black', hatch=True),
     'van': dict(
-        L=4.60, W=1.69, axles=(1.32, -1.28), tyre=0.30, arch=0.375, sill=0.24, bumper_z=(0.28, 0.50),
-        top=[(-2.30, 0.92), (-2.25, 0.98), (1.60, 0.96), (1.98, 0.92), (2.25, 0.82), (2.30, 0.74)],
-        roof=[(-2.29, 0.98), (-2.27, 1.70), (-2.20, 1.93), (0.70, 1.96), (1.05, 1.88), (1.40, 1.40), (1.62, 0.96)],
-        gh=(-2.29, 1.62), roof_w=0.70, belt_w=0.82, gh_rt=0.07,
-        windshield=(1.04, 1.60), rear_window=(-2.40, -2.20), side=(-2.05, 1.26), pillars=[(0.54, 0.64), (-0.74, -0.64)],
-        doors=[1.20, 0.58, -0.60], lamp_h=(0.58, 0.69), tail_h=(0.56, 0.86), grille_w=0.38, plate_rear_z=0.72,
+        L=4.56, W=1.69, axles=(1.13, -1.305), tyre=0.325, arch=0.39, sill=0.25, bumper_z=(0.30, 0.52),
+        top=[(-2.28, 1.04), (-2.23, 1.10), (1.70, 1.10), (1.98, 1.06), (2.20, 0.94), (2.28, 0.85)],
+        roof=[(-2.27, 1.10), (-2.25, 1.74), (-2.18, 1.94), (0.60, 1.97), (1.10, 1.94), (1.36, 1.87), (1.68, 1.45), (1.93, 1.10)],
+        gh=(-2.27, 1.93), roof_w=0.70, belt_w=0.80, gh_rt=0.08, cant=0.17, rw_z=(1.17, 1.72),
+        windshield=(1.39, 1.90), rear_window=(-2.40, -2.20), side=(-2.02, 1.64), pillars=[(0.50, 0.60), (-0.74, -0.64)],
+        doors=[1.70, 0.55, -0.69], lamp_h=(0.67, 0.78), tail_h=(0.60, 0.92), grille_w=0.38, plate_rear_z=0.74,
         plan=(0.09, 0.32), body_r=(0.07, 0.06), bumper='grey', lamps='box', grille='slot', tail='vertical',
-        trim='black', wheel='steel', rub_z=0.44, mirror='trim_black', van=True),
+        trim='black', wheel='steel', rub_z=0.50, mirror='trim_black', van=True),
 }
 SPECS['taxi'] = dict(SPECS['sedan'], taxi=True)
 
-# Everything is modelled at the real cars' sizes and exported CAR_SCALE larger: the game's people sit bolt upright
-# (a 1.73 m man's head would come through a real 1.41 m roof), so the cars grow a little instead.
-CAR_SCALE = 1.07
+# The cars are exported at their real sizes (till 2026-11 seven per cent larger, for a driver sitting bolt upright:
+# web/src/life.js now sits the driver low and leaning back, as in a car)
+CAR_SCALE = 1.0
 
 
-# where the seated driver goes (car frame: x forward, y left; before CAR_SCALE), for web/src/life.js DRIVER
+# where the seated driver goes (car frame: x forward, y left), for web/src/life.js DRIVER
 def driver_seat(kind):
     sp = SPECS[kind]
-    x = 0.92 if sp.get('van') else sp['pillars'][0][0] + 0.15
+    x = 1.00 if sp.get('van') else sp['pillars'][0][0] + 0.15
     return round(x, 2), (0.36 if sp['W'] > 1.5 else 0.31)
 
 
@@ -207,7 +250,7 @@ def build_car(kind):
     cy_arch = tyre + 0.01
     p_in, p_len = sp['plan']
     brb, brt = sp['body_r']
-    TUMBLE = 0.02
+    TUMBLE, BOW = 0.03, 0.014
     chrome_trim = sp['trim'] == 'chrome'
     trim_mat = 'chrome' if chrome_trim else 'trim_black'
     mb = MeshBuilder('car_' + kind)
@@ -229,7 +272,7 @@ def build_car(kind):
         return hw - p_in * smoothstep(L / 2 - p_len, L / 2, abs(x)) ** 1.6
 
     def body_y(x, z):
-        return section_y(half_w(x), z_bot(x), z_top(x), brb, brt, TUMBLE, z)
+        return section_y(half_w(x), z_bot(x), z_top(x), brb, brt, TUMBLE, z, BOW)
 
     def surf_x(sx, y, z):
         """|x| of the body surface at (y, z) on the front (sx=1) or back (sx=-1)."""
@@ -272,7 +315,7 @@ def build_car(kind):
     xs = stations(-L / 2, L / 2, 0.04, extra=[fa - r_arch, fa + r_arch, ra - r_arch, ra + r_arch])
 
     def body_sec(x):
-        return section(half_w(x), z_bot(x), z_top(x), brb, brt, tumble=TUMBLE, crown=0.012)
+        return section(half_w(x), z_bot(x), z_top(x), brb, brt, tumble=TUMBLE, crown=0.012, bow=BOW, n_fl=3)
     loft(mb, xs, body_sec, lambda c, n: 'car_paint', 'body')
 
     # ---------------- greenhouse
@@ -284,44 +327,88 @@ def build_car(kind):
     def zr(x):
         return interp(sp['roof'], x)
 
-    def gh_sec(x):
+    def gh_dims(x):
+        """the greenhouse's section at x: its foot and top, half widths at the belt and at the roof, the roof's rounding"""
         zb, zt = belt(x), max(belt(x) + 0.003, zr(x))
         wb = min(sp['belt_w'], half_w(x) - 0.02)
         h = zt - zb
         wr = sp['roof_w'] + (wb - sp['roof_w']) * max(0.0, 1 - h / 0.12) if h < 0.12 else sp['roof_w']
+        return zb, zt, wb, wr, sec_radii(wb, zb, zt, 0.01, sp['gh_rt'])[1]
+
+    def gh_sec(x):
+        zb, zt, wb, wr, _ = gh_dims(x)
         return section(wb, zb, zt, 0.01, sp['gh_rt'], tumble=wb - wr, crown=0.018)
 
     ws, rw, sd = sp['windshield'], sp['rear_window'], sp['side']
+    PIL = 0.04                                  # body left between the glass and the roof's rounding, and over the belt
+    cap = max(z for _, z in sp['roof']) - sp['gh_rt'] - sp.get('cant', 0.045)       # the side glass's top on the roof
+    rwz = sp.get('rw_z')
 
-    def window_kind(c, n, m):
-        """'glass' if the face centre lies inside a window shrunk by margin m."""
-        x, y, z = c.x, abs(c.y), c.z
-        if abs(n.y) > 0.55:
-            if not (belt(x) + 0.05 + m < z < zr(x) - 0.06 - m):
-                return False
-            if not (sd[0] + m < x < sd[1] - m):
-                return False
-            return not any(a - m < x < b + m for a, b in sp['pillars'])
-        if abs(n.x) > 0.6 and sp.get('van') and x < 0:            # van rear door glass on the vertical back
-            return 1.12 + m < z < 1.78 - m and y < sp['roof_w'] - 0.10 - m
-        lim = sp['roof_w'] - 0.08 - m
-        if ws[0] + m < x < ws[1] - m * 0.5 and y < lim * (0.92 + 0.08 * (x - ws[0]) / (ws[1] - ws[0])):
-            return True
-        if rw[0] + m * 0.5 < x < rw[1] - m and y < lim:
-            if 'rw_z0' in sp and not (sp['rw_z0'] + m < z < zr(x + 0.10) - 0.06 - m):    # tailgate glass
-                return False
-            return True
-        return False
+    def side_top(x):
+        _, zt, _, _, rt = gh_dims(x)
+        return min(zt - rt - PIL, cap)
 
-    def gh_mat(c, n):
-        if window_kind(c, n, 0.0):
-            return 'glass_car'
-        if window_kind(c, n, -0.022 if chrome_trim else -0.035):
-            return 'trim_black'
-        if chrome_trim and window_kind(c, n, -0.045):
-            return 'chrome'
-        return 'car_paint'
-    loft(mb, xs2, gh_sec, gh_mat, 'gh', cap_front=False, cap_back=False)
+    def top_lim(x):
+        _, _, _, wr, rt = gh_dims(x)
+        return wr - rt - PIL * 0.6
+
+    def window(q, nrm, c, m):
+        """the part of the face q inside a window drawn in by margin m (out for m < 0), and what is left of it:
+        ([polygons], [polygons]).  Side glass on the flanks, the screens on top, a van's rear door glass"""
+        if abs(nrm.y) > 0.55:
+            band = [lambda p: p.z - (belt(p.x) + PIL + m), lambda p: side_top(p.x) - m - p.z,
+                    lambda p: p.x - (sd[0] + m), lambda p: sd[1] - m - p.x]
+            gaps = [(a - m, b + m) for a, b in sp['pillars'] if a - m < b + m]
+        elif abs(nrm.x) > 0.6 and sp.get('van') and c.x < 0:
+            band = [lambda p: p.z - (rwz[0] + m), lambda p: rwz[1] - m - p.z, lambda p: sp['roof_w'] - 0.10 - m - abs(p.y)]
+            gaps = []
+        elif c.x > (ws[0] + rw[1]) / 2:
+            band = [lambda p: p.x - (ws[0] + m), lambda p: ws[1] - m * 0.5 - p.x, lambda p: top_lim(p.x) - m - abs(p.y)]
+            gaps = []
+        else:
+            band = [lambda p: p.x - (rw[0] + m * 0.5), lambda p: rw[1] - m - p.x, lambda p: top_lim(p.x) - m - abs(p.y)]
+            if rwz and not sp.get('van'):                                               # tailgate glass
+                band += [lambda p: p.z - (rwz[0] + m), lambda p: rwz[1] - m - p.z]
+            gaps = []
+        ins, outs = [q], []
+        for f in band:
+            nxt = []
+            for poly in ins:
+                a, b = split_poly(poly, f)
+                if a:
+                    nxt.append(a)
+                if b:
+                    outs.append(b)
+            ins = nxt
+        for g0, g1 in gaps:                                                             # the pillars between the doors
+            nxt = []
+            for poly in ins:
+                aft, rest = split_poly(poly, lambda p: g0 - p.x)
+                if aft:
+                    nxt.append(aft)
+                if rest:
+                    fore, mid = split_poly(rest, lambda p: p.x - g1)
+                    if fore:
+                        nxt.append(fore)
+                    if mid:
+                        outs.append(mid)
+            ins = nxt
+        return ins, outs
+
+    # glass, its black rubber, on the older saloon a chrome surround, then the body's paint
+    rings = ([(-0.042, 'car_paint'), (-0.024, 'chrome')] if chrome_trim else [(-0.026, 'car_paint')]) + [(0.0, 'trim_black')]
+
+    def gh_split(q, c, nrm):
+        out, cur = [], [q]
+        for m, outside in rings:
+            nxt = []
+            for poly in cur:
+                ins, outs = window(poly, nrm, c, m)
+                nxt += ins
+                out += [(o, outside) for o in outs]
+            cur = nxt
+        return out + [(poly, 'glass_car') for poly in cur]
+    loft(mb, xs2, gh_sec, None, 'gh', cap_front=False, cap_back=False, split_fn=gh_split)
 
     # ---------------- wheel-well liners (hide the lofted arch tunnel) + underbody
     for ax in (fa, ra):
@@ -433,7 +520,7 @@ def build_car(kind):
         strip(-1, we - 0.13, we, tz0, tz0 + (tz1 - tz0) * 0.45, 'light_red', n=4)
         strip(-1, 0.0, 0.22, tz0 - 0.01, tz1 + 0.01, 'trim_black', off=0.002, n=4)                  # garnish round the plate
     elif sp['tail'] == 'blocks':
-        we = wrap_end(-1, tzc)
+        we = min(wrap_end(-1, tzc), body_y(-L / 2, tzc) + 0.03)      # (to the corner's turn, not round it)
         strip(-1, 0.30, we, tz0 - 0.012, tz1 + 0.012, 'chrome', off=0.002, n=10)
         strip(-1, 0.31, 0.42, tz0, tz1, 'lens_clear', n=2)
         strip(-1, 0.42, we - 0.14, tz0, tz1, 'light_red', n=6)
@@ -470,18 +557,22 @@ def build_car(kind):
         if chrome_trim:
             mb.box(((xa + xb) / 2, ys + s * 0.013, zc + 0.012), (xb - xa, 0.004, 0.008), 'chrome')
         for dx in sp['doors']:
-            yv = s * (half_w(dx) + 0.002)
-            q = [(dx - 0.005, yv, sp['sill'] + 0.06), (dx + 0.005, yv, sp['sill'] + 0.06), (dx + 0.005, yv, belt(dx)), (dx - 0.005, yv, belt(dx))]
-            mb.face(q if s > 0 else q[::-1], 'trim_black')
+            za, zb_ = max(sp['sill'], z_bot(dx)) + 0.05, belt(dx) - 0.005
+            for k in range(5):                                                          # (along the flank's bow)
+                z0, z1 = za + (zb_ - za) * k / 5, za + (zb_ - za) * (k + 1) / 5
+                y0, y1 = s * (body_y(dx, z0) + 0.002), s * (body_y(dx, z1) + 0.002)
+                q = [(dx - 0.005, y0, z0), (dx + 0.005, y0, z0), (dx + 0.005, y1, z1), (dx - 0.005, y1, z1)]
+                mb.face(q if s > 0 else q[::-1], 'trim_black')
         for dx in sp['doors'][:-1]:
-            hx = dx - 0.22
-            mb.box((hx, s * (half_w(hx) + 0.006), belt(hx) - 0.09), (0.13, 0.016, 0.028), trim_mat)
+            hx, hz = dx - 0.22, belt(dx - 0.22) - 0.10
+            mb.box((hx, s * (body_y(hx, hz) + 0.004), hz), (0.13, 0.016, 0.028), trim_mat)
         mx = sd[1] - 0.04
-        my = s * (half_w(mx) + 0.08)
+        wb_ = gh_dims(mx)[2]
+        my = s * (wb_ + 0.13)
         mz = belt(mx) + 0.09
         mb.box((mx, my, mz), (0.07, 0.15, 0.10), sp['mirror'])
         mb.box((mx - 0.036, my, mz), (0.005, 0.13, 0.085), 'chrome')
-        mb.box((mx + 0.03, s * (half_w(mx) + 0.02), belt(mx) + 0.04), (0.08, 0.05, 0.06), 'trim_black')   # sail
+        mb.box((mx + 0.03, s * (wb_ + 0.03), belt(mx) + 0.045), (0.09, 0.07, 0.07), 'trim_black')        # sail
     # wipers & antenna
     for s in (-0.3, 0.35):
         x = ws[1] - 0.04

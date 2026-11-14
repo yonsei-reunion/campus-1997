@@ -159,7 +159,7 @@ if want('veg') or want('shrubs'):       # (`shrubs` alone: the clipped shrubs wi
         export_glb(shrubs.far_version(ob), os.path.join(OUT, 'veg', f'{k}_far.glb'), colors=True)
 
 if want('props'):
-    for name, fn in (('lamp_double', props.lamp_double), ('motorbike', props.motorbike), ('lamp_arm', props.lamp_arm),
+    for name, fn in (('lamp_double', props.lamp_double), ('lamp_arm', props.lamp_arm),
                      ('lamp_quad', props.lamp_quad), ('flag_white', props.flag_white), ('planter', props.planter),
                      ('stone_marker', props.stone_marker), ('sign_board', props.sign_board), ('guard_booth', props.guard_booth),
                      ('barrier_arm', props.barrier_arm), ('bollard', props.bollard), ('tent_kiosk', props.tent_kiosk),
@@ -204,6 +204,25 @@ if want('props') or want('cars'):     # (`cars` alone: the cars without the othe
                 c.ratio = 0.4
                 c.use_collapse_triangulate = True
         export_glb(objs, os.path.join(OUT, 'props', f'car_{k}_far.glb'))
+
+if want('props') or want('cars'):     # the scooter (blender/bikes.py): the ridden ones and the parked ones are this one model
+    import bikes
+    reset_scene()
+    mb, wheels, stand = bikes.scooter()
+    body = mb.build()
+    body.name = 'body'
+    try:
+        body.data.set_sharp_from_angle(angle=math.radians(40))
+    except Exception:
+        pass
+    objs = [body, stand.build()]
+    for w in wheels:
+        o = w.build()
+        o.name = w.name
+        o.location = w.wheel_pos
+        objs.append(o)
+    stats['scooter'] = tri_count(objs)
+    export_glb(objs, os.path.join(OUT, 'props', 'scooter.glb'))
 
 if want('polyhaven'):
     # CC0 Poly Haven props: decimate to game budgets, keep their own PBR textures (1k JPEG)

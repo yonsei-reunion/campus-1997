@@ -53,7 +53,7 @@ const progress = (label, weight) => loading.step(label, weight);
 const json = (u) => fetchCounted(u).then((b) => JSON.parse(new TextDecoder().decode(b)));
 const MODELS = 'assets/models/';
 const CARS = ['sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'van'];
-const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'motorbike',
+const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'scooter',
   ...CARS.flatMap((k) => [`car_${k}`, `car_${k}_far`]), 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard',
   'tent_kiosk', 'notice_board', 'haetae', 'parking_booth', 'bus'];
 const CAR_FAR = 20;     // parked cars farther than this from the camera: their lighter models (a fifth of the triangles)
@@ -301,13 +301,15 @@ async function main() {
     const rnd = mulberry(5);
     const COLLIDE = { lamp_double: 0.25, lamp_quad: 0.25, lamp_arm: 0.25, flag_white: 0.12, planter: 0.5, stone_marker: 1.0, sign_board: 0.9, payphone: 0.62, guard_booth: 1.05,
       bollard: 0.12, tent_kiosk: 1.5, notice_board: 0.7, haetae: 0.95, parking_booth: 1.3, recycle_bin: 0.7 };
+    // (the 오토바이 parked before 제1공학관: the scooter the students ride, blender/bikes.py, on its stand)
+    const BIKE_PAINT = ['#b3262b', '#e6e4dc', '#1f3f8f', '#d2a81c', '#1b1b1e', '#1f6f66', '#8e9399', '#7a1f2c'];
     for (const [kind, list] of Object.entries(byKind)) {
-      const src = P[kind];
+      const src = P[kind === 'motorbike' ? 'scooter' : kind];
       if (!src) continue;
       const kit = new InstancedKit(src.scene, lib, list.length, { colors: true });
       for (const [, x, y, rot] of list) {
         // Blender models face -Y; campus rotation is the heading in the campus frame
-        const col = kind === 'motorbike' ? new THREE.Color().setHSL(rnd(), 0.5, 0.45) : null;
+        const col = kind === 'motorbike' ? new THREE.Color(BIKE_PAINT[Math.floor(rnd() * BIKE_PAINT.length)]) : null;
         kit.add(placeMatrix(m4, x, groundAt(x, y), y, rot + (kind === 'motorbike' ? 0 : Math.PI / 2)), col);
         // a bench (1.8 m by 0.62, facing rot): three circles along its length
         if (kind === 'bench') for (const t of [-0.55, 0, 0.55]) colliders.addCircle(x - Math.sin(rot) * t, y + Math.cos(rot) * t, 0.38);
@@ -320,8 +322,8 @@ async function main() {
     // parked cars
     const carKits = {};
     const PARKED_COLORS = [...CAR_COLORS, '#8c8f94'];
-    const MODEL = (k, i) => (k === 'sedan' ? ['sedan', 'sedan2', 'sedan', 'van'][i % 4] : k === 'hatch' ? ['hatch', 'tico'][i % 2] : k);
-    const carCount = countBy(campus.cars, (c, i) => MODEL(c[0], i));
+    // (campus.json names each car's model and its colour in PARKED_COLORS: tools/build_campus.py, the cars' last pass)
+    const carCount = countBy(campus.cars, (c) => c[0]);
     // (and their lighter models, blender/build.py car_*_far: farther than CAR_FAR from the camera)
     const farKits = {};
     for (const [k, n] of Object.entries(carCount)) {
@@ -350,9 +352,8 @@ async function main() {
       carQ.setFromEuler(carEuler.set(roll, ang, pitch));
       return m4.compose(carP.set(x, h, -y), carQ, ONE);
     };
-    campus.cars.forEach(([k0, x, y, ang, ci], i) => {
-      const k = MODEL(k0, i);
-      const col = new THREE.Color(k === 'taxi' ? '#ecebe4' : PARKED_COLORS[(ci * 7 + i) % PARKED_COLORS.length]);
+    campus.cars.forEach(([k, x, y, ang, ci]) => {
+      const col = new THREE.Color(PARKED_COLORS[ci % PARKED_COLORS.length]);
       parkedMatrix(k, x, y, ang);
       carKits[k].add(m4, col);
       farKits[k].add(m4, col);
@@ -485,6 +486,7 @@ async function main() {
   // remembers no cars on the drives right beside 언더우드관 and 연희관, where the 2008 roadview's car went.)  One lane
   // for every free stall: the loop with the way into that stall and the way out backwards spliced in (life.js Traffic).
   let westLanes = 0;
+  const bikeLanes = [];                // the loops whole, no stall: the scooters' (life.js Traffic.addBikes)
   {
     const off = R.median + R.lane * 0.5, TR = campus.traffic;
     const north = center.offset((s) => -(off + 0.5 * roundBooth(s)));            // (a point every 3 m)
@@ -494,6 +496,11 @@ async function main() {
       const head = north.slice(0, n), tail = south.slice(0, n).reverse(), free = Array(n).fill(Infinity);
       for (const L of TR.loops.slice().reverse()) {                              // (west first: one car to each of its stalls)
         if (L.name === 'west') westLanes = L.stalls.length;
+        {
+          const lane = new Path([...head, ...L.pts, ...tail], groundAt).setLimits([...free, ...L.v, ...free]).setTracks();
+          lane.loop = true;
+          bikeLanes.push(lane);
+        }
         for (const st of L.stalls) {
           const k = st.a.length + st.b.length - 2;
           const pts = [...head, ...L.pts.slice(0, st.i + 1), ...st.a.slice(1), ...st.b.slice(1), ...L.pts.slice(st.j + 1), ...tail];
@@ -518,6 +525,7 @@ async function main() {
   // fewer than it did)
   const traffic = new Traffic(scene, { sedan: P.car_sedan, sedan2: P.car_sedan2, hatch: P.car_hatch, tico: P.car_tico, taxi: P.car_taxi, van: P.car_van }, lanes,
     campus.traffic ? (MOBILE ? 18 : 26) : 14, cast, STUDENTS.concat(['man-professor', 'man-staff', 'woman-staff']), 9, westLanes);
+  if (P.scooter) traffic.addBikes(scene, P.scooter, bikeLanes, MOBILE ? 3 : 5, cast, ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man-tee', 'woman-tee', 'woman-cardigan']);
   for (const c of traffic.cars) shadows.addDynamic(c.root, c.len / 2 + 1.5);
   const walkers = crowd.people.filter((p) => p.path);        // (the cars wait for them: life.js Traffic)
   const gates = new BoothGates(scene, P.barrier_arm, R.booth, groundAt, shadows);
