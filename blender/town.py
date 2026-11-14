@@ -477,9 +477,13 @@ def yro_banner():
 def entrances():
     """2호선 신촌역's stairs down at the junction's corners: a stairwell walled on three sides to the hip with a rail on
     top, open at the end towards the street's way; the flight goes 3 m down into it; a pole with the line's green
-    sign at the open end.  [x, y, the long side's way (rad), length, width, number, ground z]"""
+    sign at the open end.  [x, y, the long side's way (rad), length, width, number, ground z]
+    Where July 1997's scans have its roof (tools/sinchon_rotary.py ENT97; 서울연구원 52206 · 52146 · 52204): three more
+    fields, the roof's length, width and its top over the walk: a flat white roof on posts over the stairwell, a black
+    sign box on it at the open end; no sign pole.  town.kiosks: the eight-sided kiosk before 한일은행 (52204)."""
     mb = MeshBuilder('town_subway')
-    for x, y, ang, L, W, no, z in T.get('entrances', []):
+    for e in T.get('entrances', []):
+        x, y, ang, L, W, no, z = e[:7]
         c, s_ = math.cos(ang), math.sin(ang)
         P = lambda u, v, dz: (x + u * c - v * s_, y + u * s_ + v * c, z + dz)
         t = 0.2
@@ -497,10 +501,33 @@ def entrances():
             zz = -3.0 * (i + 1) / n
             mb.face([P(ub, -W / 2 + t, zz), P(ub, W / 2 - t, zz), P(ua, W / 2 - t, zz), P(ua, -W / 2 + t, zz)][::-1], 'curb_road')
             mb.face([P(ub, -W / 2 + t, zz + 3.0 / n), P(ub, W / 2 - t, zz + 3.0 / n), P(ub, W / 2 - t, zz), P(ub, -W / 2 + t, zz)], 'curb_road')
+        if len(e) > 9 and e[9]:
+            RL, RW, rh = e[7:10]
+            q = P(0.0, 0.0, 0.0)
+            mb.box((q[0], q[1], z + rh - 0.14), (RL, RW, 0.28), 'paint_white', rotz=ang, mats={'top': 'concrete'})
+            for u in (-L / 2 + 0.1, 0.0, L / 2 - 0.1):
+                for v in (-W / 2 + 0.1, W / 2 - 0.1):
+                    q = P(u, v, 0.0)
+                    mb.box((q[0], q[1], z + (1.0 + rh - 0.28) / 2), (0.16, 0.16, rh - 0.28 - 1.0), 'paint_white', rotz=ang)
+            q = P(RL / 2 - 1.3, 0.0, 0.0)
+            mb.box((q[0], q[1], z + rh + 0.55), (1.0, 1.0, 1.1), 'paint_black', rotz=ang, skip=('bottom',))
+            continue
         # the sign: a pole at the open end's corner, a box with the line's green
         q = P(L / 2 - 0.2, W / 2 + 0.35, 0.0)
         mb.box((q[0], q[1], z + 1.4), (0.08, 0.08, 2.8), 'metal', rotz=ang)
         mb.box((q[0], q[1], z + 2.95), (0.5, 0.16, 0.5), 'metal_green', rotz=ang)
+    for x, y, r, z in T.get('kiosks', []):
+        ring = lambda rr, zz, a0=math.pi / 8: [(x + rr * math.cos(a0 + k * math.pi / 4), y + rr * math.sin(a0 + k * math.pi / 4), zz) for k in range(8)]
+        lo, mid, hi, top = ring(r, z), ring(r, z + 0.95), ring(r, z + 2.0), ring(r, z + 2.45)
+        for k in range(8):
+            j = (k + 1) % 8
+            mb.face([lo[k], lo[j], mid[j], mid[k]], 'paint_white')
+            mb.face([mid[k], mid[j], hi[j], hi[k]], 'glass', panes=(1, 1))
+            mb.face([hi[k], hi[j], top[j], top[k]], 'paint_white')
+        eave = ring(r + 0.45, z + 2.45)
+        mb.face(eave[::-1], 'paint_white')
+        for k in range(8):
+            mb.face([eave[k], eave[(k + 1) % 8], (x, y, z + 3.5)], 'metal_green')
     return mb
 
 

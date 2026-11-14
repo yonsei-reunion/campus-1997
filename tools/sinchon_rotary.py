@@ -847,6 +847,11 @@ def layout(geo, town, extras, ground, taken_z):
             new.append(b)
             n_fill += 1
     blocks += new
+    # OSM's thin outlines of today's stair canopies (10 x 3 m) had been stood up as four-storey houses at stairs 4 and 7
+    # (before 그랜드백화점: the forecourt's 「kiosk」): they go (b[6] < 0, their looks still drawn) for the stairs' own roofs
+    for b in new:
+        if b[6] > 0 and min(b[2], b[3]) < 4.5 and any(math.hypot(b[0] - c_[0], b[1] - c_[1]) < 8.0 for c_, *_ in ENT97.values()):
+            b[6] = -b[6]
     # the landmarks as the 1997 frames have them (LM_TOP, LM_SHAPE), set after the fill so that what was decided round
     # them stays: each block's box on its 1997 outline, its ground under that outline, its storeys stretched to its top
     # (13th field); blender/town.py draws them as town['landmarks'] (their boxes' draws spent into nothing)
@@ -1260,6 +1265,7 @@ def layout(geo, town, extras, ground, taken_z):
                     barrier.append(R2([a_ - nrm * 0.05, b_ - nrm * 0.05, b_ + nrm * 0.85, a_ + nrm * 0.85]))
     # ---- lamps along the kerbs (every 30 m, both sides; none in a crossing), the subway's entrances at the corners
     props = []
+    ent_roofs = unary_union([_box([c_[0], c_[1], L_, W_, math.radians(a_)]).buffer(1.0) for c_, a_, L_, W_ in ENT97.values()])
     apron_in = Polygon(ROT_APRON).buffer(-0.3)
     road_l = road.buffer(-0.2)
     shapely.prepare(road_l)
@@ -1275,6 +1281,8 @@ def layout(geo, town, extras, ground, taken_z):
                 if k == 'yonsei' and q[1] > -508.0:          # (south of the baked sun shadow's edge)
                     continue
                 if apron_in.contains(Point(*q)) or road_l.contains(Point(*q)):   # (the island's wedge, the corners' asphalt)
+                    continue
+                if shapely.intersects(ent_roofs, Point(*q)):                      # (a stair canopy of 1997: ENT97)
                     continue
                 rot = math.atan2(t[1], t[0]) + (math.pi if sgn < 0 else 0.0)
                 props.append(['lamp_arm', round(float(q[0]), 2), round(float(q[1]), 2), round(rot, 3)])
@@ -1306,12 +1314,19 @@ def layout(geo, town, extras, ground, taken_z):
             Wd = 1.6
             q = p + n * side * (best.half + best.walk - 0.15 - Wd / 2)
         e = [round(float(q[0]), 2), round(float(q[1]), 2), round(ang, 4), L, Wd, no, round(ground(*q), 2)]
+        if no in ENT97:
+            # (where the scans of July 1997 have its roof, ENT97: the stairwell 0.6 - 0.7 m inside the roof's edge all
+            # round, its open end the roof's sign end; after its 7 fields the roof's length, width and top over the walk:
+            # blender/town.py entrances draws the canopy)
+            c_, a_, L_, W_ = ENT97[no]
+            e = [c_[0], c_[1], round(math.radians(a_), 4), round(L_ - 1.4, 2), round(W_ - 1.3, 2), no, round(ground(*c_), 2),
+                 L_, W_, ENT97_ROOF]
         entrances.append(e)
-        coll.append(R2(_box([q[0], q[1], L + 0.2, Wd + 0.2, ang]).exterior.coords[:4]))
+        coll.append(R2(_box([e[0], e[1], e[3] + 0.2, e[4] + 0.2, e[2]]).exterior.coords[:4]))
     # (an entrance the island's wedge now covers: on the walk east of its turning lane, nearest OSM's node)
     kerb_e = LineString(ROT_APRON[2:11])
     for i, (no, x, y) in enumerate(EXITS):
-        if not apron_in.intersects(Polygon(coll[i])):
+        if no in ENT97 or not apron_in.intersects(Polygon(coll[i])):
             continue
         d_ = float(kerb_e.project(Point(x, y)))
         p = np.array(kerb_e.interpolate(d_).coords[0])
@@ -1321,6 +1336,10 @@ def layout(geo, town, extras, ground, taken_z):
         ang = math.atan2(t[1], t[0])
         entrances[i] = [round(float(q[0]), 2), round(float(q[1]), 2), round(ang, 4), 7.4, 1.6, no, round(ground(*q), 2)]
         coll[i] = R2(_box([q[0], q[1], 7.6, 1.8, ang]).exterior.coords[:4])
+    # (the eight-sided kiosk between stairs 5 and 6, ENT97_KIOSK: its box among the stairs', so that the trees keep clear)
+    kx_, ky_, kr_ = ENT97_KIOSK
+    coll.append(R2(_box([kx_, ky_, 2 * kr_, 2 * kr_, 0.0]).exterior.coords[:4]))
+    town['kiosks'] = [[kx_, ky_, kr_, round(ground(kx_, ky_), 2)]]
     # ---- 연세로's ginkgo rows (51979 · 52106, 1996: both walks from the junction to the bridge, a crown to every
     # shop front; 52108 the same down the south arm), 1.1 m in from the kerb, none at the crossings, the side
     # streets' mouths, the subway's stairs or under the bridge; new trees go at the end of campus.json's list
@@ -1426,6 +1445,18 @@ def layout(geo, town, extras, ground, taken_z):
                 y_ += 0.25
             trees[i][2] = round(y_, 2)
     props += [['lamp_arm', x_, y_, r_] for x_, y_, r_ in ROT_LAMPS97]
+    # (a ginkgo under a stair canopy of 1997, ENT97: moved in its place in the list out along the row to the roof's
+    # nearer end, 1.5 m clear of it)
+    for t_ in trees:
+        if t_[0] != 'ginkgo':
+            continue
+        for c_, a_, L_, W_ in ENT97.values():
+            u_ = np.array([math.cos(math.radians(a_)), math.sin(math.radians(a_))])
+            d_ = np.array(t_[1:3]) - np.array(c_)
+            du, dv = float(d_ @ u_), float(d_ @ np.array([-u_[1], u_[0]]))
+            if abs(du) < L_ / 2 + 1.5 and abs(dv) < W_ / 2 + 0.8:
+                q = np.array(t_[1:3]) + u_ * ((L_ / 2 + 1.5) * (1 if du >= 0 else -1) - du)
+                t_[1:3] = [round(float(q[0]), 2), round(float(q[1]), 2)]
     # the island's bed (52158, May 1996): the yellow band (BED, r 2.5 - 4.3) two rows of the pansy border round the
     # inner lawn; the dark and the white bands and the outer lawn are the ground's grass
     shrubs = []
@@ -1645,29 +1676,32 @@ def rot_wedge_marks():
     return out
 
 
+# where the buses' riders stand at the four corners (rot_stops): [a point 2 m behind the kerb, the way along the kerb
+# (deg from east), the way from the road to the walk (deg)].  The buses pull in at the kerb beside the stairs' canopies
+# (52146 · 52141 · 52204 · 52145): 양화로's south side north of stairs 7 (그랜드백화점's corner), 신촌로's south side by
+# stairs 5 (한일은행), 양화로's north side between stairs 1 and 2 (금강제화), 신촌로's north side between 3 and 4
+ROT_WAIT97 = [((-152.8, -974.9), 162.0, 252.0), ((-32.7, -975.2), 23.0, 293.0),
+              ((-122.4, -939.9), 26.0, 116.0), ((-71.8, -941.3), -32.4, 57.6)]
+
+
 def rot_stops(A):
-    """the rotary's four bus stops, [x, y, the way along, length, the roof's material] (blender/town.py stops), and the
-    people waiting at them: {groups: [[x, y]], singles: [[x, y, facing x, facing y]]}.
-    52142 · 52145 (1995.10): 양화로's south walk at the 그랜드백화점 corner, 신촌로's south walk before 한일은행;
-    52005 (1996.8, from the 외환은행 roof): flat white roofs on 양화로's north walk before 금강제화 and on 신촌로's north
-    walk before the fenced corner lot, people under them"""
+    """the rotary's four bus stops: no shelters (2026-11-15: the flat pale roofs the 1995 · 1996 photos and the scans
+    have at the corners are the subway stairs' canopies, ENT97; the buses stop at the kerb beside them), so `stops` is
+    empty; the people waiting: {groups: [[x, y]], singles: [[x, y, facing x, facing y]]}, where ROT_WAIT97 says (the
+    same draws as when four 9 m roofs stood at 40 · 59 · 28 · 24 m out along the arms)"""
     stops, wait = [], dict(groups=[], singles=[])
     rnd = random.Random(4811)
-    # (신촌로's south one: 59 m out, 52 m before 2026-11-14; the island's wedge (ROT_APRON) is road up to 50 m)
-    # (the side: +1 the arm's left of its outward way (+n), -1 its right; 양화로 (sinchon_w) runs west, 신촌로 east)
-    for k, s, side in (('sinchon_w', 40.0, 1), ('sinchon_e', ROT_STOP_E, -1), ('sinchon_w', 28.0, -1), ('sinchon_e', 24.0, 1)):
-        a = A[k]
-        p, t, n = a.at(s)
-        q = p + n * side * (a.half + 2.2)
-        tt = t * side
-        stops.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(tt[1], tt[0]), 4), 9.0, 'metal'])
+    for (qx, qy), a_t, a_n in ROT_WAIT97:
+        q = np.array([qx, qy])
+        tt = np.array([math.cos(math.radians(a_t)), math.sin(math.radians(a_t))])
+        nn = np.array([math.cos(math.radians(a_n)), math.sin(math.radians(a_n))])      # (away from the road)
         for u in (-2.6, -0.9, 0.7, 2.4):
-            m = q + tt * (u + rnd.uniform(-0.3, 0.3)) - n * side * rnd.uniform(0.1, 0.6)
+            m = q + tt * (u + rnd.uniform(-0.3, 0.3)) - nn * rnd.uniform(0.1, 0.6)
             ang = rnd.uniform(-0.5, 0.5)
-            f = -n * side
+            f = -nn
             f = np.array([f[0] * math.cos(ang) - f[1] * math.sin(ang), f[0] * math.sin(ang) + f[1] * math.cos(ang)])
             wait['singles'].append([round(float(m[0]), 2), round(float(m[1]), 2), round(float(f[0]), 3), round(float(f[1]), 3)])
-        g = q + n * side * 1.6 + tt * rnd.uniform(-3, 3)
+        g = q + nn * 1.6 + tt * rnd.uniform(-3, 3)
         wait['groups'].append([round(float(g[0]), 2), round(float(g[1]), 2)])
     return stops, wait
 
