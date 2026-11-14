@@ -233,9 +233,10 @@ export class KitCuller {
 
   // parts: InstancedMeshes sharing one transform list (an InstancedKit's parts, or an impostor's mesh), the first
   // parts[0].count of it in place; bounds: their joint bounding sphere in the model frame (or the parts' boxes');
-  // far: the parts of a lighter model placed alike, drawn for the instances farther than dist from the camera.
+  // far: the parts of a lighter model placed alike, drawn for the instances farther than dist from the camera;
+  // max: none drawn farther than this (0: no limit; the phones' parked cars).
   // Returns the set, for refill() when the list changes (the forest's as you walk)
-  add(parts, { bounds = null, far = null, dist = 0 } = {}) {
+  add(parts, { bounds = null, far = null, dist = 0, max = 0 } = {}) {
     let ks = bounds;
     if (!ks) {
       const box = new THREE.Box3();
@@ -243,7 +244,7 @@ export class KitCuller {
       ks = box.getBoundingSphere(new THREE.Sphere());
     }
     const cap = parts[0].instanceMatrix.count;
-    const s = { near: packed(parts), far: far && packed(far), d2: dist * dist, n: 0, ks, sph: new Float32Array(cap * 4),
+    const s = { near: packed(parts), far: far && packed(far), d2: dist * dist, m2: max * max, n: 0, ks, sph: new Float32Array(cap * 4),
       valid: false, dirty: false };
     this.sets.push(s);
     this.refill(s);
@@ -338,7 +339,7 @@ export class KitCuller {
   }
 
   _cull(s) {
-    const planes = this.frustum.planes, { sph, n, near, far, d2 } = s;
+    const planes = this.frustum.planes, { sph, n, near, far, d2, m2 } = s;
     const ni = near.idx, fi = far?.idx, { x: cx, y: cy, z: cz } = this.at;
     s.dirty = false;
     let k = 0, f = 0, same = s.valid;
@@ -350,7 +351,9 @@ export class KitCuller {
         if (nn.x * x + nn.y * y + nn.z * z + constant < r) { inside = false; break; }
       }
       if (!inside) continue;
-      if (far && (x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2 > d2) {
+      const dd = (x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2;
+      if (m2 && dd > m2) continue;
+      if (far && dd > d2) {
         if (fi[f] !== i) { fi[f] = i; same = false; }
         f++;
       } else {

@@ -58,6 +58,9 @@ const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 
   ...CARS.flatMap((k) => [`car_${k}`, `car_${k}_far`]), 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard',
   'tent_kiosk', 'notice_board', 'haetae', 'parking_booth', 'bus'];
 const CAR_FAR = 20;     // parked cars farther than this from the camera: their lighter models (a fifth of the triangles)
+// phones: no parked car drawn farther than this (the 1997 aerial scans put 506 on the campus; from the gate some 460
+// were in view, 1.6 M triangles of the lighter models, most of them behind 백양로's trees)
+const CAR_MAX_MOBILE = 250;
 const SHRUB_R = { topiary_cone: 0.6, azalea_red: 0.62, pine_cloud: 0.3, topiary_dome: 1.0, topiary_egg: 1.15 };   // (walls, m at scale 1; the pine: its trunk)
 const SHRUB_FAR = 25;   // shrubs, hedges and flower beds farther than this: theirs (blender/shrubs.py far_version)
 // the vegetation campus.json plants: two models of each tree species, one of each shrub (and its lighter one, _far)
@@ -303,6 +306,7 @@ async function main() {
   const colliders = new Colliders();
   for (const b of campus.buildings) colliders.addPolygon(b.style === 'lm:hanok' ? hanokWalls(b.footprint) : RECT_HALLS.has(b.style) ? minAreaRect(b.footprint) : b.footprint);
   for (const poly of campus.colliders || []) colliders.addPolygon(poly);     // parts outside the OSM outlines (백주년기념관's front block)
+  const carSets = [];                // the parked cars' culling sets (KitCuller.add): their reach on phones
   {
     const byKind = {};
     for (const pr of campus.props) (byKind[pr[0]] ||= []).push(pr);
@@ -370,7 +374,7 @@ async function main() {
     });
     for (const k in carKits) {
       for (const kit of [carKits[k], farKits[k]]) { kit.commit(); kit.addTo(scene); }
-      kitCull.add(carKits[k].parts, { far: farKits[k].parts, dist: CAR_FAR });
+      carSets.push(kitCull.add(carKits[k].parts, { far: farKits[k].parts, dist: CAR_FAR, max: MOBILE ? CAR_MAX_MOBILE : 0 }));
     }
   }
   for (const t of campus.trees) colliders.addCircle(t[1], t[2], 0.35 * t[3]);
@@ -1064,6 +1068,7 @@ async function main() {
     curbs.update(camera.position);
     // the shadow frustum follows the view in texel-snapped steps; people and cars are redrawn into it every frame
     shadows.update(focus, bird.active ? focus.y : camera.position.y - 10, span);
+    if (MOBILE) for (const s of carSets) s.m2 = bird.active ? 0 : CAR_MAX_MOBILE ** 2;   // (the tour shows them all)
     kitCull.update(camera);
     updatePcss(sun, post.hq);    // contact-hardening shadows on the desktop HQ path only
     if (bird.active) {
