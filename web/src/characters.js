@@ -14,24 +14,35 @@ import { HERO_BAGS, baggedGeometry } from './bags.js';
 import { MOBILE, mulberry, versioned } from './util.js';
 
 export const PEOPLE = {
-  'man-tee': '흰 티 · 청바지',
-  'man-check': '줄무늬 티',
-  'man-cheer': '파란 점퍼',
+  'man-tee': '게스 긴팔 티 · 연청바지',
+  'man-check': '줄무늬 티 · 진청바지',
+  'man-cheer': '연세 점퍼 · 블랙진',
   'man-hoodie': '남색 후드티',
   'man-grey': '아이보리 점퍼',
   'man-blazer': '콤비 재킷',
   'man-professor': '교수님',
   'man-staff': '교직원',
-  'woman-tee': '흰 티 · 청바지',
+  'woman-tee': '연세 티 · 연청바지',
   'woman-pink': '분홍 니트',
   'woman-dress': '흰 니트 · 치마',
-  'woman-dress-blue': '배꼽티 · 청바지',
+  'woman-dress-blue': '배꼽티 · 블랙진',
   'woman-cardigan': '노란 카디건',
   'woman-staff': '교직원',
 };
 export const STUDENTS = ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man-grey', 'man-blazer',
   'woman-tee', 'woman-pink', 'woman-dress', 'woman-dress-blue', 'woman-cardigan'];
-export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'woman-tee', 'woman-dress', 'woman-cardigan'];
+export const HEROES = ['man-tee', 'woman-dress', 'man-cheer', 'woman-tee', 'man-check', 'woman-cardigan'];
+// the six you can walk as: a name of the class of 1997 (the first two from the film 건축학개론, 2012, whose first half
+// is a campus of 1996), the college they are of, and the hall their walk starts at (a name of campus.json's markers
+// or landmarks: places.js startPlaces)
+export const HERO = {
+  'man-tee': { name: '승민', college: '공과대학', place: '제1공학관' },
+  'woman-dress': { name: '서연', college: '음악대학', place: '음악대학' },
+  'man-cheer': { name: '준호', college: '상경대학', place: '상대신관' },
+  'woman-tee': { name: '지은', college: '문과대학', place: '인문관' },
+  'man-check': { name: '성훈', college: '이과대학', place: '과학관' },
+  'woman-cardigan': { name: '은정', college: '사회과학대학', place: '연희관' },
+};
 
 // Every part of a person (skin, clothes, hair ...) is a flat colour, so one vertex-coloured material serves
 // everyone and each person is a single SkinnedMesh: one draw call (and one in the shadow pass) instead of 6-10.
@@ -54,6 +65,8 @@ export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'woman-tee', 'woman-
 // front of a face lies on its own cell, everything else on the blank cell, and the picture multiplies the vertex
 // colour. So the lines keep to whatever skin a person of the crowd has, and fade into it with distance (mip maps).
 // The picture's alpha is how much of that shows: the rest is the white of the eye.
+// What is printed on a chest (YONSEI on a jumper and a tee, the film 건축학개론's GEUSS triangle) is drawn the same
+// way, from the atlas' print cell: ink is the picture's colour times the cloth's, white lettering its alpha.
 // Glasses: everybody's model has a pair, a few millimetres thin. Thinner than a pixel, they glitter on and off from
 // frame to frame where nothing smooths the edges (phones have no anti-aliasing, nor TAA): so a person who wears glasses
 // has the rims' geometry drawn only while the rims are RIM_PX pixels or more across (rimLod: the index puts the glasses'
@@ -185,7 +198,9 @@ PERSON_MAT.onBeforeCompile = (sh) => {
         float dark = max( smoothstep( 0.3, 0.95, - a.y ) * below * 0.7, smoothstep( 0.3, 0.9, - a.x ) * exp( - pow( ( h - 0.50 ) / 0.07, 2.0 ) ) * 0.55 );
         dark = max( dark, ( 1.0 - smoothstep( 0.03, 0.09, h ) ) * 0.35 );
         float fade = pWash < 0.5 ? 0.0 : pWash < 1.5 ? 0.07 : pWash < 2.5 ? 0.25 : 0.55;
-        diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.60, 0.68, 0.78 ), fade * worn );
+        // (what worn denim pales to: blue to a milky blue, black to charcoal)
+        vec3 pPale = mix( vec3( 0.36, 0.37, 0.40 ), vec3( 0.60, 0.68, 0.78 ), smoothstep( 0.01, 0.04, vColor.b - vColor.r ) );
+        diffuseColor.rgb = mix( diffuseColor.rgb, pPale, fade * worn );
         diffuseColor.rgb *= 1.0 - dark * ( pWash < 0.5 ? 0.0 : 0.30 );
         // the seams down the outside and the inside, the hem, the waistband, the pockets: a dark line, on denim with
         // the paler ridge the wash leaves beside it
@@ -199,7 +214,7 @@ PERSON_MAT.onBeforeCompile = (sh) => {
           pLine( h - 1.015, 0.004, dh ) * step( abs( pk.x ), 1.0 ) ), pLine( h - foot, 0.004, dh ) * step( abs( pk.x ), 1.0 ) );
         float scoop = pLine( h - ( 1.105 - 0.17 * smoothstep( 0.30, 0.98, a.y ) ), 0.004, dh ) * step( 0.0, a.x ) * step( 0.30, a.y );
         float line = max( max( side, min( 1.0, hem ) ), max( pocket, scoop ) );
-        diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.60, 0.68, 0.78 ), fade * 0.6 * max( ridge, inPk * 0.25 ) * ( 1.0 - line ) );
+        diffuseColor.rgb = mix( diffuseColor.rgb, pPale, fade * 0.6 * max( ridge, inPk * 0.25 ) * ( 1.0 - line ) );
         diffuseColor.rgb *= 1.0 - line * ( pWash < 0.5 ? 0.16 : 0.34 );
       }`)
     .replace('#include <aomap_fragment>', `#include <aomap_fragment>
@@ -305,9 +320,11 @@ function mergeParts(root) {
 // students in the anthology's photographs of 1997-2002 do: reference/고증 4.9), most professors, in metal rims or,
 // one in five, dark ones. Skin: the four tones evenly, and about one in fourteen each fair or tanned. The heroes, the
 // drivers and the birthday pair keep the models as they are.
-const JEANS = ['#46638f', '#2b3c5c', '#7f9cc0', '#8fa8c8'];
-// how washed out a pair of trousers of this colour is: 0 not denim, 1 dark (rinsed), 2 mid, 3 pale (stone-washed)
-const WASH = { [JEANS[0]]: 2, [JEANS[1]]: 1, [JEANS[2]]: 3, [JEANS[3]]: 3 };
+// (blender/characters.py JEANS: mid, dark 진청, light 연청, black 블랙진)
+const JEANS = ['#44628f', '#1e2b4a', '#8fabcc', '#26272b'];
+// how washed out a pair of trousers of this colour is: 0 not denim, 1 dark (rinsed), 2 mid, 3 pale (stone-washed);
+// black denim is washed as the mid blue is, to charcoal (the shader tells by the colour what it fades to)
+const WASH = { [JEANS[0]]: 2, [JEANS[1]]: 1, [JEANS[2]]: 3, [JEANS[3]]: 2 };
 function washOf(hex) {
   const c = new THREE.Color(hex), d = new THREE.Color();
   for (const k in WASH) { d.set(k); if (Math.abs(c.r - d.r) + Math.abs(c.g - d.g) + Math.abs(c.b - d.b) < 0.02) return WASH[k]; }
@@ -329,7 +346,7 @@ const LOOKS = {
   'woman-pink': { White: ['#e7a7b6', '#f0e6d2', '#a9c3de', '#c7b3dc', '#b5d6c3', '#e8c66a', '#c95a5a'], Orange: ['#cdb994', ...JEANS, '#2a2a2e', '#f0eee8'] },
   'woman-dress': { LimeGreen: ['#f1ede1', '#f3d9de', '#cfe0ee', '#ecdf9e', '#2a2a2e', '#b9c9a8'] },
   'woman-dress-blue': { Pink: ['#a9c6e6', '#f4f1e8', '#f3d9de', '#e9dfa8', '#2a2a2e', '#c95a5a'] },
-  'woman-cardigan': { Black: ['#ecdf9e', '#f3d9de', '#6f7f5a', '#8d8f92', '#2f3a55', '#e6dcc6', '#c98a8a'], Orange: ['#46638f', ...JEANS, '#2b2f3a', '#cdb994'] },
+  'woman-cardigan': { Black: ['#ecdf9e', '#f3d9de', '#6f7f5a', '#8d8f92', '#2f3a55', '#e6dcc6', '#c98a8a'], Orange: [JEANS[1], ...JEANS, '#2b2f3a', '#cdb994'] },
   'woman-staff': { Black: ['#2f3644', '#3a3f47', '#4a4038', '#5b6470'] },
 };
 // the parts painted on an outfit (blender/characters.py `paint`): the stripes and the collar of a tee, a jumper's
@@ -339,13 +356,18 @@ const LOOKS_MORE = {
     Collar: ['#ece8dc', '#ece8dc', '#1f2f55'] },
   'man-grey': { Collar: ['#3b3a3c', '#1f2a46', '#e9e6dc', '#5a1f28'] },
   'woman-dress': { Skirt: ['#1f1f24', '#1f1f24', '#27304a', '#6e2430', '#8a7a5c', '#4a4d52'] },
-  'woman-dress-blue': { Orange: [JEANS[1], ...JEANS, '#f0eee8', '#e3cf7a', '#2a2a2e'] },
+  'woman-dress-blue': { Orange: [JEANS[3], ...JEANS, '#f0eee8', '#e3cf7a', '#2a2a2e'] },
 };
 // the bars and the heel tab of a pair of trainers (blender/characters.py trainers()), from a stream of their own
 const TRAINERS = { 'man-tee': 1, 'man-cheer': 1, 'woman-tee': 1, 'woman-pink': 1, 'woman-cardigan': 1 };
 const BARS = ['#27345a', '#b3262e', '#2f5a45', '#1f1f24', '#8d8f92', '#1d3fa0'];
 // about one striped tee in three is plain: its stripes and collar in the tee's own colour
 const PLAIN = { 'man-check': ['LightBrown', ['Stripe', 'Stripe2', 'Collar'], 0.35] };
+// what is printed on a chest (blender/faces.py PRINTS, characters.py print_map): the material it lies on, how many of
+// the crowd in that model wear it, and the cloth it shows on (ink on light cloth; the jumper is always Yonsei blue).
+// The heroes wear theirs.
+const PRINTED = { 'man-tee': ['LightBrown', 0.2, true], 'man-cheer': ['Purple', 0.6, false], 'woman-tee': ['White', 0.4, true] };
+const light = (hex) => { const c = new THREE.Color(hex); return c.r + c.g + c.b > 1.2; };       // (linear light)
 
 // the look of the n-th person of the crowd: { colors: {material: hex}, scale: [width, height], glasses }. Its own
 // random stream (as bags.js crowdBag), so the crowd's paths and faces stay where they were. The drawn lines of the
@@ -372,7 +394,9 @@ export function crowdLook(id, n) {
   const plain = PLAIN[id];
   if (plain && r2() < plain[2]) for (const k of plain[1]) colors[k] = colors[plain[0]];
   if (TRAINERS[id]) colors['Bar-feet'] = BARS[Math.floor(mulberry(n * 9973 + 59)() * BARS.length)];
-  return { colors, scale: [clamp(tall * build), clamp(tall)], glasses, blink };
+  const pr = PRINTED[id];
+  const print = !!pr && mulberry(n * 7919 + 101)() < pr[1] && (!pr[2] || light(colors[pr[0]]));
+  return { colors, scale: [clamp(tall * build), clamp(tall)], glasses, blink, print };
 }
 
 // the triangles of `geo` with the glasses' last: { index, bare: how many of its entries come before the glasses' },
@@ -401,8 +425,20 @@ function glassAttribute(n, v) {
 // `geo` (a person's merged geometry, or that with a bag: the person's vertices come first) as one person wears it:
 // the parts named in `colors` in those colours, with the glasses or without. A geometry sharing every buffer but
 // the colours; people who wear the model as it is share one.
+// the texture coordinates `uv` without what is printed on the clothes: the atlas' print cell (blender/faces.py PRINT:
+// the cell before the blank one) pointed at the blank cell. One buffer for each model
+const unprinted = new WeakMap();
+function plainUv(uv) {
+  let u = unprinted.get(uv);
+  if (!u) {
+    u = uv.clone();
+    for (let i = 0; i < u.count; i++) if (u.getX(i) >= 0.5 && u.getX(i) < 0.75 && u.getY(i) >= 0.75) u.setXY(i, BLANK_UV, BLANK_UV);
+    unprinted.set(uv, u);
+  }
+  return u;
+}
 const worn = new WeakMap();        // geometry -> [without glasses, with]
-function dressed(geo, ranges, colors, glasses, blink = 0) {
+function dressed(geo, ranges, colors, glasses, blink = 0, print = true) {
   if (!ranges || !geo.attributes.color) return geo;
   if (!colors) {
     const made = worn.get(geo) || worn.set(geo, []).get(geo);
@@ -410,6 +446,7 @@ function dressed(geo, ranges, colors, glasses, blink = 0) {
   }
   const g = new THREE.BufferGeometry();
   for (const k in geo.attributes) if (k !== 'color') g.setAttribute(k, geo.attributes[k]);
+  if (!print) g.setAttribute('uv', plainUv(geo.attributes.uv));
   const order = glassesLast(geo, ranges);
   g.setIndex(order ? order.index : geo.index);
   if (order && !glasses) g.setDrawRange(0, order.bare);
@@ -475,7 +512,7 @@ export class Cast {
     if (bag) root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = baggedGeometry(o, id, bag); });
     root.traverse((o) => {
       if (!o.isSkinnedMesh) return;
-      o.geometry = dressed(o.geometry, src.ranges, look?.colors, look ? look.glasses : src.glasses, look?.blink);
+      o.geometry = dressed(o.geometry, src.ranges, look?.colors, look ? look.glasses : src.glasses, look?.blink, look ? look.print !== false : true);
       if (o.geometry.userData.rims) o.onBeforeRender = rimLod;
     });
     const [wide, tall] = look?.scale || [1, 1];

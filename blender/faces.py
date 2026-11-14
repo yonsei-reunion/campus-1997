@@ -32,6 +32,7 @@ CELL = 256                 # pixels a cell
 HALF = 0.075               # the frame of a cell on the face, in the source's units (men x 0.93, women x 0.90 in the
 TOP = 0.042                # game): HALF either side of the nose, from TOP over the eye line down to TOP - 2 HALF
 BLANK = GRID * GRID - 1    # the cell everything but a face points at: left white
+PRINT = BLANK - 1          # the cell of what is printed on clothes (see PRINTS)
 MARGIN = 0.004             # nothing is drawn, and no face of the mesh is mapped, this close to a cell's edge
 RIM_CELL = 128             # pixels a cell of faces_rims.png
 RIM_T = 0.0024             # the glasses: the rims' thickness (characters.py face_glasses builds them by the same)
@@ -355,11 +356,122 @@ def write_png(path, rgb8):
                  + chunk(b'IDAT', zlib.compress(raw, 9)) + chunk(b'IEND', b''))
 
 
+# ---------- what is printed on clothes ----------
+# Lettering on a chest, as the students of 1997 wore it: the university's name in an arch, and the film 건축학개론's
+# (2012) white sweatshirt with the knock-off 'GEUSS' triangle.  The prints share the cell PRINT, each a band of its
+# rows; characters.py print_map lays the front of a chest on a band, and the game draws it as it draws a face: the
+# cloth's colour times the picture's, and where the picture's alpha is 0 the white of the eye - so ink is a tint on
+# light cloth ('geuss', 'yonsei_ink') and white letters are alpha on dark cloth ('yonsei').
+PRINTS = {'geuss': (0, 144), 'yonsei': (144, 200), 'yonsei_ink': (200, 256)}       # the rows of the cell, from the top
+PRINT_PAD = 4              # pixels of a band left bare all round (the neighbours, and the mip maps)
+RED = (.72, .03, .05)      # ink, as factors of the cloth's (linear) light
+BLUE = (.012, .05, .35)
+# letters as strokes on a unit square (x to the right, y up), and how wide each is of its height
+GLYPHS = {
+    'Y': (.74, [[(0, 1), (.5, .5), (1, 1)], [(.5, .5), (.5, 0)]]),
+    'O': (.74, [[(.28, 0), (.72, 0), (1, .25), (1, .75), (.72, 1), (.28, 1), (0, .75), (0, .25), (.28, 0)]]),
+    'N': (.74, [[(0, 0), (0, 1), (1, 0), (1, 1)]]),
+    'S': (.70, [[(1, .82), (.75, 1), (.25, 1), (0, .82), (0, .62), (.25, .5), (.75, .5), (1, .38), (1, .18), (.75, 0), (.25, 0),
+                 (0, .18)]]),
+    'E': (.64, [[(1, 1), (0, 1), (0, 0), (1, 0)], [(0, .5), (.8, .5)]]),
+    'I': (.14, [[(.5, 0), (.5, 1)]]),
+    'G': (.74, [[(1, .8), (.75, 1), (.27, 1), (0, .75), (0, .25), (.27, 0), (.75, 0), (1, .2), (1, .5), (.55, .5)]]),
+    'U': (.74, [[(0, 1), (0, .26), (.27, 0), (.73, 0), (1, .26), (1, 1)]]),
+    '?': (.62, [[(0, .74), (.22, 1), (.78, 1), (1, .8), (1, .62), (.5, .40), (.5, .27)], [(.5, .02), (.5, .03)]]),
+}
+
+
+def print_band(name):
+    """A print's place: (u0, v0, u1, v1) on the atlas (v down from the top, as glTF counts it) and width / height."""
+    r0, r1 = PRINTS[name]
+    cu, cv = cell_origin(PRINT)
+    px = 1.0 / (GRID * CELL)
+    return (cu + PRINT_PAD * px, cv + (r0 + PRINT_PAD) * px, cu + (CELL - PRINT_PAD) * px, cv + (r1 - PRINT_PAD) * px,
+            (CELL - 2 * PRINT_PAD) / (r1 - r0 - 2 * PRINT_PAD))
+
+
+def _lettering(text, cx, base, size, gap=.16, arch=0.0):
+    """The strokes of `text` (pixels, y down): centred on cx, standing on `base`, `size` high; arch: how much higher
+    the middle stands than the ends, the letters turned along that curve."""
+    widths = [GLYPHS[c][0] * size for c in text]
+    total = sum(widths) + gap * size * (len(text) - 1)
+    R = (total * total / 4 + arch * arch) / (2 * arch) if arch else None
+    out, x = [], cx - total / 2
+    for c, w in zip(text, widths):
+        mid = x + w / 2
+        th = (mid - cx) / R if R else 0.0
+        ox, oy = (cx + R * np.sin(th), base - arch + R * (1 - np.cos(th))) if R else (mid, base)
+        for line in GLYPHS[c][1]:
+            pts = []
+            for gx, gy in line:
+                lx, ly = (gx - .5) * w, -gy * size                    # about the foot of the letter's middle
+                pts.append((ox + lx * np.cos(th) - ly * np.sin(th), oy + lx * np.sin(th) + ly * np.cos(th)))
+            out.append(pts)
+        x += w + gap * size
+    return out
+
+
+def _cover(h, w, lines, half, ss=3):
+    """How much of each pixel (h, w) the strokes `lines`, `half` thick either side, cover (drawn ss times finer)."""
+    Y, X = (np.mgrid[0:h * ss, 0:w * ss] + 0.5) / ss
+    d = np.full(X.shape, 1e9)
+    for line in lines:
+        pts = np.asarray(line, float)
+        for a, b in zip(pts[:-1], pts[1:]):
+            ab = b - a
+            t = np.clip(((X - a[0]) * ab[0] + (Y - a[1]) * ab[1]) / max(float(ab @ ab), 1e-9), 0.0, 1.0)
+            np.minimum(d, np.hypot(X - a[0] - t * ab[0], Y - a[1] - t * ab[1]), out=d)
+    return (d <= half).reshape(h, ss, w, ss).mean(axis=(1, 3))
+
+
+def draw_prints():
+    """The cell PRINT: (CELL, CELL, 4), colour factors and how much of the cloth shows."""
+    cell = np.ones((CELL, CELL, 4))
+    W = CELL
+
+    def ink(r0, cover, tint):
+        band = cell[r0:r0 + cover.shape[0]]
+        a = cover[..., None]
+        band[..., :3] = band[..., :3] * (1 - a) + a * np.asarray(tint)
+
+    # GEUSS: a triangle standing on its point, the name on a band across it, a question mark under the name
+    r0, r1 = PRINTS['geuss']
+    h = r1 - r0
+    top, tip, half_w = 13.0, h - 9.0, 104.0
+    tri = _cover(h, W, [[(W / 2 - half_w, top), (W / 2 + half_w, top), (W / 2, tip), (W / 2 - half_w, top)]], 5.0)
+    b0, b1 = 34.0, 70.0                                         # the band's rows
+    Y, X = np.mgrid[0:h, 0:W] + 0.5
+    reach = half_w * (tip - (b0 + b1) / 2) / (tip - top) + 26   # (wider than the triangle is there)
+    band = (Y > b0) & (Y < b1) & (np.abs(X - W / 2) < reach)
+    tri = tri * ~band
+    rules = _cover(h, W, [[(W / 2 - reach, b0), (W / 2 + reach, b0)], [(W / 2 - reach, b1), (W / 2 + reach, b1)]], 1.6)
+    name = _cover(h, W, _lettering('GEUSS', W / 2, b1 - 7.5, b1 - b0 - 15.0, gap=.22), 2.6)
+    mark = _cover(h, W, _lettering('?', W / 2, tip - 22.0, 32.0), 3.2)
+    ink(r0, np.clip(tri + rules + name + mark, 0, 1), RED)
+    # YONSEI in an arch: white on dark cloth (the picture's alpha), or blue ink on light cloth
+    for key in ('yonsei', 'yonsei_ink'):
+        r0, r1 = PRINTS[key]
+        h = r1 - r0
+        cover = _cover(h, W, _lettering('YONSEI', W / 2, h - PRINT_PAD - 5.0, 30.0, gap=.20, arch=9.0), 3.3)
+        if key == 'yonsei':
+            cell[r0:r1, :, 3] = 1 - cover
+        else:
+            ink(r0, cover, BLUE)
+    for r0, r1 in PRINTS.values():                              # nothing in a band's margin
+        m = np.ones((r1 - r0, W), bool)
+        m[PRINT_PAD:-PRINT_PAD, PRINT_PAD:-PRINT_PAD] = False
+        if not np.all(cell[r0:r1][m] == 1.0):
+            raise SystemExit('a print is drawn over the edge of its band')
+    return cell
+
+
 def write_atlas(path, people):
     """people: [(rig, face, skin hex, brow hex)] in the order of their cells."""
-    if len(people) > BLANK:
+    if len(people) > PRINT:
         raise SystemExit(f'{len(people)} faces do not fit the atlas')
     atlas = np.ones((GRID * CELL, GRID * CELL, 4))
+    x, y = (PRINT % GRID) * CELL, (PRINT // GRID) * CELL
+    atlas[y:y + CELL, x:x + CELL] = draw_prints()
     for i, (rig, face, skin, brow) in enumerate(people):
         x, y = (i % GRID) * CELL, (i // GRID) * CELL
         atlas[y:y + CELL, x:x + CELL] = draw_face(rig, face, skin, brow)
