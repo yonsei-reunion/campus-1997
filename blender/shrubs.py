@@ -160,9 +160,10 @@ def rounded_box(mb, A, B, H, R, mat, ao, taper=0.0, batter=0.0, tuck=(0.0, 0.12)
     sheet(list(reversed(ys)), zs, lambda u, v: Vector((-A, u, v)))      # -x end
 
 
-def revolve(mb, prof, mat, ao, seg=16, plan=None, lift=None, z0=-0.05):
+def revolve(mb, prof, mat, ao, seg=16, plan=None, lift=None, z0=-0.05, off=(0.0, 0.0)):
     """A solid of revolution: prof(t) -> (r, z) for t 0 (foot) .. 1 (top, r = 0); plan(a) -> radius factor at azimuth a
-    (an irregular outline), applied less toward the top; lift(a) -> height factor at azimuth a (an uneven top)."""
+    (an irregular outline), applied less toward the top; lift(a) -> height factor at azimuth a (an uneven top); off:
+    its axis' place (x, y)."""
     rings = len(prof) - 1
     tag = 'rev%d' % len(mb.faces)
 
@@ -177,7 +178,7 @@ def revolve(mb, prof, mat, ao, seg=16, plan=None, lift=None, z0=-0.05):
         w = 1 + (w - 1) * (1 - 0.5 * t)
         if lift and z > 0:
             z *= 1 + (lift(a) - 1) * min(1.0, t * 1.5) * (1 - t * t)
-        return Vector((r * w * math.cos(a), r * w * math.sin(a), z))
+        return Vector((off[0] + r * w * math.cos(a), off[1] + r * w * math.sin(a), z))
 
     P, N, Cc = {}, {}, {}
     for j in range(rings + 1):
@@ -276,7 +277,7 @@ def _wobble(rnd, amp, lobes=(2, 5)):
     return lambda a: 1 + amp * sum(w * math.sin(k * a + ph) for k, ph, w in terms) / s
 
 
-def _tier_pad(mb, rnd, z0, z1, r, rt, mat, lo=0.32):
+def _tier_pad(mb, rnd, z0, z1, r, rt, mat, lo=0.32, off=(0.0, 0.0), wob=0.06):
     """One clipped pad of a tiered conifer (향나무 · 주목 trained in tiers): a cushion from z0 to z1, r across at its
     widest, its underside drawn in to the trunk (radius rt) and shaded, the top domed. Seated on mb.surf for the cards."""
     h = z1 - z0
@@ -289,7 +290,33 @@ def _tier_pad(mb, rnd, z0, z1, r, rt, mat, lo=0.32):
         o *= 0.62 + 0.38 * _ss(-0.7, 0.4, n.z)                # the underside in the pad's own shade
         o *= 0.88 + 0.12 * min(1.0, max(0.0, p.z / max(z1, 0.5)))
         return max(0.18, min(1.0, o))
-    revolve(mb, prof, mat, ao, seg=14, plan=_wobble(rnd, 0.06))
+    revolve(mb, prof, mat, ao, seg=14, plan=_wobble(rnd, wob), off=off)
+
+
+def _bough(mb, pts, r0, r1, mat, sides=6, shade=(0.45, 0.7)):
+    """a bare trunk or bough along the points (x, y, z), r0 thick at its first and r1 at its last (bark, as _tier_trunk)"""
+    P = [Vector(q) for q in pts]
+    n = len(P)
+    rings = []
+    for k in range(n):
+        tg = (P[min(k + 1, n - 1)] - P[max(k - 1, 0)]).normalized()
+        ref = Vector((0, 0, 1)) if abs(tg.z) < 0.9 else Vector((1, 0, 0))
+        u = ref.cross(tg).normalized()
+        v = tg.cross(u)
+        r = r0 + (r1 - r0) * k / (n - 1)
+        rings.append([P[k] + (u * math.cos(2 * math.pi * i / sides) + v * math.sin(2 * math.pi * i / sides)) * r for i in range(sides)])
+    vl = 0.0
+    for k in range(n - 1):
+        sl = (P[k + 1] - P[k]).length
+        ra = r0 + (r1 - r0) * k / (n - 1)
+        circ = 2 * math.pi * max(ra, 0.05)
+        c0, c1 = (shade[0] + (shade[1] - shade[0]) * j / (n - 1) for j in (k, k + 1))
+        for i in range(sides):
+            j = (i + 1) % sides
+            q = [rings[k][i], rings[k][j], rings[k + 1][j], rings[k + 1][i]]
+            uv = [(i / sides * circ, vl), ((i + 1) / sides * circ, vl), ((i + 1) / sides * circ, vl + sl), (i / sides * circ, vl + sl)]
+            mb.face(q, mat, uvs=uv, smooth='trunk', col=[(c0, c0, c0, 1), (c0, c0, c0, 1), (c1, c1, c1, 1), (c1, c1, c1, 1)])
+        vl += sl
 
 
 def _tier_trunk(mb, z1, r0, r1, mat, sides=6):
@@ -362,6 +389,28 @@ def make_shrub(kind, seed=0):
                       lo=0.4 if k == 0 else 0.32)
         cards(mb, rnd, 150, 'leaf_boxwood', CARD_M['boxwood'], W=(0.7, 1.05), Hf=(0.5, 0.75), tilt=(10, 65),
               depth=0.035, weight=lambda p, n: 0.12 if n.z < -0.25 else 0.45 + 0.55 * max(0.0, n.z))
+    elif kind == 'pine_cloud':
+        # 다듬은 조경 소나무 (대우관 상뜰: reference/대우관_2024_정면과_상뜰.jpg, 대우관_블로그_본관_정면_상뜰.jpg): a leaning
+        # trunk that bends back over its foot, its boughs trained level and clipped into separate cushions of needles,
+        # broad ones on the long low boughs, smaller ones up the trunk, a domed one on top; 4.5 m high, 5 m across
+        bend = [(0.0, 0.0, -0.1), (0.22, 0.04, 1.1), (0.58, 0.02, 2.2), (0.42, -0.04, 3.1), (0.22, 0.0, 3.8)]
+        _bough(mb, bend, 0.17, 0.07, 'bark_pine', sides=7)
+
+        def at(z):
+            for (xa, ya, za), (xb, yb, zb) in zip(bend, bend[1:]):
+                if z <= zb:
+                    f = (z - za) / (zb - za)
+                    return (xa + (xb - xa) * f, ya + (yb - ya) * f, z)
+            return bend[-1]
+        pads = [(1.75, 0.3, 1.7, 2.35, 1.3), (-1.05, 1.0, 1.9, 2.5, 1.1), (-0.4, -1.4, 2.05, 2.65, 1.05), (1.55, -1.0, 2.5, 3.1, 1.0),
+                (-0.7, 0.3, 2.85, 3.45, 1.0), (1.05, 0.85, 3.1, 3.65, 0.85), (0.25, -0.05, 3.55, 4.5, 1.25)]
+        for (px, py, z0, z1, r) in pads:
+            a = at(z0 - 0.35)
+            _bough(mb, [a, ((a[0] + px) / 2, (a[1] + py) / 2, z0 - 0.12), (px, py, z0 + 0.12)], 0.065, 0.035, 'bark_pine', sides=5,
+                   shade=(0.5, 0.6))
+            _tier_pad(mb, rnd, z0, z1, r, 0.05, 'hedge_boxwood', lo=0.36, off=(px, py), wob=0.1)
+        cards(mb, rnd, 230, 'leaf_boxwood', CARD_M['boxwood'], W=(0.75, 1.1), Hf=(0.5, 0.75), tilt=(10, 65),
+              depth=0.035, weight=lambda p, n: 0.1 if n.z < -0.25 else 0.45 + 0.55 * max(0.0, n.z))
     elif kind == 'bush':
         # a free-grown azalea bush round the halls (영산홍: magenta in April, green in May): an uneven mound,
         # its outline all leaves

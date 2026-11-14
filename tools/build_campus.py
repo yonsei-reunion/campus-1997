@@ -4804,8 +4804,12 @@ rng6 = random.Random(1997 + 61)
 # photos')
 SGX = lambda e, n: SG(e * (SANG_NODES['W'][0] / -26.5 if e < 0 else SANG_NODES['E'][0] / 26.6),
                       n * (SANG_NODES['N'][1] / 14.2 if n > 0 else SANG_NODES['S'][1] / -15.3))
-trees.append(['pine', SANG[0], SANG[1], 0.55, 0.4])
-for (e_, n_, kind_, sc_) in ((-8.5, 4.5, 'zelkova', 0.75), (9.0, 6.0, 'zelkova', 0.8), (13.0, -2.5, 'pine', 0.45)):
+# (the clipped garden pines of the photos -- the one in the round lawn, those by the ring and before the podium -- are
+# shrubs, DW_BEDS below.  The trees that stood in their places keep their places in the list and stand elsewhere: the
+# round lawn's pine in the west triangle, the two zelkovas on the bank under the lower walks, the four tall pines before
+# the podium's ends at the lawns' outer ends)
+trees.append(['pine', *(round(float(c_), 2) for c_ in SG(-13.0, -3.0)), 0.5, 0.4])
+for (e_, n_, kind_, sc_) in ((-19.0, -14.5, 'zelkova', 0.75), (18.5, -15.0, 'zelkova', 0.8), (13.0, -2.5, 'pine', 0.45)):
     x_, y_ = SGX(e_, n_)
     trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
 # the planted bank under the diamond's lower walks, down to the footway, the south flight going down between its
@@ -4817,7 +4821,7 @@ for (e_, n_, kind_, sc_) in ((-7.5, -18.6, 'zelkova', 0.85), (-15.0, -15.5, 'map
     x_, y_ = SGX(e_, n_)
     trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
 for sg in (-1, 1):
-    for (e_, n_, sc_) in ((-20.0, 9.6, 0.95), (-16.8, 16.0, 0.85), (-27.0, 7.2, 0.8)):   # (clear of the walks and the podium)
+    for (e_, n_, sc_) in ((-24.0, 17.2, 0.95), (-27.5, 13.5, 0.85), (-27.0, 7.2, 0.8)):   # (clear of the walks and the podium)
         x_, y_ = SG(sg * e_, n_)
         trees.append(['pine', round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
     for t_ in (0.3, 0.5, 0.72):                              # shrubs along the inside of the upper (NW / NE) walk
@@ -7945,6 +7949,10 @@ for _bd_s in (-1, 1):
 for _bd_du in (-1.22, 1.22):
     for _bd_dv in (-1.05, 0.0, 1.05):
         _dw_bed('hedge_low', DW_UC + _bd_du, -21.5 + _bd_dv, 1.35, True)
+# (the garden pines: in the round lawn, by the ring where the upper walks leave it, before the podium's ends)
+for _bd_e, _bd_n, _bd_sc in ((0.0, 0.0, 1.15), (-8.5, 5.0, 1.0), (8.5, 5.0, 1.05), (-14.5, 10.5, 1.05), (14.5, 10.5, 1.0),
+                             (-20.5, 11.5, 1.3), (20.5, 11.5, 1.25)):
+    DW_BEDS.append(['pine_cloud', *(round(float(c_), 2) for c_ in SG(_bd_e, _bd_n)), _bd_sc, round(_bd_r.uniform(0, 6.28), 3)])
 shrubs += DW_BEDS
 print('대우관 테라스 · 석축: clipped shrubs', len(DW_BEDS), {k_: sum(1 for b_ in DW_BEDS if b_[0] == k_) for k_ in sorted({b_[0] for b_ in DW_BEDS})})
 _ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)

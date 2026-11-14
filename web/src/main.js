@@ -370,7 +370,7 @@ async function main() {
       colliders.addCircle(x, y, 0.42 * sc);
       colliders.addCircle(x + c * 0.55 * sc, y + s * 0.55 * sc, 0.42 * sc);
       colliders.addCircle(x - c * 0.55 * sc, y - s * 0.55 * sc, 0.42 * sc);
-    } else colliders.addCircle(x, y, (k === 'topiary_cone' ? 0.6 : k === 'azalea_red' ? 0.62 : 0.72) * sc);
+    } else colliders.addCircle(x, y, (k === 'topiary_cone' ? 0.6 : k === 'azalea_red' ? 0.62 : k === 'pine_cloud' ? 0.3 : 0.72) * sc);   // (the pine: its trunk)
   }
   const S = campus.statues;
   colliders.addCircle(S.eagle.pos[0], S.eagle.pos[1], S.eagle.r ?? 4.2);       // the eagle's round dais (its brick ring is walked on)

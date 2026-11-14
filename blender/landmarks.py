@@ -1702,9 +1702,30 @@ def basement_windows(mb, P, s0, s1, bay, plinth, gfn, wall, ww=0.5):
         bar(mb, P, sc - w / 2 - 0.06, z1 + 0.07, sc + w / 2 + 0.06, z1 + 0.07, 0.14, 0.25, d + 0.05, 'stone_trim', ends=True)
 
 
+def gablet(mb, P, n, sm, z, w, h, wall, back, zq):
+    """A small gable standing on a wall's head (대우관's eaves, the heads of its pavilions' bays): a stone triangle w
+    wide and h high centred on sm in the wall plane P (outward normal n), a dark slate field in it, copings down its
+    two slopes, and its little roof running back to the point `back` m behind the wall at the height zq."""
+    a, b, c = P(sm - w / 2, z, 0.06), P(sm + w / 2, z, 0.06), P(sm, z + h, 0.06)
+    oface(mb, [a, b, c], wall, n)
+    k = 0.6
+    oface(mb, [P(sm - w / 2 * k, z + h * 0.14, 0.09), P(sm + w / 2 * k, z + h * 0.14, 0.09), P(sm, z + h * (0.14 + k * 0.82), 0.09)],
+          'roof_slate', n)
+    bar(mb, P, sm - w / 2 - 0.1, z - 0.06, sm, z + h + 0.1, 0.22, 0.0, 0.16, 'stone_trim', ends=True)
+    bar(mb, P, sm, z + h + 0.1, sm + w / 2 + 0.1, z - 0.06, 0.22, 0.0, 0.16, 'stone_trim', ends=True)
+    q = P(sm, zq, -back)
+    oface(mb, [a, c, q], 'roof_slate', (0, 0, 1))
+    oface(mb, [c, b, q], 'roof_slate', (0, 0, 1))
+
+
 def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=True, fh=4.1, wall='stone_rubble',
-           dormers=True, stairs=None, portal=None, door=None, z_floor=None, rear=None, tower_floors=None):
+           dormers=True, stairs=None, portal=None, door=None, z_floor=None, rear=None, tower_floors=None, pitch=0.9,
+           modern=None):
     # tower_floors: the tower's storeys when it has more than the hall (연희관: one in the hall's roof); default floors
+    # pitch: the main roof's.  modern (대우관, 1996: the old halls' outline in smooth pale stone, reference/고증/3.6.5):
+    # dict(bay, ww, mull) of the front's windows; no buttresses or battlements but a coped parapet with a small gablet
+    # over each window bay; the tower's head plain and coped, stepped up at the corners, a round emblem on its front
+    # and the white drum of a lantern over it
     cx, cy, L, W, ang, z0 = frame_for(b, front)
     stairs = dict(dict(width=None, wl=None, rise=1.3, cheeks=True, lamps=False, none=False, split=9, maxrise=0.16),
                   **(stairs or {}))
@@ -1722,8 +1743,8 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
     mb.xf = iv.xf = local_frame(cx, cy, ang, z0)
     plinth = 1.3
     Hw = plinth + floors * fh + 0.6
-    pitch = 0.9
     gl = local_ground(mb)
+    fbay, fww, fmull = (modern['bay'], modern['ww'], modern.get('mull', 2)) if modern else (3.3, 0.5, 2)
     # --- main block walls
     body = rect(L, W)
     stone_base(mb, body, plinth, wall)
@@ -1754,8 +1775,8 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
                 if portal == 'flat':
                     window_grid(mb, P, Le, plinth, floors, fh, 3.3, wall, ww=0.55, trim='stone_trim', mull=2)
                 else:
-                    window_grid(mb, P, Le, plinth, floors, fh, 3.3, wall, ww=0.5, trim='stone_trim', mull=2, s_start=0, s_end=s_t0)
-                    window_grid(mb, P, Le, plinth, floors, fh, 3.3, wall, ww=0.5, trim='stone_trim', mull=2, s_start=s_t1, s_end=Le)
+                    window_grid(mb, P, Le, plinth, floors, fh, fbay, wall, ww=fww, trim='stone_trim', mull=fmull, s_start=0, s_end=s_t0)
+                    window_grid(mb, P, Le, plinth, floors, fh, fbay, wall, ww=fww, trim='stone_trim', mull=fmull, s_start=s_t1, s_end=Le)
                     flat_wall(mb, P, s_t0, s_t1, plinth, Hw, wall)
                     for (a_, b_) in ((0, s_t0), (s_t1, Le)):
                         if wings:      # the end pavilions stand in front of the outer bays
@@ -1766,7 +1787,7 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
                 basement_windows(mb, P, 0, Le, 3.3, plinth, gl, wall)
             flat_wall(mb, P, 0, Le, plinth + floors * fh, Hw, wall)
             # buttresses
-            nbut = int(round(Le / 6.6))
+            nbut = 0 if modern else int(round(Le / 6.6))
             for k in range(1, nbut):
                 s = k * Le / nbut
                 if front_side and abs(s - Le / 2) < tower_w / 2 + 1:
@@ -1777,8 +1798,14 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
                 if ivy:        # the vines climb the buttress fronts too
                     ivy_patch(iv, lambda ss, zz, dd=0.0: P(ss, zz, dd + 0.6), s - 0.4, s + 0.4, 0, Hw - 1.2, 5.5,
                               i * 3 + k * 17, cover=ivy)
+            if modern:
+                bar(mb, P, -0.15, Hw + 0.25, Le + 0.15, Hw + 0.25, 0.5, -0.3, 0.12, 'stone_trim', ends=True)
+                for (ga, gb) in (((0.0, s_t0), (s_t1, Le)) if front_side else ()):
+                    ng = max(1, int(round((gb - ga) / fbay)))
+                    for k in range(ng):
+                        gablet(mb, P, n, ga + (k + 0.5) * (gb - ga) / ng, Hw + 0.5, 3.0, 1.7, wall, 3.0, Hw + pitch * 3.0)
             # parapet with battlements along the eaves
-            nm = int(Le / 1.6)
+            nm = 0 if modern else int(Le / 1.6)
             for k in range(nm):
                 if k % 2 == 0:
                     c = P((k + 0.5) * Le / nm, Hw + 0.45, 0.0)
@@ -1898,12 +1925,18 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
             flat_wall(mb, P, 0, Le, -0.5 if i != 2 else Hw, Ht, wall)
         # belfry louvres
         bw0, bw1 = Le / 2 - 0.9, Le / 2 + 0.9
-        mb.quad(P(bw0, Ht - 4.5, 0.03), P(bw1, Ht - 4.5, 0.03), P(bw1, Ht - 1.5, 0.03), P(bw0, Ht - 1.5, 0.03), 'metal_dark')
-        arch_fill(mb, P, bw0, bw1, Ht - 1.5, Ht - 0.4, 0.0001, 'stone_trim', 'pointed', 6)
+        if not modern:
+            mb.quad(P(bw0, Ht - 4.5, 0.03), P(bw1, Ht - 4.5, 0.03), P(bw1, Ht - 1.5, 0.03), P(bw0, Ht - 1.5, 0.03), 'metal_dark')
+            arch_fill(mb, P, bw0, bw1, Ht - 1.5, Ht - 0.4, 0.0001, 'stone_trim', 'pointed', 6)
+        else:
+            bar(mb, P, -0.12, Ht + 0.2, Le + 0.12, Ht + 0.2, 0.4, -0.3, 0.12, 'stone_trim', ends=True)      # coping
+            if i == 0:                                                                              # the emblem
+                oface(mb, [P(Le / 2 + 0.62 * math.cos(2 * math.pi * k_ / 16), Ht - 1.9 + 0.62 * math.sin(2 * math.pi * k_ / 16), 0.05)
+                           for k_ in range(16)], 'stone_trim', n)
         # string course
         mb.quad(P(-0.15, Hw, 0.18), P(Le + 0.15, Hw, 0.18), P(Le + 0.15, Hw + 0.3, 0.18), P(-0.15, Hw + 0.3, 0.18), 'stone_trim')
         # battlements
-        nm = 5
+        nm = 0 if modern else 5
         for k in range(nm):
             if k % 2 == 0:
                 c = P((k + 0.5) * Le / nm, Ht + 0.55, 0.05)
@@ -1914,8 +1947,13 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
                 holes += [(e0 - band - 0.25, e1 + band + 0.25, -1.0, zt + 0.3)] + [(a_ - 0.35, b_ + 0.35, za_ - 0.3, zb_ + 0.35) for a_, b_, za_, zb_ in wins]
             ivy_patch(iv, P, 0, Le, Hw if i == 2 else 0, Ht - 0.5, 5.5, 11 + i, cover=ivy * 0.95, holes=holes)
     mb.face([(p[0], p[1], Ht) for p in tower], 'roof_flat')
+    if modern:
+        for (px_, py_) in tower:                    # the head steps up at the corners
+            mb.box((px_ - math.copysign(0.65, px_), py_ + (0.65 if py_ < ty0 + 1.0 else -0.65), Ht + 0.45), (1.5, 1.5, 0.9), wall,
+                   mats={'top': 'stone_trim'}, skip=('bottom',))
+        mb.cylinder((0.0, ty0 + tw / 2), 1.5, Ht, Ht + 1.9, 'paint_white', seg=20, mat_cap='roof_flat')
     # corner pinnacles
-    for (px_, py_) in tower:
+    for (px_, py_) in (() if modern else tower):
         mb.box((px_, py_, Ht + 0.9), (0.9, 0.9, 1.8), 'stone_trim', skip=('bottom',))
         mb.face([(px_ - .45, py_ - .45, Ht + 1.8), (px_ + .45, py_ - .45, Ht + 1.8), (px_, py_, Ht + 3.2)], 'stone_trim')
         mb.face([(px_ + .45, py_ - .45, Ht + 1.8), (px_ + .45, py_ + .45, Ht + 1.8), (px_, py_, Ht + 3.2)], 'stone_trim')
@@ -3341,7 +3379,7 @@ def amphitheater():
 
 # ============================================================================= 대우관 (1984)
 def gable_hall(mb, u0, u1, v0, v1, floors, fh, wall, pitch=1.3, plinth=1.0, bay=3.3, iv=None, ivy=0.0, seed=0, gothic_trim=False,
-               blind=()):
+               blind=(), finial=True, oriel=None):
     """A stone hall in the builder's local frame whose ridge runs along v, with steep gables on its two v ends
     (the end pavilions of 대우관: their gables face the forecourt).  blind: the sides (0 front, 1, 2 back, 3) whose
     ground storey has no windows (the ground stands a storey higher there)."""
@@ -3383,7 +3421,30 @@ def gable_hall(mb, u0, u1, v0, v1, floors, fh, wall, pitch=1.3, plinth=1.0, bay=
             mb.quad(P(-0.25, Hw, 0.3), P(Le / 2, hz + 0.4, 0.3), P(Le / 2, hz + 0.4, -0.2), P(-0.25, Hw, -0.2), 'stone_trim')
             mb.quad(P(Le / 2, hz + 0.4, 0.3), P(Le + 0.25, Hw, 0.3), P(Le + 0.25, Hw, -0.2), P(Le / 2, hz + 0.4, -0.2), 'stone_trim')
             c = P(Le / 2, hz + 0.9, 0.05)
-            mb.box(c, (0.7, 0.7, 1.2), 'stone_trim', rotz=math.atan2(t.y, t.x), skip=('bottom',))
+            if finial:
+                mb.box(c, (0.7, 0.7, 1.2), 'stone_trim', rotz=math.atan2(t.y, t.x), skip=('bottom',))
+        if i == 0 and oriel:
+            # (대우관's pavilions: a bay of three lights standing out of the middle of the front over the storeys
+            # oriel = (first, last), a small slate-faced gable over its head)
+            f0, f1 = oriel
+            ow_, od_ = 3.5, 0.6
+            sa, sb = Le / 2 - ow_ / 2, Le / 2 + ow_ / 2
+            za, zb = plinth + f0 * fh + 0.3, plinth + (f1 + 1) * fh - 0.15
+            O = lambda s_, z_, d_=0.0: P(s_, z_, d_ + od_)
+            flat_wall(mb, O, sa, sb, za, zb, wall)
+            oface(mb, [P(sa, za, 0), P(sa, za, od_), P(sa, zb, od_), P(sa, zb, 0)], wall, tuple(-t))
+            oface(mb, [P(sb, za, 0), P(sb, za, od_), P(sb, zb, od_), P(sb, zb, 0)], wall, tuple(t))
+            oface(mb, [P(sa, zb, 0), P(sb, zb, 0), P(sb, zb, od_), P(sa, zb, od_)], 'stone_trim', (0, 0, 1))
+            oface(mb, [P(sa, za, 0), P(sb, za, 0), P(sb, za, od_), P(sa, za, od_)], 'stone_trim', (0, 0, -1))
+            for f in range(f0, f1 + 1):
+                zs_, zh_ = plinth + f * fh + 0.9, plinth + (f + 1) * fh - 0.6
+                g0, g1 = sa + 0.3, sb - 0.3
+                mb.quad(O(g0, zs_, 0.02), O(g1, zs_, 0.02), O(g1, zh_, 0.02), O(g0, zh_, 0.02), 'glass')
+                for sm in (g0 + (g1 - g0) / 3, g0 + 2 * (g1 - g0) / 3):
+                    bar(mb, O, sm, zs_, sm, zh_, 0.14, 0.02, 0.1, 'stone_trim')
+                bar(mb, O, g0 - 0.15, zs_ - 0.09, g1 + 0.15, zs_ - 0.09, 0.18, 0.0, 0.1, 'stone_trim', ends=True)
+                bar(mb, O, g0 - 0.15, zh_ + 0.1, g1 + 0.15, zh_ + 0.1, 0.2, 0.0, 0.1, 'stone_trim', ends=True)
+            gablet(mb, O, n, Le / 2, zb, ow_ + 0.3, 1.5, wall, od_, zb)
     uc = (u0 + u1) / 2
     e = 0.35
     A, B = (u0 - e, v0 - e, Hw - e * pitch), (u0 - e, v1 + e, Hw - e * pitch)
@@ -4036,9 +4097,12 @@ def daewoo():
     W = lambda u, v: tuple(a + t * u + nl * v)
     uc, wi, wo = lv['uc'], lv['wi'], lv['wo']
     centre = dict(b, footprint=[W(uc - wi, 0), W(uc + wi, 0), W(uc + wi, 14.8), W(uc - wi, 14.8)])
-    out = gothic('daewoo', centre, tuple(-nl), 6, tower_w=9.0, tower_extra=2.5, ivy=0, wings=False, fh=3.6,
+    # (the front as the photos have it, reference/고증/3.6.5: a low roof behind a coped parapet with four small gablets
+    # either side of the tower over four broad windows; the tower a storey over the eaves, plain-headed, the white drum
+    # of its lantern at 99.0 m in the 1997 aerial photos)
+    out = gothic('daewoo', centre, tuple(-nl), 6, tower_w=9.0, tower_extra=3.9, ivy=0, wings=False, fh=3.6,
                  wall='stone_white', stairs=dict(none=True), door=dict(w=3.0, arch='pointed', spring=2.45, style='modern'),
-                 z_floor=lv['floor'], rear=daewoo_rear)
+                 z_floor=lv['floor'], rear=daewoo_rear, dormers=False, pitch=0.3, modern=dict(bay=4.9, ww=0.52, mull=1))
     z0 = out[0].z_base
     zT, zP = lv['terrace'] - z0, lv['plaza'] - z0
     # three steps from the terrace's paving up to the tower door
@@ -4047,8 +4111,8 @@ def daewoo():
     mb = MeshBuilder('lm_daewoo_pavilions')
     mb.xf = local_frame(a.x, a.y, ang, z0)
     v0w, v1w = lv['wing_v']                               # (the wings' two ends: the 1997 aerial photos' roofs)
-    gable_hall(mb, uc - wo, uc - wi, v0w, v1w, 6, 3.6, 'stone_white', blind=(2,))
-    gable_hall(mb, uc + wi, uc + wo, v0w, v1w, 6, 3.6, 'stone_white', blind=(2,))
+    for ua_, ub_ in ((uc - wo, uc - wi), (uc + wi, uc + wo)):
+        gable_hall(mb, ua_, ub_, v0w, v1w, 6, 3.6, 'stone_white', blind=(2,), pitch=0.75, finial=False, oriel=(2, 5))
     fr = MeshBuilder('lm_daewoo_front')
     fr.xf = local_frame(a.x, a.y, ang, z0)
     daewoo_front(fr, lv, z0)
