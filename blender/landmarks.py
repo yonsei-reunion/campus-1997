@@ -1538,6 +1538,64 @@ def hall_steps(mb, y_face, zl, wu, gfn, wall='stone_rubble', mat='stone_step', r
     return y_foot
 
 
+def lerp_table(tab, x):
+    """y at x of [(x0, y0), (x1, y1), ...] (x rising), held past its ends"""
+    if x <= tab[0][0]:
+        return tab[0][1]
+    for (xa, ya), (xb, yb) in zip(tab, tab[1:]):
+        if x <= xb:
+            return ya + (yb - ya) * (x - xa) / (xb - xa)
+    return tab[-1][1]
+
+
+def terrace_steps(mb, y_face, zl, wu, tr, y_wall, wall='stone_rubble', mat='stone_step', rec=0.5):
+    """스팀슨관's steps (reference/고증/3.5.3: 학교연혁_스팀슨관.jpg, 스팀슨관_정면_2016.jpg, the vertical aerial photos of
+    July 1997): not one flight but two, with the road along the hall's front between them.  A short flight from the
+    door, low coped kerbs at its sides, down to the road on its terrace; across the road a second flight between coped
+    rubble walls with capped posts at its foot, cut into the bank down to the garden.  The terrace and the bank are
+    the deck tools/build_campus.py ST_FRONT lays over the ground (drawn by stimson()); the lower flight stands in the
+    notch left in it.  tr: campus.json stimson_front (zr0, zg0: the road's and the garden's height at the door's axis
+    in the hall's local frame; road: its near and far edge from the wall y_wall; up, low: n risers, T going, w width).
+    Local frame of stone_hall: the door's wall faces -y at y_face, the porch's top zl."""
+    zr, zg = tr['zr0'], tr['zg0']
+    gnd = min(-1.2, zg - 1.0)
+    W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
+
+    def walk(x0, x1, ya, za, yb, zb):
+        WALK_FACES.append([W_(x0, ya, za), W_(x1, ya, za), W_(x1, yb, zb), W_(x0, yb, zb)])
+    # --- the door's flight
+    nu, T = tr['up']['n'], tr['up']['T']
+    hu, ru = wu / 2, (zl - zr) / tr['up']['n']
+    yw, y_p = y_face + rec, y_face - 0.8         # (the porch: room to stand before the door's sill)
+    mb.box((0, (yw + y_p) / 2, (zl + gnd) / 2), (wu + 0.7, yw - y_p, zl - gnd), mat, skip=('bottom',))
+    for k in range(1, nu):
+        top = zl - k * ru
+        mb.box((0, y_p - (k - 0.5) * T + 0.01, (top + gnd) / 2), (wu, T + 0.02, top - gnd), mat, skip=('bottom',))
+    y_uf = y_p - (nu - 1) * T
+    walk(-hu, hu, yw - 0.05, zl, y_p, zl)
+    walk(-hu, hu, y_p, zl, y_p - nu * T, zr)
+    for sg in (-1, 1):                                    # (the low stone kerbs down its sides)
+        x0, x1 = sorted((sg * hu, sg * (hu + 0.35)))
+        sloped_wall(mb, x0, x1, [(y_p, zl + 0.2), (y_uf + 0.1, zr + ru + 0.2)], gnd, wall, ct=0.1)
+    note_entrance(mb, hu + 0.95, y_face + 0.5, y_uf - 1.0)
+    # --- the flight down the bank, from the road's far edge
+    nl, T, wl = tr['low']['n'], tr['low']['T'], tr['low']['w']
+    hl, ct, rl = wl / 2, 0.5, (zr - zg) / tr['low']['n']
+    y_h = y_wall - tr['road'][1]
+    y_lf = y_h - (nl - 1) * T
+    mb.box((0, y_h + 0.2, (zr + 0.015 + gnd) / 2), (wl, 0.4, zr + 0.015 - gnd), mat, skip=('bottom',))   # (its head, under the road's edge)
+    for k in range(1, nl):
+        top = zr - k * rl
+        mb.box((0, y_h - (k - 0.5) * T + 0.01, (top + gnd) / 2), (wl, T + 0.02, top - gnd), mat, skip=('bottom',))
+    walk(-hl, hl, y_h + 0.3, zr, y_h, zr)
+    walk(-hl, hl, y_h, zr, y_h - nl * T, zg)
+    for sg in (-1, 1):
+        x0, x1 = sorted((sg * hl, sg * (hl + ct)))
+        sloped_wall(mb, x0, x1, [(y_h + 0.15, zr + 0.6), (y_h - 0.1, zr + 0.6), (y_lf + 0.1, zg + rl + 0.62)], gnd, wall)
+        pedestal(mb, sg * (hl + ct / 2), y_lf - 0.05, zg + 1.0, gnd, wall)
+    return y_lf
+
+
 def side_steps(mb, y_face, zl, gfn, sg, hw, y_wall, wall='stone_rubble', mat='stone_step', rec=0.5, fw=2.0, land=1.6,
                T=0.32, maxrise=0.16):
     """The front steps of a hall that stands close to the road before it (교육관's east front over the drive, seen from
@@ -1681,19 +1739,23 @@ def stone_base(mb, poly, plinth, wall, gap=None):
             mb.face([(p[0], p[1], zb) for p in cap], top)
 
 
-def basement_windows(mb, P, s0, s1, bay, plinth, gfn, wall, ww=0.5):
+def basement_windows(mb, P, s0, s1, bay, plinth, gfn, wall, ww=0.5, sunk=False):
     """Low windows of the half-sunk basement (반지하층 of 스팀슨관, 지하층 of 언더우드관 and 아펜젤러관), one under each
-    ground-floor window, wherever the ground leaves them clear."""
+    ground-floor window, wherever the ground leaves them clear.  sunk: where the ground stands over their sills, what
+    shows over it (스팀슨관's front on its terrace: the low lights at the wall's foot in reference/학교연혁_스팀슨관.jpg)."""
     if wall == 'stone_white' or s1 - s0 < 1.0:
         return
     nb = max(1, int(round((s1 - s0) / bay)))
     bw = (s1 - s0) / nb
-    z0, z1, d = plinth - 1.15, plinth - 0.45, 0.27
+    zs, z1, d = plinth - 1.15, plinth - 0.45, 0.27
     for k in range(nb):
         sc, w = s0 + (k + 0.5) * bw, bw * ww
         g = [gfn(*P(sc + o, 0, 1.0)[:2]) for o in (-w / 2, w / 2)]
-        if max(g) > z0 - 0.12:
-            continue
+        z0 = zs
+        if max(g) > zs - 0.12:
+            if not sunk or z1 - max(g) < 0.3:
+                continue
+            z0 = max(g) + 0.05
         mb.quad(P(sc - w / 2, z0, d), P(sc + w / 2, z0, d), P(sc + w / 2, z1, d), P(sc - w / 2, z1, d), 'glass')
         bar(mb, P, sc, z0, sc, z1, 0.07, d, d + 0.05, 'frame_dark')
         bar(mb, P, sc - w / 2 - 0.1, z0 - 0.06, sc + w / 2 + 0.1, z0 - 0.06, 0.12, 0.25, d + 0.08, 'stone_trim', ends=True)
@@ -2101,13 +2163,22 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
     main block's corners when the outline takes in a bay, extra(mb, iv, frame): further parts in the local frame,
     ivy_walls: the ivy of single walls (_stone_ivy_spec)."""
     cx, cy, L, W, ang, z0_ = frame_for(dict(b, footprint=rect_fp) if rect_fp else b, front)
-    stairs = dict(dict(width=3.6, wl=None, rise=1.3, cheeks=True, lamps=False), **(stairs or {}))
+    stairs = dict(dict(width=3.6, wl=None, rise=1.3, cheeks=True, lamps=False, terrace=None), **(stairs or {}))
     door = dict(dict(w=2.2, arch='tudor', spring=1.9, style='panel', rec=0.6), **(door or {}))
     z0 = lift_base(z0_ if z0 is None else z0, cx, cy, ang, W / 2 + 3.3, plinth - 0.1, stairs['rise'])
     mb = MeshBuilder('lm_' + name)
     iv = MeshBuilder('lm_' + name + '_ivy')
     mb.xf = iv.xf = local_frame(cx, cy, ang, z0)
     gl = local_ground(mb)
+    if stairs['terrace']:
+        # (스팀슨관: the road along its front runs on a terrace, a deck over ground pulled down under it -- campus.json
+        # stimson_front.  What stands at the front wall's foot stands on the deck)
+        tr_, gl0_ = stairs['terrace'], gl
+
+        def gl(lx, ly):
+            if -W / 2 - tr_['road'][1] < ly < -W / 2 + 0.5 and abs(lx) < L / 2 + 1.0:
+                return max(gl0_(lx, ly), lerp_table(tr_['zr'], lx) - z0)
+            return gl0_(lx, ly)
     zd = plinth - 0.1                          # door threshold = top of the entrance porch
     Hw = plinth + floors * fh + 0.8            # wall top
     hz = Hw + W / 2 * pitch                    # ridge
@@ -2136,7 +2207,7 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
             mw = w[5] if len(w) > 5 else 0.2
             light_group(mb, P, g0, g1, fl[f][0], fl[f][1], nl, mw=mw, ratios=ratios)
             if f == 0 and basement:
-                basement_windows(mb, P, g0, g1, (g1 - g0) / nl, plinth, gl, wall, ww=0.62)
+                basement_windows(mb, P, g0, g1, (g1 - g0) / nl, plinth, gl, wall, ww=0.62, sunk=bool(stairs['terrace']))
             holes.append((g0, g1, fl[f][0], fl[f][1]))
 
     def profile_wall(P, prof, zb, d=0.0, inner=None, cope=True):
@@ -2415,6 +2486,9 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
     if stairs.get('side'):                     # a landing before the door and one flight down along the wall
         side_steps(mb, y_face, zd, gl, stairs['side'], (porch['s1'] - porch['s0']) / 2 + 0.4 if porch else stairs['width'] / 2 + 0.6,
                    -W / 2, wall=wall, rec=door['rec'], fw=stairs['width'])
+    elif stairs['terrace']:                    # two flights, the road between them (스팀슨관)
+        terrace_steps(mb, y_face, zd, stairs['width'], dict(stairs['terrace'], zr0=stairs['terrace']['zr0'] - z0,
+                                                             zg0=stairs['terrace']['zg0'] - z0), -W / 2, wall=wall, rec=door['rec'])
     else:
         hall_steps(mb, y_face, zd, stairs['width'], gl, wall=wall, wl=stairs['wl'], cheeks=stairs['cheeks'],
                    lamps=stairs['lamps'], rec=door['rec'])
@@ -2680,13 +2754,26 @@ def stimson():
     # corners (April 2003 from 백양로's end, 2010, 2016), the back only up to the ground floor (the Aug. 2008 roadview)
     ivy_walls = {'porch': 1.15, 1: 1.0, 3: dict(cover=0.6, zmax=3.3, ends=(1.2, 1.6)), 'end_bay': 0,
                  2: dict(cover=0.6, zmax=4.3)}
-    return stone_hall('stimson', b, (1.0, -0.27), groups, ivy=0.8, ivy_walls=ivy_walls,
-                      porch=dict(s0=L / 2 - pw / 2, s1=L / 2 + pw / 2, proj=0.9, parapet=0.8, win=(2.3, [0.45, 1.0, 0.45])),
-                      chimney=dict(at=(-5.8, 0.0), h=3.0, sky=(-5.8, 2.3)), end_wins=ends,
-                      attic={1: (W / 2, 0.7, 0.4, 1.75), 3: (W / 2, 0.75, 0.35, 1.2)},
-                      end_bay=dict(edge=3, span=4.9, front=3.0, proj=0.95, light=0.95, side=0.62, top=0.1),
-                      rear=dict(w=3.3, lights=[(3.05, 6.45)], door=(0.95, 2.4), zd=-0.94, side=(0.85, 1.15)),
-                      stairs=dict(width=3.6, wl=4.8), door=dict(w=2.2, spring=1.9, style='panel', rec=0.5))
+    # (the front: the door's flight, the road on its terrace, the flight down the bank -- tools/build_campus.py ST_FRONT,
+    # reference/고증/3.5.3; the floor stays where the level apron had it)
+    sf = CAMPUS.get('stimson_front')
+    out = stone_hall('stimson', b, (1.0, -0.27), groups, ivy=0.8, ivy_walls=ivy_walls,
+                     porch=dict(s0=L / 2 - pw / 2, s1=L / 2 + pw / 2, proj=0.9, parapet=0.8, win=(2.3, [0.45, 1.0, 0.45])),
+                     chimney=dict(at=(-5.8, 0.0), h=3.0, sky=(-5.8, 2.3)), end_wins=ends,
+                     attic={1: (W / 2, 0.7, 0.4, 1.75), 3: (W / 2, 0.75, 0.35, 1.2)},
+                     end_bay=dict(edge=3, span=4.9, front=3.0, proj=0.95, light=0.95, side=0.62, top=0.1),
+                     rear=dict(w=3.3, lights=[(3.05, 6.45)], door=(0.95, 2.4), zd=-0.94, side=(0.85, 1.15)),
+                     z0=sf['z0'] if sf else None,
+                     stairs=dict(width=3.6, wl=4.8, **(dict(terrace=sf, rise=0.0) if sf else {})),
+                     door=dict(w=2.2, spring=1.9, style='panel', rec=0.5))
+    if sf and sf.get('deck'):
+        tk = MeshBuilder('lm_stimson_terrace')
+        for f in sf['deck']['f']:
+            q = [tuple(sf['deck']['v'][i]) for i in f]
+            tk.face(q, 'terrain_drape')
+            WALK_FACES.append(q)
+        out.append(tk)
+    return out
 
 
 def appenzeller():

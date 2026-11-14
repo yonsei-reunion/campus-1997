@@ -4084,6 +4084,54 @@ draw_line('dirt', [uwg_xy(-24.0, 22.6), uwg_xy(22.6, 22.6)], 2.8)
 draw_line('dirt', [uwg_xy(0.0, 22.6), uwg_xy(0.0, 43.4)], 3.0)
 draw_line('dirt', [uwg_xy(-20.6, -25.3), uwg_xy(22.6, -25.3)], 2.0)
 draw_line('dirt', [uwg_xy(-20.6, -25.3), uwg_xy(-20.6, -20.6), uwg_xy(-23.6, -20.6)], 2.0)
+# 스팀슨관 앞 (ST_FRONT; reference/고증/3.5.3): the game had one flight of nine risers with a landing from the door 6.5 m
+# out, its side walls across the road along the hall's front (OSM's line 2.5 m off the wall).  The photos
+# (reference/학교연혁_스팀슨관.jpg from the south-east, 스팀슨관_정면_2016.jpg) and the vertical aerial photos of July 1997
+# (two frames from the east: the pale steps at the wall 1.3 - 2.9 m out, a grey road 2.9 - 8.0, a dark bank with the
+# second pale flight in it 8.0 - 10.5 and the garden's pale walk beyond) have two flights with the road between them:
+# five risers from the door down to the road, the road level along the front, and from its far edge five more between
+# coped rubble walls down a grass bank into the garden.  Their heights (tools/aerial97.py z): the road 46.7 - 47.0 m
+# along the front (47.4 by the hall's north end), the garden's walks beside it 45.9 - 46.1 (46.4 by the north end);
+# the door's porch (47.6) stays.  The game's garden begins 2.5 m nearer the hall than the photos': the road is kept
+# to 7.5 m and the bank to 1.9 m.
+#  - here: the game's map.  Lawn at the wall's foot, asphalt 3.1 .. 7.5 m out, lawn on the bank, the garden's gravel
+#    at the lower flight's foot.  (Beyond the hall's ends the road runs on into what OSM's line and the garden's
+#    side walk had paved)
+#  - before the ground is saved (below): the road's terrace and the bank; the 5 m grid cannot hold a 0.85 m bank
+#    1.9 m wide, so the ground is pulled down under them and they are a deck (blender/landmarks.py stimson)
+ST_ROAD, ST_BANK = (3.1, 7.5), 9.4                       # the road's edges and the bank's foot, m out from the wall
+ST_UP, ST_LOW = dict(n=5, T=0.35), dict(n=5, T=0.42, w=4.2)
+ST_ZR = [(-14.0, 46.3), (-6.0, 46.75), (0.0, 46.9), (11.0, 47.0), (17.0, 47.1)]    # the road's height along the front (s, m)
+# (its ends under the photos' 46.7 and 47.4: the game's drive south of the hall lies 1.2 m under the photos' and came
+# up to the apron's 46.3 m at the hall's south end, which is kept -- the road climbs on from there; north of the hall
+# the ground as it was climbs evenly from 47.2)
+ST_ZG = [(-11.0, 45.9), (0.0, 46.05), (6.0, 46.1), (16.6, 46.4)]         # the garden's beside it
+
+
+def hall_front(wid, front):
+    """the middle of a hall's front wall, the unit vectors along it (to the left, facing out) and out of it, half its
+    length"""
+    poly_ = footprint(ways[wid])
+    rr_ = np.array(list(poly_.minimum_rotated_rectangle.exterior.coords)[:-1])
+    c_, best_ = np.array([poly_.centroid.x, poly_.centroid.y]), None
+    for k_ in range(4):
+        a_, b_ = rr_[k_], rr_[(k_ + 1) % 4]
+        n_ = np.array([(b_ - a_)[1], -(b_ - a_)[0]]) / np.linalg.norm(b_ - a_)
+        n_ = n_ if n_ @ ((a_ + b_) / 2 - c_) > 0 else -n_
+        sc_ = float(n_ @ np.array(front)) / math.hypot(*front)
+        if best_ is None or sc_ > best_[0]:
+            best_ = (sc_, (a_ + b_) / 2, n_, float(np.linalg.norm(b_ - a_)) / 2)
+    return best_[1], np.array([-best_[2][1], best_[2][0]]), best_[2], best_[3]
+
+
+_stm, _stt, _stf, _sth = hall_front(246156118, (1.0, -0.27))
+ST_XY = lambda s, d: tuple(float(c_) for c_ in _stm + _stt * s + _stf * d)      # (s north along the front, d out)
+_SF = lambda s0, s1, d0, d1: Polygon([ST_XY(s0, d0), ST_XY(s1, d0), ST_XY(s1, d1), ST_XY(s0, d1)])
+for _ly in ('asphalt', 'pavers', 'dirt'):
+    draw_poly(_ly, _SF(-_sth - 0.3, _sth + 0.3, -0.6, ST_ROAD[0]), 0)
+    draw_poly(_ly, _SF(-20.0, 22.7, ST_ROAD[0], ST_BANK + 0.9), 0)
+draw_poly('asphalt', _SF(-20.0, 22.7, ST_ROAD[0], ST_ROAD[1]))
+draw_poly('dirt', _SF(-ST_LOW['w'] / 2, ST_LOW['w'] / 2 + 1.1, ST_BANK - 0.5, ST_BANK + 0.95))
 # Dry lawn (issue #10): in the May 1997 photo the lawn east of 백양로 between the gate and 백주년기념관 is worn, yellowed
 # grass with bare earth showing (the cars park on it in the shade), and so is the ground inside the 화단섬 hedge
 # between the azaleas and the trees.  A grey mask over the splat's rectangle at 1 m (web/src/terrain.js mixes the
@@ -4628,6 +4676,11 @@ for sg_ in (-1, 1):                      # the half-round beds: a clipped pine e
         plant('topiary_round', UWG, sg_ * du_, dv_, 1.0)
 for sg_ in (-1, 1):                      # clipped pines along the side walks, the cross walk left open
     for v_ in (-15.0, -9.5, -4.0, 4.0, 9.5, 14.5, 18.5, 27.0, 32.5, 38.0):      # (clear of the walks' ends)
+        if sg_ < 0 and v_ in (18.5, 27.0):
+            # (스팀슨관's side: the two either side of the cross walk stand on the bank either side of the flight down
+            # from the road, ST_FRONT -- the round pines of reference/스팀슨관_정면_2016.jpg, 4.5 m off the door's axis)
+            plant('pine', ST_XY, -4.5 if v_ < 20.0 else 4.5, ST_ROAD[1] + 1.2, round(_uwr.uniform(0.32, 0.38), 2), _uwr.uniform(0, 6.28))
+            continue
         plant('pine', UWG, sg_ * 21.6, v_, round(_uwr.uniform(0.32, 0.38), 2), _uwr.uniform(0, 6.28))
 for k_ in range(24):                     # the hedge along the south edge, waist high
     (xa_, ya_), (xb_, yb_) = UWG(-22.0 + 44.0 * k_ / 24, -27.4), UWG(-22.0 + 44.0 * (k_ + 1) / 24, -27.4)
@@ -5922,6 +5975,42 @@ def ground_t(x, y):
     return sinchon_rotary.sample_s(HS, x, y) if sinchon_rotary.in_patch(x, y) else ground_h(x, y)
 
 jk_grade()             # (연구관 · 장기원 기념관's terrace: above, with the other grading)
+# 스팀슨관 앞의 단과 둑 (ST_FRONT above; reference/고증/3.5.3), after the planting and everything else that read the
+# level apron the game had there (46.3 m from the wall to 11 m out).  st_front_h: the surface -- the road's terrace
+# from the wall to its far edge, the bank down to the garden's level at ST_BANK, that level on to 12.5 m and back to
+# the garden as it was by 17.5 m; whole along the hall (s -14 .. 17), eased into the ground as it was by s -18.5 and
+# 22.  The grid's nodes take it, but those under the road's outer part and the bank (3 m out to the bank's foot) go
+# down to the garden's level: the terrace and the bank are a deck over every cell with such a node, on the surface
+# inside and as the ground runs along the edges shared with whole cells (dwb_deck below), the lower flight's place
+# cut out of it.
+_sf_h0 = Hn.copy()
+_sf_s = (X - _stm[0]) * _stt[0] + (Y - _stm[1]) * _stt[1]
+_sf_d = (X - _stm[0]) * _stf[0] + (Y - _stm[1]) * _stf[1]
+
+
+def st_front_h(x, y, h0=None):
+    s_ = (x - _stm[0]) * _stt[0] + (y - _stm[1]) * _stt[1]
+    d_ = (x - _stm[0]) * _stf[0] + (y - _stm[1]) * _stf[1]
+    h0 = sample(_sf_h0, NEAR_HALF, NEAR_STEP, x, y) if h0 is None else h0
+    zr_, zg_ = np.interp(s_, *zip(*ST_ZR)), np.interp(s_, *zip(*ST_ZG))
+    z_ = zr_ + (zg_ - zr_) * np.clip((d_ - ST_ROAD[1]) / (ST_BANK - ST_ROAD[1]), 0, 1)
+    k_ = np.clip((d_ - 12.5) / 5.0, 0, 1)
+    z_ = z_ + (h0 - z_) * k_ * k_ * (3 - 2 * k_)
+    w_ = np.clip(np.minimum((s_ + 18.5) / 4.5, (22.0 - s_) / 5.0), 0, 1) * np.clip(d_ + 2.0, 0, 1)
+    return h0 + (z_ - h0) * w_
+
+
+_sf_m = (_sf_s > -18.5) & (_sf_s < 22.0) & (_sf_d > -2.0) & (_sf_d < 17.5)
+Hn[_sf_m] = st_front_h(X[_sf_m], Y[_sf_m], _sf_h0[_sf_m])
+_sf_pull = (_sf_s >= -13.0) & (_sf_s <= 17.0) & (_sf_d > 3.0) & (_sf_d < ST_BANK)
+Hn[_sf_pull] = np.interp(_sf_s[_sf_pull], *zip(*ST_ZG)) - 0.02
+ST_DECK_CELLS = {(j_ + a_, i_ + b_) for j_, i_ in zip(*np.nonzero(_sf_pull)) for a_ in (-1, 0) for b_ in (-1, 0)}
+ST_DECK_POLY = unary_union([shapely.geometry.box(gx[i_], gx[j_], gx[i_] + NEAR_STEP, gx[j_] + NEAR_STEP) for j_, i_ in ST_DECK_CELLS]) \
+    .intersection(_SF(-60.0, 60.0, -0.05, 40.0)).difference(_SF(-ST_LOW['w'] / 2 - 0.45, ST_LOW['w'] / 2 + 0.45, ST_ROAD[1], 40.0))
+ST_FRONT = dict(z0=46.4, road=list(ST_ROAD), bank=ST_BANK, zr=[list(q_) for q_ in ST_ZR], zg=[list(q_) for q_ in ST_ZG],
+                zr0=float(np.interp(0.0, *zip(*ST_ZR))), zg0=float(np.interp(0.0, *zip(*ST_ZG))), up=ST_UP, low=ST_LOW)
+print('스팀슨관 앞: nodes %d (pulled down %d), deck cells %d, %.0f m2; road %.2f, garden %.2f m at the door' % (
+    int(_sf_m.sum()), int(_sf_pull.sum()), len(ST_DECK_CELLS), ST_DECK_POLY.area, ST_FRONT['zr0'], ST_FRONT['zg0']))
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
@@ -6092,7 +6181,17 @@ def _ui_paths():
     """The walks the game reads (out['paths']: the minimap, the crowd's walks), from paths_out as it stands; made again
     once 용재관's ground has changed paths_out (below)."""
     return LIB_PATHS + [dict(kind='service', w=SIDE_W_W, pts=[list(p_) for p_ in SIDE_W])] + \
-        [p_ for p_ in paths_out if not lib_osm_walk(p_) and p_['pts'] not in _fork_pts]
+        [st_road_path(p_) for p_ in paths_out if not lib_osm_walk(p_) and p_['pts'] not in _fork_pts]
+
+
+def st_road_path(p_):
+    """OSM's road along 스팀슨관's front, 2.5 m off the wall (through the door's flight): on the terrace's road, between
+    the two flights (ST_FRONT).  Its ends stay."""
+    if p_['kind'] != 'service' or len(p_['pts']) != 3 or math.dist(p_['pts'][1], (27.4, 227.4)) > 0.2:
+        return p_
+    mid_ = (ST_ROAD[0] + ST_ROAD[1]) / 2
+    return dict(p_, w=round(ST_ROAD[1] - ST_ROAD[0], 1),
+                pts=[p_['pts'][0]] + [[round(c_, 1) for c_ in ST_XY(s_, mid_)] for s_ in (22.0, -14.5)] + [p_['pts'][2]])
 
 
 # 백양로 as drawn (the road mesh, its decals, the cars and walkers): to the foot of the steps at the 삼거리 (UW_STEPS);
@@ -6148,6 +6247,7 @@ def dwb_deck(cells=None, poly=None, hfun=None):
 
 DAEWOO_BACK['deck'] = dwb_deck()
 DAEWOO['deck'] = dwb_deck(DW_FDECK_CELLS, DW_FDECK_POLY, lambda x_, y_: DAEWOO['terrace'])
+ST_FRONT['deck'] = dwb_deck(ST_DECK_CELLS, ST_DECK_POLY, lambda x_, y_: float(st_front_h(x_, y_)))
 DAEWOO_BACK['lot_z'] = [round(dwb_lot_z(v_), 3) for v_ in (36.0, 75.0, 86.0)]
 print('daewoo back deck: %d vertices, %d triangles, rim %d' % (len(DAEWOO_BACK['deck']['v']), len(DAEWOO_BACK['deck']['f']),
                                                              sum(len(r_) for r_ in DAEWOO_BACK['deck']['rim'])))
@@ -6169,7 +6269,7 @@ out = dict(
                     gaps=[list(g) for g in GAPS], mouths=[list(MOUTH)], apron_paint=APRON_PAINT, **ROAD),
     amphitheater={k: (round(v, 3) if isinstance(v, float) else v) for k, v in AMPH.items()},
     buildings=buildings, trees=trees, shrubs=shrubs, props=props, cars=cars, banners=banners,
-    paths=_ui_paths(), landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK,
+    paths=_ui_paths(), landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK, stimson_front=ST_FRONT,
     centennial_block=CENT_BLOCK, sang=dict(c=list(SANG), r=SANG_LAWN), yeonhui=YEONHUI, underwood_steps=UW_STEPS,
     gyoyuk_floor=GYOYUK_FLOOR,
     seongam_floor=SEONGAM_FLOOR,
