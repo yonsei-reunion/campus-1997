@@ -6058,7 +6058,73 @@ def kwangbok():
     return [mb]
 
 
-BUILDERS = {'library': library, 'union': union, 'centennial': centennial, 'underwood': underwood,
+# ============================================================================= 제1공학관 안뜰의 낮은 동과 서쪽 옹벽
+def eng_hall():
+    """The one-storey hall in 제1공학관's court and the retaining wall west of the court's lot (tools/eng97.py,
+    reference/고증/3.8 「안뜰과 남쪽 땅」; the 1997-07-28 scans, the Kakao skyview of 2008 and 2010).  The scans give the
+    roof: a flat roof 54 x 27 m behind a bright parapet, a raised strip (a monitor) along its middle, a small porch on
+    the north side.  Its walls are an approximation: plain white, a band of high lights along the long sides (the
+    monitor's too), a door in the porch.  The wall: concrete under a coping, 5 - 6 m over the lot, the upper ground
+    behind it a deck over the grid's cells whose nodes went down to the lot's level (as the terraces' decks)."""
+    G = CAMPUS.get('eng1_yard')
+    if not G:
+        return []
+    u0, u1, v0, v1 = G['hall']
+    top, roof = G['top'], G['top'] + G['roof']
+    mb = MeshBuilder('lm_eng_hall')
+    mb.xf = local_frame(G['o'][0], G['o'][1], G['ang'], G['base'])
+    body = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+    mb.prism(body, -1.5, roof, 'plaster_white', mat_top='roof_flat')
+    t = 0.25                                     # the parapet: its coping bright in the scans
+    for cu, cv, su, sv in (((u0 + u1) / 2, v0 + t / 2, u1 - u0, t), ((u0 + u1) / 2, v1 - t / 2, u1 - u0, t),
+                           (u0 + t / 2, (v0 + v1) / 2, t, v1 - v0 - 2 * t), (u1 - t / 2, (v0 + v1) / 2, t, v1 - v0 - 2 * t)):
+        mb.box((cu, cv, (roof + top) / 2), (su, sv, top - roof), 'plaster_white', skip=('bottom',))
+    # a band of high lights along the long sides and the west end (not seen in the scans)
+    zl0, zl1 = roof - 2.3, roof - 0.9
+    n = int((u1 - u0 - 3.0) / 4.5)
+    for k in range(n):
+        uc = u0 + 1.5 + (k + 0.5) * (u1 - u0 - 3.0) / n
+        for vf, sg in ((v0, -1), (v1, 1)):
+            if sg > 0 and G['porch'][0] - 1.0 < uc < G['porch'][1] + 1.0:
+                continue
+            mb.box((uc, vf + sg * 0.02, (zl0 + zl1) / 2), (3.0, 0.06, zl1 - zl0), 'glass')
+            mb.box((uc, vf + sg * 0.03, zl0 - 0.05), (3.2, 0.1, 0.1), 'frame_dark')
+    for k in range(5):
+        vc = v0 + 2.0 + (k + 0.5) * (v1 - v0 - 4.0) / 5
+        mb.box((u0 - 0.02, vc, (zl0 + zl1) / 2), (0.06, 3.0, zl1 - zl0), 'glass')
+    # the monitor along the roof's middle
+    m0, m1, n0, n1, mh = G['monitor']
+    mb.box(((m0 + m1) / 2, (n0 + n1) / 2, (roof + top + mh) / 2), (m1 - m0, n1 - n0, top + mh - roof), 'plaster_white',
+           mats={'top': 'roof_flat'}, skip=('bottom',))
+    for vf, sg in ((n0, -1), (n1, 1)):
+        mb.box(((m0 + m1) / 2, vf + sg * 0.02, top + mh - 0.75), (m1 - m0 - 1.0, 0.06, 0.8), 'glass')
+    # the porch on the north side, its door
+    p0, p1, q0, q1, ph = G['porch']
+    mb.box(((p0 + p1) / 2, (q0 + q1) / 2, ph / 2 - 0.25), (p1 - p0, q1 - q0, ph + 0.5), 'plaster_white', mats={'top': 'roof_flat'},
+           skip=('bottom',))
+    mb.box(((p0 + p1) / 2, q1 + 0.02, 1.25), (1.8, 0.06, 2.2), 'glass')
+    mb.box(((p0 + p1) / 2, q1 + 0.03, 2.4), (2.0, 0.1, 0.12), 'frame_dark')
+    out = [mb]
+    # the retaining wall and the deck behind it (world coordinates)
+    wl = MeshBuilder('lm_eng_wall')
+    for top_up, pts in G.get('walls', []):
+        _wall_run(wl, pts, 0.4, top_up, 'concrete', 'stone_trim', cap_t=0.12)
+    dk = G.get('deck')
+    if dk:
+        for f in dk['f']:
+            q = [tuple(dk['v'][i]) for i in f]
+            wl.face(q, 'terrain_drape')
+            WALK_FACES.append(q)
+        for ring in dk['rim']:                                   # a skirt under its rim, down past the lot's level
+            for a, b in zip(ring, ring[1:]):
+                q = [(a[0], a[1], a[2] - 7.0), (b[0], b[1], b[2] - 7.0), tuple(b), tuple(a)]
+                wl.face(q, 'concrete')
+                wl.face(q[::-1], 'concrete')
+    out.append(wl)
+    return out
+
+
+BUILDERS = {'library': library, 'union': union, 'centennial': centennial, 'underwood': underwood, 'eng_hall': eng_hall,
             'stimson': stimson, 'appenzeller': appenzeller, 'auditorium': auditorium, 'chapel': chapel,
             'engineering': engineering, 'hanok': hanok, 'yongjae': yongjae, 'none': lambda: [],
             'daewoo': daewoo, 'daewoo_annex': daewoo_annex, 'yeonhui': yeonhui, 'kwangbok': kwangbok,

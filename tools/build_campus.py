@@ -26,6 +26,7 @@ import seomun
 import west_ground
 import med97
 import music97
+import eng97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -6631,6 +6632,33 @@ print('과학관 북서쪽 골짜기: %(nodes)d nodes moved (most %(most).1f m) 
 print('독수리상 서쪽 마당: lot %(lot)d nodes, smoothed %(ring)d; %(nodes)d moved, most %(most).1f m' % WEST_YARD)
 print('무악학사 길: %d nodes graded (%d level), most moved %.1f m; the road %.1f m at s 10, %.1f m at the crest' % (
     _mk_n, int(_mk_took.sum()), _mk_dz, float(np.interp(10.0, MUAK['s'], MUAK['z'])), float(MUAK['z'].max())))
+# 제1공학관 안뜰과 그 남쪽 · 공학원 공사장의 땅 (tools/eng97.py, reference/고증/3.8 「안뜰과 남쪽 땅」 · 4.4; #189), late: the
+# planting has read the ground as it was.  The three wings' platform, the service road south of it and the site on the
+# 1997 scans' heights (the game climbed west across them, 4 - 5 m too high at the west lot, where the 2006 survey has
+# its spot); the pit under the site's ground and the slab on it as they were made; the nodes behind the retaining wall
+# west of the lot down to the lot's level (the deck over them: ENG1_HALL below, after dwb_deck)
+_e97_halls = [(b_['id'], Polygon(b_['footprint']).buffer(0)) for b_ in buildings if Polygon(b_['footprint']).intersects(eng97.BOX)]
+ENG97 = eng97.grade(Hn, X, Y, FIXED, _e97_halls, harmonic_fill, TENNIS['o'], TENNIS['rot'], GW_PIT, GW_SLAB)
+print('제1공학관 안뜰 · 남쪽 · 공학원 공사장: %(nodes)d nodes moved (most %(most).1f m), %(n_pulled)d behind the wall, smoothed '
+      '%(ring)d; the pit %(pit).2f m, the slab %(slab).2f m' % ENG97)
+# (the site's hoarding, deck, slab, offices and crane on the ground as it is now)
+_e97_gs = STATUES['gongwon_site']
+for q_ in _e97_gs['ring']:
+    q_[2] = round(ground_h(q_[0], q_[1]), 2)
+_e97_gs['pit'][4], _e97_gs['slab'][4], _e97_gs['crane'][2] = ENG97['pit'], ENG97['slab'], ENG97['pit']
+for r_ in _e97_gs['sheds']:
+    r_[4] = round(min(ground_h(*site_xy(u_, v_)) for u_ in r_[:2] for v_ in r_[2:4]), 2)
+# (the south wing on the ground at its door: its roof in the scans is 1.0 - 1.3 m under the north block's, 45.0 m, where
+# the game had its floor 2 m over the alleys' ground; 제3공학관's door, which opened east onto the road the game ran
+# along the wall's top, goes to its south wall by the terrace there: the scans do not show a door)
+for b_ in buildings:
+    if b_['id'] == eng97.SOUTH_WING:
+        _e97_hs = [ground_h(x_, y_) for x_, y_ in b_['footprint']]
+        b_.update(base=round(float(ground_h(*b_['entry']['p'])) + 0.05 if b_.get('entry') else min(_e97_hs), 2),
+                  top_ground=round(max(_e97_hs), 2))
+        print('   the south wing\'s floor %.2f m' % b_['base'])
+    elif b_['id'] == 224955691 and b_.get('entry'):
+        b_['entry'].update(p=[round(c_, 2) for c_ in eng97.xy(-48.9, -41.3)], n=[round(eng97._S, 4), round(-eng97._C, 4)])
 Hn.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_near.bin'))
 HS.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_south.bin'))
 # 무악학사 · 북문 (tools/muak.py NORTH): the patch north of the grid (x -60 .. 340, y 800 .. 1280), from the grid's last
@@ -8945,23 +8973,38 @@ _ypaint(list(shapely.ops.split(CENT_SW_PAVE, LineString([(CENT_SW_C[0], -280.0),
 #   West of its middle stands something tall and pale (it leans away from each camera in four frames): not modelled
 LIB_S_DISC = Point(-63.2, -110.9).buffer(7.6, quad_segs=24)
 _ypaint([LIB_S_DISC], _gp)
-# - 제1공학관 안뜰: the lawn between the wings is a rectangle edged by a bright kerb (u -22.9 .. 31.75, v -12.4 .. 15.0
-#   in the wings' frame below: each edge in 26/16 · 26/15 · 27/17 within 0.3 m, so at the ground), and round it, out
-#   to the halls and the west road, the paving the cars stood on in rows (north, south, and two rows at the west end).
-#   The game had lawn from apron to apron, its parked cars on the grass and the walks along the wings ending in it
-#   (one of the tails kept in #151): paved round the kerb, the lawn inside it as it was
-ENG1_YARD_O, ENG1_YARD_A = (-163.0, -238.0), math.radians(-15.4)
+# - 제1공학관 안뜰: between the wings, out to the halls and the west road, the paving the cars stood on in rows (north,
+#   south, and two rows at the west end).  The game had lawn from apron to apron, its parked cars on the grass and the
+#   walks along the wings ending in it (one of the tails kept in #151).  The rectangle in a bright edge in its middle
+#   (first read as a kerbed lawn, on the ground's plane) is a one-storey hall's roof behind its parapet, 5.5 - 6 m over
+#   the yard (tools/eng97.py, reference/고증/3.8 「안뜰과 남쪽 땅」): the yard paved whole, the hall on it (ENG1_HALL)
+ENG1_YARD_O, ENG1_YARD_A = eng97.O, eng97.ANG
 
 
 def _e1(u_, v_):
-    return (ENG1_YARD_O[0] + u_ * math.cos(ENG1_YARD_A) - v_ * math.sin(ENG1_YARD_A),
-            ENG1_YARD_O[1] + u_ * math.sin(ENG1_YARD_A) + v_ * math.cos(ENG1_YARD_A))
+    return eng97.xy(u_, v_)
 
 
-ENG1_LAWN = Polygon([_e1(u_, v_) for u_, v_ in ((-22.9, -12.4), (31.75, -12.4), (31.75, 15.0), (-22.9, 15.0))])
-ENG1_YARD = Polygon([_e1(u_, v_) for u_, v_ in ((-34.0, -23.5), (35.5, -23.5), (35.5, 21.6), (-34.0, 21.6))]) \
-    .difference(ENG1_LAWN)
+ENG1_YARD = Polygon([_e1(u_, v_) for u_, v_ in ((-34.0, -23.5), (35.5, -23.5), (35.5, 21.6), (-34.0, 21.6))])
 _ypaint(list(shapely.ops.split(ENG1_YARD, LineString([_e1(4.0, -30.0), _e1(4.0, 30.0)])).geoms), _gp)
+# (the hall: a landmark's, blender/landmarks.py eng_hall, so that blender/build.py draws nothing for it from the halls'
+# stream; in the list from here on: the kerbs, the walks' ends and the map know it.  Its floor on the lowest ground at
+# its foot.  With it the retaining wall west of the lot and the deck that carries the upper ground to the wall)
+ENG1_HALL = shapely.geometry.polygon.orient(eng97.hall_poly(), 1.0)
+_e97_hs = [float(ground_h(x_, y_)) for x_, y_ in ENG1_HALL.exterior.coords]
+_e97_cells, _e97_area = eng97.deck_parts(ENG97, gx, NEAR_STEP)
+_e97_up = lambda x_, y_: sample(ENG97['H0'], NEAR_HALF, NEAR_STEP, x_, y_)
+assert not any(ENG1_HALL.buffer(-0.3).intersects(Polygon(b_['footprint'])) for b_ in buildings), 'ENG1_HALL'
+buildings.append(dict(id=eng97.HALL_ID, name='제1공학관', style='lm:eng_hall', levels=1, height=eng97.HALL_TOP,
+                      base=round(min(_e97_hs), 2), top_ground=round(max(_e97_hs), 2),
+                      footprint=[[round(x_, 2), round(y_, 2)] for x_, y_ in list(ENG1_HALL.exterior.coords)[:-1]]))
+out['eng1_yard'] = dict(o=list(eng97.O), ang=round(eng97.ANG, 6), hall=list(eng97.HALL_UV), base=buildings[-1]['base'],
+                        top=eng97.HALL_TOP, roof=eng97.HALL_ROOF, monitor=list(eng97.MONITOR_UV), porch=list(eng97.PORCH_UV),
+                        walls=eng97.walls(ground_h, _e97_up), deck=dwb_deck(_e97_cells, _e97_area, _e97_up))
+print('제1공학관 안뜰: the hall\'s floor %.2f m, the deck behind the wall %.0f m2 (%d triangles), the wall %.0f m' % (
+    buildings[-1]['base'], _e97_area.area, len(out['eng1_yard']['deck']['f']),
+    sum(LineString([q_[:2] for q_ in r_[1]]).length for r_ in out['eng1_yard']['walls'])))
+assert not any(ENG1_HALL.buffer(0.3).contains(Point(c_[1], c_[2])) for c_ in cars), 'a car in ENG1_HALL'
 # 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'
@@ -10170,6 +10213,23 @@ print('서문 길: shrubs taken out %d, props %d, trees moved aside %d' % _sm_n)
 # the list, to the yard's edge away from the road) or goes (shrubs, props)
 _wg_n = west_ground.move_off(trees, shrubs, props)
 print('독수리상 서쪽 마당: shrubs taken out %d, props %d, trees moved aside %d' % (_wg_n[0], _wg_n[1], len(_wg_n[2])), _wg_n[2])
+# 제1공학관 안뜰 (tools/eng97.py): the trees the planting put where the low hall stands go, each in its place in the
+# list, to where the 1997 scans have trees (the clump in the lot's south-west corner, the garden south-east of the
+# south wing); shrubs and props under the hall go.  OSM's later walk along the retaining wall's line (on the wall's
+# top and at its foot by turns) is off the map and the crowd's walks
+_e97_n = eng97.move_off(trees, shrubs, props)
+_e97_w = LineString([eng97.xy(u_, v_) for u_, v_ in ((-39.3, 64.0), (-39.3, -66.0))]).buffer(1.6)
+_e97_p0 = len(out['paths'])
+out['paths'][:] = [p_ for p_ in out['paths'] if not (p_['kind'] in ('footway', 'path') and len(p_['pts']) > 1
+                                                     and _e97_w.contains(LineString(p_['pts'])))]
+for p_ in out['paths']:                # (the one that comes down from the north along it: 3 m behind the wall, on the upper ground)
+    if p_['kind'] == 'footway':
+        for q_ in p_['pts']:
+            u_, v_ = (float(c_) for c_ in eng97.uv(q_[0], q_[1]))
+            if -41.2 < u_ < -37.0 and -64.0 < v_ < 36.0:
+                q_[0], q_[1] = (round(c_, 1) for c_ in eng97.xy(-42.0, v_))
+print('제1공학관 안뜰: trees moved off the hall %d, shrubs taken out %d, props %d, walks on the wall\'s line out %d' % (
+    len(_e97_n[0]), _e97_n[1], _e97_n[2], _e97_p0 - len(out['paths'])), _e97_n[0])
 # 무악학사 길 (MUAK above): what stood on the new road and walk steps aside (a tree in its place in the list), the
 # closed crowns over it after every other tree; the map's way and walk on the new line
 _mk_c = MUAK_ROAD.union(MUAK_WALK).buffer(0.6)
