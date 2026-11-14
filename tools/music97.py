@@ -25,6 +25,13 @@ the 1997 photos' datum: 한경길 · 언더우드관 · 의료원 둘레 photo �
   heights and the contours crossing it, + PHOTO_DZ.  The photos' across-road profiles here read 1.5 - 3.5 m higher
   (the canopy's edge, as 2.9 「남은 한계」 suspected).  Levelled across as tr_grade does.
 - 용재관's drive (YJ_BRANCH, x < 126) is the 대강당 · 용재관 part's (54.3 m at its east end): TM_KEEP stays.
+- 음악관 두 동 (halls; 3.11 「두 동의 절대 높이」): the two halls and the ground before them stood 1.5 · 2.25 m under the
+  photos and the survey.  HALLS_FRONT: the road along 구관's front and 신관's forecourt at its door, read again on bare
+  asphalt with small windows (the first reading, 1.4 m over the survey, had the parked cars' roofs and the hedge in
+  it); the survey's spot on the road before 구관 and its 55 m contour along 신관's front agree to 0.45 m.  The whole
+  platform is lifted by what it lacks (the shapes on it stay: build_campus.py music_grade), the lift eased to nothing
+  at the hill behind (GRID), the car parks south and east (tools/med97.py) and 26 m off; the halls' floors go with it.
+  신관's east yard (EAST_YARD) on the photos' own grade: a terrace over the car park east of it.
 - Nothing here draws from build_campus.py's `rng`.
 """
 # (2026-11-15: every absolute height in this file's code is on the sea-level datum, 2.0 m under the old game datum;
@@ -46,6 +53,16 @@ ROAD = [(69.1, 146.2, 42.9),      # (x, y, height) on TR_E: 아펜젤러관's ya
         (132.6, 222.4, 52.0),     # (between it and the 50 m contour 6.9 m off at (128.8, 231.1): 53.3)
         (141.5, 251.0, 51.4),     # 2005/2006 contour 50 m, 3 m off
         (149.7, 262.8, 50.6)]     # EAST_Q97's first photo height (the fork), as it was
+# 음악관: (x, y, height) of the ground before each hall: the road along 구관's front (the photos 해발 55.3 m: 60 points
+# S -8 .. 60 m along it, 5 - 6 frame pairs each; the survey's spot (177.0, -31.1) 54.87 m), 신관's forecourt at its door
+# (the photos 해발 54.95 m by the stalls east of the door; the survey's 55 m contour runs along the front there)
+HALLS_FRONT = [(170.0, -25.0, 56.18), (250.0, -31.0, 56.23)]
+HALLS_EASE = 26.0                 # the lift fades out this far round the platform
+# the paved yard along 신관's east wall (two columns of stalls in the photos), rising north on one grade: (x, y, height)
+# at its south and north ends (the photos 해발 55.0 -> 56.3 m, 60 points with five or six frame pairs; it stands 2.4 m
+# over the car park east of it at its south end, level with it at its north end), and its outline
+EAST_YARD = [(276.0, -26.0, 56.43), (276.0, 22.0, 57.89)]
+EAST_YARD_POLY = Polygon([(262.5, -31.0), (283.5, -31.0), (283.5, 23.5), (271.5, 23.5), (270.5, 14.5), (263.5, -15.0)])
 GRID_X0, GRID_Y0, GRID_D = 115.0, 30.0, 5.0       # (the grid's south-west node, spacing: the game's 5 m nodes)
 GRID = np.array([[int(v) for v in r.split()] for r in """
 512 521 555 567 565 619 636 652 634 710 701 686 671 661 707 711 762 762 763 762 713 713 663 662 606 590 580 581 588 599 602 607 609 611 607
@@ -205,3 +222,50 @@ def grade(Hn, X, Y, FIXED, halls, keep, fill, A, tr_pts, tr_n, step=5.0, half=80
     moved = np.abs(Hn - H0)
     info['moved'] = (int((moved > 0.05).sum()), round(float(moved.max()), 1))
     return took | ring, info
+
+
+def halls(Hn, X, Y, fp_a, fp_b, front_a, front_b, anchors, sample):
+    """음악관 두 동과 그 앞 땅을 HALLS_FRONT 의 높이로: the platform (the road, walk and ground build_campus.py's music_grade
+    levelled along 구관's front and between the halls, 신관's forecourt, both halls and their feet) lifted by what it
+    lacks at HALLS_FRONT (구관's part by the first, 신관's by the second, between the halls from one to the other), the
+    lift (not the ground: its shapes stay) eased to nothing, one harmonic surface, at the nodes GRID set, on `anchors`
+    (the car parks south and east: polygons) and HALLS_EASE off.  fp_a, fp_b: 구관's and 신관's outlines; front_a,
+    front_b: (corner, unit vector west -> east) of their south fronts (build_campus.py MU_O · MU_T, MB_O · MB_T).
+    Returns the lifts (구관, 신관: the floors go up by them), the nodes on the platform and a summary."""
+    da = HALLS_FRONT[0][2] - sample(*HALLS_FRONT[0][:2])
+    db = HALLS_FRONT[1][2] - sample(*HALLS_FRONT[1][:2])
+    o, t = np.array(front_a[0], float), np.array(front_a[1], float)
+    n = np.array([t[1], -t[0]])                                    # out of the front (south)
+    pa, pb = Polygon(fp_a).buffer(0), Polygon(fp_b).buffer(0)
+    S = (X - o[0]) * t[0] + (Y - o[1]) * t[1]
+    D = (X - o[0]) * n[0] + (Y - o[1]) * n[1]
+    s_end, s_yard = 61.4, 100.0                                    # (music_grade: 구관's east end, 신관's forecourt)
+    inside = np.where(S < s_end + 12.0, 21.5 + 6.5 * np.clip((S - s_end + 3.0) / 4.0, 0, 1), 6.0)
+    b0, bt = np.array(front_b[0], float), np.array(front_b[1], float)
+    bn = np.array([bt[1], -bt[0]])
+    court = Polygon([tuple(b0 + bt * u + bn * v) for u, v in ((12.0, -1.0), (64.5, -1.0), (64.5, 22.0), (12.0, 22.0))])
+    plat = ((S >= -11.0) & (S <= s_yard) & (D <= 19.0) & (D >= -inside)) | \
+        shapely.contains_xy(unary_union([pa.buffer(HALL_PAD), pb.buffer(HALL_PAD), court]), X, Y)
+    lift = da + (db - da) * np.clip((S - s_end) / (s_yard - s_end), 0.0, 1.0)
+    # (신관's east yard on its own grade: what it lacks, node by node)
+    ey = shapely.contains_xy(EAST_YARD_POLY, X, Y) & ~shapely.contains_xy(pb.buffer(0.3), X, Y)
+    (_, y0, z0), (_, y1, z1) = EAST_YARD
+    lift = np.where(ey, z0 + (z1 - z0) * (Y - y0) / (y1 - y0) - Hn, lift)
+    plat = plat | ey
+    near = shapely.contains_xy(shapely.MultiPoint(list(zip(X[plat].tolist(), Y[plat].tolist()))).buffer(HALLS_EASE), X, Y)
+    hold = shapely.contains_xy(unary_union([REGION] + list(anchors)), X, Y) & ~plat
+    free = near & ~plat & ~hold
+    d = np.where(plat, lift, 0.0)
+    jj, ii = np.nonzero(free)
+    j0, j1, i0, i1 = jj.min() - 1, jj.max() + 2, ii.min() - 1, ii.max() + 2
+    W, F = d[j0:j1, i0:i1].copy(), free[j0:j1, i0:i1]
+    for _ in range(4000):
+        avg = 0.25 * (W[:-2, 1:-1] + W[2:, 1:-1] + W[1:-1, :-2] + W[1:-1, 2:])
+        inner = W[1:-1, 1:-1]
+        inner[F[1:-1, 1:-1]] = avg[F[1:-1, 1:-1]]
+    d[j0:j1, i0:i1][F] = W[F]
+    Hn += d
+    info = dict(lift=(round(float(da), 2), round(float(db), 2)), platform=int(plat.sum()), east_yard=int(ey.sum()),
+                east_yard_lift=(round(float(d[ey].min()), 2), round(float(d[ey].max()), 2)), eased=int(free.sum()),
+                eased_max=round(float(d[free].max()), 2) if free.any() else 0.0)
+    return float(da), float(db), plat, info

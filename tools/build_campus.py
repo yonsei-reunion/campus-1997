@@ -6501,6 +6501,19 @@ _mu_took, MUSIC97_GRADE = music97.grade(Hn, X, Y, FIXED, _md_halls, np.zeros(X.s
 FIXED[_mu_took] = True
 print('노천극장 · 음악관 뒤 언덕:', MUSIC97_GRADE)
 tr_tilt_of(TR_E, TR_EN, TR_EO, TR_EK0, 'east (music97)')
+# 음악관 두 동 (tools/music97.py halls, reference/고증/3.11 「두 동의 절대 높이」): both halls and the ground before them on
+# the photos' and the survey's heights (1.5 · 2.25 m up: the road along 구관's front, 신관's forecourt), late, here:
+# the planting has read the ground as it was; the halls' floors go up with the lift
+_mh_a, _mh_b, _mh_plat, MUSIC97_HALLS = music97.halls(
+    Hn, X, Y, next(b_['footprint'] for b_ in buildings if b_['id'] == MUSIC_A),
+    next(b_['footprint'] for b_ in buildings if b_['id'] == MUSIC_B), (MU_O, MU_T), (MB_O, MB_T),
+    [med97.DENT_LOT, med97.HEART_LOT], ground_h)
+FIXED[_mh_plat] = True
+for b_ in buildings:
+    if b_['id'] in (MUSIC_A, MUSIC_B):
+        _mh_d = _mh_a if b_['id'] == MUSIC_A else _mh_b
+        b_['base'], b_['top_ground'] = round(b_['base'] + _mh_d, 2), round(b_['top_ground'] + _mh_d, 2)
+print('음악관 두 동:', MUSIC97_HALLS)
 # ---------------------------------------------------------------------------
 # 1997년 땅 (#189 가운데: 인문관 · 대강당 · 한경길 · 용재관), after the planting and everything else that read the ground
 # as it was.  Each place: a zone of grid nodes to one level, the ring round it eased by harmonic_fill into the ground as
