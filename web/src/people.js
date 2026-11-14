@@ -8,7 +8,7 @@ import { Cast, PEOPLE, STUDENTS, HEROES, HERO, heroScale, crowdLook, play } from
 import { HERO_BAGS, crowdBag } from './bags.js';
 import { windTime } from './materials.js';
 
-// the six you can walk as first (by their names and colleges), then the others
+// the nine you can walk as first (by their names and colleges), then the others
 const IDS = [...HEROES, ...Object.keys(PEOPLE).filter((id) => !HEROES.includes(id))];
 const title = (id) => (HERO[id] ? `${HERO[id].name} · ${HERO[id].college}` : PEOPLE[id]);
 const sub = (id) => (HERO[id] ? PEOPLE[id] + (HERO[id].height ? ` · ${Math.round(HERO[id].height * 100)} cm` : '') : kind(id));

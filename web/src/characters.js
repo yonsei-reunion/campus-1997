@@ -24,15 +24,16 @@ export const PEOPLE = {
   'man-staff': '교직원',
   'woman-tee': '연세 티 · 연청바지',
   'woman-pink': '분홍 니트',
-  'woman-dress': '흰 니트 · 치마',
+  'woman-dress': '빨간 니트 · 청치마',
   'woman-dress-blue': '배꼽티 · 블랙진',
   'woman-cardigan': '노란 카디건',
   'woman-staff': '교직원',
 };
 export const STUDENTS = ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man-grey', 'man-blazer',
   'woman-tee', 'woman-pink', 'woman-dress', 'woman-dress-blue', 'woman-cardigan'];
-export const HEROES = ['man-tee', 'woman-dress', 'man-cheer', 'woman-tee', 'man-check', 'woman-cardigan'];
-// the six you can walk as: a name of the class of 1997 (the first two from the film 건축학개론, 2012, whose first half
+export const HEROES = ['man-tee', 'woman-dress', 'man-cheer', 'woman-tee', 'man-check', 'woman-cardigan', 'man-blazer', 'woman-pink',
+  'woman-dress-blue'];
+// the nine you can walk as: a name of the class of 1997 (the first two from the film 건축학개론, 2012, whose first half
 // is a campus of 1996), the college they are of, and the hall their walk starts at (a name of campus.json's markers
 // or landmarks: places.js startPlaces); height: taller or shorter than the model (men 1.73 m, women 1.61 m)
 export const HERO = {
@@ -42,6 +43,9 @@ export const HERO = {
   'woman-tee': { name: '지은', college: '문과대학', place: '인문관' },
   'man-check': { name: '성훈', college: '이과대학', place: '과학관' },
   'woman-cardigan': { name: '은정', college: '사회과학대학', place: '연희관' },
+  'man-blazer': { name: '준호', college: '법과대학', place: '광복관' },
+  'woman-pink': { name: '지영', college: '교육과학대학', place: '용재관' },
+  'woman-dress-blue': { name: '수진', college: '생활과학대학', place: '가정관' },
 };
 
 // Every part of a person (skin, clothes, hair ...) is a flat colour, so one vertex-coloured material serves
@@ -344,7 +348,7 @@ const LOOKS = {
   'man-staff': {},
   'woman-tee': { White: ['#f4f1e8', '#f4f1e8', '#f3d9de', '#cfe0ee', '#e9dfa8', '#2f3a55', '#b9c9a8'], Orange: [...JEANS, '#cdb994', '#2a2a2e'] },
   'woman-pink': { White: ['#e7a7b6', '#f0e6d2', '#a9c3de', '#c7b3dc', '#b5d6c3', '#e8c66a', '#c95a5a'], Orange: ['#cdb994', ...JEANS, '#2a2a2e', '#f0eee8'] },
-  'woman-dress': { LimeGreen: ['#f1ede1', '#f3d9de', '#cfe0ee', '#ecdf9e', '#2a2a2e', '#b9c9a8'] },
+  'woman-dress': { LimeGreen: ['#a3202c', '#f1ede1', '#f3d9de', '#cfe0ee', '#ecdf9e', '#2a2a2e', '#b9c9a8'] },
   'woman-dress-blue': { Pink: ['#a9c6e6', '#f4f1e8', '#f3d9de', '#e9dfa8', '#2a2a2e', '#c95a5a'] },
   'woman-cardigan': { Black: ['#ecdf9e', '#f3d9de', '#6f7f5a', '#8d8f92', '#2f3a55', '#e6dcc6', '#c98a8a'], Orange: [JEANS[1], ...JEANS, '#2b2f3a', '#cdb994'] },
   'woman-staff': { Black: ['#2f3644', '#3a3f47', '#4a4038', '#5b6470'] },
@@ -355,7 +359,9 @@ const LOOKS_MORE = {
   'man-check': { Stripe: ['#1f8580', '#e9e4d6', '#d8b23a', '#7f9cc0', '#b3262e'], Stripe2: ['#d8742c', '#e9e4d6', '#8d8f92', '#c95a5a'],
     Collar: ['#ece8dc', '#ece8dc', '#1f2f55'] },
   'man-grey': { Collar: ['#3b3a3c', '#1f2a46', '#e9e6dc', '#5a1f28'] },
-  'woman-dress': { Skirt: ['#1f1f24', '#1f1f24', '#27304a', '#6e2430', '#8a7a5c', '#4a4d52'] },
+  // (the skirt is cut as denim: half of them are; the hairband shows on one in three, else it is the hair's black)
+  'woman-dress': { Skirt: [JEANS[0], JEANS[0], JEANS[2], JEANS[1], '#1f1f24', '#8a7a5c', '#6e2430', '#4a4d52'],
+    Band: ['#e3c443', '#141110', '#141110', '#b3262e', '#141110', '#f1ede1'] },
   'woman-dress-blue': { Orange: [JEANS[3], ...JEANS, '#f0eee8', '#e3cf7a', '#2a2a2e'] },
 };
 // the bars and the heel tab of a pair of trainers (blender/characters.py trainers()), from a stream of their own

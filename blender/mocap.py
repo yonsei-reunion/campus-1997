@@ -641,7 +641,8 @@ def _calm(R, seconds, fps, loop):
 
 
 def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, posture=None, tall=True, seat=None,
-          twist=0.0, elbow=0.0, stride=1.0, sway=1.0, s=1.0, look=1.0, turn=1.0, calm=0.0, level=0.0, upright=0.0):
+          twist=0.0, elbow=0.0, stride=1.0, sway=1.0, s=1.0, look=1.0, turn=1.0, calm=0.0, level=0.0, upright=0.0,
+          lap=None, knees=1.0, arm_down=0.0):
     """The motion on the rig: {bone: (n, 4, 4) armature-space matrices} for the bones that get keys, and a report.
     arm_out: degrees the hanging arms are held further from the body; twist: degrees the forearms and hands are
     turned out (thumbs forward); hold_feet: the feet stay in one place; stance: the feet's distance from the middle
@@ -658,7 +659,10 @@ def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, 
     body was modelled, a slump); upright: degrees the chest is stood back up from a forward lean, the arms, the
     neck and the head with it (the Universal Animation Library's standing loops lean 16 degrees forward on this rig,
     one foot 30 cm before the other: `stride` brings a stand's feet together fore and aft as it shortens a cycle's
-    steps)."""
+    steps); lap: the hands of a seated clip laid on the thighs (see LAP: the take's arms hold them where its own
+    actor's thighs were; its `sides`: 'L', 'R' or both); knees: a seated clip's knees (and feet) this much of their
+    distance from the middle line; arm_down: degrees the arms are let down about the shoulders (a seated actor talking
+    with both hands held out at the chest's height)."""
     tk, j, n = mo.take, mo.j, len(mo)
     k = rig.legs / source_legs(tk, j)
     if pose is not None:
@@ -691,7 +695,7 @@ def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, 
         A[:, 2] = lg['A'][2] + (mo.P[:, j['foot', sd], 2] - mo.flat[i]) * k
         A[:, :2] += origin
         mid = 0.0 if mo.speed else hip[:, 0].mean()
-        A[:, 0] = mid + (A[:, 0] - mid) * stance
+        A[:, 0] = mid + (A[:, 0] - mid) * stance * (knees if seat else 1.0)
         A[:, 1] = rig.hip[1] + (A[:, 1] - rig.hip[1]) * stride
         feet[sd] = [A - np.einsum('nij,j->ni', Df, lg['A'] - lg['F']), Df]
     if seat:                                                # seated: the hips at the seat's height, the feet on its ground
@@ -782,6 +786,8 @@ def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, 
                 extra = rot_axis(fwd, sign * np.radians(arm_out) * hang)
             if extra is not None:
                 Db = extra @ Db
+            if arm_down:
+                Db = rot_axis(np.einsum('nij,j->ni', Dc, np.array([1., 0, 0])), np.radians(arm_down)) @ Db
             if elbow and part != 'upper':
                 Db = rot_axis(np.einsum('nij,j->ni', Dc, np.array([1., 0, 0])), -np.radians(elbow)) @ Db
             if twist and part != 'upper':                   # about the forearm, as it lies
@@ -790,6 +796,7 @@ def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, 
             turns[bone + sd] = Db
 
     # legs: two bones from the hip joint to the ankle the Foot bone holds
+    thighs = {}
     for sd in SIDES:
         lg = rig.leg[sd]
         p, Df = feet[sd]
@@ -807,6 +814,13 @@ def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, 
         pole = ps / source_legs(tk, j) + 0.03 * (np.einsum('nij,j->ni', Df, FWD) + np.einsum('nij,j->ni', Dp, FWD))
         pole = _unit(pole - np.sum(pole * u, 1, keepdims=True) * u)
         K = H + a[:, None] * u + h[:, None] * pole
+        if seat and knees != 1.0:                           # the knee as near the middle line as its circle comes
+            want = K.copy()
+            want[:, 0] = hip[:, 0] + (K[:, 0] - hip[:, 0]) * knees
+            pole = want - (H + a[:, None] * u)
+            pole = _unit(pole - np.sum(pole * u, 1, keepdims=True) * u)
+            K = H + a[:, None] * u + h[:, None] * pole
+        thighs[sd] = (H, K)
         hinge = _unit(np.cross(u, pole))
         turns['UpperLeg.' + sd] = frame_of(hinge, _unit(K - H)) @ lg['F1'].T
         turns['LowerLeg.' + sd] = frame_of(hinge, _unit(A - K)) @ lg['F2'].T
@@ -820,9 +834,7 @@ def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, 
         info['knee_' + sd] = float(np.degrees(np.arccos(np.clip(np.sum(_unit(K - H) * _unit(A - K), 1), -1, 1))).max())
 
     # forward kinematics: every keyed bone's armature-space matrix
-    for name in rig.names:
-        if name in out or name not in turns:
-            continue
+    def place(name):
         M, q = rig.local[name], rig.parent[name]
         while q is not None and q not in out:               # an unkeyed parent keeps its rest pose on its parent
             M, q = rig.local[q] @ M, rig.parent[q]
@@ -831,7 +843,79 @@ def solve(rig, mo, pose=None, arm_out=0.0, hold_feet=False, ease=2, stance=1.0, 
         m[:, :3, :3] = turns[name] @ rig.rest[name][:3, :3]
         m[:, :3, 3] = follow[:, :3, 3]
         out[name] = m
+
+    for name in rig.names:
+        if name not in out and name in turns:
+            place(name)
+    if lap is not None:
+        for sd in lap.get('sides', 'LR'):
+            info['lap_' + sd] = hands_on_lap(rig, sd, out, turns, thighs[sd], dict(LAP, **lap), s)
+            for bone in ('UpperArm.', 'LowerArm.', 'Wrist.'):
+                place(bone + sd)
     return out, info
+
+
+# A seated person's hands lie on their thighs.  The take's arms hold the hands where its own actor's thighs were:
+# on these bodies (other arms, thicker or thinner thighs, the knees brought together) that left them in the air
+# before the knees, the elbows out and the fingers spread over the edge.  So the arms of a seated clip are solved
+# anew each frame, two bones from the shoulder joint as the take's trunk carries it to a wrist on the thigh:
+#   at: the wrist's place along the thigh (0 the hip joint, 1 the knee); up: the wrist joint over the thigh's axis,
+#   metres at the game's scale (the thigh, its cloth and half the wrist); inn: and in toward the other thigh;
+#   toe: degrees the fingers point in from along the thigh; dip: and down toward the knee, as the thigh thins;
+#   roll: degrees the palm leans in (the thumb's side lower: the hand lies over the round of the thigh);
+#   out: the elbow's place round the shoulder-wrist line, degrees out from straight behind it;
+#   twist: the share of the palm's turn the forearm does (the wrist the rest)
+LAP = dict(at=0.46, up=0.105, inn=-0.012, toe=12.0, dip=6.0, roll=6.0, out=24.0, twist=0.55)
+
+
+def hands_on_lap(rig, sd, out, turns, thigh, o, s):
+    """turns of UpperArm, LowerArm and Wrist of one side for a hand resting on its thigh (LAP); the elbow's
+    greatest bend, degrees."""
+    head = rig.head
+    H, K = thigh
+    sign = 1.0 if rig.leg[sd]['H'][0] > rig.hip[0] else -1.0                # (+x: this side's outward)
+    S = out['UpperArm.' + sd][:, :3, 3]
+    L1 = np.linalg.norm(head('LowerArm.' + sd) - head('UpperArm.' + sd))
+    L2 = np.linalg.norm(head('Wrist.' + sd) - head('LowerArm.' + sd))
+    t = _unit(K - H)
+    up = _unit(UP - np.sum(UP * t, 1, keepdims=True) * t)
+    inward = -sign * np.cross(up, t)
+    inward = np.where(np.sum(inward * [sign, 0, 0], 1, keepdims=True) > 0, -inward, inward)
+    W = H + t * o['at'] * np.linalg.norm(K - H, axis=1, keepdims=True) + up * o['up'] / s + inward * o['inn'] / s
+    v = W - S
+    d = np.linalg.norm(v, axis=1)
+    u = v / d[:, None]
+    d = np.clip(d, abs(L1 - L2) * 1.05, (L1 + L2) * 0.985)
+    W = S + u * d[:, None]
+    a = (L1 ** 2 - L2 ** 2 + d ** 2) / (2 * d)
+    h = np.sqrt(np.maximum(L1 ** 2 - a ** 2, 0))
+    back, outw = -FWD, np.array([sign, 0., 0])
+    pole = back * math.cos(math.radians(o['out'])) + outw * math.sin(math.radians(o['out']))
+    pole = _unit(pole - np.sum(pole * u, 1, keepdims=True) * u)
+    E = S + a[:, None] * u + h[:, None] * pole
+    hinge = _unit(np.cross(u, pole))
+    # (the rest pose: a T, the elbow bending forward, so its point is behind)
+    d1, d2 = rig.dir['upper', sd], rig.dir['lower', sd]
+    F1 = frame_of(_unit(np.cross(d1, -FWD)), d1)
+    F2 = frame_of(_unit(np.cross(d2, -FWD)), d2)
+    turns['UpperArm.' + sd] = frame_of(hinge, _unit(E - S)) @ F1.T
+    lower = frame_of(hinge, _unit(W - E)) @ F2.T
+    # the hand: its fingers along the thigh, turned in and down, the palm on the cloth
+    f = _unit(t + inward * math.tan(math.radians(o['toe'])) - up * math.tan(math.radians(o['dip'])))
+    nrm = up * math.cos(math.radians(o['roll'])) + inward * math.sin(math.radians(o['roll']))
+    nrm = _unit(nrm - np.sum(nrm * f, 1, keepdims=True) * f)
+    f0 = rig.dir['hand', sd]
+    idx, pinky = (head(b + '2.' + sd) - head('Wrist.' + sd) for b in ('Index', 'Pinky'))
+    n0 = _unit(sign * np.cross(idx, pinky))                 # the back of the hand: up in the T pose
+    n0 = _unit(n0 - (n0 @ f0) * f0)
+    hand = frame_of(f, nrm) @ frame_of(f0, n0).T
+    # the forearm does its share of the turn about its own length
+    q = q_from_m(np.swapaxes(lower, -1, -2) @ hand)
+    ang = 2 * np.arctan2(q[:, 1:] @ d2, q[:, 0])
+    ang = (ang + np.pi) % (2 * np.pi) - np.pi
+    turns['LowerArm.' + sd] = lower @ rot_axis(d2, o['twist'] * ang)
+    turns['Wrist.' + sd] = hand
+    return float(np.degrees(np.arccos(np.clip(np.sum(_unit(E - S) * _unit(W - E), 1), -1, 1))).max())
 
 
 def basis(rig, pose):
@@ -937,8 +1021,9 @@ def write_action(arm, name, mats, fps, scene_fps, loop, s=1.0, thin=True):
 #         second: look / turn / sway / calm bring that down to about 30 degrees either way, eased
 SIT = (0.29, -0.225)        # seated clips: the hip joints this high over the model's origin (as the 'sit' pose before:
 #                             the game lifts a seated person by the hips), the ground a 0.43 m bench leaves the feet
-_SIT = dict(take=('ual1', 'Sitting_Idle_Loop'), stand=(0, 50), fade=0, fps=15, seat=SIT, elbow=6)
-_SIT_TALK = dict(take=('ual1', 'Sitting_Talking_Loop'), stand=(0, 88), fade=0, fps=15, seat=SIT)
+_SIT = dict(take=('ual1', 'Sitting_Idle_Loop'), stand=(0, 50), fade=0, fps=15, seat=SIT, lap={})
+# (talking: one hand stays on the lap, the other talks, let down from the chest's height to over the lap)
+_SIT_TALK = dict(take=('ual1', 'Sitting_Talking_Loop'), stand=(0, 88), fade=0, fps=15, seat=SIT, lap=dict(sides='L'), arm_down=38)
 # ACCAD's Female 1 holds her shoulders 2.6 cm lower on the rig than its rest pose has them (the men's takes 0.7 cm)
 # and her neck 3 - 6 degrees forward: with the women's narrow shoulders that reads as a stoop.  Both taken off
 _F1 = dict(level=1.0, posture={'neck': 4.0})
@@ -973,8 +1058,8 @@ CLIPS = {
                      look=0.5, calm=0.4, **_F1),
         'phone': dict(take=('ual2', 'Idle_TalkingPhone_Loop'), stand=(0, 88), fade=0, fps=15, hold_feet=True, stance=0.7,
                       upright=12, stride=0.35),
-        'sit': dict(_SIT, elbow=14),
-        'sit-talk': _SIT_TALK,
+        'sit': dict(_SIT, knees=0.55),
+        'sit-talk': dict(_SIT_TALK, knees=0.55, arm_down=30),
     },
 }
 

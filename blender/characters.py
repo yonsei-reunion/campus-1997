@@ -219,12 +219,22 @@ PEOPLE = {
     # 서연 (the film 건축학개론, 2012: a first-year of the college of music in 1996): a round, soft face, large eyes with
     # double lids, straight soft brows, a small nose, a ready smile; long straight hair worn down
     'woman-dress': woman('long', 'Formal', 'Formal', 'Formal',
-                         {'LimeGreen': '#f1ede1', 'Skirt': '#1f1f24', 'feet:Red': '#1c1c1f', 'Skin': SKIN['fair'],
-                          'Hair': HAIR['black']},
-                         'white knit with long sleeves, black skirt, black shoes; long straight black hair',
-                         paint={'body': [dict(of=('Skin',), to='LimeGreen', x=(0, .585)),       # (a round neck, at the neck's foot)
-                                         dict(of=('Gold',), to='Skirt')],
-                                'legs': [dict(of=('LimeGreen',), to='Skirt')]},
+                         {'LimeGreen': '#a3202c', 'Yoke': '#eadfc8', 'Tee': '#f3f0e8', 'Skirt': JEANS['mid'], 'feet:Red': '#1c1c1f',
+                          'Skin': SKIN['fair'], 'Hair': HAIR['black'], 'Band': '#e3c443'},
+                         'red knit with a cream band across the chest and the sleeves over a white tee, denim skirt to above '
+                         'the knee, black shoes; long straight black hair under a yellow hairband',
+                         paint={'body': [dict(of=('Skin',), to='LimeGreen', x=(0, .585)),       # (the sleeves, and a round neck)
+                                         dict(of=('LimeGreen',), to='Tee', x=(0, .075), z=(1.488, None)),   # (the tee's collar in it)
+                                         dict(of=('Gold',), to='LimeGreen'),            # (no belt: the knit hangs over the skirt)
+                                         # the knit's band: across the chest, and round the sleeves where the arms, let
+                                         # down, bring it level with that; a thin line under it, and one at the cuffs
+                                         *bands('Yoke', ('LimeGreen',), [(1.345, 1.392), (1.312, 1.325)], x=(0, .172)),
+                                         dict(of=('LimeGreen',), to='Yoke', x=(.172, .226)),
+                                         dict(of=('LimeGreen',), to='Yoke', x=(.246, .259)),
+                                         dict(of=('LimeGreen',), to='Yoke', x=(.553, .570))],
+                                'legs': [dict(of=('LimeGreen',), to='Skirt')],
+                                'head': [dict(of=('Hair',), to='Band', y=(-.090, -.062), z=(1.690, None))]},
+                         skirt='denim',
                          face=dict(lid='double', slant=.04, eye=1.12, lash=1.15, jaw=1.03, brow=.95, arch=.35, brow_len=1.05,
                                    brow_soft=2.0, smile=.0031, mouth=.98, lip=1.15, nose=.74, bridge=.26, nose_w=.94,
                                    nose_up=.0015)),
@@ -975,7 +985,7 @@ def paint(ob, rules):
                 f.material_index = to
                 n += 1
         if not n:
-            raise SystemExit(f'{ob.name}: the box of {rule["to"]} holds no face of {rule["of"]}')
+            raise SystemExit(f'{ob.name}: the box of {rule["to"]} ({box}) holds no face of {rule["of"]}')
     bm.transform(mw.inverted())
     bm.to_mesh(me)
     bm.free()
@@ -1029,6 +1039,69 @@ def print_map(ob, rules):
     bm.transform(mw.inverted())
     bm.to_mesh(me)
     bm.free()
+
+
+# ---------- a skirt's cut ----------
+# The pack's skirt is a bell: at its hem it stands 9 cm before the thighs and 7 cm behind them.  Its halves hang on
+# the thighs, so on somebody sitting all of it turns forward with them: the front then floats those 9 cm over the lap
+# and the back hangs under the knees, before the bench.  A denim skirt of 1997 falls nearly straight from the hips: the
+# skirt is drawn in from the hip joints down to a hem that keeps `front` / `back` of ease off the thighs there and is
+# `flare` wider a side than the hips, and let down to `hem` over the knee joint (the pack's hem is higher behind than
+# in front).  Seated it lies on the thighs, its back between them and the seat.
+# It also gets the trousers' coordinates (LEG), so the game draws it as denim: the side seams, the pockets, the wash on
+# the front and the seat.  Its hem is `top` of a trouser leg's height (0 a trouser hem, 0.5 the knee, 1 the hip joint),
+# so no knee is worn pale on it; `back_turn`: how much further round a leg the back of a half of the skirt goes than
+# round itself.  Lengths in the source's units.
+SKIRTS = {'denim': dict(hem=0.075, front=0.022, back=0.034, flare=0.008, top=0.60, back_turn=1.58)}
+
+
+def cut_skirt(ob, arm, C):
+    me, mw = ob.data, ob.matrix_world.copy()
+    inv = mw.inverted()
+    names = [m.name if m else '' for m in me.materials]
+    k = names.index('Skirt~new')
+    sk, body = set(), set()
+    for p in me.polygons:
+        (sk if p.material_index == k else body).update(p.vertices)
+    body -= sk
+    head = lambda name: arm.matrix_world @ arm.data.bones[name].head_local
+    zj = (head('UpperLeg.L').z + head('UpperLeg.R').z) / 2
+    zk = (head('LowerLeg.L').z + head('LowerLeg.R').z) / 2
+    co = {i: mw @ me.vertices[i].co for i in sk}
+    zt = max(c.z for c in co.values())
+    # the hem: the skirt's open edge below the hips
+    edges = {}
+    for p in me.polygons:
+        if p.material_index == k:
+            for e in p.edge_keys:
+                edges[e] = edges.get(e, 0) + 1
+    at_hem = {i for e, n in edges.items() if n == 1 for i in e if co[i].z < zj - 0.1}
+    z_low = sum(co[i].z for i in at_hem) / len(at_hem)
+    hem = zk + C['hem']
+    ext = lambda cs: (max(abs(c.x) for c in cs), min(c.y for c in cs), max(c.y for c in cs))
+    (x0, f0, b0), (x1, f1, b1) = ext([c for c in co.values() if abs(c.z - zj) < 0.035]), ext([co[i] for i in at_hem])
+    thigh = [c for c in (mw @ me.vertices[i].co for i in body) if abs(c.z - hem) < 0.045]
+    X1, F1, B1 = x0 + C['flare'], min(c.y for c in thigh) - C['front'], max(c.y for c in thigh) + C['back']
+    att = me.attributes.get(LEG) or me.attributes.new(LEG, 'FLOAT_VECTOR', 'POINT')
+    legs = [0.0] * (3 * len(me.vertices))
+    att.data.foreach_get('vector', legs)
+    for i, c in co.items():
+        t = 1.0 if i in at_hem else max(0.0, min(1.0, (zj - c.z) / (zj - z_low)))
+        xa, fa, ba = x0 + (x1 - x0) * t, f0 + (f1 - f0) * t, b0 + (b1 - b0) * t
+        xb, fb, bb = x0 + (X1 - x0) * t, f0 + (F1 - f0) * t, b0 + (B1 - b0) * t
+        if t > 0:
+            c.x *= xb / xa
+            c.y = fb + (c.y - fa) / (ba - fa) * (bb - fb)
+            c.z = zj - t * (zj - hem)
+        # round a half of the skirt as round a trouser leg: the front and the side seam where a leg has them, the
+        # back drawn out (the middle of the back a leg's back and inside), so each half has its pocket in its middle
+        a = math.atan2(abs(c.x) / xb, -((c.y - fb) / (bb - fb) * 2 - 1))
+        a = a if a < math.pi / 2 else math.pi / 2 + (a - math.pi / 2) * C['back_turn']
+        v = C['top'] + (1 - C['top']) * (1 - t) if c.z <= zj else 1 + 0.2 * (c.z - zj) / max(zt - zj, 1e-4)
+        legs[3 * i:3 * i + 3] = (0.5 + 0.5 * math.cos(a), 0.5 + 0.5 * math.sin(a), v / LEG_TOP)
+        me.vertices[i].co = inv @ c
+    att.data.foreach_set('vector', legs)
+    me.update()
 
 
 # ---------- a skirt that sits ----------
@@ -1197,9 +1270,12 @@ HAIR_STYLES = {
                           (180, -.205)],
                      vol=[(-180, .017), (-90, .016), (-30, .014), (28, .012), (60, .015), (180, .017)], top=.019, edge=.011,
                      part=(28, .007, 7), fall=.10, sheet=.015, curl=.010, rows=10, rough=.08, ragged=.0015, ears=False),
+    # a bob, one side tucked behind the ear: there the hair comes down the temple to the ear's top (the women's: -.023),
+    # lies over it and goes down behind it, a wisp before the ear (as `pixie`: with the hem up at the brows' height
+    # all the way back, three centimetres of bare skin stood over the ear)
     'tuck': dict(tip=[(-180, -.146), (-90, -.146), (-60, -.146), (-52, -.10), (-42, -.035), (-22, .006), (0, .024),
-                      (15, .038), (26, .048), (36, .034), (48, .018), (62, .006), (79, .006), (97, .004), (106, -.09),
-                      (116, -.146), (180, -.146)],
+                      (15, .038), (26, .048), (36, .034), (48, .016), (57, .002), (62, -.014), (68, -.032), (74, -.036),
+                      (79, -.029), (84, -.027), (97, -.027), (102, -.052), (106, -.10), (116, -.146), (180, -.146)],
                  vol=[(-180, .018), (-90, .017), (-30, .015), (28, .012), (55, .008), (97, .008), (114, .016), (180, .018)],
                  top=.020, edge=.010, part=(28, .007, 7), fall=.06, sheet=.016, curl=.014, rows=9, rough=.08, ragged=.0015,
                  ears='left'),
@@ -1212,8 +1288,10 @@ HAIR_STYLES = {
                   vol=[(-180, .013), (-60, .011), (-20, .017), (20, .014), (60, .011), (180, .013)], top=.024,
                   edge=[(0, .005), (70, .005), (79, .010), (98, .010), (108, .005), (180, .005)],
                   part=(30, .004, 7), rows=7, rough=.25, ragged=.004),
+    # long hair, the top half tied back: the sides drawn back over the ears' tops (not above them: see `tuck`)
     'half': dict(tip=_both([(-47, .036), (-26, .030), (-6, .030), (14, .040), (30, .052), (47, .040)],
-                           [(57, .022), (62, .008), (79, .008), (97, .006), (104, -.08), (111, -.22), (135, -.31), (180, -.33)]),
+                           [(57, .016), (62, -.004), (67, -.028), (73, -.036), (78, -.029), (82, -.027), (97, -.027),
+                            (101, -.048), (104, -.09), (111, -.22), (135, -.31), (180, -.33)]),
                  vol=[(-180, .016), (-100, .015), (-60, .008), (-20, .013), (20, .011), (60, .008), (100, .015), (180, .016)],
                  top=.016, edge=[(0, .004), (60, .004), (100, .010), (180, .010)], part=(30, .004, 7), fall=.10, sheet=.014,
                  rows=12, rough=.08, ragged=.004, tail=dict(dz=.0, length=.17, r=.022)),
@@ -1898,6 +1976,8 @@ def build_person(pid, spec):
         atlas_layer(ob)
         ob.name = f'{pid}-{part}'
         parts.append(ob)
+    if spec.get('skirt'):
+        cut_skirt(next(o for o in parts if o.name.endswith('-legs')), arm, SKIRTS[spec['skirt']])
     if any(m and m.name == 'Skirt~new' for o in parts for m in o.data.materials):         # (recolour's names)
         skirt_sit(arm, [o for o in parts if o.name.endswith(('-body', '-legs'))], s)
     keep = set(parts) | {arm}
