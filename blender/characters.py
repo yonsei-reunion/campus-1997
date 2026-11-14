@@ -117,8 +117,9 @@ def canvas(upper, rubber):
 
 
 # 1997 campus fashion (reference/고증 4.11): baggy stone-washed jeans and wide trousers, big tees and hoodies, a collared
-# tee in broad stripes, a jumper with a dark collar, a blazer over cotton trousers, the Yonsei-blue cheer jacket, a white
-# knit over a denim skirt, a cream sweatshirt, a pastel cardigan, a professor in a grey suit, staff in work vests.
+# tee in broad stripes, a checked shirt worn open over a tee, a blazer over cotton trousers, the Yonsei-blue cheer
+# jacket, a white knit over a denim skirt, a cream sweatshirt, a pastel cardigan, a professor in a grey suit, staff in
+# work vests.
 # Hair (the first name, see HAIR_STYLES) and faces as students wore and had them about 1997 (reference/고증 4.9): most
 # of them plain, a few the cuts of the year.  Optional: flip (the parting on the other side), bridge (bleached locks:
 # [(azimuth, half width)]), face: what makes the one shared face a person's own.  Of the skull: jaw, chin (scales).
@@ -143,13 +144,18 @@ PEOPLE = {
                    face=dict(lid='mono', slant=.07, eye=.94, jaw=.94, chin=1.06, brow=1.3, brow_tilt=-.03, arch=.4, brow_len=1.02,
                              brow_taper=1.3, brow_soft=1.6, smile=.0004, mouth=.94, nose=1.04, bridge=.38, nose_curve=1.1,
                              nose_w=.94)),
-    'man-check': man('short', 'Casual_2', 'Casual_2', 'Casual_2',
-                     {'LightBrown': '#1f2f55', 'Stripe': '#1f8580', 'Stripe2': '#d8742c', 'Collar': '#ece8dc',
-                      'LightBlue': JEANS['dark'], 'Red_Dark': '#3a2c24', 'Skin': SKIN['c'], 'Hair': HAIR['black']},
-                     'collared tee in broad navy, teal and orange stripes, wide dark jeans (진청); neat short hair, metal glasses',
-                     paint={'body': bands('Stripe', ('LightBrown',), [(1.085, 1.150), (1.280, 1.345)], x=(0, .21))
-                            + bands('Stripe2', ('LightBrown',), [(1.185, 1.245), (1.380, 1.440)], x=(0, .21))
-                            + [dict(of=('LightBrown',), to='Collar', x=(0, .10), z=(1.495, None))]}, cut='wide',
+    # 성훈: a beige checked shirt (체크 남방) worn open over a white tee, its long sleeves down (the pack's short-sleeved
+    # shirt and the bare arms to the wrists).  The checks are not in the model: the game draws them on whatever is of
+    # the material 'Check' (web/src/characters.js)
+    'man-check': man('short', 'Adventurer', 'Casual_2', 'Casual_Hoodie',
+                     {'Check': '#d6c49c', 'LightGreen': '#f1efe8', 'LightBlue': JEANS['mid'], 'feet:Purple': '#2a2a2e',
+                      'Skin': SKIN['c'], 'Hair': HAIR['black']},
+                     'beige checked shirt worn open over a white tee, jeans, black canvas shoes; neat short hair, metal glasses',
+                     paint={'body': [dict(of=('Green',), to='Check'),
+                                     dict(of=('LightGreen',), to='Check', x=(.12, None), z=(1.2, None)),      # (the bands at the armholes)
+                                     dict(of=('Skin',), to='Check', x=(.25, .592), group='sleeve')],
+                            'feet': canvas('Purple', 'White')},
+                     sleeves=dict(r0=.066, r1=.044),
                      face=dict(lid='mono', slant=.10, jaw=1.04, eye=.96, smile=.0016, mouth=.96, glasses=True, brow=1.3, arch=.4,
                                brow_len=.86, brow_taper=1.6, nose=.84, bridge=.24, nose_w=1.10)),
     'man-hoodie': man('up', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
@@ -173,12 +179,13 @@ PEOPLE = {
                      face=dict(lid='double', slant=.0, jaw=1.03, chin=1.09, eye=1.04, mouth=1.15, smile=.0034, lip=1.1,
                                brow=1.6, arch=.75, brow_len=1.1, brow_peak=.6, brow_up=-.0014, brow_taper=1.5, brow_soft=1.5,
                                nose=1.13, bridge=.45, nose_curve=1.15, nose_w=1.02)),
-    'man-grey': man('curtain-64', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
-                    {'Purple': '#e8e0b0', 'Collar': '#3b3a3c', 'LightBlue': JEANS['mid'],
-                     'feet:Purple': '#2a2a2e', 'Skin': SKIN['b'], 'Hair': HAIR['dyed'], 'Brow': '#1c1410'},
-                    'pale yellow jumper with a dark collar, jeans; brown-dyed hair parted 6:4',
-                    paint={'body': [dict(of=('Purple',), to='Collar', x=(0, .10), z=(1.495, None))],
-                           'feet': canvas('Purple', 'White')},
+    'man-grey': man('curtain-64', 'Casual_2', 'Casual_2', 'Casual_2',
+                    {'LightBrown': '#1f2f55', 'Stripe': '#1f8580', 'Stripe2': '#d8742c', 'Collar': '#ece8dc',
+                     'LightBlue': JEANS['dark'], 'Red_Dark': '#3a2c24', 'Skin': SKIN['b'], 'Hair': HAIR['dyed'], 'Brow': '#1c1410'},
+                    'collared tee in broad navy, teal and orange stripes, wide dark jeans (진청); brown-dyed hair parted 6:4',
+                    paint={'body': bands('Stripe', ('LightBrown',), [(1.085, 1.150), (1.280, 1.345)], x=(0, .21))
+                           + bands('Stripe2', ('LightBrown',), [(1.185, 1.245), (1.380, 1.440)], x=(0, .21))
+                           + [dict(of=('LightBrown',), to='Collar', x=(0, .10), z=(1.495, None))]}, cut='wide',
                     face=dict(lid='inner', slant=.10, jaw=.97, smile=.0012, mouth=.98, lip=1.35, brow=1.55, arch=.5, brow_tilt=.04,
                               brow_taper=1.7, brow_len=1.05, brow_gap=-.001, brow_up=-.001, nose=1.10, bridge=.42,
                               nose_curve=1.2, nose_w=1.04)),
@@ -831,6 +838,72 @@ def loosen(ob, part, outfit, arm, roomy=None):
             v.co = inv @ co[v.index]
 
 
+# ---------- a shirt's long sleeves ----------
+# A long-sleeved shirt is the pack's short-sleeved one with the bare arms painted as its cloth (PEOPLE's `paint`, the
+# rule's group 'sleeve'): a wide sleeve to the elbow with a rolled hem, and out of it an arm's shape, tight and thin.
+# A person's `sleeves` (the sleeve's radius at the shoulder and at the cuff, the source's units) makes one sleeve of
+# the two, a straight taper about the arm's axis (the shoulder joint to the wrist): the pack's sleeve is drawn in or
+# out by what brings its outline to that, and every point of the painted arm is put on it, just inside the hem it
+# comes out of.  The last centimetres before the wrist close in on it again, as a buttoned cuff does.
+SLEEVE = 'sleeve'
+
+
+def long_sleeves(ob, arm, r0, r1, cuff=0.03):
+    me, mw = ob.data, ob.matrix_world.copy()
+    inv = mw.inverted()
+    group = ob.vertex_groups.get(SLEEVE)
+    if group is None:
+        raise SystemExit(f"{ob.name}: no arms painted for the sleeves (a paint rule's group '{SLEEVE}')")
+    painted = {v.index for v in me.vertices if any(g.group == group.index and g.weight > 0.5 for g in v.groups)}
+    mats = {me.polygons[p].material_index for p in range(len(me.polygons)) if painted.issuperset(me.polygons[p].vertices)}
+    cloth = {v for p in me.polygons if p.material_index in mats for v in p.vertices}
+    co = {i: mw @ me.vertices[i].co for i in cloth}
+    head = lambda name: arm.matrix_world @ arm.data.bones[name].head_local
+    for side in ('L', 'R'):
+        a, b = head('UpperArm.' + side), head('Wrist.' + side)
+        d = (b - a).normalized()
+        sx = 1 if a.x > 0 else -1
+
+        def place(c):
+            t = (c - a).dot(d)
+            return t, (c - a - d * t).length
+        mine = [i for i in cloth if co[i].x * sx > abs(a.x) * 0.9]
+        end = max(place(co[i])[0] for i in mine if i in painted)
+        # the pack's sleeve: its outline, the greatest radius in every centimetre along the arm (the edges' points, not
+        # the vertices alone)
+        n = int(end / 0.01) + 2
+        env = [0.0] * n
+        for e in me.edges:
+            i, j = e.vertices
+            if i in painted or j in painted or i not in co or j not in co or co[i].x * sx < abs(a.x) * 0.9:
+                continue
+            for k in range(5):
+                t, r = place(co[i].lerp(co[j], k / 4))
+                if 0 <= t < n * 0.01 and r < 0.13:
+                    env[int(t / 0.01)] = max(env[int(t / 0.01)], r)
+        hem = max(k for k in range(n) if env[k])
+        for k in range(1, n):
+            env[k] = env[k] or env[k - 1]
+        env = [max(env[max(0, k - 1):k + 2]) for k in range(n)]
+        env = [sum(env[max(0, k - 1):k + 2]) / len(env[max(0, k - 1):k + 2]) for k in range(n)]
+        for i in mine:
+            c = co[i]
+            t, r = place(c)
+            if r > 0.13 or r < 1e-5 or t < 0.05:
+                continue
+            want = r0 + (r1 - r0) * min(1.0, t / end)
+            if i in painted:
+                shut = _smooth(end - cuff, end - 0.002, t)
+                f = want * (0.97 + 0.03 * _smooth(hem * 0.01, hem * 0.01 + 0.05, t)) / r * (1 - shut) + shut
+            else:
+                f = 1 + (want / max(_lerp_at(env, t / 0.01 - 0.5), 1e-4) - 1) * _smooth(0.05, 0.14, t)
+            axis = a + d * t
+            co[i] = axis + (c - axis) * f
+    for i in cloth:
+        me.vertices[i].co = inv @ co[i]
+    ob.vertex_groups.remove(group)
+
+
 # ---------- 1997 cut: wide trousers ----------
 # The packs' trousers are tights (the women's) or narrow tubes (the men's).  Scaled up about each leg's centre line
 # they were wide enough for 1997 but hung from nothing: the waistband and the seat kept the pack's width, and the
@@ -1021,11 +1094,12 @@ def cut_trousers(ob, arm, C):
 
 # ---------- 1997 wardrobe: parts of an outfit in a colour of their own ----------
 # The packs' clothes are one colour a garment.  What students wore about 1997 (reference/고증 4.11) needs a little more:
-# the broad stripes of a collared tee, the dark collar of a jumper, a knit's sleeves on a sleeveless top.  A person's
+# the broad stripes of a collared tee, a shirt's long sleeves, a knit's sleeves on a sleeveless top.  A person's
 # `paint` lists, by part, boxes in the source's T pose (metres; the arms lie along x, the front is -y): the faces of
 # the materials `of` whose middle lies inside become the material `to` (an existing one of the part, or a new one
 # with a colour of its own in `colors`), and the mesh is cut along the box's sides first, so the edge is straight.
 # x is taken either side of the middle (|x|); a bound left out is open.
+# `group`: the painted faces' points are also put in the vertex group of that name (long_sleeves reads 'sleeve').
 
 def paint(ob, rules):
     import bmesh
@@ -1065,10 +1139,17 @@ def paint(ob, rules):
             return all((lo is None or v >= lo) and (hi is None or v <= hi)
                        for v, (lo, hi) in ((abs(c.x), box['x']), (c.y, box['y']), (c.z, box['z'])))
         n = 0
+        group = None
+        if rule.get('group'):                        # (the points of what is painted, kept for a later step)
+            group = (ob.vertex_groups.get(rule['group']) or ob.vertex_groups.new(name=rule['group'])).index
+            dl = bm.verts.layers.deform.verify()
         for f in bm.faces:
             if f.material_index in src and inside(f.calc_center_median()):
                 f.material_index = to
                 n += 1
+                if group is not None:
+                    for v in f.verts:
+                        v[dl][group] = 1.0
         if not n:
             raise SystemExit(f'{ob.name}: the box of {rule["to"]} ({box}) holds no face of {rule["of"]}')
     bm.transform(mw.inverted())
@@ -2168,6 +2249,8 @@ def build_person(pid, spec):
         recolour(ob, part, spec['colors'])
         shape_body(ob, arm, rig)                 # (the neck is the head's, the waist the body's and the legs')
         loosen(ob, part, outfit, arm, spec.get('roomy'))
+        if part == 'body' and spec.get('sleeves'):
+            long_sleeves(ob, arm, **spec['sleeves'])
         atlas_layer(ob)
         ob.name = f'{pid}-{part}'
         parts.append(ob)

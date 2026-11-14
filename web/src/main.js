@@ -610,6 +610,12 @@ async function main() {
     pickEl.appendChild(b);
   }
   pickHero(heroId);
+  // 「크게 보기」: the hero picked, large (src/herozoom.js, loaded on the first press); its arrows pick the next one
+  $('#hero-zoom').disabled = false;
+  $('#hero-zoom').addEventListener('click', (e) => {
+    e.currentTarget.blur();
+    import('./herozoom.js').then(({ openHeroZoom }) => openHeroZoom({ cast, ids: HEROES, id: heroId, onPick: pickHero }));
+  });
   // ---------------------------------------------------------------- baked sun shadows, blob shadows
   progress('그림자를 드리우는 중…', 42);
   const FAR_SCENERY = /^(sky|terrain_far|far_city|far_forest|ansan_tower)$/;

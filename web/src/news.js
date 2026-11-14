@@ -15,7 +15,8 @@ export async function setupNews(onOpen = () => {}, onClose = () => {}) {
   list.innerHTML = '';
   for (const n of notes) list.appendChild(noteSection(n, { src: versioned }));
   const close = () => { root.hidden = true; onClose(); };
-  document.querySelectorAll('.newsbtn').forEach((b) => b.addEventListener('click', (e) => {
+  // (the buttons with the dot: other small buttons share the class for its look alone)
+  [...dots].map((d) => d.parentElement).forEach((b) => b.addEventListener('click', (e) => {
     e.stopPropagation();
     b.blur();
     root.hidden = false;

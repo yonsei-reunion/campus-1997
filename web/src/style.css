@@ -200,6 +200,7 @@ body.birds #bubbles { display: none; }
   padding: 1px 10px; font: 700 12px var(--font); margin-left: 6px; vertical-align: 1px; }
 .newsbtn i { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: #e63946; }
 a.newsbtn { display: inline-block; text-decoration: none; }
+.newsbtn:disabled { opacity: .45; }
 #pause .newsbtn { display: block; margin: 10px 0 4px; padding: 6px 12px; font-size: 13px; text-align: center; }
 #pause a.newsbtn { margin-left: 0; width: fit-content; }
 #news { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(10,18,28,.55); padding: 16px; }

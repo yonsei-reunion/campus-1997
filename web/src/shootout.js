@@ -13,7 +13,7 @@ import { lineTime } from './talk.js';
 import { wrapAngle, copyButton, gameUrl } from './util.js';
 import * as Records from './shootrecords.js';
 
-const FRIEND = 'man-grey';              // 아이보리 점퍼: a student you never walk as
+const FRIEND = 'man-grey';              // 줄무늬 티 · 갈색 머리: a student you never walk as
 const TIME = 60, COUNT = 3;
 const POOL = 6, HEAP = 3;               // balls in all, and in the heap at the friend's feet
 // court-local, from the shooting spot on the free-throw line: the friend (towards the basket, to your right) and the

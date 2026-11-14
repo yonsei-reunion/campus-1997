@@ -15,10 +15,10 @@ import { MOBILE, mulberry, versioned } from './util.js';
 
 export const PEOPLE = {
   'man-tee': '게스 긴팔 티 · 연청바지',
-  'man-check': '줄무늬 티 · 진청바지',
+  'man-check': '체크 남방 · 청바지',
   'man-cheer': '연세 점퍼 · 블랙진',
   'man-hoodie': '남색 후드티',
-  'man-grey': '아이보리 점퍼',
+  'man-grey': '줄무늬 티 · 진청바지',
   'man-blazer': '콤비 재킷',
   'man-professor': '교수님',
   'man-staff': '교직원',
@@ -73,6 +73,11 @@ export const HERO = {
 //    the inside, the hem, the waistband, the back pockets and the front pockets' openings; and denim its wash, worn
 //    pale on the front of the thigh, the knee and the seat and left dark inside the leg, behind the knee and at the
 //    hem, the more the paler the jeans (WASH: dark, mid, stone-washed; khaki and slacks have the seams alone)
+//  - a checked shirt (체크 남방) is the cloth of the material `Check`, drawn by where a point lies on the model at
+//    rest: round the trunk and up it, or round a sleeve and along it (the sleeves begin at the shoulder joints: the
+//    attribute `leg` of such a vertex is CHECK_W and where those are, mergeParts); over the shoulders, where the
+//    cloth lies flat, across and back. Broad darker bands both ways, darkest where two cross, and a thin line
+//    between them: a deep red on pale cloth, cream on dark
 // Phones go without the folds and the strands (no noise in the fragment shader there).
 // The eyes, brows and mouths are a few lines drawn on one small atlas all the people share (blender/faces.py): the
 // front of a face lies on its own cell, everything else on the blank cell, and the picture multiplies the vertex
@@ -123,23 +128,41 @@ async function loadFaces() {
   PERSON_MAT.needsUpdate = true;
 }
 const GRID_F = '5.0';                  // (faces.py GRID)
+// a checked shirt (the material `Check`): the checks' size up the trunk (m), how many go round the trunk and round a
+// sleeve, how deep the trunk's oval is for its width (the reciprocal), a band's and a thin line's share of a check
+const CHECK = { pitch: 0.054, round: 16, sleeve: 6, deep: '0.66', band: 0.40, line: 0.07 };
+const CHECK_W = 77;                    // the attribute `leg`'s fourth byte on such cloth (trousers: 255, anything else: 0)
 const LEG_TOP = '1.25';                // (characters.py LEG_TOP)
 const FINE = !MOBILE;               // the folds of cloth and the strands of hair
 PERSON_MAT.onBeforeCompile = (sh) => {
   sh.uniforms.uRims = RIMS_TEX;
   sh.uniforms.uBlinkT = windTime;
   sh.vertexShader = sh.vertexShader
-    .replace('#include <common>', '#include <common>\nattribute vec3 part;\nattribute float glass;\nattribute vec4 leg;\nvarying vec3 vPart, vRest;\nvarying float vGlass;\nvarying vec4 vLeg;')
-    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPart = part;\nvGlass = glass;\nvLeg = leg;\nvRest = position;');
+    .replace('#include <common>', '#include <common>\nattribute vec3 part;\nattribute float glass;\nattribute vec4 leg;\nvarying vec3 vPart, vRest, vRestN;\nvarying float vGlass;\nvarying vec4 vLeg;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPart = part;\nvGlass = glass;\nvLeg = leg;\nvRest = position;\nvRestN = normal;');
   sh.fragmentShader = sh.fragmentShader
     .replace('#include <common>', `#include <common>
-      varying vec3 vPart, vRest;
+      varying vec3 vPart, vRest, vRestN;
       varying float vGlass;
       varying vec4 vLeg;
       uniform sampler2D uRims;
       // a line of half width w about x = 0, as much of the pixel as it covers (d: x over a pixel)
       float pLine( float x, float w, float d ) { return clamp( ( w - abs( x ) ) / max( d, 1e-5 ) + 0.5, 0.0, 1.0 ) * min( 1.0, 2.0 * w / max( d, 1e-5 ) ); }
       uniform float uBlinkT;
+      // checked cloth of the colour base at q (in checks; d: checks to a pixel): broad darker bands both ways, darkest
+      // where two cross, a thin line between them (deep red on pale cloth, cream on dark); far off, their mean
+      vec3 pPlaid( vec2 q, float d, vec3 base ) {
+        vec2 c = abs( fract( q ) - 0.5 );
+        vec2 band = clamp( ( ${(CHECK.band / 2).toFixed(3)} - c ) / max( d, 1e-4 ) + 0.5, 0.0, 1.0 );
+        vec2 thin = clamp( ( c - ${(0.5 - CHECK.line / 2).toFixed(3)} ) / max( d, 1e-4 ) + 0.5, 0.0, 1.0 ) * min( 1.0, ${CHECK.line.toFixed(3)} / max( d, 1e-4 ) );
+        float far = smoothstep( 0.35, 0.9, d );
+        band = mix( band, vec2( ${CHECK.band.toFixed(3)} ), far );
+        thin = mix( thin, vec2( ${CHECK.line.toFixed(3)} ), far );
+        float pale = step( 0.22, dot( base, vec3( 0.3, 0.59, 0.11 ) ) );
+        vec3 ink = mix( mix( base, vec3( 0.80, 0.77, 0.66 ), 0.85 ), vec3( 0.26, 0.035, 0.04 ), pale );
+        vec3 col = mix( base, base * mix( vec3( 0.50, 0.52, 0.60 ), vec3( 0.46, 0.36, 0.30 ), pale ), 0.5 * ( band.x + band.y ) );
+        return mix( col, ink, 0.8 * max( thin.x, thin.y ) );
+      }
       ${FINE ? `
       float pHash( vec3 p ) { p = fract( p * 0.3183099 + 0.1 ); p *= 17.0; return fract( p.x * p.y * p.z * ( p.x + p.y + p.z ) ); }
       float pNoise( vec3 x ) { vec3 i = floor( x ), f = fract( x ); f = f * f * ( 3.0 - 2.0 * f );
@@ -192,6 +215,18 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       float rim = texture2D( uRims, vMapUv ).r * step( 0.5, pGlass ) * smoothstep( ${(2 * RIM_PX).toFixed(2)}, ${RIM_PX.toFixed(2)}, rimPx );
       diffuseColor.rgb = mix( diffuseColor.rgb, pGlass > 1.5 ? ${glsl(RIMS[1])} : ${glsl(RIMS[0])}, rim );
       float pLegs = step( 0.5, vLeg.w ) * step( 0.01, vLeg.x + vLeg.y );      // (a geometry without the attribute reads 0 0 0 1)
+      if ( vLeg.w > 0.2 && vLeg.w < 0.4 ) {
+        // a checked shirt, in checks: round the trunk (evenly round an oval about its middle) and up it; over the
+        // shoulders, where the cloth lies flat, across and back (a yoke); round a sleeve (about the arm's axis) and
+        // along it
+        float ax = abs( vRest.x ), k = ${(1 / CHECK.pitch).toFixed(3)};
+        float dq = length( fwidth( vRest ) ) * k;          // (checks to a pixel)
+        vec2 t = vec2( vRest.x, vRest.z - ( vLeg.z - 0.5 ) );
+        vec3 base = diffuseColor.rgb;
+        if ( ax > vLeg.x ) diffuseColor.rgb = pPlaid( vec2( atan( vRest.y - ( 1.0 + vLeg.y ), t.y ) * ${(CHECK.sleeve / (2 * Math.PI)).toFixed(4)}, ax * k ), dq, base );
+        else diffuseColor.rgb = mix( pPlaid( vec2( 0.5 * ( atan( t.x, t.y ) + atan( t.x * ${CHECK.deep}, t.y ) ) * ${(CHECK.round / (2 * Math.PI)).toFixed(4)}, vRest.y * k ), dq, base ),
+          pPlaid( vRest.xz * k, dq, base ), smoothstep( 0.55, 0.8, abs( normalize( vRestN ).y ) ) );
+      }
       float pJean = pLegs * step( 0.5, pWash );
       if ( pLegs > 0.5 ) {
         // trousers, by a leg's own coordinates: a (x 1 the front, -1 the back; y 1 the outside, -1 the inside) and
@@ -274,6 +309,11 @@ function mergeParts(root) {
   root.traverse((o) => { if (o.isSkinnedMesh) parts.push(o); });
   if (!parts.length) return;
   const first = parts[0];
+  // (the shoulder joint at rest, for a checked shirt)
+  root.updateMatrixWorld(true);
+  const joint = root.getObjectByName('UpperArmL')?.getWorldPosition(new THREE.Vector3());
+  const byte = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
+  const check = joint && [byte(Math.abs(joint.x) + 0.02), byte(joint.y - 1), byte(joint.z + 0.5), CHECK_W];
   const ranges = [];                 // the vertices of each flat-coloured part, by its material's name (crowdLook)
   let at = 0;
   const geos = parts.map((m) => {
@@ -296,6 +336,8 @@ function mergeParts(root) {
     // the trousers' own coordinates (the model's _LEG, four bytes; only the parts with trousers have it)
     const leg = new Uint8Array(n * 4), sl = src.attributes._leg;
     if (sl) for (let i = 0; i < n * 4; i++) leg[i] = sl.array[i];
+    // (a checked shirt: where its sleeves begin, and the arms' axis: its height over 1 m, its depth + 0.5 m)
+    else if (m.material.name === 'Check' && check) for (let i = 0; i < n; i++) leg.set(check, i * 4);
     g.setAttribute('leg', new THREE.Uint8BufferAttribute(leg, 4, true));
     ranges.push({ name: m.material.name, start: at, count: n, hex: '#' + m.material.color.getHexString(), legs: !!sl });
     at += n;
@@ -348,10 +390,10 @@ const SKIN_FAIR = '#f7ddc8', SKIN_TAN = '#b9825a';      // now and then somebody
 // material name -> the colours to draw from (the first is the model's own)
 const LOOKS = {
   'man-tee': { LightBrown: ['#f1efe8', '#f1efe8', '#d8dde3', '#e9dfa8', '#a9c3de', '#2f3a55', '#9a9a96'], LightBlue: [...JEANS, '#a8946a'] },
-  'man-check': { LightBrown: ['#1f2f55', '#2f5a45', '#6e2430', '#1f2f55', '#2a2a2e', '#e4e0d4'], LightBlue: [...JEANS, '#3a3f47', '#a8946a'] },
+  'man-check': { Check: ['#d6c49c', '#d6c49c', '#9db4d0', '#8f2a30', '#2f5a45', '#27345a', '#e4e0d4'], LightBlue: [...JEANS, '#a8946a', '#3a3f47'] },
   'man-hoodie': { Purple: ['#23345e', '#8d8f92', '#2f5a45', '#6e2430', '#c9c3b2', '#1f1f24'], LightBlue: ['#a8946a', ...JEANS, '#3a3f47'] },
   'man-cheer': { LightBlue: JEANS },                       // (the cheer jacket stays Yonsei blue)
-  'man-grey': { Purple: ['#e8e0b0', '#8d8f92', '#2f6a4a', '#27406e', '#b3262e', '#1f1f24'], LightBlue: JEANS },
+  'man-grey': { LightBrown: ['#1f2f55', '#2f5a45', '#6e2430', '#1f2f55', '#2a2a2e', '#e4e0d4'], LightBlue: [JEANS[1], ...JEANS, '#3a3f47', '#a8946a'] },
   'man-blazer': { Suit: ['#27304a', '#5e4634', '#4a4d52', '#8a7a5c', '#3d4a3a'], LightBlue: ['#b9a67e', ...JEANS, '#2c3550'] },
   'man-professor': { Suit: ['#55595f', '#2c3448', '#4a4038', '#3a3f47', '#6b6a5c'], Tie: ['#2f4a7a', '#6e2430', '#3d5a45', '#4a4a50'] },
   'man-staff': {},
@@ -362,12 +404,12 @@ const LOOKS = {
   'woman-cardigan': { Black: ['#ecdf9e', '#f3d9de', '#6f7f5a', '#8d8f92', '#2f3a55', '#e6dcc6', '#c98a8a'], Orange: [JEANS[1], ...JEANS, '#2b2f3a', '#cdb994'] },
   'woman-staff': { Black: ['#2f3644', '#3a3f47', '#4a4038', '#5b6470'] },
 };
-// the parts painted on an outfit (blender/characters.py `paint`): the stripes and the collar of a tee, a jumper's
-// collar, a skirt, a sweatshirt's ribbing. Drawn from a stream of their own, after everything else
+// the parts painted on an outfit (blender/characters.py `paint`): the stripes and the collar of a tee, a skirt, a
+// sweatshirt's ribbing; and the tee under an open shirt. Drawn from a stream of their own, after everything else
 const LOOKS_MORE = {
-  'man-check': { Stripe: ['#1f8580', '#e9e4d6', '#d8b23a', '#7f9cc0', '#b3262e'], Stripe2: ['#d8742c', '#e9e4d6', '#8d8f92', '#c95a5a'],
+  'man-check': { LightGreen: ['#f1efe8', '#f1efe8', '#f1efe8', '#1f1f24', '#8d8f92'] },         // (the tee under the shirt)
+  'man-grey': { Stripe: ['#1f8580', '#e9e4d6', '#d8b23a', '#7f9cc0', '#b3262e'], Stripe2: ['#d8742c', '#e9e4d6', '#8d8f92', '#c95a5a'],
     Collar: ['#ece8dc', '#ece8dc', '#1f2f55'] },
-  'man-grey': { Collar: ['#3b3a3c', '#1f2a46', '#e9e6dc', '#5a1f28'] },
   // (the skirt is cut as denim: half of them are; the hairband shows on one in three, else it is the hair's black)
   'woman-dress': { Skirt: [JEANS[0], JEANS[0], JEANS[2], JEANS[1], '#1f1f24', '#8a7a5c', '#6e2430', '#4a4d52'],
     Band: ['#e3c443', '#141110', '#141110', '#b3262e', '#141110', '#f1ede1'] },
@@ -388,7 +430,7 @@ function fadeHex(hair, skin, t) {
 }
 // about one striped tee in three is plain: its stripes and collar in the tee's own colour
 // (and a sweatshirt's ribbing is always the sweatshirt's colour: the model's own is a shade darker)
-const PLAIN = { 'man-check': ['LightBrown', ['Stripe', 'Stripe2', 'Collar'], 0.35], 'woman-dress-blue': ['LimeGreen', ['Rib'], 1] };
+const PLAIN = { 'man-grey': ['LightBrown', ['Stripe', 'Stripe2', 'Collar'], 0.35], 'woman-dress-blue': ['LimeGreen', ['Rib'], 1] };
 // what is printed on a chest (blender/faces.py PRINTS, characters.py print_map): the material it lies on, how many of
 // the crowd in that model wear it, and the cloth it shows on (ink on light cloth; the jumper is always Yonsei blue).
 // The heroes wear theirs.

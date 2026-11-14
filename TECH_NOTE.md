@@ -82,6 +82,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `water/fountain.js` | 활천대 분수 물(Ultra Water) |
 | `ui.js` · `labels.js` · `places.js` · `news.js` · `notes.js` | 화면 UI, 건물 이름표, 추억 카드, 새 소식 |
 | `people.js` | 캠퍼스 사람들 페이지(`people.html`): 사람 17명만 그리는 구경 화면 |
+| `herozoom.js` | 제목 화면의 「크게 보기」: 고른 주인공 한 명을 창에 크게(누를 때 불러오고, 닫으면 렌더러를 버림) |
 | `loading.js` | 첫 화면의 불러오기: 퍼센트 막대, 기다리는 동안의 삐삐 암호 · 캠퍼스 이야기 카드 |
 
 ## 구현 방식
