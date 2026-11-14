@@ -1579,6 +1579,11 @@ def wu_xy(u, v):
 # v up the axis towards the tower, o the statue.  The parterre: beds between the radial walks out to u +-21, v -24 ..
 # +20, a cross walk at v 22.5 to the side halls' doors, two half-round beds beyond it either side of the axis walk,
 # paved walks along the side halls and before 언더우드관; the south edge a hedge at v -27.4.
+# (1997: the original scans of the July 1997 vertical photos, reference/고증/4.2.1 「1997년 7월 항공사진 원본 스캔의
+# 정원」.  The parterre is narrower than the game had it, u +-15.25 (u +-21 before), v -21.4 .. +20.6; the diagonal
+# walks run from the statue to its corners; the cross walk at v 22.0 (2.8 m) between both doors; beyond it two
+# quarter-round beds, their straight sides along the cross walk and the 4.2 m axis walk, round to the outside (centre
+# u +-2.1, v 23.4, radius 12.8); gravel everywhere else, out to the banks along the side halls (ST_FRONT · AP_FRONT))
 UW_STATUE = (49.8, 198.2)
 _ugo = np.array(UW_STATUE)
 
@@ -1589,25 +1594,29 @@ def uwg_xy(u, v):
 
 UW_GARDEN = Polygon([uwg_xy(-28.0, -28.5), uwg_xy(28.0, -28.5), uwg_xy(28.0, 46.0), uwg_xy(-28.0, 46.0)])
 UW_RING, UW_WALK_W = 6.3, 2.6           # the gravel ring round the platform (outer radius), the radial walks' width
+UW_PU, UW_PV = 15.25, (-21.4, 20.6)     # the parterre's half width and its ends
+UW_CROSS_V, UW_CROSS_W = 22.0, 2.8      # the cross walk between the two doors
+UW_QC, UW_QR = (2.1, 23.4), 12.8        # the quarter-round beds beyond it: their corner (u either side), radius
+# the radial walks' far ends: the four along the axes, the four diagonals to the parterre's corners
+UW_WALK_ENDS = [(0.0, UW_CROSS_V), (UW_PU, UW_PV[1]), (UW_PU + 2.0, 0.0), (UW_PU, UW_PV[0]), (0.0, UW_PV[0] - 1.3),
+                (-UW_PU, UW_PV[0]), (-UW_PU - 2.0, 0.0), (-UW_PU, UW_PV[1])]
 
 
 def underwood_beds():
-    """The beds of 언더우드관 정원 (UWG): the eight between the radial walks, inside the parterre (u +-21, v -24 ..
-    +20.5) and outside the ring round the statue's platform, and the two half-round ones beyond the cross walk
-    either side of the axis walk."""
+    """The beds of 언더우드관 정원 (UWG): the eight between the radial walks, inside the parterre (u +-UW_PU, v UW_PV)
+    and outside the ring round the statue's platform, and the two quarter-round ones beyond the cross walk either
+    side of the axis walk."""
     G = lambda pts: Polygon([uwg_xy(u, v) for u, v in pts])
-    sq = G([(-21.0, -24.0), (21.0, -24.0), (21.0, 20.5), (-21.0, 20.5)])
+    sq = G([(-UW_PU, UW_PV[0]), (UW_PU, UW_PV[0]), (UW_PU, UW_PV[1]), (-UW_PU, UW_PV[1])])
     walks = [Point(*UW_STATUE).buffer(UW_RING + 0.4)]
-    for k in range(8):
-        a = math.radians(45 * k)
-        walks.append(LineString([UW_STATUE, uwg_xy(40 * math.sin(a), 40 * math.cos(a))]).buffer(UW_WALK_W / 2 + 0.4))
+    for u_, v_ in UW_WALK_ENDS:
+        walks.append(LineString([UW_STATUE, uwg_xy(2.0 * u_, 2.0 * v_)]).buffer(UW_WALK_W / 2 + 0.4))
     radial = sq.difference(unary_union(walks))
     half = []
     for sg in (-1, 1):
-        box_ = G([(sg * 2.2, 25.0), (sg * 14.2, 25.0), (sg * 14.2, 31.0), (sg * 2.2, 31.0)])
-        cap = Point(*uwg_xy(sg * 8.2, 31.0)).buffer(6.0).intersection(G([(sg * 2.2, 31.0), (sg * 14.2, 31.0),
-                                                                         (sg * 14.2, 40.0), (sg * 2.2, 40.0)]))
-        half.append(box_.union(cap))
+        cu_, cv_ = sg * UW_QC[0], UW_QC[1]
+        quad_ = G([(cu_, cv_), (cu_ + sg * 20.0, cv_), (cu_ + sg * 20.0, cv_ + 20.0), (cu_, cv_ + 20.0)])
+        half.append(Point(*uwg_xy(cu_, cv_)).buffer(UW_QR, 32).intersection(quad_))
     return dict(radial=list(radial.geoms) if hasattr(radial, 'geoms') else [radial], half=half)
 
 
@@ -4157,18 +4166,14 @@ Image.fromarray(np.clip(spl, 0, 255).astype(np.uint8), 'RGB').save(
 _uwz = UW_GARDEN.union(garden.buffer(1.6))
 for _ly in ('asphalt', 'pavers', 'dirt'):
     draw_poly(_ly, _uwz, 0)
+UW_BEDS_MAP = underwood_beds()
 _UG = lambda pts: Polygon([uwg_xy(u, v) for u, v in pts])
-for _pz in (_UG([(-28.0, -28.5), (-24.0, -28.5), (-24.0, 50.0), (-28.0, 50.0)]),
-            _UG([(22.6, -28.5), (33.0, -28.5), (33.0, 50.0), (22.6, 50.0)]),
-            _UG([(-28.0, 43.4), (33.0, 43.4), (33.0, 50.0), (-28.0, 50.0)])):
-    draw_poly('pavers', _pz)
-draw_poly('dirt', Point(*UW_STATUE).buffer(UW_RING))
-for _e in ((0.0, 22.6), (21.6, 21.6), (23.2, 0.0), (23.2, -23.2), (0.0, -25.3), (-20.6, -20.6), (-21.6, 0.0), (-21.6, 21.6)):
-    draw_line('dirt', [UW_STATUE, uwg_xy(*_e)], UW_WALK_W)
-draw_line('dirt', [uwg_xy(-24.0, 22.6), uwg_xy(22.6, 22.6)], 2.8)
-draw_line('dirt', [uwg_xy(0.0, 22.6), uwg_xy(0.0, 43.4)], 3.0)
-draw_line('dirt', [uwg_xy(-20.6, -25.3), uwg_xy(22.6, -25.3)], 2.0)
-draw_line('dirt', [uwg_xy(-20.6, -25.3), uwg_xy(-20.6, -20.6), uwg_xy(-23.6, -20.6)], 2.0)
+draw_poly('pavers', _UG([(-28.0, 43.4), (33.0, 43.4), (33.0, 50.0), (-28.0, 50.0)]))
+# (1997, UW_PU above: gravel from bank to bank, round the beds; the walk along the south hedge at v -22.7.  The banks
+# and the roads on them along the side halls: ST_FRONT · AP_FRONT below)
+draw_poly('dirt', _UG([(-28.0, UW_PV[0] - 2.6), (28.0, UW_PV[0] - 2.6), (28.0, 43.4), (-28.0, 43.4)]))
+for _bd in UW_BEDS_MAP['radial'] + UW_BEDS_MAP['half']:
+    draw_poly('dirt', _bd.buffer(0.3), 0)
 # 스팀슨관 · 아펜젤러관 앞 (ST_FRONT · AP_FRONT; reference/고증/3.5.3 · 3.5.4): the photos (reference/학교연혁_스팀슨관.jpg
 # from the south-east, 스팀슨관_정면_2016.jpg, 아펜젤러관_정면_2016.jpg) and the original scans of the vertical aerial
 # photos of July 1997 (0.13 m a pixel, four frames, two from each side) have, along each side of 언더우드관 정원, a road
@@ -4819,15 +4824,29 @@ UW_BEDS = underwood_beds()
 UWG = frame(*UW_STATUE, *_wuu)
 _uwr = random.Random(1997 + 99)
 _uw_own0 = (len(trees), len(shrubs))
+# (1997, reference/고증/4.2.1: the scans have every radial bed filled with low planting under round crowns 2.5 - 4 m
+# across standing 1.3 - 2.7 m over the walks, two to four a bed; the species is not to be told, shown as big round
+# clipped crowns)
 for bed_ in UW_BEDS['radial']:
     underwood_hedge_poly(bed_, 0.45)
     c_ = bed_.representative_point()
-    shrubs.append(['topiary_round', round(c_.x, 2), round(c_.y, 2), 1.15, 0.0])
+    shrubs.append(['topiary_round', round(c_.x, 2), round(c_.y, 2), 2.0, 0.0])
+    _in = bed_.buffer(-1.8)
+    _cand = [(x_, y_) for x_ in np.arange(_in.bounds[0], _in.bounds[2], 0.8) for y_ in np.arange(_in.bounds[1], _in.bounds[3], 0.8)
+             if _in.contains(Point(x_, y_))]
+    _got = [(c_.x, c_.y)]
+    for _k in range(2):
+        _q = max(_cand, key=lambda q_: min(math.dist(q_, g_) for g_ in _got), default=None)
+        if _q is None or min(math.dist(_q, g_) for g_ in _got) < 3.2:
+            break
+        _got.append(_q)
+        shrubs.append(['topiary_round', round(_q[0], 2), round(_q[1], 2), round(1.75 + 0.15 * _k, 2), round(1.3 * _k + 0.7, 2)])
+# (the half-round beds became the quarter-round ones of the 1997 scans, UW_QC: the same plants inside them)
 for sg_ in (-1, 1):                      # the half-round beds: a clipped pine either side of the axis in each
     underwood_hedge_poly(UW_BEDS['half'][0 if sg_ < 0 else 1], 0.45)
-    for du_ in (5.2, 11.0):
-        plant('pine', UWG, sg_ * du_, 30.0, 0.42, rng.uniform(0, 6.28))
-    for (du_, dv_) in ((3.6, 34.2), (12.6, 34.2), (8.1, 37.4)):
+    for du_, dv_ in ((5.5, 28.5), (10.0, 26.0)):
+        plant('pine', UWG, sg_ * du_, dv_, 0.42, rng.uniform(0, 6.28))
+    for (du_, dv_) in ((4.0, 33.0), (12.5, 25.5), (8.0, 31.5)):
         plant('topiary_round', UWG, sg_ * du_, dv_, 1.0)
 # clipped pines along the side walks, the cross walk left open; in 1997 the round crowns on the banks along the side
 # halls (TERR: the original scans of July 1997, about 5 m apart, a pair either side of each door's flight)
@@ -4838,8 +4857,11 @@ for sg_ in (-1, 1):
     for s_ in UW_BANK_PINES[sg_]:
         _d = (terr_at(_T, 'far', s_) + terr_at(_T, 'bank', s_)) / 2
         plant('pine', _T['xy'], s_, _d, round(_uwr.uniform(0.32, 0.38), 2), _uwr.uniform(0, 6.28))
-for k_ in range(24):                     # the hedge along the south edge, waist high
-    (xa_, ya_), (xb_, yb_) = UWG(-22.0 + 44.0 * k_ / 24, -27.4), UWG(-22.0 + 44.0 * (k_ + 1) / 24, -27.4)
+for k_ in range(16):                     # the hedge along the south edge, waist high (1997: south of the walk at v -22.7)
+    _hu = -UW_PU + 2 * UW_PU * (k_ + 0.5) / 16
+    if abs(_hu) < 1.6:
+        continue
+    (xa_, ya_), (xb_, yb_) = UWG(_hu - 0.6, UW_PV[0] - 3.3), UWG(_hu + 0.6, UW_PV[0] - 3.3)
     shrubs.append(['hedge_blob', round((xa_ + xb_) / 2, 2), round((ya_ + yb_) / 2, 2), 1.0, round(math.atan2(yb_ - ya_, xb_ - xa_), 3)])
 # tall trees on the square beyond the south hedge (clear of the view past the statue to 용재관 in reference/용재관.jpg),
 # by the side walks south of the side halls and before 언더우드관;
