@@ -41,7 +41,7 @@
       <button id="start" disabled>캠퍼스 산책하기</button>
       <button id="tour-start" class="ghost" disabled title="하늘에서 1997년 캠퍼스를 날아다니며 구경합니다">캠퍼스 위로 날아가기</button>
       <div id="minigame">
-        <p class="pick-label"><span class="walk-only">미니 게임</span><span class="game-only">시점</span> <span id="shoot-best"></span></p>
+        <p class="pick-label"><span class="walk-only">미니 게임</span><span class="game-only">시점</span> <span id="shoot-best"></span><button type="button" id="shoot-rank" class="newsbtn" hidden>순위 보기</button></p>
         <div class="mg-row">
           <button id="shoot-start" disabled title="대강당 앞 농구장에서 1분 동안 슛을 몇 개나 넣는지 겨뤄 봅니다 (주소: ?game=shoot)">농구 1분 슛 게임</button>
           <div class="view-pick" role="radiogroup" aria-label="미니 게임 시점">
@@ -49,6 +49,7 @@
             <button type="button" data-view="first">1인칭</button>
           </div>
         </div>
+        <p class="mg-url">게임 주소 <code id="shoot-url"></code><button type="button" id="shoot-copy" class="newsbtn">주소 복사</button></p>
         <a class="walk-link game-only" href="./">캠퍼스 산책하러 가기</a>
       </div>
       <dl class="keys pc-only">
@@ -158,6 +159,7 @@
       <label class="toggle"><input type="checkbox" id="opt-sound" checked /> 소리 (바람 · 새 · 분수 · 발소리)</label>
       <button class="newsbtn" type="button">새 소식 · 업데이트 내역<i hidden></i></button>
       <a class="newsbtn" href="people.html" target="_blank" rel="noopener">캠퍼스 사람들 · 캐릭터 구경</a>
+      <button class="newsbtn" id="rank-pause" type="button" hidden>1분 슛 게임 순위</button>
       <label class="toggle pc-only"><input type="checkbox" id="opt-hq" checked /> 고품질 그림자 · 앰비언트 오클루전</label>
       <button id="shoot-quit" type="button" hidden>1분 슛 게임 그만하기</button>
       <button id="resume">계속 걷기</button>

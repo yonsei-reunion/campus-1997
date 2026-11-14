@@ -35,7 +35,7 @@ import { Curbs } from './curbs.js';
 import { Verge } from './verge.js';
 import { Sound } from './audio.js';
 import { addTown, Street } from './town.js';
-import { $, MOBILE, versioned, safeGet, safeSet, mulberry, countBy, polylineLength, closestOnSegment, placeMatrix } from './util.js';
+import { $, MOBILE, versioned, safeGet, safeSet, copyButton, gameUrl, mulberry, countBy, polylineLength, closestOnSegment, placeMatrix } from './util.js';
 
 const canvas = $('#view');
 // ./?game=shoot: the title card is the 1-minute basketball game's (style.css body.game-shoot)
@@ -671,6 +671,7 @@ async function main() {
     paused = true;
     player.enabled = false;
     $('#shoot-quit').hidden = !shootout?.on;
+    shootBest();
     $('#pause').hidden = false;
   };
   const startWalk = (where = null, msg = null) => {
@@ -774,10 +775,22 @@ async function main() {
   };
   $('#shoot-start').addEventListener('click', startShoot);
   $('#shoot-quit').addEventListener('click', (e) => { e.stopPropagation(); shootout?.stop(); });
-  {
-    const best = +(safeGet('y97-shoot-best') || 0);
-    if (best) $('#shoot-best').textContent = `최고 기록 ${best}골`;
-  }
+  // this browser's ranking of the game, from the title card and the pause card (src/shootrecords.js, loaded when opened)
+  const shootBest = () => {
+    let list;
+    try { list = JSON.parse(safeGet('y97-shoot-records') || '[]'); } catch { list = []; }
+    if (!Array.isArray(list)) list = [];
+    const best = Math.max(0, +(safeGet('y97-shoot-best') || 0), ...list.map((r) => +r?.makes || 0));
+    $('#shoot-best').textContent = best ? `최고 기록 ${best}골` : '';
+    $('#shoot-rank').hidden = $('#rank-pause').hidden = !(best || list.length);
+  };
+  shootBest();
+  const openRanking = (e) => { e.stopPropagation(); e.currentTarget.blur(); import('./shootrecords.js').then((R) => R.openRanking({ onChange: shootBest })); };
+  $('#shoot-rank').addEventListener('click', openRanking);
+  // the game's own address, to copy and send
+  $('#shoot-url').textContent = gameUrl();
+  copyButton($('#shoot-copy'), gameUrl);
+  $('#rank-pause').addEventListener('click', openRanking);
   if (birthday) birthday.onSplash = (p) => sound.splash(p);
   $('#opt-sound').checked = sound.on;
   $('#opt-sound').addEventListener('change', (e) => sound.setOn(e.target.checked));

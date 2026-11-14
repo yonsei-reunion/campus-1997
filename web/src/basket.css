@@ -43,20 +43,31 @@ body.shootout #blabels { display: none !important; }
 @media (prefers-reduced-motion: reduce) { #shootbig.pop { animation: none; } }
 
 #shootresult { position: fixed; inset: 0; z-index: 26; display: grid; place-items: center; background: rgba(10, 18, 28, .45); padding: 16px; }
-#shootresult > div { background: var(--paper, #fffdf6); color: var(--ink, #16202e); padding: 24px 28px; border-radius: 8px; width: min(400px, 100%);
+#shootresult > div { background: var(--paper, #fffdf6); color: var(--ink, #16202e); padding: 22px 24px; border-radius: 8px; width: min(460px, 100%);
+  max-height: calc(100vh - 32px); overflow: auto;
   box-shadow: 0 18px 50px rgba(0, 0, 0, .35); text-align: center; transform: rotate(-0.6deg); }
 #shootresult h2 { font: 400 24px var(--title, sans-serif); margin: 0 0 4px; color: var(--mint-ink, #0e6f6b); }
 #shootresult .big { margin: 2px 0 6px; font: 400 64px/1 var(--title, sans-serif); color: var(--blue, #143c8c); }
 #shootresult .big small { font-size: 26px; margin-left: 4px; }
 #shootresult .detail { margin: 0 0 8px; font-size: 14px; color: #34404f; line-height: 1.6; }
-#shootresult .best { margin: 0 0 14px; font-weight: 700; font-size: 15px; }
+#shootresult .best { margin: 0 0 10px; font-weight: 700; font-size: 15px; }
+#shootresult .name { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 10px; font-size: 13px; font-weight: 700; color: #5c6572; }
+#shootresult .name input { width: 11em; border: 2px solid var(--ink, #16202e); border-radius: 8px; padding: 5px 10px; font: 700 15px var(--font, sans-serif);
+  color: var(--ink, #16202e); background: #fff; text-align: center; }
+#shootresult .ranks { margin: 0 0 14px; }
 #shootresult .best.new { color: #c0392b; }
 #shootresult .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 #shootresult button { border: 0; border-radius: 8px; padding: 12px 8px; font: 700 15px var(--font, sans-serif); }
 #shootresult .again { background: var(--blue, #143c8c); color: #fff; }
 #shootresult .quit { background: #fff; color: var(--ink, #16202e); border: 2px solid var(--ink, #16202e); }
 #shootresult .link { margin: 12px 0 0; font-size: 12px; color: #5c6572; word-break: break-all; }
-#shootresult .link a { color: var(--mint-ink, #0e6f6b); }
+#shootresult .link { line-height: 1.8; }
+#shootresult .link code { padding: 1px 6px; border-radius: 5px; background: #f3efe2; color: var(--ink, #16202e); font: 600 12px var(--font, sans-serif);
+  -webkit-user-select: all; user-select: all; }
+#shootresult .link .copy { margin-left: 8px; border: 1.5px solid var(--mint-ink, #0e6f6b); background: #fff; color: var(--mint-ink, #0e6f6b); border-radius: 999px;
+  padding: 1px 10px; font: 700 12px var(--font, sans-serif); }
+#shootresult .link .copy.done { background: var(--mint-ink, #0e6f6b); color: #fff; }
+#shootresult .link .all { border: 0; background: none; padding: 0; font: 700 12px var(--font, sans-serif); color: var(--mint-ink, #0e6f6b); text-decoration: underline; }
 @media (max-width: 640px) {
   #shoothud b { font-size: 26px; }
   #shoothud > div { min-width: 76px; padding: 5px 10px 6px; }

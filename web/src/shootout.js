@@ -3,19 +3,19 @@
 // by a heap of balls and keeps you supplied: they bend for a ball, come up with it and chest-pass it to wherever you
 // stand as soon as your shot is away (ballpose.js). Walk where you like: the farther out, the narrower the timing
 // (hoops.js). A shot counts if it left the hands before the buzzer. Balls that have come down fade and turn up in
-// the heap again. The best score stays in this browser.
+// the heap again. Every game is kept in this browser with its place in the ranking (shootrecords.js).
 // Loaded only when the game starts (main.js).
 import * as THREE from 'three';
 import { play } from './characters.js';
 import { BallForm, PICK, PASS, R } from './ballpose.js';
 import { FREE_THROW, verdict } from './hoops.js';
 import { lineTime } from './talk.js';
-import { wrapAngle, safeGet, safeSet } from './util.js';
+import { wrapAngle, copyButton, gameUrl } from './util.js';
+import * as Records from './shootrecords.js';
 
 const FRIEND = 'man-grey';              // 아이보리 점퍼: a student you never walk as
 const TIME = 60, COUNT = 3;
 const POOL = 6, HEAP = 3;               // balls in all, and in the heap at the friend's feet
-const BEST = 'y97-shoot-best';
 // court-local, from the shooting spot on the free-throw line: the friend (towards the basket, to your right) and the
 // heap before their feet (towards you)
 const FRIEND_AT = [3.0, -2.1], HEAP_AT = 0.5;
@@ -319,13 +319,18 @@ export class Shootout {
   finish() {
     this.state = 'done';
     this.big('');
-    this.player.enabled = false;           // (behind the results card)
-    const best = +(safeGet(BEST) || 0), rec = this.makes > best;
-    if (rec) safeSet(BEST, String(this.makes));
-    this.say(rec && this.makes > 0 ? `${this.makes}골! 신기록이다!` : this.makes >= 10 ? `${this.makes}골! 잘하는데?` : '수고했어! 한 번 더?', 0.1);
-    this.results(true, { best: Math.max(best, this.makes), rec });
+    const pl = this.player;
+    pl.enabled = false;                    // (behind the results card)
+    const prev = Records.load()[0]?.makes ?? 0;
+    const rec = { id: Date.now(), at: Date.now(), makes: this.makes, shots: this.shots, threes: this.threes, perfect: this.perfect,
+      hero: pl.actor.id, view: pl.fpv ? 'first' : 'third', name: Records.lastName() };
+    const { rank, total } = Records.add(rec);
+    const top = this.makes > prev && this.makes > 0;
+    this.say(top ? `${this.makes}골! 신기록이다!` : rank <= 3 && total > 3 ? `${this.makes}골, ${rank}등이야!` : this.makes >= 10 ? `${this.makes}골! 잘하는데?` : '수고했어! 한 번 더?', 0.1);
+    this.results(true, { rec, rank, total, top });
   }
 
+  // the results card: the score, its place in this browser's ranking (a name may be typed for it) and the ranking
   results(show, info = {}) {
     let el = this.resEl;
     if (!show) { if (el) el.hidden = true; return; }
@@ -333,22 +338,40 @@ export class Shootout {
       el = this.resEl = document.createElement('div');
       el.id = 'shootresult';
       el.innerHTML = '<div><h2>1분 슛 게임</h2><p class="big"></p><p class="detail"></p><p class="best"></p>'
+        + '<label class="name">이름 <input type="text" maxlength="12" enterkeyhint="done" autocomplete="off" spellcheck="false" /></label>'
+        + '<div class="ranks"></div>'
         + '<div class="btns"><button type="button" class="again">다시 하기</button><button type="button" class="quit">그만하고 산책하기</button></div>'
-        + '<p class="link">이 주소로 친구와 기록을 겨뤄 보세요<br><a></a></p></div>';
+        + '<p class="link"><button type="button" class="all">순위 전체 보기</button><button type="button" class="copy">게임 주소 복사</button>'
+        + '<br>이 주소로 친구와 겨뤄 보세요 <code></code></p></div>';
       document.body.appendChild(el);
       el.querySelector('.again').addEventListener('click', (e) => { e.currentTarget.blur(); this.start(); });
       el.querySelector('.quit').addEventListener('click', (e) => { e.currentTarget.blur(); this.stop(); });
+      el.querySelector('.all').addEventListener('click', () => Records.openRanking({ mark: this.rec?.id, onChange: () => this.drawRanks() }));
+      copyButton(el.querySelector('.copy'), gameUrl);
+      const name = el.querySelector('.name input');
+      name.addEventListener('input', () => { if (this.rec) { Records.rename(this.rec.id, name.value); this.drawRanks(); } });
+      name.addEventListener('keydown', (e) => { if (e.key === 'Enter') name.blur(); });
     }
+    this.rec = info.rec;
     const pct = this.shots ? Math.round((100 * this.makes) / this.shots) : 0;
     el.querySelector('.big').innerHTML = `${this.makes}<small>골</small>`;
     el.querySelector('.detail').textContent = `슛 ${this.shots}번 · 성공률 ${pct}%${this.threes ? ` · 3점슛 ${this.threes}개` : ''}${this.perfect ? ` · 완벽한 타이밍 ${this.perfect}번` : ''}`;
     const be = el.querySelector('.best');
-    be.textContent = info.rec ? `새 기록! (이 브라우저 최고 ${info.best}골)` : `이 브라우저 최고 기록 ${info.best}골`;
-    be.classList.toggle('new', !!info.rec);
-    const url = `${location.origin}${location.pathname}?game=shoot`, a = el.querySelector('.link a');
-    a.href = url; a.textContent = url;
+    be.textContent = info.top ? '새 기록! 이 브라우저 1위' : `이 브라우저 ${info.rank}위 (${info.total}판 가운데)`;
+    be.classList.toggle('new', !!info.top);
+    const name = el.querySelector('.name input');
+    name.value = info.rec.name || '';
+    name.placeholder = Records.who({ hero: info.rec.hero });
+    this.drawRanks();
+    el.querySelector('.link code').textContent = gameUrl();
     el.hidden = false;
     el.querySelector('.again').focus({ preventScroll: true });
+  }
+
+  // the first five of the ranking, this game marked (below them at its place when it is further down)
+  drawRanks() {
+    if (!this.resEl) return;
+    this.resEl.querySelector('.ranks').replaceChildren(Records.table(Records.load(), { mark: this.rec?.id, limit: 5 }));
   }
 
   get resultsOpen() { return !!this.resEl && !this.resEl.hidden; }

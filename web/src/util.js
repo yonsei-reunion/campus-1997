@@ -19,6 +19,35 @@ export const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 export function safeGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 export function safeSet(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } }
 
+// the 1-minute basketball game's own address (main.js ?game=shoot), for sharing
+export const gameUrl = () => `${location.origin}${location.pathname}?game=shoot`;
+// put text on the clipboard: the Clipboard API, or (plain http, an old browser) a hidden field's selection. True when
+// it worked
+export async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* not allowed here */ }
+  const t = document.createElement('textarea');
+  t.value = text; t.setAttribute('readonly', '');
+  t.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+  document.body.appendChild(t);
+  t.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch { ok = false; }
+  t.remove();
+  return ok;
+}
+// a copy button: copies what text() gives and says so on the button for a moment (or that it could not)
+export function copyButton(btn, text) {
+  const label = btn.textContent;
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const ok = await copyText(text());
+    btn.textContent = ok ? '복사했어요!' : '복사하지 못했어요 · 주소를 길게 눌러 복사하세요';
+    btn.classList.toggle('done', ok);
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { btn.textContent = label; btn.classList.remove('done'); }, ok ? 1600 : 4000);
+  });
+}
+
 // seeded PRNG: the same campus every visit
 export function mulberry(a) {
   return function () {

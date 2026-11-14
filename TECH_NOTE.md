@@ -283,7 +283,8 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 1분 슛 게임(`shootout.js`)
   - 공 여섯 개. 친구(`man-grey`)는 발 앞 공 더미에서 줍고(`pick`), 걷는 사람의 슛이 손을 떠나면 체스트 패스합니다. 패스는 걷는 사람의 손 자리를 따라갑니다(`passTo`).
   - 내려와 멈춘 공은 작아져 사라지고, 친구가 패스하는 동안 더미에 다시 나타납니다.
-  - 최고 기록은 `localStorage` 의 `y97-shoot-best`. `?game=shoot` 은 첫 화면을 게임 카드로(`body.game-shoot`), `&view=first|third` 는 시점을 정합니다.
+  - 판마다의 기록은 `localStorage` 의 `y97-shoot-records`(`shootrecords.js`: 골 → 성공률 → 먼저 한 판 순, 100판까지). 결과 창이 순위 · 이름 칸 · 상위 다섯을, 첫 화면 · 잠시 멈춤 창의 「순위 보기」가 상위 스물을 보입니다(누를 때 `import()`). 예전 `y97-shoot-best` 는 이름 없는 「이전 기록」 한 판으로 읽습니다.
+  - `?game=shoot` 은 첫 화면을 게임 카드로(`body.game-shoot`), `&view=first|third` 는 시점을 정합니다. 「주소 복사」는 `util.js` `copyButton`(Clipboard API, 안 되면 숨은 칸 선택).
 - `people.html` 의 「슛」 · 「패스」가 같은 `BallForm` 을 씁니다. `window.__people.ballAt = t` 로 그 순간에 멈춰 자세를 봅니다.
 
 ### 렌더링
