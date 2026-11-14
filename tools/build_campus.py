@@ -484,7 +484,7 @@ def prof_h(s):
 # zebra crossings (arc length): 백주년기념관, 학생회관-중앙도서관, 대강당, 삼거리.  Near the gate the 1997 photo
 # shows a yellow/white hatched speed bump (raised, striped) instead.  The carriageway itself stays clear of objects.
 CROSS = [round(s_at(-55, -200), 1), round(s_at(-20, -62), 1), round(s_at(5, 40), 1), round(L - 30, 1)]
-# --- 화단 띠가 끊기는 곳 (reference/고증/2.3_길의_단면과_길가.md, #131).  CROSS_RNG keeps the crossings where they were
+# --- 화단 띠가 끊기는 곳 (reference/고증/2.3.1_백양로의_단면.md, #131).  CROSS_RNG keeps the crossings where they were
 # first put: the verge's and the strip's planting and the sidewalk's decals take their random draws by it, so that
 # moving a crossing changes nothing away from it (strip_fill below plants the old opening from its own numbers)
 CROSS_RNG = [round(float(BLINE_RNG.project(Point(*p_))), 1) for p_ in ((-55, -200), (-20, -62), (5, 40))] + [round(L_RNG - 30, 1)]
