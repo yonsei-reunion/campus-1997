@@ -17,6 +17,8 @@ over the crest (y 760) and down round the hairpin (y 892) to the fork before 북
 - Its height (Z97): the road surface measured on the photos (corr >= 0.7), the bend as the road there has it.
 Nothing here draws from build_campus.py's `rng`: random.Random(15991) for the trees.
 """
+# (2026-11-15: every absolute height in this file's code is on the sea-level datum, 2.0 m under the old game datum;
+# heights quoted in comments written before then are 2.0 m higher: tools/build_campus.py SURFACE_DZ)
 import json, math, os, random
 import numpy as np
 from shapely.geometry import LineString, Point, Polygon
@@ -33,8 +35,8 @@ HALF = 3.0                      # half the carriageway
 WALK = (3.25, 5.75)             # the west walk, left of the middle line (s 8 on: past the corner's mouth)
 # the road's surface (the survey's s, m): the 1997 frames (corr >= 0.7), the bend north-east of 대우관 as the east road
 # has it (81.9 m, reference/고증/3.6.2), s 195 the drive into the yard east of the crest (four frames, 0.91 - 0.96)
-Z97 = [(-14.0, 81.9), (10.0, 85.3), (50.0, 91.0), (90.0, 95.4), (195.0, 100.6), (306.0, 95.3), (342.0, 90.2),
-       (420.0, 82.0), (456.0, 82.0), (534.0, 68.0), (558.0, 65.6), (630.0, 58.0)]
+Z97 = [(-14.0, 79.9), (10.0, 83.3), (50.0, 89.0), (90.0, 93.4), (195.0, 98.6), (306.0, 93.3), (342.0, 88.2),
+       (420.0, 80.0), (456.0, 80.0), (534.0, 66.0), (558.0, 63.6), (630.0, 56.0)]
 S_GRID = 238.0                  # where the line leaves the 5 m grid (y 800)
 
 

@@ -2,7 +2,7 @@
 world coordinates (local frames are applied through MeshBuilder.xf)."""
 import math, random
 from mathutils import Vector, Matrix
-from common import MeshBuilder, ground, ground_top, min_area_rect, local_frame, offset_poly, poly_area, CAMPUS
+from common import MeshBuilder, ground, ground_top, min_area_rect, local_frame, offset_poly, poly_area, CAMPUS, _odz
 import generic
 
 rnd = random.Random(97)
@@ -605,7 +605,7 @@ def drum_band(mb, pts, flat, za, zb, mat, zflat=None, tag=None):
         z1 = max(za, zflat) if (on_flat and zflat is not None) else za
         if z1 < zb:
             mb.face([(*pts[i], z1), (*pts[j], z1), (*pts[j], zb), (*pts[i], zb)], mat,
-                    uvs=[(u, z1), (u + L, z1), (u + L, zb), (u, zb)], smooth=tag)
+                    uvs=[(u, z1 + _odz(zb)), (u + L, z1 + _odz(zb)), (u + L, zb + _odz(zb)), (u, zb + _odz(zb))], smooth=tag)
         u += L
     return per
 
@@ -2779,7 +2779,7 @@ def gyoyuk():
                       extra=lambda mb, iv, f: gyoyuk_north_flight(mb, iv, f, 12.4, 16.2))
 
 
-GYOYUK_FLOOR = CAMPUS.get('gyoyuk_floor', 53.0)     # 교육관's floor: the drive along its west side and the yard north of it
+GYOYUK_FLOOR = CAMPUS.get('gyoyuk_floor', 51.0)     # 교육관's floor: the drive along its west side and the yard north of it
 # (tools/build_campus.py GYOYUK_FLOOR)
 
 

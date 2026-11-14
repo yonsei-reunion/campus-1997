@@ -67,7 +67,7 @@ export function hedgeEdit(species) {
         vec3 hdN = normalize( vHedgeN );
         vec3 hdB = pow( abs( hdN ), vec3( 4.0 ) );
         hdB /= hdB.x + hdB.y + hdB.z;
-        vec3 hdP = vHedgeW * uHedgeTile;
+        vec3 hdP = (vHedgeW + vec3(0.0, 2.0, 0.0)) * uHedgeTile;     // (the tiles as laid on the old datum, 2.0 m higher)
         // the three projections: v runs down the world's up axis on the two side ones (the tile's top is up)
         vec2 hdUx = vec2( hdP.z, - hdP.y ), hdUy = hdP.xz, hdUz = vec2( hdP.x, - hdP.y );
         #ifdef USE_MAP

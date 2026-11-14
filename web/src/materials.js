@@ -510,7 +510,7 @@ const BAKE_WEATHER = /* glsl */`
 #endif
 {
   vec3 wN = inverseTransformDirection(nonPerturbedNormal, viewMatrix);
-  vec3 P = vBakeW;
+  vec3 P = vBakeW + vec3(0.0, 2.0, 0.0);         // (the noise as laid on the datum 2.0 m over today's sea-level one)
   float wall = 1.0 - smoothstep(0.35, 0.7, abs(wN.y));
   // soil splashed up the foot of the walls: darker and yellower, its top ragged
   float h = vBakeH, base = 0.0;
@@ -925,7 +925,7 @@ export const ATMOS = {
   uSunW: { value: new THREE.Vector3(0, 1, 0) },          // towards the sun, world
   // extinction at height 0 (1/m: from the campus ~28 % haze over 안산 1.7 km off, ~65 % on the hills 7 km off, as
   // in the May 1997 photo of 백양로; ~7 % over the campus seen from 200 m up), its falloff with height (1/m)
-  uFogH: { value: new THREE.Vector2(2.5e-4, 1 / 550) },
+  uFogH: { value: new THREE.Vector2(2.5e-4 * Math.exp(-2.0 / 550), 1 / 550) },   // (height 0 was 2.0 m lower before the sea-level datum)
   uFogAway: { value: new THREE.Color().setRGB(0.27, 0.3, 0.39) },   // linear: the horizon away from the sun
   uFogSun: { value: new THREE.Color().setRGB(0.69, 0.68, 0.66) },   // and round the sun's azimuth (warmer)
   uFogGlow: { value: new THREE.Color().setRGB(0.22, 0.17, 0.1) },   // forward scattering close to the sun
@@ -934,7 +934,7 @@ export const ATMOS = {
 // GLSL shared by the patched materials and the sky dome
 export const ATMOS_GLSL = /* glsl */`
 #define Y97_ATMOS
-#define Y97_CLOUD_H 1500.0
+#define Y97_CLOUD_H 1498.0
 uniform sampler2D uCloudTex;
 uniform vec4 uCloud, uCloudOff;
 uniform vec3 uSunW;

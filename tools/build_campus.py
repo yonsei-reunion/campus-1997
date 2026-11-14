@@ -230,7 +230,7 @@ FLOOR_H_AT.update({245623193: 3.9, 256933753: 3.95, 990021: 3.95})
 # (LATE_FOOTPRINT_1997), its floor pinned (SCI['base'], the lowest corner of OSM's outline on the ground as it was).
 _sa = math.radians(-15.06)
 SCI = dict(o=np.array([-218.78, 7.32]), t=np.array([math.cos(_sa), math.sin(_sa)]), n=np.array([-math.sin(_sa), math.cos(_sa)]),
-           base=49.22, court=50.8, yard=52.6,
+           base=47.22, court=48.8, yard=50.6,
            hall=[(0.6, 0.3), (0.6, 18.4), (-72.4, 18.4), (-72.4, 0.3), (-67.7, 0.3), (-67.7, -25.6), (-102.0, -25.6),
                  (-118.7, -25.6), (-118.7, -43.6), (-45.5, -43.6), (-45.5, -25.6), (-53.6, -25.6), (-53.6, 0.3)],
            # the part a storey higher: the east wing, the link, the penthouse along the south-west wing's north side
@@ -260,7 +260,7 @@ LATE_FOOTPRINT_1997[222843398] = [sci_xy(u_, v_) for u_, v_ in SCI['hall']]
 # across it (west-north-west); its ground 49.5 m west of it, 45.5 m east (JK_YARD, JK_TERRACE)
 JK_O, _ja = np.array([-179.75, 15.0]), math.radians(63.4)
 JK_A, JK_V = np.array([math.cos(_ja), math.sin(_ja)]), np.array([-math.sin(_ja), math.cos(_ja)])
-JK_YARD, JK_TERRACE = 49.5, 45.5
+JK_YARD, JK_TERRACE = 47.5, 43.5
 LATE_NO_SIMPLIFY = {222843398}      # (its outline keeps the point where the penthouse's west end meets the north face)
 BASE_1997 = {222843398: SCI['base']}
 # 어린이생활지도연구원: OSM's hall (a curved wing with a drum) is the one built in 2001 - 2002 「어린이 교육장으로 쓰이던 두
@@ -277,6 +277,13 @@ GONE_NEW = {472512292}              # (left out since the planting was laid: the
 # ---------------------------------------------------------------------------
 tn = json.load(open(os.path.join(ROOT, 'data/terrain.json')))
 tf = json.load(open(os.path.join(ROOT, 'data/terrain_far.json')))
+# The game's heights are above sea level since 2026-11-15 (reference/고증/2.8 「측량 표고」): game = 해발 + T(x, y), T =
+# 0.05 + 0.522 x/100 + 0.248 y/100 m (tools/aerial97.py survey_dz).  Before, every height was 2.0 m higher (the 1997
+# photos' datum, which the game had been laid on); the surface model goes in that much lower, and every absolute
+# height written in these sources (the photos' heights included) is on the new datum
+SURFACE_DZ = -2.0
+for _t in (tn, tf):
+    _t['rows_south_to_north'] = (np.array(_t['rows_south_to_north'], dtype=np.float64) + SURFACE_DZ).tolist()
 H10 = np.array(tn['rows_south_to_north'], dtype=np.float64)       # 10 m grid, +-1400
 H10 = ndimage.gaussian_filter(H10, 1.6)                             # (tools/fetch_terrain.py opened the roofs out)
 NEAR_HALF, NEAR_STEP = 800, 5.0
@@ -585,21 +592,21 @@ print('north hill down %.1f m (%d grid nodes moved)' % (NORTH_DROP, int((north_d
 # HILL_KEEP: (x, y, difference) where the trees hide the ground.  The drive behind 스팀슨관 and 언더우드관 keeps its
 # own grade between its two ends the photos do see (+2.6 m at the 삼거리, +2.4 m where it meets 한경길).
 HILL_Q = [
-    (25.9, 114.4, 40.3), (28, 128, 40.4), (30.4, 133.9, 41.05), (17, 134, 41.1), (20, 140, 41.1), (8, 114, 40.55),   # the 삼거리
-    (6, 110, 40.4), (-10, 122, 40.9), (-14, 126, 41.3), (-10, 118, 41.4), (60, 132, 44.2),
-    (34, 162, 45.1), (42, 160, 45.2), (50, 158, 45.4), (58, 156, 45.3), (30, 170, 45.3), (40, 168, 45.3),   # the square
-    (52, 166, 45.1), (14, 168, 45.5), (12, 172, 46.0),
-    (47, 193, 45.85), (48, 205, 45.85), (41, 200, 45.6), (54, 198, 45.85), (33, 185, 45.4), (43, 180, 45.7),   # the garden
-    (57, 180, 45.65), (30, 198, 45.5), (64, 196, 45.7), (38, 214, 45.9), (58, 214, 46.05), (36, 228, 46.2),
-    (50, 238, 46.3), (40, 240, 46.5), (48, 216, 45.95), (46, 186, 45.7), (66, 184, 45.55), (32, 216, 45.9), (31, 208, 45.6),
-    (68, 195, 45.9), (72, 212, 46.1), (74, 224, 46.4), (70, 205, 45.9), (33, 236, 47.0), (35, 243, 47.0),   # by the side halls
-    (45, 252, 47.55), (54, 249, 47.6), (62, 247, 47.9), (70, 245, 47.75), (78, 243, 47.6), (38, 250, 47.75),   # 언더우드관's front
-    (84, 240, 48.2),
-    (88, 300, 54.0), (100, 304, 54.45), (74.4, 303.5, 54.0), (62, 322, 54.5), (95, 314, 54.8), (82, 333, 55.1),   # 연희관's garden
-    (54, 325, 54.5), (102, 312, 54.9), (60, 338, 54.9), (70, 338, 54.9), (77, 312, 54.5), (80, 325, 55.2),
-    (51.5, 358, 58.15),
-    (86, 395, 58.7), (90, 394, 59.5), (97, 392, 59.6), (105, 390, 58.85), (109, 389, 59.35), (117, 387, 58.9),   # behind 연희관
-    (121, 386, 59.1), (90, 390, 59.8), (110, 385, 60.0),
+    (25.9, 114.4, 38.3), (28, 128, 38.4), (30.4, 133.9, 39.05), (17, 134, 39.1), (20, 140, 39.1), (8, 114, 38.55),   # the 삼거리
+    (6, 110, 38.4), (-10, 122, 38.9), (-14, 126, 39.3), (-10, 118, 39.4), (60, 132, 42.2),
+    (34, 162, 43.1), (42, 160, 43.2), (50, 158, 43.4), (58, 156, 43.3), (30, 170, 43.3), (40, 168, 43.3),   # the square
+    (52, 166, 43.1), (14, 168, 43.5), (12, 172, 44.0),
+    (47, 193, 43.85), (48, 205, 43.85), (41, 200, 43.6), (54, 198, 43.85), (33, 185, 43.4), (43, 180, 43.7),   # the garden
+    (57, 180, 43.65), (30, 198, 43.5), (64, 196, 43.7), (38, 214, 43.9), (58, 214, 44.05), (36, 228, 44.2),
+    (50, 238, 44.3), (40, 240, 44.5), (48, 216, 43.95), (46, 186, 43.7), (66, 184, 43.55), (32, 216, 43.9), (31, 208, 43.6),
+    (68, 195, 43.9), (72, 212, 44.1), (74, 224, 44.4), (70, 205, 43.9), (33, 236, 45.0), (35, 243, 45.0),   # by the side halls
+    (45, 252, 45.55), (54, 249, 45.6), (62, 247, 45.9), (70, 245, 45.75), (78, 243, 45.6), (38, 250, 45.75),   # 언더우드관's front
+    (84, 240, 46.2),
+    (88, 300, 52.0), (100, 304, 52.45), (74.4, 303.5, 52.0), (62, 322, 52.5), (95, 314, 52.8), (82, 333, 53.1),   # 연희관's garden
+    (54, 325, 52.5), (102, 312, 52.9), (60, 338, 52.9), (70, 338, 52.9), (77, 312, 52.5), (80, 325, 53.2),
+    (51.5, 358, 56.15),
+    (86, 395, 56.7), (90, 394, 57.5), (97, 392, 57.6), (105, 390, 56.85), (109, 389, 57.35), (117, 387, 56.9),   # behind 연희관
+    (121, 386, 57.1), (90, 390, 57.8), (110, 385, 58.0),
 ]
 HILL_KEEP = [(4.4, 143.6, 2.6), (1.6, 149.5, 2.6), (-2.0, 160.5, 2.6), (-7.9, 178.7, 2.55), (-12.9, 194.7, 2.55),
              (-14.5, 204.6, 2.5), (-8.0, 228.0, 2.5), (-2.3, 250.4, 2.5), (0.4, 254.3, 2.45), (10.0, 268.0, 2.45),
@@ -1004,9 +1011,9 @@ FORECOURTS = [  # OSM way, outward front direction (None: the recess edge footpr
     # (the three halls' aprons at the heights the vertical aerial photos of 1997 give the walks before them, 고증 2.8:
     # 언더우드관 47.55 - 47.9 m at five points along its front, the walk along 스팀슨관 45.9 - 47.0, along 아펜젤러관 45.9 -
     # 46.4.  From the ground along the walls they came out a metre higher: the surface model climbs behind the fronts)
-    (246156115, (0.27, -1.0), 12.0, dict(blend=8.0, level=47.7)),
-    (246156118, (1.0, -0.27), 11.0, dict(level=46.3)),      # 스팀슨관
-    (246156116, (-1.0, 0.27), 11.0, dict(level=46.1)),      # 아펜젤러관
+    (246156115, (0.27, -1.0), 12.0, dict(blend=8.0, level=45.7)),
+    (246156118, (1.0, -0.27), 11.0, dict(level=44.3)),      # 스팀슨관
+    (246156116, (-1.0, 0.27), 11.0, dict(level=44.1)),      # 아펜젤러관
     # (연희관's front: YEONHUI below, with the garden before it)
     # 대강당: the 45 m wide flight under the canopy ran across a 2 m cross slope, its north end under the grass; level
     # at the head of the flight up from 백양로 (AUD_FLIGHT)
@@ -1363,7 +1370,7 @@ def harmonic_fill(free, iters=3000):
 # Two OSM outlines at the oval's north end (a stand's building and a tower: the generic houses' loop below takes
 # them) are not in the 1997 photos, which have trees there and one framework 8 x 10 m; the 2008 skyview has both.
 # They go after the random planting (GONE_1997, without a site of their own: FIELD_GONE).
-FIELD = dict(way=205583613, z=33.2, pad_z=32.6)
+FIELD = dict(way=205583613, z=31.2, pad_z=30.6)
 FIELD_POLY = Polygon([xy(p) for p in ways[FIELD['way']]['geometry']]).buffer(0)
 FIELD_PAD = Polygon([(-523.9, -176.1), (-514.7, -166.8), (-493.5, -188.5), (-507.0, -201.0)]).buffer(4.0)   # (학군단: OLD_HALLS)
 FIELD_PATCH = Polygon([(-400.0, -90.0), (-348.0, -90.0), (-332.0, -100.0), (-322.0, -118.0), (-313.0, -139.0),
@@ -1852,8 +1859,8 @@ YH_C = (78.4, 318.3)                                                            
 # past 노천극장), as level as before: the photos 53.0 - 53.7 m at x 132 - 150 (the original scans, corr. 0.5 - 0.8),
 # and the east road's own 52.6 - 53.9 m at the fork (EAST_Q97 below).  Before, the ground as the surface model had it
 # from x 113 on, 1.4 - 4 m higher at the fork (고증 2.8 「남은 한계」, 2.9 「동쪽 길의 높이」)
-HANGYEONG_Q = [(34.0, 52.4), (40.3, 52.5), (72.5, 52.7), (92.0, 52.9), (106.0, 52.6), (113.0, 52.7), (130.0, 52.9),
-               (140.0, 53.1), (150.0, 53.4)]
+HANGYEONG_Q = [(34.0, 50.4), (40.3, 50.5), (72.5, 50.7), (92.0, 50.9), (106.0, 50.6), (113.0, 50.7), (130.0, 50.9),
+               (140.0, 51.1), (150.0, 51.4)]
 HANGYEONG_LINES = ([(154.1, 270.8), (149.3, 272.5), (105.3, 286.1), (72.5, 295.2), (52.5, 300.2), (40.3, 301.6)],
                    [(40.3, 301.6), (52.2, 296.6), (71.4, 290.9), (104.1, 281.3), (147.7, 268.6)])
 for _ln in HANGYEONG_LINES:
@@ -2199,7 +2206,7 @@ DW_WI, DW_WO = 24.1, 35.6                                          # the wings' 
 # 10.31 m in to its head at 6.75 m (counted on the west side: risers in shade in 26/14 · 26/15 · 26/16).  The landing
 # (mid) is set so that both flights' risers are equal, 0.167 m (the scans read 67.7 - 67.9 m inside its rim and
 # 68.8 m on the rim: it was 68.6 m, 19 and 12 risers).
-DAEWOO = dict(floor=70.9, terrace=70.45, mid=68.28, plaza=65.6, tier=68.4, lawn=66.6,
+DAEWOO = dict(floor=68.9, terrace=68.45, mid=66.28, plaza=63.6, tier=66.4, lawn=64.6,
               frame=dict(o=[round(float(c_), 3) for c_ in _ha], ang=round(math.atan2(_ht[1], _ht[0]), 5)), uc=DW_UC,
               wi=DW_WI, wo=DW_WO, wing_v=(-10.4, 27.55), u0=round(DW_UC - DW_WO, 2), u1=round(DW_UC + DW_WO, 2),
               # the terrace: its drive (v), its ends (u: where its wall dies into the drives' banks)
@@ -2272,7 +2279,7 @@ SG = lambda e, n: tuple(np.array(SANG) + SG_E * e + SG_N * n)
 SANG_NODES = dict(N=(0.0, 12.6), W=(-28.3, 0.6), S=(0.0, -16.6), E=(31.5, 1.0))      # (e, n) of the walks' four ends
 SANG_S_SGX = -18.0
 SANG_DIAMOND = [SG(*SANG_NODES[k_]) for k_ in 'NWSE']                                # N, W, S, E nodes of the walks
-SANG_LV = dict(top=65.4, fall=0.015, west=0.01, east=0.0)
+SANG_LV = dict(top=63.4, fall=0.015, west=0.01, east=0.0)
 
 
 def sang_h(e, n):
@@ -2893,10 +2900,10 @@ _emine = LineString([tuple(q_) for q_ in TR_E[TR_EK0 + 2:int(_els.project(Point(
 # wood's canopy (70 - 74 m) as far as the corner, 62.9 there, and 67.3 · 70.6 · 74.1 m up past the annex.  EAST_Q97:
 # (x, y, height) on the road's middle line, survey s 140 (where the grade is left as it was: the photos' heights south
 # of it are not settled), 184, 196, 208, 296, 304 ... 400 (beyond it the road had the photos' heights already).
-EAST_Q97 = [(132.6, 222.4, 50.10), (149.7, 262.8, 52.60), (152.6, 274.4, 53.90), (156.4, 285.8, 55.00),
-            (207.5, 356.2, 62.90), (210.3, 363.4, 63.80), (210.4, 375.3, 65.30), (208.0, 391.1, 67.30),
-            (205.9, 403.0, 68.80), (203.9, 414.8, 70.60), (201.5, 426.5, 72.10), (197.5, 436.8, 73.20),
-            (190.7, 446.2, 74.10), (185.8, 452.8, 75.05)]
+EAST_Q97 = [(132.6, 222.4, 48.10), (149.7, 262.8, 50.60), (152.6, 274.4, 51.90), (156.4, 285.8, 53.00),
+            (207.5, 356.2, 60.90), (210.3, 363.4, 61.80), (210.4, 375.3, 63.30), (208.0, 391.1, 65.30),
+            (205.9, 403.0, 66.80), (203.9, 414.8, 68.60), (201.5, 426.5, 70.10), (197.5, 436.8, 71.20),
+            (190.7, 446.2, 72.10), (185.8, 452.8, 73.05)]
 # The ground beside it was the surface model's (the wood's canopy in it, 청송대 east of the road): uphill, east of the
 # road, lowered with it, by the road's own drop where the road is and less farther off, nothing 40 m away (the hill's
 # shape kept); downhill, west of it towards 성암관 and 대우관 별관, one smooth surface from the road to what stays 40 m
@@ -3269,7 +3276,7 @@ LATE_FOOTPRINT_1997[990010] = list(block_poly(JK_O + JK_A * -1.875 + JK_V * -0.7
 LATE_FOOTPRINT_1997[990011] = list(block_poly((-156.25, -24.0), _lib_u, 17.0, 4.75).exterior.coords)[:-1]
 LATE_FOOTPRINT_1997[990012] = list(Point(-163.5, -24.0).buffer(7.5, 3).exterior.coords)[:-1]
 LATE_LEVELS = {990011: 2, 990012: 1}
-BASE_1997.update({990010: 45.2, 990014: 45.2, 990011: 39.0, 990012: 45.3, 990060: SCI['yard'], 990061: SCI['yard']})
+BASE_1997.update({990010: 43.2, 990014: 43.2, 990011: 37.0, 990012: 43.3, 990060: SCI['yard'], 990061: SCI['yard']})
 # (the outlines and halls put back since the planting was laid, as MED_SITES_RNG's None: no clearing was made for
 # them, so the trees by them step aside in their places in the list)
 SITES_NEW_1997 = {222843398, 990010, 990011, 990012, 990014, 990060, 990061, 990050, 990051, 990052}
@@ -3357,7 +3364,7 @@ AUD_T = AUD_HEAD                              # (the forecourt and the terrace a
 # heights in those frames to 4 %; the skyview has it 3.5 m further east).  The terrace beyond the head is not level
 # but falls with 백양로, from the flight's head (40.33 m) to the drive's head.
 # (the bollards: the triangulated row, 1.22 · 1.16 · 1.75 m apart; their spacing in 2008 · 2010 frames agrees, 4.5)
-AUD_RAMP = dict(foot_rng=(7.56, -9.22), bearing=38.0, run=22.0, w=4.7, walk=1.8, band=4.45, band_t0=-2.5, mouth=5.0, z1=39.8,
+AUD_RAMP = dict(foot_rng=(7.56, -9.22), bearing=38.0, run=22.0, w=4.7, walk=1.8, band=4.45, band_t0=-2.5, mouth=5.0, z1=37.8,
                 bollards=(-1.22, 0.0, 1.16, 2.91))
 # (the foot was solved against the wall's south end where the line as first laid put it: it goes with the wall to the
 # same place along and across the moved line (#162), 2.2 m across the drive.  The 1997 vertical aerial photos have the
@@ -3704,8 +3711,8 @@ bcorr_rng = BLINE_RNG.buffer(ROAD_HALF + 12)
 # north-west corner and drum 23 - 48 px off (the photo and the aerial ones cannot be fitted by one camera).  It was
 # (-111.0, -395.7, 44.5), yaw 15.87, pitch -3.60, fov 32.13: PHOTO_A_RNG, through which the random planting still
 # reads the photo's pixels.
-PHOTO_A = dict(pos=(-106.87, -396.83, 45.22), yaw=15.59, pitch=-3.84, fov=33.06, size=(2100, 1338))
-PHOTO_A_RNG = dict(pos=(-111.0, -395.7, 44.5), yaw=15.87, pitch=-3.60, fov=32.13, size=(2100, 1338))
+PHOTO_A = dict(pos=(-106.87, -396.83, 43.22), yaw=15.59, pitch=-3.84, fov=33.06, size=(2100, 1338))
+PHOTO_A_RNG = dict(pos=(-111.0, -395.7, 42.5), yaw=15.87, pitch=-3.60, fov=32.13, size=(2100, 1338))
 
 
 def photo_ray(px, py, cam=None):
@@ -3724,7 +3731,7 @@ def photo_ray(px, py, cam=None):
 def photo_ground(px, py, dz=0.0, cam=None, H=None):
     """where the ray through a pixel of photo A meets the terrain (or the surface dz over it; H: another grid)"""
     o_, d_ = photo_ray(px, py, cam)
-    z_ = 36.0
+    z_ = 34.0
     for _ in range(12):
         x_, y_ = o_[:2] + d_[:2] * (z_ - o_[2]) / d_[2]
         z_ = sample(Hn if H is None else H, NEAR_HALF, NEAR_STEP, x_, y_) + dz
@@ -3742,7 +3749,7 @@ def photo_on_line(px, p0, dv, lo=-80.0, hi=80.0, cam=None):
     """the point of the 2D line p0 + t dv (lo <= t <= hi, in front of the camera) seen in pixel column px (for feet
     that stand on a known line, where the ground ray runs too flat or the foot is out of the frame)"""
     def col(t):
-        q = photo_px(p0[0] + dv[0] * t, p0[1] + dv[1] * t, 30.0, cam)
+        q = photo_px(p0[0] + dv[0] * t, p0[1] + dv[1] * t, 28.0, cam)
         return q[0] - px if q[2] > 1.0 else None             # (None: behind or beside the camera)
     ts = np.linspace(lo, hi, 161)
     cs = [col(t) for t in ts]
@@ -4357,29 +4364,29 @@ _AF = lambda s0, s1, d0, d1: Polygon([AP_XY(s0, d0), AP_XY(s1, d0), AP_XY(s1, d1
 # z0 (the hall's floor), up (the door's flight: risers, going), flights (through the bank: s of the axis, width between
 # the cheeks, risers, going, d of the top riser; the road's level from the bank's top to it)
 TERR = dict(
-    st=dict(xy=ST_XY, m=_stm, t=_stt, f=_stf, z0=46.4, road=3.1,
+    st=dict(xy=ST_XY, m=_stm, t=_stt, f=_stf, z0=44.4, road=3.1,
             # (the scans' s minus ST_S0; the road's edge 6.2 - 6.7 where both sides agree on a ground-level edge)
             far=[(-57.0, 6.9), (-48.5, 6.9), (-44.0, 6.4), (15.5, 6.4), (19.5, 6.4)],
             bank=[(-51.0, 11.35), (-39.5, 11.35), (-30.5, 11.11), (-21.5, 11.04), (-12.5, 10.89), (-6.5, 10.81),
                   (6.5, 10.61), (12.5, 10.35), (15.5, 10.2)],
-            zr=[(-51.5, 45.95), (-48.5, 46.09), (-36.5, 46.24), (-30.5, 46.34), (-24.5, 46.44), (-18.5, 46.55),
-                (-12.5, 46.80), (-6.5, 46.92), (0.0, 46.97), (6.5, 47.12), (12.5, 47.24), (15.5, 47.31)],
-            zg=[(-51.0, 45.08), (-39.0, 45.04), (-33.5, 45.30), (-27.5, 45.47), (-21.5, 45.51), (-18.5, 45.63),
-                (-12.5, 45.73), (-6.5, 45.88), (0.0, 46.11), (6.5, 46.20), (9.5, 46.27), (12.5, 46.37), (15.5, 46.42)],
+            zr=[(-51.5, 43.95), (-48.5, 44.09), (-36.5, 44.24), (-30.5, 44.34), (-24.5, 44.44), (-18.5, 44.55),
+                (-12.5, 44.80), (-6.5, 44.92), (0.0, 44.97), (6.5, 45.12), (12.5, 45.24), (15.5, 45.31)],
+            zg=[(-51.0, 43.08), (-39.0, 43.04), (-33.5, 43.30), (-27.5, 43.47), (-21.5, 43.51), (-18.5, 43.63),
+                (-12.5, 43.73), (-6.5, 43.88), (0.0, 44.11), (6.5, 44.20), (9.5, 44.27), (12.5, 44.37), (15.5, 44.42)],
             walk=15.3, whole=(-57.0, 19.0), ease=(-61.0, 23.0), up=dict(n=5, T=0.35),
             flights=[dict(s=0.0, w=3.3, ct=0.45, n=6, T=0.33, head=8.2),
                      dict(s=-44.0, w=3.6, ct=0.45, n=6, T=0.33, head=8.3)]),
-    ap=dict(xy=AP_XY, m=_apm, t=_apt, f=_apf, z0=46.75, road=2.25,
+    ap=dict(xy=AP_XY, m=_apm, t=_apt, f=_apf, z0=44.75, road=2.25,
             # (the scans' s minus AP_S0)
             far=[(-28.0, 6.2), (-12.5, 6.3), (6.7, 6.1), (12.7, 6.0), (21.7, 5.4), (27.7, 5.4), (33.7, 5.2), (36.7, 4.75),
                  (39.7, 5.05)],
             bank=[(-12.3, 10.61), (-6.3, 10.62), (-3.8, 10.63), (4.2, 10.39), (9.7, 10.41), (12.7, 10.34),
                   (15.7, 10.24), (18.7, 10.32), (21.7, 10.11), (24.7, 10.04), (27.7, 9.97), (33.7, 9.90), (36.7, 9.86),
                   (39.7, 9.70)],
-            zr=[(-12.3, 47.35), (-6.3, 47.3), (0.0, 47.06), (6.7, 47.10), (12.7, 46.99), (21.7, 46.91), (24.7, 46.66),
-                (27.7, 46.6), (33.7, 46.46), (36.7, 46.5), (39.7, 46.3)],
-            zg=[(-12.3, 46.59), (-9.3, 46.51), (-6.3, 46.41), (-3.8, 46.42), (0.0, 46.15), (6.7, 46.15), (12.7, 46.02),
-                (18.7, 45.92), (21.7, 45.83), (27.7, 45.76), (30.7, 45.75), (33.7, 45.62), (39.7, 45.60)],
+            zr=[(-12.3, 45.35), (-6.3, 45.3), (0.0, 45.06), (6.7, 45.10), (12.7, 44.99), (21.7, 44.91), (24.7, 44.66),
+                (27.7, 44.6), (33.7, 44.46), (36.7, 44.5), (39.7, 44.3)],
+            zg=[(-12.3, 44.59), (-9.3, 44.51), (-6.3, 44.41), (-3.8, 44.42), (0.0, 44.15), (6.7, 44.15), (12.7, 44.02),
+                (18.7, 43.92), (21.7, 43.83), (27.7, 43.76), (30.7, 43.75), (33.7, 43.62), (39.7, 43.60)],
             walk=15.6, whole=(-18.0, 54.0), ease=(-23.0, 58.0), up=dict(n=6, T=0.29),
             flights=[dict(s=0.0, w=3.3, ct=0.45, n=7, T=0.34, head=8.25),
                      dict(s=45.2, w=3.35, ct=0.45, n=7, T=0.34, head=6.85)]))
@@ -4760,7 +4767,7 @@ PHOTO_TREES = [('maple', 274, 965, 838, None), ('zelkova', 410, 905, 762, None),
 for sp, px_, py_, pt_, h_ in PHOTO_TREES:
     if h_ == 'block':           # (height from foot to top in pixels at that depth: the ground there stands ~3 m over the
         x, y = photo_on_line(px_, *_BLOCK_LINE)                  # photo's through PHOTO_A, reference/고증.md 5장)
-        h_ = (py_ - pt_) * photo_px(x, y, 30.0)[2] / (PHOTO_A['size'][1] / 2 / math.tan(math.radians(PHOTO_A['fov'] / 2)))
+        h_ = (py_ - pt_) * photo_px(x, y, 28.0)[2] / (PHOTO_A['size'][1] / 2 / math.tan(math.radians(PHOTO_A['fov'] / 2)))
         xy_rng = photo_on_line(px_, *_BLOCK_LINE_RNG, cam=PHOTO_A_RNG)
     else:
         x, y = photo_ground(px_, py_)
@@ -6537,7 +6544,7 @@ late_level((_hk_s >= 27.0) & (_hk_s <= 59.0) & (_hk_w >= -4.0) & (_hk_w <= 7.5),
 # The game had it flat at 44.9 - 45.8 m.  YJ97['prof']: (s along YJ_BRANCH, z 게임 기준: the one absolute height of
 # these blocks, the others take the game's own ground at a place that stays); the west end meets
 # the east road (TR_E, 47.9 m), the car park and its way in stay as they were (their floor is 용재관's: 남은 한계)
-YJ97 = dict(prof=[(0.0, 47.9), (8.0, 48.2), (16.0, 49.8), (24.0, 51.6), (28.0, 52.4), (32.0, 53.4), (36.0, 54.15), (40.0, 54.3)], s0=14.0)
+YJ97 = dict(prof=[(0.0, 45.9), (8.0, 46.2), (16.0, 47.8), (24.0, 49.6), (28.0, 50.4), (32.0, 51.4), (36.0, 52.15), (40.0, 52.3)], s0=14.0)
 _yjs = shapely.line_locate_point(YJ_BRANCH, shapely.points(X, Y))
 _yjd = shapely.distance(YJ_BRANCH, shapely.points(X, Y))
 _yjz = np.interp(_yjs, *zip(*YJ97['prof']))
@@ -6579,7 +6586,7 @@ SCI_DRIVE97 = sci_poly([(-46.0, -44.5), (-22.0, -44.5), (-8.5, -32.0), (-8.5, -1
                         (2.0, -15.0), (-1.0, -20.0), (-1.0, -52.0), (-20.0, -55.0), (-46.0, -55.0)])
 SCI_BANK97 = sci_poly([(-45.5, -35.0), (-22.0, -35.0), (-15.0, -32.0), (-15.0, -2.0), (-14.0, -2.0), (-14.0, -15.0), (-8.5, -15.0),
                        (-8.5, -32.0), (-22.0, -44.5), (-45.5, -44.5)])
-SCI['drive'] = 49.1
+SCI['drive'] = 47.1
 _scm = (np.abs(X + 245) < 45) & (np.abs(Y + 15) < 45)
 _scx, _scy = X[_scm], Y[_scm]
 _dc = shapely.distance(SCI_COURT97, shapely.points(_scx, _scy))
@@ -6840,7 +6847,7 @@ for k_, c_ in APRON_LINES:
 # northbound lane 1.3 m of asphalt (as it was before)
 def _photo_road_off(px, py):
     o_, d_ = photo_ray(px, py)
-    z_ = 30.0
+    z_ = 28.0
     for _ in range(12):
         q_ = o_ + d_ * (z_ - o_[2]) / d_[2]
         z_ = float(np.interp(s_at(q_[0], q_[1]), ss, PROF_RNG))      # (the road photo A's camera was fitted on: 정문 둘레)

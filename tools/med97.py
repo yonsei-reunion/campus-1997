@@ -23,6 +23,8 @@ the survey's above sea level): EAST_Z, NE_PROF, HEART_Z, DENT_Z.
   sides, 60 → 53 m to the south (7.7 %); the game had lawn and paths at about the same heights.
 - Nothing here draws from build_campus.py's `rng`.
 """
+# (2026-11-15: every absolute height in this file's code is on the sea-level datum, 2.0 m under the old game datum;
+# heights quoted in comments written before then are 2.0 m higher: tools/build_campus.py SURFACE_DZ)
 import math
 
 import numpy as np
@@ -38,23 +40,23 @@ def plane(c, x, y):
 # 동쪽 큰 주차장: the paved platform's edge on the scans (26/16 · 27/17 at its own height), the cars' rows inside
 EAST_LOT = Polygon([(292.0, -150.0), (306.0, -152.0), (318.0, -168.8), (348.5, -214.6), (350.8, -217.8), (311.5, -251.0),
                     (300.0, -254.0), (296.0, -252.0), (285.5, -225.0), (290.5, -205.0), (289.5, -180.0), (288.0, -160.0)])
-EAST_Z = (43.77, -0.0035, 0.0080)
+EAST_Z = (41.77, -0.0035, 0.0080)
 # the road down to 성산로 north-east of it: s along the line from NE_O (heading NE_T), left = north-east
 NE_O, NE_T = np.array([314.8, -152.8]), np.array([0.5694, -0.8221])
 NE_N = np.array([-NE_T[1], NE_T[0]])
-NE_PROF = [(0.0, 44.7), (5.0, 44.1), (10.0, 43.4), (20.0, 41.8), (25.0, 41.3), (30.0, 40.9), (35.0, 40.0), (40.0, 39.3),
-           (45.0, 39.0), (50.0, 38.3), (55.0, 37.6), (60.0, 37.0), (65.0, 36.5), (70.0, 36.2), (75.0, 34.9), (80.0, 34.1),
-           (85.0, 33.9), (90.0, 34.0), (95.0, 33.8)]
+NE_PROF = [(0.0, 42.7), (5.0, 42.1), (10.0, 41.4), (20.0, 39.8), (25.0, 39.3), (30.0, 38.9), (35.0, 38.0), (40.0, 37.3),
+           (45.0, 37.0), (50.0, 36.3), (55.0, 35.6), (60.0, 35.0), (65.0, 34.5), (70.0, 34.2), (75.0, 32.9), (80.0, 32.1),
+           (85.0, 31.9), (90.0, 32.0), (95.0, 31.8)]
 NE_SIDE = (-4.0, 12.0)            # its bed across (the lot's wall at -6.5 m, the far sidewalk's back)
 SE_EDGE = ((350.8, -217.8), (300.0, -254.0))   # the lot's south-east edge (the wooded bank's top)
 NE_S = (8.0, 88.0)                # graded from here to where 성산로's bed begins
 # 심장혈관병원 북쪽 · 치과대학병원 서쪽: the paved yards' edges on the scans (the cars' rows 0.8 m in or more)
 HEART_LOT = Polygon([(134.0, -55.0), (158.0, -59.0), (167.0, -69.0), (181.0, -83.0), (186.0, -95.0), (174.0, -105.0),
                      (116.0, -104.0), (115.0, -97.0), (124.0, -80.0), (131.0, -62.0)])
-HEART_Z = (47.03, 0.0385, 0.0325)
+HEART_Z = (45.03, 0.0385, 0.0325)
 DENT_LOT = Polygon([(287.0, 29.0), (331.0, 29.0), (330.0, 8.0), (324.0, -25.0), (314.0, -65.0), (276.0, -65.0), (275.0, -55.0),
                     (282.0, -25.0), (285.0, 0.0)])
-DENT_Z = (42.78, -0.0212, 0.0736)
+DENT_Z = (40.78, -0.0212, 0.0736)
 LOTS = [('동쪽 큰 주차장', EAST_LOT, EAST_Z, 3.0), ('심장혈관병원 북쪽', HEART_LOT, HEART_Z, 2.0),
         ('치과대학병원 서쪽', DENT_LOT, DENT_Z, 2.0)]
 RING = 18.0                       # the ground eased in (harmonic) this far out of each lot

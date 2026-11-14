@@ -19,6 +19,7 @@ import * as THREE from 'three';
 import { patchShader, pcss, globalPatch, windTime } from './materials.js';
 import { FALL } from './litter.js';
 import { MOBILE, mulberry, versioned } from './util.js';
+import { HF_DZ } from './bakedshadow.js';
 
 const R = MOBILE ? 12 : 20;            // radius round the camera, m
 const CELL = 4;                        // the refill grid, m
@@ -178,7 +179,7 @@ const FALL_GLSL = /* glsl */`
   float fallGround(vec2 q) {
     vec2 p = vec2(q.x, -q.y);
     vec2 r = vec2((p.x - uSunRect.x) / (uSunRect.z - uSunRect.x), (uSunRect.w - p.y) / (uSunRect.w - uSunRect.y));
-    return textureLod(uSunGround, ((p + uSunGroundF.x) / uSunGroundF.y + 0.5) / uSunGroundF.z, 0.0).r
+    return textureLod(uSunGround, ((p + uSunGroundF.x) / uSunGroundF.y + 0.5) / uSunGroundF.z, 0.0).r - ${HF_DZ.toFixed(1)}
          + textureLod(uSunLift, r, 0.0).r * 12.75;
   }
   // where a fall from a is after tau seconds: drifting downwind, swinging across the wind (sw: across, along, rate,

@@ -20,6 +20,8 @@ Where things stand (고증 4.10):
   junction as the 1996 photos show them, the rest from their mix, signs standing out from the walls (yro_ functions at
   the end); the corners of the junction carry OSM's big outlines.
 """
+# (2026-11-15: every absolute height in this file's code is on the sea-level datum, 2.0 m under the old game datum;
+# heights quoted in comments written before then are 2.0 m higher: tools/build_campus.py SURFACE_DZ)
 import json, math, os, random
 import numpy as np
 from scipy import ndimage
@@ -191,7 +193,7 @@ LANDMARKS = [
 #   machine room over it 57.0 (what 56.8 was), the stair head 60.0, a round tank
 # The blocks keep their storeys (their walls' draws from blender/town.py's stream; the 13th field stretches a storey to
 # the top) but are drawn as LM_SHAPE in blender/town.py landmarks() (town['landmarks']), not as boxes
-LM_TOP = {'그레이스백화점': 73.0, '그랜드백화점': 68.3, '외환은행': 54.0}
+LM_TOP = {'그레이스백화점': 71.0, '그랜드백화점': 66.3, '외환은행': 52.0}
 GRACE_1997 = [(-225.27, -896.16), (-179.28, -917.39), (-157.10, -865.66), (-203.55, -849.16)]
 # (the old outline, 2026-11-14: the walls' feet in 27/18 and 1998's 26/17)
 GRACE_1997_OLD = [(-227.8, -895.6), (-179.5, -917.9), (-158.5, -863.3), (-203.0, -847.5)]
@@ -217,10 +219,10 @@ KEXIM_1997 = [(-130.2, -1059.9), (-114.7, -1062.7), (-102.4, -1061.3), (-103.8, 
 # height, its middle `top` m below the top or `up` m over the ground, `off` m out from the side's line (a flat sign on
 # a round face stands off by the bulge)
 LM_SHAPE = {
-    '그레이스백화점': dict(kind='grace', outline=GRACE_1997, deck=68.8, parapet=1.0, glass=(1, 5.5), pipes=1, bands=0,
+    '그레이스백화점': dict(kind='grace', outline=GRACE_1997, deck=66.8, parapet=1.0, glass=(1, 5.5), pipes=1, bands=0,
                      boxes=[(-188.8, -865.0, 46.0, 4.5, -0.333, 2.2)],
                      signs=[dict(cell=12, side=1, at=15.0, w=14.3, h=2.6, top=2.1)]),
-    '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=63.0, screen=(13, 12.0, 8.5, 19.0),
+    '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=61.0, screen=(13, 12.0, 8.5, 19.0),
                     strip=(6, 2.5, 2.5), signs=[dict(cell=13, side=13, w=16.5, h=3.0, top=2.4, off=1.0)]),
     '외환은행': dict(kind='kexim', outline=KEXIM_1997, floors=10,
                  boxes=[(-114.5, -1053.7, 13.5, 3.6, -0.207, 3.0), (-113.5, -1059.0, 6.5, 4.0, -0.207, 6.0)],
@@ -394,27 +396,27 @@ def _streets(pl, A, yx=None, old=False):
 # 17.58), up to a crest at y -870 .. -890 and down 0.5 m to the junction, and 양화로 · the 1997 신촌로 (south-west)
 # falling 4 - 6 m away from it.
 # YRO97: (y, z) along 연세로 from under the bridge (its north end eased into 성산로's bed at the south kerb).
-YRO97 = [(-470.0, 23.6), (-500.0, 23.25), (-518.0, 23.1), (-530.0, 22.3), (-542.0, 20.65), (-554.0, 20.7), (-566.0, 20.6),
-         (-578.0, 20.2), (-600.0, 19.4), (-630.0, 18.4), (-657.0, 18.75), (-692.0, 18.45), (-734.0, 17.8), (-770.0, 18.0),
-         (-794.0, 17.95), (-866.0, 20.25), (-890.0, 20.25)]
+YRO97 = [(-470.0, 21.6), (-500.0, 21.25), (-518.0, 21.1), (-530.0, 20.3), (-542.0, 18.65), (-554.0, 18.7), (-566.0, 18.6),
+         (-578.0, 18.2), (-600.0, 17.4), (-630.0, 16.4), (-657.0, 16.75), (-692.0, 16.45), (-734.0, 15.8), (-770.0, 16.0),
+         (-794.0, 15.95), (-866.0, 18.25), (-890.0, 18.25)]
 # ARM97: (s out of the junction, z) along the other four (s 0: the junction's own level); past the last the
 # difference to the arm's old profile fades out over ARM97_FADE m
 ARM97 = {
     # 양화로: the photos to s 110, the survey's spots at s 143 · 152 (15.87 · 16.00), 220 (16.04), 326 (16.91)
-    'sinchon_w': [(10.0, 19.43), (20.0, 19.14), (30.0, 18.75), (40.0, 18.5), (50.0, 18.14), (60.0, 17.95), (70.0, 17.64),
-                  (80.0, 17.18), (90.0, 16.78), (100.0, 16.39), (110.0, 16.13), (147.0, 15.55), (220.0, 15.64), (326.0, 16.51)],
+    'sinchon_w': [(10.0, 17.43), (20.0, 17.14), (30.0, 16.75), (40.0, 16.5), (50.0, 16.14), (60.0, 15.95), (70.0, 15.64),
+                  (80.0, 15.18), (90.0, 14.78), (100.0, 14.39), (110.0, 14.13), (147.0, 13.55), (220.0, 13.64), (326.0, 14.51)],
     # 1997년 신촌로 (남서): the photos to s 140, the spots at s 86 (17.61) and 166 · 167 (14.81 · 14.33), the survey's
     # contours past it (both editions within 0.1 m: 12.98 · 12.99 at s 200, 12.54 · 12.56 at s 250)
-    'seogang': [(10.0, 19.38), (20.0, 18.86), (30.0, 18.58), (45.0, 17.96), (55.0, 17.9), (86.0, 17.0), (100.0, 16.45),
-                (110.0, 16.09), (120.0, 15.77), (130.0, 15.45), (140.0, 14.94), (166.0, 14.15), (200.0, 12.6), (250.0, 12.15)],
+    'seogang': [(10.0, 17.38), (20.0, 16.86), (30.0, 16.58), (45.0, 15.96), (55.0, 15.9), (86.0, 15.0), (100.0, 14.45),
+                (110.0, 14.09), (120.0, 13.77), (130.0, 13.45), (140.0, 12.94), (166.0, 12.15), (200.0, 10.6), (250.0, 10.15)],
     # 1997년 서강로 (남): the photos to s 140 and at y -1173 (s 190, 고증 4.10.4), the spot at s 124 (22.38)
-    'baekbeom': [(10.0, 19.79), (20.0, 19.46), (45.0, 19.25), (60.0, 19.21), (70.0, 19.55), (90.0, 20.38), (100.0, 20.65),
-                 (120.0, 21.6), (140.0, 22.4), (190.0, 24.8)],
+    'baekbeom': [(10.0, 17.79), (20.0, 17.46), (45.0, 17.25), (60.0, 17.21), (70.0, 17.55), (90.0, 18.38), (100.0, 18.65),
+                 (120.0, 19.6), (140.0, 20.4), (190.0, 22.8)],
     # 신촌로 (동): the photos to s 300, the spots at s 90 (21.74), 191 (26.23), 289 (30.54), 393 (34.93), 491 (39.51)
-    'sinchon_e': [(15.0, 20.11), (30.0, 20.35), (45.0, 20.5), (60.0, 20.79), (75.0, 21.12), (90.0, 21.6), (105.0, 21.9),
-                  (120.0, 22.53), (135.0, 23.03), (150.0, 23.7), (165.0, 24.41), (180.0, 25.14), (195.0, 25.92), (210.0, 26.58),
-                  (225.0, 27.45), (240.0, 28.09), (255.0, 28.87), (270.0, 29.48), (285.0, 30.01), (300.0, 30.66),
-                  (392.0, 34.6), (490.0, 39.2)],
+    'sinchon_e': [(15.0, 18.11), (30.0, 18.35), (45.0, 18.5), (60.0, 18.79), (75.0, 19.12), (90.0, 19.6), (105.0, 19.9),
+                  (120.0, 20.53), (135.0, 21.03), (150.0, 21.7), (165.0, 22.41), (180.0, 23.14), (195.0, 23.92), (210.0, 24.58),
+                  (225.0, 25.45), (240.0, 26.09), (255.0, 26.87), (270.0, 27.48), (285.0, 28.01), (300.0, 28.66),
+                  (392.0, 32.6), (490.0, 37.2)],
 }
 ARM97_FADE = 60.0
 LEVEL_EASE = 30.0              # (the ground eased into the streets' bed this far past the sidewalks: the shop houses on it)
@@ -435,7 +437,9 @@ def level(Hn, Hs, half, step, geo, sample_n, keep=None):
     xs = S['x0'] + np.arange(nx) * step
     X, Y = np.meshgrid(xs, ys)
     Cs = ndimage.gaussian_filter(C, 3.0)
-    smp = lambda x, y: float(ndimage.map_coordinates(Cs, [[(y - S['y0']) / step], [(x - S['x0']) / step]], order=1)[0])
+    # (off the patch's south edge the sampling reads cval: the old datum's 0, 2.0 m under today's, so that the arms'
+    # profiles there stay as they were drawn)
+    smp = lambda x, y: float(ndimage.map_coordinates(Cs, [[(y - S['y0']) / step], [(x - S['x0']) / step]], order=1, cval=-2.0)[0])
     zj = smp(*JC)
     prof = {}
     for k, a in A.items():

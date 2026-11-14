@@ -338,7 +338,7 @@ export function makeNearTerrain(hf, campus, lib) {
         // lawns and woods; none in the south, where the map ends in the town's own streets (tools/gate_town.py)
         vec2 outD = max(max(uRect.xy - wp, wp - uRect.zw), vec2(0.0));
         float town = max(smoothstep(0.0, 1.0, (max(outD.x, wp.y - uRect.w) + (macro - 0.5) * 30.0) / 40.0), step(wp.y, uRect.y))
-          * (1.0 - smoothstep(55.0, 85.0, vWPos.y + (macro - 0.5) * 30.0));
+          * (1.0 - smoothstep(53.0, 83.0, vWPos.y + (macro - 0.5) * 30.0));
         albedo = mix(albedo, vec3(0.25, 0.245, 0.24) * mix(0.92, 1.1, n2), town * (1.0 - insideT - insideN));
         albedo *= 1.0 - 0.96 * smoothstep(0.3, 0.7, pit);      // (the stairwell's dark)
         // the island bed's dark band and white flowers (52158, May 1996; the pansies' yellow band is shrubs): rings
@@ -434,13 +434,13 @@ export function makeFarTerrain(hf, nearHalf, south = null) {
     // forest on the hills (안산, 인왕산, 북한산 ...), dense grey city in the valleys
     const r = Math.hypot(x, y);
     const n = hillNoise(x, y);
-    const forest = THREE.MathUtils.smoothstep(h, 55 + n * 25, 95 + n * 30);
+    const forest = THREE.MathUtils.smoothstep(h, 53 + n * 25, 93 + n * 30);
     // (linear albedo of roofs and streets seen from afar: brighter came out a white plain under the haze)
     const city = [0.25 + n * 0.05, 0.245 + n * 0.045, 0.24 + n * 0.04];
     // sRGB forest greens converted to linear (vertex colours are linear): dark, as in the 1997 photos
     wc.setRGB(0.2 + n * 0.06, 0.3 + n * 0.06, 0.15, THREE.SRGBColorSpace);
     const wood = [wc.r, wc.g, wc.b];
-    const river = h < 6 && r > 3000 ? 1 : 0;      // (Copernicus GLO-30: the Han 2.5 - 3 m, 여의도 and the banks 8 m and up)
+    const river = h < 4 && r > 3000 ? 1 : 0;      // (Copernicus GLO-30 less 2 m: the Han 0.5 - 1 m, 여의도 and the banks 6 m and up)
     const c = city.map((v, k) => v * (1 - forest) + wood[k] * forest);
     return river ? [0.32, 0.4, 0.45] : c;
   };
@@ -469,7 +469,7 @@ export function makeFarForest(hf, nearHalf, maxR = 3800, south = null, north = n
       const r = Math.hypot(x, y);
       if (r > maxR) continue;
       const h = data[j * n + i];
-      if (h < 70 + hillNoise(x, y) * 30) continue;
+      if (h < 68 + hillNoise(x, y) * 30) continue;
       const k = r < 2400 ? 14 : 6;
       for (let m = 0; m < k; m++) pts.push([x + (rnd() - 0.5) * step, y + (rnd() - 0.5) * step]);
     }
@@ -564,7 +564,7 @@ export function makeCity(hf, nearHalf, count = 1600, south = null) {
     const X = (rnd() * 2 - 1) * 6500, Y = (rnd() * 2 - 1) * 6500;
     if (Math.abs(X) < nearHalf + 150 && Math.abs(Y) < nearHalf + 150) continue;
     const h = hf.height(X, Y);
-    if (h > 60 || h < 8) continue;
+    if (h > 58 || h < 6) continue;
     const apt = rnd() < 0.45;
     s.set(apt ? 14 : 10 + rnd() * 20, apt ? 25 + rnd() * 20 : 6 + rnd() * 12, apt ? 60 + rnd() * 40 : 10 + rnd() * 20);
     if (nearAny(pr, X, Y, 150)) s.setScalar(1e-4);    // (over the patches past the grid: drawn, not seen, so the rest stay)

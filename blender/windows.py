@@ -16,7 +16,7 @@ they add no draw call.
 """
 import math
 from mathutils import Vector
-from common import pane_cell, pane_open, pane_hash, TRANSOM
+from common import pane_cell, pane_open, pane_hash, TRANSOM, _odz
 
 TRANSOM_AT = 0.72      # generic.wall_edge: the transom bar's height up the window
 RECESS = 0.32          # m: how far the open part is set back behind the glass
@@ -113,7 +113,7 @@ def aircon(mb, P, w0, w1, zs, zh, d, st, cell, floor):
         return
     ox, oy = cell
     spot = P((w0 + w1) / 2, zs, 0)                                       # (by the window's own place, not its room)
-    h = lambda k: pane_hash(int(round(spot[0] * 20)) * 31 + int(round(spot[2] * 20)), int(round(spot[1] * 20)), k)
+    h = lambda k: pane_hash(int(round(spot[0] * 20)) * 31 + int(round((spot[2] + _odz(spot[2])) * 20)), int(round(spot[1] * 20)), k)
     if h(9) >= AC_P or pane_open(ox, oy) is not None:
         return
     ww = w1 - w0

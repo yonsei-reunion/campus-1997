@@ -28,6 +28,8 @@ Where things stand (고증 4.8):
   (the blocks kept clear of the street and its rows, which of them are 「on the main street」, the trees' order) is
   still decided round the old line (YONSEI_X_RNG), so that no house or tree away from 연세로 changes.
 """
+# (2026-11-15: every absolute height in this file's code is on the sea-level datum, 2.0 m under the old game datum;
+# heights quoted in comments written before then are 2.0 m higher: tools/build_campus.py SURFACE_DZ)
 import json, math, os, random
 import numpy as np
 from scipy import ndimage
@@ -106,8 +108,8 @@ MODERN = {230178502, 628197716}        # OSM outlines that are the 2006 station 
 # 2024; #134) agrees once its tilt against the photos' datum is taken out (pdz = 2.05 + 0.522 x/100 + 0.248 y/100 m):
 # (-432.7, -341.4) 29.80 + pdz = 28.74 m, the photos 28.45 - 28.7; (-510.9, -243.3) 31.42 + pdz = 30.20, the photos
 # 29.8 - 29.9.
-SSR_W97 = [(-462.0, 28.75), (-454.0, 28.85), (-446.0, 28.85), (-441.0, 28.75), (-433.0, 28.65), (-427.0, 28.55),
-           (-419.0, 28.5), (-413.0, 28.55)]
+SSR_W97 = [(-462.0, 26.75), (-454.0, 26.85), (-446.0, 26.85), (-441.0, 26.75), (-433.0, 26.65), (-427.0, 26.55),
+           (-419.0, 26.5), (-413.0, 26.55)]
 SSR_W_DATUM = 0.45                 # (게임 기준: photos -> game, the 대운동장's)
 # 성산로 동쪽 (정문 둘레, #189; 고증 4.8.2): from there to x 300 the game stood 2 - 3.4 m over the photos all along
 # (the surface model's trees and roofs), the gate's mouth 2.1 m.  The same scans (26/16 · 27/17 · 27/18 · 27/19, the 1998
@@ -118,13 +120,13 @@ SSR_W_DATUM = 0.45                 # (게임 기준: photos -> game, the 대운�
 # rotary's (where the game's junction stands over its photos' reading), easing from the west part's over x -413 .. -300.
 # Past x SSR_E_END[0] the game's profile again, eased in by SSR_E_END[1] (the photos and the game meet at x 297; east of
 # it the photos stand 1.8 - 3.2 m over the game, where 의료원's bank and its north-east road meet the road: left as it is)
-SSR_E97 = [(-395.0, 28.3), (-365.0, 28.2), (-345.0, 28.3), (-330.0, 28.45), (-310.0, 28.1), (-290.0, 27.95), (-270.0, 27.9),
-           (-252.0, 27.8), (-232.0, 27.1), (-216.0, 26.55), (-200.0, 26.2), (-188.0, 25.85), (-172.0, 25.2), (-156.0, 24.75),
-           (-140.0, 24.3), (-124.0, 23.9), (-108.0, 23.75), (-92.0, 23.6), (-76.0, 23.7), (-60.0, 24.05), (-44.0, 24.65),
-           (-28.0, 25.5), (-12.0, 26.4), (3.0, 27.4), (19.0, 27.8), (35.0, 27.92), (51.0, 27.97), (67.0, 28.12),
-           (83.0, 28.18), (99.0, 28.32), (115.0, 28.4), (131.0, 28.5), (146.0, 28.64), (162.0, 28.95), (176.0, 29.25),
-           (191.0, 29.43), (204.0, 29.64), (216.0, 30.03), (233.0, 30.34), (250.0, 30.66), (265.0, 31.05), (280.0, 31.25),
-           (297.0, 31.55), (310.0, 31.8)]
+SSR_E97 = [(-395.0, 26.3), (-365.0, 26.2), (-345.0, 26.3), (-330.0, 26.45), (-310.0, 26.1), (-290.0, 25.95), (-270.0, 25.9),
+           (-252.0, 25.8), (-232.0, 25.1), (-216.0, 24.55), (-200.0, 24.2), (-188.0, 23.85), (-172.0, 23.2), (-156.0, 22.75),
+           (-140.0, 22.3), (-124.0, 21.9), (-108.0, 21.75), (-92.0, 21.6), (-76.0, 21.7), (-60.0, 22.05), (-44.0, 22.65),
+           (-28.0, 23.5), (-12.0, 24.4), (3.0, 25.4), (19.0, 25.8), (35.0, 25.92), (51.0, 25.97), (67.0, 26.12),
+           (83.0, 26.18), (99.0, 26.32), (115.0, 26.4), (131.0, 26.5), (146.0, 26.64), (162.0, 26.95), (176.0, 27.25),
+           (191.0, 27.43), (204.0, 27.64), (216.0, 28.03), (233.0, 28.34), (250.0, 28.66), (265.0, 29.05), (280.0, 29.25),
+           (297.0, 29.55), (310.0, 29.8)]
 SSR_E_DATUM = 0.3
 SSR_E_END = (285.0, 305.0)
 

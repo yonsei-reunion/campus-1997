@@ -262,8 +262,9 @@ class MeshBuilder:
         for i in range(seg):
             j = (i + 1) % seg
             u0, u1 = i / seg * 2 * math.pi * r, (i + 1) / seg * 2 * math.pi * r
+            v0, v1 = z0 + _odz(z0), z1 + _odz(z0)
             self.face([(*pts0[i], z0), (*pts0[j], z0), (*pts1[j], z1), (*pts1[i], z1)], mat,
-                      uvs=[(u0, z0), (u1, z0), (u1, z1), (u0, z1)], smooth=tag)
+                      uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)], smooth=tag)
         if cap_top:
             self.face([(*p, z1) for p in pts1], mat_cap or mat)
         if cap_bot:
@@ -295,6 +296,7 @@ class MeshBuilder:
         for m in mats:
             me.materials.append(material(m))
         uvl = me.uv_layers.new(name='UVMap')
+        _UV_DZ[0] = HASH_DZ if self.verts and min(v.z for v in self.verts) > 5.0 else 0.0
         has_col = any(c is not None for c in self.fcols)
         if has_col:
             ca = me.color_attributes.new('Col', 'BYTE_COLOR', 'CORNER')
@@ -337,8 +339,8 @@ def auto_uv(pts):
     t = t.normalized() if t.length > 1e-6 else Vector((1, 0, 0))
     if abs(n.z) > 0.25:      # sloped roof: v follows the slope
         bt = n.cross(t).normalized()
-        return [(Vector(p).dot(t), Vector(p).dot(bt)) for p in pts]
-    return [(Vector(p).dot(t), p[2]) for p in pts]
+        return [(Vector(p).dot(t), Vector((p[0], p[1], p[2] + _UV_DZ[0])).dot(bt)) for p in pts]
+    return [(Vector(p).dot(t), p[2] + _UV_DZ[0]) for p in pts]   # (z on the old datum: the textures lie as they did)
 
 
 # Window glass gets pane UVs instead of metric ones, so that every window shows a different room: u and v count the
@@ -388,6 +390,18 @@ def pane_uv(pts, panes=None):
     return [(ox + e + (s - s0) / W * (cols - 2 * e), oy + e + (z - z0) / H * (rows - 2 * e)) for s, z in sz]
 
 
+# The metric uvs and the window hashes read z on the datum they were drawn on before 2026-11-15, 2.0 m over today's
+# sea-level one (tools/build_campus.py SURFACE_DZ), so that every texture and window lies as it did: in a mesh laid in
+# campus coordinates (MeshBuilder.build: its lowest vertex over 5 m; _odz for a single height over 8 m), not in one
+# built round its own origin (props, statues), whose z never moved
+HASH_DZ = 2.0
+_UV_DZ = [0.0]
+
+
+def _odz(z):
+    return HASH_DZ if z > 8.0 else 0.0
+
+
 def _pane_frame(pts, panes):
     a, b, c = Vector(pts[0]), Vector(pts[1]), Vector(pts[2])
     n = (b - a).cross(c - a)
@@ -410,7 +424,9 @@ def _pane_frame(pts, panes):
     else:
         cols, rows = max(1, round(W / 3.4)), max(1, round(H / 3.6))
         hall = flat or H / rows > 3.0 or W / cols > 4.5
-    m = sum(pts, Vector()) / len(pts)          # the same window gets the same rooms in every build
+    # the same window gets the same rooms in every build: hashed on its corners as the single-precision vertices they
+    # were on the old datum (a campus-coordinate z rounded back to its decimals; m.z * 50 often falls on a half)
+    m = sum((Vector((p[0], p[1], round(p[2] + HASH_DZ, 4) if p[2] > 8.0 else p[2])) for p in pts), Vector()) / len(pts)
     h = (int(round(m.x * 50)) * 73856093) ^ (int(round(m.y * 50)) * 19349663) ^ (int(round(m.z * 50)) * 83492791)
     h = (h ^ (h >> 13)) * 1274126177 & 0xffffffff
     ox, oy = h % 24, (h >> 8) % 16 + (HALL if hall else 0)

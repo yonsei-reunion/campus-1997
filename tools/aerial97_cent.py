@@ -107,7 +107,7 @@ def cmd_west(wins):
     frs = [(26, 16), (26, 15), (27, 17)]
     for v0, v1 in wins:
         print('v %g ~ %g: 평면 높이, 서쪽 끝 u (세기) 26/16 · 26/15 · 27/17, 26/16 - 27/17' % (v0, v1))
-        for z in np.arange(33, 42.01, 1.0):
+        for z in np.arange(31, 40.01, 1.0):
             row = [_edge(*_prof(fr, z, v0, v1), -9, 1.5) for fr in frs]
             print('  z %.0f  ' % z + '  '.join('%5.2f (%3.0f)' % r for r in row) + '   %5.2f' % (row[0][0] - row[2][0]))
 

@@ -18,6 +18,9 @@ import { patchShaderOwn, upload } from './materials.js';
 // the baked rectangle (campus x = east, y = north, metres; every building and tree, and their shadows to the
 // north-west) and its size in texels: 31 cm texels
 export const SUN_RECT = { x0: -440, y0: -505, x1: 560, y1: 745 };
+// the half-float ground textures hold the heights over the old datum (2.0 m under today's sea-level one), so that
+// they round as they did before 2026-11-15 and the baked lifts and shadows stay the same; read them less this
+export const HF_DZ = 2.0;
 export const SUN_SIZE = [3200, 4000];
 const URL = 'assets/textures/sun_shadow.png';
 // 정문 밖 south of it (창천동, 연세로, 신촌 로터리: seen from the gate and from above, not walked) in 70 cm texels, in
@@ -91,8 +94,8 @@ const GROUND_DECL = `
   }
   float sunTerrainH( vec2 p ) {
     if ( p.y < uSunPatchF.w && p.x >= uSunPatchF.x && p.x <= uSunPatchF.z )
-      return texture2D( uSunPatch, ( ( p - uSunPatchF.xy ) / ( uSunPatchF.zw - uSunPatchF.xy ) * ( uSunPatchN - 1.0 ) + 0.5 ) / uSunPatchN ).r;
-    return texture2D( uSunGround, ( ( p + uSunGroundF.x ) / uSunGroundF.y + 0.5 ) / uSunGroundF.z ).r;
+      return texture2D( uSunPatch, ( ( p - uSunPatchF.xy ) / ( uSunPatchF.zw - uSunPatchF.xy ) * ( uSunPatchN - 1.0 ) + 0.5 ) / uSunPatchN ).r - ${HF_DZ.toFixed(1)};
+    return texture2D( uSunGround, ( ( p + uSunGroundF.x ) / uSunGroundF.y + 0.5 ) / uSunGroundF.z ).r - ${HF_DZ.toFixed(1)};
   }
   // the walked surface at p: the terrain and the terraces, plinths and flights on it (baked in the campus's block only)
   float sunGroundH( vec2 p ) {
@@ -150,7 +153,7 @@ function editShader(sh, uniforms, mode) {
 function groundTexture(hf) {
   const { n, data } = hf;
   const h = new Uint16Array(n * n);
-  for (let i = 0; i < n * n; i++) h[i] = THREE.DataUtils.toHalfFloat(data[i]);
+  for (let i = 0; i < n * n; i++) h[i] = THREE.DataUtils.toHalfFloat(data[i] + HF_DZ);
   const t = new THREE.DataTexture(h, n, n, THREE.RedFormat, THREE.HalfFloatType);
   t.minFilter = t.magFilter = THREE.LinearFilter;
   t.needsUpdate = true;
@@ -162,7 +165,7 @@ function patchUniforms(hf) {
   const e = hf.ext;
   if (!e) return { uSunPatch: { value: grey1(0) }, uSunPatchF: { value: new THREE.Vector4(0, 0, -1, -1) }, uSunPatchN: { value: new THREE.Vector2(1, 1) } };
   const h = new Uint16Array(e.nx * e.ny);
-  for (let i = 0; i < h.length; i++) h[i] = THREE.DataUtils.toHalfFloat(e.data[i]);
+  for (let i = 0; i < h.length; i++) h[i] = THREE.DataUtils.toHalfFloat(e.data[i] + HF_DZ);
   const t = new THREE.DataTexture(h, e.nx, e.ny, THREE.RedFormat, THREE.HalfFloatType);
   t.minFilter = t.magFilter = THREE.LinearFilter;
   t.needsUpdate = true;
@@ -318,7 +321,7 @@ export async function bakeSunMap({ renderer, scene, sun, sunDir, shadows, forest
       varying vec3 vW;
       void main() {
         vec2 p = vec2( vW.x, -vW.z );
-        float g = texture2D( uSunGround, ( ( p + uSunGroundF.x ) / uSunGroundF.y + 0.5 ) / uSunGroundF.z ).r;
+        float g = texture2D( uSunGround, ( ( p + uSunGroundF.x ) / uSunGroundF.y + 0.5 ) / uSunGroundF.z ).r - ${HF_DZ.toFixed(1)};
         gl_FragColor = vec4( vec3( clamp( ( vW.y - g ) / ${LIFT_MAX}, 0.0, 1.0 ) ), 1.0 );
       }`,
   });

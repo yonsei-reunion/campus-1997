@@ -51,7 +51,7 @@ const WORLD = /* glsl */`
   #else
     vec3 wvNw = normalize(vNormal * mat3(viewMatrix));
   #endif
-  vec2 wvP = abs(wvNw.y) > 0.7 ? wvW.xz : vec2(dot(wvW.xz, normalize(vec2(-wvNw.z, wvNw.x))), wvW.y);`;
+  vec2 wvP = abs(wvNw.y) > 0.7 ? wvW.xz : vec2(dot(wvW.xz, normalize(vec2(-wvNw.z, wvNw.x))), wvW.y + 2.0);`;   // (+ 2.0: the pattern as laid on the old datum)
 
 // The panel shuffle picks one panel per 2x2 pixel quad (the corner pixel's), so the uv the samplers get moves by one
 // constant within a quad and the screen derivatives (mip level, the normal map's tangent frame) see no jump; the
