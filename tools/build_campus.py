@@ -2358,6 +2358,15 @@ _off_road = shapely.distance(DWB_RLS, shapely.points(X, Y)) > 6.0       # (the r
 _m_court = shapely.contains_xy(_dcourt.union(_darea), X, Y) & _off_road
 _m_floor = shapely.contains_xy(_dfloor, X, Y) & ~_m_court
 _m_high = shapely.contains_xy(_dhigh, X, Y) & _off_road
+# (2026-11-14: and the four nodes on and just east of the upper car park's east edge, u 61 - 65, v 41.5 - 60.  They
+# were free.  Three came out 1.1 - 1.3 m over the plane, halfway up to the cars' way on the bank (u 70 - 76, 3 m
+# higher), so the bank began at the last node inside the car park: up to 2.5 m inside the east row's stalls, the
+# cars there nose up by 9 - 11 degrees.  The fourth, on the edge by the south-east corner, came out 2 m under the
+# plane, halfway down to the areaway, and the deck's edge dipped to it under a car's front wheels (nose down 4
+# degrees).  On the plane the bank begins at the edge and climbs to the road in one cell (60 %).  Not the nodes
+# from u 65 on: the cells under the road's wheels need those, and with them on the plane the cars on the road
+# leaned 11 degrees)
+_m_high |= shapely.contains_xy(_uvp([(60.9, 41.5), (65.0, 41.5), (65.0, 60.0), (60.9, 60.0)]), X, Y) & _off_road
 Hn[_m_court] = DAEWOO_BACK['low']
 Hn[_m_floor] = DAEWOO_BACK['stage'] - 0.12                                 # (under the paving, the seats and the walk: the meshes)
 for _j, _i in zip(*np.nonzero(_m_high)):
