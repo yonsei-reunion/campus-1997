@@ -1566,8 +1566,10 @@ def lerp_table(tab, x):
 
 
 def terrace_steps(mb, y_face, zl, wu, tr, y_wall, wall='stone_rubble', mat='stone_step', rec=0.5):
-    """스팀슨관's steps (reference/고증/3.5.3: 학교연혁_스팀슨관.jpg, 스팀슨관_정면_2016.jpg, the vertical aerial photos of
-    July 1997): not one flight but two, with the road along the hall's front between them.  A short flight from the
+    """스팀슨관's and 아펜젤러관's steps (reference/고증/3.5.3 · 3.5.4: 학교연혁_스팀슨관.jpg, the 2016 front photos, the
+    original scans of the vertical aerial photos of July 1997): not one flight but two, with the road along the hall's
+    front between them (스팀슨관 has one more flight through its bank by the garden's south-west corner, 아펜젤러관 one by
+    the south-east corner).  A short flight from the
     door, low coped kerbs at its sides, down to the road on its terrace; across the road a second flight between coped
     rubble walls with capped posts at its foot, cut into the bank down to the garden.  The terrace and the bank are
     the deck tools/build_campus.py ST_FRONT lays over the ground (drawn by stimson()); the lower flight stands in the
@@ -1595,21 +1597,28 @@ def terrace_steps(mb, y_face, zl, wu, tr, y_wall, wall='stone_rubble', mat='ston
         x0, x1 = sorted((sg * hu, sg * (hu + 0.35)))
         sloped_wall(mb, x0, x1, [(y_p, zl + 0.2), (y_uf + 0.1, zr + ru + 0.2)], gnd, wall, ct=0.1)
     note_entrance(mb, hu + 0.95, y_face + 0.5, y_uf - 1.0)
-    # --- the flight down the bank, from the road's far edge
-    nl, T, wl = tr['low']['n'], tr['low']['T'], tr['low']['w']
-    hl, ct, rl = wl / 2, 0.5, (zr - zg) / tr['low']['n']
-    y_h = y_wall - tr['road'][1]
-    y_lf = y_h - (nl - 1) * T
-    mb.box((0, y_h + 0.2, (zr + 0.015 + gnd) / 2), (wl, 0.4, zr + 0.015 - gnd), mat, skip=('bottom',))   # (its head, under the road's edge)
-    for k in range(1, nl):
-        top = zr - k * rl
-        mb.box((0, y_h - (k - 0.5) * T + 0.01, (top + gnd) / 2), (wl, T + 0.02, top - gnd), mat, skip=('bottom',))
-    walk(-hl, hl, y_h + 0.3, zr, y_h, zr)
-    walk(-hl, hl, y_h, zr, y_h - nl * T, zg)
-    for sg in (-1, 1):
-        x0, x1 = sorted((sg * hl, sg * (hl + ct)))
-        sloped_wall(mb, x0, x1, [(y_h + 0.15, zr + 0.6), (y_h - 0.1, zr + 0.6), (y_lf + 0.1, zg + rl + 0.62)], gnd, wall)
-        pedestal(mb, sg * (hl + ct / 2), y_lf - 0.05, zg + 1.0, gnd, wall)
+    # --- the flights down the bank (tools/build_campus.py TERR flights: s of the axis, w between the cheeks, ct the
+    # cheeks, n risers, T going, head the top riser's d, road the bank's top there, zr / zg the road and the walk): a
+    # landing at the road's level from the bank's top to the top riser, the treads down to the walk, coped rubble
+    # cheeks along both, capped posts at the foot
+    y_lf = None
+    for fl in tr['flights']:
+        lx, wl, ct, nl, T = fl['s'], fl['w'], fl['ct'], fl['n'], fl['T']
+        hl, zrf, zgf = wl / 2, fl['zr'], fl['zg']
+        rl = (zrf - zgf) / nl
+        y_r, y_h = y_wall - fl['road'], y_wall - fl['head']
+        y_lf = y_h - (nl - 1) * T
+        g_ = min(gnd, zgf - 1.0)
+        mb.box((lx, (y_r + 0.3 + y_h) / 2, (zrf + 0.015 + g_) / 2), (wl, y_r + 0.3 - y_h, zrf + 0.015 - g_), mat, skip=('bottom',))
+        for k in range(1, nl):
+            top = zrf - k * rl
+            mb.box((lx, y_h - (k - 0.5) * T + 0.01, (top + g_) / 2), (wl, T + 0.02, top - g_), mat, skip=('bottom',))
+        walk(lx - hl, lx + hl, y_r + 0.3, zrf, y_h, zrf)
+        walk(lx - hl, lx + hl, y_h, zrf, y_h - nl * T, zgf)
+        for sg in (-1, 1):
+            x0, x1 = sorted((lx + sg * hl, lx + sg * (hl + ct)))
+            sloped_wall(mb, x0, x1, [(y_r + 0.15, zrf + 0.6), (y_h - 0.1, zrf + 0.6), (y_lf + 0.1, zgf + rl + 0.62)], g_, wall)
+            pedestal(mb, lx + sg * (hl + ct / 2), y_lf - 0.05, zgf + 1.0, g_, wall)
     return y_lf
 
 
@@ -2504,8 +2513,10 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
         side_steps(mb, y_face, zd, gl, stairs['side'], (porch['s1'] - porch['s0']) / 2 + 0.4 if porch else stairs['width'] / 2 + 0.6,
                    -W / 2, wall=wall, rec=door['rec'], fw=stairs['width'])
     elif stairs['terrace']:                    # two flights, the road between them (스팀슨관)
-        terrace_steps(mb, y_face, zd, stairs['width'], dict(stairs['terrace'], zr0=stairs['terrace']['zr0'] - z0,
-                                                             zg0=stairs['terrace']['zg0'] - z0), -W / 2, wall=wall, rec=door['rec'])
+        tr_ = stairs['terrace']
+        terrace_steps(mb, y_face, zd, stairs['width'], dict(tr_, zr0=tr_['zr0'] - z0, zg0=tr_['zg0'] - z0,
+                                                             flights=[dict(f_, zr=f_['zr'] - z0, zg=f_['zg'] - z0) for f_ in tr_['flights']]),
+                      -W / 2, wall=wall, rec=door['rec'])
     else:
         hall_steps(mb, y_face, zd, stairs['width'], gl, wall=wall, wl=stairs['wl'], cheeks=stairs['cheeks'],
                    lamps=stairs['lamps'], rec=door['rec'])
@@ -2755,7 +2766,10 @@ def stimson():
     the chimney astride the ridge 10.5 m from the south end, ~3 m over it."""
     b = bld(246156118)
     L, W = frame_for(b, (1.0, -0.27))[2:4]
-    gw, pier, gap, pw = 3.15, 1.15, 0.35, 5.6
+    # (reference/고증/3.5.3: the 1997 scans and Kakao's base map have the hall 35.1 m long where OSM's outline, to which the
+    # 2016 front photo's widths were scaled, has 32.5 m; the porch's parapet 5.85 m wide in the scans)
+    k_ = L / 32.5
+    gw, pier, gap, pw = 3.15 * k_, 1.15 * k_, 0.35 * k_, 5.6 * k_
     groups = []
     for sg in (-1, 1):
         for k in range(3):
@@ -2776,21 +2790,27 @@ def stimson():
     sf = CAMPUS.get('stimson_front')
     out = stone_hall('stimson', b, (1.0, -0.27), groups, ivy=0.8, ivy_walls=ivy_walls,
                      porch=dict(s0=L / 2 - pw / 2, s1=L / 2 + pw / 2, proj=0.9, parapet=0.8, win=(2.3, [0.45, 1.0, 0.45])),
-                     chimney=dict(at=(-5.8, 0.0), h=3.0, sky=(-5.8, 2.3)), end_wins=ends,
+                     chimney=dict(at=(-5.8 * k_, 0.0), h=3.0, sky=(-5.8 * k_, 2.3)), end_wins=ends,
                      attic={1: (W / 2, 0.7, 0.4, 1.75), 3: (W / 2, 0.75, 0.35, 1.2)},
                      end_bay=dict(edge=3, span=4.9, front=3.0, proj=0.95, light=0.95, side=0.62, top=0.1),
                      rear=dict(w=3.3, lights=[(3.05, 6.45)], door=(0.95, 2.4), zd=-0.94, side=(0.85, 1.15)),
                      z0=sf['z0'] if sf else None,
-                     stairs=dict(width=3.6, wl=4.8, **(dict(terrace=sf, rise=0.0) if sf else {})),
+                     stairs=dict(width=4.3, wl=4.8, **(dict(terrace=sf, rise=0.0) if sf else {})),
                      door=dict(w=2.2, spring=1.9, style='panel', rec=0.5))
-    if sf and sf.get('deck'):
-        tk = MeshBuilder('lm_stimson_terrace')
-        for f in sf['deck']['f']:
-            q = [tuple(sf['deck']['v'][i]) for i in f]
-            tk.face(q, 'terrain_drape')
-            WALK_FACES.append(q)
-        out.append(tk)
+    out += terrace_deck('stimson', sf)
     return out
+
+
+def terrace_deck(name, sf):
+    """the road's terrace and the bank before a hall (tools/build_campus.py TERR deck): ground-coloured walk faces"""
+    if not (sf and sf.get('deck')):
+        return []
+    tk = MeshBuilder('lm_%s_terrace' % name)
+    for f in sf['deck']['f']:
+        q = [tuple(sf['deck']['v'][i]) for i in f]
+        tk.face(q, 'terrain_drape')
+        WALK_FACES.append(q)
+    return [tk]
 
 
 def appenzeller():
@@ -2803,22 +2823,30 @@ def appenzeller():
     (the attic storey's)."""
     b = bld(246156116)
     L, W = frame_for(b, (-1.0, 0.27))[2:4]
-    gw, pier = 3.2, 0.6
+    k_ = L / 34.65                             # (the 1997 scans' 35.6 m on OSM's 34.65, as at 스팀슨관)
+    gw, pier = 3.2 * k_, 0.6 * k_
     s0 = L / 2 - (5 * gw + 4 * pier) / 2
     groups = [(s0 + k * (gw + pier), s0 + k * (gw + pier) + gw, 3) for k in range(5)]
-    at = [(2.3, 6.6), (L - 6.6, L - 2.3)]
+    at = [(2.3 * k_, 6.6 * k_), (L - 6.6 * k_, L - 2.3 * k_)]
     end = [w for f in (0, 1) for w in ((W / 2 - 5.05, W / 2 - 2.95, 2, f), (W / 2 - 1.6, W / 2 + 1.6, 3, f),
                                         (W / 2 + 2.95, W / 2 + 5.05, 2, f))]
     # the ivy (reference/고증.md 3.5): the front a mat round the door (a 1996 group photo) and the north end (2010,
     # 2016) as before; the south end (1: the +x one) strands up the piers and a band under the upper lights (a 1996 -
     # 2000 autumn photo, the telephone box at its corner); the back bare but near its north end (the Dec. 2010 roadview)
     ivy_walls = {1: 1.0, 2: dict(cover=0.6, ends=(0.0, 3.5))}
-    return stone_hall('appenzeller', b, (-1.0, 0.27), groups, ivy=1.1, door_group=2, ivy_walls=ivy_walls,
-                      bays=dict(at=at, front=3.0, proj=0.75),
-                      back=[(c - gw / 2, c + gw / 2, 3) for c in (4.0, L - 4.0)], end_wins={1: end, 3: end},
-                      attic={1: (W / 2, 0.9, 0.4, 2.0), 3: (W / 2, 0.9, 0.4, 2.0)},
-                      rear=dict(w=3.2, lights=[(2.55, 4.65), (5.6, 6.5)], door=(0.97, 2.5), zd=-1.08, side=(0.84, 0.65)),
-                      stairs=dict(width=3.8, wl=5.0), door=dict(w=2.2, spring=1.9, style='panel', rec=0.6))
+    # (the front: the door's flight, the road on its terrace, the flight down the bank -- tools/build_campus.py TERR,
+    # reference/고증/3.5.4; the floor 0.55 m higher than the level apron had it, from the eaves' height in the scans)
+    af = CAMPUS.get('appenzeller_front')
+    out = stone_hall('appenzeller', b, (-1.0, 0.27), groups, ivy=1.1, door_group=2, ivy_walls=ivy_walls,
+                     bays=dict(at=at, front=3.0, proj=0.75),
+                     back=[(c - gw / 2, c + gw / 2, 3) for c in (4.0, L - 4.0)], end_wins={1: end, 3: end},
+                     attic={1: (W / 2, 0.9, 0.4, 2.0), 3: (W / 2, 0.9, 0.4, 2.0)},
+                     rear=dict(w=3.2, lights=[(2.55, 4.65), (5.6, 6.5)], door=(0.97, 2.5), zd=-1.08, side=(0.84, 0.65)),
+                     z0=af['z0'] if af else None,
+                     stairs=dict(width=3.3 if af else 3.8, wl=5.0, **(dict(terrace=af, rise=0.0) if af else {})),
+                     door=dict(w=2.2, spring=1.9, style='panel', rec=0.6))
+    out += terrace_deck('appenzeller', af)
+    return out
 
 
 # ============================================================================= 대강당
