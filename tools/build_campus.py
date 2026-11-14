@@ -8492,6 +8492,16 @@ for kind_, e_, n_, sc_ in (('pine_cloud', 28.9, 5.9, 0.85), ('topiary_egg', 29.6
 shrubs += DW_ANNEX_BEDS
 print('대우관 별관 앞: clipped shrubs', [b_[:3] for b_ in DW_ANNEX_BEDS])
 _ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
+# 정문 동쪽 잔디 주차, as the July 1997 scans have it (고증 2.3 「주차」): not a pad on the lawn but one asphalt car park from
+# 백양로's planting strip to the drive east of it and from the drive along 백주년기념관's round forecourt south to the
+# rows' ends (six rows of stalls along 백양로, two tree-planted strips between them; the stalls and the cars are the
+# parked cars' own: LOT_C_CARS, park_lot).  Painted after the planting: no draw moves
+_lco, _lcu, _lcv = np.array([-66.0, -312.0]), np.array([0.9744, -0.225]), np.array([0.225, 0.9744])    # (the rows' frame: along 백양로)
+LOT_C_LOT = Polygon([tuple(_lco + _lcu * u_ + _lcv * v_) for u_, v_ in ((-3.6, 11.8), (55.6, 11.8), (55.6, 48.5), (-3.6, 48.5))]).difference(
+    bline.buffer(ROAD_HALF + 0.3)).difference(Point(-39.5, -257.0).buffer(10.0)).difference(
+    unary_union([Polygon(b_['footprint']).buffer(1.0) for b_ in buildings if abs(b_['footprint'][0][0] + 30) < 80 and abs(b_['footprint'][0][1] + 285) < 80]))
+_ypaint([LOT_C_LOT], _ga)
+print('정문 동쪽 잔디 주차: asphalt %.0f m2 (the pad %.0f m2)' % (LOT_C_LOT.area, LOT_C_PAD.area))
 _ypaint(HK_PADS, _ga)                         # (한경길 · 연희관 앞길의 세운 차 줄: asphalt under the rows)
 # (and under the cars' way round 한경길 and into its free stalls: the lanes, the round at the west end, the stalls' mouths)
 _hk_way = LineString(HK_N + HK_TURN + HK_S)
