@@ -142,14 +142,232 @@ def houses():
     rnd = random.Random(1997)
     cells = {}
     gone = MeshBuilder('town_gone')          # (blocks that went for 신촌 로터리's streets: b[6] = -storeys; their
-    for b in T['blocks']:                    #  random looks still drawn, so the blocks after them keep theirs)
+    lm = {d['block'] for d in T.get('landmarks', [])}      # random looks still drawn, so the blocks after them keep
+    for i, b in enumerate(T['blocks']):                    # theirs; so too the landmarks' boxes: landmarks() draws them)
         if b[6] < 0:
             house(gone, b[:6] + [-b[6]] + b[7:], rnd)
+            continue
+        if i in lm:
+            house(gone, b, rnd)
             continue
         key = (int(b[0] // 300), int(b[1] // 300))
         mb = cells.setdefault(key, MeshBuilder('town_houses_%d_%d' % key))
         house(mb, b, rnd)
     return list(cells.values())
+
+
+# ----------------------------------------------------------------------------- 신촌 로터리's corner landmarks
+# tools/sinchon_rotary.py LM_SHAPE (town['landmarks']): outlines and tops from the 1997 frames 27/18 · 27/19, the looks
+# from the 1995 · 1996 photos (reference/고증/4.10.2_게임에_옮긴_것.md 「로터리 모퉁이」).  Nothing here draws from a
+# random stream.
+def _ccw(pts):
+    a = sum(p[0] * q[1] - q[0] * p[1] for p, q in zip(pts, pts[1:] + pts[:1]))
+    return pts if a > 0 else pts[::-1]
+
+
+def _side(o, i):
+    """side i of outline o (from o[i] to o[i + 1]): start, unit way, outward normal (right of a counter-clockwise
+    outline), length"""
+    p0, p1 = Vector((o[i][0], o[i][1], 0)), Vector((o[(i + 1) % len(o)][0], o[(i + 1) % len(o)][1], 0))
+    L = (p1 - p0).length
+    t = (p1 - p0) / L
+    return p0, t, Vector((t.y, -t.x, 0)), L
+
+
+def _quad(mb, a, b, z0, z1, mat, out=0.0, n=None, **kw):
+    """an upright face from a to b (2D) between z0 and z1, facing right of a -> b, moved out along n by `out`"""
+    if out and n is not None:
+        a, b = (a[0] + n.x * out, a[1] + n.y * out), (b[0] + n.x * out, b[1] + n.y * out)
+    mb.face([(a[0], a[1], z0), (b[0], b[1], z0), (b[0], b[1], z1), (a[0], a[1], z1)], mat, **kw)
+
+
+def _flat(mb, loops, z, mat, down=False):
+    """a level face over the first loop with the others as holes (mathutils' tessellation)"""
+    from mathutils.geometry import tessellate_polygon
+    vs = [Vector((p[0], p[1], z)) for lp in loops for p in lp]
+    for tri in tessellate_polygon([[Vector((p[0], p[1], z)) for p in lp] for lp in loops]):
+        q = [vs[k] for k in tri]
+        up = (q[1] - q[0]).cross(q[2] - q[0]).z > 0
+        if up == down:
+            q = q[::-1]
+        mb.face([tuple(v) for v in q], mat)
+
+
+def _inset(o, d):
+    """a convex outline moved in by d (its sides' lines moved, met again)"""
+    S = [_side(o, i) for i in range(len(o))]
+    out = []
+    for i in range(len(o)):
+        p0, t0, n0, _ = S[i - 1]
+        p1, t1, n1, _ = S[i]
+        a, b = p0 - n0 * d, p1 - n1 * d
+        den = t0.x * t1.y - t0.y * t1.x
+        s = ((b.x - a.x) * t1.y - (b.y - a.y) * t1.x) / den
+        out.append((a.x + t0.x * s, a.y + t0.y * s))
+    return out
+
+
+def _arc(c, r, a0, a1, n):
+    return [(c[0] + r * math.cos(a0 + (a1 - a0) * k / n), c[1] + r * math.sin(a0 + (a1 - a0) * k / n)) for k in range(n + 1)]
+
+
+def _roof_boxes(mb, d, z):
+    for x, y, L, W, ang, h in d.get('boxes', []):
+        mb.box((x, y, z + h / 2), (L, W, h), 'plaster_white', rotz=ang, mats={'top': 'roof_flat'}, skip=('bottom',))
+    for x, y, r, h in d.get('tanks', []):
+        mb.cylinder((x, y), r, z, z + h, 'metal', seg=12)
+
+
+def _grace(mb, d):
+    """그레이스백화점 (1992): a white-tiled box with a parapet round its roof; the south-east corner cut back from the
+    second floor to the roof for a round green glass shaft under the parapet's band; five steel pipes with crowns up
+    the east face and three square frames over each; three green window bands on the south face by the corner; the
+    shop windows round the ground floor (52097 · 52130 · 52114)"""
+    o, base, top, deck = _ccw([tuple(p) for p in d['outline']]), d['base'], d['top'], d['deck']
+    k, cut = d['glass']
+    zg0, zg1 = base + 7.6, deck                       # (the shaft: over the entrance's two floors, up to the roof)
+    pc = Vector((o[k][0], o[k][1], 0))
+    _, tin, _, _ = _side(o, k - 1)
+    _, tout, _, _ = _side(o, k)
+    A, B = pc - tin * cut, pc + tout * cut              # (where the cut leaves each face)
+    for i in range(len(o)):
+        p0, t, n, L = _side(o, i)
+        a, b = o[i], o[(i + 1) % len(o)]
+        _quad(mb, a, b, base, base + 0.4, 'tile_white')
+        _quad(mb, a, b, base + 0.4, base + 5.2, 'glass', panes=(max(1, round(L / 3.2)), 1)) if i in (k - 1, k) else \
+            _quad(mb, a, b, base + 0.4, base + 5.2, 'tile_white')
+        _quad(mb, a, b, base + 5.2, zg0, 'tile_white')
+        _quad(mb, a, b, zg1, top, 'tile_white')
+        if i == k - 1:
+            _quad(mb, a, (A.x, A.y), zg0, zg1, 'tile_white')
+        elif i == k:
+            _quad(mb, (B.x, B.y), b, zg0, zg1, 'tile_white')
+        else:
+            _quad(mb, a, b, zg0, zg1, 'tile_white')
+    # the glass shaft: an arc from A to B bowing out towards the corner, 1.2 m short of it
+    M = (A + B) / 2
+    c_ = (B - A).length
+    s_ = (pc - M).length - 1.2
+    R = (c_ * c_ / 4 + s_ * s_) / (2 * s_)
+    w = (pc - M).normalized()
+    C = M - w * (R - s_)
+    a0, a1 = math.atan2(A.y - C.y, A.x - C.x), math.atan2(B.y - C.y, B.x - C.x)
+    a1 = a0 + (a1 - a0 + math.pi) % (2 * math.pi) - math.pi      # (the short way round C, through the bow)
+    arc = _arc((C.x, C.y), R, a0, a1, 8)
+    fl = max(1, round((zg1 - zg0) / 4.6))
+    for p, q in zip(arc[:-1], arc[1:]):
+        _quad(mb, p, q, zg0, zg1, 'glass_green', panes=(1, fl), smooth='grace_glass')
+    rec = [(A.x, A.y), (pc.x, pc.y), (B.x, B.y)] + arc[::-1][1:-1]
+    _flat(mb, [rec], zg0, 'tile_white')
+    _flat(mb, [rec], zg1, 'tile_white', down=True)
+    # the line under the top storey's band (52097), the parapet and the roof inside it, the cooling towers along its
+    # north side
+    for i in range(len(o)):
+        p0, t, n, L = _side(o, i)
+        a, b = o[i], o[(i + 1) % len(o)]
+        _quad(mb, a, b, zg1 - 0.35, zg1, 'plaster_grey', out=0.06, n=n)
+    inn = _inset(o, d['parapet'])
+    _flat(mb, [o, inn[::-1]], top, 'concrete')
+    for i in range(len(inn)):
+        _quad(mb, inn[(i + 1) % len(inn)], inn[i], deck, top, 'tile_white')
+    _flat(mb, [inn], deck, 'roof_flat')
+    _roof_boxes(mb, d, deck)
+    # the east face: pipes, crowns, the frames over them
+    p0, t, n, L = _side(o, d['pipes'])
+    for j in range(5):
+        s = cut + (L - cut) * (j + 1) / 6
+        q = p0 + t * s
+        a, b = q - t * 0.5, q + t * 0.5
+        zp0, zp1 = base + 12.0, top - 15.6
+        _quad(mb, (a.x, a.y), (b.x, b.y), zp0, zp1, 'trim_black', out=0.03, n=n)
+        e = q + n * 0.6
+        mb.cylinder((e.x, e.y), 0.26, zp0, zp1, 'chrome', seg=8, cap_top=False)
+        mb.cylinder((e.x, e.y), 0.26, zp1, zp1 + 1.5, 'metal_dark', seg=8, r1=0.85)
+        for zc in (top - 5.6, top - 9.0, top - 12.4):
+            for (u0, u1, v0, v1) in ((-1.3, 1.3, 0.95, 1.3), (-1.3, 1.3, -1.3, -0.95), (-1.3, -0.95, -0.95, 0.95), (0.95, 1.3, -0.95, 0.95)):
+                g0, g1 = q + t * u0, q + t * u1
+                _quad(mb, (g0.x, g0.y), (g1.x, g1.y), zc + v0, zc + v1, 'plaster_grey', out=0.04, n=n)
+    # the south face by the corner: three green window bands, the round red mark under the parapet's top
+    p0, t, n, L = _side(o, d['bands'])
+    for zc in (top - 11.5, top - 15.0, top - 18.5):
+        a, b = p0 + t * (L - cut - 9.5), p0 + t * (L - cut - 1.0)
+        _quad(mb, (a.x, a.y), (b.x, b.y), zc - 1.1, zc + 1.1, 'glass_green', out=0.03, n=n, panes=(5, 1))
+    q = p0 + t * (L - 3.0) + n * 0.06
+    ring = [(q.x + t.x * 1.5 * math.cos(a_), q.y + t.y * 1.5 * math.cos(a_), top - 2.3 + 1.5 * math.sin(a_))
+            for a_ in (i * math.pi / 6 for i in range(12))]
+    mb.face(ring, 'banner_red')
+
+
+def _grand(mb, d):
+    """그랜드백화점 (1994; 그랜드마트 신촌점 on its sign by 1996): white tile round its outline with the round north-east
+    face, the top floor a ring round a roof garden; shop windows round the ground floor, the video screen on the round
+    face, a dark glass strip up the south end of the south-east face (52114 · 52119 · 52135)"""
+    o, base, top, deck = _ccw([tuple(p) for p in d['outline']]), d['base'], d['top'], d['deck']
+    court = _ccw([tuple(p) for p in d['court']])
+    # (the round faces shaded smooth: a run of sides between corners that turn 45 deg or more)
+    m = len(o)
+
+    def turn(i):
+        a, b, c = o[i - 1], o[i], o[(i + 1) % m]
+        d_ = math.atan2(c[1] - b[1], c[0] - b[0]) - math.atan2(b[1] - a[1], b[0] - a[0])
+        return abs((d_ + math.pi) % (2 * math.pi) - math.pi)
+    run, tags = 0, []
+    for i in range(m):
+        if turn(i) >= math.radians(45):
+            run += 1
+        tags.append('grand%d' % run)
+    for i in range(m):
+        p0, t, n, L = _side(o, i)
+        a, b = o[i], o[(i + 1) % m]
+        _quad(mb, a, b, base, base + 0.4, 'tile_white', smooth=tags[i])
+        _quad(mb, a, b, base + 0.4, base + 5.0, 'glass', panes=(max(1, round(L / 3.2)), 1), smooth=tags[i])
+        _quad(mb, a, b, base + 5.0, top, 'tile_white', smooth=tags[i])
+    _flat(mb, [o, court[::-1]], top, 'roof_flat')
+    for i in range(len(court)):
+        _quad(mb, court[(i + 1) % len(court)], court[i], deck, top, 'tile_white')
+    _flat(mb, [court], deck, 'roof_flat')
+    side, w, h, below = d['screen']
+    p0, t, n, L = _side(o, side)
+    q = p0 + t * (L / 2) + n * 0.7
+    zc = top - below
+    mb.box((q.x, q.y, zc), (w + 0.6, 0.5, h + 0.6), 'metal_dark', rotz=math.atan2(t.y, t.x))
+    a, b = q - t * (w / 2) + n * 0.26, q + t * (w / 2) + n * 0.26
+    mb.face([(a.x, a.y, zc - h / 2), (b.x, b.y, zc - h / 2), (b.x, b.y, zc + h / 2), (a.x, a.y, zc + h / 2)], 'glass_car')
+    side, s, w = d['strip']
+    p0, t, n, L = _side(o, side)
+    a, b = p0 + t * (s - w / 2), p0 + t * (s + w / 2)
+    _quad(mb, (a.x, a.y), (b.x, b.y), base + 5.4, top - 1.2, 'glass', out=0.03, n=n, panes=(1, round((top - base - 6.6) / 4.5)))
+
+
+def _kexim(mb, d):
+    """외환은행 (아주생명보험's building): black glass, a dark band under each storey's windows, a solid dark band at
+    the top with the signs; a pale fascia over the ground floor's bank; the machine room, stair head and tank on the
+    roof (52108 · 52119 · 52135)"""
+    o, base, top = _ccw([tuple(p) for p in d['outline']]), d['base'], d['top']
+    nf = d['floors']
+    z1, ztb = base + 0.3 + 4.2, top - 2.8
+    hf = (ztb - z1 - 0.7) / (nf - 1)
+    for i in range(len(o)):
+        p0, t, n, L = _side(o, i)
+        a, b = o[i], o[(i + 1) % len(o)]
+        cols = max(1, round(L / 1.6))
+        _quad(mb, a, b, base, base + 0.3, 'trim_black')
+        _quad(mb, a, b, base + 0.3, z1, 'glass', panes=(max(1, round(L / 3.0)), 1))
+        _quad(mb, a, b, z1, z1 + 0.7, 'paint_white')
+        for f in range(nf - 1):
+            zf = z1 + 0.7 + hf * f
+            _quad(mb, a, b, zf, zf + hf * 0.36, 'trim_black')
+            _quad(mb, a, b, zf + hf * 0.36, zf + hf, 'glass', panes=(cols, 1))
+        _quad(mb, a, b, ztb, top, 'trim_black')
+    _flat(mb, [o], top, 'roof_flat')
+    _roof_boxes(mb, d, top)
+
+
+def landmarks():
+    mb = MeshBuilder('town_landmarks')
+    for d in T.get('landmarks', []):
+        dict(grace=_grace, grand=_grand, kexim=_kexim)[d['kind']](mb, d)
+    return mb
 
 
 def signs():
@@ -542,7 +760,7 @@ def rot_fence():
 def build():
     if not T:
         return []
-    return houses() + [signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), rot_dirsign(), rot_fence()] + bank() + [yro_signs(), yro_banner()]
+    return houses() + [landmarks(), signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), rot_dirsign(), rot_fence()] + bank() + [yro_signs(), yro_banner()]
 
 
 # ----------------------------------------------------------------------------- the city bus

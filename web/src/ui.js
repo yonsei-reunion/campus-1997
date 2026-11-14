@@ -59,12 +59,14 @@ export class UI {
       x.fillStyle = '#cfc9bd';
       x.fillRect(0, P(0, -470)[1], W, H);
       x.fillStyle = '#b9b2a6'; x.strokeStyle = '#968e82'; x.lineWidth = 1;
-      for (const b of T.blocks) {
-        if (b[6] <= 0) continue;
+      const lms = T.landmarks || [], lmb = new Set(lms.map((d) => d.block));     // (신촌 로터리's corners: their outlines)
+      T.blocks.forEach((b, i) => {
+        if (b[6] <= 0 || lmb.has(i)) return;
         const [cx, cy, L, Wd, a] = b, c = Math.cos(a), sn = Math.sin(a);
         trace(x, [[-L / 2, -Wd / 2], [L / 2, -Wd / 2], [L / 2, Wd / 2], [-L / 2, Wd / 2]].map(([u, v]) => [cx + u * c - v * sn, cy + u * sn + v * c]), P);
         x.closePath(); x.fill(); x.stroke();
-      }
+      });
+      for (const d of lms) { trace(x, d.outline, P); x.closePath(); x.fill(); x.stroke(); }
     }
     // paths & roads
     x.lineCap = 'round'; x.lineJoin = 'round';

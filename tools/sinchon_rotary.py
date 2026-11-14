@@ -122,14 +122,54 @@ LANDMARKS = [
     dict(name='그랜드백화점', at=(-176.0, -997.0), lv=10, wall=1, sign=13, sign_h=2.6),       # 1994
     dict(name='외환은행', at=(-119.0, -1054.0), lv=13, wall=2, sign=15, sign_h=2.0),          # the south wedge's tower
 ]
-# Their tops and 그레이스's outline from the 1997 frames (고증 4.10 「모퉁이 큰 건물」): the roofs where the scans of
-# 27/18 and 27/19 (the same day's light) match best, 68.8 m (그레이스, five places 68.5 - 69.7, correlation 0.74 - 0.95),
-# 63.1 m (그랜드's main roof; its north part 68.0) and 56.8 m (외환은행).  The storeys stay (their walls' draws from
-# blender/town.py's stream); each storey grows or shrinks to reach the top: the block's 13th field, metres a storey.
-# 그레이스's north end was its car park in 1997 (painted bays in 27/18): the block ends at its north-east wall's foot,
-# the 1997 and 1998 frames' line from (-202, -848) to (-159, -863)
-LM_TOP = {'그레이스백화점': 68.8, '그랜드백화점': 63.1, '외환은행': 56.8}
-GRACE_1997 = [(-227.8, -895.6), (-179.5, -917.9), (-158.5, -863.3), (-203.0, -847.5)]
+# Their tops and outlines from the 1997 frames (고증 4.10.5): the scans of 27/18 and 27/19 (the same day's light) and
+# 1998's 26/17 resampled at the roof's height, an edge's height where its picture
+# stands still from frame to frame (the frames that see past it), a roof's where the windows match.
+# - 그레이스: its walls' top 73.0 m (the parapet round the roof, south side 73.0 - 73.5 in three frames, west 72.4),
+#   the roof inside 68.8; the outline the parapet's (north 1.75 m inside the old foot line, the west turned 2.2 deg,
+#   the east OSM's).  Its north end was its car park in 1997 (painted bays in 27/18).  No upper floor set back
+# - 그랜드: OSM's outline (그랜드플라자, its round north-east side) the ring of its top floor, 68.3 m, round a roof
+#   garden 63.0 m (GRAND_COURT)
+# - 외환은행: OSM's outline (「144」), its walls' top 54.0 m (the north edge where three frames meet, the roof 54.5); the
+#   machine room over it 57.0 (what 56.8 was), the stair head 60.0, a round tank
+# The blocks keep their storeys (their walls' draws from blender/town.py's stream; the 13th field stretches a storey to
+# the top) but are drawn as LM_SHAPE in blender/town.py landmarks() (town['landmarks']), not as boxes
+LM_TOP = {'그레이스백화점': 73.0, '그랜드백화점': 68.3, '외환은행': 54.0}
+GRACE_1997 = [(-225.27, -896.16), (-179.28, -917.39), (-157.10, -865.66), (-203.55, -849.16)]
+# (the old outline, 2026-11-14: the walls' feet in 27/18 and 1998's 26/17)
+GRACE_1997_OLD = [(-227.8, -895.6), (-179.5, -917.9), (-158.5, -863.3), (-203.0, -847.5)]
+GRAND_1997 = [(-188.0, -989.7), (-190.3, -999.0), (-185.9, -1005.6), (-191.2, -1009.7), (-186.5, -1015.7), (-181.4, -1012.0),
+              (-175.1, -1020.4), (-159.4, -1008.5), (-163.9, -1002.7), (-160.1, -1000.5), (-160.7, -996.1), (-161.4, -992.6),
+              (-162.9, -989.3), (-163.3, -988.4), (-167.6, -982.2), (-168.3, -981.1), (-171.2, -978.1), (-173.9, -975.8),
+              (-177.0, -973.3), (-180.9, -976.4), (-182.7, -979.0), (-183.8, -978.6), (-186.5, -978.6), (-188.6, -979.7),
+              (-189.7, -982.1), (-191.0, -985.4), (-190.2, -987.6), (-189.2, -989.3)]   # (OSM's, its spike taken out)
+GRAND_COURT = [(-186.8, -988.5), (-176.0, -988.8), (-172.0, -991.0), (-168.5, -994.0), (-166.8, -998.5), (-167.5, -1003.0),
+               (-173.0, -1008.5), (-178.0, -1007.0), (-186.5, -999.0)]                 # (27/18 · 27/19 at 63 m)
+KEXIM_1997 = [(-130.2, -1059.9), (-114.7, -1062.7), (-102.4, -1061.3), (-103.8, -1048.7), (-107.1, -1048.0), (-127.4, -1043.7),
+              (-137.7, -1052.6)]                                                       # (OSM 「144」, counter-clockwise)
+# What blender/town.py draws of each (the 1995 · 1996 photos 52095 · 52097 · 52130 · 52114 · 52119 · 52135, 서울연구원):
+# - 그레이스: white tile; at its south-east corner a round green glass shaft from the second floor to the roof (`glass`:
+#   the corner and how far it is cut back along each side), five steel pipes with crowns up the east face (`pipes`: the
+#   side, from the corner), three rows of square frames over them, three green window bands on the south face near the
+#   corner (`bands`), the cooling towers along the roof's north side (`boxes`)
+# - 그랜드: white tile, the video screen on the round face (`screen`: on side i, w, h, m below the top to its middle),
+#   a dark glass strip up the south end of the south-east face (`strip`: side, m along it, width)
+# - 외환은행: black glass storeys with dark bands (`floors`), the machine room, stair head and tank on the roof
+# Sides: side i runs from outline[i] to outline[i + 1].  boxes: [x, y, L, W, angle, height over the roof]; tanks: [x,
+# y, r, height]; signs: the cell of sign_sinchon2 on side i, m along it to its middle (None: the side's middle), width,
+# height, its middle `top` m below the top or `up` m over the ground, `off` m out from the side's line (a flat sign on
+# a round face stands off by the bulge)
+LM_SHAPE = {
+    '그레이스백화점': dict(kind='grace', outline=GRACE_1997, deck=68.8, parapet=1.0, glass=(1, 5.5), pipes=1, bands=0,
+                     boxes=[(-188.8, -865.0, 46.0, 4.5, -0.333, 2.2)],
+                     signs=[dict(cell=12, side=1, at=15.0, w=14.3, h=2.6, top=2.1)]),
+    '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=63.0, screen=(13, 12.0, 8.5, 19.0),
+                    strip=(6, 2.5, 2.5), signs=[dict(cell=13, side=13, w=16.5, h=3.0, top=2.4, off=1.0)]),
+    '외환은행': dict(kind='kexim', outline=KEXIM_1997, floors=10,
+                 boxes=[(-114.5, -1053.7, 13.5, 3.6, -0.207, 3.0), (-113.5, -1059.0, 6.5, 4.0, -0.207, 6.0)],
+                 tanks=[(-127.2, -1052.5, 1.9, 3.5)],
+                 signs=[dict(cell=14, side=4, at=12.7, w=12.0, h=2.0, top=1.3), dict(cell=15, side=4, at=12.7, w=8.5, h=1.7, up=9.6)]),
+}
 LANE_W = 3.25
 # 연세로's side streets (OSM: 명물길, 연세로4길, 연세로2길 on the east; 연세로5길, 연세로 (to 신촌로), on the west):
 # where its shop rows break, y of the gap's two sides
@@ -500,11 +540,13 @@ def layout(geo, town, extras, ground, taken_z):
             new.append(b)
             n_fill += 1
     blocks += new
-    # the landmarks as the 1997 frames have them (LM_TOP, GRACE_1997), set after the fill so that what was decided
-    # round them stays: 그레이스's box on its 1997 walls, each landmark's storeys stretched to its top (13th field)
+    # the landmarks as the 1997 frames have them (LM_TOP, LM_SHAPE), set after the fill so that what was decided round
+    # them stays: each block's box on its 1997 outline, its ground under that outline, its storeys stretched to its top
+    # (13th field); blender/town.py draws them as town['landmarks'] (their boxes' draws spent into nothing)
     for lm, b in corner:
-        if lm['name'] == '그레이스백화점':
-            g_ = Polygon(GRACE_1997)
+        sh = LM_SHAPE.get(lm['name'])
+        if sh:
+            g_ = Polygon(sh['outline'])
             rr = list(g_.minimum_rotated_rectangle.exterior.coords)[:4]
             ex, ey = np.array(rr[1]) - np.array(rr[0]), np.array(rr[3]) - np.array(rr[0])
             L, W = float(np.linalg.norm(ex)), float(np.linalg.norm(ey))
@@ -513,10 +555,21 @@ def layout(geo, town, extras, ground, taken_z):
                 L, W, ang = W, L, ang + math.pi / 2
             fill = g_.area / (L * W)
             mc = g_.minimum_rotated_rectangle.centroid
-            b[:5] = [round(mc.x, 2), round(mc.y, 2), round(L * (0.95 + 0.05 * fill) - 0.3, 2), round(W * (0.95 + 0.05 * fill) - 0.3, 2),
-                     round(ang, 4)]
+            b[:6] = [round(mc.x, 2), round(mc.y, 2), round(L * (0.95 + 0.05 * fill) - 0.3, 2), round(W * (0.95 + 0.05 * fill) - 0.3, 2),
+                     round(ang, 4), round(min(ground(x_, y_) for x_, y_ in sh['outline']) - 0.3, 2)]
         if lm['name'] in LM_TOP:
             b.append(round((LM_TOP[lm['name']] - b[5] - 0.3) / b[6], 3))
+    lm_draw = []
+    for lm, b in corner:
+        sh = LM_SHAPE.get(lm['name'])
+        if not sh:
+            continue
+        d_ = {k: v for k, v in sh.items() if k not in ('outline', 'court', 'signs')}
+        d_.update(name=lm['name'], block=next(i for i, x in enumerate(blocks) if x is b), base=b[5], top=LM_TOP[lm['name']],
+                  outline=R2(sh['outline']))
+        if 'court' in sh:
+            d_['court'] = R2(sh['court'])
+        lm_draw.append(d_)
     # what stands in the streets where they are now (연세로 east of its old line by 2 - 3 m) goes too, b[6] < 0
     # (only what the move put in them: boxes that stood over the old streets' edges stay as they were)
     clear_now, clear_old = street.buffer(-0.3), street0.buffer(-0.3)
@@ -929,8 +982,22 @@ def layout(geo, town, extras, ground, taken_z):
             face = math.atan2(-n_[1], -n_[0])
             signs2.append([round(float(c[0]), 2), round(float(c[1]), 2), round(b[5] + 0.3 + 3.3, 2), round(face, 4),
                            round(min(b[3] - 0.6, 6.4), 2), 1.1, (0 if side > 0 else 6) + i])
-    # the landmarks' signs over their tops, facing the junction
+    # the landmarks' signs where the 1995 · 1996 photos have them (LM_SHAPE); a landmark without a shape: over its top,
+    # facing the junction
     for lm, b in corner:
+        sh = LM_SHAPE.get(lm['name'])
+        if sh:
+            o_ = sh['outline']
+            for sg in sh['signs']:
+                p0_, p1_ = np.array(o_[sg['side']]), np.array(o_[(sg['side'] + 1) % len(o_)])
+                L_ = float(np.linalg.norm(p1_ - p0_))
+                t_ = (p1_ - p0_) / L_
+                n_ = np.array([t_[1], -t_[0]])                  # (outward: right of a counter-clockwise outline)
+                q = p0_ + t_ * (L_ / 2 if sg.get('at') is None else sg['at']) + n_ * sg.get('off', 0.25)
+                z_ = LM_TOP[lm['name']] - sg['top'] if 'top' in sg else b[5] + 0.3 + sg['up']
+                signs2.append([round(float(q[0]), 2), round(float(q[1]), 2), round(z_, 2), round(math.atan2(n_[1], n_[0]), 4),
+                               sg['w'], sg['h'], sg['cell']])
+            continue
         c, sn = math.cos(b[4]), math.sin(b[4])
         v = np.array(ISLAND['c']) - np.array(b[:2])
         # the face nearest the junction: of the four, the one whose outward normal points most at it
@@ -958,6 +1025,7 @@ def layout(geo, town, extras, ground, taken_z):
     town['heads'] = heads
     town['entrances'] = entrances
     town['signs2'] = signs2
+    town['landmarks'] = lm_draw                                # (blender/town.py landmarks(), web/src/ui.js's map)
     town['names2'] = names[1] + names[-1]
     town['vsigns'] = yro_wall_signs(blocks)                    # (연세로's wall signs and banner: yro_)
     town['banner'] = yro_banner(geo, ground)
