@@ -28,6 +28,7 @@ import west_ground
 import med97
 import music97
 import eng97
+import town97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -6348,6 +6349,13 @@ _hn_rng = Hn - _g97
 _smp_rng = lambda x_, y_: sample(_hn_rng, NEAR_HALF, NEAR_STEP, x_, y_)
 TOWN_SECS_RNG = gate_town.bank_fix(gate_town.plan(_hn_rng, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2],
                                                   (_gate_c - _gate_w, _gate_c + _gate_w), _smp_rng, old=True), _hn_rng, _smp_rng)
+# 동네 땅 (tools/town97.py, reference/고증/4.8.3_동네_땅.md; #189): the town south of 성산로 and of the rails on the 1:5000
+# survey's surface (the surface model's roofs and trees stood 4.7 m over it), here: the banks' sections as they were
+# (TOWN_SECS_RNG, what the planting on them decides) have read the old ground; 성산로's bed, the rails' and the streets'
+# are laid on the new one below
+_hn_pre97 = Hn.copy()
+TOWN97_NEAR = town97.lay(Hn, X, Y, keep=FIXED)
+print('동네 땅: nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m (16 - 84 %%: %(p16)+.2f .. %(p84)+.2f), %(low)+.1f .. %(high)+.1f' % TOWN97_NEAR)
 TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h,
                            keep_nodes=near_buildings(1.5))
 TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h)
@@ -6369,11 +6377,19 @@ print('대운동장 남서쪽 · 야구장: road bed %(bed)d nodes, 야구장 %(
 # 신촌 로터리 (tools/sinchon_rotary.py, reference/고증/4.10_신촌_로터리.md): the near terrain's patch south of the grid
 # (y -1200 .. -800), and the bed of 연세로 south of the bridge and of the junction, levelled across
 HS = sinchon_rotary.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP)
+TOWN97_SOUTH = town97.lay_patch(HS, sinchon_rotary.SOUTH)          # (동네 땅, above: the patch too)
+print('동네 땅 (남쪽 조각): nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m, %(low)+.1f .. %(high)+.1f' % TOWN97_SOUTH)
 ROT_GEO = sinchon_rotary.streets(TOWN_PLAN)
 # (the banks keep the ground their slopes' feet were set on; the bridge's opening is 연세로's: 고증 4.10.4 「길의 높이」)
 _rl_keep = gate_town.bank_poly(TOWN_SECS)[0].difference(Polygon([(gate_town.BRIDGE[0], -440), (gate_town.BRIDGE[1], -440),
                                                                   (gate_town.BRIDGE[1], -530), (gate_town.BRIDGE[0], -530)]))
 ROT_LEVEL = sinchon_rotary.level(Hn, HS, NEAR_HALF, NEAR_STEP, ROT_GEO, ground_h, keep=_rl_keep)
+# (the patch's outer rim as it was: the far terrain round it is the surface model still, and the streets' beds run out
+# to its edges.  The same patch and beds made on the ground before 동네 땅, blended in over town97.RIM)
+_hs_old = sinchon_rotary.patch(raw_grid, _hn_pre97, NEAR_HALF, NEAR_STEP)
+sinchon_rotary.level(_hn_pre97, _hs_old, NEAR_HALF, NEAR_STEP, ROT_GEO, ground_h, keep=_rl_keep)
+print('동네 땅 (남쪽 조각의 가장자리): 전의 땅으로 이음, 가장자리 마디의 차 %.2f m 까지' % town97.rim_patch(HS, _hs_old, sinchon_rotary.SOUTH))
+del _hn_pre97, _hs_old
 print('신촌 로터리: 교차로 높이 %.2f m, 연세로 %s, 길 %s' % (ROT_LEVEL['z_junction'], ROT_LEVEL['z_yonsei'], ROT_LEVEL['arms']))
 
 

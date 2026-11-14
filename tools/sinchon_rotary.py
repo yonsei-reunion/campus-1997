@@ -543,12 +543,15 @@ ARM97 = {
 }
 ARM97_FADE = 60.0
 LEVEL_EASE = 30.0              # (the ground eased into the streets' bed this far past the sidewalks: the shop houses on it)
+# the junction's own level (게임 기준; the photos' 17.45 m + 0.3, as the surface model happened to have it smoothed at its
+# middle): held, now that the town round it lies on the survey's surface (tools/town97.py)
+JC_Z = 17.78                   # @ JC (-100, -975)
 
 
 def level(Hn, Hs, half, step, geo, sample_n, keep=None):
     """The streets' bed: level across each arm, its height along it the 1997 photos' (YRO97, ARM97; past them the
-    ground smoothed over 60 m: the 5 m model carries the roofs of the tall blocks as humps of 2 - 4 m), the junction at
-    its middle's; eased out over LEVEL_EASE m past the sidewalks.  North of y -505 only under the bridge, to 성산로's
+    ground smoothed over 60 m: since 2026-11-15 the survey's surface, tools/town97.py, which carries the arms' outer
+    ends on its spot heights), the junction at JC_Z; eased out over LEVEL_EASE m past the sidewalks.  North of y -505 only under the bridge, to 성산로's
     south kerb (gate_town.plan's bed); keep: what stays as it is (the banks' footprint)."""
     S = SOUTH
     A = geo['arms']
@@ -563,7 +566,7 @@ def level(Hn, Hs, half, step, geo, sample_n, keep=None):
     # (off the patch's south edge the sampling reads cval: the old datum's 0, 2.0 m under today's, so that the arms'
     # profiles there stay as they were drawn)
     smp = lambda x, y: float(ndimage.map_coordinates(Cs, [[(y - S['y0']) / step], [(x - S['x0']) / step]], order=1, cval=-2.0)[0])
-    zj = smp(*JC)
+    zj = JC_Z
     prof = {}
     for k, a in A.items():
         z = np.array([smp(*p) for p in a.P])
