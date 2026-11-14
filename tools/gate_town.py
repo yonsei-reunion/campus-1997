@@ -76,7 +76,7 @@ BRIDGE = (-108.5, -78.5)     # the opening for 연세로 (x), its piers in the m
 CROSS_X = (-75.0, -61.5)     # the zebra over 성산로, east of the junction's box
 BOX_X = (-108.7, -79.5)      # the box junction's white frame before 연세로 (x; 2.9 m in from the north kerb, 1.9 m from
 #                              the south one)
-EAST_TURN = 22.25            # where the gate's east low wall turns south-east, along its line from its middle (m)
+EAST_TURN = 19.5            # where the gate's east low wall turns south-east, along its line from its middle (m)
 YZEBRA = (-459.5, -466.5)    # the zebra over 연세로's mouth (y)
 YONSEI_X = -96.0
 YONSEI_HALF, YONSEI_WALK = 7.0, 5.0

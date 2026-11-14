@@ -330,19 +330,19 @@ def sign_board():
 # Local frame: x east along the gate's line from the carriageway's middle, y north (inside), front = -y, z from the
 # ground at the gate's middle.  Along the line (m): a low rubble wall with an iron fence and stone piers, the lodge
 # (-18.65 .. -11.65), the west walk's outer pillar, the walk (4.65 m), the west main pillar, the carriageway (8.5 m), the
-# east main pillar, the walk, a tall granite slab and the white wall, then the low wall again.  The main pillars stand
+# east main pillar, the walk, its outer pillar and the white wall, then the low wall again (turning south-east).  The main pillars stand
 # on 백양로's verges (ROAD verge, 4.2 .. 5.65 m off the centre line) and the walks pass between them and the outer ones.
 # The main pillars and the lodge run far back from the line (the July 1997 vertical photos: both pillars 4.3 .. 5.0 m,
 # the lodge's roof 8 .. 10 m; the 1996 photo's roof and the 2008 skyview say 10 m): 고증 4.8.1 「깊이」.
 # tools/build_campus.py GATE_PARTS keeps the shrubs off these footprints.
 GATE_FRONT = -0.3            # the pillars' and the lodge's south faces, from the gate's line
 GATE_MAIN = dict(u=4.95, w=1.4, d=4.8, fin=0.34, h=4.9, h_back=4.5, core=4.45)
-GATE_SIDE = dict(u=-10.98, w=1.35, d=2.0, fin=0.34, h=3.75, h_back=3.45, core=3.4)
+GATE_SIDE = dict(u=-10.98, w=1.35, d=3.0, fin=0.34, h=3.75, h_back=3.45, core=3.4)
 GATE_LODGE = dict(u0=-18.65, u1=-11.65, d=10.0, h=2.8, solid=3.75)
-GATE_SLAB = dict(u0=10.25, u1=12.75, h=3.7, t=0.4)
-GATE_WALL = dict(u0=12.75, u1=21.75, h=2.5, t=0.35)
+GATE_EAST = dict(u=10.78, w=1.05, d=3.6, fin=0.3, h=3.7, h_back=3.45, core=3.4)    # the east walk's outer pillar: a narrow core
+GATE_WALL = dict(u0=11.3, u1=19.0, h=2.7, t=0.35)
 GATE_END = 31.5              # the low wall's ends (tools/build_campus.py reads the same length for the ground)
-GATE_TURN = dict(u0=22.25, to=(34.5, -11.5), h=0.8, t=0.4)   # the east low wall: south-east from the white wall's end (tools/gate_town.py EAST_TURN)
+GATE_TURN = dict(u0=19.5, to=(33.3, -11.5))   # the east low wall: south-east from the white wall's end (tools/gate_town.py EAST_TURN)
 GATE_LEAF = 2.8              # the iron leaves' height
 
 
@@ -368,10 +368,11 @@ def _gate_grille(mb, p0, p1, z0, z1, step=0.13, rails=(0.06, 0.5)):
         mb.box((x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, z0 + h / 2), (t, t, h), 'trim_black', rotz=a, skip=('bottom',))
 
 
-def _gate_pillar(mb, gz, u, w, d, fin, h, h_back, core, lamp=0, vent=0):
+def _gate_pillar(mb, gz, u, w, d, fin, h, h_back, core, lamp=0, vent=()):
     """a dark rubble core between two granite slabs: the slabs stand over the core and run back the pillar's whole
     depth, their tops falling to the north; the rubble shows at both ends.  lamp: the side of the core's face the
-    iron lantern hangs on (2011).  vent: the side whose slab has the dark slot over the folded leaves (2011)."""
+    iron lantern hangs on (2011).  vent: the sides whose slab has the dark recess over the folded leaf (the 1995
+    photos: on the walk's side as on the carriageway's)."""
     y0, y1 = GATE_FRONT, GATE_FRONT + d
     z = gz(u, (y0 + y1) / 2)
     zb = z - 0.6
@@ -383,9 +384,8 @@ def _gate_pillar(mb, gz, u, w, d, fin, h, h_back, core, lamp=0, vent=0):
             mb.face([(*ring[i], zb), (*ring[j], zb), (*ring[j], z + top[j]), (*ring[i], z + top[i])], 'gate_granite')
         mb.face([(*ring[i], z + top[i]) for i in range(4)], 'gate_granite')
     mb.box((u, (y0 + y1) / 2, (zb + z + core) / 2), (w - 2 * fin, d - 0.2, z + core - zb), 'gate_rubble', skip=('left', 'right', 'bottom'))
-    if vent:
-        mb.box((u + vent * (w / 2 + 0.006), y0 + 0.55 + 1.15, z + 3.12), (0.012, 2.3, 0.3), 'void_black', skip=('bottom',))
-        mb.box((u + vent * (w / 2 + 0.014), y0 + 0.55 + 1.15, z + 3.12), (0.012, 0.05, 0.3), 'gate_granite')      # its mullion
+    for sd in vent or ():
+        mb.box((u + sd * (w / 2 + 0.006), y0 + d * 0.54, z + 3.15), (0.012, 2.1, 0.6), 'void_black', skip=('bottom',))
     if lamp:
         lx, ly, lz = u + lamp * (w / 2 - fin - 0.22), y0 + 0.1, z + core - 1.15
         mb.box((lx, ly - 0.09, lz + 0.5), (0.04, 0.2, 0.04), 'trim_black')              # the bracket and its hook
@@ -423,19 +423,21 @@ def _gate_fence(mb, gz, u0, u1, plinth=0.5, top=1.9):
 def gate():
     mb = MeshBuilder('gate')
     gz = _gate_ground()
-    M, S, L, T, W = GATE_MAIN, GATE_SIDE, GATE_LODGE, GATE_SLAB, GATE_WALL
+    M, S, L, T, W = GATE_MAIN, GATE_SIDE, GATE_LODGE, GATE_EAST, GATE_WALL
     f0 = GATE_FRONT
-    # ---- the two main pillars and the west walk's outer one; the lanterns on the west side of both cores (the 2011
-    # roadview's two), the slot high on the carriageway's side over the folded leaves
+    # ---- the two main pillars and the walks' outer ones; the lanterns on the west side of both cores (the 2011
+    # roadview's two), a dark recess high on either side over the folded leaves (the 1995 photos)
     for s in (-1, 1):
-        _gate_pillar(mb, gz, s * M['u'], M['w'], M['d'], M['fin'], M['h'], M['h_back'], M['core'], lamp=-1, vent=-s)
-        # the carriageway's leaves folded back along the slab (two a side) and the walk's one behind the other slab
-        z = gz(s * M['u'], 1.0)
+        _gate_pillar(mb, gz, s * M['u'], M['w'], M['d'], M['fin'], M['h'], M['h_back'], M['core'], lamp=-1, vent=(-1, 1))
+        # the carriageway's leaves folded back along the slab (two a side) and the walk's one behind the other slab,
+        # under the recesses
+        z = gz(s * M['u'], 2.4)
         xin, xout = s * (M['u'] - M['w'] / 2), s * (M['u'] + M['w'] / 2)
         for k in (1, 2):
-            _gate_grille(mb, (xin - s * 0.07 * k, f0 + 0.12), (xin - s * 0.07 * k, f0 + 0.12 + 2.15), z + 0.08, z + GATE_LEAF)
-        _gate_grille(mb, (xout + s * 0.07, f0 + 0.12), (xout + s * 0.07, f0 + 0.12 + 2.25), z + 0.08, z + GATE_LEAF)
+            _gate_grille(mb, (xin - s * 0.07 * k, f0 + 1.5), (xin - s * 0.07 * k, f0 + 1.5 + 2.15), z + 0.08, z + GATE_LEAF)
+        _gate_grille(mb, (xout + s * 0.07, f0 + 1.5), (xout + s * 0.07, f0 + 1.5 + 2.25), z + 0.08, z + GATE_LEAF)
     _gate_pillar(mb, gz, S['u'], S['w'], S['d'], S['fin'], S['h'], S['h_back'], S['core'])
+    _gate_pillar(mb, gz, T['u'], T['w'], T['d'], T['fin'], T['h'], T['h_back'], T['core'])
     # ---- the notice board on its two legs before the east pillar (both 1996 photos)
     z = gz(M['u'], f0 - 0.4)
     mb.box((M['u'] + 0.05, f0 - 0.42, z + 0.95), (0.9, 0.04, 1.0), 'paint_white')
@@ -473,10 +475,8 @@ def gate():
     _gate_fence(mb, gz, u0 - 9.2, u0 - 6.2)
     _gate_pier(mb, gz, u0 - 10.9, u0 - 9.2)
     _gate_fence(mb, gz, -GATE_END, u0 - 10.9)
-    # ---- east of the east walk: the tall slab, then the white wall with the name (the 2011 roadview has the name in
-    # metal letters here; in 1996 the wall is papered over with the students' posters), a pilaster and an end pier
-    z = min(gz(T['u0']), gz(T['u1']))
-    mb.box(((T['u0'] + T['u1']) / 2, 0, z + T['h'] / 2 - 0.3), (T['u1'] - T['u0'], T['t'], T['h'] + 0.6), 'gate_granite', skip=('bottom',))
+    # ---- east of the east walk's outer pillar: the white wall (two bays, a pilaster and an end pier; papered over
+    # with the students' posters in the 1995 and 1996 photos, the name in metal letters on it in 2008 and 2011)
     z = min(gz(W['u0']), gz(W['u1']))
     mb.box(((W['u0'] + W['u1']) / 2, 0, z + W['h'] / 2 - 0.3), (W['u1'] - W['u0'], W['t'], W['h'] + 0.6), 'gate_granite', skip=('bottom', 'left'))
     mb.box(((W['u0'] + W['u1']) / 2, 0, z + W['h'] + 0.05), (W['u1'] - W['u0'], W['t'] + 0.1, 0.1), 'gate_granite')
@@ -486,20 +486,23 @@ def gate():
     pa, pz, yy = W['u0'] + 0.9, z + 1.38, -W['t'] / 2 - 0.012
     mb.face([(pa, yy, pz), (pa + 1.9, yy, pz), (pa + 1.9, yy, pz + 0.475), (pa, yy, pz + 0.475)], 'sign_gate',
             uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
-    # ---- east of the white wall: a low granite wall turning south-east along the mouth's edge down to 성산로's
-    # sidewalk (its line in the July 1997 vertical photos; its make, a knee-high granite kerb wall, the 2011 roadview's)
+    # ---- east of the white wall: the low wall again, pier and fence by turns as in the west (the May 1996 photo
+    # from the rail bank), turning south-east along the mouth's edge down to 성산로's sidewalk (its line in the July
+    # 1997 vertical photos).  Drawn in its own frame along that line.
     G = GATE_TURN
     (xa, ya), (xb, yb) = (G['u0'], 0.0), G['to']
     ln, a = math.hypot(xb - xa, yb - ya), math.atan2(yb - ya, xb - xa)
-    n = max(1, round(ln / 2.8))
-    for k in range(n):
-        f0_, f1_ = k / n, (k + 1) / n
-        cx, cy = xa + (xb - xa) * (f0_ + f1_) / 2, ya + (yb - ya) * (f0_ + f1_) / 2
-        z = min(gz(xa + (xb - xa) * f0_, ya + (yb - ya) * f0_), gz(xa + (xb - xa) * f1_, ya + (yb - ya) * f1_))
-        mb.box((cx, cy, z + G['h'] / 2 - 0.4), (ln / n + 0.02, G['t'], G['h'] + 0.8), 'gate_granite', rotz=a, skip=('bottom',))
-        mb.box((cx, cy, z + G['h'] + 0.04), (ln / n + 0.02, G['t'] + 0.08, 0.08), 'gate_granite', rotz=a)
-    z = gz(xb, yb)
-    mb.box((xb, yb, z + (G['h'] + 0.25) / 2 - 0.4), (0.5, 0.5, G['h'] + 1.05), 'gate_granite', rotz=a, skip=('bottom',))
+    ca, sa = math.cos(a), math.sin(a)
+    gz2 = lambda u, v=0.0: gz(xa + u * ca - v * sa, ya + u * sa + v * ca)
+    xf0, mb.xf = mb.xf, Matrix.Translation((xa, ya, 0.0)) @ Matrix.Rotation(a, 4, 'Z')
+    bay = (ln - 3 * 1.7) / 4
+    e0 = 0.0
+    for k in range(4):
+        _gate_fence(mb, gz2, e0, e0 + bay)
+        if k < 3:
+            _gate_pier(mb, gz2, e0 + bay, e0 + bay + 1.7)
+        e0 += bay + 1.7
+    mb.xf = xf0
     return mb
 
 
