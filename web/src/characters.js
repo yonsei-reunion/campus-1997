@@ -27,7 +27,7 @@ export const PEOPLE = {
 };
 export const STUDENTS = ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man-grey', 'man-blazer',
   'woman-tee', 'woman-pink', 'woman-dress', 'woman-dress-blue', 'woman-cardigan'];
-export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'man-grey', 'woman-tee', 'woman-dress', 'woman-cardigan'];
+export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'woman-tee', 'woman-dress', 'woman-cardigan'];
 
 // Every part of a person (skin, clothes, hair ...) is a flat colour, so one vertex-coloured material serves
 // everyone and each person is a single SkinnedMesh: one draw call (and one in the shadow pass) instead of 6-10.
