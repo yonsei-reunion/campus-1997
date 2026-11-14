@@ -17,7 +17,8 @@ Sources (CC0, quaternius.com), copied to assets_src/quaternius/:
   (the women are the pack's FBX converted by poly.pizza; normalize_fbx() undoes the converter's scale and timing)
 
 Output: web/public/assets/models/people/<id>.glb  (feet at y=0, facing +Z, real-world height in metres,
-colour materials only, texture coordinates into faces.png), faces(_rims).png and rig-umc.glb / rig-women.glb with the
+colour materials only, texture coordinates into faces.png, the vertex attributes _OCC: how shut in a vertex is, and
+_LEG: its place on a trouser leg), faces(_rims).png and rig-umc.glb / rig-women.glb with the
 clips idle walk sprint sit emote-yes emote-no interact-right and glTF extras walk_speed / run_speed (m/s of the feet
 in the walk / run cycle).
 
@@ -90,6 +91,29 @@ def bands(to, of, zs, **box):
     return [dict(of=of, to=to, z=z, **box) for z in zs]
 
 
+def trainers(rig, upper):
+    """`paint` for a pair of trainers of 1997 on the packs' plain shoes (material `upper`): two bars down the outer
+    side and a tab at the heel in the colour 'feet:Bar', the laces over the instep ('feet:Lace'); the women's shoes,
+    which come without one, a sole ('feet:Sole').  Boxes in the source's T pose: the toes at y -0.29 (women -0.27),
+    a foot's middle at x 0.134 (women 0.090)."""
+    if rig == 'umc':
+        return [dict(of=(upper,), to='Bar', x=(.134, None), y=(-.188, -.166), z=(.032, .072)),
+                dict(of=(upper,), to='Bar', x=(.134, None), y=(-.150, -.128), z=(.032, .078)),
+                dict(of=(upper,), to='Bar', y=(-.034, None), z=(.052, .118)),
+                dict(of=(upper,), to='Lace', x=(.112, .155), y=(-.218, -.122), z=(.062, None))]
+    return [dict(of=(upper,), to='Sole', z=(None, .020)),
+            dict(of=(upper,), to='Bar', x=(.090, None), y=(-.176, -.157), z=(.024, .050)),
+            dict(of=(upper,), to='Bar', x=(.090, None), y=(-.142, -.123), z=(.024, .056)),
+            dict(of=(upper,), to='Bar', y=(-.022, None), z=(.040, .090)),
+            dict(of=(upper,), to='Lace', x=(.070, .112), y=(-.205, -.112), z=(.050, None))]
+
+
+def canvas(upper, rubber):
+    """`paint` for the men's canvas shoes: a rubber toe cap and the laces in the sole's material `rubber`."""
+    return [dict(of=(upper,), to=rubber, y=(None, -.246)),
+            dict(of=(upper,), to=rubber, x=(.114, .153), y=(-.222, -.130), z=(.058, None))]
+
+
 # 1997 campus fashion (reference/고증 4.11): baggy stone-washed jeans and wide trousers, big tees and hoodies, a collared
 # tee in broad stripes, a jumper with a dark collar, a blazer over cotton trousers, the Yonsei-blue cheer jacket, a white
 # knit over a black skirt, a cropped tee, a pastel cardigan, a professor in a grey suit, staff in work vests.
@@ -106,8 +130,9 @@ def bands(to, of, zs, **box):
 PEOPLE = {
     'man-tee': man('curtain', 'Casual_2', 'Casual_2', 'Casual_2',
                    {'LightBrown': '#f1efe8', 'LightBlue': JEANS['stone'], 'Red_Dark': '#e8e6e0', 'feet:White': '#c9c6be',
-                    'Skin': SKIN['b'], 'Hair': HAIR['black']},
-                   'big white tee, baggy stone-washed jeans, white sneakers; long fringe parted in the middle',
+                    'feet:Bar': '#27345a', 'feet:Lace': '#cfccc4', 'Skin': SKIN['b'], 'Hair': HAIR['black']},
+                   'big white tee, baggy stone-washed jeans, white trainers; long fringe parted in the middle',
+                   paint={'feet': trainers('umc', 'Red_Dark')},
                    face=dict(lid='inner', slant=.05, jaw=.97, brow=.9, brow_tilt=-.05, arch=.9, brow_len=.93, brow_soft=2.2,
                              smile=.0022, nose=.90, bridge=.28,
                              nose_w=.98)),
@@ -122,20 +147,24 @@ PEOPLE = {
                                brow_len=.86, brow_taper=1.6, nose=.84, bridge=.24, nose_w=1.10)),
     'man-hoodie': man('up', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
                       {'Purple': '#23345e', 'LightBlue': '#a8946a', 'feet:White': '#e8e6e0', 'Skin': SKIN['tan'],
-                       'Hair': HAIR['black'], 'Brow': '#0e0b0a'}, 'oversized navy hoodie, wide khaki cargo trousers; short hair swept up and back, tanned',
+                       'Hair': HAIR['black'], 'Brow': '#0e0b0a'}, 'oversized navy hoodie, wide khaki cargo trousers, canvas shoes; short hair swept up and back, tanned',
+                      paint={'feet': canvas('Purple', 'White')},
                       face=dict(lid='mono', slant=.14, jaw=.97, eye=.98, smile=.0027, mouth=1.08, brow=1.5, brow_tilt=.09,
                                 brow_corner=True, brow_peak=.70, brow_drop=1.2, brow_taper=1.3, brow_soft=1.4, nose=1.04,
                                 bridge=.40, nose_curve=1.3)),
-    'man-cheer': man('sweep-73', 'Casual_Hoodie', 'Casual_2', 'Casual_2',
-                     {'Purple': '#1d3fa0', 'LightBlue': JEANS['mid'], 'Red_Dark': '#f2f2ee', 'Skin': SKIN['c'],
-                      'Hair': HAIR['black']}, 'Yonsei-blue cheer jacket, jeans; a long fringe swept from a 7:3 parting',
+    'man-cheer': man('two-block', 'Casual_Hoodie', 'Casual_2', 'Casual_2',
+                     {'Purple': '#1d3fa0', 'LightBlue': JEANS['mid'], 'Red_Dark': '#f2f2ee', 'feet:Bar': '#1d3fa0',
+                      'feet:Lace': '#d6d3cc', 'Skin': SKIN['c'], 'Hair': HAIR['black']},
+                     'Yonsei-blue cheer jacket, jeans, white trainers; a two-block cut, the long top swept from a 7:3 parting',
+                     paint={'feet': trainers('umc', 'Red_Dark')},
                      face=dict(lid='double', slant=.04, jaw=1.02, eye=1.05, mouth=1.1, smile=.0032, brow=1.4, arch=1.7,
                                brow_len=1.06, brow_peak=.55, nose=.96, bridge=.30, nose_w=1.08, nose_up=.0015)),
     'man-grey': man('curtain-64', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
                     {'Purple': '#e8e0b0', 'Collar': '#3b3a3c', 'LightBlue': JEANS['mid'],
                      'feet:Purple': '#2a2a2e', 'Skin': SKIN['b'], 'Hair': HAIR['dyed'], 'Brow': '#1c1410'},
                     'pale yellow jumper with a dark collar, jeans; brown-dyed hair parted 6:4',
-                    paint={'body': [dict(of=('Purple',), to='Collar', x=(0, .10), z=(1.495, None))]},
+                    paint={'body': [dict(of=('Purple',), to='Collar', x=(0, .10), z=(1.495, None))],
+                           'feet': canvas('Purple', 'White')},
                     face=dict(lid='inner', slant=.10, jaw=.97, smile=.0012, mouth=.98, lip=1.35, brow=1.55, arch=.5, brow_tilt=.04,
                               brow_taper=1.7, brow_len=1.05, brow_gap=-.001, brow_up=-.001, nose=1.10, bridge=.42,
                               nose_curve=1.2, nose_w=1.04)),
@@ -158,13 +187,17 @@ PEOPLE = {
                      face=dict(lid='mono', slant=.06, jaw=1.07, eye=.95, arch=.7, smile=.0012, age='mid', brow=1.4, brow_len=.92,
                                brow_taper=1.4, nose=.88, bridge=.26, nose_w=1.14)),
     'woman-tee': woman('long', 'Casual', 'Casual', 'Casual',
-                       {'White': '#f4f1e8', 'Orange': JEANS['stone'], 'Grey': '#e8e6e0', 'Skin': SKIN['a'], 'Hair': HAIR['black']},
-                       'loose white tee, wide stone-washed jeans, long straight black hair',
+                       {'White': '#f4f1e8', 'Orange': JEANS['stone'], 'Grey': '#e8e6e0', 'feet:Bar': '#b3262e', 'feet:Lace': '#cfccc4',
+                        'feet:Sole': '#c9c6be', 'Skin': SKIN['a'], 'Hair': HAIR['black']},
+                       'loose white tee, wide stone-washed jeans, white trainers, long straight black hair',
+                       paint={'feet': trainers('women', 'Grey')},
                        face=dict(lid='inner', slant=.07, eye=1.03, jaw=1.03, smile=.0030, brow=.9, arch=1.35, brow_peak=.58, brow_len=1.05, brow_up=-.002, brow_soft=1.3,
                                  nose=.80, bridge=.28, nose_w=.96, nose_up=.001)),
     'woman-pink': woman('tuck', 'Casual', 'Casual', 'Casual',
-                        {'White': '#e7a7b6', 'Orange': '#cdb994', 'Grey': '#f0eee8', 'Skin': SKIN['fair'], 'Hair': HAIR['dark']},
-                        'pink knit, wide beige trousers; short bob, one side behind the ear',
+                        {'White': '#e7a7b6', 'Orange': '#cdb994', 'Grey': '#f0eee8', 'feet:Bar': '#8d8f92', 'feet:Lace': '#d6d3cc',
+                         'feet:Sole': '#cfccc4', 'Skin': SKIN['fair'], 'Hair': HAIR['dark']},
+                        'pink knit, wide beige trousers, white trainers; short bob, one side behind the ear',
+                        paint={'feet': trainers('women', 'Grey')},
                         face=dict(lid='inner', slant=.03, jaw=1.04, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
                                   nose=.72, bridge=.24, nose_w=1.02, nose_up=.002)),
     'woman-dress': woman('half', 'Formal', 'Formal', 'Formal',
@@ -189,8 +222,10 @@ PEOPLE = {
                               face=dict(lid='double', slant=.10, eye=.99, jaw=.98, smile=.0022, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
                                         brow_peak=.68, brow_drop=1.0, brow_soft=1.3, nose=.84, bridge=.32, nose_w=.95)),
     'woman-cardigan': woman('pixie', 'Suit', 'Casual', 'Casual',
-                            {'Black': '#ecdf9e', 'White': '#f2efe6', 'Orange': JEANS['mid'], 'Grey': '#f0eee8', 'Skin': SKIN['c'],
-                             'Hair': HAIR['black']}, 'pastel yellow cardigan over a white tee, jeans, short cut, metal glasses',
+                            {'Black': '#ecdf9e', 'White': '#f2efe6', 'Orange': JEANS['mid'], 'Grey': '#f0eee8', 'feet:Bar': '#27345a',
+                             'feet:Lace': '#d6d3cc', 'feet:Sole': '#cfccc4', 'Skin': SKIN['c'], 'Hair': HAIR['black']},
+                            'pastel yellow cardigan over a white tee, jeans, white trainers, short cut, metal glasses',
+                            paint={'feet': trainers('women', 'Grey')},
                             face=dict(lid='inner', slant=.05, jaw=1.03, smile=.0024, glasses=True, brow=1.5, arch=.8, brow_taper=1.4, brow_soft=2.2,
                                       nose=.76, bridge=.28, nose_w=1.08)),
     'woman-staff': woman('perm', 'Suit', 'Suit', 'Suit',
@@ -384,7 +419,12 @@ FINGER_MORE = {'Index': .8, 'Middle': 1.0, 'Ring': 1.12, 'Pinky': 1.25, 'Thumb':
 # people have about 33 and 29 cm), short arms (span 1.56 m at 1.71 m of height) and the men's hip joints wide apart
 # (22 cm for about 17).  Metres in the game's scale, each side: the shoulder joints out, the hip joints (and the feet
 # under them) in; the upper arm and the forearm longer by `arm`.
-BUILD = {'umc': dict(shoulder=.020, hip=-.022, arm=1.06), 'women': dict(shoulder=.030, hip=0.0, arm=1.06)}
+# Hands like gloves (a middle finger of 11.4 cm, 2.7 cm thick at its root, where a man's is about 8 by 2): the hand
+# smaller about the wrist by `hand`, every finger again about its knuckle by `finger`.
+# A neck 8.7 cm wide (men; 7 cm women) for about 11.5 and 9.5: wider by `neck` at its foot, less under the jaw (the
+# head keeps its size).  The women's waist 21 cm wide under hips of 30: wider by `waist`, clothes and skin alike.
+BUILD = {'umc': dict(shoulder=.020, hip=-.022, arm=1.06, hand=.88, finger=.88, neck=.25, waist=0.0),
+         'women': dict(shoulder=.030, hip=0.0, arm=1.06, hand=.88, finger=.88, neck=.32, waist=.14)}
 # The packs' clips hold the arms away from the body (the standing, walking and sitting clips are motion capture now,
 # blender/mocap.py; the pack's wave and reach are kept).  The arm that is not gesturing in toward the body, as the
 # standing clips hold it: clip -> the side, degrees in, degrees the forearm is turned about its length
@@ -449,6 +489,10 @@ def relax_fingers(arm, meshes, rig, s):
             for n in ('UpperLeg.', 'Foot.', 'PT.'):
                 if P.get(n + side):
                     _shift(P[n + side], Vector((sx * b['hip'] / s, 0, 0)))
+        wr.scale = (b['hand'],) * 3                                   # (after the shifts: they set the whole matrix)
+        for finger in UMC_FINGERS:
+            P[f'{finger}2.{side}'].scale = (b['finger'],) * 3
+    bpy.context.view_layer.update()
     for ob in meshes:
         mod = next(m for m in ob.modifiers if m.type == 'ARMATURE')
         name = mod.name
@@ -466,6 +510,32 @@ def relax_fingers(arm, meshes, rig, s):
     bpy.ops.object.mode_set(mode='OBJECT')
     for pb in arm.pose.bones:
         pb.matrix_basis = Matrix.Identity(4)
+
+
+def shape_body(ob, arm, rig):
+    """The neck and the waist of BUILD on one part of a person, in the source's T pose: the bones stay where they
+    are."""
+    b = BUILD[rig]
+    me, mw = ob.data, ob.matrix_world.copy()
+    inv = mw.inverted()
+    head = lambda name: arm.matrix_world @ arm.data.bones[name].head_local
+    neck = ob.vertex_groups.get('Neck')
+    skin = _skin_verts(me)
+    zn, zh = head('Neck').z, head('Head').z
+    cn = head('Neck')
+    zw, sw = (head('Abdomen').z + head('Torso').z) / 2, 0.09
+    for v in me.vertices:
+        c = mw @ v.co
+        if b['waist'] and abs(c.x) < .3:
+            f = b['waist'] * math.exp(-((c.z - zw) / sw) ** 2)
+            c.x *= 1 + f
+            c.y = cn.y + (c.y - cn.y) * (1 + .3 * f)
+        w = next((g.weight for g in v.groups if neck and g.group == neck.index), 0.0) if v.index in skin else 0.0
+        if w > 0 and b['neck']:
+            f = 1 + b['neck'] * w * (1 - .7 * _smooth((zn + zh) / 2, zh, c.z))
+            c.x *= f
+            c.y = cn.y + (c.y - cn.y) * (1 + (f - 1) * .5)
+        v.co = inv @ c
 
 
 def prune_actions(actions, drop=lambda bone: False, eps=1e-4):
@@ -518,11 +588,11 @@ def mesh_name(rig, outfit, part):
     return MESH_NAME.get((rig, outfit, part)) or MESH_PREFIX.get(outfit, outfit) + PART_MESH[part]
 
 
-# ---------- 1997 cut: baggy trousers, oversized tops ----------
+# ---------- 1997 cut: oversized tops ----------
 # Late-90s Korean campus fashion: wide hip-hop jeans and roomy pleated trousers that pile up on the shoes, big
-# sweatshirts, hoodies and tees.  The source outfits are slim, so the clothing is loosened around each limb's own
-# centre line (skin, i.e. hands and faces, is never touched; long dresses are left alone).
-BAGGY = {'Casual_2': 1.5, 'Casual_Hoodie': 1.5, 'Casual': 1.45, 'Worker': 1.3, 'Suit': 1.2, 'Adventurer': 1.3}
+# sweatshirts, hoodies and tees.  The source outfits are slim, so the tops are loosened around each limb's own centre
+# line (skin, i.e. hands and faces, is never touched; long dresses are left alone); the trousers are cut anew
+# (cut_trousers below).
 ROOMY = {'Casual_2': 1.13, 'Casual_Hoodie': 1.15, 'Casual': 1.1, 'Worker': 1.06, 'Suit': 1.03, 'Adventurer': 1.06, 'Formal': 1.0}
 
 
@@ -560,8 +630,8 @@ def _centres(points, key_fn):
 
 
 def loosen(ob, part, outfit):
-    """Widen trousers (legs) or tops (body) of one outfit part, in world space."""
-    F = (BAGGY if part == 'legs' else ROOMY if part == 'body' else {}).get(outfit, 1.0)
+    """Widen the top (body) of one outfit part, in world space."""
+    F = ROOMY.get(outfit, 1.0) if part == 'body' else 1.0
     if F <= 1.0:
         return
     me = ob.data
@@ -574,46 +644,201 @@ def loosen(ob, part, outfit):
     zs = [c.z for c in co.values()]
     zb, zt = min(zs), max(zs)
     H = zt - zb
-    if part == 'legs':
-        bs = H / 45
-        key = lambda c: (1 if c.x >= 0 else -1, int((c.z - zb) / bs))
-        cen = _centres(co.values(), key)
-        for i, c in co.items():
-            h = (c.z - zb) / H
-            w = 1 - _smooth(0.62, 0.9, h)                  # the waistband and seat stay fitted
-            f = 1 + (F - 1) * w * (0.8 + 0.3 * (1 - h))      # widest at the hem
-            cx, cy, _ = cen[key(c)]
-            c.x = cx + (c.x - cx) * f
-            c.y = cy + (c.y - cy) * f
-            if h < 0.07:                                    # the hem breaks over the shoes
-                c.z -= 0.035 * H * (1 - h / 0.07)
-    else:
-        # torso about its vertical centre line; sleeves (T-pose: along x) about the arm's axis
-        xs = [abs(c.x) for c in co.values()]
-        span = max(xs)
-        torso_w = 0.27 * max(span, 0.58)                  # (a tee's sleeves end short: its span is not the arms')
-        bt = H / 30
-        tkey = lambda c: (0, int((c.z - zb) / bt))
-        ba = span / 40
-        akey = lambda c: (1 if c.x >= 0 else -1, int(abs(c.x) / ba))
-        tcen = _centres([c for c in co.values() if abs(c.x) < torso_w], tkey)
-        acen = _centres([c for c in co.values() if abs(c.x) >= torso_w * 0.8], akey)
-        for i, c in co.items():
-            a = _smooth(torso_w * 0.8, torso_w * 1.25, abs(c.x))     # 0 torso .. 1 sleeve
-            h = (c.z - zb) / H
-            if a < 1 and tkey(c) in tcen:
-                tx, ty, _ = tcen[tkey(c)]
-                ft = 1 + (F - 1) * (1 - a) * (0.6 + 0.6 * (1 - h))    # roomier toward the hem
-                c.x = tx + (c.x - tx) * ft if abs(c.x) < torso_w else c.x
-                c.y = ty + (c.y - ty) * ft
-            if a > 0 and akey(c) in acen:
-                _, ay, az = acen[akey(c)]
-                fa = 1 + (F - 1) * 1.2 * a
-                c.y = ay + (c.y - ay) * fa
-                c.z = az + (c.z - az) * fa
+    # torso about its vertical centre line; sleeves (T-pose: along x) about the arm's axis
+    xs = [abs(c.x) for c in co.values()]
+    span = max(xs)
+    torso_w = 0.27 * max(span, 0.58)                  # (a tee's sleeves end short: its span is not the arms')
+    bt = H / 30
+    tkey = lambda c: (0, int((c.z - zb) / bt))
+    ba = span / 40
+    akey = lambda c: (1 if c.x >= 0 else -1, int(abs(c.x) / ba))
+    tcen = _centres([c for c in co.values() if abs(c.x) < torso_w], tkey)
+    acen = _centres([c for c in co.values() if abs(c.x) >= torso_w * 0.8], akey)
+    for i, c in co.items():
+        a = _smooth(torso_w * 0.8, torso_w * 1.25, abs(c.x))     # 0 torso .. 1 sleeve
+        h = (c.z - zb) / H
+        if a < 1 and tkey(c) in tcen:
+            tx, ty, _ = tcen[tkey(c)]
+            ft = 1 + (F - 1) * (1 - a) * (0.8 + 0.3 * (1 - h))    # a little roomier toward the hem
+            c.x = tx + (c.x - tx) * ft if abs(c.x) < torso_w else c.x
+            c.y = ty + (c.y - ty) * ft
+        if a > 0 and akey(c) in acen:
+            _, ay, az = acen[akey(c)]
+            fa = 1 + (F - 1) * 1.2 * a
+            c.y = ay + (c.y - ay) * fa
+            c.z = az + (c.z - az) * fa
     for v in me.vertices:
         if v.index in co:
             v.co = inv @ co[v.index]
+
+
+# ---------- 1997 cut: wide trousers ----------
+# The packs' trousers are tights (the women's) or narrow tubes (the men's).  Scaled up about each leg's centre line
+# they were wide enough for 1997 but hung from nothing: the waistband and the seat kept the pack's width, and the
+# thighs under them stood out 3 - 5 cm a side further than the hips.  Cloth hangs from the widest place down, so the
+# trousers are cut by their four outlines - outside, inside (below the crotch), front, back - each the body's own
+# outline pulled tight (`hang`: 1 a taut string over the hips, the seat and the knee, 0 the body) plus an ease given at
+# the waist, the hip joints, the crotch, the knee and the hem.  A cross-section of a leg (of the hips, above the
+# crotch) is fitted between the four.  The outside falls nearly straight from the hips; the legs narrow to the knee
+# and the hem on their inside, so the two read apart.  Done on the built rest pose (after BUILD has moved the legs).
+# Lengths in the source's units (x 0.93 men, 0.90 women in the game):
+#   waist, hip: ease of the outside at the top, and from the hip joints down to the crotch
+#   seat, front: ease of the back and the front from the hip joints down to the crotch
+#   knee, hem: half the width and half the depth of a leg there;  fwd: the hem pushed forward by the shoe
+#   drop: how far the hem comes down over the shoe (of the trousers' length)
+CUTS = {
+    'baggy': dict(waist=.0, hip=.014, seat=.012, front=.008, knee=(.078, .084), hem=(.076, .092), fwd=.012, hang=.85, drop=.044),
+    'slacks': dict(waist=.0, hip=.008, seat=.008, front=.006, knee=(.066, .074), hem=(.060, .076), fwd=.008, hang=.8, drop=.035),
+    'wide': dict(waist=-.003, hip=.006, seat=.008, front=.006, knee=(.076, .080), hem=(.076, .088), fwd=.010, hang=.85, drop=.042),
+    'straight': dict(waist=-.003, hip=.004, seat=.006, front=.005, knee=(.066, .072), hem=(.062, .078), fwd=.008, hang=.75, drop=.035),
+}
+TROUSERS = {('umc', 'Casual_2'): 'baggy', ('umc', 'Suit'): 'slacks', ('women', 'Casual'): 'wide', ('women', 'Suit'): 'straight'}
+LEG = '_LEG'                  # the vertex attribute of a trouser leg's own coordinates (see cut_trousers)
+LEG_TOP = 1.25                # the attribute's height runs 0 (hem) .5 (knee) 1 (hip joint) 1.2 (waistband), kept / LEG_TOP
+GAP = 0.004                   # half the space between the legs at the crotch
+
+
+def _hull(vals, sign):
+    """Evenly spaced samples pulled tight from above (sign 1: the least concave curve over them) or below (-1)."""
+    pts = []
+    for i, v in enumerate(vals):
+        v *= sign
+        while len(pts) >= 2 and (pts[-1][1] - pts[-2][1]) * (i - pts[-2][0]) <= (v - pts[-2][1]) * (pts[-1][0] - pts[-2][0]):
+            pts.pop()
+        pts.append((i, v))
+    out, k = [], 0
+    for i in range(len(vals)):
+        while k + 2 < len(pts) and pts[k + 1][0] <= i:
+            k += 1
+        (i0, v0), (i1, v1) = pts[k], pts[min(k + 1, len(pts) - 1)]
+        out.append(sign * (v0 if i1 == i0 else v0 + (v1 - v0) * (i - i0) / (i1 - i0)))
+    return out
+
+
+def _lerp_at(vals, f):
+    f = max(0.0, min(len(vals) - 1.0, f))
+    i = min(int(f), len(vals) - 2)
+    return vals[i] + (vals[i + 1] - vals[i]) * (f - i)
+
+
+def cut_trousers(ob, arm, cut):
+    """Give the trousers of `ob` (the legs of a built person, in the rest pose) the cut `cut` (see CUTS), and every
+    vertex of theirs its place on the leg in the attribute LEG: which way it faces round the leg (x: 1 the front, -1
+    the back; y: 1 the outside, -1 the inside, a unit vector), its height (LEG_TOP) and 1, each as 0..1.  The game
+    draws the denim's wash, the seams, the pockets and the hem by these (web/src/characters.js)."""
+    me, mw = ob.data, ob.matrix_world.copy()
+    inv = mw.inverted()
+    skin = _skin_verts(me)
+    co = {v.index: mw @ v.co for v in me.vertices if v.index not in skin}
+    names = {g.index: g.name for g in ob.vertex_groups}
+    side = {}
+    for v in me.vertices:
+        if v.index not in co:
+            continue
+        d = sum((1 if names[g.group].endswith('L') else -1) * g.weight for g in v.groups
+                if names.get(g.group, '').startswith(('UpperLeg.', 'LowerLeg.', 'Foot.')))
+        x = co[v.index].x
+        side[v.index] = (1 if d > 0 else -1) if abs(d) > .2 else 0 if abs(x) < .02 else 1 if x > 0 else -1
+    zb, zt = min(c.z for c in co.values()), max(c.z for c in co.values())
+    H = zt - zb
+    dz = 0.01
+    n = int(math.ceil(H / dz)) + 1
+    zs = [zb + j * dz for j in range(n)]
+    # the cross-sections of either side: [inside, outside, front, back] (x from the middle outward)
+    ext = {k: [[9.0, -9.0, 9.0, -9.0] for _ in zs] for k in (1, -1)}
+    for e in me.edges:
+        a, b = e.vertices
+        if a not in co or b not in co:
+            continue
+        pa, pb = co[a], co[b]
+        lo, hi = min(pa.z, pb.z), max(pa.z, pb.z)
+        for j in range(max(0, int(math.ceil((lo - zb) / dz))), min(n - 1, int(math.floor((hi - zb) / dz))) + 1):
+            t = 0.5 if hi - lo < 1e-9 else (zs[j] - pa.z) / (pb.z - pa.z)
+            x, y = pa.x + (pb.x - pa.x) * t, pa.y + (pb.y - pa.y) * t
+            for k in (1, -1):
+                if side[a] != -k and side[b] != -k:
+                    E = ext[k][j]
+                    E[0] = min(E[0], x * k); E[1] = max(E[1], x * k); E[2] = min(E[2], y); E[3] = max(E[3], y)
+    src = []
+    for q in range(4):                              # (the two sides alike; a height nothing crosses takes its neighbour's)
+        whole = lambda E: E[1] - E[0] > .04 and E[3] - E[2] > .05          # (not the tip of a slanting waistband or hem)
+        col = [(ext[1][j][q] + ext[-1][j][q]) / 2 if whole(ext[1][j]) and whole(ext[-1][j]) else None for j in range(n)]
+        for j in range(1, n):
+            col[j] = col[j - 1] if col[j] is None else col[j]
+        for j in range(n - 2, -1, -1):
+            col[j] = col[j + 1] if col[j] is None else col[j]
+        src.append(col)
+    xi, xo, yf, yb = src
+    bone = lambda name: (arm.matrix_world @ arm.data.bones[name].head_local)
+    z_knee, z_hip = bone('LowerLeg.L').z, bone('UpperLeg.L').z
+    mid = [co[i].z for i in co if side[i] == 0]
+    z_c = min(mid) if mid else min(max(co[a].z, co[b].z) for a, b in (e.vertices for e in me.edges)
+                                  if a in co and b in co and side[a] * side[b] < 0)
+    z_c = min(z_c, z_hip - 0.04)
+    at = lambda z: (z - zb) / dz
+    jc = int(at(z_c))
+    C = CUTS[cut]
+    k = C['hang']
+    mix = lambda a, h: [u + (w - u) * k for u, w in zip(a, h)]
+    Mo, Mf, Mb = mix(xo, _hull(xo, 1)), mix(yf, _hull(yf, -1)), mix(yb, _hull(yb, 1))
+    Mi = mix(xi[:jc + 1], _hull(xi[:jc + 1], -1)) + xi[jc + 1:]
+    z_h = zb + 0.02                                  # the hem: about the ankle's own middle
+    cx, cy = (_lerp_at(xi, at(z_h)) + _lerp_at(xo, at(z_h))) / 2, (_lerp_at(yf, at(z_h)) + _lerp_at(yb, at(z_h))) / 2 - C['fwd']
+    # the waistband (its top 4 cm) keeps the pack's fit, `waist` wider: a top hangs over it or is tucked into it
+    z_band = max(z_hip + 0.01, zt - 0.04)
+    levels = [zb, z_knee, z_c, z_hip, z_band, zt]
+    M = lambda line, z: _lerp_at(line, at(z))
+    To = {zt: M(xo, zt) + C['waist'], z_band: M(xo, z_band) + C['waist'], z_hip: M(Mo, z_hip) + C['hip'], z_c: M(Mo, z_c) + C['hip'],
+          zb: cx + C['hem'][0]}
+    To[z_knee] = To[zb] + (To[z_c] - To[zb]) * (z_knee - zb) / (z_c - zb)
+    Ti = {zt: M(Mi, zt), z_band: M(Mi, z_band), z_hip: M(Mi, z_hip), z_c: GAP, z_knee: To[z_knee] - 2 * C['knee'][0],
+          zb: cx - C['hem'][0]}
+    Tf = {zt: M(yf, zt) - C['waist'], z_band: M(yf, z_band) - C['waist'], z_hip: M(Mf, z_hip) - C['front'],
+          z_c: M(Mf, z_c) - C['front'], z_knee: M(Mf, z_knee) - .008, zb: cy - C['hem'][1]}
+    Tb = {zt: M(yb, zt) + C['waist'], z_band: M(yb, z_band) + C['waist'], z_hip: M(Mb, z_hip) + C['seat'],
+          z_c: M(Mb, z_c) + C['seat'], z_knee: Tf[z_knee] + 2 * C['knee'][1], zb: cy + C['hem'][1]}
+
+    def line(Mline, T):
+        off = [T[z] - M(Mline, z) for z in levels]
+        out = []
+        for j, z in enumerate(zs):
+            s = next((q for q in range(len(levels) - 1) if z <= levels[q + 1]), len(levels) - 2)
+            t = max(0.0, min(1.0, (z - levels[s]) / (levels[s + 1] - levels[s])))
+            out.append(Mline[j] + off[s] + (off[s + 1] - off[s]) * t)
+        for _ in range(2):                           # (the corners at the levels rounded: 2 cm either way)
+            out = [sum(out[max(0, min(n - 1, j + d))] for d in (-2, -1, 0, 1, 2)) / 5 for j in range(n)]
+        return out
+    Xo, Xi, Yf, Yb = line(Mo, To), line(Mi, Ti), line(Mf, Tf), line(Mb, Tb)
+    Xi = [max(GAP, v) if j <= jc + 3 else v for j, v in enumerate(Xi)]
+    att = me.attributes.get(LEG) or me.attributes.new(LEG, 'FLOAT_VECTOR', 'POINT')
+    legs = [(0.0, 0.0, 0.0)] * len(me.vertices)
+    for i, c in co.items():
+        f = at(c.z)
+        s = side[i] or (1 if c.x >= 0 else -1)
+        a_i, a_o, a_f, a_b = (_lerp_at(q, f) for q in src)
+        b_i, b_o, b_f, b_b = (_lerp_at(q, f) for q in (Xi, Xo, Yf, Yb))
+        w = 0.0 if side[i] == 0 else 1 - _smooth(z_c - .03, z_c + .03, c.z)        # 1 a leg, 0 the hips
+        xs = c.x * s
+        leg = b_i + (xs - a_i) * (b_o - b_i) / max(a_o - a_i, 1e-4)
+        hips = xs * b_o / max(a_o, 1e-4)
+        xs = hips + (leg - hips) * w
+        lo = b_i * w                                  # (the hips: from the middle)
+        u = (xs - lo) / max(b_o - lo, 1e-4) * 2 - 1
+        y = b_f + (c.y - a_f) * (b_b - b_f) / max(a_b - a_f, 1e-4)
+        d = (y - b_f) / max(b_b - b_f, 1e-4) * 2 - 1
+        r = math.hypot(u, d) or 1.0
+        v = (0.5 * (c.z - zb) / (z_knee - zb) if c.z < z_knee else 0.5 + 0.5 * (c.z - z_knee) / (z_hip - z_knee) if c.z < z_hip
+             else 1 + 0.2 * (c.z - z_hip) / max(zt - z_hip, 1e-4))
+        legs[i] = (0.5 - 0.5 * d / r, 0.5 + 0.5 * u / r, v / LEG_TOP)
+        c.x, c.y = xs * s, y
+        h = (c.z - zb) / H
+        if h < 0.07:                                  # the hem breaks over the shoes
+            c.z -= C['drop'] * H * (1 - h / 0.07)
+    for v in me.vertices:
+        if v.index in co:
+            v.co = inv @ co[v.index]
+    att.data.foreach_set('vector', [x for q in legs for x in q])
+    me.update()
 
 
 # ---------- 1997 wardrobe: parts of an outfit in a colour of their own ----------
@@ -643,8 +868,18 @@ def paint(ob, rules):
         planes = [(Vector((sx * v, 0, 0)), Vector((1, 0, 0))) for v in box['x'] if v for sx in (1, -1)]
         planes += [(Vector((0, v, 0)), Vector((0, 1, 0))) for v in box['y'] if v is not None]
         planes += [(Vector((0, 0, v)), Vector((0, 0, 1))) for v in box['z'] if v is not None]
+        def reaches(f):
+            """Whether the face's bounds meet the box: only those are cut (a cut right through a shoe for a bar on its
+            side would leave a ring of points all round it)."""
+            for k, (lo, hi) in box.items():
+                vs = [abs(v.co.x) if k == 'x' else getattr(v.co, k) for v in f.verts]
+                if k == 'x' and min(v.co.x for v in f.verts) < 0 < max(v.co.x for v in f.verts):
+                    vs.append(0.0)
+                if (lo is not None and max(vs) < lo - 1e-6) or (hi is not None and min(vs) > hi + 1e-6):
+                    return False
+            return True
         for co, no in planes:
-            fs = [f for f in bm.faces if f.material_index in src]
+            fs = [f for f in bm.faces if f.material_index in src and reaches(f)]
             geom = fs + list({e for f in fs for e in f.edges}) + list({v for f in fs for v in f.verts})
             bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-5, plane_co=co, plane_no=no)
 
@@ -788,9 +1023,15 @@ HAIR_STYLES = {
                     part=(0, .010, 7), rows=8, rough=.3, ragged=.005),
     'curtain-64': dict(tip=_parted(12), vol=[(0, .014), (30, .017), (60, .014), (180, .014)], top=.027, edge=.006,
                        part=(12, .010, 7), rows=8, rough=.3, ragged=.005),
-    'sweep-73': dict(tip=_parted(23, _ear(temple=-.016), k=.86),
-                     vol=[(-180, .010), (-60, .009), (-25, .019), (8, .017), (30, .013), (60, .008), (180, .010)], top=.027,
-                     edge=.005, part=(23, .009, 7), rows=8, rough=.25, ragged=.004),
+    # the two-block cut: the top left long (a fringe swept from a 7:3 parting, one length round to the back, ending
+    # blunt above the ear and on the back of the head), the sides and the nape under it clipped short (`under`: a
+    # second, close shell; only what shows below the long hair's hem is kept)
+    'two-block': dict(tip=_parted(23, [(62, -.014), (70, -.006), (80, -.002), (100, -.002), (112, -.010), (135, -.018), (180, -.022)],
+                                  k=.86),
+                      vol=[(-180, .017), (-90, .014), (-25, .019), (8, .017), (30, .014), (60, .013), (90, .014), (180, .017)],
+                      top=.027, edge=.010, sheet=.02, part=(23, .009, 7), rows=8, rough=.25, ragged=.004,
+                      under=dict(tip=[(0, .047), (44, .040), (51, .026)] + _ear(burn=-.030, back=(-.050, -.088, -.096)),
+                                 vol=[(0, .0035), (180, .0035)], top=.0035, edge=.002, rows=9, rough=.0)),
     'part-side': dict(tip=_parted(34, _ear(temple=.0), k=.70),
                       vol=[(-180, .011), (-90, .009), (-40, .015), (0, .015), (25, .013), (45, .008), (90, .008),
                            (180, .011)], top=.026, edge=.004, part=(34, .009, 8), rows=7, rough=.15, ragged=.003),
@@ -1398,10 +1639,31 @@ def head_1997(pid, head, body, arm, spec):
     if spec.get('bridge'):
         st = dict(st, bridge=spec['bridge'])
     pts, faces, follow, ends, band, streak = hair_grow(pid, surf, st)
-    head_trim(head, surf, st, ends)
+    under = None
+    if st.get('under'):                                      # (the clipped hair under a two-block cut)
+        u_pts, u_faces, u_follow, u_ends, _, _ = hair_grow(pid, surf, st['under'])
+        C, s_eq = surf.C, HAIR_RN * math.pi / 2
+        cols = ends[0]
+
+        def shows(q):
+            dz = q.z - C.z
+            arc = HAIR_RN * (math.pi / 2 - math.atan2(dz, math.hypot(q.x - C.x, q.y - C.y))) if dz >= 0 else s_eq - dz
+            a = math.atan2(q.x - C.x, -(q.y - C.y)) % (2 * math.pi)
+            j = min(range(len(cols)), key=lambda k: abs((cols[k] - a + math.pi) % (2 * math.pi) - math.pi))
+            return arc > ends[1][j] - 0.02
+        kept = [f for f in u_faces if any(shows(u_pts[i]) for i in f)]
+        ring = sorted({i for f in kept for i in f})
+        at = {i: n for n, i in enumerate(ring)}
+        under = ('Hair', [u_pts[i] for i in ring], [tuple(at[i] for i in f) for f in kept]), [u_follow[i] for i in ring]
+        head_trim(head, surf, st['under'], u_ends)
+    else:
+        head_trim(head, surf, st, ends)
     other = set(band) | set(streak)
     pieces = [('Hair', pts, [f for i, f in enumerate(faces) if i not in other])]
     weights = list(follow)
+    if under:
+        pieces.append(under[0])
+        weights += under[1]
     for name, part in (('Band', band), ('Bridge', streak)):  # (these have points of their own, weighted as the hair's)
         if part:
             ring = sorted({i for b in part for i in faces[b]})
@@ -1457,6 +1719,7 @@ def build_person(pid, spec):
         if part in spec.get('paint', {}):
             paint(ob, spec['paint'][part])
         recolour(ob, part, spec['colors'])
+        shape_body(ob, arm, rig)                 # (the neck is the head's, the waist the body's and the legs')
         loosen(ob, part, outfit)
         atlas_layer(ob)
         ob.name = f'{pid}-{part}'
@@ -1469,6 +1732,9 @@ def build_person(pid, spec):
             bpy.data.objects.remove(o, do_unlink=True)
     clear_anim(arm)
     relax_fingers(arm, parts, rig, s)
+    cut = spec.get('cut') or TROUSERS.get((rig, spec['parts']['legs']))
+    if cut:
+        cut_trousers(next(o for o in parts if o.name.endswith('-legs')), arm, cut)
     for a in list(bpy.data.actions):
         bpy.data.actions.remove(a)
     return finish_person(pid, arm, parts, s, 'rig-' + rig, bool(spec.get('face', {}).get('glasses')))
@@ -1784,7 +2050,8 @@ def quantize_weights(path):
 
 def slim_texcoords(path):
     """TEXCOORD_0 only where a part has a face on the atlas, and there as normalized unsigned shorts: the parts that
-    lie wholly on the blank cell go without (web/src/characters.js puts them there)."""
+    lie wholly on the blank cell go without (web/src/characters.js puts them there).  The trousers' coordinates (LEG)
+    likewise only on the parts with trousers, as bytes."""
     with open(path, 'rb') as fh:
         d = fh.read()
     n = struct.unpack('<I', d[12:16])[0]
@@ -1794,6 +2061,24 @@ def slim_texcoords(path):
     drop = set()
     for m in j.get('meshes', []):
         for prim in m['primitives']:
+            ai = prim['attributes'].get(LEG)
+            acc = j['accessors'][ai] if ai is not None else None
+            if acc and acc['componentType'] == 5126 and acc['type'] == 'VEC3' and not acc.get('byteOffset', 0) \
+                    and not j['bufferViews'][acc['bufferView']].get('byteStride'):
+                vals = struct.unpack(f'<{acc["count"] * 3}f', views[acc['bufferView']][:acc['count'] * 12])
+                if not any(vals):                              # (no trousers in this part)
+                    del prim['attributes'][LEG]
+                    drop.add(ai)
+                else:
+                    # four plain bytes a vertex (as _OCC): the three values and whether the vertex is of the trousers
+                    q = lambda v: min(255, max(0, round(v * 255)))
+                    views[acc['bufferView']] = b''.join(
+                        bytes([q(vals[i]), q(vals[i + 1]), q(vals[i + 2]), 255 if any(vals[i:i + 3]) else 0])
+                        for i in range(0, len(vals), 3))
+                    acc['componentType'] = 5121
+                    acc['type'] = 'VEC4'
+                    acc.pop('min', None)
+                    acc.pop('max', None)
             ai = prim['attributes'].get('TEXCOORD_0')
             if ai is None:
                 continue
@@ -1874,6 +2159,9 @@ def check(pid, path):
             problems.append('texture coordinates (the skin alone has a face on the atlas)')
         if any(OCC not in prim['attributes'] for prim in prims):
             problems.append('no occlusion on the vertices')
+        spec = PEOPLE[pid]
+        if (spec.get('cut') or TROUSERS.get((spec['rig'], spec['parts']['legs']))) and not any(LEG in prim['attributes'] for prim in prims):
+            problems.append("no coordinates on the trousers' vertices")
     return problems
 
 

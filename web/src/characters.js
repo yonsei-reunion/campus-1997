@@ -44,6 +44,11 @@ export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'woman-tee', 'woman-
 //    at the ankle and crease at the knee and the crotch, tops drape. The folds are a height over the rest pose
 //    (bumped), so they stay on the cloth as it moves; they fade where a fold is smaller than a pixel
 //  - skin has a little sheen, hair has strands (running down from the crown) in its colour and its gloss
+//  - trousers are drawn by a leg's own coordinates (the attribute `leg`, blender/characters.py cut_trousers: which
+//    way a point faces round the leg, and its height from the hem to the waistband): the seams down the outside and
+//    the inside, the hem, the waistband, the back pockets and the front pockets' openings; and denim its wash, worn
+//    pale on the front of the thigh, the knee and the seat and left dark inside the leg, behind the knee and at the
+//    hem, the more the paler the jeans (WASH: dark, mid, stone-washed; khaki and slacks have the seams alone)
 // Phones go without the folds and the strands (no noise in the fragment shader there).
 // The eyes, brows and mouths are a few lines drawn on one small atlas all the people share (blender/faces.py): the
 // front of a face lies on its own cell, everything else on the blank cell, and the picture multiplies the vertex
@@ -54,7 +59,8 @@ export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'woman-tee', 'woman-
 // has the rims' geometry drawn only while the rims are RIM_PX pixels or more across (rimLod: the index puts the glasses'
 // triangles last, and the draw stops short of them), and from somewhat nearer than that on the same glasses drawn on
 // the face from a second atlas (faces_rims.png), which the mip maps fade evenly with distance. Who wears them, and
-// which rims, rides along as the attribute `glass` (0 none, 1 thin metal, 2 dark horn; plus 4 x the person's blink).
+// which rims, rides along as the attribute `glass` (0 none, 1 thin metal, 2 dark horn; plus 4 x the person's blink
+// and 64 x the wash of their jeans).
 // Blinking: every few seconds (each of the BLINKS kinds of the crowd in its own time) the eyes of a face are drawn
 // shut for an eighth of a second: skin over the eye's place on the cell and the lashes' line, sagging in the middle.
 // By the clock of the wind; the line only from near.
@@ -91,18 +97,22 @@ async function loadFaces() {
   PERSON_MAT.needsUpdate = true;
 }
 const GRID_F = '4.0';                  // (faces.py GRID)
+const LEG_TOP = '1.25';                // (characters.py LEG_TOP)
 const FINE = !MOBILE;               // the folds of cloth and the strands of hair
 PERSON_MAT.onBeforeCompile = (sh) => {
   sh.uniforms.uRims = RIMS_TEX;
   sh.uniforms.uBlinkT = windTime;
   sh.vertexShader = sh.vertexShader
-    .replace('#include <common>', '#include <common>\nattribute vec3 part;\nattribute float glass;\nvarying vec3 vPart, vRest;\nvarying float vGlass;')
-    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPart = part;\nvGlass = glass;\nvRest = position;');
+    .replace('#include <common>', '#include <common>\nattribute vec3 part;\nattribute float glass;\nattribute vec4 leg;\nvarying vec3 vPart, vRest;\nvarying float vGlass;\nvarying vec4 vLeg;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPart = part;\nvGlass = glass;\nvLeg = leg;\nvRest = position;');
   sh.fragmentShader = sh.fragmentShader
     .replace('#include <common>', `#include <common>
       varying vec3 vPart, vRest;
       varying float vGlass;
+      varying vec4 vLeg;
       uniform sampler2D uRims;
+      // a line of half width w about x = 0, as much of the pixel as it covers (d: x over a pixel)
+      float pLine( float x, float w, float d ) { return clamp( ( w - abs( x ) ) / max( d, 1e-5 ) + 0.5, 0.0, 1.0 ) * min( 1.0, 2.0 * w / max( d, 1e-5 ) ); }
       uniform float uBlinkT;
       ${FINE ? `
       float pHash( vec3 p ) { p = fract( p * 0.3183099 + 0.1 ); p *= 17.0; return fract( p.x * p.y * p.z * ( p.x + p.y + p.z ) ); }
@@ -111,9 +121,9 @@ PERSON_MAT.onBeforeCompile = (sh) => {
                     mix( mix( pHash( i + vec3( 0, 0, 1 ) ), pHash( i + vec3( 1, 0, 1 ) ), f.x ), mix( pHash( i + vec3( 0, 1, 1 ) ), pHash( i + vec3( 1, 1, 1 ) ), f.x ), f.y ), f.z ); }
       // the height of the folds of cloth (m) over the rest pose (y up, m): trousers stack up at the ankle and crease
       // behind the knee and at the crotch, tops drape and gather at the hem
-      float pFolds( vec3 p ) {
+      float pFolds( vec3 p, float trousers ) {
         float n1 = pNoise( p * vec3( 13.0, 4.0, 13.0 ) ), n2 = pNoise( p * vec3( 5.0, 9.0, 5.0 ) + 7.0 );
-        float legs = step( p.y, 0.93 );
+        float legs = max( trousers, step( p.y, 0.93 ) );
         float stack = sin( p.y * 96.0 + 8.0 * n1 ) * smoothstep( 0.30, 0.08, p.y ) * ( 0.35 + 0.9 * n2 );
         float knee = sin( p.y * 74.0 + 6.0 * n1 + p.x * 20.0 ) * exp( - pow( ( p.y - 0.50 ) / 0.09, 2.0 ) ) * 0.45;
         float crotch = sin( ( p.y + abs( p.x ) * 0.8 ) * 86.0 + 4.0 * n2 ) * exp( - pow( ( p.y - 0.84 ) / 0.07, 2.0 ) ) * 0.6;
@@ -127,7 +137,7 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       ${FINE ? `
       float pNear = 1.0 - smoothstep( 0.006, 0.02, length( fwidth( vRest ) ) );          // (m to a pixel)
       float pDye = pNoise( vRest * vec3( 9.0, 5.0, 9.0 ) ) * 0.6 + pNoise( vRest * vec3( 37.0, 23.0, 37.0 ) ) * 0.4;
-      diffuseColor.rgb *= mix( 1.0, 0.88 + 0.22 * pDye, pCloth );
+      diffuseColor.rgb *= mix( 1.0, mix( 0.88 + 0.22 * pDye, 0.82 + 0.34 * pDye, pJean * pWash / 3.0 ), pCloth );
       float pAz = atan( vRest.x, vRest.z + 0.04 );
       float pStrand = pNoise( vec3( pAz * 46.0, vRest.y * 7.0, 3.0 ) ) * 0.65 + pNoise( vec3( pAz * 150.0, vRest.y * 11.0, 9.0 ) ) * 0.35;
       diffuseColor.rgb *= mix( 1.0, 0.82 + 0.40 * pStrand, pHair * pNear );
@@ -137,7 +147,8 @@ PERSON_MAT.onBeforeCompile = (sh) => {
     .replace('#include <map_fragment>', '')
     .replace('#include <color_fragment>', `#include <color_fragment>
       vec4 drawn = texture2D( map, vMapUv, ${FACE_BIAS} );
-      float pBlink = floor( vGlass / 4.0 + 0.01 ), pGlass = vGlass - 4.0 * pBlink;
+      float pWash = floor( vGlass / 64.0 + 0.01 ), pBlink = floor( ( vGlass - 64.0 * pWash ) / 4.0 + 0.01 );
+      float pGlass = vGlass - 64.0 * pWash - 4.0 * pBlink;
       {
         // a blink: now and then (every 3 to 6 s, by the person's own count) the eyes shut for an eighth of a second
         vec2 c = fract( vMapUv * ${GRID_F} );
@@ -153,7 +164,44 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       vec2 rimD = vec2( length( dFdx( vMapUv ) ), length( dFdy( vMapUv ) ) );
       float rimPx = ${RIM_UV} / max( max( rimD.x, rimD.y ), 1e-7 );
       float rim = texture2D( uRims, vMapUv ).r * step( 0.5, pGlass ) * smoothstep( ${(2 * RIM_PX).toFixed(2)}, ${RIM_PX.toFixed(2)}, rimPx );
-      diffuseColor.rgb = mix( diffuseColor.rgb, pGlass > 1.5 ? ${glsl(RIMS[1])} : ${glsl(RIMS[0])}, rim );`)
+      diffuseColor.rgb = mix( diffuseColor.rgb, pGlass > 1.5 ? ${glsl(RIMS[1])} : ${glsl(RIMS[0])}, rim );
+      float pLegs = step( 0.5, vLeg.w ) * step( 0.01, vLeg.x + vLeg.y );      // (a geometry without the attribute reads 0 0 0 1)
+      float pJean = pLegs * step( 0.5, pWash );
+      if ( pLegs > 0.5 ) {
+        // trousers, by a leg's own coordinates: a (x 1 the front, -1 the back; y 1 the outside, -1 the inside) and
+        // the height h (0 the hem, 0.5 the knee, 1 the hip joint, 1.2 the waistband)
+        vec2 a = normalize( vLeg.xy * 2.0 - 1.0 + 1e-4 );
+        float h = vLeg.z * ${LEG_TOP};
+        vec2 da = fwidth( a );
+        float dh = fwidth( h );
+        float below = 1.0 - smoothstep( 0.80, 0.86, h );                 // (under the crotch)
+        // denim worn pale where it rubs (the front of the thigh, the knee, the seat), dark where it does not (the
+        // inside of the leg, behind the knee, the hem): more of it the paler the wash
+        float thigh = smoothstep( 0.0, 0.8, a.x ) * smoothstep( 0.36, 0.62, h ) * ( 1.0 - smoothstep( 0.84, 1.02, h ) ) * 0.8;
+        float knee = smoothstep( 0.1, 0.9, a.x ) * exp( - pow( ( h - 0.50 ) / 0.10, 2.0 ) );
+        float shin = smoothstep( 0.3, 0.95, a.x ) * smoothstep( 0.05, 0.2, h ) * ( 1.0 - smoothstep( 0.3, 0.46, h ) );
+        float seat = smoothstep( 0.1, 0.8, - a.x ) * exp( - pow( ( h - 0.97 ) / 0.085, 2.0 ) ) * ( 1.0 - smoothstep( 0.45, 0.9, abs( a.y ) ) );
+        float worn = max( max( thigh, knee ), max( seat * 0.8, shin * 0.3 ) );
+        float dark = max( smoothstep( 0.3, 0.95, - a.y ) * below * 0.7, smoothstep( 0.3, 0.9, - a.x ) * exp( - pow( ( h - 0.50 ) / 0.07, 2.0 ) ) * 0.55 );
+        dark = max( dark, ( 1.0 - smoothstep( 0.03, 0.09, h ) ) * 0.35 );
+        float fade = pWash < 0.5 ? 0.0 : pWash < 1.5 ? 0.07 : pWash < 2.5 ? 0.25 : 0.55;
+        diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.60, 0.68, 0.78 ), fade * worn );
+        diffuseColor.rgb *= 1.0 - dark * ( pWash < 0.5 ? 0.0 : 0.30 );
+        // the seams down the outside and the inside, the hem, the waistband, the pockets: a dark line, on denim with
+        // the paler ridge the wash leaves beside it
+        float side = max( pLine( a.x, 0.035, da.x ) * step( 0.0, a.y ), pLine( a.x, 0.035, da.x ) * step( a.y, 0.0 ) * below );
+        float ridge = max( pLine( a.x, 0.10, da.x ) * step( 0.0, a.y ) * 0.6, ( 1.0 - smoothstep( 0.0, 0.022, h ) ) );
+        float hem = pLine( h - 0.030, 0.0035, dh ) + pLine( h - 1.105, 0.004, dh );
+        vec2 pk = vec2( ( a.y - 0.06 ) / 0.50, h );                      // a back pocket: a patch with a pointed foot
+        float foot = 0.865 - 0.03 * ( 1.0 - min( 1.0, abs( pk.x ) ) );
+        float inPk = step( a.x, -0.2 ) * step( abs( pk.x ), 1.0 ) * step( foot, h ) * step( h, 1.015 );
+        float pocket = step( a.x, -0.2 ) * max( max( pLine( abs( pk.x ) - 1.0, 0.045, da.y / 0.50 ) * step( foot, h ) * step( h, 1.015 ),
+          pLine( h - 1.015, 0.004, dh ) * step( abs( pk.x ), 1.0 ) ), pLine( h - foot, 0.004, dh ) * step( abs( pk.x ), 1.0 ) );
+        float scoop = pLine( h - ( 1.105 - 0.17 * smoothstep( 0.30, 0.98, a.y ) ), 0.004, dh ) * step( 0.0, a.x ) * step( 0.30, a.y );
+        float line = max( max( side, min( 1.0, hem ) ), max( pocket, scoop ) );
+        diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.60, 0.68, 0.78 ), fade * 0.6 * max( ridge, inPk * 0.25 ) * ( 1.0 - line ) );
+        diffuseColor.rgb *= 1.0 - line * ( pWash < 0.5 ? 0.16 : 0.34 );
+      }`)
     .replace('#include <aomap_fragment>', `#include <aomap_fragment>
       {
         // the shut-in places: skin shades warm (the light that gets there has been through skin), the rest grey
@@ -169,7 +217,7 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       }`);
   if (FINE) sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
       {
-        float pH = pFolds( vRest ) * pCloth * pNear + ( pStrand - 0.5 ) * 0.0018 * pHair * pNear;
+        float pH = pFolds( vRest, pLegs ) * pCloth * pNear + ( pStrand - 0.5 ) * 0.0018 * pHair * pNear;
         vec3 pDx = dFdx( - vViewPosition ), pDy = dFdy( - vViewPosition );
         vec3 pR1 = cross( pDy, normal ), pR2 = cross( normal, pDx );
         float pDet = dot( pDx, pR1 );
@@ -217,7 +265,11 @@ function mergeParts(root) {
     }
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(idx, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(wt, 4));
-    ranges.push({ name: m.material.name, start: at, count: n });
+    // the trousers' own coordinates (the model's _LEG, four bytes; only the parts with trousers have it)
+    const leg = new Uint8Array(n * 4), sl = src.attributes._leg;
+    if (sl) for (let i = 0; i < n * 4; i++) leg[i] = sl.array[i];
+    g.setAttribute('leg', new THREE.Uint8BufferAttribute(leg, 4, true));
+    ranges.push({ name: m.material.name, start: at, count: n, hex: '#' + m.material.color.getHexString(), legs: !!sl });
     at += n;
     const c = m.material.color, col = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
@@ -254,6 +306,13 @@ function mergeParts(root) {
 // one in five, dark ones. Skin: the four tones evenly, and about one in fourteen each fair or tanned. The heroes, the
 // drivers and the birthday pair keep the models as they are.
 const JEANS = ['#46638f', '#2b3c5c', '#7f9cc0', '#8fa8c8'];
+// how washed out a pair of trousers of this colour is: 0 not denim, 1 dark (rinsed), 2 mid, 3 pale (stone-washed)
+const WASH = { [JEANS[0]]: 2, [JEANS[1]]: 1, [JEANS[2]]: 3, [JEANS[3]]: 3 };
+function washOf(hex) {
+  const c = new THREE.Color(hex), d = new THREE.Color();
+  for (const k in WASH) { d.set(k); if (Math.abs(c.r - d.r) + Math.abs(c.g - d.g) + Math.abs(c.b - d.b) < 0.02) return WASH[k]; }
+  return 0;
+}
 const SKIN = ['#f0c9a4', '#e6b991', '#d9a77d', '#c99168'];
 const SKIN_FAIR = '#f7ddc8', SKIN_TAN = '#b9825a';      // now and then somebody fair, or tanned (가무잡잡)
 // material name -> the colours to draw from (the first is the model's own)
@@ -282,6 +341,9 @@ const LOOKS_MORE = {
   'woman-dress': { Skirt: ['#1f1f24', '#1f1f24', '#27304a', '#6e2430', '#8a7a5c', '#4a4d52'] },
   'woman-dress-blue': { Orange: [JEANS[1], ...JEANS, '#f0eee8', '#e3cf7a', '#2a2a2e'] },
 };
+// the bars and the heel tab of a pair of trainers (blender/characters.py trainers()), from a stream of their own
+const TRAINERS = { 'man-tee': 1, 'man-cheer': 1, 'woman-tee': 1, 'woman-pink': 1, 'woman-cardigan': 1 };
+const BARS = ['#27345a', '#b3262e', '#2f5a45', '#1f1f24', '#8d8f92', '#1d3fa0'];
 // about one striped tee in three is plain: its stripes and collar in the tee's own colour
 const PLAIN = { 'man-check': ['LightBrown', ['Stripe', 'Stripe2', 'Collar'], 0.35] };
 
@@ -309,6 +371,7 @@ export function crowdLook(id, n) {
   for (const k in more) colors[k] = more[k][Math.floor(r2() * more[k].length)];
   const plain = PLAIN[id];
   if (plain && r2() < plain[2]) for (const k of plain[1]) colors[k] = colors[plain[0]];
+  if (TRAINERS[id]) colors['Bar-feet'] = BARS[Math.floor(mulberry(n * 9973 + 59)() * BARS.length)];
   return { colors, scale: [clamp(tall * build), clamp(tall)], glasses, blink };
 }
 
@@ -330,7 +393,7 @@ function glassesLast(geo, ranges) {
 // the attribute `glass` of a geometry of n vertices, all v: one shared buffer for each
 const glassBuffers = new Map();
 function glassAttribute(n, v) {
-  const k = n * 64 + v;
+  const k = n * 256 + v;
   if (!glassBuffers.has(k)) glassBuffers.set(k, new THREE.Uint8BufferAttribute(new Uint8Array(n).fill(v), 1));
   return glassBuffers.get(k);
 }
@@ -351,7 +414,9 @@ function dressed(geo, ranges, colors, glasses, blink = 0) {
   g.setIndex(order ? order.index : geo.index);
   if (order && !glasses) g.setDrawRange(0, order.bare);
   if (order && glasses) g.userData.rims = order.bare;           // (rimLod)
-  g.setAttribute('glass', glassAttribute(geo.attributes.position.count, (!order || !glasses ? 0 : colors.Glasses === RIMS[1] ? 2 : 1) + 4 * blink));
+  const legs = ranges.find((p) => p.legs);
+  g.setAttribute('glass', glassAttribute(geo.attributes.position.count,
+    (!order || !glasses ? 0 : colors.Glasses === RIMS[1] ? 2 : 1) + 4 * blink + 64 * (legs ? washOf(colors[legs.name] || legs.hex) : 0)));
   if (!Object.keys(colors).length) {
     g.setAttribute('color', geo.attributes.color);
     g.boundingSphere = geo.boundingSphere;

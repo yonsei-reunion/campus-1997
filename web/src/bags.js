@@ -233,6 +233,7 @@ class Kit {
     }
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     g.setAttribute('part', new THREE.Float32BufferAttribute(part, 3));
+    g.setAttribute('leg', new THREE.Uint8BufferAttribute(new Uint8Array(n * 4), 4, true));     // (not trousers)
     // (the people's material draws the faces from an atlas: a bag lies on its blank cell, characters.js BLANK_UV)
     g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2).fill(0.875), 2));
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
@@ -339,7 +340,7 @@ function hipBag(kit, f, col, trim, s, woman, { cross = true, side = 1 } = {}) {
 // along -x, so the bag lies along it out from the hand: the walk and the idle lower the arm and it hangs
 function carried(kit, f, col, trim, s, brief, woman) {
   const { bi } = f;
-  const g = f.wristR.clone().add(V(-0.085, -0.035, 0.012));    // the grip, in the curled fingers
+  const g = f.wristR.clone().add(V(-0.074, -0.031, 0.012));    // the grip, in the curled fingers
   const [len, hgt, thk] = (brief ? (woman ? [0.36, 0.27, 0.07] : [0.4, 0.3, 0.08]) : [0.27, 0.2, 0.1]).map((v) => v * s);
   const gap = brief ? 0.045 : 0.07;                             // handle height above the bag
   // local x (length) -> z (forward), local y (height) -> -x (out along the arm: down, once it hangs), local z
