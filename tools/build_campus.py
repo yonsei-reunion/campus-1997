@@ -21,6 +21,7 @@ from PIL import Image, ImageDraw
 import gate_town
 import sinchon_rotary
 import muak
+import cars97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -5900,6 +5901,8 @@ P('parking_booth', round(float(_bo[0]), 2), round(float(_bo[1]), 2), round(math.
 
 # parked & moving cars (1990s 승용차), engineering-side motorbikes
 cars = []
+# (each car park's cars as first placed, by object: the 1997 scans put some of them right late, below: cars97.py)
+CAR_GROUPS = {}
 # (LOT_W, west of the eagle along the side road SIDE_W: with the roads above)
 # These three straight rows were placeholders from before the roads and lawns were drawn.  The first left no car
 # (most of it falls in halls), and the other two stood on lawn slopes north of 광복관 and of 백주년기념관, tilted
@@ -5921,6 +5924,7 @@ for line in (LOT_W_ROW, LOT_E):
                    round(a + math.pi / 2 + rng.uniform(-.05, .05), 3), rng.randrange(8)]
             if line is not LOT_E:
                 cars.append(car)
+CAR_GROUPS['독수리상 서쪽 옆길'] = cars[:]
 rng3 = random.Random(1997 + 11)
 # (the seven stalls: the cars, 4.7 m long, stood nose to tail every 4.6 m, each one into the next.  Photo A has the
 # red car side-on at the front edge of a pale paved car park (LOT_C_PAD below), more cars on it behind: the front row
@@ -5951,6 +5955,7 @@ for k_, (x, y, a) in enumerate(LOT_C_CARS):     # the first is the photo's red c
         kind_ = rng3.choice(['sedan', 'sedan', 'hatch', 'taxi']) if k_ else 'hatch'
         cars.append([kind_, round(x, 2), round(y, 2), round(a + rng3.uniform(-.06, .06), 3),
                      rng3.randrange(8) if k_ else 'red'])          # (its colour index once the list is final, below)
+CAR_GROUPS['정문 동쪽'] = cars[len(CAR_GROUPS['독수리상 서쪽 옆길']):]
 # 대우관 뒤 (DAEWOO_BACK): the cars in the yard's stalls, nose in
 rng5 = random.Random(1997 + 29)
 (_x0, _y0), (_x1, _y1) = WD(0, 0), WD(1, 0)
@@ -5963,10 +5968,12 @@ DWB_FREE = {('col', 1), ('col', 3), ('east', 4), ('east', 9)}
 _dw_spots = [((q_[0] - 0.45 * math.cos(h_), q_[1] - 0.45 * math.sin(h_)) if n_ == 'south' else q_, h_, (n_, i_) in DWB_GONE)
              for n_, i_, q_, h_, _ in dwb_stalls() if (n_, i_) not in DWB_FREE] + [(q_, h_, False) for q_, h_ in DWB_KERB]
 assert len(_dw_spots) >= 53, len(_dw_spots)
+_n_dw = len(cars)
 for (x_, y_), h_, gone_ in _dw_spots[:53]:
     # (a car of a stall that is no more keeps its draws and its place in the list till the cars' last pass, below)
     cars.append([rng5.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(x_, 2), round(y_, 2), round(h_ + rng5.uniform(-.04, .04), 3),
                  rng5.randrange(8)] + (['gone'] if gone_ else []))
+CAR_GROUPS['대우관 뒤'] = cars[_n_dw:]
 # 교육관's north yard, full of cars in the 2003 autumn photo (2003_가을_연희관앞정원과_교육관_북쪽계단.jpg): a row nose in
 # towards the hall, east of the outside flight that comes down from the bay near its west corner
 _gt, _gn = np.array([-0.969, 0.248]), np.array([0.248, 0.969])     # along its north end (from the east corner), out of it
@@ -7231,6 +7238,7 @@ props.append(['lamp_double', round(_lx, 2), round(_ly, 2), round(YONGJAE['ang'],
 # the car park before the north walls (YJ_LOT): a row nose in to the walls and two by the drive to 노천극장, about as
 # many as the 1997 aerial photos show
 _rc = random.Random(1997 + 160)
+_n_yj = len(cars)
 _hd = YONGJAE['ang'] - math.pi / 2                                 # facing the walls (-v)
 for u_ in (4.0, 6.6, 11.8, 24.5, 27.1, 32.3, 34.9):
     if _rc.random() < 0.85:
@@ -7240,6 +7248,7 @@ for u_ in (4.0, 6.6, 11.8, 24.5, 27.1, 32.3, 34.9):
 # (nose to tail along the kerb, 5.6 m apart: they stood 3.4 m apart, one in the other)
 for x_, y_, h_ in ((90.9, 150.15, 0.82), (94.7, 154.25, 0.82)):
     cars.append([_rc.choice(['sedan', 'hatch']), x_, y_, round(h_ + _rc.uniform(-.05, .05), 3), _rc.randrange(8)])
+CAR_GROUPS['용재관 북쪽'] = cars[_n_yj:]
 # the clump of trees between the car park and the drive to 노천극장 and the wood north of that drive, as in the 1997
 # aerial photos (on the forecourt's paving in the game before): at the list's end, so that no other tree changes its
 # model
@@ -8151,6 +8160,7 @@ shrubs[:] = [s_ for s_ in shrubs if not _bz.buffer(0.5).contains(Point(s_[1], s_
 props[:] = [p_ for p_ in props if not _bz.contains(Point(p_[1], p_[2]))]
 cars[:] = [c_ for c_ in cars if not _bz.buffer(1.0).contains(Point(c_[1], c_[2]))]
 _rbk = random.Random(1997 + 548)
+_n_bk = len(cars)
 _lot = park_lot('백양관 북쪽', 'white')
 _bk_st = park_row(_lot, _bkq + BK_T * 1.0 + BK_N * 8.5, BK_T, -BK_N, 7, w=2.3, d=5.0, head=True)       # (nose in)
 _bk_st += park_row(_lot, np.array([-13.0, 126.8]), np.array([1.0, 0.0]), np.array([0.0, 1.0]), 5, w=2.3, d=5.0, head=True)
@@ -8158,6 +8168,7 @@ for x_, y_, h_ in _bk_st:
     if _rbk.random() < 0.85:
         cars.append([_rbk.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(x_, 2), round(y_, 2),
                      round(h_ + _rbk.uniform(-.04, .04), 3), _rbk.randrange(8)])
+CAR_GROUPS['백양관 북쪽'] = cars[_n_bk:]
 # the island's hedge, a pine at each end inside it (appended to the trees at the very end, below: BK_ISLAND_TREES),
 # and the two bollards across the sidewalk at the mouth's south side (2010 1016786032 · 1016786034, 2008 2381322)
 hedge_line(list(BK_ISLAND.buffer(-0.45).exterior.coords)[:-1], 'hedge_low', 1.0, step=1.5)
@@ -8211,6 +8222,7 @@ _rlc = random.Random(1997 + 12)
 _q = _lc0 + _lcd * LOT_C_VAN[0] + _lcn * LOT_C_VAN[1]
 cars.append(['sedan', round(float(_q[0]), 2), round(float(_q[1]), 2), round(math.atan2(-_lcn[1], -_lcn[0]) + _rlc.uniform(-.06, .06), 3),
              _rlc.randrange(8)])
+CAR_GROUPS['정문 동쪽'].append(cars[-1])
 _lct = []
 for c_ in cars:
     if not LOT_C_PAD.contains(Point(c_[1], c_[2])):
@@ -8255,6 +8267,7 @@ park_lot('학생회관 별관 앞', None)['stalls'] = [[c_[1], c_[2], c_[3]] for
 _lot = park_lot('핀슨관 옆', 'white')
 _pst = park_row(_lot, PINSON['o'] + PINSON['n'] * PINSON['off'], PINSON['t'], PINSON['n'], PINSON['k'], w=PINSON['w'], d=PINSON['d'])
 _rpn = random.Random(1997 + 2901)
+_n_pn = len(cars)
 PINSON_FREE = []
 for k_, (x_, y_, h_) in enumerate(_pst):
     if k_ in (1, 4, 5, 8):
@@ -8262,12 +8275,14 @@ for k_, (x_, y_, h_) in enumerate(_pst):
                      round(h_ + _rpn.uniform(-.04, .04), 3), _rpn.randrange(8)])
     else:
         PINSON_FREE.append((round(x_, 2), round(y_, 2)))
+CAR_GROUPS['핀슨관 옆'] = cars[_n_pn:]
 # 공학원 공사장 앞 (GW_LOT, GW_ROW above; the 1997 vertical photos): the car park's rows as the photos have them (no line
 # shows at 0.54 m a pixel), noses north and south, and the row nose in along the north hoarding either side of its
 # gate.  Their own random stream.  (The third row at v 63.9, not the 63.3 read off the photos: 4.4 m from the row
 # behind it, tail to tail, the cars stood in one another; 0.6 m is a pixel of those photos)
 _lot = park_lot('공학원 공사장 앞', None)
 _rgw = random.Random(1997 + 4404)
+_n_gw = len(cars)
 _gw_h = math.atan2(_gc_, -_gs_)                         # (up the site's v)
 for u_, v_, d_ in [(60.0, 75.5, 1), (62.8, 75.5, 1)] + [(u_, 79.5, 1) for u_ in (68.0, 70.8, 73.6, 78.2)] + \
         [(74.7 + 2.8 * k_, 69.0, -1) for k_ in range(6)] + [(72.5 + 2.9 * k_, 63.9, 1) for k_ in range(4)] + \
@@ -8279,6 +8294,9 @@ for u_, v_, d_ in [(60.0, 75.5, 1), (62.8, 75.5, 1)] + [(u_, 79.5, 1) for u_ in 
     if _rgw.random() < 0.85:
         cars.append([_rgw.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(x_, 2), round(y_, 2),
                      round(h_ + _rgw.uniform(-.05, .05), 3), _rgw.randrange(8)])
+CAR_GROUPS['공학원 공사장 앞'] = cars[_n_gw:]
+CAR_GROUPS['과학관'] = list(SCI_CARS)
+CAR_GROUPS['학생회관 별관 앞'] = list(ANNEX_CARS)
 cars += SCI_CARS                    # (과학관's court and yard: last, so that no other car changes its model)
 # 한경길 · 연희관 앞길 (reference/고증/2.9 「세운 차」): the rows of parked cars the vertical photos of July 1997 have (frames
 # 26/15 and 27/16 at the road's height, tools/aerial97.py): side by side along both lanes of 한경길 behind 언더우드관,
@@ -8296,6 +8314,7 @@ _rhk = random.Random(1997 + 15597)
 HK_FREE_AT, HK_FREE = {(1, 4), (2, 6), (3, 5), (4, 3)}, []
 _hk_halls = unary_union([Polygon(b_['footprint']) for b_ in buildings])
 HK_PADS, _hk_lots = [], {}
+HK_SLOTS = []                                             # (row, place, its car or None for a free stall: cars97 below)
 for name_, a_, b_, k_, nose_ in HK_ROWS:
     a_, b_ = np.array(a_), np.array(b_)
     t_ = (b_ - a_) / np.linalg.norm(b_ - a_) if k_ > 1 else np.array([0.975, -0.222])
@@ -8315,8 +8334,10 @@ for name_, a_, b_, k_, nose_ in HK_ROWS:
                 round(h_ + _rhk.uniform(-.06, .06), 3), _rhk.randrange(8)]
         if (len(HK_PADS) - 1, i_) in HK_FREE_AT:           # (left free for a car that drives in: TRAFFIC below)
             HK_FREE.append((round(float(x_), 2), round(float(y_), 2), nose_))
+            HK_SLOTS.append((len(HK_PADS) - 1, i_, None))
         else:
             cars.append(car_)
+            HK_SLOTS.append((len(HK_PADS) - 1, i_, car_))
 print('한경길 · 연희관 앞: parked cars', sum(r_[3] for r_ in HK_ROWS) - len(HK_FREE), 'in', len(HK_ROWS), 'rows, free stalls', len(HK_FREE))
 # ... and the cars of 백양로 drive in (2026-11-14): off the east road at the fork east of 한경길, west along the north
 # lane, round at the west end before 교육관 and back east along the south lane to the east road (the way in that fits
@@ -8326,6 +8347,188 @@ print('한경길 · 연희관 앞: parked cars', sum(r_[3] for r_ in HK_ROWS) - 
 HK_N = [(104.1, 281.3), (71.4, 290.9), (52.2, 296.6)]                                   # the north lane, westwards
 HK_S = [(69.2, 282.5), (96.2, 275.4), (108.7, 272.3), (131.5, 267.5)]                   # the south lane, eastwards
 HK_TURN = [(40.3, 301.5), (40.2, 291.0)]
+# 세운 차를 1997년 7월 28일 항공사진 원본 스캔대로 (tools/cars97.py, reference/고증/2.10, 2026-11-14).  Each car
+# park's cars as first placed (CAR_GROUPS, by object) move in their places in the list; one that stood where no car
+# stood in the photos goes ('gone': its draws stay, the last pass drops it); the cars the photos have and the game had
+# not go on at the list's end, with their own random numbers, so that no other car changes its model or colour.  Their
+# stalls and painted lines are written again (campus.json `parking`).  CAR_LOOK: a car's size and shade read off the
+# photos, for the last pass (below) to pick its model and colour by
+CAR_LOOK = {}
+_r97 = random.Random(1997 + 7280)
+CARS97_NEW = []
+
+
+def c97_move(c_, x_, y_, h_, look_=None):
+    """a car in its place in the list to (x, y), heading h (rad); look_: (size, shade) read off the photos"""
+    c_[1], c_[2], c_[3] = round(float(x_), 2), round(float(y_), 2), round(float(h_), 3)
+    if len(c_) > 5:
+        del c_[5:]
+    if look_ and any(look_):
+        CAR_LOOK[id(c_)] = look_
+
+
+def c97_gone(c_):
+    if len(c_) < 6:
+        c_.append('gone')
+
+
+def c97_new(x_, y_, h_, size_=None, shade_=None):
+    """a car the photos have, at the list's end"""
+    kind_ = {'s': 'hatch', 'm': 'sedan', 'v': 'van'}.get(size_) or _r97.choice(['sedan', 'sedan', 'sedan', 'hatch'])
+    c_ = [kind_, round(float(x_), 2), round(float(y_), 2), round(float(h_) + _r97.uniform(-.03, .03), 3), _r97.randrange(8)]
+    if size_ or shade_:
+        CAR_LOOK[id(c_)] = (size_, shade_)
+    CARS97_NEW.append(c_)
+    return c_
+
+
+def c97_lot(name_, paint_=None):
+    """the car park's entry in campus.json `parking` (made if it is not there), emptied for its stalls read again"""
+    l_ = next((l_ for l_ in PARK_LOTS if l_['name'] == name_), None) or park_lot(name_, paint_)
+    l_.update(paint=paint_, stalls=[], lines=[])
+    return l_
+
+
+def c97_stall(l_, x_, y_, h_):
+    l_['stalls'].append([round(float(x_), 2), round(float(y_), 2), round(float(h_), 3)])
+
+
+_c97_n0 = sum(1 for c_ in cars if len(c_) < 6)
+# 독수리상 서쪽 옆길 (SIDE_W, LOT_W): along both kerbs, not nose in on the west side
+_l = c97_lot('독수리상 서쪽 옆길', None)
+for c_, t_ in zip(CAR_GROUPS['독수리상 서쪽 옆길'], cars97.SIDE_W_CARS):
+    if t_ is None:
+        c97_gone(c_)
+    else:
+        c97_move(c_, t_[0], t_[1], math.radians(t_[2]), t_[3:])
+        c97_stall(_l, t_[0], t_[1], math.radians(t_[2]))
+# 정문 동쪽 (LOT_C, LOT_C_VAN): the lined car park south-west of 백주년기념관 (its asphalt: LOT_C_LOT); the eight cars of
+# photo A into the rows' south stalls, the red one a hatchback (#152)
+_st, _ln, _mo = cars97.lotb()
+_l = c97_lot('정문 동쪽 잔디', 'white')
+_l['lines'] = [[round(v_, 2) for v_ in q_] for q_ in _ln]
+_lb = {n_: (x_, y_, h_) for n_, x_, y_, h_ in _st}
+_lb.update({n_: (x_, y_, h_) for n_, x_, y_, h_, _, _ in _mo})
+_lb_look = {n_: (s_, w_) for n_, _, _, _, s_, w_ in _mo}
+for n_, x_, y_, h_ in _st:
+    c97_stall(_l, x_, y_, h_)
+for k_, (c_, n_) in enumerate(zip(CAR_GROUPS['정문 동쪽'], cars97.LOTB_FIRST)):
+    c97_move(c_, *_lb[n_], ('hatch', None) if k_ == 0 else _lb_look.get(n_))
+for n_, x_, y_, h_ in _st + [(n_, x_, y_, h_) for n_, x_, y_, h_, _, _ in _mo]:
+    if n_ not in cars97.LOTB_FIRST and n_ not in cars97.LOTB_EMPTY:
+        c97_new(x_, y_, h_, *_lb_look.get(n_, (None, None)))
+# 백양관 북쪽 (BK_LOT): the row along the wing as it was, the north row 1.3 - 2.8 m further south and a car's width east,
+# one more at its east end
+_l = c97_lot('백양관 북쪽', 'white')
+_bkf = [(x_, y_, math.atan2(-BK_N[1], -BK_N[0])) for x_, y_ in cars97.BK_FRONT]
+_bkn = [(x_, y_, math.radians(cars97.BK_NORTH_H)) for x_, y_ in cars97.BK_NORTH]
+for x_, y_, h_ in _bkf + _bkn:
+    c97_stall(_l, x_, y_, h_)
+for row_, w_ in ((_bkf, 2.2), (_bkn, 2.3)):
+    t_ = np.array(row_[-1][:2]) - np.array(row_[0][:2])
+    t_ = t_ / np.linalg.norm(t_)
+    a_ = np.array([math.cos(row_[0][2]), math.sin(row_[0][2])])
+    ends_ = [np.array(row_[0][:2]) - t_ * w_ / 2] + [(np.array(p_[:2]) + np.array(q_[:2])) / 2 for p_, q_ in zip(row_[:-1], row_[1:])] + \
+        [np.array(row_[-1][:2]) + t_ * w_ / 2]
+    for e_ in ends_:
+        _l['lines'].append([round(float(v_), 2) for v_ in (*(e_ - a_ * 2.5), *(e_ + a_ * 2.5))])
+    _l['lines'].append([round(float(v_), 2) for v_ in (*(ends_[0] + a_ * 2.5), *(ends_[-1] + a_ * 2.5))])
+_bk_old = _bk_st                                           # (the stalls the cars were first put in: 7 along the wing, 5 north)
+_bk_used = set()
+for c_ in CAR_GROUPS['백양관 북쪽']:
+    i_ = min(range(len(_bk_old)), key=lambda k_: math.dist(_bk_old[k_][:2], c_[1:3]))
+    q_ = _bkf[i_] if i_ < 7 else _bkn[i_ - 7]
+    c97_move(c_, *q_)
+    _bk_used.add(q_)
+for q_ in _bkf + _bkn:
+    if q_ not in _bk_used:
+        c97_new(*q_)
+# 대우관 북쪽 길 (DWB_KERB): no car along the kerb in any of four frames; the cars stood on its planted strip
+for c_ in CAR_GROUPS['대우관 뒤']:
+    if any(math.dist(c_[1:3], q_) < 0.6 for q_, _ in DWB_KERB):
+        c97_gone(c_)
+# 한경길 (HK_ROWS' first five rows): the angled bays the photos have; a bay for each car or free stall of a row in
+# order, the cars past the row's last bay go.  The free stalls keep their places in their rows (TRAFFIC below drives
+# in along the bay)
+_hkb = cars97.hk_bays()
+_hk_lot = c97_lot('한경길', None)
+for r_ in _hkb:
+    for x_, y_, h_ in r_:
+        c97_stall(_hk_lot, x_, y_, h_)
+HK_FREE = []
+for r_, i_, c_ in HK_SLOTS:
+    if r_ < len(_hkb):
+        if i_ >= len(_hkb[r_]):
+            if c_ is not None:
+                c97_gone(c_)
+            continue
+        x_, y_, h_ = _hkb[r_][i_]
+        if c_ is None:
+            HK_FREE.append((x_, y_, 1 if r_ < 3 else -1, h_))
+        else:
+            c97_move(c_, x_, y_, h_)
+    elif c_ is not None and (r_, i_) in cars97.YH_SHIFT:
+        dx_, dy_ = cars97.YH_SHIFT[(r_, i_)]
+        c97_move(c_, c_[1] + dx_, c_[2] + dy_, c_[3])
+# the other car parks (cars97.GROUP_TARGETS: read by area) and the cars where the game had none (cars97.NEW_CARS)
+for name_, tg_ in cars97.GROUP_TARGETS.items():
+    for c_, t_ in zip(CAR_GROUPS[name_], tg_):
+        if t_ is None:
+            c97_gone(c_)
+        elif t_ != 'keep':
+            c97_move(c_, t_[0], t_[1], math.radians(t_[2]), t_[3:])
+# 핀슨관 옆 (PINSON): the two lined blocks along 광복관's north wall; the stalls the photos have and the game's cars do not
+# take are where the cars of 백양로 drive in (PINSON_FREE: TRAFFIC below)
+_l = c97_lot('핀슨관 옆', 'white')
+_p9 = cars97.PINSON97
+_pt9, _po9 = np.array(_p9['t']), np.array(_p9['o'])
+_pn9 = np.array([-_pt9[1], _pt9[0]])
+for us_ in _p9['lines_u']:
+    for u_ in us_:
+        _l['lines'].append([round(float(v_), 2) for v_ in (*(_po9 + _pt9 * u_ + _pn9 * _p9['v'][0]), *(_po9 + _pt9 * u_ + _pn9 * _p9['v'][1]))])
+    _l['lines'].append([round(float(v_), 2) for v_ in (*(_po9 + _pt9 * us_[0] + _pn9 * _p9['v'][1]), *(_po9 + _pt9 * us_[-1] + _pn9 * _p9['v'][1]))])
+for t_ in cars97.GROUP_TARGETS['핀슨관 옆']:
+    c97_stall(_l, t_[0], t_[1], math.radians(t_[2]))
+PINSON_FREE[:] = [tuple(q_) for q_ in _p9['free']]
+for x_, y_ in PINSON_FREE:
+    c97_stall(_l, x_, y_, math.radians(_p9['h']))
+for area_, lst_ in cars97.NEW_CARS.items():
+    for x_, y_, h_, s_, w_ in lst_:
+        c97_new(x_, y_, math.radians(h_), s_, w_)
+for name_, d_ in cars97.NEW_LOTS.items():
+    _l = c97_lot(name_, d_.get('paint'))
+    _l['lines'] = [[round(v_, 2) for v_ in q_] for q_ in d_.get('lines', [])]
+    for x_, y_, h_ in d_['stalls']:
+        c97_stall(_l, x_, y_, h_)
+cars += CARS97_NEW
+# (what stood in a car moved or put in: a tree steps aside out of it in its place in the list, a shrub or a prop goes;
+# a car in a hall's footprint is only told)
+_c97 = [c_ for c_ in cars if len(c_) < 6 and (id(c_) in CAR_LOOK or c_ in CARS97_NEW or any(c_ is q_ for g_ in CAR_GROUPS.values() for q_ in g_))]
+
+
+def c97_box(c_, pad_=0.0):
+    ct_, cn_ = np.array([math.cos(c_[3]), math.sin(c_[3])]), np.array([-math.sin(c_[3]), math.cos(c_[3])])
+    L_, W_ = (4.7, 1.8) if c_[0] != 'hatch' else (3.6, 1.65)
+    return Polygon([tuple(np.array(c_[1:3]) + ct_ * a_ * (L_ / 2 + pad_) + cn_ * b_ * (W_ / 2 + pad_)) for a_, b_ in ((1, 1), (1, -1), (-1, -1), (-1, 1))])
+
+
+_c97_boxes = unary_union([c97_box(c_) for c_ in _c97])
+_c97_zone = _c97_boxes.buffer(0.45)
+_c97_free = _c97_boxes.buffer(0.9)
+_c97_moved = []
+for t_ in trees:
+    if _c97_zone.contains(Point(t_[1], t_[2])):
+        q_ = nearest_points(_c97_free.exterior if hasattr(_c97_free, 'exterior') else _c97_free.boundary, Point(t_[1], t_[2]))[0]
+        _c97_moved.append((t_[0], t_[1], t_[2], round(q_.x, 2), round(q_.y, 2)))
+        t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
+_c97_ns = (len(shrubs), len(props))
+shrubs[:] = [s_ for s_ in shrubs if not _c97_boxes.buffer(0.3).contains(Point(s_[1], s_[2]))]
+_c97_props = [p_[:3] for p_ in props if _c97_boxes.buffer(0.2).contains(Point(p_[1], p_[2]))]
+props[:] = [p_ for p_ in props if not _c97_boxes.buffer(0.2).contains(Point(p_[1], p_[2]))]
+_c97_halls = [(c_[1], c_[2]) for c_ in _c97 if any(Polygon(b_['footprint']).intersects(c97_box(c_, -0.3)) for b_ in buildings)]
+print('세운 차 (1997 스캔, cars97): moved or kept %d, gone %d, new %d; trees stepped aside %d, shrubs -%d, props -%d %s; in a hall %s' % (
+    len(_c97) - len(CARS97_NEW), _c97_n0 - sum(1 for c_ in cars if len(c_) < 6) + len(CARS97_NEW), len(CARS97_NEW),
+    len(_c97_moved), _c97_ns[0] - len(shrubs), _c97_ns[1] - len(props), _c97_props, _c97_halls))
 # The cars' last pass (2026-11-14).  The web app used to choose each car's model and colour by its place in this
 # list (a 'sedan' the saloon, the older saloon or the van by turns, a 'hatch' the hatchback or the 티코; the colour
 # PARKED_COLORS[(c * 7 + i) % 13]).  The list names them itself now, each as the app drew it, so that a car taken
@@ -8335,6 +8538,18 @@ for i_, c_ in enumerate(cars):
     k_ = 'sedan' if c_[0] == 'taxi' else c_[0]
     c_[0] = ['sedan', 'sedan2', 'sedan', 'van'][i_ % 4] if k_ == 'sedan' else ['hatch', 'tico'][i_ % 2] if k_ == 'hatch' else k_
     c_[4] = (c_[4] * 7 + i_) % 13
+    if id(c_) in CAR_LOOK:                        # (its size and shade in the 1997 photos: cars97 above)
+        s_, w_ = CAR_LOOK[id(c_)]
+        if s_ == 's' and c_[0] not in ('hatch', 'tico'):
+            c_[0] = ['hatch', 'tico'][i_ % 2]
+        elif s_ == 'm' and c_[0] not in ('sedan', 'sedan2'):
+            c_[0] = ['sedan', 'sedan2'][i_ % 2]
+        elif s_ in ('v', 'van'):
+            c_[0] = 'van'
+        elif s_ in ('hatch', 'tico', 'sedan', 'sedan2'):
+            c_[0] = s_
+        if w_ in cars97.TONES and c_[4] not in cars97.TONES[w_]:
+            c_[4] = cars97.TONES[w_][c_[4] % len(cars97.TONES[w_])]
 print('cars: in stalls that are no more', sum(1 for c_ in cars if len(c_) > 5))
 cars[:] = [c_[:5] for c_ in cars if len(c_) < 6]
 # (the oil under the stalls of the car parks that decal_spots, above, does not know: 백양관 북쪽; their own random
@@ -8633,12 +8848,18 @@ _hpts, _hv = _tr_loop(_hloop)
 _hp = np.array(_hpts)
 _hls = LineString(_hpts)
 _hstalls = []
-for x_, y_, nose_ in HK_FREE:
-    # (its lane: the north one's cars turn north into a stall, the south one's south; the loop's point abreast of it)
+for x_, y_, nose_, *bh_ in HK_FREE:
+    # (its lane: the north one's cars turn north into a stall, the south one's south; the loop's point abreast of it, or
+    # for an angled bay (bh_: its heading, cars97) the point where the bay's axis meets the lane, so that the car comes
+    # to rest along the bay)
     cand_ = [k_ for k_ in range(len(_hpts)) if math.dist(_hpts[k_], (x_, y_)) < 9.0
              and float((_hp[min(k_ + 1, len(_hp) - 1)] - _hp[k_])[0] * (y_ - _hp[k_][1])
                        - (_hp[min(k_ + 1, len(_hp) - 1)] - _hp[k_])[1] * (x_ - _hp[k_][0])) < 0]      # (to its right)
     ka_ = min(cand_, key=lambda k_: math.dist(_hpts[k_], (x_, y_)))
+    if bh_:
+        _bd = np.array([math.cos(bh_[0]), math.sin(bh_[0])])
+        _ax = [k_ for k_ in cand_ if float((np.array([x_, y_]) - _hp[k_]) @ _bd) > 2.0]
+        ka_ = min(_ax, key=lambda k_: abs(float(_bd[0] * (_hp[k_][1] - y_) - _bd[1] * (_hp[k_][0] - x_)))) if _ax else ka_
     i_ = max(0, ka_ - 5)                                                 # 6 m before the stall
     in_ = _tr_bez(_hpts[i_], _hpts[ka_], (x_, y_))
     _hstalls.append(dict(i=i_, j=i_, a=in_, b=in_[::-1]))
@@ -8946,7 +9167,7 @@ _ypaint(HK_PADS, _ga)                         # (한경길 · 연희관 앞길�
 # (and under the cars' way round 한경길 and into its free stalls: the lanes, the round at the west end, the stalls' mouths)
 _hk_way = LineString(HK_N + HK_TURN + HK_S)
 _hk_lane = unary_union([_hk_way.buffer(2.4)] + [LineString([(x_, y_), tuple(nearest_points(_hk_way, Point(x_, y_))[0].coords[0])]).buffer(1.6)
-                                               for x_, y_, _ in HK_FREE])
+                                               for x_, y_, *_ in HK_FREE])
 _ypaint([_hk_lane], _ga)
 _hk = unary_union(HK_PADS + [_hk_lane])
 _n0 = (len(shrubs), len(props))
