@@ -91,8 +91,16 @@ export class ArmPose {
 // hang from Body and the feet are separate bones under Root, so lowering Body leaves the feet where they are and the
 // legs are bent to them here. Call apply() each frame after the mixer (and before ArmPose); apply() with nothing
 // gives the clip's own pose back.
-const _hq = new THREE.Quaternion(), _lq = new THREE.Quaternion(), _bq = new THREE.Quaternion();
-const _j = new THREE.Vector3(), _k = new THREE.Vector3(), _e = new THREE.Vector3(), _pl = new THREE.Vector3(), _ax = new THREE.Vector3();
+//
+// The lean is shared out down the back: most of it the pelvis (Body) turning over the hip joints, the rest up the
+// joints of the spine. All of it on the one joint over the pelvis folded the waist flat, as a hinge does: the skin
+// there hangs partly on Body, which stood upright (the women's a third of it up to 1.1 m: bent down to a ball, their
+// waist was a few centimetres thick seen from the side). Above the chest joint nothing changes: the hips move (a few
+// centimetres forward and down) so that the chest is where that one hinge had it, turned as far. The arms' reach was
+// worked out for that (ballpose.js, birthday.js).
+const BACK = [['Body', 0.6], ['Hips', 0.2], ['Abdomen', 0.1], ['Torso', 0.1]];
+const _hq = new THREE.Quaternion(), _lq = new THREE.Quaternion(), _bq = new THREE.Quaternion(), _tq = new THREE.Quaternion(), _wq = new THREE.Quaternion();
+const _j = new THREE.Vector3(), _k = new THREE.Vector3(), _e = new THREE.Vector3(), _pl = new THREE.Vector3(), _ax = new THREE.Vector3(), _ch = new THREE.Vector3();
 const X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1);
 
 export class Stance {
@@ -103,14 +111,34 @@ export class Stance {
   }
 
   setActor(actor) {
+    this.release();
     this.actor = actor;
     const f = (n) => actor.root.getObjectByName(n);
     this.body = f('Body');
     this.hips = f('Hips');
     this.head = f('Head');
+    this.chest = f('Chest');
+    const kept = (b, share = 0) => ({ b, share, clip: new THREE.Quaternion(), set: new THREE.Quaternion(), on: false });
+    this.back = BACK.map(([n, share]) => kept(f(n), share));
     this.legs = ['L', 'R'].map((s) => ({ up: f('UpperLeg' + s), low: f('LowerLeg' + s), foot: f('Foot' + s) }));
-    this.ok = !!this.body && !!this.hips && this.legs.every((l) => l.up && l.low && l.foot);
+    this.ok = !!this.body && !!this.hips && !!this.chest && this.back.every((x) => x.b) && this.legs.every((l) => l.up && l.low && l.foot);
     if (this.ok) this.hipsRest = this.hips.quaternion.clone();     // no clip turns Hips: ours to turn and put back
+    // what apply() turns and moves besides: the head, and Body's place
+    this.turned = this.ok ? [...this.back, ...(this.head ? [kept(this.head)] : [])] : [];
+    this.at = { clip: new THREE.Vector3(), set: new THREE.Vector3(), on: false };
+  }
+
+  // what the last apply() turned and moved, back as the clip had it. The mixer writes a bone only when its track's
+  // value has changed, so a turn of ours can outlast the frame: left in, the next one would go on top of it
+  release() {
+    if (!this.ok) return;
+    for (const x of this.turned) {
+      if (x.on && x.b.quaternion.equals(x.set)) x.b.quaternion.copy(x.clip);
+      x.on = false;
+    }
+    if (this.at.on && this.body.position.equals(this.at.set)) this.body.position.copy(this.at.clip);
+    this.at.on = false;
+    this.hips.quaternion.copy(this.hipsRest);
   }
 
   // drop: metres the hips come down; lean: rad forward from the hips; side: rad towards the figure's +X;
@@ -118,28 +146,45 @@ export class Stance {
   apply({ drop = 0, lean = 0, side = 0, sway = 0, fwd = 0 } = {}) {
     if (!this.ok) return;
     const h = this.actor.holder;
-    this.hips.quaternion.copy(this.hipsRest);
-    const mag = Math.abs(drop) + Math.abs(sway) + Math.abs(fwd);
-    if (mag < 1e-4 && Math.abs(lean) + Math.abs(side) < 1e-4) return;
+    this.release();
+    const mag = Math.abs(drop) + Math.abs(sway) + Math.abs(fwd), bent = Math.abs(lean) + Math.abs(side);
+    if (mag < 1e-4 && bent < 1e-4) return;
     h.updateMatrixWorld(true);
     h.getWorldQuaternion(_hq);
+    for (const x of this.turned) x.clip.copy(x.b.quaternion);
+    this.at.clip.copy(this.body.position);
     if (mag >= 1e-4) {
       this.body.getWorldPosition(_j);
       _j.add(_e.set(sway, -drop, fwd).applyQuaternion(_hq));
       this.body.position.copy(this.body.parent.worldToLocal(_j));
       this.body.updateWorldMatrix(false, true);
     }
-    // the spine from the hips, in the figure's own frame
-    _lq.setFromAxisAngle(X, lean).multiply(_bq.setFromAxisAngle(Z, -side));
-    _lq.premultiply(_hq).multiply(_bq.copy(_hq).invert());
-    this.body.getWorldQuaternion(_bq);
-    this.hips.quaternion.copy(_bq).invert().multiply(_lq).multiply(_bq).multiply(this.hipsRest).normalize();
-    this.hips.updateWorldMatrix(false, true);
-    // the head stays up as the back goes over (the clips drive Head, so this lasts the frame)
-    if (this.head && lean > 0.2) { this.head.quaternion.multiply(_lq.setFromAxisAngle(X, -0.55 * (lean - 0.2))); this.head.updateWorldMatrix(false, true); }
-    if (mag < 1e-4) return;
+    if (bent >= 1e-4) {
+      // the chest joint and the back's last bone as one hinge over the pelvis would leave them
+      const whole = this.turn(lean, side, _wq);
+      this.hips.getWorldPosition(_j);
+      const chest = this.chest.getWorldPosition(_ch).sub(_j).applyQuaternion(whole).add(_j);
+      const last = this.back[this.back.length - 1].b;
+      const lastQ = whole.multiply(last.getWorldQuaternion(_bq));
+      // each bone's share, in the figure's own frame; the last one takes what is left of the whole
+      for (const x of this.back) {
+        if (x.b !== last) this.turn(lean * x.share, side * x.share, _tq);
+        x.b.parent.getWorldQuaternion(_bq);
+        if (x.b === last) x.b.quaternion.copy(_bq.invert().multiply(lastQ));
+        else x.b.quaternion.premultiply(_lq.copy(_bq).invert().multiply(_tq).multiply(_bq)).normalize();
+        x.b.updateWorldMatrix(false, true);
+      }
+      // the hips to where that puts the chest right
+      this.body.getWorldPosition(_j).add(chest.sub(this.chest.getWorldPosition(_k)));
+      this.body.position.copy(this.body.parent.worldToLocal(_j));
+      this.body.updateWorldMatrix(false, true);
+      // the head stays up as the back goes over (the clips drive Head, so this lasts the frame)
+      if (this.head && lean > 0.2) { this.head.quaternion.multiply(_lq.setFromAxisAngle(X, -0.55 * (lean - 0.2))); this.head.updateWorldMatrix(false, true); }
+    }
+    for (const x of this.turned) { x.set.copy(x.b.quaternion); x.on = true; }
+    this.at.set.copy(this.body.position); this.at.on = true;
     // the legs to the feet: knees forward, and apart as the squat deepens
-    const w = Math.min(1, mag / 0.04), wide = Math.min(1, Math.max(0, drop) / 0.45);
+    const w = Math.min(1, (mag + 0.3 * bent) / 0.04), wide = Math.min(1, Math.max(0, drop) / 0.45);
     this.legs.forEach((leg, i) => {
       leg.up.getWorldPosition(_j); leg.low.getWorldPosition(_k); leg.foot.getWorldPosition(_e);
       const l1 = _j.distanceTo(_k), l2 = this.shin[i].length() * l1 / leg.low.position.length();
@@ -150,6 +195,12 @@ export class Stance {
       leg.low.getWorldPosition(_k);
       aimAxis(leg.low, _ax.copy(this.shin[i]).normalize(), _e.sub(_k).normalize(), w);
     });
+  }
+
+  // a lean forward and to the side in the figure's own frame, as a turn in the world (_hq: the holder's)
+  turn(lean, side, out) {
+    out.setFromAxisAngle(X, lean).multiply(_bq.setFromAxisAngle(Z, -side));
+    return out.premultiply(_hq).multiply(_bq.copy(_hq).invert());
   }
 }
 
