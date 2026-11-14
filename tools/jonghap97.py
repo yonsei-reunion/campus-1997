@@ -71,7 +71,7 @@ def poly(pts, f=xy):
 
 # --- the halls as the 1997 scans have them ---------------------------------------------------------------------------
 JONGHAP, OESOL2, INMUN = 246156123, 246156114, 246156112        # (OSM ways)
-PODIUM = 990070                                                 # 종합관's low east block (1994)
+PODIUM = 990080                                                 # 종합관's low east block (1994)
 SLAB_UV = (-1.6, 61.8, 0.0, 22.6)
 PODIUM_UV = (45.2, 64.6, -17.5, 40.8)
 OESOL2_UV = (-4.5, 38.4, -18.25, -5.3)
