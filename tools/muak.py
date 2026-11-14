@@ -554,6 +554,21 @@ def woods_strip(line, halls):
     return band.intersection(Polygon([(150, 590), (330, 590), (330, 800), (150, 800)])).difference(clear).difference(halls)
 
 
+# the wooded ridge the road crosses, west of the strip above (1997 frames: closed crowns from 서울외국인학교's yards at
+# y 690 to 대창고 and the long hall by the school).  Lawn in the game, out of sight until tools/north97.py raised the
+# ridge 5 - 13 m to the survey's height: it stands behind 대우관 now
+RIDGE = Polygon([(-28.0, 692.0), (150.0, 692.0), (178.0, 700.0), (185.0, 800.0), (-28.0, 800.0)])
+
+
+def woods_ridge(strip, halls, osm_=None):
+    """RIDGE off the strip along the road (woods_strip), the game's halls and this module's own (not in the game's
+    list yet when the ground is painted)"""
+    O = osm_ or osm()
+    own = unary_union([Polygon(_shift(O[src][1][:-1] if isinstance(src, int) else src, sh)).buffer(0)
+                       for _, _, _, _, src, sh, _ in OTHER_HALLS]).buffer(4.0)
+    return RIDGE.difference(strip.buffer(2.0)).difference(halls).difference(own)
+
+
 def woods_fill(poly, trees_, seed=15994, spacing=10.0):
     """trees on a jittered lattice in poly (oaks, pines, zelkovas, maples as the campus's woods), none within 4 m of a
     tree already there"""

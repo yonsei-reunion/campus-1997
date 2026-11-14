@@ -9488,7 +9488,8 @@ _ypaint([SEOMUN_YARD], _gd)                    # (the bare yard round the small 
 _ypaint([west_ground.YARD], _gd)               # (독수리상 서쪽 마당: bare earth, the walks across it under it)
 _ypaint([west_ground.road_south()], _ga)       # (... and the paved margin south of its road, where cars stood along it)
 MUAK_WOODS = muak.woods_strip(MUAK, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))
-_mk_floor = unary_union([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD]).intersection(woods_u.buffer(-1.0)).union(MUAK_WOODS)
+MUAK_RIDGE = muak.woods_ridge(MUAK_WOODS, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))   # (the ridge west of it)
+_mk_floor = unary_union([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD]).intersection(woods_u.buffer(-1.0)).union(MUAK_WOODS).union(MUAK_RIDGE)
 _ypaint([g_ for g_ in (_mk_floor.geoms if hasattr(_mk_floor, 'geoms') else [_mk_floor]) if g_.geom_type == 'Polygon' and g_.area > 0.5], _gf)
 _ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 길: SCI_DRIVE97)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
@@ -10293,6 +10294,9 @@ out['tsplat'] = dict(sinchon_rotary.TSPLAT, **muak.pack(os.path.join(ROOT, 'web/
 MUAK_N_TREES = muak.trees_n(MUAK, MUAK_ROADS, _mk_taken.difference(MUAK['ls'].buffer(6.5)).union(
     unary_union([muak.poly_rng(b_) for b_ in MUAK_HALLS + MUAK_HOUSES]).buffer(2.5)).union(unary_union(_mk_gm['courts']).buffer(1.5)), trees)
 trees += MUAK_N_TREES
+# (the wooded ridge west of the road, raised into view by tools/north97.py: its trees after every other tree)
+MUAK_RIDGE_TREES = muak.woods_fill(MUAK_RIDGE, trees, seed=15995, spacing=11.0)
+trees += MUAK_RIDGE_TREES
 _mk_clear = unary_union([_mk_gm['asphalt'].buffer(4.0), _mk_gm['pavers'].buffer(3.0), _mk_gm['dirt'].buffer(4.0),
                          unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES]).buffer(6.0)]).simplify(1.5)
 _mk_woods = _mk_gm['woods'].simplify(1.5)
@@ -10313,8 +10317,8 @@ _jj = shapely.geometry.polygon.orient(Polygon([(558.2, 186.6), (592.0, 154.4), (
 _jjh = [ground_tn(x_, y_) for x_, y_ in _jj.exterior.coords]
 buildings.append(dict(id=991051, name='', style='brick', levels=6, height=round(6 * 3.15, 2), fh=3.15, base=round(min(_jjh), 2),
                       top_ground=round(max(_jjh), 2), footprint=[[x_, y_] for x_, y_ in list(_jj.exterior.coords)[:-1]]))
-print('무악학사 · 북문: halls %d, houses %d, trees %d, cleared for the far forest %d pieces' % (
-    len(MUAK_HALLS), len(MUAK_HOUSES), len(MUAK_N_TREES), len(out['terrain']['north']['clear'])))
+print('무악학사 · 북문: halls %d, houses %d, trees %d (and %d on the ridge), cleared for the far forest %d pieces' % (
+    len(MUAK_HALLS), len(MUAK_HOUSES), len(MUAK_N_TREES), len(MUAK_RIDGE_TREES), len(out['terrain']['north']['clear'])))
 # 서문 (tools/seomun.py): 연희동's houses along 연희로10길 out of the gate and the small building south of its mouth, at the
 # halls' end (blender/build.py draws each hall's looks in its order); the gate's posts, leaves and walls
 SEOMUN_HOUSES = seomun.houses(ground_tn)
