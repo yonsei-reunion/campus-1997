@@ -16,6 +16,11 @@
   .venv/bin/python tools/aerial97.py px <frame> <px> <py> [z]
       한 사진의 화소 -> 게임 좌표(땅, 또는 높이 z 의 수평면과 만나는 점)
 
+원본 스캔: 화소 값은 원본 스캔(assets_src/aerial_1997/*.tif, 1210 dpi, 미리보기의 4.25배, 약 0.13 m/화소)에서 읽는다.
+처음 한 번 TIF 를 assets_src/aerial_1997/cache/c<코스>_n<번호>.npy 로 풀어 두고 메모리 사상으로 연다(한 장 약 134 MB).
+화소 좌표(px, py, to_px · frames_at · xyz 의 입출력)는 늘 미리보기 화소 단위이고, 스캔 화소 = 미리보기 화소 × 4.25 + 1.625.
+AERIAL97_SRC=preview 로 미리보기 JPG(0.54 m/화소)를 쓸 수 있다(지난 측정을 되풀이할 때). crop 의 zoom 4 = 0.135 m/화소.
+
 카메라는 tools/aerial97_fit.py 가 여섯 장을 한꺼번에 맞춘 값(tools/aerial97_cam.json)이다. 평면은 기준 건물 30동의 지붕과
 1.4 · 0.7 m(중앙절대) 안에서 맞고, 높이는 지형(data/terrain_near.npy)에 묶여 있다. 사진은 정사영상이 아니라서 높이 h 인
 점은 카메라 바로 아래 점에서 멀어지는 쪽으로 거리 · h / 900 만큼 밀려 찍힌다. crop 은 땅 높이로 그것을 되돌리므로 땅 위의
@@ -40,8 +45,11 @@ F_MM = _C['f_mm']             # 초점 거리(사진 테두리의 「152.85」)
 GSD = 0.54                    # 땅 위 한 화소(m, 캠퍼스 가운데: 카메라가 땅 위 약 930 m)
 # (코스, 사진 번호): M 은 화소 -> 사진 좌표(mm) 아핀(지표 여덟 개), cam 은 카메라 자리(게임 x, y, z)와 돎(ω, φ, κ rad)
 FRAMES = {tuple(int(v) for v in k.split('/')): dict(M=np.array(f['M']), cam=np.array(f['cam'])) for k, f in _C['frames'].items()}
+SCALE = 4.25                  # 원본 스캔 화소 = 미리보기 화소 × SCALE + (SCALE - 1) / 2
+SRC = os.environ.get('AERIAL97_SRC', 'scan')
 _H = None
 _IM = {}
+_SC = {}
 _R = {}
 
 
@@ -49,7 +57,32 @@ def path(frame):
     return os.path.join(DIR, 'ngii_1997_%s_c%d_n%d.jpg' % (ZONE, *frame))
 
 
+def scan_path(frame):
+    return os.path.join(DIR, 'ngii_1997_%s_c%d_n%d.tif' % (ZONE, *frame))
+
+
+def scan(frame):
+    """원본 스캔(8비트 회색, 팔레트 번호 = 밝기)을 메모리 사상으로. 없으면(또는 AERIAL97_SRC=preview) None"""
+    if frame not in _SC:
+        npy = os.path.join(DIR, 'cache', 'c%d_n%d.npy' % frame)
+        if SRC != 'scan' or not (os.path.exists(npy) or os.path.exists(scan_path(frame))):
+            _SC[frame] = None
+            return None
+        if not os.path.exists(npy):
+            from PIL import Image
+            Image.MAX_IMAGE_PIXELS = None
+            im = Image.open(scan_path(frame))
+            a = np.asarray(im if im.mode in ('P', 'L') and im.getpalette()[:9] == [0, 0, 0, 1, 1, 1, 2, 2, 2] else im.convert('L'))
+            os.makedirs(os.path.dirname(npy), exist_ok=True)
+            tmp = npy[:-4] + '.%d.tmp.npy' % os.getpid()
+            np.save(tmp, np.ascontiguousarray(a, np.uint8))
+            os.replace(tmp, npy)
+        _SC[frame] = np.load(npy, mmap_mode='r')
+    return _SC[frame]
+
+
 def image(frame):
+    """미리보기 JPG(0.54 m/화소) 전체. 재는 데는 sample 을 쓸 것(원본 스캔에서 읽음)"""
     if frame not in _IM:
         from PIL import Image
         _IM[frame] = np.asarray(Image.open(path(frame)).convert('L'), np.float32)
@@ -127,8 +160,23 @@ def frames_at(x, y, z=None, margin=20):
 
 
 def sample(frame, px, py):
+    """미리보기 화소 좌표 (px, py)의 밝기(0 ~ 255, 선형 보간). 원본 스캔이 있으면 거기서, 없으면 미리보기에서"""
     from scipy.ndimage import map_coordinates
-    return map_coordinates(image(frame), [py, px], order=1, mode='nearest')
+    hi = scan(frame)
+    if hi is None:
+        return map_coordinates(image(frame), [py, px], order=1, mode='nearest')
+    qx, qy = np.broadcast_arrays(np.asarray(px, float) * SCALE + (SCALE - 1) / 2, np.asarray(py, float) * SCALE + (SCALE - 1) / 2)
+    ok = np.isfinite(qx) & np.isfinite(qy)
+    out = np.full(qx.shape, np.nan, np.float32)
+    if not ok.any():
+        return out
+    h, w = hi.shape
+    qx, qy = np.clip(qx[ok], 0, w - 1), np.clip(qy[ok], 0, h - 1)
+    x0, y0 = int(qx.min()), int(qy.min())
+    x1, y1 = min(int(qx.max()) + 2, w), min(int(qy.max()) + 2, h)
+    win = np.asarray(hi[y0:y1, x0:x1], np.float32)
+    out[ok] = map_coordinates(win, [qy - y0, qx - x0], order=1, mode='nearest')
+    return out
 
 
 def ortho(frame, x, y, half, res, z=None, dz=0.0):
@@ -166,15 +214,16 @@ def _peaks(zs, s, n=3):
     return sorted(out, reverse=True)[:n]
 
 
-def surface_z(x, y, win=4.0, lo=-8.0, hi=45.0, step=0.25, frames=None):
+def surface_z(x, y, win=4.0, lo=-8.0, hi=45.0, step=0.25, frames=None, grid=None):
     """평면 자리 (x, y)의 표면 높이. 높이 후보마다 그 높이의 수평 창(±win m)을 사진들에 투영해 서로의 상관을 본다.
     돌려주는 것: [(점수, 높이)] 봉우리 높은 것부터, 쓴 사진들. 창에 지붕과 땅이 함께 들면 봉우리가 둘 나온다"""
     g = ground(x, y)
     frs = frames or [f[1] for f in frames_at(x, y, g, margin=40)]
     if len(frs) < 2:
         return [], frs
-    n = int(round(2 * win / 0.5)) + 1
-    gx, gy = np.meshgrid(x - win + np.arange(n) * 0.5, y + win - np.arange(n) * 0.5)
+    gr = grid or 0.5              # 창 안 점 사이(m). 원본 스캔에서 좁은 것(계단 · 연석)을 잴 때는 창을 줄이고 0.25 m 로
+    n = int(round(2 * win / gr)) + 1
+    gx, gy = np.meshgrid(x - win + np.arange(n) * gr, y + win - np.arange(n) * gr)
     zs = np.arange(g + lo, g + hi + step / 2, step)
     pat = []
     for f in frs:
