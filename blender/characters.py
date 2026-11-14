@@ -369,15 +369,38 @@ def clear_anim(arm):
 
 
 UMC_FINGERS = ('Index', 'Middle', 'Ring', 'Pinky', 'Thumb')
+# A hand at rest is half closed. The packs' relaxed hand is a flat one with the fingers spread: each finger is bent
+# further at the knuckle, the middle and the last joint (bones 2-4: bone 1 is the metacarpal, from the wrist to the
+# knuckle, and bending it folds the palm), the little finger most, the thumb a little in under the palm.
+FINGER_CURL = (20, 34, 22)                   # degrees
+FINGER_MORE = {'Index': .8, 'Middle': 1.0, 'Ring': 1.12, 'Pinky': 1.25, 'Thumb': .45}
+# The packs' build is a doll's: narrow shoulders (the joints 28 cm apart on the men, 21 cm on the women, where grown
+# people have about 33 and 29 cm), short arms (span 1.56 m at 1.71 m of height) and the men's hip joints wide apart
+# (22 cm for about 17).  Metres in the game's scale, each side: the shoulder joints out, the hip joints (and the feet
+# under them) in; the upper arm and the forearm longer by `arm`.
+BUILD = {'umc': dict(shoulder=.020, hip=-.022, arm=1.06), 'women': dict(shoulder=.030, hip=0.0, arm=1.06)}
+# The packs' idle and walk hold the arms away from the body, the women's walk with the palms forward: the upper arms
+# in toward the body, the forearms turned about their length (degrees).
+ARMS_IN = {'umc': {'idle': (7, 0), 'walk': (7, 0)}, 'women': {'idle': (9, 45), 'walk': (6, 45)}}
+# Sitting, the hands lie on the thighs, palms down: the upper arm and the forearm forward, the forearm in over the
+# thigh and turned about its length (degrees)
+SIT_ARMS = {'umc': (-16, -44, 14, 80), 'women': (-16, -44, 24, 40)}
 
 
 def is_umc_finger(name):
     return name.startswith(UMC_FINGERS)
 
 
-def relax_fingers(arm, meshes, rig):
-    """Make the fingers' pose in the first idle frame (a relaxed hand) their rest pose, in the meshes and the bones, so
-    the clips need no finger channels (the rig drops them). The rig and every person of it do the same, so they match."""
+def _shift(pb, v):
+    pb.matrix = Matrix.Translation(v) @ pb.matrix
+    bpy.context.view_layer.update()
+
+
+def relax_fingers(arm, meshes, rig, s):
+    """Make the fingers' pose in the first idle frame (a relaxed hand), bent further (FINGER_CURL), their rest pose, and
+    the build of BUILD the rest of the shoulders, arms, hips and feet: in the meshes and the bones.  The clips need no
+    finger channels (the rig drops them), and the rig and every person of it do the same, so they match.
+    s: the scale the rig is baked to afterwards (BUILD is in the game's metres)."""
     idle = bpy.data.actions.get(CLIPS[rig]['idle'])
     if idle is None:
         raise SystemExit('no idle action for the fingers')
@@ -386,9 +409,41 @@ def relax_fingers(arm, meshes, rig):
     bpy.context.view_layer.update()
     basis = {pb.name: pb.matrix_basis.copy() for pb in arm.pose.bones if is_umc_finger(pb.name)}
     use_action(arm, None)
+    # (a connected bone takes no translation in a pose: the ones moved below let go of their parents' tails)
+    moved = [n + side for n in ('UpperArm.', 'LowerArm.', 'Wrist.', 'UpperLeg.') for side in 'LR']
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.view_layer.objects.active = arm
+    arm.select_set(True)
+    bpy.ops.object.mode_set(mode='EDIT')
+    for n in moved:
+        arm.data.edit_bones[n].use_connect = False
+    bpy.ops.object.mode_set(mode='OBJECT')
     for pb in arm.pose.bones:
         pb.matrix_basis = basis.get(pb.name, Matrix.Identity(4))
     bpy.context.view_layer.update()
+    P = arm.pose.bones
+    for pb in P:                                   # (parents first)
+        if not is_umc_finger(pb.name):
+            continue
+        finger = next(f for f in UMC_FINGERS if pb.name.startswith(f))
+        k = int(pb.name[len(finger)]) - 2
+        if k < 0 or k > 2:
+            continue
+        side = 1 if pb.name.endswith('L') else -1
+        deg = FINGER_CURL[k] * FINGER_MORE[finger]
+        # the T pose, palms down: the fingers bend down about the model's front-back axis, the thumb in about the upright
+        rotate_about_head(pb, 'Z' if finger == 'Thumb' else 'Y', (-side if finger == 'Thumb' else side) * deg)
+    b = BUILD[rig]
+    for side, sx in (('L', 1), ('R', -1)):
+        ua, la, wr = P['UpperArm.' + side], P['LowerArm.' + side], P['Wrist.' + side]
+        upper, fore = la.head - ua.head, wr.head - la.head          # (before anything moves)
+        _shift(ua, Vector((sx * b['shoulder'] / s, 0, 0)))
+        _shift(la, upper * (b['arm'] - 1))
+        _shift(wr, fore * (b['arm'] - 1))
+        if b['hip']:
+            for n in ('UpperLeg.', 'Foot.', 'PT.'):
+                if P.get(n + side):
+                    _shift(P[n + side], Vector((sx * b['hip'] / s, 0, 0)))
     for ob in meshes:
         mod = next(m for m in ob.modifiers if m.type == 'ARMATURE')
         name = mod.name
@@ -402,12 +457,7 @@ def relax_fingers(arm, meshes, rig):
     bpy.context.view_layer.objects.active = arm
     arm.select_set(True)
     bpy.ops.object.mode_set(mode='POSE')
-    for pb in arm.pose.bones:
-        if hasattr(pb, 'select'):
-            pb.select = is_umc_finger(pb.name)
-        else:
-            pb.bone.select = is_umc_finger(pb.name)
-    bpy.ops.pose.armature_apply(selected=True)
+    bpy.ops.pose.armature_apply(selected=False)          # (every other bone is at rest)
     bpy.ops.object.mode_set(mode='OBJECT')
     for pb in arm.pose.bones:
         pb.matrix_basis = Matrix.Identity(4)
@@ -453,7 +503,8 @@ def export_glb(path, objs, animations):
                               export_animations=animations, export_animation_mode='ACTIONS', export_force_sampling=False,
                               export_optimize_animation_size=True, export_anim_slide_to_zero=True, export_reset_pose_bones=True,
                               export_skins=True, export_influence_nb=4, export_morph=False, export_extras=True,
-                              export_cameras=False, export_lights=False, export_def_bones=False, export_leaf_bone=False)
+                              export_cameras=False, export_lights=False, export_def_bones=False, export_leaf_bone=False,
+                              export_attributes=not animations)          # (the people's _OCC)
 
 
 # ---------- people ----------
@@ -1412,10 +1463,50 @@ def build_person(pid, spec):
         if o not in keep:
             bpy.data.objects.remove(o, do_unlink=True)
     clear_anim(arm)
-    relax_fingers(arm, parts, rig)
+    relax_fingers(arm, parts, rig, s)
     for a in list(bpy.data.actions):
         bpy.data.actions.remove(a)
     return finish_person(pid, arm, parts, s, 'rig-' + rig, bool(spec.get('face', {}).get('glasses')))
+
+
+OCC = '_OCC'                  # the vertex attribute of the shade below (glTF: a custom attribute)
+OCC_FAR = 0.28                # metres: what is further away shades nothing
+OCC_RAYS = 24
+
+
+def occlude(mesh):
+    """How much of the sky each vertex sees past the rest of the person (the hair over the brow and the neck, the chin
+    over the throat, sleeves, hems, the legs beside each other): 0 open, 1 shut in, kept on the vertices for the game
+    to shade by (web/src/characters.js).  Rays over the hemisphere of the vertex's normal in the rest pose, a hit
+    counting less the further off it is; the glasses shade nothing (not everybody wears theirs)."""
+    from mathutils.bvhtree import BVHTree
+    me = mesh.data
+    glass = {i for i, m in enumerate(me.materials) if m and m.name.split('~')[0] == 'Glasses'}
+    tree = BVHTree.FromPolygons([v.co.copy() for v in me.vertices],
+                                [tuple(p.vertices) for p in me.polygons if p.material_index not in glass])
+    dirs = []
+    for i in range(OCC_RAYS):                # cosine-weighted, on a spiral
+        u = (i + 0.5) / OCC_RAYS
+        r, th = math.sqrt(u), i * 2.399963
+        dirs.append((r * math.cos(th), r * math.sin(th), math.sqrt(1 - u)))
+    att = me.attributes.get(OCC) or me.attributes.new(OCC, 'FLOAT', 'POINT')
+    normals = [v.normal.copy() for v in me.vertices]
+    vals = []
+    for i, v in enumerate(me.vertices):
+        n = normals[i]
+        t = (Vector((0, 0, 1)) if abs(n.z) < 0.9 else Vector((1, 0, 0))).cross(n).normalized()
+        b = n.cross(t)
+        spin = (i * 0.61803 % 1) * 2 * math.pi
+        cs, sn = math.cos(spin), math.sin(spin)
+        o = v.co + n * 0.004
+        shut = 0.0
+        for x, y, z in dirs:
+            d = n * z + t * (x * cs - y * sn) + b * (x * sn + y * cs)
+            hit = tree.ray_cast(o, d, OCC_FAR)
+            if hit[0] is not None:
+                shut += 1 - hit[3] / OCC_FAR
+        vals.append(min(1.0, shut / OCC_RAYS * 1.5))
+    att.data.foreach_set('value', vals)
 
 
 def finish_person(pid, arm, parts, s, rig, glasses):
@@ -1447,6 +1538,7 @@ def finish_person(pid, arm, parts, s, rig, glasses):
             raise SystemExit(f'{pid}: {o.name} is not at the origin')
     me.transform(Matrix.Scale(s, 4))
     scale_rig(arm, s)
+    occlude(mesh)
     mesh.name = me.name = pid + '-mesh'
     arm.name = pid
     arm.data.name = pid
@@ -1503,7 +1595,7 @@ def new_action(arm, name, keys):
     return act
 
 
-def sit_pose(arm, base, s, poles=None, arms=(-14, -38)):
+def sit_pose(arm, base, s, poles=None, arms=(-14, -38, 0, 0)):
     """From a standing pose (bone -> matrix_basis): the body down so the hips are SEAT + HIP_OVER_SEAT high, thighs
     forward, shins straight down, the feet (bones of their own under the root) under the knees, forearms on the thighs.
     Both rigs name these bones alike: Body, UpperLeg.L/R, LowerLeg.L/R, Foot.L/R, UpperArm.L/R, LowerArm.L/R."""
@@ -1528,8 +1620,12 @@ def sit_pose(arm, base, s, poles=None, arms=(-14, -38)):
             pt = pb[poles + side]
             pt.matrix = Matrix.Translation(ankle - rest_ankle + Vector((0, -0.3 / s * 0.05, 0.3 / s * 0.05))) @ pt.bone.matrix_local
         bpy.context.view_layer.update()
+        sx = 1 if side == 'L' else -1
         rotate_about_head(pb['UpperArm.' + side], 'X', arms[0])
         rotate_about_head(pb['LowerArm.' + side], 'X', arms[1])
+        rotate_about_head(pb['LowerArm.' + side], 'Z', -sx * arms[2])
+        pb['LowerArm.' + side].matrix_basis = pb['LowerArm.' + side].matrix_basis @ Matrix.Rotation(math.radians(sx * arms[3]), 4, 'Y')
+        bpy.context.view_layer.update()
     return {b.name: b.matrix_basis.copy() for b in pb}
 
 
@@ -1544,6 +1640,42 @@ def head_shake(arm, base, head='Head', neck='Neck'):
         b[neck] = base[neck] @ qn.to_matrix().to_4x4()
         keys.append((f, b))
     return keys
+
+
+def arms_in(arm, act, add, twist):
+    """The upper arms of a clip turned in toward the body about the model's front-back axis by `add` degrees, the
+    forearms turned about their own length by `twist` (ARMS_IN): at every key of theirs."""
+    use_action(arm, act)
+    for side, sx in (('L', 1), ('R', -1)):
+        for name, turn in (('UpperArm.' + side, lambda pb: rotate_about_head(pb, 'Y', sx * add)),
+                           ('LowerArm.' + side, lambda pb: setattr(pb, 'matrix_basis', pb.matrix_basis @ Matrix.Rotation(math.radians(sx * twist), 4, 'Y')))):
+            if not (add if name.startswith('Upper') else twist):
+                continue
+            path = f'pose.bones["{name}"].rotation_quaternion'
+            frames = sorted({k.co.x for fc in fcurves(act) if fc.data_path == path for k in fc.keyframe_points})
+            pb = arm.pose.bones[name]
+            pb.rotation_mode = 'QUATERNION'
+            keys = []
+            for f in frames:
+                bpy.context.scene.frame_set(int(f), subframe=f - int(f))
+                bpy.context.view_layer.update()
+                turn(pb)
+                bpy.context.view_layer.update()
+                q = pb.rotation_quaternion.copy()
+                if keys and keys[-1][1].dot(q) < 0:
+                    q.negate()
+                keys.append((f, q))
+            for fc in fcurves(act):
+                if fc.data_path == path:
+                    for k in fc.keyframe_points:
+                        v = next(q for f, q in keys if f == k.co.x)[fc.array_index]
+                        k.handle_left.y += v - k.co.y
+                        k.handle_right.y += v - k.co.y
+                        k.co.y = v
+                    fc.update()
+    use_action(arm, None)
+    for pb in arm.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
 
 
 def foot_speed(arm, act, foot, fps):
@@ -1571,8 +1703,8 @@ def build_rig(rid):
         if o is not arm:
             bpy.data.objects.remove(o, do_unlink=True)
     clear_anim(arm)
-    relax_fingers(arm, [], rig)
     s = HEIGHT[rig] / TOP[rig]
+    relax_fingers(arm, [], rig, s)
     fps = bpy.context.scene.render.fps
     acts = {}
     for clip, src in CLIPS[rig].items():
@@ -1581,8 +1713,10 @@ def build_rig(rid):
             if a is None:
                 raise SystemExit(f'{rid}: no action {src}')
             acts[clip] = a
+    for clip, turn in ARMS_IN[rig].items():
+        arms_in(arm, acts[clip], *turn)
     idle0 = pose_from(arm, acts['idle'], 0)
-    sit = sit_pose(arm, idle0, s, poles='PT.')
+    sit = sit_pose(arm, idle0, s, poles='PT.', arms=tuple(float(v) for v in os.environ['SIT_ARMS'].split(',')) if os.environ.get('SIT_ARMS') else SIT_ARMS[rig])
     acts['sit'] = new_action(arm, 'sit', [(0, sit), (1, sit)])
     acts['emote-no'] = new_action(arm, 'emote-no', head_shake(arm, idle0))
     meta = {'walk_speed': foot_speed(arm, acts['walk'], 'Foot.L', fps) * s,
@@ -1629,7 +1763,8 @@ def write_glb(path, j, bin_):
 
 
 def quantize_weights(path):
-    """WEIGHTS_0 as normalized unsigned bytes (core glTF) instead of floats: a quarter of the size."""
+    """WEIGHTS_0 as normalized unsigned bytes (core glTF) instead of floats: a quarter of the size.  The shade of
+    occlude() (_OCC) as bytes, 0-255."""
     with open(path, 'rb') as fh:
         d = fh.read()
     n = struct.unpack('<I', d[12:16])[0]
@@ -1659,6 +1794,16 @@ def quantize_weights(path):
             acc.pop('min', None)
             acc.pop('max', None)
             done.add(ai)
+            ai = prim['attributes'].get(OCC)
+            acc = j['accessors'][ai] if ai is not None and ai not in done else None
+            if acc and acc['componentType'] == 5126 and not acc.get('byteOffset', 0) and not j['bufferViews'][acc['bufferView']].get('byteStride'):
+                vals = struct.unpack(f'<{acc["count"]}f', views[acc['bufferView']][:acc['count'] * 4])
+                # (plain bytes, 0-255: Blender's importer cannot read a normalized custom attribute)
+                views[acc['bufferView']] = bytes(min(255, max(0, round(v * 255))) for v in vals)
+                acc['componentType'] = 5121
+                acc.pop('min', None)
+                acc.pop('max', None)
+                done.add(ai)
     blob = bytearray()
     for v, data in zip(j['bufferViews'], views):
         blob += b'\0' * (-len(blob) % 4)
@@ -1759,6 +1904,8 @@ def check(pid, path):
         prims = [prim for m in j.get('meshes', []) for prim in m['primitives']]
         if sum('TEXCOORD_0' in prim['attributes'] for prim in prims) != 1 or any('TEXCOORD_1' in prim['attributes'] for prim in prims):
             problems.append('texture coordinates (the skin alone has a face on the atlas)')
+        if any(OCC not in prim['attributes'] for prim in prims):
+            problems.append('no occlusion on the vertices')
     return problems
 
 

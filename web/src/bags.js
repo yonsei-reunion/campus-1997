@@ -222,16 +222,17 @@ class Kit {
   constructor() { this.geos = []; }
   add(g, color, rough, weigh) {
     const P = g.attributes.position, n = P.count;
-    const col = new Float32Array(n * 3), ro = new Float32Array(n).fill(rough);
+    const col = new Float32Array(n * 3), part = new Float32Array(n * 3);
     const si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
     for (let i = 0; i < n; i++) {
       col.set([color.r, color.g, color.b], i * 3);
+      part.set([rough, 3, 0], i * 3);            // (characters.js `part`: roughness, a hard thing, nothing shades it)
       const w = weigh(P.getX(i), P.getY(i), P.getZ(i)).filter(([, v]) => v > 0.001).slice(0, 4);
       const sum = w.reduce((s, [, v]) => s + v, 0) || 1;
       w.forEach(([b, v], k) => { si[i * 4 + k] = b; sw[i * 4 + k] = v / sum; });
     }
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    g.setAttribute('rough', new THREE.Float32BufferAttribute(ro, 1));
+    g.setAttribute('part', new THREE.Float32BufferAttribute(part, 3));
     // (the people's material draws the faces from an atlas: a bag lies on its blank cell, characters.js BLANK_UV)
     g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2).fill(0.875), 2));
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));

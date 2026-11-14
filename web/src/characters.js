@@ -31,7 +31,16 @@ export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'woman-tee', 'woman-
 
 // Every part of a person (skin, clothes, hair ...) is a flat colour, so one vertex-coloured material serves
 // everyone and each person is a single SkinnedMesh: one draw call (and one in the shadow pass) instead of 6-10.
-// The per-part roughness (hair is glossier) rides along as a vertex attribute.
+// What a vertex is rides along as the attribute `part`: its roughness, its kind (KIND: cloth, skin, hair, or a
+// hard thing: shoes, glasses, a bag) and how shut in it is by the rest of the person (blender/characters.py
+// occlude(): the hair over the brow, the chin over the throat, sleeves, hems, the legs beside each other).
+// The shader makes of the flat colours what they are (PERSON_MAT.onBeforeCompile):
+//  - the shut-in places are shaded (the sky's light and its mirror image all the way, the sun's less), skin warmly
+//  - cloth is unevenly dyed and worn, takes a soft light at grazing angles (its fuzz), and folds: trousers stack up
+//    at the ankle and crease at the knee and the crotch, tops drape. The folds are a height over the rest pose
+//    (bumped), so they stay on the cloth as it moves; they fade where a fold is smaller than a pixel
+//  - skin has a little sheen, hair has strands (running down from the crown) in its colour and its gloss
+// Phones go without the folds and the strands (no noise in the fragment shader there).
 // The eyes, brows and mouths are a few lines drawn on one small atlas all the people share (blender/faces.py): the
 // front of a face lies on its own cell, everything else on the blank cell, and the picture multiplies the vertex
 // colour. So the lines keep to whatever skin a person of the crowd has, and fade into it with distance (mip maps).
@@ -42,6 +51,9 @@ export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'woman-tee', 'woman-
 // triangles last, and the draw stops short of them), and from somewhat nearer than that on the same glasses drawn on
 // the face from a second atlas (faces_rims.png), which the mip maps fade evenly with distance. Who wears them, and
 // which rims, rides along as the attribute `glass` (0 none, 1 thin metal, 2 dark horn).
+const KIND = { cloth: 0, skin: 1, hair: 2, hard: 3 };
+const kindOfPart = (name) => (name === 'Skin' ? KIND.skin : /^(Hair|Bridge)/.test(name) ? KIND.hair : /Glasses|feet/.test(name) ? KIND.hard : KIND.cloth);
+const SKIN_ROUGH = 0.5;
 const PERSON_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, envMapIntensity: 0.8 });
 PERSON_MAT.name = 'person';
 const FACE_BIAS = '-0.75', EYE_WHITE = '0.84, 0.83, 0.80';     // (faces.py WHITE)
@@ -67,14 +79,45 @@ async function loadFaces() {
   RIMS_TEX.value = rims;
   PERSON_MAT.needsUpdate = true;
 }
+const FINE = !MOBILE;               // the folds of cloth and the strands of hair
 PERSON_MAT.onBeforeCompile = (sh) => {
   sh.uniforms.uRims = RIMS_TEX;
   sh.vertexShader = sh.vertexShader
-    .replace('#include <common>', '#include <common>\nattribute float rough, glass;\nvarying float vRough, vGlass;')
-    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRough = rough;\nvGlass = glass;');
+    .replace('#include <common>', '#include <common>\nattribute vec3 part;\nattribute float glass;\nvarying vec3 vPart, vRest;\nvarying float vGlass;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPart = part;\nvGlass = glass;\nvRest = position;');
   sh.fragmentShader = sh.fragmentShader
-    .replace('#include <common>', '#include <common>\nvarying float vRough, vGlass;\nuniform sampler2D uRims;')
-    .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = vRough;')
+    .replace('#include <common>', `#include <common>
+      varying vec3 vPart, vRest;
+      varying float vGlass;
+      uniform sampler2D uRims;
+      ${FINE ? `
+      float pHash( vec3 p ) { p = fract( p * 0.3183099 + 0.1 ); p *= 17.0; return fract( p.x * p.y * p.z * ( p.x + p.y + p.z ) ); }
+      float pNoise( vec3 x ) { vec3 i = floor( x ), f = fract( x ); f = f * f * ( 3.0 - 2.0 * f );
+        return mix( mix( mix( pHash( i ), pHash( i + vec3( 1, 0, 0 ) ), f.x ), mix( pHash( i + vec3( 0, 1, 0 ) ), pHash( i + vec3( 1, 1, 0 ) ), f.x ), f.y ),
+                    mix( mix( pHash( i + vec3( 0, 0, 1 ) ), pHash( i + vec3( 1, 0, 1 ) ), f.x ), mix( pHash( i + vec3( 0, 1, 1 ) ), pHash( i + vec3( 1, 1, 1 ) ), f.x ), f.y ), f.z ); }
+      // the height of the folds of cloth (m) over the rest pose (y up, m): trousers stack up at the ankle and crease
+      // behind the knee and at the crotch, tops drape and gather at the hem
+      float pFolds( vec3 p ) {
+        float n1 = pNoise( p * vec3( 13.0, 4.0, 13.0 ) ), n2 = pNoise( p * vec3( 5.0, 9.0, 5.0 ) + 7.0 );
+        float legs = step( p.y, 0.93 );
+        float stack = sin( p.y * 96.0 + 8.0 * n1 ) * smoothstep( 0.30, 0.08, p.y ) * ( 0.35 + 0.9 * n2 );
+        float knee = sin( p.y * 74.0 + 6.0 * n1 + p.x * 20.0 ) * exp( - pow( ( p.y - 0.50 ) / 0.09, 2.0 ) ) * 0.45;
+        float crotch = sin( ( p.y + abs( p.x ) * 0.8 ) * 86.0 + 4.0 * n2 ) * exp( - pow( ( p.y - 0.84 ) / 0.07, 2.0 ) ) * 0.6;
+        float top = ( pNoise( p * vec3( 11.0, 17.0, 11.0 ) ) - 0.5 ) * 1.4 + sin( p.y * 64.0 + 5.0 * n1 ) * exp( - pow( ( p.y - 1.02 ) / 0.07, 2.0 ) ) * 0.6;
+        return 0.0032 * mix( top, stack + knee + crotch + ( n2 - 0.5 ) * 1.4, legs );
+      }` : ''}`)
+    .replace('#include <roughnessmap_fragment>', `float roughnessFactor = vPart.x;
+      float pCloth = 1.0 - step( 0.5, vPart.y ), pSkin = step( 0.5, vPart.y ) * ( 1.0 - step( 1.5, vPart.y ) );
+      float pHair = step( 1.5, vPart.y ) * ( 1.0 - step( 2.5, vPart.y ) );
+      roughnessFactor = mix( roughnessFactor, ${SKIN_ROUGH.toFixed(2)}, pSkin );
+      ${FINE ? `
+      float pNear = 1.0 - smoothstep( 0.006, 0.02, length( fwidth( vRest ) ) );          // (m to a pixel)
+      float pDye = pNoise( vRest * vec3( 9.0, 5.0, 9.0 ) ) * 0.6 + pNoise( vRest * vec3( 37.0, 23.0, 37.0 ) ) * 0.4;
+      diffuseColor.rgb *= mix( 1.0, 0.88 + 0.22 * pDye, pCloth );
+      float pAz = atan( vRest.x, vRest.z + 0.04 );
+      float pStrand = pNoise( vec3( pAz * 46.0, vRest.y * 7.0, 3.0 ) ) * 0.65 + pNoise( vec3( pAz * 150.0, vRest.y * 11.0, 9.0 ) ) * 0.35;
+      diffuseColor.rgb *= mix( 1.0, 0.82 + 0.40 * pStrand, pHair * pNear );
+      roughnessFactor = mix( roughnessFactor, 0.34 + 0.22 * pStrand, pHair );` : ''}`)
     // the drawn face, laid on after the vertex colour (the white of the eye is white on any skin), read most of a
     // mip level sharper than the screen asks for: thin strokes hold a little further away
     .replace('#include <map_fragment>', '')
@@ -85,7 +128,28 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       vec2 rimD = vec2( length( dFdx( vMapUv ) ), length( dFdy( vMapUv ) ) );
       float rimPx = ${RIM_UV} / max( max( rimD.x, rimD.y ), 1e-7 );
       float rim = texture2D( uRims, vMapUv ).r * step( 0.5, vGlass ) * smoothstep( ${(2 * RIM_PX).toFixed(2)}, ${RIM_PX.toFixed(2)}, rimPx );
-      diffuseColor.rgb = mix( diffuseColor.rgb, vGlass > 1.5 ? ${glsl(RIMS[1])} : ${glsl(RIMS[0])}, rim );`);
+      diffuseColor.rgb = mix( diffuseColor.rgb, vGlass > 1.5 ? ${glsl(RIMS[1])} : ${glsl(RIMS[0])}, rim );`)
+    .replace('#include <aomap_fragment>', `#include <aomap_fragment>
+      {
+        // the shut-in places: skin shades warm (the light that gets there has been through skin), the rest grey
+        vec3 pShade = mix( vec3( 1.0 ), mix( vec3( 0.0 ), vec3( 0.62, 0.40, 0.33 ), pSkin ), vPart.z * mix( 1.0, 0.75, pSkin ) );
+        reflectedLight.indirectDiffuse *= pShade;
+        reflectedLight.indirectSpecular *= 1.0 - vPart.z;
+        reflectedLight.directDiffuse *= mix( vec3( 1.0 ), pShade, 0.4 );
+        reflectedLight.directSpecular *= 1.0 - 0.6 * vPart.z;
+        // the fuzz of cloth, the down of skin: a soft light where the surface turns away
+        float pEdge = pow( 1.0 - saturate( dot( normal, normalize( vViewPosition ) ) ), 3.0 );
+        vec3 pLit = ( reflectedLight.directDiffuse + reflectedLight.indirectDiffuse ) / max( material.diffuseColor, vec3( 0.05 ) );
+        reflectedLight.indirectDiffuse += pLit * pEdge * ( pCloth * 0.085 * mix( vec3( 1.0 ), material.diffuseColor, 0.6 ) + pSkin * 0.035 * vec3( 1.0, 0.78, 0.68 ) );
+      }`);
+  if (FINE) sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+      {
+        float pH = pFolds( vRest ) * pCloth * pNear + ( pStrand - 0.5 ) * 0.0018 * pHair * pNear;
+        vec3 pDx = dFdx( - vViewPosition ), pDy = dFdy( - vViewPosition );
+        vec3 pR1 = cross( pDy, normal ), pR2 = cross( normal, pDx );
+        float pDet = dot( pDx, pR1 );
+        normal = normalize( abs( pDet ) * normal - sign( pDet ) * ( dFdx( pH ) * pR1 + dFdy( pH ) * pR2 ) );
+      }`);
 };
 pcss(PERSON_MAT);
 
@@ -133,7 +197,10 @@ function mergeParts(root) {
     const c = m.material.color, col = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    g.setAttribute('rough', new THREE.Float32BufferAttribute(new Float32Array(n).fill(/Hair/.test(m.material.name) ? 0.55 : 0.85), 1));
+    // roughness, kind, occlusion (the model's _OCC, a byte; an older file has none)
+    const part = new Float32Array(n * 3), so = src.attributes._occ, kind = kindOfPart(m.material.name);
+    for (let i = 0; i < n; i++) { part[i * 3] = /Hair/.test(m.material.name) ? 0.55 : 0.85; part[i * 3 + 1] = kind; part[i * 3 + 2] = so ? so.getX(i) / 255 : 0; }
+    g.setAttribute('part', new THREE.Float32BufferAttribute(part, 3));
     g.setIndex(src.index ? Array.from(src.index.array) : Array.from({ length: n }, (_, i) => i));
     return g;
   });

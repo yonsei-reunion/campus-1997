@@ -268,7 +268,7 @@ export class Birthday {
       this.mesh = o;
     });
     if (!this.mesh) return;
-    const g = this.mesh.geometry, c = g.attributes.color.array, r = g.attributes.rough?.array;
+    const g = this.mesh.geometry, c = g.attributes.color.array, r = g.attributes.part?.array;      // (part: roughness, kind, occlusion)
     this.col0 = Float32Array.from(c);
     this.rough0 = r ? Float32Array.from(r) : null;
     // skin stays (warm, light); the rest (clothes, shoes, hair) darkens
@@ -283,14 +283,14 @@ export class Birthday {
   setWet(w) {
     this.wet = w;
     if (!this.mesh) return;
-    const g = this.mesh.geometry, c = g.attributes.color.array, r = g.attributes.rough?.array;
+    const g = this.mesh.geometry, c = g.attributes.color.array, r = g.attributes.part?.array;
     for (let i = 0; i < this.wetK.length; i++) {
       const k = 1 - 0.45 * w * this.wetK[i];
       c[i * 3] = this.col0[i * 3] * k; c[i * 3 + 1] = this.col0[i * 3 + 1] * k; c[i * 3 + 2] = this.col0[i * 3 + 2] * k;
-      if (r) r[i] = this.rough0[i] - (this.rough0[i] - 0.4) * w * this.wetK[i];
+      if (r) r[i * 3] = this.rough0[i * 3] - (this.rough0[i * 3] - 0.4) * w * this.wetK[i];
     }
     g.attributes.color.needsUpdate = true;
-    if (r) g.attributes.rough.needsUpdate = true;
+    if (r) g.attributes.part.needsUpdate = true;
   }
 
   // circles the walker collides with (appended to out)
