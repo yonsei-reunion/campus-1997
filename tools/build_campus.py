@@ -8743,9 +8743,27 @@ CENT_SW_PAVE = Polygon([(-48.6, -248.0), (-49.49, -245.5), (-49.7, -244.7), (-49
     .difference(Point(CENT_SW_C).buffer(CENT_SW_R[0], quad_segs=24))
 _ypaint(list(shapely.ops.split(CENT_SW_PAVE, LineString([(CENT_SW_C[0], -280.0), (CENT_SW_C[0], -200.0)])).geoms), _gp)
 # - 중앙도서관 남쪽 화단: a round paved disc in the middle bed (fitted in three frames to 0.2 m, two trees over its west
-#   side); what it was (a stage, a dry basin), and whether it stood about 1 m over the lawn, the scans do not settle
+#   side); what it was (a stage, a dry basin), and whether it stood about 1 m over the lawn, the scans do not settle.
+#   West of its middle stands something tall and pale (it leans away from each camera in four frames): not modelled
 LIB_S_DISC = Point(-63.2, -110.9).buffer(7.6, quad_segs=24)
 _ypaint([LIB_S_DISC], _gp)
+# - 제1공학관 안뜰: the lawn between the wings is a rectangle edged by a bright kerb (u -22.9 .. 31.75, v -12.4 .. 15.0
+#   in the wings' frame below: each edge in 26/16 · 26/15 · 27/17 within 0.3 m, so at the ground), and round it, out
+#   to the halls and the west road, the paving the cars stood on in rows (north, south, and two rows at the west end).
+#   The game had lawn from apron to apron, its parked cars on the grass and the walks along the wings ending in it
+#   (one of the tails kept in #151): paved round the kerb, the lawn inside it as it was
+ENG1_YARD_O, ENG1_YARD_A = (-163.0, -238.0), math.radians(-15.4)
+
+
+def _e1(u_, v_):
+    return (ENG1_YARD_O[0] + u_ * math.cos(ENG1_YARD_A) - v_ * math.sin(ENG1_YARD_A),
+            ENG1_YARD_O[1] + u_ * math.sin(ENG1_YARD_A) + v_ * math.cos(ENG1_YARD_A))
+
+
+ENG1_LAWN = Polygon([_e1(u_, v_) for u_, v_ in ((-22.9, -12.4), (31.75, -12.4), (31.75, 15.0), (-22.9, 15.0))])
+ENG1_YARD = Polygon([_e1(u_, v_) for u_, v_ in ((-34.0, -23.5), (35.5, -23.5), (35.5, 21.6), (-34.0, 21.6))]) \
+    .difference(ENG1_LAWN)
+_ypaint(list(shapely.ops.split(ENG1_YARD, LineString([_e1(4.0, -30.0), _e1(4.0, 30.0)])).geoms), _gp)
 # 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'
