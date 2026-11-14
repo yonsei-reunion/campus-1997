@@ -382,10 +382,48 @@ def _streets(pl, A, yx=None, old=False):
     return dict(arms=A, road=road, street=street, walk=walk, cw=cw, walks=walks, y_top=y_top, cross_streets=cross_streets)
 
 
-def level(Hn, Hs, half, step, geo, sample_n):
-    """The streets' bed: level across each arm, its height along it the ground smoothed over 60 m (the 5 m model
-    carries the roofs of the tall blocks along 연세로 as humps of 2 - 4 m), the junction at its middle's; eased out
-    over 10 m past the sidewalks.  Not north of y -492 (the bridge and 성산로, gate_town.plan)."""
+# 연세로 · 로터리의 다섯 길의 높이 (#189; 고증 4.10.4 「길의 높이」), 게임 기준.  The 1997-07-28 scans (27/18 · 27/19, north of
+# y -620 26/16 · 27/17 too; every pair of frames on its own, windows of 3 m at five points across the carriageway every
+# 4 - 5 m, correlation 0.7 or more; roofs, buses and the shop houses' awnings that the narrow street's windows catch
+# thrown out against a 24 m running median) and the 1:5000 survey's spot heights on the roads (2006 · 2024, #134).
+# The game's junction (19.8 m) stands 0.3 m over the photos' reading there (19.45 m, every arm's first 15 m) as 백양로
+# north of s 150 does: the profiles are the photos' + 0.3 m (and the survey's spots their difference from the
+# junction's spots, 20.07 · 20.30 m, added to the game's junction).  The model had every arm and 연세로 climbing out of
+# the junction; 1997 had 연세로 down in the 창천 valley (17.5 - 18 m at y -730 .. -795, the survey's spots 17.53 ·
+# 17.58), up to a crest at y -870 .. -890 and down 0.5 m to the junction, and 양화로 · the 1997 신촌로 (south-west)
+# falling 4 - 6 m away from it.
+# YRO97: (y, z) along 연세로 from under the bridge (its north end eased into 성산로's bed at the south kerb).
+YRO97 = [(-470.0, 23.6), (-500.0, 23.25), (-518.0, 23.1), (-530.0, 22.3), (-542.0, 20.65), (-554.0, 20.7), (-566.0, 20.6),
+         (-578.0, 20.2), (-600.0, 19.4), (-630.0, 18.4), (-657.0, 18.75), (-692.0, 18.45), (-734.0, 17.8), (-770.0, 18.0),
+         (-794.0, 17.95), (-866.0, 20.25), (-890.0, 20.25)]
+# ARM97: (s out of the junction, z) along the other four (s 0: the junction's own level); past the last the
+# difference to the arm's old profile fades out over ARM97_FADE m
+ARM97 = {
+    # 양화로: the photos to s 110, the survey's spots at s 143 · 152 (15.87 · 16.00), 220 (16.04), 326 (16.91)
+    'sinchon_w': [(10.0, 19.43), (20.0, 19.14), (30.0, 18.75), (40.0, 18.5), (50.0, 18.14), (60.0, 17.95), (70.0, 17.64),
+                  (80.0, 17.18), (90.0, 16.78), (100.0, 16.39), (110.0, 16.13), (147.0, 15.55), (220.0, 15.64), (326.0, 16.51)],
+    # 1997년 신촌로 (남서): the photos to s 140, the spots at s 86 (17.61) and 166 · 167 (14.81 · 14.33), the survey's
+    # contours past it (both editions within 0.1 m: 12.98 · 12.99 at s 200, 12.54 · 12.56 at s 250)
+    'seogang': [(10.0, 19.38), (20.0, 18.86), (30.0, 18.58), (45.0, 17.96), (55.0, 17.9), (86.0, 17.0), (100.0, 16.45),
+                (110.0, 16.09), (120.0, 15.77), (130.0, 15.45), (140.0, 14.94), (166.0, 14.15), (200.0, 12.6), (250.0, 12.15)],
+    # 1997년 서강로 (남): the photos to s 140 and at y -1173 (s 190, 고증 4.10.4), the spot at s 124 (22.38)
+    'baekbeom': [(10.0, 19.79), (20.0, 19.46), (45.0, 19.25), (60.0, 19.21), (70.0, 19.55), (90.0, 20.38), (100.0, 20.65),
+                 (120.0, 21.6), (140.0, 22.4), (190.0, 24.8)],
+    # 신촌로 (동): the photos to s 300, the spots at s 90 (21.74), 191 (26.23), 289 (30.54), 393 (34.93), 491 (39.51)
+    'sinchon_e': [(15.0, 20.11), (30.0, 20.35), (45.0, 20.5), (60.0, 20.79), (75.0, 21.12), (90.0, 21.6), (105.0, 21.9),
+                  (120.0, 22.53), (135.0, 23.03), (150.0, 23.7), (165.0, 24.41), (180.0, 25.14), (195.0, 25.92), (210.0, 26.58),
+                  (225.0, 27.45), (240.0, 28.09), (255.0, 28.87), (270.0, 29.48), (285.0, 30.01), (300.0, 30.66),
+                  (392.0, 34.6), (490.0, 39.2)],
+}
+ARM97_FADE = 60.0
+LEVEL_EASE = 30.0              # (the ground eased into the streets' bed this far past the sidewalks: the shop houses on it)
+
+
+def level(Hn, Hs, half, step, geo, sample_n, keep=None):
+    """The streets' bed: level across each arm, its height along it the 1997 photos' (YRO97, ARM97; past them the
+    ground smoothed over 60 m: the 5 m model carries the roofs of the tall blocks as humps of 2 - 4 m), the junction at
+    its middle's; eased out over LEVEL_EASE m past the sidewalks.  North of y -505 only under the bridge, to 성산로's
+    south kerb (gate_town.plan's bed); keep: what stays as it is (the banks' footprint)."""
     S = SOUTH
     A = geo['arms']
     i0 = int(round((S['x0'] + half) / step))
@@ -412,14 +450,22 @@ def level(Hn, Hs, half, step, geo, sample_n):
             ds = a.cum[i] - a.cum[i - 1]
             z[i] = min(max(z[i], z[i - 1] - 0.04 * ds), z[i - 1] + 0.04 * ds)
         if k == 'yonsei':
-            # an even climb from the junction to the ground under the bridge (gate_town's bed): the model's humps along
-            # it (2 - 6 m at y -870, over the tall blocks there) are roofs; the junction is the low ground of the
-            # valley and the street climbs about 1 % to the gate (고증 4.10)
-            zb = sample_n(gt.YONSEI_X, -492.0)
-            sb = float(a.ls.project(Point(gt.YONSEI_X, -492.0)))
-            f = np.clip(a.cum / sb, 0, 1)
-            z = zj + (zb - zj) * (f * 0.85 + 0.15 * f * f * (3 - 2 * f))
-            z = np.where(a.cum > sb, zb, z)
+            # the photos' profile from the junction up to the bridge, its north end into the bed of 성산로 at the south
+            # kerb (gate_town.plan, on the same photos) over 15 m; smoothed over 16 m (σ 8 m)
+            yt = geo['y_top'] - 1.0
+            zb = sample_n(gt.YONSEI_X, yt)
+            sb = float(a.ls.project(Point(gt.YONSEI_X, yt)))
+            ty, tz = zip(*([(JC[1] + 13.0, zj)] + YRO97[::-1]))
+            z = ndimage.gaussian_filter1d(np.interp(a.P[:, 1], ty, tz), 4.0, mode='nearest')
+            f = np.clip((a.cum - (sb - 15.0)) / 15.0, 0, 1)
+            z = z * (1 - f) + zb * f
+        elif k in ARM97:
+            # the photos' profile, past its last station the old one's shape, the difference fading out
+            ts, tz = zip(*([(0.0, zj)] + ARM97[k]))
+            z97 = ndimage.gaussian_filter1d(np.interp(a.cum, ts, tz), 4.0, mode='nearest')
+            dz = z97 - z
+            dz = np.where(a.cum <= ts[-1], dz, np.interp(ts[-1], a.cum, dz) * np.clip(1 - (a.cum - ts[-1]) / ARM97_FADE, 0, 1))
+            z = z + dz
         prof[k] = z
     P = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
     tgt = np.zeros(X.size)
@@ -434,11 +480,17 @@ def level(Hn, Hs, half, step, geo, sample_n):
         wsum += wk
     tgt = np.where(wsum > 0, tgt / np.maximum(wsum, 1e-9), C.ravel()).reshape(X.shape)
     dist = shapely.distance(P, geo['street']).reshape(X.shape)
-    w = 1.0 - np.clip(dist / 10.0, 0, 1)
+    w = 1.0 - np.clip(dist / LEVEL_EASE, 0, 1)
     w = w * w * (3 - 2 * w)
     w *= np.where(wsum.reshape(X.shape) > 0, 1.0, 0.0)
-    nf = np.clip((-492.0 - Y) / 25.0, 0, 1)
+    # north of y -505 only in the bridge's opening (eased over 3 m inside its abutments), up to 성산로's south kerb
+    bx = np.clip(np.minimum(X - gt.BRIDGE[0], gt.BRIDGE[1] - X) / 3.0, 0, 1)
+    nf = np.maximum(np.clip((-500.0 - Y) / 10.0, 0, 1), bx * np.clip((geo['y_top'] - 1.0 - Y) / 5.0, 0, 1))
     w *= nf * nf * (3 - 2 * nf)
+    if keep is not None:                       # (the banks: their slopes' feet were set on the ground as it was)
+        dk = shapely.distance(P, keep).reshape(X.shape)
+        fk = np.clip((dk - 2.0) / 6.0, 0, 1)
+        w *= fk * fk * (3 - 2 * fk)
     C2 = C * (1 - w) + tgt * w
     Hs[:-1] = C2[:S['ny'] - 1]
     Hn[:k1, i0:i0 + nx] = C2[S['ny'] - 1:]
@@ -1067,17 +1119,23 @@ def layout(geo, town, extras, ground, taken_z):
             # keep their models: short of it, more trees on the banks west of the bridge beside gate_town's own, as
             # tools/build_campus.py TOWN_TREE_SLOTS does; random.Random(4814))
             assert len(trees) <= YRO_TREE_SLOTS, len(trees)
+            # (decided at the bank trees' first places, their 6th field, and on the banks as they were: gate_town
+            # layout's secs_rng; set down by as much from where they stand)
             rb = random.Random(4814)
-            src = [t_ for t_ in extras['trees'] if t_[0] in ('poplar', 'zelkova', 'oak', 'zelkova_young') and t_[1] < gt.BRIDGE[0] - 12]
+            rxy_ = lambda t_: tuple(t_[5]) if len(t_) > 5 else (t_[1], t_[2])
+            src = [t_ for t_ in extras['trees'] if t_[0] in ('poplar', 'zelkova', 'oak', 'zelkova_young') and rxy_(t_)[0] < gt.BRIDGE[0] - 12]
+            taken_r = [rxy_(o_) for o_ in extras['trees'] + trees]
             for _ in range(4000):
                 if len(trees) >= YRO_TREE_SLOTS or not src:
                     break
                 t0 = rb.choice(src)
-                q = (round(t0[1] + rb.choice((-1, 1)) * rb.uniform(3.5, 6.0), 2), round(t0[2] + rb.uniform(-1.5, 1.5), 2))
-                if min(math.hypot(o_[1] - q[0], o_[2] - q[1]) for o_ in extras['trees'] + trees) < 3.0 or \
-                        not extras['bank'].contains(Point(*q)):
+                du, dv = rb.choice((-1, 1)) * rb.uniform(3.5, 6.0), rb.uniform(-1.5, 1.5)
+                q = (round(rxy_(t0)[0] + du, 2), round(rxy_(t0)[1] + dv, 2))
+                if min(math.hypot(o_[0] - q[0], o_[1] - q[1]) for o_ in taken_r) < 3.0 or \
+                        not extras.get('bank_rng', extras['bank']).contains(Point(*q)):
                     continue
-                trees.append([t0[0], q[0], q[1], round(rb.uniform(0.5, 0.8), 2), round(rb.uniform(0, 6.28), 2)])
+                taken_r.append(q)
+                trees.append([t0[0], round(t0[1] + du, 2), round(t0[2] + dv, 2), round(rb.uniform(0.5, 0.8), 2), round(rb.uniform(0, 6.28), 2)])
             n_bank = len(trees) - sum(1 for t_ in trees if t_[0] == 'ginkgo')
     # 서강로's row, decided on its old line (above), stands on the scans' line: each tree as far along it and on the same
     # side, 1.1 m in from the kerb; the west row north of the crossing behind the corner's kerb (ROT_S_KERB), none on

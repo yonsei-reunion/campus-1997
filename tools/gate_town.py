@@ -105,24 +105,55 @@ MODERN = {230178502, 628197716}        # OSM outlines that are the 2006 station 
 # 0.45 m over the photos' reading, 33.2 m; the road 4.1 m under it as in the photos).  The survey (1:5000, 2006 ·
 # 2024; #134) agrees once its tilt against the photos' datum is taken out (pdz = 2.05 + 0.522 x/100 + 0.248 y/100 m):
 # (-432.7, -341.4) 29.80 + pdz = 28.74 m, the photos 28.45 - 28.7; (-510.9, -243.3) 31.42 + pdz = 30.20, the photos
-# 29.8 - 29.9.  East of SSR_W_EASE[0] the game's profile keeps its shape, eased into the change over to SSR_W_EASE[1]
-# (from there to the gate the game stands 2 - 2.8 m over the photos' datum all along: the whole road's level, #134)
+# 29.8 - 29.9.
 SSR_W97 = [(-462.0, 28.75), (-454.0, 28.85), (-446.0, 28.85), (-441.0, 28.75), (-433.0, 28.65), (-427.0, 28.55),
            (-419.0, 28.5), (-413.0, 28.55)]
 SSR_W_DATUM = 0.45                 # (게임 기준: photos -> game, the 대운동장's)
-SSR_W_EASE = (-413.0, -250.0)
+# 성산로 동쪽 (정문 둘레, #189; 고증 4.8.2): from there to x 300 the game stood 2 - 3.4 m over the photos all along
+# (the surface model's trees and roofs), the gate's mouth 2.1 m.  The same scans (26/16 · 27/17 · 27/18 · 27/19, the 1998
+# 26/17 paired where 1997 has one frame, x -400 .. -210): the road's surface every 8 m at seven points 0 - 14 m either
+# side of its middle, each pair of frames on its own (correlation 0.7 or more), the median.  The survey's spot before the
+# gate (-107.9, -434.6) 23.16 + pdz = 23.57 m, the photos 23.8; (-0.7, -433.7) 26.96, the photos 27.0 - 27.45.  The road
+# goes on them plus SSR_E_DATUM, 백양로's own over the photos north of s 150 (+0.1 .. +0.4 m) and 연세로's · the
+# rotary's (where the game's junction stands over its photos' reading), easing from the west part's over x -413 .. -300.
+# Past x SSR_E_END[0] the game's profile again, eased in by SSR_E_END[1] (the photos and the game meet at x 297; east of
+# it the photos stand 1.8 - 3.2 m over the game, where 의료원's bank and its north-east road meet the road: left as it is)
+SSR_E97 = [(-395.0, 28.3), (-365.0, 28.2), (-345.0, 28.3), (-330.0, 28.45), (-310.0, 28.1), (-290.0, 27.95), (-270.0, 27.9),
+           (-252.0, 27.8), (-232.0, 27.1), (-216.0, 26.55), (-200.0, 26.2), (-188.0, 25.85), (-172.0, 25.2), (-156.0, 24.75),
+           (-140.0, 24.3), (-124.0, 23.9), (-108.0, 23.75), (-92.0, 23.6), (-76.0, 23.7), (-60.0, 24.05), (-44.0, 24.65),
+           (-28.0, 25.5), (-12.0, 26.4), (3.0, 27.4), (19.0, 27.8), (35.0, 27.92), (51.0, 27.97), (67.0, 28.12),
+           (83.0, 28.18), (99.0, 28.32), (115.0, 28.4), (131.0, 28.5), (146.0, 28.64), (162.0, 28.95), (176.0, 29.25),
+           (191.0, 29.43), (204.0, 29.64), (216.0, 30.03), (233.0, 30.34), (250.0, 30.66), (265.0, 31.05), (280.0, 31.25),
+           (297.0, 31.55), (310.0, 31.8)]
+SSR_E_DATUM = 0.3
+SSR_E_END = (285.0, 305.0)
 
 
-def ssr_west(x, z):
-    """성산로's profile z (at the stations' x) with its west part on the 1997 photos (SSR_W97): there on them, east of
-    it the game's profile less the change at SSR_W_EASE[0], fading out by SSR_W_EASE[1]"""
+SSR_W_EASE_RNG = (-413.0, -250.0)
+
+
+def ssr_west_rng(x, z):
+    """성산로's profile as it was before SSR_E97 (the west part on the photos, eased back into the game's own profile by
+    x -250): plan(old=True), whose banks' sections the planting on the banks still draws by (layout: secs_rng)"""
     x = np.asarray(x, float)
     xs, zs = zip(*SSR_W97)
     tgt = np.interp(x, xs, zs) + SSR_W_DATUM
-    k0 = int(np.argmin(np.abs(x - SSR_W_EASE[0])))
+    k0 = int(np.argmin(np.abs(x - SSR_W_EASE_RNG[0])))
     off0 = z[k0] - tgt[k0]
-    t = np.clip((SSR_W_EASE[1] - x) / (SSR_W_EASE[1] - SSR_W_EASE[0]), 0, 1)
-    return np.where(x <= SSR_W_EASE[0], tgt, z - off0 * t * t * (3 - 2 * t))
+    t = np.clip((SSR_W_EASE_RNG[1] - x) / (SSR_W_EASE_RNG[1] - SSR_W_EASE_RNG[0]), 0, 1)
+    return np.where(x <= SSR_W_EASE_RNG[0], tgt, z - off0 * t * t * (3 - 2 * t))
+
+
+def ssr_west(x, z):
+    """성산로's profile z (at the stations' x) on the 1997 photos (SSR_W97 · SSR_E97) plus the datum, smoothed over 8 m;
+    past SSR_E_END the game's own profile z"""
+    x = np.asarray(x, float)
+    xs, zs = zip(*(SSR_W97 + SSR_E97))
+    dat = np.interp(x, [SSR_W97[-1][0], -300.0], [SSR_W_DATUM, SSR_E_DATUM])
+    tgt = ndimage.gaussian_filter1d(np.interp(x, xs, zs) + dat, 2.0, mode='nearest')
+    t = np.clip((x - SSR_E_END[0]) / (SSR_E_END[1] - SSR_E_END[0]), 0, 1)
+    t = t * t * (3 - 2 * t)
+    return np.where(x <= SSR_W97[-1][0], np.interp(x, xs, zs) + SSR_W_DATUM, tgt * (1 - t) + z * t)
 
 
 def _xy(p):
@@ -197,11 +228,13 @@ class Line:
         return self.P + self.N * o[:, None]
 
 
-def plan(Hn, half, step, gate, heading, wall, sample):
+def plan(Hn, half, step, gate, heading, wall, sample, old=False, keep_nodes=None):
     """Levels 성산로's bed and cuts the rails' bed into the ground where it stands higher (Hn in place).
     gate: the gate's middle on 백양로's centre line, heading: the road's direction there (rad), wall: the gate wall's two
     ends (west, east),
-    sample(x, y): the ground as it stands."""
+    sample(x, y): the ground as it stands.  old: 성산로 on its profile as it was (ssr_west_rng), for the banks' sections
+    the random planting on them draws by.  keep_nodes: grid nodes the road's bed leaves as they are (the halls' feet
+    by it: 성산로 went down on the 1997 photos, #189, and 임상의학연구센터 stands 4 m over it)."""
     gx = np.linspace(-half, half, Hn.shape[0])
     X, Y = np.meshgrid(gx, gx)
     # ---- 성산로: the middle of OSM's two carriageways, pushed south before the gate
@@ -212,7 +245,7 @@ def plan(Hn, half, step, gate, heading, wall, sample):
     # its height: the ground along it, smoothed (the valley of the 창천 before the gate, up towards 금화터널 in the east)
     z = np.array([sample(x, y) for x, y in road.P])
     z = ndimage.gaussian_filter1d(z, 9.0, mode='nearest')
-    z = ssr_west(road.P[:, 0], z)                                # (its west part on the 1997 photos: SSR_W97)
+    z = (ssr_west_rng if old else ssr_west)(road.P[:, 0], z)     # (on the 1997 photos to x 300: SSR_W97 · SSR_E97)
     P = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
     d = shapely.distance(P, road.ls).reshape(X.shape)
     s = shapely.line_locate_point(road.ls, P).reshape(X.shape)
@@ -235,6 +268,8 @@ def plan(Hn, half, step, gate, heading, wall, sample):
     v = (X - w0[0]) * wn[0] + (Y - w0[1]) * wn[1]
     keep = (u > -12) & (u < np.linalg.norm(w1 - w0) + 12)
     wgt = np.where(keep, wgt * np.clip((-v - 1.0) / 5.0, 0, 1), wgt)
+    if keep_nodes is not None:
+        wgt = np.where(keep_nodes, 0.0, wgt)
     Hn[:] = Hn * (1 - wgt) + zr * wgt
     # ---- the rails: the middle of the two tracks, level
     rm = _mid(TRACK_N, TRACK_S, 6.0)
@@ -325,10 +360,19 @@ def bank_fix(pl, Hn, sample):
     return secs
 
 
-def layout(pl, secs, ground, taken, e_curb0):
+def bank_poly(secs):
+    """the banks' footprint (bank_fix's sections: from the north slope's foot to the south one's) and its south edge"""
+    sec = np.array([[v if v is not None else np.nan for v in r] for r in secs], float)
+    cn = sec[:, :2] + sec[:, 2:4] * (sec[:, 4] + sec[:, 5])[:, None]
+    cs = sec[:, :2] - sec[:, 2:4] * (sec[:, 4] + sec[:, 8])[:, None]
+    return Polygon([tuple(p) for p in cn] + [tuple(p) for p in cs[::-1]]).buffer(0), cs
+
+
+def layout(pl, secs, ground, taken, e_curb0, secs_rng=None):
     """Everything campus.json carries of the town: the road's lines and lanes, the bridge, the blocks, the trees and
     lamps to add, the walker's barrier and the polygons the ground is painted with.
-    ground(x, y): the terrain as saved, taken: the outlines already built (shapely), e_curb0: 백양로's half width."""
+    ground(x, y): the terrain as saved, taken: the outlines already built (shapely), e_curb0: 백양로's half width,
+    secs_rng: the banks' sections the planting on them decides by (plan(old=True): the rails 1.8 m higher before #189)"""
     road, rail, rail_z = pl['road'], pl['rail'], pl['rail_z']
     top = rail_z - BALLAST
     rnd = random.Random(4801)
@@ -398,23 +442,26 @@ def layout(pl, secs, ground, taken, e_curb0):
         Polygon([(YONSEI_X - fw, y_top - SW_S - 1.0), (YONSEI_X + fw, y_top - SW_S - 1.0), (YONSEI_X + fw, -640), (YONSEI_X - fw, -640)]),
         Polygon([(BRIDGE[0] + 0.4, y_top - SW_S - 1.0), (BRIDGE[1] - 0.4, y_top - SW_S - 1.0), (BRIDGE[1] - 0.4, -507.0),
                  (BRIDGE[0] + 0.4, -507.0)])]).difference(yonsei)
-    # ---- the banks' footprint
-    sec = np.array([[v if v is not None else np.nan for v in r] for r in secs], float)
-    cn = sec[:, :2] + sec[:, 2:4] * (sec[:, 4] + sec[:, 5])[:, None]
-    cs = sec[:, :2] - sec[:, 2:4] * (sec[:, 4] + sec[:, 8])[:, None]
-    bank = Polygon([tuple(p) for p in cn] + [tuple(p) for p in cs[::-1]]).buffer(0)
+    # ---- the banks' footprint (bank_r: as it was, secs_rng, for what the stream decides round it)
+    secs_rng = secs if secs_rng is None else secs_rng
+    bank, cs = bank_poly(secs)
+    bank_r, cs_r = bank_poly(secs_rng)
     opening = Polygon([(BRIDGE[0], -440), (BRIDGE[1], -440), (BRIDGE[1], -530), (BRIDGE[0], -530)])
     bank_paint = bank.buffer(1.0).difference(opening)
+
     # ---- the town's ground: south of the rails everything; north of them where the road has left them (the yards
     # west of the traffic island, the station's side in the east)
-    south = Polygon([tuple(p) for p in cs] + [(720, cs[-1][1]), (720, -810), (-660, -810), (-660, cs[0][1])]).buffer(0)
-    between = zone.difference(south).difference(bank.buffer(2.0)).difference(Polygon(
-        [tuple(p) for p in bound] + [tuple(p) for p in back_s[::-1]]).buffer(0)).difference(mouth.buffer(1.0))
-    yards = unary_union([g for g in getattr(between, 'geoms', [between])
-                         if g.geom_type == 'Polygon' and g.area > 200]).intersection(
-        unary_union([Polygon([(-660, -810), (-345, -810), (-345, 0), (-660, 0)]),
-                     Polygon([(128, -810), (720, -810), (720, 0), (128, 0)])]))
-    ground_town = unary_union([south.difference(bank.buffer(1.0)), yards]).intersection(zone).buffer(0)
+    def town_ground(bank, cs):
+        south = Polygon([tuple(p) for p in cs] + [(720, cs[-1][1]), (720, -810), (-660, -810), (-660, cs[0][1])]).buffer(0)
+        between = zone.difference(south).difference(bank.buffer(2.0)).difference(Polygon(
+            [tuple(p) for p in bound] + [tuple(p) for p in back_s[::-1]]).buffer(0)).difference(mouth.buffer(1.0))
+        yards = unary_union([g for g in getattr(between, 'geoms', [between])
+                             if g.geom_type == 'Polygon' and g.area > 200]).intersection(
+            unary_union([Polygon([(-660, -810), (-345, -810), (-345, 0), (-660, 0)]),
+                         Polygon([(128, -810), (720, -810), (720, 0), (128, 0)])]))
+        return between, unary_union([south.difference(bank.buffer(1.0)), yards]).intersection(zone).buffer(0)
+    between, ground_town = town_ground(bank_r, cs_r)
+    ground_paint = town_ground(bank, cs)[1] if secs_rng is not secs else ground_town
     # ---- the blocks: OSM's outlines as boxes (the streets are the 1990s', the houses on them mostly newer and
     # bigger: lower here, with the red roofs of the 1995 photo on the small ones)
     els = json.load(open(os.path.join(ROOT, 'data/raw/osm_gate_south.json')))['elements']
@@ -451,7 +498,7 @@ def layout(pl, secs, ground, taken, e_curb0):
     # stream decides round them is decided there; what stands in the new ones goes at the end, b[6] < 0)
     dx_rng = YONSEI_X_RNG - YONSEI_X
     row_poly = unary_union([box_([b[0] + dx_rng] + b[1:]) for b in rows] + [box_(CHURCH_RNG)])
-    busy = unary_union([p.buffer(3.0) for p in taken] + [yonsei_rng.buffer(5.0 - 0.5), bank.buffer(3.0), row_poly.buffer(1.5)])
+    busy = unary_union([p.buffer(3.0) for p in taken] + [yonsei_rng.buffer(5.0 - 0.5), bank_r.buffer(3.0), row_poly.buffer(1.5)])
     shapely.prepare(busy)
     blocks = rows + [church]
     for e in els:
@@ -650,28 +697,33 @@ def layout(pl, secs, ground, taken, e_curb0):
     # ---- trees: tall slender ones on the banks (the 1995 photo: both slopes west of the bridge), thicker and lower
     # east of it on the south slope; a row on the wide sidewalk west of the gate
     trees, shrubs = [], []
+    # (what to plant where is decided on the sections as they were, secs_rng, and laid out on the slopes as they are:
+    # the same share of each slope's run)
     for k in range(0, len(secs), 1):
-        x, y, nx, ny, hw, dN, zN, _, dS, zS = secs[k][:10]
+        x, y, nx, ny, hw, dN, zN, _, dS, zS = secs_rng[k][:10]
+        hw_, dN_, dS_ = secs[k][4], secs[k][5], secs[k][8]
         if BRIDGE[0] - 9 < x < BRIDGE[1] + 9 or not (-470 < x < 215):
             continue
         west = x < BRIDGE[0]
-        for side, d in ((1, dN), (-1, dS)):
+        for side, d, d_ in ((1, dN, dN_), (-1, dS, dS_)):
             if d < 4.0:
                 continue
             p_tree = (0.85 if west else 0.3) if side > 0 else (0.9 if west else 0.7)
             for row in range(2 if d > 7 else 1):
                 if rnd.random() > p_tree:
                     continue
-                o = hw + d * (rnd.uniform(0.3, 0.55) if row == 0 else rnd.uniform(0.6, 0.85))
+                u = rnd.uniform(0.3, 0.55) if row == 0 else rnd.uniform(0.6, 0.85)
+                o, o_r = hw_ + d_ * u, hw + d * u
                 jx = rnd.uniform(-2.5, 2.5)
                 q = (x + nx * side * o - ny * jx, y + ny * side * o + nx * jx)
+                q_r = (round(x + nx * side * o_r - ny * jx, 2), round(y + ny * side * o_r + nx * jx, 2))   # (as decided: rxy)
                 if rnd.random() < (0.6 if west else 0.3):
-                    trees.append(['poplar', round(q[0], 2), round(q[1], 2), round(rnd.uniform(0.5, 0.8), 2), round(rnd.uniform(0, 6.28), 2)])
+                    trees.append(['poplar', round(q[0], 2), round(q[1], 2), round(rnd.uniform(0.5, 0.8), 2), round(rnd.uniform(0, 6.28), 2), q_r])
                 else:
                     trees.append([rnd.choice(['zelkova', 'oak', 'zelkova_young']), round(q[0], 2), round(q[1], 2),
-                                  round(rnd.uniform(0.45, 0.7), 2), round(rnd.uniform(0, 6.28), 2)])
+                                  round(rnd.uniform(0.45, 0.7), 2), round(rnd.uniform(0, 6.28), 2), q_r])
             if rnd.random() < 0.7:
-                o = hw + d * rnd.uniform(0.15, 0.9)
+                o = hw_ + d_ * rnd.uniform(0.15, 0.9)
                 jx = rnd.uniform(-3, 3)
                 shrubs.append(['topiary_round', round(x + nx * side * o - ny * jx, 2), round(y + ny * side * o + nx * jx, 2),
                                round(rnd.uniform(0.9, 1.8), 2), round(rnd.uniform(0, 6.28), 2)])
@@ -714,7 +766,8 @@ def layout(pl, secs, ground, taken, e_curb0):
                        round(rnd.uniform(0, 6.28), 2)])
     # (the campus's list holds a fixed number of the town's trees, tools/build_campus.py TOWN_TREE_SLOTS: those
     # nearest the gate first, so that the higher banks' many trees are not all spent far west of it)
-    trees.sort(key=lambda t_: abs(t_[1] - YONSEI_X_RNG))
+    # (the banks' trees carry the place they were decided at, secs_rng, as a 6th field: tools/build_campus.py rxy)
+    trees.sort(key=lambda t_: abs((t_[5][0] if len(t_) > 5 else t_[1]) - YONSEI_X_RNG))
     town = dict(
         road=dict(pts=R2(road.P), z=[round(float(v), 2) for v in pl['road_z']], half=HW, lanes=LANES, lane_w=LANE_W),
         rail=dict(z=rail_z, top=round(top, 2), n=[list(p) for p in TRACK_N if X0 <= p[0] <= X1],
@@ -722,11 +775,11 @@ def layout(pl, secs, ground, taken, e_curb0):
         bridge=dict(x=list(BRIDGE), pier=YONSEI_X, yonsei=[YONSEI_X, YONSEI_HALF, YONSEI_WALK]),
         paint=paint, zebra=zebra, kerbs=kerbs, lanes=lanes, stops=stops, blocks=blocks, signs=signs,
         church=church[:5], names=names[1] + names[-1], filled=n_fill, moved=n_moved, limit=R2(limit))
-    paints = dict(clear=[zone, inside], asphalt=[road_poly, mouth_a, yonsei, ground_town],
+    paints = dict(clear=[zone, inside], asphalt=[road_poly, mouth_a, yonsei, ground_paint],
                   pavers=[walk_n.difference(mouth), walk_s, yonsei_walk, inside],
                   dirt=[bank_paint])
     paths = [dict(kind='primary', w=2 * HW, pts=[[round(float(x), 1), round(float(y), 1)] for x, y in road.P[::3]]),
              dict(kind='tertiary', w=2 * YONSEI_HALF, pts=[[YONSEI_X, round(y_top, 1)], [YONSEI_X, -640.0]])]       # (the map)
-    return town, dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, paths=paths,
+    return town, dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, bank_rng=bank_r, paths=paths,
                       mouth=mouth,
                       road_poly=road_poly.union(walk_s), cross_box=(cross_x[0], cross_x[1], ks, kn), walk_s=walk_s)

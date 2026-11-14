@@ -3721,13 +3721,13 @@ def photo_ray(px, py, cam=None):
     return np.array(cam['pos']), fwd + (px - W_ / 2) / f_ * rgt - (py - H_ / 2) / f_ * up
 
 
-def photo_ground(px, py, dz=0.0, cam=None):
-    """where the ray through a pixel of photo A meets the terrain (or the surface dz over it)"""
+def photo_ground(px, py, dz=0.0, cam=None, H=None):
+    """where the ray through a pixel of photo A meets the terrain (or the surface dz over it; H: another grid)"""
     o_, d_ = photo_ray(px, py, cam)
     z_ = 36.0
     for _ in range(12):
         x_, y_ = o_[:2] + d_[:2] * (z_ - o_[2]) / d_[2]
-        z_ = sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_) + dz
+        z_ = sample(Hn if H is None else H, NEAR_HALF, NEAR_STEP, x_, y_) + dz
     return round(float(x_), 2), round(float(y_), 2)
 
 
@@ -6163,6 +6163,59 @@ LANDMARKS = [
          credit='사진: 다음 카페 「훌리건 천국」 이호성 (2024)',
          text='1956년 과학관으로 지어져 1984년부터 연희관으로 불린 석조 건물. 담쟁이 덮인 벽과 회양목 정원 사이로, 대우관까지 이어지는 오르막길이 시작된다.'),
 ]
+
+# ---------------------------------------------------------------------------
+# 정문 둘레 (#189 남쪽; reference/고증/4.8.2 「정문 안 백양로」), late: the planting, photo A's pixels laid on the ground
+# (the island, the apron, the trees and props read off it, the banners) and everything else that reads the ground
+# inside the gate have read it as it was.  The 1997-07-28 scans (26/16 · 27/17 · 26/15, each pair of frames on its own,
+# nine points across the road every 5 m) have 백양로 2.0 m under the game from the gate's mouth to s 45, 1.0 m at s 100
+# and 0.1 - 0.4 m from s 140 on (as the whole road north of it: the game's datum, 게임 기준).  GATE97_DZ: (s, m) the
+# change, the photos' difference less that datum (0.25 m); full across the road's band and the lawns along it out to
+# GATE97_SIDE[0] from the centre line, fading out over GATE97_SIDE[1] more (the lawn west of the gate: the photos 0.6 -
+# 1.2 m under the game 25 - 40 m out; the survey's spot 32 m east of the line (2024): the game 0.65 m over it).  South
+# of 성산로's middle the road's bed takes over (tools/gate_town.py plan: 성산로 on the same photos, SSR_E97).
+# ---------------------------------------------------------------------------
+GATE97_DZ = [(0.0, -1.75), (45.0, -1.75), (52.0, -1.45), (60.0, -1.35), (70.0, -1.1), (80.0, -1.0), (90.0, -0.88),
+             (100.0, -0.7), (110.0, -0.6), (118.0, -0.3), (125.0, -0.15), (135.0, -0.05), (142.0, 0.0)]
+GATE97_SIDE = (ROAD_HALF + 4.0, 30.0)
+PROF_RNG = prof.copy()              # (the profile as it was: what photo A's rays still meet the road on, BOOTH below)
+
+
+def gate97_at(x, y):
+    """the change at points (x, y) (arrays): GATE97_DZ by s along 백양로, eased out across it; none south of 성산로's
+    middle (y -445)"""
+    P_ = shapely.points(np.stack(np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float)), -1).reshape(-1, 2))
+    s_ = line_locate_point(bline, P_)
+    w_ = 1.0 - np.clip((shp_distance(P_, bline) - GATE97_SIDE[0]) / GATE97_SIDE[1], 0, 1)
+    w_ = w_ * w_ * (3 - 2 * w_)
+    out_ = np.interp(s_, *zip(*GATE97_DZ)) * w_ * (np.asarray(y, float).reshape(-1) > -445.0)
+    return out_.reshape(np.shape(x)) if np.ndim(x) else float(out_[0])
+
+
+# West of the gate, between 성산로's sidewalk and the 공학원 site's hoarding (its south side from (-301.5, -378.3) to
+# (-151.5, -400.7), 4.4): the photos 0.5 - 1.2 m under the game (eight points, median 0.9 m) where the road is 2.0 m:
+# GATE97_STRIP m down there, eased out over 6 m short of the hoarding and 25 m at its ends
+GATE97_STRIP = -0.9
+
+
+def gate97_strip(x, y):
+    ys_ = -378.28 + (np.asarray(x, float) + 301.45) * (-22.43 / 149.99) - 2.0
+    fy_ = np.clip((ys_ - y) / 6.0, 0, 1)
+    fx_ = np.clip((x + 270.0) / 25.0, 0, 1) * np.clip((-110.0 - x) / 25.0, 0, 1)
+    f_ = fy_ * fx_
+    return GATE97_STRIP * f_ * f_ * (3 - 2 * f_) * (np.asarray(y, float) > -445.0)
+
+
+_g97 = np.minimum(gate97_at(X, Y), gate97_strip(X, Y))
+HN_PRE97 = Hn.copy()                # (photo_ground for what is placed through photo A after this: LOT_C_TRUNK)
+Hn += _g97
+prof += np.interp(ss, *zip(*GATE97_DZ))
+# (what was set at the old heights inside it: the banners across the road and the placard in the island's bed)
+for b_ in banners:
+    for p_ in [b_['a'], b_['b']] + b_['ties']:
+        p_[2] = round(p_[2] + gate97_at(p_[0], p_[1]), 2)
+print('정문 둘레: 백양로 s 0 .. %.0f down by %.2f .. 0 m, %d nodes, gate %.2f -> %.2f m' % (
+    GATE97_DZ[-1][0], -GATE97_DZ[0][1], int((_g97 < -0.01).sum()), PROF_RNG[0], prof[0]))
 STATUES = dict(
     eagle=dict(pos=EAGLE['pos'], rot=EAGLE_ROT,                  # looks down 백양로 to the gate (2011 roadview side view)
                r=round(EAGLE_DAIS[0] + 0.05, 2), dais=list(EAGLE_DAIS), ring=list(EAGLE_RING), beds=EAGLE_BEDS_R, walk=EAGLE_WALK_W,
@@ -6280,7 +6333,14 @@ SPAWN = dict(pos=[round(_sx, 1), round(_sy, 1)], yaw=math.radians(-14))
 # ---------------------------------------------------------------------------
 _gate_c, _gate_r = np.array(STATUES['gate']['pos']), STATUES['gate']['rot']
 _gate_w = np.array([math.cos(_gate_r), math.sin(_gate_r)]) * 31.5
-TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h)
+# (the banks as they were before 성산로 and the rails went down on the 1997 photos, #189: what the planting on them
+# decides it decides on these, gate_town.layout secs_rng; the ground as it was before 정문 둘레 above)
+_hn_rng = Hn - _g97
+_smp_rng = lambda x_, y_: sample(_hn_rng, NEAR_HALF, NEAR_STEP, x_, y_)
+TOWN_SECS_RNG = gate_town.bank_fix(gate_town.plan(_hn_rng, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2],
+                                                  (_gate_c - _gate_w, _gate_c + _gate_w), _smp_rng, old=True), _hn_rng, _smp_rng)
+TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h,
+                           keep_nodes=near_buildings(1.5))
 TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h)
 print('정문 밖: 성산로 %.0f m, 철둑 %.0f m, 레일 높이 %.2f m (정문 앞 길 %.2f m)' % (
     TOWN_PLAN['road'].cum[-1], TOWN_PLAN['rail'].cum[-1], TOWN_PLAN['rail_z'], TOWN_PLAN['rail_z'] - gate_town.RAIL_UP))
@@ -6300,7 +6360,10 @@ print('대운동장 남서쪽 · 야구장: road bed %(bed)d nodes, 야구장 %(
 # (y -1200 .. -800), and the bed of 연세로 south of the bridge and of the junction, levelled across
 HS = sinchon_rotary.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP)
 ROT_GEO = sinchon_rotary.streets(TOWN_PLAN)
-ROT_LEVEL = sinchon_rotary.level(Hn, HS, NEAR_HALF, NEAR_STEP, ROT_GEO, ground_h)
+# (the banks keep the ground their slopes' feet were set on; the bridge's opening is 연세로's: 고증 4.10.4 「길의 높이」)
+_rl_keep = gate_town.bank_poly(TOWN_SECS)[0].difference(Polygon([(gate_town.BRIDGE[0], -440), (gate_town.BRIDGE[1], -440),
+                                                                  (gate_town.BRIDGE[1], -530), (gate_town.BRIDGE[0], -530)]))
+ROT_LEVEL = sinchon_rotary.level(Hn, HS, NEAR_HALF, NEAR_STEP, ROT_GEO, ground_h, keep=_rl_keep)
 print('신촌 로터리: 교차로 높이 %.2f m, 연세로 %s, 길 %s' % (ROT_LEVEL['z_junction'], ROT_LEVEL['z_yonsei'], ROT_LEVEL['arms']))
 
 
@@ -6780,7 +6843,7 @@ def _photo_road_off(px, py):
     z_ = 30.0
     for _ in range(12):
         q_ = o_ + d_ * (z_ - o_[2]) / d_[2]
-        z_ = prof_h(s_at(q_[0], q_[1]))
+        z_ = float(np.interp(s_at(q_[0], q_[1]), ss, PROF_RNG))      # (the road photo A's camera was fitted on: 정문 둘레)
     return s_off(q_[0], q_[1])
 
 
@@ -7914,8 +7977,9 @@ out['centennial_terrace'] = CENT_TERRACE
 out.update(trees=trees, shrubs=shrubs, props=props, cars=cars)
 # 정문 밖: the town's own lists (its banks' trees, the road's lamps, the walker's barrier along the kerb), added after
 # everything drawn from `rng`; what stood in its ground before (OSM's later walks there) goes
-out['town'], TOWN = gate_town.layout(TOWN_PLAN, TOWN_SECS, ground_h, [Polygon(b_['footprint']) for b_ in buildings], E_CURB0)
-_tz = TOWN['road_poly'].union(TOWN['bank']).buffer(1.0)
+out['town'], TOWN = gate_town.layout(TOWN_PLAN, TOWN_SECS, ground_t, [Polygon(b_['footprint']) for b_ in buildings], E_CURB0,
+                                     secs_rng=TOWN_SECS_RNG)
+_tz = TOWN['road_poly'].union(TOWN['bank_rng']).buffer(1.0)          # (the banks as decided on: gate_town.layout secs_rng)
 shapely.prepare(_tz)
 for _lst in (trees, shrubs, props):
     _lst[:] = [t_ for t_ in _lst if not shapely.contains_xy(_tz, t_[1], t_[2])]
@@ -7971,15 +8035,17 @@ print('정문 앞 어귀: gate at s %.1f (%.1f, %.1f); trees moved %s; shrubs un
 # over it, the last go.  (Its own random stream.)
 TOWN_TREE_SLOTS = 113
 _tt, _trng = list(TOWN['trees'])[:TOWN_TREE_SLOTS], random.Random(1381)
-_bank_src = [t_ for t_ in _tt if t_[0] in ('poplar', 'zelkova', 'oak', 'zelkova_young') and t_[1] < gate_town.BRIDGE[0] - 12]
+# (decided at the banks' trees' first places, rxy, and on the banks as they were: gate_town.layout secs_rng)
+_bank_src = [t_ for t_ in _tt if t_[0] in ('poplar', 'zelkova', 'oak', 'zelkova_young') and rxy(t_)[0] < gate_town.BRIDGE[0] - 12]
 for _ in range(2000):
     if len(_tt) >= TOWN_TREE_SLOTS or not _bank_src:
         break
     _src = _trng.choice(_bank_src)
-    _q = (round(_src[1] + _trng.choice((-1, 1)) * _trng.uniform(3.5, 6.0), 2), _src[2])
-    if min(math.hypot(o_[1] - _q[0], o_[2] - _q[1]) for o_ in _tt) < 3.0 or not TOWN['bank'].contains(Point(*_q)):
+    _du = _trng.choice((-1, 1)) * _trng.uniform(3.5, 6.0)
+    _q = (round(rxy(_src)[0] + _du, 2), rxy(_src)[1])
+    if min(math.hypot(rxy(o_)[0] - _q[0], rxy(o_)[1] - _q[1]) for o_ in _tt) < 3.0 or not TOWN['bank_rng'].contains(Point(*_q)):
         continue
-    _tt.append([_src[0], _q[0], _q[1], round(_trng.uniform(0.5, 0.8), 2), round(_trng.uniform(0, 6.28), 2)])
+    _tt.append([_src[0], round(_src[1] + _du, 2), _src[2], round(_trng.uniform(0.5, 0.8), 2), round(_trng.uniform(0, 6.28), 2), _q])
 assert len(_tt) == TOWN_TREE_SLOTS, len(_tt)
 TOWN['trees'] = _tt
 trees += TOWN['trees']
@@ -8349,7 +8415,7 @@ out['paths'].append(dict(kind='footway', w=round(BK_WALK[2] - BK_WALK[1], 1),
 # zelkova whose trunk stands by the red car's nose: its foot (1610, 932.5 px) is 2.0 m west of the red car's wheels'
 # middle on the line of its near wheels (+- 0.4 m for +- 2 px), beside the car, not in it (it had been moved 1.9 m
 # out in front of the row as if it stood in the car)
-LOT_C_TRUNK = photo_ground(1610, 932.5)
+LOT_C_TRUNK = photo_ground(1610, 932.5, H=HN_PRE97)          # (on the ground photo A was laid on: 정문 둘레)
 _lc_len = max(_lc_span, 2.8 + 5.6 * (len(LOT_C) - _lc_nf - 1), 4.6 * (len(LOT_C) - 1)) + 3.5    # (over the old row's trodden earth)
 LOT_C_PAD = Polygon([tuple(_lc0 + _lcd * u_ + _lcn * v_) for u_, v_ in ((-3.5, -1.4), (_lc_len, -1.4), (_lc_len, 16.0), (-3.5, 16.0))])
 _rlc = random.Random(1997 + 12)
