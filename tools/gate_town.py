@@ -97,6 +97,32 @@ CHURCH = dict(c=(-30.3, -533.1), L=40.4, W=22.4, ang=0.0713)
 CHURCH_RNG = (-50.0, -523.0, 27.0, 13.0)
 X0, X1 = -575.0, 700.0       # the banks are built between these
 MODERN = {230178502, 628197716}        # OSM outlines that are the 2006 station building
+# 성산로 서쪽 (대운동장 남서쪽, 고증 4.8.2 · 4.12): the ground along the road as the surface model has it climbs
+# from 30 m at x -300 to 39 m past its west end, the trees of both banks in it; the road itself is flat at 28.5 - 30 m.
+# The 1997-07-28 scans (26/16 · 26/15, and 1998 26/17 for the pair west of x -420; three pairs within 0.6 m at
+# x -455 .. -440): the road's own surface every 10 m (x, photos' height, the median of the points 0 - 14 m either side
+# of its middle, smoothed).  The road goes on them plus SSR_W_DATUM (game's datum, 게임 기준: the 대운동장 by it stands
+# 0.45 m over the photos' reading, 33.2 m; the road 4.1 m under it as in the photos).  The survey (1:5000, 2006 ·
+# 2024; #134) agrees once its tilt against the photos' datum is taken out (pdz = 2.05 + 0.522 x/100 + 0.248 y/100 m):
+# (-432.7, -341.4) 29.80 + pdz = 28.74 m, the photos 28.45 - 28.7; (-510.9, -243.3) 31.42 + pdz = 30.20, the photos
+# 29.8 - 29.9.  East of SSR_W_EASE[0] the game's profile keeps its shape, eased into the change over to SSR_W_EASE[1]
+# (from there to the gate the game stands 2 - 2.8 m over the photos' datum all along: the whole road's level, #134)
+SSR_W97 = [(-462.0, 28.75), (-454.0, 28.85), (-446.0, 28.85), (-441.0, 28.75), (-433.0, 28.65), (-427.0, 28.55),
+           (-419.0, 28.5), (-413.0, 28.55)]
+SSR_W_DATUM = 0.45                 # (게임 기준: photos -> game, the 대운동장's)
+SSR_W_EASE = (-413.0, -250.0)
+
+
+def ssr_west(x, z):
+    """성산로's profile z (at the stations' x) with its west part on the 1997 photos (SSR_W97): there on them, east of
+    it the game's profile less the change at SSR_W_EASE[0], fading out by SSR_W_EASE[1]"""
+    x = np.asarray(x, float)
+    xs, zs = zip(*SSR_W97)
+    tgt = np.interp(x, xs, zs) + SSR_W_DATUM
+    k0 = int(np.argmin(np.abs(x - SSR_W_EASE[0])))
+    off0 = z[k0] - tgt[k0]
+    t = np.clip((SSR_W_EASE[1] - x) / (SSR_W_EASE[1] - SSR_W_EASE[0]), 0, 1)
+    return np.where(x <= SSR_W_EASE[0], tgt, z - off0 * t * t * (3 - 2 * t))
 
 
 def _xy(p):
@@ -186,6 +212,7 @@ def plan(Hn, half, step, gate, heading, wall, sample):
     # its height: the ground along it, smoothed (the valley of the 창천 before the gate, up towards 금화터널 in the east)
     z = np.array([sample(x, y) for x, y in road.P])
     z = ndimage.gaussian_filter1d(z, 9.0, mode='nearest')
+    z = ssr_west(road.P[:, 0], z)                                # (its west part on the 1997 photos: SSR_W97)
     P = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
     d = shapely.distance(P, road.ls).reshape(X.shape)
     s = shapely.line_locate_point(road.ls, P).reshape(X.shape)

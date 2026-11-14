@@ -23,6 +23,7 @@ import sinchon_rotary
 import muak
 import cars97
 import seomun
+import west_ground
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -6281,6 +6282,18 @@ TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0
 TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h)
 print('정문 밖: 성산로 %.0f m, 철둑 %.0f m, 레일 높이 %.2f m (정문 앞 길 %.2f m)' % (
     TOWN_PLAN['road'].cum[-1], TOWN_PLAN['rail'].cum[-1], TOWN_PLAN['rail_z'], TOWN_PLAN['rail_z'] - gate_town.RAIL_UP))
+# 대운동장 남서쪽 · 야구장 (tools/west_ground.py, reference/고증/4.8.2 · 4.12), late (the planting has
+# read the ground as it was): 성산로's bed on north-west past gate_town's road on the 1997 photos (29 - 31 m, the game
+# had 35 - 39), the 야구장 2.2 m under the 대운동장 as they have it (31.0 m), and the ground between the oval, 학군단,
+# the road and the 야구장 smoothed again from what stays (the campus roads' asphalt, the halls' feet, the 공학원 site)
+_wg_asph = np.asarray(layers['asphalt'], np.float32)
+_wg_pi = np.clip(((X - SPLAT['x0']) / SPLAT['res']).astype(int), 0, SW - 1)
+_wg_pj = np.clip(((SPLAT['y1'] - Y) / SPLAT['res']).astype(int), 0, SH - 1)
+_wg_keep = (_wg_asph[_wg_pj, _wg_pi] > 127) | near_buildings(1.0) | shapely.contains_xy(GONGWON_SITE.buffer(1.0), X, Y)
+WEST_FIELD_SW = west_ground.field_sw(Hn, X, Y, FIXED, TOWN_PLAN['road'], gate_town.HW, gate_town.SSR_W_DATUM, FIELD_PATCH,
+                                     shapely.contains_xy(FIELD_POLY.buffer(2.0), X, Y), FIELD_PAD, Polygon([xy(p) for p in ways[west_ground.BASEBALL['way']]['geometry']]).buffer(0),
+                                     _wg_keep, harmonic_fill)
+print('대운동장 남서쪽 · 야구장: road bed %(bed)d nodes, 야구장 %(pitch)d, smoothed %(free)d; %(nodes)d moved, most %(most).1f m' % WEST_FIELD_SW)
 # 신촌 로터리 (tools/sinchon_rotary.py, reference/고증/4.10_신촌_로터리.md): the near terrain's patch south of the grid
 # (y -1200 .. -800), and the bed of 연세로 south of the bridge and of the junction, levelled across
 HS = sinchon_rotary.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP)
@@ -6434,6 +6447,17 @@ _sm_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if Polygon(b
 _sm_took, SEOMUN_GRADE = seomun.grade(Hn, X, Y, FIXED, _sm_halls, FIELD_PATCH, harmonic_fill)
 FIXED[_sm_took] = True
 print('서문 길: %(nodes)d nodes moved (most %(most).1f m), %(road)d on the roads, the field\'s bank %(bank)d' % SEOMUN_GRADE)
+# 과학관 북서쪽 골짜기 · 독수리상 서쪽 마당 (tools/west_ground.py, reference/고증/4.12 · 4.5.2), late: the planting
+# has read the ground as it was.  The valley's works yard and floor on the 1997 photos (4 - 7 m under the game's
+# slope); the bare yard west of the eagle, its road and lane level at 29.25 m (the game climbed to 36 m)
+_wg_box = Polygon([(-390, 40), (-260, 40), (-260, 250), (-390, 250)])
+WEST_VALLEY = west_ground.valley(Hn, X, Y, FIXED, [Polygon(b_['footprint']).buffer(0) for b_ in buildings
+                                                   if Polygon(b_['footprint']).intersects(_wg_box)])
+_wg_box = Polygon([(-230, -260), (-60, -260), (-60, -100), (-230, -100)])
+WEST_YARD = west_ground.eagle_yard(Hn, X, Y, FIXED, [(Polygon(b_['footprint']).buffer(0), b_['base']) for b_ in buildings
+                                                     if Polygon(b_['footprint']).intersects(_wg_box)], harmonic_fill)
+print('과학관 북서쪽 골짜기: %(nodes)d nodes moved (most %(most).1f m) on %(pts)d points' % WEST_VALLEY)
+print('독수리상 서쪽 마당: lot %(lot)d nodes, smoothed %(ring)d; %(nodes)d moved, most %(most).1f m' % WEST_YARD)
 print('무악학사 길: %d nodes graded (%d level), most moved %.1f m; the road %.1f m at s 10, %.1f m at the crest' % (
     _mk_n, int(_mk_took.sum()), _mk_dz, float(np.interp(10.0, MUAK['s'], MUAK['z'])), float(MUAK['z'].max())))
 Hn.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_near.bin'))
@@ -9221,6 +9245,8 @@ _ypaint([MUAK_WALK], _gp)
 SEOMUN_ASPH, SEOMUN_YARD = seomun.paint()      # (서문 길: the road, the mouth, the lane to the houses' fronts and its alleys)
 _ypaint([SEOMUN_ASPH], _ga)
 _ypaint([SEOMUN_YARD], _gd)                    # (the bare yard round the small building south of the mouth)
+_ypaint([west_ground.YARD], _gd)               # (독수리상 서쪽 마당: bare earth, the walks across it under it)
+_ypaint([west_ground.road_south()], _ga)       # (... and the paved margin south of its road, where cars stood along it)
 MUAK_WOODS = muak.woods_strip(MUAK, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))
 _mk_floor = unary_union([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD]).intersection(woods_u.buffer(-1.0)).union(MUAK_WOODS)
 _ypaint([g_ for g_ in (_mk_floor.geoms if hasattr(_mk_floor, 'geoms') else [_mk_floor]) if g_.geom_type == 'Polygon' and g_.area > 0.5], _gf)
@@ -9959,6 +9985,10 @@ for p_ in out['paths']:
         p_['pts'] = [q_ for q_ in p_['pts'] if q_[1] < -147.0] + [list(seomun.ROAD[-1][:2])]
 out['paths'] += seomun.paths()
 print('서문 길: shrubs taken out %d, props %d, trees moved aside %d' % _sm_n)
+# 독수리상 서쪽 마당 (west_ground.YARD): bare in 1997, so what the planting put on it steps aside (a tree in its place in
+# the list, to the yard's edge away from the road) or goes (shrubs, props)
+_wg_n = west_ground.move_off(trees, shrubs, props)
+print('독수리상 서쪽 마당: shrubs taken out %d, props %d, trees moved aside %d' % (_wg_n[0], _wg_n[1], len(_wg_n[2])), _wg_n[2])
 # 무악학사 길 (MUAK above): what stood on the new road and walk steps aside (a tree in its place in the list), the
 # closed crowns over it after every other tree; the map's way and walk on the new line
 _mk_c = MUAK_ROAD.union(MUAK_WALK).buffer(0.6)
