@@ -272,8 +272,9 @@ def grade(Hn, X, Y, FIXED, halls, keep, fill):
     info = dict(unfixed=(int(_uf.sum()), float(X[_uf].min()), float(X[_uf].max()), float(Y[_uf].min()), float(Y[_uf].max())))
     fixed = FIXED & ~mine
     took = np.zeros(X.shape, bool)
-    # the survey's surface
-    base = (shapely.contains_xy(HILL, X, Y) | shapely.contains_xy(SE, X, Y)) & ~stay & ~fixed
+    # the survey's surface (not between the zones round the halls, where its contours run through the halls: those
+    # nodes are eased between the zones below)
+    base = (shapely.contains_xy(HILL, X, Y) | shapely.contains_xy(SE, X, Y)) & ~in_block & ~stay & ~fixed
     Hn[base] = grid_z(X, Y)[base]
     took |= base
     info['survey'] = (int(base.sum()), round(float((Hn - H0)[base].min()), 1), round(float((Hn - H0)[base].max()), 1))
