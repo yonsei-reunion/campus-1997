@@ -29,6 +29,11 @@ AERIAL97_SRC=preview 로 미리보기 JPG(0.54 m/화소)를 쓸 수 있다(지�
 
 높이의 정밀도: 평평한 운동장에서 점마다 0.3 m(rms). 나무 밑 · 무늬 없는 지붕 · 창이 지붕과 땅에 걸친 곳은 상관이 낮거나
 봉우리가 둘이니 상관 0.7 아래는 버리고 둘레 여러 점을 함께 본다.
+
+높이의 기준면: 이 도구의 높이는 게임의 높이(사진 블록이 묶인 옛 게임 찻길)와 같은 기준이다. 국토지리정보원 측량 표고(해발,
+1:5000 수치지형도 2006 · 2024)보다 survey_dz(x, y) = 2.05 + 0.522·x/100 + 0.248·y/100 m 높고(표고점 107개, 잔차 rms 0.35 m,
+reference/고증/2.8_높이_단면.md 「측량 표고」), 기본값은 이 기준 그대로 둔다. 측량 값을 게임 · 이 도구의 높이로 바꿀 때는
+z + survey_dz(x, y), 거꾸로는 z − survey_dz(x, y).  `z <x> <y>` 는 해발도 함께 보인다.
 """
 import json
 import math
@@ -255,6 +260,17 @@ def match_xyz(frame, px, py, win=4.0, lo=-8.0, hi=45.0, step=0.25):
     return [(sc, *(c + d * (z - c[2]) / d[2])) for sc, z in pk], others
 
 
+# 사진(= 게임) 높이 − 측량 표고(해발)의 면: (상수, 동쪽 100 m 마다, 북쪽 100 m 마다). 2006 · 2024 측량이 따로 같은 값
+# (2.08 + 0.533 x + 0.246 y · 2.04 + 0.507 x + 0.245 y), 이차항은 0.004 아래. 블록이 묶인 옛 게임 찻길 80점의 기울기를 물려받은 것
+SURVEY_PLANE = (2.052, 0.522, 0.248)
+
+
+def survey_dz(x, y):
+    """이 도구(와 게임)의 높이 − 측량 표고(해발), m. 배열도 받음"""
+    c, ax, ay = SURVEY_PLANE
+    return c + ax * np.asarray(x, float) / 100.0 + ay * np.asarray(y, float) / 100.0
+
+
 def _frame_arg(a):
     return tuple(int(v) for v in a.split('/'))
 
@@ -273,9 +289,10 @@ if __name__ == '__main__':
     elif cmd == 'z':
         x, y = float(a[0]), float(a[1])
         pk, frs = surface_z(x, y, *(float(v) for v in a[2:5]))
-        print('땅(지형) %.1f m, 사진 %s' % (ground(x, y), ' '.join('%d/%d' % f for f in frs)))
+        dz = float(survey_dz(x, y))
+        print('땅(지형) %.1f m, 사진 %s, 해발 = 높이 − %.2f' % (ground(x, y), ' '.join('%d/%d' % f for f in frs), dz))
         for sc, z in pk:
-            print('  높이 %.1f m (상관 %.2f)' % (z, sc))
+            print('  높이 %.1f m, 해발 %.1f m (상관 %.2f)' % (z, z - dz, sc))
     elif cmd == 'xyz':
         fr = _frame_arg(a[0])
         r = match_xyz(fr, float(a[1]), float(a[2]), *(float(v) for v in a[3:4]))
