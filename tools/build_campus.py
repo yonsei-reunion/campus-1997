@@ -25,6 +25,7 @@ import cars97
 import seomun
 import west_ground
 import med97
+import music97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -6402,6 +6403,15 @@ _md_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] 
 _md_took, MED97_GRADE = med97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
 FIXED[_md_took] = True
 print('의료원 주차장 셋:', MED97_GRADE)
+# 노천극장 · 음악관 뒤 언덕 · 동쪽 찻길 남쪽 (tools/music97.py, reference/고증/3.14 「땅의 높이」; #189, te): the ground
+# round the old bowl and on the hill north of 음악관 on the 1997 photos and the 2006 survey (6 - 23 m over the game's),
+# the bowl cut into it on the photos' floor (AMPH['arena_h'] set there), TR_E from 아펜젤러관's yard to the fork on
+# the survey's heights; late, here: the planting has read the ground as it was
+_mu_took, MUSIC97_GRADE = music97.grade(Hn, X, Y, FIXED, _md_halls, np.zeros(X.shape, bool), harmonic_fill, AMPH,
+                                        TR_E, TR_EN)
+FIXED[_mu_took] = True
+print('노천극장 · 음악관 뒤 언덕:', MUSIC97_GRADE)
+tr_tilt_of(TR_E, TR_EN, TR_EO, TR_EK0, 'east (music97)')
 # ---------------------------------------------------------------------------
 # 1997년 땅 (#189 가운데: 인문관 · 대강당 · 한경길 · 용재관), after the planting and everything else that read the ground
 # as it was.  Each place: a zone of grid nodes to one level, the ring round it eased by harmonic_fill into the ground as

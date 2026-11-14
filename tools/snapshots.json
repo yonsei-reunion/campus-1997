@@ -68,7 +68,7 @@
      "cam": {"x": 30.74, "y": 272.17, "h": 51.72, "tx": 68.88, "ty": 127.17, "th": 53.57, "fov": 10.99}, "size": [816, 1229], "season": "spring",
      "out": [{"path": "docs/compare/yongjae_game.jpg", "width": 447}]},
     {"name": "compare/amphitheater", "doc": "reference/1997_구노천극장_마지막모습.jpg: 객석 동쪽 끝 너머 비탈에서 서쪽 무대 쪽으로, 망원",
-     "cam": {"x": 211.6, "y": 152.4, "h": 68.83, "tx": 162.9, "ty": 161.2, "th": 54.24, "fov": 36.1}, "size": [1141, 900],
+     "cam": {"x": 211.6, "y": 152.4, "h": 81.23, "tx": 162.9, "ty": 161.2, "th": 66.64, "fov": 36.1}, "size": [1141, 900],
      "out": [{"path": "docs/compare/amphitheater_game.jpg", "width": 900}]},
     {"name": "compare/hwalcheon", "doc": "reference/활천대_2009_연세춘추.jpg: 분수 뒤 중앙도서관, 오른쪽 독수리상",
      "cam": {"x": -74.5, "y": -218.83, "dh": 1.6, "tx": -81.02, "ty": -189.55, "tdh": 3.93, "fov": 36.1}, "size": [1050, 700],
