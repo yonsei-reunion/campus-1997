@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { loadGLB } from './world.js';
-import { pcss } from './materials.js';
+import { pcss, windTime } from './materials.js';
 import { HERO_BAGS, baggedGeometry } from './bags.js';
 import { MOBILE, mulberry, versioned } from './util.js';
 
@@ -50,7 +50,10 @@ export const HEROES = ['man-tee', 'man-cheer', 'man-check', 'woman-tee', 'woman-
 // has the rims' geometry drawn only while the rims are RIM_PX pixels or more across (rimLod: the index puts the glasses'
 // triangles last, and the draw stops short of them), and from somewhat nearer than that on the same glasses drawn on
 // the face from a second atlas (faces_rims.png), which the mip maps fade evenly with distance. Who wears them, and
-// which rims, rides along as the attribute `glass` (0 none, 1 thin metal, 2 dark horn).
+// which rims, rides along as the attribute `glass` (0 none, 1 thin metal, 2 dark horn; plus 4 x the person's blink).
+// Blinking: every few seconds (each of the BLINKS kinds of the crowd in its own time) the eyes of a face are drawn
+// shut for an eighth of a second: skin over the eye's place on the cell and the lashes' line, sagging in the middle.
+// By the clock of the wind; the line only from near.
 const KIND = { cloth: 0, skin: 1, hair: 2, hard: 3 };
 const kindOfPart = (name) => (name === 'Skin' ? KIND.skin : /^(Hair|Bridge)/.test(name) ? KIND.hair : /Glasses|feet/.test(name) ? KIND.hard : KIND.cloth);
 const SKIN_ROUGH = 0.5;
@@ -64,6 +67,10 @@ const RIM_PX = MOBILE ? 1.2 : 0.35;   // the rims' geometry from this many pixel
 const RIMS = ['#77736c', '#2a2420'];  // thin metal, dark horn (crowdLook picks one; the shader's drawn ones alike)
 const glsl = (hex) => { const c = new THREE.Color(hex); return `vec3(${c.r.toFixed(4)}, ${c.g.toFixed(4)}, ${c.b.toFixed(4)})`; };
 const RIMS_TEX = { value: null };
+const BLINKS = 16;
+// the eye on a cell of the atlas (blender/faces.py: a cell is 2 HALF = 15 cm of the face, the eye line TOP under its
+// top): the middle of an eye from the nose, its half width and height, as fractions of the cell
+const EYE_U = 0.036 / 0.15, EYE_V = 0.042 / 0.15, EYE_A = 0.021 / 0.15, EYE_B = 0.013 / 0.15;
 function loadTexture(file, srgb) {
   return new Promise((res, rej) => new THREE.TextureLoader().load(versioned(PEOPLE_DIR + file), (t) => {
     if (srgb) t.colorSpace = THREE.SRGBColorSpace;
@@ -79,9 +86,11 @@ async function loadFaces() {
   RIMS_TEX.value = rims;
   PERSON_MAT.needsUpdate = true;
 }
+const GRID_F = '4.0';                  // (faces.py GRID)
 const FINE = !MOBILE;               // the folds of cloth and the strands of hair
 PERSON_MAT.onBeforeCompile = (sh) => {
   sh.uniforms.uRims = RIMS_TEX;
+  sh.uniforms.uBlinkT = windTime;
   sh.vertexShader = sh.vertexShader
     .replace('#include <common>', '#include <common>\nattribute vec3 part;\nattribute float glass;\nvarying vec3 vPart, vRest;\nvarying float vGlass;')
     .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPart = part;\nvGlass = glass;\nvRest = position;');
@@ -90,6 +99,7 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       varying vec3 vPart, vRest;
       varying float vGlass;
       uniform sampler2D uRims;
+      uniform float uBlinkT;
       ${FINE ? `
       float pHash( vec3 p ) { p = fract( p * 0.3183099 + 0.1 ); p *= 17.0; return fract( p.x * p.y * p.z * ( p.x + p.y + p.z ) ); }
       float pNoise( vec3 x ) { vec3 i = floor( x ), f = fract( x ); f = f * f * ( 3.0 - 2.0 * f );
@@ -123,12 +133,23 @@ PERSON_MAT.onBeforeCompile = (sh) => {
     .replace('#include <map_fragment>', '')
     .replace('#include <color_fragment>', `#include <color_fragment>
       vec4 drawn = texture2D( map, vMapUv, ${FACE_BIAS} );
+      float pBlink = floor( vGlass / 4.0 + 0.01 ), pGlass = vGlass - 4.0 * pBlink;
+      {
+        // a blink: now and then (every 3 to 6 s, by the person's own count) the eyes shut for an eighth of a second
+        vec2 c = fract( vMapUv * ${GRID_F} );
+        vec2 e = vec2( ( abs( c.x - 0.5 ) - ${EYE_U.toFixed(4)} ) / ${EYE_A.toFixed(4)}, ( c.y - ${(EYE_V - 0.02).toFixed(4)} ) / ${EYE_B.toFixed(4)} );
+        float shut = step( fract( ( uBlinkT + pBlink * 1.37 ) / ( 3.0 + 0.19 * pBlink ) ) * ( 3.0 + 0.19 * pBlink ), 0.13 );
+        shut *= step( 0.5, vPart.y ) * step( vPart.y, 1.5 ) * ( 1.0 - step( 0.75, vMapUv.x ) * step( 0.75, vMapUv.y ) );      // (skin, not the blank cell)
+        float lid = shut * ( 1.0 - smoothstep( 0.8, 1.0, length( e ) ) );
+        float lash = ( 1.0 - smoothstep( 0.09, 0.17, abs( e.y - 0.38 + 0.30 * e.x * e.x ) ) ) * ( 1.0 - smoothstep( 0.015, 0.04, length( fwidth( c ) ) ) );     // (the line from near only)
+        drawn = mix( drawn, vec4( mix( vec3( 1.0 ), vec3( 0.07, 0.05, 0.05 ), lash * step( abs( e.x ), 0.92 ) ), 1.0 ), lid );
+      }
       diffuseColor.rgb = mix( vec3( ${EYE_WHITE} ), diffuseColor.rgb * drawn.rgb, drawn.a );
       // the drawn glasses: in as the rims' geometry goes (how many pixels a rim is across, from the atlas' scale here)
       vec2 rimD = vec2( length( dFdx( vMapUv ) ), length( dFdy( vMapUv ) ) );
       float rimPx = ${RIM_UV} / max( max( rimD.x, rimD.y ), 1e-7 );
-      float rim = texture2D( uRims, vMapUv ).r * step( 0.5, vGlass ) * smoothstep( ${(2 * RIM_PX).toFixed(2)}, ${RIM_PX.toFixed(2)}, rimPx );
-      diffuseColor.rgb = mix( diffuseColor.rgb, vGlass > 1.5 ? ${glsl(RIMS[1])} : ${glsl(RIMS[0])}, rim );`)
+      float rim = texture2D( uRims, vMapUv ).r * step( 0.5, pGlass ) * smoothstep( ${(2 * RIM_PX).toFixed(2)}, ${RIM_PX.toFixed(2)}, rimPx );
+      diffuseColor.rgb = mix( diffuseColor.rgb, pGlass > 1.5 ? ${glsl(RIMS[1])} : ${glsl(RIMS[0])}, rim );`)
     .replace('#include <aomap_fragment>', `#include <aomap_fragment>
       {
         // the shut-in places: skin shades warm (the light that gets there has been through skin), the rest grey
@@ -278,12 +299,13 @@ export function crowdLook(id, n) {
   const build = 1 + 0.02 * (r() + r() - 1);
   const clamp = (v) => Math.min(1.065, Math.max(0.94, v));
   const glasses = r() < (id === 'man-professor' ? 0.7 : 0.3);
+  const blink = (n * 7 + 3) % BLINKS;                 // (no draw: the streams stay as they were)
   colors.Glasses = RIMS[r() < 0.8 ? 0 : 1];
   const r2 = mulberry(n * 40503 + 331), more = LOOKS_MORE[id] || {};
   for (const k in more) colors[k] = more[k][Math.floor(r2() * more[k].length)];
   const plain = PLAIN[id];
   if (plain && r2() < plain[2]) for (const k of plain[1]) colors[k] = colors[plain[0]];
-  return { colors, scale: [clamp(tall * build), clamp(tall)], glasses };
+  return { colors, scale: [clamp(tall * build), clamp(tall)], glasses, blink };
 }
 
 // the triangles of `geo` with the glasses' last: { index, bare: how many of its entries come before the glasses' },
@@ -304,7 +326,7 @@ function glassesLast(geo, ranges) {
 // the attribute `glass` of a geometry of n vertices, all v: one shared buffer for each
 const glassBuffers = new Map();
 function glassAttribute(n, v) {
-  const k = n * 4 + v;
+  const k = n * 64 + v;
   if (!glassBuffers.has(k)) glassBuffers.set(k, new THREE.Uint8BufferAttribute(new Uint8Array(n).fill(v), 1));
   return glassBuffers.get(k);
 }
@@ -313,11 +335,11 @@ function glassAttribute(n, v) {
 // the parts named in `colors` in those colours, with the glasses or without. A geometry sharing every buffer but
 // the colours; people who wear the model as it is share one.
 const worn = new WeakMap();        // geometry -> [without glasses, with]
-function dressed(geo, ranges, colors, glasses) {
+function dressed(geo, ranges, colors, glasses, blink = 0) {
   if (!ranges || !geo.attributes.color) return geo;
   if (!colors) {
     const made = worn.get(geo) || worn.set(geo, []).get(geo);
-    return made[+glasses] || (made[+glasses] = dressed(geo, ranges, {}, glasses));
+    return made[+glasses] || (made[+glasses] = dressed(geo, ranges, {}, glasses));        // (blink 0)
   }
   const g = new THREE.BufferGeometry();
   for (const k in geo.attributes) if (k !== 'color') g.setAttribute(k, geo.attributes[k]);
@@ -325,7 +347,7 @@ function dressed(geo, ranges, colors, glasses) {
   g.setIndex(order ? order.index : geo.index);
   if (order && !glasses) g.setDrawRange(0, order.bare);
   if (order && glasses) g.userData.rims = order.bare;           // (rimLod)
-  g.setAttribute('glass', glassAttribute(geo.attributes.position.count, !order || !glasses ? 0 : colors.Glasses === RIMS[1] ? 2 : 1));
+  g.setAttribute('glass', glassAttribute(geo.attributes.position.count, (!order || !glasses ? 0 : colors.Glasses === RIMS[1] ? 2 : 1) + 4 * blink));
   if (!Object.keys(colors).length) {
     g.setAttribute('color', geo.attributes.color);
     g.boundingSphere = geo.boundingSphere;
@@ -382,7 +404,7 @@ export class Cast {
     if (bag) root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = baggedGeometry(o, id, bag); });
     root.traverse((o) => {
       if (!o.isSkinnedMesh) return;
-      o.geometry = dressed(o.geometry, src.ranges, look?.colors, look ? look.glasses : src.glasses);
+      o.geometry = dressed(o.geometry, src.ranges, look?.colors, look ? look.glasses : src.glasses, look?.blink);
       if (o.geometry.userData.rims) o.onBeforeRender = rimLod;
     });
     const [wide, tall] = look?.scale || [1, 1];
