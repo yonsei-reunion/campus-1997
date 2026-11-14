@@ -143,6 +143,11 @@ YRO_OLD_WALK = 5.0             # (the walk the rows had before: the old rows are
 # of its middle (the 2008 · 2010 skyview's crossings and kerbs, 52006's mouth, 홍익문고's outline)
 YRO_WALK_W, YRO_WALK_E = 4.0, 3.0
 ARMS['yonsei']['walk'] = (YRO_WALK_W + YRO_WALK_E) / 2
+# 연세로's lanes are not painted: only the double yellow middle line between the junction and the bridge, two cars
+# abreast each way (1996: 51979 · 52006; Kakao roadview 2008-08 · 2009-03, 고증 4.10.1 「로드뷰로 잰 차도 폭」, which
+# also counted the 13 m between the kerbs on a crossing's 1 m bars).  A solid white line between the two lanes only
+# on the last stretch into the junction (52006's mouth, the 2008 roadview at y -945)
+YRO_LANE_SOLID = 25.0
 
 
 def _xy(lat, lon):
@@ -582,6 +587,10 @@ def layout(geo, town, extras, ground, taken_z):
                 paint.append(dict(kind='yellow', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * sgn * 0.16 for s in ssy])))
             for kk in range(1, a.lanes):
                 o = sgn * (0.3 + (a.half - 0.3) / a.lanes * kk)
+                if k == 'yonsei':
+                    sl = ss[ss <= s_stop + YRO_LANE_SOLID]
+                    paint.append(dict(kind='white', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * o for s in sl])))
+                    continue
                 paint.append(dict(kind='white_dash', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * o for s in ss[2:]])))
     # 연세로's crossing between the junction and the bridge, with stop lines either side
     s_mid = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS_Y)))
