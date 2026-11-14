@@ -6,8 +6,10 @@
 // papers of those weeks report (서울신문 1997.4.4, 5.9, 6.5, 10.11 ...), the wording is made up.
 import * as THREE from 'three';
 
-// the white wall in the gate's frame (blender/props.py GATE_WALL): along the gate's line from its middle, m
-const WALL = { u0: 11.3, h: 2.7, t: 0.35 };
+// the white wall in the gate's frame (blender/props.py GATE_WALL): u along the gate's line from its middle, v north of
+// it, m.  Two bays: one slanting out of the outer pillar's front corner, one along the line 3.5 m in front of it
+const WALL = { pts: [[11.35, -0.55], [14.65, -3.5], [19.3, -3.5]], h: 2.7, t: 0.35 };
+const BAY2 = 3.85, BAY2_AT = 4.43;     // the sheets' u past the old pilaster (3.85) start on the second bay, at its corner
 const FONT = '"Do Hyeon", "Jua", "Noto Sans KR", sans-serif';
 const INK = { k: '#17171a', r: '#b3201f', b: '#1c2f86', g: '#1f6a3a' };
 const PAPER = { white: '#f4f1e8', kraft: '#b8946a', yellow: '#f0dc7a', pink: '#efc4cc', blue: '#c9dcee' };
@@ -142,7 +144,11 @@ export function makeGatePosters(gate, groundAt) {
   group.name = 'gate_posters';
   const cs = Math.cos(gate.rot), sn = Math.sin(gate.rot);
   const at = (u, v) => [gate.pos[0] + u * cs - v * sn, gate.pos[1] + u * sn + v * cs];
-  const foot = Math.min(groundAt(...at(WALL.u0, 0)), groundAt(...at(WALL.u0 + 7.7, 0)));     // (the wall's own foot: props.py gate)
+  const foot = Math.min(...WALL.pts.map(([u, v]) => groundAt(...at(u, v))));     // (the wall's own foot: props.py gate)
+  const segs = WALL.pts.slice(1).map(([u1, v1], k) => {
+    const [u0, v0] = WALL.pts[k], len = Math.hypot(u1 - u0, v1 - v0);
+    return { u0, v0, tu: (u1 - u0) / len, tv: (v1 - v0) / len, len, a: Math.atan2(v1 - v0, u1 - u0) };
+  });
   const clear = () => {
     for (const m of [...group.children]) { m.geometry.dispose(); m.material.map.dispose(); m.material.dispose(); group.remove(m); }
   };
@@ -153,10 +159,12 @@ export function makeGatePosters(gate, groundAt) {
       const mat = new THREE.MeshStandardMaterial({ map: sheetTexture(s, 97 + i * 13 + season.charCodeAt(1)), roughness: 0.95, metalness: 0,
         polygonOffset: true, polygonOffsetFactor: -2 - i, polygonOffsetUnits: -2 - i });
       const m = new THREE.Mesh(new THREE.PlaneGeometry(s.w, s.h), mat);
-      const [px, py] = at(WALL.u0 + s.u + s.w / 2, -WALL.t / 2 - 0.012 - i * 0.003);
+      const c = s.u + s.w / 2, sg = segs[c < BAY2 ? 0 : 1], along = c < BAY2 ? c : c - BAY2 + (BAY2_AT - segs[0].len) + 0.2;
+      const off = WALL.t / 2 + 0.012 + i * 0.003;          // (in front: the mouth's side, right of the wall's run)
+      const [px, py] = at(sg.u0 + sg.tu * along + sg.tv * off, sg.v0 + sg.tv * along - sg.tu * off);
       m.position.set(px, foot + s.top - s.h / 2, -py);
       m.rotation.order = 'YXZ';
-      m.rotation.set((rnd() - 0.5) * 0.012, gate.rot, (rnd() - 0.5) * 0.035);
+      m.rotation.set((rnd() - 0.5) * 0.012, gate.rot + sg.a, (rnd() - 0.5) * 0.035);
       m.receiveShadow = true;
       group.add(m);
     });

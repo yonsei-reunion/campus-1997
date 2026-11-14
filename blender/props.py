@@ -336,13 +336,15 @@ def sign_board():
 # the lodge's roof 8 .. 10 m; the 1996 photo's roof and the 2008 skyview say 10 m): 고증 4.8.1 「깊이」.
 # tools/build_campus.py GATE_PARTS keeps the shrubs off these footprints.
 GATE_FRONT = -0.3            # the pillars' and the lodge's south faces, from the gate's line
-GATE_MAIN = dict(u=4.95, w=1.4, d=4.8, fin=0.34, h=4.9, h_back=4.5, core=4.45)
+GATE_MAIN = dict(u=5.1, w=1.4, d=4.8, fin=0.34, h=4.9, h_back=4.5, core=4.45)     # (10.2 m apart: the July 1997 scans' 10.25, 고증 4.8.1)
 GATE_SIDE = dict(u=-10.98, w=1.35, d=3.0, fin=0.34, h=3.75, h_back=3.45, core=3.4)
 GATE_LODGE = dict(u0=-18.65, u1=-11.65, d=10.0, h=2.8, solid=3.75)
 GATE_EAST = dict(u=10.78, w=1.05, d=3.6, fin=0.3, h=3.7, h_back=3.45, core=3.4)    # the east walk's outer pillar: a narrow core
-GATE_WALL = dict(u0=11.3, u1=19.0, h=2.7, t=0.35)
+# the white wall's line (u, v): out of the east outer pillar's front corner at 42 deg to the gate's line, then along it
+# 3.5 m in front of it (the July 1997 scans at its coping's height, 고증 4.8.1 「동쪽 흰 담의 자리」); a bay each way
+GATE_WALL = dict(pts=[(11.35, -0.55), (14.65, -3.5), (19.3, -3.5)], h=2.7, t=0.35)
 GATE_END = 31.5              # the low wall's ends (tools/build_campus.py reads the same length for the ground)
-GATE_TURN = dict(u0=19.5, to=(33.3, -11.5))   # the east low wall: south-east from the white wall's end (tools/gate_town.py EAST_TURN)
+GATE_TURN = dict(u0=19.8, v0=-3.6, to=(33.3, -10.7))   # the east low wall: south-east from the white wall's end (tools/gate_town.py EAST_TURN)
 GATE_LEAF = 2.8              # the iron leaves' height
 
 
@@ -475,22 +477,36 @@ def gate():
     _gate_fence(mb, gz, u0 - 9.2, u0 - 6.2)
     _gate_pier(mb, gz, u0 - 10.9, u0 - 9.2)
     _gate_fence(mb, gz, -GATE_END, u0 - 10.9)
-    # ---- east of the east walk's outer pillar: the white wall (two bays, a pilaster and an end pier; papered over
-    # with the students' posters in the 1995 and 1996 photos, the name in metal letters on it in 2008 and 2011)
-    z = min(gz(W['u0']), gz(W['u1']))
-    mb.box(((W['u0'] + W['u1']) / 2, 0, z + W['h'] / 2 - 0.3), (W['u1'] - W['u0'], W['t'], W['h'] + 0.6), 'gate_granite', skip=('bottom', 'left'))
-    mb.box(((W['u0'] + W['u1']) / 2, 0, z + W['h'] + 0.05), (W['u1'] - W['u0'], W['t'] + 0.1, 0.1), 'gate_granite')
-    um = (W['u0'] + W['u1']) / 2
-    mb.box((um, 0, z + (W['h'] + 0.2) / 2 - 0.3), (0.36, W['t'] + 0.14, W['h'] + 0.8), 'gate_granite', skip=('bottom',))
-    mb.box((W['u1'] + 0.25, 0, z + (W['h'] + 0.3) / 2 - 0.3), (0.5, 0.55, W['h'] + 0.9), 'gate_granite', skip=('bottom',))
-    pa, pz, yy = W['u0'] + 0.9, z + 1.38, -W['t'] / 2 - 0.012
-    mb.face([(pa, yy, pz), (pa + 1.9, yy, pz), (pa + 1.9, yy, pz + 0.475), (pa, yy, pz + 0.475)], 'sign_gate',
-            uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
+    # ---- east of the east walk's outer pillar: the white wall (two bays, a pilaster at the bend and an end pier; papered
+    # over with the students' posters in the 1995 and 1996 photos, the name in metal letters on it in 2008 and 2011).
+    # Its first bay runs out of the outer pillar's front corner at a slant, the second along the gate's line 3.5 m in
+    # front of it (the July 1997 scans; seen from the south, as in the 1996 photo, the two read as one flat wall)
+    P = W['pts']
+    z = min(gz(u, v) for u, v in P)
+    for k in range(len(P) - 1):
+        (ua, va), (ub, vb) = P[k], P[k + 1]
+        ln, a = math.hypot(ub - ua, vb - va), math.atan2(vb - va, ub - ua)
+        cx, cy = (ua + ub) / 2, (va + vb) / 2
+        mb.box((cx, cy, z + W['h'] / 2 - 0.3), (ln + W['t'] * 0.5, W['t'], W['h'] + 0.6), 'gate_granite', rotz=a, skip=('bottom',))
+        mb.box((cx, cy, z + W['h'] + 0.05), (ln + W['t'] * 0.5, W['t'] + 0.1, 0.1), 'gate_granite', rotz=a)
+        if k == 0:                                         # the old name board, on the first bay (behind the posters now)
+            tx, ty = (ub - ua) / ln, (vb - va) / ln
+            nx, ny = ty, -tx                                # (the front: the mouth's side)
+            p0 = (ua + tx * 0.9 + nx * (W['t'] / 2 + 0.012), va + ty * 0.9 + ny * (W['t'] / 2 + 0.012))
+            p1 = (p0[0] + tx * 1.9, p0[1] + ty * 1.9)
+            pz = z + 1.38
+            mb.face([(*p0, pz), (*p1, pz), (*p1, pz + 0.475), (*p0, pz + 0.475)], 'sign_gate', uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
+    (u1, v1), (u2, v2) = P[1], P[2]
+    a1 = math.atan2(P[1][1] - P[0][1], P[1][0] - P[0][0])
+    mb.box((u1, v1, z + (W['h'] + 0.2) / 2 - 0.3), (0.36, W['t'] + 0.14, W['h'] + 0.8), 'gate_granite', rotz=a1 / 2, skip=('bottom',))
+    a2 = math.atan2(v2 - v1, u2 - u1)
+    mb.box((u2 + 0.25 * math.cos(a2), v2 + 0.25 * math.sin(a2), z + (W['h'] + 0.3) / 2 - 0.3), (0.5, 0.55, W['h'] + 0.9), 'gate_granite',
+           rotz=a2, skip=('bottom',))
     # ---- east of the white wall: the low wall again, pier and fence by turns as in the west (the May 1996 photo
     # from the rail bank), turning south-east along the mouth's edge down to 성산로's sidewalk (its line in the July
     # 1997 vertical photos).  Drawn in its own frame along that line.
     G = GATE_TURN
-    (xa, ya), (xb, yb) = (G['u0'], 0.0), G['to']
+    (xa, ya), (xb, yb) = (G['u0'], G.get('v0', 0.0)), G['to']
     ln, a = math.hypot(xb - xa, yb - ya), math.atan2(yb - ya, xb - xa)
     ca, sa = math.cos(a), math.sin(a)
     gz2 = lambda u, v=0.0: gz(xa + u * ca - v * sa, ya + u * sa + v * ca)

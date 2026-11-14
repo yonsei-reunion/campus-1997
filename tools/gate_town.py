@@ -81,7 +81,11 @@ BRIDGE = (-108.5, -78.5)     # the opening for 연세로 (x), its piers in the m
 CROSS_X = (-75.0, -61.5)     # the zebra over 성산로, east of the junction's box
 BOX_X = (-108.7, -79.5)      # the box junction's white frame before 연세로 (x; 2.9 m in from the north kerb, 1.9 m from
 #                              the south one)
-EAST_TURN = 19.5            # where the gate's east low wall turns south-east, along its line from its middle (m)
+# the gate's east side in its own frame (u along its line eastwards from its middle, v north of it; m): the white wall's
+# line (blender/props.py GATE_WALL: a slanting bay out of the outer pillar's front corner, then one along the line 3.5 m
+# in front of it; the July 1997 scans, 고증 4.8.1) and where the low wall turns south-east from its end, and its end
+EAST_WALL = [(11.35, -0.55), (14.65, -3.5), (19.3, -3.5)]
+EAST_TURN, EAST_TO = (19.8, -3.6), (33.3, -10.7)
 YZEBRA = (-459.5, -466.5)    # the zebra over 연세로's mouth (y)
 YONSEI_X = -94.0             # 연세로's middle from the bridge south (고증 4.10.1)
 YONSEI_X_RNG = -96.0         # (where it was: what the random streams decide is decided round it)
@@ -337,7 +341,12 @@ def layout(pl, secs, ground, taken, e_curb0):
     # down to 성산로's sidewalk (the July 1997 vertical photos, the 2010 skyview, the 2011 roadview: 고증 4.8.1
     # 「동쪽 흰 담과 그 동쪽」; blender/props.py GATE_TURN), lawn behind it.  The fan above still decides the kerb's
     # break, the lamps and the trees (and tools/build_campus.py GATE_OUT), so that none of them moves.
-    fan_a = [(-hw_, -0.4), (EAST_TURN, -0.4)] + fan[3:]
+    # (its edge: the wall's front face, then the low wall's line run on out past the fan, which clips it)
+    _d = np.array(EAST_TO) - np.array(EAST_TURN)
+    _d /= np.linalg.norm(_d)
+    _far = np.array(EAST_TURN) + _d * ((EAST_TURN[1] + 45.0) / -_d[1])
+    fan_a = [(-hw_, -0.4), (EAST_WALL[0][0] - 0.05, -0.4)] + [(u_, v_ - 0.2) for u_, v_ in EAST_WALL] + \
+            [(EAST_TURN[0], EAST_TURN[1] - 0.25), (float(_far[0]), -45.0)] + fan[4:]
     mouth_a = Polygon([tuple(wc + wt * u + wnn * v) for u, v in fan_a]).buffer(0).intersection(mouth).buffer(0)
     zone = Polygon([tuple(p) for p in bound] + [(road.P[-1][0] + 300, road.P[-1][1]), (720, -810), (-660, -810),
                                                  (-660, road.P[0][1])]).buffer(0).union(mouth).buffer(0)
