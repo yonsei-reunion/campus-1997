@@ -29,6 +29,7 @@ import med97
 import music97
 import eng97
 import town97
+import east97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -1383,6 +1384,13 @@ FIELD_PATCH = Polygon([(-400.0, -90.0), (-348.0, -90.0), (-332.0, -100.0), (-322
                        (-540.0, -178.0), (-540.0, -165.0), (-518.0, -152.0), (-482.0, -159.0), (-422.7, -107.9)])
 FIELD_GONE = (1494935780, 1441572669)
 GONE_1997.update({k_: None for k_ in FIELD_GONE})
+# The top of the hill east of 노천극장 (reference/고증/3.14 「동쪽 언덕의 봉우리」): OSM's round outline there
+# (man_made=observatory, no name: the generic houses' loop below takes it for a house of four storeys) is not a hall in
+# the 1997 photos, which have a round level thing 16 m across at the ground's height there (frames from both flight
+# lines put it at one place on the hilltop's own plane) and the ridge path running up to it.  It goes after the random
+# planting (GONE_1997, without a site of its own: HILL_GONE), its outline left as a paved round floor
+HILL_GONE = (1444457428,)
+GONE_1997.update({k_: None for k_ in HILL_GONE})
 # The football pitch painted on it (the 1997-07-28 aerial photos' original scans, frames 26/16 and 26/15, reference/
 # 고증/4.12): in the pitch's own frame (v along its long axis, 37.7 deg, u to its right, from (-395, -189.5)) the goal
 # lines at v -52.5 and 52.15, the halfway line at v -1.6 (0.5 deg off square), the penalty areas 16.9 m deep, the
@@ -6514,6 +6522,21 @@ for b_ in buildings:
         _mh_d = _mh_a if b_['id'] == MUSIC_A else _mh_b
         b_['base'], b_['top_ground'] = round(b_['base'] + _mh_d, 2), round(b_['top_ground'] + _mh_d, 2)
 print('음악관 두 동:', MUSIC97_HALLS)
+# 청송대 숲 · 동쪽 언덕 (tools/east97.py, reference/고증/3.23_청송대.md; #189): the wood's floor east of the east road and
+# the knoll west of it on the 1:5000 survey's surface (the surface model had the canopy in it, 8 - 12 m over the
+# ground in the wood, and the knolls cut 4 - 6 m), nudged to the 1997 photos where they see the ground; the halls in
+# the wood go up or down with the ground at their feet; the top of the hill east of 노천극장.  Late, here: the planting
+# has read the ground as it was (the trees, walks and benches stand where they stood, on the new ground)
+_ea_halls = [(b_['id'], Polygon(b_['footprint']).buffer(0)) for b_ in buildings if b_['id'] not in GONE_1997] + \
+    [(pid_, p_.buffer(0)) for pid_, _, _, _, p_ in OLD_HALLS]
+_ea_took, _ea_lifts, EAST97_GRADE = east97.grade(Hn, X, Y, FIXED, _ea_halls, [music97.REGION, med97.DENT_LOT], harmonic_fill,
+                                                TR_E, TR_EN)
+FIXED[_ea_took] = True
+for b_ in buildings:
+    if b_['id'] in _ea_lifts:
+        b_['base'], b_['top_ground'] = round(b_['base'] + _ea_lifts[b_['id']], 2), round(b_['top_ground'] + _ea_lifts[b_['id']], 2)
+print('청송대 숲 · 동쪽 언덕:', EAST97_GRADE)
+tr_tilt_of(TR_E, TR_EN, TR_EO, TR_EK0, 'east (east97)')
 # ---------------------------------------------------------------------------
 # 1997년 땅 (#189 가운데: 인문관 · 대강당 · 한경길 · 용재관), after the planting and everything else that read the ground
 # as it was.  Each place: a zone of grid nodes to one level, the ring round it eased by harmonic_fill into the ground as
@@ -6726,8 +6749,9 @@ Hf.tofile(os.path.join(ROOT, 'web/public/data/terrain_far.bin'))
 buildings[:] = [b for b in buildings if not any(b is q for q in YONGJAE_SCATTER)] + YONGJAE_BUILDINGS   # (above)
 # GONE_1997 / LATE_FOOTPRINT_1997 (with the hall table above): the planting is done
 GONE_SITES = [(GONE_1997[b['id']], Polygon(b['footprint'])) for b in buildings if b['id'] in GONE_1997
-              and b['id'] not in FIELD_GONE]     # (대운동장 북쪽 끝의 둘: no site, cleared with the field below)
+              and b['id'] not in FIELD_GONE + HILL_GONE]     # (대운동장 북쪽 끝의 둘: no site, cleared with the field below)
 FIELD_GONE_SITES = [Polygon(b['footprint']) for b in buildings if b['id'] in FIELD_GONE]
+HILL_GONE_SITES = [Polygon(b['footprint']) for b in buildings if b['id'] in HILL_GONE]
 # (blender/build.py draws each hall's colours and roof clutter from one stream in this list's order: it still draws
 # for these at their old place, `at`, so that the halls after them keep their looks)
 RND_GHOSTS = [{**{k_: v_ for k_, v_ in b.items() if k_ != 'entry'}, 'at': i_ - j_}
@@ -7116,7 +7140,7 @@ def decal_spots():
 
     steps = [LineString(p_['pts']) for p_ in paths_out if p_['kind'] == 'steps' and len(p_['pts']) > 1]
     city = [Polygon(b['footprint']).buffer(25) for b in buildings if b['style'] == 'city']
-    city += [p_.buffer(25) for p_ in FIELD_GONE_SITES]      # (the two left out by 대운동장: the draws stay as they were)
+    city += [p_.buffer(25) for p_ in FIELD_GONE_SITES + HILL_GONE_SITES]      # (the two left out by 대운동장 and the one on the hilltop: the draws stay as they were)
     # (신촌로 and its bus lanes along the south are the city's road, not the campus's)
     trunk = [LineString(p_['pts']).buffer(p_['w'] / 2 + 3.0) for p_ in paths_out
              if p_['kind'] in ('primary', 'primary_link', 'secondary', 'busway') and len(p_['pts']) > 1]
@@ -8897,6 +8921,7 @@ _ypaint([YJ_EAST_LAWN], _yg)                   # (용재관 북동쪽: the 2015 
 _ypaint([BK_ISLAND], _yg)                   # (백양관 북쪽 주차장 앞 섬: lawn over the strip's place)
 _ypaint([ANNEX_ISLAND], _yg)                 # (학생회관 별관 앞 섬: lawn, the later walks across it cleared)
 _ypaint([p_.buffer(5.5) for p_ in FIELD_GONE_SITES], _yg)    # (대운동장 북쪽 끝: the two later halls' aprons out)
+_ypaint([p_.buffer(5.5) for p_ in HILL_GONE_SITES], _yg)    # (노천극장 동쪽 봉우리: the house's apron out; its round floor, _ga below)
 _ypaint([GONGWON_SITE.buffer(0.5), GW_LOT, GW_ROW, GW_YARD], _yg)    # (공학원 공사장: OSM's later roads and walks across it out)
 # (the aprons of the halls left out or moved since the planting was laid, GONE_LAWN · SITES_NEW_1997: lawn where no hall of
 # 1997 stands; 과학관's court paved to the bank's foot and under its flight)
@@ -9055,6 +9080,7 @@ assert not any(ENG1_HALL.buffer(0.3).contains(Point(c_[1], c_[2])) for c_ in car
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'
 _ypaint([p_ for n_, p_ in GONE_SITES if not n_ and not any(p_.equals(q_) for q_ in _gone_lawn)], _ga)
+_ypaint(HILL_GONE_SITES, _ga)                # (노천극장 동쪽 봉우리의 둥근 바닥)
 _li = LIB97['island']
 _ypaint([lf_rect(LIB97['plaza'][0], _li[0], LIB97['depth'], _l9st + 0.4), lf_rect(_li[1], LIB97['plaza'][1], LIB97['depth'], _l9st + 0.4),
          lf_rect(_li[0] - 0.1, _li[1] + 0.1, LIB97['depth'], _li[2]), lf_rect(_li[0] - 0.1, _li[1] + 0.1, _li[3], _l9st + 0.4),
