@@ -211,6 +211,8 @@ FLOOR_H_AT = {222843398: 3.9}        # 과학관's 3.9 m storeys (blender/generi
 FLOOR_H_AT[ANNEX_1997['id']] = ANNEX_1997['floor']   # (학생회관 별관: its roof 6.7 m over the yard in the 1997 scans)
 FLOOR_H_AT.update({324328481: 3.55, 990036: 3.3})    # (심장혈관병원, 특별병동: their roofs in the 1997 aerial photos, above)
 FLOOR_H_AT[UTS] = 3.4                                # (연합신학대학원: its eaves 6.7 m over the ground in the aerial photos)
+# (빌링슬리관: its cornice 11.7 m over the lawn, three storeys: BILL)
+FLOOR_H_AT[245623193] = 3.9
 # 과학관 as the 1997-07-28 vertical aerial photos have it (reference/고증/3.10; frames 26/15 and 26/16, from the north
 # and the south, each roof read on its own plane where the two agree; the 2008 · 2010 skyview shows the same plan).
 # OSM's outline is one mass round the yard north-west of the hall and 3 m short on the east wing's north side.  The
@@ -6452,6 +6454,38 @@ buildings += LATE_HALLS
 UTS_FP = Polygon(LATE_FOOTPRINT_1997[UTS])
 UTS_DOOR = tuple((np.array(LATE_FOOTPRINT_1997[UTS][1]) + np.array(LATE_FOOTPRINT_1997[UTS][2])) / 2)
 ENTRY_AT[UTS] = (UTS_DOOR, {})
+# 빌링슬리관 as the 1997-07-28 scans have it (reference/고증/3.12 「평면과 지붕」; four frames from both flight lines,
+# each edge read where two frames from opposite sides agree): not OSM's 45 x 19 m box but two end pavilions 8.6 m
+# wide and 14.5 m deep, their fronts 2.3 m behind OSM's line, a middle block between them whose front stands 2.55 m
+# further back (4.85 m behind OSM's line) and 8.85 m deep, and a rear wing north of it, off the middle; the cornice
+# 11.7 m over the lawn all round (three stone storeys: FLOOR_H_AT), the pavilions' gabled roofs ridged north - south
+# 4.0 m over it, the middle block's mansard and the rear wing's ridge 3.5 m (blender/generic.py billingsley_roof).
+# The frame: o OSM's south-west corner, u east along its south face, v north.  The planting ran with OSM's outline;
+# the hall goes in after it (LATE_FOOTPRINT_1997), the trees in what it gained step aside (SITES_NEW_1997), its floor
+# where it was (the level lawn), its door in the middle of the middle block's front on the walk's axis (u 22.6),
+# a paved landing out to the walk's end
+BILL = 245623193
+_blo, _blt = np.array(BILL_FRONT[0]), np.array(BILL_FRONT[1]) - np.array(BILL_FRONT[0])
+_blt = _blt / np.linalg.norm(_blt)
+_bln = np.array([-_blt[1], _blt[0]])
+
+
+def bill_xy(u_, v_):
+    return tuple(round(float(c_), 2) for c_ in _blo + _blt * u_ + _bln * v_)
+
+
+BILL_UV = dict(pav=((-1.4, 7.2, 2.3, 16.8), (38.2, 47.0, 2.3, 16.8)), mid=(7.2, 38.2, 4.85, 13.7),
+               rear=(19.6, 29.8, 13.7, 20.1), door=22.6, landing=(21.0, 25.0, -0.2, 4.85),
+               cornice=11.7, pav_rise=4.0, rear_rise=3.5, mansard=(1.3, 0.8, 2.0, 3.5))
+LATE_FOOTPRINT_1997[BILL] = [bill_xy(u_, v_) for u_, v_ in (
+    (-1.4, 2.3), (7.2, 2.3), (7.2, 4.85), (38.2, 4.85), (38.2, 2.3), (47.0, 2.3), (47.0, 16.8), (38.2, 16.8),
+    (38.2, 13.7), (29.8, 13.7), (29.8, 20.1), (19.6, 20.1), (19.6, 13.7), (7.2, 13.7), (7.2, 16.8), (-1.4, 16.8))]
+LATE_NO_SIMPLIFY.add(BILL)
+LATE_LEVELS[BILL] = 3
+SITES_NEW_1997.add(BILL)
+BASE_1997[BILL] = next(b_['base'] for b_ in buildings if b_['id'] == BILL)
+ENTRY_AT[BILL] = (bill_xy(BILL_UV['door'], BILL_UV['mid'][2]), dict(floor=0))
+BILL_POLY = Polygon(LATE_FOOTPRINT_1997[BILL])
 LATE_SITES = []
 LATE_SITES_RNG = []        # (as the trees were first cleared: MED_SITES_RNG)
 for b in buildings:
@@ -6464,6 +6498,12 @@ for b in buildings:
              footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]])
     if b['id'] in LATE_LEVELS:
         b.update(levels=LATE_LEVELS[b['id']], height=round(LATE_LEVELS[b['id']] * FLOOR_H[b['style']] + 1.2, 2))
+    if b['id'] == BILL:                # (blender/generic.py billingsley_roof: the blocks and their roofs)
+        b['height'] = round(BILL_UV['cornice'] + BILL_UV['pav_rise'], 2)
+        b['roof'] = dict(o=[float(v_) for v_ in _blo], t=[round(float(v_), 5) for v_ in _blt], pav=BILL_UV['pav'],
+                         mid=BILL_UV['mid'], rear=(BILL_UV['rear'][0], BILL_UV['rear'][1],
+                                                   (BILL_UV['mid'][2] + BILL_UV['mid'][3]) / 2, BILL_UV['rear'][3]),
+                         pav_rise=BILL_UV['pav_rise'], rear_rise=BILL_UV['rear_rise'], mansard=BILL_UV['mansard'])
     if b['id'] == 222843398:           # (blender/generic.py: the part a storey higher, the roof's domes and penthouse)
         b['wing'] = [list(sci_xy(u_, v_)) for u_, v_ in SCI['wing']]
         b['roof'] = dict(o=[float(v_) for v_ in SCI['o']], t=[round(float(v_), 5) for v_ in SCI['t']],
@@ -8389,7 +8429,11 @@ _ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0
 # the gable onto the yard (blender/landmarks.py gyoyuk_north_flight): paved round its foot and the low wall past it)
 _bkc = _bk_a + BK_T * 45.66
 _gyc, _gyt, _gyn = np.array([30.29, 348.78]), np.array([-0.969, 0.248]), np.array([0.248, 0.969])
-_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES]
+# (빌링슬리관 stands on its lawn, no apron: the scans have the lawn and the planting up to its walls; only the landing
+# before its door, out to the walk's end, BILL_UV)
+_bll = BILL_UV['landing']
+_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES if not BILL_POLY.buffer(0.5).contains(p_)]
+        + [Polygon([bill_xy(u_, v_) for u_, v_ in ((_bll[0], _bll[2]), (_bll[1], _bll[2]), (_bll[1], _bll[3]), (_bll[0], _bll[3]))])]
         + [Polygon([tuple(_bkc + BK_T * u + BK_N * v) for u, v in ((-4.5, 0.0), (4.5, 0.0), (4.5, 7.1), (-4.5, 7.1))])]
         + [Polygon([tuple(_gyc + _gyt * u + _gyn * v) for u, v in ((-2.6, 8.4), (2.6, 8.4), (2.6, 12.6), (-2.6, 12.6))])], _gp)
 # 백주년기념관 앞 테라스 (CENT_TERRACE): the apron paved out to the sidewalk, and under the flights, landings and the

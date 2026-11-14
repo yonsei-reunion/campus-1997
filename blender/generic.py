@@ -574,6 +574,59 @@ def observatory(mb, b, zt, st):
     mb.cylinder((q.x, q.y), 1.75, zt - b['fh_up'], zt - b['fh_up'] + 2.4, 'concrete', seg=16, mat_cap='roof_flat')
 
 
+def mansard(mb, cx, cy, L, W, ang, zt, st, a, hb, hw, hr, mat='roof_slate'):
+    """A mansard storey over the L x W rectangle at (cx, cy) (L along ang): from the eaves zt a slate band rising hb
+    over a m inwards, a wall of ribbon windows from there up to zt + hw, and a low hipped roof over it to zt + hr"""
+    c, s = math.cos(ang), math.sin(ang)
+
+    def P(x, y, z):
+        return (cx + x * c - y * s, cy + x * s + y * c, z)
+    X0, Y0, X1, Y1 = L / 2, W / 2, L / 2 - a, W / 2 - a
+    z1, z2 = zt + hb, zt + hw
+    for sx, sy, ex, ey in ((-1, -1, 1, -1), (1, -1, 1, 1), (1, 1, -1, 1), (-1, 1, -1, -1)):      # the band, then the wall
+        mb.face([P(sx * X0, sy * Y0, zt), P(ex * X0, ey * Y0, zt), P(ex * X1, ey * Y1, z1), P(sx * X1, sy * Y1, z1)], mat)
+        pa, pb = Vector((sx * X1, sy * Y1)), Vector((ex * X1, ey * Y1))
+        if sx == ex:                                  # (the ends, against the pavilions: plain)
+            mb.quad(P(*pa, z1), P(*pb, z1), P(*pb, z2), P(*pa, z2), st['wall'])
+            continue
+        g0, g1 = z1 + 0.2, z2 - 0.2                   # the ribbon: glass between thin dark mullions a metre apart
+        mb.quad(P(*pa, z1), P(*pb, z1), P(*pb, g0), P(*pa, g0), st['wall'])
+        mb.quad(P(*pa, g1), P(*pb, g1), P(*pb, z2), P(*pa, z2), st['wall'])
+        mb.quad(P(*pa, g0), P(*pb, g0), P(*pb, g1), P(*pa, g1), st['glass'])
+        t = (pb - pa).normalized()
+        o = Vector((t.y, -t.x)) * 0.03                # (outwards, for the CCW ring)
+        Lw = (pb - pa).length
+        for k in range(1, int(Lw / 1.0)):
+            q = pa + t * (Lw * k / int(Lw / 1.0)) + o
+            mb.quad(P(*(q - t * 0.04), g0), P(*(q + t * 0.04), g0), P(*(q + t * 0.04), g1), P(*(q - t * 0.04), g1), st['frame'])
+    hip_roof(mb, cx, cy, 2 * X1, 2 * Y1, ang, z2, mat, pitch=(hr - hw) / Y1, over=0.25, fascia='frame_dark')
+
+
+def billingsley_roof(mb, b, zt, st):
+    """빌링슬리관's roofs over its three stone storeys (tools/build_campus.py BILL, reference/고증/3.12 「평면과 지붕」;
+    the 1997-07-28 scans, 0.13 m a pixel, from both flight lines).  The hall is three blocks, not OSM's box: two end
+    pavilions standing 2.5 m out from the middle block's front, each under a gabled slate roof ridged north - south
+    (its stone gables coped, the ridge 4.0 m over the eaves); the middle block under a mansard (reference/학교연혁_
+    빌링슬리관_옛생활과학관.jpg: a slate band over the cornice, a ribbon of windows, a low hipped roof, 3.5 m over the
+    eaves in all); a rear wing north of it, gabled at its north end, its ridge running into the middle roof's."""
+    r = b['roof']
+    o, t = Vector(r['o']), Vector(r['t'])
+    n = Vector((-t.y, t.x))
+    P2 = lambda u, v: o + t * u + n * v
+    au, av = math.atan2(t.y, t.x), math.atan2(n.y, n.x)
+    for u0, u1, v0, v1 in r['pav']:
+        c = P2((u0 + u1) / 2, (v0 + v1) / 2)
+        hip_roof(mb, c.x, c.y, v1 - v0, u1 - u0, av, zt, 'roof_slate', pitch=r['pav_rise'] / ((u1 - u0) / 2), over=0.3,
+                 fascia='stone_trim', gable=st['wall'])
+    u0, u1, v0, v1 = r['rear']
+    c = P2((u0 + u1) / 2, (v0 + v1) / 2)
+    hip_roof(mb, c.x, c.y, v1 - v0, u1 - u0, av, zt, 'roof_slate', pitch=r['rear_rise'] / ((u1 - u0) / 2), over=0.3,
+             fascia='stone_trim', gable=st['wall'])
+    u0, u1, v0, v1 = r['mid']
+    c = P2((u0 + u1) / 2, (v0 + v1) / 2)
+    mansard(mb, c.x, c.y, u1 - u0, v1 - v0, au, zt, st, *r['mansard'])
+
+
 def _science_wing(b, poly):
     """과학관's east wing and link stand a storey over the south-west wing (reference/고증/3.10: seven rows of windows
     at the east end in the 1994 aerial photo and the 2008 · 2010 roadview, six on the south-west wing's south face;
@@ -601,6 +654,7 @@ def _science_wing(b, poly):
 
 
 ROOF_EXTRAS = {222843398: observatory}
+PLAN_ROOF = {245623193: billingsley_roof}
 # 과학관: cream square glazed tiles, about ten to a window bay (the 1996 album photos reference/과학관_계단_1996_*.jpg;
 # the 2008 roadview, 200 mm tiles); 음악관 신관: white square tiles with grey joints (기악과's 1996 album photo at its
 # door; reference/학교연혁_음악관.jpg still shows them); 구관: smooth white panels (the 2008 roadview, 2381382 - 2381391)
@@ -613,6 +667,9 @@ FRAME = {429077789: 'frame_blue', 429077790: 'frame_blue'}      # (and blue wind
 # aerial photo's camera had given 4.06 - 4.13 m a row), windows 1.8 m high (0.44 of the storey in the 2008 roadview)
 FH_AT = {222843398: 3.9}
 SILL_AT = {222843398: dict(sill=1.0, head=1.3)}
+# 빌링슬리관: three stone storeys of 3.9 m under its roofs (the 1997 scans: the cornice 11.7 m over the lawn, the same
+# all round)
+FH_AT[245623193] = 3.9
 WING_UP = {222843398: _science_wing}
 # 학생회관 별관 (1997 photo reference/1997_학생회관.jpg; tools/build_campus.py ANNEX_1997): two 3.1 m storeys of pale
 # grey concrete (the roof 6.7 m over the yard in the 1997-07-28 aerial photos' scans, reference/고증/4.5), each a band of broad lights between plain piers (the shops and the bank of the 2008 roadview below,
@@ -654,7 +711,8 @@ def build_generic(b, rnd):
         st['frame'] = FRAME[b['id']]
     pitched = style in ('stone', 'house', 'stone_pale')
     hip = b.get('hip')                 # (a hipped or gabled roof on a hall of another style: 무악학사, 농업개발원)
-    if pitched or style == 'gym':
+    plan = b['id'] in PLAN_ROOF and 'roof' in b         # (its own outline and roofs: not the outline's box)
+    if (pitched or style == 'gym') and not plan:
         cx, cy, L, W, ang = min_area_rect(poly)
         c, s = math.cos(ang), math.sin(ang)
         poly = [(cx + x * c - y * s, cy + x * s + y * c) for x, y in ((-L / 2, -W / 2), (L / 2, -W / 2), (L / 2, W / 2), (-L / 2, W / 2))]
@@ -678,7 +736,9 @@ def build_generic(b, rnd):
         for a_, b_ in wing[2]:          # the wing's storey over the lower roof
             wall_edge(mb, a_, b_, zt, zt + fh + 0.9, 1, fh, st, rnd, found=False)
         parapet_and_roof(mb, wing[1], zt + fh, st, rnd, clutter=False)
-    if pitched and b['id'] in ROOF_AT:
+    if plan:
+        PLAN_ROOF[b['id']](mb, b, zt, st)
+    elif pitched and b['id'] in ROOF_AT:
         ra = ROOF_AT[b['id']]
         hip_roof(mb, cx, cy, L, W, ang, zt, ra['mat'], pitch=ra['pitch'], gable=st['wall'] if ra.get('gable') else None)
     elif pitched:
