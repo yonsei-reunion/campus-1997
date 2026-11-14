@@ -550,7 +550,7 @@ def bank():
 def bridge():
     """The two decks over 연세로 (the 1995 photo: a concrete deck for each track on abutments faced with concrete, a row of
     piers in the middle of the road), and the abutments: the bank's own section as a wall each side of the opening.
-    (The rails 10.4 m over 성산로 before the gate, tools/gate_town.py RAIL97: 9.15 m clear over 연세로; the 1996 photo
+    (The rails 10.5 m over 성산로 before the gate, tools/gate_town.py RAIL97: 9.15 m clear over 연세로; the 1996 photo
     51979 has the pier 170 px where the opening's 30 m would be 550, some 9.3 m.)"""
     R, B = T['rail'], T['bridge']
     S = R['sections']

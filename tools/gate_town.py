@@ -385,7 +385,7 @@ def bank_fix(pl, Hn, sample):
     P = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
     dr = shapely.distance(P, rail.ls).reshape(X.shape)
     # (not past the line's ends: the nearest section's footprint run on beyond them dug a trench one node wide into the
-    # ground there, 17 m deep at the west end once the bed lay on RAIL97 under 연희로's bank)
+    # ground there, 17 m deep at the west end once the bed lay on RAIL97 under the bank that crosses the line there)
     sr = shapely.line_locate_point(rail.ls, P).reshape(X.shape)
     near = np.argwhere((dr < 34.0) & (sr > 0.5) & (sr < rail.cum[-1] - 0.5))
     arr = np.array([[r[0], r[1], r[4], r[5], r[6], r[8], r[9]] for r in secs], float)
