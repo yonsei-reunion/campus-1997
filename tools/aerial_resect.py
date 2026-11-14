@@ -1,16 +1,17 @@
 """여섯 장(tools/aerial97_cam.json) 밖의 항공사진 한 장의 카메라를, 여섯 장의 카메라를 고정하고 이음점으로 맞춘다(후방 교회).
 
-신촌 로터리(reference/고증/4.10_신촌_로터리.md 「1997년 7월 항공사진」)는 원본 스캔 여섯 장 밖이라, 같은 비행의 27/18 과
-1998년 2차 26/17 의 미리보기(0.54 m/화소, 국토정보맵에서 로그인 없이 받음: assets_src/aerial_1997/README.md)를 이것으로 맞췄다.
-사진은 저장소에 넣지 않는다(1.1.1 「이용 조건」). 결과 카메라는 tools/aerial_resect.json.
+신촌 로터리(reference/고증/4.10_신촌_로터리.md 「1997년 7월 항공사진」)는 원본 스캔 여섯 장 밖이라, 같은 비행의 27/18 · 27/19
+(원본 스캔도 받음)과 1998년 2차 26/17 의 미리보기(0.54 m/화소, 국토정보맵에서 로그인 없이 받음: assets_src/aerial_1997/README.md)를
+이것으로 맞췄다. 27/19 는 먼저 맞춘 27/18 에도 잇는다. 사진은 저장소에 넣지 않는다(1.1.1 「이용 조건」). 결과 카메라는 tools/aerial_resect.json.
 
   .venv/bin/python tools/aerial_resect.py io <이름>       지표 여덟 개 -> 화소를 사진 좌표(mm)로 바꾸는 아핀
-  PYTHONPATH=<opencv> .venv/bin/python tools/aerial_resect.py ties <이름>   이음점(SIFT, 여섯 장 가운데 KNOWN 과)
+  PYTHONPATH=<opencv> .venv/bin/python tools/aerial_resect.py ties <이름>   이음점(SIFT, PHOTOS 의 known 과: 여섯 장 · 먼저 맞춘 것)
   .venv/bin/python tools/aerial_resect.py fit <이름>      그 사진의 자리 · 기울기 여섯 값(다른 카메라는 고정)
+  .venv/bin/python tools/aerial_resect.py check <이름>    원본 스캔이 미리보기 × 4.25 + 1.625 인지 다섯 곳에서 견줌
 
 다른 도구에서: `import aerial_resect; aerial_resect.register()` 하면 aerial97.FRAMES 에 KEY 의 프레임이 더해져
-aerial97.to_px · sample · ortho 를 그대로 쓴다(화소 값은 미리보기에서). 이음점은 tools/aerial_resect_<이름>.ties.json (git 밖에 두어도 됨).
-"""
+aerial97.to_px · sample · ortho 를 그대로 쓴다(1997년 것은 원본 스캔에서, 1998년 것은 미리보기에서).
+이음점은 tools/aerial_resect_<이름>.ties.json (AERIAL_RESECT_TIES 로 다른 폴더에, git 밖에 두어도 됨)"""
 import json
 import math
 import os
@@ -29,7 +30,20 @@ PHOTOS = {
                        known=['26/16', '27/17', '27/16', '26/15'], key=(27, 18)),
     '1998_26_17': dict(img='assets_src/aerial_other/ngii_199810A0208_c26_n17.jpg', top=True, xy=(-250.0, -560.0),
                        known=['26/15', '26/16', '27/16', '27/17'], key=(98, 2617)),
+    # (the next one south: the rotary near its nadir; tied to 27/18 fitted first, and to the six where they reach)
+    '1997_27_19': dict(img='assets_src/aerial_1997/ngii_1997_199705A0301_c27_n19.jpg', top=True, xy=(380.0, -1010.0),
+                       known=['1997_27_18', '27/17', '26/16'], key=(27, 19)),
 }
+
+
+def _known(f):
+    """a frame to tie to: one of the six ('26/16') or a photo fitted here before ('1997_27_18'):
+    (camera, pixel -> mm affine, image file, data strip at the top)"""
+    if f in PHOTOS:
+        c = json.load(open(OUT))[f]
+        return np.array(c['cam']), np.array(c['M']), _img(f), PHOTOS[f]['top']
+    c = json.load(open(F.CAMJ))['frames'][f]
+    return np.array(c['cam']), np.array(c['M']), F.path(f), f.startswith('27')
 
 
 def _data(name):
@@ -86,7 +100,7 @@ def cmd_ties(name):
     import cv2
     ph = PHOTOS[name]
     sift = cv2.SIFT_create(nfeatures=40000, contrastThreshold=0.03)
-    imgs = {f: (F.path(f), f.startswith('27')) for f in ph['known']}
+    imgs = {f: (_known(f)[2], _known(f)[3]) for f in ph['known']}
     imgs['new'] = (_img(name), ph['top'])
     kps, dss = {}, {}
     for f, (p, top) in imgs.items():
@@ -135,7 +149,6 @@ def cmd_fit(name):
     ph = PHOTOS[name]
     _, d = _data(name)
     Mn = F.fid_affine(d['fid'])[0]
-    C = json.load(open(F.CAMJ))['frames']
     names = list(ph['known']) + ['new']
     ci, pi, ob, n = [], [], [], 0
     for t in d['ties']:
@@ -144,11 +157,11 @@ def cmd_fit(name):
         for f, p in t.items():
             ci.append(names.index(f))
             pi.append(n)
-            ob.append(F.px2mm(Mn if f == 'new' else np.array(C[f]['M']), p)[0])
+            ob.append(F.px2mm(Mn if f == 'new' else _known(f)[1], p)[0])
         n += 1
     ci, pi, ob = np.array(ci), np.array(pi), np.array(ob)
     kn = len(names) - 1
-    cams0 = np.array([C[f]['cam'] for f in ph['known']] + [[*ph['xy'], 970.0, 0.0, 0.0, 0.0]])
+    cams0 = np.array([_known(f)[0] for f in ph['known']] + [[*ph['xy'], 970.0, 0.0, 0.0, 0.0]])
     rob = lambda r: r / np.sqrt(1 + r * r / 9.0)
 
     def mk(ci_, pi_, ob_, n_):
@@ -199,7 +212,11 @@ def register():
         if not os.path.exists(img):
             continue
         A.FRAMES[ph['key']] = dict(M=np.array(c['M']), cam=np.array(c['cam']))
-        A._SC[ph['key']] = None                          # (원본 스캔 없음: 미리보기에서 읽음)
+        A._R.pop(ph['key'], None)
+        # (the 1997 ones' scans read as aerial97 reads the six's: assets_src/aerial_1997/ngii_1997_..._c27_n18.tif,
+        # cached as cache/c27_n18.npy; the 1998 one has its preview only)
+        if not (name.startswith('1997_') and os.path.exists(A.scan_path(ph['key']))):
+            A._SC[ph['key']] = None
         extra[ph['key']], top[ph['key']] = img, ph['top']
         got[name] = ph['key']
     A.path = lambda fr: extra.get(fr) or path0(fr)
@@ -213,5 +230,35 @@ def register():
     return got
 
 
+def cmd_check(name):
+    """the scan against the preview at five places (scan pixel = preview pixel x 4.25 + 1.625?): the offset of the
+    best match of each scan window shrunk 4.25 times, in preview pixels"""
+    import aerial97 as A
+    from scipy import ndimage as ndi
+    register()
+    key = PHOTOS[name]['key']
+    hi = A.scan(key)
+    if hi is None:
+        print('no scan for', name)
+        return
+    pv = A.image(key)
+    print('scan', hi.shape, 'preview', pv.shape, 'preview x 4.25', (pv.shape[0] * 4.25, pv.shape[1] * 4.25))
+    for cx, cy in ((700, 900), (1900, 900), (1320, 1500), (700, 2200), (1900, 2200)):
+        n = 40
+        sx, sy = cx * 4.25 + 1.625, cy * 4.25 + 1.625
+        win = np.asarray(hi[int(sy - n * 4.25):int(sy + n * 4.25), int(sx - n * 4.25):int(sx + n * 4.25)], np.float32)
+        small = ndi.zoom(ndi.uniform_filter(win, 4), 1 / 4.25, order=1)
+        best = None
+        for dy in np.arange(-3, 3.01, 0.25):
+            for dx in np.arange(-3, 3.01, 0.25):
+                ys, xs = np.mgrid[0:small.shape[0], 0:small.shape[1]]
+                ref = ndi.map_coordinates(pv, [cy - n + ys + dy, cx - n + xs + dx], order=1)
+                a, b = small - small.mean(), ref - ref.mean()
+                r = float((a * b).sum() / np.sqrt((a * a).sum() * (b * b).sum()))
+                if best is None or r > best[0]:
+                    best = (r, dx, dy)
+        print('  preview (%d, %d): best match offset (%+.2f, %+.2f) px, correlation %.3f' % (cx, cy, best[1], best[2], best[0]))
+
+
 if __name__ == '__main__':
-    dict(io=cmd_io, ties=cmd_ties, fit=cmd_fit)[sys.argv[1]](sys.argv[2])
+    dict(io=cmd_io, ties=cmd_ties, fit=cmd_fit, check=cmd_check)[sys.argv[1]](sys.argv[2])
