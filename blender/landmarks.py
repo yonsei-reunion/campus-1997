@@ -5004,6 +5004,33 @@ def field_pitch():
     return out
 
 
+def med_west():
+    """의료원 서쪽 (tools/medwest97.py: campus.json `med_west`; reference/고증/3.1.2 「외래진료소 서쪽」): 외래진료소's raised
+    forecourt with its two ramps and the walk beside one, 안 · 이비인후과병원's terrace, its flight and the drive along
+    the brick wall, as the 1997 scans have them.  The surfaces in the ground's own material (the game's map paints
+    them: asphalt, paving), walked on; their walls down to what lies beside each, the parapets and the flight's steps
+    as build_campus cut them ([material, points]); the flight's slope walked on only."""
+    G = CAMPUS.get('med_west')
+    if not G:
+        return []
+    tk, mb = MeshBuilder('lm_med_west_top'), MeshBuilder('lm_med_west')
+    for f in G['top']['f']:
+        q = [tuple(G['top']['v'][i]) for i in f]
+        tk.face(q, 'terrain_drape')
+        WALK_FACES.append(q)
+    for q in G['walk']:
+        WALK_FACES.append([tuple(c) for c in q])
+    for mat, q in G['quads']:
+        pts = []
+        for c in q:                                   # (a wall that runs out to nothing at one end: a triangle)
+            c = tuple(c)
+            if not pts or (c != pts[-1] and c != pts[0]):
+                pts.append(c)
+        if len(pts) >= 3:
+            mb.face(pts, mat)
+    return [tk, mb]
+
+
 def parking_lines():
     """The car parks' painted bays (tools/build_campus.py PARK_LOTS: campus.json `parking`, each lot's lines as
     [x0, y0, x1, y1] and its paint): a strip of the line's width cut every half metre and laid 3 cm over the ground the

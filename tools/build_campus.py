@@ -31,6 +31,7 @@ import eng97
 import town97
 import east97
 import kwangbok97
+import medwest97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -3227,7 +3228,8 @@ OLD_HALLS = [
     # - 의료원 종합관: the slab along 성산로 south-east of them, 83 x 19 m, its flat roof at 58.0 m: four rows of
     #   windows (3.75 m apart) over the car park north-west of it (41.5 m), a floor or two more down the slope to 성산로
     # - 특별병동: the slab 71 x 15 m, 5 - 9 m east and 2 m north of OSM's 어린이병원 (as Kakao's outline is)
-    (990030, '외래진료소', 'white', 3, med_rect(-129.0, -83.0, -26.4, 46.5)),
+    # (외래진료소: four storeys since tools/medwest97.py: its roof 45 - 46 m in the scans, its forecourt two storeys up)
+    (990030, '외래진료소', 'white', 4, med_rect(-129.0, -83.0, -26.4, 46.5)),
     (990031, '의과대학', 'white', 5, block_poly((140.5, -333.75), (0.705, 0.710), 59.0, 9.0)),
     (990032, '의료원 종합관', 'white', 5, med_rect(3.0, 86.0, -97.2, -78.4, -0.7)),
     (990033, '선우학사', 'white', 3, med_rect(73.8, 127.5, -17.1, 0.6, -0.5)),
@@ -3289,6 +3291,7 @@ LATE_FOOTPRINT_1997[990011] = list(block_poly((-156.25, -24.0), _lib_u, 17.0, 4.
 LATE_FOOTPRINT_1997[990012] = list(Point(-163.5, -24.0).buffer(7.5, 3).exterior.coords)[:-1]
 LATE_LEVELS = {990011: 2, 990012: 1}
 BASE_1997.update({990010: 43.2, 990014: 43.2, 990011: 37.0, 990012: 43.3, 990060: SCI['yard'], 990061: SCI['yard']})
+BASE_1997[990030] = medwest97.CLINIC_BASE      # (외래진료소: its third floor level with its raised forecourt)
 # (the outlines and halls put back since the planting was laid, as MED_SITES_RNG's None: no clearing was made for
 # them, so the trees by them step aside in their places in the list)
 SITES_NEW_1997 = {222843398, 990010, 990011, 990012, 990014, 990060, 990061, 990050, 990051, 990052}
@@ -5370,6 +5373,11 @@ ENTRY_AT[246156119] = ((-4.35, 348.6), {})
 # (논지당: its door where the slope before its terrace (NONJI_LEVEL) put it, at the low end of its front, for the
 # same reason)
 ENTRY_AT[413217834] = ((112.14, 251.72), {})
+# 안 · 이비인후과병원 · 외래진료소 (tools/medwest97.py, reference/고증/3.1.2 「외래진료소 서쪽」): the first's door where
+# it was, on the storey its entrance terrace reaches (34.55 m, two storeys over the car park west of it); the
+# second's at the head of the walk up to its raised forecourt, on its third floor
+ENTRY_AT[324328472] = ((5.41, -286.88), dict(floor=2))
+ENTRY_AT[990030] = (tuple(round(c_, 2) for c_ in medwest97.xy(*medwest97.CLINIC_DOOR)), dict(floor=2))
 # 경영학교실단 (백양관)'s front door (reference/고증.md 3.15): at the north end of the low front between the wings, where
 # the annex before the north wing begins, 44.9 m along its face to 백양로 (± 3 m; the door takes the two bays nearest,
 # 45.7 m).  The 2008 and 2010 roadview count thirteen risers in one straight flight, about 7 m wide over its side
@@ -6508,6 +6516,13 @@ _md_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] 
 _md_took, MED97_GRADE = med97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
 FIXED[_md_took] = True
 print('의료원 주차장 셋:', MED97_GRADE)
+# 의료원 서쪽 (tools/medwest97.py, reference/고증/3.1.2 「외래진료소 서쪽」; md): the ground round 외래진료소's raised
+# forecourt, its ramps and 안 · 이비인후과병원's terrace on the 1997 photos' heights (today's lawn ran one slope 2 - 5 m
+# under them); the raised surfaces themselves are meshes over it (out['med_west'] below).  Late, here: the planting
+# has read the ground as it was
+_mw_took, MEDWEST_GRADE = medwest97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
+FIXED[_mw_took] = True
+print('의료원 서쪽:', MEDWEST_GRADE)
 # 노천극장 · 음악관 뒤 언덕 · 동쪽 찻길 남쪽 (tools/music97.py, reference/고증/3.14 「땅의 높이」; #189, te): the ground
 # round the old bowl and on the hill north of 음악관 on the 1997 photos and the 2006 survey (6 - 23 m over the game's),
 # the bowl cut into it on the photos' floor (AMPH['arena_h'] set there), TR_E from 아펜젤러관's yard to the fork on
@@ -9168,6 +9183,18 @@ _ypaint(_md_asph, _ga)
 for g_ in _md_bank:                            # (_yg is the 0.5 m map's by now: the fine one's strokes only)
     SPLAT_OPS.append(('poly', '_yg', list(g_.exterior.coords), 255))
     SPLAT_OPS.append(('poly', '_ga', list(g_.exterior.coords), 0))
+# 의료원 서쪽 (tools/medwest97.py; md): today's walks, drives and roundabout west of 외래진료소 out of the game's map
+# (lawn: the fine map's strokes only, as the banks above), the 1997 entrance road, forecourt, ramps and drive
+# asphalt, their walks and the terrace paving; the raised surfaces, their walls, parapets and the flight (meshes)
+_mw_clear, _mw_asph, _mw_pave = medwest97.paint()
+for g_ in _mw_clear:
+    for l_, v_ in (('_yg', 255), ('_ga', 0), ('_gp', 0), ('_yp', 0)):
+        SPLAT_OPS.append(('poly', l_, list(g_.exterior.coords), v_))
+_ypaint(_mw_asph, _ga)
+_ypaint(_mw_pave, _gp)
+out['med_west'] = medwest97.build(Hn, NEAR_HALF, NEAR_STEP, [Polygon(b_['footprint']) for b_ in buildings
+                                                             if b_['id'] in (990030, 324328472)])
+print('의료원 서쪽: surfaces %d triangles, walls and parapets %d quads' % (len(out['med_west']['top']['f']), len(out['med_west']['quads'])))
 # 찻길 (TRAFFIC, its middle line TR_CENTRE above): the two lanes, the car park's round, the loop the game reads
 # (that was the cars' loop till the alumnus's word on it: the drive itself stays, levelled and paved; the cars take
 # the outer roads, TR_E and TR_W above)
@@ -9452,6 +9479,7 @@ for m_, k_ in _rd_marks:
         _rd_run(TR_E, TR_EN, k_ + 2, len(TR_E) - 2, -2.95, 'yellow')
         _rd_run(TR_E, TR_EN, k_ + 2, len(TR_E) - 2, 2.95, 'yellow',
                 cut={j_ for j_ in range(len(TR_E)) if math.dist(TR_E[j_], _mo) < 7.0})
+RD_PAINT['lines'] += medwest97.zebra()        # (의료원 서쪽: the three crossings of the 1997 scans)
 out['road_paint'] = RD_PAINT
 print('찻길 paint: lines %d (yellow %.0f m, dashed %.0f m, white %.0f m), humps %d' % (
     len(RD_PAINT['lines']), *(sum(LineString(l_['pts']).length for l_ in RD_PAINT['lines'] if l_['kind'] == k_)
@@ -10446,6 +10474,9 @@ print('무악학사 · 북문: halls %d, houses %d, trees %d (and %d on the ridg
 SEOMUN_HOUSES = seomun.houses(ground_tn)
 buildings += SEOMUN_HOUSES
 buildings += MUAK_HALLS_LATE                 # (무악학사 · 북문: after every other hall, none changes its looks)
+# 의료원 서쪽 (tools/medwest97.py; md): 외래진료소's low front block and round-ended wing of the 1997 scans, at the
+# halls' end (blender/build.py draws each hall's looks in its order)
+buildings += medwest97.halls()
 out['seomun'] = seomun.gate(ground_tn)
 out['markers'].append(dict(name='서문', pos=[-362.0, -18.4], top=round(out['seomun']['z'] + 4.0, 1)))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
@@ -10453,6 +10484,16 @@ out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # edges in their places in the list
 print('의료원 주차장 셋: trees out of the yards',
       med97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
+# 의료원 서쪽 (tools/medwest97.py; md): the game's trees on what is paved or built again there go to the 1997 scans'
+# trees, each in its place in the list, the scans' trees still without one are planted at the trees' end; the shrubs,
+# props and decals on it go; today's walks out of the walks the game reads, the 1997 ones in
+_mw_moved, _mw_ns, _mw_np, _mw_left, _mw_new = medwest97.move_off(out['trees'], out['shrubs'], out['props'],
+                                                                  [Polygon(b_['footprint']) for b_ in out['buildings']])
+_mw_clr = unary_union(medwest97.paint()[0])
+_mw_nd = len(out['decals'])
+out['decals'] = [d_ for d_ in out['decals'] if not _mw_clr.contains(Point(d_[1], d_[2]))]
+print('의료원 서쪽: trees moved', _mw_moved, 'left on it', _mw_left, 'planted', len(_mw_new), 'shrubs -%d props -%d decals -%d' % (
+    _mw_ns, _mw_np, _mw_nd - len(out['decals'])), 'walks (cut, gone, new)', medwest97.walks(out['paths']))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))

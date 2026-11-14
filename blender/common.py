@@ -46,12 +46,65 @@ def _grid(x, y):
     return _T, fx, fy
 
 
+# Raised surfaces that are meshes over the ground (tools/medwest97.py: campus.json `med_west` plates, 외래진료소's
+# forecourt and ramps, 안 · 이비인후과병원's terrace): the ground on one is its surface, so that what a builder stands
+# on the ground there (a door's flight, a car park's lines, a wall's lowest windows) stands on it.  Each plate: its
+# outline and holes (campus metres), a table z over (us, vs) in the frame o, ang (bilinear, clamped)
+_PLATES = []
+_PB = None
+
+
+def _plates_load():
+    global _PB
+    G = CAMPUS.get('med_west')
+    if not G:
+        return
+    c, s = math.cos(math.radians(G['ang'])), math.sin(math.radians(G['ang']))
+    for p in G['plates']:
+        xs, ys = [q[0] for q in p['poly']], [q[1] for q in p['poly']]
+        _PLATES.append((min(xs), min(ys), max(xs), max(ys), p['poly'], p.get('holes', []), G['o'], c, s, p['us'], p['vs'], p['z']))
+    _PB = (min(p[0] for p in _PLATES), min(p[1] for p in _PLATES), max(p[2] for p in _PLATES), max(p[3] for p in _PLATES))
+
+
+def _in_ring(x, y, ring):
+    c = False
+    n = len(ring)
+    for k in range(n):
+        (x0, y0), (x1, y1) = ring[k], ring[(k + 1) % n]
+        if (y0 > y) != (y1 > y) and x < x0 + (x1 - x0) * (y - y0) / (y1 - y0):
+            c = not c
+    return c
+
+
+def plate_z(x, y):
+    """the highest raised surface at (x, y), or None"""
+    if _PB is None or x < _PB[0] or x > _PB[2] or y < _PB[1] or y > _PB[3]:
+        return None
+    best = None
+    for x0, y0, x1, y1, poly, holes, o, c, s, us, vs, Z in _PLATES:
+        if x < x0 or x > x1 or y < y0 or y > y1 or not _in_ring(x, y, poly) or any(_in_ring(x, y, h) for h in holes):
+            continue
+        dx, dy = x - o[0], y - o[1]
+        u, v = min(max(dx * c + dy * s, us[0]), us[-1]), min(max(-dx * s + dy * c, vs[0]), vs[-1])
+        i = max(k for k in range(len(us) - 1) if us[k] <= u)
+        j = max(k for k in range(len(vs) - 1) if vs[k] <= v)
+        a, b = (u - us[i]) / (us[i + 1] - us[i]), (v - vs[j]) / (vs[j + 1] - vs[j])
+        z = Z[j][i] * (1 - a) * (1 - b) + Z[j][i + 1] * a * (1 - b) + Z[j + 1][i] * (1 - a) * b + Z[j + 1][i + 1] * a * b
+        best = z if best is None else max(best, z)
+    return best
+
+
+_plates_load()
+
+
 def ground(x, y):
     _T, fx, fy = _grid(x, y)
     i, j = int(fx), int(fy)
     ax, ay = fx - i, fy - j
-    return float(_T[j, i] * (1 - ax) * (1 - ay) + _T[j, i + 1] * ax * (1 - ay)
-                 + _T[j + 1, i] * (1 - ax) * ay + _T[j + 1, i + 1] * ax * ay)
+    z = float(_T[j, i] * (1 - ax) * (1 - ay) + _T[j, i + 1] * ax * (1 - ay)
+              + _T[j + 1, i] * (1 - ax) * ay + _T[j + 1, i + 1] * ax * ay)
+    pz = plate_z(x, y)
+    return z if pz is None else max(z, pz)
 
 
 def ground_top(x, y):
@@ -63,7 +116,7 @@ def ground_top(x, y):
     ax, ay = fx - i, fy - j
     a, b, c, d = _T[j, i], _T[j, i + 1], _T[j + 1, i], _T[j + 1, i + 1]
     tri = a + (b - a) * ax + (c - a) * ay if ax + ay <= 1 else d + (c - d) * (1 - ax) + (b - d) * (1 - ay)
-    return max(float(tri), ground(x, y))
+    return max(float(tri), ground(x, y))            # (ground: a raised surface's too, above)
 
 
 # ----------------------------------------------------------------------------- scene

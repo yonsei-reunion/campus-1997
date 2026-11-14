@@ -72,7 +72,7 @@ if want('landmarks'):
             ob['bid'] = str(b['id'])
             objs.append(ob)
     for mb in landmarks.amphitheater() + landmarks.basketball_court() + landmarks.jokgu_court() + landmarks.field_pitch() + landmarks.fountain() + landmarks.tennis() + landmarks.gongwon_site() + landmarks.seomun() + landmarks.hangeul_tower() + \
-            landmarks.underwood_steps() + landmarks.aud_bank():
+            landmarks.underwood_steps() + landmarks.aud_bank() + landmarks.med_west():
         objs.append(mb.build())
     objs += [mb.build() for mb in landmarks.parking_lines()]      # (the car parks' painted bays)
     objs += [mb.build() for mb in landmarks.road_paint()]         # (the lines on the two drives off 백양로)
