@@ -118,17 +118,19 @@ SSR_W_DATUM = 0.45                 # (게임 기준: photos -> game, the 대운�
 # gate (-107.9, -434.6) 23.16 + pdz = 23.57 m, the photos 23.8; (-0.7, -433.7) 26.96, the photos 27.0 - 27.45.  The road
 # goes on them plus SSR_E_DATUM, 백양로's own over the photos north of s 150 (+0.1 .. +0.4 m) and 연세로's · the
 # rotary's (where the game's junction stands over its photos' reading), easing from the west part's over x -413 .. -300.
-# Past x SSR_E_END[0] the game's profile again, eased in by SSR_E_END[1] (the photos and the game meet at x 297; east of
-# it the photos stand 1.8 - 3.2 m over the game, where 의료원's bank and its north-east road meet the road: left as it is)
+# East of x 297 (2026-11-15, 고증 4.8.2 「x 300 동쪽」): the model fell away from there to the road's end (x 346: 26.8 m)
+# where the photos have it climbing on (31.0 m at the end, 33 stations of 9 - 30 readings, spread 0.02 - 0.2 m; and on
+# north-east past the game's end at 3.3 %: tools/town97.py carries that ground).  의료원's east lot and the road down
+# its north-east side (tools/med97.py) are on the photos' own datum, so the road's eases to it over SSR_E_DATUM_X.
 SSR_E97 = [(-395.0, 26.3), (-365.0, 26.2), (-345.0, 26.3), (-330.0, 26.45), (-310.0, 26.1), (-290.0, 25.95), (-270.0, 25.9),
            (-252.0, 25.8), (-232.0, 25.1), (-216.0, 24.55), (-200.0, 24.2), (-188.0, 23.85), (-172.0, 23.2), (-156.0, 22.75),
            (-140.0, 22.3), (-124.0, 21.9), (-108.0, 21.75), (-92.0, 21.6), (-76.0, 21.7), (-60.0, 22.05), (-44.0, 22.65),
            (-28.0, 23.5), (-12.0, 24.4), (3.0, 25.4), (19.0, 25.8), (35.0, 25.92), (51.0, 25.97), (67.0, 26.12),
            (83.0, 26.18), (99.0, 26.32), (115.0, 26.4), (131.0, 26.5), (146.0, 26.64), (162.0, 26.95), (176.0, 27.25),
            (191.0, 27.43), (204.0, 27.64), (216.0, 28.03), (233.0, 28.34), (250.0, 28.66), (265.0, 29.05), (280.0, 29.25),
-           (297.0, 29.55), (310.0, 29.8)]
+           (297.0, 29.55), (310.0, 29.8), (319.0, 30.02), (330.0, 30.45), (341.0, 30.78), (347.0, 31.0)]
 SSR_E_DATUM = 0.3
-SSR_E_END = (285.0, 305.0)
+SSR_E_DATUM_X = (250.0, 330.0)     # (the datum down to the photos' own from the first x to the second)
 
 
 SSR_W_EASE_RNG = (-413.0, -250.0)
@@ -146,16 +148,19 @@ def ssr_west_rng(x, z):
     return np.where(x <= SSR_W_EASE_RNG[0], tgt, z - off0 * t * t * (3 - 2 * t))
 
 
+def ssr_datum(x):
+    """the game's ground over the 1997 photos' reading along 성산로 and the rails beside it (게임 기준): the 대운동장's
+    in the west, 백양로's from x -300, none past SSR_E_DATUM_X (의료원's lots are on the photos' own)"""
+    return np.interp(x, [SSR_W97[-1][0], -300.0, SSR_E_DATUM_X[0], SSR_E_DATUM_X[1]], [SSR_W_DATUM, SSR_E_DATUM, SSR_E_DATUM, 0.0])
+
+
 def ssr_west(x, z):
-    """성산로's profile z (at the stations' x) on the 1997 photos (SSR_W97 · SSR_E97) plus the datum, smoothed over 8 m;
-    past SSR_E_END the game's own profile z"""
+    """성산로's profile (at the stations' x) on the 1997 photos (SSR_W97 · SSR_E97) plus the datum, smoothed over 8 m,
+    all the way to its east end (z, the ground's own profile, is not read any more)"""
     x = np.asarray(x, float)
     xs, zs = zip(*(SSR_W97 + SSR_E97))
-    dat = np.interp(x, [SSR_W97[-1][0], -300.0], [SSR_W_DATUM, SSR_E_DATUM])
-    tgt = ndimage.gaussian_filter1d(np.interp(x, xs, zs) + dat, 2.0, mode='nearest')
-    t = np.clip((x - SSR_E_END[0]) / (SSR_E_END[1] - SSR_E_END[0]), 0, 1)
-    t = t * t * (3 - 2 * t)
-    return np.where(x <= SSR_W97[-1][0], np.interp(x, xs, zs) + SSR_W_DATUM, tgt * (1 - t) + z * t)
+    tgt = ndimage.gaussian_filter1d(np.interp(x, xs, zs) + ssr_datum(x), 2.0, mode='nearest')
+    return np.where(x <= SSR_W97[-1][0], np.interp(x, xs, zs) + SSR_W_DATUM, tgt)
 
 
 def _xy(p):
@@ -247,7 +252,7 @@ def plan(Hn, half, step, gate, heading, wall, sample, old=False, keep_nodes=None
     # its height: the ground along it, smoothed (the valley of the 창천 before the gate, up towards 금화터널 in the east)
     z = np.array([sample(x, y) for x, y in road.P])
     z = ndimage.gaussian_filter1d(z, 9.0, mode='nearest')
-    z = (ssr_west_rng if old else ssr_west)(road.P[:, 0], z)     # (on the 1997 photos to x 300: SSR_W97 · SSR_E97)
+    z = (ssr_west_rng if old else ssr_west)(road.P[:, 0], z)     # (on the 1997 photos: SSR_W97 · SSR_E97)
     P = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
     d = shapely.distance(P, road.ls).reshape(X.shape)
     s = shapely.line_locate_point(road.ls, P).reshape(X.shape)

@@ -16,7 +16,8 @@ the survey's above sea level): EAST_Z, NE_PROF, HEART_Z, DENT_Z.
   asphalt).  Along its north-east side the road down to 성산로 falls 47 → 34 m past it (NE_PROF: across-road profiles
   every 5 m), 3.5 m under the lot at s 30 and 7 m at s 60: the lot is held up by a wall, its south-east edge by a wooded
   bank 10 m down to 성산로.  The 5 m grid makes both a steep bank one cell wide (grass: BANK).  The road's lower
-  end eases to 성산로 as the game has it (gate_town: 3 m under the photos there, left as it is).
+  end eases to the ground it meets beyond 성산로's east end (since 2026-11-15 gate_town has the road on the same
+  photos to its end and tools/town97.py its run on north-east: 0.2 m off the profile; 3 - 5 m before).
 - 심장혈관병원 북쪽 (HEART_LOT): paved, three rows and a row along the east, 44 → 46 m to the north (5 %); the game had
   a lawn rising to 48.5 m.
 - 치과대학병원 서쪽 · 음악대학 동쪽 (DENT_LOT): paved, the long double row of slanting stalls and the rows along both
