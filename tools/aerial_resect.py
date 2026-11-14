@@ -33,6 +33,10 @@ PHOTOS = {
     # (the next one south: the rotary near its nadir; tied to 27/18 fitted first, and to the six where they reach)
     '1997_27_19': dict(img='assets_src/aerial_1997/ngii_1997_199705A0301_c27_n19.jpg', top=True, xy=(380.0, -1010.0),
                        known=['1997_27_18', '27/17', '26/16'], key=(27, 19)),
+    # (and the one after: the rotary at the north-west corner of its face, 760 m off, seen from the south-south-east;
+    # preview only, tied to 27/19 and 27/18: 고증 4.10.5)
+    '1997_27_20': dict(img='assets_src/aerial_1997/ngii_1997_199705A0301_c27_n20.jpg', top=True, xy=(292.0, -1555.0),
+                       known=['1997_27_19', '1997_27_18'], key=(27, 20)),
 }
 
 
