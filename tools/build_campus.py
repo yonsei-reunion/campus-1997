@@ -6279,6 +6279,27 @@ for _tk, _T in TERR.items():
     print('%s 앞 단과 둑: nodes %d (pulled down %d), deck cells %d, %.0f m2; road %.2f, walk %.2f m at the door' % (
         _tk, int(_tm.sum()), int(_tpull.sum()), len(_cells), _poly.area, TERR_OUT[_tk]['zr0'], TERR_OUT[_tk]['zg0']))
 ST_FRONT, AP_FRONT = TERR_OUT['st'], TERR_OUT['ap']
+# 대우관 별관 앞 (reference/고증/3.6.6 「두 계단과 찻길」), after the planting: the drive before the hall runs between its
+# two flights, the upper one from the door between the planters down to the drive, the lower one from the drive's far
+# kerb down to the 상뜰's walk (blender/landmarks.py flat_portal).  The level apron laid before the hall's front
+# (FORECOURTS, 9 m out) stood 0.5 m over the drive alongside it: the grid's nodes between the wall and the drive go to
+# the drive's own height abreast of them, so that the upper flight stands on it (and the hall's floor, eight risers
+# over it, comes down with it).
+_af_q = np.array(list(footprint(ways[242897923]).minimum_rotated_rectangle.exterior.coords)[:-1])
+_af_e = [_af_q[(k_ + 1) % 4] - _af_q[k_] for k_ in range(4)]
+_af_f = max(_af_e, key=lambda e_: float(np.linalg.norm(e_)))
+_af_f = np.array([_af_f[1], -_af_f[0]]) / np.linalg.norm(_af_f)
+_af_f = _af_f if _af_f @ np.array([-0.97, 0.24]) > 0 else -_af_f        # (out of the front, as DW_ANNEX_BEDS below)
+_af_t = np.array([_af_f[1], -_af_f[0]])                                 # (northwards along the front)
+_af_o = _af_q.mean(axis=0) + _af_f * min(float(np.linalg.norm(e_)) for e_ in _af_e) / 2
+_af_u = (X - _af_o[0]) * _af_t[0] + (Y - _af_o[1]) * _af_t[1]
+_af_v = (X - _af_o[0]) * _af_f[0] + (Y - _af_o[1]) * _af_f[1]           # (out from the wall)
+_af_m = (np.abs(_af_u) <= 13.0) & (_af_v >= 0.8) & (_af_v <= 7.5)
+_af_h0 = Hn[_af_m].copy()
+_af_z = np.array([sample(Hn, NEAR_HALF, NEAR_STEP, *(_af_o + _af_t * u_ + _af_f * 8.5)) for u_ in _af_u[_af_m]])
+Hn[_af_m] = _af_z
+print('대우관 별관 앞: nodes %d between the wall and the drive to the drive\'s height, %+.2f .. %+.2f m' % (
+    int(_af_m.sum()), (_af_z - _af_h0).min(), (_af_z - _af_h0).max()))
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
@@ -8695,9 +8716,11 @@ DW_ANNEX_BEDS = [
     ['topiary_cone', *AB(3.3, 2.2), 1.1, round(_ab_r.uniform(0, 6.28), 3), 1],
     ['topiary_cone', *AB(2.95, 3.4), 0.6, round(_ab_r.uniform(0, 6.28), 3), 1],
     ['topiary_dome', *AB(3.3, 4.12), 0.42, round(_ab_r.uniform(0, 6.28), 3), 1]]
-for kind_, e_, n_, sc_ in (('pine_cloud', 28.9, 5.9, 0.85), ('topiary_egg', 29.6, -4.4, 1.0), ('topiary_dome', 30.9, 4.6, 1.0),
-                           ('topiary_dome', 31.7, -2.5, 1.0)):
-    DW_ANNEX_BEDS.append([kind_, *(round(float(c_), 2) for c_ in SG(e_, n_)), sc_, round(_ab_r.uniform(0, 6.28), 3)])
+# (the two cushions: either side of the lower flight's head, on the lawn corners inside the walk's curved kerbs, where
+# the 1997 scans have two small dark crowns at the road's edge; before, on the lawn 13 m out, where the flight now is)
+for kind_, at_, sc_ in (('pine_cloud', SG(28.9, 5.9), 0.85), ('topiary_egg', SG(29.6, -4.4), 1.0),
+                        ('topiary_dome', AB(-3.4, 12.0), 1.0), ('topiary_dome', AB(3.4, 12.0), 1.0)):
+    DW_ANNEX_BEDS.append([kind_, *(round(float(c_), 2) for c_ in at_), sc_, round(_ab_r.uniform(0, 6.28), 3)])
 shrubs += DW_ANNEX_BEDS
 print('대우관 별관 앞: clipped shrubs', [b_[:3] for b_ in DW_ANNEX_BEDS])
 _ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)

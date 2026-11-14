@@ -1712,22 +1712,51 @@ def flat_portal(mb, W, plinth, fh, wall, bw=7.4, gfn=None):
         mb.face([(dx, y0 - 0.03, dz - 0.32), (dx + 0.32, y0 - 0.03, dz), (dx, y0 - 0.03, dz + 0.32), (dx - 0.32, y0 - 0.03, dz)][::-1], 'brick_red')
         for k in range(5):
             mb.box((sg * (bw / 2 + 0.7), y0 - 0.05, plinth + 0.5 + k * 0.62), (0.8 if k % 2 else 0.55, 0.12, 0.5), 'stone_trim')
-    # two flights: a narrow one to the door between planters, then a wide one with handrails
+    # two flights with the road between them (reference/고증/3.6.6 「두 계단과 찻길」: the 1997 aerial photos' original
+    # scans, 26/15 · 26/14 seeing the wall's foot): the upper one from the door between the planters down to the road,
+    # eight risers (the photos' riser lines 1.80 - 4.49 m off the wall, 0.38 m apart, after a 0.5 m landing); across the
+    # road, 11.45 m off the wall, the lower one down to the 상뜰's walk, seven risers 0.31 m apart and as wide as the
+    # walk's mouth between its kerbs (4.5 m).  Before: the upper flight four risers to a landing, then a 9.5 m flight of
+    # five out onto the road, and the 상뜰's walk running up to the road.
     zl = plinth - 0.1
     zm = zl / 2 + 0.05
-    y1 = stair_flight(mb, 0, yf, ow + 1.1, zl, n=4, landing=1.2, tread=0.38, flare=0.0, zbot=zm)
+    y1 = yf - 1.2 - 4 * 0.38                     # (the planters as before: their soil level, length and place)
+    stair_flight(mb, 0, yf, ow + 1.1, zl, n=8, landing=0.5, tread=0.384, flare=0.0, gfn=gfn, risers=8)
     for sg in (-1, 1):
         px = sg * (ow / 2 + 0.55 + 0.9)
         ph = zl - zm + 0.85
-        mb.box((px, (yf + y1) / 2, zm - 0.1 + ph / 2 - 0.05), (1.6, yf - y1 + 1.2, ph), 'stone_trim', mats={'top': 'soil'})
+        pb = min(zm - 0.15, gfn(px, y1 - 0.6) - 0.3, gfn(px, yf) - 0.3)       # (down into the ground the road gives)
+        mb.box((px, (yf + y1) / 2, (pb + zm - 0.15 + ph) / 2), (1.6, yf - y1 + 1.2, zm - 0.15 + ph - pb), 'stone_trim',
+               mats={'top': 'soil'})
         # (what grows in them -- a clipped pine in one, pointed conifers in the other -- is the campus' shrubs,
         # tools/build_campus.py DW_ANNEX_BEDS: the soil before the bay is ground for them, set in from the planter's
         # edges so that the walker on the steps cannot step up onto it, as daewoo_front's `bed`)
         zs = zm - 0.15 + ph
         W_ = lambda lx, ly: tuple(mb.xf @ Vector((lx, ly, zs)))
         WALK_FACES.append([W_(px - 0.6, y1 - 0.4), W_(px + 0.6, y1 - 0.4), W_(px + 0.6, yf - 0.05), W_(px - 0.6, yf - 0.05)])
-    y2 = stair_flight(mb, 0, y1, 9.5, zm, n=5, landing=2.2, tread=0.36, flare=0.3, rail=True, gfn=gfn)
-    return y2
+    # the lower flight: its head a granite edge 0.3 m into the road (the road climbs 12 % along the front, so no level
+    # landing can sit on it: stair_flight's runs 1.2 m back into a doorway), seven treads down to the walk's paving
+    yt, hw2, tr2, n2 = y0 - 11.7, 2.25, 0.31, 7
+    zt = gfn(0.0, yt + 0.15)
+    yb2 = yt - n2 * tr2
+    zb2 = min(across(gfn, -hw2, hw2, yb2 - 0.1) - 0.04, zt - 0.2)
+    r2, gb = (zt - zb2) / n2, zb2 - 1.0
+    mb.box((0.0, yt + 0.15, (zt + gb) / 2), (2 * hw2, 0.3, zt - gb), 'stone_granite')
+    for k in range(1, n2 + 1):
+        top = zt - k * r2
+        mb.box((0.0, yt - (k - 0.5) * tr2 + 0.02, (top + gb) / 2), (2 * hw2, tr2 + 0.04, top - gb), 'stone_granite')
+    W2 = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
+    WALK_FACES.append([W2(-hw2, yt + 0.3, zt), W2(hw2, yt + 0.3, zt), W2(hw2, yt, zt), W2(-hw2, yt, zt)])
+    WALK_FACES.append([W2(-hw2, yt, zt), W2(hw2, yt, zt), W2(hw2, yb2, zb2), W2(-hw2, yb2, zb2)])
+    for sg in (-1, 1):                          # handrails either side (the 2020s photo)
+        xr = sg * (hw2 + 0.05)
+        ya_, yb_ = yt - 0.15, yb2 + 0.2
+        ha, hb = zt + 0.95, zb2 + 0.95
+        mb.quad((xr - 0.025, yb_, hb), (xr + 0.025, yb_, hb), (xr + 0.025, ya_, ha), (xr - 0.025, ya_, ha), 'metal_dark')
+        for yy, zz in ((ya_, ha), (yb_, hb)):
+            mb.box((xr, yy, zz - 0.45), (0.06, 0.06, 0.9), 'metal_dark')
+    note_entrance(mb, hw2 + 0.6, yt + 0.3, yb2 - 1.0)
+    return yb2
 
 
 def stone_base(mb, poly, plinth, wall, gap=None):
