@@ -2185,13 +2185,21 @@ def dh_uv(p_, o_=_ha.copy(), t_=_ht.copy(), n_=_hn.copy()):       # (and back)
 # in the podium's ends 68.5 - 68.8, the tier beside it 68.2 - 68.4, the lower lawn 66.4 - 67.0, the 상뜰 65.0 - 65.5):
 # the terrace is where the game had it (70.55), the 상뜰 1.5 m higher than it was.
 DW_WI, DW_WO = 24.1, 35.6                                          # the wings' inner and outer walls from the axis
-DAEWOO = dict(floor=70.9, terrace=70.45, mid=68.6, plaza=65.6, tier=68.4, lawn=66.6,
+# The podium's two flights either side (the 1997 scans, reference/고증/3.6.1 「석축 말굽 계단」): the lower one climbs
+# outwards against the podium's face, its 16 risers on 0.313 m treads from 5.45 m out of the axis to 10.15 m, four
+# stepped planters before it (south of it); the upper one climbs back towards the axis, 13 risers on 0.297 m treads from
+# 10.31 m in to its head at 6.75 m (counted on the west side: risers in shade in 26/14 · 26/15 · 26/16).  The landing
+# (mid) is set so that both flights' risers are equal, 0.167 m (the scans read 67.7 - 67.9 m inside its rim and
+# 68.8 m on the rim: it was 68.6 m, 19 and 12 risers).
+DAEWOO = dict(floor=70.9, terrace=70.45, mid=68.28, plaza=65.6, tier=68.4, lawn=66.6,
               frame=dict(o=[round(float(c_), 3) for c_ in _ha], ang=round(math.atan2(_ht[1], _ht[0]), 5)), uc=DW_UC,
               wi=DW_WI, wo=DW_WO, wing_v=(-10.4, 27.55), u0=round(DW_UC - DW_WO, 2), u1=round(DW_UC + DW_WO, 2),
               # the terrace: its drive (v), its ends (u: where its wall dies into the drives' banks)
               drive=(-18.3, -10.4), tu=(-12.2, 62.5),
               # the podium: half width, its face (v), the front of the lower flights, the forecourt's half width
-              podium=dict(hw=13.0, face=-24.5, front=-28.5, court=4.0, end=-29.5))
+              podium=dict(hw=13.0, face=-24.5, front=-28.5, court=4.0, end=-29.5,
+                          lo=dict(d=5.45, n=16, tread=0.313, depth=1.8), up=dict(d=6.75, n=13, tread=0.297),
+                          planters=dict(d=5.6, len=1.215, n=4, v=(-28.0, -26.6))))
 _T, _P = DAEWOO['terrace'], DAEWOO['plaza']
 _tu0, _tu1 = DAEWOO['tu']
 _tv0, _tv1 = DAEWOO['drive']
@@ -2250,7 +2258,11 @@ SANG = (108.5, 428.1)
 SG_E = _ht.copy()
 SG_N = _hn.copy()
 SG = lambda e, n: tuple(np.array(SANG) + SG_E * e + SG_N * n)
-SANG_NODES = dict(N=(0.0, 12.6), W=(-28.3, 0.6), S=(-0.3, -18.0), E=(31.5, 1.0))     # (e, n) of the walks' four ends
+# (the south node: the head of the south flight, on the hall's axis, as the 1997 scans have it -- 16.6 m from the round
+# lawn's middle, where the diagonal walks and the axis walk meet the flight; it was 18.0 m and 0.3 m west, read off
+# the 0.54 m/px previews.  SANG_S_SGX: the old one, which places the trees given on OSM's diamond, SGX below)
+SANG_NODES = dict(N=(0.0, 12.6), W=(-28.3, 0.6), S=(0.0, -16.6), E=(31.5, 1.0))      # (e, n) of the walks' four ends
+SANG_S_SGX = -18.0
 SANG_DIAMOND = [SG(*SANG_NODES[k_]) for k_ in 'NWSE']                                # N, W, S, E nodes of the walks
 SANG_LV = dict(top=65.4, fall=0.015, west=0.01, east=0.0)
 
@@ -2266,10 +2278,16 @@ Hn[_sg] = sang_h(_SE[_sg], _SN[_sg])
 FIXED[_sg] = True
 _zS = float(sang_h(*SANG_NODES['S']))
 SANG_FOOT = (101.2, 405.4)                                      # (the footway under the flight, OSM)
-_ds_ = np.array(SANG_FOOT) - np.array(SANG_DIAMOND[2])
 DAEWOO['sang'] = SANG_LV
-DAEWOO['stair'] = flight_at('sang_south', SANG_DIAMOND[2], _ds_, _zS, _zS - 19 * 0.155, 5.5, landing=0.5, tread=0.30,
-                            maxrise=0.155, rails=True, cheek=0.25)
+# The flight as the 1997 scans have it (reference/고증/3.6.1 「남쪽 계단」): straight down the hall's axis from the south
+# node, 18 risers (17 treads of 0.285 m from the walk's end to the footway's north kerb), 2.73 m from the walk's end
+# to the footway, 4.7 m wide over its kerbs.  (It was 19 risers of 0.155 m on 0.30 m treads, from the heights alone,
+# 5.5 m wide and turned 9 degrees towards OSM's footway node.)
+SANG_STAIR = dict(n=18, tread=0.285, drop=2.73, width=4.2)
+DAEWOO['stair'] = flight_at('sang_south', SANG_DIAMOND[2], -SG_N, _zS, _zS - SANG_STAIR['drop'], SANG_STAIR['width'],
+                            landing=0.0, tread=SANG_STAIR['tread'], maxrise=SANG_STAIR['drop'] / SANG_STAIR['n'] + 0.001,
+                            rails=True, cheek=0.25)
+assert DAEWOO['stair']['n'] == SANG_STAIR['n'], DAEWOO['stair']
 _fwW, _fwE = sample(Hn, NEAR_HALF, NEAR_STEP, 66.6, 414.3), sample(Hn, NEAR_HALF, NEAR_STEP, 137.7, 396.5)
 fix_strip([(66.6, 414.3), SANG_FOOT], _fwW, DAEWOO['stair']['z_foot'], 1.8)
 fix_strip([SANG_FOOT, (137.7, 396.5)], DAEWOO['stair']['z_foot'], _fwE, 1.8)
@@ -4110,14 +4128,17 @@ for _f in YEONHUI['flights']:
 # along their upper edges and benches along their lower ones, a pair facing each path from either side; the lawns
 # outside the diamond, under the terrace, carry the big spreading pines.  (SG: e east along the hall, n north.)
 WD = frame_from(242897922)
-SANG_LAWN = 3.25                                         # (SANG, SG, SANG_DIAMOND: with the 상뜰's levels above)
+# (SANG, SG, SANG_DIAMOND: with the 상뜰's levels above.)  The round lawn: a dark round bed 4.55 m across in the 1997
+# scans, its edge at the ring's level in all six frames, pale paving between it and the ring's outer edge (6.85 m).
+# The 2024 photo's lawn fills the curb to 3.25 m: SANG_LAWN_RNG, the first layout the random planting reads.
+SANG_LAWN, SANG_LAWN_RNG = 2.3, 3.25
 # (here as it was first laid out on OSM's ring, what the random planting reads: PAV_PRE, GARDEN_ZONES; the 상뜰 of the
 # photos is painted after that, DW_FRONT below)
 daewoo_garden = Point(*SANG_RNG).buffer(17).union(Polygon(SANG_DIAMOND_RNG).buffer(3.0))
 draw_poly('pavers', Point(*SANG_RNG).buffer(7.2))
 draw_line('pavers', [WD(23.5, 0), SANG_RNG], 6.0)
 draw_line('pavers', [SG_RNG(0.0, -6.5), SANG_DIAMOND_RNG[2], (101.2, 405.4)], 6.0)        # the broad walk to the south steps
-draw_poly('pavers', Point(*SANG_RNG).buffer(SANG_LAWN + 0.1), 0)    # (the lawn inside the curb: after the walks, not under them)
+draw_poly('pavers', Point(*SANG_RNG).buffer(SANG_LAWN_RNG + 0.1), 0)    # (the lawn inside the curb: after the walks, not under them)
 # 대우관 뒤: the car park and the drive asphalt, paving round the planter in the recess (DAEWOO_BACK above)
 # (the car park of five rows the game had there, as the random planting first read it: PAV_PRE, ASPH_PRE; the yard
 # of 1997 is painted after that, DWB_ZONE below)
@@ -4229,7 +4250,8 @@ SANG_WALKS = dict(                       # (the walks' middle lines and widths)
     axis=([dh_xy(DW_UC, _pd['end']), SANG, _sgn['S']], 4.7),
     diamond=([_sgn['N'], _sgn['W'], _sgn['S'], _sgn['E'], _sgn['N']], 3.4),
     cross=([SG(SANG_NODES['W'][0] - 12.0, SANG_NODES['W'][1]), _sgn['W'], _sgn['E'], SG(SANG_NODES['E'][0] + 1.5, SANG_NODES['E'][1])], 3.8))
-SANG_PAVE = unary_union([Point(*SANG).buffer(6.85), LineString([_sgn['S'], SANG_FOOT]).buffer(2.75, cap_style='flat'),
+SANG_PAVE = unary_union([Point(*SANG).buffer(6.85),
+                         LineString([_sgn['S'], DAEWOO['stair']['foot']]).buffer(SANG_STAIR['width'] / 2 + 0.25, cap_style='flat'),
                          _uvh([(DW_UC - _pd['court'], _pd['end']), (DW_UC + _pd['court'], _pd['end']),
                                (DW_UC + _pd['court'], _pd['face']), (DW_UC - _pd['court'], _pd['face'])])] +
                         [LineString(l_).buffer(w_ / 2, cap_style='flat', join_style='mitre') for l_, w_ in SANG_WALKS.values()])
@@ -5133,7 +5155,7 @@ rng6 = random.Random(1997 + 61)
 # (SGX: a place given on the diamond as OSM had it -- W -26.5, E 26.6, N 14.2, S -15.3 -- at the same place on the
 # photos')
 SGX = lambda e, n: SG(e * (SANG_NODES['W'][0] / -26.5 if e < 0 else SANG_NODES['E'][0] / 26.6),
-                      n * (SANG_NODES['N'][1] / 14.2 if n > 0 else SANG_NODES['S'][1] / -15.3))
+                      n * (SANG_NODES['N'][1] / 14.2 if n > 0 else SANG_S_SGX / -15.3))
 # (the clipped garden pines of the photos -- the one in the round lawn, those by the ring and before the podium -- are
 # shrubs, DW_BEDS below.  The trees that stood in their places keep their places in the list and stand elsewhere: the
 # round lawn's pine in the west triangle, the two zelkovas on the bank under the lower walks, the four tall pines before
@@ -7130,7 +7152,7 @@ _rp = lambda l_: [[round(x, 1), round(y, 1)] for x, y in l_]
 paths_out[:] = _fpaths + [dict(kind='service', w=7.9, pts=_rp(LineString(DW_TERR_DRIVE.exterior.coords[:2]).parallel_offset(
     (DAEWOO['drive'][1] - DAEWOO['drive'][0]) / 2, 'left').coords))] + \
     [dict(kind='footway', w=w_, pts=_rp(l_)) for l_, w_ in SANG_WALKS.values()] + \
-    [dict(kind='steps', w=5.5, pts=_rp([SANG_DIAMOND[2], SANG_FOOT]))]
+    [dict(kind='steps', w=SANG_STAIR['width'], pts=_rp([SANG_DIAMOND[2], DAEWOO['stair']['foot']]))]
 print('대우관 앞 · 상뜰: walks', len(paths_out), 'of them cut or gone', len(_ypaths) + 1 - len(_fpaths))
 out['paths'] = _ui_paths()
 _kept = unary_union([LineString(p_['pts']).buffer(p_['w'] / 2) for p_ in paths_out
@@ -8838,9 +8860,11 @@ for _bd_s in (-1, 1):
     _bd_a, _bd_b = sorted((DW_UC + _bd_s * 13.3, DW_UC + _bd_s * 23.4))
     for _bd_k in range(5):
         _dw_bed('hedge_blob', _bd_a + 1.35 + _bd_k * (_bd_b - _bd_a - 2.7) / 4, -22.2, 1.05, True)
-    for _bd_k in range(4):                                            # (blender/landmarks.py daewoo_front: cw, d_lo)
-        _bd_d0, _bd_d1 = DAEWOO['podium']['court'], DAEWOO['podium']['court'] + 19 * 0.30
-        _dw_bed('topiary_round', DW_UC + _bd_s * (_bd_d0 + (_bd_d1 - _bd_d0) * (_bd_k + 0.5) / 4), (DAEWOO['podium']['front'] + 2.5 + DAEWOO['podium']['face']) / 2, 0.7)
+    _bd_pl = DAEWOO['podium']['planters']                            # (blender/landmarks.py daewoo_front: the stepped planters)
+    for _bd_k in range(_bd_pl['n']):
+        _dw_bed('topiary_round', DW_UC + _bd_s * (_bd_pl['d'] + _bd_pl['len'] * (_bd_k + 0.5)), sum(_bd_pl['v']) / 2, 0.7)
+    for _bd_k in range(4 - _bd_pl['n']):                              # (the draws of the four the planters were)
+        _bd_r.uniform(0, 6.28)
     _bd_a, _bd_b = sorted((DW_UC + _bd_s * 7.0, DW_UC + _bd_s * (DW_WI - 1.5)))
     for _bd_k in range(5):
         _bd_u = _bd_a + (_bd_k + 0.5) * (_bd_b - _bd_a) / 5
@@ -8849,8 +8873,10 @@ for _bd_s in (-1, 1):
 for _bd_du in (-1.22, 1.22):
     for _bd_dv in (-1.05, 0.0, 1.05):
         _dw_bed('hedge_low', DW_UC + _bd_du, -21.5 + _bd_dv, 1.35, True)
-# (the garden pines: in the round lawn, by the ring where the upper walks leave it, before the podium's ends)
-for _bd_e, _bd_n, _bd_sc in ((0.0, 0.0, 1.15), (-8.5, 5.0, 1.0), (8.5, 5.0, 1.05), (-14.5, 10.5, 1.05), (14.5, 10.5, 1.0),
+# (the garden pines: in the round lawn, by the ring where the upper walks leave it, before the podium's ends.  The round
+# lawn's was a young tree in 1997: in the scans only its top, about 1 m across, stands out of the dark round bed, at
+# 3 - 3.5 m over it (two frames leaning the other way, 26/16 and 27/17; reference/고증/3.6.1); 2.9 m, it was 5.2 m)
+for _bd_e, _bd_n, _bd_sc in ((0.0, 0.0, 0.65), (-8.5, 5.0, 1.0), (8.5, 5.0, 1.05), (-14.5, 10.5, 1.05), (14.5, 10.5, 1.0),
                              (-20.5, 11.5, 1.3), (20.5, 11.5, 1.25)):
     DW_BEDS.append(['pine_cloud', *(round(float(c_), 2) for c_ in SG(_bd_e, _bd_n)), _bd_sc, round(_bd_r.uniform(0, 6.28), 3)])
 shrubs += DW_BEDS

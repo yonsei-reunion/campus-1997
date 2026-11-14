@@ -3680,7 +3680,7 @@ def daewoo_front(mb, lv, z0):
     # --- the podium.  Its middle: the block over the porch, built round the porch (v from the face to +3) and the lit
     # lobby behind the glass (to +6)
     oa, ob = uc - ow / 2, uc + ow / 2
-    ia, ib = uc - 5.2, uc + 5.2                  # the head of the upper flights
+    ia, ib = uc - pd['up']['d'], uc + pd['up']['d']      # the head of the upper flights
     zs = zP + 2.2                                # springing of the segmental arch
     zc = zs + ow * 0.16                          # its crown = the porch ceiling
     vr, vl = vf + 3.0, vf + 5.6                  # glass screen / back of the lobby
@@ -3718,15 +3718,20 @@ def daewoo_front(mb, lv, z0):
     block(uc - 2.75, uc + 2.75, -23.4, -19.6, zT, zT + 0.45, 'stone_trim', top='soil')
     bed(uc - 2.75, uc + 2.75, -23.4, -19.6, zT + 0.45)
     # --- its two sides: the strip along the terrace, the upper flight behind the face's stepped parapet, the landing
-    # in the rounded end, the lower flight before the face with its stepped planters
-    n1, n2 = 19, 12
+    # in the rounded end, the lower flight against the face with its stepped planters before it (the 1997 scans:
+    # tools/build_campus.py DAEWOO['podium'] lo / up / planters; reference/고증/3.6.1)
+    lo, up, pl = pd['lo'], pd['up'], pd['planters']
+    n1, n2 = lo['n'], up['n']
     r1, r2 = (zM - zP) / n1, (zT - zM) / n2
-    t1, t2 = 0.30, 0.30
+    t1, t2 = lo['tread'], up['tread']
+    d1 = lo['d']                                 # the lower flight's first riser, out from the axis
     v_up0, v_up1 = -23.2, -21.3                  # the upper flight's well
-    v_lo0, v_lo1 = vs, vs + 2.5                  # the lower flight
+    v_lo0, v_lo1 = vf - lo['depth'], vf          # the lower flight, against the face
+    v_end = vs                                   # the rounded end's south side
+    d_lo = d1 + n1 * t1                          # the head of the lower flight
     for sg in (-1, 1):
         U = lambda d, sg=sg: uc + sg * d         # (d: out from the axis)
-        d_in, d_out = 5.2, hw - 3.0              # the upper flight runs between them (its head by the axis)
+        d_in, d_out = up['d'], max(hw - 3.0, d_lo)   # the upper flight runs between them (its head by the axis)
         d_top = d_in + n2 * t2                   # ... its foot, on the landing
         # the strip along the terrace, out to the podium's end (it stopped at the upper flight's foot, 3 m short of
         # the wall beside the podium: an open pit from the terrace down to the forecourt's level), its rail over the
@@ -3743,9 +3748,9 @@ def daewoo_front(mb, lv, z0):
         # kept the walker's feet under the next riser: stepping over it, the low wall rays met its back and threw the
         # walker forwards, at an angle through the wall beside the flight and into the podium.)
         ramp(U(d_in), zT, U(d_top), zM, v_up0, v_up1)
-        d_lo = cw + n1 * t1                      # the head of the lower flight
-        block(U(d_top), U(d_lo), v_up0, v_up1, gnd, zM, top='stone_step')
-        walk(*sorted((U(d_top - 0.1), U(d_lo + 0.1))), v_up0, v_up1, zM)
+        if abs(d_top - d_lo) > 0.05:
+            block(U(d_top), U(d_lo), v_up0, v_up1, gnd, zM, top='stone_step')
+        walk(*sorted((U(min(d_top, d_lo) - 0.1), U(max(d_top, d_lo) + 0.1))), v_up0, v_up1, zM)
         # the face beside the middle block, under the stepped parapet: from the terrace's height by the axis down to the
         # landing's at the end
         steps_ = 4
@@ -3756,9 +3761,10 @@ def daewoo_front(mb, lv, z0):
             ua, ub = sorted((U(da), U(db)))
             block(ua - 0.05, ub + 0.05, vf - 0.05, v_up0 + 0.05, ztop - 0.12, ztop, 'stone_trim')
         # the landing in the rounded end: a half round on the podium's end, from the upper flight's foot to the lower one's head
-        cv, R = (v_lo0 + v_up1) / 2, (v_up1 - v_lo0) / 2
+        cv, R = (v_end + v_up1) / 2, (v_up1 - v_end) / 2
         arc = [(U(d_out + R * math.cos(math.radians(a_)) * (hw - d_out) / R), cv + R * math.sin(math.radians(a_))) for a_ in range(-90, 91, 15)]
-        pts = [(U(d_lo), v_lo0)] + arc + [(U(d_lo), v_up1)]
+        pts = [(U(d_lo), v_end)] + arc[1:-1] + [(U(d_lo), v_up1)] if d_out <= d_lo + 1e-6 else \
+            [(U(d_lo), v_end)] + arc + [(U(d_lo), v_up1)]
         if sg > 0:
             prism(pts, gnd, zM)
         else:
@@ -3769,19 +3775,22 @@ def daewoo_front(mb, lv, z0):
                    mats={'top': 'stone_trim'}, skip=('bottom',))
         # (the landing's inner part, between the two flights, is solid under the upper flight's foot and the face)
         for k in range(n1):                                                        # the lower flight, up away from the axis
-            da, db = cw + k * t1, cw + (k + 1) * t1
+            da, db = d1 + k * t1, d1 + (k + 1) * t1
             z = zP + (k + 1) * r1
             block(U(da), U(db), v_lo0, v_lo1, gnd, z, top='stone_step')
-        ramp(U(cw - t1), zP, U(d_lo - t1), zM, v_lo0, v_lo1)                       # (from a tread before the first riser)
+        ramp(U(d1 - t1), zP, U(d_lo - t1), zM, v_lo0, v_lo1)                       # (from a tread before the first riser)
         walk(*sorted((U(d_lo - t1), U(d_lo + 0.1))), v_lo0, v_lo1, zM)
-        # the stepped planters between the lower flight and the face, a round shrub on each (대우관_2024_정면과_상뜰.jpg),
-        # and a low cheek wall on the flight's outer side
+        # the stepped planters before the lower flight (south of it), a round shrub on each (대우관_2024_정면과_상뜰.jpg;
+        # the 1997 scans: three square ones and a fourth running on round the end), and a low cheek wall between them
+        # and the flight.  (They stood between the flight and the face, the flight at the podium's front.)
+        for k in range(pl['n']):
+            da, db = pl['d'] + pl['len'] * k, pl['d'] + pl['len'] * (k + 1)
+            ztop = zP + 0.9 + (zM - zP) * (k + 0.5) / pl['n']
+            block(U(da), U(db), pl['v'][0], pl['v'][1], gnd, ztop, top='soil')
+            bed(U(da), U(db), pl['v'][0], pl['v'][1], ztop)
         for k in range(4):
-            da, db = cw + (d_lo - cw) * k / 4, cw + (d_lo - cw) * (k + 1) / 4
-            ztop = zP + 0.9 + (zM - zP) * (k + 0.5) / 4
-            block(U(da), U(db), v_lo1, vf, gnd, ztop, top='soil')
-            bed(U(da), U(db), v_lo1, vf, ztop)
-            block(U(da), U(db), v_lo0 - 0.3, v_lo0, gnd, zP + 0.9 + (zM - zP) * (k + 1) / 4)
+            da, db = d1 + (d_lo - d1) * k / 4, d1 + (d_lo - d1) * (k + 1) / 4
+            block(U(da), U(db), pl['v'][1], v_lo0, gnd, zP + 0.9 + (zM - zP) * (k + 1) / 4)
     for sg in (-1, 1):                                                 # globe lamps on the 상뜰 before the tier's planters
         lamp_post(mb, uc + sg * 17.0, vs - 1.6, h=3.4, z=zP - 0.05)
 
