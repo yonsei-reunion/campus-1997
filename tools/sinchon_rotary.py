@@ -643,7 +643,10 @@ def layout(geo, town, extras, ground, taken_z):
         hip = lv <= 2 and area < 170 and rnd.random() < 0.72
         roof = (0 if rnd.random() < 0.62 else 1 if rnd.random() < 0.7 else 2) if hip else (3 if rnd.random() < 0.55 else 2)
         wall = rnd.choice([0, 0, 0, 1, 1, 2, 2, 3])
-        hs = [ground(*q) for q in rr]
+        # (its floor at the lowest corner of the box it is drawn as, not of the outline's rectangle round it, which on a
+        # slope sank the house up to a metre more: 2026-11-15)
+        hs = [ground(mc.x + u_ * math.cos(ang) - v_ * math.sin(ang), mc.y + u_ * math.sin(ang) + v_ * math.cos(ang))
+              for u_ in (-L / 2, L / 2) for v_ in (-W / 2, W / 2)]
         b = [round(mc.x, 2), round(mc.y, 2), round(L, 2), round(W, 2), round(ang, 4), round(min(hs) - 0.3, 2), lv,
              lm['wall'] if lm else wall, 2 if lm else roof, 0 if lm else int(hip), 1 if lm else int(on_main),
              int(rnd.random() < 0.6)]
