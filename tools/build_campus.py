@@ -639,8 +639,20 @@ for wv in ways.values():
 # south of the hall's axis so the way from the flight's head to the porch stays clear (reference/고증.md 4.5).
 # COURT_OLD: where it first stood in the game, beside 학생회관 별관 on what was really the drive up to the terrace
 # (AUD_RAMP below); the random planting still reads that spot (PAV_PRE, GARDEN_ZONES) so the campus keeps its draws.
-COURT = dict(pos=[33.8, 28.7], rot=1.313, L=28.0, W=15.0)
 COURT_OLD = dict(pos=[21.9, 2.5], rot=1.313, L=28.0, W=15.0)
+# The 1997-07-28 vertical aerial photos' original scans (0.13 m a pixel, reference/고증/4.5 「1997년 7월 항공사진 원본
+# 스캔」): no basketball lines on the terrace, but two portable hoops (a steel base frame on the paving, two arms up to
+# a board 3.5 m over it) facing each other on the hall's axis north of the flight's head, their boards 17.8 m apart
+# (the boards where the four frames of both flight lines agree on the plane 3.5 m up; the bases where they agree on
+# the ground); and in the terrace's south half a painted net court of 14.4 x 6.65 m (a 족구장's size: lines and the
+# middle line where the four frames agree within 0.2 m, a post at each end of the middle line).  COURT is now the
+# hoops' court: L puts the boards at +-(L/2 - 1.2) for web/src/hoops.js; COURT_RNG is the standard court as the game
+# had it before the scans, which the terrain, the paint and the clearing below still read so that the campus keeps
+# its draws and lists (the old court's level and paving are the terrace's anyway).
+COURT_RNG = dict(pos=[33.8, 28.7], rot=1.313, L=28.0, W=15.0)
+COURT = dict(pos=[42.03, 60.45], rot=1.4535, L=20.18, W=15.0, goals='portable',
+             base=(0.5, 2.8, 1.4), arm_top=(-0.55, 3.3))   # base: from L/2 + 0.5 to L/2 + 2.8 behind each board's line, 1.4 m wide
+JOKGU = dict(pos=[42.81, 19.44], rot=1.3125, L=14.4, W=6.65, post=0.3, net=(0.4, 1.1))   # (net: its foot and top)
 # --- 활천대 (活泉臺): the fountain the electrical engineering alumni raised money for in 1974 (연세대학교 공식 블로그
 # 「연세대학교의 조형물을 찾아서!! 제3탄」, 2017).  Before 백양로 was rebuilt it stood beside the eagle (연세춘추
 # 「연세인도 모르는 연세대학교」, 2009.9: 「활천대는 독수리상 옆에 있는 분수대다」; since 2015 it is in front of
@@ -730,7 +742,7 @@ def court_poly(pad=0.0, C=None):
                     for u, v in ((-hl, -hw), (hl, -hw), (hl, hw), (-hl, hw))])
 
 
-_inside = np.array([court_poly(1.5).contains(Point(x, y)) for x, y in pts]).reshape(X.shape)
+_inside = np.array([court_poly(1.5, COURT_RNG).contains(Point(x, y)) for x, y in pts]).reshape(X.shape)
 if _inside.any():
     _soft = ndimage.gaussian_filter(ndimage.binary_dilation(_inside, iterations=1).astype(float), 1.0)
     Hn = Hn * (1 - _soft) + float(Hn[_inside].mean()) * _soft
@@ -1346,6 +1358,24 @@ FIELD_PATCH = Polygon([(-400.0, -90.0), (-348.0, -90.0), (-332.0, -100.0), (-322
                        (-540.0, -178.0), (-540.0, -165.0), (-518.0, -152.0), (-482.0, -159.0), (-422.7, -107.9)])
 FIELD_GONE = (1494935780, 1441572669)
 GONE_1997.update({k_: None for k_ in FIELD_GONE})
+# The football pitch painted on it (the 1997-07-28 aerial photos' original scans, frames 26/16 and 26/15, reference/
+# 고증/4.12): in the pitch's own frame (v along its long axis, 37.7 deg, u to its right, from (-395, -189.5)) the goal
+# lines at v -52.5 and 52.15, the halfway line at v -1.6 (0.5 deg off square), the penalty areas 16.9 m deep, the
+# touchlines splaying out northwards (u -34.7 -> -36.3 and 33.8 -> 38.1: as painted, both frames within 0.15 m), a
+# goal behind the middle of each goal line.  No goal areas, centre circle or track lines show.
+_pv = np.array([math.cos(math.radians(37.7)), math.sin(math.radians(37.7))])
+_pu = np.array([_pv[1], -_pv[0]])
+_po = np.array([-395.0, -189.5])
+_ptw = lambda v_: -35.505 - 0.01556 * v_          # (the touchlines: fitted every 10 m along them)
+_pte = lambda v_: 35.985 + 0.0411 * v_
+_pxy = lambda u_, v_: [round(float(c_), 2) for c_ in _po + _pu * u_ + _pv * v_]
+FIELD_PITCH = dict(pos=[-395.0, -189.5], rot=round(math.radians(37.7), 5), w=0.12, lines=[
+    [_pxy(_ptw(-52.5), -52.5), _pxy(_pte(-52.5), -52.5)], [_pxy(_ptw(52.15), 52.15), _pxy(_pte(52.15), 52.15)],
+    [_pxy(_ptw(-52.5), -52.5), _pxy(_ptw(52.15), 52.15)], [_pxy(_pte(-52.5), -52.5), _pxy(_pte(52.15), 52.15)],
+    [_pxy(_ptw(-1.85), -1.85), _pxy(_pte(-1.35), -1.35)],
+    [_pxy(-20.2, -52.5), _pxy(-20.2, -35.4), _pxy(19.7, -35.4), _pxy(19.7, -52.5)],
+    [_pxy(-19.7, 52.15), _pxy(-19.7, 35.33), _pxy(21.1, 35.33), _pxy(21.1, 52.15)]],
+    goals=[[*_pxy(-0.2, -52.5), round(math.radians(37.7) + math.pi, 5)], [*_pxy(0.7, 52.15), round(math.radians(37.7), 5)]])
 _fm = shapely.contains_xy(FIELD_POLY.buffer(2.0), X, Y)
 _fpd = shapely.contains_xy(FIELD_PAD, X, Y) & ~_fm
 _ff = shapely.contains_xy(FIELD_PATCH, X, Y) & ~_fm & ~_fpd
@@ -3344,7 +3374,7 @@ def aud_bank_top(s_):
 _ts0 = AUD_RAMP['s_head'] - 2.0
 _tb = [along_raw(s_, AUD_BANK['side'] * (E_WALK + AUD_BANK['top'] - 0.5))[:2] for s_ in np.arange(_ts0, AUD_BANK['s1'] + 0.1, 4.0)]
 _tb += [along_raw(s_, AUD_BANK['side'] * (E_WALK + 21.0))[:2] for s_ in np.arange(AUD_BANK['s1'], _ts0 - 0.1, -4.0)]
-AUD_TERRACE = court_poly(5.0).union(Polygon(_tb)).union(Point(AUD_RAMP['pts'][-1]).buffer(5.0))
+AUD_TERRACE = court_poly(5.0, COURT_RNG).union(Polygon(_tb)).union(Point(AUD_RAMP['pts'][-1]).buffer(5.0))
 _bk = Polygon([along_raw(s_, AUD_BANK['side'] * (E_WALK - 2.0))[:2] for s_ in np.arange(AUD_BANK['s0'] - 2.0, AUD_BANK['s1'] + 0.1, 2.0)] +
               [along_raw(s_, AUD_BANK['side'] * (E_WALK + aud_bank_top(s_) - 0.5))[:2]
                for s_ in np.arange(AUD_BANK['s1'], AUD_BANK['s0'] - 2.1, -0.5)])           # (the bank: its own mesh)
@@ -3378,14 +3408,19 @@ def aud_upper_z(x, y):
     return AUD_UPPER['z0'] + (AUD_UPPER['z1'] - AUD_UPPER['z0']) * f_
 
 
-COURT_Z = round(aud_terrace_z(s_at(*COURT['pos'])), 3)              # (the court level: the terrace at its middle)
-_tw = shapely.contains_xy(AUD_TERRACE, X, Y)
+COURT_Z = round(aud_terrace_z(s_at(*COURT_RNG['pos'])), 3)          # (the old court's level: the terrace at its middle)
+COURT_H = round(aud_terrace_z(s_at(*COURT['pos'])), 3)              # (the hoops' court: north of the flight, level)
+# (the 1997 net court on the terrace's south-east part, JOKGU: the photos have it on the terrace's one level, 41.6 -
+# 42.2 m on their datum like the terrace north of the flight's head, where the game's ground fell away to the upper
+# road and the old court's level: its pad at the terrace's level north of the flight, AUD_T)
+_jw = shapely.contains_xy(court_poly(3.0, JOKGU), X, Y)
+_tw = shapely.contains_xy(AUD_TERRACE, X, Y) | _jw
 _rw = shapely.contains_xy(AUD_RAMP_POLY.buffer(1.5), X, Y) & ~_tw
-_cw = shapely.contains_xy(court_poly(5.0), X, Y)
+_cw = shapely.contains_xy(court_poly(5.0, COURT_RNG), X, Y) & ~_jw
 _uw = shapely.contains_xy(AUD_UPPER_POLY, X, Y) & ~_tw & ~_rw
 _zt = np.full(X.shape, AUD_T)
 for _j, _i in zip(*np.nonzero(_tw)):
-    _zt[_j, _i] = COURT_Z if _cw[_j, _i] else aud_terrace_z(s_at(X[_j, _i], Y[_j, _i]))
+    _zt[_j, _i] = AUD_T if _jw[_j, _i] else COURT_Z if _cw[_j, _i] else aud_terrace_z(s_at(X[_j, _i], Y[_j, _i]))
 for _j, _i in zip(*np.nonzero(_rw)):
     _zt[_j, _i] = aud_ramp_z(X[_j, _i], Y[_j, _i])
 for _j, _i in zip(*np.nonzero(_uw)):
@@ -3395,7 +3430,7 @@ _ni = ndimage.distance_transform_edt(~_in, return_distances=False, return_indice
 _zt = _zt[_ni[0], _ni[1]]                                           # (beyond them: the nearest node's level)
 _tw = np.maximum(_in.astype(float), ndimage.gaussian_filter(ndimage.binary_dilation(_in, iterations=1).astype(float), 1.0))
 _tw *= np.clip((dist - ROAD_HALF - 1.0) / 3.0, 0, 1)
-_tw[(near_buildings(11.0) & ~_rw & ~_cw & ~_uw) | near_buildings(3.0) | FIXED] = 0.0   # (the court's margin: level)
+_tw[(near_buildings(11.0) & ~_rw & ~_cw & ~_uw & ~_jw) | near_buildings(3.0) | FIXED] = 0.0   # (the court's margin: level)
 Hn[:] = Hn * (1 - _tw) + _zt * _tw
 FIXED[_tw > 0.999] = True
 print('대강당 앞 진입로: z %.2f -> %.2f over %.1f m (%.1f %%), head at s %.1f; terrace %.2f -> %.2f, court %.2f'
@@ -6089,17 +6124,20 @@ STATUES = dict(
                r=round(EAGLE_DAIS[0] + 0.05, 2), dais=list(EAGLE_DAIS), ring=list(EAGLE_RING), beds=EAGLE_BEDS_R, walk=EAGLE_WALK_W,
                walk_edge=EAGLE_EDGE, groups=[list(g_) for g_ in EAGLE_GROUPS]),
     underwood_statue=dict(pos=list(UW_STATUE), rot=math.radians(-14)),
-    court=dict(pos=COURT['pos'], rot=COURT['rot'], L=COURT['L'], W=COURT['W']),
+    court=dict(pos=COURT['pos'], rot=COURT['rot'], L=COURT['L'], W=COURT['W'], goals=COURT['goals'], base=list(COURT['base']),
+               arm_top=list(COURT['arm_top'])),
+    jokgu=dict(JOKGU, net=list(JOKGU['net'])),
+    pitch=dict(FIELD_PITCH, lines=[[list(p_) for p_ in l_] for l_ in FIELD_PITCH['lines']]),
     fountain=dict(FOUNTAIN, rot=0.0),                            # (the column's arms face the compass points)
     gate=dict(pos=[round(GATE_C[0], 2), round(GATE_C[1], 2)], rot=math.radians(-14)),      # (정문의 자리, above)
 )
 _tn = dict(TENNIS, rot=round(TENNIS['rot'], 5))
 for v in STATUES.values():
     v['h'] = round(ground_h(*v['pos']), 2)
-STATUES['court']['h'] = COURT_Z         # (on the terrace behind 백양로's bank, AUD_BANK: level, at its middle's)
+STATUES['court']['h'] = COURT_H         # (on the terrace behind 백양로's bank, AUD_BANK: level north of the flight)
 # its stone skirt down to the lowest ground round it and half a metre under
 _cr = court_poly(1.2).exterior
-STATUES['court']['skirt'] = round(max(2.0, COURT_Z + 0.5 - min(ground_h(*_cr.interpolate(k_ / 80, normalized=True).coords[0])
+STATUES['court']['skirt'] = round(max(2.0, COURT_H + 0.5 - min(ground_h(*_cr.interpolate(k_ / 80, normalized=True).coords[0])
                                                              for k_ in range(80))), 2)
 # 공학원 (연세공학원) broke ground on 18 August 1995 on the 정구장's two blocks (TENNIS) and was finished on 8 April 1999
 # (yonsei.ac.kr/sc/349: 지하 5층 · 지상 4층; namu.wiki): the 1990 · 1994 · 1995 maps and the 1994 aerial photo show the
@@ -6436,7 +6474,7 @@ for b in buildings:
     b['footprint'] = [[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]
     print('hall outline', b['name'], 'length %.1f m, depth %.1f m' % (sb_ - sa_, W_))
 MARKER_NAME = {n: None for n in ('별동연구동', '영빈관', '영선실', '차량실', '행정동', '학생회관 별관', '광혜관')}
-EXTRA_MARKERS = [('청송대', 238.0, 284.0), ('농구장', COURT['pos'][0], COURT['pos'][1])]          # the wooded park east of 연희관 (OSM leisure=park)
+EXTRA_MARKERS = [('청송대', 238.0, 284.0), ('농구장', COURT['pos'][0], COURT['pos'][1]), ('족구장', JOKGU['pos'][0], JOKGU['pos'][1])]          # the wooded park east of 연희관 (OSM leisure=park)
 EXTRA_MARKERS += [(n, round(p.centroid.x, 1), round(p.centroid.y, 1)) for n, p in GONE_SITES if n]
 EXTRA_MARKERS += [('공학원 (공사중)', round(GONGWON_SITE.centroid.x, 1), round(GONGWON_SITE.centroid.y, 1))]
 EXTRA_MARKERS += [('대운동장', round(FIELD_POLY.centroid.x, 1), round(FIELD_POLY.centroid.y, 1))]
@@ -6938,7 +6976,8 @@ def decal_spots():
 out['decals'] = decal_spots()
 gw_cut(paths_out)                          # (공학원 공사장: above)
 gw_cut(out['paths'])
-out['decals'] = [d_ for d_ in out['decals'] if not court_poly(1.0).contains(Point(d_[1], d_[2]))]   # (the court's slab)
+if COURT.get('goals') != 'portable':        # (a court's slab: the hoops of 1997 stand on the terrace's own asphalt)
+    out['decals'] = [d_ for d_ in out['decals'] if not court_poly(1.0).contains(Point(d_[1], d_[2]))]
 out['decals'] = [d_ for d_ in out['decals'] if not _uwz.contains(Point(d_[1], d_[2]))]   # (the old garden's paving)
 print('decals', len(out['decals']), {k_: sum(1 for d_ in out['decals'] if d_[0] == k_) for k_ in sorted({d_[0] for d_ in out['decals']})})
 # 용재관's ground (YONGJAE above) now that the random draws are done.  The photo has the 진달래동산 right behind the
@@ -7368,18 +7407,22 @@ print('대강당 앞 돌계단: cleared (trees, shrubs, props, cars)', _nf[0] - 
       _nf[3] - len(cars))
 # the court on the terrace and the drive up to it, and its mouth before the bollards: no tree, shrub, prop or car
 # (laid after the planting)
-_cz = unary_union([court_poly(2.0), AUD_RAMP_CW.buffer(0.5), AUD_RAMP_WALK.buffer(0.5), AUD_RAMP_BAND,
-                   ramp_strip(-AUD_RAMP['w'] / 2 - 1.0, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], -AUD_RAMP['mouth'] - 3.0, 0.0)])
+_cz_drive = [AUD_RAMP_CW.buffer(0.5), AUD_RAMP_WALK.buffer(0.5), AUD_RAMP_BAND,
+             ramp_strip(-AUD_RAMP['w'] / 2 - 1.0, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], -AUD_RAMP['mouth'] - 3.0, 0.0)]
+# (the 1997 hoops: the ground between and under them; the net court; the standard court as it stood decides the list)
+_cz = unary_union([court_poly(1.0, dict(COURT, W=10.0)), court_poly(0.0, dict(COURT, L=COURT['L'] + 2 * (COURT['base'][1] + 0.8), W=3.0)),
+                   court_poly(1.0, JOKGU)] + _cz_drive)
 # (the list is cleared by the drive where it first lay, AUD_RAMP_MOVE: what the moved one runs over goes at the end)
-_cz_rng = unary_union([court_poly(2.0)] + [shapely.affinity.translate(g_, -AUD_RAMP_MOVE[0], -AUD_RAMP_MOVE[1]) for g_ in (
-    AUD_RAMP_CW.buffer(0.5), AUD_RAMP_WALK.buffer(0.5), AUD_RAMP_BAND,
-    ramp_strip(-AUD_RAMP['w'] / 2 - 1.0, AUD_RAMP['w'] / 2 + AUD_RAMP['walk'], -AUD_RAMP['mouth'] - 3.0, 0.0))])
-_cz, _cz_rng = _cz.difference(bline.buffer(E_WALK + 0.3)), _cz_rng.difference(BLINE_RNG.buffer(E_WALK + 0.3))
+_cz_rng = unary_union([court_poly(2.0, COURT_RNG)] + [shapely.affinity.translate(g_, -AUD_RAMP_MOVE[0], -AUD_RAMP_MOVE[1]) for g_ in _cz_drive])
+_cz_car = unary_union([court_poly(2.0, COURT_RNG)] + _cz_drive)      # (the cars as before: the cars agent sees to the rest)
+_cz, _cz_rng, _cz_car = (_cz.difference(bline.buffer(E_WALK + 0.3)), _cz_rng.difference(BLINE_RNG.buffer(E_WALK + 0.3)),
+                         _cz_car.difference(bline.buffer(E_WALK + 0.3)))
 _nf = (len(trees), len(shrubs), len(props), len(cars))
 clear_trees(_cz, _cz_rng)
-shrubs = [s for s in shrubs if not _cz.contains(Point(s[1], s[2]))]
-props = [p for p in props if not _cz.contains(Point(p[1], p[2]))]
-cars = [c for c in cars if not _cz.contains(Point(c[1], c[2]))]
+_cz_sp = _cz.union(_cz_car)                                           # (shrubs and props: off the old court too)
+shrubs = [s for s in shrubs if not _cz_sp.contains(Point(s[1], s[2]))]
+props = [p for p in props if not _cz_sp.contains(Point(p[1], p[2]))]
+cars = [c for c in cars if not _cz_car.contains(Point(c[1], c[2]))]
 print('대강당 앞 코트 · 진입로: cleared (trees, shrubs, props, cars)', _nf[0] - len(trees), _nf[1] - len(shrubs),
       _nf[2] - len(props), _nf[3] - len(cars))
 # the trees round the drive (reference/고증.md 4.5): Kakao roadview April 2011 1017220190 - 195, each trunk from
@@ -8348,7 +8391,7 @@ _ypaint([Polygon([tuple(_fo + _fu * u_ + _fv * v_) for u_, v_ in ((-4.5, AUD_FLI
                                                                    (6.0, 26.0), (-6.0, 26.0))])], _ga)
 # 대강당 앞: the terrace and the drive up to it asphalt, and the yard before 학생회관 별관 where the court first stood
 # (the 1994 aerial photo: one paved yard from 별관's foot to the hall)
-AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), court_poly(1.0, COURT_OLD),
+AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), court_poly(1.0, COURT_OLD), court_poly(2.5, JOKGU),
                         AUD_UPPER_POLY]).difference(bline.buffer(ROAD_HALF)).difference(AUD_BANK_POLY) \
     .difference(AUD_RAMP_BAND).difference(unary_union(AUD_TREE_BEDS))
 _ypaint([AUD_YARD], _ga)

@@ -4742,12 +4742,15 @@ def daewoo_annex():
 
 # ============================================================================= 대강당 앞 농구장
 def basketball_court():
-    """The 1997 outdoor basketball court on the terrace before 대강당 (tools/build_campus.py COURT): a 28 x 15 m
-    concrete slab with painted lines (FIBA rules of the time: trapezoid lanes, 6.25 m three-point arc) and two hoops
-    on steel posts behind the baselines.  No photo found, so a plain standard court."""
+    """The 1997 basketball hoops on the terrace before 대강당 (tools/build_campus.py COURT).  goals 'portable': as the
+    1997-07-28 aerial photos' scans have them, two portable stands on the terrace's asphalt facing each other, no
+    lines (reference/고증/4.5); otherwise a standard 28 x 15 m slab with painted lines (FIBA rules of the time) and two
+    hoops on steel posts behind the baselines."""
     C = CAMPUS.get('statues', {}).get('court')
     if not C:
         return []
+    if C.get('goals') == 'portable':
+        return portable_hoops(C)
     L, W = C['L'], C['W']
     mb = MeshBuilder('lm_court')
     mb.xf = local_frame(C['pos'][0], C['pos'][1], C['rot'], C['h'])
@@ -4828,6 +4831,164 @@ def basketball_court():
                 mb.face(q, 'paint_white')
                 mb.face(q[::-1], 'paint_white')
     return [mb]
+
+
+def hoop_head(mb, bx, sg, z0=0.0):
+    """a basket's board, rim and net in a court's frame: the board's face at x = bx - sg * 1.2 (bx the baseline's x,
+    sg the side), the rim's middle 1.575 m in from the baseline at 3.05 m (web/src/hoops.js knows these); z0 the
+    ground's height under it over the frame's"""
+    mb.box((bx - sg * 1.2 + sg * 0.03, 0, z0 + 3.4), (0.05, 1.8, 1.05), 'paint_white')
+    mb.box((bx - sg * 1.2 - sg * 0.002, 0, z0 + 3.25), (0.01, 0.59, 0.45), 'metal_dark', skip=('bottom', 'top'))
+    rc = bx - sg * 1.575
+    seg, rr = 18, 0.225
+    for k in range(seg):
+        a0 = 2 * math.pi * (k + 0.5) / seg
+        mb.box((rc + rr * math.cos(a0), rr * math.sin(a0), z0 + 3.05), (0.03, 2 * math.pi * rr / seg * 1.05, 0.03), 'banner_orange',
+               rotz=a0)
+    bkx = bx - sg * 1.2
+    mb.box(((bkx + (rc + sg * rr)) / 2, 0, z0 + 3.05), (abs(bkx - (rc + sg * rr)) + 0.02, 0.12, 0.03), 'banner_orange')
+    mb.box((bkx - sg * 0.02, 0, z0 + 3.05), (0.04, 0.45, 0.05), 'metal_dark')
+    for k in range(12):
+        a0 = 2 * math.pi * k / 12
+        a1 = a0 + math.pi / 12
+        top = (rc + rr * math.cos(a0), rr * math.sin(a0), z0 + 3.05)
+        bot = (rc + 0.13 * math.cos(a1), 0.13 * math.sin(a1), z0 + 2.65)
+        top2 = (rc + rr * math.cos(a0 + math.pi / 6), rr * math.sin(a0 + math.pi / 6), z0 + 3.05)
+        for (u, v) in ((top, bot), (top2, bot)):
+            q = [(u[0] - 0.007, u[1] - 0.007, u[2]), (u[0] + 0.007, u[1] + 0.007, u[2]), (v[0] + 0.007, v[1] + 0.007, v[2]),
+                 (v[0] - 0.007, v[1] - 0.007, v[2])]
+            mb.face(q, 'paint_white')
+            mb.face(q[::-1], 'paint_white')
+    for zz, rn in ((2.9, 0.19), (2.77, 0.16)):          # cross-strings
+        pts = [(rc + rn * math.cos(2 * math.pi * k / 12), rn * math.sin(2 * math.pi * k / 12), z0 + zz) for k in range(13)]
+        for u, v in zip(pts, pts[1:]):
+            q = [(u[0], u[1], u[2] - 0.008), (v[0], v[1], v[2] - 0.008), (v[0], v[1], v[2] + 0.008), (u[0], u[1], u[2] + 0.008)]
+            mb.face(q, 'paint_white')
+            mb.face(q[::-1], 'paint_white')
+
+
+def portable_hoops(C):
+    """The two portable hoops of 1997 on 대강당's terrace (tools/build_campus.py COURT, reference/고증/4.5): in the
+    1997-07-28 aerial photos' scans each is a steel frame lying on the paving behind its board (base: from L/2 + b0 to
+    L/2 + b1 out from the court's middle, w wide), a ballast box across its back end, and two arms rising from the
+    frame's front corners forward to the board's back, which stands 3.5 m over the paving 1.7 m ahead of the frame.
+    No lines on the asphalt.  Each stand sits on the ground under it (the terrace is level there)."""
+    L = C['L']
+    b0, b1, bw = C['base']
+    ax, az = C['arm_top']                      # (the arms' tops: ax m from the board's line, az up)
+    out = []
+    c_, s_ = math.cos(C['rot']), math.sin(C['rot'])
+    for sg in (-1, 1):
+        mb = MeshBuilder('lm_court_hoop_%s' % ('s' if sg < 0 else 'n'))
+        mb.xf = local_frame(C['pos'][0], C['pos'][1], C['rot'], C['h'])
+        d_ = sg * (L / 2 + (b0 + b1) / 2)
+        z0 = ground_top(C['pos'][0] + c_ * d_, C['pos'][1] + s_ * d_) - C['h']
+        hl = L / 2
+        bx = sg * hl
+        xb = sg * (hl - 1.2)                   # the board's line
+        x0, x1 = sg * (hl + b0), sg * (hl + b1)  # the frame's front and back
+        t = 0.045
+        for yy in (-bw / 2, bw / 2):           # the frame's two rails, and its front bar
+            rod(mb, (x0, yy, z0 + t), (x1, yy, z0 + t), t, 'metal_dark', seg=6, caps=True)
+        rod(mb, (x0, -bw / 2, z0 + t), (x0, bw / 2, z0 + t), t, 'metal_dark', seg=6, caps=True)
+        mb.box((x1 - sg * 0.25, 0, z0 + 0.18), (0.5, bw + 0.1, 0.36), 'metal_dark')            # the ballast box
+        for yy in (-1, 1):                     # the arms: up from the frame's front corners to the board's back
+            p0 = (x0, yy * (bw / 2 - 0.05), z0 + t)
+            p1 = (xb + sg * (0.05 - ax), yy * 0.35, z0 + az)
+            rod(mb, p0, p1, 0.05, 'metal_dark', seg=8, caps=True)
+            rod(mb, p1, (xb + sg * 0.05, yy * 0.35, z0 + az), 0.04, 'metal_dark', seg=8, caps=True)
+            pm = (p0[0] + (p1[0] - p0[0]) * 0.45, p0[1] + (p1[1] - p0[1]) * 0.45, p0[2] + (p1[2] - p0[2]) * 0.45)
+            rod(mb, (x1 - sg * 0.5, yy * (bw / 2 - 0.05), z0 + 0.36), pm, 0.03, 'metal_dark', seg=6, caps=True)   # a stay
+        rod(mb, (xb + sg * 0.05, -0.35, z0 + az), (xb + sg * 0.05, 0.35, z0 + az), 0.04, 'metal_dark', seg=8, caps=True)
+        hoop_head(mb, bx, sg, z0)
+        out.append(mb)
+    return out
+
+
+def jokgu_court():
+    """The net court of 1997 painted on the south half of 대강당's terrace (tools/build_campus.py JOKGU, reference/
+    고증/4.5): 14.4 x 6.65 m between the lines' middles (a 족구장's size) with its middle line, in the 1997-07-28 aerial
+    photos' scans, and a post at each end of the middle line.  The lines are laid strip by strip on the ground the
+    web app draws (the terrace falls along it), the net between the posts at the game's rules' height."""
+    J = CAMPUS.get('statues', {}).get('jokgu')
+    if not J:
+        return []
+    mb = MeshBuilder('lm_jokgu')
+    c_, s_ = math.cos(J['rot']), math.sin(J['rot'])
+    W_ = lambda lx, ly: (J['pos'][0] + lx * c_ - ly * s_, J['pos'][1] + lx * s_ + ly * c_)
+    hl, hw, lw = J['L'] / 2, J['W'] / 2, 0.05
+
+    def line(a, b):
+        (xa, ya), (xb, yb) = W_(*a), W_(*b)
+        Ls = math.hypot(xb - xa, yb - ya)
+        dx, dy = (xb - xa) / Ls, (yb - ya) / Ls
+        nx, ny = -dy * lw / 2, dx * lw / 2
+        n = max(1, int(math.ceil(Ls / 0.5)))
+        pts = [(xa + (xb - xa) * k / n, ya + (yb - ya) * k / n) for k in range(n + 1)]
+        zs = [ground_top(x, y) + 0.025 for x, y in pts]
+        for (x0, y0), (x1, y1), z0, z1 in zip(pts, pts[1:], zs, zs[1:]):
+            mb.quad((x0 - nx, y0 - ny, z0), (x1 - nx, y1 - ny, z1), (x1 + nx, y1 + ny, z1), (x0 + nx, y0 + ny, z0), 'paint_white')
+    for a, b in (((-hl, -hw), (hl, -hw)), ((hl, -hw), (hl, hw)), ((hl, hw), (-hl, hw)), ((-hl, hw), (-hl, -hw)), ((0, -hw), (0, hw))):
+        line(a, b)
+    nb, nt = J['net']
+    py = hw + J['post']
+    (xa, ya), (xb, yb) = W_(0, -py), W_(0, py)
+    za, zb = ground_top(xa, ya), ground_top(xb, yb)
+    for (x, y), z in (((xa, ya), za), ((xb, yb), zb)):
+        mb.cylinder((x, y), 0.04, z, z + nt + 0.05, 'metal_dark', seg=8, cap_top=True)
+    m = 10
+    for j in range(m):                         # the net, and its white tape along the top
+        f0, f1 = j / m, (j + 1) / m
+        p0 = (xa + (xb - xa) * f0, ya + (yb - ya) * f0)
+        p1 = (xa + (xb - xa) * f1, ya + (yb - ya) * f1)
+        z0, z1 = za + (zb - za) * f0, za + (zb - za) * f1
+        mb.face([(*p0, z0 + nb), (*p1, z1 + nb), (*p1, z1 + nt - 0.05), (*p0, z0 + nt - 0.05)], 'net_mesh')
+        q = [(*p0, z0 + nt - 0.06), (*p1, z1 + nt - 0.06), (*p1, z1 + nt), (*p0, z0 + nt)]
+        mb.face(q, 'paint_white')
+        mb.face(q[::-1], 'paint_white')
+    return [mb]
+
+
+def field_pitch():
+    """The football pitch painted on 대운동장's earth in 1997 (tools/build_campus.py FIELD_PITCH, reference/고증/4.12):
+    its touchlines, goal lines, halfway line and penalty areas as the 1997-07-28 aerial photos' scans have them (the
+    touchlines splay out northwards as painted), lime-white strips laid on the ground, and a goal behind the middle of
+    each goal line (7.32 x 2.44 m, white posts, a net back to a frame on the ground)."""
+    P = CAMPUS.get('statues', {}).get('pitch')
+    if not P:
+        return []
+    mb = MeshBuilder('lm_pitch')
+    hw = P.get('w', 0.12) / 2
+    for pl in P['lines']:
+        for (xa, ya), (xb, yb) in zip(pl, pl[1:]):
+            Ls = math.hypot(xb - xa, yb - ya)
+            dx, dy = (xb - xa) / Ls, (yb - ya) / Ls
+            nx, ny = -dy * hw, dx * hw
+            n = max(1, int(math.ceil(Ls / 2.0)))
+            pts = [(xa + (xb - xa) * k / n, ya + (yb - ya) * k / n) for k in range(n + 1)]
+            zs = [ground_top(x, y) + 0.03 for x, y in pts]
+            for (x0, y0), (x1, y1), z0, z1 in zip(pts, pts[1:], zs, zs[1:]):
+                mb.quad((x0 - nx - dx * hw, y0 - ny - dy * hw, z0), (x1 - nx + dx * hw, y1 - ny + dy * hw, z1),
+                        (x1 + nx + dx * hw, y1 + ny + dy * hw, z1), (x0 + nx - dx * hw, y0 + ny - dy * hw, z0), 'paint_white')
+    out = [mb]
+    for k, (gx, gy, grot) in enumerate(P['goals']):
+        gm = MeshBuilder('lm_pitch_goal_%d' % k)
+        gm.xf = local_frame(gx, gy, grot, ground_top(gx, gy))    # (local x: out of the pitch, behind the goal line)
+        hw_, H, D, r = 7.32 / 2 + 0.06, 2.44 + 0.06, 1.8, 0.06
+        for yy in (-hw_, hw_):
+            rod(gm, (0, yy, 0), (0, yy, H), r, 'paint_white', seg=8, caps=True)
+            rod(gm, (0, yy, H), (0.9, yy, H), 0.03, 'paint_white', seg=6, caps=True)        # the top stays back
+            rod(gm, (0.9, yy, H), (D, yy, 0.05), 0.03, 'paint_white', seg=6, caps=True)
+            rod(gm, (0, yy, 0.03), (D, yy, 0.03), 0.03, 'paint_white', seg=6, caps=True)      # the frame on the ground
+        rod(gm, (0, -hw_, H), (0, hw_, H), r, 'paint_white', seg=8, caps=True)
+        rod(gm, (D, -hw_, 0.03), (D, hw_, 0.03), 0.03, 'paint_white', seg=6, caps=True)
+        # the net: roof, back slope and the two sides
+        gm.face([(0, -hw_, H), (0.9, -hw_, H), (0.9, hw_, H), (0, hw_, H)], 'net_mesh')
+        gm.face([(0.9, -hw_, H), (D, -hw_, 0.05), (D, hw_, 0.05), (0.9, hw_, H)], 'net_mesh')
+        for yy in (-hw_, hw_):
+            gm.face([(0, yy, 0.03), (D, yy, 0.03), (D, yy, 0.05), (0.9, yy, H), (0, yy, H)], 'net_mesh')
+        out.append(gm)
+    return out
 
 
 def parking_lines():

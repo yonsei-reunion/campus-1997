@@ -391,11 +391,23 @@ async function main() {
   }
   colliders.addCircle(S.underwood_statue.pos[0], S.underwood_statue.pos[1], 2.1);   // the rock-faced octagon (the round slab is walked on)
   if (S.fountain) colliders.addCircle(S.fountain.pos[0], S.fountain.pos[1], S.fountain.rim);   // 활천 basin's stone wall
-  if (S.court) {                                                                     // the two hoop posts of the 대강당 court
+  if (S.court) {                                                                     // the two hoops of the 대강당 court
+    const c = Math.cos(S.court.rot), s = Math.sin(S.court.rot);
     for (const sg of [-1, 1]) {
-      const d = sg * (S.court.L / 2 + 1.0);
-      colliders.addCircle(S.court.pos[0] + Math.cos(S.court.rot) * d, S.court.pos[1] + Math.sin(S.court.rot) * d, 0.3);
+      // portable stands (1997 aerial scans): their frames on the paving behind the boards; else posts behind the baselines
+      const ds = S.court.goals === 'portable' ? [[S.court.base[0] + 0.6, 0.75], [S.court.base[1] - 0.6, 0.75]] : [[1.0, 0.3]];
+      for (const [o, r] of ds) {
+        const d = sg * (S.court.L / 2 + o);
+        colliders.addCircle(S.court.pos[0] + c * d, S.court.pos[1] + s * d, r);
+      }
     }
+  }
+  if (S.jokgu) {                                                                     // the net court's two posts
+    const J = S.jokgu, y = J.W / 2 + J.post;
+    for (const sg of [-1, 1]) colliders.addCircle(J.pos[0] - Math.sin(J.rot) * sg * y, J.pos[1] + Math.cos(J.rot) * sg * y, 0.15);
+  }
+  for (const [x, y, a] of S.pitch?.goals ?? []) {                                    // 대운동장's goalposts
+    for (const sg of [-1, 1]) colliders.addCircle(x - Math.sin(a) * sg * 3.72, y + Math.cos(a) * sg * 3.72, 0.15);
   }
   const banners = makeBanners(campus.banners, lib);
   flagWind(lib);                    // the white flag's cloth stirs in the wind too (src/flags.js)
