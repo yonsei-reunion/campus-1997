@@ -8743,6 +8743,22 @@ for sp_, x_, y_, sc_, grp_, _ in RD97['trees']:
     RD_NEW_TREES.append([sp_, round(q_.x, 2), round(q_.y, 2), sc_, round(_rd_rt.uniform(0, 6.28), 2)])
 trees += RD_NEW_TREES
 print('찻길 trees: new %d of %d, left out %d' % (len(RD_NEW_TREES), len(RD97['trees']), len(_rd_skip)), _rd_skip)
+# 한경길's tree strip (the 1997 scans, 26/15 · 27/16 · 26/16; reference/고증/2.9 「한경길 · 연희관 앞」): between its two
+# lanes a planted strip some 7 m wide from abreast of 교육관 (x 52) to the fork east of it (x 118), its kerbs rounded at
+# the west end, under a closed row of big round crowns (6 - 7 m across, about 6 m apart: eleven).  The game had the
+# lanes and no tree there.  At the list's end, so that no other tree changes its model; their places on the middle
+# line between the two lanes' lines, read to ±1.5 m (crowns stand 8 m up: the frames lean them 3 m either way).
+_hkt_r = random.Random(1997 + 187)
+HK_STRIP_TREES = []
+for x_ in np.arange(56.0, 116.1, 6.0):
+    _yn = float(np.interp(x_, [p_[0] for p_ in HK_N[::-1]], [p_[1] for p_ in HK_N[::-1]],
+                          right=HK_N[0][1] - (x_ - HK_N[0][0]) * (HK_N[1][1] - HK_N[0][1]) / (HK_N[0][0] - HK_N[1][0])))
+    _ys = float(np.interp(x_, [p_[0] for p_ in HK_S], [p_[1] for p_ in HK_S],
+                          left=HK_S[0][1] + (HK_S[0][0] - x_) * 0.263))
+    HK_STRIP_TREES.append(['zelkova', round(float(x_), 2), round((_yn + _ys) / 2, 2), round(_hkt_r.uniform(0.85, 1.0), 2),
+                           round(_hkt_r.uniform(0, 6.28), 2)])
+trees += HK_STRIP_TREES
+print('한경길 tree strip: %d trees' % len(HK_STRIP_TREES))
 # 노면의 선 (campus.json road_paint; blender/landmarks.py road_paint lays it on the ground as the car parks' lines):
 # the yellow edge lines 0.35 m inside the kerbs and the middle lines of the 2008 roadview, on the game's own roads
 # (RD97['lines']: side L / R / C between two points of the road's line); what the 1997 photos show across the east
