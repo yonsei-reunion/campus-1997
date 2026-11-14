@@ -6525,16 +6525,17 @@ print('음악관 두 동:', MUSIC97_HALLS)
 # 청송대 숲 · 동쪽 언덕 (tools/east97.py, reference/고증/3.23_청송대.md; #189): the wood's floor east of the east road and
 # the knoll west of it on the 1:5000 survey's surface (the surface model had the canopy in it, 8 - 12 m over the
 # ground in the wood, and the knolls cut 4 - 6 m), nudged to the 1997 photos where they see the ground; the halls in
-# the wood go up or down with the ground at their feet; the top of the hill east of 노천극장.  Late, here: the planting
-# has read the ground as it was (the trees, walks and benches stand where they stood, on the new ground)
+# the wood stand on it; the top of the hill east of 노천극장.  Late, here: the planting has read the ground as it was
+# (the trees, walks and benches stand where they stood, on the new ground)
 _ea_halls = [(b_['id'], Polygon(b_['footprint']).buffer(0)) for b_ in buildings if b_['id'] not in GONE_1997] + \
     [(pid_, p_.buffer(0)) for pid_, _, _, _, p_ in OLD_HALLS]
-_ea_took, _ea_lifts, EAST97_GRADE = east97.grade(Hn, X, Y, FIXED, _ea_halls, [music97.REGION, med97.DENT_LOT], harmonic_fill,
+_ea_took, _ea_moved, EAST97_GRADE = east97.grade(Hn, X, Y, FIXED, _ea_halls, [music97.REGION, med97.DENT_LOT], harmonic_fill,
                                                 TR_E, TR_EN)
 FIXED[_ea_took] = True
-for b_ in buildings:
-    if b_['id'] in _ea_lifts:
-        b_['base'], b_['top_ground'] = round(b_['base'] + _ea_lifts[b_['id']], 2), round(b_['top_ground'] + _ea_lifts[b_['id']], 2)
+for b_ in buildings:                    # (the halls in the wood: their floors from the ground under their corners again)
+    if b_['id'] in _ea_moved:
+        _ea_hs = [ground_h(x_, y_) for x_, y_ in b_['footprint']]
+        b_['base'], b_['top_ground'] = round(min(_ea_hs), 2), round(max(_ea_hs), 2)
 print('청송대 숲 · 동쪽 언덕:', EAST97_GRADE)
 tr_tilt_of(TR_E, TR_EN, TR_EO, TR_EK0, 'east (east97)')
 # ---------------------------------------------------------------------------

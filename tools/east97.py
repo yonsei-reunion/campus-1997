@@ -1,7 +1,7 @@
 """청송대 숲과 캠퍼스 동쪽 언덕의 1997년 땅 (#189; reference/고증/3.23_청송대.md, 3.14 「동쪽 언덕의 봉우리」, 2.8 「측량 표고」).
 tools/build_campus.py 가 부른다.
 
-    took, lifts, info = east97.grade(Hn, X, Y, FIXED, halls, hold, fill, tr_pts, tr_n)   # 심기가 끝난 뒤, music97 바로 뒤
+    took, moved, info = east97.grade(Hn, X, Y, FIXED, halls, hold, fill, tr_pts, tr_n)   # 심기가 끝난 뒤, music97 바로 뒤
 
 Frame: campus metres, x east, y north.  GRID is 해발 (the survey's heights above sea level, decimetres); the game's
 datum is SURVEY_T over it (reference/고증/2.8: 게임 = 해발 + T), added in grid_z().  PEAK and nothing else here is an
@@ -21,9 +21,9 @@ absolute height on the game's datum.
 - WOOD: east of the east road (TR_E; its own nodes, the 1997 photos' heights, stay) from the hill music97.py laid to
   y 570 and out to the campus's east edge, short of 알렌관.  KNOLL: the wooded knoll west of that road between 성암관
   and 대우관 별관, which the smooth fill beside the road (EAST_Q97) had flattened.
-- The halls in it (차량실, 법인본부 · 대학사택, 총장공관, 영빈관, 영선실, 어린이생활지도연구원) keep the ground at their feet
-  as the model had it (their terraces) and go up or down with it by what the survey has there (HALL_REF: 차량실 by
-  the car park before it); their floors follow (the lifts returned).
+- The halls in it (차량실, 법인본부 · 대학사택, 총장공관, 영빈관, 영선실, 어린이생활지도연구원) stand on the same surface
+  (the survey's contours have their terraces; the photos' roofs agree with floors at their lowest corners: 차량실,
+  총장공관, 영빈관): their floors are read again from the ground under their corners (the ids returned).
 - PEAK: the top of the hill east of 노천극장 (in music97's REGION): the 2024 survey's spot (207.5, 85.8) 87.51 m in the
   top loop of both surveys' 85 m contours, where the grid laid there dipped to 84.7 - 85.6 m.
 - Nothing here draws from build_campus.py's `rng`; trees, benches and walks stand where they stood, on the new ground.
@@ -46,7 +46,6 @@ KNOLL = Polygon([(149.0, 346.0), (176.0, 344.0), (190.0, 352.0), (193.0, 372.0),
 # under its height comes up to it (해발 87.5 m at the two nodes either side of the spot, 86.5 · 86.0 m round them)
 PEAK = [(205.0, 85.0, 88.83), (210.0, 85.0, 88.86), (200.0, 85.0, 87.81), (215.0, 85.0, 87.88), (205.0, 80.0, 87.82),
         (210.0, 80.0, 87.85), (205.0, 90.0, 87.34), (210.0, 90.0, 87.37)]
-HALL_REF = {472516999: (318.0, 355.0)}   # 차량실: by the car park before it (the photos' 해발 66.5 m), not by its own outline
 HALL_PAD = 7.1                    # a hall's feet: the nodes this close to its walls
 RING = 12.0                       # eased (harmonic) this far round WOOD and KNOLL
 GRID_X0, GRID_Y0, GRID_D = 145.0, 25.0, 5.0       # (the grid's south-west node, spacing: the game's 5 m nodes)
@@ -175,10 +174,10 @@ def grid_z(x, y):
 
 def grade(Hn, X, Y, FIXED, halls, hold, fill, tr_pts, tr_n, step=5.0, half=800.0):
     """GRID over WOOD and KNOLL (whatever rule set a node there before yields, but not the east road's own nodes, the
-    polygons `hold` and the feet of the halls outside), the halls inside with the ground at their feet lifted by what
-    the survey has there, PEAK; eased round them (fill: harmonic_fill) over nodes no rule has set, which stay free.
-    halls: [(id, outline)] of every hall of 1997.  Returns the nodes set (to be FIXED), {id: lift} of the halls
-    moved (their floors go with them) and a summary."""
+    polygons `hold` and the feet of the halls outside), under the halls inside and at their feet too, PEAK; eased
+    round them (fill: harmonic_fill) over nodes no rule has set, which stay free.  halls: [(id, outline)] of every
+    hall of 1997.  Returns the nodes set (to be FIXED), the ids of the halls inside (their floors are to be read
+    again from the ground under their corners) and a summary."""
     H0 = Hn.copy()
     zone_p = unary_union([WOOD, KNOLL])
     zone = shapely.contains_xy(zone_p, X, Y)
@@ -199,26 +198,12 @@ def grade(Hn, X, Y, FIXED, halls, hold, fill, tr_pts, tr_n, step=5.0, half=800.0
     stay = road | shapely.contains_xy(unary_union(list(hold)), X, Y)
     if outside:
         stay |= shapely.contains_xy(unary_union([p.buffer(HALL_PAD) for p in outside]), X, Y)
-    G = grid_z(X, Y)
     took = zone & ~stay
+    if inside:    # (the feet of the halls inside that reach into `hold`, kept there as the model had them)
+        took |= shapely.contains_xy(unary_union([p.buffer(HALL_PAD) for _, p in inside]), X, Y) & ~road
     yielded = int((took & FIXED).sum())
+    G = grid_z(X, Y)
     Hn[took] = G[took]
-    # the halls inside: the ground at their feet as it was, lifted with the survey's ground there
-    lifts, pads = {}, np.zeros(X.shape, bool)
-    for wid, p in inside:
-        pad = shapely.contains_xy(p.buffer(HALL_PAD), X, Y) & ~road    # (its feet in music97's REGION too: kept there)
-        if not pad.any():
-            continue
-        if wid in HALL_REF:
-            rx, ry = HALL_REF[wid]
-            j, i = int(round((ry + half) / step)), int(round((rx + half) / step))
-            d = float(G[j, i] - H0[j, i])
-        else:
-            d = float(np.median((G - H0)[pad]))
-        Hn[pad] = H0[pad] + d
-        pads |= pad
-        lifts[wid] = round(d, 2)
-    took |= pads
     # the hill's top
     peak = np.zeros(X.shape, bool)
     for x, y, z in PEAK:
@@ -226,11 +211,11 @@ def grade(Hn, X, Y, FIXED, halls, hold, fill, tr_pts, tr_n, step=5.0, half=800.0
         if Hn[j, i] < z:
             Hn[j, i] = z
             peak[j, i] = True
-    ring = shapely.contains_xy(zone_p.buffer(RING), X, Y) & ~zone & ~stay & ~FIXED
+    ring = shapely.contains_xy(zone_p.buffer(RING), X, Y) & ~took & ~stay & ~FIXED
     if ring.any():
         fill(ring)
     d = Hn - H0
     info = dict(nodes=int(took.sum()), yielded=yielded, down=round(float(d[took].min()), 1), up=round(float(d[took].max()), 1),
-                median=round(float(np.median(d[took])), 1), halls=lifts, kept_halls=len(outside), peak=int(peak.sum()),
+                median=round(float(np.median(d[took])), 1), halls=sorted(ins_ids), kept_halls=len(outside), peak=int(peak.sum()),
                 ring=int(ring.sum()), road=int((road & zone).sum()))
-    return took | peak, lifts, info
+    return took | peak, sorted(ins_ids), info
