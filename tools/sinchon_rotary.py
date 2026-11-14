@@ -78,7 +78,15 @@ CORNER_R = 9.0                 # the kerbs' rounding at the corners
 # keep their places round it as 52158 has them (moved with it)
 ISLAND = dict(c=(-73.3, -1000.9), r=7.8, ring=8.45)
 BED = [(2.5, 'lawn'), (4.3, 'yellow'), (5.6, 'dark'), (6.1, 'white'), (7.6, 'lawn')]
-ROT_POLE = dict(at=(-72.9, -993.8), face=325.0, reach=9.0)          # bearing the lamps face; the arm to their right
+# BED goes out as campus.json town.island.bed: the ground's shader (web/src/terrain.js) paints its dark and white
+# bands round the island's middle (no plant model fits them; painting keeps every planting draw), the yellow band
+# is the pansy border (layout: shrubs)
+# 52158 solved again (2026-11-14, 고증 4.10.3): its camera stood on 그랜드백화점's roof, west of the island, not on
+# 그레이스's.  Through it the pole's foot is 6.7 m north-north-west of the island's middle (bearing 331°), its mast
+# arm about 6 m up; the scans of 27/18 and 27/19 put the arm's far end at (-74.6, -984.5), 6.85 m up (the two
+# frames' rays 0.02 m apart): the arm reaches north (bearing 10°), 10.5 m, the lamps facing west (the arm to their
+# right).  (Before: (-72.9, -993.8), the arm north-east, from the camera solved on 그레이스's roof)
+ROT_POLE = dict(at=(-76.55, -995.0), face=280.0, reach=10.5)        # bearing the lamps face; the arm to their right
 # 「연세대」 on the road north of the island (52158; the same white block in 52142 · 52145): its middle, the bearing its
 # top points along (the drivers who read it head that way), letters 1.1 m across and 3.9 m long
 ROT_LETTERS = dict(c=(-75.6, -988.9), up=122.0, w=1.1, h=3.9)
@@ -722,7 +730,7 @@ def layout(geo, town, extras, ground, taken_z):
         q = p + n * sgn * (ya.half + 0.8)
         heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(t[1] * sgn, t[0] * sgn), 4), 1, 0,
                       round(ya.half * 0.75, 1)])
-    # the island's own pole (52158 · 52145 · 52142: on its north edge, the arm out over the lanes to the north-east)
+    # the island's own pole (52158 · 52145 · 52142: on its north-north-west edge, the arm out over the lanes north)
     fb = math.radians(ROT_POLE['face'])
     heads.append([ROT_POLE['at'][0], ROT_POLE['at'][1], round(math.atan2(math.cos(fb), math.sin(fb)), 4), 0, 1, ROT_POLE['reach']])
     # ---- the walks open to the walker again (2026-11-14, user's request; shut 2026-11-11): from 성산로's crossing over
@@ -971,7 +979,7 @@ def layout(geo, town, extras, ground, taken_z):
     town['walks'] = walks_
     print('신촌 로터리: blocks +%d (rows %d, fill %d, gone %d + %d for the moved 연세로), kerbs %d, lanes %d, lamps %d' % (
         len(new), sum(len(v) for v in fronts.values()), n_fill, n_gone, n_moved, len(kerbs), len(lanes), len(props)))
-    town['island'] = dict(c=list(ISLAND['c']), r=ISLAND['r'])
+    town['island'] = dict(c=list(ISLAND['c']), r=ISLAND['r'], bed=[[r_, k_] for r_, k_ in BED])
     # people standing about (web/src/main.js: the town's crowd) and the blue sign over 연세로 (blender/town.py)
     waiting['groups'] += rot_waiting(fronts[1][-1], corner, A, waiting['singles'])
     town['waiting'] = waiting

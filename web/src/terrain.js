@@ -202,6 +202,14 @@ export function groundPacks() {
   return packs;
 }
 
+// the rotary island's bed (campus.json town.island.bed: [outer radius, what grows there] from the middle out): the
+// radii the dark band starts at, the white flowers start at and end at; none (zeros) without the two bands
+function islandBed(bed) {
+  const i = bed ? bed.findIndex((b) => b[1] === 'dark') : -1;
+  if (i < 1 || bed[i + 1]?.[1] !== 'white') return [0, 0, 0];
+  return [bed[i - 1][0], bed[i][0], bed[i + 1][0]];
+}
+
 export function makeNearTerrain(hf, campus, lib) {
   const g = gridGeometry(hf, { skirt: 40 });
   const S = campus.splat;
@@ -224,6 +232,10 @@ export function makeNearTerrain(hf, campus, lib) {
     uNRect: { value: campus.tsplat?.north ? new THREE.Vector4(...campus.tsplat.north) : new THREE.Vector4(0, 0, -1, -1) },
     uTAtlas: { value: new THREE.Vector4(...(campus.tsplat?.atlas?.slice(0, 2) ?? [1, 1]), ...(campus.tsplat?.atlas?.slice(2, 4) ?? [0, 1])) },
     uNAtlasH: { value: campus.tsplat?.atlas?.[4] ?? 1 },
+    // the rotary's round island (campus.json town.island, tools/sinchon_rotary.py BED): its middle, and the radii
+    // its bed's dark band and white flowers lie between (inner dark, dark | white, outer white)
+    uIsland: { value: new THREE.Vector2(...(campus.town?.island?.c ?? [0, 0])) },
+    uBed: { value: new THREE.Vector3(...islandBed(campus.town?.island?.bed)) },
     aD: { value: T('asphalt_02/diff.jpg') }, pD: { value: T('patterned_concrete_pavers/diff.jpg') },
     dD: { value: T('raked_dirt/diff.jpg') },
     gdN: { value: gdN }, apN: { value: apN }, gfD: { value: gfD },
@@ -247,6 +259,7 @@ export function makeNearTerrain(hf, campus, lib) {
         varying vec3 vWPos; varying vec3 vWNrm;
         uniform sampler2D uSplat, uDry, aD, pD, dD, gdN, apN, gfD, uTSplat;
         uniform vec4 uRect, uTRect, uNRect, uTAtlas; uniform float uNAtlasH; uniform vec3 uGrass; uniform vec2 uPaveAng;
+        uniform vec2 uIsland; uniform vec3 uBed;
         vec3 gTN; float gRough;
         float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
         ${PAVE_GLSL}
@@ -328,6 +341,26 @@ export function makeNearTerrain(hf, campus, lib) {
           * (1.0 - smoothstep(55.0, 85.0, vWPos.y + (macro - 0.5) * 30.0));
         albedo = mix(albedo, vec3(0.25, 0.245, 0.24) * mix(0.92, 1.1, n2), town * (1.0 - insideT - insideN));
         albedo *= 1.0 - 0.96 * smoothstep(0.3, 0.7, pit);      // (the stairwell's dark)
+        // the island bed's dark band and white flowers (52158, May 1996; the pansies' yellow band is shrubs): rings
+        // round its middle, their edges a touch uneven; dark leaves, then cream flowers over their leaves, speckled.
+        // Only on the island (a branch the rest of the ground skips; its edge pixels weigh nothing)
+        float dI = distance(wp, uIsland);
+        float bw = max(fwidth(dI), 0.02);
+        if (uBed.z > 0.0 && dI < uBed.z + 1.0) {
+          vec2 dv = wp - uIsland;
+          float rb = dI + 0.025 * sin(atan(dv.y, dv.x) * 31.0) + 0.02 * sin(atan(dv.y, dv.x) * 53.0 + 1.3);
+          float bDark = smoothstep(uBed.x - bw, uBed.x + bw, rb) * (1.0 - smoothstep(uBed.y - bw, uBed.y + bw, rb));
+          float bWhite = smoothstep(uBed.y - bw, uBed.y + bw, rb) * (1.0 - smoothstep(uBed.z - bw, uBed.z + bw, rb));
+          // (the flowers in soft clumps among their leaves: the fine detail of two of the ground's tiled textures,
+          // small, less their own blur)
+          vec2 um = wp / 0.7, ud2 = wp / 0.5;
+          float mot = (texture2D(gfD, um).a - texture2D(gfD, um, 4.0).a) + (texture2D(dD, ud2).g - texture2D(dD, ud2, 4.0).g);
+          vec3 lv = grass * 0.7, cream = vec3(0.82, 0.81, 0.73) * mix(0.88, 1.06, n2);
+          vec3 leaves = grass * vec3(0.42, 0.45, 0.4) * (1.0 + clamp(mot, -0.3, 0.3));
+          vec3 petals = mix(lv, cream, smoothstep(-0.1, 0.06, mot));
+          albedo = mix(albedo, leaves, bDark * wg);
+          albedo = mix(albedo, petals, bWhite * wg);
+        }
         // fallen leaves / petals of the month on top, flat: the ground's relief pressed down under them
         vec3 litCol;
         float litCov = litter(wp, wg, litCol);
