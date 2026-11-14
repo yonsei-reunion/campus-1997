@@ -7,8 +7,9 @@
 
 Frames: campus metres, x east, y north.  (u, v): 종합관's own frame, o OSM's south-west corner of its west wing, u east
 along the slab's south face, v north (uv · xy below); 외솔관2 and 인문관 stand square to it in the scans (OSM's 인문관
-is 0.85 degrees off).  Every absolute height is 게임 기준 (해발 + T, T = 0.05 + 0.522 x/100 + 0.248 y/100 m: tools/aerial97.py survey_dz); each constant
-has its place beside it (`# @ (x, y)`), GRID its nodes' (GRID_X0, GRID_Y0, GRID_D).
+is 0.85 degrees off).  Every absolute height is 게임 기준 (해발 + T, T = 0.05 + 0.522 x/100 + 0.248 y/100 m:
+tools/aerial97.py survey_dz); each constant has its place beside it (`# @ (x, y)`; the profiles in (u, v) through xy),
+GRID its nodes' (GRID_X0, GRID_Y0, GRID_D).
 
 What the game had: the surface model's ground, 8 - 10 m too high round 외솔관2's west end, brought down in #110 to
 6 - 9 m too low (it took 외솔관2's lowest corner + 4.5 m for the car park); the three halls on OSM's outlines, their
@@ -17,8 +18,9 @@ edges read on each roof's own plane from opposite flight lines) and the 1:5000 s
 
 - 종합관: a slab 63.4 x 22.6 m, its roof's surface at 89.6 m (the parapet 0.9 m over it), four storeys over the yard
   north of it (72.6 m) on an open storey at 69.3 m; across its east end a low block of two storeys (1994's 400평: 19.4
-  x 58.3 m with the slab's end, its roof 69.1 m, its floor the road east of it, 61.25 m).  OSM's outline has the low
-  block 7.6 m too far east and 3 - 5 m short on the south.
+  x 58.3 m with the slab's end, its roof 69.1 m, its floor the road east of it, 61.25 m; a third storey under them
+  shows at its south end, where the ground is that much lower).  OSM's outline has the low block 7.6 m too far east
+  and 5 m short on the south.
 - 외솔관2: two storeys (연혁: 지하 1층 · 지상 1층, 333.65평 = 2 x 551 m2) on the two of the corridor under them, 42.9 x
   12.95 m (556 m2), a low white gabled roof (eaves 77.3 m, ridge 78.4 m); its west end stands 7.5 m over the ground there
   (the 2026 roadview), its south wall 18.7 m over the lane behind 인문관.
@@ -97,7 +99,7 @@ Z_YARD = 72.6                     # the paved yard north of the slab            
 Z_TERR = 69.1                     # the terrace west of the low block's north wing    @ (-46, 318)
 Z_ROOF = 68.9                     # under the low block's roof, by the terrace        @ (-40, 310)
 Z_COURT = 69.3                    # the passage between the slab and 외솔관2, its east  @ (-52, 287)
-Z_PASS_W = 72.0                   # ... its west mouth                                @ (-92, 296)
+Z_PASS_W = 70.4                   # ... its west mouth, by 외솔관2's north-west corner   @ (-92, 294)
 Z_OESOL_W = 69.8                  # the ground at 외솔관2's west end                    @ (-97, 287)
 Z_LANE = 58.6                     # the lane behind 인문관 and round its west end        @ (-80, 272)
 Z_INMUN = 58.4                    # 인문관's floor: the road along its south face       @ (-92, 250)
@@ -192,7 +194,16 @@ def _const(z):
     return lambda u, v: np.full(np.shape(u), z)
 
 
-_pass = _lin(((-4.5, Z_PASS_W), (12.0, Z_COURT + 0.1), (45.2, Z_COURT), (52.0, Z_ROOF)))
+
+
+def _pass(u, v):
+    """the passage between the slab and 외솔관2, and on under the slab's open storey: from its west mouth (the yard's
+    level along the slab's end wall, Z_PASS_W along 외솔관2's north wall) down to the court's level 16 m in"""
+    a = np.interp(v, [-5.3, 0.0], [Z_PASS_W, Z_YARD])
+    return np.where(u < 12.0, a + (Z_COURT + 0.1 - a) * np.clip((u + 4.5) / 16.5, 0, 1),
+                    np.interp(u, [12.0, 45.2, 52.0], [Z_COURT + 0.1, Z_COURT, Z_ROOF]))
+
+
 _apron = _lin(Z_APRON)
 # the ground's zones, each (name, outline in (u, v), height(u, v)); a later one over an earlier where they overlap.
 # The zones run on under the halls' walls so that the ground is level up to them: the steps between the levels (the
@@ -200,8 +211,8 @@ _apron = _lin(Z_APRON)
 # halls' outlines, where the 5 m grid's slopes are not seen.
 ZONES = [
     ('west of the slab', poly([(-16.0, -3.0), (-1.6, -3.0), (-1.6, 17.5), (-5.0, 17.5), (-5.0, 24.0), (-16.0, 12.0)]), _const(Z_YARD)),
-    ('외솔관2 west end', rect(-16.0, -4.5, -18.25, -3.0),
-     lambda u, v: np.interp(v, [-12.0, -3.0], [Z_OESOL_W, Z_YARD])),
+    ('외솔관2 west end', rect(-16.0, -4.5, -18.25, -3.0),                    # (level along its end wall, up to the yard north of it)
+     lambda u, v: np.interp(v, [-5.3, -3.0], [Z_OESOL_W, Z_YARD])),
     ('passage', rect(-4.5, 52.0, -11.0, 17.5), _pass),                      # (under the slab's open storey too)
     ('court', rect(38.4, 52.0, -18.25, 0.0), _const(Z_COURT)),                # (the trees between 외솔관2 and the low block)
     ('yard', poly([(-5.0, 17.5), (30.0, 17.5), (30.0, 40.5), (21.0, 43.5), (10.0, 40.0), (2.5, 31.0), (-5.0, 24.0)]), _const(Z_YARD)),
@@ -213,7 +224,7 @@ ZONES = [
     ('apron', rect(44.0, 84.0, -40.0, -19.6), _apron),                      # (before 인문관's east end, falling east)
     ('low block, south', rect(45.2, 64.6, -17.5, -11.0), _apron),
     ('lane', rect(-33.5, 46.0, -46.0, -19.6), _const(Z_LANE)),              # (behind 인문관 and round its west end)
-    ('외솔관2 south', rect(2.0, 34.0, -18.25, -11.0), _const(Z_LANE)),
+    ('외솔관2 south', rect(5.0, 34.0, -18.25, -11.0), _const(Z_LANE)),
     ('인문관', rect(-29.3, 42.2, -45.5, -24.1), _const(Z_INMUN)),             # (its porch and the low strip along its south too)
     ('인문관 south-west', rect(-33.5, -17.7, -51.0, -42.8), _const(Z_INMUN)),  # (west and east of 인문관 남쪽 길, INM97)
     ('인문관 south-east', rect(31.3, 42.2, -53.0, -42.8), _const(Z_INMUN)),
@@ -221,6 +232,9 @@ ZONES = [
 # the yard's paving and the terrace on the game's map (paint); the trees the planting put on them step aside
 PAVED = [poly([(-16.0, -3.0), (-1.6, -3.0), (-1.6, 22.6), (30.0, 22.6), (30.0, 40.5), (21.0, 43.5), (10.0, 40.0), (2.5, 31.0),
                (-5.0, 24.0), (-16.0, 12.0)]), rect(35.0, 45.2, 22.6, 40.5)]
+# the court between 외솔관2's east end and the low block (trees in the scans) and the bank under its south edge: lawn
+# over the paving OSM's outlines had left there
+GRASS = [poly([(38.4, 0.0), (45.2, 0.0), (45.2, -17.5), (46.5, -21.5), (36.0, -21.5), (38.4, -18.25)])]
 
 
 def _strip(Hn, X, Y, pts, half, mask, f=None):

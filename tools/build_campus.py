@@ -9048,6 +9048,7 @@ _ypaint([UTS_LAWN], _yg)                     # (연합신학대학원: OSM's out
 _ypaint([BILL_LAWN], _yg)                    # (빌링슬리관: OSM's box and apron lawn again; the landing: _gp)
 KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
 _ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
+_ypaint(jonghap97.GRASS, _yg)                # (외솔관2 동쪽 뜰: lawn where OSM's outline of it and its apron were)
 if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
 # 찻길, the east road on the 1997 photos' line (TR_E, RD97 above), after the planting has read the ground as it was:
