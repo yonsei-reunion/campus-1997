@@ -249,6 +249,8 @@ def draw_face(rig, face, skin, brow):
     ts = np.linspace(-1.0, 1.0, 41)
     curve = lambda t: mz + smile * np.abs(t) ** 2.0 - 0.0004 * np.exp(-(t / 0.2) ** 2)         # noqa: E731
     tint, strength = LIP[rig]
+    strength = min(1.0, strength * face.get('lip_ink', 1.0))
+    mt *= face.get('mouth_line', 1.0)
     lip = f['lip'] * face.get('lip', 1.0)
     tx = cv.X / mw
     lower = cv.below(lambda x: curve(x / mw), soft=1.5) \
@@ -257,7 +259,7 @@ def draw_face(rig, face, skin, brow):
     cv.ink(lower, tint, strength)
     if woman:                                               # the upper lip: thinner, with its dip in the middle
         upper = (1 - cv.below(lambda x: curve(x / mw), soft=1.5)) * cv.below(
-            lambda x: curve(x / mw) + 0.55 * lip * np.maximum(0.0, 1 - (x / (0.9 * mw)) ** 2) ** 0.6
+            lambda x: curve(x / mw) + face.get('lip_up', 0.55) * lip * np.maximum(0.0, 1 - (x / (0.9 * mw)) ** 2) ** 0.6
             * (1 - 0.3 * np.exp(-(x / (0.16 * mw)) ** 2)), soft=2.5) * (np.abs(tx) < 0.9)
         cv.ink(upper, tint, strength * 0.8)
     else:

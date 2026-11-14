@@ -124,12 +124,14 @@ def canvas(upper, rubber):
 # of them plain, a few the cuts of the year.  Optional: flip (the parting on the other side), bridge (bleached locks:
 # [(azimuth, half width)]), face: what makes the one shared face a person's own.  Of the skull: jaw, chin (scales).
 # Of the drawn lines (faces.py): lid (mono 홑꺼풀, inner 속쌍꺼풀, double 쌍꺼풀), slant (the outer corner of the eye
-# higher, of the eye's half width), eye, brow, mouth, lash, lip (scales), brow_tilt (the tail higher), arch (of the
+# higher, of the eye's half width), eye, brow, mouth, lash, lip (scales), lip_up (the upper lip, of the lower),
+# lip_ink (how strongly the lips are tinted), mouth_line (the line's weight), brow_tilt (the tail higher), arch (of the
 # brow, a scale), smile (the corners of the mouth up, m), age ('mid', 'old': the lines of an older face).  glasses:
 # who wears them as the model is (everybody has a pair: the game shows or hides it, web/src/characters.js).  prints:
 # lettering on a part (see 'what is printed' below).  Of the
 # brows also brow_len, brow_gap, brow_up, brow_peak, brow_corner, brow_drop, brow_taper, brow_soft (faces.py), of the
-# nose nose, bridge, nose_curve, nose_w, nose_up (NOSE below).  paint: parts of the outfit in colours of their own
+# nose nose, bridge, nose_curve, nose_w, nose_up (NOSE below); of the head's shape jaw (the lower face's width), chin
+# (its length), cheek (the width at the cheeks), taper (the jaw narrower toward the chin).  paint: parts of the outfit in colours of their own
 # (see '1997 wardrobe').
 PEOPLE = {
     # 승민 (the film 건축학개론, 2012: a first-year of 1996 in the knock-off sweatshirt): a long oval face, narrow
@@ -244,9 +246,9 @@ PEOPLE = {
                                 'legs': [dict(of=('LimeGreen',), to='Skirt')],
                                 'head': [dict(of=('Hair',), to='Band', y=(-.090, -.062), z=(1.690, None))]},
                          skirt='denim',
-                         face=dict(lid='double', slant=.03, eye=1.18, lash=1.25, jaw=1.04, chin=.92, brow=1.2, arch=.25,
-                                   brow_len=1.0, brow_soft=2.0, smile=.0024, mouth=.90, lip=1.4, nose=.74, bridge=.26,
-                                   nose_w=.94, nose_up=.0015)),
+                         face=dict(lid='double', slant=.03, eye=1.18, lash=1.25, jaw=.98, cheek=1.05, chin=1.0, taper=.10, brow=1.2,
+                                   arch=.25, brow_len=1.0, brow_soft=2.0, smile=.0020, mouth=.95, mouth_line=1.3, lip=1.5,
+                                   lip_up=.85, lip_ink=1.25, nose=.74, bridge=.26, nose_w=.94, nose_up=.0015)),
     'woman-dress-blue': woman('shoulder', 'Formal', 'Casual', 'Casual',
                               {'LimeGreen': '#ece4cc', 'Rib': '#dcd2b4', 'Orange': JEANS['black'], 'Grey': '#1f1f24', 'Skin': SKIN['b'],
                                'Hair': HAIR['brown'], 'Bridge': '#9c6c3a', 'Brow': HAIR['dark']},
@@ -920,7 +922,8 @@ def loosen(ob, part, outfit, arm, roomy=None):
 # elbow to wrist, of the points within EVEN['near'] along the arm and `round` radians round it), is brought `by` of
 # the way to a straight taper fitted to it beyond `cap`, and from the joint to `cap` to an even slope down from what
 # the shoulder has at the joint; every point moves to or from the axis by what its place asks, cloth and bare skin
-# each for themselves (a short sleeve keeps its hem off the arm).
+# each for themselves (a short sleeve keeps its hem off the arm).  A short sleeve has no length to fit a taper to
+# (fitted to its hem alone the line ran out to a balloon at the shoulder): it goes straight from the joint to its hem.
 # Nothing moves at the joint itself or by the wrist (`wrist`: m from it, where it fades and where it is nothing).
 EVEN = dict(by=(1.0, 0.6), near=0.016, round=0.7, cap=0.10, wrist=(0.065, 0.025), knob=0.78, slope=0.07)    # (by: cloth, skin)
 
@@ -973,9 +976,10 @@ def even_arms(ob, arm):
             if len(mine) < 12:
                 continue
             ss = [x[0] for x in mine.values()]
-            s0 = min(ss)
-            if max(ss) - s0 < 0.10:
+            s0, s1 = min(ss), max(ss)
+            if s1 - s0 < 0.10:
                 continue
+            short = not kind and s1 < la + 0.02          # (a short sleeve: the cloth ends before the elbow)
             out = {}
             for i, (sv, q, r, w, th) in mine.items():
                 # the others by how nearly they lie on this point's side of the arm (the top, the front ...)
@@ -986,6 +990,14 @@ def even_arms(ob, arm):
                     wts = [(g * math.exp(-((x - at) / E['near']) ** 2), y) for g, x, y in rnd]
                     tot = sum(g for g, _ in wts)
                     return sum(g * y for g, y in wts) / tot if tot > 1e-9 else None
+                if short:
+                    # no length of arm to fit a taper to: straight from what the shoulder has at the joint to the hem
+                    a0, a1 = here(s0), here(s1)
+                    if a0 is None or a1 is None:
+                        continue
+                    goal = a0 + (a1 - a0) * (sv - s0) / (s1 - s0)
+                    out[i] = q + (mw @ me.vertices[i].co - q) * (1 + (goal / here(sv) - 1) * E['by'][kind] * w)
+                    continue
                 # the straight taper of that side: least squares on what lies between the shoulder's cap and the wrist
                 fit = [(g, x, y) for g, x, y in rnd if E['cap'] < x < la + lb - E['wrist'][1]]
                 n = sum(g for g, _, _ in fit)
@@ -1877,6 +1889,10 @@ def head_clean(ob, style, face, rig):
         p = mw @ v.co
         if p.y < L['ears'][0][1].y + 0.01:
             p.x *= 1 + (jaw - 1) * _smooth(cheek, cheek - 0.05, p.z) * _smooth(chin - 0.035, chin + 0.01, p.z)
+            # (a person's own: fuller at the cheeks, 3 cm under the eyes, and the jaw drawn in from the mouth down to
+            # the chin: an egg's line, where `jaw` alone makes the face widest at the mouth)
+            p.x *= 1 + (face.get('cheek', 1.0) - 1) * math.exp(-((p.z - (cheek - 0.03)) / 0.028) ** 2)
+            p.x *= 1 - face.get('taper', 0.0) * _smooth(nb - 0.015, chin, p.z) * _smooth(chin - 0.04, chin - 0.005, p.z)
             if p.z < nb:
                 p.z += (nb - p.z) * short * _smooth(chin - 0.05, chin - 0.005, p.z) * _smooth(zb + 0.002, zb + 0.03, p.z)
             v.co = inv @ p
