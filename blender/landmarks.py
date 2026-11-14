@@ -5931,29 +5931,33 @@ def gongwon_site():
 # 2000s rebuilding, reference/학교연혁_광복관.jpg).  The 1990 and 1995 campus maps (reference/1990_캠퍼스_지도.png and
 # 1995_캠퍼스_지도.jpg, no. 7) draw an L of three storeys under a hipped roof, the long south front in rows of square
 # windows; the 1995 aerial photo (reference/1995_캠퍼스_항공사진_남쪽에서.jpg) shows it pale behind the library under a grey
-# hipped roof, the north arm a storey higher where it meets the south one, a chimney there.  The 1996 graduation-album
+# hipped roof, a higher block where the two arms meet.  The 1996 graduation-album
 # photos of 경영학과 and 법학과 on its front steps (2022 재상봉 기념문집 pp. 194-195; reference/고증.md) give the
 # front: speckled grey granite between flat granite pilasters, the main floor raised over a half-sunk basement with
 # barred windows, three bays of bronze-framed glass doors and screens between the pilasters, a black lantern on each,
 # barred windows beside them, and a broad granite flight of ten or eleven risers the width of the three bays with
-# stainless steel handrails, a band of square lattice panels on the basement wall either side.  The door is where OSM's
-# walk and steps up from the library reach the south front, some 19 m from its west end.
-KB = dict(fh=3.7, bay=4.25, door_s=19.0, floors_s=3, floors_n=4, lift=1.75)
+# stainless steel handrails, a band of square lattice panels on the basement wall either side.
+# Its plan and heights are the 1997-07-28 scans' (tools/kwangbok97.py plan, reference/고증/3.9 「1997년의 평면과 지붕」):
+# a south wing 10.8 m deep with a deeper hipped head at its west end, a north wing 10.4 m wide along the yard's east
+# side with a head out into the yard at its north end, all under hipped roofs on one eaves line three storeys over the
+# yard, and where the wings meet a flat-roofed block a storey higher; in the yard, against the south wing, a low
+# flat-roofed annex.  The yard stands at the main floor, the forecourt before the south front a flight below it.
+KB = dict(fh=3.7, bay=4.25)
 
 
 def kwangbok():
     b = bld(468614722)
-    fp = [Vector(p) for p in b['footprint']]
+    pl = b['plan']
+    o = Vector(pl['o'])
+    a0 = math.radians(pl['ang'])
+    tS = Vector((math.cos(a0), math.sin(a0)))          # along the south front (east-south-east)
+    tN = Vector((-tS.y, tS.x))                          # into the yard (north-north-east)
+    U = lambda u, v: o + tS * u + tN * v
     mb = MeshBuilder('lm_kwangbok')
-    tS = (fp[2] - fp[1]).normalized()
-    nS = Vector((tS.y, -tS.x))
-    tE = (fp[3] - fp[2]).normalized()
-    dS, wN = (fp[0] - fp[1]).length, (fp[3] - fp[4]).length
-    X, Y = fp[2] + tE * dS, fp[2] - tS * wN            # the south arm's hidden NE corner; where the north arm meets the front
     F = KB['fh']
-    pd = fp[1] + tS * KB['door_s']
-    zm = min(ground(*(pd + nS * k + tS * u)) for k in (3.5, 7.0) for u in (-5.0, 0.0, 5.0)) + KB['lift']
-    zS, zN = zm + KB['floors_s'] * F, zm + KB['floors_n'] * F
+    zm = pl['floor']
+    zS, zT = zm + 3 * F, pl['tower']
+    W = pl['walls']
     WALL, PIL = 'granite_light', 'stone_granite'
 
     def lantern(P, s, z, ang):
@@ -5965,20 +5969,21 @@ def kwangbok():
         k = Vector(P(s, z + 0.12, 0.3))
         mb.box((k.x, k.y, z + 0.12), (0.05, 0.3, 0.05), 'metal_dark', rotz=ang)
 
-    def facade(a, b_, ztop, z_from=None, door=False, bars=False):
+    def facade(a, b_, ztop, z_from=None, door=None, bars=False):
+        """one wall a -> b (the hall on its left); door: the door's middle along it"""
         P, L, t, n = edge_P(a, b_)
         ang = math.atan2(t.y, t.x)
         nb = max(1, int(round(L / KB['bay'])))
         bw = L / nb
         z_lo = zm if z_from is None else z_from
-        k0 = max(0, min(nb - 3, int(round(KB['door_s'] / bw - 1.5)))) if door else -9
+        k0 = max(0, min(nb - 3, int(round(door / bw - 1.5)))) if door is not None else -9
         if z_from is None:
             # the basement storey: granite down into the ground, a pale water table, low barred windows clear of it
             flat_wall(mb, P, 0, L, zm - 5.0, zm - 0.3, PIL)
             bar(mb, P, 0, zm - 0.15, L, zm - 0.15, 0.3, 0.0, 0.08, 'stone_trim', ends=True)
             for k in range(nb):
                 sc = (k + 0.5) * bw
-                if door and k0 - 2 <= k <= k0 + 4:
+                if door is not None and k0 - 2 <= k <= k0 + 4:
                     continue
                 w = bw * 0.46
                 if max(ground(*P(sc + u, 0, 1.0)[:2]) for u in (-w / 2, w / 2)) > zm - 1.6:
@@ -5988,7 +5993,7 @@ def kwangbok():
                 for j in range(1, 9):
                     s = sc - w / 2 + w * j / 9
                     bar(mb, P, s, zb0, s, zb1, 0.025, 0.02, 0.05, 'metal_dark')
-            if door:
+            if door is not None:
                 # square lattice panels on the basement wall either side of the flight
                 for s0_, s1_ in ((max(0.0, (k0 - 2) * bw), k0 * bw - 0.2), ((k0 + 3) * bw + 0.2, min(L, (k0 + 5) * bw))):
                     za, zb = zm - 1.15, zm - 0.35
@@ -5998,7 +6003,9 @@ def kwangbok():
                         bar(mb, P, s, za, s, zb, 0.06, 0.0, 0.05, 'stone_trim')
                     for z in (za, (za + zb) / 2, zb):
                         bar(mb, P, s0_, z, s1_, z, 0.06, 0.0, 0.05, 'stone_trim')
-        nfl = int(round((ztop - z_lo) / F))
+        nfl = int(round((ztop - z_lo) / F - 0.2))
+        if ztop - (z_lo + nfl * F) > 0.6:                 # (the flat-roofed block's parapet over its top storey)
+            flat_wall(mb, P, 0, L, z_lo + nfl * F, ztop, WALL)
         for f in range(nfl):
             zf = z_lo + f * F
             for k in range(nb):
@@ -6012,7 +6019,7 @@ def kwangbok():
                     for j in range(1, 14):
                         s = s0 + (bw - w) / 2 + w * j / 14
                         bar(mb, P, s, zf + 0.95, s, zf + F - 0.75, 0.025, 0.02, 0.05, 'metal_dark')
-        if door:
+        if door is not None:
             for k in range(k0, k0 + 3):
                 s0, s1 = k * bw, (k + 1) * bw
                 o0, o1, zo = s0 + 0.42, s1 - 0.42, zm + 3.3
@@ -6031,30 +6038,57 @@ def kwangbok():
             s = min(max(k * bw, 0.35), L - 0.35)
             bar(mb, P, s, (zm - 0.3) if z_from is None else z_from, s, ztop - 0.3, 0.7, 0.0, 0.2, PIL, ends=True)
         bar(mb, P, 0, ztop - 0.22, L, ztop - 0.22, 0.44, 0.0, 0.34, 'stone_trim', ends=True)
-        if door:
+        if door is not None:
             # the flight: from the landing in front of the glass down to the forecourt, stainless rails both sides
             sc = (k0 + 1.5) * bw
-            o = P(sc, zm, 0)
-            mb.xf = Matrix.Translation(Vector(o)) @ Matrix.Rotation(ang, 4, 'Z')
+            o_ = P(sc, zm, 0)
+            mb.xf = Matrix.Translation(Vector(o_)) @ Matrix.Rotation(ang, 4, 'Z')
             stair_flight(mb, 0.0, 0.0, 3 * bw - 0.3, 0.0, mat='stone_step', landing=2.4, tread=0.33, flare=0.0, rail=True,
                          rail_mat='frame_silver', gfn=local_ground(mb), maxrise=0.165)
             mb.xf = Matrix.Identity(4)
 
-    facade(fp[0], fp[1], zS)
-    facade(fp[1], Y, zS, door=True, bars=True)
-    facade(Y, fp[2], zN, bars=True)
-    facade(fp[2], fp[3], zN)
-    facade(fp[3], fp[4], zN)
-    facade(fp[4], fp[5], zN)
-    facade(fp[5], Y, zN, z_from=zS)               # the north arm's west wall over the south arm's roof
-    facade(fp[5], fp[0], zS)
-    # hipped grey roofs over the two arms (the north arm's, higher, takes in the corner), soffits under the eaves
-    for poly, z, rise in (([fp[1], fp[2], X, fp[0]], zS, 2.7), ([Y, fp[2], fp[3], fp[4]], zN, 3.2)):
-        hip_roof(mb, [tuple(p) for p in poly], z, rise, 'roof_slate', eave=0.55)
-        q = offset_poly([tuple(p) for p in poly], 0.55)
-        mb.face([(p[0], p[1], z) for p in q][::-1], 'stone_trim')
-    c = (fp[2] + Y) / 2 + tE * 6.0 - tS * 3.0                   # chimney
-    mb.box((c.x, c.y, zN + 2.4), (1.1, 0.8, 4.8), PIL, rotz=math.atan2(tS.y, tS.x))
+    hw, so, no, hn, tw = W['head_w'], W['south'], W['north'], W['head_n'], W['tower']
+    # the walls, round the outline with the hall on the left (tools/kwangbok97.py KB_OUTLINE_UV)
+    facade(U(hw[0], hw[2]), U(so[1], so[2]), zS, door=pl['door_u'] - hw[0], bars=True)     # the south front
+    facade(U(so[1], so[2]), U(so[1], tw[2]), zS)
+    facade(U(so[1], tw[2]), U(tw[1], tw[2]), zT)                                           # the corner block, from the ground
+    facade(U(tw[1], tw[2]), U(tw[1], tw[3]), zT)
+    facade(U(tw[1], tw[3]), U(no[1], tw[3]), zT)
+    facade(U(no[1], tw[3]), U(no[1], no[3]), zS)                                           # the north wing's east wall
+    facade(U(no[1], no[3]), U(hn[0], hn[3]), zS)                                           # its north end and the head's
+    facade(U(hn[0], hn[3]), U(hn[0], hn[2]), zS)
+    facade(U(hn[0], hn[2]), U(no[0], hn[2]), zS)
+    facade(U(no[0], hn[2]), U(no[0], so[3]), zS)                                           # the yard's east side
+    facade(U(no[0], so[3]), U(hw[1], so[3]), zS)                                           # the yard's south side
+    facade(U(hw[1], so[3]), U(hw[1], hw[3]), zS)
+    facade(U(hw[1], hw[3]), U(hw[0], hw[3]), zS)
+    facade(U(hw[0], hw[3]), U(hw[0], hw[2]), zS)                                           # the west end
+    # (the corner block over the wings' roofs)
+    facade(U(tw[0], tw[3]), U(tw[0], tw[2]), zT, z_from=zS)
+    facade(U(tw[0], tw[2]), U(so[1], tw[2]), zT, z_from=zS)
+    facade(U(no[1], tw[3]), U(tw[0], tw[3]), zT, z_from=zS)
+    q = [tuple(U(tw[0], tw[2])), tuple(U(tw[1], tw[2])), tuple(U(tw[1], tw[3])), tuple(U(tw[0], tw[3]))]
+    mb.face([(p[0], p[1], zT - 0.55) for p in q], 'roof_flat')
+    c = U((tw[0] + tw[1]) / 2 - 2.0, (tw[2] + tw[3]) / 2 + 1.5)                             # a chimney on it
+    mb.box((c.x, c.y, zT + 0.9), (1.1, 0.8, 2.6), PIL, rotz=a0)
+    # hipped grey roofs on one eaves line, soffits under the eaves
+    for (u0, u1, v0, v1), rise in (((hw[0], hw[1], hw[2], hw[3]), 2.5), ((hw[1] - 3.8, so[1], so[2], so[3]), 2.7),
+                                   ((no[0], no[1], tw[2] + 2.0, no[3]), 2.9), ((hn[0], hn[1] + 3.5, hn[2], hn[3]), 2.3)):
+        poly = [tuple(U(u0, v0)), tuple(U(u1, v0)), tuple(U(u1, v1)), tuple(U(u0, v1))]
+        hip_roof(mb, poly, zS, rise, 'roof_slate', eave=0.55)
+        mb.face([(p[0], p[1], zS) for p in offset_poly(poly, 0.55)][::-1], 'stone_trim')
+    # the low annex in the yard: one storey of the same granite, a flat roof behind a low parapet
+    ax = pl['annex']
+    zy, za = pl['yard'], pl['annex_top']
+    for a_, b_ in ((U(ax[1], ax[2]), U(ax[1], ax[3])), (U(ax[1], ax[3]), U(ax[0], ax[3])), (U(ax[0], ax[3]), U(ax[0], ax[2]))):
+        P, L, t, n = edge_P(a_, b_)
+        nb = max(1, int(round(L / KB['bay'])))
+        flat_wall(mb, P, 0, L, zy - 1.0, zy + 0.05, PIL)
+        window_grid(mb, P, L, zy, 1, za - zy - 0.35, L / nb, WALL, ww=0.5, sill=0.95, head=0.5, depth=0.2, frame='frame_dark', mull=2)
+        flat_wall(mb, P, 0, L, za - 0.35, za, WALL)
+        bar(mb, P, 0, za - 0.1, L, za - 0.1, 0.2, 0.0, 0.12, 'stone_trim', ends=True)
+    q = [tuple(U(ax[0], ax[2])), tuple(U(ax[1], ax[2])), tuple(U(ax[1], ax[3])), tuple(U(ax[0], ax[3]))]
+    mb.face([(p[0], p[1], za - 0.3) for p in q], 'roof_flat')
     return [mb]
 
 

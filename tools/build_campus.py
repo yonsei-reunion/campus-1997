@@ -30,6 +30,7 @@ import music97
 import eng97
 import town97
 import east97
+import kwangbok97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -3291,6 +3292,13 @@ BASE_1997.update({990010: 43.2, 990014: 43.2, 990011: 37.0, 990012: 43.3, 990060
 # (the outlines and halls put back since the planting was laid, as MED_SITES_RNG's None: no clearing was made for
 # them, so the trees by them step aside in their places in the list)
 SITES_NEW_1997 = {222843398, 990010, 990011, 990012, 990014, 990060, 990061, 990050, 990051, 990052}
+# 광복관 as the 1997-07-28 scans have it (tools/kwangbok97.py, reference/고증/3.9 「1997년의 평면과 지붕」): not OSM's L
+# (the hall of the 2010s) but a narrower one 8 - 12 m inside it, a deeper head at its west end, a head at the north
+# wing's end and a flat-roofed block where the wings meet.  The planting ran with OSM's outline; the hall goes in
+# after it, the trees in what it gained step aside
+LATE_FOOTPRINT_1997[kwangbok97.KB] = kwangbok97.outline()
+LATE_NO_SIMPLIFY.add(kwangbok97.KB)
+SITES_NEW_1997.add(kwangbok97.KB)
 # The rows after the first four go in after the random planting, cars and decals, as LATE_FOOTPRINT_1997 (below), so
 # that the rest of the campus keeps its layout
 OLD_HALLS_EARLY = {990010, 990011, 990012, 990013}
@@ -6631,6 +6639,35 @@ FIXED[_ynh] = True
 print('노천극장 갈림길 남쪽: %d nodes filled smoothly, %+.2f .. %+.2f m' % (
     int(_ynh.sum()), (Hn - _ynh0)[_ynh].min(), (Hn - _ynh0)[_ynh].max()))
 # ---------------------------------------------------------------------------
+# 광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길 (tools/kwangbok97.py; reference/고증/3.9 「둘레 땅의 높이」, 2.9 「서쪽 길의 높이」),
+# after the planting and everything else that read the ground as it was: 광복관's bench (its yard, the roads west and
+# north of it, the place south of 핀슨관) level at 49.85 m 해발 where the game had a lawn slope, 핀슨관's knoll and
+# 한경관 3 - 6 m up on the scans and the 2006 survey, the cars' west road (TR_W) on the survey's profile.  The halls
+# that stay keep their feet; 핀슨관 and 한경관 stand on the new ground (below), 광복관 on its 1997 outline
+# ---------------------------------------------------------------------------
+_kb_mine = (kwangbok97.KB, kwangbok97.PINSON, kwangbok97.HANGYEONG)
+_kb_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997 and b_['id'] not in _kb_mine] + \
+    [p_.buffer(0) for _, _, _, _, p_ in OLD_HALLS] + [Polygon(v_).buffer(0) for k_, v_ in LATE_FOOTPRINT_1997.items() if k_ not in _kb_mine]
+_kb_box = shapely.geometry.box(-230.0, 20.0, 40.0, 270.0)
+_kb_keep = shapely.contains_xy(unary_union([h_.buffer(kwangbok97.HALL_PAD) for h_ in _kb_halls if h_.intersects(_kb_box)]), X, Y)
+_kb_took, KB97_GRADE = kwangbok97.grade(Hn, X, Y, FIXED, _kb_keep, harmonic_fill, TR_W, TR_WN)
+FIXED[_kb_took] = True
+print('광복관 · 핀슨관 둘레와 서쪽 찻길:', KB97_GRADE)
+tr_tilt_of(TR_W, TR_WN, TR_WO, next(k_ for k_, q_ in enumerate(TR_W) if bline.distance(Point(*q_)) > ROAD_HALF + 4.0), 'west (kwangbok97)')
+# (핀슨관 · 한경관 on the new ground: the lowest corner again.  핀슨관's eaves stay where the scans have them, so the hall
+# shows two storeys where the game's lower ground showed three; 한경관's roof comes up with its floor, to the scans')
+for b_ in buildings:
+    if b_['id'] in (kwangbok97.PINSON, kwangbok97.HANGYEONG):
+        hs = [ground_h(x, y) for x, y in b_['footprint']]
+        _kb_b0 = b_['base']
+        b_.update(base=round(min(hs), 2), top_ground=round(max(hs), 2))
+        if b_['id'] == kwangbok97.PINSON:
+            _kb_fh = (kwangbok97.PINSON_EAVES + float(kwangbok97.T(-67.1, 160.6)) - b_['base']) / 2
+            b_.update(levels=2, fh=round(_kb_fh, 3), height=round(2 * _kb_fh + 1.2, 2))
+        print('   %s: floor %.2f -> %.2f m, %d storeys, eaves %.2f m' % (
+            b_['name'], _kb_b0, b_['base'], b_['levels'], b_['base'] + b_['height'] - 1.2))
+BASE_1997[kwangbok97.KB] = kwangbok97.plan()['fore']
+# ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
 os.makedirs(os.path.join(ROOT, 'web/public/data'), exist_ok=True)
@@ -6835,6 +6872,9 @@ for b in buildings:
              footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]])
     if b['id'] in LATE_LEVELS:
         b.update(levels=LATE_LEVELS[b['id']], height=round(LATE_LEVELS[b['id']] * FLOOR_H[b['style']] + 1.2, 2))
+    if b['id'] == kwangbok97.KB:       # (blender/landmarks.py kwangbok: the 1997 walls, roofs and heights)
+        b['plan'] = kwangbok97.plan()
+        b['height'] = round(b['plan']['tower'] - b['base'], 2)
     if b['id'] == BILL:                # (blender/generic.py billingsley_roof: the blocks and their roofs)
         b['height'] = round(BILL_UV['cornice'] + BILL_UV['pav_rise'], 2)
         b['roof'] = dict(o=[float(v_) for v_ in _blo], t=[round(float(v_), 5) for v_ in _blt], pav=BILL_UV['pav'],
@@ -8949,6 +8989,8 @@ _ypaint([YJ_WALK], _yp, width=2.6)
 _ypaint([LIB97_ZONE.difference(LIB97_TERRACE.buffer(-0.2))], _yg)   # (중앙도서관 앞: lawn; its walks and plaza below, _gp · _ga)
 _ypaint([UTS_LAWN], _yg)                     # (연합신학대학원: OSM's outline and its apron lawn again; the 1997 hall's: _gp)
 _ypaint([BILL_LAWN], _yg)                    # (빌링슬리관: OSM's box and apron lawn again; the landing: _gp)
+KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
+_ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
 if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
 # 찻길, the east road on the 1997 photos' line (TR_E, RD97 above), after the planting has read the ground as it was:
@@ -9013,7 +9055,8 @@ _gyc, _gyt, _gyn = np.array([30.29, 348.78]), np.array([-0.969, 0.248]), np.arra
 # (빌링슬리관 stands on its lawn, no apron: the scans have the lawn and the planting up to its walls; only the landing
 # before its door, out to the walk's end, BILL_UV)
 _bll = BILL_UV['landing']
-_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES if not BILL_POLY.buffer(0.5).contains(p_)]
+_ypaint([p_.buffer(3.5, join_style=2) for p_ in LATE_SITES if not BILL_POLY.buffer(0.5).contains(p_)
+         and not kwangbok97.hall().buffer(0.5).contains(p_)]      # (광복관: the scans' asphalt runs up to its walls, cars against them)
         + [Polygon([bill_xy(u_, v_) for u_, v_ in ((_bll[0], _bll[2]), (_bll[1], _bll[2]), (_bll[1], _bll[3]), (_bll[0], _bll[3]))])]
         + [Polygon([tuple(_bkc + BK_T * u + BK_N * v) for u, v in ((-4.5, 0.0), (4.5, 0.0), (4.5, 7.1), (-4.5, 7.1))])]
         + [Polygon([tuple(_gyc + _gyt * u + _gyn * v) for u, v in ((-2.6, 8.4), (2.6, 8.4), (2.6, 12.6), (-2.6, 12.6))])], _gp)
@@ -9560,6 +9603,8 @@ MUAK_RIDGE = muak.woods_ridge(MUAK_WOODS, unary_union([Polygon(b_['footprint']) 
 _mk_floor = unary_union([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD]).intersection(woods_u.buffer(-1.0)).union(MUAK_WOODS).union(MUAK_RIDGE)
 _ypaint([g_ for g_ in (_mk_floor.geoms if hasattr(_mk_floor, 'geoms') else [_mk_floor]) if g_.geom_type == 'Polygon' and g_.area > 0.5], _gf)
 _ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 길: SCI_DRIVE97)
+_ypaint([KB97_ASPH], _ga)                    # (광복관 안마당 · 서쪽 길 · 북쪽 길, 핀슨관 서쪽 길 · 북쪽 주차장: kwangbok97)
+_ypaint([KB97_FORE], _gd)                    # (광복관 앞마당: the gravel at the foot of the front flight)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
 _YN[id(_gw)] = '_gw'
 _ypaint([BK_COURT], _gw)
@@ -10298,6 +10343,10 @@ print('서문 길: shrubs taken out %d, props %d, trees moved aside %d' % _sm_n)
 # 독수리상 서쪽 마당 (west_ground.YARD): bare in 1997, so what the planting put on it steps aside (a tree in its place in
 # the list, to the yard's edge away from the road) or goes (shrubs, props)
 _wg_n = west_ground.move_off(trees, shrubs, props)
+# 광복관 · 핀슨관 (kwangbok97): the same on the 1997 asphalt; the map's walks on the 1997 ground
+_kb_n = kwangbok97.move_off(trees, shrubs, props)
+_kb_w = kwangbok97.walks(out['paths'])
+print('광복관 · 핀슨관: shrubs taken out %d, props %d, trees moved aside %d, walks out %d' % (_kb_n[0], _kb_n[1], len(_kb_n[2]), _kb_w), _kb_n[2])
 print('독수리상 서쪽 마당: shrubs taken out %d, props %d, trees moved aside %d' % (_wg_n[0], _wg_n[1], len(_wg_n[2])), _wg_n[2])
 # 제1공학관 안뜰 (tools/eng97.py): the trees the planting put where the low hall stands go, each in its place in the
 # list, to where the 1997 scans have trees (the clump in the lot's south-west corner, the garden south-east of the
