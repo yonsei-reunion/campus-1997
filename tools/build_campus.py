@@ -6040,6 +6040,19 @@ print('스팀슨관 앞: nodes %d (pulled down %d), deck cells %d, %.0f m2; road
 # Save
 # ---------------------------------------------------------------------------
 os.makedirs(os.path.join(ROOT, 'web/public/data'), exist_ok=True)
+# (2026-11-14) 낮은 마당의 북서쪽 칸 (the low court's row under w2, its first stall, u 17 - 19.5): the node at
+# (125, 530), 1.2 m outside the court's edge and 0.7 m outside the road's asphalt, was free and came out at the
+# road's height there, 1.14 m over the court, so the cell the stall lies in tipped up to it and the car leaned 7.9
+# degrees sideways.  The node goes down to the court's level (late, here: what was laid out by the ground before
+# stays), and over the road's side of its four cells a deck keeps the ground as it ran, the road and its verge
+# (made below, by dwb_deck: DAEWOO_BACK['deck_nw']), with the deck's stone skirt along the court's edge: a low
+# retaining edge from nothing at the court's level up to 0.9 m at w2's west end, where the boulders are.
+_nj, _ni = int(round((530.0 + NEAR_HALF) / NEAR_STEP)), int(round((125.0 + NEAR_HALF) / NEAR_STEP))
+assert abs(gx[_ni] - 125.0) < 1e-6 and abs(gx[_nj] - 530.0) < 1e-6, (gx[_ni], gx[_nj])
+_Hn0 = Hn.copy()
+print('daewoo back, the low court\'s north-west stall: node (125, 530) %.2f -> %.2f' % (Hn[_nj, _ni], DAEWOO_BACK['low']))
+Hn[_nj, _ni] = DAEWOO_BACK['low']
+FIXED[_nj, _ni] = True
 Hn.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_near.bin'))
 HS.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_south.bin'))
 Hf = np.array(tf['rows_south_to_north'], dtype=np.float32)
@@ -6273,6 +6286,17 @@ def dwb_deck(cells=None, poly=None, hfun=None):
 DAEWOO_BACK['deck'] = dwb_deck()
 DAEWOO['deck'] = dwb_deck(DW_FDECK_CELLS, DW_FDECK_POLY, lambda x_, y_: DAEWOO['terrace'])
 ST_FRONT['deck'] = dwb_deck(ST_DECK_CELLS, ST_DECK_POLY, lambda x_, y_: float(st_front_h(x_, y_)))
+# (낮은 마당의 북서쪽 칸: the deck over the road's side of the node pulled down above, before the terrain was written)
+_nw_cells = {(_nj + a_, _ni + b_) for a_ in (-1, 0) for b_ in (-1, 0)}
+_nw_poly = unary_union([shapely.geometry.box(gx[i_], gx[j_], gx[i_] + NEAR_STEP, gx[j_] + NEAR_STEP) for j_, i_ in _nw_cells]) \
+    .difference(unary_union([_uvp(DWB_COURT_UV), _uvp(DWB_AREA_UV), DWB_DECK_POLY]).buffer(0.01))
+# (every piece of it: through a gap by the boulders the pulled ground showed)
+_nw_poly = unary_union([g_ for g_ in (_nw_poly.geoms if hasattr(_nw_poly, 'geoms') else [_nw_poly]) if g_.area > 0.02])
+# (its surface: the ground as it ran; in the cell north-east of the node, whose own ground the wall w2 had pulled down
+# already, the upper level's surface, as the deck beside it there: no step between the two)
+_nw_h = lambda x_, y_: dwb_h(x_, y_) if x_ > gx[_ni] + 1e-6 and y_ > gx[_nj] + 1e-6 else sample(_Hn0, NEAR_HALF, NEAR_STEP, x_, y_)
+DAEWOO_BACK['deck_nw'] = dwb_deck(_nw_cells, _nw_poly, _nw_h)
+print('   its deck: %.1f m2, %d triangles' % (_nw_poly.area, len(DAEWOO_BACK['deck_nw']['f'])))
 DAEWOO_BACK['lot_z'] = [round(dwb_lot_z(v_), 3) for v_ in (36.0, 75.0, 86.0)]
 print('daewoo back deck: %d vertices, %d triangles, rim %d' % (len(DAEWOO_BACK['deck']['v']), len(DAEWOO_BACK['deck']['f']),
                                                              sum(len(r_) for r_ in DAEWOO_BACK['deck']['rim'])))

@@ -4080,9 +4080,26 @@ def daewoo_back(mb, z0):
     prism([tuple(lm - ld * 1.5 + ln * 0.04), tuple(lm + ld * 1.5 + ln * 0.04), tuple(lm + ld * 1.5), tuple(lm - ld * 1.5)],
           LOW + 1.3, LOW + 2.7, 'metal_dark', cap='metal_dark')       # (the louvre in it)
     # boulders at w2's west end, where the mound comes down to the road
+    dnw = db.get('deck_nw')              # (the road's side by the low court's first stall: tools/build_campus.py)
+
+    def on_deck(bu, bv):
+        """the deck's height at a point of the hall's frame (local z), None off it"""
+        w = mb.xf @ Vector((bu, bv, 0.0))
+        for f in (dnw['f'] if dnw else []):
+            (x0, y0, h0), (x1, y1, h1), (x2, y2, h2) = (dnw['v'][i] for i in f)
+            d = (y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2)
+            if abs(d) < 1e-9:
+                continue
+            a = ((y1 - y2) * (w.x - x2) + (x2 - x1) * (w.y - y2)) / d
+            b = ((y2 - y0) * (w.x - x2) + (x0 - x2) * (w.y - y2)) / d
+            if a >= -1e-6 and b >= -1e-6 and a + b <= 1 + 1e-6:
+                return a * h0 + b * h1 + (1 - a - b) * h2 - mb.xf.translation.z
+        return None
     for (bu, bv, ln_, hh) in ((16.2, 61.2, 1.3, 0.8), (15.2, 62.0, 1.1, 0.6), (16.5, 63.0, 1.4, 0.9), (17.8, 63.0, 1.0, 0.7), (14.5, 60.9, 0.9, 0.5),
                               (18.9, 63.6, 1.2, 0.6)):
         g = gl(bu, bv)
+        if on_deck(bu, bv) is not None:
+            g = max(g, on_deck(bu, bv))
         seg, rings = 9, 3
         jit = [[1 + rr.uniform(-0.2, 0.2) for _ in range(seg)] for _ in range(rings + 1)]
         yaw = rr.uniform(0, 3.1)
@@ -4151,8 +4168,9 @@ def daewoo_back(mb, z0):
         mb.box((bpt.x, bpt.y, gl(*bpt) + 0.62), (0.07, 0.07, 1.25), 'metal_dark')
     # --- the deck
     dk = MeshBuilder('lm_daewoo_deck')
-    deck = db.get('deck')
-    if deck:
+    for deck in (db.get('deck'), db.get('deck_nw')):
+        if not deck:
+            continue
         V = deck['v']
         for f in deck['f']:
             q = [tuple(V[i]) for i in f]

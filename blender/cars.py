@@ -46,6 +46,28 @@ def interp(pts, x):
     return p[-1][1]
 
 
+def interp_round(pts, x, r=0.07):
+    """straight between the control points [(x, y), ...], their corners rounded over r either side (less between
+    points close together): a screen's line stays straight from the scuttle to the roof, where interp's easing made
+    it wave"""
+    p = sorted(pts)
+
+    def lin(u):
+        if u <= p[0][0]:
+            return p[0][1]
+        if u >= p[-1][0]:
+            return p[-1][1]
+        for (x0, y0), (x1, y1) in zip(p[:-1], p[1:]):
+            if x0 <= u <= x1:
+                return y0 + (y1 - y0) * (u - x0) / (x1 - x0)
+    for (xa, _), (xi, yi), (xb, _) in zip(p[:-2], p[1:-1], p[2:]):
+        ri = min(r, 0.45 * (xi - xa), 0.45 * (xb - xi))
+        if abs(x - xi) < ri:
+            t = (x - (xi - ri)) / (2 * ri)
+            return (1 - t) ** 2 * lin(xi - ri) + 2 * t * (1 - t) * yi + t * t * lin(xi + ri)
+    return lin(x)
+
+
 def smoothstep(a, b, x):
     t = max(0.0, min(1.0, (x - a) / (b - a)))
     return t * t * (3 - 2 * t)
@@ -184,7 +206,7 @@ SPECS = {
     'sedan': dict(
         L=4.58, W=1.77, axles=(1.42, -1.28), tyre=0.314, arch=0.37, sill=0.185, bumper_z=(0.23, 0.52),
         top=[(-2.29, 0.81), (-2.20, 0.925), (-1.50, 0.93), (0.95, 0.89), (1.60, 0.83), (2.15, 0.745), (2.29, 0.69)],
-        roof=[(-1.60, 0.93), (-1.28, 1.19), (-0.98, 1.37), (-0.30, 1.405), (0.14, 1.375), (0.60, 1.11), (1.03, 0.885)],
+        roof=[(-1.60, 0.93), (-1.28, 1.18), (-0.98, 1.37), (-0.30, 1.405), (0.14, 1.375), (0.60, 1.135), (1.03, 0.885)],
         gh=(-1.60, 1.03), roof_w=0.60, belt_w=0.815, gh_rt=0.06, cant=0.045,
         windshield=(0.17, 1.00), rear_window=(-1.56, -1.01), side=(-1.21, 0.86), pillars=[(-0.20, -0.10)],
         doors=[0.90, -0.15, -1.17], lamp_h=(0.56, 0.65), tail_h=(0.63, 0.76), grille_w=0.25, plate_rear_z=0.655,
@@ -193,7 +215,7 @@ SPECS = {
     'sedan2': dict(
         L=4.66, W=1.72, axles=(1.45, -1.22), tyre=0.31, arch=0.365, sill=0.19, bumper_z=(0.25, 0.48),
         top=[(-2.33, 0.86), (-2.26, 0.93), (-1.42, 0.925), (0.86, 0.90), (1.60, 0.87), (2.24, 0.83), (2.33, 0.775)],
-        roof=[(-1.46, 0.925), (-1.24, 1.21), (-1.04, 1.39), (-0.25, 1.42), (0.16, 1.395), (0.52, 1.17), (0.90, 0.90)],
+        roof=[(-1.46, 0.925), (-1.24, 1.19), (-1.04, 1.39), (-0.25, 1.42), (0.16, 1.395), (0.52, 1.17), (0.90, 0.90)],
         gh=(-1.46, 0.90), roof_w=0.62, belt_w=0.795, gh_rt=0.05, cant=0.05,
         windshield=(0.19, 0.87), rear_window=(-1.43, -1.08), side=(-1.13, 0.74), pillars=[(-0.20, -0.10)],
         doors=[0.78, -0.15, -1.12], lamp_h=(0.60, 0.72), tail_h=(0.66, 0.81), grille_w=0.30, plate_rear_z=0.66,
@@ -202,7 +224,7 @@ SPECS = {
     'hatch': dict(
         L=3.43, W=1.605, axles=(1.08, -1.215), tyre=0.272, arch=0.33, sill=0.185, bumper_z=(0.24, 0.45),
         top=[(-1.715, 0.86), (-1.67, 0.915), (0.62, 0.885), (1.20, 0.815), (1.64, 0.76), (1.715, 0.70)],
-        roof=[(-1.70, 0.915), (-1.685, 1.22), (-1.62, 1.43), (-0.30, 1.46), (0.05, 1.44), (0.36, 1.15), (0.64, 0.885)],
+        roof=[(-1.70, 0.915), (-1.685, 1.22), (-1.62, 1.43), (-0.30, 1.46), (0.05, 1.44), (0.36, 1.16), (0.64, 0.885)],
         gh=(-1.70, 0.66), roof_w=0.61, belt_w=0.745, gh_rt=0.05, cant=0.075, rw_z=(1.00, 1.345),
         windshield=(0.10, 0.64), rear_window=(-1.71, -1.57), side=(-1.50, 0.52), pillars=[(-0.42, -0.33), (-1.13, -1.07)],
         doors=[0.58, -0.38, -1.10], lamp_h=(0.56, 0.675), tail_h=(0.56, 0.86), grille_w=0.24, plate_rear_z=0.60,
@@ -325,14 +347,18 @@ def build_car(kind):
     belt = lambda x: z_top(x) - 0.02
 
     def zr(x):
-        return interp(sp['roof'], x)
+        return interp_round(sp['roof'], x)
+    H_roof = max(z for _, z in sp['roof'])
 
     def gh_dims(x):
         """the greenhouse's section at x: its foot and top, half widths at the belt and at the roof, the roof's rounding"""
         zb, zt = belt(x), max(belt(x) + 0.003, zr(x))
         wb = min(sp['belt_w'], half_w(x) - 0.02)
         h = zt - zb
-        wr = sp['roof_w'] + (wb - sp['roof_w']) * max(0.0, 1 - h / 0.12) if h < 0.12 else sp['roof_w']
+        # (the sides lean in at one angle from the belt to the roof: a screen is then a trapezium, wide at the scuttle,
+        # and its pillars are straight.  Before, the top was the roof's width at every height over 12 cm and flared
+        # out to the belt under that: the screens' edges bent there)
+        wr = wb - (wb - sp['roof_w']) * min(1.0, h / max(0.05, H_roof - zb))
         return zb, zt, wb, wr, sec_radii(wb, zb, zt, 0.01, sp['gh_rt'])[1]
 
     def gh_sec(x):
@@ -341,7 +367,7 @@ def build_car(kind):
 
     ws, rw, sd = sp['windshield'], sp['rear_window'], sp['side']
     PIL = 0.04                                  # body left between the glass and the roof's rounding, and over the belt
-    cap = max(z for _, z in sp['roof']) - sp['gh_rt'] - sp.get('cant', 0.045)       # the side glass's top on the roof
+    cap = H_roof - sp['gh_rt'] - sp.get('cant', 0.045)       # the side glass's top on the roof
     rwz = sp.get('rw_z')
 
     def side_top(x):
