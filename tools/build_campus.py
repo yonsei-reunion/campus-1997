@@ -484,6 +484,11 @@ CROSS[0] = 227.4
 # 학생회관 앞: the crossing in the 6 m opening between the forecourt's first two islands (VERGE_BREAKS below), east
 # 375.5 - 381.5 (it was 377.7, at the Kakao node)
 CROSS[1] = 378.5
+# 독수리상 앞: the white band across the road in the July 1997 aerial photos (s 270.0 - 272.0 in three frames, 2.3),
+# photo A's second white crossing (about s 278 through its camera, metres loose at that depth).  Appended after the
+# others and not in CROSS_RNG, so the draws stay as they were
+CROSS.append(270.9)
+CROSS_KEEP_ROWS = (270.9,)          # (its ginkgo at s 268.5 stands just south of the stripes: kept, in_gap below)
 
 X, Y = grid_pts()
 pts = np.stack([X.ravel(), Y.ravel()], 1)
@@ -4328,8 +4333,10 @@ for pth in paths_out:
                 GAPS.append((round(s_, 1), side, round(pth['w'] / 2 + 1.5, 1)))
 
 
-def in_gap(s, side, pad=0.0, outer=False, verge=False):
-    if any(abs(s - c) < 3.0 + pad for c in CROSS):
+def in_gap(s, side, pad=0.0, outer=False, verge=False, rows=False):
+    # (rows: the ginkgo rows ask, and keep their trees by the crossings in CROSS_KEEP_ROWS: one dropped tree would
+    # shift every tree appended after it in the list and change its model in the web)
+    if any(abs(s - c) < 3.0 + pad for c in CROSS if not (rows and c in CROSS_KEEP_ROWS)):
         return True
     r0, r1 = (0.0, 0.0) if outer else MOUTH[3:5]       # (out on the planting strip the corners are not rounded)
     if side == MOUTH[0] and MOUTH[1] - r0 - pad < s < MOUTH[2] + r1 + pad + (MOUTH[5] if verge else 0.0):
@@ -4367,6 +4374,9 @@ VERGE_BREAKS.append([BK_MOUTH[0], BK_MOUTH[1], BK_MOUTH[2]])      # (백양관 �
 VERGE_BREAKS += [list(AUD_SIDE_MOUTH), list(AUD_YARD_MOUTH)]      # (대강당 북쪽 곁길 어귀 · 별관 앞마당 어귀)
 VERGE_BREAKS.append(list(LIB_MOUTH))                              # (중앙도서관 앞 광장)
 VERGE_BREAKS.append(list(JUNC_MOUTH))                             # (독수리상 서쪽 옆길 어귀)
+# 백주년기념관 북쪽 마당 어귀: in the July 1997 aerial photos the east verge stops at 261.5 and starts again at 276.5
+# in all three frames (2.3), where the front terrace's wall ends; the roadview's opening about s 262
+VERGE_BREAKS.append([-1, 261.5, 276.5])
 
 
 def in_break(s, side, pad=0.0):
@@ -4399,7 +4409,7 @@ for side in (-1, 1):
                 and not (side > 0 and s < 122):
             trees.append(['ginkgo', round(x, 2), round(y, 2), round(rng.uniform(0.85, 1.0), 2), round(rng.uniform(0, 6.28), 2),
                           tuple(round(v_, 2) for v_ in along_rng(s, side * (E_WALK + ROAD['strip'] * 0.5))[:2])])
-            if in_gap(s, side, 1.0) or ball.buffer(2).contains(Point(x, y)):
+            if in_gap(s, side, 1.0, rows=True) or ball.buffer(2).contains(Point(x, y)):
                 drop_tree(trees[-1])        # (where the moved road has a gap or a hall: cleared at the end)
         s += 8.5
     # (the random draws follow the gaps as they were before the mouth was opened, so the rest of the campus keeps
