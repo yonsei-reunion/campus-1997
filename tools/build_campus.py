@@ -1803,14 +1803,17 @@ print('외솔관2: car park %.2f (road %.2f), east end %.2f m, %d nodes filled' 
 # over the garden's side ways in, where photo A's camera had put the hall: a north flight of thirty risers.)
 YH_DIAMOND = [(74.4, 302.5), (52.7, 325.4), (82.5, 335.4), (103.4, 312.1)]      # S, W, N, E nodes of the walks
 YH_C = (78.4, 318.3)                                                            # the round planter (GF_C)
-# 한경길 by the photos: (x, height) along it.  East of the drive along 성암관 it runs on to the road to 노천극장, where
-# the photos (53.0 - 54.2 m) stand 2 - 4 m under the game: left as it was from x 113 on (고증 2.8 「남은 한계」)
-HANGYEONG_Q = [(34.0, 52.4), (40.3, 52.5), (72.5, 52.7), (92.0, 52.9), (106.0, 52.6), (113.0, 52.7)]
+# 한경길 by the photos: (x, height) along it.  East of the drive along 성암관 it runs on to the east road (the road
+# past 노천극장), as level as before: the photos 53.0 - 53.7 m at x 132 - 150 (the original scans, corr. 0.5 - 0.8),
+# and the east road's own 52.6 - 53.9 m at the fork (EAST_Q97 below).  Before, the ground as the surface model had it
+# from x 113 on, 1.4 - 4 m higher at the fork (고증 2.8 「남은 한계」, 2.9 「동쪽 길의 높이」)
+HANGYEONG_Q = [(34.0, 52.4), (40.3, 52.5), (72.5, 52.7), (92.0, 52.9), (106.0, 52.6), (113.0, 52.7), (130.0, 52.9),
+               (140.0, 53.1), (150.0, 53.4)]
 HANGYEONG_LINES = ([(154.1, 270.8), (149.3, 272.5), (105.3, 286.1), (72.5, 295.2), (52.5, 300.2), (40.3, 301.6)],
                    [(40.3, 301.6), (52.2, 296.6), (71.4, 290.9), (104.1, 281.3), (147.7, 268.6)])
 for _ln in HANGYEONG_LINES:
     _m = shapely.contains_xy(LineString(_ln).buffer(3.5, cap_style='flat'), X, Y)
-    _w = _smooth((X[_m] - 113.0) / 22.0)                      # (back to the ground as it was by x 135)
+    _w = _smooth((X[_m] - 150.0) / 6.0)                       # (the east road's own beyond x 150: tr_grade below)
     Hn[_m] = np.interp(X[_m], [q_[0] for q_ in HANGYEONG_Q], [q_[1] for q_ in HANGYEONG_Q]) * (1 - _w) + Hn[_m] * _w
     FIXED[_m] = True
 hk_z = lambda x_: float(np.interp(x_, [q_[0] for q_ in HANGYEONG_Q], [q_[1] for q_ in HANGYEONG_Q]))
@@ -2817,17 +2820,66 @@ tr_tilt_of(TR_E, TR_EN, TR_EO, TR_EK0, 'east (before)')
 # (and on the 1997 line the same where it crosses the ground levelled out from 용재관 and from the fork east of 한경길,
 # which meets the road at the road's height)
 _emine = LineString([tuple(q_) for q_ in TR_E[TR_EK0 + 2:int(_els.project(Point(156.3, 276.3))) + 14]]).buffer(7.5)
+# (2026-11-14) The road from 아펜젤러관's back past the fork east of 한경길 and up under 청송대 to 대우관 별관 ran on one
+# 17 % grade, 3.8 - 4.7 m over the 1997 photos' road at the fork and 8 m at the corner under 청송대.  The photos' road
+# (reference/고증/2.9 「동쪽 길의 높이」: the original scans, across-road profiles matched between six frames, and the
+# surface itself where it is open): 52.6 m at the fork's south end, 55.0 a little north of it, then hidden under the
+# wood's canopy (70 - 74 m) as far as the corner, 62.9 there, and 67.3 · 70.6 · 74.1 m up past the annex.  EAST_Q97:
+# (x, y, height) on the road's middle line, survey s 140 (where the grade is left as it was: the photos' heights south
+# of it are not settled), 184, 196, 208, 296, 304 ... 400 (beyond it the road had the photos' heights already).
+EAST_Q97 = [(132.6, 222.4, 50.10), (149.7, 262.8, 52.60), (152.6, 274.4, 53.90), (156.4, 285.8, 55.00),
+            (207.5, 356.2, 62.90), (210.3, 363.4, 63.80), (210.4, 375.3, 65.30), (208.0, 391.1, 67.30),
+            (205.9, 403.0, 68.80), (203.9, 414.8, 70.60), (201.5, 426.5, 72.10), (197.5, 436.8, 73.20),
+            (190.7, 446.2, 74.10), (185.8, 452.8, 75.05)]
+# The ground beside it was the surface model's (the wood's canopy in it, 청송대 east of the road): uphill, east of the
+# road, lowered with it, by the road's own drop where the road is and less farther off, nothing 40 m away (the hill's
+# shape kept); downhill, west of it towards 성암관 and 대우관 별관, one smooth surface from the road to what stays 40 m
+# off (below, once the road is set: lowering that side as much would leave hollows by the halls).  The halls' own
+# nodes stay and those 1 - 6 m from their walls are filled smoothly in between (성암관's floor is its west front's).
+_eq_s = np.array([_els.project(Point(q_[0], q_[1])) for q_ in EAST_Q97])
+_eq_z = np.array([q_[2] for q_ in EAST_Q97])
+_ek_a, _ek_b = int(round(_eq_s[0])), int(round(_eq_s[-1]))
+_ez_pre = ndimage.gaussian_filter1d(np.array([sample(Hn, NEAR_HALF, NEAR_STEP, *q_) for q_ in TR_E]), 3.0, mode='nearest')
+_ez_new = ndimage.gaussian_filter1d(np.interp(TR_ES, _eq_s, _eq_z), 2.0, mode='nearest')
+_ed = np.where((TR_ES >= _eq_s[0]) & (TR_ES <= _eq_s[-1]), np.minimum(_ez_new - _ez_pre, 0.0), 0.0)
+_ed = ndimage.gaussian_filter1d(_ed, 4.0, mode='nearest')
+_elow_ls = LineString([tuple(q_) for q_ in TR_E[_ek_a:_ek_b + 1]])
+_elow_m = shapely.contains_xy(_elow_ls.buffer(40.0), X, Y) & ~FIXED & ~near_buildings(1.0) & (dist > ROAD_HALF + 1.0)
+_ejj, _eii = np.nonzero(_elow_m)
+_ept = shapely.points(X[_ejj, _eii], Y[_ejj, _eii])
+_edist = shapely.distance(_elow_ls, _ept)
+_eks = np.clip(np.round(_els.project(_ept)).astype(int), 0, len(TR_E) - 1)
+_eside = np.einsum('ij,ij->i', np.stack([X[_ejj, _eii], Y[_ejj, _eii]], -1) - np.array(TR_E)[_eks], np.array(TR_EN)[_eks])
+_ew = (1.0 - _smooth((_edist - 8.0) / 32.0)) * (_eside < 0.0)               # (east of the road: TR_EN points west)
+_edz = _ed[_eks] * _ew
+_ewest = np.zeros(X.shape, bool)
+_ewest[_ejj, _eii] = (_eside >= 0.0) & (_ed[_eks] < -0.05)
+Hn[_ejj, _eii] += _edz
+_elow_fill = np.zeros(X.shape, bool)
+_elow_fill[_ejj, _eii] = _edz < -0.05
+_elow_fill &= near_buildings(6.0)
+if _elow_fill.any():
+    harmonic_fill(_elow_fill)
+print('traffic east, the photos\' heights s 140 - 400: road down %.1f m at most (%.1f m at the corner under 청송대), '
+      'ground beside it down at %d nodes (%.1f m at most), %d by the halls eased' % (
+          -_ed.min(), -_ed[int(round(_eq_s[4]))], int((_edz < -0.05).sum()), -_edz.min(), int(_elow_fill.sum())))
 tr_grade(TR_E, TR_EN, TR_EK0, len(TR_E), [
     ((50.4, 124.8), None, (69.1, 146.2), UW_TOP),                         # (one grade up from the 삼거리, over 용재관's old bank)
     ((69.1, 146.2), UW_TOP, (110.0, 194.0), UW_TOP + 0.05),               # along the square at its level, past 아펜젤러관's yard
-    ((110.0, 194.0), UW_TOP + 0.05, (168.5, 306.7), None),               # one grade up the hillside, through the fork east of 한경길
-    ((168.5, 306.7), None, (206.0, 350.2), None),
+    ((110.0, 194.0), UW_TOP + 0.05, EAST_Q97[0][:2], EAST_Q97[0][2])] +  # one grade up the hillside (as it was to s 140)
+    [(EAST_Q97[k_][:2], EAST_Q97[k_][2], EAST_Q97[k_ + 1][:2], EAST_Q97[k_ + 1][2]) for k_ in range(len(EAST_Q97) - 1)] + [
     ((183.0, 458.5), None, (179.7, 491.3), DAEWOO_BACK['low'] + 6.0),      # up past the hall's east wing
     ((179.7, 491.3), DAEWOO_BACK['low'] + 6.0, tuple(TR_E[TR_EKH]), _zh),  # to the bend
     (tuple(TR_E[TR_EKH]), _zh, (181.1, 563.8), dwb_road_z((181.1, 563.8))),
     ((181.1, 563.8), dwb_road_z((181.1, 563.8)), (153.6, 551.6), dwb_road_z((153.6, 551.6))),      # down the road north of it
     ((153.6, 551.6), dwb_road_z((153.6, 551.6)), (147.1, 547.2), dwb_road_z((147.1, 547.2))),
     ((147.1, 547.2), dwb_road_z((147.1, 547.2)), tuple(TR_E[-1]), dwb_road_z(tuple(TR_E[-1])))], 'east', tail=False, mine=_emine)
+# (west of the road, EAST_Q97 above: one smooth surface; 논지당's terrace as it was)
+_ewest &= ~FIXED & ~near_buildings(1.0) & (dist > ROAD_HALF + 1.0) & (_njw <= 0.0)
+_ew0 = Hn.copy()
+harmonic_fill(_ewest)
+print('traffic east, west of the road s 140 - 400: %d nodes filled smoothly, %.1f .. %+.1f m' % (
+    int(_ewest.sum()), (Hn - _ew0)[_ewest].min(), (Hn - _ew0)[_ewest].max()))
 tr_tilt_of(TR_E, TR_EN, TR_EO, TR_EK0, 'east (after)')
 # west
 _w_raw = [along_raw(TR_S0, 0.0)[:2], along_raw(TR_SJ - 16.0, 0.0)[:2], along_raw(TR_SJ + 0.4, 0.0)[:2],
