@@ -332,11 +332,13 @@ def sign_board():
 # (-18.65 .. -11.65), the west walk's outer pillar, the walk (4.65 m), the west main pillar, the carriageway (8.5 m), the
 # east main pillar, the walk, a tall granite slab and the white wall, then the low wall again.  The main pillars stand
 # on 백양로's verges (ROAD verge, 4.2 .. 5.65 m off the centre line) and the walks pass between them and the outer ones.
+# The main pillars and the lodge run far back from the line (the July 1997 vertical photos: both pillars 4.3 .. 5.0 m,
+# the lodge's roof 8 .. 10 m; the 1996 photo's roof and the 2008 skyview say 10 m): 고증 4.8.1 「깊이」.
 # tools/build_campus.py GATE_PARTS keeps the shrubs off these footprints.
 GATE_FRONT = -0.3            # the pillars' and the lodge's south faces, from the gate's line
-GATE_MAIN = dict(u=4.95, w=1.4, d=2.4, fin=0.34, h=4.9, h_back=4.5, core=4.45)
+GATE_MAIN = dict(u=4.95, w=1.4, d=4.8, fin=0.34, h=4.9, h_back=4.5, core=4.45)
 GATE_SIDE = dict(u=-10.98, w=1.35, d=2.0, fin=0.34, h=3.75, h_back=3.45, core=3.4)
-GATE_LODGE = dict(u0=-18.65, u1=-11.65, d=5.2, h=2.8, solid=3.75)
+GATE_LODGE = dict(u0=-18.65, u1=-11.65, d=10.0, h=2.8, solid=3.75)
 GATE_SLAB = dict(u0=10.25, u1=12.75, h=3.7, t=0.4)
 GATE_WALL = dict(u0=12.75, u1=21.75, h=2.5, t=0.35)
 GATE_END = 31.5              # the low wall's ends (tools/build_campus.py reads the same length for the ground)
@@ -365,9 +367,10 @@ def _gate_grille(mb, p0, p1, z0, z1, step=0.13, rails=(0.06, 0.5)):
         mb.box((x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, z0 + h / 2), (t, t, h), 'trim_black', rotz=a, skip=('bottom',))
 
 
-def _gate_pillar(mb, gz, u, w, d, fin, h, h_back, core, lamp=0):
+def _gate_pillar(mb, gz, u, w, d, fin, h, h_back, core, lamp=0, vent=0):
     """a dark rubble core between two granite slabs: the slabs stand over the core and run back the pillar's whole
-    depth, their tops falling to the north.  lamp: the side of the core's face the iron lantern hangs on (2011)."""
+    depth, their tops falling to the north; the rubble shows at both ends.  lamp: the side of the core's face the
+    iron lantern hangs on (2011).  vent: the side whose slab has the dark slot over the folded leaves (2011)."""
     y0, y1 = GATE_FRONT, GATE_FRONT + d
     z = gz(u, (y0 + y1) / 2)
     zb = z - 0.6
@@ -379,6 +382,9 @@ def _gate_pillar(mb, gz, u, w, d, fin, h, h_back, core, lamp=0):
             mb.face([(*ring[i], zb), (*ring[j], zb), (*ring[j], z + top[j]), (*ring[i], z + top[i])], 'gate_granite')
         mb.face([(*ring[i], z + top[i]) for i in range(4)], 'gate_granite')
     mb.box((u, (y0 + y1) / 2, (zb + z + core) / 2), (w - 2 * fin, d - 0.2, z + core - zb), 'gate_rubble', skip=('left', 'right', 'bottom'))
+    if vent:
+        mb.box((u + vent * (w / 2 + 0.006), y0 + 0.55 + 1.15, z + 3.12), (0.012, 2.3, 0.3), 'void_black', skip=('bottom',))
+        mb.box((u + vent * (w / 2 + 0.014), y0 + 0.55 + 1.15, z + 3.12), (0.012, 0.05, 0.3), 'gate_granite')      # its mullion
     if lamp:
         lx, ly, lz = u + lamp * (w / 2 - fin - 0.22), y0 + 0.1, z + core - 1.15
         mb.box((lx, ly - 0.09, lz + 0.5), (0.04, 0.2, 0.04), 'trim_black')              # the bracket and its hook
@@ -418,9 +424,10 @@ def gate():
     gz = _gate_ground()
     M, S, L, T, W = GATE_MAIN, GATE_SIDE, GATE_LODGE, GATE_SLAB, GATE_WALL
     f0 = GATE_FRONT
-    # ---- the two main pillars and the west walk's outer one; the lanterns on the carriageway's side of the cores
+    # ---- the two main pillars and the west walk's outer one; the lanterns on the west side of both cores (the 2011
+    # roadview's two), the slot high on the carriageway's side over the folded leaves
     for s in (-1, 1):
-        _gate_pillar(mb, gz, s * M['u'], M['w'], M['d'], M['fin'], M['h'], M['h_back'], M['core'], lamp=-s)
+        _gate_pillar(mb, gz, s * M['u'], M['w'], M['d'], M['fin'], M['h'], M['h_back'], M['core'], lamp=-1, vent=-s)
         # the carriageway's leaves folded back along the slab (two a side) and the walk's one behind the other slab
         z = gz(s * M['u'], 1.0)
         xin, xout = s * (M['u'] - M['w'] / 2), s * (M['u'] + M['w'] / 2)

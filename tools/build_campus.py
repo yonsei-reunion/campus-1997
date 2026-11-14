@@ -7163,7 +7163,7 @@ out['decals'] = [d_ for d_ in out['decals'] if not shapely.contains_xy(GATE_OUT,
 # pillars stand on the verges' south ends, the west walk's outer pillar and the lodge on the strip west of it, the
 # tall slab on the strip east of the east walk.  The verges' clipped shrubs and the strips' hedge give way to them.
 # (u0, u1 along the wall eastwards from the gate's middle, v0, v1 north of its line; 0.6 m clear)
-GATE_PARTS = [(-5.65, -4.25, -0.3, 2.1), (4.25, 5.65, -0.3, 2.1), (-11.65, -10.3, -0.3, 1.7), (-18.65, -11.65, -0.3, 4.9),
+GATE_PARTS = [(-5.65, -4.25, -0.3, 4.5), (4.25, 5.65, -0.3, 4.5), (-11.65, -10.3, -0.3, 1.7), (-18.65, -11.65, -0.3, 9.7),
               (10.25, 12.75, -0.2, 0.2)]
 _gparts = unary_union([Polygon([tuple(_gc + _gw_t * u_ + _gw_n * v_) for u_, v_ in ((a_, c_), (b_, c_), (b_, d_), (a_, d_))])
                        for a_, b_, c_, d_ in GATE_PARTS]).buffer(0.6)
