@@ -13,17 +13,23 @@ export function renderItems(items) {
   return ul;
 }
 
-// one dated entry: { date, groups: [{ category, items, images: [{ src, alt }] }] } →
-// <section id="2026-11-06"><h3>2026년 11월 6일</h3><div class="cat"><h4>건물</h4><ul>…</ul><figure class="shot">…</div>…
-// heading: the date's tag (each category gets the next level); link: the date is a #date link to itself; src: maps each capture's URL
-export function noteSection(n, { heading = 'h3', link = false, src = (u) => u } = {}) {
+// 2026-11-06 → 2026년 11월 6일
+export function dateLabel(date) {
+  const [y, m, d] = date.split('-').map(Number);
+  return `${y}년 ${m}월 ${d}일`;
+}
+
+// one dated entry: { date, summary, groups: [{ category, items, images: [{ src, alt }] }] } →
+// <section id="2026-11-06"><h3>2026년 11월 6일</h3><p class="summary">…</p><div class="cat"><h4>건물</h4><ul>…</ul><figure class="shot">…</div>…
+// heading: the date's tag (each category gets the next level); link: the date's URL (none: plain text); src: maps each capture's URL
+export function noteSection(n, { heading = 'h3', link = '', src = (u) => u } = {}) {
   const sec = document.createElement('section');
   sec.id = n.date;
   const h = document.createElement(heading);
-  const [y, m, d] = n.date.split('-').map(Number);
-  const date = link ? h.appendChild(Object.assign(document.createElement('a'), { href: '#' + n.date })) : h;
-  date.textContent = `${y}년 ${m}월 ${d}일`;
+  const date = link ? h.appendChild(Object.assign(document.createElement('a'), { href: link })) : h;
+  date.textContent = dateLabel(n.date);
   sec.appendChild(h);
+  if (n.summary) sec.appendChild(Object.assign(document.createElement('p'), { className: 'summary', textContent: n.summary }));
   const sub = 'h' + (Number(heading[1]) + 1);
   for (const g of n.groups) {
     const cat = document.createElement('div');

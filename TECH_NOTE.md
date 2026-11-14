@@ -18,7 +18,7 @@ npm run build        # web/dist 정적 사이트
 
 ## 새 소식
 
-게임 안 「새 소식」 창과 `news.html`(날짜마다 `#2026-11-06` 같은 주소)은 같은 데이터 `web/public/data/releases.json` 을 `web/src/notes.js` 로 그립니다.
+게임 안 「새 소식」 창과 `news.html`(날짜 목록과 요약, 날짜마다 `news.html?d=2026-11-06` 같은 주소)은 같은 데이터 `web/public/data/releases.json` 을 `web/src/notes.js` 로 그립니다.
 형식과 쓰는 규칙은 [`CLAUDE.md`](CLAUDE.md) 에 있습니다. 캡처는 `web/public/assets/news/` 에만 둡니다.
 
 ## 캠퍼스 사람들 페이지

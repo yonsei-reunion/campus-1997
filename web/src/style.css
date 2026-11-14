@@ -208,6 +208,7 @@ a.newsbtn { display: inline-block; text-decoration: none; }
 #news h2 small { font-family: var(--font); font-size: 13px; color: #5c6572; margin-left: 6px; }
 #news section { border-top: 1px dashed #d9d3c3; padding: 10px 0 4px; }
 #news h3 { margin: 0 0 2px; font-size: 16px; color: var(--ink); }
+#news .summary { margin: 2px 0 0; font-size: 13.5px; color: #5c6572; }
 #news .cat { margin-top: 8px; }
 #news h4 { display: inline-block; margin: 0 0 4px; background: var(--yellow); border-radius: 4px; padding: 0 6px; font-size: 12.5px; color: var(--ink); }
 #news li > ul { margin-top: 2px; font-size: 13px; }

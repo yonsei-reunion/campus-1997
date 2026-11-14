@@ -30,6 +30,16 @@
   figure { margin:14px 0 0; }
   img { display:block; width:100%; height:auto; border-radius:10px; border:1px solid rgba(0,0,0,.12); }
   figcaption { font-size:13px; color:var(--mute); margin:4px 2px 0; }
+  .summary { margin:4px 0 0; color:#3a4762; }
+  .back { display:inline-block; margin:0 0 12px; color:var(--accent); font-weight:700; text-decoration:none; }
+  nav.pager { display:flex; justify-content:space-between; gap:12px; margin-top:8px; }
+  nav.pager a { flex:1; background:var(--card); border-radius:12px; padding:10px 14px; color:var(--accent); text-decoration:none; box-shadow:0 1px 4px rgba(0,0,0,.08); font-size:14px; }
+  nav.pager a.next { text-align:right; }
+  nav.pager span { flex:1; }
+  .entry { display:block; color:inherit; text-decoration:none; padding:16px 20px; }
+  .entry:hover h2 { text-decoration:underline; }
+  .entry .cats { margin:8px 0 0; display:flex; flex-wrap:wrap; gap:4px; }
+  .entry .cats span { padding:0 8px; border-radius:6px; background:#f1ead3; font-size:12.5px; color:#5c5440; }
   .play { display:inline-block; margin-top:12px; background:#fff; color:var(--accent); padding:6px 16px; border-radius:20px; text-decoration:none; font-weight:700; }
 </style>
 </head>
@@ -41,15 +51,49 @@
 </header>
 <main id="list"><p>불러오는 중…</p></main>
 <script type="module">
-import { noteSection } from './src/notes.js';
+import { noteSection, dateLabel } from './src/notes.js';
+// news.html: the dates with a one-line summary each; news.html?d=2026-11-06: that date alone.
+// Old shared links (news.html#2026-11-06) go to the date page.
+const hashDate = /^#\d{4}-\d{2}-\d{2}$/.test(location.hash) && location.hash.slice(1);
+if (hashDate) history.replaceState(null, '', `?d=${hashDate}`);
+const pageOf = (date) => `?d=${date}`;
+const setMeta = (title, desc) => {
+  document.title = title;
+  for (const sel of ['meta[name="description"]', 'meta[property="og:description"]']) document.querySelector(sel)?.setAttribute('content', desc);
+  document.querySelector('meta[property="og:title"]')?.setAttribute('content', title);
+};
 (async () => {
   const list = document.getElementById('list');
   let notes;
   try { notes = await fetch('data/releases.json', { cache: 'no-cache' }).then((r) => r.json()); }
   catch { list.textContent = '소식을 불러오지 못했습니다.'; return; }
   list.textContent = '';
-  for (const n of notes) list.appendChild(noteSection(n, { heading: 'h2', link: true }));
-  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+  const want = new URLSearchParams(location.search).get('d');
+  const i = want ? notes.findIndex((n) => n.date === want) : -1;
+  if (i < 0) {
+    if (want) list.appendChild(Object.assign(document.createElement('p'), { textContent: `${want} 소식이 없습니다. 날짜를 골라 주세요.` }));
+    for (const n of notes) {
+      const sec = list.appendChild(document.createElement('section'));
+      sec.style.padding = '0';
+      const a = sec.appendChild(Object.assign(document.createElement('a'), { className: 'entry', href: pageOf(n.date) }));
+      a.appendChild(Object.assign(document.createElement('h2'), { textContent: dateLabel(n.date) }));
+      if (n.summary) a.appendChild(Object.assign(document.createElement('p'), { className: 'summary', textContent: n.summary }));
+      const cats = a.appendChild(Object.assign(document.createElement('p'), { className: 'cats' }));
+      for (const g of n.groups) cats.appendChild(Object.assign(document.createElement('span'), { textContent: g.category }));
+    }
+    return;
+  }
+  const n = notes[i];
+  setMeta(`${dateLabel(n.date)} · 새 소식 · 신촌 캠퍼스 1997`, n.summary || '신촌 캠퍼스 1997 업데이트 내역');
+  list.appendChild(Object.assign(document.createElement('a'), { className: 'back', href: 'news.html', textContent: '← 날짜 목록' }));
+  list.appendChild(noteSection(n, { heading: 'h2', link: pageOf(n.date) }));
+  // newer on the right, older on the left (the list runs newest first)
+  const nav = list.appendChild(Object.assign(document.createElement('nav'), { className: 'pager' }));
+  const step = (m, cls, label) => (m
+    ? Object.assign(document.createElement('a'), { className: cls, href: pageOf(m.date), textContent: label(dateLabel(m.date)) })
+    : document.createElement('span'));
+  nav.append(step(notes[i + 1], 'prev', (d) => `← ${d}`), step(notes[i - 1], 'next', (d) => `${d} →`));
+  scrollTo(0, 0);
 })();
 </script>
 </body>
