@@ -993,16 +993,35 @@ _cnw, _csw, _cse = (np.array(p_) + BLD_MOVE[324328422] for p_ in ((-11.05, -181.
 _tw = (_cnw - _csw) / np.linalg.norm(_cnw - _csw)                 # the 백양로 face, south -> north
 _ts = (_cse - _csw) / np.linalg.norm(_cse - _csw)                 # the south face, west -> east
 _nw = np.array([-_tw[1], _tw[0]])                                 # out of the 백양로 face (west)
-_c0 = _csw + _nw * 1.0 + _tw * 1.1
-_CBF, _CBS, _CBH = 25.0, 19.6, 6.6                                 # front, side, height (its coping 0.4 over)
+_c0_rv = _csw + _nw * 1.0 + _tw * 1.1                              # (the corner as first placed, moved with the hall)
+# The 1997 vertical aerial photos (reference/고증.md 3.4 「낮은 몸체의 윤곽」, tools/aerial97_cent.py; the 2008 · 2010
+# skyview shows the same plan): the low part is one storey-and-a-half volume wrapped round the drum's west foot, not a
+# box 19.6 m deep.  Its roof edge, read where a west and an east frame agree (36.5 - 37.1 m, 7 m over the hall's
+# floor): the corner block's west side 3.5 m west of where the block stood (4.5 m out of the hall's 백양로 face: the
+# OSM outline's face, which #162 moved east with the upper hall, was this low wall's) for about 11 m; north of it a
+# wall 1.7 m further in, tangent to an arc of 19.1 m round the drum's centre (2.1 m outside the drum) that runs on
+# to the hall's face 48 m south of its north-west corner: the curved glass wall of the 1996 side photo.
+_c0 = _c0_rv - _ts * 3.5
+_CBF, _CBS, _CBH = 25.0, 11.0, 6.6                                 # front, side, height (its coping 0.4 over)
+_cdr = np.array([-8.6, -241.8]) + BLD_MOVE[324328422]              # the drum's centre (blender/landmarks.py CENT_DRUM)
+_CTR = 19.1                                                        # the low curved wall's radius about it
+_ctT = _cdr + _nw * _CTR                                           # where the arc turns into the straight wall
+_ctW = _ctT - _tw * float((_ctT - (_c0 + _tw * _CBS)) @ _tw)       # the straight wall's south end, at the block
+_sj = float((_cdr - _cnw) @ -_tw) - math.sqrt(_CTR ** 2 - float((_cdr - _cnw) @ _nw) ** 2)
+_ctJ = _cnw - _tw * _sj                                            # the arc's north end, on the hall's face
+_aJ, _aT = (math.atan2(q_[1] - _cdr[1], q_[0] - _cdr[0]) for q_ in (_ctJ, _ctT))
 CENT_BLOCK = dict(corner=[round(float(v), 2) for v in _c0], t_front=[round(float(v), 4) for v in _ts],
                   t_side=[round(float(v), 4) for v in _tw], front=_CBF, side=_CBS, h=_CBH,
-                  entrance=[0.7, 9.7, 2.7], door=[13.2, 15.8, 2.5],
-                  parapet=[(_CBS, 25.0, round(_CBH + 0.8, 2)), (25.0, 28.5, round(_CBH + 1.6, 2))])
+                  entrance=[0.7, 9.7, 2.7], door=None, parapet=[],
+                  tier=dict(c=[round(float(v), 2) for v in _cdr], r=_CTR, south=[round(float(v), 2) for v in _ctW],
+                            face_s=round(_sj, 2)))
 CENT_BLOCK['poly'] = [[round(float(v), 2) for v in q] for q in
-                      (_c0, _c0 + _ts * _CBF, _c0 + _ts * _CBF + _tw * _CBS, _c0 + _tw * _CBS)]
-# (its forecourt: level at the hall's floor like the 백양로 side, so the entrance is not half buried)
-FORECOURTS.append((324328422, None, 14.0, dict(face=(tuple(_c0), tuple(_c0 + _ts * _CBF)), max_half=_CBF / 2 + 1.0,
+                      [_c0, _c0 + _ts * _CBF, _c0 + _ts * _CBF + _tw * _CBS, _ctW - _nw * 4.0, _ctJ - _nw * 1.0] +
+                      [_cdr + _CTR * np.array([math.cos(a_), math.sin(a_)]) for a_ in np.linspace(_aJ, _aT, 9)] +
+                      [_ctW, _c0 + _tw * _CBS]]
+# (its forecourt: level at the hall's floor like the 백양로 side, so the entrance is not half buried; kept where it
+# was first levelled, so the ground does not change)
+FORECOURTS.append((324328422, None, 14.0, dict(face=(tuple(_c0_rv), tuple(_c0_rv + _ts * 25.0)), max_half=25.0 / 2 + 1.0,
                                                 blend=8.0, level='corner', inside=1.0)))
 # 백주년기념관's north-east face, towards 광혜원 and 수경원 (연세 역사의 뜰): a plain stone box with three rows of strip
 # windows over a paved court (2010 roadview; blender/landmarks.py north_box).  The museum's own door, the one in the
@@ -4393,7 +4412,8 @@ N_EAST = (n0, n0 + len(east_keep))
 # block's front, at their columns (photo_on_line).
 SPECIES_H = {'ginkgo': 9.8, 'zelkova': 13.0, 'cherry': 7.5, 'maple': 6.5, 'oak': 12.5, 'pine': 11.0,
              'zelkova_young': 9.0, 'cherry_young': 5.4, 'metasequoia': 13.5, 'magnolia': 8.0, 'poplar': 17.0}   # blender/vegetation.py
-_BLOCK_LINE = (np.array(CENT_BLOCK['corner']) - np.array(CENT_BLOCK['t_side']) * 2.0, np.array(CENT_BLOCK['t_front']))
+_BLOCK_LINE = (np.array([round(float(v_), 2) for v_ in _c0_rv]) - np.array(CENT_BLOCK['t_side']) * 2.0,      # (the front's line
+               np.array(CENT_BLOCK['t_front']))                                                            # as first read)
 _BLOCK_LINE_RNG = (_BLOCK_LINE[0] - BLD_MOVE[324328422], _BLOCK_LINE[1])          # (the hall where first read)
 PHOTO_TREES = [('maple', 274, 965, 838, None), ('zelkova', 410, 905, 762, None),
                ('ginkgo', 530, 1373, None, 8.33), ('cherry', 97, 1330, None, 4.5),

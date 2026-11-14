@@ -504,50 +504,49 @@ def planter(mb, poly, z0):
         gx += 0.8
 
 
-def nw_lobby(mb, c, R, arc, z0, HP, low, pockets):
-    """백주년기념관's drum come down to the ground (issue #32) on the arc `arc` of the drum's circle (c, R), south of the
-    museum's entrance in the 백양로 porch: the 1996 side photo of the entrance shows the big curved wall going down past the
-    low wall to tall curved glass in dark upright mullions and a transom, under a band of white panels with a rough
-    granite course, trees before it; today's photo of the 백양로 side the same curved row of glass by the porch.  The
-    lobby behind it lit like the other halls' (window glass in hall mode, common.py pane_uv).  The sill clears the
-    ground where the glass stands free (low: the arc's points there); in the outline's pockets outside it (pockets:
-    polygons) raised granite planters of clipped box, in front of the glass where the ground rises past its sill."""
-    gmax = max(ground_top(c[0] + (R + 0.6) * (p.x - c[0]) / R, c[1] + (R + 0.6) * (p.y - c[1]) / R) for p in low)
+def nw_lobby(mb, pts, nrm, z0, HP, pockets=()):
+    """백주년기념관's low curved wall of glass round the drum's west foot (issues #32, #164), south of the museum's
+    entrance in the 백양로 porch, along the line `pts` with outward normals `nrm` (an arc about the drum's centre running
+    into a straight wall): the 1996 side photo of the entrance shows the big curved wall going down past the low wall
+    to tall curved glass in dark upright mullions and a transom, under a band of white panels with a rough granite
+    course, trees before it; today's photo of the 백양로 side the same curved row of glass by the porch.  The lobby
+    behind it lit like the other halls' (window glass in hall mode, common.py pane_uv).  The sill clears the ground
+    along the wall; in the outline's pockets outside it (pockets: polygons) raised granite planters of clipped box."""
+    n = len(pts)
+    off = lambda k, d: (pts[k].x + nrm[k].x * d, pts[k].y + nrm[k].y * d)
+    gmax = max(ground_top(*off(k, 0.6)) for k in range(n))
     zs = max(0.6, gmax - z0 + 0.2)                  # the glass's sill over the ground where nothing stands before it
     zh = HP - 1.6                                   # its head: two storeys of the lobby
     ztr = zs + (zh - zs) * 0.62                     # the transom: tall lights below, short ones above
     zg0, zg1 = zh + 0.75, zh + 1.1                  # the rough granite course in the white band
-    rg, rf = R - 0.25, R + 0.05                     # the glass set back under the band
-    ang = [math.atan2(p.y - c[1], p.x - c[0]) for p in arc]
-    ring = lambda r, a: (c[0] + r * math.cos(a), c[1] + r * math.sin(a))
+    dg, df = -0.25, 0.05                            # the glass set back under the band
     W = 'stone_panel_white'
-    for k in range(len(arc) - 1):
-        a, b = ang[k], ang[k + 1]
-        A0, B0 = ring(rg, a), ring(rg, b)
+    for k in range(n - 1):
+        A0, B0 = off(k, dg), off(k + 1, dg)
         # the glass, one lobby view per mullion bay; the white band and its granite course over it; the base below
-        # (faces wound like MeshBuilder.cylinder: outward for the angle increasing from A to B)
+        # (faces wound outward for the line running anticlockwise round the drum)
         mb.quad((*A0, z0 + zs), (*B0, z0 + zs), (*B0, z0 + zh), (*A0, z0 + zh), 'glass', panes=(1, 1, True))
-        Af, Bf = ring(rf, a), ring(rf, b)
+        Af, Bf = off(k, df), off(k + 1, df)
         mb.quad((*Af, z0 + zh), (*Bf, z0 + zh), (*Bf, z0 + HP + 0.9), (*Af, z0 + HP + 0.9), W)
         mb.quad((*A0, z0 + zh), (*B0, z0 + zh), (*Bf, z0 + zh), (*Af, z0 + zh), W)               # the soffit
-        mb.quad((*Af, z0 + HP + 0.9), (*Bf, z0 + HP + 0.9), (*ring(R - 0.1, b), z0 + HP + 0.9), (*ring(R - 0.1, a), z0 + HP + 0.9), W)
-        Ag, Bg = ring(rf + 0.07, a), ring(rf + 0.07, b)
+        mb.quad((*Af, z0 + HP + 0.9), (*Bf, z0 + HP + 0.9), (*off(k + 1, -0.1), z0 + HP + 0.9), (*off(k, -0.1), z0 + HP + 0.9), W)
+        Ag, Bg = off(k, df + 0.07), off(k + 1, df + 0.07)
         mb.quad((*Ag, z0 + zg0), (*Bg, z0 + zg0), (*Bg, z0 + zg1), (*Ag, z0 + zg1), 'stone_granite')
         mb.quad((*Af, z0 + zg0), (*Bf, z0 + zg0), (*Bg, z0 + zg0), (*Ag, z0 + zg0), 'stone_granite')
         mb.quad((*Ag, z0 + zg1), (*Bg, z0 + zg1), (*Bf, z0 + zg1), (*Af, z0 + zg1), 'stone_granite')
-        Ab, Bb = ring(R + 0.2, a), ring(R + 0.2, b)
+        Ab, Bb = off(k, 0.2), off(k + 1, 0.2)
         mb.quad((*Ab, z0 - 0.5), (*Bb, z0 - 0.5), (*Bb, z0 + zs), (*Ab, z0 + zs), 'stone_granite')
         mb.quad((*Ab, z0 + zs), (*Bb, z0 + zs), (*B0, z0 + zs), (*A0, z0 + zs), 'stone_granite')
         # the frame: sill, transom and head rails in front of the glass
         for zz, w in ((zs + 0.05, 0.1), (ztr, 0.12), (zh - 0.05, 0.1)):
-            A1, B1 = ring(rg + 0.08, a), ring(rg + 0.08, b)
+            A1, B1 = off(k, dg + 0.08), off(k + 1, dg + 0.08)
             mb.quad((*A1, z0 + zz - w / 2), (*B1, z0 + zz - w / 2), (*B1, z0 + zz + w / 2), (*A1, z0 + zz + w / 2), 'frame_dark')
             mb.quad((*A1, z0 + zz + w / 2), (*B1, z0 + zz + w / 2), (*B0, z0 + zz + w / 2), (*A0, z0 + zz + w / 2), 'frame_dark')
-    for k, a in enumerate(ang):                    # the upright mullions on the bay lines
-        p = Vector(ring(rg + 0.05, a))
-        tg = Vector((-math.sin(a), math.cos(a)))
-        if k in (0, len(ang) - 1):                  # the ends: the glass returns to the walls beside it
-            e0, e1 = Vector(ring(rg, a)), Vector(ring(rf + 0.07, a))
+    for k in range(n):                              # the upright mullions on the bay lines
+        p = Vector(off(k, dg + 0.05))
+        tg = Vector((-nrm[k].y, nrm[k].x))
+        if k in (0, n - 1):                         # the ends: the glass returns to the walls beside it
+            e0, e1 = Vector(off(k, dg)), Vector(off(k, df + 0.07))
             if k:
                 e0, e1 = e1, e0
             mb.quad((*e0, z0 + zs), (*e1, z0 + zs), (*e1, z0 + HP + 0.9), (*e0, z0 + HP + 0.9), W)
@@ -615,7 +614,7 @@ def centennial():
     concert hall) at the hall's south end, a flat-topped stone box over the north part, both about as high as the
     building's four storeys, a stage house standing over them north-east of the drum.  Light granite with incised
     horizontal courses.  The 백양로 face is the box's: flat, about 17 m, over a deep porch with the museum's glass entrance
-    (museum_porch), running at its south end into the drum, whose foot has curved glass (nw_lobby); the north end has
+    (museum_porch), running at its south end into the drum, round whose west foot a low wall of glass curves (nw_lobby); the north end has
     three rows of strip windows (north_box); the low block at the south-west corner (tools/build_campus.py CENT_BLOCK)
     stands before the drum's south-west quarter, and on the east the drum comes down to the ground."""
     b = bld(324328422)
@@ -660,31 +659,42 @@ def centennial():
         p, q = rim[i], rim[(i + 1) % nb]
         mb.quad((p.x, p.y, z0 + HB), (q.x, q.y, z0 + HB), (q.x, q.y, z0 + HB + 0.5), (p.x, p.y, z0 + HB + 0.5), 'stone_ashlar')
     mb.face([(p.x, p.y, z0 + HB + 0.5) for p in rim], 'roof_flat')
-    # where the drum comes down to the ground by the face, between the box and the low block: curved glass on its foot
-    # (nw_lobby), a planter of clipped box between it and the face
+    # the low volume round the drum's west foot (tools/build_campus.py CENT_BLOCK, reference/고증.md 3.4 「낮은 몸체의
+    # 윤곽」): from the hall's face an arc about the drum's centre, 2.1 m outside the drum, then a straight wall parallel
+    # to the face down to the corner block; glass at its foot (nw_lobby), its flat roof at the band's top running in to
+    # the drum
     K = CAMPUS.get('centennial_block')
-    Xw = circle_cross(c, R, J, Jin)
-    a_w = math.atan2(Xw.y - c[1], Xw.x - c[0])
+    ring = lambda r, a: Vector((c[0] + r * math.cos(a), c[1] + r * math.sin(a)))
+    a_w = a_k = None
     if K:
         c0, tf, tsd = Vector(K['corner']), Vector(K['t_front']), Vector(K['t_side'])
-        kNW = c0 + tsd * K['side']
-        kN = kNW + tf * ((A_ - kNW).dot(nw) / tf.dot(nw))                     # its north side meets the face line
-        Xk = circle_cross(c, R, kNW, kNW + tf * 4.0)
-        a_k = math.atan2(Xk.y - c[1], Xk.x - c[0])
-    else:
-        a_k = a_w + 0.4
-        kN = J + tw * 4.0
-    narc = max(3, int(math.ceil((a_k - a_w) / (2 * math.pi / 96))))
-    ring = lambda r, a: Vector((c[0] + r * math.cos(a), c[1] + r * math.sin(a)))
-    arc = [ring(R, a_w + (a_k - a_w) * k / narc) for k in range(narc + 1)]
-    Rp = R + 0.2
-    pocket = [tuple(J)] + [tuple(ring(Rp, a_w + (a_k - a_w) * k / 6)) for k in range(7)] + [tuple(kN)]
-    nw_lobby(mb, c, R, arc, z0, HP, arc, [pocket])
+    if K and K.get('tier'):
+        T_ = K['tier']
+        Rt = T_['r']
+        Jt = A_ + tw * T_['face_s']                                           # the arc's north end, on the face
+        a_w = math.atan2(Jt.y - c[1], Jt.x - c[0])
+        a_k = math.atan2(-nw.y, -nw.x)                                        # where it turns into the straight wall
+        narc = max(3, int(math.ceil((a_k - a_w) / (2 * math.pi / 96))))
+        lp = [ring(Rt, a_w + (a_k - a_w) * k / narc) for k in range(narc + 1)]
+        ln = [(p - Vector(c)).normalized() for p in lp]
+        Ws = Vector(T_['south'])
+        ns_ = max(1, int(round((Ws - lp[-1]).length / 1.2)))
+        for k in range(1, ns_ + 1):
+            lp.append(lp[narc] + (Ws - lp[narc]) * (k / ns_))
+            ln.append(-nw)
+        nw_lobby(mb, lp, ln, z0, HP)
+        zt = z0 + HP + 0.9
+        for k in range(len(lp) - 1):                                          # its roof, in under the drum's wall
+            p0, p1 = lp[k] - ln[k] * 0.1, lp[k + 1] - ln[k + 1] * 0.1
+            q0, q1 = lp[k] - ln[k] * 4.0, lp[k + 1] - ln[k + 1] * 4.0
+            mb.quad((p0.x, p0.y, zt), (p1.x, p1.y, zt), (q1.x, q1.y, zt), (q0.x, q0.y, zt), 'roof_flat')
+        e0, e1 = lp[-1] + ln[-1] * 0.12, lp[-1] - ln[-1] * 4.0                # its south end, over the corner block
+        mb.quad((e0.x, e0.y, z0 + K['h']), (e1.x, e1.y, z0 + K['h']), (e1.x, e1.y, zt), (e0.x, e0.y, zt), 'stone_panel_white')
     # the drum, with incised horizontal joints, from the ground (inside the box and the block it is hidden), above the
     # lobby glass only from the glass's band up
     joints = [j for j in (3.2, 6.0, HP + 0.9, HP + 3.9, HP + 6.9, HP + 9.9) if j < HD - 1.5]
-    o0, f0 = drum_outline(c, R, (a_w, a_k))
-    oj, fj = drum_outline(c, R - 0.1, (a_w, a_k))
+    o0, f0 = drum_outline(c, R, (a_w, a_k) if a_w is not None else None)
+    oj, fj = drum_outline(c, R - 0.1, (a_w, a_k) if a_w is not None else None)
     z = z0 - 3.0
     tag = 'drum'
     for zj in joints + [HD - 1.2]:
@@ -722,7 +732,7 @@ def centennial():
             return (p.x, p.y, z0 + z)
         F, S = K['front'], K['side']
         e0, e1, he = K['entrance']
-        d0, d1, hd = K['door']
+        d0, d1, hd = K['door'] or (S, S, 0.0)       # (no side door: the wall whole)
         # front face (south) with the wide dark entrance, recessed 2.5 m
         bk.quad(Q(0, 0, -3), Q(e0, 0, -3), Q(e0, 0, Hb), Q(0, 0, Hb), 'stone_ashlar')
         bk.quad(Q(e1, 0, -3), Q(F, 0, -3), Q(F, 0, Hb), Q(e1, 0, Hb), 'stone_ashlar')
@@ -736,12 +746,13 @@ def centennial():
                 panes=(1, 1, True))
         # west side with its dark door
         bk.quad(Q(0, d0, -3), Q(0, 0, -3), Q(0, 0, Hb), Q(0, d0, Hb), 'stone_ashlar')
-        bk.quad(Q(0, S, -3), Q(0, d1, -3), Q(0, d1, Hb), Q(0, S, Hb), 'stone_ashlar')
-        bk.quad(Q(0, d1, hd), Q(0, d0, hd), Q(0, d0, Hb), Q(0, d1, Hb), 'stone_ashlar')
-        bk.quad(Q(0.6, d1, 0), Q(0.6, d0, 0), Q(0.6, d0, hd), Q(0.6, d1, hd), 'void_black')
-        bk.quad(Q(0, d0, 0), Q(0.6, d0, 0), Q(0.6, d0, hd), Q(0, d0, hd), 'void_black')
-        bk.quad(Q(0.6, d1, 0), Q(0, d1, 0), Q(0, d1, hd), Q(0.6, d1, hd), 'void_black')
-        bk.quad(Q(0, d0, hd), Q(0.6, d0, hd), Q(0.6, d1, hd), Q(0, d1, hd), 'void_black')
+        if K['door']:
+            bk.quad(Q(0, S, -3), Q(0, d1, -3), Q(0, d1, Hb), Q(0, S, Hb), 'stone_ashlar')
+            bk.quad(Q(0, d1, hd), Q(0, d0, hd), Q(0, d0, Hb), Q(0, d1, Hb), 'stone_ashlar')
+            bk.quad(Q(0.6, d1, 0), Q(0.6, d0, 0), Q(0.6, d0, hd), Q(0.6, d1, hd), 'void_black')
+            bk.quad(Q(0, d0, 0), Q(0.6, d0, 0), Q(0.6, d0, hd), Q(0, d0, hd), 'void_black')
+            bk.quad(Q(0.6, d1, 0), Q(0, d1, 0), Q(0, d1, hd), Q(0.6, d1, hd), 'void_black')
+            bk.quad(Q(0, d0, hd), Q(0.6, d0, hd), Q(0.6, d1, hd), Q(0, d1, hd), 'void_black')
         # north side (against the podium), the roof with a coping, and a band of joints like the podium's
         bk.quad(Q(0, S, -3), Q(F, S, -3), Q(F, S, Hb), Q(0, S, Hb), 'stone_ashlar')
         bk.quad(Q(F, 0, -3), Q(F, S, -3), Q(F, S, Hb), Q(F, 0, Hb), 'stone_ashlar')
