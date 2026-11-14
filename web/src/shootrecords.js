@@ -10,8 +10,6 @@ export const KEY = 'y97-shoot-records';
 const OLD = 'y97-shoot-best';           // (before the records: the best score alone)
 const NAME = 'y97-shoot-name';          // the name last typed on the results card
 const MAX = 100, SHOW = 10;
-// records kept before the cast's ids became numbers (2026-11-15) name their hero by the old id
-const WAS = { 'man-tee': 'p01', 'man-check': 'p02', 'man-hoodie': 'p03', 'man-cheer': 'p04', 'man-grey': 'p05', 'man-blazer': 'p06', 'woman-tee': 'p09', 'woman-pink': 'p10', 'woman-dress': 'p11', 'woman-dress-blue': 'p12', 'woman-cardigan': 'p13', 'woman-stripe': 'p15', 'man-shirt': 'p16', 'woman-denim': 'p17' };
 
 const pct = (r) => (r.shots ? r.makes / r.shots : 0);
 // more baskets first; the same: the better share of shots; still the same: the earlier game
@@ -22,7 +20,6 @@ export function load() {
   try { list = JSON.parse(safeGet(KEY) || '[]'); } catch { list = []; }
   if (!Array.isArray(list)) list = [];
   list = list.filter((r) => r && typeof r === 'object' && Number.isFinite(r.makes));
-  for (const r of list) if (WAS[r.hero]) r.hero = WAS[r.hero];
   if (!list.length) {
     const old = +(safeGet(OLD) || 0);
     if (old > 0) list.push({ id: 1, makes: old, shots: null, at: null });
