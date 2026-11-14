@@ -17,38 +17,159 @@
 왼쪽은 그 무렵의 사진, 오른쪽은 비슷한 자리에서 찍은 게임 화면입니다.
 근거 자료는 [`고증.md`](reference/고증.md), 사진의 출처는 [`출처.txt`](reference/출처.txt)에 있습니다.
 
-| 사진 | 게임 |
-|---|---|
-| ![백양로 1997년 항공 사진](docs/compare/baekyangro_photo.jpg)<br>**백양로** · 1997년 항공 사진(게임은 같은 카메라) | ![게임의 백양로](docs/compare/baekyangro_game.jpg) |
-| ![캠퍼스 서쪽 1995년 항공 사진](docs/compare/campus_west_photo.jpg)<br>**캠퍼스 서쪽** · 1995년 항공 사진 | ![게임의 캠퍼스 서쪽](docs/compare/campus_west_game.jpg) |
-| ![캠퍼스 전경 1990년 무렵 항공 사진](docs/compare/campus_1994_photo.jpg)<br>**캠퍼스 전경** · 1990년 무렵 항공 사진(문집 표기 1994년, 게임은 사진에 맞춘 카메라) | ![게임의 캠퍼스 전경](docs/compare/campus_1994_game.jpg) |
-| ![중앙도서관 1997년 사진](docs/compare/library_photo.jpg)<br>**중앙도서관** · 1997년 | ![게임의 중앙도서관](docs/compare/library_game.jpg) |
-| ![학생회관 외벽 2009년 사진](docs/compare/union_photo.jpg)<br>**학생회관** 외벽 · 2009년 | ![게임의 학생회관 외벽](docs/compare/union_game.jpg) |
-| ![백주년기념관 박물관 입구 1996년 사진](docs/compare/museum_photo.jpg)<br>**백주년기념관** 박물관 입구 · 1996년 | ![게임의 백주년기념관 박물관 입구](docs/compare/museum_game.jpg) |
-| ![대강당 2009년 사진](docs/compare/auditorium_photo.jpg)<br>**대강당** · 2009년 | ![게임의 대강당](docs/compare/auditorium_game.jpg) |
-| ![언더우드관 2016년 사진](docs/compare/underwood_photo.jpg)<br>**언더우드관** · 2016년 | ![게임의 언더우드관](docs/compare/underwood_game.jpg) |
-| ![언더우드 동상 2009년 사진](docs/compare/underwood_statue_photo.jpg)<br>**언더우드 동상** · 2009년 | ![게임의 언더우드 동상](docs/compare/underwood_statue_game.jpg) |
-| ![스팀슨관 2016년 사진](docs/compare/stimson_photo.jpg)<br>**스팀슨관** · 2016년 | ![게임의 스팀슨관](docs/compare/stimson_game.jpg) |
-| ![아펜젤러관 2016년 사진](docs/compare/appenzeller_photo.jpg)<br>**아펜젤러관** · 2016년 | ![게임의 아펜젤러관](docs/compare/appenzeller_game.jpg) |
-| ![연희관 2023년 가을 사진](docs/compare/yeonhui_photo.jpg)<br>**연희관** · 2023년 가을(게임은 10월) | ![게임의 연희관](docs/compare/yeonhui_game.jpg) |
-| ![대우관 사진](docs/compare/daewoo_photo.jpg)<br>**대우관** (1996년 준공) | ![게임의 대우관](docs/compare/daewoo_game.jpg) |
-| ![대우관 상뜰 사진](docs/compare/sang_photo.jpg)<br>**대우관 상뜰** | ![게임의 대우관 상뜰](docs/compare/sang_game.jpg) |
-| ![광복관 현관 1996년 사진](docs/compare/kwangbok_photo.jpg)<br>**광복관** 현관 · 1996년 | ![게임의 광복관 현관](docs/compare/kwangbok_game.jpg) |
-| ![과학관 앞 계단 1996년 사진](docs/compare/science_photo.jpg)<br>**과학관** 앞 계단 · 1996년 | ![게임의 과학관 앞 계단](docs/compare/science_game.jpg) |
-| ![음악관 현관 1996년 사진](docs/compare/music_photo.jpg)<br>**음악관** 현관 · 1996년 | ![게임의 음악관 현관](docs/compare/music_game.jpg) |
-| ![빌링슬리관 현관 1996년 사진](docs/compare/billingsley_photo.jpg)<br>**빌링슬리관** 현관 · 1996년 | ![게임의 빌링슬리관 현관](docs/compare/billingsley_game.jpg) |
-| ![용재관 사진](docs/compare/yongjae_photo.jpg)<br>**용재관** · 1990년대 봄, 언더우드 동상 너머 (1957 – 2013, 지금 경영관 자리) | ![게임의 용재관](docs/compare/yongjae_game.jpg) |
-| ![옛 노천극장 1997년 사진](docs/compare/amphitheater_photo.jpg)<br>**옛 노천극장** · 1997년 | ![게임의 옛 노천극장](docs/compare/amphitheater_game.jpg) |
-| ![활천대 2009년 사진](docs/compare/hwalcheon_photo.jpg)<br>**활천대** · 2009년, 독수리상 옆의 옛 자리 | ![게임의 활천대](docs/compare/hwalcheon_game.jpg) |
-| ![활천대 백양로 공사 전 사진](docs/compare/hwalcheon_old_photo.jpg)<br>**활천대** · 백양로 공사 전, 막돌 담 수반(물속 쇠 고리는 1997년 뒤) | ![게임의 활천대 수반](docs/compare/hwalcheon_old_game.jpg) |
-| ![백양로 초소 1997년 사진](docs/compare/guard_booth_photo.jpg)<br>**백양로 초소** · 1997년(게임은 같은 카메라) | ![게임의 백양로 초소](docs/compare/guard_booth_game.jpg) |
-| ![교육관 북쪽 끝과 서쪽 면 2003년 가을 사진](docs/compare/gyoyuk_photo.jpg)<br>**교육관** · 연희관 앞 정원 · 2003년 가을 | ![게임의 교육관](docs/compare/gyoyuk_game.jpg) |
-| ![백양로 끝 벚나무 2003년 봄 사진](docs/compare/cherry_photo.jpg)<br>**벚나무** · 백양로 끝 · 언더우드관 앞길 · 2003년 봄 | ![게임의 벚나무](docs/compare/cherry_game.jpg) |
-| ![백양로 끝 계단 2003년 봄 사진](docs/compare/uw_steps_photo.jpg)<br>**백양로 끝 계단** · 언더우드관 앞길 볼라드 · 2003년 봄 | ![게임의 백양로 끝 계단](docs/compare/uw_steps_game.jpg) |
-| ![해태상과 연희관 앞 매점 2003년 사진](docs/compare/haetae_kiosk_photo.jpg)<br>**해태상** · 연희관 녹색 천막 매점 · 2003년 | ![게임의 해태상과 매점](docs/compare/haetae_kiosk_game.jpg) |
-| ![연세로 1996년 사진](docs/compare/yonsei_ro_photo.jpg)<br>**연세로** · 1996년 5월, 신촌 로터리에서 굴다리와 정문 쪽(서울연구원, CC BY 4.0) | ![게임의 연세로](docs/compare/yonsei_ro_game.jpg) |
-| ![정문 1996년 사진](docs/compare/gate_photo.jpg)<br>**정문** · 1996년 8월, 경의선 철둑에서(서울연구원, CC BY 4.0) | ![게임의 정문](docs/compare/gate_game.jpg) |
-| ![신촌 로터리 1996년 사진](docs/compare/sinchon_rotary_photo.jpg)<br>**신촌 로터리** 가운데 섬 · 1996년 5월, 그레이스백화점 옥상에서(서울연구원, CC BY 4.0. 게임은 사진에서 푼 카메라) | ![게임의 신촌 로터리](docs/compare/sinchon_rotary_game.jpg) |
+<table>
+<tr><th width="50%">사진</th><th width="50%">게임</th></tr>
+<tr>
+<td valign="top"><img src="docs/compare/baekyangro_photo.jpg" alt="백양로 1997년 항공 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/baekyangro_game.jpg" alt="게임의 백양로" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>백양로</b> · 1997년 항공 사진(게임은 같은 카메라)</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/campus_west_photo.jpg" alt="캠퍼스 서쪽 1995년 항공 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/campus_west_game.jpg" alt="게임의 캠퍼스 서쪽" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>캠퍼스 서쪽</b> · 1995년 항공 사진</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/campus_1994_photo.jpg" alt="캠퍼스 전경 1990년 무렵 항공 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/campus_1994_game.jpg" alt="게임의 캠퍼스 전경" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>캠퍼스 전경</b> · 1990년 무렵 항공 사진(문집 표기 1994년, 게임은 사진에 맞춘 카메라)</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/library_photo.jpg" alt="중앙도서관 1997년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/library_game.jpg" alt="게임의 중앙도서관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>중앙도서관</b> · 1997년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/union_photo.jpg" alt="학생회관 외벽 2009년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/union_game.jpg" alt="게임의 학생회관 외벽" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>학생회관</b> 외벽 · 2009년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/museum_photo.jpg" alt="백주년기념관 박물관 입구 1996년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/museum_game.jpg" alt="게임의 백주년기념관 박물관 입구" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>백주년기념관</b> 박물관 입구 · 1996년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/auditorium_photo.jpg" alt="대강당 2009년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/auditorium_game.jpg" alt="게임의 대강당" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>대강당</b> · 2009년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/underwood_photo.jpg" alt="언더우드관 2016년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/underwood_game.jpg" alt="게임의 언더우드관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>언더우드관</b> · 2016년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/underwood_statue_photo.jpg" alt="언더우드 동상 2009년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/underwood_statue_game.jpg" alt="게임의 언더우드 동상" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>언더우드 동상</b> · 2009년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/stimson_photo.jpg" alt="스팀슨관 2016년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/stimson_game.jpg" alt="게임의 스팀슨관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>스팀슨관</b> · 2016년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/appenzeller_photo.jpg" alt="아펜젤러관 2016년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/appenzeller_game.jpg" alt="게임의 아펜젤러관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>아펜젤러관</b> · 2016년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/yeonhui_photo.jpg" alt="연희관 2023년 가을 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/yeonhui_game.jpg" alt="게임의 연희관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>연희관</b> · 2023년 가을(게임은 10월)</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/daewoo_photo.jpg" alt="대우관 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/daewoo_game.jpg" alt="게임의 대우관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>대우관</b> (1996년 준공)</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/sang_photo.jpg" alt="대우관 상뜰 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/sang_game.jpg" alt="게임의 대우관 상뜰" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>대우관 상뜰</b></td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/kwangbok_photo.jpg" alt="광복관 현관 1996년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/kwangbok_game.jpg" alt="게임의 광복관 현관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>광복관</b> 현관 · 1996년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/science_photo.jpg" alt="과학관 앞 계단 1996년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/science_game.jpg" alt="게임의 과학관 앞 계단" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>과학관</b> 앞 계단 · 1996년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/music_photo.jpg" alt="음악관 현관 1996년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/music_game.jpg" alt="게임의 음악관 현관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>음악관</b> 현관 · 1996년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/billingsley_photo.jpg" alt="빌링슬리관 현관 1996년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/billingsley_game.jpg" alt="게임의 빌링슬리관 현관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>빌링슬리관</b> 현관 · 1996년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/yongjae_photo.jpg" alt="용재관 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/yongjae_game.jpg" alt="게임의 용재관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>용재관</b> · 1990년대 봄, 언더우드 동상 너머 (1957 – 2013, 지금 경영관 자리)</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/amphitheater_photo.jpg" alt="옛 노천극장 1997년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/amphitheater_game.jpg" alt="게임의 옛 노천극장" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>옛 노천극장</b> · 1997년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/hwalcheon_photo.jpg" alt="활천대 2009년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/hwalcheon_game.jpg" alt="게임의 활천대" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>활천대</b> · 2009년, 독수리상 옆의 옛 자리</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/hwalcheon_old_photo.jpg" alt="활천대 백양로 공사 전 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/hwalcheon_old_game.jpg" alt="게임의 활천대 수반" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>활천대</b> · 백양로 공사 전, 막돌 담 수반(물속 쇠 고리는 1997년 뒤)</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/guard_booth_photo.jpg" alt="백양로 초소 1997년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/guard_booth_game.jpg" alt="게임의 백양로 초소" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>백양로 초소</b> · 1997년(게임은 같은 카메라)</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/gyoyuk_photo.jpg" alt="교육관 북쪽 끝과 서쪽 면 2003년 가을 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/gyoyuk_game.jpg" alt="게임의 교육관" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>교육관</b> · 연희관 앞 정원 · 2003년 가을</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/cherry_photo.jpg" alt="백양로 끝 벚나무 2003년 봄 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/cherry_game.jpg" alt="게임의 벚나무" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>벚나무</b> · 백양로 끝 · 언더우드관 앞길 · 2003년 봄</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/uw_steps_photo.jpg" alt="백양로 끝 계단 2003년 봄 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/uw_steps_game.jpg" alt="게임의 백양로 끝 계단" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>백양로 끝 계단</b> · 언더우드관 앞길 볼라드 · 2003년 봄</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/haetae_kiosk_photo.jpg" alt="해태상과 연희관 앞 매점 2003년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/haetae_kiosk_game.jpg" alt="게임의 해태상과 매점" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>해태상</b> · 연희관 녹색 천막 매점 · 2003년</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/yonsei_ro_photo.jpg" alt="연세로 1996년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/yonsei_ro_game.jpg" alt="게임의 연세로" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>연세로</b> · 1996년 5월, 신촌 로터리에서 굴다리와 정문 쪽(서울연구원, CC BY 4.0)</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/gate_photo.jpg" alt="정문 1996년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/gate_game.jpg" alt="게임의 정문" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>정문</b> · 1996년 8월, 경의선 철둑에서(서울연구원, CC BY 4.0)</td></tr>
+<tr>
+<td valign="top"><img src="docs/compare/sinchon_rotary_photo.jpg" alt="신촌 로터리 1996년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/sinchon_rotary_game.jpg" alt="게임의 신촌 로터리" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>신촌 로터리</b> 가운데 섬 · 1996년 5월, 그레이스백화점 옥상에서(서울연구원, CC BY 4.0. 게임은 사진에서 푼 카메라)</td></tr>
+</table>
 
 ## 게임 화면
 
