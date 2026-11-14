@@ -24,6 +24,7 @@ import muak
 import cars97
 import seomun
 import west_ground
+import med97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -6392,6 +6393,15 @@ _af_z = np.array([sample(Hn, NEAR_HALF, NEAR_STEP, *(_af_o + _af_t * u_ + _af_f 
 Hn[_af_m] = _af_z
 print('대우관 별관 앞: nodes %d between the wall and the drive to the drive\'s height, %+.2f .. %+.2f m' % (
     int(_af_m.sum()), (_af_z - _af_h0).min(), (_af_z - _af_h0).max()))
+# 의료원 주차장 셋 (tools/med97.py, reference/고증/2.10 「의료원 주차장 셋의 땅」; #189, te): 동쪽 큰 주차장 on its 1997
+# platform (8 - 12 m over the game's ground at its south end) and the road down to 성산로 beside it, 심장혈관병원 북쪽 and
+# 치과대학병원 서쪽 on the photos' planes; late, here: the planting has read the ground as it was.  The halls' feet
+# (the 1997 old halls too) and 성산로's bed stay
+_md_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997] + \
+    [p_.buffer(0) for _, _, _, _, p_ in OLD_HALLS] + [Polygon(v_).buffer(0) for v_ in LATE_FOOTPRINT_1997.values()]
+_md_took, MED97_GRADE = med97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
+FIXED[_md_took] = True
+print('의료원 주차장 셋:', MED97_GRADE)
 # ---------------------------------------------------------------------------
 # 1997년 땅 (#189 가운데: 인문관 · 대강당 · 한경길 · 용재관), after the planting and everything else that read the ground
 # as it was.  Each place: a zone of grid nodes to one level, the ring round it eased by harmonic_fill into the ground as
@@ -8893,6 +8903,13 @@ AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), co
 _ypaint([AUD_YARD], _ga)
 _ypaint([AUD_SIDE_POLY], _ga)                 # (대강당 북쪽 곁길 어귀 · 별관 앞마당 어귀)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
+# 의료원 주차장 셋 (tools/med97.py; #189, te): 심장혈관병원 북쪽 · 치과대학병원 서쪽 paved; the east lot's steep edges
+# lawn (out of the 2005 hospital's site's asphalt, _ga, and the layers under it)
+_md_asph, _md_bank = med97.paint()
+_ypaint(_md_asph, _ga)
+for g_ in _md_bank:                            # (_yg is the 0.5 m map's by now: the fine one's strokes only)
+    SPLAT_OPS.append(('poly', '_yg', list(g_.exterior.coords), 255))
+    SPLAT_OPS.append(('poly', '_ga', list(g_.exterior.coords), 0))
 # 찻길 (TRAFFIC, its middle line TR_CENTRE above): the two lanes, the car park's round, the loop the game reads
 # (that was the cars' loop till the alumnus's word on it: the drive itself stays, levelled and paved; the cars take
 # the outer roads, TR_E and TR_W above)
@@ -10144,6 +10161,10 @@ buildings += SEOMUN_HOUSES
 out['seomun'] = seomun.gate(ground_tn)
 out['markers'].append(dict(name='서문', pos=[-362.0, -18.4], top=round(out['seomun']['z'] + 4.0, 1)))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
+# 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
+# edges in their places in the list
+print('의료원 주차장 셋: trees out of the yards',
+      med97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
