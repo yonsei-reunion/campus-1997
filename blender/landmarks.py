@@ -4430,8 +4430,12 @@ def garden_flight(f, wall='stone_rubble', mat='stone_step', apron=True):
     for i in range(K if apron else 0):
         for j in range(6):
             (xa, xb), (ya, yb) = (xs[i], xs[i + 1]), (ys[j], ys[j + 1])
-            if abs((xa + xb) / 2) < hw + ct and (ya + yb) / 2 < 1.2:
-                continue                                       # (the landing itself)
+            if abs((xa + xb) / 2) < hw + ct:
+                if yb <= 1.2:
+                    continue                                   # (the landing itself)
+                # (behind it from the landing block's back edge on: a row that began past it left a strip there where
+                # the ground sagged under the block's top and its back face stopped the walker -- 상뜰's south flight)
+                ya = max(ya, 1.15)
             q = [(xa, ya, apron_z(xa, ya)), (xb, ya, apron_z(xb, ya)), (xb, yb, apron_z(xb, yb)), (xa, yb, apron_z(xa, yb))]
             if all(z - gl(x, y) < 0.06 for x, y, z in q):
                 continue                                       # (already on the ground: the terrain does)
