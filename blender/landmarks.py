@@ -4799,6 +4799,51 @@ def parking_lines():
     return [mb] if mb.faces else []
 
 
+def road_paint():
+    """The paint on the two drives off 백양로 (tools/build_campus.py RD_PAINT: campus.json `road_paint`; reference/고증/2.9
+    「노면의 선과 길가 나무」): the yellow edge and middle lines, the zebra crossings' stripes and a stop line as strips
+    cut every half metre and laid 3 cm over the ground the web app draws, as the car parks' bays are (parking_lines); a
+    dashed line 2.5 m on, 4 m off (blender/road.py's apron lines).  The humps of the 1997 photos, narrow painted ones:
+    1.8 m along the road, 9 cm high with a flat top, blocks of yellow and white 0.9 m across (백양로's bump by the gate)."""
+    P = CAMPUS.get('road_paint')
+    if not P:
+        return []
+    mb = MeshBuilder('lm_road_paint')
+    mats = {'white': 'paint_white', 'yellow': 'paint_yellow', 'yellow_dash': 'paint_yellow'}
+    for ln in P.get('lines', []):
+        hw, mat, dash = ln.get('w', 0.15) / 2, mats[ln['kind']], ln['kind'].endswith('_dash')
+        pts = [ln['pts'][0]]
+        for a, b in zip(ln['pts'], ln['pts'][1:]):                 # (a point every half metre at most)
+            n = max(1, int(math.ceil(math.dist(a, b) / 0.5)))
+            pts += [(a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n) for k in range(1, n + 1)]
+        zs = [ground_top(x, y) + 0.03 for x, y in pts]
+        acc = 0.0
+        for k, ((xa, ya), (xb, yb)) in enumerate(zip(pts, pts[1:])):
+            L = math.hypot(xb - xa, yb - ya)
+            mid = acc + L / 2
+            acc += L
+            if L < 1e-4 or (dash and (mid % 6.5) > 2.5):
+                continue
+            # (the strip's sides square to the line's own run there, so that a bend stays as wide)
+            (x0, y0), (x1, y1) = pts[max(k - 1, 0)], pts[min(k + 2, len(pts) - 1)]
+            d = math.hypot(x1 - x0, y1 - y0) or 1.0
+            nx, ny = -(y1 - y0) / d * hw, (x1 - x0) / d * hw
+            mb.quad((xa - nx, ya - ny, zs[k]), (xb - nx, yb - ny, zs[k + 1]), (xb + nx, yb + ny, zs[k + 1]), (xa + nx, ya + ny, zs[k]), mat)
+    for h in P.get('humps', []):
+        (cx, cy), (tx, ty), half, ln_ = h['xy'], h['t'], h['half'], h.get('len', 1.8)
+        nx, ny = -ty, tx
+        prof = [(-ln_ / 2, 0.02), (-ln_ / 2 + 0.4, 0.09), (ln_ / 2 - 0.4, 0.09), (ln_ / 2, 0.02)]
+        o, k = -half, 0
+        while o < half - 0.01:
+            o1 = min(half, o + 0.9)
+            mat = 'paint_yellow' if k % 2 else 'paint_white'
+            V = lambda oo, dd, zz: (lambda x, y: (x, y, ground_top(x, y) + zz))(cx + nx * oo + tx * dd, cy + ny * oo + ty * dd)
+            for (d0, z0), (d1, z1) in zip(prof, prof[1:]):
+                mb.quad(V(o, d0, z0), V(o, d1, z1), V(o1, d1, z1), V(o1, d0, z0), mat)
+            o, k = o1, k + 1
+    return [mb] if mb.faces else []
+
+
 def aud_bank():
     """The rubble wall along 백양로's east sidewalk in front of 대강당 and the bank of shrubs behind it, up to the
     terrace of the court and the forecourt (tools/build_campus.py AUD_BANK; Kakao roadview 2008 · 2011,

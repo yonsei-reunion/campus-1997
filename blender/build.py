@@ -75,6 +75,7 @@ if want('landmarks'):
             landmarks.underwood_steps() + landmarks.aud_bank():
         objs.append(mb.build())
     objs += [mb.build() for mb in landmarks.parking_lines()]      # (the car parks' painted bays)
+    objs += [mb.build() for mb in landmarks.road_paint()]         # (the lines on the two drives off 백양로)
     # statues and the gate are modelled in their own frame (front = -Y) and placed by object transform
     # (a MeshBuilder's xf only affects vertices added after it is set)
     S = CAMPUS['statues']

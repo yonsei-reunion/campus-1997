@@ -246,6 +246,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
   - `Path.setLimits`: 구간마다의 제한 빠르기에 굽은 곳(옆 가속도)과 미리 줄이는 거리를 더한 1 m 간격 표. `Path.setTracks`: 두 바퀴 자리의 땅 높이.
   - 차는 네 바퀴 자리의 땅에 맞춰 앞뒤 · 좌우로 기웁니다(`life.js` `Traffic`, 세워 둔 차의 `parkedMatrix` 와 같은 식). 5 m 지형 격자는 비탈을 가로지르는 길을 옆으로 기울게 담으므로, 바퀴 자리가 지나는 격자 칸의 꼭짓점을 길 가운데 높이로 맞춥니다(`TR_LEVEL`). 빌드가 좌우 기울기 4° 넘는 구간을 찍습니다.
   - 길을 고치면 빌드 끝의 `traffic: wheel tracks off the asphalt` 가 0인지 봅니다(바퀴 자리가 아스팔트 밖으로 나가는 점).
+  - 동쪽 길의 가운데 선 · 폭 · 노면의 선 · 길가 나무는 `tools/roadview/roads/adopted.json`(`adopt.py` 가 2008 ~ 2010년 조사를 1997년 항공사진으로 거른 것)에서 읽습니다. 선은 `campus.json` `road_paint` → `blender/landmarks.py` `road_paint`(`lm_road_paint`, 주차 칸 선과 같은 방식)이라, 선을 고치면 `build_campus.py` 뒤에 `blender/build.py -- landmarks` 를 돌립니다. OSM의 선을 따라 깔린 옛 아스팔트는 심기가 끝난 뒤에 걷어 내므로(`TR_E_OSM`, `_rd_clear`) 다른 곳의 나무는 바뀌지 않습니다.
   - 정문 밖 한 자리에서 한 바퀴가 끝나고 시작하므로, 나간 차는 숨겼다가 몇 초 뒤 들여보냅니다(`c.away`). 걷는 사람이 차로를 건너면 기다립니다.
 
 ### 분수
