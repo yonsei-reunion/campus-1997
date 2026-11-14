@@ -77,6 +77,9 @@ def build():
     marks = MeshBuilder('baekyangro_paint')
     L = samples[-1][0]
     crossings = list(R.get('crossings', []))
+    # the zebras' depth along the road (the July 1997 scans: about 2 m; 4 m before), the stop lines 2.5 m out from them
+    CL = float(R.get('cross_len', 4.0))
+    STOP = CL / 2 + 2.5
     gaps = R.get('gaps', [])
     bump = R.get('bump')
     # side-road mouths: on that side the verge, sidewalk and planting strip stop between s0 and s1 and the asphalt
@@ -455,7 +458,7 @@ def build():
     # the openings people walk through (the roadview); at a side road's gap it follows the kerb round the verge's end
     # and in, to the sidewalk's edge (2008 roadview 2381296, s 344 m)
     for side in (-1, 1):
-        cutl = [(c - 4.5, c + 4.5) for c in crossings] + ([(bump - 4.0, bump + 4.0)] if bump is not None else []) \
+        cutl = [(c - STOP, c + STOP) for c in crossings] + ([(bump - 4.0, bump + 4.0)] if bump is not None else []) \
             + [(b0 - RV, b1 + RV) for b0, b1, turn in vbreaks[side] if turn]
         runs = [(4.0, L - 2.0)]
         for c0, c1 in cutl:
@@ -485,10 +488,10 @@ def build():
         f = at(c)
         o = -e_lane + 0.5
         while o < e_lane - 0.4:
-            quad_at(f, o, o + 0.5, -2.0, 2.0, 'paint_white')
+            quad_at(f, o, o + 0.5, -CL / 2, CL / 2, 'paint_white')
             o += 1.0
         for side in (-1, 1):
-            fb = at(c - side * 4.5)
+            fb = at(c - side * STOP)
             o0, o1 = (0.0, e_gut) if side > 0 else (-e_gut, 0.0)
             quad_at(fb, o0, o1, -0.2, 0.2, 'paint_white')
     def hump(f, o0, o1, mat, half=0.9, flat=0.5, rise=0.09):

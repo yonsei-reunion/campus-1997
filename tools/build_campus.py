@@ -481,14 +481,26 @@ CROSS_RNG = [round(float(BLINE_RNG.project(Point(*p_))), 1) for p_ in ((-55, -20
 # its position from tools/roadview/statues.py: +0.9 m; the corner at Kakao's base map: -0.9 m); photo A's white
 # stripes about s 229.5.  It was at the Kakao node (235.4)
 CROSS[0] = 227.4
-# 학생회관 앞: the crossing in the 6 m opening between the forecourt's first two islands (VERGE_BREAKS below), east
-# 375.5 - 381.5 (it was 377.7, at the Kakao node)
-CROSS[1] = 378.5
+# 학생회관 앞: in the July 1997 scans (1210 dpi) the stripes lie at 380.2 - 382.2, at the north end of the east
+# opening 375 - 384 (2.3, #185).  It was 378.5, between the 2008 / 2010 roadview's first two islands (377.7 at the
+# Kakao node before that); the island B below now starts past it
+CROSS[1] = 381.2
+# 대강당 앞 (round(s_at(5, 40)) = 482.7, first put by eye): no paint there in any aerial photo of 1996 - 1999 (#185)
+del CROSS[2]
 # 독수리상 앞: the white band across the road in the July 1997 aerial photos (s 270.0 - 272.0 in three frames, 2.3),
 # photo A's second white crossing (about s 278 through its camera, metres loose at that depth).  Appended after the
 # others and not in CROSS_RNG, so the draws stay as they were
 CROSS.append(270.9)
-CROSS_KEEP_ROWS = (270.9,)          # (its ginkgo at s 268.5 stands just south of the stripes: kept, in_gap below)
+# 학생회관 · 대강당 · 경영학교실단 앞: the narrow zebras of the July 1997 scans (two flights, 2.3, #185), appended the same way
+CROSS += [332.2, 418.5, 507.9]
+# (the ginkgo rows keep their trees by these: one dropped tree would shift every tree appended after it in the list
+# and change its model in the web; in_gap below)
+CROSS_KEEP_ROWS = (270.9, 332.2, 418.5, 507.9, 381.2)
+# 백주년기념관 앞 (227.4): the opening in both verges is there in 1997 (223.5 - 229.3) and in the roadview, but no
+# stripes in any photo (the roadview has none either): an opening people walk through, kept a crossing for the
+# planting and the decals, painted none (CROSS_PAINT; its verge openings VERGE_BREAKS below)
+CROSS_UNPAINTED = (227.4,)
+CROSS_LEN = 2.0                     # (the zebras' depth along the road: 1.6 - 2.1 m in the scans; road.py drew 4 m)
 
 X, Y = grid_pts()
 pts = np.stack([X.ravel(), Y.ravel()], 1)
@@ -4352,7 +4364,7 @@ GAPS_RNG = [(570.0, -1, 4.5), (570.2, 1, 4.5), (447.2, 1, 4.5), (604.8, -1, 4.5)
 
 def in_gap_rng(s, side, pad=0.0):
     """in_gap(s, side, pad) as the ginkgo rows first read it"""
-    if any(abs(s - c) < 3.0 + pad for c in [CROSS[0], CROSS[1]] + CROSS_RNG[2:]):
+    if any(abs(s - c) < 3.0 + pad for c in [227.4, 378.5] + CROSS_RNG[2:]):       # (CROSS[:2] as the rows were laid)
         return True
     if side == MOUTH_RNG[0] and MOUTH_RNG[1] - MOUTH_RNG[3] - pad < s < MOUTH_RNG[2] + MOUTH_RNG[4] + pad:
         return True
@@ -4370,6 +4382,10 @@ VERGE_BREAKS = [[-1, 496.5, 503.5]]                 # (the foot of 대강당's f
 # on the library's, 학생회관's and 백양관's corners: tips within 0.3 m in both years, the frame +-1.2 m).  The crossing
 # takes the 6 m between A and B (CROSS); the last opening, 2.4 m, is the passage to the plaza north of the hall
 VERGE_BREAKS += [[-1, 368.3, 371.9], [-1, 386.5, 393.6], [-1, 396.1, 398.4], [-1, 401.9, 404.3]]
+# (1997: the opening runs on from island A's end, 375.5, to the moved crossing's; B is left 384.2 - 386.5)
+VERGE_BREAKS += [[-1, 375.5, 378.2]]
+# (백주년기념관 앞: the unpainted crossing's openings, as the crossing cut them)
+VERGE_BREAKS += [[sd_, 224.4, 230.4] for sd_ in (-1, 1)]
 VERGE_BREAKS.append([BK_MOUTH[0], BK_MOUTH[1], BK_MOUTH[2]])      # (백양관 북쪽 주차장 어귀)
 VERGE_BREAKS += [list(AUD_SIDE_MOUTH), list(AUD_YARD_MOUTH)]      # (대강당 북쪽 곁길 어귀 · 별관 앞마당 어귀)
 VERGE_BREAKS.append(list(LIB_MOUTH))                              # (중앙도서관 앞 광장)
@@ -6292,6 +6308,7 @@ def st_road_path(p_):
 bys = [tuple(c_) for c_ in substring(bline, 0.0, BY_END_S).coords]
 CROSS = [c_ for c_ in CROSS if c_ < BY_END_S - 20.0] + [round(BY_END_S - 14.0, 1)]
 CROSS_RNG = [c_ for c_ in CROSS_RNG if c_ < BY_END_S - 20.0] + [round(BY_END_S - 14.0, 1)]
+CROSS_PAINT = sorted(c_ for c_ in CROSS if c_ not in CROSS_UNPAINTED)      # (what road.py paints)
 GAPS = [g_ for g_ in GAPS if g_[0] < BY_END_S - 3.0]
 def dwb_deck(cells=None, poly=None, hfun=None):
     """DAEWOO_BACK's upper level over the cells whose nodes the walls pulled down (above): triangles on a 1.25 m
@@ -6368,7 +6385,7 @@ out = dict(
     splat=SPLAT,
     tsplat=sinchon_rotary.TSPLAT,
     baekyangro=dict(pts=[[round(x, 2), round(y, 2)] for x, y in bys], profile_s=[round(v, 1) for v in ss[::2]],
-                    profile_h=[round(float(v), 3) for v in prof[::2]], crossings=CROSS, bump=BUMP_S,
+                    profile_h=[round(float(v), 3) for v in prof[::2]], crossings=CROSS_PAINT, cross_len=CROSS_LEN, bump=BUMP_S,
                     gaps=[list(g) for g in GAPS], mouths=[list(MOUTH)], apron_paint=APRON_PAINT, **ROAD),
     amphitheater={k: (round(v, 3) if isinstance(v, float) else v) for k, v in AMPH.items()},
     buildings=buildings, trees=trees, shrubs=shrubs, props=props, cars=cars, banners=banners,
@@ -6515,9 +6532,9 @@ def decal_spots():
     # the share of the 4 m), as road.py draws it from the 4 m profile
     wheels = [side * (e_lane * 0.5 + d_) for side in (-1, 1) for d_ in (-0.75, 0.75)]
     hroad = lambda s_: float(np.interp(s_, ss[::2], np.round(prof[::2], 3)))
-    for c_ in CROSS:
+    for c_ in CROSS_PAINT:
         sc_ = 2.0 * round(c_ / 2.0)
-        vis = [t_ for t_ in np.arange(-2.0, 2.001, 0.05) if hroad(sc_ + t_) < hroad(sc_) + 0.012 - 0.003]
+        vis = [t_ for t_ in np.arange(-CROSS_LEN / 2, CROSS_LEN / 2 + 0.001, 0.05) if hroad(sc_ + t_) < hroad(sc_) + 0.012 - 0.003]
         if len(vis) < 10:
             continue
         t0, t1 = min(vis), max(vis)
