@@ -4817,13 +4817,18 @@ for (e_, n_, kind_, sc_) in ((-19.0, -14.5, 'zelkova', 0.75), (18.5, -15.0, 'zel
 # trees (issue #39; reference/대우관_정면_전경.jpg: spreading conifers east of the flight, broadleaves west of it)
 for (e_, n_, kind_, sc_) in ((-7.5, -18.6, 'zelkova', 0.85), (-15.0, -15.5, 'maple', 0.75), (-23.0, -11.5, 'zelkova', 0.9),
                              (-30.5, -8.0, 'oak', 0.85), (-11.0, -20.5, 'cherry', 0.7), (7.5, -18.8, 'pine', 0.95),
-                             (14.5, -16.0, 'pine', 0.8), (22.0, -12.0, 'zelkova', 0.85), (30.0, -8.5, 'pine', 0.85),
-                             (11.5, -19.5, 'maple', 0.65)):          # (up the bank, off the footway's edge)
+                             (14.5, -16.0, 'pine', 0.8), (22.0, -12.0, 'zelkova', 0.85), (26.9, -13.3, 'pine', 0.85),
+                             (11.5, -19.5, 'maple', 0.65)):          # (up the bank, off the footway's edge; the last
+    # pine but one stood at (30.0, -8.5), in the drive before 별관 since the 상뜰 was laid on the photos' diamond)
     x_, y_ = SGX(e_, n_)
     trees.append([kind_, round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
 for sg in (-1, 1):
     for (e_, n_, sc_) in ((-24.0, 17.2, 0.95), (-27.5, 13.5, 0.85), (-27.0, 7.2, 0.8)):   # (clear of the walks and the podium)
         x_, y_ = SG(sg * e_, n_)
+        if sg < 0 and (e_, n_) == (-27.0, 7.2):
+            # (the east lawn's third pine stood where the walk to 별관 has its clipped pine, DW_ANNEX_BEDS below: on
+            # the bank south of the lower walk, where the 1997 aerial photos have a crown 8 m across)
+            x_, y_ = SG(21.8, -10.5)
         trees.append(['pine', round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
     for t_ in (0.3, 0.5, 0.72):                              # shrubs along the inside of the upper (NW / NE) walk
         e_, n_ = -26.5 * t_, 14.2 * (1 - t_)
@@ -7956,6 +7961,37 @@ for _bd_e, _bd_n, _bd_sc in ((0.0, 0.0, 1.15), (-8.5, 5.0, 1.0), (8.5, 5.0, 1.05
     DW_BEDS.append(['pine_cloud', *(round(float(c_), 2) for c_ in SG(_bd_e, _bd_n)), _bd_sc, round(_bd_r.uniform(0, 6.28), 3)])
 shrubs += DW_BEDS
 print('대우관 테라스 · 석축: clipped shrubs', len(DW_BEDS), {k_: sum(1 for b_ in DW_BEDS if b_[0] == k_) for k_ in sorted({b_[0] for b_ in DW_BEDS})})
+# 대우관 별관 앞에 심은 것 (reference/고증/3.6.6; reference/대우관_별관_정면_현관.jpg, the 1997 aerial photos): the hall's
+# mesh drew green drums on its two planters and beside its lower flight, and the campus' tall pines stood before it
+# (one of them in the drive).  As DW_BEDS, the campus' clipped shrubs at the list's end, with draws of their own:
+#  - the planters either side of the flight to the door (blender/landmarks.py flat_portal: their soil a walked face):
+#    a small clipped pine and a low cushion in the north one, two pointed conifers and a cushion in the south one.
+#    A sixth field marks them as planted by the flight: web/src/main.js clearEntrances leaves them where they are
+#  - where the 상뜰's walks reach the drive before the hall: a clipped pine north of them and an egg-shaped conifer
+#    south of them (the two dark crowns of July 1997 at (136.4, 424.3) and (136.1, 416.5), the pine 2.8 m further from
+#    the walk than the photos have it: the game's upper walk runs over its place), a broad cushion on each lawn corner
+# (AB: lx along the front, southwards from the door's axis, d out from the wall)
+_ab_r = random.Random(1997 + 168)
+_ab_q = np.array(list(footprint(ways[242897923]).minimum_rotated_rectangle.exterior.coords)[:-1])
+_ab_e = [_ab_q[(k_ + 1) % 4] - _ab_q[k_] for k_ in range(4)]
+_ab_w = min(float(np.linalg.norm(e_)) for e_ in _ab_e)
+_ab_f = max(_ab_e, key=lambda e_: float(np.linalg.norm(e_)))
+_ab_f = np.array([_ab_f[1], -_ab_f[0]]) / np.linalg.norm(_ab_f)
+_ab_f = _ab_f if _ab_f @ np.array([-0.97, 0.24]) > 0 else -_ab_f           # (out of the front, blender daewoo_annex)
+_ab_t = np.array([-_ab_f[1], _ab_f[0]])
+AB = lambda lx, d: tuple(round(float(c_), 2) for c_ in _ab_q.mean(axis=0) + _ab_t * lx + _ab_f * (_ab_w / 2 + d))
+_ab_out = lambda lx, d: round(math.atan2(*((_ab_t * lx + _ab_f * d)[::-1])), 3)            # (rot: the model's x that way)
+DW_ANNEX_BEDS = [
+    ['pine_cloud', *AB(-3.35, 2.3), 0.5, _ab_out(-1.0, 0.7), 1],
+    ['topiary_dome', *AB(-3.2, 3.95), 0.5, round(_ab_r.uniform(0, 6.28), 3), 1],
+    ['topiary_cone', *AB(3.3, 2.2), 1.1, round(_ab_r.uniform(0, 6.28), 3), 1],
+    ['topiary_cone', *AB(2.95, 3.4), 0.6, round(_ab_r.uniform(0, 6.28), 3), 1],
+    ['topiary_dome', *AB(3.3, 4.12), 0.42, round(_ab_r.uniform(0, 6.28), 3), 1]]
+for kind_, e_, n_, sc_ in (('pine_cloud', 28.9, 5.9, 0.85), ('topiary_egg', 29.6, -4.4, 1.0), ('topiary_dome', 30.9, 4.6, 1.0),
+                           ('topiary_dome', 31.7, -2.5, 1.0)):
+    DW_ANNEX_BEDS.append([kind_, *(round(float(c_), 2) for c_ in SG(e_, n_)), sc_, round(_ab_r.uniform(0, 6.28), 3)])
+shrubs += DW_ANNEX_BEDS
+print('대우관 별관 앞: clipped shrubs', [b_[:3] for b_ in DW_ANNEX_BEDS])
 _ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
 _ypaint(ANNEX_YARD_HALVES, _ga)               # (학생회관 별관 앞마당)
 _ypaint([GW_LOT, GW_ROW], _ga)                # (공학원 공사장 앞 주차장, 북쪽 가림막 앞 줄)

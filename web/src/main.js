@@ -56,6 +56,7 @@ const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 
   ...CARS.flatMap((k) => [`car_${k}`, `car_${k}_far`]), 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard',
   'tent_kiosk', 'notice_board', 'haetae', 'parking_booth', 'bus'];
 const CAR_FAR = 20;     // parked cars farther than this from the camera: their lighter models (a fifth of the triangles)
+const SHRUB_R = { topiary_cone: 0.6, azalea_red: 0.62, pine_cloud: 0.3, topiary_dome: 1.0, topiary_egg: 1.15 };   // (walls, m at scale 1; the pine: its trunk)
 const SHRUB_FAR = 25;   // shrubs, hedges and flower beds farther than this: theirs (blender/shrubs.py far_version)
 // the vegetation campus.json plants: two models of each tree species, one of each shrub (and its lighter one, _far)
 const treeFile = (sp, v) => `veg/${sp}_${v}.glb`, shrubFile = (k) => `veg/${k}.glb`;
@@ -370,7 +371,7 @@ async function main() {
       colliders.addCircle(x, y, 0.42 * sc);
       colliders.addCircle(x + c * 0.55 * sc, y + s * 0.55 * sc, 0.42 * sc);
       colliders.addCircle(x - c * 0.55 * sc, y - s * 0.55 * sc, 0.42 * sc);
-    } else colliders.addCircle(x, y, (k === 'topiary_cone' ? 0.6 : k === 'azalea_red' ? 0.62 : k === 'pine_cloud' ? 0.3 : 0.72) * sc);   // (the pine: its trunk)
+    } else colliders.addCircle(x, y, (SHRUB_R[k] ?? 0.72) * sc);
   }
   const S = campus.statues;
   colliders.addCircle(S.eagle.pos[0], S.eagle.pos[1], S.eagle.r ?? 4.2);       // the eagle's round dais (its brick ring is walked on)
@@ -1032,6 +1033,7 @@ function clearEntrances(shrubs, zones) {
   };
   for (let i = shrubs.length - 1; i >= 0; i--) {
     const s = shrubs[i];
+    if (s[5]) continue;                     // planted in a planter beside the flight (build_campus.py DW_ANNEX_BEDS)
     const r = 0.72 * s[3];
     for (const z of zones) {
       if (s[0] === 'hedge_low') {           // the three circles of its collider (main.js below)

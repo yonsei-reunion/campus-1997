@@ -1636,15 +1636,13 @@ def flat_portal(mb, W, plinth, fh, wall, bw=7.4, gfn=None):
         px = sg * (ow / 2 + 0.55 + 0.9)
         ph = zl - zm + 0.85
         mb.box((px, (yf + y1) / 2, zm - 0.1 + ph / 2 - 0.05), (1.6, yf - y1 + 1.2, ph), 'stone_trim', mats={'top': 'soil'})
-        for dxy, rr in (((0.0, 0.2), 0.85), ((0.0, -1.2), 0.6)):
-            c = (px + dxy[0], (yf + y1) / 2 + dxy[1])
-            mb.cylinder(c, rr, zm + ph - 0.15, zm + ph + 0.35, 'shrub_green', seg=10, r1=rr * 0.9)
-            mb.cylinder(c, rr * 0.85, zm + ph + 0.35, zm + ph + 0.62, 'shrub_green', seg=10, r1=rr * 0.5)
+        # (what grows in them -- a clipped pine in one, pointed conifers in the other -- is the campus' shrubs,
+        # tools/build_campus.py DW_ANNEX_BEDS: the soil before the bay is ground for them, set in from the planter's
+        # edges so that the walker on the steps cannot step up onto it, as daewoo_front's `bed`)
+        zs = zm - 0.15 + ph
+        W_ = lambda lx, ly: tuple(mb.xf @ Vector((lx, ly, zs)))
+        WALK_FACES.append([W_(px - 0.6, y1 - 0.4), W_(px + 0.6, y1 - 0.4), W_(px + 0.6, yf - 0.05), W_(px - 0.6, yf - 0.05)])
     y2 = stair_flight(mb, 0, y1, 9.5, zm, n=5, landing=2.2, tread=0.36, flare=0.3, rail=True, gfn=gfn)
-    for sg in (-1, 1):                                       # a round shrub at each side of the lower flight
-        c = (sg * 6.4, y1 - 2.0)
-        mb.cylinder(c, 1.0, -0.3, 0.7, 'shrub_green', seg=12, r1=1.05)
-        mb.cylinder(c, 1.0, 0.7, 1.15, 'shrub_green', seg=12, r1=0.5)
     return y2
 
 

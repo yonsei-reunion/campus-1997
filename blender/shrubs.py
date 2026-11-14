@@ -369,6 +369,23 @@ def make_shrub(kind, seed=0):
         revolve(mb, prof, 'hedge_boxwood', _ao_round(2.48, foot=0.3), seg=14, plan=_wobble(rnd, 0.03))
         cards(mb, rnd, 84, 'leaf_boxwood', CARD_M['boxwood'], W=(0.7, 1.05), Hf=(0.5, 0.75), tilt=(15, 60),
               depth=0.035, weight=lambda p, n: 0.25 if p.z < 0.15 else 0.7 + 0.3 * max(0.0, n.z))
+    elif kind == 'topiary_dome':
+        # 낮고 넓게 다듬은 회양목 (대우관 별관 앞, reference/대우관_별관_정면_현관.jpg: the cushions at the lawns' corners
+        # by the steps): a flat dome twice as wide as high, 2.2 m across and 0.97 m high, drawn in at its foot
+        prof = [(0.62, -0.05), (0.82, 0.06), (0.98, 0.17), (1.08, 0.3), (1.1, 0.44), (1.04, 0.58), (0.9, 0.72),
+                (0.68, 0.84), (0.42, 0.92), (0.2, 0.955), (0.0, 0.97)]
+        revolve(mb, prof, 'hedge_boxwood', _ao_round(0.97, foot=0.36), seg=18, plan=_wobble(rnd, 0.03))
+        cards(mb, rnd, 130, 'leaf_boxwood', CARD_M['boxwood'], W=(0.7, 1.05), Hf=(0.5, 0.75), tilt=(10, 65),
+              depth=0.035, weight=lambda p, n: 0.2 if p.z < 0.2 else 0.5 + 0.5 * max(0.0, n.z))
+    elif kind == 'topiary_egg':
+        # 달걀꼴로 다듬은 주목 · 향나무 (the same photo: the tall one on the lawn right of the steps): fuller than the
+        # cones, widest a third of the way up and rounded over the top, its foliage down to the grass; 3.4 m high,
+        # 2.6 m across
+        prof = [(0.7, -0.05), (0.95, 0.1), (1.15, 0.35), (1.27, 0.7), (1.3, 1.05), (1.26, 1.45), (1.14, 1.9),
+                (0.96, 2.35), (0.72, 2.78), (0.46, 3.1), (0.22, 3.3), (0.0, 3.38)]
+        revolve(mb, prof, 'hedge_boxwood', _ao_round(3.38, foot=0.35), seg=16, plan=_wobble(rnd, 0.035))
+        cards(mb, rnd, 220, 'leaf_boxwood', CARD_M['boxwood'], W=(0.75, 1.1), Hf=(0.5, 0.75), tilt=(15, 60),
+              depth=0.035, weight=lambda p, n: 0.25 if p.z < 0.15 else 0.7 + 0.3 * max(0.0, n.z))
     elif kind == 'juniper_tiers':
         # 향나무 clipped in two tiers on a bare trunk (백양로's boxwood verges: the April 2011 roadview, every verge
         # from the gate to the library; the May 1997 photo's flat-topped pads with a darker skirt under some): a broad
