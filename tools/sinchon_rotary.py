@@ -13,7 +13,9 @@ model the same way.  Nothing here draws from build_campus.py's `rng` or gate_tow
 Where things stand (고증 4.10):
 - The streets' middle lines are OSM's (data/raw/osm_rotary.json, tools/fetch_rotary_osm.py): 연세로 as one line, the
   others the middle between their two carriageways.  Today's 신촌로 has its buses in the middle and 연세로 is a
-  transit mall (2014); the 1997 widths and lane counts are reckoned, not measured (남은 한계).
+  transit mall (2014).  From the 1997 scans of 27/18 · 27/19 (고증 4.10.4 「다섯 길과 노면 표시」): 1997년 서강로's
+  line, width and lanes (BB_C), the painted middles of 양화로 and 신촌로 (mid_of), the paint at the mouths; the
+  wedges' hatched triangles and the south-west arm's width are not (남은 한계).
 - The shops along 연세로 stand wall to wall behind a 3.75 m walk, broken where OSM's side streets come in: near the
   junction as the 1996 photos show them, the rest from their mix, signs standing out from the walls (yro_ functions at
   the end); the corners of the junction carry OSM's big outlines.
@@ -40,7 +42,7 @@ ARMS = {
     'yonsei': dict(half=6.5, walk=5.0, lanes=2, pts=[(-98.6, -962.0), (-98.4, -945.0), (-98.25, -912.0), (-97.5, -885.0),
                                                      (-96.4, -850.0), (-95.2, -810.0), (-94.3, -780.0), (-94.4, -740.0),
                                                      (-94.0, -700.0), (-94.0, -455.0)]),
-    'sinchon_w': dict(half=14.0, walk=5.5, lanes=4, pts=[(-100.4, -971.6), (-114.8, -970.2), (-125.4, -966.7), (-139.7, -962.1),
+    'sinchon_w': dict(half=14.0, walk=5.5, lanes=5, mid=-0.75, pts=[(-100.4, -971.6), (-114.8, -970.2), (-125.4, -966.7), (-139.7, -962.1),
                                                          (-153.8, -957.5), (-167.1, -951.8), (-193.8, -939.5), (-221.0, -927.0),
                                                          (-262.1, -908.1), (-303.2, -889.8), (-344.9, -871.8), (-398.4, -849.8),
                                                          (-460.0, -824.0)]),
@@ -55,6 +57,31 @@ ARMS = {
                                                        (-94.0, -1059.0), (-92.0, -1077.0), (-86.0, -1120.0), (-80.0, -1168.0),
                                                        (-75.0, -1205.0)]),
 }
+# 1997년 서강로 (baekbeom) as the scans of 27/18 and 27/19 have it (2026-11-14, 고증 4.10.4 「다섯 길과 노면 표시」): its double
+# yellow middle line (both frames within 0.1 m, reprojected on the road's own heights 19.3 - 24.9 m), 3 - 6 m east of
+# OSM's line above; the kerbs 9.0 m west of it (the crossing's west end, a bus at the kerb) and 6.5 m east (the
+# pavement's edge in both frames, the stop line's end): 15.5 m of carriageway, three lanes out (south) with two dashed
+# lines 3.05 and 6.0 m west of the middle, two in (north) with a solid line 3.15 m east of it; north of the crossing the
+# same middle line runs on to the junction, the lanes in beside it, the junction's open asphalt west of it.
+# ARMS keeps the carriageway's middle (half 7.75) and 'mid' says where the painted middle is from it (+n: east)
+BB_C = [(-97.7, -985.0), (-95.21, -1002.27), (-90.86, -1031.95), (-88.14, -1056.85), (-86.01, -1072.71), (-83.26, -1092.52),
+          (-80.85, -1112.38), (-78.98, -1127.26), (-76.66, -1142.09), (-74.59, -1156.95), (-73.07, -1171.88), (-71.45, -1186.78),
+          (-69.83, -1201.7), (-69.4, -1206.0)]
+BB_KERB_W, BB_KERB_E = 9.0, 6.5
+# the painted lines off the middle (m, +east): dashed white out, solid white in; north of the crossing (y > -1042) the
+# two lines in beside the middle are solid (3.3, 6.65; the third, 10.0, is the U-turn loop's edge, ROT_D)
+BB_LINES_S = [(-3.05, 'white_dash'), (-6.0, 'white_dash'), (3.15, 'white')]
+BB_LINES_N = [(3.3, 'white'), (6.65, 'white')]
+# its line before 2026-11-14 (OSM's): what the random streams decide along it is still decided round it (YONSEI_RNG_PTS)
+BAEKBEOM_RNG = dict(ARMS['baekbeom'])
+# 신촌로 (the east arm, sinchon_e): the painted middle (a band of two lines 0.9 m apart near the junction) south of OSM's line
+# by 3.0 m at 26 m out, 2.35 at 50, 1.7 from 65 on (both scans, eleven windows within 0.15 m); the kerbs stay (the
+# north one within 0.5 m of the scans', the south one behind its bus bays not read)
+SINCHON_E_MID = [(0.0, -3.0), (26.0, -3.0), (38.0, -2.7), (50.0, -2.35), (65.0, -1.75), (80.0, -1.7), (1000.0, -1.7)]
+# 양화로 (sinchon_w, ARMS above: lanes 5, mid -0.75): its painted middle 0.75 m north of the arm's line, five lanes of
+# 2.75 - 2.9 m each way between kerbs 13.75 m either side of it (both scans, nine windows: lines 2.85, 5.65, 8.75 and
+# 11.3 m south of the middle, 2.85, 5.75, 8.75 and 10.9 north; 1995's 52145: four rows of cars and the buses' lane in);
+# the kerbs stay where they were (0.5 and 1.0 m off)
 # 연세로's line before 2026-11-14 (OSM's today, the 2014 transit mall's): what the random streams decide along it is
 # still decided round it (layout: the old rows' draws, the blocks kept clear of the streets; the ginkgos' draws), so
 # that nothing away from 연세로 moves.  The line above is the 1990s' road (고증 4.10.1): x -94 from the
@@ -74,8 +101,8 @@ CORNER_R = 9.0                 # the kerbs' rounding at the corners
 # wedge between 신촌로 and 서강로: the 1997-07-28 frame 27/18 (the same flight's next frame south of the six) and the
 # 1998-10-08 frame 26/17 show its ring of beds (dark middle, bright yellow band, dark band, pale rim; 15.6 m across)
 # at (-73.4, -1001.3) and (-73.8, -1002.3), cameras from the east and the north-west; the scans of 27/18 and 27/19
-# (the same flight's, 0.13 m/px) agree at (-73.3, -1000.9) on ground 19.6 m (0.2 m apart).  The pole and 「연세대」
-# keep their places round it as 52158 has them (moved with it)
+# (the same flight's, 0.13 m/px) agree at (-73.3, -1000.9) on ground 19.6 m (0.2 m apart).  The pole and 「연세대」:
+# below (52158 solved again, the scans)
 ISLAND = dict(c=(-73.3, -1000.9), r=7.8, ring=8.45)
 BED = [(2.5, 'lawn'), (4.3, 'yellow'), (5.6, 'dark'), (6.1, 'white'), (7.6, 'lawn')]
 # BED goes out as campus.json town.island.bed: the ground's shader (web/src/terrain.js) paints its dark and white
@@ -87,9 +114,11 @@ BED = [(2.5, 'lawn'), (4.3, 'yellow'), (5.6, 'dark'), (6.1, 'white'), (7.6, 'law
 # frames' rays 0.02 m apart): the arm reaches north (bearing 10°), 10.5 m, the lamps facing west (the arm to their
 # right).  (Before: (-72.9, -993.8), the arm north-east, from the camera solved on 그레이스's roof)
 ROT_POLE = dict(at=(-76.55, -995.0), face=280.0, reach=10.5)        # bearing the lamps face; the arm to their right
-# 「연세대」 on the road north of the island (52158; the same white block in 52142 · 52145): its middle, the bearing its
-# top points along (the drivers who read it head that way), letters 1.1 m across and 3.9 m long
-ROT_LETTERS = dict(c=(-75.6, -988.9), up=122.0, w=1.1, h=3.9)
+# 「연세대」 on the road north-west of the island (the scans of 27/18 and 27/19: a block of three letters stacked north to
+# south, each long east - west, (-82.1 .. -79.1, -991.4 .. -994.3) in both; 52158 on its camera solved again from the
+# scan's paint puts it 0.5 m off; 52142 · 52145 have the same white block): its middle, the bearing its top points along
+# (the drivers who read it head that way: east, 52158), letters 0.95 m across and 3.0 m long
+ROT_LETTERS = dict(c=(-80.65, -993.0), up=88.0, w=0.95, h=3.0)
 # The wedge round the island (27/18, 1997-07): road, not a corner.  On it a U-turn loop round the island (the scans'
 # arrows: in on its east side heading south, round its south, out up its west side heading north), its outer edge a
 # yellow line from the west side's straight run along 서강로's lanes round to the top, a hatched triangle at its
@@ -99,16 +128,43 @@ ROT_LETTERS = dict(c=(-75.6, -988.9), up=122.0, w=1.1, h=3.9)
 ROT_APRON = [(-95.0, -975.0), (-44.0, -975.0), (-44.0, -983.5), (-49.5, -990.0), (-50.0, -1000.0), (-53.0, -1008.0),
              (-58.0, -1016.0), (-65.0, -1025.0), (-73.0, -1034.0), (-79.0, -1040.0), (-79.5, -1052.0), (-95.0, -1052.0)]
 ROT_APRON_WALK = 4.0           # the sidewalk east of the turning lane
-ROT_D = [(-83.1, -996.9), (-83.1, -1013.0), (-82.2, -1024.0), (-81.3, -1029.9), (-77.0, -1025.5), (-72.0, -1020.6),
+# (the west side's run: 10.0 m east of 서강로's middle line and leaning with it, from -85.8 at its top; -83.1 straight
+# down before 2026-11-14)
+ROT_D = [(-85.8, -996.9), (-83.5, -1013.0), (-82.2, -1024.0), (-81.3, -1029.9), (-77.0, -1025.5), (-72.0, -1020.6),
          (-66.6, -1015.2), (-62.4, -1009.8), (-59.7, -1004.4), (-59.1, -1000.8), (-59.7, -996.0), (-61.3, -992.4),
          (-63.6, -989.4), (-66.0, -987.6)]
 ROT_D_TRI = [[(-66.0, -987.6), (-53.4, -984.9), (-57.9, -996.6)], [(-81.2, -1020.6), (-76.8, -1020.6), (-80.0, -1026.0)]]
 # [x, y of the head, the way it points (deg, compass)]
-ROT_D_ARROWS = [(-63.0, -1001.5, 180.0), (-71.0, -1011.3, 270.0), (-82.0, -1002.0, 0.0)]
+ROT_D_ARROWS = [(-63.0, -1001.5, 180.0), (-71.0, -1011.3, 270.0), (-82.7, -1000.0, 0.0)]
+# The rest of the junction's paint (27/18 · 27/19, 2026-11-14, 고증 4.10.4 「노면 표시」; the same in 1995's 52142 · 52145):
+# the yellow triangles (outline, the one inside), where they stand on the arms' asphalt as the game has it: 양화로's,
+# north of its middle at the mouth, its tip outward.  (The wedges' hatched ones lie beyond the game's corners: 남은 한계.)
+# Before 2026-11-14 every arm had one on its middle past its mouth, and a straight arrow in every lane coming in
+ROT_TRI = [([(-115.0, -962.5), (-105.75, -963.5), (-105.75, -968.75)], [(-109.75, -964.5), (-107.0, -964.75), (-107.0, -966.5)])]
+# the arrows [x, y of the head, bearing]: 서강로's lane in between its two solid lines heading north, the one west of
+# the island heading west
+ROT_ARROWS = [(-86.6, -1003.0, 356.0), (-77.9, -992.0, 262.0)]
+# the turning guides of short dashes over the junction: 양화로 straight on east, 양화로 round south into 서강로's lanes,
+# 1997년 신촌로 north-east across
+ROT_GUIDES = [[(-115.0, -970.75), (-109.5, -973.0), (-102.0, -975.0), (-92.0, -977.0)],
+              [(-113.5, -972.0), (-108.0, -976.5), (-104.0, -981.0), (-101.0, -986.0), (-98.0, -992.0), (-96.0, -998.0), (-95.6, -1000.3)],
+              [(-120.5, -999.5), (-109.5, -991.0), (-101.0, -986.25), (-92.0, -983.0)]]
+# 1997년 신촌로's crossing (both scans: one row of bars 6.8 m deep, 30 m out, its middle here) and the stop lines the scans
+# put elsewhere than behind a crossing: 서강로's south of its crossing, 1997년 신촌로's 17 m short of its crossing
+ROT_SW_CROSS = dict(c=(-141.0, -1016.2), depth=6.8)
+ROT_STOP_AT = {'baekbeom': (-85.0, -1053.9), 'seogang': (-120.9, -1005.3)}
 # 서강로's crossing in front of 외환은행 (27/18 and 26/17 of 1998: the one zebra of the junction's south side, 25 m further
 # out than the mouth the game's rule gives, across the lanes and the turning lane's end; the scan: two rows of bars):
 # its middle, depth, its two ends
-ROT_S_CROSS = dict(y=-1046.75, depth=9.3, x=(-97.7, -80.0))
+ROT_S_CROSS = dict(y=-1046.75, depth=9.3, x=(-97.7, -81.6))
+# the corner in front of 외환은행 between 서강로 and 1997년 신촌로 (27/18 · 27/19, the same arc in both within 0.3 m): its
+# kerb round from 서강로's west kerb at the crossing to y -1031 and west along the forecourt's trees and parking, the
+# asphalt of the junction out to it (ROT_S_FILL closes it through the road; ROT_S_CUT: what is behind it)
+ROT_S_KERB = [(-98.15, -1047.0), (-98.6, -1045.0), (-99.1, -1043.2), (-100.5, -1039.0), (-102.6, -1034.8), (-104.5, -1032.6),
+              (-106.5, -1031.6), (-111.0, -1031.0), (-118.0, -1030.6), (-124.0, -1028.5), (-130.0, -1025.5)]
+ROT_S_FILL = [(-128.0, -1015.0), (-110.0, -1005.0), (-92.0, -1030.0), (-92.0, -1047.0)]
+ROT_S_CUT = [(-98.7, -1049.0), (-131.0, -1046.0), (-131.0, -1026.0)]
+ROT_S_WALK = 4.5
 # no zebra across 연세로's, 양화로's or 신촌로's mouths in July 1997 (27/18: their empty halves bare; 1998-10 has one
 # across 연세로): the walkers went under, by 신촌역's passages
 ROT_NO_ZEBRA = {'yonsei', 'sinchon_w', 'sinchon_e'}
@@ -230,6 +286,28 @@ def arms():
     return {k: Arm(k, d) for k, d in ARMS.items()}
 
 
+def _bb_arm():
+    """서강로's arm on the scans' line: the carriageway's middle 1.25 m west of the painted one (BB_C), half 7.75"""
+    c = Arm('c', dict(half=1, walk=1, lanes=1, pts=BB_C))
+    o = (BB_KERB_W - BB_KERB_E) / 2
+    pts = []
+    for q in BB_C:
+        p, t, n = c.at(float(c.ls.project(Point(*q))))
+        pts.append((round(float(q[0] - n[0] * o), 2), round(float(q[1] - n[1] * o), 2)))
+    return dict(half=(BB_KERB_W + BB_KERB_E) / 2, walk=4.5, lanes=2, pts=pts, mid=o)
+
+
+ARMS['baekbeom'] = _bb_arm()
+
+
+def mid_of(k, s):
+    """where arm k's painted middle line is, m off its line (+: its left of the outward way), s m out"""
+    if k == 'sinchon_e':
+        t = np.array(SINCHON_E_MID)
+        return float(np.interp(s, t[:, 0], t[:, 1]))
+    return float(ARMS[k].get('mid', 0.0))
+
+
 # ----------------------------------------------------------------------------- the ground
 def patch(raw, Hn, half, step):
     """The near terrain south of the 5 m grid: raw(xs, ys) -> the ground on that grid as build_campus.py makes Hn
@@ -268,6 +346,7 @@ def streets(pl):
     geo = _streets(pl, arms())
     A0 = arms()
     A0['yonsei'] = Arm('yonsei', {**ARMS['yonsei'], 'pts': YONSEI_RNG_PTS, 'half': 7.0, 'walk': YRO_WALK})
+    A0['baekbeom'] = Arm('baekbeom', BAEKBEOM_RNG)
     geo['rng'] = _streets(pl, A0, gt.YONSEI_X_RNG, old=True)
     return geo
 
@@ -292,6 +371,10 @@ def _streets(pl, A, yx=None, old=False):
         road = road.union(apron)
         kerb_e = LineString(ROT_APRON[2:11])
         walks['apron'] = kerb_e.buffer(ROT_APRON_WALK, single_sided=True).difference(road)
+        # the corner in front of 외환은행 (ROT_S_KERB): asphalt out to its kerb, its forecourt behind it
+        ks = LineString(ROT_S_KERB)
+        road = road.union(Polygon(ROT_S_KERB + ROT_S_FILL)).difference(Polygon(ROT_S_KERB[::-1] + ROT_S_CUT).buffer(0))
+        walks['s_corner'] = ks.buffer(ROT_S_WALK, single_sided=True).difference(road)
     street = unary_union([road] + list(walks.values()))
     street = street.buffer(4.0, join_style=1).buffer(-4.0, join_style=1).union(street)
     walk = street.difference(road)
@@ -601,58 +684,102 @@ def layout(geo, town, extras, ground, taken_z):
             if len(run) > 1:
                 kerbs.append(R2(run))
     # each arm: where it leaves the junction (its kerbs clear of the others'), a crossing there, a stop line behind it
-    xs = {}
-    for k, a in A.items():
-        others = unary_union([c for kk, c in geo['cw'].items() if kk != k and not ({k, kk} <= {'sinchon_w', 'sinchon_e'})])
-        s = 4.0
-        while s < a.cum[-1] - 10:
-            p, t, n = a.at(s)
-            cut = LineString([tuple(p + n * (a.half + 0.5)), tuple(p - n * (a.half + 0.5))])
-            if not cut.intersects(others):
-                break
-            s += 1.0
-        xs[k] = s + CORNER_R * 0.6 + 1.5
-    # (the rule's places: the ginkgos of 백범로 are still decided round them, so that the stream's draws stay)
-    xs_rng = dict(xs)
-    # 서강로's crossing where the 1997 frames have it (ROT_S_CROSS): its stop line, signals and paint follow it
+    def mouths(arms_, cw_):
+        out = {}
+        for k, a in arms_.items():
+            others = unary_union([c for kk, c in cw_.items() if kk != k and not ({k, kk} <= {'sinchon_w', 'sinchon_e'})])
+            s = 4.0
+            while s < a.cum[-1] - 10:
+                p, t, n = a.at(s)
+                cut = LineString([tuple(p + n * (a.half + 0.5)), tuple(p - n * (a.half + 0.5))])
+                if not cut.intersects(others):
+                    break
+                s += 1.0
+            out[k] = s + CORNER_R * 0.6 + 1.5
+        return out
+    # (the rule's places with 서강로 on its old line: the ginkgos are still decided round them, so that the streams'
+    # draws stay; A_dec: the arms as they were for those decisions)
+    A_dec = {**A, 'baekbeom': geo['rng']['arms']['baekbeom']}
+    xs_rng = mouths(A_dec, {**geo['cw'], 'baekbeom': geo['rng']['cw']['baekbeom']})
+    xs = dict(xs_rng)                               # (the other arms' mouths stay where the rule put them)
+    # 서강로's and 1997년 신촌로's crossings where the 1997 frames have them (ROT_S_CROSS, ROT_SW_CROSS), their stop lines
+    # (ROT_STOP_AT; the others' behind their mouths), signals and paint following them
     xs['baekbeom'] = float(A['baekbeom'].ls.project(Point(-90.0, ROT_S_CROSS['y'] + ROT_S_CROSS['depth'] / 2)))
+    xs['seogang'] = float(A['seogang'].ls.project(Point(*ROT_SW_CROSS['c']))) - ROT_SW_CROSS['depth'] / 2
+    deps = {k: 4.5 for k in A}
+    deps['baekbeom'], deps['seogang'] = ROT_S_CROSS['depth'], ROT_SW_CROSS['depth']
+    s_stops = {}
+    AT = lambda a, k, s, o: a.at(s)[0] + a.at(s)[2] * (o + mid_of(k, s))          # (o off the painted middle)
+
+    def runs(ss, cut):
+        """ss split where it passes the [s0, s1] spans in cut"""
+        out, cur = [], []
+        for s in ss:
+            if any(s0 <= s <= s1 for s0, s1 in cut):
+                if len(cur) > 1:
+                    out.append(cur)
+                cur = []
+            else:
+                cur.append(s)
+        if len(cur) > 1:
+            out.append(cur)
+        return out
     for k, a in A.items():
-        s_x = xs[k]
+        s_x, dep = xs[k], deps[k]
         # the crossing: 4.5 m wide, white bars 0.45 m across the walk's direction (the 1990s' plain bars); none
-        # across three of the mouths (ROT_NO_ZEBRA), 서강로's 6 m wide from its west kerb over the turning lane's end
-        dep, o0, o1 = 4.5, -a.half + 0.5, a.half - 0.4
+        # across three of the mouths (ROT_NO_ZEBRA); 서강로's two rows from kerb to kerb, 1997년 신촌로's 6.8 m deep
+        o0, o1 = -a.half + 0.5, a.half - 0.4
+        rows = [(s_x, s_x + dep)]
         if k == 'baekbeom':
-            p_, _, n_ = a.at(s_x + ROT_S_CROSS['depth'] / 2)
-            dep = ROT_S_CROSS['depth']
+            p_, _, n_ = a.at(s_x + dep / 2)
             o0, o1 = (ROT_S_CROSS['x'][0] - p_[0]) / n_[0], (ROT_S_CROSS['x'][1] - p_[0]) / n_[0] - 0.45
-        rows = [(s_x, s_x + dep)] if k != 'baekbeom' else [(s_x, s_x + dep / 2 - 0.15), (s_x + dep / 2 + 0.15, s_x + dep)]
+            rows = [(s_x, s_x + dep / 2 - 0.15), (s_x + dep / 2 + 0.15, s_x + dep)]
         for o in (np.arange(o0, o1, 0.95) if k not in ROT_NO_ZEBRA else []):
             for sa, sb in rows:                            # (서강로's: two rows of bars, as the scan has it)
                 c = [a.at(sa)[0] + a.at(sa)[2] * o, a.at(sb)[0] + a.at(sb)[2] * o,
                      a.at(sb)[0] + a.at(sb)[2] * (o + 0.45), a.at(sa)[0] + a.at(sa)[2] * (o + 0.45)]
                 zebra.append(R2(c))
-        # stop line on the inbound half (traffic on the right: going in is going against s, on the arm's right of
-        # its outward direction... inbound cars drive towards the junction, s falling: their right is +n)
-        s_stop = s_x + 6.0 + (dep - 4.5)
-        c = [a.at(s_stop)[0] + a.at(s_stop)[2] * 0.3, a.at(s_stop + 0.5)[0] + a.at(s_stop + 0.5)[2] * 0.3,
+        # stop line on the inbound half, from the painted middle to the kerb (traffic on the right: inbound cars drive
+        # towards the junction, s falling: their right is +n)
+        s_stop = float(a.ls.project(Point(*ROT_STOP_AT[k]))) if k in ROT_STOP_AT else s_x + 6.0 + (dep - 4.5)
+        s_stops[k] = s_stop
+        m0 = mid_of(k, s_stop)
+        c = [a.at(s_stop)[0] + a.at(s_stop)[2] * (m0 + 0.3), a.at(s_stop + 0.5)[0] + a.at(s_stop + 0.5)[2] * (m0 + 0.3),
              a.at(s_stop + 0.5)[0] + a.at(s_stop + 0.5)[2] * (a.half - 0.3), a.at(s_stop)[0] + a.at(s_stop)[2] * (a.half - 0.3)]
         zebra.append(R2(c))
-        # lane paint from the stop line out (연세로: to where gate_town's begins its own at the bridge... none there)
+        # lane paint from the stop line out (연세로: to where gate_town's begins its own at the bridge... none there),
+        # broken at a crossing; the double yellow middle on the painted middle (mid_of)
         s_end = a.cum[-1] - 3.0 if k != 'yonsei' else float(a.ls.project(Point(gt.YONSEI_X, -492.0)))
+        if k == 'baekbeom':
+            # 서강로 as the scans have it (BB_LINES_N / _S): the middle and the two lines in, from the junction's guide
+            # line to the crossing; beyond it the middle, the two lines out and the one in
+            s_j = float(a.ls.project(Point(*BB_C[1]))) - 2.0
+            mids = [(0.16, 'yellow'), (-0.16, 'yellow')]
+            for ss_, lines in ((np.arange(s_j, s_x - 0.3, 2.0).tolist() + [s_x - 0.3], mids + BB_LINES_N),
+                               (np.arange(s_x + dep + 0.3, s_end, 2.0).tolist(), mids),
+                               (np.arange(s_stop + 1.0, s_end, 2.0).tolist(), BB_LINES_S)):
+                for o, kind in lines:
+                    paint.append(dict(kind=kind, w=0.12, pts=R2([AT(a, k, s, o) for s in ss_])))
+            continue
         ss = np.arange(s_stop + 1.0, s_end, 2.0)
         if len(ss) < 2:
             continue
-        ssy = ss[ss >= s_x + ROT_HATCH[0] + ROT_HATCH[1]]          # (the centre line from the painted triangle's base)
+        cut = [(s_x - 0.3, s_x + dep + 0.3)] if s_stop < s_x else []
         for sgn in (1, -1):
-            if len(ssy) > 1:
-                paint.append(dict(kind='yellow', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * sgn * 0.16 for s in ssy])))
+            for run in runs(ss, cut):
+                paint.append(dict(kind='yellow', w=0.12, pts=R2([AT(a, k, s, sgn * 0.16) for s in run])))
             for kk in range(1, a.lanes):
-                o = sgn * (0.3 + (a.half - 0.3) / a.lanes * kk)
                 if k == 'yonsei':
+                    o = sgn * (0.3 + (a.half - 0.3) / a.lanes * kk)
                     sl = ss[ss <= s_stop + YRO_LANE_SOLID]
                     paint.append(dict(kind='white', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * o for s in sl])))
                     continue
-                paint.append(dict(kind='white_dash', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * o for s in ss[2:]])))
+                for run in runs(ss[2:], cut):
+                    pts = []
+                    for s in run:
+                        hs = a.half - sgn * mid_of(k, s)                 # (the half on that side of the painted middle)
+                        pts.append(AT(a, k, s, sgn * (0.3 + (hs - 0.3) / a.lanes * kk)))
+                    paint.append(dict(kind='white_dash', w=0.12, pts=R2(pts)))
     # 연세로's crossing between the junction and the bridge, with stop lines either side
     s_mid = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS_Y)))
     # (and the one further up at y -690 the 1997 frames show, 4.9 m across: no signals of its own in the game)
@@ -674,8 +801,7 @@ def layout(geo, town, extras, ground, taken_z):
         paint.append(dict(kind='white', w=0.25, pts=R2([tuple(ic + ISLAND['ring'] * np.array([math.cos(a_), math.sin(a_)]))
                                                         for a_ in np.linspace(a0, a1, 3)])))
     paint += rot_letters()
-    paint += rot_hatches(A, xs)
-    paint += rot_arrows(A, xs)
+    paint += rot_marks()
     # the U-turn loop round the island: its yellow outer edge (ROT_D, smoothed through the scan's points), its two
     # triangles with a smaller one inside each, and its arrows (a straight arrow's head at the point, 2.2 m of shaft)
     paint.append(dict(kind='yellow', w=0.2, pts=R2([tuple(q) for q in gt._chaikin(ROT_D, 2)])))
@@ -699,7 +825,7 @@ def layout(geo, town, extras, ground, taken_z):
     def lane_pts(k, o, s0, s1, step=3.0):
         a = A[k]
         ss = np.arange(s0, s1, step if s1 > s0 else -step).tolist() + [s1]
-        return [tuple(a.at(s)[0] + a.at(s)[2] * o) for s in ss]
+        return [tuple(a.at(s)[0] + a.at(s)[2] * (o + mid_of(k, s))) for s in ss]      # (o off the painted middle)
 
     def curve(p0, d0, p1, d1, n=10):
         """a smooth turn from p0 heading d0 to p1 heading d1 (cubic Bezier)"""
@@ -717,10 +843,10 @@ def layout(geo, town, extras, ground, taken_z):
         ai, ao = A[k_in], A[k_out]
         si0 = ai.cum[-1] - 2.0 if s_far_in is None else s_far_in
         so1 = ao.cum[-1] - 2.0 if s_far_out is None else s_far_out
-        a_in = lane_pts(k_in, o_in, si0, xs[k_in] + 5.5)
-        a_out = lane_pts(k_out, o_out, xs[k_out] + 1.0, so1)
-        d_in = -ai.at(xs[k_in] + 5.5)[1]
-        d_out = ao.at(xs[k_out] + 1.0)[1]
+        a_in = lane_pts(k_in, o_in, si0, s_stops[k_in] - 0.5)
+        a_out = lane_pts(k_out, o_out, min(xs[k_out], s_stops[k_out]) + 1.0, so1)
+        d_in = -ai.at(s_stops[k_in] - 0.5)[1]
+        d_out = ao.at(min(xs[k_out], s_stops[k_out]) + 1.0)[1]
         mid = curve(a_in[-1], d_in, a_out[0], d_out, 24)
         mid = round_island(a_in[-1], mid, a_out[0])
         pts = a_in + mid + a_out
@@ -775,8 +901,10 @@ def layout(geo, town, extras, ground, taken_z):
     heads = []
     for k, ph in (('yonsei', 0), ('baekbeom', 0), ('seogang', 2), ('sinchon_w', 1), ('sinchon_e', 1)):
         a = A[k]
-        p, t, n = a.at(xs[k] + 6.5 + ((ROT_S_CROSS['depth'] - 4.5) if k == 'baekbeom' else 0.0))
+        p, t, n = a.at(s_stops[k] + 0.5)
         q = p + n * (a.half + 0.8)                       # at the stop line, on the inbound side's kerb
+        if road.buffer(0.6).contains(Point(*q)):         # (where a corner's asphalt reaches on: on the far kerb)
+            q = p - n * (a.half + 0.8)
         heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(t[1], t[0]), 4), 0, ph, round(a.half * 0.75, 1)])
     for sgn, s_ in ((1, s_mid + 6.5), (-1, s_mid - 2.5)):
         p, t, n = ya.at(s_)
@@ -805,7 +933,7 @@ def layout(geo, town, extras, ground, taken_z):
             o0, o1 = (ROT_S_CROSS['x'][0] - p_[0]) / n_[0], (ROT_S_CROSS['x'][1] - p_[0]) / n_[0]
             W_parts.append(a.poly(-a.half - a.walk, o1 + ROT_APRON_WALK + 0.5, s_x - 0.25, s_x + ROT_S_CROSS['depth'] + 0.25).intersection(street))
         else:
-            W_parts.append(a.poly(-a.half - a.walk, a.half + a.walk, s_x - 0.25, s_x + 4.75).intersection(street))
+            W_parts.append(a.poly(-a.half - a.walk, a.half + a.walk, s_x - 0.25, s_x + deps[k] + 0.25).intersection(street))
     for s_z in (s_mid, s_c2):
         W_parts.append(ya.poly(-ya.half - 5.0, ya.half + 5.0, s_z - 0.25, s_z + 4.75).intersection(street))
     for y0_, y1_ in (gt.YZEBRA2, gt.YZEBRA):          # (gate_town's: south of the bridge, and over 연세로's mouth)
@@ -841,16 +969,20 @@ def layout(geo, town, extras, ground, taken_z):
     # ---- lamps along the kerbs (every 30 m, both sides; none in a crossing), the subway's entrances at the corners
     props = []
     apron_in = Polygon(ROT_APRON).buffer(-0.3)
+    road_l = road.buffer(-0.2)
+    shapely.prepare(road_l)
     for k, a in A.items():
-        s0 = xs[k] + 12.0
+        s0 = (xs[k] if k == 'baekbeom' else xs_rng[k]) + 12.0       # (the rule's mouths but 서강로's crossing)
         s1 = min(a.cum[-1] - 5.0, REACH + 60.0) if k != 'yonsei' else float(ya.ls.project(Point(gt.YONSEI_X, geo['y_top'] - 12.0)))
         for s in np.arange(s0, s1, 30.0):
+            if k == 'seogang' and xs[k] - 1.5 < s < xs[k] + deps[k] + 1.5:       # (not on its crossing's landings)
+                continue
             p, t, n = a.at(s)
             for sgn in (1, -1):
                 q = p + n * sgn * (a.half + 0.7)
                 if k == 'yonsei' and q[1] > -508.0:          # (south of the baked sun shadow's edge)
                     continue
-                if apron_in.contains(Point(*q)):             # (the island's wedge is road: ROT_APRON)
+                if apron_in.contains(Point(*q)) or road_l.contains(Point(*q)):   # (the island's wedge, the corners' asphalt)
                     continue
                 rot = math.atan2(t[1], t[0]) + (math.pi if sgn < 0 else 0.0)
                 props.append(['lamp_arm', round(float(q[0]), 2), round(float(q[1]), 2), round(rot, 3)])
@@ -860,20 +992,27 @@ def layout(geo, town, extras, ground, taken_z):
     entrances, coll, coll_rng = [], [], []
     for no, x, y in EXITS:
         # set on the walk 1.2 m in from its back edge, its long side along the street it stands on
-        best = min(A.values(), key=lambda a: a.ls.distance(Point(x, y)))
-        s = float(best.ls.project(Point(x, y)))
-        p, t, n = best.at(s)
-        side = 1 if float((np.array([x, y]) - p) @ n) > 0 else -1
-        w_ = (YRO_WALK_W if side > 0 else YRO_WALK_E) if best.name == 'yonsei' else best.walk
-        q = p + n * side * (best.half + w_ - 2.0)
-        ang = math.atan2(t[1], t[0])
-        L, Wd = 7.4, 2.6
-        coll_rng.append(R2(_box([q[0], q[1], L + 0.2, Wd + 0.2, ang]).exterior.coords[:4]))     # (the first places)
+        for arms_ in (A_dec, A):                        # (the first places, with 서강로 on its old line; then now)
+            best = min(arms_.values(), key=lambda a: a.ls.distance(Point(x, y)))
+            s = float(best.ls.project(Point(x, y)))
+            p, t, n = best.at(s)
+            side = 1 if float((np.array([x, y]) - p) @ n) > 0 else -1
+            w_ = (YRO_WALK_W if side > 0 else YRO_WALK_E) if best.name == 'yonsei' else best.walk
+            q = p + n * side * (best.half + w_ - 2.0)
+            ang = math.atan2(t[1], t[0])
+            L, Wd = 7.4, 2.6
+            if arms_ is A_dec:
+                coll_rng.append(R2(_box([q[0], q[1], L + 0.2, Wd + 0.2, ang]).exterior.coords[:4]))     # (the first places)
         if best.name == 'yonsei':
             # (on 연세로's 3 - 4 m walks: 1.6 m across by the kerb, where the ginkgos leave room round the first places, so that a
             # walker passes along the shop fronts)
             Wd = 1.6
             q = p + n * side * (best.half + 0.15 + Wd / 2)
+        elif best.name == 'seogang' and s < xs['seogang']:
+            # (on 1997년 신촌로's walk short of its crossing, 30 m out since 2026-11-14: 1.6 m across against the walk's
+            # back, so that a walker passes along the kerb to the crossing)
+            Wd = 1.6
+            q = p + n * side * (best.half + best.walk - 0.15 - Wd / 2)
         e = [round(float(q[0]), 2), round(float(q[1]), 2), round(ang, 4), L, Wd, no, round(ground(*q), 2)]
         entrances.append(e)
         coll.append(R2(_box([q[0], q[1], L + 0.2, Wd + 0.2, ang]).exterior.coords[:4]))
@@ -896,7 +1035,7 @@ def layout(geo, town, extras, ground, taken_z):
     # (decided round the rule's crossings and the entrances' first places: xs_rng, coll_rng)
     trees = []
     busy_t = unary_union([Polygon(c_) .buffer(1.5) for c_ in coll_rng] +
-                         [a.poly(-a.half - 6, a.half + 6, xs_rng[k] - 3.0, xs_rng[k] + 8.0) for k, a in A.items()] +
+                         [a.poly(-a.half - 6, a.half + 6, xs_rng[k] - 3.0, xs_rng[k] + 8.0) for k, a in A_dec.items()] +
                          [ya.poly(-ya.half - 6, ya.half + 6, s_mid - 3.0, s_mid + 8.0)])
     s_top_t = float(ya.ls.project(Point(gt.YONSEI_X, -508.0)))           # (south of the baked sun shadow's edge)
     # 연세로's row from its own stream (random.Random(4813)), 8 m apart (2010 skyview: the crowns' autocorrelation
@@ -907,16 +1046,20 @@ def layout(geo, town, extras, ground, taken_z):
         rnd.random()
     busy_t = busy_t.union(unary_union([ya.poly(-ya.half - 6, ya.half + 6, float(ya.ls.project(Point(gt.YONSEI_X, y_))) - 5.0,
                                                float(ya.ls.project(Point(gt.YONSEI_X, y_))) + 5.0) for y_ in (YRO_CROSS2_Y, gt.YZEBRA2[0] - 2.75)]))
+    bb_row = []                                     # (서강로's: [index, side, the place decided, the draw along])
     for k, s0, s1, r_, step in (('yonsei', xs_rng['yonsei'] + 9.0, s_top_t, rnd_y, YRO_GINKGO_STEP),
-                                ('baekbeom', xs_rng['baekbeom'] + 9.0, A['baekbeom'].cum[-1] - 20.0, rnd, 7.0)):
-        a = A[k]
+                                ('baekbeom', xs_rng['baekbeom'] + 9.0, A_dec['baekbeom'].cum[-1] - 20.0, rnd, 7.0)):
+        a = A_dec[k]
         for side in (1, -1):
             gaps = GAPS[-side] if k == 'yonsei' else []          # (+n is west on 연세로: side +1 west)
             for s in np.arange(s0 + (2.0 if side > 0 else 5.5), s1, step):
                 p, t, n = a.at(s)
-                q = p + n * side * (a.half + 1.1) + t * r_.uniform(-0.4, 0.4)
+                j_ = r_.uniform(-0.4, 0.4)
+                q = p + n * side * (a.half + 1.1) + t * j_
                 if any(g1 - 4.0 < q[1] < g0 + 4.0 for g0, g1 in gaps) or busy_t.contains(Point(*q)):
                     continue
+                if k == 'baekbeom':
+                    bb_row.append((len(trees), side, q, j_))
                 trees.append(['ginkgo', round(float(q[0]), 2), round(float(q[1]), 2), round(r_.uniform(0.62, 0.78), 2),
                               round(r_.uniform(0, 6.28), 2)])
         if k == 'yonsei':
@@ -936,6 +1079,29 @@ def layout(geo, town, extras, ground, taken_z):
                     continue
                 trees.append([t0[0], q[0], q[1], round(rb.uniform(0.5, 0.8), 2), round(rb.uniform(0, 6.28), 2)])
             n_bank = len(trees) - sum(1 for t_ in trees if t_[0] == 'ginkgo')
+    # 서강로's row, decided on its old line (above), stands on the scans' line: each tree as far along it and on the same
+    # side, 1.1 m in from the kerb; the west row north of the crossing behind the corner's kerb (ROT_S_KERB), none on
+    # the crossing's landings or the subway's stairs (moved along the row), in their places in the list
+    ab, ks_ = A['baekbeom'], LineString(ROT_S_KERB)
+    s_cx = (xs['baekbeom'] - 1.5, xs['baekbeom'] + deps['baekbeom'] + 1.5)
+    busy_b = unary_union([Polygon(c_).buffer(1.2) for c_ in coll])
+    for i, side, qo, j_ in bb_row:
+        s_n = float(ab.ls.project(Point(*qo)))
+        for ds in (0.0, 2.5, -2.5, 5.0, -5.0):
+            s_ = s_n + ds
+            if s_cx[0] < s_ < s_cx[1]:
+                s_ = s_cx[0] if s_n + ds < (s_cx[0] + s_cx[1]) / 2 else s_cx[1]
+            p, t, n = ab.at(s_)
+            q = p + n * side * (ab.half + 1.1) + t * j_
+            if side < 0 and s_ < s_cx[0]:                    # (west of the lanes north of the crossing: the corner)
+                d_k = float(ks_.project(Point(*q)))
+                pk = np.array(ks_.interpolate(d_k).coords[0])
+                tk = np.array(ks_.interpolate(min(d_k + 0.5, ks_.length)).coords[0]) - np.array(ks_.interpolate(max(d_k - 0.5, 0.0)).coords[0])
+                tk = tk / np.linalg.norm(tk)
+                q = pk + np.array([-tk[1], tk[0]]) * 1.1
+            if not busy_b.contains(Point(*q)):
+                break
+        trees[i][1:3] = [round(float(q[0]), 2), round(float(q[1]), 2)]
     # (백범로's ginkgos the island's wedge now covers: moved in their places in the list to the walk east of its
     # turning lane, 1.1 m in from its kerb, 7 m apart from the crossing north, clear of the entrances)
     road_in = road.buffer(0.6)
@@ -1067,7 +1233,6 @@ def layout(geo, town, extras, ground, taken_z):
 
 # ----------------------------------------------------------------------------- the 1995 · 1996 rooftop photos
 # (고증 4.10 「옥상 사진의 카메라」 · 「게임에 옮긴 것」): the paint on the junction, its bus stops, people standing about
-ROT_HATCH = (7.0, 12.0)        # the yellow triangle on each arm's middle: its tip past the crossing, its length
 # 「연세대」 in strokes on a glyph's unit box (u across, v up the text; road lettering is drawn long along the way)
 ROT_GLYPHS = [
     [[(0.28 + 0.2 * math.cos(t), 0.79 + 0.13 * math.sin(t)) for t in np.linspace(0, 2 * math.pi, 13)],      # 연: ㅇ
@@ -1095,36 +1260,26 @@ def rot_letters():
     return out
 
 
-def rot_hatches(A, xs):
-    """the yellow triangles on each arm's middle past its crossing, a smaller one inside it and a third in that
-    (52158: sides of 13 - 15 m, the inner ones about a half and a fifth; 52145 · 52142: one at every arm's mouth)"""
-    out = []
-    for k, a in A.items():
-        s_t = xs[k] + ROT_HATCH[0]
-        s_b = s_t + ROT_HATCH[1]
-        hw = min(0.4 * a.half, 3.0)
-        tip = a.at(s_t)[0]
-        pb, _, nb = a.at(s_b)
-        tri = np.array([tip, pb + nb * hw, pb - nb * hw])
-        cen = tri.mean(0)
-        for f in (1.0, 0.52, 0.2):
-            q = cen + (tri - cen) * f
-            out.append(dict(kind='yellow', w=0.2, pts=[[round(float(x), 2), round(float(y), 2)] for x, y in list(q) + [q[0]]]))
-    return out
-
-
-def rot_arrows(A, xs):
-    """a straight-on arrow in every lane coming in, just behind its stop line (52145 · 52158)"""
+def rot_marks():
+    """the junction's paint as the 1997 scans have it (27/18 · 27/19, the same places within 0.2 m; 1995's 52142 · 52145
+    have them too): the triangles (ROT_TRI, an outline and the smaller one inside), the arrows (ROT_ARROWS: a straight
+    arrow's head at the point, 2.2 m of shaft behind) and the turning guides of short dashes (ROT_GUIDES)"""
     out = []
     R2_ = lambda pts: [[round(float(x), 2), round(float(y), 2)] for x, y in pts]
-    for k, a in A.items():
-        s0 = xs[k] + 8.0                                     # (the head's tip; the tail 4.6 m further out)
-        for j in range(a.lanes):
-            o = 0.3 + (a.half - 0.3) / a.lanes * (j + 0.5)
-            P = lambda s, oo: a.at(s)[0] + a.at(s)[2] * oo
-            out.append(dict(kind='white', w=0.18, pts=R2_([P(s0 + 1.5, o), P(s0 + 4.6, o)])))
-            for d_ in (-0.5, -0.25, 0.0, 0.25, 0.5):
-                out.append(dict(kind='white', w=0.22, pts=R2_([P(s0, o), P(s0 + 1.6, o + d_)])))
+    for tri, inner in ROT_TRI:
+        for t_ in [tri] + ([inner] if inner else []):
+            out.append(dict(kind='yellow', w=0.2, pts=R2_(list(t_) + [t_[0]])))
+    for hx, hy, brg in ROT_ARROWS:
+        u = np.array([math.sin(math.radians(brg)), math.cos(math.radians(brg))])
+        v = np.array([-u[1], u[0]])
+        h_ = np.array([hx, hy])
+        out.append(dict(kind='white', w=0.18, pts=R2_([h_ - u * 1.4, h_ - u * 3.6])))
+        for d_ in (-0.5, -0.25, 0.0, 0.25, 0.5):
+            out.append(dict(kind='white', w=0.22, pts=R2_([h_, h_ - u * 1.5 + v * d_])))
+    for g in ROT_GUIDES:                                     # (dashes 1 m long, 1 m apart)
+        ls = LineString(gt._chaikin(g, 2))
+        for d0 in np.arange(0.0, ls.length - 0.5, 2.0):
+            out.append(dict(kind='white', w=0.15, pts=R2_([ls.interpolate(d0).coords[0], ls.interpolate(min(d0 + 1.0, ls.length)).coords[0]])))
     return out
 
 
