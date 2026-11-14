@@ -337,6 +337,27 @@ def _grand(mb, d):
     p0, t, n, L = _side(o, side)
     a, b = p0 + t * (s - w / 2), p0 + t * (s + w / 2)
     _quad(mb, (a.x, a.y), (b.x, b.y), base + 5.4, top - 1.2, 'glass', out=0.03, n=n, panes=(1, round((top - base - 6.6) / 4.5)))
+    # the cooling towers' screen on the roof's south end (tools/sinchon_rotary.py GRAND_PEN; 52119 · 31662): a white box
+    # open to the sky, a blue band round its foot, standing out over a foot set back under it; the towers inside and
+    # beside it
+    pen = d.get('pen')
+    if pen:
+        po = _ccw([tuple(p) for p in pen['outline']])
+        zb0, zb1, zt = top + pen['band'][0], top + pen['band'][1], top + pen['top']
+        foot, inn = _inset(po, 1.05), _inset(po, pen['wall'])
+        for i in range(len(po)):
+            a, b = po[i], po[(i + 1) % len(po)]
+            _quad(mb, foot[i], foot[(i + 1) % len(po)], top, zb0, 'plaster_grey')
+            _quad(mb, a, b, zb0, zb1, 'paint_blue')
+            _quad(mb, a, b, zb1, zt, 'tile_white')
+            _quad(mb, inn[(i + 1) % len(po)], inn[i], top + 0.05, zt, 'plaster_grey')
+        _flat(mb, [po, foot[::-1]], zb0, 'plaster_grey', down=True)
+        _flat(mb, [po, inn[::-1]], zt, 'concrete')
+        _flat(mb, [inn], top + 0.05, 'roof_flat')
+        for x, y, r, h in pen['towers']:
+            mb.cylinder((x, y), r, deck, top + h, 'metal', seg=16, mat_cap='metal_dark')
+            mb.cylinder((x, y), r * 1.06, top + h - 0.5, top + h - 0.3, 'paint_white', seg=16, cap_top=False)
+        _roof_boxes(mb, pen, top)
 
 
 def _kexim(mb, d):

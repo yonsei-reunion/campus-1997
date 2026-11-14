@@ -302,11 +302,25 @@ LM_TOP = {'그레이스백화점': 71.0, '그랜드백화점': 66.3, '외환은�
 GRACE_1997 = [(-225.27, -896.16), (-179.28, -917.39), (-157.10, -865.66), (-203.55, -849.16)]
 # (the old outline, 2026-11-14: the walls' feet in 27/18 and 1998's 26/17)
 GRACE_1997_OLD = [(-227.8, -895.6), (-179.5, -917.9), (-158.5, -863.3), (-203.0, -847.5)]
-GRAND_1997 = [(-188.0, -989.7), (-190.3, -999.0), (-185.9, -1005.6), (-191.2, -1009.7), (-186.5, -1015.7), (-181.4, -1012.0),
+# (OSM's, its spike taken out; and, 2026-11-15, the bump on its south-west side, (-191 .. -181, -1005 .. -1016): no roof
+# at the ring's height there in the scans of 27/18 · 27/19 (the windows match 0.84 - 0.87 on the ring, under 0.4 on the
+# bump, what lies below it leaning two ways), the side straight from (-190.3, -999.0) to the south corner)
+GRAND_1997 = [(-188.0, -989.7), (-190.3, -999.0),
               (-175.1, -1020.4), (-159.4, -1008.5), (-163.9, -1002.7), (-160.1, -1000.5), (-160.7, -996.1), (-161.4, -992.6),
               (-162.9, -989.3), (-163.3, -988.4), (-167.6, -982.2), (-168.3, -981.1), (-171.2, -978.1), (-173.9, -975.8),
               (-177.0, -973.3), (-180.9, -976.4), (-182.7, -979.0), (-183.8, -978.6), (-186.5, -978.6), (-188.6, -979.7),
-              (-189.7, -982.1), (-191.0, -985.4), (-190.2, -987.6), (-189.2, -989.3)]   # (OSM's, its spike taken out)
+              (-189.7, -982.1), (-191.0, -985.4), (-190.2, -987.6), (-189.2, -989.3)]
+# What stands on its roof's south end (고증 4.10.5 「그랜드백화점의 옥상 상자」): the cooling towers' screen, a white box
+# with a blue band round its foot (서울연구원 52119, 1996.6, and 31662, 1999.7, from the east: both faces, the box
+# standing out over the walls below).  From the scans of 27/18 · 27/19 and 1998's 26/17: its walls' top 7.9 m over the
+# ring's roof (the white faces' upper edge where three frames meet, 7.7 - 8.4), the white down to 4.4 m over it (their
+# lower edge, 4.2 - 4.6), the blue band under that to 2.4 m (52119 · 31662: white 3.7 m, blue 2.0 m); its outline at the
+# top (it hangs 0.45 m out over the south-east wall and 1.0 m over the south-west one, as the photos show); inside it
+# a round cooling tower, and a larger one north-west of it on the roof (their rims 4.7 and 6.6 m over the roof)
+GRAND_PEN = dict(outline=[(-175.50, -1021.52), (-168.37, -1016.12), (-177.46, -1004.12), (-184.60, -1009.53)],
+                 top=7.9, band=(2.4, 4.4), wall=0.25,
+                 towers=[(-176.7, -1011.0, 2.1, 4.7), (-183.0, -1002.6, 3.1, 6.6)],     # [x, y, r, rim over the roof]
+                 boxes=[(-172.5, -1014.6, 3.0, 3.0, 0.6486, 6.9)])                      # (a white box inside it)
 GRAND_COURT = [(-186.8, -988.5), (-176.0, -988.8), (-172.0, -991.0), (-168.5, -994.0), (-166.8, -998.5), (-167.5, -1003.0),
                (-173.0, -1008.5), (-178.0, -1007.0), (-186.5, -999.0)]                 # (27/18 · 27/19 at 63 m)
 KEXIM_1997 = [(-130.2, -1059.9), (-114.7, -1062.7), (-102.4, -1061.3), (-103.8, -1048.7), (-107.1, -1048.0), (-127.4, -1043.7),
@@ -327,8 +341,8 @@ LM_SHAPE = {
     '그레이스백화점': dict(kind='grace', outline=GRACE_1997, deck=66.8, parapet=1.0, glass=(1, 5.5), pipes=1, bands=0,
                      boxes=[(-188.8, -865.0, 46.0, 4.5, -0.333, 2.2)],
                      signs=[dict(cell=12, side=1, at=15.0, w=14.3, h=2.6, top=2.1)]),
-    '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=61.0, screen=(13, 12.0, 8.5, 19.0),
-                    strip=(6, 2.5, 2.5), signs=[dict(cell=13, side=13, w=16.5, h=3.0, top=2.4, off=1.0)]),
+    '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=61.0, screen=(9, 12.0, 8.5, 19.0),
+                    strip=(2, 2.5, 2.5), pen=GRAND_PEN, signs=[dict(cell=13, side=9, w=16.5, h=3.0, top=2.4, off=1.0)]),
     '외환은행': dict(kind='kexim', outline=KEXIM_1997, floors=10,
                  boxes=[(-114.5, -1053.7, 13.5, 3.6, -0.207, 3.0), (-113.5, -1059.0, 6.5, 4.0, -0.207, 6.0)],
                  tanks=[(-127.2, -1052.5, 1.9, 3.5)],
