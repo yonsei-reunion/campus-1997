@@ -8070,6 +8070,28 @@ _ypaint([Polygon([ct_xy(s_, sec_[0][0] + 0.3)[:2] for s_, sec_ in _ap] + [ct_xy(
 # shrub band, which is the side road west of the eagle (SIDE_W, the grey drive of photo A) run on past the hall's front
 # to the north drive: the photos have cars parked along it
 _ypaint([LIB97_TERRACE, LIB97_OUTER] + list(LIB97_SLANT.geoms if hasattr(LIB97_SLANT, 'geoms') else [LIB97_SLANT]), _gp)
+# 1997년 보행로 (#151; the 1997-07-28 scans, 0.13 m a pixel; reference/고증/2.3 「섬처럼 놓인 포장」), in the game's map
+# only (the planting and the decals have read the ground):
+# - 백주년기념관 남서쪽: a round plaza before the low block's west face, a paved ring (5.1 - 9.75 m, its two edges fitted
+#   in three frames to 0.1 m) round a lawn bed with one tree; paved on north to 백양로's sidewalk, and from there a strip
+#   4 - 5 m wide north-east along the stepped beds to the walk down the hall's west face.  The game had lawn there
+#   and, of the strip, the 2.6 m walk along its north-west edge ending in the lawn 7 m short of the sidewalk (one of
+#   the tails kept in #151).  The outline: what is paved (bright) in the three frames, cut to that place, 백양로's own
+#   mesh (12 m from its centre line) left out; the ring split in two, as _ypaint draws no holes
+CENT_SW_C, CENT_SW_R = (-39.4, -256.5), (5.1, 9.75)
+CENT_SW_PAVE = Polygon([(-48.6, -248.0), (-49.49, -245.5), (-49.7, -244.7), (-49.9, -241.7), (-49.3, -240.1), (-48.9, -239.9),
+                        (-48.5, -240.7), (-48.41, -242.4), (-47.18, -242.56), (-44.5, -239.7), (-41.31, -237.53), (-34.1, -230.7),
+                        (-28.7, -226.5), (-26.3, -225.5), (-24.5, -225.7), (-24.7, -229.3), (-25.3, -230.3), (-28.84, -233.43),
+                        (-29.7, -235.5), (-32.77, -237.04), (-34.5, -239.5), (-36.88, -241.05), (-38.28, -245.27),
+                        (-37.87, -246.58), (-34.1, -248.3), (-31.5, -250.7), (-29.93, -254.21), (-30.3, -259.99),
+                        (-32.96, -263.82), (-35.66, -265.5), (-38.75, -266.23), (-41.91, -265.92), (-44.83, -264.6),
+                        (-47.5, -261.93), (-48.82, -259.01), (-49.13, -255.85), (-48.2, -251.49)]) \
+    .difference(Point(CENT_SW_C).buffer(CENT_SW_R[0], quad_segs=24))
+_ypaint(list(shapely.ops.split(CENT_SW_PAVE, LineString([(CENT_SW_C[0], -280.0), (CENT_SW_C[0], -200.0)])).geoms), _gp)
+# - 중앙도서관 남쪽 화단: a round paved disc in the middle bed (fitted in three frames to 0.2 m, two trees over its west
+#   side); what it was (a stage, a dry basin), and whether it stood about 1 m over the lawn, the scans do not settle
+LIB_S_DISC = Point(-63.2, -110.9).buffer(7.6, quad_segs=24)
+_ypaint([LIB_S_DISC], _gp)
 # 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'
@@ -8563,12 +8585,14 @@ PRUNE_SCRAP = [(((-115.7, -135.7), (-108.5, -138.0)), '도서관 남서쪽 꺾�
                (((-16.7, -413.0), (-28.6, -399.4)), '정문 동쪽 잔디밭으로 드는 계단 (2015년 산책로, EAST_LAWN)'),
                (((179.6, 184.5), (193.2, 198.8)), '옛 노천극장: 1999년 객석 통로 계단이 꼭대기 길을 건너 남은 토막'),
                (((193.2, 198.8), (195.4, 201.1)), '  〃'), (((195.4, 201.1), (190.4, 204.9)), '  〃'),
-               (((184.8, 141.7), (200.5, 132.8)), '  〃'), (((178.3, 134.4), (191.0, 125.5)), '  〃')]
+               (((184.8, 141.7), (200.5, 132.8)), '  〃'), (((178.3, 134.4), (191.0, 125.5)), '  〃'),
+               (((18.3, -159.7), (46.5, -146.4)), '수경원 정자각으로 가는 길: 1997년 7월 스캔 세 장에 잔디뿐(포장 없음)')]
 PRUNE_TAILS = [((-128.9, 24.1), 30.0, True),    # (도서관 북쪽 길이 서쪽 잔디에서 끝나는 26 m)
                ((146.2, -28.9), 25.0, False),   # (음악관 남쪽 잔디로 나온 두 꼬리: 곁의 포장에 닿아 남았던 것)
                ((162.5, -51.1), 20.0, False),
                ((198.9, 181.3), 12.0, False),   # (옛 노천극장: 동쪽 길로 이어지는 1999년 계단의 객석 쪽 끝)
-               ((111.9, 66.2), 45.0, True)]     # (대강당 동쪽 41 m: 2008 · 2010년 스카이뷰에 포장 길 없음)
+               ((111.9, 66.2), 45.0, True),     # (대강당 동쪽 41 m: 2008 · 2010년 스카이뷰에 포장 길 없음)
+               ((18.3, -159.7), 16.0, False)]   # (수경원 정자각 길을 뺀 뒤 남는 15 m 토막: 1997년 7월 스캔에 잔디)
 PRUNE_TAIL = 18.0                                # (12 -> 18 m: the 12 - 18 m tails were all stubs into the lawn)
 PRUNE_PATCH = 200.0                              # (60 -> 200 m²: two lone walks of 120 and 155 m², west of 과학관
 #                                                   and north of 어린이생활지도연구원, touching nothing)
@@ -9186,6 +9210,26 @@ if _rd_ui:
     for k_ in _rd_ui[:0:-1]:
         out['paths'].pop(k_)
 print('찻길 east: the map\'s ways along the old line', len(_rd_ui), '-> 1')
+# 백주년기념관 남서쪽 둥근 마당 (CENT_SW_PAVE above, #151): the walk along the strip runs on to 백양로's sidewalk as the
+# scans' paving does (the map, the crowd), and the trees the planting left on the paved ring step off it in their
+# places in the list: the nearest to it into the bed, where the scans have the bed's one crown, the others off the
+# ring's outer edge (into the bed if that is paved)
+CENT_SW_TREE = (-42.0, -257.5)
+for p_ in out['paths']:
+    if p_['kind'] == 'footway' and len(p_['pts']) > 1 and math.dist(p_['pts'][-1], (-39.4, -238.4)) < 0.3:
+        p_['pts'].append([-47.0, -241.6])
+_cst = sorted((t_ for t_ in out['trees'] if CENT_SW_R[0] - 0.5 < math.dist(t_[1:3], CENT_SW_C) < CENT_SW_R[1] + 0.6),
+              key=lambda t_: math.dist(t_[1:3], CENT_SW_TREE))
+for k_, t_ in enumerate(_cst):
+    d_ = np.array(t_[1:3], float) - CENT_SW_C
+    d_ /= max(1e-6, float(np.linalg.norm(d_)))
+    q_ = np.array(CENT_SW_C) + d_ * (CENT_SW_R[1] + 1.25)
+    if k_ == 0:
+        q_ = np.array(CENT_SW_TREE)
+    elif CENT_SW_PAVE.buffer(0.5).contains(Point(*q_)):
+        q_ = np.array(CENT_SW_C) + d_ * 2.5
+    t_[1], t_[2] = round(float(q_[0]), 2), round(float(q_[1]), 2)
+print('백주년기념관 남서쪽 둥근 마당: trees off the ring', len(_cst))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
