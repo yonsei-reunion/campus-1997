@@ -5475,6 +5475,72 @@ def tennis():
 
 
 # ============================================================================= 공학원 공사장 (1995.8 - 1999.4)
+def _tower_crane(x, y, z, H, brg, jib, cjib):
+    """The hammerhead tower crane over 공학원's pit (the July 1997 scans, 고증 4.4): a lattice mast 1.6 m square, the
+    slewing ring and the cab on it, a tower head over that with the pendants to the jib and the counter-jib, a
+    triangular lattice jib (brg: its bearing, degrees from north), the counter-jib behind with its concrete
+    counterweights, the trolley and the hook.  The photos give the place, the jib's height, length and bearing and the
+    counterweights' place; the make is a common one of the time, in yellow."""
+    mb = MeshBuilder('lm_gongwon_crane')
+    Y = 'paint_yellow'
+    a = math.radians(90.0 - brg)
+    ca, sa = math.cos(a), math.sin(a)
+    P = lambda s, t, h: (x + ca * s - sa * t, y + sa * s + ca * t, z + h)         # s along the jib, t to its left, h up
+    m, sec = 0.8, 1.6
+    for i, j in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+        rod(mb, P(i * m, j * m, -0.2), P(i * m, j * m, H), 0.1, Y, seg=6)
+    nsec = int(H / sec)
+    corners = [(-m, -m), (m, -m), (m, m), (-m, m)]
+    for k in range(nsec):
+        h0, h1 = k * sec, min(H, (k + 1) * sec)
+        for c in range(4):
+            (s0, t0), (s1, t1) = corners[c], corners[(c + 1) % 4]
+            rod(mb, P(s0, t0, h0), P(s1, t1, h0), 0.05, Y, seg=4)
+            rod(mb, P(s0, t0, h0) if k % 2 == 0 else P(s1, t1, h0), P(s1, t1, h1) if k % 2 == 0 else P(s0, t0, h1), 0.05, Y, seg=4)
+    mb.box(P(0, 0, H + 0.3), (2.4, 2.4, 0.6), Y, rotz=a)                             # the slewing ring
+    mb.box(P(1.2, 1.9, H + 1.3), (1.6, 1.4, 2.0), 'paint_white', rotz=a)             # the cab beside the jib's root
+    mb.box(P(1.2, 1.9 + 0.71, H + 1.6), (1.3, 0.03, 0.9), 'glass', rotz=a)
+    hz = H + 0.6
+    apex = P(0, 0, hz + 6.5)
+    for i, j in ((-1, -1), (1, -1), (1, 1), (-1, 1)):                                # the tower head
+        rod(mb, P(i * m, j * m, hz), apex, 0.06, Y, seg=6)
+    # the jib: two lower chords 1.3 m apart, one upper 1.4 m over them, braced every 2 m
+    w2, jh = 0.65, 1.4
+    rod(mb, P(0.5, -w2, hz), P(jib, -w2, hz), 0.09, Y, seg=5)
+    rod(mb, P(0.5, w2, hz), P(jib, w2, hz), 0.09, Y, seg=5)
+    rod(mb, P(0.5, 0, hz + jh), P(jib - 1.0, 0, hz + jh * 0.4), 0.09, Y, seg=5)
+    nb = int((jib - 0.5) / 2.0)
+    for k in range(nb + 1):
+        s = 0.5 + k * (jib - 0.5) / nb
+        top = hz + jh - (jh * 0.6) * max(0.0, (s - (jib - 12.0)) / 11.0)
+        rod(mb, P(s, -w2, hz), P(s, w2, hz), 0.045, Y, seg=4)
+        if k < nb:
+            s2 = 0.5 + (k + 1) * (jib - 0.5) / nb
+            for t in (-w2, w2):
+                rod(mb, P(s, t, hz), P((s + s2) / 2, 0, top), 0.045, Y, seg=4)
+                rod(mb, P((s + s2) / 2, 0, top), P(s2, t, hz), 0.045, Y, seg=4)
+    # the counter-jib: a walkway between two chords, the counterweights at its end, a rail round it
+    rod(mb, P(-0.5, -1.0, hz), P(-cjib, -1.0, hz), 0.07, Y, seg=5)
+    rod(mb, P(-0.5, 1.0, hz), P(-cjib, 1.0, hz), 0.07, Y, seg=5)
+    mb.box(P(-cjib / 2 - 0.25, 0, hz + 0.05), (cjib - 0.5, 2.0, 0.1), 'metal_dark', rotz=a)
+    for t in (-1.0, 1.0):
+        rod(mb, P(-0.5, t, hz + 1.0), P(-cjib, t, hz + 1.0), 0.025, Y, seg=4)
+    for k, s in enumerate((-7.6, -8.6, -9.6)):
+        mb.box(P(s, 0, hz - 0.6), (0.9, 2.6, 2.2), 'concrete', rotz=a)
+    mb.box(P(-4.5, 0, hz + 0.7), (2.2, 1.6, 1.2), Y, rotz=a)                          # the hoist's winch house
+    # the pendants from the tower head
+    rod(mb, apex, P(jib * 0.45, 0, hz + jh), 0.03, 'metal_dark', seg=4)
+    rod(mb, apex, P(jib * 0.8, 0, hz + jh * 0.85), 0.03, 'metal_dark', seg=4)
+    rod(mb, apex, P(-cjib + 0.5, -1.0, hz), 0.03, 'metal_dark', seg=4)
+    rod(mb, apex, P(-cjib + 0.5, 1.0, hz), 0.03, 'metal_dark', seg=4)
+    # the trolley 21 m out and the hook hanging 9 m under it
+    mb.box(P(21.0, 0, hz - 0.25), (1.6, 1.5, 0.5), Y, rotz=a)
+    for t in (-0.25, 0.25):
+        rod(mb, P(21.0, t, hz - 0.5), P(21.0, t, hz - 9.5), 0.015, 'metal_dark', seg=4)
+    mb.box(P(21.0, 0, hz - 9.8), (0.5, 0.35, 0.6), Y, rotz=a)
+    return mb
+
+
 def gongwon_site():
     """The hoarding round 공학원's building site, where the 정구장 had been (tools/build_campus.py GONGWON_SITE): steel
     sheet panels 2.4 m high on posts every 2.5 m following the ground, white over a blue foot band, both faces (6 cm
@@ -5531,6 +5597,8 @@ def gongwon_site():
                 for v in vs:
                     d.box((u, v, 0.05 + 0.7), (0.6, 0.6, 1.4), 'concrete')
         out.append(d)
+    if G.get('crane'):
+        out.append(_tower_crane(*G['crane']))
     # the site's prefab offices east of it: white panel walls on a blue foot band, a low grey roof, a band of windows to
     # each floor on the long sides (the photos give their plans and the long one's two storeys, not their faces)
     for k, (u0, u1, v0, v1, z, h) in enumerate(G.get('sheds', [])):

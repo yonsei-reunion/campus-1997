@@ -6023,6 +6023,11 @@ STATUES['gongwon_site'] = dict(ring=GONGWON_RING, gate=[_gn - 1, _gn + 1],     #
                                slab=[*GW_SLAB, _gzz[1]],
                                sheds=[[u0_, u1_, v0_, v1_, round(min(ground_h(*site_xy(u_, v_)) for u_ in (u0_, u1_) for v_ in (v0_, v1_)), 2), h_]
                                       for u0_, u1_, v0_, v1_, h_ in GW_SHEDS])
+# the tower crane of the July 1997 scans (고증 4.4 「타워크레인」): its mast on the pit's west edge, the jib 24 m over the
+# deck (the two course-26 frames agree on the jib there), slewed to the south-east as the photos caught it, 50 m long;
+# the counterweights 8.6 m out on the counter-jib.  (x, y, foot z, jib over the foot, bearing of the jib, its length,
+# the counter-jib's)
+STATUES['gongwon_site']['crane'] = [-258.0, -337.3, _gzz[0], 24.0, 140.0, 50.0, 12.0]
 print('공학원 site', round(GONGWON_SITE.area), 'm2 (first', round(GONGWON_SITE_RNG.area), '), hoarding', round(_gr.length), 'm, ground',
       _gz0)
 # the walks and service roads OSM has across it now go (the minimap, the crowd's walks: gw_cut, once the decals are
