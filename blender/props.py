@@ -342,6 +342,7 @@ GATE_LODGE = dict(u0=-18.65, u1=-11.65, d=10.0, h=2.8, solid=3.75)
 GATE_SLAB = dict(u0=10.25, u1=12.75, h=3.7, t=0.4)
 GATE_WALL = dict(u0=12.75, u1=21.75, h=2.5, t=0.35)
 GATE_END = 31.5              # the low wall's ends (tools/build_campus.py reads the same length for the ground)
+GATE_TURN = dict(u0=22.25, to=(34.5, -11.5), h=0.8, t=0.4)   # the east low wall: south-east from the white wall's end (tools/gate_town.py EAST_TURN)
 GATE_LEAF = 2.8              # the iron leaves' height
 
 
@@ -485,11 +486,20 @@ def gate():
     pa, pz, yy = W['u0'] + 0.9, z + 1.38, -W['t'] / 2 - 0.012
     mb.face([(pa, yy, pz), (pa + 1.9, yy, pz), (pa + 1.9, yy, pz + 0.475), (pa, yy, pz + 0.475)], 'sign_gate',
             uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
-    e0 = W['u1'] + 0.5
-    _gate_fence(mb, gz, e0, e0 + 3.0)
-    _gate_pier(mb, gz, e0 + 3.0, e0 + 4.7)
-    _gate_fence(mb, gz, e0 + 4.7, e0 + 7.7)
-    _gate_pier(mb, gz, e0 + 7.7, GATE_END, posts=(True, True))
+    # ---- east of the white wall: a low granite wall turning south-east along the mouth's edge down to 성산로's
+    # sidewalk (its line in the July 1997 vertical photos; its make, a knee-high granite kerb wall, the 2011 roadview's)
+    G = GATE_TURN
+    (xa, ya), (xb, yb) = (G['u0'], 0.0), G['to']
+    ln, a = math.hypot(xb - xa, yb - ya), math.atan2(yb - ya, xb - xa)
+    n = max(1, round(ln / 2.8))
+    for k in range(n):
+        f0_, f1_ = k / n, (k + 1) / n
+        cx, cy = xa + (xb - xa) * (f0_ + f1_) / 2, ya + (yb - ya) * (f0_ + f1_) / 2
+        z = min(gz(xa + (xb - xa) * f0_, ya + (yb - ya) * f0_), gz(xa + (xb - xa) * f1_, ya + (yb - ya) * f1_))
+        mb.box((cx, cy, z + G['h'] / 2 - 0.4), (ln / n + 0.02, G['t'], G['h'] + 0.8), 'gate_granite', rotz=a, skip=('bottom',))
+        mb.box((cx, cy, z + G['h'] + 0.04), (ln / n + 0.02, G['t'] + 0.08, 0.08), 'gate_granite', rotz=a)
+    z = gz(xb, yb)
+    mb.box((xb, yb, z + (G['h'] + 0.25) / 2 - 0.4), (0.5, 0.5, G['h'] + 1.05), 'gate_granite', rotz=a, skip=('bottom',))
     return mb
 
 

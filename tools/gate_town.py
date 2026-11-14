@@ -76,6 +76,7 @@ BRIDGE = (-108.5, -78.5)     # the opening for 연세로 (x), its piers in the m
 CROSS_X = (-75.0, -61.5)     # the zebra over 성산로, east of the junction's box
 BOX_X = (-108.7, -79.5)      # the box junction's white frame before 연세로 (x; 2.9 m in from the north kerb, 1.9 m from
 #                              the south one)
+EAST_TURN = 22.25            # where the gate's east low wall turns south-east, along its line from its middle (m)
 YZEBRA = (-459.5, -466.5)    # the zebra over 연세로's mouth (y)
 YONSEI_X = -96.0
 YONSEI_HALF, YONSEI_WALK = 7.0, 5.0
@@ -321,6 +322,12 @@ def layout(pl, secs, ground, taken, e_curb0):
            (-hw_ - 2.3, -7.5), (-hw_ - 0.7, -3.5)]
     north_of_road = Polygon([tuple(p) for p in road.P] + [(road.P[-1][0], road.P[-1][1] + 600), (road.P[0][0], road.P[0][1] + 600)]).buffer(0)
     mouth = Polygon([tuple(wc + wt * u + wnn * v) for u, v in fan]).buffer(0).intersection(north_of_road).buffer(0)
+    # Its asphalt stops short of that in the east: the low wall turns south-east where the white wall ends and runs
+    # down to 성산로's sidewalk (the July 1997 vertical photos, the 2010 skyview, the 2011 roadview: 고증 4.8.1
+    # 「동쪽 흰 담과 그 동쪽」; blender/props.py GATE_TURN), lawn behind it.  The fan above still decides the kerb's
+    # break, the lamps and the trees (and tools/build_campus.py GATE_OUT), so that none of them moves.
+    fan_a = [(-hw_, -0.4), (EAST_TURN, -0.4)] + fan[3:]
+    mouth_a = Polygon([tuple(wc + wt * u + wnn * v) for u, v in fan_a]).buffer(0).intersection(mouth).buffer(0)
     zone = Polygon([tuple(p) for p in bound] + [(road.P[-1][0] + 300, road.P[-1][1]), (720, -810), (-660, -810),
                                                  (-660, road.P[0][1])]).buffer(0).union(mouth).buffer(0)
     road_poly = Polygon([tuple(p) for p in kerb_n] + [tuple(p) for p in kerb_s[::-1]]).buffer(0)
@@ -630,7 +637,7 @@ def layout(pl, secs, ground, taken, e_curb0):
         bridge=dict(x=list(BRIDGE), pier=YONSEI_X, yonsei=[YONSEI_X, YONSEI_HALF, YONSEI_WALK]),
         paint=paint, zebra=zebra, kerbs=kerbs, lanes=lanes, stops=stops, blocks=blocks, signs=signs,
         church=church[:4], names=names[1] + names[-1], filled=n_fill, limit=R2(limit))
-    paints = dict(clear=[zone, inside], asphalt=[road_poly, mouth, yonsei, ground_town],
+    paints = dict(clear=[zone, inside], asphalt=[road_poly, mouth_a, yonsei, ground_town],
                   pavers=[walk_n.difference(mouth), walk_s, yonsei_walk, inside],
                   dirt=[bank_paint])
     paths = [dict(kind='primary', w=2 * HW, pts=[[round(float(x), 1), round(float(y), 1)] for x, y in road.P[::3]]),
