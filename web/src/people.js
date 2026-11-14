@@ -10,15 +10,16 @@ import * as THREE from 'three';
 import { Cast, PEOPLE, STUDENTS, HEROES, HERO, heroScale, crowdLook, play } from './characters.js';
 import { HERO_BAGS, crowdBag } from './bags.js';
 import { windTime } from './materials.js';
+import { isWoman, kindOf, tallOf } from './who.js';
 
 // the thirteen you can walk as first (by their names and colleges), then the others
 const IDS = [...HEROES, ...Object.keys(PEOPLE).filter((id) => !HEROES.includes(id))];
 // a name and a college: the thirteen's, and of the others whoever has one (in the crowd only)
-const NAMED = { ...HERO, 'man-grey': { name: '민수', college: '공과대학' } };
+const NAMED = { ...HERO, 'p05': { name: '민수', college: '공과대학' } };
 const title = (id) => (NAMED[id] ? `${NAMED[id].name} [${NAMED[id].college}]` : kind(id));
 const sub = (id) => (!HERO[id] && NAMED[id] ? kind(id) : '');
 const $ = (s) => document.querySelector(s);
-const kind = (id) => (STUDENTS.includes(id) ? (id.startsWith('woman') ? '여학생' : '남학생') : id.endsWith('professor') ? '교수님' : '교직원');
+const kind = (id) => (STUDENTS.includes(id) ? (isWoman(id) ? '여학생' : '남학생') : kindOf(id) === 'prof' ? '교수님' : '교직원');
 // the clips to show: [label, clip, once, ball motion (over the clip)]
 const MOVES = [['서 있기', 'idle'], ['둘러보기', 'idle-look'], ['팔짱', 'idle-fold'], ['이야기', 'talk'], ['전화', 'phone'],
   ['인사', 'emote-yes', true], ['걷기', 'walk'], ['뛰기', 'sprint'], ['앉기', 'sit'], ['슛', 'idle', false, 'shoot'], ['패스', 'idle', false, 'pass']];
@@ -285,7 +286,7 @@ function draw(slot, el = slot.el) {
   // the whole person in view: 2.1 m of height at the person's place, or less of it across a narrow card; from near
   // (the opened person only) the head and the shoulders
   const near = face && slot === zoom;
-  const top = (slot.id.startsWith('woman') ? 1.61 : 1.73) * slot.a.tall + slot.a.holder.position.y - (move[1] === 'sit' ? 0.42 * slot.a.tall : 0);
+  const top = tallOf(slot.id) * slot.a.tall + slot.a.holder.position.y - (move[1] === 'sit' ? 0.42 * slot.a.tall : 0);
   const tall = near ? 0.62 : move[3] ? 2.6 : 2.1, wide = near ? 0.5 : move[3] ? 1.4 : /^(walk|sprint|sit|emote)/.test(move[1]) ? 1.25 : 0.92;
   const d = Math.max(tall, wide / camera.aspect) / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   const y = near ? top - 0.2 : move[3] ? 1.15 : 0.9;

@@ -18,8 +18,9 @@ import { play, locomotion } from './characters.js';
 import { ArmPose, Stance, Hands, aimAxis, twoBone } from './armpose.js';
 import { lineTime } from './talk.js';
 import { wrapAngle } from './util.js';
+import { tallOf } from './who.js';
 
-const BDAY = 'man-hoodie', FRIEND = 'man-blazer';   // not among the heroes, so you never meet yourself
+const BDAY = 'p03', FRIEND = 'p06';   // not among the heroes, so you never meet yourself
 const SPOT_A = -105 * Math.PI / 180;              // where they stand: bearing from the basin's centre (campus, from east)
 const SPOT_R = 5.3;                               // on the flagstones (wall's outer face 4.75, flagstones to 5.85)
 const LAND_R = 2.6;                               // where the birthday student comes down in the pool
@@ -40,7 +41,7 @@ const HEAVE_T = 0.42, HEAVE_X = 0.38, HEAVE_Y = 0.42;   // the last swing in: ho
 const FLY_T = 0.8;                                // in the air (s)
 const REST = { drop: 0, lean: 0, side: 0, sway: 0, fwd: 0 };
 const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
-const height = (id) => (id.startsWith('woman') ? 1.61 : 1.73);
+const height = tallOf;
 
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
 const _X = new THREE.Vector3(1, 0, 0), _Y = new THREE.Vector3(0, 1, 0), _Z = new THREE.Vector3(0, 0, 1);

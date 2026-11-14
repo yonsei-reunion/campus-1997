@@ -12,49 +12,50 @@ import { loadGLB } from './world.js';
 import { pcss, windTime } from './materials.js';
 import { HERO_BAGS, baggedGeometry } from './bags.js';
 import { MOBILE, mulberry, versioned } from './util.js';
+import { tallOf } from './who.js';
 
 export const PEOPLE = {
-  'man-tee': '게스 긴팔 티 · 연청바지',
-  'man-check': '체크 남방 · 청바지',
-  'man-cheer': '연세 점퍼 · 블랙진',
-  'man-hoodie': '남색 후드티',
-  'man-grey': '줄무늬 티 · 진청바지',
-  'man-blazer': '콤비 재킷',
-  'man-professor': '교수님',
-  'man-staff': '교직원',
-  'woman-tee': '연세 티 · 연청바지',
-  'woman-pink': '분홍 니트',
-  'woman-dress': '빨간 니트 · 청치마',
-  'woman-dress-blue': '크림색 맨투맨 · 블랙진',
-  'woman-cardigan': '노란 카디건',
-  'woman-staff': '교직원',
-  'woman-stripe': '줄무늬 티 · 청바지',
-  'man-shirt': '초록 남방 · 면바지',
-  'woman-denim': '청남방 · 면바지',
+  'p01': '게스 긴팔 티 · 연청바지',
+  'p02': '체크 남방 · 청바지',
+  'p04': '연세 점퍼 · 블랙진',
+  'p03': '남색 후드티',
+  'p05': '줄무늬 티 · 진청바지',
+  'p06': '콤비 재킷',
+  'p07': '교수님',
+  'p08': '교직원',
+  'p09': '연세 티 · 연청바지',
+  'p10': '분홍 니트',
+  'p11': '빨간 니트 · 청치마',
+  'p12': '크림색 맨투맨 · 블랙진',
+  'p13': '노란 카디건',
+  'p14': '교직원',
+  'p15': '줄무늬 티 · 청바지',
+  'p16': '초록 남방 · 면바지',
+  'p17': '청남방 · 면바지',
 };
-export const STUDENTS = ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man-grey', 'man-blazer',
-  'woman-tee', 'woman-pink', 'woman-dress', 'woman-dress-blue', 'woman-cardigan'];
-export const HEROES = ['man-tee', 'woman-dress', 'man-cheer', 'woman-tee', 'man-check', 'woman-cardigan', 'man-blazer', 'woman-pink',
-  'woman-dress-blue', 'man-hoodie', 'woman-stripe', 'man-shirt', 'woman-denim'];
+export const STUDENTS = ['p01', 'p02', 'p04', 'p03', 'p05', 'p06',
+  'p09', 'p10', 'p11', 'p12', 'p13'];
+export const HEROES = ['p01', 'p11', 'p04', 'p09', 'p02', 'p13', 'p06', 'p10',
+  'p12', 'p03', 'p15', 'p16', 'p17'];
 // the thirteen you can walk as: a name of the class of 1997 (the first two from the film 건축학개론, 2012, whose first half
 // is a campus of 1996), the college they are of, and the hall their walk starts at (a name of campus.json's markers
 // or landmarks: places.js startPlaces); height: taller or shorter than the model (men 1.73 m, women 1.61 m)
 // short: the college as students called it (the title card's thirteen buttons have room for no more)
 export const HERO = {
-  'man-tee': { name: '승민', college: '공과대학', short: '공대', place: '제1공학관' },
-  'woman-dress': { name: '서연', college: '음악대학', short: '음대', place: '음악대학' },
-  'man-cheer': { name: '성구', college: '상경대학', short: '상경대', place: '상대신관', height: 1.79 },
-  'woman-tee': { name: '지은', college: '문과대학', short: '문과대', place: '인문관' },
-  'man-check': { name: '성훈', college: '이과대학', short: '이과대', place: '과학관' },
-  'woman-cardigan': { name: '은정', college: '사회과학대학', short: '사과대', place: '연희관' },
-  'man-blazer': { name: '준호', college: '법과대학', short: '법대', place: '광복관' },
-  'woman-pink': { name: '지영', college: '교육과학대학', short: '교과대', place: '용재관' },
-  'woman-dress-blue': { name: '수진', college: '생활과학대학', short: '생과대', place: '가정관' },
-  'man-hoodie': { name: '동현', college: '의과대학', short: '의대', place: '의과대학' },
+  'p01': { name: '승민', college: '공과대학', short: '공대', place: '제1공학관' },
+  'p11': { name: '서연', college: '음악대학', short: '음대', place: '음악대학' },
+  'p04': { name: '성구', college: '상경대학', short: '상경대', place: '상대신관', height: 1.79 },
+  'p09': { name: '지은', college: '문과대학', short: '문과대', place: '인문관' },
+  'p02': { name: '성훈', college: '이과대학', short: '이과대', place: '과학관' },
+  'p13': { name: '은정', college: '사회과학대학', short: '사과대', place: '연희관' },
+  'p06': { name: '준호', college: '법과대학', short: '법대', place: '광복관' },
+  'p10': { name: '지영', college: '교육과학대학', short: '교과대', place: '용재관' },
+  'p12': { name: '수진', college: '생활과학대학', short: '생과대', place: '가정관' },
+  'p03': { name: '동현', college: '의과대학', short: '의대', place: '의과대학' },
   // (the three models from here on are nobody of the crowd: STUDENTS, the crowd's pool, stays as it was)
-  'woman-stripe': { name: '혜진', college: '간호대학', short: '간호대', place: '간호대학' },
-  'man-shirt': { name: '정우', college: '신과대학', short: '신과대', place: '아펜젤러관' },
-  'woman-denim': { name: '현정', college: '치과대학', short: '치대', place: '치과대학' },
+  'p15': { name: '혜진', college: '간호대학', short: '간호대', place: '간호대학' },
+  'p16': { name: '정우', college: '신과대학', short: '신과대', place: '아펜젤러관' },
+  'p17': { name: '현정', college: '치과대학', short: '치대', place: '치과대학' },
 };
 
 // Every part of a person (skin, clothes, hair ...) is a flat colour, so one vertex-coloured material serves
@@ -389,38 +390,38 @@ const SKIN = ['#f0c9a4', '#e6b991', '#d9a77d', '#c99168'];
 const SKIN_FAIR = '#f7ddc8', SKIN_TAN = '#b9825a';      // now and then somebody fair, or tanned (가무잡잡)
 // material name -> the colours to draw from (the first is the model's own)
 const LOOKS = {
-  'man-tee': { LightBrown: ['#f1efe8', '#f1efe8', '#d8dde3', '#e9dfa8', '#a9c3de', '#2f3a55', '#9a9a96'], LightBlue: [...JEANS, '#a8946a'] },
-  'man-check': { Check: ['#d6c49c', '#d6c49c', '#9db4d0', '#8f2a30', '#2f5a45', '#27345a', '#e4e0d4'], LightBlue: [...JEANS, '#a8946a', '#3a3f47'] },
-  'man-hoodie': { Purple: ['#23345e', '#8d8f92', '#2f5a45', '#6e2430', '#c9c3b2', '#1f1f24'], LightBlue: ['#a8946a', ...JEANS, '#3a3f47'] },
-  'man-cheer': { LightBlue: JEANS },                       // (the cheer jacket stays Yonsei blue)
-  'man-grey': { LightBrown: ['#1f2f55', '#2f5a45', '#6e2430', '#1f2f55', '#2a2a2e', '#e4e0d4'], LightBlue: [JEANS[1], ...JEANS, '#3a3f47', '#a8946a'] },
-  'man-blazer': { Suit: ['#27304a', '#5e4634', '#4a4d52', '#8a7a5c', '#3d4a3a'], LightBlue: ['#b9a67e', ...JEANS, '#2c3550'] },
-  'man-professor': { Suit: ['#55595f', '#2c3448', '#4a4038', '#3a3f47', '#6b6a5c'], Tie: ['#2f4a7a', '#6e2430', '#3d5a45', '#4a4a50'] },
-  'man-staff': {},
-  'woman-tee': { White: ['#f4f1e8', '#f4f1e8', '#f3d9de', '#cfe0ee', '#e9dfa8', '#2f3a55', '#b9c9a8'], Orange: [...JEANS, '#cdb994', '#2a2a2e'] },
-  'woman-pink': { White: ['#e7a7b6', '#f0e6d2', '#a9c3de', '#c7b3dc', '#b5d6c3', '#e8c66a', '#c95a5a'], Orange: ['#cdb994', ...JEANS, '#2a2a2e', '#f0eee8'] },
-  'woman-dress': { LimeGreen: ['#a3202c', '#f1ede1', '#f3d9de', '#cfe0ee', '#ecdf9e', '#2a2a2e', '#b9c9a8'] },
-  'woman-dress-blue': { LimeGreen: ['#ece4cc', '#ece4cc', '#8d8f92', '#27345a', '#6e2430', '#2f5a45', '#f3d9de', '#a9c6e6'] },
-  'woman-cardigan': { Black: ['#ecdf9e', '#f3d9de', '#6f7f5a', '#8d8f92', '#2f3a55', '#e6dcc6', '#c98a8a'], Orange: [JEANS[1], ...JEANS, '#2b2f3a', '#cdb994'] },
-  'woman-staff': { Black: ['#2f3644', '#3a3f47', '#4a4038', '#5b6470'] },
+  'p01': { LightBrown: ['#f1efe8', '#f1efe8', '#d8dde3', '#e9dfa8', '#a9c3de', '#2f3a55', '#9a9a96'], LightBlue: [...JEANS, '#a8946a'] },
+  'p02': { Check: ['#d6c49c', '#d6c49c', '#9db4d0', '#8f2a30', '#2f5a45', '#27345a', '#e4e0d4'], LightBlue: [...JEANS, '#a8946a', '#3a3f47'] },
+  'p03': { Purple: ['#23345e', '#8d8f92', '#2f5a45', '#6e2430', '#c9c3b2', '#1f1f24'], LightBlue: ['#a8946a', ...JEANS, '#3a3f47'] },
+  'p04': { LightBlue: JEANS },                       // (the cheer jacket stays Yonsei blue)
+  'p05': { LightBrown: ['#1f2f55', '#2f5a45', '#6e2430', '#1f2f55', '#2a2a2e', '#e4e0d4'], LightBlue: [JEANS[1], ...JEANS, '#3a3f47', '#a8946a'] },
+  'p06': { Suit: ['#27304a', '#5e4634', '#4a4d52', '#8a7a5c', '#3d4a3a'], LightBlue: ['#b9a67e', ...JEANS, '#2c3550'] },
+  'p07': { Suit: ['#55595f', '#2c3448', '#4a4038', '#3a3f47', '#6b6a5c'], Tie: ['#2f4a7a', '#6e2430', '#3d5a45', '#4a4a50'] },
+  'p08': {},
+  'p09': { White: ['#f4f1e8', '#f4f1e8', '#f3d9de', '#cfe0ee', '#e9dfa8', '#2f3a55', '#b9c9a8'], Orange: [...JEANS, '#cdb994', '#2a2a2e'] },
+  'p10': { White: ['#e7a7b6', '#f0e6d2', '#a9c3de', '#c7b3dc', '#b5d6c3', '#e8c66a', '#c95a5a'], Orange: ['#cdb994', ...JEANS, '#2a2a2e', '#f0eee8'] },
+  'p11': { LimeGreen: ['#a3202c', '#f1ede1', '#f3d9de', '#cfe0ee', '#ecdf9e', '#2a2a2e', '#b9c9a8'] },
+  'p12': { LimeGreen: ['#ece4cc', '#ece4cc', '#8d8f92', '#27345a', '#6e2430', '#2f5a45', '#f3d9de', '#a9c6e6'] },
+  'p13': { Black: ['#ecdf9e', '#f3d9de', '#6f7f5a', '#8d8f92', '#2f3a55', '#e6dcc6', '#c98a8a'], Orange: [JEANS[1], ...JEANS, '#2b2f3a', '#cdb994'] },
+  'p14': { Black: ['#2f3644', '#3a3f47', '#4a4038', '#5b6470'] },
 };
 // the parts painted on an outfit (blender/characters.py `paint`): the stripes and the collar of a tee, a skirt, a
 // sweatshirt's ribbing; and the tee under an open shirt. Drawn from a stream of their own, after everything else
 const LOOKS_MORE = {
-  'man-check': { LightGreen: ['#f1efe8', '#f1efe8', '#f1efe8', '#1f1f24', '#8d8f92'] },         // (the tee under the shirt)
-  'man-grey': { Stripe: ['#1f8580', '#e9e4d6', '#d8b23a', '#7f9cc0', '#b3262e'], Stripe2: ['#d8742c', '#e9e4d6', '#8d8f92', '#c95a5a'],
+  'p02': { LightGreen: ['#f1efe8', '#f1efe8', '#f1efe8', '#1f1f24', '#8d8f92'] },         // (the tee under the shirt)
+  'p05': { Stripe: ['#1f8580', '#e9e4d6', '#d8b23a', '#7f9cc0', '#b3262e'], Stripe2: ['#d8742c', '#e9e4d6', '#8d8f92', '#c95a5a'],
     Collar: ['#ece8dc', '#ece8dc', '#1f2f55'] },
   // (the skirt is cut as denim: half of them are; the hairband shows on one in three, else it is the hair's black)
-  'woman-dress': { Skirt: [JEANS[0], JEANS[0], JEANS[2], JEANS[1], '#1f1f24', '#8a7a5c', '#6e2430', '#4a4d52'],
+  'p11': { Skirt: [JEANS[0], JEANS[0], JEANS[2], JEANS[1], '#1f1f24', '#8a7a5c', '#6e2430', '#4a4d52'],
     Band: ['#e3c443', '#141110', '#141110', '#b3262e', '#141110', '#f1ede1'] },
-  'woman-dress-blue': { Orange: [JEANS[3], ...JEANS, '#f0eee8', '#e3cf7a', '#2a2a2e'] },
+  'p12': { Orange: [JEANS[3], ...JEANS, '#f0eee8', '#e3cf7a', '#2a2a2e'] },
 };
 // the bars and the heel tab of a pair of trainers (blender/characters.py trainers()), from a stream of their own
-const TRAINERS = { 'man-tee': 1, 'man-cheer': 1, 'woman-tee': 1, 'woman-pink': 1, 'woman-cardigan': 1 };
+const TRAINERS = { 'p01': 1, 'p04': 1, 'p09': 1, 'p10': 1, 'p13': 1 };
 const BARS = ['#27345a', '#b3262e', '#2f5a45', '#1f1f24', '#8d8f92', '#1d3fa0'];
 // the sides and the back clipped so short that the skin shows (blender/characters.py `fade`, FADE): how much of it in
 // the upper and the lower band
-const FADED = { 'man-hoodie': [0.40, 0.62] };
+const FADED = { 'p03': [0.40, 0.62] };
 // stubble over skin: the hair's colour with t of the skin's, half way to grey (blender/characters.py hex_fade)
 function fadeHex(hair, skin, t) {
   const h = parseInt(hair.slice(1), 16), s = parseInt(skin.slice(1), 16);
@@ -430,11 +431,11 @@ function fadeHex(hair, skin, t) {
 }
 // about one striped tee in three is plain: its stripes and collar in the tee's own colour
 // (and a sweatshirt's ribbing is always the sweatshirt's colour: the model's own is a shade darker)
-const PLAIN = { 'man-grey': ['LightBrown', ['Stripe', 'Stripe2', 'Collar'], 0.35], 'woman-dress-blue': ['LimeGreen', ['Rib'], 1] };
+const PLAIN = { 'p05': ['LightBrown', ['Stripe', 'Stripe2', 'Collar'], 0.35], 'p12': ['LimeGreen', ['Rib'], 1] };
 // what is printed on a chest (blender/faces.py PRINTS, characters.py print_map): the material it lies on, how many of
 // the crowd in that model wear it, and the cloth it shows on (ink on light cloth; the jumper is always Yonsei blue).
 // The heroes wear theirs.
-const PRINTED = { 'man-tee': ['LightBrown', 0.2, true], 'man-cheer': ['Purple', 0.6, false], 'woman-tee': ['White', 0.4, true] };
+const PRINTED = { 'p01': ['LightBrown', 0.2, true], 'p04': ['Purple', 0.6, false], 'p09': ['White', 0.4, true] };
 const light = (hex) => { const c = new THREE.Color(hex); return c.r + c.g + c.b > 1.2; };       // (linear light)
 
 // the look of the n-th person of the crowd: { colors: {material: hex}, scale: [width, height], glasses }. Its own
@@ -448,13 +449,13 @@ export function crowdLook(id, n) {
   const s = r();
   colors.Skin = s < 0.07 ? SKIN_FAIR : s >= 0.93 ? SKIN_TAN : SKIN[Math.floor((s - 0.07) / 0.86 * SKIN.length)];
   const h = r();
-  if (id !== 'man-professor' && id !== 'man-grey' && id !== 'woman-dress-blue') {       // (grey hair, and the dyed brown of 1997, stay)
+  if (id !== 'p07' && id !== 'p05' && id !== 'p12') {       // (grey hair, and the dyed brown of 1997, stay)
     colors.Hair = h < 0.74 ? '#141110' : h < 0.93 ? '#2b1f18' : '#4a3020';
   }
   const tall = 1 + 0.032 * ((r() + r() + r() - 1.5) / 0.5);            // about normal, sd 3.2 %
   const build = 1 + 0.02 * (r() + r() - 1);
   const clamp = (v) => Math.min(1.065, Math.max(0.94, v));
-  const glasses = r() < (id === 'man-professor' ? 0.7 : 0.3);
+  const glasses = r() < (id === 'p07' ? 0.7 : 0.3);
   const blink = (n * 7 + 3) % BLINKS;                 // (no draw: the streams stay as they were)
   colors.Glasses = RIMS[r() < 0.8 ? 0 : 1];
   const r2 = mulberry(n * 40503 + 331), more = LOOKS_MORE[id] || {};
@@ -476,7 +477,7 @@ export function crowdLook(id, n) {
 export function heroScale(id) {
   const h = HERO[id]?.height;
   if (!h) return null;
-  const tall = h / (id.startsWith('woman') ? 1.61 : 1.73);
+  const tall = h / tallOf(id);
   return [1 + (tall - 1) / 2, tall];
 }
 
@@ -688,7 +689,7 @@ export function portraits(cast, ids, w = 150, h = 190) {
     a.mixer.update(0.5);
     a.holder.rotation.y = 0.45;
     sc.add(a.holder);
-    const top = (id.startsWith('woman') ? 1.61 : 1.73) * a.tall;
+    const top = tallOf(id) * a.tall;
     const cam = new THREE.PerspectiveCamera(24, w / h, 0.1, 50);
     cam.position.set(0, top * 0.62, 5.2);
     cam.lookAt(0, top * 0.5, 0);

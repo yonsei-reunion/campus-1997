@@ -12,13 +12,14 @@
 // Call pose() each frame after the person's mixer has run, and before the frame is drawn.
 import * as THREE from 'three';
 import { ArmPose, Stance, Hands } from './armpose.js';
+import { isWoman } from './who.js';
 
 export const R = 0.12, G = 9.8;
 const PALM = 0.075;                  // wrist to the middle of the palm
 const ON = R + 0.012;                // the middle of a palm on the ball from its centre
 const CURL = 0.22;                   // the fingers spread round the ball, a little bent
 // men shoot one-handed, women the two-handed set shot
-export const oneHanded = (id) => !String(id).startsWith('woman');
+export const oneHanded = (id) => !isWoman(id);
 // the shot, in seconds from the press: the dip (ball to the waist, knees bend), the ball up to the set point as the
 // jump starts, the top of the jump (the moment to let go), held on past it until LATE at the most; from letting go the
 // flick (the arm straightens and the ball rolls off the fingers) and the follow-through

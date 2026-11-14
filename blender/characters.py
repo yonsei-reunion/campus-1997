@@ -137,7 +137,7 @@ PEOPLE = {
     # 승민 (the film 건축학개론, 2012: a first-year of 1996 in the knock-off sweatshirt): a long oval face, narrow
     # gentle eyes (the lids' fold only at the outer corner) under straight heavy brows that fall a little outward, a
     # straight nose, a full lower lip and a shy smile
-    'man-tee': man('fringe', 'Casual_2', 'Casual_2', 'Casual_2',
+    'p01': man('fringe', 'Casual_2', 'Casual_2', 'Casual_2',
                    {'LightBrown': '#f1efe8', 'LightBlue': JEANS['light'], 'Red_Dark': '#e8e6e0', 'feet:White': '#c9c6be',
                     'feet:Bar': '#27345a', 'feet:Lace': '#cfccc4', 'Skin': SKIN['b'], 'Hair': HAIR['black']},
                    'white long-sleeved tee with the GEUSS triangle, baggy light jeans, white trainers; short hair, the '
@@ -150,7 +150,7 @@ PEOPLE = {
     # 성훈: a beige checked shirt (체크 남방) worn open over a white tee, its long sleeves down (the pack's short-sleeved
     # shirt and the bare arms to the wrists).  The checks are not in the model: the game draws them on whatever is of
     # the material 'Check' (web/src/characters.js)
-    'man-check': man('short', 'Adventurer', 'Casual_2', 'Casual_Hoodie',
+    'p02': man('short', 'Adventurer', 'Casual_2', 'Casual_Hoodie',
                      {'Check': '#d6c49c', 'LightGreen': '#f1efe8', 'LightBlue': JEANS['mid'], 'feet:Purple': '#2a2a2e',
                       'Skin': SKIN['c'], 'Hair': HAIR['black']},
                      'beige checked shirt worn open over a white tee, jeans, black canvas shoes; neat short hair, metal glasses',
@@ -161,7 +161,7 @@ PEOPLE = {
                      sleeves=dict(r0=.066, r1=.044),
                      face=dict(lid='mono', slant=.10, jaw=1.04, eye=.96, smile=.0016, mouth=.96, glasses=True, brow=1.3, arch=.4,
                                brow_len=.86, brow_taper=1.6, nose=.84, bridge=.24, nose_w=1.10)),
-    'man-hoodie': man('up', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
+    'p03': man('up', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
                       {'Purple': '#23345e', 'LightBlue': '#a8946a', 'feet:White': '#e8e6e0', 'Skin': SKIN['tan'],
                        'Hair': HAIR['black'], 'Brow': '#0e0b0a'},
                       'oversized navy hoodie, wide khaki cargo trousers, canvas shoes; short hair swept up and back, the sides '
@@ -173,7 +173,7 @@ PEOPLE = {
     # 성구 (the maker's request: the look of an actor and singer born in 1978; from two photographs, 2011 and 2014): a
     # long face coming down to a round chin, eyes that narrow as he smiles under heavy straight brows set low, a
     # long high nose, a wide grin
-    'man-cheer': man('two-block', 'Casual_Hoodie', 'Casual_2', 'Casual_2',
+    'p04': man('two-block', 'Casual_Hoodie', 'Casual_2', 'Casual_2',
                      {'Purple': '#1d3fa0', 'LightBlue': JEANS['black'], 'Red_Dark': '#f2f2ee', 'feet:Bar': '#1d3fa0',
                       'feet:Lace': '#d6d3cc', 'Skin': SKIN['c'], 'Hair': HAIR['black']},
                      'Yonsei-blue jumper, YONSEI in white across the chest, black jeans, white trainers; a two-block cut, '
@@ -183,7 +183,7 @@ PEOPLE = {
                      face=dict(lid='double', slant=.03, jaw=1.0, chin=1.14, eye=1.04, eye_open=.82, mouth=1.25, smile=.0040,
                                lip=1.2, brow=1.7, arch=.55, brow_len=1.1, brow_peak=.6, brow_up=-.0022, brow_taper=1.5,
                                brow_soft=1.5, nose=1.18, bridge=.5, nose_curve=1.15, nose_w=1.06)),
-    'man-grey': man('curtain-64', 'Casual_2', 'Casual_2', 'Casual_2',
+    'p05': man('curtain-64', 'Casual_2', 'Casual_2', 'Casual_2',
                     {'LightBrown': '#1f2f55', 'Stripe': '#1f8580', 'Stripe2': '#d8742c', 'Collar': '#ece8dc',
                      'LightBlue': JEANS['dark'], 'Red_Dark': '#3a2c24', 'Skin': SKIN['b'], 'Hair': HAIR['dyed'], 'Brow': '#1c1410'},
                     'collared tee in broad navy, teal and orange stripes, wide dark jeans (진청); brown-dyed hair parted 6:4',
@@ -193,25 +193,25 @@ PEOPLE = {
                     face=dict(lid='inner', slant=.10, jaw=.97, smile=.0012, mouth=.98, lip=1.35, brow=1.55, arch=.5, brow_tilt=.04,
                               brow_taper=1.7, brow_len=1.05, brow_gap=-.001, brow_up=-.001, nose=1.10, bridge=.42,
                               nose_curve=1.2, nose_w=1.04)),
-    'man-blazer': man('part-side', 'Suit', 'Casual_2', 'Suit',
+    'p06': man('part-side', 'Suit', 'Casual_2', 'Suit',
                       {'Suit': '#27304a', 'White': '#dfe7ee', 'Tie': '#dfe7ee', 'LightBlue': '#b9a67e', 'Black': '#3a2a1f',
                        'Skin': SKIN['a'], 'Hair': HAIR['black']},
                       'navy blazer, light blue shirt, beige cotton trousers (콤비); 2:8 side parting, the fringe swept across',
                       flip=True,
                       face=dict(lid='inner', slant=.02, jaw=.95, brow_tilt=-.05, arch=1.1, smile=.0018, brow=.8, brow_len=1.12, brow_gap=.002, brow_taper=.8,
                                 nose=.98, bridge=.36, nose_w=.92)),
-    'man-professor': man('thin', 'Suit', 'Suit', 'Suit',
+    'p07': man('thin', 'Suit', 'Suit', 'Suit',
                          {'Suit': '#55595f', 'Tie': '#2f4a7a', 'White': '#eceae4', 'Skin': SKIN['c'], 'Hair': HAIR['grey'],
                           'Brow': '#5a5652'}, 'grey suit, blue tie, thinning grey hair, glasses',
                          face=dict(lid='inner', slant=-.02, jaw=1.05, eye=.93, brow=1.05, brow_tilt=-.06, smile=.0010, age='old',
                                    glasses=True, brow_drop=1.3, brow_soft=2.4, brow_ink=.9, nose=1.0, bridge=.34, nose_w=1.12,
                                    nose_up=-.0015)),
-    'man-staff': man('crop', 'Worker', 'Suit', 'Worker',
+    'p08': man('crop', 'Worker', 'Suit', 'Worker',
                      {'Worker_Vest': '#3d4f6a', 'Worker_Yellow': '#c9c3b2', 'LightBrown': '#c9c3b2', 'Suit': '#3a3f47',
                       'Skin': SKIN['d'], 'Hair': HAIR['dark']}, 'campus staff: navy vest, grey trousers',
                      face=dict(lid='mono', slant=.06, jaw=1.07, eye=.95, arch=.7, smile=.0012, age='mid', brow=1.4, brow_len=.92,
                                brow_taper=1.4, nose=.88, bridge=.26, nose_w=1.14)),
-    'woman-tee': woman('half', 'Casual', 'Casual', 'Casual',
+    'p09': woman('half', 'Casual', 'Casual', 'Casual',
                        {'White': '#f4f1e8', 'Orange': JEANS['light'], 'Grey': '#e8e6e0', 'feet:Bar': '#b3262e', 'feet:Lace': '#cfccc4',
                         'feet:Sole': '#c9c6be', 'Skin': SKIN['a'], 'Hair': HAIR['black']},
                        'loose white tee with YONSEI in blue across the chest, wide light jeans (연청), white trainers; long '
@@ -220,7 +220,7 @@ PEOPLE = {
                        prints={'body': [dict(name='yonsei_ink', of=('White',), w=.22, z=1.40)]},
                        face=dict(lid='inner', slant=.07, eye=1.03, jaw=1.03, smile=.0030, brow=.9, arch=1.35, brow_peak=.58, brow_len=1.05, brow_up=-.002, brow_soft=1.3,
                                  nose=.80, bridge=.28, nose_w=.96, nose_up=.001)),
-    'woman-pink': woman('tuck', 'Casual', 'Casual', 'Casual',
+    'p10': woman('tuck', 'Casual', 'Casual', 'Casual',
                         {'White': '#e7a7b6', 'Orange': '#cdb994', 'Grey': '#f0eee8', 'feet:Bar': '#8d8f92', 'feet:Lace': '#d6d3cc',
                          'feet:Sole': '#cfccc4', 'Skin': SKIN['fair'], 'Hair': HAIR['dark']},
                         'pink knit, wide beige trousers, white trainers; short bob, one side behind the ear',
@@ -229,7 +229,7 @@ PEOPLE = {
                                   nose=.72, bridge=.24, nose_w=1.02, nose_up=.002)),
     # 서연 (the film 건축학개론, 2012: a first-year of the college of music in 1996): a round, soft face, large eyes with
     # double lids, straight soft brows, a small nose, a ready smile; long straight hair worn down
-    'woman-dress': woman('long', 'Formal', 'Formal', 'Formal',
+    'p11': woman('long', 'Formal', 'Formal', 'Formal',
                          {'LimeGreen': '#a3202c', 'Yoke': '#eadfc8', 'Tee': '#f3f0e8', 'Skirt': JEANS['mid'], 'feet:Red': '#1c1c1f',
                           'Skin': SKIN['fair'], 'Hair': HAIR['black'], 'Band': '#e3c443'},
                          'red knit with a cream band across the chest and the sleeves over a white tee, denim skirt to above '
@@ -249,7 +249,7 @@ PEOPLE = {
                          face=dict(lid='double', slant=.03, eye=1.18, lash=1.25, jaw=.98, cheek=1.05, chin=1.0, taper=.10, brow=1.2,
                                    arch=.25, brow_len=1.0, brow_soft=2.0, smile=.0020, mouth=.95, mouth_line=1.3, lip=1.5,
                                    lip_up=.85, lip_ink=1.25, nose=.74, bridge=.26, nose_w=.94, nose_up=.0015)),
-    'woman-dress-blue': woman('shoulder', 'Formal', 'Casual', 'Casual',
+    'p12': woman('shoulder', 'Formal', 'Casual', 'Casual',
                               {'LimeGreen': '#ece4cc', 'Rib': '#dcd2b4', 'Orange': JEANS['black'], 'Grey': '#1f1f24', 'Skin': SKIN['b'],
                                'Hair': HAIR['brown'], 'Bridge': '#9c6c3a', 'Brow': HAIR['dark']},
                               'roomy cream sweatshirt (맨투맨) with a round neck, wide black jeans; brown-dyed hair to the shoulders, '
@@ -265,7 +265,7 @@ PEOPLE = {
                               roomy=1.16, cut='wide',
                               face=dict(lid='double', slant=.10, eye=.99, jaw=.98, smile=.0022, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
                                         brow_peak=.68, brow_drop=1.0, brow_soft=1.3, nose=.84, bridge=.32, nose_w=.95)),
-    'woman-cardigan': woman('pixie', 'Suit', 'Casual', 'Casual',
+    'p13': woman('pixie', 'Suit', 'Casual', 'Casual',
                             {'Black': '#ecdf9e', 'White': '#f2efe6', 'Orange': JEANS['dark'], 'Grey': '#f0eee8', 'feet:Bar': '#27345a',
                              'feet:Lace': '#d6d3cc', 'feet:Sole': '#cfccc4', 'Skin': SKIN['c'], 'Hair': HAIR['black']},
                             'pastel yellow cardigan over a white tee, dark jeans (진청), white trainers; a short cut swept back over '
@@ -273,12 +273,12 @@ PEOPLE = {
                             paint={'feet': trainers('women', 'Grey')},
                             face=dict(lid='inner', slant=.05, jaw=1.03, smile=.0024, glasses=True, brow=1.5, arch=.8, brow_taper=1.4, brow_soft=2.2,
                                       nose=.76, bridge=.28, nose_w=1.08)),
-    'woman-staff': woman('perm', 'Suit', 'Suit', 'Suit',
+    'p14': woman('perm', 'Suit', 'Suit', 'Suit',
                          {'Black': '#2f3644', 'White': '#eef0f2', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
                          'office staff: navy suit, short permed hair', face=dict(lid='inner', slant=.0, jaw=1.06, eye=.95, brow_tilt=-.03, smile=.0014, age='mid',
                                                                                  brow=.9, arch=1.25, brow_len=.96, brow_soft=1.4, nose=.84, bridge=.30, nose_w=1.10)),
     # (added last: the faces' cells go by this order)
-    'woman-stripe': woman('pony', 'Formal', 'Casual', 'Casual',
+    'p15': woman('pony', 'Formal', 'Casual', 'Casual',
                           {'LimeGreen': '#f1eee6', 'Stripe': '#27345a', 'Orange': JEANS['mid'], 'Grey': '#f0eee8', 'feet:Bar': '#b3262e',
                            'feet:Lace': '#d6d3cc', 'feet:Sole': '#cfccc4', 'Skin': SKIN['a'], 'Hair': HAIR['black'], 'Band': '#b3262e'},
                           'tight white long-sleeved tee with navy stripes (쫄티), mid-blue jeans, white trainers; a pony tail in a '
@@ -294,14 +294,14 @@ PEOPLE = {
                                  'feet': trainers('women', 'Grey')},
                           face=dict(lid='inner', slant=.06, eye=1.04, jaw=1.0, smile=.0027, mouth=1.0, brow=1.0, arch=.9, brow_len=1.0,
                                     brow_soft=1.5, nose=.80, bridge=.28, nose_w=1.0, nose_up=.001)),
-    'man-shirt': man('curtain', 'Adventurer', 'Casual_2', 'Casual_2',
+    'p16': man('curtain', 'Adventurer', 'Casual_2', 'Casual_2',
                      {'Green': '#2f5a45', 'LightGreen': '#1f1f24', 'LightBlue': '#b9a67e', 'Red_Dark': '#3a2c24', 'Skin': SKIN['b'],
                       'Hair': HAIR['black']},
                      'forest-green shirt worn open over a black tee, beige cotton trousers; a long fringe parted in the middle, '
                      'metal glasses',
                      face=dict(lid='inner', slant=.04, jaw=1.0, eye=1.0, smile=.0020, mouth=1.0, glasses=True, brow=1.15, arch=.7,
                                brow_len=.98, brow_taper=1.3, nose=.96, bridge=.32, nose_w=1.0)),
-    'woman-denim': woman('bang', 'Suit', 'Casual', 'Casual',
+    'p17': woman('bang', 'Suit', 'Casual', 'Casual',
                          {'Black': '#5d7fae', 'White': '#f2efe6', 'Orange': '#cdb994', 'Grey': '#f0eee8', 'feet:Bar': '#2f5a45',
                           'feet:Lace': '#d6d3cc', 'feet:Sole': '#cfccc4', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
                          'denim shirt (청남방) worn open over a white tee, beige cotton trousers, white trainers; hair to the '
@@ -1644,6 +1644,12 @@ NOSE_HOLE = dict(x=0.0055, rx=0.0032, h=0.42, rh=0.30, deep=0.0022)     # a nost
 #                         half width, its middle and half depth as heights off the face (of the tip's), how deep it is
 NOSE_GRID = (16, 5)        # rows down the nose, columns either side of the ridge
 NOSE_APRON = 0.004         # the strip of the face round the nose that is made with it
+# what the locks of a person's hair are drawn from (hair_grow: how uneven the volume and the hem are from lock to
+# lock): a number of each person's own, kept when the ids became numbers so that nobody's hair changed
+HAIR_SEED = {'p01': 3059047122, 'p02': 3446908966, 'p03': 3174642879, 'p04': 4282558304, 'p05': 3363147059,
+             'p06': 2181258891, 'p07': 3529059030, 'p08': 3012818855, 'p09': 1345948937, 'p10': 341991820,
+             'p11': 1663235077, 'p12': 4110200170, 'p13': 1745548507, 'p14': 3387443816, 'p15': 4178735585,
+             'p16': 2052646949, 'p17': 3902518138}
 HAIR_RN = 0.115            # nominal radius of the head of hair: arc length on the scalp = HAIR_RN x angle from the crown
 
 
@@ -2194,7 +2200,7 @@ def hair_grow(pid, surf, st):
     """The head of hair as (points, faces, neck weights, ...): see the notes above HAIR_STYLES."""
     import random
     import zlib
-    rnd = random.Random(zlib.crc32(pid.encode()))
+    rnd = random.Random(HAIR_SEED[pid])
     cols = [math.radians(surf.from_style(a)) for a in HAIR_AZ]
     cols += [2 * math.pi - a for a in reversed(cols[1:-1])]             # (round the head, 0 = the front, the left first)
     NA, NR = len(cols), st.get('rows', 7)
@@ -3146,8 +3152,8 @@ def main():
     for a in argv:
         if a.startswith('--'):
             continue
-        wanted += ([p for p in PEOPLE if p.startswith('man-')] if a == 'men' else
-                   [p for p in PEOPLE if p.startswith('woman-')] if a == 'women' else list(RIGS) if a == 'rigs' else
+        wanted += ([p for p in PEOPLE if PEOPLE[p]['rig'] == 'umc'] if a == 'men' else
+                   [p for p in PEOPLE if PEOPLE[p]['rig'] == 'women'] if a == 'women' else list(RIGS) if a == 'rigs' else
                    [] if a == 'faces' else [a])
     unknown = [w for w in wanted if w not in PEOPLE and w not in RIGS]
     if unknown:

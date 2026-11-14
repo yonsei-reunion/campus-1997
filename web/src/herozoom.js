@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { PEOPLE, HERO, heroScale, play } from './characters.js';
 import './herozoom.css';
+import { tallOf } from './who.js';
 
 let shut = null;
 
@@ -109,7 +110,7 @@ export function openHeroZoom({ cast, ids, id, onPick }) {
     a.mixer.update(dt);
     // the whole person: 2.1 m of height, or less of it across a narrow window; from near the head and the shoulders
     camera.aspect = w / h;
-    const top = (id.startsWith('woman') ? 1.61 : 1.73) * a.tall;
+    const top = tallOf(id) * a.tall;
     const tall = face ? 0.62 : 2.1, wide = face ? 0.5 : walk ? 1.25 : 0.92;
     const d = Math.max(tall, wide / camera.aspect) / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
     const y = face ? top - 0.2 : 0.9;

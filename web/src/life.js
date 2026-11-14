@@ -5,6 +5,7 @@ import { patchShader, restShadow } from './materials.js';
 import { play, locomotion, gesturing, crowdLook } from './characters.js';
 import { crowdBag, carriesInHand } from './bags.js';
 import { kindOf, meeting, chatter, hello, excuse, lineTime } from './talk.js';
+import { tallOf } from './who.js';
 
 // ---------------------------------------------------------------- polyline helpers (campus frame)
 const _a = new THREE.Vector2(), _b = new THREE.Vector2();
@@ -322,7 +323,7 @@ export function makeBanners(banners, lib) {
 const FAR2 = 190 * 190;
 const TALK_NEAR2 = 45 * 45;        // talk only where it can be seen
 const MAX_TALKS = 4;               // conversations at once round the view
-const height = (id) => (id.startsWith('woman') ? 1.61 : 1.73);
+const height = tallOf;
 // Sitting (the benches: 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg, three people to a bench): the 'sit' clip, the hips
 // THIGH over the seat. A seated person keeps still but for the head, which turns a little (LOOK_MAX, the neck with
 // it) to whoever is speaking or to you.

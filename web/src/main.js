@@ -464,7 +464,7 @@ async function main() {
       lines.push(i === Math.floor((booths.length - 1) / 2) && !MOBILE ? [on, at(1.95, 0.1), at(2.8, -0.12)] : [on]);
     });
   }
-  const crowd = new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'man-professor', 'man-staff', 'woman-staff'], paths, groups, MOBILE ? 40 : 110, 3, { seats, lines });
+  const crowd = new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'p07', 'p08', 'p14'], paths, groups, MOBILE ? 40 : 110, 3, { seats, lines });
   for (const p of crowd.people) shadows.addDynamic(p.a.holder);
   // small talk over their heads; what they say follows the month (crowd.season)
   crowd.season = season;
@@ -478,7 +478,7 @@ async function main() {
   const rotGroups = rotWait ? rotWait.groups.filter((g, i) => !MOBILE || i % 3 === 0).map(([x, y]) => [x, y, groundAt(x, y)]) : [];
   const rotLines = rotWait ? rotWait.singles.filter((s, i) => !MOBILE || i % 4 === 0)
     .map(([x, y, fx, fy]) => [{ x, y, h: groundAt(x, y), heading: Math.atan2(fx, -fy) }]) : [];
-  const townCrowd = campus.town?.walks ? new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'man-staff', 'woman-staff'],
+  const townCrowd = campus.town?.walks ? new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'p08', 'p14'],
     campus.town.walks.map((w) => new Path(w, groundAt)), rotGroups, MOBILE ? 6 : 30, 11, { lines: rotLines }) : null;
   let townCrowdNear = () => false;
   if (townCrowd) {
@@ -548,8 +548,8 @@ async function main() {
   // (more of them: the loop is nearly twice the two lanes' length and slow off 백양로, which still carries a few
   // fewer than it did)
   const traffic = new Traffic(scene, { sedan: P.car_sedan, sedan2: P.car_sedan2, hatch: P.car_hatch, tico: P.car_tico, taxi: P.car_taxi, van: P.car_van }, lanes,
-    campus.traffic ? (MOBILE ? 18 : 26) : 14, cast, STUDENTS.concat(['man-professor', 'man-staff', 'woman-staff']), 9, westLanes);
-  if (P.scooter) traffic.addBikes(scene, P.scooter, bikeLanes, MOBILE ? 3 : 5, cast, ['man-tee', 'man-check', 'man-cheer', 'man-hoodie', 'man-tee', 'woman-tee', 'woman-cardigan']);
+    campus.traffic ? (MOBILE ? 18 : 26) : 14, cast, STUDENTS.concat(['p07', 'p08', 'p14']), 9, westLanes);
+  if (P.scooter) traffic.addBikes(scene, P.scooter, bikeLanes, MOBILE ? 3 : 5, cast, ['p01', 'p02', 'p04', 'p03', 'p01', 'p09', 'p13']);
   for (const c of traffic.cars) shadows.addDynamic(c.root, c.len / 2 + 1.5);
   const walkers = crowd.people.filter((p) => p.path);        // (the cars wait for them: life.js Traffic)
   const gates = new BoothGates(scene, P.barrier_arm, R.booth, groundAt, shadows);

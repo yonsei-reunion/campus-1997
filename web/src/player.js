@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import { computeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 import { locomotion } from './characters.js';
 import { clamp, closestOnSegment, wrapAngle } from './util.js';
+import { tallOf } from './who.js';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -50,7 +51,7 @@ const FP_BODY = 0.45;    // the body is not drawn while the camera is this close
 // as a foot lands), this share of it: 1.3 cm walking, 2 cm running. BOB_MAX: never more than this off the middle
 const BOB_WALK = 0.25, BOB_RUN = 0.42, BOB_MAX = 0.02;
 const VIEW_LAYER = 0;    // (the hidden body leaves the layer the view draws; shadows.js draws its shadow from layer 1)
-const eyeHeight = (a) => (a.id?.startsWith('woman') ? 1.61 : 1.73) * (a.tall || 1) * EYE;
+const eyeHeight = (a) => tallOf(a.id) * (a.tall || 1) * EYE;
 const fpPitch = (lift) => (lift < 0 ? -lift * FP_UP : -lift * FP_DOWN);
 const fpLift = (pitch) => (pitch > 0 ? -pitch / FP_UP : -pitch / FP_DOWN);
 const smooth = (u) => u * u * (3 - 2 * u);

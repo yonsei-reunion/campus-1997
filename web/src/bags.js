@@ -18,6 +18,7 @@
 // takes both hands (hoops.js).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { isWoman, kindOf } from './who.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -36,10 +37,10 @@ PALETTE.sling = PALETTE.backpack;
 
 // the player's characters (characters.js HEROES): four of the thirteen
 export const HERO_BAGS = {
-  'man-tee': { type: 'backpack', color: '#1b1b1e', size: 1 },
-  'man-cheer': { type: 'sling', color: '#55585e', side: -1, size: 1 },
-  'woman-tee': { type: 'mini', color: '#5a3a24', size: 1 },
-  'woman-dress': { type: 'shoulder', color: '#4e3022', side: 1, size: 1 },
+  'p01': { type: 'backpack', color: '#1b1b1e', size: 1 },
+  'p04': { type: 'sling', color: '#55585e', side: -1, size: 1 },
+  'p09': { type: 'mini', color: '#5a3a24', size: 1 },
+  'p11': { type: 'shoulder', color: '#4e3022', side: 1, size: 1 },
 };
 
 function rng(seed) {
@@ -66,15 +67,15 @@ function choose(u, list) {
 // crowd too
 export function crowdBag(id, n) {
   const r = rng(n * 7919 + 101);
-  const woman = id.startsWith('woman');
-  const kind = id === 'man-professor' ? 'prof' : id.endsWith('-staff') ? 'staff' : 'student';
+  const woman = isWoman(id);
+  const kind = kindOf(id);
   if ((n * 0.6180339887 + 0.31) % 1 >= (kind === 'prof' ? 0.85 : kind === 'staff' ? 0.55 : 0.7)) return null;
   let type;
   if (kind !== 'student') type = woman ? choose(r(), [['shoulder', 0.6], ['brief', 0.4]]) : 'brief';
   else if (woman) {
     type = choose(r(), [['backpack', 0.18], ['mini', 0.14], ['sling', 0.1], ['shoulder', 0.28], ['cross', 0.12],
       ['hand', 0.18]]);
-  } else type = choose(r(), [['backpack', 0.42], ['sling', 0.26], ['cross', 0.24], ['brief', id === 'man-blazer' ? 0.3 : 0.03]]);
+  } else type = choose(r(), [['backpack', 0.42], ['sling', 0.26], ['cross', 0.24], ['brief', id === 'p06' ? 0.3 : 0.03]]);
   return { type, color: choose(r(), PALETTE[type]), side: r() < 0.6 ? -1 : 1, size: [0.93, 1, 1.07][Math.floor(r() * 3)] };
 }
 
@@ -369,7 +370,7 @@ export function baggedGeometry(mesh, id, bag) {
   const key = `${id}|${bag.type}|${bag.color}|${bag.side ?? 0}|${bag.size ?? 1}`;
   if (cache.has(key)) return cache.get(key);
   const f = fitOf(id, mesh);
-  const woman = id.startsWith('woman');
+  const woman = isWoman(id);
   const col = new THREE.Color(bag.color);
   const hsl = col.getHSL({});
   // straps and trim: a shade darker; on a light leather bag the same leather a little darker

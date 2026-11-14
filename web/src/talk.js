@@ -4,7 +4,7 @@
 // speakers' heads as speech bubbles, in the DOM like the building tags (labels.js).
 import * as THREE from 'three';
 
-export const kindOf = (id) => (id === 'man-professor' ? 'prof' : id.endsWith('-staff') ? 'staff' : 'student');
+export { kindOf } from './who.js';
 
 // Every table: `common` lines fit any month, the season's own lines are picked more often.
 // A dialogue alternates speakers: the one who speaks first, the other, (the first again).
