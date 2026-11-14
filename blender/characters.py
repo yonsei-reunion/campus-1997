@@ -88,10 +88,11 @@ def woman(hair, body, legs, feet, colors=None, note='', **more):
                  'colors': colors or {}, 'note': note}, **more)
 
 
-def neckline(of, drop=.014, half=.044, side=.090, lean=0.0, vee=0.0, to='Skin'):
+def neckline(of, drop=.014, half=.044, side=.090, lean=0.0, vee=0.0, to='Skin', ring=.012, lobe=2.0):
     """A paint rule (see `paint`): the top's neckline, `drop` under the neck's joint in the middle of the front
-    (the top's rim stands 1 - 2 cm over the joint there: that much more skin shows)."""
-    return dict(of=of, to=to, neck=dict(drop=drop, half=half, side=side, lean=lean, vee=vee))
+    (the top's rim stands 1 - 2 cm over the joint there: that much more skin shows).  The men's is cut out instead,
+    by `drop`, `ring` and `lobe` alone (neck_bib)."""
+    return dict(of=of, to=to, neck=dict(drop=drop, half=half, side=side, lean=lean, vee=vee, ring=ring, lobe=lobe))
 
 
 def bands(to, of, zs, **box):
@@ -199,7 +200,7 @@ PEOPLE = {
                     paint={'body': bands('Stripe', ('LightBrown',), [(1.085, 1.150), (1.280, 1.345)], x=(0, .21))
                            + bands('Stripe2', ('LightBrown',), [(1.185, 1.245), (1.380, 1.440)], x=(0, .21))
                            + [dict(of=('LightBrown',), to='Collar', x=(0, .10), z=(1.495, None)),
-                              neckline(('Collar', 'LightBrown'), drop=.034, vee=1.3)]}, cut='wide',
+                              neckline(('Collar', 'LightBrown'), drop=.034, vee=1.3, lobe=4.0)]}, cut='wide',
                     face=dict(lid='inner', slant=.10, jaw=.97, smile=.0012, mouth=.98, lip=1.35, brow=1.55, arch=.5, brow_tilt=.04,
                               brow_taper=1.7, brow_len=1.05, brow_gap=-.001, brow_up=-.001, nose=1.10, bridge=.42,
                               nose_curve=1.2, nose_w=1.04)),
@@ -219,7 +220,7 @@ PEOPLE = {
     'p08': man('crop', 'Worker', 'Suit', 'Worker',
                      {'Worker_Vest': '#3d4f6a', 'Worker_Yellow': '#c9c3b2', 'LightBrown': '#c9c3b2', 'Suit': '#3a3f47',
                       'Skin': SKIN['d'], 'Hair': HAIR['dark']}, 'campus staff: navy vest, grey trousers',
-                     paint={'body': [neckline(('LightBrown',))]},
+                     paint={'body': [neckline(('LightBrown',), ring=.006)]},
                      face=dict(lid='mono', slant=.06, jaw=1.07, eye=.95, arch=.7, smile=.0012, age='mid', brow=1.4, brow_len=.92,
                                brow_taper=1.4, nose=.88, bridge=.26, nose_w=1.14)),
     'p09': woman('half', 'Casual', 'Casual', 'Casual',
@@ -1306,7 +1307,7 @@ def cut_trousers(ob, arm, C):
 # either side) makes it a V; `lean` raises it toward the neck (m a m back from the front of the chest: the line then
 # follows the chest's round, and its hollows).  neckline() (above PEOPLE) writes such a rule.
 
-def paint(ob, rules, arm=None):
+def paint(ob, rules, arm=None, bib=False):
     import bmesh
     me, mw = ob.data, ob.matrix_world
     bm = bmesh.new()
@@ -1314,7 +1315,7 @@ def paint(ob, rules, arm=None):
     bm.transform(mw)
     for rule in rules:
         if rule.get('neck'):
-            _paint_neck(ob, bm, rule, arm.matrix_world @ arm.data.bones['Neck'].head_local)
+            _paint_neck(ob, bm, rule, arm.matrix_world @ arm.data.bones['Neck'].head_local, bib)
             continue
         names = [m.name.split('.')[0] if m else '' for m in me.materials]
         src = {i for i, n in enumerate(names) if n in rule['of']}
@@ -1365,8 +1366,9 @@ def paint(ob, rules, arm=None):
     bm.free()
 
 
-def _paint_neck(ob, bm, rule, cn):
-    """A neckline (see paint): the front faces of `of` over the line become `to`, cut along it first."""
+def _paint_neck(ob, bm, rule, cn, bib=False):
+    """A neckline (see paint): the front faces of `of` over the line become `to`, cut along it first.  `bib` (the
+    men, whose bared skin is the neck's own: neck_bib): a line with a `ring` is only marked, for neck_bib to cut."""
     import bmesh
     from mathutils.bvhtree import BVHTree
     me = ob.data
@@ -1379,6 +1381,14 @@ def _paint_neck(ob, bm, rule, cn):
         me.materials.append(colour_material(rule['to'], (0.5, 0.5, 0.5, 1)))
         names.append(rule['to'])
     to = names.index(rule['to'])
+    if bib and N.get('ring') and rule['to'] == 'Skin':
+        dl = bm.verts.layers.deform.verify()
+        round_ = (ob.vertex_groups.get(ROUND) or ob.vertex_groups.new(name=ROUND)).index
+        for f in bm.faces:
+            if f.material_index in src and all(math.hypot(v.co.x, v.co.y - cn.y) < 0.13 and v.co.z > cn.z - 0.06 for v in f.verts):
+                for v in f.verts:
+                    v[dl][round_] = 1.0
+        return
     zc = cn.z - N['drop']
     hit = BVHTree.FromBMesh(bm).ray_cast(Vector((0.0004, cn.y - 0.6, zc)), Vector((0, 1, 0)))[0]
     if hit is None or hit.y > cn.y - 0.02:
@@ -1402,10 +1412,17 @@ def _paint_neck(ob, bm, rule, cn):
         geom = fs + list({e for f in fs for e in f.edges}) + list({v for f in fs for v in f.verts})
         bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-5, plane_co=co, plane_no=no)
     n = 0
+    bare = None
+    if rule['to'] == 'Skin':                               # (what is bared: neck_bib makes the men's of the neck itself)
+        bare = (ob.vertex_groups.get(BARE) or ob.vertex_groups.new(name=BARE)).index
+        dl = bm.verts.layers.deform.verify()
     for f in bm.faces:
         if f.material_index in src and near(f) and over(f.calc_center_median()):
             f.material_index = to
             n += 1
+            if bare is not None:
+                for v in f.verts:
+                    v[dl][bare] = 1.0
     if not n:
         raise SystemExit(f'{ob.name}: the neckline of {rule["to"]} holds no face of {rule["of"]}')
 
@@ -2687,6 +2704,361 @@ def head_1997(pid, head, body, arm, spec):
     return head
 
 
+# ---------- the neck's foot ----------
+# The packs' neck is a post: the men's stands in the closed top of a tee, the women's on the rim of the body's own
+# skin, meeting it at an angle.  Skin painted on the tee's top under a neckline (paint) lay there as a tray, lit from
+# above and paler than the neck that stood in it; and the women's two rims, the head's subdivided, shared only some of
+# their points: a line round the neck, a tone either side of it.
+# Men (neck_bib): a neckline is not painted but cut out of the top, as one round line: `ring` off the neck all
+# round (the packs' rim, which stands up the neck there, goes with it) and in front out to where the top lies `drop`
+# under the neck's joint, drawn in to the sides by cos^`lobe`.  The neck itself, cut off `top` over its joint, is
+# drawn out from there to under the edge of the cloth: down its own line, then out in a curve to end `slope`
+# degrees off upright `under` below where the cloth's edge was, and on for `past` beneath the cloth (`sink` under
+# the lowest cloth there: a shirt may lie over the tee).  One skin from the chin to the collar; where nothing is cut
+# the neck goes down into the collar as before (`tube`).  The new points move with the neck above and with the
+# top's own bones at the cloth's edge.
+# Women (neck_cut, neck_seam): the neck is cut off level `lift` over the body's rim (its own foot is turned in under
+# itself in front: over a low rim that showed as a slot) and joined to the rim by new faces: one surface, lit as one.
+# The skin within `band` of the join is then eased `ease` times, most at the join and little over it (`up`: the
+# jaw is close), so that the corner becomes a hollow curve.
+BARE = 'bare'                 # the vertex group of what a neckline bared (paint)
+ROUND = 'round'               # and of the top's faces about the neck that may go for the collar's ring
+FOOT = dict(top=0.040, slope=46, under=0.0025, past=0.010, sink=0.005, rings=6, tube=0.05, lift=0.005, band=0.032, up=(0.004, 0.014), ease=14, fold=(0.008, 0.016))
+
+
+def _ring(edges):
+    """The points of a closed loop of edges, in order round it (None if they are not one loop)."""
+    at = {}
+    for e in edges:
+        for v in e.verts:
+            at.setdefault(v, []).append(e)
+    if not edges or any(len(es) != 2 for es in at.values()):
+        return None
+    e = min(edges, key=lambda e: e.index)
+    v = min(e.verts, key=lambda v: v.index)
+    ring, seen = [v], {e}
+    while True:
+        v = e.other_vert(v)
+        if v is ring[0]:
+            break
+        ring.append(v)
+        e = next((x for x in at[v] if x not in seen), None)
+        if e is None:
+            return None
+        seen.add(e)
+    return ring if len(ring) == len(edges) else None
+
+
+def neck_bib(head, body, arm, ring_w=0.0, drop=0.0, lobe=2.0):
+    """The men's neck drawn out to under a neckline's edge, and what was bared cut out of the top (see above)."""
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+    group, round_ = body.vertex_groups.get(BARE), body.vertex_groups.get(ROUND)
+    if group is None and round_ is None:
+        return
+    F = FOOT
+    cn = arm.matrix_world @ arm.data.bones['Neck'].head_local
+    is_skin = lambda m: bool(m) and m.name.split('~')[0].split('.')[0] == 'Skin'          # noqa: E731
+    bones = {b.name for b in arm.data.bones}
+    # the neck: cut level, what is under the cut goes
+    names = {g.index: g.name for g in body.vertex_groups}
+    for n in sorted(set(names.values()) & bones):
+        if head.vertex_groups.get(n) is None:
+            head.vertex_groups.new(name=n)
+    hnames = {g.index: g.name for g in head.vertex_groups}
+    hindex = {n: i for i, n in hnames.items()}
+    hb = bmesh.new()
+    hb.from_mesh(head.data)
+    hb.transform(head.matrix_world)
+    hl = hb.verts.layers.deform.verify()
+    uv = hb.loops.layers.uv.verify()
+    hskin = {i for i, m in enumerate(head.data.materials) if is_skin(m)}
+    z1 = cn.z + F['top']
+    neck = lambda f: f.material_index in hskin and all(math.hypot(v.co.x, v.co.y - cn.y) < 0.11 and v.co.z < z1 + 0.05 for v in f.verts)   # noqa: E731
+    fs = [f for f in hb.faces if neck(f)]
+    geom = fs + sorted({e for f in fs for e in f.edges}, key=lambda e: e.index) + sorted({v for f in fs for v in f.verts}, key=lambda v: v.index)
+    bmesh.ops.bisect_plane(hb, geom=geom, dist=1e-5, plane_co=Vector((0, 0, z1)), plane_no=Vector((0, 0, 1)))
+    bmesh.ops.delete(hb, geom=[f for f in hb.faces if neck(f) and f.calc_center_median().z < z1], context='FACES')
+    hb.verts.index_update()
+    hb.edges.index_update()
+    ring = _ring([e for e in hb.edges if e.is_boundary and all(abs(v.co.z - z1) < 1e-4 for v in e.verts)])
+    if ring is None:
+        raise SystemExit(f'{head.name}: the neck is not one ring {F["top"]} m over its joint')
+    n = len(ring)
+    cx, cy = sum(v.co.x for v in ring) / n, sum(v.co.y for v in ring) / n
+    # (which way the faces over the cut run round it: the new ones run with them)
+    e0 = next(e for e in ring[0].link_edges if e.other_vert(ring[0]) is ring[1])
+    if e0.link_loops[0].vert is ring[0]:
+        ring.reverse()
+    # the top, with what was bared still on it: where its surface lies, seen from above
+    bb = bmesh.new()
+    bb.from_mesh(body.data)
+    bb.transform(body.matrix_world)
+    bl = bb.verts.layers.deform.verify()
+    skin = {i for i, m in enumerate(body.data.materials) if is_skin(m)}
+    held_by = lambda f, g: g is not None and all(v[bl].get(g.index, 0.0) > 0.5 for v in f.verts)          # noqa: E731
+    if ring_w and round_ is not None:
+        # the collar: what of the top lies within `ring` of the neck all round goes too (the packs' rim stands up the
+        # neck there: cut by a neckline, its ends stood either side of the throat as two points), and in front out
+        # to where the top lies `drop` under the neck's joint, drawn in to the sides (cos^lobe): one round line
+        az = [(math.atan2(v.co.x - cx, cy - v.co.y), math.hypot(v.co.x - cx, v.co.y - cy)) for v in ring]
+        R_at = lambda a: min(az, key=lambda q: abs(math.remainder(q[0] - a, math.tau)))[1]                # noqa: E731
+        first = BVHTree.FromBMesh(bb)
+        reach, r = 0.0, R_at(0.0)
+        while r < 0.16:
+            hit = first.ray_cast(Vector((cx + 0.00013, cy - r, cn.z + 0.2)), Vector((0, 0, -1)))
+            if hit[0] is not None and hit[0].z <= cn.z - drop:
+                reach = r - R_at(0.0) - ring_w
+                break
+            r += 0.001
+        planes = []
+        for j in range(24):
+            a = math.tau * j / 24
+            d = Vector((math.sin(a), -math.cos(a), 0))
+            planes.append((Vector((cx, cy, 0)) + d * (R_at(a) + ring_w + max(0.0, reach) * max(0.0, math.cos(a)) ** lobe), d))
+        cand = lambda f: f.material_index not in skin and held_by(f, round_)                              # noqa: E731
+        mid = Vector((cx, cy))
+        for co, no in planes:                              # (each cuts only what lies before it)
+            fs = [f for f in bb.faces if cand(f) and any((q.to_2d() - mid).normalized().dot(no.to_2d()) > 0.8
+                                                         for q in [f.calc_center_median()] + [v.co for v in f.verts])]
+            geom = fs + sorted({e for f in fs for e in f.edges}, key=lambda e: e.index) + sorted({v for f in fs for v in f.verts}, key=lambda v: v.index)
+            bmesh.ops.bisect_plane(bb, geom=geom, dist=1e-5, plane_co=co, plane_no=no)
+            bb.verts.index_update()
+            bb.edges.index_update()
+            bb.faces.index_update()
+        within = lambda f: all((f.calc_center_median() - co).dot(no) <= 0 for co, no in planes)           # noqa: E731
+    else:
+        cand = within = lambda f: False                                                                   # noqa: E731
+    bb.faces.ensure_lookup_table()
+    bb.faces.index_update()
+    bare = [(f.material_index in skin and held_by(f, group)) or (cand(f) and within(f)) for f in bb.faces]
+    if not any(bare):
+        raise SystemExit(f'{body.name}: nothing bared for the neck to run to')
+    tree = BVHTree.FromBMesh(bb)
+    # (a shirt worn over the tee, or what is left of its rim, may hang over the opening: the opening is measured on
+    # what was bared alone)
+    cos = [v.co.copy() for v in bb.verts]
+    gone = BVHTree.FromPolygons(cos, [[v.index for v in f.verts] for f, b in zip(bb.faces, bare) if b])
+    cloth = BVHTree.FromPolygons(cos, [[v.index for v in f.verts] for f, b in zip(bb.faces, bare) if not b and f.material_index not in skin])
+
+    def cap(p):
+        hit = gone.ray_cast(Vector((p[0] + 0.00013, p[1] + 0.00007, cn.z + 0.2)), Vector((0, 0, -1)))
+        return hit[0].z if hit[0] is not None else None
+
+    def lowest(p, z):
+        """The lowest cloth over p within 3 cm of the height z (a shirt over a tee: the lower of the two)."""
+        o, low = Vector((p[0] + 0.00013, p[1] + 0.00007, z + 0.03)), None
+        for _ in range(6):
+            hit = cloth.ray_cast(o, Vector((0, 0, -1)), o.z - (z - 0.03))
+            if hit[0] is None:
+                break
+            low, o = hit[0].z, hit[0] - Vector((0, 0, 0.0004))
+        return low
+
+    def held(p):
+        """The bones of the top's nearest point."""
+        f = bb.faces[tree.find_nearest(p)[2]]
+        v = min(f.verts, key=lambda v: ((v.co - p).length, v.index))
+        w = {names[g]: x for g, x in v[bl].items() if names[g] in bones and x > 0}
+        t = sum(w.values()) or 1.0
+        return {k: x / t for k, x in w.items()}
+
+    K, ta = F['rings'], math.tan(math.radians(F['slope']))
+    cols = []
+    for v in ring:
+        dx, dy = v.co.x - cx, v.co.y - cy
+        R = math.hypot(dx, dy)
+        dx, dy = dx / R, dy / R
+        at = lambda r: (cx + dx * r, cy + dy * r)                                         # noqa: E731
+        rh, r = None, R - 0.006
+        while r < 0.17:
+            if cap(at(r)) is not None:
+                rh = r
+            r += 0.002
+        own = {hnames[g]: x for g, x in v[hl].items() if x > 0}
+        luv = next(l[uv].uv.copy() for l in v.link_loops)
+        pts = []
+        if rh is not None and rh > R:
+            zq = cap(at(rh)) - F['under']
+            z0 = min(z1 - 0.004, zq + (rh - R) / ta)                  # (the corner the curve rounds, on the neck's line)
+            for k in range(1, K):
+                t = k / (K - 1)
+                pts.append((R + (rh - R) * t * t, z1 * (1 - t) ** 2 + z0 * 2 * t * (1 - t) + zq * t * t, t))
+            re = rh + F['past']
+            ze = lowest(at(re), zq)
+            pts.append((re, min(zq - F['past'] / ta, zq if ze is None else ze - F['sink']), 1.0))
+        else:
+            for k in range(1, K + 1):
+                pts.append((R * (1 - 0.03 * k), z1 - F['tube'] * k / K, k / K))
+        col = [v]
+        for r, z, t in pts:
+            x, y = at(r)
+            nv = hb.verts.new(Vector((x, y, z)))
+            f = _smooth(0.0, 0.85, t)
+            their = held(nv.co)
+            for name in sorted(set(own) | set(their)):
+                w = own.get(name, 0.0) * (1 - f) + their.get(name, 0.0) * f
+                if w > 0:
+                    nv[hl][hindex[name]] = w
+            col.append(nv)
+        cols.append((col, luv))
+    si = min(hskin)
+    for i in range(n):
+        (a, ua), (b, ub) = cols[i], cols[(i + 1) % n]
+        for k in range(K):
+            f = hb.faces.new((a[k], b[k], b[k + 1], a[k + 1]))
+            f.material_index = si
+            f.smooth = True
+            for l in f.loops:
+                l[uv].uv = ua if l.vert in a else ub
+    hb.normal_update()
+    hb.transform(head.matrix_world.inverted())
+    hb.to_mesh(head.data)
+    hb.free()
+    bmesh.ops.delete(bb, geom=[f for f, b in zip(bb.faces[:], bare) if b], context='FACES')
+    bb.transform(body.matrix_world.inverted())
+    bb.to_mesh(body.data)
+    bb.free()
+
+
+def _open_rims(bm, skin, near):
+    """The loops of open edges about the neck's foot that hold an edge of skin (the body's rim may be a collar's
+    band behind the neck; a head of hair and a shirt's collar have open edges there too, none of skin)."""
+    open_ = [e for e in bm.edges if e.is_boundary and all(near(v) for v in e.verts)]
+    at = {}
+    for e in open_:
+        for v in e.verts:
+            at.setdefault(v, []).append(e)
+    rims, todo = [], set(open_)
+    for e in sorted(open_, key=lambda e: e.index):
+        if e not in todo:
+            continue
+        todo.discard(e)
+        comp, stack = [e], [e]
+        while stack:
+            for v in stack.pop().verts:
+                for x in at[v]:
+                    if x in todo:
+                        todo.discard(x)
+                        comp.append(x)
+                        stack.append(x)
+        if any(x.link_faces[0].material_index in skin for x in comp):
+            rims.append(comp)
+    return rims
+
+
+def neck_cut(head, body, arm):
+    """The women's neck cut off level, `lift` over the highest point of the body's rim of skin (neck_seam joins the
+    two); returns the height, or None where the body has no such rim."""
+    import bmesh
+    F = FOOT
+    cn = arm.matrix_world @ arm.data.bones['Neck'].head_local
+    is_skin = lambda m: bool(m) and m.name.split('~')[0].split('.')[0] == 'Skin'          # noqa: E731
+    near = lambda v: math.hypot(v.co.x, v.co.y - cn.y) < 0.10 and -0.03 < v.co.z - cn.z < 0.08          # noqa: E731
+    bb = bmesh.new()
+    bb.from_mesh(body.data)
+    bb.transform(body.matrix_world)
+    rims = _open_rims(bb, {i for i, m in enumerate(body.data.materials) if is_skin(m)}, near)
+    z1 = max((v.co.z for e in rims[0] for v in e.verts), default=0.0) + F['lift']
+    bb.free()
+    if len(rims) != 1:
+        return None
+    hb = bmesh.new()
+    hb.from_mesh(head.data)
+    hb.transform(head.matrix_world)
+    hskin = {i for i, m in enumerate(head.data.materials) if is_skin(m)}
+    neck = lambda f: f.material_index in hskin and all(math.hypot(v.co.x, v.co.y - cn.y) < 0.11 and v.co.z < z1 + 0.03 for v in f.verts)   # noqa: E731
+    fs = [f for f in hb.faces if neck(f)]
+    geom = fs + sorted({e for f in fs for e in f.edges}, key=lambda e: e.index) + sorted({v for f in fs for v in f.verts}, key=lambda v: v.index)
+    bmesh.ops.bisect_plane(hb, geom=geom, dist=1e-5, plane_co=Vector((0, 0, z1)), plane_no=Vector((0, 0, 1)))
+    bmesh.ops.delete(hb, geom=[f for f in hb.faces if neck(f) and f.calc_center_median().z < z1], context='FACES')
+    hb.verts.index_update()
+    hb.edges.index_update()
+    if _ring([e for e in hb.edges if e.is_boundary and all(abs(v.co.z - z1) < 1e-4 for v in e.verts)]) is None:
+        raise SystemExit(f'{head.name}: the neck is not one ring {z1 - cn.z:.3f} m over its joint')
+    hb.transform(head.matrix_world.inverted())
+    hb.to_mesh(head.data)
+    hb.free()
+    return z1
+
+
+def neck_seam(mesh, arm, z1):
+    """The women's neck (cut at z1: neck_cut) and the body's own skin made one surface, the corner between them a
+    curve (see above)."""
+    import bmesh
+    F = FOOT
+    me = mesh.data
+    cn = arm.matrix_world @ arm.data.bones['Neck'].head_local
+    skin = {i for i, m in enumerate(me.materials) if m and m.name.split('~')[0].split('.')[0] == 'Skin'}
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    uv = bm.loops.layers.uv.verify()
+    near = lambda v: math.hypot(v.co.x, v.co.y - cn.y) < 0.11 and -0.03 < v.co.z - cn.z < 0.08          # noqa: E731
+    rims = _open_rims(bm, skin, near)
+    cut = [r for r in rims if all(abs(v.co.z - z1) < 1e-4 for e in r for v in e.verts)]
+    if len(rims) != 2 or len(cut) != 1:
+        raise SystemExit(f'{mesh.name}: {len(rims)} open rims at the neck, {len(cut)} of them the cut')
+    rim = rims[0] + rims[1]
+    seam = sorted({v for e in rim for v in e.verts}, key=lambda v: v.index)
+    old = set(bm.faces)
+    bmesh.ops.bridge_loops(bm, edges=rim)
+    made = sorted(set(bm.faces) - old, key=lambda f: f.index)
+    if not made or any(e.is_boundary for e in rim if e.is_valid):
+        raise SystemExit(f'{mesh.name}: the neck and the body are still apart')
+    bmesh.ops.triangulate(bm, faces=[f for f in made if len(f.verts) > 3], quad_method='BEAUTY', ngon_method='BEAUTY')
+    # (the new faces turned the way of the skin they join: along a shared edge the two faces run opposite ways)
+    done, todo = set(old), [f for f in bm.faces if f not in old]
+    for f in todo:
+        f.material_index = min(skin)
+        f.smooth = True
+    while todo:
+        rest = []
+        for f in sorted(todo, key=lambda f: f.index):
+            l = next((l for l in f.loops if any(x.face in done for x in l.link_loops)), None)
+            if l is None:
+                rest.append(f)
+                continue
+            if next(x for x in l.link_loops if x.face in done).vert is l.vert:
+                f.normal_flip()
+            done.add(f)
+        if len(rest) == len(todo):
+            break
+        todo = rest
+    for f in bm.faces:
+        if f not in old:
+            for l in f.loops:
+                l[uv].uv = next((x[uv].uv.copy() for x in l.vert.link_loops if x.face in old and x.face.material_index in skin), l[uv].uv)
+    # the corner eased: skin alone (what a cloth's edge holds stays), most at the join
+    free = [v for v in bm.verts if near(v) and v.link_faces and all(f.material_index in skin for f in v.link_faces) and not v.is_boundary]
+    wt = {}
+    for v in free:
+        near_ = min(seam, key=lambda s: ((v.co - s.co).length, s.index))
+        d = (v.co - near_.co).length
+        if d < F['band']:                                  # (and little above the join: the jaw is close over it)
+            wt[v] = (1 - _smooth(F['band'] * 0.35, F['band'], d)) * (1 - _smooth(*F['up'], v.co.z - z1))
+    for _ in range(F['ease']):
+        to = {v: sum((e.other_vert(v).co for e in v.link_edges), Vector()) / len(v.link_edges) for v in wt}
+        for v, w in wt.items():
+            v.co = v.co.lerp(to[v], 0.5 * w)
+    # a fold of the pack's own under the collarbones (the Suit's top: a ledge 3 mm deep whose underside lay in shade,
+    # a dark line either side of the throat), eased the same way
+    bm.normal_update()
+    fold = sorted({v for f in bm.faces if f.material_index in skin and f.normal.z < -0.3
+                   and all(near(v) and v.co.y < cn.y - 0.02 and -0.03 < v.co.z - cn.z < 0.02 for v in f.verts) for v in f.verts},
+                  key=lambda v: v.index)
+    wt = {}
+    for v in free if fold else ():
+        d = min((v.co - q.co).length for q in fold)
+        if d < F['fold'][1]:
+            wt[v] = 1 - _smooth(*F['fold'], d)
+    for _ in range(F['ease']):
+        to = {v: sum((e.other_vert(v).co for e in v.link_edges), Vector()) / len(v.link_edges) for v in wt}
+        for v, w in wt.items():
+            v.co = v.co.lerp(to[v], 0.5 * w)
+    bm.to_mesh(me)
+    bm.free()
+
+
 def build_person(pid, spec):
     rig = spec['rig']
     s = HEIGHT[rig] / TOP[rig]
@@ -2715,7 +3087,7 @@ def build_person(pid, spec):
         if part == 'body' and rig == 'women':
             round_bust(ob, arm, spec.get('bust', 1.0))
         if part in spec.get('paint', {}):
-            paint(ob, spec['paint'][part], arm)
+            paint(ob, spec['paint'][part], arm, bib=rig == 'umc')
         if part in spec.get('prints', {}):
             print_map(ob, spec['prints'][part])
         recolour(ob, part, spec['colors'])
@@ -2730,6 +3102,14 @@ def build_person(pid, spec):
         atlas_layer(ob)
         ob.name = f'{pid}-{part}'
         parts.append(ob)
+    body, head = parts[0], parts[1]
+    if rig == 'umc':
+        bared = [r['neck'] for r in spec.get('paint', {}).get('body', ()) if r.get('neck') and r['to'] == 'Skin']
+        if bared:
+            neck_bib(head, body, arm, bared[0]['ring'], bared[0]['drop'], bared[0]['lobe'])
+    for name in (BARE, ROUND):
+        if body.vertex_groups.get(name):
+            body.vertex_groups.remove(body.vertex_groups[name])
     if spec.get('skirt'):
         cut_skirt(next(o for o in parts if o.name.endswith('-legs')), arm, SKIRTS[spec['skirt']])
     if any(m and m.name == 'Skirt~new' for o in parts for m in o.data.materials):         # (recolour's names)
@@ -2822,6 +3202,9 @@ def weld_skin(mesh):
 
 def finish_person(pid, arm, parts, s, rig, glasses):
     tidy_materials()
+    cut = None
+    if rig == 'rig-women':
+        cut = neck_cut(next(o for o in parts if o.name.endswith('-head')), next(o for o in parts if o.name.endswith('-body')), arm)
     # one mesh, smooth shaded, scale baked in
     bpy.ops.object.select_all(action='DESELECT')
     for o in parts:
@@ -2835,6 +3218,8 @@ def finish_person(pid, arm, parts, s, rig, glasses):
             mesh.modifiers.remove(m)
     me = mesh.data
     weld_skin(mesh)
+    if cut is not None:
+        neck_seam(mesh, arm, cut)
     atlas_layer(mesh)
     for a in list(me.color_attributes):
         me.color_attributes.remove(a)
