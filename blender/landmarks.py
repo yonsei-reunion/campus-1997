@@ -6058,6 +6058,50 @@ def kwangbok():
     return [mb]
 
 
+# ============================================================================= 연세한글탑 (1992)
+def hangeul_tower():
+    """연세한글탑 (1992, 전뢰진; granite) on the round paving south of 중앙도서관, where it stood until the 백양로
+    rebuilding (tools/build_campus.py HANGEUL_TOWER, reference/고증/2.3.4 「도서관 남쪽 둥근 포장과 한글탑」): four
+    splayed legs on a cross plan, a square shaft between them, and on it a thick ring on edge (the 원 of 천 · 지 · 인,
+    the letters round it not modelled).  Its top 7.2 m over the paving in the 1997 scans (four frames); the shape after
+    photographs of the tower as it stands now, the proportions an approximation."""
+    T = CAMPUS.get('hangeul_tower')
+    if not T:
+        return []
+    x, y = T['pos']
+    k = T['h'] / 7.2
+    mb = MeshBuilder('lm_hangeul_tower')
+    mb.xf = local_frame(x, y, T['rot'], ground(x, y))
+    S = 'stone_granite'
+
+    def out_face(pts, n):
+        """pts wound so that the face looks along n"""
+        a, b, c = (Vector(p) for p in pts[:3])
+        mb.face(pts if (b - a).cross(c - b).dot(Vector(n)) > 0 else pts[::-1], S)
+
+    mb.box((0, 0, 2.3 * k), (1.15 * k, 1.15 * k, 4.6 * k), S, skip=('bottom',))
+    prof = [(0.5, -0.3), (2.8, -0.3), (2.8, 1.15), (2.05, 1.45), (1.1, 3.6), (0.5, 4.3)]       # a leg: (out, up)
+    w = 0.62 * k
+    for q in range(4):
+        c_, s_ = math.cos(q * math.pi / 2), math.sin(q * math.pi / 2)
+        W = lambda r, t, z: (r * k * c_ - t * s_, r * k * s_ + t * c_, z * k)
+        for sg in (-1, 1):
+            out_face([W(r, sg * w, z) for r, z in prof], (-sg * s_, sg * c_, 0))
+        for (r0, z0), (r1, z1) in zip(prof[1:], prof[2:]):
+            out_face([W(r0, -w, z0), W(r0, w, z0), W(r1, w, z1), W(r1, -w, z1)], (c_ * (z1 - z0 + 1e-6), s_ * (z1 - z0 + 1e-6), r0 - r1 + 0.3))
+    # the ring on edge: its axis level, across the tower's front
+    zc, ro, ri, hl, n = 5.9 * k, 1.3 * k, 0.62 * k, 0.95 * k, 20
+    for i in range(n):
+        a0, a1 = 2 * math.pi * i / n, 2 * math.pi * (i + 1) / n
+        P = lambda r, a, yy: (r * math.cos(a), yy, zc + r * math.sin(a))
+        am = (a0 + a1) / 2
+        out_face([P(ro, a0, -hl), P(ro, a1, -hl), P(ro, a1, hl), P(ro, a0, hl)], (math.cos(am), 0, math.sin(am)))
+        out_face([P(ri, a0, -hl), P(ri, a1, -hl), P(ri, a1, hl), P(ri, a0, hl)], (-math.cos(am), 0, -math.sin(am)))
+        for yy in (-hl, hl):
+            out_face([P(ri, a0, yy), P(ro, a0, yy), P(ro, a1, yy), P(ri, a1, yy)], (0, yy, 0))
+    return [mb]
+
+
 # ============================================================================= 제1공학관 안뜰의 낮은 동과 서쪽 옹벽
 def eng_hall():
     """The one-storey hall in 제1공학관's court and the retaining wall west of the court's lot (tools/eng97.py,

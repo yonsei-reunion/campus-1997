@@ -8969,10 +8969,17 @@ CENT_SW_PAVE = Polygon([(-48.6, -248.0), (-49.49, -245.5), (-49.7, -244.7), (-49
     .difference(Point(CENT_SW_C).buffer(CENT_SW_R[0], quad_segs=24))
 _ypaint(list(shapely.ops.split(CENT_SW_PAVE, LineString([(CENT_SW_C[0], -280.0), (CENT_SW_C[0], -200.0)])).geoms), _gp)
 # - 중앙도서관 남쪽 화단: a round paved disc in the middle bed (fitted in three frames to 0.2 m, two trees over its west
-#   side); what it was (a stage, a dry basin), and whether it stood about 1 m over the lawn, the scans do not settle.
-#   West of its middle stands something tall and pale (it leans away from each camera in four frames): not modelled
+#   side), and on its middle 연세한글탑 (1992; reference/고증/2.3.4 「도서관 남쪽 둥근 포장과 한글탑」): the tall pale thing
+#   that leans away from each camera, its top 7.2 m over the paving where four frames agree (-63.7, -111.0), there in
+#   the Kakao skyview of 2008 and 2010 too, until the 백양로 rebuilding moved it.  The paving stands 0.5 - 0.9 m over
+#   the lawn east of it in the scans (the tower's lost foot, 「땅」); the game's bed slopes west under it, so the disc
+#   stays on the ground (남은 한계).  The tower's legs set by the bed's walks (the library's south face): not known
 LIB_S_DISC = Point(-63.2, -110.9).buffer(7.6, quad_segs=24)
 _ypaint([LIB_S_DISC], _gp)
+HANGEUL_TOWER = dict(pos=[-63.5, -111.0], h=7.2, rot=round(math.radians(-14.6), 4))
+out['hangeul_tower'] = HANGEUL_TOWER
+_ht_z = Point(*HANGEUL_TOWER['pos']).buffer(3.4)
+assert not any(_ht_z.contains(Point(c_[1], c_[2])) for c_ in cars), 'a car at 한글탑'
 # - 제1공학관 안뜰: between the wings, out to the halls and the west road, the paving the cars stood on in rows (north,
 #   south, and two rows at the west end).  The game had lawn from apron to apron, its parked cars on the grass and the
 #   walks along the wings ending in it (one of the tails kept in #151).  The rectangle in a bright edge in its middle
@@ -9556,7 +9563,8 @@ PRUNE_SCRAP = [(((-115.7, -135.7), (-108.5, -138.0)), '도서관 남서쪽 꺾�
                (((179.6, 184.5), (193.2, 198.8)), '옛 노천극장: 1999년 객석 통로 계단이 꼭대기 길을 건너 남은 토막'),
                (((193.2, 198.8), (195.4, 201.1)), '  〃'), (((195.4, 201.1), (190.4, 204.9)), '  〃'),
                (((184.8, 141.7), (200.5, 132.8)), '  〃'), (((178.3, 134.4), (191.0, 125.5)), '  〃'),
-               (((18.3, -159.7), (46.5, -146.4)), '수경원 정자각으로 가는 길: 1997년 7월 스캔 세 장에 잔디뿐(포장 없음)')]
+               (((18.3, -159.7), (46.5, -146.4)), '수경원 정자각으로 가는 길: 1997년 7월 스캔 세 장에 잔디뿐(포장 없음)'),
+               (((9.7, 151.5), (11.7, 164.5)), '삼거리 둑의 길: 1996년 12월 · 2008년(잎 없는 겨울) · 2010년에 찻길의 동쪽 가, 따로 난 길 없음')]
 PRUNE_TAILS = [((-128.9, 24.1), 30.0, True),    # (도서관 북쪽 길이 서쪽 잔디에서 끝나는 26 m)
                ((146.2, -28.9), 25.0, False),   # (음악관 남쪽 잔디로 나온 두 꼬리: 곁의 포장에 닿아 남았던 것)
                ((162.5, -51.1), 20.0, False),
