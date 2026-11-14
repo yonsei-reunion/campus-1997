@@ -20,6 +20,10 @@ Output: web/public/assets/models/people/<id>.glb  (feet at y=0, facing +Z, real-
 colour materials only, texture coordinates into faces.png), faces(_rims).png and rig-umc.glb / rig-women.glb with the
 clips idle walk sprint sit emote-yes emote-no interact-right and glTF extras walk_speed / run_speed (m/s of the feet
 in the walk / run cycle).
+
+Most clips are motion capture retargeted by blender/mocap.py (its CLIPS: walk, idle, sprint, sit over the pack's, and
+walk-slow walk-fast walk-pockets idle-shift idle-look idle-fold talk phone sit-talk), from the takes that
+tools/fetch_mocap.py puts in assets_src/mocap/. The rig's extras also carry 'speeds': {clip: m/s} of every cycle.
 """
 import base64
 import json
@@ -34,6 +38,7 @@ from mathutils import Matrix, Quaternion, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import faces  # noqa: E402
+import mocap  # noqa: E402
 faces_mod = faces              # (the module, inside functions that have a list of faces)
 from faces import FACE  # noqa: E402
 
@@ -58,6 +63,8 @@ CLIPS = {
     'women': {'idle': 'Idle_Neutral', 'walk': 'Walk', 'sprint': 'Run', 'sit': None, 'emote-yes': 'Wave', 'emote-no': None,
               'interact-right': 'Interact'},
 }
+for _rig, _clips in CLIPS.items():       # the clips of blender/mocap.py: new names here, the others replace the pack's
+    _clips.update({_c: None for _c in mocap.CLIPS[_rig] if _c not in _clips})
 RIG_SOURCE = {'rig-umc': 'Suit', 'rig-women': 'Casual'}     # the outfit file whose animations make the rig
 
 # ---------- the people ----------
@@ -1722,6 +1729,7 @@ def build_rig(rid):
     meta = {'walk_speed': foot_speed(arm, acts['walk'], 'Foot.L', fps) * s,
             'run_speed': foot_speed(arm, acts['sprint'], 'Foot.L', fps) * s,
             'seat': SEAT}
+    meta.update(mocap.build(rig, arm, acts, s, fps))        # motion capture over the pack's clips, and more
     prune_actions(acts.values(), drop=is_umc_finger)
     for a in acts.values():
         for fc in fcurves(a):
@@ -1742,7 +1750,7 @@ def finish_rig(rid, arm, acts, s, meta):
     arm.name = rid
     arm.data.name = rid
     for k, v in meta.items():
-        arm[k] = round(v, 3)
+        arm[k] = v if isinstance(v, str) else round(v, 3)
     # the exporter takes the actions that fit the armature; give each a slot bound to it
     for a in acts.values():
         use_action(arm, a)
@@ -1940,7 +1948,8 @@ def main():
             src = ', '.join(f'{k} {v}' for k, v in sp['parts'].items()) + ', hair ' + sp['hair']
             print(f'{pid:20} rig-{sp["rig"]:6} {src:88} {sp["note"]}')
         for rid, r in RIGS.items():
-            print(f'{rid:20} clips {", ".join(f"{k}<-{v or "made here"}" for k, v in CLIPS[r].items())}')
+            took = {k: ' '.join(v['take']) for k, v in mocap.CLIPS[r].items()}
+            print(f'{rid:20} clips {", ".join(f"{k}<-{took.get(k) or v or "made here"}" for k, v in CLIPS[r].items())}')
         return
     wanted = []
     for a in argv:
