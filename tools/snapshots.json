@@ -245,6 +245,9 @@
     {"name": "screenshots/tennis", "doc": "고증 4.4: 공학관 남쪽 큰길가의 정구장 자리(1997년엔 공학원 공사장)",
      "cam": {"x": -225, "y": -445, "dh": 35, "tx": -226, "ty": -364, "tdh": 0, "fov": 50}, "size": [1350, 860],
      "out": [{"path": "docs/screenshots/tennis.jpg", "width": 900}]},
+    {"name": "screenshots/seomun", "doc": "고증 3.22: 연희로10길에서 동쪽으로 본 서문(2011년 4월 로드뷰 1017248897과 비슷한 자리)",
+     "cam": {"x": -380, "y": -16.3, "dh": 1.8, "tx": -356, "ty": -19.5, "tdh": 2.2, "fov": 60}, "size": [1350, 860],
+     "out": [{"path": "docs/screenshots/seomun.jpg", "width": 900}]},
 
     {"name": "anthology/underwood", "doc": "문집 「언더우드관 전경」: 언더우드 동상 뒤에서 정원 축을 따라",
      "cam": {"x": 48.4, "y": 192.7, "dh": 9, "tx": 60.25, "ty": 239.9, "tdh": 0, "fov": 55}, "size": [1388, 747],

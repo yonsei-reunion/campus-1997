@@ -5705,6 +5705,76 @@ def tennis():
     return out
 
 
+# ============================================================================= 서문
+def _wall_run(mb, pts, t, top_up, mat, cap, cap_t=0.08, base=None):
+    """A wall along pts ([x, y, foot, ground-top] every metre, tools/seomun.py gate): t thick, its top top_up over the
+    higher ground beside it, stepping with it; a cap along the top, a plinth (base: (height, material)) at its foot."""
+    for k in range(len(pts) - 1):
+        (x0, y0, f0, g0), (x1, y1, f1, g1) = pts[k], pts[k + 1]
+        dx, dy = x1 - x0, y1 - y0
+        L = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / L * t / 2, dx / L * t / 2
+        f, z = min(f0, f1), max(g0, g1) + top_up
+        A, B = (x0 + nx, y0 + ny), (x1 + nx, y1 + ny)
+        C, D = (x1 - nx, y1 - ny), (x0 - nx, y0 - ny)
+        mb.face([(*A, f), (*B, f), (*B, z), (*A, z)][::-1], mat)
+        mb.face([(*D, f), (*C, f), (*C, z), (*D, z)], mat)
+        mb.face([(*A, z), (*B, z), (*C, z), (*D, z)][::-1], cap)
+        if k == 0:
+            mb.face([(*A, f), (*A, z), (*D, z), (*D, f)][::-1], mat)
+        if k == len(pts) - 2:
+            mb.face([(*B, f), (*B, z), (*C, z), (*C, f)], mat)
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        mb.box((cx, cy, z + cap_t / 2), (L + 0.02, t + 0.08, cap_t), cap, rotz=math.atan2(dy, dx))
+        if base:
+            h, bm = base
+            gl = min(g0, g1)
+            mb.box((cx, cy, (f + gl + h) / 2), (L + 0.01, t + 0.06, gl + h - f), bm, rotz=math.atan2(dy, dx), skip=('bottom',))
+
+
+def seomun():
+    """서문 (51 on the 1990 · 1995 maps, tools/seomun.py, reference/고증/3.22): at 연희로10길's end two square granite
+    posts either side of a 4.2 m opening (OSM's gate line), a pair of iron leaves swung open into the campus; north of
+    it the granite wall along the boundary where the campus stands over the lane (the 2010 · 2011 roadview), south of
+    it the campus's block wall along the lane that runs down round the wooded knoll.  The 1997 scans have the gate
+    under a tree's crown: the posts' and leaves' make is an approximation."""
+    G = CAMPUS.get('seomun')
+    if not G:
+        return []
+    mb = MeshBuilder('lm_seomun')
+    tx, ty = G['t']
+    nx, ny = G['n']
+    ang = math.atan2(ty, tx)
+    for x, y, z in G['posts']:
+        g = min(ground(x + dx, y + dy) for dx in (-0.4, 0.4) for dy in (-0.4, 0.4))
+        mb.box((x, y, (g - 0.3 + z + 2.5) / 2), (0.7, 0.7, z + 2.5 - (g - 0.3)), 'gate_granite', rotz=ang, skip=('bottom',))
+        mb.box((x, y, z + 2.5 + 0.09), (0.86, 0.86, 0.18), 'stone_granite', rotz=ang)
+        mb.box((x, y, z + 2.68 + 0.09), (0.5, 0.5, 0.18), 'stone_granite', rotz=ang)
+    # the leaves: hinged at the posts' inner faces, swung open 80 degrees into the campus, each half the opening
+    W = G['width'] / 2 - 0.05
+    (ax, ay, _), (bx, by, _) = G['posts']
+    for (px, py), sg in (((ax + tx * 0.4, ay + ty * 0.4), 1.0), ((bx - tx * 0.4, by - ty * 0.4), -1.0)):
+        a = math.radians(80.0)
+        # the leaf's direction: from the line (along +t for the north post, -t for the south) turned towards +n
+        ux = sg * tx * math.cos(a) + nx * math.sin(a)
+        uy = sg * ty * math.cos(a) + ny * math.sin(a)
+        z0 = ground(px + ux * W / 2, py + uy * W / 2) + 0.06
+        la = math.atan2(uy, ux)
+        for zz, h in ((z0 + 0.06, 0.08), (z0 + 1.62, 0.08), (z0 + 0.85, 0.05)):
+            mb.box((px + ux * W / 2, py + uy * W / 2, zz), (W, 0.06, h), 'metal_dark', rotz=la)
+        for k in range(int(W / 0.14) + 1):
+            s = min(k * 0.14, W - 0.02)
+            w = 0.06 if k in (0, int(W / 0.14)) else 0.018
+            mb.box((px + ux * s, py + uy * s, z0 + 0.85), (w, w, 1.62), 'metal_dark', rotz=la)
+            mb.box((px + ux * s, py + uy * s, z0 + 1.73), (0.035, 0.035, 0.14), 'metal_dark', rotz=la)   # (the pickets' heads)
+    for w in G['walls']:
+        if w['kind'] == 'granite':
+            _wall_run(mb, w['pts'], 0.5, 0.9, 'stone_granite', 'stone_trim', cap_t=0.12)
+        else:
+            _wall_run(mb, w['pts'], 0.24, 1.8, 'plaster_cream', 'stone_trim', base=(0.35, 'stone_rubble_gray'))
+    return [mb]
+
+
 # ============================================================================= 공학원 공사장 (1995.8 - 1999.4)
 def _tower_crane(x, y, z, H, brg, jib, cjib):
     """The hammerhead tower crane over 공학원's pit (the July 1997 scans, 고증 4.4): a lattice mast 1.6 m square, the

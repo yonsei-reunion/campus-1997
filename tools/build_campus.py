@@ -22,6 +22,7 @@ import gate_town
 import sinchon_rotary
 import muak
 import cars97
+import seomun
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -6425,6 +6426,14 @@ FIXED[_nj, _ni] = True
 MUAK = muak.road()
 _mk_took, _mk_n, _mk_dz = muak.grade(Hn, X, Y, FIXED, MUAK)
 FIXED[_mk_took] = True
+# 서문으로 나가는 길 (tools/seomun.py, reference/고증/3.22_서문.md): the ground round the gate, the road west of 과학관 down to
+# the 대운동장's north-east and 연희로10길 out of the gate on the 1997 photos' heights (2 - 7 m under the grid's), late: the
+# planting has read the ground as it was; the 대운동장's bank round the oval smoothed again to it
+_sm_box = Polygon([(-480, -170), (-250, -170), (-250, 60), (-480, 60)])
+_sm_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if Polygon(b_['footprint']).intersects(_sm_box)]
+_sm_took, SEOMUN_GRADE = seomun.grade(Hn, X, Y, FIXED, _sm_halls, FIELD_PATCH, harmonic_fill)
+FIXED[_sm_took] = True
+print('서문 길: %(nodes)d nodes moved (most %(most).1f m), %(road)d on the roads, the field\'s bank %(bank)d' % SEOMUN_GRADE)
 print('무악학사 길: %d nodes graded (%d level), most moved %.1f m; the road %.1f m at s 10, %.1f m at the crest' % (
     _mk_n, int(_mk_took.sum()), _mk_dz, float(np.interp(10.0, MUAK['s'], MUAK['z'])), float(MUAK['z'].max())))
 Hn.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_near.bin'))
@@ -8613,6 +8622,8 @@ _yz, _yg, _yp = (Image.new('L', (SW, SH), 0) for _ in range(3))
 _YN = {id(_yz): '_yz', id(_yg): '_yg', id(_yp): '_yp'}
 MUAK_OLD = muak.takeup(paths_out)              # (무악학사 길: OSM's road north of the corner and its walk taken up)
 _ypaint([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD], _yg)
+SEOMUN_OLD = seomun.takeup(paths_out)          # (서문 길: the game's road north-east of the 대운동장 off the 1997 line)
+_ypaint([l_.buffer(w_ / 2 + 0.3, cap_style=c_) for l_, w_, c_ in SEOMUN_OLD if not l_.is_empty], _yg)
 _ypaint([_yclear], _yz)
 _ypaint([YJ_GARDEN.difference(_kept)], _yg)
 _ypaint([YJ_EAST_LAWN], _yg)                   # (용재관 북동쪽: the 2015 forecourt's paving out; YJ_LOT, YJ_BRANCH below)
@@ -9187,6 +9198,9 @@ _ypaint([GW_LOT, GW_ROW], _ga)                # (공학원 공사장 앞 주차�
 MUAK_ROAD, MUAK_WALK = muak.paint(MUAK, muak.S_GRID + 6.0)      # (무악학사 길: the carriageway and the west walk)
 _ypaint([MUAK_ROAD], _ga)
 _ypaint([MUAK_WALK], _gp)
+SEOMUN_ASPH, SEOMUN_YARD = seomun.paint()      # (서문 길: the road, the mouth, the lane to the houses' fronts and its alleys)
+_ypaint([SEOMUN_ASPH], _ga)
+_ypaint([SEOMUN_YARD], _gd)                    # (the bare yard round the small building south of the mouth)
 MUAK_WOODS = muak.woods_strip(MUAK, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))
 _mk_floor = unary_union([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD]).intersection(woods_u.buffer(-1.0)).union(MUAK_WOODS)
 _ypaint([g_ for g_ in (_mk_floor.geoms if hasattr(_mk_floor, 'geoms') else [_mk_floor]) if g_.geom_type == 'Polygon' and g_.area > 0.5], _gf)
@@ -9916,6 +9930,15 @@ for k_, t_ in enumerate(_cst):
         q_ = np.array(CENT_SW_C) + d_ * 2.5
     t_[1], t_[2] = round(float(q_[0]), 2), round(float(q_[1]), 2)
 print('백주년기념관 남서쪽 둥근 마당: trees off the ring', len(_cst))
+# 서문 길 (SEOMUN_ASPH above): what stood on the road, the mouth, the lane and where the lane's houses go steps aside
+# (trees in their places in the list) or goes (shrubs, props); the map's ways on the 1997 lines, the old line's end out
+_sm_taken = unary_union([SEOMUN_ASPH] + [Polygon(h_[4]).buffer(0.8) for h_ in seomun.HOUSES] + [Polygon(seomun.SHED).buffer(0.8)])
+_sm_n = seomun.move_off(trees, shrubs, props, _sm_taken)
+for p_ in out['paths']:
+    if p_['kind'] == 'service' and len(p_['pts']) > 1 and math.dist(p_['pts'][-1], (-317.5, -119.6)) < 1.0:
+        p_['pts'] = [q_ for q_ in p_['pts'] if q_[1] < -147.0] + [list(seomun.ROAD[-1][:2])]
+out['paths'] += seomun.paths()
+print('서문 길: shrubs taken out %d, props %d, trees moved aside %d' % _sm_n)
 # 무악학사 길 (MUAK above): what stood on the new road and walk steps aside (a tree in its place in the list), the
 # closed crowns over it after every other tree; the map's way and walk on the new line
 _mk_c = MUAK_ROAD.union(MUAK_WALK).buffer(0.6)
@@ -9983,6 +10006,12 @@ buildings.append(dict(id=991051, name='', style='brick', levels=6, height=round(
                       top_ground=round(max(_jjh), 2), footprint=[[x_, y_] for x_, y_ in list(_jj.exterior.coords)[:-1]]))
 print('무악학사 · 북문: halls %d, houses %d, trees %d, cleared for the far forest %d pieces' % (
     len(MUAK_HALLS), len(MUAK_HOUSES), len(MUAK_N_TREES), len(out['terrain']['north']['clear'])))
+# 서문 (tools/seomun.py): 연희동's houses along 연희로10길 out of the gate and the small building south of its mouth, at the
+# halls' end (blender/build.py draws each hall's looks in its order); the gate's posts, leaves and walls
+SEOMUN_HOUSES = seomun.houses(ground_tn)
+buildings += SEOMUN_HOUSES
+out['seomun'] = seomun.gate(ground_tn)
+out['markers'].append(dict(name='서문', pos=[-362.0, -18.4], top=round(out['seomun']['z'] + 4.0, 1)))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
