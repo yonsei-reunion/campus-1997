@@ -88,6 +88,12 @@ def woman(hair, body, legs, feet, colors=None, note='', **more):
                  'colors': colors or {}, 'note': note}, **more)
 
 
+def neckline(of, drop=.014, half=.044, side=.090, lean=0.0, vee=0.0, to='Skin'):
+    """A paint rule (see `paint`): the top's neckline, `drop` under the neck's joint in the middle of the front
+    (the top's rim stands 1 - 2 cm over the joint there: that much more skin shows)."""
+    return dict(of=of, to=to, neck=dict(drop=drop, half=half, side=side, lean=lean, vee=vee))
+
+
 def bands(to, of, zs, **box):
     """Stripes for `paint` (see '1997 wardrobe' below): one box a band (z from, to)."""
     return [dict(of=of, to=to, z=z, **box) for z in zs]
@@ -142,9 +148,11 @@ PEOPLE = {
                     'feet:Bar': '#27345a', 'feet:Lace': '#cfccc4', 'Skin': SKIN['b'], 'Hair': HAIR['black']},
                    'white long-sleeved tee with the GEUSS triangle, baggy light jeans, white trainers; short hair, the '
                    'fringe down over the forehead',
-                   paint={'body': [dict(of=('Skin',), to='LightBrown', x=(0, .592))], 'feet': trainers('umc', 'Red_Dark')},
+                   paint={'body': [dict(of=('Skin',), to='LightBrown', x=(0, .592)), neckline(('LightBrown',))],
+                          'feet': trainers('umc', 'Red_Dark')},
                    prints={'body': [dict(name='geuss', of=('LightBrown',), w=.28, z=1.33)]}, cut='wide',
-                   face=dict(lid='inner', slant=.0, eye=1.0, eye_open=.84, jaw=.92, chin=1.10, brow=1.35, brow_tilt=-.05,
+                   neck=.85,
+                   face=dict(lid='inner', slant=.0, eye=1.0, eye_open=.84, jaw=.95, chin=1.08, brow=1.35, brow_tilt=-.05,
                              arch=.3, brow_len=1.02, brow_taper=1.3, brow_soft=1.6, smile=.0018, mouth=1.08, lip=1.3,
                              nose=1.04, bridge=.38, nose_curve=1.1, nose_w=.98)),
     # 성훈: a beige checked shirt (체크 남방) worn open over a white tee, its long sleeves down (the pack's short-sleeved
@@ -156,7 +164,8 @@ PEOPLE = {
                      'beige checked shirt worn open over a white tee, jeans, black canvas shoes; neat short hair, metal glasses',
                      paint={'body': [dict(of=('Green',), to='Check'),
                                      dict(of=('LightGreen',), to='Check', x=(.12, None), z=(1.2, None)),      # (the bands at the armholes)
-                                     dict(of=('Skin',), to='Check', x=(.25, .592), group='sleeve')],
+                                     dict(of=('Skin',), to='Check', x=(.25, .592), group='sleeve'),
+                                     neckline(('LightGreen',))],
                             'feet': canvas('Purple', 'White')},
                      sleeves=dict(r0=.066, r1=.044),
                      face=dict(lid='mono', slant=.10, jaw=1.04, eye=.96, smile=.0016, mouth=.96, glasses=True, brow=1.3, arch=.4,
@@ -189,7 +198,8 @@ PEOPLE = {
                     'collared tee in broad navy, teal and orange stripes, wide dark jeans (진청); brown-dyed hair parted 6:4',
                     paint={'body': bands('Stripe', ('LightBrown',), [(1.085, 1.150), (1.280, 1.345)], x=(0, .21))
                            + bands('Stripe2', ('LightBrown',), [(1.185, 1.245), (1.380, 1.440)], x=(0, .21))
-                           + [dict(of=('LightBrown',), to='Collar', x=(0, .10), z=(1.495, None))]}, cut='wide',
+                           + [dict(of=('LightBrown',), to='Collar', x=(0, .10), z=(1.495, None)),
+                              neckline(('Collar', 'LightBrown'), drop=.034, vee=1.3)]}, cut='wide',
                     face=dict(lid='inner', slant=.10, jaw=.97, smile=.0012, mouth=.98, lip=1.35, brow=1.55, arch=.5, brow_tilt=.04,
                               brow_taper=1.7, brow_len=1.05, brow_gap=-.001, brow_up=-.001, nose=1.10, bridge=.42,
                               nose_curve=1.2, nose_w=1.04)),
@@ -209,6 +219,7 @@ PEOPLE = {
     'p08': man('crop', 'Worker', 'Suit', 'Worker',
                      {'Worker_Vest': '#3d4f6a', 'Worker_Yellow': '#c9c3b2', 'LightBrown': '#c9c3b2', 'Suit': '#3a3f47',
                       'Skin': SKIN['d'], 'Hair': HAIR['dark']}, 'campus staff: navy vest, grey trousers',
+                     paint={'body': [neckline(('LightBrown',))]},
                      face=dict(lid='mono', slant=.06, jaw=1.07, eye=.95, arch=.7, smile=.0012, age='mid', brow=1.4, brow_len=.92,
                                brow_taper=1.4, nose=.88, bridge=.26, nose_w=1.14)),
     'p09': woman('half', 'Casual', 'Casual', 'Casual',
@@ -216,7 +227,7 @@ PEOPLE = {
                         'feet:Sole': '#c9c6be', 'Skin': SKIN['a'], 'Hair': HAIR['black']},
                        'loose white tee with YONSEI in blue across the chest, wide light jeans (연청), white trainers; long '
                        'black hair, the top half tied back',
-                       paint={'feet': trainers('women', 'Grey')}, cut='wide',
+                       paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')}, cut='wide',
                        prints={'body': [dict(name='yonsei_ink', of=('White',), w=.22, z=1.40)]},
                        face=dict(lid='inner', slant=.07, eye=1.03, jaw=1.03, smile=.0030, brow=.9, arch=1.35, brow_peak=.58, brow_len=1.05, brow_up=-.002, brow_soft=1.3,
                                  nose=.80, bridge=.28, nose_w=.96, nose_up=.001)),
@@ -224,7 +235,7 @@ PEOPLE = {
                         {'White': '#e7a7b6', 'Orange': '#cdb994', 'Grey': '#f0eee8', 'feet:Bar': '#8d8f92', 'feet:Lace': '#d6d3cc',
                          'feet:Sole': '#cfccc4', 'Skin': SKIN['fair'], 'Hair': HAIR['dark']},
                         'pink knit, wide beige trousers, white trainers; short bob, one side behind the ear',
-                        paint={'feet': trainers('women', 'Grey')},
+                        paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')},
                         bust=1.3, face=dict(lid='inner', slant=.03, jaw=1.04, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
                                   nose=.72, bridge=.24, nose_w=1.02, nose_up=.002)),
     # 서연 (the film 건축학개론, 2012: a first-year of the college of music in 1996): a round, soft face, large eyes with
@@ -235,7 +246,11 @@ PEOPLE = {
                          'red knit with a cream band across the chest and the sleeves over a white tee, denim skirt to above '
                          'the knee, black shoes; long straight black hair under a yellow hairband',
                          paint={'body': [dict(of=('Skin',), to='LimeGreen', x=(0, .585)),       # (the sleeves, and a round neck)
-                                         dict(of=('LimeGreen',), to='Tee', x=(0, .075), z=(1.488, None)),   # (the tee's collar in it)
+                                         # the tee's collar in it: behind the neck a band, in front a round neck
+                                         # under the knit's, and skin in that
+                                         dict(of=('LimeGreen',), to='Tee', x=(0, .075), y=(-.045, None), z=(1.488, None)),
+                                         neckline(('LimeGreen',), to='Tee', drop=.040, half=.085, side=.06),
+                                         neckline(('Tee',), drop=.024, half=.068, side=.06),
                                          dict(of=('Gold',), to='LimeGreen'),            # (no belt: the knit hangs over the skirt)
                                          # the knit's band: across the chest, and round the sleeves where the arms, let
                                          # down, bring it level with that; a thin line under it, and one at the cuffs
@@ -261,7 +276,9 @@ PEOPLE = {
                                               dict(of=('Gold',), to='Rib'),
                                               dict(of=('LimeGreen',), to='Rib', x=(0, .22), z=(None, 1.178)),
                                               dict(of=('LimeGreen',), to='Rib', x=(.545, .585)),
-                                              dict(of=('LimeGreen',), to='Rib', x=(0, .082), z=(1.492, None))]},
+                                              dict(of=('LimeGreen',), to='Rib', x=(0, .082), y=(-.045, None), z=(1.492, None)),
+                                              neckline(('LimeGreen',), to='Rib', drop=.036, half=.085, side=.06),
+                                              neckline(('Rib',), drop=.020, half=.068, side=.06)]},
                               roomy=1.16, cut='wide',
                               face=dict(lid='double', slant=.10, eye=.99, jaw=.98, smile=.0022, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
                                         brow_peak=.68, brow_drop=1.0, brow_soft=1.3, nose=.84, bridge=.32, nose_w=.95)),
@@ -270,12 +287,13 @@ PEOPLE = {
                              'feet:Lace': '#d6d3cc', 'feet:Sole': '#cfccc4', 'Skin': SKIN['c'], 'Hair': HAIR['black']},
                             'pastel yellow cardigan over a white tee, dark jeans (진청), white trainers; a short cut swept back over '
                             'the ears, metal glasses',
-                            paint={'feet': trainers('women', 'Grey')},
+                            paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)], 'feet': trainers('women', 'Grey')},
                             face=dict(lid='inner', slant=.05, jaw=1.03, smile=.0024, glasses=True, brow=1.5, arch=.8, brow_taper=1.4, brow_soft=2.2,
                                       nose=.76, bridge=.28, nose_w=1.08)),
     'p14': woman('perm', 'Suit', 'Suit', 'Suit',
                          {'Black': '#2f3644', 'White': '#eef0f2', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
-                         'office staff: navy suit, short permed hair', face=dict(lid='inner', slant=.0, jaw=1.06, eye=.95, brow_tilt=-.03, smile=.0014, age='mid',
+                         'office staff: navy suit, short permed hair',
+                         paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)]}, face=dict(lid='inner', slant=.0, jaw=1.06, eye=.95, brow_tilt=-.03, smile=.0014, age='mid',
                                                                                  brow=.9, arch=1.25, brow_len=.96, brow_soft=1.4, nose=.84, bridge=.30, nose_w=1.10)),
     # (added last: the faces' cells go by this order)
     'p15': woman('pony', 'Formal', 'Casual', 'Casual',
@@ -290,7 +308,8 @@ PEOPLE = {
                                           *bands('Stripe', ('LimeGreen',), [(z - .013, z + .013) for z in (1.150, 1.206, 1.262, 1.318, 1.374, 1.430)],
                                                  x=(0, .172)),
                                           *[dict(of=('LimeGreen',), to='Stripe', x=(x - .013, x + .013))
-                                            for x in (.193, .249, .305, .361, .417, .473, .529)]],
+                                            for x in (.193, .249, .305, .361, .417, .473, .529)],
+                                          neckline(('LimeGreen',), drop=.030, half=.085, side=.06)],
                                  'feet': trainers('women', 'Grey')},
                           face=dict(lid='inner', slant=.06, eye=1.04, jaw=1.0, smile=.0027, mouth=1.0, brow=1.0, arch=.9, brow_len=1.0,
                                     brow_soft=1.5, nose=.80, bridge=.28, nose_w=1.0, nose_up=.001)),
@@ -299,6 +318,7 @@ PEOPLE = {
                       'Hair': HAIR['black']},
                      'forest-green shirt worn open over a black tee, beige cotton trousers; a long fringe parted in the middle, '
                      'metal glasses',
+                     paint={'body': [neckline(('LightGreen',))]},
                      face=dict(lid='inner', slant=.04, jaw=1.0, eye=1.0, smile=.0020, mouth=1.0, glasses=True, brow=1.15, arch=.7,
                                brow_len=.98, brow_taper=1.3, nose=.96, bridge=.32, nose_w=1.0)),
     'p17': woman('bang', 'Suit', 'Casual', 'Casual',
@@ -306,7 +326,7 @@ PEOPLE = {
                           'feet:Lace': '#d6d3cc', 'feet:Sole': '#cfccc4', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
                          'denim shirt (청남방) worn open over a white tee, beige cotton trousers, white trainers; hair to the '
                          'shoulders with a straight fringe',
-                         paint={'feet': trainers('women', 'Grey')},
+                         paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)], 'feet': trainers('women', 'Grey')},
                          bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
                                    brow_soft=1.6, nose=.78, bridge=.27, nose_w=.98, nose_up=.001)),
 }
@@ -713,7 +733,7 @@ def round_bust(ob, arm, size=1.0):
     me.update()
 
 
-def shape_body(ob, arm, rig):
+def shape_body(ob, arm, rig, neck=1.0):
     """The neck, the trapezius, the waist and the trunk's girth of BUILD on one part of a person, in the source's T
     pose: the bones stay where they are.  Both by place alone (the height, and for the neck how far from its axis), so that the head's neck, the neck's
     foot on the body, the collar round it and the hair on it move as one: by the bones' weights the neck stood out
@@ -750,7 +770,7 @@ def shape_body(ob, arm, rig):
         if b['neck'] and zn - .05 < c.z < zh + .02:
             # all of it from the collarbone up, less under the jaw (the head keeps its size), nothing a hand's width out
             up = _smooth(zn - .05, zn - .015, c.z) * (1 - .7 * _smooth((zn + zh) / 2, zh, c.z)) * (1 - _smooth(zh, zh + .02, c.z))
-            f = b['neck'] * up * (1 - _smooth(.075, .11, math.hypot(c.x, c.y - cn.y)))
+            f = b['neck'] * neck * up * (1 - _smooth(.075, .11, math.hypot(c.x, c.y - cn.y)))
             c.x *= 1 + f
             c.y = cn.y + (c.y - cn.y) * (1 + .5 * f)
         if tr and zn - .08 < c.z < zh + .03:
@@ -1278,14 +1298,24 @@ def cut_trousers(ob, arm, C):
 # with a colour of its own in `colors`), and the mesh is cut along the box's sides first, so the edge is straight.
 # x is taken either side of the middle (|x|); a bound left out is open.
 # `group`: the painted faces' points are also put in the vertex group of that name (long_sleeves reads 'sleeve').
+# `neck` (in place of a box): a neckline.  The packs' tops begin at the foot of the neck, as a turtleneck does; a
+# round-necked tee or a V neck lies lower and shows the skin between the neck and the chest.  What of the top's front
+# lies over a line, seen from the front, becomes `to`: the line hangs `drop` under the neck's joint in the middle and
+# rises (as a cube: a flat bottom and steep sides) by `side` at `half` from the middle, so it closes at the sides of
+# the neck (wider, it ran out over the shoulders, whose tops stand as high as the neck's foot); `vee` (m a m to
+# either side) makes it a V; `lean` raises it toward the neck (m a m back from the front of the chest: the line then
+# follows the chest's round, and its hollows).  neckline() (above PEOPLE) writes such a rule.
 
-def paint(ob, rules):
+def paint(ob, rules, arm=None):
     import bmesh
     me, mw = ob.data, ob.matrix_world
     bm = bmesh.new()
     bm.from_mesh(me)
     bm.transform(mw)
     for rule in rules:
+        if rule.get('neck'):
+            _paint_neck(ob, bm, rule, arm.matrix_world @ arm.data.bones['Neck'].head_local)
+            continue
         names = [m.name.split('.')[0] if m else '' for m in me.materials]
         src = {i for i, n in enumerate(names) if n in rule['of']}
         if not src:
@@ -1333,6 +1363,51 @@ def paint(ob, rules):
     bm.transform(mw.inverted())
     bm.to_mesh(me)
     bm.free()
+
+
+def _paint_neck(ob, bm, rule, cn):
+    """A neckline (see paint): the front faces of `of` over the line become `to`, cut along it first."""
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+    me = ob.data
+    N = rule['neck']
+    names = [m.name.split('.')[0] if m else '' for m in me.materials]
+    src = {i for i, n in enumerate(names) if n in rule['of']}
+    if not src:
+        raise SystemExit(f'{ob.name}: nothing of {rule["of"]} for a neckline')
+    if rule['to'] not in names:
+        me.materials.append(colour_material(rule['to'], (0.5, 0.5, 0.5, 1)))
+        names.append(rule['to'])
+    to = names.index(rule['to'])
+    zc = cn.z - N['drop']
+    hit = BVHTree.FromBMesh(bm).ray_cast(Vector((0.0004, cn.y - 0.6, zc)), Vector((0, 1, 0)))[0]
+    if hit is None or hit.y > cn.y - 0.02:
+        raise SystemExit(f'{ob.name}: no chest {N["drop"]} m under the neck for a neckline')
+    lean = N['lean']
+    # over the surface z >= zc + lean (y - the chest's) + side |x / half|^3 + vee |x| (a round neck's bottom is
+    # flat and its sides steep): cut and tested by its tangent planes (it is convex: what lies over it lies over
+    # all of them)
+    half, side, vee = N['half'], N['side'], N['vee']
+    sides = []
+    for t in (-1.1, -.9, -.7, -.5, -.25, .25, .5, .7, .9, 1.1):
+        x0, sx = half * t, (1 if t > 0 else -1)
+        sides.append((Vector((x0, hit.y, zc + side * abs(t) ** 3 + vee * abs(x0))),
+                      Vector((-sx * (3 * side * t * t / half + vee), -lean, 1))))
+    if not vee:                                            # (the bottom itself: level)
+        sides.append((Vector((0, hit.y, zc)), Vector((0, -lean, 1))))
+    over = lambda c: c.y < cn.y and all((c - co).dot(no) >= 0 for co, no in sides)        # noqa: E731
+    near = lambda f: all(abs(v.co.x) < 0.15 and v.co.z > zc - 0.03 for v in f.verts)      # noqa: E731
+    for co, no in sides + [(Vector((0, cn.y, 0)), Vector((0, 1, 0)))]:
+        fs = [f for f in bm.faces if f.material_index in src and near(f)]
+        geom = fs + list({e for f in fs for e in f.edges}) + list({v for f in fs for v in f.verts})
+        bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-5, plane_co=co, plane_no=no)
+    n = 0
+    for f in bm.faces:
+        if f.material_index in src and near(f) and over(f.calc_center_median()):
+            f.material_index = to
+            n += 1
+    if not n:
+        raise SystemExit(f'{ob.name}: the neckline of {rule["to"]} holds no face of {rule["of"]}')
 
 
 # ---------- what is printed on a chest ----------
@@ -2640,11 +2715,13 @@ def build_person(pid, spec):
         if part == 'body' and rig == 'women':
             round_bust(ob, arm, spec.get('bust', 1.0))
         if part in spec.get('paint', {}):
-            paint(ob, spec['paint'][part])
+            paint(ob, spec['paint'][part], arm)
         if part in spec.get('prints', {}):
             print_map(ob, spec['prints'][part])
         recolour(ob, part, spec['colors'])
-        shape_body(ob, arm, rig)                 # (the neck is the head's, the waist the body's and the legs')
+        # (the neck is the head's, the waist the body's and the legs'; a person's own `neck`: how much of the
+        # rig's widening of it, for a narrow jaw over which the neck stood as wide as the face)
+        shape_body(ob, arm, rig, spec.get('neck', 1.0))
         loosen(ob, part, outfit, arm, spec.get('roomy'))
         if part == 'body' and spec.get('sleeves'):
             long_sleeves(ob, arm, **spec['sleeves'])
