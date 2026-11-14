@@ -21,6 +21,7 @@ from PIL import Image, ImageDraw
 import gate_town
 import sinchon_rotary
 import muak
+import north97
 import cars97
 import seomun
 import west_ground
@@ -6605,6 +6606,12 @@ _Hn0 = Hn.copy()
 print('daewoo back, the low court\'s north-west stall: node (125, 530) %.2f -> %.2f' % (Hn[_nj, _ni], DAEWOO_BACK['low']))
 Hn[_nj, _ni] = DAEWOO_BACK['low']
 FIXED[_nj, _ni] = True
+# 북쪽 땅 (tools/north97.py, reference/고증/3.21 「땅의 높이」; #189, nt): the wooded ridge north of 대우관 and the road's
+# sides to the grid's north edge on the 1:5000 survey's surface + T, nudged to the 1997 photos where they see the
+# ground (the surface model stood 5 - 13 m low on the ridge); late, here: the planting has read the ground as it was
+# (no tree of its own stood north of y 600).  The road next is graded on it
+_nt_took, NORTH97_GRADE = north97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill)
+print('북쪽 땅 (격자 안):', NORTH97_GRADE)
 # 무악학사 · 북문으로 가는 길 (tools/muak.py, reference/고증/3.21_무악학사_북문.md): on the 1997 photos' line, its bed on
 # their profile (from the bend north-east of 대우관, 81.9 m, over the crest at y 760, 100.6 m), late: the planting has
 # read the ground as it was (no tree stood north of y 600)
@@ -6665,10 +6672,12 @@ HS.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_south.b
 # change; the 1997 roads' beds on it and the courts' pads
 _mk_far = ndimage.gaussian_filter(np.array(tf['rows_south_to_north'], np.float64), 0.7)     # (the far ring as the web draws it)
 HN = muak.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP, lambda x_, y_: ndimage.map_coordinates(
-    _mk_far, [(np.asarray(y_) + tf['half']) / tf['step'], (np.asarray(x_) + tf['half']) / tf['step']], order=1, mode='nearest'))
+    _mk_far, [(np.asarray(y_) + tf['half']) / tf['step'], (np.asarray(x_) + tf['half']) / tf['step']], order=1, mode='nearest'),
+    ground=north97.grid_z)                    # (the survey's surface + T and the 1997 photos: tools/north97.py)
 MUAK_ROADS = muak.lanes()
 MUAK_PROF, _mk_fixed = muak.level(HN, MUAK, MUAK_ROADS)
-MUAK_PADS = muak.pads(HN, [Polygon(muak.osm()[i_][1]).buffer(0) for i_ in muak.COURTS], _mk_fixed)
+MUAK_PADS = muak.pads(HN, [Polygon(muak.osm()[i_][1]).buffer(0) for i_ in muak.COURTS] + [north97.LOT97], _mk_fixed,
+                      north97.pad_levels(muak.COURTS))
 HN.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_north.bin'))
 print('무악학사 · 북문 땅: %.1f .. %.1f m, roads %s, courts %s' % (HN.min(), HN.max(),
       {k_: (round(float(v_[1][0]), 1), round(float(v_[1][-1]), 1)) for k_, v_ in MUAK_PROF.items()}, MUAK_PADS))
@@ -10273,18 +10282,19 @@ print('무악학사 길: shrubs taken out %d, props %d, trees moved aside %d, ne
 # draws each hall's looks in its order), 연희동's houses inside the patch, the rows over the roads after every other
 # tree, the patch's ground map beside the town's, the far forest kept off what is built or paved there (web/src/terrain.js)
 MUAK_HALLS = muak.halls(ground_tn)
-_mk_taken = unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS] + [muak.SITE] +
+MUAK_HALLS_LATE = muak.halls(ground_tn, late=True)     # (at the list's very end, below: 우유처리장's east hall)
+_mk_taken = unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE] + [muak.SITE] + muak.LOTS +
                         [ln_['ls'].buffer(hw_ + 3.0) for _, ln_, hw_, _ in MUAK_ROADS] + [MUAK['ls'].buffer(6.5)])
 MUAK_HOUSES = muak.houses(ground_tn, _mk_taken, random.Random(15993))
 buildings += MUAK_HALLS + MUAK_HOUSES
-_mk_gm = muak.ground_map(MUAK, MUAK_ROADS, [Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HOUSES])
+_mk_gm = muak.ground_map(MUAK, MUAK_ROADS, [Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES])
 out['tsplat'] = dict(sinchon_rotary.TSPLAT, **muak.pack(os.path.join(ROOT, 'web/public/assets/textures/ground_splat_town.png'),
                                                          muak.draw_map(_mk_gm)))
 MUAK_N_TREES = muak.trees_n(MUAK, MUAK_ROADS, _mk_taken.difference(MUAK['ls'].buffer(6.5)).union(
-    unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HOUSES]).buffer(2.5)).union(unary_union(_mk_gm['courts']).buffer(1.5)), trees)
+    unary_union([muak.poly_rng(b_) for b_ in MUAK_HALLS + MUAK_HOUSES]).buffer(2.5)).union(unary_union(_mk_gm['courts']).buffer(1.5)), trees)
 trees += MUAK_N_TREES
 _mk_clear = unary_union([_mk_gm['asphalt'].buffer(4.0), _mk_gm['pavers'].buffer(3.0), _mk_gm['dirt'].buffer(4.0),
-                         unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HOUSES]).buffer(6.0)]).simplify(1.5)
+                         unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES]).buffer(6.0)]).simplify(1.5)
 _mk_woods = _mk_gm['woods'].simplify(1.5)
 out['terrain']['north'] = dict(muak.NORTH, file='data/terrain_north.bin',
                                clear=[[[round(x_, 1), round(y_, 1)] for x_, y_ in g_.exterior.coords]
@@ -10292,7 +10302,7 @@ out['terrain']['north'] = dict(muak.NORTH, file='data/terrain_north.bin',
                                woods=[[[round(x_, 1), round(y_, 1)] for x_, y_ in g_.exterior.coords]
                                       for g_ in (_mk_woods.geoms if hasattr(_mk_woods, 'geoms') else [_mk_woods]) if g_.area > 200])
 for nm_ in ('무악학사', '무악학사 3 · 4학사 (공사중)', '우유처리장', '농업개발원', '북문'):
-    _mb = [b_ for b_ in MUAK_HALLS if b_['name'] == nm_]
+    _mb = [b_ for b_ in MUAK_HALLS + MUAK_HALLS_LATE if b_['name'] == nm_]
     _mp = unary_union([Polygon(b_['footprint']) for b_ in _mb]).representative_point() if nm_ != '북문' else Point(15.0, 915.0)
     out['markers'].append(dict(name=nm_, pos=[round(_mp.x, 1), round(_mp.y, 1)],
                                top=round(max(b_['base'] + b_['height'] for b_ in _mb) + (4.0 if nm_ == '무악학사' else 1.0), 1)))
@@ -10309,6 +10319,7 @@ print('무악학사 · 북문: halls %d, houses %d, trees %d, cleared for the fa
 # halls' end (blender/build.py draws each hall's looks in its order); the gate's posts, leaves and walls
 SEOMUN_HOUSES = seomun.houses(ground_tn)
 buildings += SEOMUN_HOUSES
+buildings += MUAK_HALLS_LATE                 # (무악학사 · 북문: after every other hall, none changes its looks)
 out['seomun'] = seomun.gate(ground_tn)
 out['markers'].append(dict(name='서문', pos=[-362.0, -18.4], top=round(out['seomun']['z'] + 4.0, 1)))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)

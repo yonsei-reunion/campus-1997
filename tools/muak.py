@@ -25,6 +25,8 @@ from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import unary_union, nearest_points
 import shapely
 
+import north97
+
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 _P = json.load(open(os.path.join(ROOT, 'tools/roadview/muak/proposal_roads.json')))
 # the 1997 middle line left of the survey's (the survey's s, m): measured at s 5 - 100, 125 - 200, 282 - 298 and s 500 -
@@ -33,10 +35,16 @@ OFF97 = [(0, 2.0), (50, 2.0), (60, 1.2), (100, 1.2), (125, 2.7), (170, 2.7), (19
          (420, 0.5), (500, 1.5), (600, 1.5), (630, 0.0)]
 HALF = 3.0                      # half the carriageway
 WALK = (3.25, 5.75)             # the west walk, left of the middle line (s 8 on: past the corner's mouth)
-# the road's surface (the survey's s, m): the 1997 frames (corr >= 0.7), the bend north-east of 대우관 as the east road
-# has it (81.9 m, reference/고증/3.6.2), s 195 the drive into the yard east of the crest (four frames, 0.91 - 0.96)
-Z97 = [(-14.0, 79.9), (10.0, 83.3), (50.0, 89.0), (90.0, 93.4), (195.0, 98.6), (306.0, 93.3), (342.0, 88.2),
-       (420.0, 80.0), (456.0, 80.0), (534.0, 66.0), (558.0, 63.6), (630.0, 56.0)]
+# the road's surface (the survey's s, m; 게임 기준 at that s of the line, road()): the 1997 frames (corr >= 0.7), the bend
+# north-east of 대우관 as the east road has it (reference/고증/3.6.2), s 195 the drive into the yard east of the crest
+# (four frames, 0.91 - 0.96).  Under the crowns the 1:5000 survey's spot heights on the road + T (reference/고증/3.21
+# 「길의 높이」): s 127 (223.9, 691.9), s 225 (241.6, 787.8, on its east verge), s 284 (248.8, 845.6 · 246.7, 847.2, with
+# the frames' 93.9 - 94.2 there), s 488 (116.2, 836.8).  From the hairpin to the fork one fall of 10 - 12 %: the frames'
+# 80 - 82 m at s 430 - 462 was the crowns over the road (the pairs that see the road under them: 78.3 at s 427, 75.8
+# at s 448, 73.3 at s 469, 71.4 at s 483, within 0.8 m of the survey's contours)
+Z97 = [(-14.0, 79.9), (10.0, 83.3), (50.0, 89.0), (90.0, 93.4), (127.0, 96.7), (195.0, 98.6), (225.0, 97.4),
+       (284.0, 94.0), (301.0, 93.5), (329.0, 89.9), (343.0, 88.1), (413.0, 80.1), (448.0, 75.9), (488.0, 70.8),
+       (525.0, 67.0), (558.0, 63.6), (602.0, 58.7), (630.0, 56.0)]
 S_GRID = 238.0                  # where the line leaves the 5 m grid (y 800)
 
 
@@ -164,10 +172,10 @@ def trees(line, trees_, halls, s0=14.0, s1=S_GRID, seed=15991):
 
 # ----------------------------------------------------------------------------- the patch north of the grid
 # The near terrain's 5 m patch north of the grid (as tools/sinchon_rotary.py's SOUTH): x -100 .. 400, y 800 .. 1300, its
-# bottom row the grid's top row.  Its heights are the elevation model's (data/terrain.json) made as the grid's; the
-# roads' beds levelled on it.  The 1997 frames' heights there differ from the model by -4 .. +7 m (the courts and the
-# dorms' forecourt 5 - 7 m higher, the road round the hairpin 2 - 4 m lower): only the main road takes the frames'
-# profile (it goes on from the campus's, which the frames' datum is tied to); the rest keeps the model's ground.
+# bottom row the grid's top row.  Its heights are tools/north97.py's GRID (the 1:5000 survey's surface + T, nudged to
+# the 1997 frames where they see the ground; past the survey sheet's north edge, y 1215, the elevation model): the
+# model alone stood 3 - 5 m high round 북문 and 2.4 - 4.4 m low round 무악학사 (reference/고증/3.21 「땅의 높이」).  The
+# roads' beds and the courts' pads are levelled on it.
 NORTH = dict(x0=-100.0, y0=800.0, step=5.0, nx=101, ny=101)      # (on the far ring's 100 m cells: its hole)
 NSPLAT = dict(x0=-60.0, y0=800.0, x1=340.0, y1=1280.0, res=0.5)     # its ground map (packed beside the town's)
 _OSM = None
@@ -199,15 +207,18 @@ def osm():
     return _OSM
 
 
-def patch(raw, Hn, half, step, far=None):
-    """the patch from the elevation model (raw(xs, ys) as build_campus.py makes Hn), its bottom row the grid's top row,
-    the difference eased out over 30 m; its other three edges on the far ring's ground (far(x, y): the web's 100 m
-    terrain as it draws it), eased in over 40 m, so that no step stands where the far ring takes over"""
+def patch(raw, Hn, half, step, far=None, ground=None):
+    """the patch from ground(X, Y) (tools/north97.py grid_z; without it the elevation model, raw(xs, ys) as
+    build_campus.py makes Hn), its bottom row the grid's top row, the difference eased out over 30 m; its other three
+    edges on the far ring's ground (far(x, y): the web's 100 m terrain as it draws it), eased in over 40 m, so that no
+    step stands where the far ring takes over"""
     S = NORTH
     xs = S['x0'] + np.arange(S['nx']) * S['step']
     ys = S['y0'] + np.arange(-8, S['ny'] + 6) * S['step']
-    G = raw(xs, ys)
-    Hs = G[8:8 + S['ny']].copy()
+    if ground is not None:
+        Hs = np.asarray(ground(*np.meshgrid(xs, ys[8:8 + S['ny']])), float).copy()
+    else:
+        Hs = raw(xs, ys)[8:8 + S['ny']].copy()
     if far is not None:
         X, Y = np.meshgrid(xs, ys[8:8 + S['ny']])
         d = np.minimum(np.minimum(X - xs[0], xs[-1] - X), ys[8 + S['ny'] - 1] - Y)
@@ -261,10 +272,14 @@ def lanes():
     return [('loop', loop, 3.25, None), ('west', west, 2.0, None), ('east', east, 2.0, None)]
 
 
+LANE_SMOOTH = 8.0               # the lanes' beds: the ground along them smoothed this far (sigma, m)
+
+
 def level(Hs, line, roads):
     """the roads' beds on the patch: the main road on its own profile (line['z']), the others on the ground smoothed
-    along them (60 m) from the main road's surface where they leave it, level across; eased into the ground over 10 m.
-    The bottom row stays (the grid's).  Returns ({name: (s, z)}, the nodes the roads took)"""
+    along them (LANE_SMOOTH: the ground is the survey's and the frames' now, which the 1997 lanes lie on within 0.6 m
+    where the frames see them) from the main road's surface where they leave it, level across; eased into the ground
+    over 10 m.  The bottom row stays (the grid's).  Returns ({name: (s, z)}, the nodes the roads took)"""
     from scipy import ndimage
     X, Y = grid_xy()
     fixed = np.zeros(X.shape, bool)
@@ -273,7 +288,7 @@ def level(Hs, line, roads):
     out = {}
     todo = [('main', line, HALF, WALK, line['z'])]
     for nm, ln, hw, wk in roads:
-        z = ndimage.gaussian_filter1d(np.array([sample_n(H0, *p) for p in ln['p']]), 30.0, mode='nearest')
+        z = ndimage.gaussian_filter1d(np.array([sample_n(H0, *p) for p in ln['p']]), LANE_SMOOTH, mode='nearest')
         if line['ls'].distance(Point(*ln['p'][0])) < 8.0:
             s0, _ = project(line, np.array([ln['p'][0][0]]), np.array([ln['p'][0][1]]))
             k = np.clip(1.0 - ln['s'] / 25.0, 0, 1)
@@ -296,20 +311,22 @@ def level(Hs, line, roads):
     return out, fixed
 
 
-def pads(Hs, polys, fixed):
-    """flat pads (the courts): each at the ground's mean along its edge, eased out over 8 m"""
+def pads(Hs, polys, fixed, levels=None):
+    """level pads (the courts, the car park): each at its level (levels: a height, or a plane as a function of x, y:
+    tools/north97.py pad_levels; without one the ground's mean along its edge), eased out over 8 m"""
     X, Y = grid_xy()
     pts = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
     zs = []
-    for poly in polys:
-        z = float(np.mean([sample_n(Hs, *q) for q in poly.exterior.coords]))
+    for k, poly in enumerate(polys):
+        z = levels[k] if levels else float(np.mean([sample_n(Hs, *q) for q in poly.exterior.coords]))
+        zz = z(X, Y) if callable(z) else z
         d = shapely.distance(poly, pts).reshape(X.shape)
         w = np.clip(1.0 - (d - 1.0) / 8.0, 0, 1)
         w = w * w * (3 - 2 * w)
         w[fixed] = 0.0
-        Hs[:] = Hs * (1 - w) + z * w
+        Hs[:] = Hs * (1 - w) + zz * w
         fixed |= d <= 1.0
-        zs.append(round(z, 2))
+        zs.append(round(float(z(*poly.centroid.coords[0])) if callable(z) else z, 2))
     return zs
 
 
@@ -334,16 +351,16 @@ def _v(ang, v):
 # 무악학사 1 · 2학사 (1989, 1993; 지하 1 · 지상 5층): four wings along 101.8 - 102 deg, as OSM's outlines have them (centre,
 # length, wall width), moved across by where the 1997 frames put each roof (eaves 12.4 - 13.5 m wide: 26/14 and 27/15,
 # the near eave over the facade one frame sees and the far one against the ground the other sees, on the plane where
-# the two agree): 2학사 서 3.6 m, 동 3.4 m, 1학사 서 3.1 m, 동 1.2 m west-south-west of OSM's.  Eaves 88.5, 95, 99.5,
-# 106 m on the frames' datum, 14.5 - 18.5 m over the frames' ground beside them: here 15.5 m over each wing's high
-# side, the basement out on the low side
-DORM_WINGS = [  # (id, name, centre, axis deg, length, width, shift m)
-    (991001, '무악학사', (93.2, 1161.75), 101.8, 55.0, 10.8, 3.6),
-    (991002, '무악학사', (119.4, 1180.9), 101.8, 55.3, 9.4, 3.4),
-    (991003, '무악학사', (150.8, 1191.9), 102.0, 55.6, 9.7, 3.1),
-    (991004, '무악학사', (183.25, 1171.7), 102.0, 54.2, 9.9, 1.2),
+# the two agree): 2학사 서 3.6 m, 동 3.4 m, 1학사 서 3.1 m, 동 1.2 m west-south-west of OSM's.  Each wing's eaves where
+# the frames have them (the mean of its west and east eaves, 게임 기준 at its centre: 85.8 · 87.3, 93.2 · 92.5, 97.6 ·
+# 97.5, 103.7 · 104.6): on the ground as tools/north97.py lays it they stand 14.6 - 15.5 m over each wing's high side
+# (five storeys) and 16.9 - 19.8 m over its low side, where the basement is out
+DORM_WINGS = [  # (id, name, centre, axis deg, length, width, shift m, eaves 게임 기준 @ centre)
+    (991001, '무악학사', (93.2, 1161.75), 101.8, 55.0, 10.8, 3.6, 86.55),
+    (991002, '무악학사', (119.4, 1180.9), 101.8, 55.3, 9.4, 3.4, 92.85),
+    (991003, '무악학사', (150.8, 1191.9), 102.0, 55.6, 9.7, 3.1, 97.55),
+    (991004, '무악학사', (183.25, 1171.7), 102.0, 54.2, 9.9, 1.2, 104.15),
 ]
-DORM_EAVE_UP = 15.5
 # the low blocks between each pair (OSM 429077776's and 429077777's middle, the 식당 1452272054, 1452272055): moved as
 # the pair's mean, three and two storeys
 DORM_LOW = [
@@ -357,11 +374,18 @@ DORM_LOW = [
 SITE_HALLS = [(991011, 429077772, 4), (991012, 429077773, 5)]
 SITE = Polygon([(70.0, 1004.0), (165.0, 1020.0), (205.0, 1024.0), (201.0, 1100.0), (190.0, 1128.0), (140.0, 1142.0),
                 (101.0, 1126.0), (72.0, 1078.0)])
-# the other halls the 1997 frames show (OSM's outlines): 우유처리장 (its roof 86.4 m, 1.6 m west of OSM's outline),
+# 우유처리장 as the 1997 frames have it (26/14 and 27/15 on the planes of its roofs, where the two frames put an edge
+# in one place: its corners within 0.9 m): a west wing along the road (roof 81.2 m: three pairs 80.5 - 81.5) and a
+# hall east of it one high storey over its car park (roof 79.5 m: 79.1 - 79.6; the car park 75.2 m), both turned 3 - 7
+# deg as OSM's outline is but 1 - 2.7 m north of it.  (The wing in its place in the list; the hall goes on at the
+# list's end, halls(late=True), so that blender/build.py's draws for the halls after it stay.)
+MILK_WEST = [(112.8, 898.7), (109.1, 862.4), (127.65, 860.05), (130.2, 879.2), (131.6, 896.7)]
+MILK_EAST = [(130.2, 879.2), (154.0, 877.7), (155.4, 894.1), (131.6, 896.7)]
+# the other halls the 1997 frames show (OSM's outlines):
 # 농업개발원 (two storeys, a gabled roof), 대창고, the sheds east of the road at the crest, the long hall by the school,
 # the hut east of the courts, and on the athletes' dormitory's site (2004) the low hall of 1997
 OTHER_HALLS = [  # (id, name, style, levels, OSM id or outline, shift, hip)
-    (991021, '우유처리장', 'white', 2, 429077767, (-1.6, 0.0), None),
+    (991021, '우유처리장', 'white', 3, MILK_WEST, (0.0, 0.0), None),
     (991022, '농업개발원', 'brick', 2, 429077770, (0.0, 0.0), dict(mat='roof_slate', pitch=0.45, over=0.6, gable=True)),
     (991023, '농업개발원', 'brick', 2, 429077771, (0.0, 0.0), dict(mat='roof_slate', pitch=0.45, over=0.6, gable=True)),
     (991024, '', 'white', 2, 429077778, (0.0, 0.0), None),
@@ -378,13 +402,18 @@ OTHER_HALLS = [  # (id, name, style, levels, OSM id or outline, shift, hip)
 # leaf folds into, their inner faces 4.7 m apart, and on the south frame's inner side a flat-roofed lodge with a cut corner
 GATE_FRAMES = [[(11.8, 917.2), (16.8, 917.2), (16.8, 920.6), (11.8, 920.6)], [(13.5, 910.1), (17.5, 910.1), (17.5, 912.5), (13.5, 912.5)]]
 GATE_LODGE = [(14.5, 903.5), (23.0, 903.5), (23.0, 910.0), (16.0, 910.0), (14.5, 908.5)]
+ROOF_TOP = {991021: 81.2,       # 우유처리장's roofs (게임 기준): the west wing @ (120, 878)
+            991033: 79.5}       # ... the hall east of it @ (143, 886)
 COURTS = [429077768, 429077769, 429077775]
-LOTS = [1444557748, 1358516368]
+# (OSM's car parks: 1444557748 east of 우유처리장 is tools/north97.py's LOT97 as the 1997 frames have it; 1358516368
+# between the two dormitories is later, a long flat roof stood there in 1997: reference/고증/3.21 「남은 한계」)
+LOTS = [north97.LOT97]
 APRON = Polygon([(45.0, 955.0), (60.0, 952.0), (75.0, 960.0), (73.0, 975.0), (58.0, 977.0), (46.0, 966.0)])
 
 
-def halls(ground, osm_=None):
-    """campus.json buildings for what stood north of the grid in 1997 (ground(x, y): the patch's or the grid's)"""
+def halls(ground, osm_=None, late=False):
+    """campus.json buildings for what stood north of the grid in 1997 (ground(x, y): the patch's or the grid's).
+    late: the halls that go on at the end of the game's list instead (우유처리장's east hall)"""
     O = osm_ or osm()
     out = []
 
@@ -404,10 +433,9 @@ def halls(ground, osm_=None):
         out.append(b)
         return b
 
-    for i, nm, c, ang, L, W, sh in DORM_WINGS:
+    for i, nm, c, ang, L, W, sh, top in DORM_WINGS:
         g = _shift(_rect(c, ang, L, W), _v(ang, sh))
         hs = [ground(x, y) for x, y in g]
-        top = max(hs) + DORM_EAVE_UP
         lv = max(5, int(round((top - min(hs)) / 3.1)))
         add(i, nm, 'brick', lv, g, top=top, hip=dict(mat='roof_slate', pitch=0.4, over=1.3))
     for i, g, sh, lv in DORM_LOW:
@@ -416,11 +444,22 @@ def halls(ground, osm_=None):
         add(i, '무악학사 3 · 4학사 (공사중)', 'white', lv, O[oid][1][:-1], fh=3.1)
     for i, nm, style, lv, src, sh, hip in OTHER_HALLS:
         g = O[src][1][:-1] if isinstance(src, int) else src
-        add(i, nm, style, lv, _shift(g, sh), hip=hip)
+        add(i, nm, style, lv, _shift(g, sh), hip=hip, top=ROOF_TOP.get(i))
     for k, g in enumerate(GATE_FRAMES):
         add(991041 + k, '북문' if k == 0 else '', 'white', 1, g, fh=3.3)
     add(991043, '', 'white', 1, GATE_LODGE, fh=3.2)
+    if late:
+        out[:] = []
+        add(991033, '우유처리장', 'white', 1, MILK_EAST, top=ROOF_TOP[991033])
     return out
+
+
+def poly_rng(b, osm_=None):
+    """a hall's outline as the rows of trees were first decided on: 우유처리장's was OSM's, 1.6 m west (the 1997 frames'
+    own outline since; a tree's place in the list picks its model in the web, so none is dropped for it)"""
+    if b['id'] == 991021:
+        return Polygon(_shift((osm_ or osm())[429077767][1][:-1], (-1.6, 0.0)))
+    return Polygon(b['footprint'])
 
 
 def houses(ground, taken, rd, osm_=None):
@@ -448,7 +487,7 @@ def ground_map(line, roads, hall_polys):
     O = osm()
     rd = [strip(line, S_GRID - 6.0, line['s'][-1] - 0.5, -HALF, HALF), strip(line, S_GRID - 6.0, 300.0, WALK[0], WALK[1])]
     asph = [rd[0], APRON] + [ln['ls'].buffer(hw, cap_style='flat') for _, ln, hw, _ in roads]
-    asph += [Polygon(O[i][1]).buffer(0) for i in LOTS]
+    asph += LOTS
     asph += [LineString(g).buffer(2.5) for t, g in O.values() if t.get('highway') == 'residential' and any(in_patch(*q) for q in g)]
     courts = [Polygon(O[i][1]).buffer(0) for i in COURTS]
     asph_u = unary_union(asph)
