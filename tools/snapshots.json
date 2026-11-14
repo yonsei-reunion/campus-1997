@@ -192,7 +192,7 @@
     {"name": "screenshots/kwangbok_roof", "doc": "고증 3.9: 광복관의 ㄱ자 모임지붕과 북쪽 날개, 남서쪽 위에서",
      "cam": {"x": -160, "y": 15, "dh": 45, "tx": -112, "ty": 92, "tdh": 0, "fov": 50}, "size": [1350, 860],
      "out": [{"path": "docs/screenshots/kwangbok_roof.jpg", "width": 900}]},
-    {"name": "screenshots/science_domes", "doc": "고증 3.10: 과학관 동쪽 날개의 천문대 돔과 이음 동 옥탑 위 작은 돔, 남쪽 위에서",
+    {"name": "screenshots/science_domes", "doc": "고증 3.10: 과학관 동쪽 날개의 천문대 돔과 이음 동 옥탑 · 흰 상자 둘 · 서쪽 계단탑, 남쪽 위에서",
      "cam": {"x": -250, "y": -95, "dh": 30, "tx": -260, "ty": 15, "tdh": 18, "fov": 50}, "size": [1350, 860],
      "out": [{"path": "docs/screenshots/science_domes.jpg", "width": 900}]},
     {"name": "screenshots/auditorium_drive", "doc": "고증 4.5: 옹벽 남쪽 끝에서 본 대강당 진입로 · 둑의 은행나무 줄 · 별관 앞 나무, 카카오 로드뷰 2011년 4월 1017220192(줌 3)과 같은 자리 · 방위 · 화각",

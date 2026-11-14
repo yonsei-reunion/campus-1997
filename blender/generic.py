@@ -546,10 +546,12 @@ def observatory(mb, b, zt, st):
     tower near the east end carrying a silver dome with an observing slit.  Where and how big: the 1997-07-28 vertical
     aerial photos (two frames: the dome's rim 5.8 m across and 6 m over the roof, its middle 9.4 m west of the east
     face and 9.6 m north of the south one) and the 2010 skyview (5.6 m, the same place to 1 m); the 1994 aerial photo
-    and three 2010 roadview panoramas had given 5.1 - 5.6 m.  Where the link meets the east wing a penthouse block
-    9 m by 10.5 m stands 5.7 m over the roof (both frames), two white things under 2 m across on it: the one 7 m west
-    of the junction is the 1994 photo's white post with a rounded end, the small silver dome (the 2010 roadview: 1.5 -
-    2 m).  On the south-west wing's roof, at its west end, a round tank 3.5 m across."""
+    and three 2010 roadview panoramas had given 5.1 - 5.6 m.  Where the link meets the east wing (the 1997 scans,
+    0.13 m a pixel: reference/고증/3.10 「옥탑」): a one-storey penthouse 9.1 m by 11.2 m, its roof 4.0 m over the
+    wing's, with two white boxes on it, 1.5 by 1.65 m and 1.9 m high, square-cornered and evenly lit in both frames
+    (no dome: the later silver dome is not there in 1997; the east box is the 1994 photo's white post), and against
+    its north-west corner a stair tower two storeys high, 4.9 m by 8.9 m, out to the wing's north face (the 1994
+    photo's white tower).  On the south-west wing's roof, at its west end, a round tank 3.5 m across."""
     r = b['roof']
     o, t = Vector(r['o']), Vector(r['t'])
     n = Vector((-t.y, t.x))
@@ -558,16 +560,16 @@ def observatory(mb, b, zt, st):
     # (the slit two gores wide, facing south-west: u westwards, v southwards)
     dome_tower(mb, P(*r['dome']), ang, zt, st, T=6.0, Ht=6.0, R=2.8, seg=24, rings=7, slit=(5, 6),
                drum=0.51, win=(0.4, 2.6, 4.2))
-    u0, u1, v0, v1 = r['pent']
-    hp = 5.7
-    c = P((u0 + u1) / 2, (v0 + v1) / 2)
-    mb.box((c.x, c.y, zt + hp / 2), (u1 - u0, v1 - v0, hp), st['wall'], rotz=ang, mats={'top': 'roof_flat'}, skip=('bottom',))
-    mb.box((c.x, c.y, zt + hp + 0.12), (u1 - u0 + 0.3, v1 - v0 + 0.3, 0.24), 'concrete', rotz=ang, skip=('bottom',))
-    # the small dome on it, its slit one gore wide, the same way; the other white thing a plain box
-    dome_tower(mb, P(*r['dome2']), ang, zt + hp + 0.24, st, T=2.0, Ht=0.5, R=0.9, seg=16, rings=5, slit=(4,), drum=0.2,
-               win=(0.0, 0.1, 0.1), seam=0.02, phase=-math.pi / 16)
-    q = P(r['dome2'][0] - 4.0, r['dome2'][1])
-    mb.box((q.x, q.y, zt + hp + 0.24 + 0.6), (1.6, 1.6, 1.2), 'paint_white', rotz=ang, skip=('bottom',))
+    for key, hk in (('pent', 'pent_h'), ('tower', 'tower_h')):
+        u0, u1, v0, v1 = r[key]
+        hp = r[hk]
+        c = P((u0 + u1) / 2, (v0 + v1) / 2)
+        mb.box((c.x, c.y, zt + hp / 2), (u1 - u0, v1 - v0, hp), st['wall'], rotz=ang, mats={'top': 'roof_flat'}, skip=('bottom',))
+        mb.box((c.x, c.y, zt + hp + 0.12), (u1 - u0 + 0.3, v1 - v0 + 0.3, 0.24), 'concrete', rotz=ang, skip=('bottom',))
+    bu, bv, bh = r['box']
+    for q in r['boxes']:                 # (the two white boxes on the penthouse's roof)
+        q = P(*q)
+        mb.box((q.x, q.y, zt + r['pent_h'] + bh / 2), (bu, bv, bh), 'paint_white', rotz=ang, skip=('bottom',))
     q = P(*r['tank'])
     mb.cylinder((q.x, q.y), 1.75, zt - b['fh_up'], zt - b['fh_up'] + 2.4, 'concrete', seg=16, mat_cap='roof_flat')
 

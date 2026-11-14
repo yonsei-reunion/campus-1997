@@ -229,9 +229,13 @@ SCI = dict(o=np.array([-218.78, 7.32]), t=np.array([math.cos(_sa), math.sin(_sa)
            # the part a storey higher: the east wing, the link, the penthouse along the south-west wing's north side
            wing=[(0.6, 0.3), (0.6, 18.4), (-72.4, 18.4), (-72.4, 0.3), (-67.7, 0.3), (-67.7, -25.6), (-102.0, -25.6),
                  (-102.0, -34.0), (-53.6, -34.0), (-53.6, -25.6), (-53.6, 0.3)],
-           # the roof: the observatory's dome (5.6 m, its rim 6 m over the roof), the penthouse block where the link
-           # meets the east wing (5.7 m over the roof) with a small dome on it, a round tank at the west end
-           dome=(-8.8, 9.9), pent=(-64.3, -55.2, 0.5, 11.0), dome2=(-56.3, 6.2), tank=(-116.3, -36.7),
+           # the roof: the observatory's dome (5.6 m, its rim 6 m over the roof); where the link meets the east wing a
+           # one-storey penthouse (its roof 4.0 m over the wing's) with two white boxes on it (1.5 x 1.65 m, 1.9 m
+           # high: square in both scans, not domes), and against its north-west corner a two-storey stair tower out
+           # to the wing's north face (its parapet 8.1 m over the roof: the 1994 photo's white tower); a round tank
+           # (the scans: a cooling tower's fan) at the south-west wing's west end
+           dome=(-8.8, 9.9), pent=(-62.9, -53.8, 1.6, 12.8), pent_h=4.0, boxes=((-59.5, 6.0), (-55.9, 6.0)),
+           box=(1.5, 1.65, 1.9), tower=(-67.25, -62.35, 8.95, 17.85), tower_h=7.85, tank=(-116.3, -36.7),
            clutter=(-82.0, -39.0),                               # (the lower roof's middle, south of the penthouse)
            fan=dict(c=(-72.6, -18.5), r=23.2, south=-21.0), annex=(-112.0, -99.0, -25.6, -18.5))
 
@@ -6353,6 +6357,30 @@ os.makedirs(os.path.join(ROOT, 'web/public/data'), exist_ok=True)
 # stays), and over the road's side of its four cells a deck keeps the ground as it ran, the road and its verge
 # (made below, by dwb_deck: DAEWOO_BACK['deck_nw']), with the deck's stone skirt along the court's edge: a low
 # retaining edge from nothing at the court's level up to 0.9 m at w2's west end, where the boulders are.
+# 과학관 마당의 둑과 차 길 (reference/고증/3.10 「마당의 둑과 차 길」; the 1997-07-28 scans, read by the park agent and
+# heights from four frames): the chequered court is only u -53.6 ~ -15, v 0.3 ~ -35 (with the corner cut), at 50.8 m;
+# south and east of it an L of planted bank steps down 1.7 m to a drive round it (v -44.5 ~ -55, the corner, u -8.5 ~
+# -1, and the asphalt north of the bank's end, u -14 ~ +2, v -2 ~ -15) at 49.1 m (48.4 ~ 49.2 on the photos' datum, which
+# reads the court 0.3 m under the game's), where the cars park.  The game had the court flat to v -44.5 and u -4.
+# Late, here: the planting was laid on the flat court.  The nodes in the drive go to its level, those on the bank
+# between the court's edge and the drive's by their distances to each; the court's own stay
+SCI_COURT97 = sci_poly([(-53.6, 0.3), (-15.0, 0.3), (-15.0, -32.0), (-22.0, -35.0), (-45.5, -35.0), (-45.5, -25.6), (-53.6, -25.6)])
+SCI_DRIVE97 = sci_poly([(-46.0, -44.5), (-22.0, -44.5), (-8.5, -32.0), (-8.5, -15.0), (-14.0, -15.0), (-14.0, -2.0), (2.0, -2.0),
+                        (2.0, -15.0), (-1.0, -20.0), (-1.0, -52.0), (-20.0, -55.0), (-46.0, -55.0)])
+SCI_BANK97 = sci_poly([(-45.5, -35.0), (-22.0, -35.0), (-15.0, -32.0), (-15.0, -2.0), (-14.0, -2.0), (-14.0, -15.0), (-8.5, -15.0),
+                       (-8.5, -32.0), (-22.0, -44.5), (-45.5, -44.5)])
+SCI['drive'] = 49.1
+_scm = (np.abs(X + 245) < 45) & (np.abs(Y + 15) < 45)
+_scx, _scy = X[_scm], Y[_scm]
+_dc = shapely.distance(SCI_COURT97, shapely.points(_scx, _scy))
+_dd = shapely.distance(SCI_DRIVE97, shapely.points(_scx, _scy))
+_inb = shapely.contains_xy(SCI_BANK97.buffer(0.5), _scx, _scy) | (_dd < 0.01)
+_hz = np.where(_dd < 0.01, SCI['drive'], SCI['court'] + (SCI['drive'] - SCI['court']) * _dc / np.maximum(_dc + _dd, 1e-6))
+_sci_h = Hn[_scm].copy()
+_sci_h[_inb & (_dc > 0.01)] = _hz[_inb & (_dc > 0.01)]
+print('과학관 마당 둘레: %d nodes to the drive (%.1f m), %d on the bank' % (int((_dd < 0.01).sum()), SCI['drive'],
+                                                                     int((_inb & (_dc > 0.01) & (_dd >= 0.01)).sum())))
+Hn[_scm] = _sci_h
 _nj, _ni = int(round((530.0 + NEAR_HALF) / NEAR_STEP)), int(round((125.0 + NEAR_HALF) / NEAR_STEP))
 assert abs(gx[_ni] - 125.0) < 1e-6 and abs(gx[_nj] - 530.0) < 1e-6, (gx[_ni], gx[_nj])
 _Hn0 = Hn.copy()
@@ -6439,7 +6467,8 @@ for b in buildings:
     if b['id'] == 222843398:           # (blender/generic.py: the part a storey higher, the roof's domes and penthouse)
         b['wing'] = [list(sci_xy(u_, v_)) for u_, v_ in SCI['wing']]
         b['roof'] = dict(o=[float(v_) for v_ in SCI['o']], t=[round(float(v_), 5) for v_ in SCI['t']],
-                         dome=SCI['dome'], pent=SCI['pent'], dome2=SCI['dome2'], tank=SCI['tank'], clutter=SCI['clutter'])
+                         **{k_: SCI[k_] for k_ in ('dome', 'pent', 'pent_h', 'boxes', 'box', 'tower', 'tower_h', 'tank',
+                                                   'clutter')})
     _bp_all = [Polygon(b_['footprint']) for b_ in buildings]
     poly = next(q for q, b_ in zip(_bp_all, buildings) if b_ is b)
     b.pop('entry', None)
@@ -8291,7 +8320,8 @@ _ypaint([GONGWON_SITE.buffer(0.5), GW_LOT, GW_ROW, GW_YARD], _yg)    # (공학�
 _old_aprons = unary_union([Polygon(g_['footprint']) for g_ in RND_GHOSTS if g_['id'] in GONE_LAWN] +
                           [q_ for pid_, _, _, _, q_ in OLD_HALLS if pid_ in (990010, 990011, 990012)]).buffer(4.2)
 _ypaint([_old_aprons.difference(unary_union(LATE_SITES).buffer(3.5))], _yg)
-_ypaint([SCI_COURT.union(flight_zone(SCI_DOOR, SCI_N, 8.8, 7.0))], _yp)
+_ypaint([SCI_COURT97.union(flight_zone(SCI_DOOR, SCI_N, 8.8, 7.0))], _yp)
+_ypaint([SCI_BANK97.difference(SCI_COURT97)], _yg)   # (과학관 마당 둘레: the bank planted; its drive asphalt, _ga below)
 _ypaint([sci_poly([(-121.0, -12.0), (-86.0, 15.5), (-88.5, 18.6), (-123.5, -8.9)])], _yg)   # (the hedge's bed: SCI_YARD)
 _ypaint([Polygon(b_['footprint']).buffer(3.5, join_style=2) for b_ in YONGJAE_BUILDINGS] +
         [yongjae_poly(-4.5, 2.8, -1.0, 21.0)], _yp)
@@ -8824,6 +8854,7 @@ _ypaint([MUAK_WALK], _gp)
 MUAK_WOODS = muak.woods_strip(MUAK, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))
 _mk_floor = unary_union([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD]).intersection(woods_u.buffer(-1.0)).union(MUAK_WOODS)
 _ypaint([g_ for g_ in (_mk_floor.geoms if hasattr(_mk_floor, 'geoms') else [_mk_floor]) if g_.geom_type == 'Polygon' and g_.area > 0.5], _gf)
+_ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 길: SCI_DRIVE97)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
 _YN[id(_gw)] = '_gw'
 _ypaint([BK_COURT], _gw)
