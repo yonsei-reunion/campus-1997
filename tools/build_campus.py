@@ -7858,6 +7858,7 @@ HK_ROWS = [('한경길', (49.5, 303.3), (70.5, 295.6), 9, 1), ('한경길', (80.
            ('연희관 앞', (81.0, 383.3), (110.0, 377.0), 12, -1), ('연희관 앞', (85.5, 393.5), (90.5, 392.3), 3, 1),
            ('연희관 앞', (95.0, 391.0), (95.0, 391.0), 1, 1), ('연희관 앞', (108.5, 389.0), (113.5, 387.5), 3, 1)]
 _rhk = random.Random(1997 + 15597)
+HK_FREE_AT, HK_FREE = {(1, 4), (2, 6), (3, 5), (4, 3)}, []
 _hk_halls = unary_union([Polygon(b_['footprint']) for b_ in buildings])
 HK_PADS, _hk_lots = [], {}
 for name_, a_, b_, k_, nose_ in HK_ROWS:
@@ -7875,9 +7876,21 @@ for name_, a_, b_, k_, nose_ in HK_ROWS:
         x_, y_ = a_ + (b_ - a_) * (i_ / max(1, k_ - 1))
         h_ = math.atan2(n_[1], n_[0])
         lot_['stalls'].append([round(float(x_), 2), round(float(y_), 2), round(h_, 3)])
-        cars.append([_rhk.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(float(x_), 2), round(float(y_), 2),
-                     round(h_ + _rhk.uniform(-.06, .06), 3), _rhk.randrange(8)])
-print('한경길 · 연희관 앞: parked cars', sum(r_[3] for r_ in HK_ROWS), 'in', len(HK_ROWS), 'rows')
+        car_ = [_rhk.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(float(x_), 2), round(float(y_), 2),
+                round(h_ + _rhk.uniform(-.06, .06), 3), _rhk.randrange(8)]
+        if (len(HK_PADS) - 1, i_) in HK_FREE_AT:           # (left free for a car that drives in: TRAFFIC below)
+            HK_FREE.append((round(float(x_), 2), round(float(y_), 2), nose_))
+        else:
+            cars.append(car_)
+print('한경길 · 연희관 앞: parked cars', sum(r_[3] for r_ in HK_ROWS) - len(HK_FREE), 'in', len(HK_ROWS), 'rows, free stalls', len(HK_FREE))
+# ... and the cars of 백양로 drive in (2026-11-14): off the east road at the fork east of 한경길, west along the north
+# lane, round at the west end before 교육관 and back east along the south lane to the east road (the way in that fits
+# both the photos' cars and the alumnus's word: none on the drives right beside the halls).  One stall of a row left
+# free for them (HK_FREE_AT: row, place).  The lanes' middle lines are OSM's (the 1997 rows stand 4.5 - 7 m outside
+# them); HK_TURN the two corners of the round at the west end.
+HK_N = [(104.1, 281.3), (71.4, 290.9), (52.2, 296.6)]                                   # the north lane, westwards
+HK_S = [(69.2, 282.5), (96.2, 275.4), (108.7, 272.3), (131.5, 267.5)]                   # the south lane, eastwards
+HK_TURN = [(40.3, 301.5), (40.2, 291.0)]
 # The cars' last pass (2026-11-14).  The web app used to choose each car's model and colour by its place in this
 # list (a 'sedan' the saloon, the older saloon or the van by turns, a 'hatch' the hatchback or the 티코; the colour
 # PARKED_COLORS[(c * 7 + i) % 13]).  The list names them itself now, each as the app drew it, so that a car taken
@@ -8136,8 +8149,42 @@ for x_, y_ in PINSON_FREE:
     i_ = int(np.argmin(np.hypot(*(_wp[:_wku] - np.array(_wu[kc_ - 8][:2])).T)))
     j_ = _wku + int(np.argmin(np.hypot(*(_wp[_wku:] - np.array(_wdn[min(len(_wdn) - 1, kc_ + 5)][:2])).T)))
     _wstalls.append(dict(i=i_, j=j_, a=_tr_bez(_wpts[i_], _wu[kc_], (x_, y_)), b=_tr_bez((x_, y_), _wdn[kc_], _wpts[j_])))
+# 한경길 (HK_N, HK_S above): up the east road's right-hand side to the fork, left across it into the north lane, round
+# at the west end, back along the south lane and right into the east road's other side; into a free stall of a row
+# nose first from the lane and out backwards the way it came, as in the car park behind 대우관
+def _hk_x(lane, a, b):
+    """where a lane of the east road (points) crosses the line a -> b run on: its point's place in the list"""
+    a, b = np.array(a), np.array(b)
+    d_ = (b - a) / np.linalg.norm(b - a)
+    cand_ = [k_ for k_, q_ in enumerate(lane) if math.dist(q_[:2], (150.5, 266.0)) < 25.0 and (np.array(q_[:2]) - a) @ d_ > 0]
+    return min(cand_, key=lambda k_: abs(float(d_[0] * (lane[k_][1] - a[1]) - d_[1] * (lane[k_][0] - a[0]))))
+
+
+_hki, _hko = _hk_x(_eu, HK_N[1], HK_N[0]), _hk_x(_edn, HK_S[-2], HK_S[-1])
+_hk_raw = [_eu[_hki - 21][:2], _eu[_hki - 12][:2], _eu[_hki][:2]] + HK_N + HK_TURN + HK_S + [_edn[_hko][:2], _edn[_hko - 12][:2], _edn[_hko - 21][:2]]
+_hk_way2 = _fillet(_hk_raw, [0, 12.0, 6.0] + [12.0] * len(HK_N) + [5.0, 5.0] + [12.0] * len(HK_S) + [6.0, 12.0, 0])
+_hloop = _eu[:_hki - 21] + [(*q_, TR_V['back']) for q_ in _hk_way2] + _edn[:_hko - 21][::-1]
+_hpts, _hv = _tr_loop(_hloop)
+_hp = np.array(_hpts)
+_hls = LineString(_hpts)
+_hstalls = []
+for x_, y_, nose_ in HK_FREE:
+    # (its lane: the north one's cars turn north into a stall, the south one's south; the loop's point abreast of it)
+    cand_ = [k_ for k_ in range(len(_hpts)) if math.dist(_hpts[k_], (x_, y_)) < 9.0
+             and float((_hp[min(k_ + 1, len(_hp) - 1)] - _hp[k_])[0] * (y_ - _hp[k_][1])
+                       - (_hp[min(k_ + 1, len(_hp) - 1)] - _hp[k_])[1] * (x_ - _hp[k_][0])) < 0]      # (to its right)
+    ka_ = min(cand_, key=lambda k_: math.dist(_hpts[k_], (x_, y_)))
+    i_ = max(0, ka_ - 5)                                                 # 6 m before the stall
+    in_ = _tr_bez(_hpts[i_], _hpts[ka_], (x_, y_))
+    _hstalls.append(dict(i=i_, j=i_, a=in_, b=in_[::-1]))
+_hstalls.sort(key=lambda d_: d_['i'])
+print('traffic: 한경길 loop %.0f m, %d points, in at %s, out at %s, %d stalls' % (
+    _hls.length, len(_hpts), [round(float(v_), 1) for v_ in _eu[_hki][:2]], [round(float(v_), 1) for v_ in _edn[_hko][:2]], len(_hstalls)))
+# (the loops in the order the game hands out the cars from the list's end: one to each stall beside 핀슨관, the others by
+# turns to the stalls of 한경길 and of 대우관 뒤)
 TRAFFIC = dict(s_out=TR_S0, v_lot=TR_V['lot'],
-               loops=[dict(name='east', pts=_epts, v=_ev, stalls=_estalls), dict(name='west', pts=_wpts, v=_wv, stalls=_wstalls)])
+               loops=[dict(name='east', pts=_epts, v=_ev, stalls=_estalls), dict(name='hangyeong', pts=_hpts, v=_hv, stalls=_hstalls),
+                      dict(name='west', pts=_wpts, v=_wv, stalls=_wstalls)])
 out['traffic'] = TRAFFIC
 print('traffic: east loop %.0f m, %d points, %d free stalls on its aisles; west loop %.0f m, %d points, %d stalls' % (
     LineString(_epts).length, len(_epts), len(_estalls), LineString(_wpts).length, len(_wpts), len(_wstalls)))
@@ -8399,7 +8446,12 @@ shrubs += DW_ANNEX_BEDS
 print('대우관 별관 앞: clipped shrubs', [b_[:3] for b_ in DW_ANNEX_BEDS])
 _ypaint([BK_LOT, BK_DRIVE, LOT_C_PAD, GY_YARD], _ga)    # (백양관 북쪽 주차장, 정문 동쪽 잔디 주차, 교육관 북쪽 마당)
 _ypaint(HK_PADS, _ga)                         # (한경길 · 연희관 앞길의 세운 차 줄: asphalt under the rows)
-_hk = unary_union(HK_PADS)
+# (and under the cars' way round 한경길 and into its free stalls: the lanes, the round at the west end, the stalls' mouths)
+_hk_way = LineString(HK_N + HK_TURN + HK_S)
+_hk_lane = unary_union([_hk_way.buffer(2.4)] + [LineString([(x_, y_), tuple(nearest_points(_hk_way, Point(x_, y_))[0].coords[0])]).buffer(1.6)
+                                               for x_, y_, _ in HK_FREE])
+_ypaint([_hk_lane], _ga)
+_hk = unary_union(HK_PADS + [_hk_lane])
 _n0 = (len(shrubs), len(props))
 shrubs[:] = [s_ for s_ in shrubs if not _hk.contains(Point(s_[1], s_[2]))]
 props[:] = [p_ for p_ in props if not _hk.contains(Point(p_[1], p_[2]))]

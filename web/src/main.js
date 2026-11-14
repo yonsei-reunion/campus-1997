@@ -479,9 +479,9 @@ async function main() {
     const u = Math.min(1, Math.max(0, t));
     return u * u * (3 - 2 * u);
   };
-  // The cars' ways are two loops (campus.json traffic, tools/build_campus.py TRAFFIC): up 백양로's northbound lane and,
+  // The cars' ways are three loops (campus.json traffic, tools/build_campus.py TRAFFIC): up 백양로's northbound lane and,
   // at the 삼거리 before 언더우드관, right up the east fork past 용재관 and round 성암관 and 대우관 별관 to the car park
-  // behind 대우관, or left up the drive past 스팀슨관 and round the island there down to the stalls beside 핀슨관; into
+  // behind 대우관, or off that road at the fork east of 한경길 and round its two lanes, or left up the drive past 스팀슨관 and round the island there down to the stalls beside 핀슨관; into
   // a stall, out again after a while, and back down the roads' other side into the southbound lane.  (An alumnus
   // remembers no cars on the drives right beside 언더우드관 and 연희관, where the 2008 roadview's car went.)  One lane
   // for every free stall: the loop with the way into that stall and the way out backwards spliced in (life.js Traffic).

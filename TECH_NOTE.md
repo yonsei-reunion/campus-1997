@@ -240,7 +240,8 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 세워 둔 차의 차종과 색은 `campus.json` `cars` 에 적혀 있습니다(`build_campus.py` 의 「The cars' last pass」). 전에는 웹이 목록 순서로 골라, 한 대를 빼면 뒤의 차가 모두 바뀌었습니다. 주차장에는 택시를 두지 않습니다.
 - 도장은 클리어코트 재질, 바퀴는 달린 거리만큼 굴러가고 감속하면 브레이크등이 켜집니다.
 - 세워 둔 차는 20 m 밖에서 `car_<종류>_far.glb` 로 그립니다(`build.py` 의 `cars` 단계): 10° 안으로 굽은 면을 재질 경계 안에서 합치고 바퀴만 접어, 삼각형이 5분의 1.
-- 달리는 차의 길은 두 고리입니다(`tools/build_campus.py` `TR_E` · `TR_W` · `TRAFFIC` → `campus.json` `traffic.loops`, `web/src/main.js` 가 백양로 두 차로에 이음): 백양로 → 삼거리에서 오른쪽으로 용재관 옆 · 성암관 동쪽 · 대우관 별관 동쪽을 돌아 대우관 뒤 주차장, 또는 왼쪽으로 스팀슨관 서쪽 길 · 화단 섬 · 한경관 앞을 지나 핀슨관 옆 주차 칸 → 같은 길의 반대쪽으로 정문까지(고증 2.9).
+- 달리는 차의 길은 세 고리입니다(`tools/build_campus.py` `TR_E` · `TR_W` · `HK_N` · `HK_S` · `TRAFFIC` → `campus.json` `traffic.loops`, `web/src/main.js` 가 백양로 두 차로에 이음): 백양로 → 삼거리에서 오른쪽으로 용재관 옆 · 성암관 동쪽 · 대우관 별관 동쪽을 돌아 대우관 뒤 주차장, 또는 같은 길의 한경길 동쪽 갈림길에서 한경길을 한 바퀴, 또는 왼쪽으로 스팀슨관 서쪽 길 · 화단 섬 · 한경관 앞을 지나 핀슨관 옆 주차 칸 → 같은 길의 반대쪽으로 정문까지(고증 2.9).
+  - 고리의 순서가 차를 나눕니다: `loops` 의 뒤에서부터 차로를 만들고, `west` 의 칸에는 한 대씩, 나머지 차는 다른 고리들의 칸에 번갈아 갑니다(`life.js` `Traffic` 의 `single`).
   - 빈 주차 칸마다 차로 하나를 만듭니다(`loops[].stalls`: 고리에서 꺾는 점 `i`, 칸으로 드는 길 `a`, 후진해 나오는 길 `b`, 고리로 돌아오는 점 `j`). 차는 칸에 섰다가(`lane.stops`) 후진해(`lane.rev`) 나옵니다.
   - 차로가 달라도 자기 길 앞에 선 차를 기다립니다(`web/src/life.js` `Traffic.update` 의 「The car in the way」). 길을 고치면 헤드리스로 2 ~ 3분 돌려 오래 멈춘 차가 없는지 봅니다.
   - `Path.setLimits`: 구간마다의 제한 빠르기에 굽은 곳(옆 가속도)과 미리 줄이는 거리를 더한 1 m 간격 표. `Path.setTracks`: 두 바퀴 자리의 땅 높이.
