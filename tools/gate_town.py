@@ -584,19 +584,26 @@ def layout(pl, secs, ground, taken, e_curb0):
         for kk in range(LANES):
             pts = road.off(sgn * (MID / 2 + LANE_W * (kk + 0.5)))[drive]
             lanes.append(dict(kind='bus' if kk == LANES - 1 else 'car', pts=R2(pts if sgn < 0 else pts[::-1])))
-    # ---- the walker's barrier: along the north kerb, the carriageway side, the crossing too: the walk ends on
-    # 성산로's north sidewalk outside the gate, 연세로 and 신촌 로터리 are seen but not walked to (tools/
-    # sinchon_rotary.py's walls round their walks stay, out of reach).  Its north edge goes out as town.limit: the web
-    # sets no walker down south of it (web/src/main.js beyondGate: the map, the bird's eye view, the start list)
+    # ---- the walker's barrier: along the north kerb, the carriageway side, open at the crossing (shut 2026-11-11 ..
+    # 14): over it the walker goes on to 연세로 and 신촌 로터리, whose walks tools/sinchon_rotary.py walls and gives the
+    # web as walk_open.  The barrier's north edge goes out as town.limit: the web sets no walker down south of it but
+    # in walk_open (web/src/main.js beyondGate: the map, the bird's eye view, the start list)
     barrier = []
     bl = road.off(HW - 0.9)
     bh = road.off(HW - 0.1)
     limit = []
+    gap = Polygon([(cross_x[0], ks - 1.0), (cross_x[1], ks - 1.0), (cross_x[1], kn + 1.0), (cross_x[0], kn + 1.0)])
     for k in range(0, len(bl) - 3, 3):
         if not (-480 < bl[k][0] < 340):
             continue
-        barrier.append(R2([bl[k], bl[k + 3], bh[k + 3], bh[k]]))
         limit.append(bh[k])
+        q = Polygon([tuple(bl[k]), tuple(bl[k + 3]), tuple(bh[k + 3]), tuple(bh[k])])
+        if not q.intersects(gap):
+            barrier.append(R2([bl[k], bl[k + 3], bh[k + 3], bh[k]]))
+            continue
+        for g in getattr(q.difference(gap), 'geoms', [q.difference(gap)]):
+            if g.geom_type == 'Polygon' and g.area > 0.01:
+                barrier.append(R2(list(g.exterior.coords)[:-1]))
     # ---- bus stops (the 1995 photo: two green-roofed shelters at the kerb west of the mouth) and lamps
     stops = []
     for x in (-203.0, -184.0):

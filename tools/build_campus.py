@@ -8601,6 +8601,8 @@ trees += LIB97_NEW_TREES                    # (중앙도서관 앞: the same)
 trees += UTS_NEW_TREES                      # (연합신학대학원: where OSM's later outline stood)
 markers += ROT['markers']
 out['colliders'] += ROT['colliders']
+out.setdefault('walk_open', []).extend(ROT['walk_open'])     # (where the web may set a walker down past town.limit,
+out.setdefault('walk_holes', []).extend(ROT['walk_holes'])   #  but in these: the carriageway between two crossings)
 out['paths'] += ROT['paths']
 sinchon_rotary.town_splat(ROT['paints'], os.path.join(ROOT, 'web/public/assets/textures/ground_splat_town.png'))
 

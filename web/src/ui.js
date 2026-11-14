@@ -217,6 +217,16 @@ export class UI {
   placeName(px, py, onRoad) {
     const l = this.nearestLandmark(px, py);
     if (l) return l.name;
+    if (this.c.walk_open && py < -470) {           // past the gate's crossing: 연세로 and 신촌 로터리 (its buildings' fronts)
+      let tm = null, td = 35;
+      for (const m of this.c.markers || []) {
+        if (m.pos[1] > -470) continue;
+        const d = Math.hypot(m.pos[0] - px, m.pos[1] - py);
+        if (d < td) { td = d; tm = m; }
+      }
+      if (tm) return tm.name === '신촌 로터리' ? tm.name : `${tm.name} 앞`;
+      return py > -925 ? '연세로' : '신촌 로터리';
+    }
     if (onRoad) return '백양로';
     let best = null, bd = 45;
     for (const b of this.named) {

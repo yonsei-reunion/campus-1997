@@ -11,7 +11,7 @@ import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFar
 import { loadGLB, prefetch, glbMaterials, bindMaterials, mergeStatic, InstancedKit, KitCuller, Forest } from './world.js';
 import { Grass } from './grass.js';
 import { Fall } from './fall.js';
-import { Player, Colliders } from './player.js';
+import { Player, Colliders, pointInPoly } from './player.js';
 import { UI } from './ui.js';
 import { Post } from './post.js';
 import { Path, makeBanners, Crowd, Traffic, BoothGates, CAR_COLORS } from './life.js';
@@ -566,11 +566,16 @@ async function main() {
     scene.getObjectByName(name)?.traverse((o) => { if (o.isMesh) { if (!o.geometry.boundsTree) o.geometry.computeBoundsTree(); player.walls.push(o); } });
   }
   player.teleport(campus.spawn.pos[0], campus.spawn.pos[1], campus.spawn.yaw);
-  // 정문 밖: the walk ends on 성산로's north sidewalk (tools/gate_town.py town.limit, the walker's barrier's north edge
-  // along 성산로). 연세로 and 신촌 로터리 are there to be seen, not walked to: the map, the bird's eye view and the start
-  // list set no walker down south of that line, but at the gate
+  // 정문 밖: past the line of 성산로's north kerb (tools/gate_town.py town.limit, the walker's barrier's north edge) the
+  // walk goes on only where campus.json walk_open has it: over 성산로's crossing, 연세로's two sidewalks and 신촌 로터리's
+  // corners and crossings (tools/sinchon_rotary.py, walled round by colliders). The map, the bird's eye view and the
+  // start list set no walker down past the line but there (a list of polygons: other gates may add theirs; walk_holes:
+  // the rings cut out of them, 연세로's carriageway between two crossings)
   const LIMIT = campus.town?.limit ?? [];
+  const OPEN = campus.walk_open ?? [], HOLES = campus.walk_holes ?? [];
+  const inOpen = (x, y) => OPEN.some((p) => pointInPoly(x, y, p)) && !HOLES.some((p) => pointInPoly(x, y, p));
   const beyondGate = (x, y) => {
+    if (inOpen(x, y)) return false;
     for (let k = 1; k < LIMIT.length; k++) {
       const [ax, ay] = LIMIT[k - 1], [bx, by] = LIMIT[k];
       if (x >= Math.min(ax, bx) && x <= Math.max(ax, bx)) return y < ay + (by - ay) * (x - ax) / ((bx - ax) || 1e-6);
@@ -589,9 +594,26 @@ async function main() {
     return !!h && h.point.y > (player.groundAt(x, -y, 400) ?? hfNear.height(x, y)) + 2.2;
   };
   const walkOut = (x, y) => colliders.walkOut(x, y, undefined, underRoof);
+  // the nearest point of walk_open within r m (1 m in from its edge), or null
+  const nearestOpen = (x, y, r = 60) => {
+    let best = null, bd = r;
+    for (const p of OPEN.concat(HOLES)) {
+      for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
+        const [ax, ay] = p[j], [bx, by] = p[i], dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy || 1;
+        const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l)), qx = ax + t * dx, qy = ay + t * dy;
+        const d = Math.hypot(x - qx, y - qy);
+        if (d >= bd) continue;
+        const L = Math.sqrt(l), nx = -dy / L, ny = dx / L;
+        for (const s of [1, -1]) if (inOpen(qx + nx * s, qy + ny * s)) { best = [qx + nx * s, qy + ny * s]; bd = d; break; }
+      }
+    }
+    return best;
+  };
   const landAt = (x, y) => {
     if (!beyondGate(x, y)) return [...walkOut(x, y), null];
-    setTimeout(() => ui.toast('신촌 쪽으로는 걸어갈 수 없어요 · 정문에서 걸어요', 3500), 0);   // (after the start's own)
+    const q = nearestOpen(x, y);                       // (on 연세로 or the junction: the nearest walk open to the walker)
+    if (q) return [...walkOut(q[0], q[1]), null];
+    setTimeout(() => ui.toast('그쪽으로는 걸어갈 수 없어요 · 정문에서 걸어요', 3500), 0);   // (after the start's own)
     return [campus.spawn.pos[0], campus.spawn.pos[1], campus.spawn.yaw];
   };
   const post = new Post(renderer, scene, camera);
@@ -651,8 +673,14 @@ async function main() {
   // 활천대 앞 생일 축하: two students on the flagstones; you and the friend throw the birthday one in (src/birthday.js)
   const birthday = S.fountain ? new Birthday({ scene, cast, player, F: S.fountain, water: fountainWater, bubbles: crowd.bubbles, ui, shadows, blobs, mobile: MOBILE }) : null;
   // where to start walking (title card): 정문, the memory spots, then every named building at its front door
+  // (신촌's buildings: on the nearest walk open to the walker, facing them; none further than that)
   const places = startPlaces(campus, entrances.entrances || [], (x, y, r) => colliders.resolve(x, y, r))
-    .filter((p) => !beyondGate(p.x, p.y));             // (not 신촌's buildings: past the walk's end)
+    .map((p) => {
+      if (!beyondGate(p.x, p.y)) return p;
+      const q = nearestOpen(p.x, p.y, 45);
+      return q && { ...p, x: q[0], y: q[1], yaw: Math.atan2(-(p.x - q[0]), p.y - q[1]), front: false };
+    })
+    .filter(Boolean);
   const placeEl = $('#place-pick');
   for (const group of ['추억 장소', '건물']) {
     const og = Object.assign(document.createElement('optgroup'), { label: group });
@@ -851,7 +879,7 @@ async function main() {
       if (!p) [x, y] = colliders.resolve(x, y, 0.6);
       const fromTitle = !started;
       leaveBird();
-      const [lx, ly, yaw] = landAt(p ? p.x : x, p ? p.y : y);            // (신촌: at the gate)
+      const [lx, ly, yaw] = landAt(p ? p.x : x, p ? p.y : y);            // (신촌: on the nearest open walk)
       if (fromTitle) startWalk(ui.placeName(lx, ly, false));
       player.teleport(lx, ly, yaw ?? p?.yaw ?? null);
       player.cam.ready = false;
@@ -1098,7 +1126,7 @@ async function main() {
     },
   };
   window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, townCrowd, cast, traffic, street, bird, toggleBird, shadows, fountainWater,
-    startWalk, enterBird, leaveBird, record, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds,
+    startWalk, enterBird, leaveBird, record, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds, landAt, places,
     get ball() { return ball; }, loadBall, startShoot, get shootout() { return shootout; },
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
     // (the kits whole for it: it draws them from above, tile by tile)
