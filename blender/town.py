@@ -53,13 +53,16 @@ def wall(mb, a, b, z0, z1, k, rnd, bays=None):
 
 
 def house(mb, b, rnd):
-    cx, cy, L, W, ang, base, lv, wk, roof, hip, kind, tank = b
+    cx, cy, L, W, ang, base, lv, wk, roof, hip, kind, tank = b[:12]
+    # (a 13th field: metres a storey, for 신촌 로터리's landmarks whose tops the 1997 photos give: the same storeys and
+    # draws, taller: tools/sinchon_rotary.py LM_TOP)
+    sh = b[12] if len(b) > 12 else STOREY
     c, s = math.cos(ang), math.sin(ang)
     P = lambda u, v: (cx + u * c - v * s, cy + u * s + v * c)
     q = [P(-L / 2, -W / 2), P(L / 2, -W / 2), P(L / 2, W / 2), P(-L / 2, W / 2)]        # counter-clockwise
     z = base
     for f in range(lv):
-        z1 = base + 0.3 + STOREY * (f + 1)
+        z1 = base + 0.3 + sh * (f + 1)
         k = B_SHOP if (f == 0 and kind) else wk
         for i in range(4):
             wall(mb, q[i], q[(i + 1) % 4], z, z1, k, rnd)
