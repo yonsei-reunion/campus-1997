@@ -7428,6 +7428,11 @@ _uk = unary_union([LineString(p_['pts']).buffer(p_['w'] / 2 + 0.4) for p_ in pat
                    if len(p_['pts']) > 1 and LineString(p_['pts']).distance(UTS_OSM) < 10.0])
 UTS_LAWN = unary_union([UTS_OSM.buffer(3.6, join_style=2)] + ([_uw0] if _uw0 is not None else [])).difference(_uk)
 _uzt = UTS_OSM.buffer(1.5).difference(UTS_FP.buffer(5.0)).difference(_uk.buffer(2.5))
+# (빌링슬리관, BILL: OSM's box and its apron, which the hall of the scans stands back from, are lawn again but for the
+# walks; the landing before the door is paved below)
+_bl_osm = footprint(ways[BILL])
+BILL_LAWN = _bl_osm.buffer(3.6, join_style=2).difference(unary_union(
+    [LineString(p_['pts']).buffer(p_['w'] / 2 + 0.4) for p_ in paths_out if len(p_['pts']) > 1 and LineString(p_['pts']).distance(_bl_osm) < 10.0]))
 _tpts = [(t_[1], t_[2]) for t_ in trees if UTS_OSM.buffer(18.0).contains(Point(t_[1], t_[2]))]
 UTS_NEW_TREES = []
 _rt = random.Random(1997 + 1964)
@@ -8390,6 +8395,7 @@ _ypaint([Polygon(b_['footprint']).buffer(3.5, join_style=2) for b_ in YONGJAE_BU
 _ypaint([YJ_WALK], _yp, width=2.6)
 _ypaint([LIB97_ZONE.difference(LIB97_TERRACE.buffer(-0.2))], _yg)   # (중앙도서관 앞: lawn; its walks and plaza below, _gp · _ga)
 _ypaint([UTS_LAWN], _yg)                     # (연합신학대학원: OSM's outline and its apron lawn again; the 1997 hall's: _gp)
+_ypaint([BILL_LAWN], _yg)                    # (빌링슬리관: OSM's box and apron lawn again; the landing: _gp)
 if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
 # 찻길, the east road on the 1997 photos' line (TR_E, RD97 above), after the planting has read the ground as it was:
