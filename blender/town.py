@@ -757,10 +757,38 @@ def rot_fence():
     return mb
 
 
+def island():
+    """신촌 로터리: the round island's bed as the low mound the 1997 frames have (tools/sinchon_rotary.py ISLAND_MOUND,
+    campus.json town.island.mound: [its height at the middle, the radius where it meets the ground]; 고증 4.10.2 「가운데
+    섬」), which the 5 m terrain grid cannot hold.  A mesh of its own named town_bank_island with the material
+    terrain_drape: web/src/town.js keeps the meshes named town_bank* apart and draws them with the ground's material
+    (so the bed's painted bands lie on it, web/src/terrain.js uIsland), and main.js stands on them what grows and
+    stands there (the pansies, the signal pole).  Its rim dips under the ground just inside the kerb's ring"""
+    mb = MeshBuilder('town_bank_island')
+    I = T.get('island') or {}
+    if not I.get('mound'):
+        return mb
+    (cx, cy), (H, R0) = I['c'], I['mound']
+    n = 48
+    rs = [R0 * k / 12 for k in range(13)] + [R0 + 0.25]
+
+    def P(r, k):
+        a = 2 * math.pi * k / n
+        x, y = cx + r * math.cos(a), cy + r * math.sin(a)
+        dz = H * max(0.0, 1.0 - (r / R0) ** 2) + 0.02 if r <= R0 else -0.08
+        return (x, y, ground_top(x, y) + dz)
+
+    for k in range(n):                                   # (counter-clockwise seen from above: the faces look up)
+        mb.face([P(0.0, 0), P(rs[1], k), P(rs[1], k + 1)], 'terrain_drape', smooth=True)
+        for r0, r1 in zip(rs[1:-1], rs[2:]):
+            mb.face([P(r0, k), P(r1, k), P(r1, k + 1), P(r0, k + 1)], 'terrain_drape', smooth=True)
+    return mb
+
+
 def build():
     if not T:
         return []
-    return houses() + [landmarks(), signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), rot_dirsign(), rot_fence()] + bank() + [yro_signs(), yro_banner()]
+    return houses() + [landmarks(), signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner()]
 
 
 # ----------------------------------------------------------------------------- the city bus

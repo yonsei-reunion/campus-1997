@@ -107,6 +107,14 @@ CORNER_R = 9.0                 # the kerbs' rounding at the corners
 # below (52158 solved again, the scans)
 ISLAND = dict(c=(-73.3, -1000.9), r=7.8, ring=8.45)
 BED = [(2.5, 'lawn'), (4.3, 'yellow'), (5.6, 'dark'), (6.1, 'white'), (7.6, 'lawn')]
+# The bed is a low mound (2026-11-15, 고증 4.10.2 「가운데 섬」): the scans of 27/18 and 27/19 (windows of 2.5 m every 20°
+# round rings of 1.5 .. 7.4 m, correlation 0.9 - 0.99) have its top over the plane of the road round it (34 points
+# 2 - 4 m outside the kerb, rms 0.09 m; it rises 2.9 % to the north) by 0.76 m at 1.5 m from the middle, 0.70 at 2.5,
+# 0.60 at 3.4, 0.48 at 4.3, 0.41 at 5.0, 0.30 at 5.6, 0.14 at 6.2, 0.03 at 6.9 and 0.01 at 7.4 (medians; the
+# quartiles 0.05 - 0.08 either side): a dome, h (1 - (r / r0)^2) under them by the flowers' few cm.
+# h: m over the ground at its middle, r: where it meets the ground, inside the lawn's edge.
+# blender/town.py island() draws it; the 5 m grid under it stays flat
+ISLAND_MOUND = dict(h=0.72, r=7.0)
 # BED goes out as campus.json town.island.bed: the ground's shader (web/src/terrain.js) paints its dark and white
 # bands round the island's middle (no plant model fits them; painting keeps every planting draw), the yellow band
 # is the pansy border (layout: shrubs)
@@ -1454,7 +1462,8 @@ def layout(geo, town, extras, ground, taken_z):
     town['walks'] = walks_
     print('신촌 로터리: blocks +%d (rows %d, fill %d, gone %d + %d for the moved 연세로), kerbs %d, lanes %d, lamps %d' % (
         len(new), sum(len(v) for v in fronts.values()), n_fill, n_gone, n_moved, len(kerbs), len(lanes), len(props)))
-    town['island'] = dict(c=list(ISLAND['c']), r=ISLAND['r'], bed=[[r_, k_] for r_, k_ in BED])
+    town['island'] = dict(c=list(ISLAND['c']), r=ISLAND['r'], bed=[[r_, k_] for r_, k_ in BED],
+                          mound=[ISLAND_MOUND['h'], ISLAND_MOUND['r']])
     # people standing about (web/src/main.js: the town's crowd) and the blue sign over 연세로 (blender/town.py)
     waiting['groups'] += rot_waiting(fronts[1][-1], corner, A, waiting['singles'])
     town['waiting'] = waiting
