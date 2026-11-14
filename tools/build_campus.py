@@ -1374,7 +1374,11 @@ def lf_rect(s0, s1, o0, o1):
 
 LIB97 = dict(
     depth=9.8, south=-8.6, north=LIB_LEN + 8.6,                # the terrace: out of the front, its two ends along it
-    south_w=-44.5, north_w=-13.3,                             # how far west its end bands run (o)
+    south_w=-44.5, north_w=-20.5,                             # how far west its end bands run (o)
+    # the flight at the north band's west end, down north to the drive: a retaining wall on its west side, five
+    # risers (the photos: a notch 3.6 - 3.8 m wide and 2 m deep in the band's edge, an L of bright coping west of it;
+    # the ground at its foot 0.8 m under the terrace; the 2008 - 2010 roadview: five or six granite risers)
+    nstair_w=3.6, nstair_wall=0.5, nstair_risers=5,
     band=13.4,                                                # the shrub band at the wall's foot, out to here
     walk=21.0, outer=(41.6, 45.2),                            # the walk along the band; the walk along the beds' far side
     plaza=(LIB_LEN / 2 - 9.8, LIB_LEN / 2 + 9.4),             # the plaza before the flight (s), out to 백양로's sidewalk
@@ -1404,6 +1408,12 @@ _lback = _lin & ~_lfoot & _loff                      # behind and north-west: le
 # the walk along the beds' far side: at the sidewalk's height beside it
 _lout = (_LS >= _lse) & (_LS <= _lne) & (_LO >= LIB97['outer'][0] - 0.5) & (_LO < LIB_ROAD_O) & _loff
 Hn[_lfoot] = _lzf[_lfoot]
+# (at the foot of the north band's flight the ground falls to five risers under the terrace: 0.2 m under the walk)
+_lnc = LIB97['north_w'] + LIB97['nstair_wall'] + LIB97['nstair_w'] / 2
+_lnw = (np.clip(1.0 - (np.abs(_LO - _lnc) - LIB97['nstair_w'] / 2 - 0.5) / 3.0, 0, 1)
+        * np.clip(1.0 - (np.abs(_LS - LIB97['north'] - 1.2) - 1.2) / 3.0, 0, 1) * _lfoot)
+LIB_NFOOT = round(LIB_FLOOR - LIB97['nstair_risers'] * 0.155, 2)
+Hn[:] = Hn * (1 - _lnw) + np.minimum(Hn, LIB_NFOOT) * _lnw
 Hn[_lback] = LIB_FLOOR
 Hn[_lout] = np.interp(_LS[_lout] + s_at(*LF(0.0, LIB_ROAD_O)), ss, prof) + 0.15
 FIXED[_lfoot | _lback | _lout] = True
@@ -7418,7 +7428,7 @@ LIB97_STRIP = lf_rect(*_l9['beds'], _l9['outer'][1], _l9st).difference(LIB97_PLA
 LIB97_BANDS = [(_l9['south'], _l9['plaza'][0] - 0.9, _l9['depth'], _l9['band']),
                (_l9['plaza'][1] + 0.4, _l9['north'], _l9['depth'], _l9['band']),
                (_l9['south'] - 2.6, _l9['south'], _l9['south_w'], _l9['band']),
-               (_l9['north'], _l9['north'] + 2.2, _l9['north_w'], _l9['band'])]
+               (_l9['north'], _l9['north'] + 2.2, _l9['north_w'] + _l9['nstair_wall'] + _l9['nstair_w'] + 0.4, _l9['band'])]
 LIB97_NORTH = lf_rect(_l9['beds'][1], _l9n, _l9['band'], _l9st)
 LIB97_PAVED = unary_union([LIB97_WALK, LIB97_OUTER, LIB97_SLANT, LIB97_PLAZA.difference(LIB97_ISLAND), LIB97_NORTH])
 LIB97_ZONE = unary_union([lf_rect(_l9['beds'][0], _l9n, _l9['band'], _l9st), lf_rect(_l9['beds'][0], _l9['north'] + 2.2, -0.5, _l9['band']),
@@ -7546,7 +7556,8 @@ out['decals'] = [d_ for d_ in out['decals'] if not (LIB97_ZONE.contains(Point(d_
 out['library_terrace'] = dict(
     o=[float(v_) for v_ in _lf0], t=[round(float(v_), 5) for v_ in _lfu], n=[round(float(v_), 5) for v_ in _lfn], len=round(LIB_LEN, 3),
     floor=LIB_FLOOR, foot=LIB_FOOT, depth=_l9['depth'], south=_l9['south'], north=round(_l9['north'], 3), south_w=_l9['south_w'],
-    north_w=_l9['north_w'], stair_w=_l9['stair_w'], risers=_l9['risers'], tread=_l9['tread'])
+    north_w=_l9['north_w'], stair_w=_l9['stair_w'], risers=_l9['risers'], tread=_l9['tread'],
+    nstair_w=_l9['nstair_w'], nstair_wall=_l9['nstair_wall'], nstair_risers=_l9['nstair_risers'])
 print('중앙도서관 앞 1997: trees moved %d (hand-placed %d), new %d; shrubs %d -> %d, props %d -> %d, decals -%d'
       % (_n9[3], len(LIB_TREE_OBJS), len(LIB97_NEW_TREES), _n9[0], len(shrubs), _n9[1], len(props), _nd9 - len(out['decals'])))
 # 독수리상 서쪽 옆길이 백양로와 만나는 길 (reference/고증/2.3): in the vertical aerial photos of July 1997 (three frames

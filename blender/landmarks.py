@@ -340,7 +340,24 @@ def library():
     slab(mid + sw / 2, TR['north'], 0.6, dep)
     slab(mid - sw / 2, mid + sw / 2, 0.6, dep - 2.4)          # behind the flight's head (its own landing block: the rest)
     slab(TR['south'], -0.6, TR['south_w'], 0.6)               # round the south end, the hall's whole depth
-    slab(TR['len'] + 0.6, TR['north'], TR['north_w'], 0.6)    # round the north end, 23 m back from the corner
+    # round the north end, 21 m back from the corner (the 1997 photos), and at its west end a flight down north to
+    # the drive, let into the band's edge with the terrace's wall on its west (the photos; the 2008 - 2010 roadview:
+    # five or six granite risers)
+    nw, nsw, nwall = TR['north_w'], TR.get('nstair_w', 0.0), TR.get('nstair_wall', 0.0)
+    if nsw:
+        n_r, n_land = TR['nstair_risers'], 0.6
+        s_head = TR['north'] - n_land - n_r * TR['tread']
+        slab(TR['len'] + 0.6, s_head, nw, 0.6)
+        slab(s_head, TR['north'], nw + nwall + nsw, 0.6)
+        slab(s_head, TR['north'], nw, nw + nwall)
+        xf0 = mb.xf
+        c = o_ + t_ * s_head + n_ * (nw + nwall + nsw / 2)
+        mb.xf = local_frame(c.x, c.y, math.atan2(TR['t'][0], -TR['t'][1]), z0)     # (-y: north along the front)
+        stair_flight(mb, 0.0, 0.0, nsw, g0, landing=n_land, tread=TR['tread'], flare=0.0, cheek=0.0, rail=False,
+                     gfn=local_ground(mb), risers=n_r, mat='stone_step')
+        mb.xf = xf0
+    else:
+        slab(TR['len'] + 0.6, TR['north'], nw, 0.6)
     # the flight before the three middle bays (the door's and the two beside it): six risers of granite down to the
     # plaza, no cheeks, no rail (the roadview: five or six risers of 0.15 - 0.16 m, 18.8 m across)
     fc = Lp(mid, dep)
