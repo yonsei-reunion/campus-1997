@@ -171,6 +171,7 @@ ROT_NO_ZEBRA = {'yonsei', 'sinchon_w', 'sinchon_e'}
 ROT_STOP_E = 59.0              # 신촌로's south bus stop, m out along it (rot_stops): east of the wedge
 # 연세로's crossing between the junction and the bridge (51979: a zebra with its own signals a third of the way up)
 MID_CROSS_Y = -790.0
+GRAND_YARD_BOX = (-178.0, -1012.0, -147.0, -975.0)     # the 그랜드백화점's forecourt the walker may cross (layout)
 # the junction's landmarks (the photos 52095 · 52108, 서울연구원 labels; 연세춘추, 위키백과): OSM outline (a point in
 # it), storeys, wall band (blender/town.py), the sign cell of sign_sinchon2 and its height
 LANDMARKS = [
@@ -993,6 +994,13 @@ def layout(geo, town, extras, ground, taken_z):
     cx0, cx1, cy0, cy1 = extras['cross_box']          # (gate_town's crossing over 성산로, kerb to kerb)
     W_parts.append(box(cx0, cy0 - 0.5, cx1, cy1 + 0.8))
     W_parts.append(extras['walk_s'].intersection(box(-135.0, -480.0, -55.0, -440.0)))
+    # 그랜드백화점 앞마당 (2026-11-15; the 1997-07-28 scans 27/18 · 27/19): paved from the store's front out to 양화로's and
+    # 1997년 신촌로's walks, west of the turning lane by the kiosk (GRAND_YARD_BOX): how one walked from the one to the
+    # south-west crossing (the game's rounded corner east of it is the turning lane and its hatched wedge then, 4.10.4)
+    yard = unary_union([A[k].poly(-A[k].half - A[k].walk, A[k].half + A[k].walk) for k in ('sinchon_w', 'seogang')]).intersection(
+        box(*GRAND_YARD_BOX)).convex_hull.difference(road).difference(Polygon(GRAND_1997).buffer(0.3))
+    W_parts.append(yard.difference(unary_union([_box(b).buffer(0.4) for b in blocks
+                                                if len(b) == 12 and b[6] > 0 and _box(b).intersects(yard)])))
     Wk = unary_union(W_parts).buffer(0.05).buffer(-0.05)
     walk_open, walk_holes, barrier = [], [], []
     y_open = cy1 + 0.1                             # (north of this: the campus's side of 성산로)
