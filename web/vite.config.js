@@ -15,8 +15,9 @@ export default defineConfig(({ command }) => ({
   build: {
     chunkSizeWarningLimit: 2000,
     assetsInlineLimit: 0,
-    // the game, and the 새 소식 page (it shares src/notes.js with the game's news panel)
-    rollupOptions: { input: { main: 'index.html', news: 'news.html' } },
+    // the game, the 새 소식 page (it shares src/notes.js with the game's news panel) and the 캠퍼스 사람들 page (the
+    // cast alone, src/people.js)
+    rollupOptions: { input: { main: 'index.html', news: 'news.html', people: 'people.html' } },
   },
   define: { __BUILD__: JSON.stringify(command === 'serve' ? 'dev' : buildId()) },
 }));

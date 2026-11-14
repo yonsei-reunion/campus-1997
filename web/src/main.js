@@ -16,7 +16,7 @@ import { UI } from './ui.js';
 import { Post } from './post.js';
 import { Path, makeBanners, Crowd, Traffic, BoothGates, CAR_COLORS } from './life.js';
 import { makeGatePosters } from './posters.js';
-import { Cast, PEOPLE, STUDENTS, HEROES, portraits, castFiles } from './characters.js';
+import { Cast, PEOPLE, STUDENTS, HEROES, HERO, portraits, castFiles } from './characters.js';
 import { BirdsEye } from './birdseye.js';
 import { SunShadows } from './shadows.js';
 import { TouchControls } from './touch.js';
@@ -586,11 +586,14 @@ async function main() {
     safeSet('y97-hero', id);
     pickEl.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.id === id));
     if (player.actor.id !== id) { const a = cast.make(id); scene.add(a.holder); shadows.addDynamic(a.holder); player.setActor(a); }
+    heroPlace(id);
   };
+  let heroPlace = () => {};          // (the places come further down: the walk starts at the hero's own college)
   for (const id of HEROES) {
     const b = document.createElement('button');
     b.dataset.id = id;
-    b.innerHTML = `<img src="${pics[id]}" alt=""><span>${PEOPLE[id]}</span>`;
+    b.title = PEOPLE[id];
+    b.innerHTML = `<img src="${pics[id]}" alt=""><span><b>${HERO[id].name}</b>${HERO[id].college}</span>`;
     b.addEventListener('click', () => pickHero(id));
     pickEl.appendChild(b);
   }
@@ -620,6 +623,8 @@ async function main() {
     places.forEach((p, i) => { if (p.group === group) og.appendChild(new Option(p.name, i)); });
     placeEl.appendChild(og);
   }
+  heroPlace = (id) => { const i = places.findIndex((p) => p.name === HERO[id]?.place); placeEl.value = i < 0 ? '' : i; };
+  heroPlace(heroId);
 
   const setSeason = (v) => {
     season = v;
