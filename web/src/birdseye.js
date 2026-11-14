@@ -10,12 +10,14 @@
 import * as THREE from 'three';
 import { clamp, wrapAngle } from './util.js';
 
-const BOUNDS = { x0: -480, x1: 580, y0: -520, y1: 600 };
+// where the point the camera circles may go: the whole detailed ground (main.js passes the near grid and its patches:
+// 신촌 로터리 to the south), not the walk's limits; the camera itself may hang past it
+const BOUNDS = { x0: -800, x1: 800, y0: -800, y1: 800 };
 const DIST = [6, 1400], PITCH = [0.04, 1.5];
 
 export class BirdsEye {
-  constructor({ camera, dom, landmarks, markers = [], heightAt, surfaceAt, pickGround, onWalkHere, onMemory, onAction }) {
-    Object.assign(this, { camera, dom, heightAt, surfaceAt, pickGround, onWalkHere, onMemory, onAction });
+  constructor({ camera, dom, landmarks, markers = [], heightAt, groundAt = heightAt, surfaceAt, pickGround, bounds = BOUNDS, onWalkHere, onMemory, onAction }) {
+    Object.assign(this, { camera, dom, heightAt, groundAt, surfaceAt, pickGround, bounds, onWalkHere, onMemory, onAction });
     this.active = false;
     this.cur = { x: 0, y: -60, dist: 600, yaw: 0, pitch: 0.9, lift: 0 };    // lift: aim above the ground (statues)
     this.goal = { ...this.cur };
@@ -205,6 +207,7 @@ export class BirdsEye {
 
   enter({ x, y, yaw, player }) {
     this.active = true;
+    this._lift = 0;
     this.player = player;
     this.keys.clear();
     this.pointers.clear();
@@ -291,8 +294,8 @@ export class BirdsEye {
     g.y += (fy * fwd - fx * side) * move;
     g.dist = clamp(g.dist * (1 + zoom * 1.2 * dt), ...DIST);
     g.pitch = clamp(g.pitch + tilt * 0.7 * dt, ...PITCH);
-    g.x = clamp(g.x, BOUNDS.x0, BOUNDS.x1);
-    g.y = clamp(g.y, BOUNDS.y0, BOUNDS.y1);
+    g.x = clamp(g.x, this.bounds.x0, this.bounds.x1);
+    g.y = clamp(g.y, this.bounds.y0, this.bounds.y1);
 
     // smooth follow
     const c = this.cur, f = 1 - Math.exp(-dt * 3.2), fa = 1 - Math.exp(-dt * 6);
@@ -310,9 +313,15 @@ export class BirdsEye {
     const gh = this.heightAt(c.x, c.y);
     const hor = Math.cos(c.pitch) * c.dist;
     const cx = c.x - Math.sin(c.yaw) * hor, cy = c.y - Math.cos(c.yaw) * hor;
-    // never inside the ground, a roof or a tree-top: stay above whatever is below the camera
-    const floor = Math.max(this.heightAt(cx, cy), this.surfaceAt(cx, cy)) + 1.7;
-    const ch = Math.max(gh + Math.sin(c.pitch) * c.dist, floor);
+    // free flight: nothing the walker bumps into stops or lifts the tour camera. It stays above the walked surface below
+    // it (the ground, a terrace, a stair) and glides over a roof or a wall top it already flies over, but low down it
+    // passes through a wall, a fence or a hall instead of being thrown up onto the roof (walls, landmarks: surfaceAt)
+    // (eased, so crossing a roof's edge lifts the camera over a moment instead of in one jump)
+    const want = gh + Math.sin(c.pitch) * c.dist;
+    const top = this.surfaceAt(cx, cy);
+    const lift = want > top - 1.5 ? Math.max(0, top + 1.7 - want) : 0;
+    this._lift = (this._lift || 0) + (lift - (this._lift || 0)) * (1 - Math.exp(-dt * 8));
+    const ch = Math.max(want + this._lift, this.groundAt(cx, cy) + 1.2);
     // look a little above the ground near street level so the view runs along the street, not into it
     const lookUp = clamp(14 - c.dist, 0, 8) * 0.18;
     this.camera.position.set(cx, ch, -cy);

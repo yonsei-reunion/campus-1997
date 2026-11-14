@@ -803,10 +803,22 @@ async function main() {
   for (const id of ['#start', '#tour-start', '#shoot-start']) $(id).addEventListener('click', () => sound.start());
   const SEASON_ORDER = ['spring', 'summer', 'autumn'];
   const SEASON_KEYS = { Digit1: 'spring', Digit2: 'summer', Digit3: 'autumn' };
+  // the tour may go over all the detailed ground: the near grid and the patches beside it (terrain.south: 신촌 로터리)
+  const tourBounds = (() => {
+    const h = T.near.half, b = { x0: -h, x1: h, y0: -h, y1: h };
+    for (const P of Object.values(T)) {
+      if (!P || P === T.near || !(P.nx && P.ny && P.step && P.x0 !== undefined)) continue;
+      b.x0 = Math.min(b.x0, P.x0); b.y0 = Math.min(b.y0, P.y0);
+      b.x1 = Math.max(b.x1, P.x0 + (P.nx - 1) * P.step); b.y1 = Math.max(b.y1, P.y0 + (P.ny - 1) * P.step);
+    }
+    return b;
+  })();
   const bird = new BirdsEye({
     camera, dom: canvas, landmarks: campus.landmarks, markers: campus.markers || [],
     heightAt: (x, y) => hfNear.height(x, y),
+    groundAt,
     surfaceAt,
+    bounds: tourBounds,
     pickGround: (nx, ny) => {
       pickRay.setFromCamera(new THREE.Vector2(nx, ny), camera);
       const h = pickRay.intersectObjects(walkables, false)[0];
