@@ -336,14 +336,17 @@ KEXIM_1997 = [(-130.2, -1059.9), (-114.7, -1062.7), (-102.4, -1061.3), (-103.8, 
 # Sides: side i runs from outline[i] to outline[i + 1].  boxes: [x, y, L, W, angle, height over the roof]; tanks: [x,
 # y, r, height]; signs: the cell of sign_sinchon2 on side i, m along it to its middle (None: the side's middle), width,
 # height, its middle `top` m below the top or `up` m over the ground, `off` m out from the side's line (a flat sign on
-# a round face stands off by the bulge)
+# a round face stands off by the bulge).  front: points on the walk before its doors (그레이스: its south-east corner on
+# 양화로; 그랜드: the round face; 외환은행: the north face's east half and the corner) whose ground sets its floor
 LM_SHAPE = {
     '그레이스백화점': dict(kind='grace', outline=GRACE_1997, deck=66.8, parapet=1.0, glass=(1, 5.5), pipes=1, bands=0,
+                     front=[(-183.5, -918.2), (-178.0, -915.2)],
                      boxes=[(-188.8, -865.0, 46.0, 4.5, -0.333, 2.2)],
                      signs=[dict(cell=12, side=1, at=15.0, w=14.3, h=2.6, top=2.1)]),
     '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=61.0, screen=(9, 12.0, 8.5, 19.0),
-                    strip=(2, 2.5, 2.5), pen=GRAND_PEN, signs=[dict(cell=13, side=9, w=16.5, h=3.0, top=2.4, off=1.0)]),
-    '외환은행': dict(kind='kexim', outline=KEXIM_1997, floors=10,
+                    strip=(2, 2.5, 2.5), pen=GRAND_PEN, signs=[dict(cell=13, side=9, w=16.5, h=3.0, top=2.4, off=1.0)],
+                    front=[(-159.8, -998.0), (-161.6, -990.0), (-165.9, -983.3)]),
+    '외환은행': dict(kind='kexim', outline=KEXIM_1997, floors=10, front=[(-110.0, -1046.4), (-102.9, -1052.0)],
                  boxes=[(-114.5, -1053.7, 13.5, 3.6, -0.207, 3.0), (-113.5, -1059.0, 6.5, 4.0, -0.207, 6.0)],
                  tanks=[(-127.2, -1052.5, 1.9, 3.5)],
                  signs=[dict(cell=14, side=4, at=12.7, w=12.0, h=2.0, top=1.3), dict(cell=15, side=4, at=12.7, w=8.5, h=1.7, up=9.6)]),
@@ -855,6 +858,7 @@ def layout(geo, town, extras, ground, taken_z):
     # the landmarks as the 1997 frames have them (LM_TOP, LM_SHAPE), set after the fill so that what was decided round
     # them stays: each block's box on its 1997 outline, its ground under that outline, its storeys stretched to its top
     # (13th field); blender/town.py draws them as town['landmarks'] (their boxes' draws spent into nothing)
+    lm_foot = {}
     for lm, b in corner:
         sh = LM_SHAPE.get(lm['name'])
         if sh:
@@ -867,8 +871,15 @@ def layout(geo, town, extras, ground, taken_z):
                 L, W, ang = W, L, ang + math.pi / 2
             fill = g_.area / (L * W)
             mc = g_.minimum_rotated_rectangle.centroid
+            # (its floor at the walk before its front, LM_SHAPE `front`: the lowest of those points; the ground behind the
+            # three is 1 - 3 m lower since the town's ground went down to the surveyed plane, 2026-11-15, and a floor set at
+            # the outline's lowest corner had the shop fronts half under the walks.  `foot`: that lowest corner, down to
+            # which blender/town.py landmarks() carries the walls)
+            foot = round(min(ground(x_, y_) for x_, y_ in sh['outline']) - 0.3, 2)
+            floor = round(min(ground(x_, y_) for x_, y_ in sh['front']) - 0.05, 2) if sh.get('front') else foot
+            lm_foot[lm['name']] = min(foot, floor)
             b[:6] = [round(mc.x, 2), round(mc.y, 2), round(L * (0.95 + 0.05 * fill) - 0.3, 2), round(W * (0.95 + 0.05 * fill) - 0.3, 2),
-                     round(ang, 4), round(min(ground(x_, y_) for x_, y_ in sh['outline']) - 0.3, 2)]
+                     round(ang, 4), max(foot, floor)]
         if lm['name'] in LM_TOP:
             b.append(round((LM_TOP[lm['name']] - b[5] - 0.3) / b[6], 3))
     lm_draw = []
@@ -876,9 +887,9 @@ def layout(geo, town, extras, ground, taken_z):
         sh = LM_SHAPE.get(lm['name'])
         if not sh:
             continue
-        d_ = {k: v for k, v in sh.items() if k not in ('outline', 'court', 'signs')}
+        d_ = {k: v for k, v in sh.items() if k not in ('outline', 'court', 'signs', 'front')}
         d_.update(name=lm['name'], block=next(i for i, x in enumerate(blocks) if x is b), base=b[5], top=LM_TOP[lm['name']],
-                  outline=R2(sh['outline']))
+                  foot=lm_foot.get(lm['name'], b[5]), outline=R2(sh['outline']))
         if 'court' in sh:
             d_['court'] = R2(sh['court'])
         lm_draw.append(d_)

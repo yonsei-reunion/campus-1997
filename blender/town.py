@@ -388,6 +388,11 @@ def landmarks():
     mb = MeshBuilder('town_landmarks')
     for d in T.get('landmarks', []):
         dict(grace=_grace, grand=_grand, kexim=_kexim)[d['kind']](mb, d)
+        # (its walls down from the floor, which is the front walk's, to the ground's lowest corner behind: `foot`)
+        if d.get('foot', d['base']) < d['base'] - 0.02:
+            o = _ccw([tuple(p) for p in d['outline']])
+            for i in range(len(o)):
+                _quad(mb, o[i], o[(i + 1) % len(o)], d['foot'], d['base'], 'trim_black' if d['kind'] == 'kexim' else 'tile_white')
     return mb
 
 
