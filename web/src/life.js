@@ -313,6 +313,10 @@ export function makeBanners(banners, lib) {
 // Whoever stands does not stand like a post: every few seconds they take another of the standing clips (POSES:
 // shifting the weight, looking about, arms folded), talk with their hands while a line of theirs is up, and the one
 // in a phone booth holds the receiver to the ear. Seated people gesture while they speak.
+// Nobody walks through anybody (steer): a walker who sees somebody in their way within a couple of metres - another
+// walker, people standing in a group or a queue, you - steps aside as they go (to their own right when it is head-on,
+// so two coming towards each other part), comes back to their side of the path once past, and shortens the stride
+// rather than tread on the heels of a slower one; you they wait for a moment first, and ask to get by.
 // Small talk (talk.js): two walkers coming towards each other near the view now and then stop, face each other, wave
 // and trade a line or two; groups talk among themselves and greet you; a walker you block asks to get by.
 const FAR2 = 190 * 190;
@@ -320,7 +324,8 @@ const TALK_NEAR2 = 45 * 45;        // talk only where it can be seen
 const MAX_TALKS = 4;               // conversations at once round the view
 const height = (id) => (id.startsWith('woman') ? 1.61 : 1.73);
 // Sitting (the benches: 2003_봄_언더우드관정원_남쪽계단_벚나무.jpg, three people to a bench): the 'sit' clip, the hips
-// THIGH over the seat. A seated person keeps still but for the head, which turns to whoever is speaking or to you.
+// THIGH over the seat. A seated person keeps still but for the head, which turns a little (LOOK_MAX, the neck with
+// it) to whoever is speaking or to you.
 const THIGH = 0.085;
 // the standing clips and how often each is taken; waiting in a line one looks about more
 const POSES = [['idle', 5], ['idle-shift', 3], ['idle-look', 2], ['idle-fold', 1.2]];
@@ -332,6 +337,13 @@ function nextPose(p, t) {
   p.poseUntil = t + 6 + Math.random() * 10;
 }
 const _hip = new THREE.Vector3(), _head = new THREE.Vector3();
+// stepping round each other: who is looked at (m ahead, m either side of the way), how far a walker leaves their own
+// line and how fast (m/s sideways at a full stride), from how far off the camera it is done at all, and how long a
+// walker waits for you standing in the way before going round
+const SEE = 2.4, WIDE = 0.78, OFF_MAX = 1.0, SIDESTEP = 0.75, STEER2 = 60 * 60, PATIENCE = 2.6;
+const _YOU = { walking: false };
+// the head of somebody sitting turns no further than this (rad), the neck doing its share
+const LOOK_MAX = 0.6, NECK_SHARE = 0.4;
 
 export class Crowd {
   // extras: { seats: [[{x, y, h, heading}, ...], ...] people sitting together (h: the seat's top),
@@ -347,7 +359,7 @@ export class Crowd {
       const a = cast.make(id, crowdBag(id, i), crowdLook(id, i));
       const path = paths[Math.floor(rnd() * paths.length)];
       const p = { a, path, s: rnd() * path.length, dir: rnd() < 0.5 ? 1 : -1, speed: 1.15 + rnd() * 0.4, side: (rnd() - 0.5) * 0.8,
-        heading: 0, walking: true, gestureAt: 5 + rnd() * 30, tick: i & 1,
+        heading: 0, walking: true, gestureAt: 5 + rnd() * 30, tick: i & 1, off: 0, offTo: 0, slow: 1, pace: 1, v: 0,
         kind: kindOf(a.id), top: height(a.id) * a.tall, x: 1e9, y: 1e9, fx: 0, fy: 0,
         chatUntil: 0, chatAfter: 2 + rnd() * 10, face: null, blockedT: 0, excuseAfter: 0 };
       a.mixer.setTime(rnd() * 2);
@@ -423,7 +435,9 @@ export class Crowd {
         const head = a.root.getObjectByName('Head');
         const top = head ? head.getWorldPosition(_head).y + 0.24 * a.tall : hip + 0.75;
         // (headRest: the head as the clip holds it. The turn is set from it, never added to the frame before)
-        const p = join(g, a, m.x, m.y, m.heading, { seated: true, head, headRest: head?.quaternion.clone(), look: 0, lookTo: 0, lookAt: rx() * 6 });
+        const neck = a.root.getObjectByName('Neck');
+        const p = join(g, a, m.x, m.y, m.heading, { seated: true, head, headRest: head?.quaternion.clone(), neck, neckRest: neck?.quaternion.clone(),
+          look: 0, lookTo: 0, lookAt: rx() * 6 });
         p.top = top;
       }
     }
@@ -452,6 +466,29 @@ export class Crowd {
     }
     return out;
   }
+  // where a walker steps aside to, and how much of their pace is left: p at (x, y) going d, their left n = (-d.y, d.x)
+  steer(p, d, x, y, player) {
+    let push = 0, slow = 1;
+    const see = (q, qx, qy) => {
+      const rx = qx - x, ry = qy - y;
+      if (Math.abs(rx) > SEE || Math.abs(ry) > SEE) return;
+      const ahead = rx * d.x + ry * d.y, lat = -rx * d.y + ry * d.x, wide = Math.abs(lat);
+      if (ahead < -0.1 || ahead > SEE || wide > WIDE) return;
+      // somebody going the same way no slower: nothing to pass, only not to tread on their heels
+      if (q.walking && q.v > 0 && q.fx * d.x + q.fy * d.y > 0.5 && q.v >= p.speed * 0.92) {
+        if (ahead < 0.9 && wide < 0.5) slow = Math.min(slow, q.v / p.speed * (ahead < 0.6 ? 0.8 : 1));
+        return;
+      }
+      // (to the side they are not on; head-on, or right behind somebody slower: to the right)
+      push += (lat > 0.04 ? -1 : lat < -0.04 ? 1 : -1) * (WIDE - wide) * (1.25 - 0.5 * ahead / SEE);
+      if (ahead < 0.75 && wide < 0.5) slow = Math.min(slow, ahead < 0.45 ? 0.15 : 0.4);
+    };
+    for (const q of this.people) if (q !== p && q.a.holder.parent) see(q, q.x, q.y);
+    see(_YOU, player.x, player.y);
+    // (what is seen is seen from where they are now, `off` and all: so much further, or back to their own line)
+    p.offTo = push ? Math.max(-OFF_MAX, Math.min(OFF_MAX, p.off + push)) : 0;
+    p.slow = slow;
+  }
   update(dt, t, player, camPos) {
     this.frame++;
     const v = this.v, d = this.d;
@@ -462,26 +499,38 @@ export class Crowd {
       if (p.walking) {
         p.path.at(p.s, v);
         p.path.dir(p.s, d).multiplyScalar(p.dir);
-        // stop for the player standing in front, and look at them
-        const tx = player.x - v.x, ty = player.y - v.y, td = Math.hypot(tx, ty);
-        const ahead = (tx * d.x + ty * d.y) / (td || 1);
-        const blocked = td < 1.3 && ahead > 0.2;
+        // (where they are: `side`, and `off` for whoever they are stepping round, to the left of the way they go)
+        let lat = p.side + p.off;
+        const wx = v.x - d.y * lat, wy = v.y + d.x * lat;
+        // stop for the player standing in the way, and look at them; after a while go round
+        const tx = player.x - wx, ty = player.y - wy, td = Math.hypot(tx, ty);
+        const ahead = tx * d.x + ty * d.y;
+        const blocked = td < 1.3 && ahead > 0.2 * td && Math.abs(-tx * d.y + ty * d.x) < 0.6 && p.blockedT < PATIENCE;
         const halt = t < p.chatUntil || gesturing(a);       // talking: stand still facing the other
+        if (far > STEER2) { p.offTo = 0; p.slow = 1; }
+        else if ((this.frame & 1) === p.tick) this.steer(p, d, wx, wy, player);
         if (halt) {
           const o = p.face?.a.holder.position;
           if (o) want = Math.atan2(o.x - hp.x, o.z - hp.z);
         } else if (!blocked) {
-          speed = p.speed;
+          p.pace += (p.slow - p.pace) * (1 - Math.exp(-dt * 6));
+          speed = p.speed * p.pace;
           p.s += p.dir * speed * dt;
-          if (p.s > p.path.length) { p.s = p.path.length; p.dir = -1; }
-          if (p.s < 0) { p.s = 0; p.dir = 1; }
+          if (p.s > p.path.length) { p.s = p.path.length; p.dir = -1; p.off = -p.off - 2 * p.side; }      // (turning round on the spot)
+          if (p.s < 0) { p.s = 0; p.dir = 1; p.off = -p.off - 2 * p.side; }
           p.path.at(p.s, v);
-          want = Math.atan2(d.x, -d.y);
+          // sideways no faster than the stride allows (nobody slides standing), and facing where that takes them
+          const step = Math.max(-1, Math.min(1, (p.offTo - p.off) / (SIDESTEP * dt || 1))) * SIDESTEP * Math.min(1, speed / p.speed + 0.25);
+          p.off += step * dt;
+          lat = p.side + p.off;
+          want = Math.atan2(d.x * speed - d.y * step, -(d.y * speed + d.x * step));
         } else want = Math.atan2(tx, -ty);
-        hp.set(v.x - d.y * p.side, p.path.h(p.s), -(v.y + d.x * p.side));
+        p.v = speed;
+        hp.set(v.x - d.y * lat, p.path.h(p.s), -(v.y + d.x * lat));
         p.x = hp.x; p.y = -hp.z; p.fx = d.x; p.fy = d.y;
         // blocked for a moment: ask to get by (not everyone, and not all at once on a busy sidewalk)
-        if (blocked && !halt) {
+        if (halt) p.blockedT = 0;
+        else if (blocked || (p.blockedT >= PATIENCE && td < 1.6)) {
           p.blockedT += dt;
           if (p.blockedT > 1.1 && t > p.excuseAfter) {
             p.excuseAfter = t + 60;
@@ -491,15 +540,15 @@ export class Crowd {
       } else if (p.seated) {
         // only the head turns: to you close by, else now and then to a bench mate or along the path
         if (t > p.lookAt) {
-          p.lookAt = t + 2.5 + Math.random() * 6;
+          p.lookAt = t + 4 + Math.random() * 9;
           const tx = player.x - p.x, ty = player.y - p.y, mates = p.group.people;
           const o = mates.length > 1 && Math.random() < 0.6 ? mates[Math.floor(Math.random() * mates.length)] : null;
           let to = null;
           if (Math.hypot(tx, ty) < 3.5) to = Math.atan2(tx, -ty);
           else if (o && o !== p) to = Math.atan2(o.x - p.x, -(o.y - p.y));
-          p.lookTo = to === null ? (Math.random() - 0.5) * 1.2 : Math.max(-1.1, Math.min(1.1, wrapAngle(to - p.heading)));
+          p.lookTo = to === null ? (Math.random() - 0.5) * 0.6 : Math.max(-LOOK_MAX, Math.min(LOOK_MAX, wrapAngle(to - p.heading)));
         }
-        p.look += (p.lookTo - p.look) * (1 - Math.exp(-dt * 3));
+        p.look += (p.lookTo - p.look) * (1 - Math.exp(-dt * 2));
       } else {
         const tx = player.x - p.x, ty = player.y - p.y;
         want = Math.hypot(tx, ty) < 2.6 ? Math.atan2(tx, -ty) : p.home;      // turn to greet you
@@ -520,7 +569,8 @@ export class Crowd {
           const clip = t < (p.talkUntil || 0) && a.actions['sit-talk'] ? 'sit-talk' : 'sit';
           if (a.current !== a.actions[clip]) play(a, clip, { fade: 0.5 });
           a.mixer.update(dt);
-          if (p.head) { p.head.quaternion.copy(p.headRest); p.head.rotateY(p.look); }
+          if (p.head) { p.head.quaternion.copy(p.headRest); p.head.rotateY(p.look * (p.neck ? 1 - NECK_SHARE : 1)); }
+          if (p.neck) { p.neck.quaternion.copy(p.neckRest); p.neck.rotateY(p.look * NECK_SHARE); }
         }
         continue;
       }

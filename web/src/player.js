@@ -455,7 +455,8 @@ export class Player {
     if (Math.abs(this.speed) < 0.05 && !target) this.speed = 0;
     let nx = this.pos.x + Math.sin(this.heading) * this.speed * dt;
     let nz = this.pos.z + Math.cos(this.heading) * this.speed * dt;
-    if (this.speed) {
+    // (standing still, too, when somebody walks into you: they go on, you give way)
+    if (this.speed || this.movers.some((m) => Math.hypot(nx - m.x, -nz - m.y) < m.r + RADIUS)) {
       const [cx, cy] = this.col.resolve(nx, -nz, RADIUS, this.movers);
       nx = cx; nz = -cy;
       if (this.walls.length) { const [wx, wz] = this.pushFromWalls(nx, this.pos.y, nz); nx = wx; nz = wz; }
