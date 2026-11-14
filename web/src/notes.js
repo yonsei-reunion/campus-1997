@@ -19,8 +19,15 @@ export function dateLabel(date) {
   return `${y}년 ${m}월 ${d}일`;
 }
 
+// summary: a few short points for the date → <ul class="summary">
+export function summaryList(summary) {
+  const ul = renderItems([].concat(summary));
+  ul.className = 'summary';
+  return ul;
+}
+
 // one dated entry: { date, summary, groups: [{ category, items, images: [{ src, alt }] }] } →
-// <section id="2026-11-06"><h3>2026년 11월 6일</h3><p class="summary">…</p><div class="cat"><h4>건물</h4><ul>…</ul><figure class="shot">…</div>…
+// <section id="2026-11-06"><h3>2026년 11월 6일</h3><ul class="summary">…</ul><div class="cat"><h4>건물</h4><ul>…</ul><figure class="shot">…</div>…
 // heading: the date's tag (each category gets the next level); link: the date's URL (none: plain text); src: maps each capture's URL
 export function noteSection(n, { heading = 'h3', link = '', src = (u) => u } = {}) {
   const sec = document.createElement('section');
@@ -29,7 +36,7 @@ export function noteSection(n, { heading = 'h3', link = '', src = (u) => u } = {
   const date = link ? h.appendChild(Object.assign(document.createElement('a'), { href: link })) : h;
   date.textContent = dateLabel(n.date);
   sec.appendChild(h);
-  if (n.summary) sec.appendChild(Object.assign(document.createElement('p'), { className: 'summary', textContent: n.summary }));
+  if (n.summary?.length) sec.appendChild(summaryList(n.summary));
   const sub = 'h' + (Number(heading[1]) + 1);
   for (const g of n.groups) {
     const cat = document.createElement('div');

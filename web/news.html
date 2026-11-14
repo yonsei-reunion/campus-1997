@@ -30,7 +30,8 @@
   figure { margin:14px 0 0; }
   img { display:block; width:100%; height:auto; border-radius:10px; border:1px solid rgba(0,0,0,.12); }
   figcaption { font-size:13px; color:var(--mute); margin:4px 2px 0; }
-  .summary { margin:4px 0 0; color:#3a4762; }
+  ul.summary { margin:6px 0 0; color:#3a4762; }
+  ul.summary li { margin:0 0 2px; }
   .back { display:inline-block; margin:0 0 12px; color:var(--accent); font-weight:700; text-decoration:none; }
   nav.pager { display:flex; justify-content:space-between; gap:12px; margin-top:8px; }
   nav.pager a { flex:1; background:var(--card); border-radius:12px; padding:10px 14px; color:var(--accent); text-decoration:none; box-shadow:0 1px 4px rgba(0,0,0,.08); font-size:14px; }
@@ -51,8 +52,8 @@
 </header>
 <main id="list"><p>불러오는 중…</p></main>
 <script type="module">
-import { noteSection, dateLabel } from './src/notes.js';
-// news.html: the dates with a one-line summary each; news.html?d=2026-11-06: that date alone.
+import { noteSection, dateLabel, summaryList } from './src/notes.js';
+// news.html: the dates with a short summary list each; news.html?d=2026-11-06: that date alone.
 // Old shared links (news.html#2026-11-06) go to the date page.
 const hashDate = /^#\d{4}-\d{2}-\d{2}$/.test(location.hash) && location.hash.slice(1);
 if (hashDate) history.replaceState(null, '', `?d=${hashDate}`);
@@ -77,14 +78,14 @@ const setMeta = (title, desc) => {
       sec.style.padding = '0';
       const a = sec.appendChild(Object.assign(document.createElement('a'), { className: 'entry', href: pageOf(n.date) }));
       a.appendChild(Object.assign(document.createElement('h2'), { textContent: dateLabel(n.date) }));
-      if (n.summary) a.appendChild(Object.assign(document.createElement('p'), { className: 'summary', textContent: n.summary }));
+      if (n.summary?.length) a.appendChild(summaryList(n.summary));
       const cats = a.appendChild(Object.assign(document.createElement('p'), { className: 'cats' }));
       for (const g of n.groups) cats.appendChild(Object.assign(document.createElement('span'), { textContent: g.category }));
     }
     return;
   }
   const n = notes[i];
-  setMeta(`${dateLabel(n.date)} · 새 소식 · 신촌 캠퍼스 1997`, n.summary || '신촌 캠퍼스 1997 업데이트 내역');
+  setMeta(`${dateLabel(n.date)} · 새 소식 · 신촌 캠퍼스 1997`, [].concat(n.summary || '신촌 캠퍼스 1997 업데이트 내역').join(', '));
   list.appendChild(Object.assign(document.createElement('a'), { className: 'back', href: 'news.html', textContent: '← 날짜 목록' }));
   list.appendChild(noteSection(n, { heading: 'h2', link: pageOf(n.date) }));
   // newer on the right, older on the left (the list runs newest first)
