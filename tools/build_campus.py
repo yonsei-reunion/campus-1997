@@ -211,8 +211,8 @@ FLOOR_H_AT = {222843398: 3.9}        # 과학관's 3.9 m storeys (blender/generi
 FLOOR_H_AT[ANNEX_1997['id']] = ANNEX_1997['floor']   # (학생회관 별관: its roof 6.7 m over the yard in the 1997 scans)
 FLOOR_H_AT.update({324328481: 3.55, 990036: 3.3})    # (심장혈관병원, 특별병동: their roofs in the 1997 aerial photos, above)
 FLOOR_H_AT[UTS] = 3.4                                # (연합신학대학원: its eaves 6.7 m over the ground in the aerial photos)
-# (빌링슬리관: its cornice 11.7 m over the lawn, three storeys: BILL)
-FLOOR_H_AT[245623193] = 3.9
+# (빌링슬리관: its cornice 11.7 m over the lawn, three storeys; 경영학교실단's wings: both roofs 58.4 m: BILL, BK_WINGS)
+FLOOR_H_AT.update({245623193: 3.9, 256933753: 3.95, 990021: 3.95})
 # 과학관 as the 1997-07-28 vertical aerial photos have it (reference/고증/3.10; frames 26/15 and 26/16, from the north
 # and the south, each roof read on its own plane where the two agree; the 2008 · 2010 skyview shows the same plan).
 # OSM's outline is one mass round the yard north-west of the hall and 3 m short on the east wing's north side.  The
@@ -6519,6 +6519,28 @@ for b in buildings:
     LATE_SITES.append(poly)
     if b['id'] not in SITES_NEW_1997 and MED_SITES_RNG.get(b['id'], poly) is not None:
         LATE_SITES_RNG.append(MED_SITES_RNG.get(b['id'], poly))
+# 경영학교실단 (reference/고증/3.15-3.17 「날개와 강당의 높이」; the 1997-07-28 scans, four frames from both flight
+# lines): both wings' roofs at the same height, 58.4 m on the game's ground (58.6 · 58.8 on the photos' datum, which
+# stands 0.3 - 0.5 m over the game's at the front walk, the car park and the front block's roof), where the game had
+# the north wing's 1.8 m and the south wing's 4.3 m lower.  Five storeys of 3.95 m on the north wing's floor; the south
+# wing, on ground falling south, has a storey more under the same floors (its lowest half sunk).  The front block's
+# roof (45.0 m on the photos) is the game's: one storey over the half-sunk one, not two before 2005.  In the middle of
+# that roof the hall's box rises 2.2 m to the springing of three shallow barrel vaults side by side, 11 m across and
+# 22.2 m long, their crowns 3.5 m over the flat roof (blender/generic.py bk_vault); the frame BK_T from the front's
+# south end, v into the hall
+BK_WINGS = dict(fh=3.95, north=256933753, south=990021)
+_bkw_n = next(b_ for b_ in buildings if b_['id'] == BK_WINGS['north'])
+_bkw_s = next(b_ for b_ in buildings if b_['id'] == BK_WINGS['south'])
+_bkw_s.update(base=round(_bkw_n['base'] - BK_WINGS['fh'], 2), levels=6, height=round(6 * BK_WINGS['fh'] + 1.2, 2))
+# (its door where it was, near the south front's east end, now on the storey over the half-sunk one: a flight up)
+ENTRY_AT[BK_WINGS['south']] = ((-36.52, 36.5), dict(floor=1))
+BK_VAULT = dict(uv=(8.67, 41.68, 11.3, 33.5), spring=2.2, crown=3.5, bays=3)
+next(b_ for b_ in buildings if b_['id'] == 990022)['roof'] = dict(
+    o=[float(v_) for v_ in _bk_a], t=[round(float(v_), 5) for v_ in BK_T], vault=BK_VAULT['uv'], spring=BK_VAULT['spring'],
+    crown=BK_VAULT['crown'], bays=BK_VAULT['bays'])
+print('경영학교실단: wings roof %.2f / %.2f m, hall vault crown %.2f m' % (
+    _bkw_n['base'] + 5 * BK_WINGS['fh'], _bkw_s['base'] + 6 * BK_WINGS['fh'],
+    next(b_ for b_ in buildings if b_['id'] == 990022)['base'] + 2 * FLOOR_H['white'] + BK_VAULT['crown']))
 _bp_all = [Polygon(b_['footprint']) for b_ in buildings]
 for b in LATE_HALLS:
     poly = next(q for q, b_ in zip(_bp_all, buildings) if b_ is b)

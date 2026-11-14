@@ -627,6 +627,33 @@ def billingsley_roof(mb, b, zt, st):
     mansard(mb, c.x, c.y, u1 - u0, v1 - v0, au, zt, st, *r['mansard'])
 
 
+def bk_vault(mb, b, zt, st):
+    """경영학교실단's hall (tools/build_campus.py BK_VAULT, reference/고증/3.15-3.17 「둥근 지붕 강당」): in the middle of
+    the one-storey front block's flat roof a box 33 by 22 m rising to the springing of three shallow white barrel
+    vaults side by side, their axes running back from 백양로 (the 1997-07-28 scans: the valleys 2.4 m and the crowns
+    3.7 m over the flat roof, the barrels 11 m across)."""
+    r = b['roof']
+    o, t = Vector(r['o']), Vector(r['t'])
+    n = Vector((-t.y, t.x))
+    P = lambda u, v, z: (*(o + t * u + n * v), z)
+    u0, u1, v0, v1 = r['vault']
+    zs, zc = zt + r['spring'], zt + r['crown']
+    c = o + t * ((u0 + u1) / 2) + n * ((v0 + v1) / 2)
+    mb.box((c.x, c.y, (zt + zs) / 2), (u1 - u0, v1 - v0, zs - zt), st['wall'], rotz=math.atan2(t.y, t.x),
+           skip=('bottom', 'top'))
+    k, seg = r['bays'], 8
+    w = (u1 - u0) / k
+    for i in range(k):
+        us = [u0 + w * i + w * j / seg for j in range(seg + 1)]
+        zz = [zs + (zc - zs) * (1.0 - (2.0 * j / seg - 1.0) ** 2) for j in range(seg + 1)]
+        for j in range(seg):
+            mb.face([P(us[j], v0, zz[j]), P(us[j + 1], v0, zz[j + 1]), P(us[j + 1], v1, zz[j + 1]), P(us[j], v1, zz[j])],
+                    'paint_white')
+        e0 = [P(u_, v0, z_) for u_, z_ in zip(us, zz)]           # the arched end walls (outwards: -v, +v)
+        mb.face([e0[0]] + e0[1:][::-1], st['wall'])
+        mb.face([P(u_, v1, z_) for u_, z_ in zip(us, zz)], st['wall'])
+
+
 def _science_wing(b, poly):
     """과학관's east wing and link stand a storey over the south-west wing (reference/고증/3.10: seven rows of windows
     at the east end in the 1994 aerial photo and the 2008 · 2010 roadview, six on the south-west wing's south face;
@@ -653,7 +680,7 @@ def _science_wing(b, poly):
     return full, wg, over
 
 
-ROOF_EXTRAS = {222843398: observatory}
+ROOF_EXTRAS = {222843398: observatory, 990022: bk_vault}
 PLAN_ROOF = {245623193: billingsley_roof}
 # 과학관: cream square glazed tiles, about ten to a window bay (the 1996 album photos reference/과학관_계단_1996_*.jpg;
 # the 2008 roadview, 200 mm tiles); 음악관 신관: white square tiles with grey joints (기악과's 1996 album photo at its
@@ -668,8 +695,9 @@ FRAME = {429077789: 'frame_blue', 429077790: 'frame_blue'}      # (and blue wind
 FH_AT = {222843398: 3.9}
 SILL_AT = {222843398: dict(sill=1.0, head=1.3)}
 # 빌링슬리관: three stone storeys of 3.9 m under its roofs (the 1997 scans: the cornice 11.7 m over the lawn, the same
-# all round)
-FH_AT[245623193] = 3.9
+# all round); 경영학교실단's wings: 3.95 m storeys (both roofs 58.4 m in the scans, the south wing a storey lower on
+# its falling ground: tools/build_campus.py BK_WINGS)
+FH_AT.update({245623193: 3.9, 256933753: 3.95, 990021: 3.95})
 WING_UP = {222843398: _science_wing}
 # 학생회관 별관 (1997 photo reference/1997_학생회관.jpg; tools/build_campus.py ANNEX_1997): two 3.1 m storeys of pale
 # grey concrete (the roof 6.7 m over the yard in the 1997-07-28 aerial photos' scans, reference/고증/4.5), each a band of broad lights between plain piers (the shops and the bank of the 2008 roadview below,
