@@ -6393,6 +6393,87 @@ Hn[_af_m] = _af_z
 print('대우관 별관 앞: nodes %d between the wall and the drive to the drive\'s height, %+.2f .. %+.2f m' % (
     int(_af_m.sum()), (_af_z - _af_h0).min(), (_af_z - _af_h0).max()))
 # ---------------------------------------------------------------------------
+# 1997년 땅 (#189 가운데: 인문관 · 대강당 · 한경길 · 용재관), after the planting and everything else that read the ground
+# as it was.  Each place: a zone of grid nodes to one level, the ring round it eased by harmonic_fill into the ground as
+# it stays; what read the ground at build time (the halls' wings, kerbs, walks) follows on the next landmarks build.
+# Survey heights (#134) are used on the game's datum: survey + the photos' offset over it (s134's pdz, 2 - 3 m here).
+# ---------------------------------------------------------------------------
+def late_frame(a_, b_, x_, y_):
+    """(along a -> b, to its left) of (x, y)"""
+    a_, b_ = np.asarray(a_, float), np.asarray(b_, float)
+    t_ = (b_ - a_) / np.linalg.norm(b_ - a_)
+    return (x_ - a_[0]) * t_[0] + (y_ - a_[1]) * t_[1], -(x_ - a_[0]) * t_[1] + (y_ - a_[1]) * t_[0]
+
+
+def late_level(zone_, ring_, z_, name_, up_only=False):
+    """the zone's nodes to z (or only those under it), the ring's free nodes one smooth surface between them and the
+    ground round it"""
+    h0_ = Hn.copy()
+    Hn[zone_] = np.maximum(Hn[zone_], z_) if up_only else z_
+    free_ = ring_ & ~zone_ & ~FIXED
+    if free_.any():
+        harmonic_fill(free_)
+    FIXED[zone_] = True
+    d_ = Hn - h0_
+    print('%s: %d nodes to %.2f m (%+.2f .. %+.2f), %d eased (%+.2f .. %+.2f)' % (
+        name_, int(zone_.sum()), z_, d_[zone_].min(), d_[zone_].max(), int(free_.sum()),
+        d_[free_].min() if free_.any() else 0.0, d_[free_].max() if free_.any() else 0.0))
+
+
+# 인문관 남쪽 길 (reference/고증/3.1 「인문관 남쪽 길」): the service road along the hall's south face (OSM, a dead end at its
+# west end) and the row of cars nose to the wall stood on one level in July 1997: the cars' tops at 60.9 - 61.2 m from
+# x -111 to -79 (car boxes in 26/16 · 27/17 · 26/15 · 27/16), the road's east end where the game has it; the survey of
+# 2024 has the road at x -92 at 60.3 m on the game's datum (the level below: 60.39).  The game's grid climbed 6 - 8 m
+# along it to the west.  The face from OSM 246156112 (east -> west), v out of the wall (south)
+_inm_u, _inm_v = late_frame((-59.2, 244.5), (-126.8, 261.5), X, Y)
+INM97 = dict(z=round(float(sample(Hn, NEAR_HALF, NEAR_STEP, -76.0, 242.0)), 2), u=(11.0, 60.0), v=(-4.5, 14.0))
+late_level((_inm_u >= INM97['u'][0]) & (_inm_u <= INM97['u'][1]) & (_inm_v >= INM97['v'][0]) & (_inm_v <= INM97['v'][1]),
+           (_inm_u >= 0.0) & (_inm_u <= 76.0) & (_inm_v >= -8.0) & (_inm_v <= 30.0) & ~near_buildings(1.0), INM97['z'], '인문관 남쪽 길')
+# 대강당 남쪽 날개 앞 (reference/고증/4.5.1 「남쪽 날개 앞」): the paved terrace ran on level past the south wing's west face
+# and between the wing and 학생회관 별관 (the photos 41.7 - 42.6 m there as on the terrace, four frames; the 2006 survey
+# no lower there than on the terrace).  The game's terrace stopped 11 m short of the halls, so the grid dipped 1 - 3 m
+# in front of the wing.  The strip along the annex's north wall (under trees in the photos) stays as it was
+AUD97 = dict(z=round(float(sample(Hn, NEAR_HALF, NEAR_STEP, 41.0, 24.0)), 2))
+_aud97 = Polygon([(42.0, 1.95), (66.2, -4.2), (68.0, 7.1), (54.8, 10.6), (58.9, 26.2), (51.1, 28.3), (43.5, 29.0)])
+_aud97 = _aud97.union(Polygon([(54.8, 10.6), (67.6, 7.2), (71.6, 22.3), (58.9, 26.2)]))       # (and under the wing itself)
+late_level(shapely.contains_xy(_aud97, X, Y),
+           shapely.contains_xy(_aud97.buffer(10.0), X, Y) & ~near_buildings(0.5), AUD97['z'], '대강당 남쪽 날개 앞')
+# 한경길 남쪽 줄 (reference/고증/2.10 「한경길」): the row nose to 언더우드관's back wall stood level (the cars' tops in four
+# frames as high over the game's ground at the row's ends as along the north rows), where the grid sagged 0.7 - 1.7 m
+# between x 76 and 90 and the cars leaned 15 - 28 degrees.  The wall from OSM 246156115 (west -> east), w out of it.
+# Only what lies under the level comes up (the lane's edge north of the row stays), and the ring stops short of the
+# dip on 한경길 east of the row (x 105 - 110), which the cars driving round take as it was
+_hk_s, _hk_w = late_frame((43.0, 278.9), (91.7, 265.3), X, Y)
+HK97 = dict(z=round(float(0.5 * (sample(Hn, NEAR_HALF, NEAR_STEP, 72.0, 275.5) + sample(Hn, NEAR_HALF, NEAR_STEP, 95.0, 268.5))), 2))
+late_level((_hk_s >= 27.0) & (_hk_s <= 59.0) & (_hk_w >= -4.0) & (_hk_w <= 7.5),
+           (_hk_s >= 20.0) & (_hk_s <= 60.0) & (_hk_w >= -4.0) & (_hk_w <= 13.0) & ~near_buildings(0.5), HK97['z'], '한경길 남쪽 줄',
+           up_only=True)
+# 용재관 북쪽 드는 길 (YJ_BRANCH, reference/고증/3.13 「북쪽 드는 길의 높이」): the drive to 노천극장 climbed east past the car
+# park, 6 m in its last 25 m (the photos 51.7 -> 54.2 m from x 105 to 121, two to four frame pairs over 0.7; the 2006
+# survey's surface on the game's datum the same less 0.1 - 0.9 m).
+# The game had it flat at 44.9 - 45.8 m.  YJ97['prof']: (s along YJ_BRANCH, z 게임 기준: the one absolute height of
+# these blocks, the others take the game's own ground at a place that stays); the west end meets
+# the east road (TR_E, 47.9 m), the car park and its way in stay as they were (their floor is 용재관's: 남은 한계)
+YJ97 = dict(prof=[(0.0, 47.9), (8.0, 48.2), (16.0, 49.8), (24.0, 51.6), (28.0, 52.4), (32.0, 53.4), (36.0, 54.15), (40.0, 54.3)], s0=14.0)
+_yjs = shapely.line_locate_point(YJ_BRANCH, shapely.points(X, Y))
+_yjd = shapely.distance(YJ_BRANCH, shapely.points(X, Y))
+_yjz = np.interp(_yjs, *zip(*YJ97['prof']))
+_yjk = shapely.contains_xy(YJ_LOT.buffer(3.0), X, Y)               # (the car park and its cars' cells as they were)
+_yjm = (_yjd <= 3.0) & (_yjs >= YJ97['s0']) & (X <= 124.0) & ~_yjk
+# (the grid column at the drive's east end, x 125, at its last level: 노천극장's ground beyond it is the next block's)
+_yje = (np.abs(X - 125.0) < 1.0) & (Y > 143.0) & (Y < 167.0)
+_yjm |= _yje
+_yjz = np.where(_yje, YJ97['prof'][-1][1], _yjz)
+_yjr = ((_yjd <= 12.0) & (X <= 126.0) & ~_yjk & ~shapely.contains_xy(YJ_DRIVE.buffer(6.0), X, Y)
+        & ~shapely.contains_xy(unary_union([Polygon(b_['footprint']) for b_ in YONGJAE_BUILDINGS]).buffer(7.0), X, Y))
+_yjh0 = Hn.copy()
+Hn[_yjm] = _yjz[_yjm]
+_yjf = _yjr & ~_yjm & ~FIXED
+harmonic_fill(_yjf)
+FIXED[_yjm] = True
+print('용재관 북쪽 드는 길: %d nodes on the profile (%+.2f .. %+.2f), %d eased (%+.2f .. %+.2f)' % (
+    int(_yjm.sum()), (Hn - _yjh0)[_yjm].min(), (Hn - _yjh0)[_yjm].max(), int(_yjf.sum()), (Hn - _yjh0)[_yjf].min(), (Hn - _yjh0)[_yjf].max()))
+# ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
 os.makedirs(os.path.join(ROOT, 'web/public/data'), exist_ok=True)
