@@ -1892,16 +1892,18 @@ for _f in UW_STEPS['garden']:              # (the ground under it below its trea
 print('언더우드관 정원 서남쪽 계단', _ugz, [(f_['n'], f_['z_top'], f_['z_foot']) for f_ in UW_STEPS['garden']])
 
 
-# the north flight: from the road's south edge on the OSM line down onto the garden's axis walk, twenty-one risers of
-# 0.16 (the vertical aerial photos: the road 58.4 - 58.5 m on the axis, the garden 55.1 at its foot)
-YH_NORTH_N = 21
+# the north flight: from the road's south edge on the OSM line down onto the garden's axis walk, eighteen risers of
+# 0.17 on 0.30 m treads, 4.6 m wide between its copings (the 1997 scans: seventeen risers counted in 26/15 · 26/16 ·
+# 27/17 and the eighteenth at the road's edge, 3.05 m from the garden at its foot to the road; reference/고증/3.5.1.
+# It was twenty-one of 0.16 on 0.31 m, 5.0 m wide, from the previews' heights alone)
+YH_NORTH_N, YH_NORTH_RISE, YH_NORTH_TREAD, YH_NORTH_W = 18, 0.17, 0.30, 4.6
 _un = np.array([85.2 - 82.5, 345.0 - 335.4]) / math.hypot(85.2 - 82.5, 345.0 - 335.4)
 _tn = np.array([85.2, 345.0]) - _un * 3.0
-_fn = _tn - _un * (0.6 + YH_NORTH_N * 0.31)
-YEONHUI['road'] = round(yh_plane(*g_en(*_fn)) + YH_NORTH_N * 0.16, 2)   # the road before 연희관, on the axis
+_fn = _tn - _un * (0.6 + YH_NORTH_N * YH_NORTH_TREAD)
+YEONHUI['road'] = round(yh_plane(*g_en(*_fn)) + YH_NORTH_N * YH_NORTH_RISE, 2)   # the road before 연희관, on the axis
 for _ in range(3):                                            # (the foot moves with the number of risers)
     _zfn = yh_plane(*g_en(*_fn))
-    _fn = _tn - _un * (0.6 + math.ceil((YEONHUI['road'] - _zfn) / 0.16 - 1e-6) * 0.31)
+    _fn = _tn - _un * (0.6 + math.ceil((YEONHUI['road'] - _zfn) / YH_NORTH_RISE - 1e-6) * YH_NORTH_TREAD)
 _zfn = yh_plane(*g_en(*_fn))
 YEONHUI['floor'] = round(YEONHUI['road'] + 17 * 0.15, 2)      # 연희관's door (blender: gothic z_floor), 17 risers up
 YEONHUI['hall'] = dict(a=list(YH_HALL_A), b=list(YH_HALL_B), **{k_: list(v_) for k_, v_ in YH_HALL.items()})   # (BLD_SHAPE)
@@ -1957,7 +1959,8 @@ FIXED[_ct] = True
 # the flights (blender/landmarks.py yeonhui_garden builds them from these)
 _ds = np.array([73.1 - 74.4, 297.5 - 302.5]); _ds /= np.linalg.norm(_ds)
 YEONHUI['flights'] = [
-    flight_at('north', _tn, -_un, YEONHUI['road'], _zfn, 5.0, landing=0.6, tread=0.31, maxrise=0.16, cheek=0.4),
+    flight_at('north', _tn, -_un, YEONHUI['road'], _zfn, YH_NORTH_W, landing=0.6, tread=YH_NORTH_TREAD, maxrise=YH_NORTH_RISE,
+              cheek=0.4),
     flight_at('south', YH_DIAMOND[0], _ds, yh_plane(*g_en(*YH_DIAMOND[0])), _zh, 4.0, landing=0.5, maxrise=0.15, cheek=0.35,
               plain=True),
 ]
@@ -2097,7 +2100,7 @@ for _f in YEONHUI['flights']:            # keep the ground under each flight bel
 # slope from the diamond's edge to the road
 _dfr = shp_distance(P, LineString(_FRONT_RD)).reshape(X.shape)
 _dsd = np.minimum(shp_distance(P, _wrd), shp_distance(P, _erd)).reshape(X.shape)
-_lawn_n = (shapely.contains_xy(Polygon(_W_RD[3:] + _FRONT_RD[1:] + [_E_RD[1]]), X, Y) & (_dfr > 3.5 + 0.6 + YH_NORTH_N * 0.31 + 1.0)
+_lawn_n = (shapely.contains_xy(Polygon(_W_RD[3:] + _FRONT_RD[1:] + [_E_RD[1]]), X, Y) & (_dfr > 3.5 + 0.6 + YH_NORTH_N * YH_NORTH_TREAD + 1.0)
            & (_dsd > 7.0) & ~FIXED & ~near_buildings(1.0))
 Hn[_lawn_n] = yh_plane(GE[_lawn_n], GN[_lawn_n])
 FIXED[_lawn_n] = True
@@ -5857,12 +5860,10 @@ for (u_, vs_) in ((-22.0, np.arange(29.9, 37.0, 1.4)), (15.2, np.arange(30.8, 36
         P('bollard', *WU(u_, float(v_)), 0.0)
 P('tent_kiosk', *WU(-28.0, 40.4), _south)
 P('notice_board', *WU(-14.8, 37.2), _south)
-# 연희관 (2003_가을_연희관_정면.jpg, from the south-west; Kakao roadview 2008-08 from the west end of the road): the
-# green tent stall west of the entrance flight, at its foot by the road, its counter to the road
-_yd = min(np.arange(-10.0, 60.0, 0.25), key=lambda u_: abs(float((np.array(WY(u_, 0.0)) - GF_C) @ GF_E)))   # the axis
-_ye = 1.0 if WY(_yd + 1.0, 0.0)[0] > WY(_yd, 0.0)[0] else -1.0
-_yo = math.atan2(*(np.array(WY(_yd, -1.0)) - np.array(WY(_yd, 0.0)))[::-1])                              # out of the front
-P('tent_kiosk', *WY(_yd - _ye * 5.4, -8.0), _yo)
+# 연희관: the green tent stall of 2003_가을_연희관_정면.jpg and Kakao's roadview of 2008-08, west of the entrance flight
+# at its foot by the road, was not there in July 1997: the 1997 scans (26/15 · 26/16 · 27/16) show the low dark planting
+# of the bed west of the flight on that spot, and its surface stands at the ground's height (58.5 - 58.75 m, the road
+# beside it 58.0 - 58.5), where a 2.5 m tent would read 61 m (reference/고증/3.5.1).  So no stall there.
 # 백양로 끝 계단 (UW_STEPS), the top of the banks either side of the head (the 2003 spring photos: from the 삼거리, the
 # backs of the benches and the bin's grey back in a row east of the head and a stone 해태 at its west corner; from the
 # square looking west-south-west, the same row's seats and the bin's green doors, the pair of 해태 at the head's
