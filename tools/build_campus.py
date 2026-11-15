@@ -291,8 +291,11 @@ tf = json.load(open(os.path.join(ROOT, 'data/terrain_far.json')))
 # where the ground and campus.json are written (the end of this file).  Every absolute height written in these
 # sources is 해발, taken up to the working datum where it is read (datum.up · up3 · up_at).  Until 2026-11-15 every
 # height was 2.0 m higher still: the surface model goes in that much lower
-# (the heights quoted in the comments are 해발 as well, each at the place it speaks of; only the histories of earlier
-# fits -- PHOTO_A's former cameras -- keep the numbers of their day)
+# (the heights quoted in the comments were rewritten as 해발 too, each at the place it speaks of, in one pass over the
+# file: a number that pass missed would stand 2.0 m and the tilt higher.  The histories of earlier fits -- PHOTO_A's
+# former cameras -- keep the numbers of their day)
+# Slopes and the differences between far places written as constants (YEONHUI's slope, LIB_FOOT_SLOPE, the terraces'
+# falls) are the working datum's: above sea level a slope is 0.52 %p less towards the east and 0.25 %p towards the north
 SURFACE_DZ = -2.0
 for _t in (tn, tf):
     _t['rows_south_to_north'] = (np.array(_t['rows_south_to_north'], dtype=np.float64) + SURFACE_DZ).tolist()
