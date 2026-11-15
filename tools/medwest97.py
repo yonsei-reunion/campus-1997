@@ -201,8 +201,13 @@ PARAPETS = [
                                                            (Y_ARC[8][0] + 0.1, Y_ARC[8][1] - 0.12), (Y_ARC[9][0] + 0.05, Y_ARC[9][1] - 0.15)],
      0.95, 0.3, 'concrete'),
     ('drive', [(-17.60, 40.69), (14.49, 50.34), (14.76, 53.64), (22.7, 53.64)], 0.9, 0.3, 'brick_red'),
-    ('terrace', [(31.45, 50.4), (31.45, 55.8)], 0.95, 0.3, 'concrete'),                                      # (the link's side)
+    ('terrace', [(31.45, 50.4), (31.45, 55.85), (32.3, 56.15)], 0.95, 0.3, 'concrete'),                     # (the link's side, to the hall)
     ('stair', [(31.45, STAIR['v'][0] + 0.1), (31.45, STAIR['v'][1])], 0.9, 0.3, 'concrete'),
+    # (the flight's cheeks, where the walker would step off a side 1.3 - 2 m down: on the terrace's corner west of it,
+    # and on the drive's strip east of its foot, over the ground under the link)
+    ('terrace', [(Y_ARC[0][0] + 0.16, Y_ARC[0][1] + 0.15), (STAIR['u'][0] - 0.15, Y_ARC[0][1] + 0.15),
+                 (STAIR['u'][0] - 0.15, STAIR['v'][1] - 0.4)], 0.95, 0.3, 'concrete'),
+    ('drive', [(31.3, 47.45), (36.0, 47.45)], 0.9, 0.3, 'concrete'),
     ('isle_e', [(ISLE[1] + 0.2, ISLE[3] + 0.1), (ISLE[1] + 0.2, ISLE[4] - 0.1)], 0.5, 0.4, 'concrete'),      # the split's head
     # (the ramps' inner sides below the forecourt's corner: the scans' balustrades run on down to the ramps' feet)
     ('ramp_nw', [(-32.5, RAMP_NW['v'][0] + 0.15), (T_U0, RAMP_NW['v'][0] + 0.15)], 0.95, 0.3, 'concrete'),
@@ -453,9 +458,13 @@ def _dive(p, u, v):
     return z
 
 
+SEAM, SEAM_DZ = 0.2, 0.15      # walked strips over the seams between two surfaces at one height: half width, height step
+
+
 def build(Hn, half, step, halls=()):
     """dict for campus.json `med_west`: plates (for blender/common.py ground: the ground on a raised surface is that
-    surface), top (the surfaces: drawn as the ground is, walked on), walk (walked on only: the flight's slope),
+    surface), top (the surfaces: drawn as the ground is, walked on), walk (walked on only: the flight's slope, strips
+    over the seams where two surfaces meet at one height: SEAM),
     quads ([material, four points]: the walls down to what lies beside each surface, the parapets, the flight's steps)"""
     ground = _terrain(Hn, half, step)
     hb = unary_union([h.buffer(-0.3) for h in halls] + [_to_xy(Polygon(h['uv']).buffer(0)).buffer(0.3) for h in (HEAD_HALL, WING_HALL)])
@@ -509,11 +518,21 @@ def build(Hn, half, step, halls=()):
                 nu, nv = (vb - va) / L, -(ub - ua) / L            # (outwards: to the right going round)
                 if hb.contains(Point(*xy((ua + ub) / 2 + nu * 0.4, (va + vb) / 2 + nv * 0.4))):
                     continue                                      # (against a hall's wall)
-                bot = []
+                bot, zos = [], []
                 for u, v in ((ua, va), (ub, vb)):
                     zo = surface_uv(u + nu * 0.12, v + nv * 0.12, skip=p)
+                    zos.append(zo)
                     bot.append(zo if zo is not None else ground(*xy(u + nu * 0.12, v + nv * 0.12)) - 0.3)
                 za, zb = _dive(p, ua, va), _dive(p, ub, vb)
+                if None not in zos and abs(zos[0] - za) < SEAM_DZ and abs(zos[1] - zb) < SEAM_DZ:
+                    # (another surface at its height there: a walked strip SEAM wide over the seam, at this one's
+                    # height, so that no ray down slips between the two meshes' edges)
+                    (xa, ya), (xb, yb) = xy(ua - nu * SEAM, va - nv * SEAM), xy(ub - nu * SEAM, vb - nv * SEAM)
+                    (xc, yc), (xd, yd) = xy(ub + nu * SEAM, vb + nv * SEAM), xy(ua + nu * SEAM, va + nv * SEAM)
+                    walk.append([[round(xa, 3), round(ya, 3), round(za, 3)], [round(xb, 3), round(yb, 3), round(zb, 3)],
+                                 [round(xc, 3), round(yc, 3), round(zb, 3)]])
+                    walk.append([[round(xa, 3), round(ya, 3), round(za, 3)], [round(xc, 3), round(yc, 3), round(zb, 3)],
+                                 [round(xd, 3), round(yd, 3), round(za, 3)]])
                 if max(za - bot[0], zb - bot[1]) < 0.04:
                     continue
                 mat = p['wall']
