@@ -6782,9 +6782,10 @@ print('daewoo back, the low court\'s north-west stall: node (125, 530) %.2f -> %
 Hn[_nj, _ni] = DAEWOO_BACK['low']
 FIXED[_nj, _ni] = True
 # 북쪽 땅 (tools/north97.py, reference/고증/3.21 「땅의 높이」; #189, nt): the wooded ridge north of 대우관 and the road's
-# sides to the grid's north edge on the 1:5000 survey's surface + T, nudged to the 1997 photos where they see the
-# ground (the surface model stood 5 - 13 m low on the ridge); late, here: the planting has read the ground as it was
-# (no tree of its own stood north of y 600).  The road next is graded on it
+# sides to the grid's north edge on the 1:5000 survey's surface, nudged to the 1997 photos where they see the ground
+# (the surface model stood 5 - 13 m low on the ridge), and the wood west and north-west of 대우관 (3 - 9 m low there);
+# late, here: the planting has read the ground as it was (the trees stand where they stood, on the new ground).  The
+# road next is graded on it
 _nt_took, NORTH97_GRADE = north97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill)
 print('북쪽 땅 (격자 안):', NORTH97_GRADE)
 # 무악학사 · 북문으로 가는 길 (tools/muak.py, reference/고증/3.21_무악학사_북문.md): on the 1997 photos' line, its bed on

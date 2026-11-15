@@ -13,7 +13,8 @@ to the working datum (해발 + tilt: tools/datum.py) where it is read, each at i
   and the road down to it, 2.4 - 4.4 m low round 무악학사, 5 - 13 m low on the wooded ridge the road crosses at y 690 -
   760.  The 1997-07-28 scans agree with the survey + T where they see the ground (1,469 points on 26/14 · 27/15 ·
   27/16 · 26/15: median +0.45 m, 16 - 84 % -0.4 .. +1.75), so the model was the one off (3.21 「땅의 높이」).
-- GRID (tools/north97_ground.json, decimetres): the ground at the 5 m nodes x -100 .. 400, y 560 .. 1300.
+- GRID (tools/north97_ground.json, centimetres): the ground at the 5 m nodes x -100 .. 400, y 440 .. 1300 (the rows
+  south of y 560 were made the same way on 2026-11-15 for MOUND below; the rows from y 560 north are the first ones).
   - to the survey sheet's north edge (y 1215): the 2006 edition's contours (5 m) filled between (harmonic) and
     smoothed 2.5 m, its spot heights' residuals spread over 12 m (the 2024 edition's spots too where the two editions'
     contours agree within 1.5 m), + T
@@ -27,6 +28,14 @@ to the working datum (해발 + tilt: tools/datum.py) where it is read, each at i
 - REGION: where GRID is laid inside the game's 5 m grid: the wooded ridge and the road's sides from y 600 (east of
   the road's first leg) and y 690 (west of it: 서울외국인학교's halls and yards south of that stay) to the grid's north edge,
   eased out round it (harmonic) into the ground as it stays; the halls' feet kept.  North of the grid GRID is the patch.
+- STRIP: east of the road from y 570, where tools/east97.py's wood ends, to REGION (the ring between the two had left
+  it 2 - 4 m off the survey), the corner's roads and walks as they were.
+- MOUND: the wood west and north-west of 대우관 (between its back yard, 서울외국인학교 and 연희관's hall): the surface
+  model's ground stood 3 - 9 m under the survey there (the mound's top cut with the halls taken out of the model; the
+  2006 spot (47.6, 575.0) 82.04 m, the 2006 and 2024 editions' 80 m contours round the same mound), and in the two
+  clearings the 1997 frames see on it (28, 540) · (28, 548) six pairs agree with the survey within 0.3 m.  GRID there,
+  the built nodes (FIXED: the back yard, its roads) and the halls' feet kept, eased over MOUND_RING only (the school's
+  yard west of it stays level).
 - PADS: the level terraces the 5 m contours cannot hold, on the 1997 scans: the three 정구장 and the car park east of
   우유처리장 (LOT97, a plane).
 - Nothing here draws from build_campus.py's `rng`.
@@ -37,7 +46,7 @@ import os
 import numpy as np
 import datum
 import shapely
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
 _G = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'north97_ground.json')))
@@ -50,6 +59,20 @@ GRID = np.round(GRID + datum.tilt(*np.meshgrid(GRID_X0 + GRID_D * np.arange(GRID
 REGION = Polygon([(-100.0, 800.0), (-100.0, 745.0), (-30.0, 745.0), (-30.0, 690.0), (195.0, 690.0), (195.0, 600.0),
                   (400.0, 600.0), (400.0, 800.0)])
 RING = 30.0                       # eased out (harmonic) this far round REGION
+# the strip east of the road between tools/east97.py's wood (to y 570) and REGION: laid after REGION's ring, eased over
+# STRIP_RING east of the corner only (the corner's roads and walks keep the ground REGION's ring gives them)
+STRIP = Polygon([(215.0, 570.0), (400.0, 570.0), (400.0, 600.0), (215.0, 600.0)])
+STRIP_RING, STRIP_X0 = 10.0, 207.0
+MOUND = Polygon([(12.0, 447.0), (12.0, 612.0), (160.0, 612.0), (160.0, 551.0), (150.0, 545.0), (100.0, 515.0), (68.0, 500.0),
+                 (68.0, 447.0)])
+MOUND_RING = 10.0
+# the road along the back yard's north-west side (대우관 북쪽 길: the corner to the yard's west drive) and its walk stay as
+# the game has them, in MOUND and its ring: the survey's contours run over its cut (the 1997 frames see the road at
+# (84, 508 - 524) 1.6 - 2.7 m under them), and the cars' loop and the deck by the low court's stall lie on it
+MOUND_HOLD = LineString([(201.4, 571.3), (193.1, 568.4), (179.7, 563.6), (147.1, 547.2), (123.7, 534.6), (120.8, 532.2),
+                         (89.9, 506.8), (83.8, 485.7)]).buffer(5.0).union(
+    LineString([(201.9, 576.9), (192.7, 573.3), (172.3, 565.2), (140.8, 546.8), (124.3, 537.4), (119.9, 533.8), (88.3, 508.0),
+                (82.0, 486.2)]).buffer(3.5))
 HALL_PAD = 7.1                    # the halls' feet (their floors read the nodes round their corners)
 # the level terraces (1997 scans, the pairs' medians over each; 해발 at the place named)
 COURT_Z = {429077768: datum.up(111.0, 962.0, 64.43),      # 서쪽 정구장 @ (111, 962): three pairs 64.2 - 64.5, rms 0.26; the 2006 spot on it 67.14
@@ -79,8 +102,8 @@ def lot_z(x, y):
 
 
 def grade(Hn, X, Y, FIXED, halls, fill):
-    """GRID inside REGION (the halls' feet and the nodes another rule set stay), eased out round it (fill:
-    harmonic_fill).  Returns the nodes set (not to be FIXED: the road is graded on them next) and a summary."""
+    """GRID inside REGION, STRIP and MOUND (the halls' feet and the nodes another rule set stay), eased out round each
+    (fill: harmonic_fill).  Returns the nodes set (not to be FIXED: the road is graded on them next) and a summary."""
     H0 = Hn.copy()
     near_hall = shapely.contains_xy(unary_union([h.buffer(HALL_PAD) for h in halls]), X, Y)
     inr = shapely.contains_xy(REGION, X, Y) & ~near_hall & ~FIXED
@@ -89,10 +112,24 @@ def grade(Hn, X, Y, FIXED, halls, fill):
     ring = shapely.contains_xy(REGION.buffer(RING), X, Y) & ~inr & ~near_hall & ~FIXED
     if ring.any():
         fill(ring)
+    ins = shapely.contains_xy(STRIP, X, Y) & ~inr & ~near_hall & ~FIXED
+    Hn[ins] = grid_z(X[ins], Y[ins])
+    rings = shapely.contains_xy(STRIP.buffer(STRIP_RING), X, Y) & ~inr & ~ins & ~near_hall & ~FIXED & (X >= STRIP_X0)
+    if rings.any():
+        fill(rings)
+    hold = shapely.contains_xy(MOUND_HOLD, X, Y)
+    inm = shapely.contains_xy(MOUND, X, Y) & ~near_hall & ~FIXED & ~inr & ~ring & ~hold
+    Hn[inm] = grid_z(X[inm], Y[inm])
+    ringm = shapely.contains_xy(MOUND.buffer(MOUND_RING), X, Y) & ~inr & ~inm & ~ring & ~near_hall & ~FIXED & ~hold
+    if ringm.any():
+        fill(ringm)
     d = (Hn - H0)[inr]
+    dm = (Hn - H0)[inm]
     moved = np.abs(Hn - H0)
-    return inr, dict(nodes=int(inr.sum()), ring=int(ring.sum()), lo=round(float(d.min()), 1), hi=round(float(d.max()), 1),
-                     moved=int((moved > 0.05).sum()))
+    return inr | ins | inm, dict(nodes=int(inr.sum()), ring=int(ring.sum()), lo=round(float(d.min()), 1),
+                                 hi=round(float(d.max()), 1), strip=int(ins.sum()), strip_ring=int(rings.sum()),
+                                 mound=int(inm.sum()), mound_ring=int(ringm.sum()), mound_lo=round(float(dm.min()), 1),
+                                 mound_hi=round(float(dm.max()), 1), moved=int((moved > 0.05).sum()))
 
 
 def pad_levels(court_ids):
