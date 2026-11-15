@@ -33,6 +33,7 @@ import east97
 import kwangbok97
 import medwest97
 import jonghap97
+import libsouth97
 import datum
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -6696,6 +6697,13 @@ harmonic_fill(_ynh)
 FIXED[_ynh] = True
 print('노천극장 갈림길 남쪽: %d nodes filled smoothly, %+.2f .. %+.2f m' % (
     int(_ynh.sum()), (Hn - _ynh0)[_ynh].min(), (Hn - _ynh0)[_ynh].max()))
+# 중앙도서관 남쪽 화단 (tools/libsouth97.py, reference/고증/2.3.4 「도서관 남쪽 화단」): the beds south of the library on the
+# 1997 scans' even surface (rising 4 % to the library, 2.2 % to the west), at the level of the library's foot and the
+# beds' outer walk round them, where the grid's smooth fill fell 1.1 - 1.4 m to the west.  Late: the planting has read
+# the ground as it was (the trees, the walks and 한글탑 stand on the new ground)
+_ls_took, LIBSOUTH97 = libsouth97.grade(Hn, X, Y, FIXED, near_buildings(3.0), harmonic_fill)
+FIXED[_ls_took] = True
+print('중앙도서관 남쪽 화단:', LIBSOUTH97)
 # ---------------------------------------------------------------------------
 # 광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길 (tools/kwangbok97.py; reference/고증/3.9 「둘레 땅의 높이」, 2.9 「서쪽 길의 높이」),
 # after the planting and everything else that read the ground as it was: 광복관's bench (its yard, the roads west and
