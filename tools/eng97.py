@@ -553,7 +553,10 @@ def s3_paint():
     deck = poly([(S3_DECK_UV[0], S3_FACE_V), (-40.9, S3_FACE_V), (-40.9, S3_DECK_UV[1]), (S3_DECK_UV[0], S3_DECK_UV[1])])
     plaza = poly(S3_PLAZA)
     region = s3_region()
-    bare = region.difference(deck).difference(plaza).difference(poly(S3_RAISED))
+    # (cut through the region's north edge under the hall, so that the bare ground has no hole: _ypaint draws outlines)
+    cut = unary_union([deck, plaza, poly(S3_RAISED), poly([(-124.0, -42.0), (-40.9, -42.0), (-40.9, -40.0), (-124.0, -40.0)])])
+    bare = region.difference(cut)
+    assert all(not g.interiors for g in getattr(bare, 'geoms', [bare])), 's3_paint: a hole'
     return region, bare, deck.union(plaza)
 
 
