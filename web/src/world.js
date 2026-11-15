@@ -87,10 +87,20 @@ function edgeU16(a, count) {
 }
 
 // Merge every mesh under root into one mesh per (material, chunk).
-export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShadow = true, name = 'static' } = {}) {
+// small, wide: an opaque material with fewer triangles than small in all of root (a hall's own weathered copy of a
+// library material, a statue's stone) is merged in chunks of wide m: each chunk is a draw call whenever any of it is
+// in view, and from the gate 1,136 of them were in view for 1.49 M triangles (wide 640: 832, 1 k triangles more).
+// Transparent ones keep chunk: three sorts them back to front by their bounding spheres' centres.
+export function mergeStatic(root, { chunk = 160, small = 0, wide = chunk, castShadow = true, receiveShadow = true, name = 'static' } = {}) {
   root.updateMatrixWorld(true);
   const buckets = new Map();
   const box = new THREE.Box3(), c = new THREE.Vector3();
+  const tris = new Map();           // material -> its triangles in root
+  if (small) root.traverse((o) => {
+    if (!o.isMesh) return;
+    const g = o.geometry;
+    tris.set(o.material, (tris.get(o.material) || 0) + (g.index ? g.index.count : g.attributes.position.count) / 3);
+  });
   root.traverse((o) => {
     if (!o.isMesh) return;
     const g = o.geometry.clone();
@@ -117,7 +127,8 @@ export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShado
     box.setFromBufferAttribute(g.attributes.position);
     box.getCenter(c);
     // (by material object: a building's own weathering makes a second copy of a library material, same name)
-    const key = o.material.name + '#' + o.material.id + '|' + Math.floor(c.x / chunk) + '|' + Math.floor(c.z / chunk);
+    const size = small && !o.material.transparent && tris.get(o.material) < small ? wide : chunk;
+    const key = o.material.name + '#' + o.material.id + '|' + Math.floor(c.x / size) + '|' + Math.floor(c.z / size);
     if (!buckets.has(key)) buckets.set(key, { mat: o.material, geos: [] });
     buckets.get(key).geos.push(g);
   });
