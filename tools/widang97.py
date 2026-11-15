@@ -2,7 +2,7 @@
 tools/build_campus.py 가 부른다.
 
     took, core, info = widang97.grade(Hn, X, Y, FIXED, halls, fill)   # 심기가 끝난 뒤, jonghap97.grade 바로 앞(core 는 그대로, 둘레는 그쪽이 다시 이음)
-    widang97.YARD · BENCH · BANK                                 # 맨땅(둑은 잔디)으로 칠하고, 그 위를 지나던 지금의 길 · 보행로를 걷어 냄
+    widang97.WORKS · BANK                                        # 맨땅(둑은 잔디)으로 칠하고, 그 위를 지나던 지금의 길 · 보행로를 걷어 냄
     widang97.cut_paths(paths) · trees_aside(trees, halls)        # 게임이 읽는 길에서 · 나무를 목록 제자리에서
 
 Frames: campus metres, x east, y north.  Every absolute height is above sea level (해발), taken up to the working
@@ -21,7 +21,8 @@ frame pair on a 4 m grid, the median of two to six pairs over 0.7) the whole of 
   (tools/jonghap97.py HILL)
 
 Not put in: the prefab offices, the trucks and cars on the yard north-east of 교육관, the rubble heaps, the retaining
-piles along the dig's edges (3.12 「남은 한계」).  Nothing here draws from build_campus.py's `rng`.
+piles along the dig's edges (3.12 「남은 한계」 「제2인문관 공사장의 세부」).  Nothing here draws from build_campus.py's
+`rng`.
 """
 import numpy as np
 import shapely
@@ -33,6 +34,8 @@ import datum
 YARD = Polygon([(-20.0, 331.0), (-14.0, 329.0), (-7.0, 327.5), (12.0, 327.5), (12.0, 350.0), (16.0, 358.0), (21.0, 362.5),
                 (34.0, 362.5), (34.0, 385.0), (22.0, 386.5), (6.0, 387.0), (-6.0, 387.0), (-12.0, 385.0), (-20.0, 383.0)])
 BENCH = Polygon([(-34.0, 339.0), (-24.0, 339.0), (-24.0, 375.0), (-34.0, 375.0)])
+# what is painted bare: the yard, the shelf and the cut between them
+WORKS = unary_union([YARD, BENCH, Polygon([(-24.5, 339.0), (-19.5, 339.0), (-19.5, 375.0), (-24.5, 375.0)])])
 # the bank from the yard up to 빌링슬리관's lawn and its fence (3.12): lawn, not OSM's south road along its top (the road
 # came with the hall; its east end past x 36, by the site offices, stays)
 BANK = Polygon([(-12.0, 385.0), (-6.0, 387.0), (6.0, 387.0), (22.0, 386.5), (34.0, 385.0), (36.0, 384.5), (36.0, 389.5),
@@ -64,9 +67,10 @@ def grade(Hn, X, Y, FIXED, halls, fill):
 
 def cut_paths(paths):
     """the walks and drives the game reads (the minimap, the crowd) that ran across the yard (OSM's, after the hall):
-    each keeps its longest stretch off the yard (5 m or more) in its place in the list, or goes.  Returns (cut, gone)"""
-    zone = unary_union([YARD, BENCH, BANK]).buffer(1.0)
-    n = [0, 0]
+    each keeps its longest stretch off the yard (5 m or more) in its place in the list, its other stretches of 10 m or
+    more at the list's end; one with none goes.  Returns (cut, gone, added)"""
+    zone = unary_union([WORKS, BANK]).buffer(1.0)
+    n, more = [0, 0], []
     for p in list(paths):
         if len(p['pts']) < 2:
             continue
@@ -74,14 +78,17 @@ def cut_paths(paths):
         if ls.intersection(zone).length <= 1.0:
             continue
         d = ls.difference(zone)
-        pcs = [g for g in getattr(d, 'geoms', [d]) if g.geom_type == 'LineString' and g.length >= 5.0]
+        pcs = sorted([g for g in getattr(d, 'geoms', [d]) if g.geom_type == 'LineString' and g.length >= 5.0],
+                     key=lambda g: -g.length)
         if pcs:
-            p['pts'] = [[round(x, 1), round(y, 1)] for x, y in max(pcs, key=lambda g: g.length).coords]
+            p['pts'] = [[round(x, 1), round(y, 1)] for x, y in pcs[0].coords]
+            more += [dict(p, pts=[[round(x, 1), round(y, 1)] for x, y in g.coords]) for g in pcs[1:] if g.length >= 10.0]
             n[0] += 1
         else:
             paths[:] = [q for q in paths if q is not p]
             n[1] += 1
-    return tuple(n)
+    paths += more
+    return n[0], n[1], len(more)
 
 
 def trees_aside(trees, halls, pad=2.0):

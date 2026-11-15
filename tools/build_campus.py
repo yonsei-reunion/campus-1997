@@ -9163,7 +9163,7 @@ _ypaint([BILL_LAWN], _yg)                    # (빌링슬리관: OSM's box and a
 KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
 _ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
 _ypaint(jonghap97.GRASS, _yg)                # (외솔관2 동쪽 뜰: lawn where OSM's outline of it and its apron were)
-_ypaint([widang97.YARD, widang97.BENCH, widang97.BANK], _yg)   # (제2인문관 공사장: OSM's later roads and walks across it out; bare: _gd below)
+_ypaint([widang97.WORKS, widang97.BANK], _yg)   # (제2인문관 공사장: OSM's later roads and walks across it out; bare: _gd below)
 if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
 # 찻길, the east road on the 1997 photos' line (TR_E, RD97 above), after the planting has read the ground as it was:
@@ -9220,7 +9220,7 @@ spl[..., 2] = np.maximum(spl[..., 2], np.minimum(ndimage.gaussian_filter(np.arra
 # its own walls
 _gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
 _YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
-_ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5), GW_YARD, widang97.YARD, widang97.BENCH], _gd)
+_ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5), GW_YARD, widang97.WORKS], _gd)
 # (and 경영학교실단's front flight: paved to 2 m past its foot; 교육관's north flight, which comes down 9.5 m out of
 # the gable onto the yard (blender/landmarks.py gyoyuk_north_flight): paved round its foot and the low wall past it)
 _bkc = _bk_a + BK_T * 45.66
@@ -10185,10 +10185,10 @@ for p_ in list(out['paths']):
 print('의료원: walks cut back at the 1997 halls', _nm[0], '- taken out', _nm[1])
 # 제2인문관 공사장 (tools/widang97.py): the walks and drives across the works yard go from the walks the game reads, and
 # the decals on its pavements
-_wd_zone = unary_union([widang97.YARD, widang97.BENCH, widang97.BANK]).buffer(1.0)
+_wd_zone = unary_union([widang97.WORKS, widang97.BANK]).buffer(1.0)
 _wd_nd = len(out['decals'])
 out['decals'] = [d_ for d_ in out['decals'] if not _wd_zone.contains(Point(d_[1], d_[2]))]
-print('제2인문관 공사장: walks (cut, gone)', widang97.cut_paths(out['paths']), 'decals -%d' % (_wd_nd - len(out['decals'])))
+print('제2인문관 공사장: walks (cut, gone, pieces added)', widang97.cut_paths(out['paths']), 'decals -%d' % (_wd_nd - len(out['decals'])))
 _nd = len(out['decals'])
 
 
