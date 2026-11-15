@@ -11,28 +11,29 @@ import { BallForm, PICK, PASS, R } from './ballpose.js';
 import { FREE_THROW, verdict } from './hoops.js';
 import { lineTime } from './talk.js';
 import { wrapAngle, copyButton, gameUrl } from './util.js';
+import { tallOf } from './who.js';
 import * as Records from './shootrecords.js';
 
 const FRIEND = 'p05';              // 줄무늬 티 · 갈색 머리: a student you never walk as
+// ... but 승민 and 서연 (characters.js HERO: the two of 건축학개론) feed each other
+const PAIRS = { p01: 'p11', p11: 'p01' };
+const friendOf = (hero) => PAIRS[hero] || FRIEND;
 const TIME = 60, COUNT = 3;
 const POOL = 6, HEAP = 3;               // balls in all, and in the heap at the friend's feet
 // court-local, from the shooting spot on the free-throw line: the friend (towards the basket, to your right) and the
 // heap before their feet (towards you)
 const FRIEND_AT = [3.0, -2.1], HEAP_AT = 0.5;
-const FRIEND_TOP = 1.73;
 
 export class Shootout {
   // ball: hoops.js Basketball; bubbles: talk.js Bubbles; sound: audio.js Sound; onQuit: back to the walk (main.js)
   constructor({ scene, cast, player, ball, ui, bubbles, shadows, blobs, sound, mobile = false, onQuit = null }) {
-    Object.assign(this, { scene, player, ball, ui, bubbles, sound, mobile, onQuit });
-    this.f = cast.make(FRIEND, null);
-    shadows?.addDynamic(this.f.holder);
-    blobs?.addPerson(this.f);
-    this.form = null;
+    Object.assign(this, { scene, cast, player, ball, ui, bubbles, shadows, blobs, sound, mobile, onQuit });
+    this.friends = {};                  // id -> { a, form }: whoever has fed a game so far (friendOf)
+    this.setFriend(friendOf(player.actor.id));
     this.state = 'off';                 // off | count | play | over | done
     this.body = () => {
       const p = this.f.holder.position;
-      return [{ x: p.x, z: p.z, y: p.y, top: p.y + 1.7, r: 0.22 }];
+      return [{ x: p.x, z: p.z, y: p.y, top: p.y + this.ftop - 0.03, r: 0.22 }];
     };
     // the shooting spot, the friend's and the heap's (three coordinates, on the slab)
     const hoop = ball.hoops.find((h) => h.sg > 0);
@@ -51,9 +52,30 @@ export class Shootout {
 
   get on() { return this.state !== 'off'; }
 
+  // the friend of this game: this.f (made the first time they feed one), this.form (start() measures it once they
+  // stand in their place), this.ftop (their height: the speech bubble's, and what a ball bounces off)
+  setFriend(id) {
+    if (this.f?.id === id) return;
+    if (this.f) {
+      this.form?.rest();
+      if (this.f.holder.parent) this.scene.remove(this.f.holder);
+    }
+    let e = this.friends[id];
+    if (!e) {
+      e = this.friends[id] = { a: this.cast.make(id, null), form: null };
+      this.shadows?.addDynamic(e.a.holder);
+      this.blobs?.addPerson(e.a);
+    }
+    this.fe = e;
+    this.f = e.a;
+    this.form = e.form;
+    this.ftop = tallOf(id);
+  }
+
   // (re)start: the walker on the free-throw line facing the basket, the friend by the heap, three seconds to go
   start() {
     const pl = this.player, b = this.ball;
+    this.setFriend(friendOf(pl.actor.id));      // (the walker may be somebody else since the last game)
     if (!this.f.holder.parent) this.scene.add(this.f.holder);
     // what the walker had in hand, or in the air, goes back to the heap with the rest
     if (b.shot) { b.shot = null; pl.cam.aim = null; }
@@ -74,7 +96,7 @@ export class Shootout {
     a.heading = fh; a.holder.rotation.set(0, fh, 0);
     play(a, 'idle', { fade: 0 });
     a.mixer.update(0.3);
-    if (!this.form) this.form = new BallForm(a);
+    if (!this.form) this.form = this.fe.form = new BallForm(a);
     this.form.rest();
     this.fst = 'wait'; this.ft = 0; this.fb = null; this.fW = 0;
     this.state = 'count'; this.clock = COUNT; this.shown = 0;
@@ -133,7 +155,7 @@ export class Shootout {
 
   say(text, delay = 0) {
     const t = (this.t ?? 0) + delay;
-    this.bubbles?.add(this.f.holder, FRIEND_TOP, text, t, t + Math.min(lineTime(text), 2.4));
+    this.bubbles?.add(this.f.holder, this.ftop, text, t, t + Math.min(lineTime(text), 2.4));
   }
 
   // circles the walker collides with (the friend), appended to out
