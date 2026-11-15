@@ -3494,8 +3494,10 @@ COURT_H = round(aud_terrace_z(*COURT['pos']), 3)              # (the hoops' cour
 # 39.9 m like the terrace north of the flight's head, where the game's ground fell away to the upper
 # road and the old court's level: its pad at the terrace's level north of the flight, AUD_T)
 _jw = shapely.contains_xy(court_poly(3.0, JOKGU), X, Y)
-_tw = shapely.contains_xy(AUD_TERRACE, X, Y) | _jw
-_rw = shapely.contains_xy(AUD_RAMP_POLY.buffer(1.5), X, Y) & ~_tw
+# (the drive before the terrace: the terrace's ring round the drive's head reaches 5 m down the drive, and its nodes
+# there had stood at the terrace's level over the drive's own, a ridge up its middle)
+_rw = shapely.contains_xy(AUD_RAMP_POLY.buffer(1.5), X, Y) & ~_jw
+_tw = (shapely.contains_xy(AUD_TERRACE, X, Y) | _jw) & ~_rw
 _cw = shapely.contains_xy(court_poly(5.0, COURT_RNG), X, Y) & ~_jw
 _uw = shapely.contains_xy(AUD_UPPER_POLY, X, Y) & ~_tw & ~_rw
 _zt = np.full(X.shape, AUD_T)
