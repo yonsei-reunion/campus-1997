@@ -26,6 +26,7 @@ const RADIUS = 0.32, STEP = 0.55;
 // side walls; a face they hit is still a step when the walkable ground right behind it rises to the ray
 const WALL_RAY_H = [0.1, 0.2, 0.42, 0.65, 1.3];
 const LOW_RAY = 0.6;
+const WALL_PAD = 0.5;     // the walls a push-out rays are found for a box this much (m) wider each way (wallsAround)
 export const WALK = 2.4, RUN = 6.2, TURN = 2.3;
 // The camera's one vertical axis, cam.lift: 0 is the usual view from behind and a little above; up to LIFT_MAX the
 // camera climbs to look down on the walker; below 0 the view looks up: by LOOK_UP the camera has sunk behind the
@@ -360,20 +361,31 @@ export class Player {
   // porches, the side walls of stairs and low ledges block like the footprints do; stair risers are let through
   pushFromWalls(x, y, z) {
     const R = RADIUS + 0.05, o = this._wo, d = this._wd, n = this._wn, ray = this.wray;
+    const rays = this.fpv ? this.wallRaysFp : this.wallRays;
     ray.far = R;
-    // only the meshes within reach (their world bounding spheres are cached on first use)
+    // only the meshes within reach (their world bounding spheres are cached on first use) ...
     if (!this._wsph) {
       this._wsph = this.walls.map((m) => { m.updateWorldMatrix(true, false); if (!m.geometry.boundingSphere) m.geometry.computeBoundingSphere(); return m.geometry.boundingSphere.clone().applyMatrix4(m.matrixWorld); });
     }
-    const near = this._wnear || (this._wnear = []);
+    const x0 = x, z0 = z;
+    const reach = (i) => {
+      const sp = this._wsph[i], dx = sp.center.x - x0, dz = sp.center.z - z0, dy = sp.center.y - y;
+      return dx * dx + dy * dy + dz * dz < (sp.radius + 1) * (sp.radius + 1);
+    };
+    // ... and of those, the ones with a face in the box round the rays (wallsAround): the same hits as raying them all
+    const box = this.wallsAround(x, y, z, R, rays);
+    let near = this._wnear || (this._wnear = []);
     near.length = 0;
-    for (let i = 0; i < this.walls.length; i++) {
-      const sp = this._wsph[i], dx = sp.center.x - x, dz = sp.center.z - z, dy = sp.center.y - y;
-      if (dx * dx + dy * dy + dz * dz < (sp.radius + 1) * (sp.radius + 1)) near.push(this.walls[i]);
-    }
+    for (const i of box.list) if (reach(i)) near.push(this.walls[i]);
     if (!near.length) return [x, z];
-    for (const h of (this.fpv ? this.wallRaysFp : this.wallRays)) {
+    for (const h of rays) {
       for (let k = 0; k < 8; k++) {
+        // (pushed out of that box on the way: every mesh within reach from here on)
+        if (near !== this._wall && (Math.abs(x - box.x) > WALL_PAD || Math.abs(z - box.z) > WALL_PAD)) {
+          near = this._wall || (this._wall = []);
+          near.length = 0;
+          for (let i = 0; i < this.walls.length; i++) if (reach(i)) near.push(this.walls[i]);
+        }
         const a = k * Math.PI / 4;
         d.set(Math.cos(a), 0, Math.sin(a));
         ray.set(o.set(x, y + h, z), d);
@@ -386,6 +398,36 @@ export class Player {
       }
     }
     return [x, z];
+  }
+
+  // The wall meshes (indices into this.walls) with a face in the box the rays of a push-out from (x, y, z) sweep, the
+  // box WALL_PAD wider each way: asked of their BVHs (by the faces' boxes, so never one too few), and kept for the
+  // push-outs that start inside that margin. A ray of a mesh with no face in the box hits nothing, so raying only these
+  // finds the same faces as raying every mesh within reach: 19 of those at 의료원's east lot, most of them a 160 m
+  // chunk's halls round the walker, took 2.7 ms a frame (CPU 4x slower) of 40 rays each.
+  wallsAround(x, y, z, R, rays) {
+    const c = this._wbox || (this._wbox = { x: 1e9, y: 0, z: 0, rays: null, list: [], box: new THREE.Box3(), lb: new THREE.Box3(), inv: new THREE.Matrix4() });
+    if (rays === c.rays && Math.abs(x - c.x) <= WALL_PAD && Math.abs(z - c.z) <= WALL_PAD && Math.abs(y - c.y) <= WALL_PAD) return c;
+    c.x = x; c.y = y; c.z = z; c.rays = rays;
+    let lo = Infinity, hi = -Infinity;
+    for (const h of rays) { lo = Math.min(lo, h); hi = Math.max(hi, h); }
+    const P = R + WALL_PAD + 0.01, Y = WALL_PAD + 0.01, lb = c.lb;
+    c.box.min.set(x - P, y + lo - Y, z - P);
+    c.box.max.set(x + P, y + hi + Y, z + P);
+    c.list.length = 0;
+    const hit = {
+      intersectsBounds: (b) => b.intersectsBox(lb),
+      intersectsTriangle: (t) => Math.max(t.a.x, t.b.x, t.c.x) >= lb.min.x && Math.min(t.a.x, t.b.x, t.c.x) <= lb.max.x
+        && Math.max(t.a.y, t.b.y, t.c.y) >= lb.min.y && Math.min(t.a.y, t.b.y, t.c.y) <= lb.max.y
+        && Math.max(t.a.z, t.b.z, t.c.z) >= lb.min.z && Math.min(t.a.z, t.b.z, t.c.z) <= lb.max.z,
+    };
+    for (let i = 0; i < this.walls.length; i++) {
+      if (!c.box.intersectsSphere(this._wsph[i])) continue;
+      const m = this.walls[i];
+      lb.copy(c.box).applyMatrix4(c.inv.copy(m.matrixWorld).invert());     // (the box of its corners in the mesh's frame)
+      if (m.geometry.boundsTree ? m.geometry.boundsTree.shapecast(hit) : true) c.list.push(i);
+    }
+    return c;
   }
 
   // a low face is a step (a stair riser, a kerb onto a walked surface) when the walkable ground just behind it comes
