@@ -6612,6 +6612,11 @@ print('음악관 두 동:', MUSIC97_HALLS)
 _mf_took, MUSIC97_FORECOURT = music97.forecourt_se(Hn, X, Y, FIXED, harmonic_fill)
 FIXED[_mf_took] = True
 print('신관 앞마당의 남동쪽:', MUSIC97_FORECOURT)
+# 신관 앞마당의 섬과 동쪽 칸 줄 (tools/music97.py island, reference/고증/3.11 「섬과 동쪽 칸 줄의 땅, 칸 선」; #152): the two rows
+# of stalls on their painted lines' height in the 1997 scans, late, here
+_mi_took, MUSIC97_ISLAND = music97.island(Hn, X, Y)
+FIXED[_mi_took] = True
+print('신관 앞마당의 섬과 동쪽 칸 줄:', MUSIC97_ISLAND)
 # 청송대 숲 · 동쪽 언덕 (tools/east97.py, reference/고증/3.23_청송대.md; #189): the wood's floor east of the east road and
 # the knoll west of it on the 1:5000 survey's surface (the surface model had the canopy in it, 8 - 12 m over the
 # ground in the wood, and the knolls cut 4 - 6 m), nudged to the 1997 photos where they see the ground; the halls in
@@ -9117,7 +9122,8 @@ for t_ in trees:
         _c97_moved.append((t_[0], t_[1], t_[2], round(q_.x, 2), round(q_.y, 2)))
         t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
 _c97_ns = (len(shrubs), len(props))
-shrubs[:] = [s_ for s_ in shrubs if not _c97_boxes.buffer(0.3).contains(Point(s_[1], s_[2]))]
+shrubs[:] = [s_ for s_ in shrubs if not _c97_boxes.buffer(0.3).contains(Point(s_[1], s_[2]))
+             and not music97.STALLS_DOOR_E.contains(Point(s_[1], s_[2]))]     # (신관 정문 동쪽 칸 줄: empty stalls, no shrub)
 _c97_props = [p_[:3] for p_ in props if _c97_boxes.buffer(0.2).contains(Point(p_[1], p_[2]))]
 props[:] = [p_ for p_ in props if not _c97_boxes.buffer(0.2).contains(Point(p_[1], p_[2]))]
 _c97_halls = [(c_[1], c_[2]) for c_ in _c97 if any(Polygon(b_['footprint']).intersects(c97_box(c_, -0.3)) for b_ in buildings)]
@@ -9419,6 +9425,10 @@ _ypaint([Polygon(yongjae97.LOT_NW_PAVE)], _ga)   # (the car across the car park'
 # of 신관's lawn bed out to the kerb, asphalt as the 1997 scans have them (the game had lawn under the row of cars)
 _ypaint([music97.MUSIC_PAVE97.difference(unary_union([Polygon(b_['footprint']).buffer(0.5) for b_ in buildings
                                                       if b_['id'] in (MUSIC_A, MUSIC_B)]))], _ga)
+# ... and the island's north row, the row east of it, the band round its west end, the row east of 신관's door
+# (music97.PAVE97_ISLAND, 3.11 「섬과 동쪽 칸 줄의 땅, 칸 선」)
+_ypaint([p_.difference(unary_union([Polygon(b_['footprint']).buffer(0.5) for b_ in buildings if b_['id'] in (MUSIC_A, MUSIC_B)]))
+         for p_ in music97.PAVE97_ISLAND], _ga)
 # 대강당 앞 돌계단: the forecourt's paving runs on to the head of the flight (the 2009 photo: cars parked at its top)
 _ypaint([Polygon([tuple(_fo + _fu * u_ + _fv * v_) for u_, v_ in ((-4.5, AUD_FLIGHT['run'] - 0.2), (4.5, AUD_FLIGHT['run'] - 0.2),
                                                                    (6.0, 26.0), (-6.0, 26.0))])], _ga)

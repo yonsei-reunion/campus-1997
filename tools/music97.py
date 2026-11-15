@@ -89,6 +89,36 @@ MUSIC_PAVE97 = Polygon([(226.5, -34.6), (231.0, -31.5), (233.0, -28.3), (243.0, 
                         (234.8, -46.2), (232.7, -55.7), (223.4, -53.1), (210.5, -47.6), (190.3, -41.2), (185.8, -39.4),
                         (150.4, -30.1), (145.6, -28.6), (148.0, -19.2), (152.8, -20.7), (188.2, -30.0), (192.8, -31.8),
                         (201.7, -34.6)])
+# 신관 앞마당의 섬과 동쪽 칸 줄 (3.11 「섬과 동쪽 칸 줄의 땅, 칸 선」; #152): the scans' white stall lines stand at their own
+# height where the two courses see them alike (a line's place across itself moves 0.7 m per metre of height between
+# course 26 and course 27; lines running north - south read it best).  The island's north row 54.55 m (its dividers
+# 54.53 - 54.60, the bare asphalt of its two empty stalls 54.53 - 54.61 by window), the row east of it 54.6 m (its
+# aisle line in four pieces 54.58 - 54.77), the row east of 신관's door 54.95 m (dividers 54.90 - 54.99: the forecourt's
+# level, as it stands).  The game had the two rows on the lawn's slope, 0.6 - 1.9 m under them (the cars would lean
+# 11 - 14 deg).  (x, y, height) of the game's 5 m nodes under the cars' wheels and the asphalt between the rows: level;
+# the island's west end (its shrubs, the fan's band west of them on the forecourt's fall: kept) a little lower, as the
+# row's cars' roofs there read; behind the north row the island's shrubs and east of the east row the tree strip take
+# the fall to the exit road and to the car park east (2.4 m there, 3.11) in one cell: their ground does not show
+ISLAND97 = datum.up3([
+    (245.0, -45.0, 54.3),
+    (250.0, -40.0, 54.6), (255.0, -40.0, 54.6), (260.0, -40.0, 54.6), (265.0, -40.0, 54.6),
+    (250.0, -45.0, 54.5), (255.0, -45.0, 54.55), (260.0, -45.0, 54.55), (265.0, -45.0, 54.55),
+    (250.0, -50.0, 54.3), (255.0, -50.0, 54.4), (260.0, -50.0, 54.4), (265.0, -50.0, 54.4),
+    (270.0, -35.0, 54.6), (275.0, -35.0, 54.6), (270.0, -40.0, 54.6), (275.0, -40.0, 54.6),
+    (270.0, -45.0, 54.6), (275.0, -45.0, 54.6), (270.0, -50.0, 54.45), (275.0, -50.0, 54.45)])
+# the asphalt in 1997 (the scans) where the game had lawn: the island's north row, the gap east of it and the east row
+# (one piece); the band round the island's west end (a white arc and short white ticks 1.1 m apart: not car stalls);
+# the row east of 신관's door (its stalls empty on 28 July; the shrubs in them go: STALLS_DOOR_E)
+PAVE97_ISLAND = [
+    Polygon([(260.71, -42.8), (261.0, -40.0), (268.11, -35.32), (268.38, -34.3), (274.72, -35.95), (271.64, -47.61),
+             (267.5, -46.54), (267.4, -47.6), (266.6, -50.2), (262.0, -50.8), (259.94, -49.62), (244.13, -45.58),
+             (245.82, -38.99)]),
+    Polygon([(242.9, -38.92), (243.26, -42.05), (241.88, -42.65), (241.44, -42.98), (241.2, -43.49), (241.08, -44.03),
+             (240.9, -45.64), (241.02, -46.91), (241.38, -47.46), (242.51, -48.44), (241.56, -51.45), (240.38, -50.72),
+             (239.26, -49.8), (238.49, -48.79), (238.08, -47.53), (237.84, -46.36), (237.82, -45.18), (238.15, -42.89),
+             (238.54, -41.82), (239.15, -40.82), (240.01, -40.11), (241.42, -39.44)]),
+    Polygon([(241.2, -33.3), (257.39, -37.58), (259.29, -29.83), (243.1, -25.56)])]
+STALLS_DOOR_E = Polygon([(242.21, -30.67), (257.72, -34.77), (258.92, -29.89), (243.41, -25.79)])
 GRID_X0, GRID_Y0, GRID_D = 115.0, 30.0, 5.0       # (the grid's south-west node, spacing: the game's 5 m nodes)
 GRID = np.array([[int(v) for v in r.split()] for r in """
 5047 5135 5472 5590 5567 6104 6272 6429 6246 7004 6911 6759 6606 6503 6961 6998 7506 7503 7510 7498 7005 7003 6500 6487 5925 5762 5659 5667 5734 5842 5869 5916 5934 5951 5909
@@ -317,3 +347,17 @@ def forecourt_se(Hn, X, Y, FIXED, fill):
     return took | ring, dict(nodes=int(took.sum()), moved=(round(float(d[took].min()), 2), round(float(d[took].max()), 2)),
                              ring=int(ring.sum()), ring_moved=(round(float(d[ring].min()), 2), round(float(d[ring].max()), 2))
                              if ring.any() else (0.0, 0.0))
+
+
+def island(Hn, X, Y):
+    """신관 앞마당의 섬과 동쪽 칸 줄 on their painted lines' height (ISLAND97: those nodes to their heights; no ring: the
+    cells round them hold the exit road and the car park east, which stay).  Returns the nodes set (to be FIXED) and a
+    summary."""
+    took = np.zeros(X.shape, bool)
+    moved = []
+    for x, y, z in ISLAND97:
+        jj, ii = np.nonzero((np.abs(X - x) < 0.01) & (np.abs(Y - y) < 0.01))
+        moved += [float(z - Hn[j, i]) for j, i in zip(jj, ii)]
+        Hn[jj, ii] = z
+        took[jj, ii] = True
+    return took, dict(nodes=int(took.sum()), moved=(round(min(moved), 2), round(max(moved), 2)))
