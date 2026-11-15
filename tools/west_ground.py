@@ -53,12 +53,12 @@ NW_END = (290.0, 340.0)                # (s: eased out back into the surface mod
 BASEBALL = dict(way=421415364, z=datum.up(-341.7, -310.19, 31.5), ring=16.0)        # (the 대운동장's 33.7 m less 2.21)
 
 
-def field_sw(Hn, X, Y, FIXED, road, half_w, datum, field_patch, field_keep, pad, baseball_poly, keep, fill):
+def field_sw(Hn, X, Y, FIXED, road, half_w, dz, field_patch, field_keep, pad, baseball_poly, keep, fill):
     """The road's bed north-west of gate_town's road (NW_LINE, on the photos), the 야구장 down to BASEBALL['z'], and the
     ground between the 대운동장, 학군단, the road and the 야구장 smoothed again (fill) between what stays: the oval and
     학군단's pad (FIXED; the ground within 6 m of the pad as it was), the two roads' beds, the 야구장, and `keep` (the
     campus roads' asphalt, the halls' feet, the 공학원 site).  road: gate_town's (Line), half_w its carriageway's half
-    width.  Returns a summary."""
+    width, dz the photos -> game offset (gate_town.SSR_W_DATUM).  Returns a summary."""
     H0 = Hn.copy()
     L = LineString(NW_LINE)
     P = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
@@ -68,7 +68,7 @@ def field_sw(Hn, X, Y, FIXED, road, half_w, datum, field_patch, field_keep, pad,
     d[box] = shapely.distance(L, P.reshape(X.shape)[box])
     s[box] = shapely.line_locate_point(L, P.reshape(X.shape)[box])
     zs, zz = zip(*NW_Z97)
-    tgt = np.interp(s, zs, zz) + datum
+    tgt = np.interp(s, zs, zz) + dz
     w = _smooth(1.0 - (d - NW_HALF) / NW_EASE) * _smooth((NW_END[1] - s) / (NW_END[1] - NW_END[0])) * _smooth(s / 4.0 + 0.5)
     near_pad = shapely.contains_xy(pad.buffer(6.0), X, Y)
     w[~box | FIXED | near_pad] = 0.0
