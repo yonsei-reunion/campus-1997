@@ -34,6 +34,7 @@ import kwangbok97
 import medwest97
 import jonghap97
 import libsouth97
+import yongjae97
 import datum
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -6670,7 +6671,7 @@ late_level((_hk_s >= 27.0) & (_hk_s <= 59.0) & (_hk_w >= -4.0) & (_hk_w <= 7.5),
 # survey's surface on the game's datum the same less 0.1 - 0.9 m).
 # The game had it flat at 41.8 - 42.7 m.  YJ97['prof']: (s along YJ_BRANCH, z 해발: the one absolute height of
 # these blocks, the others take the game's own ground at a place that stays); the west end meets
-# the east road (TR_E, 44.8 m), the car park and its way in stay as they were (their floor is 용재관's: 남은 한계)
+# the east road (TR_E, 44.8 m), the car park and its way in are 용재관's (raised below: yongjae97)
 YJ97 = dict(prof=datum.up_at([(0.0, 45.0), (8.0, 45.27), (16.0, 46.83), (24.0, 48.59), (28.0, 49.37), (32.0, 50.36), (36.0, 51.09), (40.0, 51.23)],
                              [(85.5, 163.0), (92.8, 159.8), (100.6, 157.9), (108.5, 156.7), (112.4, 155.9), (116.3, 155.2),
                               (120.3, 154.7), (122.5, 154.5)]), s0=14.0)
@@ -6710,6 +6711,20 @@ print('노천극장 갈림길 남쪽: %d nodes filled smoothly, %+.2f .. %+.2f m
 _ls_took, LIBSOUTH97 = libsouth97.grade(Hn, X, Y, FIXED, near_buildings(3.0), harmonic_fill)
 FIXED[_ls_took] = True
 print('중앙도서관 남쪽 화단:', LIBSOUTH97)
+# 용재관 바닥과 둘레 땅 (tools/yongjae97.py, reference/고증/3.13 「바닥과 둘레 땅의 높이」): the level ground round the
+# hall and the car park before its north walls (YJ_PAD) on the 1997 scans' and the 2006 survey's height (해발 45.9 m,
+# 2.2 m over the game's), the 진달래동산 bank round it one smooth surface out to the east fork, 백양로 and the drive
+# to 노천극장 (YJ97, set above), which stay; the hall's parts go up with it.  Late, here: the planting has read the
+# ground as it was
+_yj_ring = shapely.contains_xy(YJ_PAD.buffer(15.0), X, Y) & ~_ypad & (dist > ROAD_HALF + 4) & ~near_buildings(1.0) & \
+    (np.hypot(X - AMPH['cx'], Y - AMPH['cy']) > 48.0) & ~shapely.contains_xy(YJ_DRIVE.buffer(3.6), X, Y)
+_yj_c = unary_union([Polygon(b_['footprint']) for b_ in YONGJAE_BUILDINGS if b_['id'] != 990003]).centroid
+_yj_dz, _yj_took, YJ97_PAD = yongjae97.raise_pad(Hn, X, Y, FIXED, _ypad, _yj_ring, YONGJAE['floor'], (_yj_c.x, _yj_c.y),
+                                                 harmonic_fill)
+FIXED[_yj_took] = True
+for b_ in YONGJAE_BUILDINGS:
+    b_['base'], b_['top_ground'] = round(b_['base'] + _yj_dz, 2), round(b_['top_ground'] + _yj_dz, 2)
+print('용재관 바닥과 둘레 땅:', YJ97_PAD)
 # ---------------------------------------------------------------------------
 # 광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길 (tools/kwangbok97.py; reference/고증/3.9 「둘레 땅의 높이」, 2.9 「서쪽 길의 높이」),
 # after the planting and everything else that read the ground as it was: 광복관's bench (its yard, the roads west and
