@@ -10,13 +10,13 @@ have read the ground as it was), and nothing here draws from build_campus.py's `
 
 Heights are the photos' surface (tools/aerial97.py surface_z, 3 m windows, frame pairs one by one, correlation 0.7 and
 over), carried to the game by the difference from ground that stays (reference/고증/4.8.2, 4.12, 3.22, 4.5.2).  All
-heights here are the game's (게임 기준).  The survey's spot heights (1:5000 수치지형도, 2006 · 2024: #134), once their
-tilt against the photos' datum is taken out (2.05 + 0.522 x/100 + 0.248 y/100 m), agree with the photos to 0.3 - 0.4 m
+heights written here are above sea level (해발: tools/datum.py).  The survey's spot heights (1:5000 수치지형도, 2006 ·
+2024: #134) agree with the photos to 0.3 - 0.4 m
 where they fall on open ground (the 야구장 1.95 m under the 대운동장, the photos 2.21 m).
 """
 # (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
-# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  Heights quoted in
-# comments written before 2026-11-15 are on the old datum: 2.0 m and the tilt at their place higher)
+# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  The heights quoted
+# in the comments are 해발 too)
 import numpy as np
 import datum
 import shapely
@@ -32,11 +32,11 @@ def _smooth(t):
 # ---------------------------------------------------------------------------------------------------------------------
 # 성산로 서쪽 끝 너머 (the road runs on north-west past gate_town's west end at (-461.7, -297.6), round the 대운동장's
 # south-west side and past 학군단 towards 연희 IC): the photos (26/16 · 26/15 · 1998 26/17, 8 m apart along it, 0 - 12 m
-# north-east of this line) have it flat at 29.2 - 30.0 m where the game had the surface model's 35 - 39 m (the trees of
-# its two banks); the survey's spot on it (-510.9, -243.3) 31.42 m (30.20 m once its tilt against the photos' datum is
-# taken out).  NW_LINE runs from 20 m inside gate_town's road (which ssr_west puts on the same photos and datum) round
+# north-east of this line) have it flat at 30.4 - 31.2 m where the game had the surface model's 36 - 40 m (the trees of
+# its two banks); the survey's spot on it (-510.9, -243.3) 31.42 m.
+# NW_LINE runs from 20 m inside gate_town's road (which ssr_west puts on the same photos and datum) round
 # past the grid's west edge; the road's bed every 16 m: (s, the photos' height, three stations' mean), on them +
-# gate_town.SSR_W_DATUM (게임 기준).  Past the photos' last station (s 200, x -575: out of the ground map) the bed holds
+# gate_town.SSR_W_DATUM.  Past the photos' last station (s 200, x -575: out of the ground map) the bed holds
 # that height on to x -640 and is eased back into the surface model's ground beyond, so that the road does not end in
 # a 7 m bank seen from the campus
 NW_LINE = [(-440.6, -321.6), (-461.7, -297.6), (-516.0, -235.0), (-575.0, -170.0), (-640.0, -100.0)]
@@ -47,10 +47,10 @@ NW_Z97 = datum.up_at([(0.0, 29.8), (32.0, 30.35), (48.0, 30.52), (64.0, 30.75), 
                       (-573.2, -171.9)])
 NW_HALF, NW_EASE = 17.0, 14.0          # the road's bed either side of the line, then eased into the ground beside it
 NW_END = (290.0, 340.0)                # (s: eased out back into the surface model's ground)
-# 야구장 (OSM 421415364): the photos' 128 points on it lie on one level 30.54 m (rms 0.09), the 대운동장's 188 on 32.75 m
-# (rms 0.10), the same frame pair: the 야구장 2.21 m under the 대운동장, 31.0 m here (the survey's 2006 spot 31.22 m, 1.95
-# m under its 33.17 m).  The game had both pitches at the mean of the surface model under them (32.4 m)
-BASEBALL = dict(way=421415364, z=datum.up(-341.7, -310.19, 31.5), ring=16.0)        # (z: 게임 기준, the 대운동장's 33.2 m less 2.21)
+# 야구장 (OSM 421415364): the photos' 128 points on it lie on one level 31.04 m (rms 0.09), the 대운동장's 188 on 33.23 m
+# (rms 0.10), the same frame pair: the 야구장 2.21 m under the 대운동장, 31.5 m here (the survey's 2006 spot 31.22 m, 1.95
+# m under its 33.17 m).  The game had both pitches at the mean of the surface model under them (32.9 m)
+BASEBALL = dict(way=421415364, z=datum.up(-341.7, -310.19, 31.5), ring=16.0)        # (the 대운동장's 33.7 m less 2.21)
 
 
 def field_sw(Hn, X, Y, FIXED, road, half_w, datum, field_patch, field_keep, pad, baseball_poly, keep, fill):
@@ -94,12 +94,12 @@ def field_sw(Hn, X, Y, FIXED, road, half_w, datum, field_patch, field_keep, pad,
 
 # ---------------------------------------------------------------------------------------------------------------------
 # 과학관 북서쪽 골짜기 (x -350 .. -295, y 60 .. 215; the 1997 photos' 26/15 · 26/16, at y 136 - 148 the 1998 26/17 too
-# within 0.2 - 0.4 m): not the slope the game had (50 - 57 m, the surface model of the built-up valley of later
+# within 0.2 - 0.4 m): not the slope the game had (49 - 56 m, the surface model of the built-up valley of later
 # years: the survey 2006 · 2024 has 46.3 - 52.6 m on its spots there, 7 - 8.5 m under the game) but a works yard cut
-# into the valley, level at 48.2 m (prefab sheds, stacked materials, a track round its north end), and north of it the
-# valley floor at 43.5 - 45.9 m.  Its points (x, y, the photos' height + 0.3, 게임 기준: the datum seomun.py found at 과학관's
-# corner and the road west of it); not the sheds along its east side (52 - 53 m, roofs or a bench: left out), not the
-# dip at its south end (45 - 46 m at y 58 - 76, among dark sheds: left out).  The ground takes the photos' difference
+# into the valley, level at 47.3 m (prefab sheds, stacked materials, a track round its north end), and north of it the
+# valley floor at 42.6 - 45.0 m.  Its points (x, y, the photos' height + 0.3: the datum seomun.py found at 과학관's
+# corner and the road west of it); not the sheds along its east side (51 - 52 m, roofs or a bench: left out), not the
+# dip at its south end (44 - 45 m at y 58 - 76, among dark sheds: left out).  The ground takes the photos' difference
 # from the game's round them (Gaussian, 6 m; out of reach it fades to nothing), the 과학관 north road (y 40 - 48) and
 # the halls' feet as they are
 VALLEY_PTS = datum.up3([
@@ -165,19 +165,19 @@ def valley(Hn, X, Y, FIXED, halls, half=800.0, step=5.0, sigma=6.0, prior=0.05):
 # 독수리상 서쪽 마당 (reference/고증/4.5.2, 2.10): in the 1997-07-28 scans (26/16 · 27/17 · 26/15 ·
 # 27/16) a level bare yard without a tree from the 제1공학관 road north to a curved row of trees, portable hoops on it
 # and cars along its south edge and the road; the road itself and the lane west of the halls on the same level.  63
-# points on the yard lie on 29.22 m (rms 0.5), 68 on the road and its rows on 29.19 m (rms 0.4); the ground round
+# points on the yard lie on 28.27 m (rms 0.5), 68 on the road and its rows on 28.24 m (rms 0.4); the ground round
 # 백양로 and the side road there reads as the game's (0 .. +0.4 m; the survey's spot (-48.0, -170.6) +0.4 with its tilt out).  West of x -188 the ground stands a storey higher
-# (34.5 - 35.0 m, the 제2공학관 road: a wall between, 29.0 m at x -182, 34.8 m at x -191).  The game had a lawn
-# climbing from 29.6 m at the side road to 36 m at x -195, walks across it and trees.
+# (33.5 - 34.0 m, the 제2공학관 road: a wall between, 28.0 m at x -182, 33.8 m at x -191).  The game had a lawn
+# climbing from 28.6 m at the side road to 35 m at x -195, walks across it and trees.
 # YARD: the bare earth; LOT: the yard, the road and its two rows, the lane along the halls' west end (G rows), level
-# at LOT_Z (29.4 m); round it the ground is smoothed (fill) out to EAGLE_RING m, the halls' feet and the side road as they are
+# at LOT_Z (28.4 m); round it the ground is smoothed (fill) out to EAGLE_RING m, the halls' feet and the side road as they are
 YARD = Polygon([(-186.0, -160.0), (-182.0, -153.0), (-175.0, -147.0), (-163.0, -143.0), (-150.0, -140.5), (-140.0, -139.0),
                 (-128.0, -140.0), (-115.0, -144.0), (-104.0, -148.0), (-99.0, -152.0), (-97.5, -160.0), (-97.5, -185.8),
                 (-109.0, -182.0), (-119.9, -178.7), (-143.1, -172.0), (-171.1, -164.3), (-177.2, -163.5), (-186.0, -164.0)])
 EAGLE_ROAD = [(-188.0, -167.4), (-181.5, -167.2), (-177.2, -166.6), (-171.1, -167.4), (-143.1, -175.1), (-119.9, -181.8),
               (-109.0, -185.1), (-96.0, -189.2)]      # (the game's road, OSM's: where the scans have it)
 LANE_W = Polygon([(-189.0, -166.0), (-182.0, -166.0), (-181.0, -197.0), (-189.0, -197.0)])     # (the G2 row's lane)
-LOT_Z = datum.up(-134.94, -159.0, 28.45)               # (게임 기준: the photos' 29.2 m + 0.2, as the ground by 백양로 there reads, 0 .. +0.4)
+LOT_Z = datum.up(-134.94, -159.0, 28.45)               # (the photos' 28.2 m + 0.2, as the ground by 백양로 there reads, 0 .. +0.4)
 EAGLE_RING = 22.0
 EAGLE_EAST = -97.0          # (east of it, the side road and 백양로's west side: as they are)
 EAGLE_WEST = -189.5         # (west of it, the upper level: 제2공학관's road, the middle round's)

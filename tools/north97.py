@@ -5,8 +5,8 @@ tools/build_campus.py 가 부른다.
     HN = muak.patch(raw, Hn, half, step, far, ground=north97.grid_z)    # 격자 북쪽 조각(muak.NORTH)
     muak.pads(HN, polys, fixed, north97.pad_levels(...))          # 정구장 셋과 우유처리장 동쪽 주차장
 
-Frame: campus metres, x east, y north.  Every absolute height here is 게임 기준 (해발 + T, T = 0.05 + 0.522 x / 100 +
-0.248 y / 100 m: tools/aerial97.py survey_dz), each with its place: GRID's nodes are (GRID_X0 + 5 i, GRID_Y0 + 5 j).
+Frame: campus metres, x east, y north.  Every absolute height written here is above sea level (해발), taken up
+to the working datum (해발 + tilt: tools/datum.py) where it is read, each at its place: GRID's nodes are (GRID_X0 + 5 i, GRID_Y0 + 5 j).
 
 - The ground north of 대우관 was the surface model's (Copernicus), which reads crowns and roofs as ground and cuts the
   ridges: against the 1:5000 survey (국토지리정보원 수치지형도 「서울078」, surveyed 2006) + T it stood 3 - 5 m high round 북문
@@ -51,21 +51,21 @@ REGION = Polygon([(-100.0, 800.0), (-100.0, 745.0), (-30.0, 745.0), (-30.0, 690.
                   (400.0, 600.0), (400.0, 800.0)])
 RING = 30.0                       # eased out (harmonic) this far round REGION
 HALL_PAD = 7.1                    # the halls' feet (their floors read the nodes round their corners)
-# the level terraces (1997 scans, the pairs' medians over each; 게임 기준 at the place named)
-COURT_Z = {429077768: datum.up(111.0, 962.0, 64.43),      # 서쪽 정구장 @ (111, 962): three pairs 67.2 - 67.5, rms 0.26; the 2006 spot on it 67.14
-           429077769: datum.up(187.0, 980.0, 85.74),       # 동쪽 정구장 @ (187, 980): 26/14 - 27/15, windows 3 - 7 m 89.2 - 89.35
-           429077775: datum.up(55.0, 1140.0, 59.58)}      # 북서 정구장 @ (55, 1140): 26/14 - 27/15 62.73, rms 0.26
+# the level terraces (1997 scans, the pairs' medians over each; 해발 at the place named)
+COURT_Z = {429077768: datum.up(111.0, 962.0, 64.43),      # 서쪽 정구장 @ (111, 962): three pairs 64.2 - 64.5, rms 0.26; the 2006 spot on it 67.14
+           429077769: datum.up(187.0, 980.0, 85.74),       # 동쪽 정구장 @ (187, 980): 26/14 - 27/15, windows 3 - 7 m 85.7 - 85.89
+           429077775: datum.up(55.0, 1140.0, 59.58)}      # 북서 정구장 @ (55, 1140): 26/14 - 27/15 59.56, rms 0.26
 # the car park east of 우유처리장 as the 1997 scans have it (the angled rows west and south-west of the aisle, the row
 # along the east edge, the five stalls under the hall's south wall, its mouth on the road), and its plane: the aisle
 # between the rows, 24 points where three pairs or more agree within 0.6 m (rms 0.11 m)
 LOT97 = Polygon([(130.6, 879.0), (154.2, 877.5), (157.0, 877.3), (157.2, 869.5), (154.8, 842.0), (153.2, 840.5),
                  (153.0, 826.5), (141.5, 826.5), (139.5, 832.0), (136.0, 835.5), (129.6, 833.0), (110.6, 853.6),
                  (110.5, 861.9), (127.7, 859.7)])
-LOT97_PLANE = dict(o=(145.0, 855.0), z=datum.up(145.0, 855.0, 72.24), gx=0.03, gy=-0.008)      # 게임 기준 @ (145, 855); rising east 3 %
+LOT97_PLANE = dict(o=(145.0, 855.0), z=datum.up(145.0, 855.0, 72.24), gx=0.03, gy=-0.008)      # 해발 @ (145, 855); rising east 3 % on the working datum
 
 
 def grid_z(x, y):
-    """GRID, bilinear (게임 기준); arrays or numbers"""
+    """GRID, bilinear (on the working datum); arrays or numbers"""
     from scipy.ndimage import map_coordinates
     xa, ya = np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float))
     z = map_coordinates(GRID, [(ya.ravel() - GRID_Y0) / GRID_D, (xa.ravel() - GRID_X0) / GRID_D], order=1, mode='nearest')
@@ -73,7 +73,7 @@ def grid_z(x, y):
 
 
 def lot_z(x, y):
-    """the car park's plane (게임 기준)"""
+    """the car park's plane (on the working datum)"""
     p = LOT97_PLANE
     return p['z'] + p['gx'] * (np.asarray(x, float) - p['o'][0]) + p['gy'] * (np.asarray(y, float) - p['o'][1])
 

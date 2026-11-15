@@ -176,13 +176,13 @@ LATE_FOOTPRINT_1997.update({
 # roof read on its own height's plane in the frames from either side (27/17 east, 26/16 west), the roof heights where
 # the two agree, against Kakao's base-map outlines and the 2008 skyview for the halls still standing.
 # - 재활병원: OSM's outline lies 7.6 m off (4.0 m west, 6.5 m south of the roof in both frames, of Kakao's outline
-#   and of the 2008 roof); its roof 65.3 m, 15 - 20 m over the ground round it: four storeys over the high side,
+#   and of the 2008 roof); its roof 62.4 m, 15 - 20 m over the ground round it: four storeys over the high side,
 #   five from the low one (six would stand 22.8 m)
-# - floors by the roofs (table B above): 의학도서관 51.7 m, 10.4 m over the yard north of it (three storeys);
-#   임상의학연구센터 57.7 m over 33 m (six); 간호대학 77.5 m over 53 - 55 m (six, a penthouse block at 82 m); OSM's
-#   two 「의과대학」 outlines between 본관 and 신관 are low roofs (41 m and 38 m, the east one the lecture hall under
+# - floors by the roofs (table B above): 의학도서관 49.3 m, 10.4 m over the yard north of it (three storeys);
+#   임상의학연구센터 56.0 m over 31 m (six); 간호대학 73.7 m over 49 - 51 m (six, a penthouse block at 78 m); OSM's
+#   two 「의과대학」 outlines between 본관 and 신관 are low roofs (39 m and 36 m, the east one the lecture hall under
 #   the yard's level): one storey each.  The two ten-storey towers stand lower than ten of their style's storeys:
-#   심장혈관병원's roof 79.0 m (34.3 m over the car park), 특별병동's 77 m (32 m): FLOOR_H_AT below
+#   심장혈관병원's roof 76.6 m (34.3 m over the car park), 특별병동's 74 m (32 m): FLOOR_H_AT below
 REHAB_MOVE = (4.0, 6.5)
 LATE_FOOTPRINT_1997[429079067] = [(round(x_ + REHAB_MOVE[0], 2), round(y_ + REHAB_MOVE[1], 2)) for x_, y_ in (
     (191.3, -134.18), (207.04, -120.68), (212.11, -126.51), (242.71, -99.45), (232.68, -88.01), (214.36, -105.13),
@@ -209,7 +209,7 @@ LATE_FOOTPRINT_1997[ANNEX_1997['id']] = [(25.68, -27.72), (55.93, -35.41)] + [
 # 연합신학대학원 (1964.12 - 2003.1; reference/고증/3.1 「3.1.1」): OSM's outline is the 신학관 of 2005, an L of 17 x 53 m
 # and a south wing.  The 1997-07-28 vertical aerial photos have one pale gabled roof where its west wing stands, on
 # the same axis (within 0.3 deg): 11.9 x 30.8 m, the six frames of both flight lines within 0.15 m of each other at
-# the eaves' height (68.2 m, 6.7 m over the yard south of it; blender/generic.py ROOF_AT).  In UTS_UV: u east, v north
+# the eaves' height (66.2 m, 6.7 m over the yard south of it; blender/generic.py ROOF_AT).  In UTS_UV: u east, v north
 # from the OSM outline's south-west corner along its west face.  The random planting ran with OSM's outline, which
 # contains it: the hall goes in after it (the trees keep their list).
 UTS = 246156121
@@ -224,16 +224,16 @@ FLOOR_H_AT = {222843398: 3.9}        # 과학관's 3.9 m storeys (blender/generi
 FLOOR_H_AT[ANNEX_1997['id']] = ANNEX_1997['floor']   # (학생회관 별관: its roof 6.7 m over the yard in the 1997 scans)
 FLOOR_H_AT.update({324328481: 3.55, 990036: 3.3})    # (심장혈관병원, 특별병동: their roofs in the 1997 aerial photos, above)
 FLOOR_H_AT[UTS] = 3.4                                # (연합신학대학원: its eaves 6.7 m over the ground in the aerial photos)
-# (빌링슬리관: its cornice 11.7 m over the lawn, three storeys; 경영학교실단's wings: both roofs 58.4 m: BILL, BK_WINGS)
+# (빌링슬리관: its cornice 11.7 m over the lawn, three storeys; 경영학교실단's wings: both roofs 56.3 m: BILL, BK_WINGS)
 FLOOR_H_AT.update({245623193: 3.9, 256933753: 3.95, 990021: 3.95})
 # 과학관 as the 1997-07-28 vertical aerial photos have it (reference/고증/3.10; frames 26/15 and 26/16, from the north
 # and the south, each roof read on its own plane where the two agree; the 2008 · 2010 skyview shows the same plan).
 # OSM's outline is one mass round the yard north-west of the hall and 3 m short on the east wing's north side.  The
 # hall: an east wing 18.1 m deep (OSM 14.9), a link south from its west end, a south-west wing; the link, the east
-# wing and a long penthouse along the south-west wing's north side stand a storey over that wing's roof (roofs 76.5
-# and 72.4 m on the photos' datum, the courtyard 50.8 m).  In the corner north-west of the link a low fan-shaped
-# hall (a quarter circle of 23.2 m, its roof 57.5 m) and a low block against the south-west wing; the rest of OSM's
-# outline is a yard with parked cars (52.5 m).  The frame: o the east wing's south-east corner as OSM has it, u east-
+# wing and a long penthouse along the south-west wing's north side stand a storey over that wing's roof (roofs 75.9
+# and 71.8 m, the courtyard 50.2 m).  In the corner north-west of the link a low fan-shaped
+# hall (a quarter circle of 23.2 m, its roof 56.9 m) and a low block against the south-west wing; the rest of OSM's
+# outline is a yard with parked cars (51.9 m).  The frame: o the east wing's south-east corner as OSM has it, u east-
 # south-east along the wing, v north-north-east.  The planting ran with OSM's outline: the hall goes in after it
 # (LATE_FOOTPRINT_1997), its floor pinned (SCI['base'], the lowest corner of OSM's outline on the ground as it was).
 _sa = math.radians(-15.06)
@@ -265,7 +265,7 @@ def sci_poly(pts):
 
 LATE_FOOTPRINT_1997[222843398] = [sci_xy(u_, v_) for u_, v_ in SCI['hall']]
 # 연구관's frame (the 1997 aerial photos; OLD_HALLS below): o on the bar's middle line, a along it north-north-east, v
-# across it (west-north-west); its ground 49.5 m west of it, 45.5 m east (JK_YARD, JK_TERRACE)
+# across it (west-north-west); its ground 48.4 m west of it, 44.4 m east (JK_YARD, JK_TERRACE)
 JK_O, _ja = np.array([-179.75, 15.0]), math.radians(63.4)
 JK_A, JK_V = np.array([math.cos(_ja), math.sin(_ja)]), np.array([-math.sin(_ja), math.cos(_ja)])
 JK_YARD, JK_TERRACE = datum.up(-176.38, 20.6, 48.32), datum.up(-176.38, 20.6, 44.32)
@@ -291,6 +291,8 @@ tf = json.load(open(os.path.join(ROOT, 'data/terrain_far.json')))
 # where the ground and campus.json are written (the end of this file).  Every absolute height written in these
 # sources is 해발, taken up to the working datum where it is read (datum.up · up3 · up_at).  Until 2026-11-15 every
 # height was 2.0 m higher still: the surface model goes in that much lower
+# (the heights quoted in the comments are 해발 as well, each at the place it speaks of; only the histories of earlier
+# fits -- PHOTO_A's former cameras -- keep the numbers of their day)
 SURFACE_DZ = -2.0
 for _t in (tn, tf):
     _t['rows_south_to_north'] = (np.array(_t['rows_south_to_north'], dtype=np.float64) + SURFACE_DZ).tolist()
@@ -451,9 +453,9 @@ GATE_C = along_raw(GATE_S, 0.0)[:2]           # the gate's middle, on 백양로'
 # building; 2.2: 백양로 is 550 m from the gate) drew the road before the works in their long section (그림 2.5 (a),
 # reference/고증.md): its ground line, read off column by column, rises about 1.1 m in the first 50 m, runs nearly
 # level to ~150 m and then climbs evenly (about 2.5 %) to the 삼거리.  So: the road gets that section, 12 m from the
-# gate's height (the terrain's, ~26 m: Copernicus GLO-30 has 24.9 m on the open crossing) over B's 550 m, then on at
+# gate's height (the terrain's, ~25 m: Copernicus GLO-30 has 24.9 m on the open crossing) over B's 550 m, then on at
 # its last slope to the foot of the 삼거리 steps and the end of the line.  The 1997 and 2011 1:25000 maps have the
-# 30 m contour across the road at 292 m (the section: 31 m) and the 40 m one at 591 m, over the steps (38.9 m at
+# 30 m contour across the road at 292 m (the section: 29 m) and the 40 m one at 591 m, over the steps (36.3 m at
 # their foot), reference/고증.md 2.8.  The ground around moves with it (by the difference between the section and the
 # ground's trend across a 120 m band), fading out 50-230 m from the road; past the 삼거리 that lowers 언더우드관's
 # quarter (the opened surface model keeps the garden's big trees in it), which carries its aprons, garden, statue and
@@ -487,7 +489,7 @@ _shift *= np.clip(ss / 80.0, 0, 1) ** 2 * (3 - 2 * np.clip(ss / 80.0, 0, 1))    
 # The section's north end by the vertical aerial photos of 1997-07-28 (자료 Q; reference/고증/2.8 「1997년 7월
 # 항공사진으로 잰 높이」).  The carriageway's height from the overlapping frames (tools/aerial97.py z, every frame pair
 # within 0.1 - 0.4 m of the others) is B's section to s 440 (0.2 - 0.5 m over it, inside the photos' datum) and
-# leaves it from there: 1.1 m over it by 대강당's crossing, 2.6 m at the foot of the end steps (41.1 m; the 1:25000
+# leaves it from there: 1.1 m over it by 대강당's crossing, 2.6 m at the foot of the end steps (38.5 m; the 1:25000
 # map's 40 m contour crosses at s 591).  B's drawing gives the designers' round 「약 12 m」 to the 삼거리; the photos
 # have 14.7 m from the gate.  (s, photo - B's section); past the foot of the steps the line is not drawn.  The
 # ground's trend round the road (_shift above) stays as B's section moved it: north of the 삼거리 the photos' own
@@ -1019,8 +1021,8 @@ FORECOURTS = [  # OSM way, outward front direction (None: the recess edge footpr
     # 언더우드관 (first, from the untouched ground): the garden walk level up to the foot of its 16 steps
     # (reference/언더우드관_정면_2016.jpg); the garden beyond is filled smoothly from here (below), so only a short blend
     # (the three halls' aprons at the heights the vertical aerial photos of 1997 give the walks before them, 고증 2.8:
-    # 언더우드관 47.55 - 47.9 m at five points along its front, the walk along 스팀슨관 45.9 - 47.0, along 아펜젤러관 45.9 -
-    # 46.4.  From the ground along the walls they came out a metre higher: the surface model climbs behind the fronts)
+    # 언더우드관 44.59 - 44.9 m at five points along its front, the walk along 스팀슨관 43.2 - 44.3, along 아펜젤러관 42.9 -
+    # 43.4.  From the ground along the walls they came out a metre higher: the surface model climbs behind the fronts)
     (246156115, (0.27, -1.0), 12.0, dict(blend=8.0, level=datum.up(65.54, 265.7, 44.65))),
     (246156118, (1.0, -0.27), 11.0, dict(level=datum.up(17.71, 229.29, 43.59))),      # 스팀슨관
     (246156116, (-1.0, 0.27), 11.0, dict(level=datum.up(91.31, 210.07, 43.05))),      # 아펜젤러관
@@ -1062,7 +1064,7 @@ _nw = np.array([-_tw[1], _tw[0]])                                 # out of the �
 _c0_rv = _csw + _nw * 1.0 + _tw * 1.1                              # (the corner as first placed, moved with the hall)
 # The 1997 vertical aerial photos (reference/고증.md 3.4 「낮은 몸체의 윤곽」, tools/aerial97_cent.py; the 2008 · 2010
 # skyview shows the same plan): the low part is one storey-and-a-half volume wrapped round the drum's west foot, not a
-# box 19.6 m deep.  Its roof edge, read where a west and an east frame agree (36.5 - 37.1 m, 7 m over the hall's
+# box 19.6 m deep.  Its roof edge, read where a west and an east frame agree (35.0 - 35.6 m, 7 m over the hall's
 # floor): the corner block's west side 3.5 m west of where the block stood (4.5 m out of the hall's 백양로 face: the
 # OSM outline's face, which #162 moved east with the upper hall, was this low wall's) for about 11 m; north of it a
 # wall 1.7 m further in, tangent to an arc of 19.1 m round the drum's centre (2.1 m outside the drum) that runs on
@@ -1092,7 +1094,7 @@ FORECOURTS.append((324328422, None, 14.0, dict(face=(tuple(_c0_rv), tuple(_c0_rv
 # 백주년기념관's north-east face, towards 광혜원 and 수경원 (연세 역사의 뜰): a plain stone box with three rows of strip
 # windows over a paved court (2010 roadview; blender/landmarks.py north_box).  The museum's own door, the one in the
 # 1996 album photos, is in the 백양로 porch (museum_porch, CENT_MUSEUM below).  The ground there stood 3 m over the
-# hall's floor (the hall's lowest corner, by 백양로); the court is levelled 2.6 m over that corner (42.7 m on the old
+# hall's floor (the hall's lowest corner, by 백양로); the court is levelled 2.6 m over that corner (40.9 m on the old
 # terrain, 광혜원's height there).
 CENT_NE = ((41.28 + 3.11, -200.97 - 0.73), (16.84 + 3.11, -168.65 - 0.73))       # the face, its outside to the right
 
@@ -1114,7 +1116,7 @@ CENT_MUSEUM = dict(s=21.9, door=[round(float(v), 2) for v in _cnw - _tw * 21.9],
 # with clipped junipers on banks either side, a five-globe lamp at the top.  The 5 m grid ran the courtyard's slope
 # up to the doors; the game first levelled a car park 2.8 m under doors on the third floor (5.9 m over the hall's
 # lowest corner).  The 1997-07-28 aerial photos (reference/고증/3.10) have the courtyard a paved court 43 m by 39 m at
-# 50.8 m, level with the road past the hall's east end to 2 - 3 m and 25.7 m under the east wing's roof: the doors
+# 50.2 m, level with the road past the hall's east end to 2 - 3 m and 25.7 m under the east wing's roof: the doors
 # are on the second floor (a storey over the hall's floor, 2.3 m over the court), the bank with its bushes 5 m deep
 # all along the wing's south face (sci_grade below, after the other forecourts).
 SCI_DOOR, SCI_N = np.array([-242.6, 13.81]), np.array([-0.2629, -0.9648])
@@ -1155,7 +1157,7 @@ FORECOURTS.append((245623193, None, 12.0, dict(face=BILL_FRONT, max_half=23.0, b
                                                 level='corner', rise=-0.1, inside=2.0)))
 # 연합신학대학원 (UTS above; reference/고증/3.1 「3.1.1」): the 5 m grid runs the hillside 4.3 m up across the 1997
 # hall, its north-west corner in the ground to the upper floor.  The aerial photos have the yard south of it and the
-# strip along its east wall level (61.4 - 61.7 m in their datum; the grid 60.9 - 62.6 m along that wall): a level
+# strip along its east wall level (59.4 - 59.7 m; the grid 58.9 - 60.6 m along that wall): a level
 # shelf under the hall and 5 m out of its east wall, at the ground along that wall, cut into the hill behind it.
 FORECOURTS.append((UTS, None, 5.0, dict(face=(LATE_FOOTPRINT_1997[UTS][1], LATE_FOOTPRINT_1997[UTS][2]), max_half=17.0,
                                         blend=6.0, side_blend=7.0, inside=13.0)))
@@ -1164,7 +1166,7 @@ FORECOURTS.append((UTS, None, 5.0, dict(face=(LATE_FOOTPRINT_1997[UTS][1], LATE_
 # parked cars at the ground floor (2003_가을_연희관앞정원과_교육관_북쪽계단.jpg).  The 5 m grid ran the hill from 종합관
 # and 제2인문관 down over both: the ground stood 3-4 m over the floor at the north-west corner.  Level the drive and
 # the yard at the floor, banking back up to the hill beyond.
-GYOYUK_FLOOR = round(corner_level(246156111) + 2.3, 2)     # (53.0 m on the old terrain; blender/landmarks.py reads it)
+GYOYUK_FLOOR = round(corner_level(246156111) + 2.3, 2)     # (50.0 m on the old terrain; blender/landmarks.py reads it)
 FORECOURTS.append((246156111, None, 6.0, dict(face=((26.82, 349.67), (17.82, 314.97)), max_half=18.0, blend=7.0,
                                                side_blend=6.0, level=GYOYUK_FLOOR, inside=1.0)))      # the west drive
 FORECOURTS.append((246156111, None, 11.0, dict(face=((44.15, 345.23), (26.82, 349.67)), max_half=9.0, blend=6.0,
@@ -1280,13 +1282,13 @@ def jk_grade():
 #   under its west end
 # The game first read that corridor as 구관's first floor into 신관's ground floor and stood 구관 a storey (3.6 m)
 # lower, the road climbing 9 % between the halls.  The 1997-07-28 vertical aerial photos (reference/고증/3.11) have the
-# road along 구관's front a little over 신관's forecourt, not a storey under it: 59.2 m (26 points, 58.3 - 59.6) against
-# 58.6 m (61 points, 57.7 - 58.8; 58.7 between the halls) in their datum, and the roofs 1.5 m apart (72.7 and
-# 74.2 m); the 2010 roadview from between the halls looks along a road about level both ways.  So 신관's floor stays
+# road along 구관's front a little over 신관's forecourt, not a storey under it: 56.2 m (26 points, 55.3 - 56.6) against
+# 55.6 m (61 points, 54.7 - 55.8; 55.7 between the halls), and the roofs 1.5 m apart (69.7 and
+# 71.2 m); the 2010 roadview from between the halls looks along a road about level both ways.  So 신관's floor stays
 # at its lowest corner and its forecourt is levelled five risers under it; the road and sidewalk along 구관's front
 # stand 0.7 m over that forecourt (falling to it between the halls) and 구관's floor 0.8 m over them (MUSIC_BASE: the
 # halls' floors, set after the outlines below).  West of 구관 the photos keep that height round the hall's end and
-# north along the road behind it (58 - 60 m as far as y 115), where the game's ground is 4 - 8 m lower
+# north along the road behind it (55 - 57 m as far as y 115), where the game's ground is 4 - 8 m lower
 # (reference/고증/2.8: this side of the campus is that much low): the front eases into it past the hall's west end,
 # and the road round that end climbs to it (music_grade).
 MUSIC_A, MUSIC_B = 429077789, 429077790
@@ -1366,17 +1368,17 @@ def harmonic_fill(free, iters=3000):
 
 
 # --- 대운동장 (46 육상경기장 on the 1990 map), 1997 (reference/고증/4.12).  The elevation grid smooths the cut the field
-# lies in into one slope from the hillside north of it (44 m) down to 성산로 (33 m), and the field stood at that
-# slope's mean, 37.1 m: level with the road past its east end and 4.7 m over the 야구장.  The vertical aerial photos of
-# 28 July 1997 (자료 Q, frames 26/15 · 26/16: 56 points) have the dirt oval level at 32.75 m (0.4 m rms about a plane
+# lies in into one slope from the hillside north of it (44 m) down to 성산로 (34 m), and the field stood at that
+# slope's mean, 37.6 m: level with the road past its east end and 4.7 m over the 야구장.  The vertical aerial photos of
+# 28 July 1997 (자료 Q, frames 26/15 · 26/16: 56 points) have the dirt oval level at 33.23 m (0.4 m rms about a plane
 # that tilts under 0.7 m in 100 m): 3.65 m under the junction on that road (36.4 m in the photos, 36.9 here), 10.7 m
 # under the road north-east of it, 1.75 m over the 야구장.  The roadview of December 2010 from the junction
 # (1016786888: people and a goal on the field 33 - 133 m off) has it 4.1 m under the road.  The photos' heights hang
 # on the game's roads campus-wide (+-1 m) and the ground round the field stands 0.3 - 0.9 m over them here, so the
-# field goes 3.7 m under the junction: 33.2 m.  OSM's outline (way 205583613) is the 1997 oval to 3 m.
+# field goes 3.7 m under the junction: 33.7 m.  OSM's outline (way 205583613) is the 1997 oval to 3 m.
 # Round it one smooth surface (harmonic_fill) from the oval's edge out to what stays as it was (FIELD_PATCH): the road
 # past its east end (4 m short of its middle), 22 m towards the 야구장, 성산로's north edge, 25 m of the hillside
-# north-west and north.  학군단, at the oval's west end, on the field's level (the photos: 31.9 - 32.4 m beside it).
+# north-west and north.  학군단, at the oval's west end, on the field's level (the photos: 33.0 - 33.5 m beside it).
 # Two OSM outlines at the oval's north end (a stand's building and a tower: the generic houses' loop below takes
 # them) are not in the 1997 photos, which have trees there and one framework 8 x 10 m; the 2008 skyview has both.
 # They go after the random planting (GONE_1997, without a site of their own: FIELD_GONE).
@@ -1442,9 +1444,9 @@ def near_buildings(pad):
 # along its 백양로 front and round both ends (8.6 m past them; a clipped shrub band 3.6 m deep at the wall's foot),
 # a flight in its middle down to a paved plaza that runs out to 백양로, a walk along the shrub band, beds with a
 # slant walk each, a walk along their far side.  Their heights (the photos' minus 0.4 m, what they read over the
-# game's carriageway beside the hall): the walk at the terrace's foot nearly level, 34.4 m at the south end to 35.05 m
+# game's carriageway beside the hall): the walk at the terrace's foot nearly level, 32.9 m at the south end to 33.58 m
 # at the north, 0.65 - 0.8 m over the carriageway by the door, while 백양로 climbs 2.9 m past it; the walk along the
-# beds' far side at the sidewalk's height; the terrace's top 35.6 - 36.2 m (its edges' parallax between the frames).
+# beds' far side at the sidewalk's height; the terrace's top 34.1 - 34.7 m (its edges' parallax between the frames).
 # Frame: s along the front from the south-east corner, o out of it (east).
 _lib = footprint(ways[163525865])
 _lf0, _lf1 = np.array([-85.44, -71.08]), np.array([-65.91, 3.16])           # the 백양로 front, south -> north
@@ -1705,8 +1707,8 @@ _H0 = sample(Hn, NEAR_HALF, NEAR_STEP, *st_xy(0.0, -3.0))     # the 삼거리 be
 # tiers: (v of the foot, risers, half width of the lawn strip between the inner cheeks, width of each flight); the
 # flights rise onto landings 5.6 and 2.9 m deep and the head landing (treads 0.42, cheeks 0.35)
 _TI = [(0.0, 8, 1.0, 3.6), (8.96, 8, 0.6, 3.8), (15.22, 6, 0.4, 3.7)]
-# (the risers 0.18: the vertical aerial photos of 1997 have the square 4.0 +- 0.3 m over the road at the foot, 45.0 -
-# 45.3 over 41.1 m, and in the 2003 photo the nosings stand 0.16 - 0.18 m apart by the people on the flights; 0.15 was
+# (the risers 0.18: the vertical aerial photos of 1997 have the square 4.0 +- 0.3 m over the road at the foot, 42.3 -
+# 42.6 over 38.5 m, and in the 2003 photo the nosings stand 0.16 - 0.18 m apart by the people on the flights; 0.15 was
 # a guess, reference/고증/2.8)
 UW_STEPS = dict(rise=0.18, tread=0.42, cheek=0.35, h0=round(_H0, 2), v_head=18.6,
                 frame=dict(o=[float(c) for c in _sto], u=[round(float(c), 5) for c in _stu], v=[round(float(c), 5) for c in _stv]))
@@ -1747,7 +1749,7 @@ _sq = shapely.contains_xy(UW_SQUARE, X, Y) & ~near_buildings(1.5)
 Hn[_sq] = UW_TOP
 FIXED[_sq] = True
 _stp = np.hypot(X - UW_STATUE[0], Y - UW_STATUE[1]) < 6.0     # the Underwood statue in the garden, its round steps level
-# (the aerial photos of 1997: the ring round the statue 45.6 - 45.9 m, 0.6 m over the square, itself 45.0 - 45.3;
+# (the aerial photos of 1997: the ring round the statue 42.9 - 43.2 m, 0.6 m over the square, itself 42.3 - 42.6;
 # level to the eye, as the 2010 roadview has it)
 UW_STATUE_Z = round(UW_TOP + 0.9, 2)
 Hn[_stp] = UW_STATUE_Z
@@ -1773,8 +1775,8 @@ UW_HEAD_ROW = Polygon([st_xy(-30.0, _US['v_head'] - 1.0), st_xy(36.0, _US['v_hea
                        st_xy(-30.0, _US['v_head'] + 1.0)])
 
 
-# --- 언더우드관 앞 정원 (issue #3).  The level aprons of 스팀슨관 (51.6 m) and 아펜젤러관 (54.3 m) face each other across
-# the garden, but the 5 m grid keeps a hollow down its middle (49.4 m): each apron ended in a grass bank, 5 m over 18 m
+# --- 언더우드관 앞 정원 (issue #3).  The level aprons of 스팀슨관 (48.9 m) and 아펜젤러관 (51.3 m) face each other across
+# the garden, but the 5 m grid keeps a hollow down its middle (46.6 m): each apron ended in a grass bank, 5 m over 18 m
 # in front of 아펜젤러관, where the photos (reference/아펜젤러관_정면_2016.jpg, 언더우드관_2024_여름_계단에서_본_정원.jpg) show
 # the garden walks running nearly level to the foot of the steps.  Fill the garden between the aprons, the foot of
 # 언더우드관's flight and the statue with one smooth surface: the 2.7 m between the aprons becomes an even fall across
@@ -1795,7 +1797,7 @@ _free &= np.hypot(X - UW_STATUE[0], Y - UW_STATUE[1]) > 6.0   # the statue on it
 harmonic_fill(_free)
 # The drive along 스팀슨관's front outside that edge stays six risers under it, as the surface model's hollow had it and
 # the garden's south-west flight was laid (below).  The aerial photos of 1997 raise the ground all round (HILL_Q) and
-# have this drive 45.8 - 46.4 m, 0.6 - 0.9 m OVER the garden's walks beside it: the flight would go down into the
+# have this drive 43.1 - 43.7 m, 0.6 - 0.9 m OVER the garden's walks beside it: the flight would go down into the
 # garden, not up.  Not turned round on the photos alone (the 2008 and 2010 roadview were read as a flight up into the
 # garden): reference/고증/4.2 「남은 한계」.
 _uvg = ((X - _ugo[0]) * _wuu[0] + (Y - _ugo[1]) * _wuu[1], (X - _ugo[0]) * _wuv[0] + (Y - _ugo[1]) * _wuv[1])
@@ -1817,8 +1819,8 @@ def fix_strip(line_pts, h0, h1, half, top=False):
 # the drive from the 삼거리 towards 노천극장 (OSM) climbs past the east end of the bank to the square's level, where it
 # meets the walk in front of the garden (roadview 2010: the square, the drive and the walk at one level there)
 _ed = [(51.5, 126.5), (63.3, 139.8), (69.1, 146.2)]
-# (the aerial photos of 1997 have 44.1 m on it 28 m from 백양로's middle, 3.7 m over the 삼거리: it climbs the bank
-# from the kerb.  One grade from 1.0 m over the road at its first node, 42.7 m there: steeper and the cars pitch
+# (the aerial photos of 1997 have 41.4 m on it 28 m from 백양로's middle, 3.7 m over the 삼거리: it climbs the bank
+# from the kerb.  One grade from 1.0 m over the road at its first node, 40.0 m there: steeper and the cars pitch
 # over 9 deg at the mouth)
 fix_strip(_ed, prof_h(s_at(*_ed[0])) + 1.0, UW_TOP, 4.0)
 _ed0 = (41.0, 123.3)                                          # (its mouth, from the back of 백양로's sidewalk)
@@ -1858,9 +1860,9 @@ print('외솔관2: car park %.2f (road %.2f), east end %.2f m, %d nodes filled' 
 # 성암관 are a landing between low coped cheeks and one step down; along 한경길 a rubble retaining wall with boxwood
 # on it (YH_WALL below).  The 5 m grid had one 30 % slope from 한경길 to the door.  The heights are the vertical
 # aerial photos' of 1997-07-28 (자료 Q; reference/고증/3.5.1 「1997년 7월 항공사진으로 잰 높이」; tools/aerial97.py z,
-# each from five to fifteen frame pairs within 0.2 m): 한경길 52.5 - 53.1 m all the way from the drive along 교육관 to
-# the one along 성암관, the garden 54.0 (the S node) .. 55.1 (the N node), the road before 연희관 58.1 - 58.6 from end
-# to end; the hall's eaves at 73.65 m put its door (12.6 m under them) at 61.0.  The risers counted in the roadview
+# each from five to fifteen frame pairs within 0.2 m): 한경길 49.3 - 49.9 m all the way from the drive along 교육관 to
+# the one along 성암관, the garden 50.7 (the S node) .. 51.8 (the N node), the road before 연희관 54.7 - 55.2 from end
+# to end; the hall's eaves at 70.21 m put its door (12.6 m under them) at 57.6.  The risers counted in the roadview
 # fit them:
 #  - the south flight: ten granite risers between the rubble retaining walls along 한경길 (counted in Kakao roadview,
 #    2008-08 and 2026-06: the same blocks; the photos: 1.4 m)
@@ -1873,8 +1875,8 @@ print('외솔관2: car park %.2f (road %.2f), east end %.2f m, %d nodes filled' 
 YH_DIAMOND = [(74.4, 302.5), (52.7, 325.4), (82.5, 335.4), (103.4, 312.1)]      # S, W, N, E nodes of the walks
 YH_C = (78.4, 318.3)                                                            # the round planter (GF_C)
 # 한경길 by the photos: (x, height) along it.  East of the drive along 성암관 it runs on to the east road (the road
-# past 노천극장), as level as before: the photos 53.0 - 53.7 m at x 132 - 150 (the original scans, corr. 0.5 - 0.8),
-# and the east road's own 52.6 - 53.9 m at the fork (EAST_Q97 below).  Before, the ground as the surface model had it
+# past 노천극장), as level as before: the photos 49.7 - 50.4 m at x 132 - 150 (the original scans, corr. 0.5 - 0.8),
+# and the east road's own 49.3 - 50.6 m at the fork (EAST_Q97 below).  Before, the ground as the surface model had it
 # from x 113 on, 1.4 - 4 m higher at the fork (고증 2.8 「남은 한계」, 2.9 「동쪽 길의 높이」)
 HANGYEONG_Q = datum.up_at([(34.0, 49.42), (40.3, 49.49), (72.5, 49.54), (92.0, 49.65), (106.0, 49.29), (113.0, 49.35), (130.0, 49.48),
                (140.0, 49.63), (150.0, 49.89)],
@@ -1938,7 +1940,7 @@ for _ in range(3):                                            # (the foot moves 
 _zfn = yh_plane(*g_en(*_fn))
 YEONHUI['floor'] = round(YEONHUI['road'] + 17 * 0.15, 2)      # 연희관's door (blender: gothic z_floor), 17 risers up
 YEONHUI['hall'] = dict(a=list(YH_HALL_A), b=list(YH_HALL_B), **{k_: list(v_) for k_, v_ in YH_HALL.items()})   # (BLD_SHAPE)
-# (the road all but level in the photos, 58.1 - 58.6 m from end to end: it fell 2.8 m eastwards)
+# (the road all but level in the photos, 54.7 - 55.2 m from end to end: it fell 2.8 m eastwards)
 _rw, _rc, _re = YEONHUI['road'] - 0.2, YEONHUI['road'], YEONHUI['road']             # the road's west end, axis, east end
 _hw0, _he0 = hk_z(40.3), hk_z(106.6)                          # 한경길 where the west drive leaves it, and the east one
 _FRONT_RD = [(51.7, 354.5), (85.2, 345.0), (118.8, 335.6)]
@@ -2126,8 +2128,8 @@ for _f in YEONHUI['flights']:            # keep the ground under each flight bel
         Hn[_m] = np.minimum(Hn[_m], _cap)
         FIXED[_m] = True
     fix_strip([_f['top'], _f['foot']], _f['z_top'] - 0.35, _f['z_foot'] - 0.25, _f['width'] / 2 + 1.6, top=True)
-# the garden's level runs on north of the diamond to the foot of the bank under the road (the aerial photos: 54.8 -
-# 55.1 m at four points 5 - 9 m from the road's edge): the bank is no wider than the north flight is long, not one
+# the garden's level runs on north of the diamond to the foot of the bank under the road (the aerial photos: 51.5 -
+# 51.8 m at four points 5 - 9 m from the road's edge): the bank is no wider than the north flight is long, not one
 # slope from the diamond's edge to the road
 _dfr = shp_distance(P, LineString(_FRONT_RD)).reshape(X.shape)
 _dsd = np.minimum(shp_distance(P, _wrd), shp_distance(P, _erd)).reshape(X.shape)
@@ -2215,16 +2217,16 @@ def dh_uv(p_, o_=_ha.copy(), t_=_ht.copy(), n_=_hn.copy()):       # (and back)
     return float(d_ @ t_), float(d_ @ n_)
 
 
-# The levels are the photos' (tools/aerial97.py z; the terrace's asphalt 70.2 - 70.6 m in twelve places, the landings
-# in the podium's ends 68.5 - 68.8, the tier beside it 68.2 - 68.4, the lower lawn 66.4 - 67.0, the 상뜰 65.0 - 65.5):
-# the terrace is where the game had it (70.55), the 상뜰 1.5 m higher than it was.
+# The levels are the photos' (tools/aerial97.py z; the terrace's asphalt 66.3 - 66.7 m in twelve places, the landings
+# in the podium's ends 64.6 - 64.9, the tier beside it 64.3 - 64.5, the lower lawn 62.5 - 63.1, the 상뜰 61.3 - 61.8):
+# the terrace is where the game had it (66.68), the 상뜰 1.5 m higher than it was.
 DW_WI, DW_WO = 24.1, 35.6                                          # the wings' inner and outer walls from the axis
 # The podium's two flights either side (the 1997 scans, reference/고증/3.6.1 「석축 말굽 계단」): the lower one climbs
 # outwards against the podium's face, its 16 risers on 0.313 m treads from 5.45 m out of the axis to 10.15 m, four
 # stepped planters before it (south of it); the upper one climbs back towards the axis, 13 risers on 0.297 m treads from
 # 10.31 m in to its head at 6.75 m (counted on the west side: risers in shade in 26/14 · 26/15 · 26/16).  The landing
-# (mid) is set so that both flights' risers are equal, 0.167 m (the scans read 67.7 - 67.9 m inside its rim and
-# 68.8 m on the rim: it was 68.6 m, 19 and 12 risers).
+# (mid) is set so that both flights' risers are equal, 0.167 m (the scans read 63.8 - 64.0 m inside its rim and
+# 64.9 m on the rim: it was 64.7 m, 19 and 12 risers).
 DAEWOO = dict(floor=datum.up(121.35, 477.95, 67.03), terrace=datum.up(121.35, 477.95, 66.58), mid=datum.up(121.35, 477.95, 64.41), plaza=datum.up(121.35, 477.95, 61.73), tier=datum.up(121.35, 477.95, 64.53), lawn=datum.up(121.35, 477.95, 62.73),
               frame=dict(o=[round(float(c_), 3) for c_ in _ha], ang=round(math.atan2(_ht[1], _ht[0]), 5)), uc=DW_UC,
               wi=DW_WI, wo=DW_WO, wing_v=(-10.4, 27.55), u0=round(DW_UC - DW_WO, 2), u1=round(DW_UC + DW_WO, 2),
@@ -2278,9 +2280,9 @@ FIXED[_court] = True
 # 상뜰 (issue #39; reference/대우관_정면_전경.jpg, 대우관_2024_정면과_상뜰.jpg; the same photos of 1997): a level terrace on
 # the hall's axis.  Its round lawn's middle (SANG) is the photos' (five frames within 0.1 m: 1.7 m east and 1.0 m
 # north of OSM's ring), its walks' ends where the photos have them: north at the podium's forecourt, south at the
-# head of the flight, west and east at the two drives.  From 65.4 m at its north node it falls 1.5 % southwards and
+# head of the flight, west and east at the two drives.  From 61.7 m at its north node it falls 1.5 % southwards and
 # 1 % west of its axis.  At its south node a broad granite flight with steel handrails on both sides goes down
-# through the trees to the footway (OSM 1451337739; the photos have the node at 64.8 m and the footway at 61.9: 19
+# through the trees to the footway (OSM 1451337739; the photos have the node at 61.1 m and the footway at 58.2: 19
 # risers of 15.5 cm), which runs straight between its ends but for the foot of the flight; the bank round it and
 # under the diamond's lower walks is filled smoothly (and planted, below).
 # (SG: e east along the hall, n north, from the round lawn's centre.  *_RNG: as the 상뜰 was first laid out on OSM's
@@ -2358,8 +2360,8 @@ print('daewoo', {k_: v_ for k_, v_ in DAEWOO.items() if k_ not in ('stair',)}, '
 #  - North-east the upper car park (`top` at the seats' rim, rising 2 % northwards to its mouth on the road): stalls
 #    fanned round the hedge belt, a short row west of its aisle, a long row along its east side under the bank of the
 #    road to 북문; south of it a wall (w4) down to the areaway behind the east wing.
-# The photos' heights (tools/aerial97.py z, ±0.3 m on the open asphalt): court 72.4, floor of the theatre 73.7, upper
-# car park 76.0 - 76.8 m.  They are the yard's as they stand: the terrace before the hall is 70.4 m in the same photos,
+# The photos' heights (tools/aerial97.py z, ±0.3 m on the open asphalt): court 68.3, floor of the theatre 69.6, upper
+# car park 71.9 - 72.7 m.  They are the yard's as they stand: the terrace before the hall is 66.5 m in the same photos,
 # so the yard lies a storey over it (the hall's back door opens onto the theatre's floor from the storey over the
 # terrace's; the 2010 street view shows that lower storey's rusticated band just over the court).  (The game first had
 # them 3.0 m lower, on the guess that the back door was on the terrace's storey.)
@@ -2915,8 +2917,8 @@ _emine = LineString([tuple(q_) for q_ in TR_E[TR_EK0 + 2:int(_els.project(Point(
 # (2026-11-14) The road from 아펜젤러관's back past the fork east of 한경길 and up under 청송대 to 대우관 별관 ran on one
 # 17 % grade, 3.8 - 4.7 m over the 1997 photos' road at the fork and 8 m at the corner under 청송대.  The photos' road
 # (reference/고증/2.9 「동쪽 길의 높이」: the original scans, across-road profiles matched between six frames, and the
-# surface itself where it is open): 52.6 m at the fork's south end, 55.0 a little north of it, then hidden under the
-# wood's canopy (70 - 74 m) as far as the corner, 62.9 there, and 67.3 · 70.6 · 74.1 m up past the annex.  EAST_Q97:
+# surface itself where it is open): 49.3 m at the fork's south end, 51.7 a little north of it, then hidden under the
+# wood's canopy (66 - 70 m) as far as the corner, 58.9 there, and 63.2 · 66.5 · 70.0 m up past the annex.  EAST_Q97:
 # (x, y, height) on the road's middle line, survey s 140 (where the grade is left as it was: the photos' heights south
 # of it are not settled), 184, 196, 208, 296, 304 ... 400 (beyond it the road had the photos' heights already).
 EAST_Q97 = datum.up3([(132.6, 222.4, 46.8), (149.7, 262.8, 49.11), (152.6, 274.4, 50.37), (156.4, 285.8, 51.42),
@@ -3067,11 +3069,11 @@ for b_ in buildings:                    # (음악관's floors: MUSIC_BASE, from 
 # The frame is square to 백양로 (u east-south-east, v north-north-east, o the tower's south-west corner).  The plan is
 # the 1997-07-28 vertical aerial photos' (reference/고증/3.13; tools/aerial97.py, two frames from the west and the
 # east): each block's roof edges where the two frames agree, at the roof height that makes them agree (the tower's
-# slab 71 m, the wing and the south block 59.5 m, the gabled block 65.5 m on the photos' datum), less the eaves.  The
+# slab 68 m, the wing and the south block 56.8 m, the gabled block 62.8 m), less the eaves.  The
 # tower stands 8.4 m south-east of where photo A's camera had put it (its white roof in the 2008 skyview agrees to
 # 2 m).  The whole stands on the azalea hill (진달래동산) 5 m over the 삼거리, as the ground photo and photo A put
 # it (the terrain grid there is the 2010s dig for 경영관's basements): 6.2 m over 백양로's section abreast of where the
-# tower was first put (52.0 m on the old terrain; the aerial photos give the floor 5 - 7 m over the road there).
+# tower was first put (49.3 m on the old terrain; the aerial photos give the floor 5 - 7 m over the road there).
 YONGJAE = dict(o=(73.75, 98.77), ang=math.radians(-14.5), floor=round(prof_h(s_at(67.2, 104.1)) + 6.2, 2), fh=3.6, parts=[
     (990001, 'lm:yongjae', 6, (0.0, 10.5, 0.0, 10.4)),       # tower: u0, u1, v0, v1 (u0 = the fin face)
     (990002, 'lm:none', 3, (2.0, 15.7, 10.4, 43.0)),         # north wing
@@ -3231,8 +3233,8 @@ OLD_HALLS = [
     #   south-east of the box it had
     # - 선우학사 · 간호학관: two gabled three-storey halls 54 x 18 m and 56 x 15 m, 28 m apart; 향난숙사 the short one
     #   south-east of 간호학관's east half (half under trees: 25 x 20 m, within 3 m)
-    # - 의료원 종합관: the slab along 성산로 south-east of them, 83 x 19 m, its flat roof at 58.0 m: four rows of
-    #   windows (3.75 m apart) over the car park north-west of it (41.5 m), a floor or two more down the slope to 성산로
+    # - 의료원 종합관: the slab along 성산로 south-east of them, 83 x 19 m, its flat roof at 55.4 m: four rows of
+    #   windows (3.75 m apart) over the car park north-west of it (38.9 m), a floor or two more down the slope to 성산로
     # - 특별병동: the slab 71 x 15 m, 5 - 9 m east and 2 m north of OSM's 어린이병원 (as Kakao's outline is)
     # (외래진료소: four storeys since tools/medwest97.py: its roof 45 - 46 m in the scans, its forecourt two storeys up)
     (990030, '외래진료소', 'white', 4, med_rect(-129.0, -83.0, -26.4, 46.5)),
@@ -3290,7 +3292,7 @@ MED_SITES_RNG = {
 #   the maps' drawing had put it
 # - 장기원 기념관's block: no four-storey slab; a flat roof at 46 m from the round hall's east side north and south,
 #   8.5 m over the road past the library's back (two storeys on that side), under the trees' crowns east of it
-# The ground between them is a terrace at 45.5 m (jk_grade), where the 5 m grid ran one slope down to the library.
+# The ground between them is a terrace at 44.4 m (jk_grade), where the 5 m grid ran one slope down to the library.
 LATE_FOOTPRINT_1997[990010] = list(block_poly(JK_O + JK_A * -1.875 + JK_V * -0.75, JK_A, 22.875, 5.75,
                                               round_end=True).exterior.coords)[:-1]
 LATE_FOOTPRINT_1997[990011] = list(block_poly((-156.25, -24.0), _lib_u, 17.0, 4.75).exterior.coords)[:-1]
@@ -3385,12 +3387,12 @@ AUD_T = AUD_HEAD                              # (the forecourt and the terrace a
 # the wall's south end north-east up to the terrace, the bank a wedge between it and the street, and 학생회관 별관's
 # ground floor and the yard before it down at the street's level.  At its foot three bollards stand across the
 # carriageway 1.3 m apart and one more on the walk; from them it climbs 22 m on a bearing of 38 deg to the head,
-# 39.8 +- 0.45 m (four frames looking up it, the horizon of each set by the bollards' feet): 20 % here (17 - 22 %).
+# 37.6 +- 0.45 m (four frames looking up it, the horizon of each set by the bollards' feet): 20 % here (17 - 22 %).
 # The carriageway 4.7 m wide, a walk 1.8 m wide up its east side and beyond that a strip of clipped shrubs 4.5 m wide
 # on the slope down to the yard, from 2.5 m below the bollards (its lower end and its outer edge from 190 - 193: 0.1 m
 # apart in three; 학생회관 별관's ground floor stands 10 m beyond it, the yard between).  The foot: the middle bollard, from 190 and 192 (its distance from 188 - 191 agrees with the bollards'
 # heights in those frames to 4 %; the skyview has it 3.5 m further east).  The terrace beyond the head is not level
-# but falls with 백양로, from the flight's head (40.33 m) to the drive's head.
+# but falls with 백양로, from the flight's head (38.01 m) to the drive's head.
 # (the bollards: the triangulated row, 1.22 · 1.16 · 1.75 m apart; their spacing in 2008 · 2010 frames agrees, 4.5)
 AUD_RAMP = dict(foot_rng=(7.56, -9.22), bearing=38.0, run=22.0, w=4.7, walk=1.8, band=4.45, band_t0=-2.5, mouth=5.0, z1=datum.up(21.1, 8.12, 37.62),
                 bollards=(-1.22, 0.0, 1.16, 2.91))
@@ -3459,9 +3461,9 @@ AUD_RAMP_POLY = unary_union([ramp_strip(-AUD_RAMP['w'] / 2, AUD_RAMP['w'] / 2 + 
 # along the annex's north side between it and 대강당's south wing (the 1990 and 1994 maps' road between 학생회관 and
 # 대강당 towards 루스채플; Kakao skyview 2008 (winter): cars parked in a row 8 - 12 m off the annex's north wall,
 # on from the terrace; roadview 2010-12 · 2011-04: a lamp up on that level behind the annex's north-west corner).
-# The game had the road there (OSM, 12 m off the wall) dip to 37.1 m between the terrace and the slope east of the
+# The game had the road there (OSM, 12 m off the wall) dip to 34.7 m between the terrace and the slope east of the
 # annex.  The strip 4.5 - 14 m off the OSM north wall (6.8 - 16.3 m off the game's, ANNEX_1997), from the terrace's
-# level at the drive's head (39.80 m) to the ground past the annex's north-east corner; the ground by the wall as it was
+# level at the drive's head (37.42 m) to the ground past the annex's north-east corner; the ground by the wall as it was
 AUD_ANNEX_N = (np.array([31.91, -1.15]), np.array([63.48, -9.21]))   # (the annex's north wall, OSM 1444448646)
 _uu = (AUD_ANNEX_N[1] - AUD_ANNEX_N[0]) / np.linalg.norm(AUD_ANNEX_N[1] - AUD_ANNEX_N[0])
 _un = np.array([-_uu[1], _uu[0]])                                    # (north, away from the annex)
@@ -3481,8 +3483,8 @@ def aud_upper_z(x, y):
 
 COURT_Z = round(aud_terrace_z(s_at(*COURT_RNG['pos'])), 3)          # (the old court's level: the terrace at its middle)
 COURT_H = round(aud_terrace_z(s_at(*COURT['pos'])), 3)              # (the hoops' court: north of the flight, level)
-# (the 1997 net court on the terrace's south-east part, JOKGU: the photos have it on the terrace's one level, 41.6 -
-# 42.2 m on their datum like the terrace north of the flight's head, where the game's ground fell away to the upper
+# (the 1997 net court on the terrace's south-east part, JOKGU: the photos have it on the terrace's one level, 39.3 -
+# 39.9 m like the terrace north of the flight's head, where the game's ground fell away to the upper
 # road and the old court's level: its pad at the terrace's level north of the flight, AUD_T)
 _jw = shapely.contains_xy(court_poly(3.0, JOKGU), X, Y)
 _tw = shapely.contains_xy(AUD_TERRACE, X, Y) | _jw
@@ -5390,7 +5392,7 @@ ENTRY_AT[246156119] = ((-4.35, 348.6), {})
 # same reason)
 ENTRY_AT[413217834] = ((112.14, 251.72), {})
 # 안 · 이비인후과병원 · 외래진료소 (tools/medwest97.py, reference/고증/3.1.2 「외래진료소 서쪽」): the first's door where
-# it was, on the storey its entrance terrace reaches (34.55 m, two storeys over the car park west of it); the
+# it was, on the storey its entrance terrace reaches (35.19 m, two storeys over the car park west of it); the
 # second's at the head of the walk up to its raised forecourt, on its third floor
 ENTRY_AT[324328472] = ((5.41, -286.88), dict(floor=2))
 ENTRY_AT[990030] = (tuple(round(c_, 2) for c_ in medwest97.xy(*medwest97.CLINIC_DOOR)), dict(floor=2))
@@ -5917,8 +5919,8 @@ P('tent_kiosk', *WU(-28.0, 40.4), _south)
 P('notice_board', *WU(-14.8, 37.2), _south)
 # 연희관: the green tent stall of 2003_가을_연희관_정면.jpg and Kakao's roadview of 2008-08, west of the entrance flight
 # at its foot by the road, was not there in July 1997: the 1997 scans (26/15 · 26/16 · 27/16) show the low dark planting
-# of the bed west of the flight on that spot, and its surface stands at the ground's height (58.5 - 58.75 m, the road
-# beside it 58.0 - 58.5), where a 2.5 m tent would read 61 m (reference/고증/3.5.1).  So no stall there.
+# of the bed west of the flight on that spot, and its surface stands at the ground's height (55.1 - 55.32 m, the road
+# beside it 54.6 - 55.1), where a 2.5 m tent would read 58 m (reference/고증/3.5.1).  So no stall there.
 # 백양로 끝 계단 (UW_STEPS), the top of the banks either side of the head (the 2003 spring photos: from the 삼거리, the
 # backs of the benches and the bin's grey back in a row east of the head and a stone 해태 at its west corner; from the
 # square looking west-south-west, the same row's seats and the bin's green doors, the pair of 해태 at the head's
@@ -6302,8 +6304,8 @@ GONGWON_SITE_RNG = shapely.geometry.polygon.orient(max(getattr(_gw, 'geoms', [_g
 # further east and 11.5 m further south than the hull of the hall's outline and the pads above; its south side steps
 # 7 m north for its east 43 m.  (u, v): TENNIS's frame, along the site and up its slope.
 #  - Inside, no storey over the ground yet: a deck with a grid of beams 3 m under the ground round it (two frames'
-#    stereo: 24.7 - 25.6 m at eight places where the roads round it are at 28.0 - 28.8 m) over all but the west 28 m,
-#    which is a slab at the ground's own height (28.0 m).
+#    stereo: 24.3 - 25.2 m at eight places where the roads round it are at 27.6 - 28.4 m) over all but the west 28 m,
+#    which is a slab at the ground's own height (27.6 m).
 #  - East of it the site's own ground between the hoarding and the lawn's trees: a car park of some twenty cars (the
 #    booth and the lanes of photo A lead into it), a row of cars along the north hoarding, a two-storey prefab office
 #    31 x 5.5 m north of the lane (its roof 4.9 m over the ground) with a smaller one west of it, and south of the
@@ -6403,8 +6405,8 @@ print('정문 밖: 성산로 %.0f m, 철둑 %.0f m, 굴다리 위 레일 %.2f m 
     TOWN_PLAN['road'].cum[-1], TOWN_PLAN['rail'].cum[-1], TOWN_PLAN['rail_z'],
     float(np.interp(GATE_C[0], TOWN_PLAN['road'].P[:, 0], TOWN_PLAN['road_z'])), TOWN_PLAN['top'].min(), TOWN_PLAN['top'].max()))
 # 대운동장 남서쪽 · 야구장 (tools/west_ground.py, reference/고증/4.8.2 · 4.12), late (the planting has
-# read the ground as it was): 성산로's bed on north-west past gate_town's road on the 1997 photos (29 - 31 m, the game
-# had 35 - 39), the 야구장 2.2 m under the 대운동장 as they have it (31.0 m), and the ground between the oval, 학군단,
+# read the ground as it was): 성산로's bed on north-west past gate_town's road on the 1997 photos (30 - 32 m, the game
+# had 36 - 40), the 야구장 2.2 m under the 대운동장 as they have it (31.5 m), and the ground between the oval, 학군단,
 # the road and the 야구장 smoothed again from what stays (the campus roads' asphalt, the halls' feet, the 공학원 site)
 _wg_asph = np.asarray(layers['asphalt'], np.float32)
 _wg_pi = np.clip(((X - SPLAT['x0']) / SPLAT['res']).astype(int), 0, SW - 1)
@@ -6609,16 +6611,16 @@ def late_level(zone_, ring_, z_, name_, up_only=False):
 
 
 # 인문관 남쪽 길 (reference/고증/3.1 「인문관 남쪽 길」): the service road along the hall's south face (OSM, a dead end at its
-# west end) and the row of cars nose to the wall stood on one level in July 1997: the cars' tops at 60.9 - 61.2 m from
+# west end) and the row of cars nose to the wall stood on one level in July 1997: the cars' tops at 58.7 - 59.0 m from
 # x -111 to -79 (car boxes in 26/16 · 27/17 · 26/15 · 27/16), the road's east end where the game has it; the survey of
-# 2024 has the road at x -92 at 60.3 m on the game's datum (the level below: 60.39).  The game's grid climbed 6 - 8 m
+# 2024 has the road at x -92 at 58.1 m (the level below: 58.24).  The game's grid climbed 6 - 8 m
 # along it to the west.  The face from OSM 246156112 (east -> west), v out of the wall (south)
 _inm_u, _inm_v = late_frame((-59.2, 244.5), (-126.8, 261.5), X, Y)
 INM97 = dict(z=round(float(sample(Hn, NEAR_HALF, NEAR_STEP, -76.0, 242.0)), 2), u=(11.0, 60.0), v=(-4.5, 14.0))
 late_level((_inm_u >= INM97['u'][0]) & (_inm_u <= INM97['u'][1]) & (_inm_v >= INM97['v'][0]) & (_inm_v <= INM97['v'][1]),
            (_inm_u >= 0.0) & (_inm_u <= 76.0) & (_inm_v >= -8.0) & (_inm_v <= 30.0) & ~near_buildings(1.0), INM97['z'], '인문관 남쪽 길')
 # 대강당 남쪽 날개 앞 (reference/고증/4.5.1 「남쪽 날개 앞」): the paved terrace ran on level past the south wing's west face
-# and between the wing and 학생회관 별관 (the photos 41.7 - 42.6 m there as on the terrace, four frames; the 2006 survey
+# and between the wing and 학생회관 별관 (the photos 39.3 - 40.2 m there as on the terrace, four frames; the 2006 survey
 # no lower there than on the terrace).  The game's terrace stopped 11 m short of the halls, so the grid dipped 1 - 3 m
 # in front of the wing.  The strip along the annex's north wall (under trees in the photos) stays as it was
 AUD97 = dict(z=round(float(sample(Hn, NEAR_HALF, NEAR_STEP, 41.0, 24.0)), 2))
@@ -6637,11 +6639,11 @@ late_level((_hk_s >= 27.0) & (_hk_s <= 59.0) & (_hk_w >= -4.0) & (_hk_w <= 7.5),
            (_hk_s >= 20.0) & (_hk_s <= 60.0) & (_hk_w >= -4.0) & (_hk_w <= 13.0) & ~near_buildings(0.5), HK97['z'], '한경길 남쪽 줄',
            up_only=True)
 # 용재관 북쪽 드는 길 (YJ_BRANCH, reference/고증/3.13 「북쪽 드는 길의 높이」): the drive to 노천극장 climbed east past the car
-# park, 6 m in its last 25 m (the photos 51.7 -> 54.2 m from x 105 to 121, two to four frame pairs over 0.7; the 2006
+# park, 6 m in its last 25 m (the photos 48.6 -> 51.1 m from x 105 to 121, two to four frame pairs over 0.7; the 2006
 # survey's surface on the game's datum the same less 0.1 - 0.9 m).
-# The game had it flat at 44.9 - 45.8 m.  YJ97['prof']: (s along YJ_BRANCH, z 게임 기준: the one absolute height of
+# The game had it flat at 41.8 - 42.7 m.  YJ97['prof']: (s along YJ_BRANCH, z 해발: the one absolute height of
 # these blocks, the others take the game's own ground at a place that stays); the west end meets
-# the east road (TR_E, 47.9 m), the car park and its way in stay as they were (their floor is 용재관's: 남은 한계)
+# the east road (TR_E, 44.8 m), the car park and its way in stay as they were (their floor is 용재관's: 남은 한계)
 YJ97 = dict(prof=datum.up_at([(0.0, 45.0), (8.0, 45.27), (16.0, 46.83), (24.0, 48.59), (28.0, 49.37), (32.0, 50.36), (36.0, 51.09), (40.0, 51.23)],
                              [(85.5, 163.0), (92.8, 159.8), (100.6, 157.9), (108.5, 156.7), (112.4, 155.9), (116.3, 155.2),
                               (120.3, 154.7), (122.5, 154.5)]), s0=14.0)
@@ -6734,9 +6736,9 @@ os.makedirs(os.path.join(ROOT, 'web/public/data'), exist_ok=True)
 # (made below, by dwb_deck: DAEWOO_BACK['deck_nw']), with the deck's stone skirt along the court's edge: a low
 # retaining edge from nothing at the court's level up to 0.9 m at w2's west end, where the boulders are.
 # 과학관 마당의 둑과 차 길 (reference/고증/3.10 「마당의 둑과 차 길」; the 1997-07-28 scans, read by the park agent and
-# heights from four frames): the chequered court is only u -53.6 ~ -15, v 0.3 ~ -35 (with the corner cut), at 50.8 m;
+# heights from four frames): the chequered court is only u -53.6 ~ -15, v 0.3 ~ -35 (with the corner cut), at 50.2 m;
 # south and east of it an L of planted bank steps down 1.7 m to a drive round it (v -44.5 ~ -55, the corner, u -8.5 ~
-# -1, and the asphalt north of the bank's end, u -14 ~ +2, v -2 ~ -15) at 49.1 m (48.4 ~ 49.2 on the photos' datum, which
+# -1, and the asphalt north of the bank's end, u -14 ~ +2, v -2 ~ -15) at 48.5 m (47.8 ~ 48.6, which
 # reads the court 0.3 m under the game's), where the cars park.  The game had the court flat to v -44.5 and u -4.
 # Late, here: the planting was laid on the flat court.  The nodes in the drive go to its level, those on the bank
 # between the court's edge and the drive's by their distances to each; the court's own stay
@@ -6770,7 +6772,7 @@ FIXED[_nj, _ni] = True
 _nt_took, NORTH97_GRADE = north97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill)
 print('북쪽 땅 (격자 안):', NORTH97_GRADE)
 # 무악학사 · 북문으로 가는 길 (tools/muak.py, reference/고증/3.21_무악학사_북문.md): on the 1997 photos' line, its bed on
-# their profile (from the bend north-east of 대우관, 81.9 m, over the crest at y 760, 100.6 m), late: the planting has
+# their profile (from the bend north-east of 대우관, 77.6 m, over the crest at y 760, 95.9 m), late: the planting has
 # read the ground as it was (no tree stood north of y 600)
 MUAK = muak.road()
 _mk_took, _mk_n, _mk_dz = muak.grade(Hn, X, Y, FIXED, MUAK)
@@ -6785,7 +6787,7 @@ FIXED[_sm_took] = True
 print('서문 길: %(nodes)d nodes moved (most %(most).1f m), %(road)d on the roads, the field\'s bank %(bank)d' % SEOMUN_GRADE)
 # 과학관 북서쪽 골짜기 · 독수리상 서쪽 마당 (tools/west_ground.py, reference/고증/4.12 · 4.5.2), late: the planting
 # has read the ground as it was.  The valley's works yard and floor on the 1997 photos (4 - 7 m under the game's
-# slope); the bare yard west of the eagle, its road and lane level at 29.25 m (the game climbed to 36 m)
+# slope); the bare yard west of the eagle, its road and lane level at 28.30 m (the game climbed to 35 m)
 _wg_box = Polygon([(-390, 40), (-260, 40), (-260, 250), (-390, 250)])
 WEST_VALLEY = west_ground.valley(Hn, X, Y, FIXED, [Polygon(b_['footprint']).buffer(0) for b_ in buildings
                                                    if Polygon(b_['footprint']).intersects(_wg_box)])
@@ -6970,11 +6972,11 @@ for b in buildings:
             RND_GHOSTS.append({**_jh_old[b['id']], 'at': next(i_ for i_, b_ in enumerate(buildings) if b_ is b)})
 LATE_SITES.append(shapely.geometry.polygon.orient(jonghap97.OUTLINE[jonghap97.PODIUM], 1.0))
 # 경영학교실단 (reference/고증/3.15-3.17 「날개와 강당의 높이」; the 1997-07-28 scans, four frames from both flight
-# lines): both wings' roofs at the same height, 58.4 m on the game's ground (58.6 · 58.8 on the photos' datum, which
+# lines): both wings' roofs at the same height, 56.3 m (56.5 · 56.7 in the scans, which
 # stands 0.3 - 0.5 m over the game's at the front walk, the car park and the front block's roof), where the game had
 # the north wing's 1.8 m and the south wing's 4.3 m lower.  Five storeys of 3.95 m on the north wing's floor; the south
 # wing, on ground falling south, has a storey more under the same floors (its lowest half sunk).  The front block's
-# roof (45.0 m on the photos) is the game's: one storey over the half-sunk one, not two before 2005.  In the middle of
+# roof (42.9 m in the scans) is the game's: one storey over the half-sunk one, not two before 2005.  In the middle of
 # that roof the hall's box rises 2.2 m to the springing of three shallow barrel vaults side by side, 11 m across and
 # 22.2 m long, their crowns 3.5 m over the flat roof (blender/generic.py bk_vault); the frame BK_T from the front's
 # south end, v into the hall

@@ -21,8 +21,8 @@ Where things stand (고증 4.10):
   the end); the corners of the junction carry OSM's big outlines.
 """
 # (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
-# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  Heights quoted in
-# comments written before 2026-11-15 are on the old datum: 2.0 m and the tilt at their place higher)
+# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  The heights quoted
+# in the comments are 해발 too)
 import json, math, os, random
 import numpy as np
 import datum
@@ -62,7 +62,7 @@ ARMS = {
                                                        (-75.0, -1205.0)]),
 }
 # 1997년 서강로 (baekbeom) as the scans of 27/18 and 27/19 have it (2026-11-14, 고증 4.10.4 「다섯 길과 노면 표시」): its double
-# yellow middle line (both frames within 0.1 m, reprojected on the road's own heights 19.3 - 24.9 m), 3 - 6 m east of
+# yellow middle line (both frames within 0.1 m, reprojected on the road's own heights 20.2 - 25.8 m), 3 - 6 m east of
 # OSM's line above; the kerbs 9.0 m west of it (the crossing's west end, a bus at the kerb) and 6.5 m east (the
 # pavement's edge in both frames, the stop line's end): 15.5 m of carriageway, three lanes out (south) with two dashed
 # lines 3.05 and 6.0 m west of the middle, two in (north) with a solid line 3.15 m east of it; north of the crossing the
@@ -105,7 +105,7 @@ CORNER_R = 9.0                 # the kerbs' rounding at the corners
 # wedge between 신촌로 and 서강로: the 1997-07-28 frame 27/18 (the same flight's next frame south of the six) and the
 # 1998-10-08 frame 26/17 show its ring of beds (dark middle, bright yellow band, dark band, pale rim; 15.6 m across)
 # at (-73.4, -1001.3) and (-73.8, -1002.3), cameras from the east and the north-west; the scans of 27/18 and 27/19
-# (the same flight's, 0.13 m/px) agree at (-73.3, -1000.9) on ground 19.6 m (0.2 m apart).  The pole and 「연세대」:
+# (the same flight's, 0.13 m/px) agree at (-73.3, -1000.9) on ground 20.5 m (0.2 m apart).  The pole and 「연세대」:
 # below (52158 solved again, the scans)
 ISLAND = dict(c=(-73.3, -1000.9), r=7.8, ring=8.45)
 BED = [(2.5, 'lawn'), (4.3, 'yellow'), (5.6, 'dark'), (6.1, 'white'), (7.6, 'lawn')]
@@ -291,13 +291,13 @@ LANDMARKS = [
 # Their tops and outlines from the 1997 frames (고증 4.10.5): the scans of 27/18 and 27/19 (the same day's light) and
 # 1998's 26/17 resampled at the roof's height, an edge's height where its picture
 # stands still from frame to frame (the frames that see past it), a roof's where the windows match.
-# - 그레이스: its walls' top 73.0 m (the parapet round the roof, south side 73.0 - 73.5 in three frames, west 72.4),
-#   the roof inside 68.8; the outline the parapet's (north 1.75 m inside the old foot line, the west turned 2.2 deg,
+# - 그레이스: its walls' top 74.1 m (the parapet round the roof, south side 74.1 - 74.6 in three frames, west 73.5),
+#   the roof inside 69.9; the outline the parapet's (north 1.75 m inside the old foot line, the west turned 2.2 deg,
 #   the east OSM's).  Its north end was its car park in 1997 (painted bays in 27/18).  No upper floor set back
-# - 그랜드: OSM's outline (그랜드플라자, its round north-east side) the ring of its top floor, 68.3 m, round a roof
-#   garden 63.0 m (GRAND_COURT)
-# - 외환은행: OSM's outline (「144」), its walls' top 54.0 m (the north edge where three frames meet, the roof 54.5); the
-#   machine room over it 57.0 (what 56.8 was), the stair head 60.0, a round tank
+# - 그랜드: OSM's outline (그랜드플라자, its round north-east side) the ring of its top floor, 69.6 m, round a roof
+#   garden 64.3 m (GRAND_COURT)
+# - 외환은행: OSM's outline (「144」), its walls' top 55.2 m (the north edge where three frames meet, the roof 55.7); the
+#   machine room over it 58.2 (what 58.0 was), the stair head 61.2, a round tank
 # The blocks keep their storeys (their walls' draws from blender/town.py's stream; the 13th field stretches a storey to
 # the top) but are drawn as LM_SHAPE in blender/town.py landmarks() (town['landmarks']), not as boxes
 LM_TOP = {'그레이스백화점': datum.up(-191.03, -882.35, 74.13), '그랜드백화점': datum.up(-175.37, -996.2, 69.63), '외환은행': datum.up(-118.81, -1053.76, 55.18)}
@@ -551,14 +551,14 @@ def _streets(pl, A, yx=None, old=False):
     return dict(arms=A, road=road, street=street, walk=walk, cw=cw, walks=walks, y_top=y_top, cross_streets=cross_streets)
 
 
-# 연세로 · 로터리의 다섯 길의 높이 (#189; 고증 4.10.4 「길의 높이」), 게임 기준.  The 1997-07-28 scans (27/18 · 27/19, north of
+# 연세로 · 로터리의 다섯 길의 높이 (#189; 고증 4.10.4 「길의 높이」), 해발.  The 1997-07-28 scans (27/18 · 27/19, north of
 # y -620 26/16 · 27/17 too; every pair of frames on its own, windows of 3 m at five points across the carriageway every
 # 4 - 5 m, correlation 0.7 or more; roofs, buses and the shop houses' awnings that the narrow street's windows catch
 # thrown out against a 24 m running median) and the 1:5000 survey's spot heights on the roads (2006 · 2024, #134).
-# The game's junction (19.8 m) stands 0.3 m over the photos' reading there (19.45 m, every arm's first 15 m) as 백양로
+# The game's junction (20.7 m) stands 0.3 m over the photos' reading there (20.34 m, every arm's first 15 m) as 백양로
 # north of s 150 does: the profiles are the photos' + 0.3 m (and the survey's spots their difference from the
 # junction's spots, 20.07 · 20.30 m, added to the game's junction).  The model had every arm and 연세로 climbing out of
-# the junction; 1997 had 연세로 down in the 창천 valley (17.5 - 18 m at y -730 .. -795, the survey's spots 17.53 ·
+# the junction; 1997 had 연세로 down in the 창천 valley (17.8 - 18 m at y -730 .. -795, the survey's spots 17.53 ·
 # 17.58), up to a crest at y -870 .. -890 and down 0.5 m to the junction, and 양화로 · the 1997 신촌로 (south-west)
 # falling 4 - 6 m away from it.
 # YRO97: (y, z) along 연세로 from under the bridge (its north end eased into 성산로's bed at the south kerb).
@@ -601,7 +601,7 @@ ARM97 = {
 }
 ARM97_FADE = 60.0
 LEVEL_EASE = 30.0              # (the ground eased into the streets' bed this far past the sidewalks: the shop houses on it)
-# the junction's own level (게임 기준; the photos' 17.45 m + 0.3, as the surface model happened to have it smoothed at its
+# the junction's own level (the photos' 20.34 m + 0.3, as the surface model happened to have it smoothed at its
 # middle): held, now that the town round it lies on the survey's surface (tools/town97.py)
 JC_Z = datum.up(-100.0, -975.0, 20.67)                   # @ JC (-100, -975)
 

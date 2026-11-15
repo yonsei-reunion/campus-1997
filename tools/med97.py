@@ -7,11 +7,11 @@ tools/build_campus.py 가 부른다.
 
 Frame: campus metres, x east, y north.  Heights: the 1997-07-28 scans (자료 Q), every pair of the four frames that see
 the place (27/17 · 27/16 · 26/16 · 26/15) on its own, a point kept where two pairs or more agree (correlation 0.7 or
-more, spread under 0.4 m).  Near these lots the photos' datum is the game's (치과대학병원 남쪽 길 −0.4 m, 동쪽 주차장
-북서 칸 +0.1 m), so their heights go in as they are.  Every absolute height here is 게임 기준 (the game's datum, not
-the survey's above sea level): EAST_Z, NE_PROF, HEART_Z, DENT_Z.
+more, spread under 0.4 m).  Near these lots the photos stand on the game's roads (치과대학병원 남쪽 길 −0.4 m, 동쪽 주차장
+북서 칸 +0.1 m), so their heights go in as they are.  Every absolute height written here is above sea level (해발,
+taken up to the working datum where it is read: tools/datum.py): EAST_Z, NE_PROF, HEART_Z, DENT_Z.
 
-- 동쪽 큰 주차장 (EAST_LOT): one paved platform at 43.6 m (a plane through 134 points, rms 0.45 m, 0.9 % up to the
+- 동쪽 큰 주차장 (EAST_LOT): one paved platform at 40.5 m (a plane through 134 points, rms 0.45 m, 0.9 % up to the
   north) where the game's ground fell from 45 m at its north end to 31 m at its south (the 2005 hospital's site, painted
   asphalt).  Along its north-east side the road down to 성산로 falls 47 → 34 m past it (NE_PROF: across-road profiles
   every 5 m), 3.5 m under the lot at s 30 and 7 m at s 60: the lot is held up by a wall, its south-east edge by a wooded
@@ -19,14 +19,14 @@ the survey's above sea level): EAST_Z, NE_PROF, HEART_Z, DENT_Z.
   end eases to the ground it meets beyond 성산로's east end (since 2026-11-15 gate_town has the road on the same
   photos to its end and tools/town97.py its run on north-east: 0.2 m off the profile; 3 - 5 m before).
 - 심장혈관병원 북쪽 (HEART_LOT): paved, three rows and a row along the east, 44 → 46 m to the north (5 %); the game had
-  a lawn rising to 48.5 m.
+  a lawn rising to 45.1 m.
 - 치과대학병원 서쪽 · 음악대학 동쪽 (DENT_LOT): paved, the long double row of slanting stalls and the rows along both
   sides, 60 → 53 m to the south (7.7 %); the game had lawn and paths at about the same heights.
 - Nothing here draws from build_campus.py's `rng`.
 """
 # (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
-# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  Heights quoted in
-# comments written before 2026-11-15 are on the old datum: 2.0 m and the tilt at their place higher)
+# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  The heights quoted
+# in the comments are 해발 too)
 import math
 
 import numpy as np

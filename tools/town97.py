@@ -81,7 +81,7 @@ def tilt(x, y):
 
 
 def surf(x, y):
-    """... on the game's datum (해발 + T)"""
+    """... on the working datum (해발 + tilt)"""
     return sea(x, y) + tilt(x, y)
 
 

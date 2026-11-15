@@ -3,28 +3,28 @@
 
     took, info = music97.grade(Hn, X, Y, FIXED, halls, keep, fill, amph, tr_line, tr_n)   # 심기가 끝난 뒤, 저장 바로 앞
 
-Frame: campus metres, x east, y north.  Every absolute height here is 게임 기준 (the game's datum, which near here is
-the 1997 photos' datum: 한경길 · 언더우드관 · 의료원 둘레 photo − game +0.1 ~ +0.9 m), not the survey's above sea level.
+Frame: campus metres, x east, y north.  Every absolute height written here is above sea level (해발), taken up to
+the working datum the ground is laid on (해발 + tilt: tools/datum.py) where it is read.
 
 - The game's ground round the old 노천극장 and on the wooded hill north of 음악관 was the surface model's, 8 - 13 m under
   the 1997-07-28 scans round the bowl and 20 m on the hilltop (3.14 「남은 한계」).  The 1:5000 survey (국토지리정보원
   수치지형도, surveyed 2006 and 2024: spot heights and 5 m contours) settles it.  The photos' heights stand over the
-  survey's by one plane all over the campus (PHOTO_DZ: 107 spot heights, rms 0.35 m, both surveys alike: the photos'
-  block took the tilt of the game's roads it was tied to, so the game's datum is that plane over the sea).  Here
+  survey's by one plane all over the campus (datum.tilt: 107 spot heights, rms 0.35 m, both surveys alike: the photos'
+  block took the tilt of the game's roads it was tied to, so the working datum is that plane over the sea).  Here
   photo − (survey + plane) is +0.4 m (median of 445 ground points, rms 1.4), but game − (survey + plane) −6 to −23 m
   round the bowl and on the hill.  So the photos were right.
 - GRID: the ground at the game's 5 m nodes (x 115 .. 285, y 30 .. 230, decimetres): the 2006 survey's surface (its contours with
-  its spot heights, 2.5 m) + PHOTO_DZ, nudged to the 1997 photos where they see the ground within 4 m of it (the
+  its spot heights, 2.5 m), nudged to the 1997 photos where they see the ground within 4 m of it (the
   survey is after the 1999 theatre: the photos have the 1997 bowl).  Applied inside REGION, the halls' feet kept,
   eased out round it (harmonic) to the game's ground.
-- 노천극장 (AMPH in build_campus.py): its floor on the photos (59.6 m; the 1999 theatre's floor, 2006 · 2024 survey
-  + plane: 59.1 · 59.7 m) instead of a stage under the walk behind it; the bowl cut into GRID as the first cut was
+- 노천극장 (AMPH in build_campus.py): its floor (56.3 m; the 1999 theatre's floor, 2006 · 2024 survey
+  + plane: 55.8 · 56.4 m) instead of a stage under the walk behind it; the bowl cut into GRID as the first cut was
   into the old ground (the same terraces and easing past the rim; behind the stage 2 m level, then down to the walk
   west of it over 6 m, as the photos have that 4 m under the floor).
 - 동쪽 찻길 (TR_E) from 아펜젤러관's yard to the fork east of 한경길 (EAST_Q97 from there): ROAD, the survey's spot
-  heights and the contours crossing it, + PHOTO_DZ.  The photos' across-road profiles here read 1.5 - 3.5 m higher
+  heights and the contours crossing it.  The photos' across-road profiles here read 1.5 - 3.5 m higher
   (the canopy's edge, as 2.9 「남은 한계」 suspected).  Levelled across as tr_grade does.
-- 용재관's drive (YJ_BRANCH, x < 126) is the 대강당 · 용재관 part's (54.3 m at its east end): TM_KEEP stays.
+- 용재관's drive (YJ_BRANCH, x < 126) is the 대강당 · 용재관 part's (51.2 m at its east end): TM_KEEP stays.
 - 음악관 두 동 (halls; 3.11 「두 동의 절대 높이」): the two halls and the ground before them stood 1.5 · 2.25 m under the
   photos and the survey.  HALLS_FRONT: the road along 구관's front and 신관's forecourt at its door, read again on bare
   asphalt with small windows (the first reading, 1.4 m over the survey, had the parked cars' roofs and the hedge in
@@ -35,8 +35,8 @@ the 1997 photos' datum: 한경길 · 언더우드관 · 의료원 둘레 photo �
 - Nothing here draws from build_campus.py's `rng`.
 """
 # (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
-# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  Heights quoted in
-# comments written before 2026-11-15 are on the old datum: 2.0 m and the tilt at their place higher)
+# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  The heights quoted
+# in the comments are 해발 too)
 import math
 
 import numpy as np
@@ -46,12 +46,12 @@ from shapely.geometry import LineString, Point, Polygon
 import shapely.ops
 from shapely.ops import unary_union
 
-# --- 게임 기준 heights (the one place to shift them all) ------------------------------------------------------------
+# --- heights, 해발 (each taken up to the working datum at its place) -----------------------------------------------
 AMPH_FLOOR = datum.up(154.0, 160.0, 56.35)                 # 노천극장's floor (the 1997 scans)
 ROAD = datum.up3([(69.1, 146.2, 42.12),      # (x, y, height) on TR_E: 아펜젤러관's yard (the square's level, kept)
         (86.0, 164.6, 44.99),      # 2006 contour 45 m, 0.9 m off the road's middle
         (126.1, 211.5, 51.37),     # 2024 spot 51.34 m on the road
-        (132.6, 222.4, 50.7),     # (between it and the 50 m contour 6.9 m off at (128.8, 231.1): 53.3)
+        (132.6, 222.4, 50.7),     # (between it and the 50 m contour 6.9 m off at (128.8, 231.1))
         (141.5, 251.0, 49.99),     # 2005/2006 contour 50 m, 3 m off
         (149.7, 262.8, 49.11)])     # EAST_Q97's first photo height (the fork), as it was
 # 음악관: (x, y, height) of the ground before each hall: the road along 구관's front (the photos 해발 55.3 m: 60 points

@@ -11,7 +11,7 @@ Where things stand (고증 4.8):
   bridge; the 1995 aerial photo has the two decks).  The vertical aerial photos of 28 July 1997 (자료 Q, tools/
   aerial97.py; frames 26/16 and 27/17) have the two tracks 2.5 m south of OSM's from 300 m west of the bridge to 150 m
   east (the line was laid again for the 2009 double track), their rails 10.8 m over 성산로 before the gate (two frames'
-  stereo: the decks at 34.5 m where the box junction is at 23.7 m), the bridge's opening from x -108.5 to -78.5.
+  stereo: the decks at 34.1 m where the box junction is at 23.3 m), the bridge's opening from x -108.5 to -78.5.
 - The gate stands where the 2010 skyview and the pre-rebuild roadview have its pillars, y -396 on 백양로's centre
   line (tools/build_campus.py GATE_C; 고증 4.8 「정문의 남북 자리」).  From its wall to 성산로's north kerb runs its
   mouth, a fan of asphalt (the 1995 photo: the west wall rounding off, the east one running out at a slant), some
@@ -29,8 +29,8 @@ Where things stand (고증 4.8):
   still decided round the old line (YONSEI_X_RNG), so that no house or tree away from 연세로 changes.
 """
 # (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
-# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  Heights quoted in
-# comments written before 2026-11-15 are on the old datum: 2.0 m and the tilt at their place higher)
+# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  The heights quoted
+# in the comments are 해발 too)
 import json, math, os, random
 import numpy as np
 import datum
@@ -102,28 +102,27 @@ CHURCH_RNG = (-50.0, -523.0, 27.0, 13.0)
 X0, X1 = -575.0, 700.0       # the banks are built between these
 MODERN = {230178502, 628197716}        # OSM outlines that are the 2006 station building
 # 성산로 서쪽 (대운동장 남서쪽, 고증 4.8.2 · 4.12): the ground along the road as the surface model has it climbs
-# from 30 m at x -300 to 39 m past its west end, the trees of both banks in it; the road itself is flat at 28.5 - 30 m.
+# from 31 m at x -300 to 40 m past its west end, the trees of both banks in it; the road itself is flat at 29.0 - 31 m.
 # The 1997-07-28 scans (26/16 · 26/15, and 1998 26/17 for the pair west of x -420; three pairs within 0.6 m at
 # x -455 .. -440): the road's own surface every 10 m (x, photos' height, the median of the points 0 - 14 m either side
-# of its middle, smoothed).  The road goes on them plus SSR_W_DATUM (game's datum, 게임 기준: the 대운동장 by it stands
-# 0.45 m over the photos' reading, 33.2 m; the road 4.1 m under it as in the photos).  The survey (1:5000, 2006 ·
-# 2024; #134) agrees once its tilt against the photos' datum is taken out (pdz = 2.05 + 0.522 x/100 + 0.248 y/100 m):
-# (-432.7, -341.4) 29.80 + pdz = 28.74 m, the photos 28.45 - 28.7; (-510.9, -243.3) 31.42 + pdz = 30.20, the photos
-# 29.8 - 29.9.
+# of its middle, smoothed).  The road goes on them plus SSR_W_DATUM (the 대운동장 by it stands
+# 0.45 m over the photos' reading, 33.7 m; the road 4.1 m under it as in the photos).  The survey (1:5000, 2006 ·
+# 2024; #134) agrees: (-432.7, -341.4) 29.80 m, the photos 29.5 - 29.75; (-510.9, -243.3) 31.42, the photos
+# 31.0 - 31.1.
 SSR_W97 = datum.up_at([(-462.0, 29.85), (-454.0, 29.93), (-446.0, 29.91), (-441.0, 29.8), (-433.0, 29.68), (-427.0, 29.56),
            (-419.0, 29.49), (-413.0, 29.53)],
                       [(-462.0, -297.6), (-454.0, -306.3), (-446.0, -315.4), (-441.0, -321.1), (-433.0, -330.1),
                        (-427.0, -336.8), (-419.0, -345.5), (-413.0, -351.7)])
-SSR_W_DATUM = 0.45                 # (게임 기준: photos -> game, the 대운동장's)
+SSR_W_DATUM = 0.45                 # (photos -> game, the 대운동장's)
 # 성산로 동쪽 (정문 둘레, #189; 고증 4.8.2): from there to x 300 the game stood 2 - 3.4 m over the photos all along
 # (the surface model's trees and roofs), the gate's mouth 2.1 m.  The same scans (26/16 · 27/17 · 27/18 · 27/19, the 1998
 # 26/17 paired where 1997 has one frame, x -400 .. -210): the road's surface every 8 m at seven points 0 - 14 m either
 # side of its middle, each pair of frames on its own (correlation 0.7 or more), the median.  The survey's spot before the
-# gate (-107.9, -434.6) 23.16 + pdz = 23.57 m, the photos 23.8; (-0.7, -433.7) 26.96, the photos 27.0 - 27.45.  The road
+# gate (-107.9, -434.6) 23.16 m, the photos 23.4; (-0.7, -433.7) 25.99, the photos 26.0 - 26.5.  The road
 # goes on them plus SSR_E_DATUM, 백양로's own over the photos north of s 150 (+0.1 .. +0.4 m) and 연세로's · the
 # rotary's (where the game's junction stands over its photos' reading), easing from the west part's over x -413 .. -300.
-# East of x 297 (2026-11-15, 고증 4.8.2 「x 300 동쪽」): the model fell away from there to the road's end (x 346: 26.8 m)
-# where the photos have it climbing on (31.0 m at the end, 33 stations of 9 - 30 readings, spread 0.02 - 0.2 m; and on
+# East of x 297 (2026-11-15, 고증 4.8.2 「x 300 동쪽」): the model fell away from there to the road's end (x 346: 26.0 m)
+# where the photos have it climbing on (30.2 m at the end, 33 stations of 9 - 30 readings, spread 0.02 - 0.2 m; and on
 # north-east past the game's end at 3.3 %: tools/town97.py carries that ground).  의료원's east lot and the road down
 # its north-east side (tools/med97.py) are on the photos' own datum, so the road's eases to it over SSR_E_DATUM_X.
 SSR_E97 = datum.up_at([(-395.0, 29.23), (-365.0, 29.03), (-345.0, 29.06), (-330.0, 29.15), (-310.0, 28.72), (-290.0, 28.49), (-270.0, 28.34),
@@ -147,13 +146,13 @@ SSR_E_DATUM_X = (250.0, 330.0)     # (the datum down to the photos' own from the
 
 
 # 경의선의 높이 (#189; 고증 4.8.2 「경의선 선로의 높이」): the game had the rails level, 10.8 m over 성산로 before the gate, from
-# x -380 to 250.  RAIL97: (x, y, z) of the bed's top (the ballast between the rails) on the rails' middle line, 게임 기준
+# x -380 to 250.  RAIL97: (x, y, z) of the bed's top (the ballast between the rails) on the rails' middle line, 해발
 # less the datum (ssr_datum):
 # - x -174 .. 654: the 1997-07-28 scans (26/16 · 27/17 · 27/18 · 27/19), windows of 2 m on each track and between them
 #   every 24 m, every pair of frames on its own (the pairs along one course, whose base lies across the rails, and those
 #   across the courses agree within 0.1 - 0.2 m): 39 stations of 2 - 16 readings, spread 0.03 - 0.19 m, a running mean
 #   over 72 m.  Above sea level the bed is all but level: 33.4 m at x -174, 33.6 at the bridge, 34.0 at x 160, 34.2 - 34.3
-#   from x 260 to 500 (the station), 34.6 at x 650; what climbs east on the game's datum is its tilt T.
+#   from x 260 to 500 (the station), 34.6 at x 650; what climbs east on the working datum is its tilt.
 # - The 2006 survey's spots on the bed (1:5000, 해발): (-177.4, -485.0) 33.59, (-61.3, -481.3) 33.70, (54.6, -479.6)
 #   33.67, (187.8, -475.2) 34.39, (294.6, -472.3) 34.23: the photos within +0.23, -0.04, -0.13, +0.37, 0.0 m.
 # - West of x -174 the 1997 photos are one frame (the 1998 one paired with it reads 1.1 m low where both can be had, and
@@ -193,7 +192,7 @@ def ssr_west_rng(x, z):
 
 
 def ssr_datum(x):
-    """the game's ground over the 1997 photos' reading along 성산로 and the rails beside it (게임 기준): the 대운동장's
+    """the game's ground over the 1997 photos' reading along 성산로 and the rails beside it: the 대운동장's
     in the west, 백양로's from x -300, none past SSR_E_DATUM_X (의료원's lots are on the photos' own)"""
     return np.interp(x, [SSR_W97[-1][0], -300.0, SSR_E_DATUM_X[0], SSR_E_DATUM_X[1]], [SSR_W_DATUM, SSR_E_DATUM, SSR_E_DATUM, 0.0])
 

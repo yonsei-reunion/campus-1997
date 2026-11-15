@@ -344,7 +344,7 @@ PINSON_EAVES = 56.9               # 해발 @ (-67.1, 160.6): 핀슨관's eaves (
 
 def plan():
     """광복관 for blender/landmarks.py kwangbok (campus.json buildings[].plan): its frame, the 1997 walls and the low
-    annex (u0, u1, v0, v1), the door, and the heights on the game's datum"""
+    annex (u0, u1, v0, v1), the door, and the heights on the working datum"""
     t = float(T(*kb_xy(KB_DOOR_U, 11.75)))
     return dict(o=list(KB_O), ang=KB_ANG, walls={k: list(v) for k, v in KB_WALLS.items()}, annex=list(KB_ANNEX), door_u=KB_DOOR_U,
                 floor=round(KB_FLOOR + t, 2), eaves=round(KB_EAVES + t, 2), tower=round(KB_TOWER + t, 2),

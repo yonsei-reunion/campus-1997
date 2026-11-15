@@ -9,19 +9,19 @@
 Frame: campus metres, x east, y north.  51 서문 on the 1990 and 1995 maps (57 on the 1994 map), 연희로10길's east end
 where it meets the campus road west of 과학관 (OSM 2026 way 242897924 「연세대학교 서문」, -360.8, -18.4).
 
-- The road: west of 과학관 the campus road comes down from the hall's south-west corner (48.8 m on the photos) past the
-  gate (45.6 m) and on south-south-east to the 대운동장's north-east (41.7 m), the stretch 2026's OSM no longer has.
+- The road: west of 과학관 the campus road comes down from the hall's south-west corner (48.4 m) past the
+  gate (45.5 m) and on south-south-east to the 대운동장's north-east (41.7 m), the stretch 2026's OSM no longer has.
   Its middle from the 1997-07-28 scans (26/16 · 26/15: the bright band across straightened strips; 7 - 9 m between the
   wood's edge and the bare ground east, small trucks parked on its east side), its surface on their heights.
 - Heights: the two frames that see it (26/15 · 26/16) give the ground 2 - 7 m under the game's (the elevation grid
   smoothed the slope down to 연희동 and to the 대운동장); here the photos' plus 0.3 m (the 과학관 corner and the road
   where it meets the game's at y -129 read 0.2 and 0.6 m under the game).  The lane outside drops from the gate
-  (44.4 m) to 39.3 m 30 m west (four points at x -389 .. -392, corr 0.9) and on to about 34 m at x -425.
+  (44.3 m) to 39.3 m 30 m west (four points at x -389 .. -392, corr 0.9) and on to about 34 m at x -425.
 - Nothing here draws from build_campus.py's `rng`.
 """
 # (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
-# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  Heights quoted in
-# comments written before 2026-11-15 are on the old datum: 2.0 m and the tilt at their place higher)
+# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  The heights quoted
+# in the comments are 해발 too)
 import math
 import numpy as np
 import datum
@@ -40,14 +40,14 @@ ROAD = datum.up3([(-349.0, 4.0, 49.06), (-348.5, -5.0, 47.98), (-347.3, -15.0, 4
         (-301.6, -146.6, None)])
 ROAD_HALF = 3.25
 # 연희로10길 out of the gate, west then north-west (OSM 2026 ways 421415361, the 1997 scans: the same line between the
-# same houses); surface: the gate, the photos at x -389 .. -396 (39.3 m) and -423 .. -425 (34.2 m, corr 0.7), between
+# same houses); surface: the gate, the photos at x -389 .. -396 (39.3 m) and -423 .. -425 (34.4 m, corr 0.7), between
 # them evenly
 LANE = datum.up3([(-360.8, -18.4, 44.28), (-366.0, -17.6, 43.4), (-375.0, -16.6, 41.75), (-385.0, -15.8, 40.2), (-392.0, -15.3, 39.33),
         (-400.0, -14.8, 38.17), (-407.0, -12.8, 37.0), (-415.0, -8.7, 35.74), (-424.4, -2.9, 34.37), (-428.9, 2.9, 33.78)])
 LANE_HALF = 2.3
 LANE_EDGE = 1.0                                 # (the asphalt on to the houses' fronts either side: the 2010 roadview)
 # the lane south from the gate along the campus wall (OSM 876166677; the 1997 scans' pale path round the wooded knoll):
-# level with the gate (the photos: 44.5 - 45.1 m along it)
+# level with the gate (the photos: 44.4 - 45.0 m along it)
 ARC = datum.up3([(-362.6, -18.6, 44.29), (-366.0, -25.5, 44.42), (-369.7, -33.3, 44.56), (-372.8, -39.8, 44.69), (-376.6, -44.0, 44.82)])
 ARC_HALF = 1.6
 # the side alley between houses 80 and 82 (OSM 379198897) down to the south
@@ -60,7 +60,7 @@ APRON = [(-359.9, -16.5), (-355.5, -15.6), (-349.6, -16.5), (-348.3, -21.0), (-3
 # the yard west of the hedge, round the small building (the scans: bare and pale, 44 - 45 m)
 YARD = [(-357.5, -26.0), (-348.6, -26.4), (-346.8, -33.0), (-344.8, -41.0), (-344.0, -50.5), (-352.0, -51.5), (-356.0, -44.0),
         (-360.5, -30.0)]
-SHED = [(-351.7, -40.4), (-346.3, -39.5), (-345.0, -48.4), (-350.4, -49.5)]    # its roof on the scans, 44.9 m
+SHED = [(-351.7, -40.4), (-346.3, -39.5), (-345.0, -48.4), (-350.4, -49.5)]    # its roof on the scans, 44.8 m
 SHED_TOP = datum.up(-348.36, -44.46, 44.78) + 0.3
 # the walls either side of the gate: north, the boundary along the lane's end and up past house 83 (a granite wall in
 # the 2010 · 2011 roadview, the campus behind it a storey over the lane by 83); south, the campus wall along the lane

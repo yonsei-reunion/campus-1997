@@ -6,7 +6,7 @@
     muak.paint(line, s1)                                 # 새 찻길 · 서쪽 보도의 다각형
     muak.trees(line, trees, halls, s1)                   # 길가 나무(목록 끝에 더함)
 
-Frame: campus metres, x east, y north.  The road runs from the bend north-east of 대우관 (road's TR_E, 81.9 m) north
+Frame: campus metres, x east, y north.  The road runs from the bend north-east of 대우관 (road's TR_E, 77.6 m) north
 over the crest (y 760) and down round the hairpin (y 892) to the fork before 북문 (62, 965).
 
 - The line: the 2008 skyview survey's middle line (tools/roadview/muak/proposal_roads.json, +-1 m), moved left by what
@@ -18,8 +18,8 @@ over the crest (y 760) and down round the hairpin (y 892) to the fork before 북
 Nothing here draws from build_campus.py's `rng`: random.Random(15991) for the trees.
 """
 # (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
-# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  Heights quoted in
-# comments written before 2026-11-15 are on the old datum: 2.0 m and the tilt at their place higher)
+# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  The heights quoted
+# in the comments are 해발 too)
 import json, math, os, random
 import numpy as np
 import datum
@@ -37,13 +37,13 @@ OFF97 = [(0, 2.0), (50, 2.0), (60, 1.2), (100, 1.2), (125, 2.7), (170, 2.7), (19
          (420, 0.5), (500, 1.5), (600, 1.5), (630, 0.0)]
 HALF = 3.0                      # half the carriageway
 WALK = (3.25, 5.75)             # the west walk, left of the middle line (s 8 on: past the corner's mouth)
-# the road's surface (the survey's s, m; 게임 기준 at that s of the line, road()): the 1997 frames (corr >= 0.7), the bend
+# the road's surface (the survey's s, m; 해발 at that s of the line, road()): the 1997 frames (corr >= 0.7), the bend
 # north-east of 대우관 as the east road has it (reference/고증/3.6.2), s 195 the drive into the yard east of the crest
 # (four frames, 0.91 - 0.96).  Under the crowns the 1:5000 survey's spot heights on the road + T (reference/고증/3.21
 # 「길의 높이」): s 127 (223.9, 691.9), s 225 (241.6, 787.8, on its east verge), s 284 (248.8, 845.6 · 246.7, 847.2, with
-# the frames' 93.9 - 94.2 there), s 488 (116.2, 836.8).  From the hairpin to the fork one fall of 10 - 12 %: the frames'
-# 80 - 82 m at s 430 - 462 was the crowns over the road (the pairs that see the road under them: 78.3 at s 427, 75.8
-# at s 448, 73.3 at s 469, 71.4 at s 483, within 0.8 m of the survey's contours)
+# the frames' 91.2 - 91.5 there), s 488 (116.2, 836.8).  From the hairpin to the fork one fall of 10 - 12 %: the frames'
+# 77 - 79 m at s 430 - 462 was the crowns over the road (the pairs that see the road under them: 75.6 at s 427, 73.1
+# at s 448, 70.6 at s 469, 68.7 at s 483, within 0.8 m of the survey's contours)
 Z97 = datum.up_at([(-14.0, 77.46), (10.0, 80.73), (50.0, 86.26), (90.0, 90.56), (127.0, 93.78), (195.0, 95.46), (225.0, 94.15),
        (284.0, 90.56), (301.0, 90.05), (329.0, 86.48), (343.0, 84.73), (413.0, 77.05), (448.0, 73.04), (488.0, 68.07),
        (525.0, 64.28), (558.0, 60.87), (602.0, 55.95), (630.0, 53.23)],
@@ -357,14 +357,14 @@ def _v(ang, v):
 # length, wall width), moved across by where the 1997 frames put each roof (eaves 12.4 - 13.5 m wide: 26/14 and 27/15,
 # the near eave over the facade one frame sees and the far one against the ground the other sees, on the plane where
 # the two agree): 2학사 서 3.6 m, 동 3.4 m, 1학사 서 3.1 m, 동 1.2 m west-south-west of OSM's.  Each wing's eaves where
-# the frames have them (the mean of its west and east eaves, 게임 기준 at its centre: 85.8 · 87.3, 93.2 · 92.5, 97.6 ·
-# 97.5, 103.7 · 104.6): on the ground as tools/north97.py lays it they stand 14.6 - 15.5 m over each wing's high side
+# the frames have them (the mean of its west and east eaves, at its centre: 82.4 · 83.9, 89.8 · 89.1, 94.2 ·
+# 94.1, 100.3 · 101.2): on the ground as tools/north97.py lays it they stand 14.6 - 15.5 m over each wing's high side
 # (five storeys) and 16.9 - 19.8 m over its low side, where the basement is out
-DORM_WINGS = [  # (id, name, centre, axis deg, length, width, shift m, eaves 게임 기준 @ centre)
-    (991001, '무악학사', (93.2, 1161.75), 101.8, 55.0, 10.8, 3.6, 86.55),
-    (991002, '무악학사', (119.4, 1180.9), 101.8, 55.3, 9.4, 3.4, 92.85),
-    (991003, '무악학사', (150.8, 1191.9), 102.0, 55.6, 9.7, 3.1, 97.55),
-    (991004, '무악학사', (183.25, 1171.7), 102.0, 54.2, 9.9, 1.2, 104.15),
+DORM_WINGS = [  # (id, name, centre, axis deg, length, width, shift m, eaves 해발 @ centre)
+    (991001, '무악학사', (93.2, 1161.75), 101.8, 55.0, 10.8, 3.6, datum.up(93.2, 1161.75, 83.13)),
+    (991002, '무악학사', (119.4, 1180.9), 101.8, 55.3, 9.4, 3.4, datum.up(119.4, 1180.9, 89.25)),
+    (991003, '무악학사', (150.8, 1191.9), 102.0, 55.6, 9.7, 3.1, datum.up(150.8, 1191.9, 93.75)),
+    (991004, '무악학사', (183.25, 1171.7), 102.0, 54.2, 9.9, 1.2, datum.up(183.25, 1171.7, 100.24)),
 ]
 # the low blocks between each pair (OSM 429077776's and 429077777's middle, the 식당 1452272054, 1452272055): moved as
 # the pair's mean, three and two storeys
@@ -374,14 +374,14 @@ DORM_LOW = [
     (991007, [(161.2, 1171.0), (177.3, 1174.4), (175.7, 1184.8), (157.8, 1181.0)], 2.15, 3),
     (991008, [(173.3, 1196.1), (155.4, 1192.1), (157.8, 1181.0), (175.7, 1184.8)], 2.15, 2),
 ]
-# 3 · 4학사 (completed 1998.4.30) in July 1997: frames up, no roof (4학사's west wing 73.5 m, about 12 m over the west
+# 3 · 4학사 (completed 1998.4.30) in July 1997: frames up, no roof (4학사's west wing 68.3 m, about 12 m over the west
 # road; 3학사's 89 - 92 m, 13 - 17 m over the yard): OSM's outlines (429077772, 429077773), four and five storeys
 SITE_HALLS = [(991011, 429077772, 4), (991012, 429077773, 5)]
 SITE = Polygon([(70.0, 1004.0), (165.0, 1020.0), (205.0, 1024.0), (201.0, 1100.0), (190.0, 1128.0), (140.0, 1142.0),
                 (101.0, 1126.0), (72.0, 1078.0)])
 # 우유처리장 as the 1997 frames have it (26/14 and 27/15 on the planes of its roofs, where the two frames put an edge
-# in one place: its corners within 0.9 m): a west wing along the road (roof 81.2 m: three pairs 80.5 - 81.5) and a
-# hall east of it one high storey over its car park (roof 79.5 m: 79.1 - 79.6; the car park 75.2 m), both turned 3 - 7
+# in one place: its corners within 0.9 m): a west wing along the road (roof 78.3 m: three pairs 77.6 - 78.6) and a
+# hall east of it one high storey over its car park (roof 76.5 m: 76.1 - 76.6; the car park 72.2 m), both turned 3 - 7
 # deg as OSM's outline is but 1 - 2.7 m north of it.  (The wing in its place in the list; the hall goes on at the
 # list's end, halls(late=True), so that blender/build.py's draws for the halls after it stay.)
 MILK_WEST = [(112.8, 898.7), (109.1, 862.4), (127.65, 860.05), (130.2, 879.2), (131.6, 896.7)]
@@ -407,7 +407,7 @@ OTHER_HALLS = [  # (id, name, style, levels, OSM id or outline, shift, hip)
 # leaf folds into, their inner faces 4.7 m apart, and on the south frame's inner side a flat-roofed lodge with a cut corner
 GATE_FRAMES = [[(11.8, 917.2), (16.8, 917.2), (16.8, 920.6), (11.8, 920.6)], [(13.5, 910.1), (17.5, 910.1), (17.5, 912.5), (13.5, 912.5)]]
 GATE_LODGE = [(14.5, 903.5), (23.0, 903.5), (23.0, 910.0), (16.0, 910.0), (14.5, 908.5)]
-ROOF_TOP = {991021: datum.up(120.0, 878.0, 78.34),       # 우유처리장's roofs (게임 기준): the west wing @ (120, 878)
+ROOF_TOP = {991021: datum.up(120.0, 878.0, 78.34),       # 우유처리장's roofs (해발): the west wing @ (120, 878)
             991033: datum.up(143.0, 886.0, 76.5)}       # ... the hall east of it @ (143, 886)
 COURTS = [429077768, 429077769, 429077775]
 # (OSM's car parks: 1444557748 east of 우유처리장 is tools/north97.py's LOT97 as the 1997 frames have it; 1358516368

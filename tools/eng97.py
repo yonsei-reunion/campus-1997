@@ -7,23 +7,23 @@ tools/build_campus.py 가 부른다. 근거와 잰 값은 reference/고증/3.8_�
     eng97.move_off(trees, shrubs, props) # 안뜰 건물 자리의 나무는 1997년에 나무가 있던 곳으로(목록 제자리), 관목 · 소품은 뺌
 
 What the scans (26/16 · 26/15 · 27/17, each pair by itself, 1.5 - 3 m windows) and the 2006 survey have:
-- The three wings stand on one nearly level platform: the court between them 26.4 m (north alley) to 25.7 m (south
+- The three wings stand on one nearly level platform: the court between them 27.9 m (north alley) to 27.2 m (south
   alley and the west lot's south end; the survey's spot (-197.7, -242.5) 26.0 m), the lane west of the south wing and
-  the yard between its two arms 25.6 - 25.9 m, the garden south-east of it 26.0 - 26.6 m, the service road south of
-  it 25.7 m, climbing west of the wings to 29.3 m.  The game's ground climbed west across it from 27 m to 30.5 m.
-- The "lawn in a bright kerb" in the court (#151) is a one-storey hall's flat roof: its parapet 32.0 m (north, south
-  and west edges in three frames within 0.15 m on that plane, 1.3 - 5 m apart on the ground's), the roof 31.6 m, a
-  raised strip along its middle 33.2 m, a small porch on its north side; the Kakao skyview of 2008 and 2010 has the
+  the yard between its two arms 27.1 - 27.4 m, the garden south-east of it 27.5 - 28.1 m, the service road south of
+  it 27.2 m, climbing west of the wings to 30.8 m.  The game's ground climbed west across it from 28 m to 32.0 m.
+- The "lawn in a bright kerb" in the court (#151) is a one-storey hall's flat roof: its parapet 33.5 m (north, south
+  and west edges in three frames within 0.15 m on that plane, 1.3 - 5 m apart on the ground's), the roof 33.1 m, a
+  raised strip along its middle 34.7 m, a small porch on its north side; the Kakao skyview of 2008 and 2010 has the
   same roof.  HALL_UV: its outline on the parapet's plane.
-- West of the lot a retaining wall, its bright coping at 32.0 m (three frames within 0.15 m), the ground behind it
-  30.3 - 30.9 m (제3공학관's terrace): the wall's face 5 - 6 m over the lot.  The 5 m grid cannot hold it: the nodes
+- West of the lot a retaining wall, its bright coping at 33.5 m (three frames within 0.15 m), the ground behind it
+  31.8 - 32.4 m (제3공학관's terrace): the wall's face 5 - 6 m over the lot.  The 5 m grid cannot hold it: the nodes
   just behind it go down to the lot's level and a deck carries the upper ground to the wall (deck_parts; drawn with
   the wall by blender/landmarks.py eng_hall).
-- 공학원's building site: its ground 26.2 - 26.7 m all across (the row along its north hoarding, the slab on its west
-  side), the deck in the pit 22.7 - 23.5 m; the game had the site climbing west to 30.5 m and the pit at 26.5 m.
+- 공학원's building site: its ground 27.8 - 28.3 m all across (the row along its north hoarding, the slab on its west
+  side), the deck in the pit 24.3 - 25.1 m; the game had the site climbing west to 32.1 m and the pit at 28.1 m.
 
-All heights here are the game's (게임 기준 = 해발 + T, tools/aerial97.py survey_dz); CTRL is the one table of absolute
-heights, each with its place.  Nothing here draws from build_campus.py's `rng`.
+All heights written here are above sea level (해발); CTRL is the one table of absolute heights, each taken up to
+the working datum the ground is laid on at its own place (datum.up3: tools/datum.py).  Nothing here draws from build_campus.py's `rng`.
 """
 import math
 
@@ -40,7 +40,7 @@ O, ANG = (-163.0, -238.0), math.radians(-15.4)
 _C, _S = math.cos(ANG), math.sin(ANG)
 HALL_ID = 990070
 HALL_UV = (-22.9, 31.3, -12.1, 14.9)        # the low hall in the court: u0, u1, v0, v1 (the parapet's outer edge)
-HALL_TOP = 6.1                              # its parapet over the lowest ground at its foot (32.0 m over 25.85 - 26.35 m)
+HALL_TOP = 6.1                              # its parapet over the lowest ground at its foot (33.5 m over 27.32 - 27.82 m)
 HALL_ROOF = -0.45                           # the roof's deck under the parapet's top
 MONITOR_UV = (-18.3, 29.5, -1.0, 4.3, 1.2)  # the raised strip along the roof: u0, u1, v0, v1, its top over the parapet's
 PORCH_UV = (0.2, 5.0, 14.9, 19.6, 3.2)      # the porch on the north side: u0, u1, v0, v1, height
@@ -52,7 +52,7 @@ WALL_RUNS = [(1.2, [(-38.85, 30.0), (-38.9, -22.0)]),
 WALL_UP = 8.0                               # (how far behind the wall a node may be pulled down)
 SOUTH_WING, SITE_DROP = 1451926787, 3.0     # (the south wing; the pit under the site's ground)
 BOX = Polygon([(-330, -420), (-90, -420), (-90, -180), (-330, -180)])
-# The 1997 ground (x, y, z 게임 기준): the court's alleys and the west lot, the lane west of the south wing and the yard
+# The 1997 ground (x, y, z 해발): the court's alleys and the west lot, the lane west of the south wing and the yard
 # between its arms, the garden south-east of it, the service road south of the wings (west to east), the site's north
 # row and its ground
 CTRL = datum.up3([

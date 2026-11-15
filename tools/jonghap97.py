@@ -17,22 +17,22 @@ What the game had: the surface model's ground, 8 - 10 m too high round 외솔관
 floors at the lowest corner of that ground.  What the 1997-07-28 scans (six frames, heights frame pair by frame pair,
 edges read on each roof's own plane from opposite flight lines) and the 1:5000 survey (2006 · 2024) have:
 
-- 종합관: a slab 63.4 x 22.6 m, its roof's surface at 89.6 m (the parapet 0.9 m over it), four storeys over the yard
-  north of it (72.6 m) on an open storey at 69.3 m; across its east end a low block of two storeys (1994's 400평: 19.4
-  x 58.3 m with the slab's end, its roof 69.1 m, its floor the road east of it, 61.25 m; a third storey under them
+- 종합관: a slab 63.4 x 22.6 m, its roof's surface at 89.1 m (the parapet 0.9 m over it), four storeys over the yard
+  north of it (72.1 m) on an open storey at 68.8 m; across its east end a low block of two storeys (1994's 400평: 19.4
+  x 58.3 m with the slab's end, its roof 68.6 m, its floor the road east of it, 60.45 m; a third storey under them
   shows at its south end, where the ground is that much lower).  OSM's outline has the low block 7.6 m too far east
   and 5 m short on the south.
 - 외솔관2: two storeys (연혁: 지하 1층 · 지상 1층, 333.65평 = 2 x 551 m2) on the two of the corridor under them, 42.9 x
-  12.95 m (556 m2), a low white gabled roof (eaves 77.3 m, ridge 78.4 m); its west end stands 7.5 m over the ground there
+  12.95 m (556 m2), a low white gabled roof (eaves 76.9 m, ridge 78.0 m); its west end stands 7.5 m over the ground there
   (the 2026 roadview), its south wall 18.7 m over the lane behind 인문관.
 - 인문관: 67.7 x 16.3 m with two shallow blocks standing 2.4 m out of its north face (1,186 m2; 연혁 2,171.60평 = 6 x
-  1,196 m2; OSM's east 3.8 m are its porch), its roof 82.5 m: six storeys of 4.0 m on the road along its south face
-  (58.4 m), not on the ground 2.5 m under it at OSM's south-east corner.
+  1,196 m2; OSM's east 3.8 m are its porch), its roof 82.3 m: six storeys of 4.0 m on the road along its south face
+  (58.2 m), not on the ground 2.5 m under it at OSM's south-east corner.
 - the 2006 survey's own outlines of the three (수치지형도 layer 4111) lie on these within 1 m once moved (+0.6, -0.8) m
   in (u, v), the T of 종합관 and 인문관's two blocks included.
-- the ground: the road east of 종합관 level at 61.25 m (photos; survey spots 60.24 · 60.54 m 해발), falling south to
-  54.3 m before 인문관's east end; the paved yard north of the slab 72.6 m to u 30, a terrace at the low block's roof
-  (69.1 m) between them and the slab; the road from the yard down to the east road falls 8 m in its first 14 m (the
+- the ground: the road east of 종합관 level at 60.45 m (photos; survey spots 60.24 · 60.54 m 해발), falling south to
+  53.7 m before 인문관's east end; the paved yard north of the slab 72.1 m to u 30, a terrace at the low block's roof
+  (68.6 m) between them and the slab; the road from the yard down to the east road falls 8 m in its first 14 m (the
   photos and the 2006 contours alike), then runs level; the lane behind 인문관 and round its west end under 60 m
   해발 (both surveys' 60 · 65 m contours run along 외솔관2's south wall and wrap 인문관's west end); the wooded hill
   north-west of the halls up to 102 m 해발 (the game had 87 m).
@@ -188,7 +188,7 @@ STRIP_HALF = 3.4
 
 
 def grid_z(x, y):
-    """GRID, bilinear (게임 기준)"""
+    """GRID, bilinear (on the working datum)"""
     from scipy.ndimage import map_coordinates
     x, y = np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float))
     z = map_coordinates(GRID, [(y.ravel() - GRID_Y0) / GRID_D, (x.ravel() - GRID_X0) / GRID_D], order=1, mode='nearest')

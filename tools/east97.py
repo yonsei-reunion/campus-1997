@@ -5,7 +5,7 @@ tools/build_campus.py 가 부른다.
 
 Frame: campus metres, x east, y north.  GRID is 해발 (the survey's heights above sea level, decimetres); the build's
 working datum is the tilt over it (tools/datum.py, reference/고증/2.8 「측량 표고」), added in grid_z().  PEAK and nothing else here is an
-absolute height on the game's datum.
+absolute height written here (해발, lifted at its place: datum.up3).
 
 - The game's ground under 청송대 and on the wooded hillsides east and north-east of it was the surface model's, the
   wood's canopy in it: 8 - 12 m over the survey in the middle of the wood and north of the road through it, 4 - 6 m
@@ -43,7 +43,7 @@ WOOD = Polygon([(153.0, 240.0), (161.0, 262.0), (168.0, 282.0), (177.0, 302.0), 
                 (340.0, 85.0), (335.0, 40.0), (290.0, 40.0), (285.0, 55.0), (285.0, 150.0), (270.0, 212.0), (225.0, 226.0),
                 (160.0, 226.0), (150.0, 228.0)])
 KNOLL = Polygon([(149.0, 346.0), (176.0, 344.0), (190.0, 352.0), (193.0, 372.0), (189.0, 388.0), (162.0, 388.0), (149.0, 382.0)])
-# the hill's top east of 노천극장: (x, y, height on the game's datum) at the grid's nodes round the survey's spot; a node
+# the hill's top east of 노천극장: (x, y, 해발) at the grid's nodes round the survey's spot; a node
 # under its height comes up to it (해발 87.5 m at the two nodes either side of the spot, 86.5 · 86.0 m round them)
 PEAK = datum.up3([(205.0, 85.0, 87.5), (210.0, 85.0, 87.5), (200.0, 85.0, 86.5), (215.0, 85.0, 86.49), (205.0, 80.0, 86.5),
         (210.0, 80.0, 86.5), (205.0, 90.0, 85.99), (210.0, 90.0, 86.0)])

@@ -695,7 +695,7 @@ FRAME = {429077789: 'frame_blue', 429077790: 'frame_blue'}      # (and blue wind
 FH_AT = {222843398: 3.9}
 SILL_AT = {222843398: dict(sill=1.0, head=1.3)}
 # 빌링슬리관: three stone storeys of 3.9 m under its roofs (the 1997 scans: the cornice 11.7 m over the lawn, the same
-# all round); 경영학교실단's wings: 3.95 m storeys (both roofs 58.4 m in the scans, the south wing a storey lower on
+# all round); 경영학교실단's wings: 3.95 m storeys (both roofs 56.3 m in the scans, the south wing a storey lower on
 # its falling ground: tools/build_campus.py BK_WINGS)
 FH_AT.update({245623193: 3.9, 256933753: 3.95, 990021: 3.95})
 WING_UP = {222843398: _science_wing}

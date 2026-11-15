@@ -97,7 +97,7 @@ N1_Z = datum.up_uv(xy, N1_US, N1_VS, [
     [31.26, 32.07, 32.69, 33.06, 33.06],                   # v 44
     [31.37, 32.13, 32.74, 33.21, 33.17],                   # v 47.2
     [31.48, 32.24, 33.13, 33.23, 33.18]])                  # v 54
-# the brick wall's line: the upper level's edge (three pairs within 0.2 - 0.5 m: 31.2 - 31.8 m on it, 27 m 4 m out),
+# the brick wall's line: the upper level's edge (three pairs within 0.2 - 0.5 m: 31.9 - 32.5 m on it, 28 m 4 m out),
 # 1 - 2 m outside the stalls' back walk; the 2008 skyview's band of red brick runs along it
 N1_WALL = [(-18.13, 40.70), (14.28, 50.45), (14.6, 53.8), (22.9, 53.8)]
 N1_SE = [(36.0, 36.9), (31.6, 36.6), (31.6, 35.2), (13.4, 35.2), (10.2, 33.4), (0.0, 32.2), (-17.5, 30.9)]
@@ -280,13 +280,13 @@ GROUND_PTS = datum.up3([
 # where the game's ground is eased into the photos' (harmonic): 10 m round what is drawn again, and west of the
 # entrance road as far as the wooded knoll (the scans have that ground 1 - 2.5 m over the game's too)
 WEST_EASE_UV = _rect(-80.0, -49.0, -52.0, 42.0)
-# north-west of the brick wall and the terrace's rim the car park's level stays (27 - 28 m in the scans and the game)
+# north-west of the brick wall and the terrace's rim the car park's level stays (28 - 29 m in the scans and the game)
 NW_KEEP_UV = Polygon([(-18.5, 41.1), (13.9, 50.85), (14.2, 54.2), (22.0, 54.2), (21.5, 57.0), (21.5, 60.5), (22.0, 62.5), (23.2, 64.2),
                       (25.0, 67.0), (20.0, 90.0), (-40.0, 90.0), (-40.0, 41.1)])
 N_BANK_UV = Polygon([(-34.0, 24.4), (33.5, 24.4), (33.5, 28.4), (13.4, 28.4), (10.0, 31.8), (10.2, 33.4), (0.0, 32.2), (-17.5, 30.9),
                      (-25.0, 30.0), (-33.0, 28.3), (-35.5, 25.5)])
 # the drive's run on south-west of its plate to the entrance road: the road, three stalls on its north-west side and
-# a paved apron, level ground in the scans (29.5 - 29.8 m in four windows; under the crowns beyond it the bank down
+# a paved apron, level ground in the scans (30.4 - 30.7 m in four windows; under the crowns beyond it the bank down
 # to the car park).  SW_RUN_Z @ (u -32, v 32): from there up to the plate's own height at its end (u -17.5)
 SW_RUN_UV = Polygon([(-17.5, 30.9), (-18.13, 40.7), (-21.0, 40.6), (-31.5, 39.5), (-37.0, 37.0), (-42.5, 29.0), (-35.5, 25.5),
                      (-33.0, 28.3), (-25.0, 30.0)])
