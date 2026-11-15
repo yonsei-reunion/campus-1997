@@ -5914,6 +5914,59 @@ def seomun():
     return [mb]
 
 
+def north_gate_frame(bid):
+    """북문 (tools/muak.py GATE_FRAMES, reference/고증/3.21 「북문 · 갈림길 · 서쪽 학사길」): one of the two concrete frames
+    either side of the loop road, a ㄇ in plan open to the road: its two end walls and the back wall 3.3 m over the road
+    (the 1997 scans: bright on three sides from above and dark inside, 27/16; the tops' height in the 1996 and 1997
+    pairs), white outside, the end of each end wall towards the road a column faced with rubble, the black iron leaf
+    folded inside along the open side (Kakao roadview 2009-05 4611473, Naver 2010-09).  The campus.json hall keeps its
+    outline (the walker's wall) and its place in the list; its colour draws are made by a ghost (blender/build.py)."""
+    b = next((b for b in CAMPUS['buildings'] if b['id'] == bid), None)
+    if b is None:
+        return []
+    other = next((o for o in CAMPUS['buildings'] if o['id'] in (991041, 991042) and o['id'] != bid), None)
+    P = [tuple(p) for p in b['footprint']]
+    cx, cy = sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P)
+    # the frame's own axes: t along the longer edges (the road), n across them towards the road (the other frame)
+    e = max(((P[i], P[(i + 1) % len(P)]) for i in range(len(P))), key=lambda ab: math.dist(*ab))
+    L = math.dist(*e)
+    tx, ty = (e[1][0] - e[0][0]) / L, (e[1][1] - e[0][1]) / L
+    nx, ny = -ty, tx
+    if other is not None:
+        ox = sum(p[0] for p in other['footprint']) / len(other['footprint']) - cx
+        oy = sum(p[1] for p in other['footprint']) / len(other['footprint']) - cy
+        if ox * nx + oy * ny < 0:
+            nx, ny = -nx, -ny
+    us = [(p[0] - cx) * tx + (p[1] - cy) * ty for p in P]
+    vs = [(p[0] - cx) * nx + (p[1] - cy) * ny for p in P]
+    u0, u1, v0, v1 = min(us), max(us), min(vs), max(vs)
+    W = lambda u, v: (cx + tx * u + nx * v, cy + ty * u + ny * v)
+    g = min(ground(*W(u, v)) for u in (u0, u1) for v in (v0, v1))
+    top = b['base'] + b['height']
+    z0 = g - 0.3
+    ang = math.atan2(ty, tx)
+    mb = MeshBuilder('lm_north_gate_%d' % bid)
+    T = 0.45                                                    # the walls' thickness
+    box = lambda ua, ub, va, vb, za, zb, mat: mb.box((*W((ua + ub) / 2, (va + vb) / 2), (za + zb) / 2),
+                                                     (ub - ua, vb - va, zb - za), mat, rotz=ang, skip=('bottom',))
+    box(u0, u0 + T, v0, v1 - 0.55, z0, top, 'plaster_white')                 # the end walls
+    box(u1 - T, u1, v0, v1 - 0.55, z0, top, 'plaster_white')
+    box(u0 + T, u1 - T, v0, v0 + T, z0, top, 'plaster_white')                # the back wall
+    for ua, ub in ((u0 - 0.04, u0 + T + 0.08), (u1 - T - 0.08, u1 + 0.04)):  # the rubble-faced columns towards the road
+        box(ua, ub, v1 - 0.55, v1, z0, top + 0.02, 'stone_rubble_gray')
+    # the leaf, folded in panels inside the open side: rails and close bars to 0.5 m under the top
+    zg = g + 0.03
+    hl = top - 0.5 - zg
+    va = v1 - 0.75
+    for zz in (zg + 0.08, zg + hl / 2, zg + hl - 0.05):
+        box(u0 + T, u1 - T, va - 0.03, va + 0.03, zz - 0.04, zz + 0.04, 'metal_dark')
+    n = int((u1 - u0 - 2 * T) / 0.12)
+    for k in range(n + 1):
+        u = u0 + T + 0.06 + k * (u1 - u0 - 2 * T - 0.12) / max(n, 1)
+        box(u - 0.012, u + 0.012, va - 0.015 - 0.06 * (k % 2), va + 0.015 - 0.06 * (k % 2), zg, zg + hl, 'metal_dark')
+    return [mb]
+
+
 # ============================================================================= 공학원 공사장 (1995.8 - 1999.4)
 def _tower_crane(x, y, z, H, brg, jib, cjib):
     """The hammerhead tower crane over 공학원's pit (the July 1997 scans, 고증 4.4): a lattice mast 1.6 m square, the
@@ -6462,4 +6515,5 @@ BUILDERS = {'library': library, 'union': union, 'centennial': centennial, 'under
             'stimson': stimson, 'appenzeller': appenzeller, 'auditorium': auditorium, 'chapel': chapel,
             'engineering': engineering, 'hanok': hanok, 'yongjae': yongjae, 'none': lambda: [],
             'daewoo': daewoo, 'daewoo_annex': daewoo_annex, 'yeonhui': yeonhui, 'kwangbok': kwangbok,
-            'seongam': seongam, 'gyoyuk': gyoyuk}
+            'seongam': seongam, 'gyoyuk': gyoyuk,
+            'north_gate_n': lambda: north_gate_frame(991041), 'north_gate_s': lambda: north_gate_frame(991042)}

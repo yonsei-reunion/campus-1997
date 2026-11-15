@@ -11002,6 +11002,12 @@ if os.environ.get('Y97_WORK_DUMP'):          # (the working datum's own result, 
 # 걷기 막이: 2 m 넘게 떨어지거나 떨어져 갇히는 열린 가장자리의 보이지 않는 작은 막(tools/walkguard97.py; 심기가 끝난 뒤라
 # 난수와 상관없고, 2D 라 높이 기준과도 상관없음)
 out['colliders'] += walkguard97.colliders()
+# 북문의 두 틀 (tools/muak.py GATE_FRAMES): drawn by blender/landmarks.py north_gate_frame as ㄇ frames (style 'lm:'); the
+# colour draws the plain white halls made in their places are made by ghosts there, so the halls after them keep their looks
+for i_, b_ in enumerate(out['buildings']):
+    if b_['id'] in muak.GATE_FRAME_IDS:
+        RND_GHOSTS.append({**{k_: v_ for k_, v_ in b_.items() if k_ != 'tilt'}, 'style': 'white', 'height': 3.3, 'fh': 3.3,
+                           'at': i_})       # (as the boxes they were: one 3.3 m storey)
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))

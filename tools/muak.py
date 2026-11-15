@@ -509,8 +509,13 @@ OTHER_HALLS = [  # (id, name, style, levels, OSM id or outline, shift, hip)
     (991032, '', 'white', 2, [(65.0, 862.0), (80.0, 862.0), (80.0, 892.0), (65.0, 892.0)], (0.0, 0.0), None),
 ]
 # 북문 (1997 frames 26/14, 27/15, 27/16, within 0.5 m): two concrete frames along the road, each a ㄇ that the iron
-# leaf folds into, their inner faces 4.7 m apart, and on the south frame's inner side a flat-roofed lodge with a cut corner
+# leaf folds into, their inner faces 4.7 m apart, and on the south frame's inner side a flat-roofed lodge with a cut corner.
+# The frames' tops 48.6 m (해발: the 1996 and 1997 pairs, nine readings 48.3 - 49.0), 3.4 m over the road between them;
+# drawn as ㄇ frames by blender/landmarks.py north_gate_frame (Kakao roadview 2009-05 4611473: white outside, a column
+# faced with rubble at each end towards the road, the black leaf inside), their colour draws made by ghosts
 GATE_FRAMES = [[(11.8, 917.2), (16.8, 917.2), (16.8, 920.6), (11.8, 920.6)], [(13.5, 910.1), (17.5, 910.1), (17.5, 912.5), (13.5, 912.5)]]
+GATE_FRAME_IDS = (991041, 991042)
+GATE_TOP = datum.up(15.0, 915.0, 48.6)
 GATE_LODGE = [(14.5, 903.5), (23.0, 903.5), (23.0, 910.0), (16.0, 910.0), (14.5, 908.5)]
 ROOF_TOP = {991021: datum.up(120.0, 878.0, 78.34),       # 우유처리장's roofs (해발): the west wing @ (120, 878)
             991033: datum.up(143.0, 886.0, 76.5)}       # ... the hall east of it @ (143, 886)
@@ -558,7 +563,8 @@ def halls(ground, osm_=None, late=False):
         g = O[src][1][:-1] if isinstance(src, int) else src
         add(i, nm, style, lv, _shift(g, sh), hip=hip, top=ROOF_TOP.get(i))
     for k, g in enumerate(GATE_FRAMES):
-        add(991041 + k, '북문' if k == 0 else '', 'white', 1, g, fh=3.3)
+        b = add(GATE_FRAME_IDS[k], '북문' if k == 0 else '', 'white', 1, g, top=GATE_TOP)
+        b['style'] = 'lm:north_gate_' + 'ns'[k]
     add(991043, '', 'white', 1, GATE_LODGE, fh=3.2)
     if late:
         out[:] = []
