@@ -245,8 +245,8 @@ async function main() {
     amphGroup.add(m);
   }
   scene.add(amphGroup);
-  scene.add(mergeStatic(bld.scene, { name: 'buildings', small: 10000, wide: 640 }));
-  scene.add(mergeStatic(lms.scene, { name: 'landmarks', small: 10000, wide: 640 }));
+  scene.add(mergeStatic(bld.scene, { name: 'buildings' }));
+  scene.add(mergeStatic(lms.scene, { name: 'landmarks' }));
   // 활천 water: Ultra Water FFT ripples, caustics and the jet's rings (src/water/fountain.js)
   const fountainWater = campus.statues.fountain ? new FountainWater(renderer, scene, campus.statues.fountain, lib, sun, sunDir, { mobile: MOBILE }) : null;
   progress('건물을 정리하는 중…', 70);
