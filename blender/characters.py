@@ -668,10 +668,10 @@ def hold_chest(ob, arm, C):
 # out and a round neck 13 cm across stands 19 cm wide, twice the neck's width.  HOLD: what of the top lies within
 # the first radius of the neck's axis (m, the source's units, in the T pose) gives the arms' share to the chest, all
 # of it, easing to none of it at the second; down to `under` below the neck's joint.
-HOLD = dict(r=(.090, .135), under=.10)
+HOLD = {'umc': dict(r=(.090, .135), under=.10), 'women': dict(r=(.085, .125), under=.10)}
 
 
-def hold_collar(ob, arm, C=HOLD):
+def hold_collar(ob, arm, C):
     cn = arm.matrix_world @ arm.data.bones['Neck'].head_local
     mw = ob.matrix_world
     arms = {g.index for g in ob.vertex_groups if g.name.startswith(('UpperArm.', 'LowerArm.'))}
@@ -3225,8 +3225,8 @@ def build_person(pid, spec):
             long_sleeves(ob, arm, **spec['sleeves'])
         elif part == 'body' and rig == 'umc':
             even_arms(ob, arm)
-        if part == 'body' and rig == 'umc':
-            hold_collar(ob, arm)
+        if part == 'body':
+            hold_collar(ob, arm, HOLD[rig])
         atlas_layer(ob)
         ob.name = f'{pid}-{part}'
         parts.append(ob)
