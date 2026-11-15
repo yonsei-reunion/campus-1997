@@ -62,8 +62,8 @@ def _is_leaf(name):
 
 
 def _ground(x, y):
-    """common.ground over arrays"""
-    T, TH, TS = common._T, common._TH, common._TS
+    """the ground over arrays (above sea level: the meshes are baked once they are down there, common.to_sea)"""
+    T, TH, TS = common._T_SEA, common._TH, common._TS
     fx = np.clip((x + TH) / TS, 0, T.shape[1] - 1.001)
     fy = np.clip((y + TH) / TS, 0, T.shape[0] - 1.001)
     i, j = fx.astype(np.int64), fy.astype(np.int64)
@@ -552,7 +552,7 @@ def _crowns():
         p[:, 0] *= s['rx'] * sc * r
         p[:, 1] *= s['rx'] * sc * r
         p[:, 2] *= s['rz'] * sc
-        p += (x, y, common.ground(x, y) - 0.05 + s['cz'] * sc)
+        p += (x, y, common.ground_sea(x, y) - 0.05 + s['cz'] * sc)
         T.append(f + len(V) * len(u))
         V.append(p)
     return (np.vstack(V), np.vstack(T)) if V else None

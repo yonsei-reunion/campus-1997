@@ -33,6 +33,7 @@ import east97
 import kwangbok97
 import medwest97
 import jonghap97
+import datum
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LAT0, LON0 = 37.5640, 126.9380
@@ -6482,7 +6483,10 @@ for _tk, _T in TERR.items():
                          far=[list(q_) for q_ in _T['far']], bank=[list(q_) for q_ in _T['bank']],
                          zr=[list(q_) for q_ in _T['zr']], zg=[list(q_) for q_ in _T['zg']], span=list(_T['span']),
                          zr0=float(np.interp(0.0, *zip(*_T['zr']))), zg0=float(np.interp(0.0, *zip(*_T['zg']))),
-                         up=_T['up'], flights=_fl)
+                         up=_T['up'], flights=_fl,
+                         # (the frame: the door on the wall, s along the front, d out of it; the walk's d: tools/datum.py)
+                         frame=dict(m=[round(float(v_), 3) for v_ in _T['m']], t=[round(float(v_), 5) for v_ in _T['t']],
+                                    f=[round(float(v_), 5) for v_ in _T['f']], walk=_T['walk']))
     _T['cells'], _T['poly'] = _cells, _poly
     print('%s 앞 단과 둑: nodes %d (pulled down %d), deck cells %d, %.0f m2; road %.2f, walk %.2f m at the door' % (
         _tk, int(_tm.sum()), int(_tpull.sum()), len(_cells), _poly.area, TERR_OUT[_tk]['zr0'], TERR_OUT[_tk]['zg0']))
@@ -6803,8 +6807,6 @@ for b_ in buildings:
         print('   the south wing\'s floor %.2f m' % b_['base'])
     elif b_['id'] == 224955691 and b_.get('entry'):
         b_['entry'].update(p=[round(c_, 2) for c_ in eng97.xy(-48.9, -41.3)], n=[round(eng97._S, 4), round(-eng97._C, 4)])
-Hn.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_near.bin'))
-HS.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_south.bin'))
 # 무악학사 · 북문 (tools/muak.py NORTH): the patch north of the grid (x -60 .. 340, y 800 .. 1280), from the grid's last
 # change; the 1997 roads' beds on it and the courts' pads
 _mk_far = ndimage.gaussian_filter(np.array(tf['rows_south_to_north'], np.float64), 0.7)     # (the far ring as the web draws it)
@@ -6815,7 +6817,6 @@ MUAK_ROADS = muak.lanes()
 MUAK_PROF, _mk_fixed = muak.level(HN, MUAK, MUAK_ROADS)
 MUAK_PADS = muak.pads(HN, [Polygon(muak.osm()[i_][1]).buffer(0) for i_ in muak.COURTS] + [north97.LOT97], _mk_fixed,
                       north97.pad_levels(muak.COURTS))
-HN.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_north.bin'))
 print('무악학사 · 북문 땅: %.1f .. %.1f m, roads %s, courts %s' % (HN.min(), HN.max(),
       {k_: (round(float(v_[1][0]), 1), round(float(v_[1][-1]), 1)) for k_, v_ in MUAK_PROF.items()}, MUAK_PADS))
 
@@ -6825,7 +6826,6 @@ def ground_tn(x, y):
     return muak.sample_n(HN, x, y) if muak.in_patch(x, y) else ground_t(x, y)
 Hf = np.array(tf['rows_south_to_north'], dtype=np.float32)
 Hf = ndimage.gaussian_filter(Hf, 0.7).astype(np.float32)
-Hf.tofile(os.path.join(ROOT, 'web/public/data/terrain_far.bin'))
 # ---------------------------------------------------------------------------
 # Building name markers (bird's-eye pins, walk-mode labels, big map).  One per name, over its largest footprint.
 # MARKER_NAME: the name a 1997 student would use (or None: no marker, e.g. not built yet in 1997).
@@ -10553,11 +10553,80 @@ print('의료원 서쪽: trees moved', _mw_moved, 'left on it', _mw_left, 'plant
 print('종합관 북쪽 마당: trees out of the yard and the low block',
       jonghap97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
+# ---------------------------------------------------------------------------
+# 해발로 (tools/datum.py; reference/고증/2.8 「측량 표고」).  Everything above is laid on the working datum, 해발 + the tilt
+# the 1997 photos' block had (0.052 + 0.522 x/100 + 0.248 y/100 m): the levels the photos read as flat, the roads'
+# sections and every random draw were settled on it.  Here the tilt comes out: the ground node by node, what stands on
+# the ground at its own place, a hall (and the halls that touch it) by one value, with the ground PAD m round its
+# foot, so that no hall leans and its doors, flights and terraces keep their ground.
+# ---------------------------------------------------------------------------
+_dz_fp = [Polygon(b_['footprint']).buffer(0) for b_ in out['buildings']]
+_dz_lab = list(range(len(_dz_fp)))
+_dz_tree = shapely.STRtree(_dz_fp)
+# (the parts of one hall that touch are one frame: its wings keep their floors and roofs against each other.  Two
+# halls that stand close keep each its own value, and the ground between them goes from one's to the other's)
+for i_, j_ in zip(*_dz_tree.query(_dz_fp, predicate='dwithin', distance=1.0)):
+    a_, b_ = _dz_lab[i_], _dz_lab[j_]
+    if a_ != b_ and out['buildings'][i_]['name'] and out['buildings'][i_]['name'] == out['buildings'][j_]['name']:
+        _dz_lab = [min(a_, b_) if l_ in (a_, b_) else l_ for l_ in _dz_lab]
+for l_ in sorted(set(_dz_lab)):
+    ks_ = [k_ for k_, v_ in enumerate(_dz_lab) if v_ == l_]
+    c_ = unary_union([_dz_fp[k_] for k_ in ks_]).centroid
+    for k_ in ks_:
+        out['buildings'][k_]['tilt'] = round(datum.tilt(c_.x, c_.y), 3)
+_dz_b = {b_['id']: b_ for b_ in out['buildings']}
+_dz_ring = lambda c_, rx_, ry_=None, n_=32: [[round(c_[0] + rx_ * math.cos(2 * math.pi * k_ / n_), 2),
+                                             round(c_[1] + (ry_ or rx_) * math.sin(2 * math.pi * k_ / n_), 2)] for k_ in range(n_)]
+_dz_box = lambda c_, rot_, hl_, hw_: [[round(c_[0] + u_ * math.cos(rot_) - v_ * math.sin(rot_), 2),
+                                      round(c_[1] + u_ * math.sin(rot_) + v_ * math.cos(rot_), 2)]
+                                     for u_, v_ in ((-hl_, -hw_), (hl_, -hw_), (hl_, hw_), (-hl_, hw_))]
+_dz_at = lambda poly_: round(datum.tilt(*datum.centroid(poly_)), 3)
+_dz_zones = []
+# what must stay level though it is no hall: the old 노천극장's rows, the two courts before 대강당, 활천대's basin, the gate's
+# wall; the half-round seats behind 대우관 with the hall
+_a = out['amphitheater']
+_dz_zones.append(dict(name='노천극장', poly=_dz_ring((_a['cx'], _a['cy']), _a['arena_rx'] + _a['rows'] * _a['row_d'],
+                                                  _a['arena_ry'] + _a['rows'] * _a['row_d'])))
+for k_ in ('court', 'jokgu'):                  # (on 대강당's terrace: with the hall)
+    _s = out['statues'][k_]
+    _dz_zones.append(dict(name=k_, t=_dz_b[371403811]['tilt'], poly=_dz_box(_s['pos'], _s['rot'], _s['L'] / 2, _s['W'] / 2)))
+_s = out['statues']['fountain']
+_dz_zones.append(dict(name='활천대', poly=_dz_ring(_s['pos'], _s['pave'])))
+_s = out['statues']['gate']
+_dz_zones.append(dict(name='정문', poly=_dz_box(_s['pos'], _s['rot'], 33.5, 11.0)))     # (the wall, the lodge and the booth's island)
+for z_ in _dz_zones:
+    z_.setdefault('t', _dz_at(z_['poly']))
+_dwb = out['daewoo_back']
+_dz_zones.append(dict(name='대우관 뒤 객석', t=_dz_b[242897922]['tilt'], poly=_dz_ring(
+    (_dwb['o'][0] + _dwb['c'][0] * math.cos(_dwb['ang']) - _dwb['c'][1] * math.sin(_dwb['ang']),
+     _dwb['o'][1] + _dwb['c'][0] * math.sin(_dwb['ang']) + _dwb['c'][1] * math.cos(_dwb['ang'])), _dwb['r_belt'])))
+for l_ in out['town']['landmarks']:                      # (신촌 로터리의 큰 건물 셋)
+    l_['tilt'] = _dz_at(l_['outline'])
+    _dz_zones.append(dict(name=l_['name'], t=l_['tilt'], poly=l_['outline']))
+out['datum'] = dict(tilt=list(datum.TILT), core=list(datum.CORE), fade=datum.FADE, pad=datum.PAD, ease=datum.EASE, zones=_dz_zones)
+DATUM = datum.field(out)
+if os.environ.get('Y97_WORK_DUMP'):          # (the working datum's own result, to compare two builds on it)
+    os.makedirs(os.environ['Y97_WORK_DUMP'], exist_ok=True)
+    json.dump(out, open(os.path.join(os.environ['Y97_WORK_DUMP'], 'campus.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
+    for k_, h_ in (('near', Hn), ('south', HS), ('north', HN), ('far', Hf)):
+        np.save(os.path.join(os.environ['Y97_WORK_DUMP'], 'terrain_%s.npy' % k_), np.asarray(h_, np.float32))
+    # (the lines along which the sources' profiles are written, for whoever needs a station's place)
+    _bbp = Polygon([xy(p_) for p_ in ways[west_ground.BASEBALL['way']]['geometry']]).buffer(0).centroid
+    json.dump(dict(arms={k_: dict(p=np.round(a_.P, 3).tolist(), s=np.round(a_.cum, 3).tolist()) for k_, a_ in ROT_GEO['arms'].items()},
+                   muak=dict(p=np.round(MUAK['p'], 3).tolist(), s=np.round(MUAK['s'], 3).tolist()),
+                   ssr=dict(p=np.round(TOWN_PLAN['road'].P, 3).tolist()), baseball=[round(_bbp.x, 2), round(_bbp.y, 2)]),
+              open(os.path.join(os.environ['Y97_WORK_DUMP'], 'lines.json'), 'w'))
+datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
-np.save(os.path.join(ROOT, 'data/terrain_near.npy'), Hn.astype(np.float32))
-np.save(os.path.join(ROOT, 'data/terrain_south.npy'), HS.astype(np.float32))
-np.save(os.path.join(ROOT, 'data/terrain_north.npy'), HN.astype(np.float32))
+_fx = -tf['half'] + np.arange(tf['n']) * tf['step']
+for k_, h_ in (('near', Hn - DATUM.D['near']), ('south', HS - DATUM.D['south']), ('north', HN - DATUM.D['north']),
+               ('far', Hf - datum.tilt(*np.meshgrid(_fx, _fx)))):
+    h_.astype(np.float32).tofile(os.path.join(ROOT, 'web/public/data/terrain_%s.bin' % k_))
+    if k_ != 'far':
+        np.save(os.path.join(ROOT, 'data/terrain_%s.npy' % k_), h_.astype(np.float32))
+print('해발로: tilt %.2f .. %+.2f m over the grid, %d halls in %d frames, %d more zones, %d heights in campus.json' % (
+    DATUM.D['near'].min(), DATUM.D['near'].max(), len(_dz_fp), len(set(_dz_lab)), len(_dz_zones), len(datum.heights(out))))
 print('baekyangro length %.0f m, rise %.1f -> %.1f m' % (L, prof[0], prof[-1]))
 
 # ---------------------------------------------------------------------------

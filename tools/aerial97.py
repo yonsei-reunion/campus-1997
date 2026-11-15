@@ -30,11 +30,14 @@ AERIAL97_SRC=preview 로 미리보기 JPG(0.54 m/화소)를 쓸 수 있다(지�
 높이의 정밀도: 평평한 운동장에서 점마다 0.3 m(rms). 나무 밑 · 무늬 없는 지붕 · 창이 지붕과 땅에 걸친 곳은 상관이 낮거나
 봉우리가 둘이니 상관 0.7 아래는 버리고 둘레 여러 점을 함께 본다.
 
-높이의 기준면: 이 도구의 높이는 게임의 높이와 같은 기준이다. 국토지리정보원 측량 표고(해발, 1:5000 수치지형도 2006 · 2024)보다
-survey_dz(x, y) = 0.05 + 0.522·x/100 + 0.248·y/100 m 높다(표고점 107개, 잔차 rms 0.35 m, reference/고증/2.8_높이_단면.md
-「측량 표고」). 측량 값을 게임 · 이 도구의 높이로 바꿀 때는 z + survey_dz(x, y), 거꾸로는 z − survey_dz(x, y).
-`z <x> <y>` 는 해발도 함께 보인다.  2026-11-15 에 카메라(aerial97_cam.json)를 게임과 함께 2.0 m 내렸다: 그 전에 이 도구로 잰
-기록(고증 문서 · 코드 주석의 사진 높이)은 2.0 m 높고, 해발과의 차는 2.05 + 0.522·x/100 + 0.248·y/100 m 였다.
+높이의 기준면: 이 도구의 높이는 게임의 높이와 같은 해발이다(국토지리정보원 1:5000 수치지형도 2006 · 2024 의 표고점 107개와
+잔차 rms 0.35 m, reference/고증/2.8_높이_단면.md 「측량 표고」).
+- 카메라 블록(aerial97_cam.json · aerial_resect.json)은 옛 게임 찻길에 묶여 해발보다 block_dz(x, y) = 0.052 + 0.522·x/100 +
+  0.248·y/100 m 높은 기울어진 면 위에 있다(tools/datum.py). 블록은 그대로 두고 to_px 와 ray 에서 그 면만큼 높이를 옮긴다:
+  게임이 기울기를 뺀 것과 같은 변환이라(자리는 그대로, 높이만 제 자리의 값만큼), 전에 이 도구로 잰 평면 자리와 한 자리에서의
+  높이차가 그대로 다시 나온다. 블록을 통째로 0.33° 돌리면 이음점은 그대로지만 지붕 높이보다 40 m 낮은 땅의 자리가 0.2 m 옮겨진다.
+- 2026-11-15 전에 이 도구로 잰 기록(고증 문서 · 코드 주석의 사진 높이)은 옛 기준이라 해발보다 2.0 m + 그 면만큼 높다.
+- aerial97_fit.py · aerial_resect.py 는 블록의 면 위에서 맞춘다(높이 기준 = 해발 + block_dz).
 """
 import json
 import math
@@ -44,6 +47,9 @@ import sys
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, 'tools'))
+from datum import TILT
+
 DIR = os.path.join(ROOT, 'assets_src/aerial_1997')
 ZONE = '199705A0301'          # 사업코드: 지자체 공간정보(서울특별시청1997년1차), 촬영일자 1997-07-28
 _C = json.load(open(os.path.join(ROOT, 'tools/aerial97_cam.json')))
@@ -118,11 +124,16 @@ def rot(frame):
     return _R[frame]
 
 
+def block_dz(x, y):
+    """카메라 블록의 높이 − 해발 (m): 블록이 묶인 기울어진 면(tools/datum.py 의 면, 사그라짐 없이). 배열도 받음"""
+    return TILT[0] + TILT[1] * np.asarray(x, float) / 100.0 + TILT[2] * np.asarray(y, float) / 100.0
+
+
 def to_px(frame, x, y, z=None):
-    """게임 좌표 -> 화소. z 가 없으면 땅 높이. 배열도 받음(그때는 (n, 2))"""
+    """게임 좌표(높이는 해발) -> 화소. z 가 없으면 땅 높이. 배열도 받음(그때는 (n, 2))"""
     fr = FRAMES[frame]
     z = ground(x, y) if z is None else z
-    P = np.stack(np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float), np.asarray(z, float)), -1)
+    P = np.stack(np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float), np.asarray(z, float) + block_dz(x, y)), -1)
     d = (P - fr['cam'][:3]) @ rot(frame).T
     mm = -F_MM * d[..., :2] / d[..., 2:3]
     px = (mm - fr['M'][2]) @ np.linalg.inv(fr['M'][:2])
@@ -130,11 +141,14 @@ def to_px(frame, x, y, z=None):
 
 
 def ray(frame, px, py):
-    """화소 -> (카메라 자리, 세계 방향)"""
+    """화소 -> (카메라 자리, 세계 방향), 높이는 해발: 블록의 광선에서 기울어진 면을 뺀 것(직선은 직선으로 옮겨진다)"""
     fr = FRAMES[frame]
     mm = np.array([px, py, 1.0]) @ fr['M']
     d = np.array([mm[0], mm[1], -F_MM]) @ rot(frame)
-    return fr['cam'][:3], d / np.linalg.norm(d)
+    c = np.array(fr['cam'][:3], float)
+    c[2] -= block_dz(c[0], c[1])
+    d = d - np.array([0.0, 0.0, (TILT[1] * d[0] + TILT[2] * d[1]) / 100.0])
+    return c, d / np.linalg.norm(d)
 
 
 def to_game(frame, px, py, z=None):
@@ -261,14 +275,13 @@ def match_xyz(frame, px, py, win=4.0, lo=-8.0, hi=45.0, step=0.25):
     return [(sc, *(c + d * (z - c[2]) / d[2])) for sc, z in pk], others
 
 
-# 사진(= 게임) 높이 − 측량 표고(해발)의 면: (상수, 동쪽 100 m 마다, 북쪽 100 m 마다). 2006 · 2024 측량이 따로 같은 값
-# (2.08 + 0.533 x + 0.246 y · 2.04 + 0.507 x + 0.245 y, 옮기기 전), 이차항은 0.004 아래. 블록이 묶인 옛 게임 찻길 80점의 기울기를
-# 물려받은 것. 2026-11-15 게임과 사진을 2.0 m 내려 상수가 2.052 → 0.052 (기울기는 그대로 남김: 고증 2.8 「측량 표고」)
-SURVEY_PLANE = (0.052, 0.522, 0.248)
+# 이 도구(와 게임)의 높이 − 측량 표고(해발)의 면: (상수, 동쪽 100 m 마다, 북쪽 100 m 마다). 2026-11-15 까지는
+# (0.052, 0.522, 0.248) 이었고(2.0 m 를 내리기 전에는 2.052: 고증 2.8 「측량 표고」) 지금은 0: 블록의 그 면은 block_dz 가 뺀다
+SURVEY_PLANE = (0.0, 0.0, 0.0)
 
 
 def survey_dz(x, y):
-    """이 도구(와 게임)의 높이 − 측량 표고(해발), m. 배열도 받음"""
+    """이 도구(와 게임)의 높이 − 측량 표고(해발), m: 0 (전에 쓰던 스크립트가 그대로 돌게 둠). 배열도 받음"""
     c, ax, ay = SURVEY_PLANE
     return c + ax * np.asarray(x, float) / 100.0 + ay * np.asarray(y, float) / 100.0
 
@@ -291,10 +304,9 @@ if __name__ == '__main__':
     elif cmd == 'z':
         x, y = float(a[0]), float(a[1])
         pk, frs = surface_z(x, y, *(float(v) for v in a[2:5]))
-        dz = float(survey_dz(x, y))
-        print('땅(지형) %.1f m, 사진 %s, 해발 = 높이 − %.2f' % (ground(x, y), ' '.join('%d/%d' % f for f in frs), dz))
+        print('땅(지형) 해발 %.1f m, 사진 %s' % (ground(x, y), ' '.join('%d/%d' % f for f in frs)))
         for sc, z in pk:
-            print('  높이 %.1f m, 해발 %.1f m (상관 %.2f)' % (z, z - dz, sc))
+            print('  높이 해발 %.1f m (상관 %.2f)' % (z, sc))
     elif cmd == 'xyz':
         fr = _frame_arg(a[0])
         r = match_xyz(fr, float(a[1]), float(a[2]), *(float(v) for v in a[3:4]))

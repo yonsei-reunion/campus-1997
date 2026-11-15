@@ -5,7 +5,7 @@ names and metric box-projected UVs, then emits a single bpy object.  All exporte
 GLBs carry geometry + UVs + material *names*; the web app binds the real PBR
 materials from blender/materials.json, so textures are shared across every model.
 """
-import bpy, bmesh, json, math, os, random
+import bpy, bmesh, json, math, os, random, sys
 import numpy as np
 from mathutils import Vector, Matrix
 
@@ -14,21 +14,31 @@ TEX = os.path.join(ROOT, 'assets_src', 'textures')
 OUT = os.path.join(ROOT, 'web', 'public', 'assets', 'models')
 MATS = json.load(open(os.path.join(ROOT, 'blender', 'materials.json')))
 CAMPUS = json.load(open(os.path.join(ROOT, 'data', 'campus.json')))
+# The files' heights are above sea level; every mesh here is built on the working datum, sea level + the tilt the 1997
+# photos' block had (tools/datum.py: the levels, the flights and the textures' and windows' places were all settled on
+# it).  campus.json and the terrain go up to it as they are read; to_sea() below takes the finished meshes down again.
+sys.path.insert(0, os.path.join(ROOT, 'tools'))
+import datum
+DATUM = datum.field(CAMPUS)
+datum.to_work(CAMPUS, DATUM)
 
 # ----------------------------------------------------------------------------- terrain
-_T = np.load(os.path.join(ROOT, 'data', 'terrain_near.npy'))
+_T_SEA = np.load(os.path.join(ROOT, 'data', 'terrain_near.npy'))
+_T = _T_SEA + DATUM.D['near']
 _TH = CAMPUS['terrain']['near']['half']
 _TS = CAMPUS['terrain']['near']['step']
 
 
 # the patch south of the grid (tools/sinchon_rotary.py SOUTH: 신촌 로터리), its own rows and columns
 _SS = CAMPUS['terrain'].get('south')
-_S = np.load(os.path.join(ROOT, 'data', 'terrain_south.npy')) if _SS else None
+_S_SEA = np.load(os.path.join(ROOT, 'data', 'terrain_south.npy')) if _SS else None
+_S = _S_SEA + DATUM.D['south'] if _SS else None
 
 
 # the patch north of it (tools/muak.py NORTH: 무악학사 · 북문), its bottom row the grid's top row
 _NS = CAMPUS['terrain'].get('north')
-_N = np.load(os.path.join(ROOT, 'data', 'terrain_north.npy')) if _NS else None
+_N_SEA = np.load(os.path.join(ROOT, 'data', 'terrain_north.npy')) if _NS else None
+_N = _N_SEA + DATUM.D['north'] if _NS else None
 
 
 def _grid(x, y):
@@ -105,6 +115,39 @@ def ground(x, y):
               + _T[j + 1, i] * (1 - ax) * ay + _T[j + 1, i + 1] * ax * ay)
     pz = plate_z(x, y)
     return z if pz is None else max(z, pz)
+
+
+def ground_sea(x, y):
+    """the ground above sea level (for what is worked out once the meshes are down there: blender/bake.py)"""
+    return ground(x, y) - DATUM.at(x, y)
+
+
+def to_sea(objs):
+    """The finished objects from the working datum down to sea level (tools/datum.py), before they are baked and
+    exported.  A vertex goes down by the datum's tilt at its own place: what lies on the ground keeps its height over
+    it exactly.  A hall (an object with a 'bid') goes down by its own one value within PAD m of its outline, so that
+    it does not lean; an object placed by its matrix (the statues, the gate) by the value at its place."""
+    halls = {str(b['id']): b for b in CAMPUS['buildings']}
+    for ob in objs:
+        if ob.type != 'MESH':
+            continue
+        M = ob.matrix_world
+        if any(abs(M[i][j] - (1.0 if i == j else 0.0)) > 1e-9 for i in range(4) for j in range(4)):
+            M = M.copy()
+            M.translation.z -= DATUM.at(M.translation.x, M.translation.y)
+            ob.matrix_world = M
+            continue
+        me = ob.data
+        co = np.empty(len(me.vertices) * 3)
+        me.vertices.foreach_get('co', co)
+        co = co.reshape(-1, 3)
+        d = np.asarray(DATUM.at(co[:, 0], co[:, 1]), float)
+        b = halls.get(ob.get('bid'))
+        if b is not None and len(co):
+            d = np.where(datum.poly_dist(co[:, 0], co[:, 1], b['footprint']) <= datum.PAD, b['tilt'], d)
+        co[:, 2] -= d
+        me.vertices.foreach_set('co', co.ravel())
+        me.update()
 
 
 def ground_top(x, y):

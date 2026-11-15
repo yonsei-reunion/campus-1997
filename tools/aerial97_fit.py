@@ -17,6 +17,10 @@
   - 기준 건물: 지붕 꼭짓점의 평면 자리 = 게임 footprint(건물마다 1.5 m), 지붕 높이는 묶지 않음
   - 높이: 찻길 위의 점(열린 땅)의 높이 = data/terrain_near.npy (1.5 m). 이음점은 주로 지붕 · 나무 위라 높이 기준으로
     쓰지 않는다(써 보면 땅이 2 m쯤 낮게 나옴)
+  - 블록은 해발보다 기울어진 면(tools/aerial97.py block_dz, tools/datum.py)만큼 높은 옛 게임 찻길에 묶여 있고, 지금도 그 면
+    위에서 맞춘다: 높이 기준 = 지형(해발) + block_dz. aerial97_fit.json 의 ground[*].p 의 높이도 그 면 위의 값이다.
+    (게임과 도구는 블록을 그대로 두고 높이에서 그 면만 뺀다. 여기서 해발에 바로 묶으면 블록이 0.33° 돌아, 전에 잰 땅의 자리가
+    0.2 m 옮겨진다)
 - roofs · ground 와 fit 은 서로의 결과를 쓰므로 두세 번 번갈아 돌린다. 처음 값은 aerial97_cam.json.
   roofs 가 붙인 외곽선은 show 로 보고, 잘못 붙은 건물(1997년에 없던 건물, 모양이 다른 건물)은 CONTROL 에서 뺀다.
 """
@@ -151,7 +155,9 @@ def dem(x, y):
     from scipy.ndimage import map_coordinates
     if _DEM is None:
         _DEM = np.load(os.path.join(ROOT, 'data/terrain_near.npy'))
-    return map_coordinates(_DEM, [(np.asarray(y) + 800) / 5.0, (np.asarray(x) + 800) / 5.0], order=1, mode='nearest')
+    from datum import TILT        # (the block's plane over sea level: 머리말)
+    return map_coordinates(_DEM, [(np.asarray(y) + 800) / 5.0, (np.asarray(x) + 800) / 5.0], order=1, mode='nearest') \
+        + TILT[0] + TILT[1] * np.asarray(x) / 100.0 + TILT[2] * np.asarray(y) / 100.0
 
 
 # ---------- io: 지표 ----------
@@ -367,7 +373,7 @@ def cmd_ground():
         if not pk or pk[0][0] < 0.7 or (len(pk) > 1 and pk[1][0] > pk[0][0] - 0.15):
             continue                                        # 흐리거나 봉우리가 둘인 곳(나무 밑, 길가 건물)은 버림
         z = pk[0][1]
-        out.append(dict(p=[round(x, 1), round(y, 1), round(A.ground(x, y), 2)], obs={'%d/%d' % f: [round(v, 2) for v in A.to_px(f, x, y, z)] for f in frs}))
+        out.append(dict(p=[round(x, 1), round(y, 1), round(A.ground(x, y) + float(A.block_dz(x, y)), 2)], obs={'%d/%d' % f: [round(v, 2) for v in A.to_px(f, x, y, z)] for f in frs}))
     print('길 위의 점 %d 가운데 %d' % (len(pts), len(out)))
     d = data()
     d['ground'] = out

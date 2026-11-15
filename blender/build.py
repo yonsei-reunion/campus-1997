@@ -49,6 +49,7 @@ if want('buildings'):
     # the halls' front flights (generic.porch): walked on like the landmarks' (web/src/main.js looks for 'walk_stairs')
     objs.append(landmarks.walk_mesh().build())
     json.dump(generic.DOORS, open(os.path.join(common.ROOT, 'data', 'entrances_generic.json'), 'w'))
+    common.to_sea(objs)         # (from the working datum down to sea level: tools/datum.py)
     if BAKE:        # (the landmarks' shadows on the halls from their last build)
         bake.bake(objs, sun_glb=os.path.join(OUT, 'campus_landmarks.glb'))
     stats['buildings'] = tri_count(objs)
@@ -110,6 +111,7 @@ if want('landmarks'):
     _gp = os.path.join(common.ROOT, 'data', 'entrances_generic.json')
     _gen = json.load(open(_gp)) if os.path.exists(_gp) else []
     json.dump({'entrances': landmarks.ENTRANCES + _gen}, open(os.path.join(common.ROOT, 'web/public/data/entrances.json'), 'w'))
+    common.to_sea(objs)
     if BAKE:
         bake.bake(objs, sun_glb=os.path.join(OUT, 'campus_buildings.glb'))
     stats['landmarks'] = tri_count(objs)
@@ -119,6 +121,7 @@ if want('road'):
     reset_scene()
     mbs, crossings = road.build()
     objs = [m.build() for m in mbs]
+    common.to_sea(objs)
     stats['road'] = tri_count(objs)
     export_glb(objs, os.path.join(OUT, 'baekyangro.glb'))
     json.dump({'crossings': crossings}, open(os.path.join(common.ROOT, 'web/public/data/road_meta.json'), 'w'))
@@ -126,6 +129,7 @@ if want('road'):
 if want('town'):          # 정문 밖 (blender/town.py): 성산로, the 경의선's bank and bridge, the town south of it; the city bus
     reset_scene()
     objs = [m.build() for m in town.build()]
+    common.to_sea(objs)
     if objs:
         stats['town'] = tri_count(objs)
         export_glb(objs, os.path.join(OUT, 'campus_town.glb'))
