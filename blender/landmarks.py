@@ -968,13 +968,15 @@ def centennial_terrace():
             dd = t if k == n else t + 0.03                                    # (the top one meets the landing)
             block([(a, dk), (b, dk), (b, dk - dd), (a, dk - dd)], z0 + k * r, z0 - 0.8, STEP, STEP)
         # its walked surface (north of the doors' axis the lower flight starts a riser up) and its zones between the
-        # planters
+        # planters: one ramp through the nosings, from a tread before the first riser (from the risers' feet it left
+        # every riser standing up to a rise over it, and the walker's ankle ray met the first one with no step behind
+        # it: no walker got up the upper flight)
         if f.get('low'):
             lo0 = f['low'][0]
-            ramp(lo0, s1, d0, z0, d_top, z0 + n * r)
-            ramp(s0, lo0, d0 - t, z0 + r, d_top, z0 + n * r)
+            ramp(lo0, s1, d0 + t, z0, d_top, z0 + n * r)
+            ramp(s0, lo0, d0, z0 + r, d_top, z0 + n * r)
         else:
-            ramp(s0, s1, d0, z0, d_top, z0 + n * r)
+            ramp(s0, s1, d0 + t, z0, d_top, z0 + n * r)
         ramp(s0, s1, d_top, z0 + n * r, d_top - t - 0.02, z0 + n * r)       # (its top tread, up to the landing)
         cuts = sorted(p['s'] for p in pl if p['f'] == fi)
         edges = [s0] + [v for c in cuts for v in c] + [s1]
