@@ -9348,6 +9348,17 @@ HANGEUL_TOWER = dict(pos=[-63.5, -111.0], h=7.2, rot=round(math.radians(-14.6), 
 out['hangeul_tower'] = HANGEUL_TOWER
 _ht_z = Point(*HANGEUL_TOWER['pos']).buffer(3.4)
 assert not any(_ht_z.contains(Point(c_[1], c_[2])) for c_ in cars), 'a car at 한글탑'
+# - 독수리상 서쪽 마당 (reference/고증/4.5.2): four portable hoops of the 대강당 terrace's make on the bare yard in the
+#   1997 scans.  Each frame where the four frames agree on the yard's plane; each board where its dark (or, from the
+#   side it faces, white) bar from three or four frames meets in one point 2.5 - 3.3 m over the yard (tools/aerial97.py
+#   rays; residuals 0.1 - 0.5 preview pixels), so it faces from its frame towards the board.  The two in the west
+#   face each other, boards 16.1 m apart (each alone: 101 and 276 - 282 degrees, the line between them 98.9); the
+#   east one faces south-west (233), the one by the south row of cars south-south-west, its board over a car's
+#   bonnet (210).  board: the board's middle, az: the way it faces (blender/landmarks.py yard_hoops)
+YARD_HOOPS = dict(base=list(COURT['base']), arm_top=list(COURT['arm_top']),
+                  stands=[dict(board=[-143.0, -146.4], az=98.9), dict(board=[-127.1, -148.9], az=278.9),
+                          dict(board=[-114.3, -155.6], az=233.0), dict(board=[-127.0, -169.7], az=210.0)])
+out['yard_hoops'] = YARD_HOOPS
 # - 제1공학관 안뜰: between the wings, out to the halls and the west road, the paving the cars stood on in rows (north,
 #   south, and two rows at the west end).  The game had lawn from apron to apron, its parked cars on the grass and the
 #   walks along the wings ending in it (one of the tails kept in #151).  The rectangle in a bright edge in its middle

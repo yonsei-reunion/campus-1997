@@ -4963,7 +4963,6 @@ def portable_hoops(C):
     No lines on the asphalt.  Each stand sits on the ground under it (the terrace is level there)."""
     L = C['L']
     b0, b1, bw = C['base']
-    ax, az = C['arm_top']                      # (the arms' tops: ax m from the board's line, az up)
     out = []
     c_, s_ = math.cos(C['rot']), math.sin(C['rot'])
     for sg in (-1, 1):
@@ -4971,24 +4970,52 @@ def portable_hoops(C):
         mb.xf = local_frame(C['pos'][0], C['pos'][1], C['rot'], C['h'])
         d_ = sg * (L / 2 + (b0 + b1) / 2)
         z0 = ground_top(C['pos'][0] + c_ * d_, C['pos'][1] + s_ * d_) - C['h']
-        hl = L / 2
-        bx = sg * hl
-        xb = sg * (hl - 1.2)                   # the board's line
-        x0, x1 = sg * (hl + b0), sg * (hl + b1)  # the frame's front and back
-        t = 0.045
-        for yy in (-bw / 2, bw / 2):           # the frame's two rails, and its front bar
-            rod(mb, (x0, yy, z0 + t), (x1, yy, z0 + t), t, 'metal_dark', seg=6, caps=True)
-        rod(mb, (x0, -bw / 2, z0 + t), (x0, bw / 2, z0 + t), t, 'metal_dark', seg=6, caps=True)
-        mb.box((x1 - sg * 0.25, 0, z0 + 0.18), (0.5, bw + 0.1, 0.36), 'metal_dark')            # the ballast box
-        for yy in (-1, 1):                     # the arms: up from the frame's front corners to the board's back
-            p0 = (x0, yy * (bw / 2 - 0.05), z0 + t)
-            p1 = (xb + sg * (0.05 - ax), yy * 0.35, z0 + az)
-            rod(mb, p0, p1, 0.05, 'metal_dark', seg=8, caps=True)
-            rod(mb, p1, (xb + sg * 0.05, yy * 0.35, z0 + az), 0.04, 'metal_dark', seg=8, caps=True)
-            pm = (p0[0] + (p1[0] - p0[0]) * 0.45, p0[1] + (p1[1] - p0[1]) * 0.45, p0[2] + (p1[2] - p0[2]) * 0.45)
-            rod(mb, (x1 - sg * 0.5, yy * (bw / 2 - 0.05), z0 + 0.36), pm, 0.03, 'metal_dark', seg=6, caps=True)   # a stay
-        rod(mb, (xb + sg * 0.05, -0.35, z0 + az), (xb + sg * 0.05, 0.35, z0 + az), 0.04, 'metal_dark', seg=8, caps=True)
-        hoop_head(mb, bx, sg, z0)
+        hoop_stand(mb, L / 2, sg, z0, C['base'], C['arm_top'])
+        out.append(mb)
+    return out
+
+
+def hoop_stand(mb, hl, sg, z0, base, arm_top):
+    """one portable hoop in a court's frame (portable_hoops): its baseline at x = sg * hl, the board's line 1.2 m in
+    from it; base (b0, b1, w): the frame from hl + b0 to hl + b1 out, w wide; arm_top (ax, az): the arms' tops ax m from
+    the board's line, az up; z0 the ground under the frame over the frame's origin"""
+    b0, b1, bw = base
+    ax, az = arm_top
+    bx = sg * hl
+    xb = sg * (hl - 1.2)                       # the board's line
+    x0, x1 = sg * (hl + b0), sg * (hl + b1)    # the frame's front and back
+    t = 0.045
+    for yy in (-bw / 2, bw / 2):               # the frame's two rails, and its front bar
+        rod(mb, (x0, yy, z0 + t), (x1, yy, z0 + t), t, 'metal_dark', seg=6, caps=True)
+    rod(mb, (x0, -bw / 2, z0 + t), (x0, bw / 2, z0 + t), t, 'metal_dark', seg=6, caps=True)
+    mb.box((x1 - sg * 0.25, 0, z0 + 0.18), (0.5, bw + 0.1, 0.36), 'metal_dark')                # the ballast box
+    for yy in (-1, 1):                         # the arms: up from the frame's front corners to the board's back
+        p0 = (x0, yy * (bw / 2 - 0.05), z0 + t)
+        p1 = (xb + sg * (0.05 - ax), yy * 0.35, z0 + az)
+        rod(mb, p0, p1, 0.05, 'metal_dark', seg=8, caps=True)
+        rod(mb, p1, (xb + sg * 0.05, yy * 0.35, z0 + az), 0.04, 'metal_dark', seg=8, caps=True)
+        pm = (p0[0] + (p1[0] - p0[0]) * 0.45, p0[1] + (p1[1] - p0[1]) * 0.45, p0[2] + (p1[2] - p0[2]) * 0.45)
+        rod(mb, (x1 - sg * 0.5, yy * (bw / 2 - 0.05), z0 + 0.36), pm, 0.03, 'metal_dark', seg=6, caps=True)   # a stay
+    rod(mb, (xb + sg * 0.05, -0.35, z0 + az), (xb + sg * 0.05, 0.35, z0 + az), 0.04, 'metal_dark', seg=8, caps=True)
+    hoop_head(mb, bx, sg, z0)
+
+
+def yard_hoops():
+    """The four portable hoops on the bare yard west of the eagle in the 1997 scans (tools/build_campus.py YARD_HOOPS,
+    reference/고증/4.5.2), of the terrace's make (hoop_stand): each in a frame at its board's middle, +x the way it
+    faces, standing on the ground under its frame."""
+    Y = CAMPUS.get('yard_hoops')
+    if not Y:
+        return []
+    out = []
+    for i, st in enumerate(Y['stands']):
+        bxy, a = st['board'], math.radians(90.0 - st['az'])
+        c_, s_ = math.cos(a), math.sin(a)
+        d_ = 1.2 + (Y['base'][0] + Y['base'][1]) / 2            # (the frame's middle, behind the board)
+        z0 = ground_top(bxy[0] - c_ * d_, bxy[1] - s_ * d_)
+        mb = MeshBuilder('lm_yard_hoop_%d' % i)
+        mb.xf = local_frame(bxy[0], bxy[1], a, 0.0)
+        hoop_stand(mb, 1.2, -1, z0, Y['base'], Y['arm_top'])
         out.append(mb)
     return out
 
