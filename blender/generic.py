@@ -424,10 +424,11 @@ def entry_edge(poly, entry):
     return best and (best[1], best[2])
 
 
-def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True, at=None):
-    """at: (x, y, length, width, angle) of the stretch of roof the clutter goes on, instead of the outline's middle"""
+def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True, at=None, par=0.9):
+    """at: (x, y, length, width, angle) of the stretch of roof the clutter goes on, instead of the outline's middle;
+    par: the parapet's height over the roof"""
     inner = offset_poly(poly, -0.3)
-    zp = zt + 0.9
+    zp = zt + par
     # coping
     n = len(poly)
     for i in range(n):
@@ -739,6 +740,7 @@ def build_generic(b, rnd):
         st['frame'] = FRAME[b['id']]
     pitched = style in ('stone', 'house', 'stone_pale')
     hip = b.get('hip')                 # (a hipped or gabled roof on a hall of another style: 무악학사, 농업개발원)
+    par = b.get('parapet', 0.9)        # (a low coping instead of the parapet: 의료원 들어오는 길 서쪽의 낮은 동)
     plan = b['id'] in PLAN_ROOF and 'roof' in b         # (its own outline and roofs: not the outline's box)
     if (pitched or style == 'gym') and not plan:
         cx, cy, L, W, ang = min_area_rect(poly)
@@ -757,7 +759,7 @@ def build_generic(b, rnd):
                            tops=[zt - backs.EAVE * backs.PITCH[style] if pitched else zt + up * fh for up in ups])
     for i in range(len(poly)):
         up = ups[i]
-        wall_edge(mb, poly[i], poly[(i + 1) % len(poly)], z0, (zt if pitched or hip else zt + 0.9) + up * fh, nf + up, fh,
+        wall_edge(mb, poly[i], poly[(i + 1) % len(poly)], z0, (zt if pitched or hip else zt + par) + up * fh, nf + up, fh,
                   st, rnd, ground_floor_shop=shop, door=(door[1], style, b['entry']) if door and door[0] == i else None,
                   back=back.edges[i].back if back.on else None)
     if wing:
@@ -786,7 +788,7 @@ def build_generic(b, rnd):
             at = (r_['o'][0] + r_['t'][0] * r_['clutter'][0] - r_['t'][1] * r_['clutter'][1],
                   r_['o'][1] + r_['t'][1] * r_['clutter'][0] + r_['t'][0] * r_['clutter'][1],
                   60.0, 8.0, math.atan2(r_['t'][1], r_['t'][0]))
-        parapet_and_roof(mb, poly, zt, st, rnd, roof_mat=roof, clutter=style != 'city', at=at)
+        parapet_and_roof(mb, poly, zt, st, rnd, roof_mat=roof, clutter=style != 'city', at=at, par=par)
         if b['id'] in ROOF_EXTRAS:
             b['fh_up'] = fh if wing else 0.0
             ROOF_EXTRAS[b['id']](mb, b, zt + (fh if wing else 0.0), st)

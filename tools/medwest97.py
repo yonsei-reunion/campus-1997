@@ -749,3 +749,247 @@ def stall_lines(cars):
         for u in (ua, ub):
             lines.append([*(round(c, 2) for c in xy(u, edges[0])), *(round(c, 2) for c in xy(u, edges[-1]))])
     return lines
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 들어오는 길 서쪽 주차장과 건물 둘 (reference/고증/3.1.2 「들어오는 길 서쪽 주차장과 건물 둘」): west of the entrance road,
+# between it and 성산로, the 1997 scans (26/16 from the north-west; 27/17 · 27/18 · 27/19 from the east) have a lined
+# car park, a single-storey hall under a hipped roof south-west of it and a low flat-roofed block south-east of it, a
+# sunk yard between the two; the game had a lawn slope there, 0 - 3.2 m under them.
+# Frame: WL_O, u WL_ANG (south-east, along the rows), v to its left (north-east, to the entrance road); the hall's
+# own rectangle and the two rows beside it in campus metres.  Heights 해발:
+# - the car park's floor level at WL_Z: the rows' lines fall on one another in 26/16 and 27/18 on that plane (0.1 m
+#   rms: 0.9 m of shift for a metre of height), thirty windows over the aisles 28.1 - 28.4 m (pairs within 0.4 m)
+# - the yard between the halls WL_COURT_Z (seven windows 26.5 - 27.0 m), the concrete apron down to it from the car
+#   park's south-east corner along the block's north-west wall
+# - the row north-east of the block (WL_R7) 0.5 m up: its three white cars' roofs 29.9 - 30.0 m against 29.4 - 29.7 m
+#   in the other rows (seven), the aisle beside it 28.7 m; the way in from the entrance road between the planted
+#   strip's round end and the bed north of that row, down 1.15 m
+# - the hall: eaves 32.0 m (its four corners within 0.3 m in three frames on that plane), ridge 33.4 - 33.7 m; the
+#   block: roof 29.55 m (its edges and what lies on it within 0.3 m in three frames), its floor the yard's; a ring of
+#   dark slots 0.5 - 0.7 m in from its edges, the north-west one at u 19.2 in three frames (0.1 m): that wall at u 19
+WL_O, WL_ANG = (-35.0, -385.0), -43.0
+_WC, _WS = math.cos(math.radians(WL_ANG)), math.sin(math.radians(WL_ANG))
+WL_Z, WL_COURT_Z, WL_R7_UP, WL_IN_UP = 28.3, 26.75, 0.5, 1.15
+
+
+def wl_xy(u, v):
+    return (WL_O[0] + u * _WC - v * _WS, WL_O[1] + u * _WS + v * _WC)
+
+
+def wl_uv(x, y):
+    dx, dy = np.asarray(x, float) - WL_O[0], np.asarray(y, float) - WL_O[1]
+    return dx * _WC + dy * _WS, -dx * _WS + dy * _WC
+
+
+def _wl_box(c, ang, L, W):
+    a = math.radians(ang)
+    t, n = (math.cos(a), math.sin(a)), (-math.sin(a), math.cos(a))
+    return [(c[0] + t[0] * p * L / 2 + n[0] * q * W / 2, c[1] + t[1] * p * L / 2 + n[1] * q * W / 2)
+            for p, q in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+
+
+# the hall (its eaves 19.75 x 9.74 m about WL_HALL['c'], the long side 5.5 deg south of east; the walls taken
+# WL_HALL['over'] m inside them) and the block (its roof's outline: u 19.0 .. 29.4, v -7.4 .. 5.7; a low coping)
+WL_HALL = dict(id=990047, c=(-42.925, -404.8), ang=-5.51, eave=(19.75, 9.74), over=0.5, eave_z=32.0, pitch=0.32)
+WL_HALL_XY = _wl_box(WL_HALL['c'], WL_HALL['ang'], WL_HALL['eave'][0] - 2 * WL_HALL['over'], WL_HALL['eave'][1] - 2 * WL_HALL['over'])
+WL_BLOCK = dict(id=990048, uv=(19.0, 29.4, -7.4, 5.7), roof_z=29.55, coping=0.15)
+WL_BLOCK_XY = [wl_xy(u, v) for u, v in ((19.0, -7.4), (29.4, -7.4), (29.4, 5.7), (19.0, 5.7))]
+# the car park's asphalt: the kerb behind the north-east row, the planted strip's round end, the way in, the row at
+# the road's level, the block's north corner and the apron's head, the hall's north wall, the kerbs behind the west
+# row and along the north-west side
+WL_R7 = (20.8, 26.4, 5.6, 14.2)
+WL_LOT_XY = [wl_xy(u, v) for u, v in (
+    (-12.0, 16.1), (11.6, 16.1), (13.5, 16.6), (14.7, 17.8), (15.0, 19.5), (15.0, 22.3), (20.8, 22.3), (20.8, WL_R7[3]),
+    (WL_R7[1], WL_R7[3]), (WL_R7[1], WL_R7[2]), (19.0, 5.6), (19.0, 3.9), (15.2, 3.9), (15.2, -6.3))] + \
+    [WL_HALL_XY[2], WL_HALL_XY[3], (-54.6, -398.9), (-54.1, -395.4), (-50.8, -381.2)]
+WL_LOT = Polygon(WL_LOT_XY).buffer(0)
+# the apron and the yard (concrete: paving)
+WL_COURT_XY = [wl_xy(u, v) for u, v in ((15.2, -6.3), (15.2, 3.9), (19.0, 3.9), (19.0, -7.4), (29.4, -7.4), (29.2, -9.5),
+                                         (28.3, -12.5), (27.0, -13.8), (22.0, -14.2), (19.5, -16.5))] + [WL_HALL_XY[1], WL_HALL_XY[2]]
+WL_COURT = Polygon(WL_COURT_XY).buffer(0)
+
+
+def wl_ground(x, y):
+    """the 1997 ground at (x, y), 해발, or None outside what the scans settle: the car park level, the way in and the
+    row by the block rising to the entrance road, the apron falling to the yard; inside the two halls what stands
+    against each wall (the 5 m grid's nodes there carry the ground at the walls' feet)"""
+    u, v = (float(q) for q in wl_uv(x, y))
+    q = Point(x, y)
+    ramp = min(WL_Z, max(WL_COURT_Z, WL_Z - (2.0 - v) * (WL_Z - WL_COURT_Z) / 9.4))
+    u0, u1, v0, v1 = WL_BLOCK['uv']
+    if u0 < u < u1 and v0 < v < v1:                      # (in the block: the yard's side, the apron's, the row's, 성산로's)
+        if v < v0 + 4.0:
+            return WL_COURT_Z
+        if u < u0 + 2.5:
+            return ramp
+        return 27.7 if u > u1 - 2.5 else WL_Z + WL_R7_UP - 0.1
+    if Polygon(WL_HALL_XY).contains(q):                  # (in the hall: its floor the car park's; by its east wall the yard)
+        return WL_COURT_Z if (x > WL_HALL_XY[1][0] - 3.5 and v < -11.5) else WL_Z
+    if WL_COURT.buffer(0.3).contains(q):
+        return ramp
+    if WL_LOT.buffer(0.3).contains(q):
+        up_in = WL_IN_UP * min(1.0, max(0.0, (v - 10.0) / 11.5)) if u > 12.0 else 0.0
+        up_r7 = WL_R7_UP * min(1.0, max(0.0, (u - 15.2) / 5.8)) if 5.0 < v < 14.5 else 0.0
+        return WL_Z + max(up_in, up_r7)
+    return None
+
+
+def wl_grade(Hn, X, Y, FIXED, halls_keep, road_ls, road_hw, ring=12.0):
+    """The car park, the yard and the two halls' sites on the scans' heights (wl_ground, taken up to the working
+    datum at each node); 성산로's bed (road_ls, road_hw + 2.5 m), the other halls' feet (7 m) and what another rule
+    set (FIXED) stay.  Before grade(): its easing west of the entrance road then runs round these nodes, and the
+    ground `ring` m round the site that it leaves is eased afterwards (wl_ease).  Returns (nodes set, the ring's
+    nodes, a summary)."""
+    H0 = Hn.copy()
+    site = unary_union([WL_LOT, WL_COURT, Polygon(WL_HALL_XY), Polygon(WL_BLOCK_XY)])
+    near = shapely.contains_xy(site.buffer(ring), X, Y)
+    pts = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
+    on_road = (shapely.distance(pts, road_ls) <= road_hw + 2.5).reshape(X.shape)
+    in_hall = shapely.contains_xy(unary_union([h.buffer(7.0) for h in halls_keep]), X, Y)
+    keep = FIXED | on_road | in_hall
+    ctrl = np.zeros(X.shape, bool)
+    for j, i in zip(*np.nonzero(near & ~keep)):
+        z = wl_ground(float(X[j, i]), float(Y[j, i]))
+        if z is not None:
+            Hn[j, i] = datum.up(float(X[j, i]), float(Y[j, i]), z)
+            ctrl[j, i] = True
+    d = Hn - H0
+    return ctrl, near & ~keep & ~ctrl, dict(set=int(ctrl.sum()), kept=int((near & keep).sum()),
+                                           lift=(round(float(d[ctrl].min()), 2), round(float(d[ctrl].max()), 2)) if ctrl.any() else None)
+
+
+def wl_ease(Hn, ring, FIXED, fill):
+    """the ring round the site that no other rule set (FIXED, grade()'s easing among them) took: one smooth surface
+    between the site and the ground as it was (fill: build_campus.py harmonic_fill).  Returns (the nodes, the change)"""
+    free = ring & ~FIXED
+    H0 = Hn.copy()
+    if free.any():
+        fill(free)
+    d = Hn - H0
+    return free, dict(eased=int(free.sum()), change=(round(float(d[free].min()), 2), round(float(d[free].max()), 2)) if free.any() else None)
+
+
+def wl_paint():
+    """for the game's map: (asphalt, paving) in campus metres"""
+    return [WL_LOT], [WL_COURT]
+
+
+def wl_halls():
+    """the hall (plastered walls bright in the frames from the east, a hipped roof of tiles in courses) and the block
+    (a flat roof a storey over the yard, 1.3 m over the car park) for the halls' end"""
+    out = []
+    h = WL_HALL
+    wt = h['eave_z'] + h['over'] * h['pitch']             # (the walls' head: blender/generic.py hip_roof)
+    base = datum.up(*h['c'], WL_Z)
+    out.append(dict(id=h['id'], name='', style='white', levels=1, fh=round(wt - WL_Z, 3), height=round(wt - WL_Z, 2), base=base,
+                    top_ground=base, hip=dict(mat='roof_cement', pitch=h['pitch'], over=h['over']),
+                    footprint=[[round(x, 2), round(y, 2)] for x, y in WL_HALL_XY]))
+    bc = wl_xy((WL_BLOCK['uv'][0] + WL_BLOCK['uv'][1]) / 2, (WL_BLOCK['uv'][2] + WL_BLOCK['uv'][3]) / 2)
+    base = datum.up(*bc, WL_COURT_Z)
+    fh = round(WL_BLOCK['roof_z'] - WL_BLOCK['coping'] - WL_COURT_Z, 3)      # (blender/generic.py: `parapet` its coping's height)
+    out.append(dict(id=WL_BLOCK['id'], name='', style='white', levels=1, fh=fh, height=round(WL_BLOCK['roof_z'] - WL_COURT_Z, 2), base=base,
+                    parapet=WL_BLOCK['coping'], top_ground=datum.up(*bc, WL_Z + WL_R7_UP),
+                    footprint=[[round(x, 2), round(y, 2)] for x, y in WL_BLOCK_XY]))
+    return out
+
+
+# the scans' trees round the car park (crowns in two frames or more): the planted strip between the north-east row
+# and the entrance road, the bed north of the row by the block, the wood west and north-west of the kerbs
+WL_TREE_XY = [wl_xy(u, v) for u, v in ((-8.0, 18.8), (-3.0, 18.8), (2.0, 18.8), (7.0, 18.8), (12.0, 19.2), (24.0, 16.8),
+                                        (-16.5, 4.0), (-16.0, 11.0), (-14.5, 18.5))] + [(-58.5, -385.0), (-59.5, -393.0), (-57.0, -377.5)]
+
+
+def wl_trees_aside(trees, shrubs, props):
+    """the game's trees on the car park, the yard and the two halls go, each in its place in the list, to a tree of
+    the scans that has none yet (WL_TREE_XY); the scans' trees still without one are planted at the trees' end (their
+    kinds are not read: young 느티나무, as round the forecourt); the shrubs and props there go.  Returns (moved, shrubs
+    gone, props gone, trees added)"""
+    site = unary_union([WL_LOT, WL_COURT, Polygon(WL_HALL_XY).buffer(1.0), Polygon(WL_BLOCK_XY).buffer(1.0)]).buffer(0.8)
+    shapely.prepare(site)
+    stay = [Point(t[1], t[2]) for t in trees if not site.contains(Point(t[1], t[2])) and abs(t[1] + 35.0) < 60 and abs(t[2] + 390.0) < 60]
+    spots = [Point(p) for p in WL_TREE_XY if all(Point(p).distance(o) > 3.0 for o in stay)]
+    moved = []
+    for t in trees:
+        q = Point(t[1], t[2])
+        if not site.contains(q) or not spots:
+            continue
+        s = min(spots, key=q.distance)
+        spots.remove(s)
+        moved.append((t[0], t[1], t[2], round(s.x, 2), round(s.y, 2)))
+        t[1], t[2] = round(s.x, 2), round(s.y, 2)
+    rnd = random.Random(19970728 + 47)
+    added = [['zelkova_young', round(s.x, 2), round(s.y, 2), round(rnd.uniform(0.85, 1.05), 2), round(rnd.uniform(0, 6.28), 2)]
+             for s in spots]
+    trees.extend(added)
+    ns, npr = len(shrubs), len(props)
+    shrubs[:] = [s for s in shrubs if not site.contains(Point(s[1], s[2]))]
+    props[:] = [p for p in props if not site.contains(Point(p[1], p[2]))]
+    return moved, ns - len(shrubs), npr - len(props), added
+
+
+# the rows (tools/cars97_new.json 「의료원 들어오는 길 서쪽 주차장」 is written from these: wl_cars).  In (u, v): name, the
+# stalls' first separator, pitch, count along `axis`, the stalls' two ends across it, the separators' lean (du per
+# dv: the middle block's stalls lie 6.5 deg off square, as the north-west kerb does), the cars' heading (deg in the
+# frame), the stalls with a car (size, shade) in the scans.  Cars under the crowns in 26/16 (the middle block's west
+# half, the west row) stand in 27/17 · 27/18 · 27/19 only
+WL_ROWS = [
+    dict(name='R1', axis='u', s0=-11.36, pitch=2.276, n=10, ends=(10.9, 15.9), lean=0.0, head=90.0,
+         cars={1: 'mw', 2: 'md', 3: 'md', 4: 'mw', 5: 'mw', 6: 'mw', 7: 'mw', 8: 'md', 9: 'md'}),
+    dict(name='IN', axis='u', s0=5.47, pitch=-2.31, n=8, ends=(-0.1, 4.79), lean=0.115, at=0.3, head=-96.6,
+         cars={0: 'md', 1: 'md', 2: 'md', 3: 'vw', 4: 'md', 5: 'md', 6: 'mw', 7: 'md'}),
+    dict(name='IS', axis='u', s0=5.38, pitch=-2.32, n=8, ends=(-5.05, -0.1), lean=0.115, at=-0.4, head=83.4,
+         cars={0: 'mw', 1: 'vw', 2: 'mw', 3: 'md', 4: 'mw', 5: 'm', 6: 'md'}),
+    dict(name='R6', axis='v', s0=5.2, pitch=-2.296, n=5, ends=(10.3, 15.2), lean=0.0, head=0.0,
+         cars={0: 'mw', 1: 'md', 2: 'mw', 3: 'md'}),
+    dict(name='R7', axis='v', s0=13.9, pitch=-2.05, n=4, ends=(21.0, 26.3), lean=0.0, head=0.0,
+         cars={0: 'mw', 1: 'md', 2: 'mw', 3: 'mw'}),
+]
+# the west row and the row before the hall, in campus metres: the aisle-side line's first point, the row's direction
+# (deg), pitch, count, depth to the left (-) or right (+) of that direction, the cars' heading (deg), the cars
+WL_ROWS_XY = [
+    dict(name='R4', p=(-46.45, -386.55), dir=-102.2, pitch=2.27, n=5, depth=5.0, head=167.8, cars={0: 'md', 1: 'mw', 2: 'vw', 3: 'mw'}),
+    dict(name='R5', p=(-43.3, -394.9), dir=-1.5, pitch=2.25, n=4, depth=4.6, head=-91.5, cars={0: 'md', 1: 'mw', 2: 'md', 3: 'mw'}),
+]
+# cars out of the rows, in both flight lines: (u, v, heading in the frame, size, shade): along the east row's head,
+# along the west side of the row by the block, past the north-east row's end, in the yard
+WL_LOOSE = [(13.7, 6.2, 0.0, 'm', 'd'), (20.4, 10.6, 90.0, 'm', None), (12.7, 13.9, 83.0, 'm', 'w'), (24.1, -11.8, 0.0, 'm', 'd')]
+
+
+def wl_cars():
+    """(cars [x, y, heading deg, size, shade, tag], lines [[x0, y0, x1, y1]]) in campus metres"""
+    cars, lines = [], []
+
+    def L(a, b):
+        lines.append([round(c, 2) for c in (*a, *b)])
+    for r in WL_ROWS:
+        e0, e1 = r['ends']
+        at = r.get('at', e0)
+
+        def P(s, e, r=r, at=at):
+            s = s + r['lean'] * (e - at) if r['axis'] == 'u' else s
+            return wl_xy(s, e) if r['axis'] == 'u' else wl_xy(e, s)
+        for k in range(r['n'] + 1):
+            L(P(r['s0'] + r['pitch'] * k, e0), P(r['s0'] + r['pitch'] * k, e1))
+        for e in ((e0, e1) if r['name'] in ('IN', 'IS') else (e0,)):       # (the aisle's line; the middle block boxed)
+            L(P(r['s0'], e), P(r['s0'] + r['pitch'] * r['n'], e))
+        for k, look in sorted(r['cars'].items()):
+            x, y = P(r['s0'] + r['pitch'] * (k + 0.5), (e0 + e1) / 2)
+            cars.append([round(x, 2), round(y, 2), round((r['head'] + WL_ANG + 180.0) % 360.0 - 180.0, 1), look[0], look[1:] or None,
+                         '%s%d' % (r['name'], k)])
+    for r in WL_ROWS_XY:
+        a = math.radians(r['dir'])
+        t, n = (math.cos(a), math.sin(a)), (-math.sin(a), math.cos(a))
+
+        def Q(s, d, r=r, t=t, n=n):
+            return (r['p'][0] + t[0] * s - n[0] * d, r['p'][1] + t[1] * s - n[1] * d)
+        for k in range(r['n'] + 1):
+            L(Q(r['pitch'] * k, 0.0), Q(r['pitch'] * k, r['depth']))
+        L(Q(0.0, 0.0), Q(r['pitch'] * r['n'], 0.0))
+        for k, look in sorted(r['cars'].items()):
+            x, y = Q(r['pitch'] * (k + 0.5), r['depth'] / 2)
+            cars.append([round(x, 2), round(y, 2), r['head'], look[0], look[1:] or None, '%s%d' % (r['name'], k)])
+    for j, (u, v, h, s, w) in enumerate(WL_LOOSE):
+        x, y = wl_xy(u, v)
+        cars.append([round(x, 2), round(y, 2), round((h + WL_ANG + 180.0) % 360.0 - 180.0, 1), s, w, 'L%d' % j])
+    return cars, lines

@@ -6573,9 +6573,18 @@ print('의료원 주차장 셋:', MED97_GRADE)
 _lc_took, LOT_C_GRADE = medwest97.lot_grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, bline, ROAD_HALF)
 FIXED[_lc_took] = True
 print('정문 동쪽 주차장:', LOT_C_GRADE)
+# 의료원 들어오는 길 서쪽 주차장과 건물 둘 (tools/medwest97.py wl_*, reference/고증/3.1.2 「들어오는 길 서쪽 주차장과 건물
+# 둘」; md): the lined car park, the sunk yard and the two halls' sites on the 1997 scans' heights (the game's lawn ran
+# up to 3.2 m under them); before 의료원 서쪽's easing, which runs round them, and the rest of a 12 m ring round them
+# eased after it
+_wl_set, _wl_ring, MEDWEST_LOT_GRADE = medwest97.wl_grade(Hn, X, Y, FIXED, _md_halls, TOWN_PLAN['road'].ls, gate_town.HW)
+FIXED[_wl_set] = True
 _mw_took, MEDWEST_GRADE = medwest97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
 FIXED[_mw_took] = True
 print('의료원 서쪽:', MEDWEST_GRADE)
+_wl_eased, _wl_ease_info = medwest97.wl_ease(Hn, _wl_ring, FIXED, harmonic_fill)
+FIXED[_wl_eased] = True
+print('의료원 들어오는 길 서쪽 주차장:', MEDWEST_LOT_GRADE, _wl_ease_info)
 # 노천극장 · 음악관 뒤 언덕 · 동쪽 찻길 남쪽 (tools/music97.py, reference/고증/3.14 「땅의 높이」; #189, te): the ground
 # round the old bowl and on the hill north of 음악관 on the 1997 photos and the 2006 survey (6 - 23 m over the game's),
 # the bowl cut into it on the photos' floor (AMPH['arena_h'] set there), TR_E from 아펜젤러관's yard to the fork on
@@ -9445,6 +9454,9 @@ for g_ in _mw_clear:
         SPLAT_OPS.append(('poly', l_, list(g_.exterior.coords), v_))
 _ypaint(_mw_asph, _ga)
 _ypaint(_mw_pave, _gp)
+_wl_asph, _wl_pave = medwest97.wl_paint()     # (들어오는 길 서쪽 주차장 아스팔트, 두 동 사이 마당과 그리로 내려가는 포장)
+_ypaint(_wl_asph, _ga)
+_ypaint(_wl_pave, _gp)
 out['med_west'] = medwest97.build(Hn, NEAR_HALF, NEAR_STEP, [Polygon(b_['footprint']) for b_ in buildings
                                                              if b_['id'] in (990030, 324328472)])
 print('의료원 서쪽: surfaces %d triangles, walls and parapets %d quads' % (len(out['med_west']['top']['f']), len(out['med_west']['quads'])))
@@ -10758,6 +10770,7 @@ buildings += MUAK_HALLS_LATE                 # (무악학사 · 북문: after ev
 # 의료원 서쪽 (tools/medwest97.py; md): 외래진료소's low front block and round-ended wing of the 1997 scans, at the
 # halls' end (blender/build.py draws each hall's looks in its order)
 buildings += medwest97.halls()
+buildings += medwest97.wl_halls()            # (들어오는 길 서쪽의 모임지붕 단층과 낮은 평지붕 동)
 out['seomun'] = seomun.gate(ground_tn)
 out['markers'].append(dict(name='서문', pos=[-362.0, -18.4], top=round(out['seomun']['z'] + 4.0, 1)))
 # 종합관's low east block (tools/jonghap97.py PODIUM: 1994's two storeys across the slab's east end), at the halls' end
@@ -10789,6 +10802,10 @@ _mw_nd = len(out['decals'])
 out['decals'] = [d_ for d_ in out['decals'] if not _mw_clr.contains(Point(d_[1], d_[2]))]
 print('의료원 서쪽: trees moved', _mw_moved, 'left on it', _mw_left, 'planted', len(_mw_new), 'shrubs -%d props -%d decals -%d' % (
     _mw_ns, _mw_np, _mw_nd - len(out['decals'])), 'walks (cut, gone, new)', medwest97.walks(out['paths']))
+# 의료원 들어오는 길 서쪽 주차장 (tools/medwest97.py wl_trees_aside; md): the game's trees on the car park, the yard and
+# the two halls to the scans' trees round them, in their places in the list; the scans' trees left over at the end
+_wl_moved, _wl_ns, _wl_np, _wl_new = medwest97.wl_trees_aside(out['trees'], out['shrubs'], out['props'])
+print('의료원 들어오는 길 서쪽 주차장: trees moved', _wl_moved, 'planted', len(_wl_new), 'shrubs -%d props -%d' % (_wl_ns, _wl_np))
 # 종합관 북쪽 마당 (tools/jonghap97.py; #189, jh): the trees the random planting put on the paved yard and the terrace
 # and where the low block stands, out to their edges in their places in the list
 print('종합관 북쪽 마당: trees out of the yard and the low block',
