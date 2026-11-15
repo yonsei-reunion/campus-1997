@@ -1277,7 +1277,9 @@ def layout(geo, town, extras, ground, taken_z):
         W_parts.append(box(gt.YONSEI_X - gt.YONSEI_HALF - gt.YONSEI_WALK, y1_ - 0.25, gt.YONSEI_X + gt.YONSEI_HALF + gt.YONSEI_WALK, y0_ + 0.25).intersection(street.union(extras['walk_s'])))
     cx0, cx1, cy0, cy1 = extras['cross_box']          # (gate_town's crossing over 성산로, kerb to kerb)
     W_parts.append(box(cx0, cy0 - 0.5, cx1, cy1 + 0.8))
-    W_parts.append(extras['walk_s'].intersection(box(-135.0, -480.0, -55.0, -440.0)))
+    # (west to the arm lamp at x -116.8 only: past it 성산로's south walk is 1.5 m, the lamp stands in it and no walker
+    # gets by, so the 18 m strip beyond was a piece of walk_open shut off from the rest)
+    W_parts.append(extras['walk_s'].intersection(box(-116.2, -480.0, -55.0, -440.0)))
     # 그랜드백화점 앞마당 (2026-11-15; the 1997-07-28 scans 27/18 · 27/19): paved from the store's front out to 양화로's and
     # 1997년 신촌로's walks, west of the turning lane by the kiosk (GRAND_YARD_BOX): how one walked from the one to the
     # south-west crossing (the game's rounded corner east of it is the turning lane and its hatched wedge then, 4.10.4)
