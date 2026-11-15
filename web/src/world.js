@@ -146,18 +146,39 @@ function instanced(geo, mat, capacity, castShadow) {
   return im;
 }
 
+// the attributes a geometry has, as mergeGeometries needs them alike
+const attrSig = (g) => (g.index ? 'i' : '') + Object.keys(g.attributes).sort().map((k) => {
+  const a = g.attributes[k];
+  return `${k}:${a.itemSize}:${a.normalized}:${a.array.constructor.name}`;
+}).join(',') + '|' + Object.keys(g.morphAttributes).join(',');
+
 // A "kit" is a loaded GLB whose meshes become InstancedMesh parts sharing one transform list.
 // mat: the material the parts draw with, for each library material (the forest's near trees take their own copies)
+// The meshes that draw with one material are one part (a car's tyres, rims and trim with the body's: 28 parts → 13,
+// and every part is a draw call each frame), in the order of their first mesh.
 export class InstancedKit {
   constructor(gltfScene, lib, capacity, { shadows = true, colors = false, mat = (m) => lib.instanced(m) } = {}) {
     this.parts = [];
     gltfScene.updateMatrixWorld(true);
+    const same = new Map();          // material -> attributes -> geometries
+    const order = [];
     gltfScene.traverse((o) => {
       if (!o.isMesh) return;
       const g = o.geometry.clone();
       g.applyMatrix4(o.matrixWorld);
-      this.parts.push(instanced(g, mat(o.material), capacity, shadows));
+      const m = mat(o.material), sig = attrSig(g);
+      const bySig = same.get(m) || same.set(m, new Map()).get(m);
+      if (!bySig.has(sig)) { bySig.set(sig, []); order.push([m, sig]); }
+      bySig.get(sig).push(g);
     });
+    for (const [m, sig] of order) {
+      const geos = same.get(m).get(sig);
+      const g = geos.length > 1 ? mergeGeometries(geos, false) : geos[0];
+      if (g) {
+        if (g !== geos[0]) for (const q of geos) q.dispose();
+        this.parts.push(instanced(g, m, capacity, shadows));
+      } else for (const q of geos) this.parts.push(instanced(q, m, capacity, shadows));     // (could not merge)
+    }
     this.capacity = capacity;
     this.count = 0;
     this.colors = colors;
