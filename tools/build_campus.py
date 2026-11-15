@@ -6810,7 +6810,7 @@ WEST_VALLEY = west_ground.valley(Hn, X, Y, FIXED, [Polygon(b_['footprint']).buff
 _wg_box = Polygon([(-230, -260), (-60, -260), (-60, -100), (-230, -100)])
 WEST_YARD = west_ground.eagle_yard(Hn, X, Y, FIXED, [(Polygon(b_['footprint']).buffer(0), b_['base']) for b_ in buildings
                                                      if Polygon(b_['footprint']).intersects(_wg_box)], harmonic_fill)
-print('과학관 북서쪽 골짜기: %(nodes)d nodes moved (most %(most).1f m) on %(pts)d points' % WEST_VALLEY)
+print('과학관 북서쪽 골짜기: %(nodes)d nodes moved (most %(most).1f m) on %(pts)d points, the east bench %(bench)d' % WEST_VALLEY)
 print('독수리상 서쪽 마당: lot %(lot)d nodes, smoothed %(ring)d; %(nodes)d moved, most %(most).1f m' % WEST_YARD)
 print('무악학사 길: %d nodes graded (%d level), most moved %.1f m; the road %.1f m at s 10, %.1f m at the crest' % (
     _mk_n, int(_mk_took.sum()), _mk_dz, float(np.interp(10.0, MUAK['s'], MUAK['z'])), float(MUAK['z'].max())))

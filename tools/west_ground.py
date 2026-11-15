@@ -99,10 +99,13 @@ def field_sw(Hn, X, Y, FIXED, road, half_w, dz, field_patch, field_keep, pad, ba
 # years: the survey 2006 · 2024 has 46.3 - 52.6 m on its spots there, 7 - 8.5 m under the game) but a works yard cut
 # into the valley, level at 47.3 m (prefab sheds, stacked materials, a track round its north end), and north of it the
 # valley floor at 42.6 - 45.0 m.  Its points (x, y, the photos' height + 0.3: the datum seomun.py found at 과학관's
-# corner and the road west of it); not the sheds along its east side (51 - 52 m, roofs or a bench: left out), not the
-# dip at its south end (44 - 45 m at y 58 - 76, among dark sheds: left out).  The ground takes the photos' difference
-# from the game's round them (Gaussian, 6 m; out of reach it fades to nothing), the 과학관 north road (y 40 - 48) and
-# the halls' feet as they are
+# corner and the road west of it); not the dip at its south end (44.4 - 45.5 m at y 58 - 74: a pit dug for a hall's
+# footings, the square pads in it, which the game does not build: left out).  Along its east side the yard's rim:
+# VALLEY_BENCH, a level bench 10 - 12 m wide 4.2 m over the yard (51.0 - 52.5 m, 58 points along y 56 - 140, curving
+# north-east with the track; at its north end three frame pairs, 26/14 too, within 0.13 m, and the survey's spot
+# (-287.7, 145.1) 51.95 m (2006) at its end), with a shed's roof on it (55.8 m: left out).  The ground takes the
+# photos' difference from the game's round them (Gaussian, 6 m; out of reach it fades to nothing), the 과학관 north
+# road (y 40 - 48) and the halls' feet as they are
 VALLEY_PTS = datum.up3([
     (-312, 154, 47.99), (-306, 154, 48.26), (-330, 148, 48.1), (-324, 148, 48.67), (-318, 148, 47.94), (-312, 148, 48.01), (-306, 148, 48.18), (-300, 148, 48.25),
     (-336, 142, 47.65), (-330, 142, 47.92), (-324, 142, 47.69), (-318, 142, 47.66), (-312, 142, 47.72), (-306, 142, 47.99), (-300, 142, 47.96), (-336, 136, 47.36),
@@ -113,6 +116,12 @@ VALLEY_PTS = datum.up3([
     (-318, 82, 47.8), (-342, 214, 44.1), (-330, 214, 45.04), (-348, 208, 43.85), (-342, 208, 43.22), (-336, 208, 43.89), (-330, 208, 44.55), (-336, 202, 43.7),
     (-330, 202, 44.17), (-342, 196, 42.75), (-336, 196, 43.82), (-330, 196, 44.38),
 ])
+# The bench: its outline (west edge north, then east edge back south, from the 58 points and the steps either side of
+# them) and its level along y, (y, the photos' median there + 0.3)
+VALLEY_BENCH = Polygon([(-314.0, 54.0), (-313.5, 64.0), (-313.5, 104.0), (-310.5, 110.0), (-305.5, 122.0), (-299.5, 130.0),
+                        (-292.0, 141.0), (-286.0, 142.0), (-293.5, 128.0), (-297.5, 120.0), (-298.5, 104.0), (-300.5, 84.0),
+                        (-301.5, 60.0), (-304.5, 53.0)])
+VALLEY_BENCH_Z = [(60.0, 52.18), (74.0, 52.39), (90.0, 52.04), (106.0, 51.92), (122.0, 51.76), (136.0, 51.81)]
 VALLEY_BOX = (-390.0, -260.0, 40.0, 250.0)
 
 
@@ -158,8 +167,12 @@ def valley(Hn, X, Y, FIXED, halls, half=800.0, step=5.0, sigma=6.0, prior=0.05):
     xs, ys = X[m], Y[m]
     w = np.exp(-((xs[:, None] - cx[None]) ** 2 + (ys[:, None] - cy[None]) ** 2) / (2 * sigma * sigma))
     Hn[m] = H0[m] + (w * cd[None]).sum(1) / (w.sum(1) + prior)
+    # the bench along the yard's east side: its nodes on its level (the grid's cells either side make the steps)
+    bench = shapely.contains_xy(VALLEY_BENCH, X, Y) & ~FIXED
+    by, bz = zip(*VALLEY_BENCH_Z)
+    Hn[bench] = np.interp(Y[bench], by, bz) + datum.tilt(X[bench], Y[bench])
     moved = np.abs(Hn - H0)
-    return dict(nodes=int((moved > 0.05).sum()), most=float(moved.max()), pts=len(VALLEY_PTS))
+    return dict(nodes=int((moved > 0.05).sum()), most=float(moved.max()), pts=len(VALLEY_PTS), bench=int(bench.sum()))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
