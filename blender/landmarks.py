@@ -4285,7 +4285,7 @@ def daewoo():
     centre = dict(b, footprint=[W(uc - wi, 0), W(uc + wi, 0), W(uc + wi, 14.8), W(uc - wi, 14.8)])
     # (the front as the photos have it, reference/고증/3.6.5: a low roof behind a coped parapet with four small gablets
     # either side of the tower over four broad windows; the tower a storey over the eaves, plain-headed, the white drum
-    # of its lantern at 99.0 m in the 1997 aerial photos)
+    # of its lantern at 95.2 m in the 1997 aerial photos)
     out = gothic('daewoo', centre, tuple(-nl), 6, tower_w=9.0, tower_extra=3.9, ivy=0, wings=False, fh=3.6,
                  wall='stone_white', stairs=dict(none=True), door=dict(w=3.0, arch='pointed', spring=2.45, style='modern'),
                  z_floor=lv['floor'], rear=daewoo_rear, dormers=False, pitch=0.3, modern=dict(bay=4.9, ww=0.52, mull=1))
