@@ -5234,6 +5234,12 @@ def aud_flight():
             sx[j] += 0.002
     for ya, yb in ((-hw - ch, -hw), (hw, hw + ch)):
         profile_wall(mb, ya, yb, sx, tops, [base] * len(sx), 'stone_rubble_warm', cap='stone_trim', ct=0.2)
+        # (its coping walked on, 0.1 m out over the bank's edge: from the bank a walker stepped onto the wall's top and
+        # fell between the wall and the flight to the ground kept under them)
+        ylo, yhi = (ya - 0.1, yb) if ya < 0 else (ya, yb + 0.1)
+        for j in range(len(sx) - 1):
+            WALK_FACES.append([W_(sx[j], ylo, tops[j]), W_(sx[j + 1], ylo, tops[j + 1]), W_(sx[j + 1], yhi, tops[j + 1]),
+                               W_(sx[j], yhi, tops[j])])
     # the posts at the foot: square granite, a flat cap, letters down the face towards the road
     rnd = random.Random(1958)
     for yc in (-hw - ch / 2, hw + ch / 2):
@@ -5254,8 +5260,10 @@ def aud_flight():
         q = [(x0, -yb_, z0), (x1, -yb_, z1), (x1, yb_, z1), (x0, yb_, z0)]
         mb.face(q, 'terrain_drape')
         WALK_FACES.append([W_(*p) for p in q])
-    # walked on: the foot, one ramp up each flight through the nosings, the landing, the head
-    walk = [(0.0, 0.0), (xs[0], 0.0), (xs[k], (k + 1) * r), (xs[k + 1], (k + 1) * r), (xs[-1], n * r), (x_top, n * r)]
+    # walked on: the foot up to the first nosing, one ramp up each flight through the nosings (the landing from its own
+    # nosing to the next), the head.  A ramp from a riser's foot keeps the feet a riser under the treads, and the low
+    # wall rays meet the riser before them: the flight could not be climbed
+    walk = [(0.0, 0.0), (xs[0], r), (xs[k], (k + 1) * r), (xs[k + 1], (k + 2) * r), (xs[-1], n * r), (x_top, n * r)]
     for (x0, z0), (x1, z1) in zip(walk[:-1], walk[1:]):
         WALK_FACES.append([W_(x0, -hw, z0), W_(x1, -hw, z1), W_(x1, hw, z1), W_(x0, hw, z0)])
     # the zone over the flight (the web app keeps shrubs off it)
