@@ -16,7 +16,7 @@ import { UI } from './ui.js';
 import { Post } from './post.js';
 import { Path, makeBanners, Crowd, Traffic, BoothGates, CAR_COLORS } from './life.js';
 import { makeGatePosters } from './posters.js';
-import { Cast, PEOPLE, STUDENTS, HEROES, HERO, heroScale, portraits, castFiles } from './characters.js';
+import { Cast, PEOPLE, STUDENTS, HEROES, HERO, heroScale, portraits, castFiles, play } from './characters.js';
 import { BirdsEye } from './birdseye.js';
 import { SunShadows } from './shadows.js';
 import { TouchControls } from './touch.js';
@@ -727,9 +727,12 @@ async function main() {
     if (!started || ui.memoryOpen || ui.mapOpen) return;
     paused = true;
     player.enabled = false;
+    // (in the game: the way out of it; else the way into it)
     $('#shoot-quit').hidden = !shootout?.on;
+    $('#shoot-go').hidden = !!shootout?.on || !S.court;
     shootBest();
     $('#pause').hidden = false;
+    $('#resume').focus({ preventScroll: true });        // (keys: Enter goes on, Shift+Tab to the buttons above it)
   };
   const startWalk = (where = null, msg = null) => {
     if (started) return;
@@ -742,10 +745,40 @@ async function main() {
     ui.toast(msg || `${how} · ${where ? `${where}에서 출발해요` : '정문에서 백양로를 따라 걸어 보세요'}`, 5000);
   };
   $('#start').addEventListener('click', () => {
-    const p = places[placeEl.value];         // '' → 정문 (the walker already stands at the spawn)
+    const p = places[placeEl.value];         // '' → 정문 (the walker stands at the spawn: at first, and after toTitle)
     if (p) { player.teleport(...walkOut(p.x, p.y), p.yaw); forest.update(camera.position, true); }
     startWalk(p ? (p.front ? `${p.name} 앞` : p.name) : null);
   });
+  // 「처음 화면으로」 (the settings card, the tour bar): the title card again without loading the page anew, to pick who,
+  // when and where and start over. Whatever is under way is let go of (the game, the tour, a card, a shot, the
+  // birthday scene, the keys and fingers held) and the walker stands idle at the gate as when the page came up
+  const toTitle = () => {
+    if (!started && !bird.active) return;
+    shootout?.stop();                        // (its onQuit goes on with the walk: stopped below)
+    started = false;
+    paused = false;
+    if (ui.memoryOpen) ui.closeMemory();
+    if (ui.mapOpen) ui.toggleMap(false);
+    if (bird.active) leaveBird();            // (not started: it leaves for the title card)
+    if (player.scripted) birthday?.abort();
+    ball?.drop();
+    shotBy = null;
+    touch.reset();
+    player.keys.clear();
+    player.stick.set(0, 0);
+    player.enabled = false;
+    player.speed = 0;
+    player.teleport(campus.spawn.pos[0], campus.spawn.pos[1], campus.spawn.yaw);
+    player.showBody(true);
+    play(player.actor, 'idle', { fade: 0 });
+    player.actor.mixer.update(0.3);
+    ui.setPrompt(null);
+    for (const id of ['#pause', '#hud', '#touch', '#toast']) $(id).hidden = true;
+    $('#intro').hidden = false;
+    shootBest();
+    forest.update(camera.position, true);
+  };
+  $('#to-title').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); toTitle(); });
   $('#resume').addEventListener('click', resume);
   const setFilm = (v) => { $('#opt-film').checked = v; post.setFilm(v); document.body.classList.toggle('film', v); bird.labels({ filmOn: v }); };
   const toggleFilm = () => setFilm(!$('#opt-film').checked);
@@ -811,17 +844,19 @@ async function main() {
     return true;
   };
   const shotUp = (by) => { if (by && by === shotBy) { shotBy = null; ball?.letGo(); ui.setPrompt(ball?.prompt()); } };
-  // 농구 1분 슛 게임 (src/shootout.js): from the title card (straight to it from ./?game=shoot)
+  // 농구 1분 슛 게임 (src/shootout.js): from the title card (straight to it from ./?game=shoot), the settings card of
+  // the walk and the tour bar
+  let shootLoading = false;
   const startShoot = async () => {
-    if (shootout?.on) return;
-    const btn = $('#shoot-start');
-    btn.disabled = true;
+    if (shootout?.on || shootLoading) return;
+    const btn = $('#shoot-start'), go = $('#shoot-go');
+    shootLoading = btn.disabled = go.disabled = true;
     try {
       const [{ Shootout }] = await Promise.all([import('./shootout.js'), loadBall()]);
       if (!ball) return;
       shootout ||= new Shootout({ scene, cast, player, ball, ui, bubbles: crowd.bubbles, shadows, blobs, sound, mobile: MOBILE,
         onQuit: () => { document.body.classList.remove('shootout'); resume(); ui.toast('농구장에서 산책을 이어 가요'); } });
-    } finally { btn.disabled = false; }
+    } finally { shootLoading = btn.disabled = go.disabled = false; }
     if (bird.active) leaveBird();
     const how = MOBILE ? '공을 받으면 「슛」을 꾹 눌렀다가' : '공을 받으면 E나 스페이스를 꾹 눌렀다가';
     const msg = `1분 동안 몇 골? ${how} 막대가 초록 칸에 올 때 떼세요`;
@@ -831,6 +866,7 @@ async function main() {
     forest.update(camera.position, true);
   };
   $('#shoot-start').addEventListener('click', startShoot);
+  $('#shoot-go').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); startShoot(); });
   $('#shoot-quit').addEventListener('click', (e) => { e.stopPropagation(); shootout?.stop(); });
   // this browser's ranking of the game, from the title card and the pause card (src/shootrecords.js, loaded when opened)
   const shootBest = () => {
@@ -892,6 +928,8 @@ async function main() {
     onMemory: (l) => { player.enabled = false; ui.openMemory(l); },
     onAction: (what) => {
       if (what === 'back') leaveBird();
+      else if (what === 'shoot') startShoot();
+      else if (what === 'title') toTitle();
       else if (what === 'film') toggleFilm();
       else if (what === 'season') setSeason(SEASON_ORDER[(SEASON_ORDER.indexOf(season) + 1) % 3]);
     },
@@ -949,6 +987,8 @@ async function main() {
     }
     if (!started) return;
     if (shootout?.resultsOpen) { if (e.code === 'Escape') shootout.stop(); return; }
+    // (the settings card is open: Enter is its focused button's, and no card opens behind it)
+    if (paused && (e.code === 'Enter' || e.code === 'KeyE' || e.code === 'KeyM')) return;
     if (e.code === 'KeyB' && !ui.memoryOpen) { enterBird(); return; }
     if ((e.code === 'KeyE' || e.code === 'Space') && !e.repeat && shotDown(e.code)) return;
     if (e.code === 'KeyE' || e.code === 'Enter') openNearby();
@@ -1131,7 +1171,7 @@ async function main() {
     },
   };
   window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, townCrowd, cast, traffic, street, bird, toggleBird, shadows, fountainWater,
-    startWalk, enterBird, leaveBird, record, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds, landAt, places,
+    startWalk, enterBird, leaveBird, toTitle, record, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds, landAt, places,
     get ball() { return ball; }, loadBall, startShoot, get shootout() { return shootout; },
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
     // (the kits whole for it: it draws them from above, tile by tile)

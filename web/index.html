@@ -110,6 +110,8 @@
       <button data-tour="down" data-hold="down" aria-label="더 낮게">▼</button>
       <button data-tour="in" data-hold="in" aria-label="가까이">＋</button>
       <button data-tour="out" data-hold="out" aria-label="멀리">－</button>
+      <button data-tour="shoot" title="대강당 앞 농구장에서 1분 동안 슛을 몇 개나 넣는지 겨뤄 봅니다">농구 1분 슛 게임</button>
+      <button data-tour="title" title="캐릭터 · 계절 · 출발할 곳을 다시 고릅니다">처음 화면으로</button>
       <button data-tour="back" class="back">걷기로 돌아가기</button>
     </div>
     <p class="tour-keys"><kbd>↑</kbd><kbd>↓</kbd>/<kbd>W</kbd><kbd>S</kbd> 앞뒤 · <kbd>←</kbd><kbd>→</kbd>/<kbd>A</kbd><kbd>D</kbd> 회전 · <kbd>Q</kbd><kbd>E</kbd> 옆으로 · <kbd>Z</kbd><kbd>X</kbd>/휠 확대·축소 · <kbd>R</kbd><kbd>F</kbd> 높이 · <kbd>Shift</kbd> 빠르게 · <kbd>Space</kbd> 자동 회전 · <kbd>T</kbd> 계절 · <kbd>Y</kbd> 필름 · 끌기 둘러보기 · 오른쪽 끌기 밀기 · 더블클릭 그곳으로 · <kbd>Esc</kbd> 돌아가기</p>
@@ -161,7 +163,11 @@
       <a class="newsbtn" href="people.html" target="_blank" rel="noopener">캠퍼스 사람들 · 캐릭터 구경</a>
       <button class="newsbtn" id="rank-pause" type="button" hidden>1분 슛 게임 순위</button>
       <label class="toggle pc-only"><input type="checkbox" id="opt-hq" checked /> 고품질 그림자 · 앰비언트 오클루전</label>
-      <button id="shoot-quit" type="button" hidden>1분 슛 게임 그만하기</button>
+      <div class="go-row">
+        <button id="shoot-go" type="button" title="대강당 앞 농구장에서 1분 동안 슛을 몇 개나 넣는지 겨뤄 봅니다">농구 1분 슛 게임</button>
+        <button id="shoot-quit" type="button" hidden>1분 슛 게임 그만하기</button>
+        <button id="to-title" type="button" title="캐릭터 · 계절 · 출발할 곳을 다시 고릅니다">처음 화면으로</button>
+      </div>
       <button id="resume">계속 걷기</button>
     </div>
   </div>

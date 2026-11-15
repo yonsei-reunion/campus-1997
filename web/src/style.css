@@ -176,7 +176,8 @@ body.film #datestamp { display: block; }
 
 /* ------------------------------------------------------------ pause */
 #pause { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; background: rgba(10,18,28,.45); }
-#pause > div { background: var(--paper); padding: 26px 30px; border-radius: 8px; min-width: 320px; box-shadow: 0 18px 50px rgba(0,0,0,.35); }
+#pause > div { background: var(--paper); padding: 26px 30px; border-radius: 8px; min-width: 320px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow: auto;
+  box-shadow: 0 18px 50px rgba(0,0,0,.35); }
 #pause h2 { font-family: var(--title); font-weight: 400; margin: 0 0 6px; color: var(--mint-ink); }
 #pause p { margin: 0 0 12px; color: #5c6572; }
 .toggle { display: flex; gap: 8px; align-items: center; margin: 8px 0; font-weight: 600; }
@@ -274,7 +275,10 @@ body:not(.game-shoot) .game-only, body.game-shoot .walk-only { display: none !im
 body.game-shoot #start, body.game-shoot #tour-start, body.game-shoot label[for="place-pick"], body.game-shoot #place-pick { display: none; }
 body.game-shoot #minigame { margin-top: 0; padding-top: 0; border-top: 0; }
 body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: 0 4px 0 #0b2659; }
-#shoot-quit { margin-top: 10px; width: 100%; border: 2px solid var(--ink); border-radius: 8px; padding: 10px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 700; }
+/* the settings card's ways out of the walk: into the 1-minute game (or out of it) and back to the title card */
+.go-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.go-row button { flex: 1 1 auto; border: 2px solid var(--ink); border-radius: 8px; padding: 10px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 700; white-space: nowrap; }
+.go-row button:disabled { opacity: .45; cursor: progress; }
 #birdpins { position: fixed; inset: 0; z-index: 9; pointer-events: none; overflow: hidden; --pin-scale: 1; }
 #birdpins .pin { position: absolute; left: 0; top: 0; pointer-events: auto; border: 0; padding: 0; background: none; cursor: pointer; }
 #birdpins .pin span { position: absolute; left: 0; bottom: 0; transform: translate(-50%, -10px) scale(var(--pin-scale)); transform-origin: 50% 100%;
@@ -328,6 +332,14 @@ body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(-
   #stick { bottom: calc(24px + var(--sb)); width: 116px; height: 116px; }
   #stick div { left: 33px; top: 33px; }
   .intro-card { padding: 18px 20px; }
+  /* the settings card whole on the screen: no hint, its links side by side */
+  #pause > div { padding: 14px 24px; min-width: 400px; }
+  #pause p { display: none; }
+  #pause .season-pick { margin: 6px 0 8px; }
+  #pause .toggle { margin: 5px 0; }
+  #pause .newsbtn { display: inline-block; margin: 6px 4px 2px 0; padding: 5px 12px; }
+  .go-row, #resume { margin-top: 8px; }
+  .go-row button, #resume { padding: 9px; }
 }
 body.birds #stick { display: none; }
 

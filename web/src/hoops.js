@@ -163,6 +163,23 @@ export class Basketball {
     b.vel.set(0, 0, 0);
   }
 
+  // the walker is taken off the walk (main.js: back to the title card): a shot not yet away is called off and the
+  // ball in hand, or on its way to it, is left on the ground where it is; the arms go back to the clip's
+  drop() {
+    const s = this.shot, pl = this.player;
+    const left = [this.mine, s && !s.gone ? s.ball : null, ...this.balls.filter((b) => b.state === 'pass')];
+    if (s) { this.shot = null; pl.cam.aim = null; pl.cam.hop = 0; }
+    this.mine = null;
+    for (const b of left) {
+      if (!b) continue;
+      b.state = 'ground'; b.shot = null; b.pass = null; b.idle = 0;
+      b.vel.set(0, 0, 0);
+      b.pos.y = this.floorAt(b.pos.x, b.pos.z, b.pos.y + 1) + R;
+    }
+    this.armW = 0;
+    this.form.rest();
+  }
+
   // E / Space / the button pressed with the ball in hand: turn to the basket and start the shot (true when it did)
   press() {
     if (!this.mine || this.shot || (this.game && !this.game.canShoot())) return false;

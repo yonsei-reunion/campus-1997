@@ -167,8 +167,9 @@ export class BirdsEye {
   // bar buttons and their keys
   do(what) {
     const g = this.goal;
-    if (what !== 'photo' && what !== 'back') this.release();
-    if (what === 'back') { this.onAction('back'); return; }
+    // (out of the tour: back to the walk or the title card, the 1-minute game, the title card: main.js)
+    if (what === 'back' || what === 'shoot' || what === 'title') { this.onAction(what); return; }
+    if (what !== 'photo') this.release();
     if (what === 'auto') this.auto = !this.auto;
     else if (what === 'season' || what === 'film') this.onAction(what);
     else if (what === 'in') { g.dist = clamp(g.dist * 0.7, ...DIST); this.stopAuto(); }
@@ -203,6 +204,9 @@ export class BirdsEye {
     if (this.seasonLabel) set('season', `계절: ${this.seasonLabel}`);
     if (this.filmOn !== undefined) set('film', this.filmOn ? '필름: 켬' : '필름: 끔');
     set('back', this.player ? '걷기로 돌아가기' : '처음 화면으로');
+    // (from the title card the way back is the title card already)
+    const title = this.tourbar.querySelector('[data-tour="title"]');
+    if (title) title.hidden = !this.player;
   }
 
   enter({ x, y, yaw, player }) {
@@ -252,6 +256,9 @@ export class BirdsEye {
     this.bar.querySelector('b').textContent = l.name;
     this.bar.querySelector('.memory').hidden = !l.photo;
     this.bar.querySelector('.walk').textContent = this.player ? '여기서 걷기' : '여기서 걷기 시작';
+    // (clear of the tour bar, however many rows it wraps to on a narrow screen)
+    const top = this.tourbar.firstElementChild.getBoundingClientRect().top;
+    if (top > 0) this.bar.style.bottom = `${Math.round(innerHeight - top + 10)}px`;
     this.goal.x = l.pos[0];
     this.goal.y = l.pos[1];
     this.goal.dist = clamp(this.goal.dist, 90, 210);
