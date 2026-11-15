@@ -393,7 +393,7 @@ async function main() {
     const a = b * Math.PI / 180;
     colliders.addCircle(S.eagle.pos[0] + r * Math.sin(a), S.eagle.pos[1] + r * Math.cos(a), 0.6);
   }
-  colliders.addCircle(S.underwood_statue.pos[0], S.underwood_statue.pos[1], 2.1);   // the rock-faced octagon (the round slab is walked on)
+  colliders.addCircle(S.underwood_statue.pos[0], S.underwood_statue.pos[1], 1.64);   // the rock-faced octagon (the round slab is walked on; blender/statues.py UW_K)
   if (S.fountain) colliders.addCircle(S.fountain.pos[0], S.fountain.pos[1], S.fountain.rim);   // 활천 basin's stone wall
   if (S.court) {                                                                     // the two hoops of the 대강당 court
     const c = Math.cos(S.court.rot), s = Math.sin(S.court.rot);

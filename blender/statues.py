@@ -70,8 +70,12 @@ UW_H = 2.45                    # the figure, soles to crown
 UW_PED = 0.94                  # the pedestal and platform, drawn below at their measured proportions, to scale: the
 #                                figure is 0.92 of the pedestal's height (1990s telephoto, reference/용재관.jpg)
 UW_PLATE = 3.87 * UW_PED       # top of the bronze plate under his feet
-UW_WALK = ((3.85 * UW_PED, 0.30 * UW_PED), (3.25 * UW_PED, 0.34 * UW_PED))   # (radius, height): the curb ring with its
-#                                gravel, the round slab (blender/build.py makes them walkable)
+UW_K = 0.78                    # the whole statue (figure, pedestal, platform) is built to the sizes above and set up at this
+#                                scale: the 1997 scans have the round slab's edge 2.40 m from its middle (3.1 m above), the
+#                                1990s telephoto's camera solved with 용재관's roof on the scans' height puts the figure at
+#                                0.78 of 2.45 m, the people sitting on its steps agree (reference/고증/4.2 「크기」)
+UW_WALK = ((3.85 * UW_PED * UW_K, 0.30 * UW_PED * UW_K), (3.25 * UW_PED * UW_K, 0.34 * UW_PED * UW_K))   # (radius, height):
+#                                the curb ring with its gravel, the round slab (blender/build.py makes them walkable)
 HBM = os.path.join(ROOT, 'assets_src', 'blender-human-base-meshes', 'human-base-meshes-bundle-v1.4.1',
                    'human_base_meshes_bundle.blend')
 HBM_HEAD = 'GEO-head_sculpting_realistic'
@@ -1135,7 +1139,10 @@ def underwood_pedestal():
 def underwood_statue():
     fig = sculpt.load('underwood')               # soles at z = 0 (underwood_sculpt, `blender/build.py -- statues`)
     fig.data.transform(Matrix.Translation((0, 0, UW_PLATE)))      # onto the bronze plate
-    return [fig, underwood_pedestal().build()]
+    ped = underwood_pedestal().build()
+    for ob in (fig, ped):                        # (to its size: UW_K, about the middle of its platform's foot)
+        ob.data.transform(Matrix.Scale(UW_K, 4))
+    return [fig, ped]
 
 
 # ============================================================================= 독수리상
