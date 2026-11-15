@@ -1,10 +1,10 @@
-"""청송대 숲과 캠퍼스 동쪽 언덕의 1997년 땅 (#189; reference/고증/3.23_청송대.md, 3.14 「동쪽 언덕의 봉우리」, 2.8 「측량 표고」).
+"""청송대 숲과 캠퍼스 동쪽 언덕의 1997년 땅 (#189; reference/고증/3.23_청송대.md, 3.14 「동쪽 언덕의 봉우리」, 2.8.1).
 tools/build_campus.py 가 부른다.
 
     took, moved, info = east97.grade(Hn, X, Y, FIXED, halls, hold, fill, tr_pts, tr_n)   # 심기가 끝난 뒤, music97 바로 뒤
 
 Frame: campus metres, x east, y north.  GRID is 해발 (the survey's heights above sea level, decimetres); the build's
-working datum is the tilt over it (tools/datum.py, reference/고증/2.8 「측량 표고」), added in grid_z().  PEAK and nothing else here is an
+working datum is the tilt over it (tools/datum.py, reference/고증/2.8.1), added in grid_z().  PEAK and nothing else here is an
 absolute height written here (해발, lifted at its place: datum.up3).
 
 - The game's ground under 청송대 and on the wooded hillsides east and north-east of it was the surface model's, the

@@ -10,7 +10,7 @@
 Frame: campus metres, x east, y north.  Nothing here draws from build_campus.py's `rng`: the lists keep their order.
 
 Heights: every absolute height in this file is 해발 (above sea level: the 1:5000 survey's datum).  The build lays the
-ground on its working datum, that + T(x, y) at the place itself (tools/datum.py tilt, 고증 2.8 「측량 표고」), and takes
+ground on its working datum, that + T(x, y) at the place itself (tools/datum.py tilt, 고증 2.8.1), and takes
 the tilt out again where it writes the ground: T() below is that lift.
 
 What was measured (고증 3.9): the 1997-07-28 scans, frame pairs one by one (1.25 - 1.5 m windows, pairs over 0.7), and

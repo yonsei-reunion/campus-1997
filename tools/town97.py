@@ -1,5 +1,5 @@
 """동네 땅: 성산로 남쪽 · 경의선 남쪽의 창천동 · 노고산동 · 동교동과 신촌 로터리 둘레를 측량 표고로 (#189;
-reference/고증/4.8.3_동네_땅.md, 2.8 「측량 표고」).  tools/build_campus.py 가 부른다.
+reference/고증/4.8.3_동네_땅.md, 2.8.1).  tools/build_campus.py 가 부른다.
 
     info = town97.lay(Hn, X, Y)              # 철둑 · 성산로 · 연세로를 놓기 바로 앞(심기가 끝난 뒤)
     info = town97.lay_patch(Hs, S)           # 남쪽 조각(tools/sinchon_rotary.py patch)에도 같은 면
@@ -8,7 +8,7 @@ reference/고증/4.8.3_동네_땅.md, 2.8 「측량 표고」).  tools/build_cam
 Frame: campus metres, x east, y north.
 
 - The game's ground in the town was the surface model's (its roofs and trees in it): at the 84 spot heights the two
-  surveys share there it stood 4.7 m over them (16 - 84 %: +2.8 .. +6.5 m, no tilt; 2.8 「측량 표고」).  The streets
+  surveys share there it stood 4.7 m over them (16 - 84 %: +2.8 .. +6.5 m, no tilt; 2.8.1).  The streets
   (성산로, 연세로, the rotary's five) went down on the 1997 photos on 2026-11-15, each with a band of 30 m; past it
   the houses stood 4 - 5 m over them.
 - GRID: the ground above sea level (해발, decimetres) every 10 m, x -800 .. 800, y -1200 .. -100 (0: never read).  It is

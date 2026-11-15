@@ -285,7 +285,7 @@ GONE_NEW = {472512292}              # (left out since the planting was laid: the
 # ---------------------------------------------------------------------------
 tn = json.load(open(os.path.join(ROOT, 'data/terrain.json')))
 tf = json.load(open(os.path.join(ROOT, 'data/terrain_far.json')))
-# The game's heights are above sea level (reference/고증/2.8 「측량 표고」, tools/datum.py).  This script lays the ground
+# The game's heights are above sea level (reference/고증/2.8.1, tools/datum.py).  This script lays the ground
 # on the working datum, 해발 + tilt(x, y) = 0.052 + 0.522 x/100 + 0.248 y/100 m: the plane the 1997 photos' block and the
 # game's first roads stood on, on which every level, section and random draw below was settled; the tilt comes out
 # where the ground and campus.json are written (the end of this file).  Every absolute height written in these
@@ -10578,7 +10578,7 @@ print('종합관 북쪽 마당: trees out of the yard and the low block',
       jonghap97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 # ---------------------------------------------------------------------------
-# 해발로 (tools/datum.py; reference/고증/2.8 「측량 표고」).  Everything above is laid on the working datum, 해발 + the tilt
+# 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
 # the 1997 photos' block had (0.052 + 0.522 x/100 + 0.248 y/100 m): the levels the photos read as flat, the roads'
 # sections and every random draw were settled on it.  Here the tilt comes out: the ground node by node, what stands on
 # the ground at its own place, a hall (and the halls that touch it) by one value, with the ground PAD m round its

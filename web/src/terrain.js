@@ -45,7 +45,7 @@ const PAVE_GLSL = `
     return mix(ks.x, ks.y, brick);
   }`;
 
-// The heights are above sea level (tools/datum.py, reference/고증/2.8 「측량 표고」).  Until 2026-11-15 the ground lay on
+// The heights are above sea level (tools/datum.py, reference/고증/2.8.1).  Until 2026-11-15 the ground lay on
 // a plane tilted against it (the 1997 photos' block: 0.052 + 0.522 x/100 + 0.248 y/100 m, inside the fine grids; fading
 // to nothing 1.6 km outside them).  What a height on that plane decided is still decided there, so that it stays as
 // it was: where the far hills turn to forest and where the city's blocks stand (their random draws), the town's tint
