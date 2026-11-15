@@ -557,12 +557,14 @@ def build(Hn, half, step, halls=()):
                         else:
                             F.append([vid(*c) for c in q])
         # the walls: along the plate's outline, from its surface down to what lies beside it there
-        for ring in [p['poly'].exterior] + list(p['poly'].interiors):
+        # (by place in the list: shapely makes a new ring object at each .exterior, so `is` never matched it and every
+        # outline ran reversed, its 'outside' inside the plate)
+        for ri, ring in enumerate([p['poly'].exterior] + list(p['poly'].interiors)):
             cs = list(shapely.segmentize(ring, 1.25).coords)
             ccw = ring.is_ccw
-            if ring is p['poly'].exterior and not ccw:
+            if ri == 0 and not ccw:
                 cs = cs[::-1]
-            if ring is not p['poly'].exterior and ccw:
+            if ri > 0 and ccw:
                 cs = cs[::-1]                                     # (a hole runs clockwise: its outside is inside it)
             for (ua, va), (ub, vb) in zip(cs, cs[1:]):
                 L = math.hypot(ub - ua, vb - va)
@@ -579,12 +581,25 @@ def build(Hn, half, step, halls=()):
                 # (another surface beside it within a step: a walked strip SEAM wide over the seam at this one's
                 # height, so that no ray down slips between the two meshes' edges; checked every SEAM_STEP m)
                 ns = max(1, int(math.ceil(L / SEAM_STEP)))
-                for k in range(ns):
-                    (ua_, va_), (ub_, vb_) = [(ua + (ub - ua) * t, va + (vb - va) * t) for t in (k / ns, (k + 1) / ns)]
+                ts = [k / ns for k in range(ns + 1)]
+                ok = []
+                for t in ts:
+                    u, v = ua + (ub - ua) * t, va + (vb - va) * t
+                    zo = surface_uv(u + nu * 0.12, v + nv * 0.12, skip=p)
+                    ok.append(zo is not None and abs(zo - _dive(p, u, v)) <= SEAM_DZ)
+                runs, k = [], 0                                   # (the runs of the edge where both ends pass, one strip each)
+                while k < ns:
+                    if ok[k] and ok[k + 1]:
+                        k1 = k + 1
+                        while k1 < ns and ok[k1 + 1]:
+                            k1 += 1
+                        runs.append((ts[k], ts[k1]))
+                        k = k1
+                    else:
+                        k += 1
+                for t0, t1 in runs:
+                    (ua_, va_), (ub_, vb_) = [(ua + (ub - ua) * t, va + (vb - va) * t) for t in (t0, t1)]
                     zs_ = [_dive(p, ua_, va_), _dive(p, ub_, vb_)]
-                    zo_ = [surface_uv(u + nu * 0.12, v + nv * 0.12, skip=p) for u, v in ((ua_, va_), (ub_, vb_))]
-                    if None in zo_ or abs(zo_[0] - zs_[0]) > SEAM_DZ or abs(zo_[1] - zs_[1]) > SEAM_DZ:
-                        continue
                     (xa, ya), (xb, yb) = xy(ua_ - nu * SEAM, va_ - nv * SEAM), xy(ub_ - nu * SEAM, vb_ - nv * SEAM)
                     (xc, yc), (xd, yd) = xy(ub_ + nu * SEAM, vb_ + nv * SEAM), xy(ua_ + nu * SEAM, va_ + nv * SEAM)
                     za_, zb_ = round(zs_[0], 3), round(zs_[1], 3)
