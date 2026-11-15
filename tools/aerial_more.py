@@ -140,8 +140,14 @@ def data():
     return json.load(open(OUT)) if os.path.exists(OUT) else {}
 
 
-def save(d):
-    with open(OUT, 'w') as fp:
+def save(d, flight=None):
+    """json 을 쓴다. flight 를 주면 파일을 다시 읽어 그 비행만 바꿔 씀(여러 비행을 함께 맞출 때 서로 덮어쓰지 않게)"""
+    if flight is not None:
+        cur = data()
+        cur[flight] = d[flight]
+        d = {k: cur[k] for k in sorted(cur, key=lambda k: list(FLIGHTS).index(k) if k in FLIGHTS else 99)}
+    tmp = OUT + '.%d.tmp' % os.getpid()
+    with open(tmp, 'w') as fp:
         fp.write('{\n')
         fl = []
         for name, v in d.items():
@@ -149,6 +155,7 @@ def save(d):
             frs = ['   "%s": %s' % (fr, json.dumps(c)) for fr, c in v.get('frames', {}).items()]
             fl.append(' "%s": {\n%s,\n  "frames": {\n%s\n  }\n }' % (name, ',\n'.join(head), ',\n'.join(frs)))
         fp.write(',\n'.join(fl) + '\n}\n')
+    os.replace(tmp, OUT)
 
 
 # ---------- io: 지표 ----------
@@ -293,7 +300,7 @@ def cmd_io(flight):
         preview(flight, fr)
         print('%s %s: 원본 %d x %d, 자료 띠 %s, 화소 %.5f · %.5f mm(미리보기 단위), 비틀림 %.3f°, 지표 잔차 rms %.4f mm' % (
             flight, fr, a.shape[1], a.shape[0], '위' if top else '아래', sx, sy, skew, c['fid_rms_mm']))
-    save(d)
+    save(d, flight)
 
 
 # ---------- 사진 기하(카메라마다 초점 거리) ----------
@@ -443,6 +450,8 @@ def _match_guided(va, ka, da, vb, kb, db, lo=-6.0, hi=45.0, tol=2.5):
     ok = (mid[:, 0] > -50) & (mid[:, 0] < W) & (mid[:, 1] > -50) & (mid[:, 1] < H)
     out = {}
     idx = np.where(ok)[0]
+    if len(idx) < 300:                                       # (겹치지 않는 짝)
+        return []
     lists = tree.query_ball_point(mid[idx], half[idx] + tol)
     for i, cand in zip(idx, lists):
         if len(cand) < 1:
@@ -541,7 +550,14 @@ def cmd_init(flight):
         a = 'n' + fr
         ka, da = feats[a]
         best = None
-        for b in fl['known']:
+        c, nn = (int(v) for v in fr.split('/'))
+
+        def near(b):                                         # (같은 코스 · 같은 번호의 고정된 사진부터)
+            bc, bn = (int(v) for v in b.replace('1997_', '').replace('_', '/').split('/'))
+            return (bc != c) * 10 + abs(bn - nn)
+        for b in sorted(fl['known'], key=near):
+            if best is not None and best[0] >= 40:
+                break
             kb, db = feats[b]
             g = _match_free(ka, da, kb, db, 0.8)
             if len(g) < 30:
@@ -551,6 +567,24 @@ def cmd_init(flight):
             print('  %s -> %s: 짝 %d, 호모그래피 안쪽 %d' % (fr, b, len(g), n), flush=True)
             if H is not None and (best is None or n > best[0]):
                 best = (n, b, H)
+        if best is None or best[0] < 40:
+            # (옆 코스의 사진처럼 겹침이 좁고 보는 쪽이 반대면 전체 호모그래피가 서지 않는다: 겹칠 반쪽끼리만, 비율 0.9,
+            #  닮음 변환을 25 화소 허용으로. 1997년 2차 25/16 · 25/17 이 그랬음)
+            half = {'right': lambda k: k[:, 0] > 2643 * 0.45, 'left': lambda k: k[:, 0] < 2643 * 0.55,
+                    'bottom': lambda k: k[:, 1] > 2811 * 0.45, 'top': lambda k: k[:, 1] < 2811 * 0.55}
+            for b in sorted(fl['known'], key=near)[:3]:
+                kb, db = feats[b]
+                for ha, hb in (('right', 'left'), ('left', 'right'), ('bottom', 'top'), ('top', 'bottom')):
+                    ia, ib = np.where(half[ha](ka))[0], np.where(half[hb](kb))[0]
+                    g = _match_free(ka[ia], da[ia], kb[ib], db[ib], 0.9)
+                    if len(g) < 30:
+                        continue
+                    S, inl = cv2.estimateAffinePartial2D(ka[ia][[i for i, _ in g]], kb[ib][[j for _, j in g]], method=cv2.RANSAC,
+                                                         ransacReprojThreshold=25.0, maxIters=20000)
+                    n = int(inl.sum()) if inl is not None else 0
+                    print('  %s(%s) -> %s(%s): 짝 %d, 닮음 변환 안쪽 %d' % (fr, ha, b, hb, len(g), n), flush=True)
+                    if S is not None and n >= 30 and (best is None or n > best[0]):
+                        best = (n, b, np.r_[S, [[0, 0, 1]]])
         if best is None or best[0] < 20:
             print('%s: 처음 값을 놓지 못함' % fr)
             continue
@@ -577,7 +611,7 @@ def cmd_init(flight):
         fs_[fr]['init'] = dict(known=b, homography_inliers=n, resect_mm=round(float(np.median(e)), 3))
         print('%s: %s 에 호모그래피(안쪽 %d), 격자 %d점 후방 교회 잔차 중앙값 %.2f mm, 카메라 (%.0f, %.0f, %.0f) m, ω %.2f° φ %.2f° κ %.1f°' % (
             fr, b, n, len(P), np.median(e), *cam[:3], *np.degrees(cam[3:])), flush=True)
-    save(d)
+    save(d, flight)
 
 
 # ---------- fit: 번들 조정 ----------
@@ -596,7 +630,7 @@ def _start(flight, fr, M, f, solved, ties):
                 z = 60.0
                 for _ in range(6):
                     q = cam[:3] + dv * (z - cam[2]) / dv[2]
-                    z = float(F.dem(q[0], q[1]))
+                    z = float(F.dem(np.array([q[0]]), np.array([q[1]]))[0])
                 src.append(np.array([*t['n' + fr], 1.0]) @ M)
                 dst.append(q)
                 break
@@ -637,6 +671,7 @@ def cmd_fit(flight):
     # 처음 값: 1997년 사진과 이음점이 많은 장부터, 그 뒤는 먼저 놓은 새 장에도 기대어
     solved = {f: (cams0[k], Ms[k], fo[k]) for k, f in enumerate(fl['known'])}
     todo = list(new)
+    fitted = all('reproj_px' in fs_[fr] for fr in new) and os.environ.get('AERIAL_MORE_RESTART') != '1'
     for fr in new:                                           # (한 번 맞춘 카메라가 있으면 그것에서)
         if 'cam' in fs_[fr] and os.environ.get('AERIAL_MORE_RESTART') != '1':
             k = names.index('n' + fr)
@@ -654,10 +689,42 @@ def cmd_fit(flight):
         todo.remove(fr)
         print('처음 값 %s: (%.0f, %.0f, %.0f) m, κ %.2f°, 맞는 점 %d' % (fr, *c0[:3], math.degrees(c0[5]), n))
     ci, pi, ob, n = [], [], [], 0
-    for t in ties:
-        t = {f: p for f, p in t.items() if f in names}
+    # (궤적이 수만이면 번들 조정이 느리다: 사진 짝마다 많아야 CAP 개만, 고정된 사진과 이어진 궤적 · 사진이 많은 궤적부터)
+    cap = int(os.environ.get('AERIAL_MORE_CAP', '600'))
+    rng = np.random.default_rng(7)
+    ties = [{f: p for f, p in t.items() if f in names} for t in ties]
+    ties = [t for t in ties if len(t) >= 2 and any(f.startswith('n') for f in t)]
+    bad = np.zeros(len(ties), bool)
+    if fitted:
+        # (모든 새 사진에 앞서 번들 조정한 카메라가 있으면(처음 값만이 아니라): 모든 궤적을 그 카메라로 삼각측량해 재투영이 3 화소 넘는 관측이 있는 궤적을 먼저 뺀다.
+        #  이음점이 많을수록 짝 사이를 잇다가 다른 두 점이 한 궤적으로 묶이는 일이 늘고, 그런 궤적은 대개 길다)
+        ci0, pi0, ob0 = [], [], []
+        for j, t in enumerate(ties):
+            for f, p in t.items():
+                k = names.index(f)
+                ci0.append(k)
+                pi0.append(j)
+                ob0.append(np.array([p[0], p[1], 1.0]) @ Ms[k])
+        ci0, pi0, ob0 = np.array(ci0), np.array(pi0), np.array(ob0)
+        P0 = tri_many(cams0, fo, ci0, pi0, ob0, len(ties))
+        e0 = np.hypot(*((project_many(cams0, fo, ci0, P0[pi0]) - ob0) / PIX).T)
+        np.logical_or.at(bad, pi0, e0 > 3.0)
+        print('앞선 카메라로 재투영 3 화소 넘는 궤적 %d / %d 를 뺌' % (bad.sum(), len(ties)), flush=True)
+    order = sorted(np.where(~bad)[0], key=lambda i: (-sum(not f.startswith('n') for f in ties[i]), rng.random()))
+    used = {}
+    keep = []
+    for i in order:
+        t = {f: p for f, p in ties[i].items() if f in names}
         if len(t) < 2 or not any(f.startswith('n') for f in t):
             continue
+        prs = [(a, b) for a in t for b in t if a < b]
+        if all(used.get(q, 0) >= cap for q in prs):
+            continue
+        for q in prs:
+            used[q] = used.get(q, 0) + 1
+        keep.append(t)
+    print('궤적 %d 가운데 %d 를 씀(사진 짝마다 %d 까지)' % (len(ties), len(keep), cap), flush=True)
+    for t in keep:
         for f, p in t.items():
             k = names.index(f)
             ci.append(k)
@@ -704,13 +771,13 @@ def cmd_fit(flight):
                        reproj97_px=round(float(np.median(e[m & has97[pi]])), 2) if t97 else None)
         print('%s %s: 궤적 %d (1997년 사진과 %d), 재투영 잔차 중앙값 %.2f 화소 (1997년과 이어진 것 %s), 카메라 (%.1f, %.1f, %.1f) m, ω %.3f° φ %.3f° κ %.3f°' % (
             flight, fr, m.sum(), t97, np.median(e[m]), fs_[fr]['reproj97_px'], *cams[j, :3], *np.degrees(cams[j, 3:])))
-    save(d)
+    save(d, flight)
 
 
 def cmd_list():
     for flight, v in data().items():
         for fr, c in v['frames'].items():
-            if 'cam' in c:
+            if 'reproj_px' in c:
                 print('%s %s: 카메라 (%.1f, %.1f, %.1f) m, 궤적 %d (1997년 사진과 %d), 재투영 잔차 %.2f 화소, 지표 잔차 %.4f mm%s' % (
                     flight, fr, *c['cam'][:3], c['ties'], c['ties97'], c['reproj_px'], c['fid_rms_mm'],
                     '' if os.path.exists(tif(flight, fr)) else ' (영상 없음)'))
