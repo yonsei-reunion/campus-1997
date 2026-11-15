@@ -6724,8 +6724,12 @@ print('중앙도서관 남쪽 화단:', LIBSOUTH97)
 _yj_ring = shapely.contains_xy(YJ_PAD.buffer(15.0), X, Y) & ~_ypad & (dist > ROAD_HALF + 4) & ~near_buildings(1.0) & \
     (np.hypot(X - AMPH['cx'], Y - AMPH['cy']) > 48.0) & ~shapely.contains_xy(YJ_DRIVE.buffer(3.6), X, Y)
 _yj_c = unary_union([Polygon(b_['footprint']) for b_ in YONGJAE_BUILDINGS if b_['id'] != 990003]).centroid
+# (the bank west and north-west of the level ground, which the east road's easing had laid from the old floor: but for
+# the road's own cells, 7 m from its line)
+_yj_bank = shapely.contains_xy(YJ_PAD.buffer(15.0), X, Y) & ~_ypad & (dist > ROAD_HALF + 4) & (X >= 55.0) & (Y >= 110.0) & \
+    ~shapely.contains_xy(YJ_DRIVE.buffer(7.0), X, Y) & ~near_buildings(1.0) & (np.hypot(X - AMPH['cx'], Y - AMPH['cy']) > 48.0)
 _yj_dz, _yj_took, YJ97_PAD = yongjae97.raise_pad(Hn, X, Y, FIXED, _ypad, _yj_ring, YONGJAE['floor'], (_yj_c.x, _yj_c.y),
-                                                 harmonic_fill)
+                                                 harmonic_fill, YJ_PAD, YJ_WALK[1:], _yj_bank)
 FIXED[_yj_took] = True
 for b_ in YONGJAE_BUILDINGS:
     b_['base'], b_['top_ground'] = round(b_['base'] + _yj_dz, 2), round(b_['top_ground'] + _yj_dz, 2)
