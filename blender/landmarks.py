@@ -3564,6 +3564,8 @@ def amphitheater():
             mb.face(pts[::-1] if sg > 0 else pts, 'grass')
     # a flight up beside each end of the seats, two steps to a row, a stone cheek wall along its outer side
     W, D = 1.6, rows * rd
+    cw = MeshBuilder('lm_amph_cheeks')                 # (web/src/main.js walks on meshes named 'amphitheater' only)
+    cw.xf = mb.xf
     for sg in (-1, 1):
         t = sg * te
         n = (-sg * math.sin(t), sg * math.cos(t))           # out from the seat end, toward the open end
@@ -3579,21 +3581,23 @@ def amphitheater():
             q = [P(da, 0.05, zb), P(da, W, zb), P(db, W, zb), P(db, 0.05, zb)]
             mb.face(q[::-1] if sg > 0 else q, 'stone_step')
         top = lambda d: h0 + d / rd * rh + 0.3
+        # (the cheek in a mesh of its own, not walked on: as part of the seats its coping, 0.3 m over the nosings, was
+        # a step up for the walker, who went on over its outer side 1.1 - 1.6 m down to the hillside)
         o0, o1 = W, W + 0.25
         side = [(P(0, o, top(0)), P(D, o, top(D)), P(D, o, top(D) - 1.6), P(0, o, top(0) - 1.6)) for o in (o0, o1)]
-        mb.face(side[0][::-1] if sg > 0 else side[0], 'stone_rubble_gray')
-        mb.face(side[1] if sg > 0 else side[1][::-1], 'stone_rubble_gray')
+        cw.face(side[0][::-1] if sg > 0 else side[0], 'stone_rubble_gray')
+        cw.face(side[1] if sg > 0 else side[1][::-1], 'stone_rubble_gray')
         q = [P(0, o0, top(0)), P(0, o1, top(0)), P(D, o1, top(D)), P(D, o0, top(D))]
-        mb.face(q[::-1] if sg > 0 else q, 'stone_marker')
+        cw.face(q[::-1] if sg > 0 else q, 'stone_marker')
         for d in (0, D):
             q = [P(d, o0, top(d) - 1.6), P(d, o1, top(d) - 1.6), P(d, o1, top(d)), P(d, o0, top(d))]
-            mb.face(q[::-1] if (d == 0) == (sg > 0) else q, 'stone_rubble_gray')
+            cw.face(q[::-1] if (d == 0) == (sg > 0) else q, 'stone_rubble_gray')
     # the stage: the same earth, level with the ground behind it, a dark stone wall along its straight front
     su, sd, sw, sh = A['stage_u'], A['stage_d'], A['stage_w'], A['stage_h']
     mb.box((su - sd / 2, 0, h0 + (sh - 0.4) / 2), (sd, sw, sh + 0.4), 'stone_rubble_brown', mats={'top': 'dirt_pale'},
            skip=('bottom',))
     mb.box((su - 0.15, 0, h0 + sh + 0.03), (0.34, sw + 0.04, 0.08), 'stone_marker', skip=('bottom',))
-    return [mb]
+    return [mb, cw]
 
 
 # ============================================================================= 대우관 (1984)
