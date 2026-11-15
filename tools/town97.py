@@ -22,7 +22,7 @@ Frame: campus metres, x east, y north.
   Checked against the 2024 survey's spots in the town (169, a survey of its own): surface − spot −0.07 m in the
   middle, 16 - 84 % −0.66 .. +0.48 (the contours alone +0.72, −0.34 .. +1.88); against the photos' heights on a 10 m
   grid east of x −200 (1,800 points, most of them roofs) the lowest mode, the ground's, lies at −0.5 .. 0 m.
-- The game's datum is 해발 + T (TOWN_T: tools/aerial97.py SURVEY_PLANE); surf() adds it.
+- The build's working datum is 해발 + T (tools/datum.py tilt); surf() adds it.
 - weight(): 1 inside REGION (the town: south of 성산로's middle line and of the road north-west of its end, 성산로's run
   on north-east, the wedge east of it), eased to 0 over EDGE m inside its north side (성산로's bed, laid after it,
   covers that), over RIM m at the outer edges of the near terrain and of the patch (the far terrain round them is the
@@ -34,7 +34,8 @@ import shapely
 from scipy import ndimage
 from shapely.geometry import LineString, Polygon
 
-TOWN_T = (0.052, 0.522, 0.248)    # 해발 + c + a x / 100 + b y / 100 = the game's datum (tools/aerial97.py SURVEY_PLANE)
+import datum
+
 GRID_X0, GRID_Y0, GRID_D = -800.0, -1200.0, 10.0
 EDGE, RIM = 12.0, 60.0
 # the region's north side, west -> east: the road north-west of 성산로's end (tools/west_ground.py NW_LINE), 성산로's
@@ -76,8 +77,7 @@ def sea(x, y):
 
 
 def tilt(x, y):
-    c, a, b = TOWN_T
-    return c + a * np.asarray(x, float) / 100.0 + b * np.asarray(y, float) / 100.0
+    return datum.tilt(x, y)
 
 
 def surf(x, y):

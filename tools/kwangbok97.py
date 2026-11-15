@@ -9,9 +9,9 @@
 
 Frame: campus metres, x east, y north.  Nothing here draws from build_campus.py's `rng`: the lists keep their order.
 
-Heights: every absolute height in this file is 해발 (above sea level: the 1:5000 survey's datum), and the game's height
-is that + T(x, y) at the place itself (DATUM_T: the plane the game's datum still stands over the sea, 고증 2.8 「측량
-표고」).  When the game's datum goes to sea level (#191), DATUM_T becomes (0, 0, 0) and nothing else here changes.
+Heights: every absolute height in this file is 해발 (above sea level: the 1:5000 survey's datum).  The build lays the
+ground on its working datum, that + T(x, y) at the place itself (tools/datum.py tilt, 고증 2.8 「측량 표고」), and takes
+the tilt out again where it writes the ground: T() below is that lift.
 
 What was measured (고증 3.9): the 1997-07-28 scans, frame pairs one by one (1.25 - 1.5 m windows, pairs over 0.7), and
 the survey's spot heights and contours (2006 · 2024).  The two agree to 0.5 m wherever the photos see the ground:
@@ -36,13 +36,11 @@ import shapely
 from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import nearest_points, unary_union
 
-# --- the datum: the game's height = 해발 + T(x, y) ---------------------------------------------------------------------
-DATUM_T = (0.052, 0.522, 0.248)   # (c, per 100 m east, per 100 m north): tools/aerial97.py SURVEY_PLANE; (0, 0, 0) after #191
+import datum
 
-
+# --- the datum: the build's working height = 해발 + T(x, y) (tools/datum.py) -------------------------------------------
 def T(x, y):
-    c, a, b = DATUM_T
-    return c + a * np.asarray(x, float) / 100.0 + b * np.asarray(y, float) / 100.0
+    return datum.tilt(x, y)
 
 
 KB, PINSON, HANGYEONG = 468614722, 246156113, 246156110

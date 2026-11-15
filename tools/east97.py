@@ -3,8 +3,8 @@ tools/build_campus.py 가 부른다.
 
     took, moved, info = east97.grade(Hn, X, Y, FIXED, halls, hold, fill, tr_pts, tr_n)   # 심기가 끝난 뒤, music97 바로 뒤
 
-Frame: campus metres, x east, y north.  GRID is 해발 (the survey's heights above sea level, decimetres); the game's
-datum is SURVEY_T over it (reference/고증/2.8: 게임 = 해발 + T), added in grid_z().  PEAK and nothing else here is an
+Frame: campus metres, x east, y north.  GRID is 해발 (the survey's heights above sea level, decimetres); the build's
+working datum is the tilt over it (tools/datum.py, reference/고증/2.8 「측량 표고」), added in grid_z().  PEAK and nothing else here is an
 absolute height on the game's datum.
 
 - The game's ground under 청송대 and on the wooded hillsides east and north-east of it was the surface model's, the
@@ -35,7 +35,8 @@ import shapely
 from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import unary_union
 
-SURVEY_T = (0.052, 0.522, 0.248)  # the game's datum over 해발: c + a x / 100 + b y / 100 (tools/aerial97.py SURVEY_PLANE)
+import datum
+
 WOOD = Polygon([(153.0, 240.0), (161.0, 262.0), (168.0, 282.0), (177.0, 302.0), (190.0, 320.0), (207.0, 338.0), (221.0, 362.0),
                 (221.0, 390.0), (216.0, 416.0), (210.0, 441.0), (197.0, 462.0), (189.0, 484.0), (191.0, 508.0), (195.0, 530.0),
                 (205.0, 556.0), (212.0, 570.0), (400.0, 570.0), (450.0, 420.0), (450.0, 270.0), (425.0, 250.0), (425.0, 85.0),
@@ -164,11 +165,11 @@ GRID = np.array([[int(v) for v in r.split()] for r in """
 
 
 def grid_z(x, y):
-    """GRID, bilinear, on the game's datum (해발 + SURVEY_T)"""
+    """GRID, bilinear, on the working datum (해발 + datum.tilt)"""
     from scipy.ndimage import map_coordinates
     x, y = np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float))
     z = map_coordinates(GRID, [(y.ravel() - GRID_Y0) / GRID_D, (x.ravel() - GRID_X0) / GRID_D], order=1, mode='nearest')
-    z = z + SURVEY_T[0] + SURVEY_T[1] * x.ravel() / 100.0 + SURVEY_T[2] * y.ravel() / 100.0
+    z = z + datum.tilt(x.ravel(), y.ravel())
     return z.reshape(x.shape) if x.ndim else float(z[0])
 
 

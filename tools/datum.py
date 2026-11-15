@@ -246,6 +246,25 @@ def heights(c):
     for b in c['buildings']:
         for k in ('base', 'top_ground'):
             out.append((b, k, b['tilt'], None))
+        for k in ('floor', 'eaves', 'tower', 'annex_top', 'yard', 'fore'):       # (광복관: tools/kwangbok97.py plan)
+            if k in b.get('plan', {}):
+                out.append((b['plan'], k, b['tilt'], None))
+    E = c.get('eng1_yard')                       # (제1공학관 안뜰의 낮은 동과 옹벽 · 데크: tools/eng97.py)
+    if E:
+        ca, sa = math.cos(E['ang']), math.sin(E['ang'])
+        hu, hv = (E['hall'][0] + E['hall'][1]) / 2, (E['hall'][2] + E['hall'][3]) / 2
+        hc = (E['o'][0] + hu * ca - hv * sa, E['o'][1] + hu * sa + hv * ca)
+        hb = min(c['buildings'], key=lambda b: math.hypot(*(np.array(centroid(b['footprint'])) - hc)))
+        out.append((E, 'base', hb['tilt'], None))                     # (the hall's own floor: with the hall)
+        for v in E['deck']['v']:
+            A(v, 2, v[0], v[1])
+        for r in E['deck']['rim']:
+            for v in r:
+                A(v, 2, v[0], v[1])
+        for _, row in E['walls']:
+            for q in row:
+                A(q, 2, q[0], q[1])
+                A(q, 3, q[0], q[1])
     for b in c.get('rnd_ghosts', []):
         for k in ('base', 'top_ground'):
             A(b, k, *centroid(b['footprint']))
@@ -319,8 +338,10 @@ def heights(c):
             A(q, 5, q[0], q[1])
         for q in T['entrances']:
             A(q, 6, q[0], q[1])
+        for q in T.get('kiosks', []):
+            A(q, 3, q[0], q[1])
         for l in T['landmarks']:
-            for k in ('base', 'deck', 'top'):
+            for k in ('base', 'deck', 'top', 'foot'):
                 if k in l:
                     out.append((l, k, l['tilt'], None))
         ra = T['rail']
