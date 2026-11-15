@@ -30,6 +30,7 @@ import music97
 import eng97
 import town97
 import east97
+import walkguard97
 import kwangbok97
 import medwest97
 import jonghap97
@@ -10806,6 +10807,9 @@ if os.environ.get('Y97_WORK_DUMP'):          # (the working datum's own result, 
                    muak=dict(p=np.round(MUAK['p'], 3).tolist(), s=np.round(MUAK['s'], 3).tolist()),
                    ssr=dict(p=np.round(TOWN_PLAN['road'].P, 3).tolist()), baseball=[round(_bbp.x, 2), round(_bbp.y, 2)]),
               open(os.path.join(os.environ['Y97_WORK_DUMP'], 'lines.json'), 'w'))
+# 걷기 막이: 2 m 넘게 떨어지거나 떨어져 갇히는 열린 가장자리의 보이지 않는 작은 막(tools/walkguard97.py; 심기가 끝난 뒤라
+# 난수와 상관없고, 2D 라 높이 기준과도 상관없음)
+out['colliders'] += walkguard97.colliders()
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
