@@ -38,6 +38,7 @@ import libsouth97
 import yongjae97
 import ridge97
 import fieldhill97
+import gymnorth97
 import widang97
 import audnorth97
 import datum
@@ -6856,7 +6857,8 @@ os.makedirs(os.path.join(ROOT, 'web/public/data'), exist_ok=True)
 # -1, and the asphalt north of the bank's end, u -14 ~ +2, v -2 ~ -15) at 48.5 m (47.8 ~ 48.6, which
 # reads the court 0.3 m under the game's), where the cars park.  The game had the court flat to v -44.5 and u -4.
 # Late, here: the planting was laid on the flat court.  The nodes in the drive go to its level, those on the bank
-# between the court's edge and the drive's by their distances to each; the court's own stay
+# between the court's edge and the drive's by their distances to each; the court's own stay.  (The drive south of its
+# north arm is laid again later on the scans' open asphalt between the cars, 46.4 - 47.7 m: tools/gymnorth97.py)
 SCI_COURT97 = sci_poly([(-53.6, 0.3), (-15.0, 0.3), (-15.0, -32.0), (-22.0, -35.0), (-45.5, -35.0), (-45.5, -25.6), (-53.6, -25.6)])
 SCI_DRIVE97 = sci_poly([(-46.0, -44.5), (-22.0, -44.5), (-8.5, -32.0), (-8.5, -15.0), (-14.0, -15.0), (-14.0, -2.0), (2.0, -2.0),
                         (2.0, -15.0), (-1.0, -20.0), (-1.0, -52.0), (-20.0, -55.0), (-46.0, -55.0)])
@@ -6909,6 +6911,14 @@ _fh_halls = [Polygon(h_[4]).buffer(0) for h_ in seomun.HOUSES] + [Polygon(seomun
 _fh_took, FIELDHILL97 = fieldhill97.grade(Hn, X, Y, FIXED, _fh_halls, harmonic_fill)
 FIXED[_fh_took] = True
 print('대운동장 북쪽 언덕:', FIELDHILL97)
+# 과학관 남쪽 공터의 동쪽 반 · 체육교육관 북쪽 끝 앞 (tools/gymnorth97.py, reference/고증/3.22 「과학관 남쪽 공터의 높이」 ·
+# 3.10 「마당의 둑과 차 길」; #189), late: the planting has read the ground as it was.  The drive round the court (south
+# of its north arm), the garden south-east of it and the yard before 체육교육관's north wall on the 1997 scans' open
+# ground (the drive 0.7 - 1.5 m, the yard up to 2 m under the game's); the bank to the court refilled smoothly
+_gn_took, GYMNORTH97 = gymnorth97.grade(Hn, X, Y, FIXED, SCI_DRIVE97, SCI_BANK97, SCI_COURT97, harmonic_fill,
+                                        cut=sci_poly([(-60.0, gymnorth97.VCUT), (10.0, gymnorth97.VCUT), (10.0, -80.0), (-60.0, -80.0)]))
+FIXED[_gn_took] = True
+print('과학관 남쪽 · 체육교육관 북쪽 끝:', GYMNORTH97)
 # 과학관 북서쪽 골짜기 · 독수리상 서쪽 마당 (tools/west_ground.py, reference/고증/4.12 · 4.5.2), late: the planting
 # has read the ground as it was.  The valley's works yard and floor on the 1997 photos (4 - 7 m under the game's
 # slope); the bare yard west of the eagle, its road and lane level at 28.30 m (the game climbed to 35 m)
