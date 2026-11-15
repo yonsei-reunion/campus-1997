@@ -6921,6 +6921,14 @@ for b_ in buildings:
         print('   %s: floor %.2f -> %.2f m (the ground under it %.2f .. %.2f)' % (b_['name'], b_['base'], ridge97.HOUSE_FLOOR,
                                                                               min(_rg_hs), max(_rg_hs)))
         b_.update(base=ridge97.HOUSE_FLOOR, top_ground=round(max(_rg_hs), 2))
+        # (its door, chosen by _entry on the ground as it was, opened on the west face, by the walk there: on the new
+        # ground that face stands 1.3 m over the slope falling west and its porch's sides drop more than a metre.  The
+        # scans do not show a door; it goes to the middle of the south front, on the lawn at the floor's level)
+        ENTRY_AT[ridge97.HOUSE] = (ridge97.HOUSE_DOOR, {})
+        _rg_e = _entry(b_, Polygon(b_['footprint']))
+        if _rg_e:
+            print('   %s: door %s -> (%.2f, %.2f)' % (b_['name'], b_.get('entry', {}).get('p'), _rg_e[1], _rg_e[2]))
+            b_['entry'] = dict(p=[round(_rg_e[1], 2), round(_rg_e[2], 2)], n=[round(_rg_e[3], 4), round(_rg_e[4], 4)])
 # 무악학사 · 북문 (tools/muak.py NORTH): the patch north of the grid (x -60 .. 340, y 800 .. 1280), from the grid's last
 # change; the 1997 roads' beds on it and the courts' pads
 _mk_far = ndimage.gaussian_filter(np.array(tf['rows_south_to_north'], np.float64), 0.7)     # (the far ring as the web draws it)

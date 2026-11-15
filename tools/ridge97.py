@@ -2,7 +2,7 @@
 tools/build_campus.py 가 부른다.
 
     took, info = ridge97.grade(Hn, X, Y, FIXED, halls, fill, yield_)   # 심기가 끝난 뒤, 다른 늦은 블록들 다음
-    ridge97.HOUSE · HOUSE_FLOOR                                  # 언더우드가 사택: 새 땅 위의 바닥
+    ridge97.HOUSE · HOUSE_FLOOR · HOUSE_DOOR                     # 언더우드가 사택: 새 땅 위의 바닥, 앞 잔디 쪽 문
     ridge97.trees_aside(trees)                                   # 꼭대기 빈터 위의 나무를 목록 제자리에서
 
 Frames: campus metres, x east, y north.  Every absolute height is above sea level (해발), taken up to the working
@@ -106,6 +106,7 @@ VALLEY_X = -297.0                 # (west of it, 40 < y < 262: tools/west_ground
 HALL_PAD = 7.1                    # the halls' feet that stay (their floors read the nodes round their corners)
 HOUSE = 429079066                 # 언더우드가 사택: its floor at the lawn before its south front (the scans 54.7 - 54.9 m)
 HOUSE_FLOOR = datum.up(-264.0, 220.0, 54.8)
+HOUSE_DOOR = (-264.52, 219.46)            # (the middle of its south front, to the lawn: the scans show no door)
 
 
 def grid_z(x, y):
