@@ -180,7 +180,10 @@ export class Street {
         const o = this.cars[j];
         if (!o.awake) continue;
         if (o.lane === c.lane) {
-          const gap = o.s - c.s - (o.len + c.len) / 2;
+          // (s on round: one just come round to the lane's start is still ahead of one about to, not 800 m behind it)
+          let ds = o.s - c.s;
+          if (ds < -c.lane.length / 2) ds += c.lane.length;
+          const gap = ds - (o.len + c.len) / 2;
           if (gap > -1 && gap < 14) target = Math.min(target, gap < 4 ? 0 : o.v * 0.92);
           continue;
         }
@@ -215,7 +218,14 @@ export class Street {
       c.v += (target - c.v) * Math.min(1, dt * (target < c.v ? 3 : 1));
       if (c.v < 0.05 && target === 0) c.v = 0;
       c.s += c.v * dt;
-      if (c.s > c.lane.length) c.s = 0;
+      if (c.s > c.lane.length) {
+        // round to the lane's start, but not onto a car standing or running there (one of a lane that starts at the same
+        // place: 연세로's under the bridge): it waits at the far end till the start is clear
+        const q = c.lane.pts[0];
+        const busy = this.cars.some((o) => o !== c && o.awake && o.s < (o.len + c.len) / 2 + 2 &&
+          (o.lane === c.lane || o.lane.pts[0].distanceToSquared(q) < 2.0));
+        if (busy) { c.s = c.lane.length; c.v = 0; } else c.s = 0;
+      }
       c.lane.at(c.s, p);
       c.lane.dir(c.s, d);
       c.root.position.set(p.x, c.lane.h(c.s), -p.y);

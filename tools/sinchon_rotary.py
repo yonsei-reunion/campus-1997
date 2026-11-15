@@ -264,13 +264,22 @@ ROT_LANE_FROM = {('sinchon_e', 1): 47.0}
 # 신촌로's three lanes in at their heads: [m off the painted middle, s of the lane's end]: two south of the band, the
 # third the taxis' south lane up to the slanted line
 ROT_E_LANES = [(0.9, 17.0), (3.6, 17.0), (12.7, 14.5)]
+# and through to 양화로 (2026-11-15, the cars run for half an hour: 고증 4.10.2 「신호와 차」): the double triangle at its mouth
+# (ROT_TRI: 1.6 - 6.8 m north of the painted middle from s 5.6 to its tip at s 16.5) stood across the second of the
+# three lanes and the first one's side.  [m north of the painted middle at the mouth, s on 양화로 to which it holds
+# that, s from which it is on its own lane again]: the first passes between the triangle and the middle line, the
+# other two north of it, and they spread to their lanes beyond its tip.  ROT_W_OUT: s where their points on 양화로 begin
+ROT_W_MOUTH = [(0.7, 12.0, 20.0), (8.5, 18.0, 30.0), (11.6, 18.0, 30.0)]
+ROT_W_OUT = 2.0
 # the lanes turning right through the wedges: [s where the lane leaves its arm, the turning lane's middle (27/19: between
-# its painted lines; the last but one point its stop), s where it joins the arm out]
+# its painted lines; the last but one point its stop), s where it joins the arm out].  (e_n's last point, past its stop:
+# where its smoothed line rounds the kerb's corner at (-91.5, -930.56) 1.6 m off it, as it keeps off 연세로's kerb on to
+# its outer lane; at (-92.9, -929.0) before 2026-11-15 the line passed 0.6 m from the corner, a car's side over it)
 ROT_TURNS = {
     'w_sw': (50.0, [(-147.0, -972.6), (-143.5, -976.0), (-140.5, -981.5), (-139.4, -987.0), (-138.9, -992.0), (-138.6, -997.5),
                     (-139.6, -1002.0)], 46.0),
     'e_n': (58.0, [(-53.0, -952.7), (-60.0, -951.7), (-66.0, -950.6), (-70.0, -950.0), (-74.0, -948.0), (-78.0, -945.6),
-                   (-81.5, -943.3), (-84.3, -941.0), (-87.0, -937.2), (-90.6, -933.0), (-92.9, -929.0)], 36.0),
+                   (-81.5, -943.3), (-84.3, -941.0), (-87.0, -937.2), (-90.6, -933.0), (-94.4, -931.0)], 36.0),
     'n_w': (34.0, [(-104.2, -933.0), (-105.6, -936.6), (-109.0, -938.6), (-115.0, -940.9), (-121.8, -944.3), (-126.2, -946.3),
                    (-131.0, -948.4), (-136.0, -950.6)], 46.0),
 }
@@ -378,6 +387,11 @@ ENT97_KIOSK = (-38.8, -982.95, 2.4)    # the eight-sided kiosk between 5 and 6 (
 MOUTH_SIGNAL = dict(pole=(-88.8, -928.4), heads=(-95.9, -92.8), plate=(-90.3, 1.5, 0.7), h=6.0)
 MOUTH_SIGN = dict(pole=(-104.2, -925.5), x=(-102.9, -97.6), h=1.25, z0=5.0)
 LANE_W = 3.25
+# 연세로's two lanes each way, their middles m off its line (2026-11-15): 4.10.1's 13 m of carriageway, two lanes of
+# 3.2 - 3.3 m a way (the scan of 27/19 at the mouth: the southbound queue's two rows 1.4 and 4.4 m west of the
+# painted middle, the line between them 2.7 - 2.85 m).  The other arms' rule (0.3 + LANE_W (k + 0.5): 1.925, 5.175)
+# put a bus's side 0.1 m from 연세로's kerbs and the cars turning into 1997년 신촌로 against the paint at 양화로's mouth
+YRO_LANES = (1.7, 4.85)
 # 연세로's side streets (OSM: 명물길, 연세로4길, 연세로2길 on the east; 연세로5길, 연세로 (to 신촌로), on the west):
 # where its shop rows break, y of the gap's two sides
 GAPS = {1: [(-695.0, -703.0), (-738.0, -747.0), (-771.0, -779.0), (-885.0, -893.0)],
@@ -1099,16 +1113,17 @@ def layout(geo, town, extras, ground, taken_z):
             out.append(tuple(q))
         return out
 
-    def route(k_in, o_in, k_out, o_out, phase, s_far_in=None, s_far_out=None, s_in=None):
+    def route(k_in, o_in, k_out, o_out, phase, s_far_in=None, s_far_out=None, s_in=None, s_out=None):
         """in along arm k_in (towards the junction) at offset o_in, out along k_out at o_out (s_in: where the lane in
-        ends, its stop line; the arm's own else)"""
+        ends, its stop line; the arm's own else. s_out: where the lane out begins; behind the arm's mouth else)"""
         ai, ao = A[k_in], A[k_out]
         si0 = ai.cum[-1] - 2.0 if s_far_in is None else s_far_in
         so1 = ao.cum[-1] - 2.0 if s_far_out is None else s_far_out
+        so0 = min(xs[k_out], s_stops[k_out]) + 1.0 if s_out is None else s_out
         a_in = lane_pts(k_in, o_in, si0, s_stops[k_in] - 0.5 if s_in is None else s_in)
-        a_out = lane_pts(k_out, o_out, min(xs[k_out], s_stops[k_out]) + 1.0, so1)
+        a_out = lane_pts(k_out, o_out, so0, so1)
         d_in = -ai.at(s_stops[k_in] - 0.5)[1]
-        d_out = ao.at(min(xs[k_out], s_stops[k_out]) + 1.0)[1]
+        d_out = ao.at(so0)[1]
         mid = curve(a_in[-1], d_in, a_out[0], d_out, 24)
         mid = round_island(a_in[-1], mid, a_out[0])
         pts = a_in + mid + a_out
@@ -1167,11 +1182,12 @@ def layout(geo, town, extras, ground, taken_z):
     s_bridge = float(ya.ls.project(Point(gt.YONSEI_X, -480.0)))
     s_bridge2 = float(ya.ls.project(Point(gt.YONSEI_X, -488.0)))
     L1, L2 = LANE_W / 2 + 0.3, LANE_W * 1.5 + 0.3
+    Y1, Y2 = YRO_LANES                                  # (연세로's own)
     # (inbound on an arm: going against its s, the right-hand side is +n (left of the outward direction))
-    lanes.append(route('yonsei', L1, 'baekbeom', -L1, 0, s_far_in=s_bridge))           # 연세로 south, on into 백범로
-    lanes.append(route('yonsei', L2, 'seogang', -L2, 0, s_far_in=s_bridge))            # and right into 서강로
-    lanes.append(route('baekbeom', L1, 'yonsei', -L1, 0, s_far_out=s_bridge2))         # 백범로 north into 연세로
-    lanes.append(route('seogang', L1, 'yonsei', -L2, 2, s_far_out=s_bridge2))          # 서강로 into 연세로
+    lanes.append(route('yonsei', Y1, 'baekbeom', -L1, 0, s_far_in=s_bridge))           # 연세로 south, on into 백범로
+    lanes.append(route('yonsei', Y2, 'seogang', -L2, 0, s_far_in=s_bridge))            # and right into 서강로
+    lanes.append(route('baekbeom', L1, 'yonsei', -Y1, 0, s_far_out=s_bridge2))         # 백범로 north into 연세로
+    lanes.append(route('seogang', L1, 'yonsei', -Y2, 2, s_far_out=s_bridge2))          # 서강로 into 연세로
     # 신촌로 in (west): two lanes past the band of chevrons to its stop line (ROT_E_LANES: m off the painted middle),
     # the third into the taxis' stand north of the band, up to the slanted line at its head
     for kk in (0, 1, 2):
@@ -1179,16 +1195,19 @@ def layout(geo, town, extras, ground, taken_z):
         lanes.append(route('sinchon_w', o, 'sinchon_e', -o, 1))                          # 신촌로 east
         oe, se = ROT_E_LANES[kk]
         o_e = (lambda s_, o=o, oe=oe: o + (oe - o) * float(np.clip((62.0 - s_) / 16.0, 0, 1)))
-        lanes.append(route('sinchon_e', o_e, 'sinchon_w', -o, 1, s_in=se))               # and west
+        om, sa, sb = ROT_W_MOUTH[kk]                    # (round 양화로's double triangle at its mouth)
+        ease = lambda u: u * u * (3.0 - 2.0 * u)
+        o_w = (lambda s_, o=o, om=om, sa=sa, sb=sb: -(o + (om - o) * ease(float(np.clip((sb - s_) / (sb - sa), 0, 1)))))
+        lanes.append(route('sinchon_e', o_e, 'sinchon_w', o_w, 1, s_in=se, s_out=ROT_W_OUT))      # and west
     # the kerb lanes turning off through the wedges (ROT_TURNS: the 1997 lanes' middles): 양화로 into 1997년 신촌로
     # between the almond and the V, 신촌로 into 연세로 north of the north-east triangle
     T_ = ROT_TURNS
     lanes.append(route_via('sinchon_w', 0.3 + LANE_W * 3.5, T_['w_sw'][0], T_['w_sw'][1], 'seogang', -(0.3 + LANE_W * 2.5),
                            T_['w_sw'][2], 1))
-    lanes.append(route_via('sinchon_e', 0.3 + LANE_W * 3.5, T_['e_n'][0], T_['e_n'][1], 'yonsei', -L2, T_['e_n'][2], 1,
+    lanes.append(route_via('sinchon_e', 0.3 + LANE_W * 3.5, T_['e_n'][0], T_['e_n'][1], 'yonsei', -Y2, T_['e_n'][2], 1,
                            s_far_out=s_bridge2))
     # (2026-11-15, the last in the list: its cars drawn after the others') 연세로 into 양화로 by the north-west wedge
-    lanes.append(route_via('yonsei', L2, T_['n_w'][0], T_['n_w'][1], 'sinchon_w', -(0.3 + LANE_W * 3.5), T_['n_w'][2], 0,
+    lanes.append(route_via('yonsei', Y2, T_['n_w'][0], T_['n_w'][1], 'sinchon_w', -(0.3 + LANE_W * 3.5), T_['n_w'][2], 0,
                            s_far_in=s_bridge))
     # signals: group 0 the junction (phases 0 연세로 · 백범로, 1 신촌로 · 양화로, 2 the south-west arm), group 1
     # 연세로's crossing (0 cars, 1 walkers): green s each, then amber and all red
