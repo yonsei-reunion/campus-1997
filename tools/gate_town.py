@@ -105,15 +105,22 @@ MODERN = {230178502, 628197716}        # OSM outlines that are the 2006 station 
 # from 31 m at x -300 to 40 m past its west end, the trees of both banks in it; the road itself is flat at 29.0 - 31 m.
 # The 1997-07-28 scans (26/16 · 26/15, and 1998 26/17 for the pair west of x -420; three pairs within 0.6 m at
 # x -455 .. -440): the road's own surface every 10 m (x, photos' height, the median of the points 0 - 14 m either side
-# of its middle, smoothed).  The road goes on them plus SSR_W_DATUM (the 대운동장 by it stands
-# 0.45 m over the photos' reading, 33.7 m; the road 4.1 m under it as in the photos).  The survey (1:5000, 2006 ·
-# 2024; #134) agrees: (-432.7, -341.4) 29.80 m, the photos 29.5 - 29.75; (-510.9, -243.3) 31.42, the photos
-# 31.0 - 31.1.
+# of its middle, smoothed).  The road goes on them plus SSR_W_DATUM, the 대운동장's (the road 3.5 m under it as in
+# the photos; the survey 3.37 m).
+# That datum (고증 4.12 「높이」, #189): the 대운동장, the 야구장, 학군단's floor, this road and its bed on past the
+# road's west end were all laid on the photos + 0.45 m (to keep the field 3.1 m under the junction east of it, which
+# stands over its photos too).  The survey's five spots on that ground (1:5000, 2006 · 2024) have them 0.14 - 0.50 m
+# high (the field +0.50, the 야구장 +0.26, the road at x -433 +0.33 and past its end +0.14, beside 학군단 +0.17), the
+# photos read them 0.07 - 0.40 m under the survey: so the whole group goes down by their mean, WEST_DZ (the residuals
+# -0.14 .. +0.22 m, rms 0.13; on the photos + 0.45 they were +0.14 .. +0.50, rms 0.32), each level and slope kept.
+# SSR_W_DATUM_RNG: the datum as it was, for ssr_west_rng (the banks' sections the planting on them draws by)
 SSR_W97 = datum.up_at([(-462.0, 29.85), (-454.0, 29.93), (-446.0, 29.91), (-441.0, 29.8), (-433.0, 29.68), (-427.0, 29.56),
            (-419.0, 29.49), (-413.0, 29.53)],
                       [(-462.0, -297.6), (-454.0, -306.3), (-446.0, -315.4), (-441.0, -321.1), (-433.0, -330.1),
                        (-427.0, -336.8), (-419.0, -345.5), (-413.0, -351.7)])
-SSR_W_DATUM = 0.45                 # (photos -> game, the 대운동장's)
+SSR_W_DATUM_RNG = 0.45
+WEST_DZ = -0.28
+SSR_W_DATUM = round(SSR_W_DATUM_RNG + WEST_DZ, 2)      # (photos -> game, the 대운동장's: 0.17)
 # 성산로 동쪽 (정문 둘레, #189; 고증 4.8.2): from there to x 300 the game stood 2 - 3.4 m over the photos all along
 # (the surface model's trees and roofs), the gate's mouth 2.1 m.  The same scans (26/16 · 27/17 · 27/18 · 27/19, the 1998
 # 26/17 paired where 1997 has one frame, x -400 .. -210): the road's surface every 8 m at seven points 0 - 14 m either
@@ -184,7 +191,7 @@ def ssr_west_rng(x, z):
     x -250): plan(old=True), whose banks' sections the planting on the banks still draws by (layout: secs_rng)"""
     x = np.asarray(x, float)
     xs, zs = zip(*SSR_W97)
-    tgt = np.interp(x, xs, zs) + SSR_W_DATUM
+    tgt = np.interp(x, xs, zs) + SSR_W_DATUM_RNG
     k0 = int(np.argmin(np.abs(x - SSR_W_EASE_RNG[0])))
     off0 = z[k0] - tgt[k0]
     t = np.clip((SSR_W_EASE_RNG[1] - x) / (SSR_W_EASE_RNG[1] - SSR_W_EASE_RNG[0]), 0, 1)

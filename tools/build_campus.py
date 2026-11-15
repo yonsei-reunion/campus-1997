@@ -6415,6 +6415,19 @@ _wg_asph = np.asarray(layers['asphalt'], np.float32)
 _wg_pi = np.clip(((X - SPLAT['x0']) / SPLAT['res']).astype(int), 0, SW - 1)
 _wg_pj = np.clip(((SPLAT['y1'] - Y) / SPLAT['res']).astype(int), 0, SH - 1)
 _wg_keep = (_wg_asph[_wg_pj, _wg_pi] > 127) | near_buildings(1.0) | shapely.contains_xy(GONGWON_SITE.buffer(1.0), X, Y)
+# (the 대운동장 and 학군단's pad down by gate_town.WEST_DZ with the 야구장 and 성산로 west, the survey's datum for the
+# group: reference/고증/4.12 「높이」.  Late, here: the planting has read the field at FIELD['z'].  The ground within
+# 6 m of the pad, which field_sw leaves as it is, eases back from it; the rest round them is smoothed again below
+# (field_sw south of y -150, seomun.grade north of it))
+_wdz_d = np.full(X.shape, 99.0)
+_wdz_b = (np.abs(X + 508.0) < 30) & (np.abs(Y + 184.0) < 30)
+_wdz_d[_wdz_b] = shapely.distance(FIELD_PAD, shapely.points(X[_wdz_b], Y[_wdz_b]))
+_wdz_r = np.clip(1.0 - _wdz_d / 6.0, 0, 1) * (~FIXED) * (~_wg_keep)
+Hn[_fm | _fpd] += gate_town.WEST_DZ
+Hn += gate_town.WEST_DZ * _wdz_r * _wdz_r * (3 - 2 * _wdz_r)
+STATUES['pitch']['h'] = round(ground_h(*STATUES['pitch']['pos']), 2)
+print('대운동장 · 학군단 바닥: %+.2f m (%d nodes, %d round the pad), the field %.2f m' % (
+    gate_town.WEST_DZ, int((_fm | _fpd).sum()), int((_wdz_r > 0).sum()), FIELD['z'] + gate_town.WEST_DZ))
 WEST_FIELD_SW = west_ground.field_sw(Hn, X, Y, FIXED, TOWN_PLAN['road'], gate_town.HW, gate_town.SSR_W_DATUM, FIELD_PATCH,
                                      shapely.contains_xy(FIELD_POLY.buffer(2.0), X, Y), FIELD_PAD, Polygon([xy(p) for p in ways[west_ground.BASEBALL['way']]['geometry']]).buffer(0),
                                      _wg_keep, harmonic_fill)

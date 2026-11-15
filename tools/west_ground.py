@@ -48,9 +48,10 @@ NW_Z97 = datum.up_at([(0.0, 29.8), (32.0, 30.35), (48.0, 30.52), (64.0, 30.75), 
 NW_HALF, NW_EASE = 17.0, 14.0          # the road's bed either side of the line, then eased into the ground beside it
 NW_END = (290.0, 340.0)                # (s: eased out back into the surface model's ground)
 # 야구장 (OSM 421415364): the photos' 128 points on it lie on one level 31.04 m (rms 0.09), the 대운동장's 188 on 33.23 m
-# (rms 0.10), the same frame pair: the 야구장 2.21 m under the 대운동장, 31.5 m here (the survey's 2006 spot 31.22 m, 1.95
-# m under its 33.17 m).  The game had both pitches at the mean of the surface model under them (32.9 m)
-BASEBALL = dict(way=421415364, z=datum.up(-341.7, -310.19, 31.5), ring=16.0)        # (the 대운동장's 33.7 m less 2.21)
+# (rms 0.10), the same frame pair: the 야구장 2.21 m under the 대운동장, 31.22 m here (the survey's 2006 spot 31.22 m, 1.95
+# m under its 33.17 m).  The game had both pitches at the mean of the surface model under them (32.9 m).
+# (The 대운동장's group on the survey's five spots: gate_town.WEST_DZ, 31.5 -> 31.22 m)
+BASEBALL = dict(way=421415364, z=datum.up(-341.7, -310.19, 31.22), ring=16.0)       # (the 대운동장's 33.40 m less 2.21)
 
 
 def field_sw(Hn, X, Y, FIXED, road, half_w, dz, field_patch, field_keep, pad, baseball_poly, keep, fill):
