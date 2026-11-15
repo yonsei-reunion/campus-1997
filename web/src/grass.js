@@ -143,6 +143,7 @@ export class Grass {
     this.enabled = true;
     this.lift = null;                                  // (x, y) -> the ground over the terrain (curbs.js lift)
     this.verge = null;                                 // 백양로's lawn over the road's kerbs (verge.js)
+    this.drape = null;                                 // (x, y) -> the raised ground's meshes there (terrain.js drapeHeight)
     this.last = new THREE.Vector3(1e9, 0, 0);
     this.order = [];                                   // cell offsets round the camera's cell, nearest first
     const span = Math.ceil((R + MOVE) / CELL) + 1;
@@ -252,6 +253,7 @@ export class Grass {
         const t = Math.min(1, (sh - 0.5) / 0.35);
         if (pick > t * t * (3 - 2 * t) * (1 - 0.6 * dry)) continue;
         gy = surface(this.hf, x, y) + (this.lift ? this.lift(x, y) : 0);
+        if (this.drape) gy = Math.max(gy, this.drape(x, y));
       }
       const scale = 0.8 + sc * 0.45;
       m4.compose(v.set(x, gy, -y), q.setFromAxisAngle(UP, rot * Math.PI * 2), s.set(scale, scale * (0.8 + hs * 0.4), scale));

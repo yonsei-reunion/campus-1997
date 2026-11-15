@@ -7,7 +7,7 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { MaterialLibrary, SEASONS, texturesReady, texCount, updatePcss, uploadEarly } from './materials.js';
 import { loading, fetchCounted } from './loading.js';
 import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materials.js';
-import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeTerrain } from './terrain.js';
+import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeTerrain, drapeHeight } from './terrain.js';
 import { loadGLB, prefetch, glbMaterials, bindMaterials, mergeStatic, InstancedKit, KitCuller, Forest } from './world.js';
 import { Grass } from './grass.js';
 import { Fall } from './fall.js';
@@ -208,7 +208,7 @@ async function main() {
   ]);
   bindMaterials(bld.scene, lib, false, true);
   bindMaterials(lms.scene, lib, false, true);
-  drapeTerrain(lms.scene, terrain.material);          // 대강당 앞 둑: the ground's own material (src/terrain.js)
+  const drapes = drapeTerrain(lms.scene, terrain.material);   // 대강당 앞 둑: the ground's own material (src/terrain.js)
   bindMaterials(road.scene, lib);
   const verge = new Verge(road.scene, campus);        // 백양로's verge and planting strip: lawn (src/verge.js)
   // 정문 밖: 성산로, the railway's bank and the town beyond; the banks' trees stand on the banks' own meshes
@@ -566,6 +566,7 @@ async function main() {
   shadows.addDynamic(hero.holder);
   const player = new Player(camera, canvas, colliders, walkables, hfNear, hero);
   grass.lift = player.lift = (x, y) => curbs.lift(x, y);     // the lawn raised along the kerbs
+  grass.drape = drapeHeight(drapes);                   // and the blades on the raised ground's meshes
   for (const name of ['buildings', 'landmarks']) {      // walls for the walker: BVHs built once, shared with the bird's-eye roof picking
     scene.getObjectByName(name)?.traverse((o) => { if (o.isMesh) { if (!o.geometry.boundsTree) o.geometry.computeBoundsTree(); player.walls.push(o); } });
   }

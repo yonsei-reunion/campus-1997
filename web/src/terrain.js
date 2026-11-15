@@ -401,9 +401,34 @@ export function makeNearTerrain(hf, campus, lib) {
 //  - the GLB meshes whose material is 'terrain_drape' (blender/landmarks.py aud_bank: the bank behind 대강당's
 //    rubble wall, issue #84)
 export function drapeTerrain(root, terrainMat) {
+  const meshes = [];
   root.traverse((o) => {
-    if (o.isMesh && o.material?.name === 'terrain_drape') o.material = terrainMat;
+    if (o.isMesh && o.material?.name === 'terrain_drape') { o.material = terrainMat; meshes.push(o); }
   });
+  return meshes;
+}
+
+// the height of the highest of those meshes over (x, y), or -Infinity: the lawn's blades stand on them (grass.js
+// drape), not buried in them (a bank's or a deck's raised lawn, 한글탑's foot)
+export function drapeHeight(meshes) {
+  const boxes = meshes.map((m) => {
+    m.updateWorldMatrix(true, false);
+    if (!m.geometry.boundsTree) m.geometry.computeBoundsTree?.();
+    return new THREE.Box3().setFromObject(m);
+  });
+  const ray = new THREE.Raycaster(), o = new THREE.Vector3(), down = new THREE.Vector3(0, -1, 0);
+  ray.firstHitOnly = true;
+  return (x, y) => {
+    let best = -Infinity;
+    for (let k = 0; k < meshes.length; k++) {
+      const b = boxes[k];
+      if (x < b.min.x || x > b.max.x || -y < b.min.z || -y > b.max.z) continue;
+      ray.set(o.set(x, b.max.y + 1, -y), down);
+      const h = ray.intersectObject(meshes[k], false)[0];
+      if (h && h.point.y > best) best = h.point.y;
+    }
+    return best;
+  };
 }
 
 //  - the lawn's raised edge along the kerbs (curbs.js, issue #86): where it reaches over paving (a narrow strip's far
