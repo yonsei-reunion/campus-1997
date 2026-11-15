@@ -196,7 +196,9 @@ def upper(h0):
     def f(x, y):
         u_, v_ = (float(c) for c in uv(x, y))
         w_ = float(_west(v_))
-        if u_ <= w_ + 0.05 and ((-22.0 <= v_ < 21.0 and u_ > -48.5) or (21.0 <= v_ <= GAP_N and u_ > GAP_W)):
+        if u_ <= w_ + 0.05 and 21.0 <= v_ <= GAP_N and u_ > GAP_W:             # (the gap: all of it north_grade's)
+            return float(north_z(u_, v_)) + float(datum.tilt(x, y))
+        if u_ <= w_ + 0.05 and -22.0 <= v_ < 21.0 and u_ > -48.5:
             k = min(1.0, max(0.0, (u_ - (w_ - 5.0)) / 2.5))          # (the grid's own within a cell of the wall, eased)
             return h0(x, y) + k * (float(north_z(u_, v_)) + float(datum.tilt(x, y)) - h0(x, y))
         return h0(x, y)
@@ -245,9 +247,9 @@ def grade(Hn, X, Y, FIXED, halls, fill, site_o, site_rot, pit, slab):
     site = (US >= -80.5) & (US <= 54.0) & (VS >= 6.0) & (VS <= 90.0)
     zone = yard | road | site
     Hn[zone] = S[zone]
-    # the lane north of the lot under the wall, between it and the north block, up to the yard; the block's nodes 3.5 m
+    # the lane north of the lot under the wall, between it and the north block, up to the yard; the block's nodes 6 m
     # in from its west face with it, so that the row of cars along the face stands level (its floor stays: a plinth)
-    lane = (V >= LANE_V[0]) & (V <= GAP_N) & (U > _west(V)) & (U < NB_WEST_U + 3.5)
+    lane = (V >= LANE_V[0]) & (V <= GAP_N) & (U > _west(V)) & (U < NB_WEST_U + 6.0)
     Hn[lane] = (np.interp(V, LANE_V, LANE_Z) + datum.tilt(X, Y))[lane]
     zone |= lane
     lv = {}
@@ -291,6 +293,26 @@ def deck_parts(G, gx, step):
     jj, ii = np.nonzero(G['pulled'])
     n = len(gx) - 1
     cells = {(j + a, i + b) for j, i in zip(jj, ii) for a in (-1, 0) for b in (-1, 0) if 0 <= j + a < n and 0 <= i + b < n}
+    # (and every cell across the wall's line: one whose nodes behind the wall all lie north of the return at GAP_N
+    # was left out, a hole down to the lane's level by the deck's north-east corner)
+    band = LineString([xy(u, v) for u, v in ((-39.7, GAP_N), (-39.7, 31.0), (-38.85, 30.0), (-38.9, -22.0), (-40.6, -22.0),
+                                             (-40.6, -41.3), (-40.9, -62.0))]).buffer(2.0).intersection(upper_poly())
+    x0, y0, x1, y1 = band.bounds
+    for j in range(max(0, int((y0 - gx[0]) // step)), min(n, int((y1 - gx[0]) // step) + 1)):
+        for i in range(max(0, int((x0 - gx[0]) // step)), min(n, int((x1 - gx[0]) // step) + 1)):
+            if box(gx[i], gx[j], gx[i] + step, gx[j] + step).intersection(band).area > 0.05:
+                cells.add((j, i))
+    # (their neighbours wholly off the deck's side, the lane's and north of the return, count as the deck's for dwb_deck:
+    # along an edge shared with a cell that is not, it takes the ground's height, here the lane's or the bank's, not
+    # the upper ground's; they get no triangles)
+    up_ = upper_poly()
+    for j, i in list(cells):
+        for a in (-1, 0, 1):
+            for b in (-1, 0, 1):
+                q = (j + a, i + b)
+                if q not in cells and 0 <= q[0] < n and 0 <= q[1] < n and \
+                        box(gx[q[1]], gx[q[0]], gx[q[1]] + step, gx[q[0]] + step).intersection(up_).area < 0.05:
+                    cells.add(q)
     area = unary_union([box(gx[i], gx[j], gx[i] + step, gx[j] + step) for j, i in cells]).intersection(upper_poly())
     area = unary_union([g for g in getattr(area, 'geoms', [area]) if g.geom_type == 'Polygon' and g.area > 0.05])
     return cells, area
