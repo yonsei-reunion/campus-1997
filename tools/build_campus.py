@@ -9808,6 +9808,7 @@ for m_, k_ in _rd_marks:
         _rd_run(TR_E, TR_EN, k_ + 2, len(TR_E) - 2, 2.95, 'yellow',
                 cut={j_ for j_ in range(len(TR_E)) if math.dist(TR_E[j_], _mo) < 7.0})
 RD_PAINT['lines'] += medwest97.zebra()        # (의료원 서쪽: the three crossings of the 1997 scans)
+RD_PAINT['lines'] += muak.paint_lines(MUAK)   # (무악학사 길: the middle line, a stop line and a crossing of the 1996 · 1997 scans)
 out['road_paint'] = RD_PAINT
 print('찻길 paint: lines %d (yellow %.0f m, dashed %.0f m, white %.0f m), humps %d' % (
     len(RD_PAINT['lines']), *(sum(LineString(l_['pts']).length for l_ in RD_PAINT['lines'] if l_['kind'] == k_)
@@ -10794,13 +10795,25 @@ for t_ in trees:
         t_[1], t_[2] = round(n_.x, 2), round(n_.y, 2)
         _mk_moved += 1
 _mk_halls = unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(2.0)
-_mk_dec = []
-MUAK_TREES = muak.trees(MUAK_RNG, _mk_rng, _mk_halls.union(_mk_c_rng.buffer(1.0)), place=MUAK, dec=_mk_dec)
+_mk_dec, _mk_sides = [], []
+MUAK_TREES = muak.trees(MUAK_RNG, _mk_rng, _mk_halls.union(_mk_c_rng.buffer(1.0)), place=MUAK, dec=_mk_dec, sides=_mk_sides)
+# (the rows on the trunks of the 1996 winter scans, in their places in the list; the trunks left over at the list's end)
+MUAK_ROW_EXTRA = muak.rows97(MUAK_TREES, _mk_sides, MUAK)
+print('무악학사 길 두 줄: west %d, east %d in the list; on the 1996 trunks %d + %d, at the end %d' % (
+    _mk_sides.count(1), _mk_sides.count(-1), min(_mk_sides.count(1), len(muak.ROW97_W)), min(_mk_sides.count(-1), len(muak.ROW97_E)),
+    len(MUAK_ROW_EXTRA)))
 trees += MUAK_TREES
 _mk_rng += _mk_dec
 MUAK_WOOD_TREES = muak.woods_fill(MUAK_WOODS_RNG, _mk_rng)      # (the wood either side, on its floor painted above)
 _mk_rng += [['', t_[1], t_[2]] for t_ in MUAK_WOOD_TREES]
 _mk_wood_aside = muak.aside(MUAK_WOOD_TREES, MUAK)     # (off the new road's clearing, in their places)
+for t_ in MUAK_WOOD_TREES:                     # (... and 2 m off the rows' trunks)
+    for r_ in MUAK_TREES + MUAK_ROW_EXTRA:
+        d_ = math.dist(t_[1:3], r_[1:3])
+        if d_ < 2.0:
+            u_ = ((t_[1] - r_[1]) / d_, (t_[2] - r_[2]) / d_) if d_ > 1e-6 else (1.0, 0.0)
+            t_[1], t_[2] = round(r_[1] + u_[0] * 2.0, 2), round(r_[2] + u_[1] * 2.0, 2)
+            _mk_wood_aside += 1
 trees += MUAK_WOOD_TREES
 _mk_paths = []
 for p_ in out['paths']:
@@ -10921,6 +10934,7 @@ print('제2인문관 공사장: trees off the yard', widang97.trees_aside(out['t
 FIELDHILL_TREES = muak.woods_fill(unary_union(FIELDHILL_WOODS), out["trees"], seed=15996, spacing=8.5)
 out['trees'] += FIELDHILL_TREES
 print('대운동장 북쪽 언덕: trees in the woods', len(FIELDHILL_TREES))
+out['trees'] += MUAK_ROW_EXTRA                # (무악학사 길: the rows' trunks of the 1996 winter scans the old rows had no tree for)
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt

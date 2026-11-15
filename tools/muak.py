@@ -186,7 +186,58 @@ def paint(line, s1):
     return strip(line, -6.0, s1, -HALF, HALF), strip(line, 8.0, s1, WALK[0], WALK[1])
 
 
-def trees(line, trees_, halls, s0=14.0, s1=S_GRID, seed=15991, place=None, dec=None):
+# the paint the 1996 and 1997 scans show on it (campus.json road_paint: blender/landmarks.py road_paint): the middle line
+# where it was read (unbroken in the 1996 winter scans; yellow as the campus's other roads in 2008 - 2010, the scans are
+# black and white), the stop line across the down lane at s 5.5 and the zebra crossing at s 33 - 35.  Not the solid
+# line bending west at s 281 - 295 nor the crossings at the hairpin and the fork (where the road's line is not settled)
+PAINT_MIDDLE = [(8.0, 32.0), (36.0, 281.0), (512.0, 604.0)]
+PAINT_STOP = (5.5, 0.1, HALF - 0.1, 0.4)        # (s, from, to left of the middle line, width)
+PAINT_ZEBRA = (34.0, 2.0)                        # (s, length along the road)
+
+
+def paint_lines(line):
+    """road_paint lines (kind, w, pts) for the road"""
+    out = []
+    for a, b in PAINT_MIDDLE:
+        out.append(dict(kind='yellow', w=0.15, pts=[[round(float(v), 2) for v in at(line, s_)] for s_ in np.arange(a, b + 0.01, 1.0)]))
+    s0, o0, o1, w = PAINT_STOP
+    out.append(dict(kind='white', w=w, pts=[[round(float(v), 2) for v in at(line, s0, o)] for o in np.linspace(o0, o1, 5)]))
+    sz, lz = PAINT_ZEBRA
+    for o in np.arange(-HALF + 0.5, HALF - 0.49, 1.0):           # (0.5 m stripes a metre apart, along the road)
+        out.append(dict(kind='white', w=0.5, pts=[[round(float(v), 2) for v in at(line, s_, o)] for s_ in np.linspace(sz - lz / 2, sz + lz / 2, 5)]))
+    return out
+
+
+# the rows' trunks in the 1996 winter scans (leafless: the foot of each bare tree and its long shadow), where two or more
+# frames put one within 0.9 m: pairs across the road about 7 m apart, the west row in the walk 0.75 m from its kerb,
+# the east row on the bank 1 m behind the kerb (the 1997 crowns lean 3 - 4 m west in 27/15 · 27/16, where the rows were
+# read at 8 and 5 m).  (s, offset); the rows' first trees in the list move there, those left keep their places
+ROW97_W = [(54.4, 4.0), (60.9, 4.0), (67.3, 4.0), (73.6, 4.0), (80.6, 4.0), (87.3, 4.0), (94.1, 4.0), (102.0, 4.0),
+           (108.0, 4.0), (114.8, 4.0), (121.9, 4.0), (128.8, 4.0), (135.8, 4.0), (142.4, 4.0), (163.0, 4.0), (177.2, 4.0),
+           (184.5, 4.0), (191.5, 4.0), (198.2, 4.0), (205.1, 4.0), (212.2, 4.0), (219.5, 4.0), (226.8, 4.0)]
+ROW97_E = [(61.1, -3.95), (68.9, -3.95), (74.4, -3.95), (81.6, -3.95), (88.4, -3.95), (94.5, -3.95), (101.4, -3.95),
+           (128.9, -3.95), (135.9, -3.95), (142.7, -3.95), (150.0, -3.95), (156.3, -3.95), (181.2, -3.95)]
+
+
+def rows97(trees_, sides, line, seed=15997):
+    """the rows' trees (trees(): sides +1 west / -1 east, in their order) moved in their places to the trunks of the 1996
+    scans (ROW97_W, ROW97_E), in s order; the trunks left over: new trees, returned to go at the very end of the list"""
+    rd = random.Random(seed)
+    extra = []
+    for sg, row in ((1, ROW97_W), (-1, ROW97_E)):
+        idx = [i for i, v in enumerate(sides) if v == sg]
+        for k, (s, o) in enumerate(row):
+            q = at(line, s, o)
+            if k < len(idx):
+                t = trees_[idx[k]]
+                t[1], t[2] = round(float(q[0]), 2), round(float(q[1]), 2)
+            else:
+                sp = 'oak' if rd.random() < 0.6 else 'zelkova'
+                extra.append([sp, round(float(q[0]), 2), round(float(q[1]), 2), round(rd.uniform(0.85, 1.15), 2), round(rd.uniform(0, 6.28), 2)])
+    return extra
+
+
+def trees(line, trees_, halls, s0=14.0, s1=S_GRID, seed=15991, place=None, dec=None, sides=None):
     """the closed crowns over the road (1997 frames: s 0 - 300 is under them): a row either side, behind the walk on
     the west (8 m) and on the bank on the east (5 m), about 9 m apart, oaks and zelkovas (the species are not known).
     Decided on line (halls, the trees there: trees_); with place, each stands on that line at its own s and offset
@@ -207,6 +258,8 @@ def trees(line, trees_, halls, s0=14.0, s1=S_GRID, seed=15991, place=None, dec=N
             qp = q if place is None else at(place, sa, oa)
             mine.append((round(float(q[0]), 2), round(float(q[1]), 2)))
             out.append([sp, round(float(qp[0]), 2), round(float(qp[1]), 2), sc, rot])
+            if sides is not None:
+                sides.append(side)
     if dec is not None:
         dec += [['', x, y] for x, y in mine]
     return out
