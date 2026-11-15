@@ -9966,6 +9966,10 @@ _ypaint([west_ground.site_band(TENNIS['o'], TENNIS['rot'])], _gd)     # (공학�
 _ypaint(eng97.north_paved(), _ga)               # (제2공학관 북쪽 길, 공학관 사이 윗단과 골목: tools/eng97.py)
 MUAK_WOODS = muak.woods_strip(MUAK, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))
 MUAK_RIDGE = muak.woods_ridge(MUAK_WOODS, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))   # (the ridge west of it)
+# (the same on the line as it was before the 1996 winter scans moved it: what the woods' trees are decided on, below)
+MUAK_RNG = muak.road_rng()
+MUAK_WOODS_RNG = muak.woods_strip(MUAK_RNG, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))
+MUAK_RIDGE_RNG = muak.woods_ridge(MUAK_WOODS_RNG, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))
 _mk_floor = unary_union([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD]).intersection(woods_u.buffer(-1.0)).union(MUAK_WOODS).union(MUAK_RIDGE)
 _ypaint([g_ for g_ in (_mk_floor.geoms if hasattr(_mk_floor, 'geoms') else [_mk_floor]) if g_.geom_type == 'Polygon' and g_.area > 0.5], _gf)
 FIELDHILL_WOODS = fieldhill97.woods(FIELD_POLY, _fh_halls)      # (대운동장 북쪽 언덕: the woods' floor; its track and paths bare)
@@ -10772,14 +10776,31 @@ shrubs[:] = [s_ for s_ in shrubs if not _mk_c.contains(Point(s_[1], s_[2]))]
 props[:] = [p_ for p_ in props if not _mk_c.contains(Point(p_[1], p_[2]))]
 _mk_e = _mk_c.buffer(1.0).exterior
 _mk_moved = 0
+# (the rows and the woods are decided on the line as it was before the 1996 winter scans moved it (muak.road_rng): its
+# road and walk, the trees as they stepped aside from it, and each new tree's place as decided there (_mk_rng); they
+# stand on the new line at their own s and offset, so that every tree list keeps its length and order)
+_mk_c_rng = unary_union(muak.paint(MUAK_RNG, muak.S_GRID + 6.0)).buffer(0.6)
+_mk_e_rng = _mk_c_rng.buffer(1.0).exterior
+_mk_rng = []
 for t_ in trees:
-    if _mk_c.buffer(0.3).contains(Point(t_[1], t_[2])):
-        n_ = nearest_points(_mk_e, Point(t_[1], t_[2]))[0]
+    p_ = Point(t_[1], t_[2])
+    if _mk_c_rng.buffer(0.3).contains(p_):
+        n_ = nearest_points(_mk_e_rng, p_)[0]
+        _mk_rng.append(['', round(n_.x, 2), round(n_.y, 2)])
+    else:
+        _mk_rng.append(['', t_[1], t_[2]])
+    if _mk_c.buffer(0.3).contains(p_):
+        n_ = nearest_points(_mk_e, p_)[0]
         t_[1], t_[2] = round(n_.x, 2), round(n_.y, 2)
         _mk_moved += 1
-MUAK_TREES = muak.trees(MUAK, trees, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(2.0).union(_mk_c.buffer(1.0)))
+_mk_halls = unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(2.0)
+_mk_dec = []
+MUAK_TREES = muak.trees(MUAK_RNG, _mk_rng, _mk_halls.union(_mk_c_rng.buffer(1.0)), place=MUAK, dec=_mk_dec)
 trees += MUAK_TREES
-MUAK_WOOD_TREES = muak.woods_fill(MUAK_WOODS, trees)      # (the wood either side, on its floor painted above)
+_mk_rng += _mk_dec
+MUAK_WOOD_TREES = muak.woods_fill(MUAK_WOODS_RNG, _mk_rng)      # (the wood either side, on its floor painted above)
+_mk_rng += [['', t_[1], t_[2]] for t_ in MUAK_WOOD_TREES]
+_mk_wood_aside = muak.aside(MUAK_WOOD_TREES, MUAK)     # (off the new road's clearing, in their places)
 trees += MUAK_WOOD_TREES
 _mk_paths = []
 for p_ in out['paths']:
@@ -10793,25 +10814,29 @@ _mk_paths += [dict(kind='service', w=2 * muak.HALF, pts=[[round(float(c_), 1) fo
               dict(kind='footway', w=round(muak.WALK[1] - muak.WALK[0], 2),
                    pts=[[round(float(c_), 1) for c_ in muak.at(MUAK, s_, sum(muak.WALK) / 2)] for s_ in np.arange(8.0, muak.S_GRID + 0.1, 6.0)])]
 out['paths'][:] = _mk_paths
-print('무악학사 길: shrubs taken out %d, props %d, trees moved aside %d, new trees %d (and %d in the wood), old ways %d' % (
-    _n0[0] - len(shrubs), _n0[1] - len(props), _mk_moved, len(MUAK_TREES), len(MUAK_WOOD_TREES), len(MUAK_OLD)))
+print('무악학사 길: shrubs taken out %d, props %d, trees moved aside %d, new trees %d (and %d in the wood, %d off the new road), old ways %d' % (
+    _n0[0] - len(shrubs), _n0[1] - len(props), _mk_moved, len(MUAK_TREES), len(MUAK_WOOD_TREES), _mk_wood_aside, len(MUAK_OLD)))
 # 무악학사 · 북문 (tools/muak.py): the halls that stood north of the grid in July 1997 at the list's end (blender/build.py
 # draws each hall's looks in its order), 연희동's houses inside the patch, the rows over the roads after every other
 # tree, the patch's ground map beside the town's, the far forest kept off what is built or paved there (web/src/terrain.js)
 MUAK_HALLS = muak.halls(ground_tn)
 MUAK_HALLS_LATE = muak.halls(ground_tn, late=True)     # (at the list's very end, below: 우유처리장's east hall)
 _mk_taken = unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE] + [muak.SITE] + muak.LOTS +
-                        [ln_['ls'].buffer(hw_ + 3.0) for _, ln_, hw_, _ in MUAK_ROADS] + [MUAK['ls'].buffer(6.5)])
+                        [ln_['ls'].buffer(hw_ + 3.0) for _, ln_, hw_, _ in MUAK_ROADS] + [MUAK_RNG['ls'].buffer(6.5)])
 MUAK_HOUSES = muak.houses(ground_tn, _mk_taken, random.Random(15993))
 buildings += MUAK_HALLS + MUAK_HOUSES
 _mk_gm = muak.ground_map(MUAK, MUAK_ROADS, [Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES])
 out['tsplat'] = dict(sinchon_rotary.TSPLAT, **muak.pack(os.path.join(ROOT, 'web/public/assets/textures/ground_splat_town.png'),
                                                          muak.draw_map(_mk_gm)))
-MUAK_N_TREES = muak.trees_n(MUAK, MUAK_ROADS, _mk_taken.difference(MUAK['ls'].buffer(6.5)).union(
-    unary_union([muak.poly_rng(b_) for b_ in MUAK_HALLS + MUAK_HOUSES]).buffer(2.5)).union(unary_union(_mk_gm['courts']).buffer(1.5)), trees)
+_mk_dec = []
+MUAK_N_TREES = muak.trees_n(MUAK_RNG, MUAK_ROADS, _mk_taken.difference(MUAK_RNG['ls'].buffer(6.5)).union(
+    unary_union([muak.poly_rng(b_) for b_ in MUAK_HALLS + MUAK_HOUSES]).buffer(2.5)).union(unary_union(_mk_gm['courts']).buffer(1.5)),
+    _mk_rng, place=MUAK, dec=_mk_dec)
 trees += MUAK_N_TREES
-# (the wooded ridge west of the road, raised into view by tools/north97.py: its trees after every other tree)
-MUAK_RIDGE_TREES = muak.woods_fill(MUAK_RIDGE, trees, seed=15995, spacing=11.0)
+_mk_rng += _mk_dec
+# (the wooded ridge west of the road, raised into view by tools/north97.py: its trees after every other tree; decided
+# beside the old line's woods as the rows above)
+MUAK_RIDGE_TREES = muak.woods_fill(MUAK_RIDGE_RNG, _mk_rng, seed=15995, spacing=11.0)
 trees += MUAK_RIDGE_TREES
 _mk_clear = unary_union([_mk_gm['asphalt'].buffer(4.0), _mk_gm['pavers'].buffer(3.0), _mk_gm['dirt'].buffer(4.0),
                          unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES]).buffer(6.0)]).simplify(1.5)

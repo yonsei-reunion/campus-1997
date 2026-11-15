@@ -10,12 +10,15 @@ Frame: campus metres, x east, y north.  The road runs from the bend north-east o
 over the crest (y 760) and down round the hairpin (y 892) to the fork before 북문 (62, 965).
 
 - The line: the 2008 skyview survey's middle line (tools/roadview/muak/proposal_roads.json, +-1 m), moved left by what
-  the 1997-07-28 frames show (OFF97): the middle line agrees within 0.3 m in four frames (27/15, 27/16, 26/15, 26/14)
-  at s 5 - 100, 2.0 m and 1.2 m left of the survey's; 2.7 m at s 125 - 170 and 0.8 m at s 188 - 200 (two frames, the rest
-  under the crowns); 0.5 m at s 282 - 298.  OSM's line is 2 - 3 m east of the survey's.
-- Its width: 6.0 m between the kerbs (the photos' east kerb and west edge at s 30 - 100), the walk on the west 2.5 m.
+  the photos show (OFF97): the white middle line of the leafless winter scans of 1996 (27/15, course 27 of 1996-11-28)
+  every metre from s 10 to 283, which lies within 0.15 m of the 1997-07-28 frames' (27/15, 27/16) wherever those see
+  it; at s 515 - 610 the line where 1996 26/14 and 1997 27/15 · 27/16 agree.  Between (the hairpin) as the 1997 frames
+  had it.  OSM's line is 2 - 3 m east of the survey's.
+- Its width: 6.0 m between the kerbs (the photos' east kerb and west edge at s 30 - 160), the walk on the west 2.5 m.
 - Its height (Z97): the road surface measured on the photos (corr >= 0.7), the bend as the road there has it.
-Nothing here draws from build_campus.py's `rng`: random.Random(15991) for the trees.
+Nothing here draws from build_campus.py's `rng`: random.Random(15991) for the trees.  The rows and the woods are still
+decided on the line as it was before the 1996 scans (OFF97_RNG: road_rng()) and placed on the new one at the same
+s and offset, so that no tree list changes its length.
 """
 # (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
 # up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  The heights quoted
@@ -31,25 +34,47 @@ import north97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 _P = json.load(open(os.path.join(ROOT, 'tools/roadview/muak/proposal_roads.json')))
-# the 1997 middle line left of the survey's (the survey's s, m): measured at s 5 - 100, 125 - 200, 282 - 298 and s 500 -
-# 600 (26/14: the road between +4 and -1); in between and past them eased
-OFF97 = [(0, 2.0), (50, 2.0), (60, 1.2), (100, 1.2), (125, 2.7), (170, 2.7), (190, 0.8), (200, 0.8), (290, 0.5),
-         (420, 0.5), (500, 1.5), (600, 1.5), (630, 0.0)]
+# the middle line left of the survey's (the survey's s, m): s 0 - 295 the 1996 winter scan 27/15's white middle line
+# (with the heights below: 333 points within 0.15 m (90 %) of this line), the hairpin s 300 - 500 as the 1997 frames
+# had it (0.5 m at s 282 - 298 and the road between +4 and -1 m at s 500 - 600 in 26/14), s 505 - 630 where 1996 26/14
+# and 1997 27/15 · 27/16 put the line (1.1 - 1.9 m left of that), eased into the fork
+OFF97 = [(0, 2.00), (5, 2.01), (10, 2.06), (15, 2.11), (20, 2.22), (25, 2.36), (30, 2.45), (35, 2.33), (40, 2.06),
+         (45, 1.74), (50, 1.67), (55, 1.24), (60, 0.87), (65, 0.94), (70, 1.07), (75, 1.20), (80, 1.31), (85, 1.49),
+         (90, 1.64), (95, 1.72), (100, 1.71), (105, 1.90), (110, 2.02), (115, 2.16), (120, 2.35), (125, 2.59), (130, 2.61),
+         (135, 2.74), (140, 2.85), (145, 2.86), (150, 2.78), (155, 2.51), (160, 2.15), (165, 1.95), (170, 1.93),
+         (175, 1.55), (180, 1.32), (185, 1.04), (190, 0.59), (195, 0.49), (200, 0.31), (205, 0.08), (210, -0.16),
+         (215, -0.37), (220, -0.63), (225, -0.89), (230, -1.10), (235, -1.20), (240, -1.17), (245, -1.06), (250, -0.86),
+         (255, -0.73), (260, -0.79), (265, -0.94), (270, -1.20), (275, -1.12), (280, -0.49), (285, -0.10), (290, 0.39),
+         (295, 0.50), (300, 0.50), (420, 0.50), (500, 1.50), (505, 2.02), (510, 2.85), (515, 3.22), (520, 3.24),
+         (525, 3.20), (530, 3.07), (535, 2.97), (540, 2.92), (545, 2.79), (550, 2.78), (555, 2.76), (560, 2.58),
+         (565, 2.54), (570, 2.46), (575, 2.36), (580, 2.20), (585, 2.19), (590, 2.37), (595, 2.42), (600, 2.58),
+         (605, 2.57), (610, 2.41), (615, 1.88), (620, 1.16), (625, 0.46), (630, 0.01)]
+# (the line as it was before the 1996 scans: the rows of trees, the woods either side and the patch's taken ground are
+# decided on it, road_rng(), and placed on OFF97's at the same s and offset: no tree list changes its length)
+OFF97_RNG = [(0, 2.0), (50, 2.0), (60, 1.2), (100, 1.2), (125, 2.7), (170, 2.7), (190, 0.8), (200, 0.8), (290, 0.5),
+             (420, 0.5), (500, 1.5), (600, 1.5), (630, 0.0)]
 HALF = 3.0                      # half the carriageway
 WALK = (3.25, 5.75)             # the west walk, left of the middle line (s 8 on: past the corner's mouth)
-# the road's surface (the survey's s, m; 해발 at that s of the line, road()): the 1997 frames (corr >= 0.7), the bend
-# north-east of 대우관 as the east road has it (reference/고증/3.6.2), s 195 the drive into the yard east of the crest
-# (four frames, 0.91 - 0.96).  Under the crowns the 1:5000 survey's spot heights on the road + T (reference/고증/3.21
-# 「길의 높이」): s 127 (223.9, 691.9), s 225 (241.6, 787.8, on its east verge), s 284 (248.8, 845.6 · 246.7, 847.2, with
-# the frames' 91.2 - 91.5 there), s 488 (116.2, 836.8).  From the hairpin to the fork one fall of 10 - 12 %: the frames'
-# 77 - 79 m at s 430 - 462 was the crowns over the road (the pairs that see the road under them: 75.6 at s 427, 73.1
-# at s 448, 70.6 at s 469, 68.7 at s 483, within 0.8 m of the survey's contours)
-Z97 = datum.up_at([(-14.0, 77.46), (10.0, 80.73), (50.0, 86.26), (90.0, 90.56), (127.0, 93.78), (195.0, 95.46), (225.0, 94.15),
-       (284.0, 90.56), (301.0, 90.05), (329.0, 86.48), (343.0, 84.73), (413.0, 77.05), (448.0, 73.04), (488.0, 68.07),
-       (525.0, 64.28), (558.0, 60.87), (602.0, 55.95), (630.0, 53.23)],
-                  [(189.3, 563.9), (207.3, 579.4), (223.5, 613.7), (224.2, 653.6), (222.3, 690.5), (231.7, 758.1),
-                   (237.8, 787.4), (247.2, 844.9), (241.5, 860.8), (224.9, 882.9), (213.5, 890.3), (178.5, 834.0),
-                   (149.6, 815.6), (115.9, 835.5), (99.3, 868.8), (86.1, 899.1), (69.5, 939.8), (61.8, 964.8)])
+# the road's surface (the survey's s, m; 해발 at that s of the line, road()): the bend north-east of 대우관 as the east
+# road has it (reference/고증/3.6.2); s 10 - 112 the same-day pairs of the 1996 winter scans (27/15 x 27/16, 26/14 x
+# 26/15: the shadows of the bare branches on the road, corr >= 0.8), with the 1997 pair 27/15 x 27/16 where it sees the
+# road between the crowns (s 30 - 42, 67 - 82: within 0.3 m of them), 0.2 - 1.0 m under the 1997 reading that had
+# the crowns in it; s 140 - 175 four 1997 pairs where the road is open at s 145 - 160 (0.9 - 1.7 m over the line that
+# was eased from s 127 to the crest) and the 1996 east-west pair (26/14 x 27/15, less its +0.45 m on open ground),
+# the survey's 95 m contour crossing at s 140 (2024); s 195 the drive into the yard east of the crest (four frames,
+# 0.91 - 0.96).  The 1:5000 survey's spot heights on the road: s 127 (223.9, 691.9), s 225 (241.6, 787.8: 2.1 m east of
+# the middle line, on the carriageway), s 284 (248.8, 845.6 · 246.7, 847.2, with the frames' 91.2 - 91.5 there), s 488
+# (116.2, 836.8).  From the hairpin to the fork one fall of 10 - 12 %: the frames' 77 - 79 m at s 430 - 462 was the
+# crowns over the road (the pairs that see the road under them: 75.6 at s 427, 73.1 at s 448, 70.6 at s 469, 68.7 at
+# s 483, within 0.8 m of the survey's contours)
+Z97 = datum.up_at([(-14.0, 77.46), (10.0, 80.73), (25.0, 82.50), (35.0, 83.63), (50.0, 85.36), (65.0, 86.99), (80.0, 88.97),
+                   (100.0, 90.96), (112.0, 92.17), (127.0, 93.78), (140.0, 95.0), (152.0, 95.8), (162.0, 96.05), (175.0, 95.8),
+                   (195.0, 95.46), (225.0, 93.9), (284.0, 90.56), (301.0, 90.05), (329.0, 86.48), (343.0, 84.73), (413.0, 77.05),
+                   (448.0, 73.04), (488.0, 68.07), (525.0, 64.28), (558.0, 60.87), (602.0, 55.95), (630.0, 53.23)],
+                  [(189.3, 563.9), (207.3, 579.4), (215.7, 591.2), (220.1, 599.8), (223.8, 613.7), (224.5, 628.6), (224.1, 643.6),
+                   (223.5, 663.5), (223.0, 675.5), (222.3, 690.5), (222.2, 703.6), (222.8, 715.7), (224.1, 725.8), (226.9, 738.7),
+                   (232.1, 758.0), (239.3, 787.1), (247.9, 845.1), (241.6, 860.8), (224.9, 882.9), (213.5, 890.3), (178.5, 834.0),
+                   (149.6, 815.6), (115.9, 835.5), (97.8, 868.1), (85.0, 898.6), (68.4, 939.4), (61.6, 964.7)])
 S_GRID = 238.0                  # where the line leaves the 5 m grid (y 800)
 
 
@@ -85,6 +110,11 @@ def road(key='main_corner_to_junction', off=OFF97, s0=-14.0):
     T /= np.linalg.norm(T, axis=1)[:, None]
     N = np.stack([-T[:, 1], T[:, 0]], 1)
     return dict(s=ss, p=P, n=N, ls=ls, z=_pchip(*zip(*Z97), ss))
+
+
+def road_rng():
+    """the line as it was before the 1996 scans (OFF97_RNG): what the rows of trees and the woods are decided on"""
+    return road(off=OFF97_RNG)
 
 
 def at(line, s, off=0.0):
@@ -156,23 +186,45 @@ def paint(line, s1):
     return strip(line, -6.0, s1, -HALF, HALF), strip(line, 8.0, s1, WALK[0], WALK[1])
 
 
-def trees(line, trees_, halls, s0=14.0, s1=S_GRID, seed=15991):
+def trees(line, trees_, halls, s0=14.0, s1=S_GRID, seed=15991, place=None, dec=None):
     """the closed crowns over the road (1997 frames: s 0 - 300 is under them): a row either side, behind the walk on
-    the west (8 m) and on the bank on the east (5 m), about 9 m apart, oaks and zelkovas (the species are not known)"""
+    the west (8 m) and on the bank on the east (5 m), about 9 m apart, oaks and zelkovas (the species are not known).
+    Decided on line (halls, the trees there: trees_); with place, each stands on that line at its own s and offset
+    (dec: gets the places as decided, [_, x, y])"""
     rd = random.Random(seed)
-    out = []
+    out, mine = [], []
     pts0 = [(t[1], t[2]) for t in trees_]
     for side, o in ((1, 8.0), (-1, -5.0)):
         s = s0 + rd.uniform(0, 4)
         while s < s1:
-            q = at(line, s, o + rd.uniform(-0.8, 0.8))
+            sa, oa = s, o + rd.uniform(-0.8, 0.8)
+            q = at(line, sa, oa)
             sp = 'oak' if rd.random() < 0.6 else 'zelkova'
             sc, rot = round(rd.uniform(0.85, 1.15), 2), round(rd.uniform(0, 6.28), 2)
             s += rd.uniform(7.5, 11.0)
-            if halls.contains(Point(*q)) or any(math.dist(q, p) < 3.5 for p in pts0 + [(t[1], t[2]) for t in out]):
+            if halls.contains(Point(*q)) or any(math.dist(q, p) < 3.5 for p in pts0 + mine):
                 continue
-            out.append([sp, round(float(q[0]), 2), round(float(q[1]), 2), sc, rot])
+            qp = q if place is None else at(place, sa, oa)
+            mine.append((round(float(q[0]), 2), round(float(q[1]), 2)))
+            out.append([sp, round(float(qp[0]), 2), round(float(qp[1]), 2), sc, rot])
+    if dec is not None:
+        dec += [['', x, y] for x, y in mine]
     return out
+
+
+def aside(trees_, line, s0=0.0, s1=S_GRID + 6.0, lo=-HALF - 1.5, hi=WALK[1] + 1.0):
+    """trees standing in the road's band (lo .. hi of line, s0 .. s1: the woods' clearing, woods_strip) moved, in
+    their places in the list, to its nearer edge: the woods decided on the old line (road_rng) beside the new one.
+    Returns how many"""
+    n = 0
+    for t in trees_:
+        s, o = project(line, np.array([t[1]]), np.array([t[2]]))
+        s, o = float(s[0]), float(o[0])
+        if s0 <= s <= s1 and lo < o < hi:
+            q = at(line, s, lo if o - lo < hi - o else hi)
+            t[1], t[2] = round(float(q[0]), 2), round(float(q[1]), 2)
+            n += 1
+    return n
 
 
 # ----------------------------------------------------------------------------- the patch north of the grid
@@ -599,13 +651,15 @@ def woods_fill(poly, trees_, seed=15994, spacing=10.0):
     return out
 
 
-def trees_n(line, roads, taken, trees_, seed=15992):
-    """the rows over the roads north of the grid: the main road's on to the fork (as trees() in the grid), the east
-    road's (metasequoias in 2008-2010; the 1997 frames: a closed row), the west road's along the boundary (1997: a row
-    of crowns west of it)"""
+def trees_n(line, roads, taken, trees_, seed=15992, place=None, dec=None):
+    """the rows over the roads north of the grid: the main road's on to the fork (as trees() in the grid, decided on
+    line, standing on place), the east road's (metasequoias in 2008-2010; the 1997 frames: a closed row), the west
+    road's along the boundary (1997: a row of crowns west of it)"""
     rd = random.Random(seed)
-    out = trees(line, trees_, taken, s0=S_GRID + 2.0, s1=line['s'][-1] - 12.0, seed=seed)
-    pts0 = [(t[1], t[2]) for t in trees_ + out]
+    mine = []
+    out = trees(line, trees_, taken, s0=S_GRID + 2.0, s1=line['s'][-1] - 12.0, seed=seed, place=place, dec=mine)
+    pts0 = [(t[1], t[2]) for t in trees_ + mine]
+    n_main = len(out)
     for nm, ln, hw, _ in roads:
         rows = {'east': ((hw + 2.0, 'metasequoia'), (-hw - 2.0, 'metasequoia')), 'west': ((hw + 2.5, 'zelkova'),)}.get(nm, ())
         for o, sp in rows:
@@ -619,4 +673,6 @@ def trees_n(line, roads, taken, trees_, seed=15992):
                     continue
                 out.append([sp, round(float(q[0]), 2), round(float(q[1]), 2), sc, rot])
                 pts0.append(tuple(q))
+    if dec is not None:
+        dec += mine + [['', t[1], t[2]] for t in out[n_main:]]
     return out
