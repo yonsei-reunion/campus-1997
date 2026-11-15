@@ -3394,8 +3394,11 @@ AUD_T = AUD_HEAD                              # (the forecourt and the terrace a
 # The carriageway 4.7 m wide, a walk 1.8 m wide up its east side and beyond that a strip of clipped shrubs 4.5 m wide
 # on the slope down to the yard, from 2.5 m below the bollards (its lower end and its outer edge from 190 - 193: 0.1 m
 # apart in three; 학생회관 별관's ground floor stands 10 m beyond it, the yard between).  The foot: the middle bollard, from 190 and 192 (its distance from 188 - 191 agrees with the bollards'
-# heights in those frames to 4 %; the skyview has it 3.5 m further east).  The terrace beyond the head is not level
-# but falls with 백양로, from the flight's head (38.01 m) to the drive's head.
+# heights in those frames to 4 %; the skyview has it 3.5 m further east).  The terrace beyond the head is level at
+# the flight's head (AUD_T): the 1997 scans have it one level from s 470 to the hall's north end (39.6 - 39.9 m 해발
+# at 40-odd points, reference/고증/4.5.1 「1997년 7월 항공사진으로 잰 높이」), and the climb from the drive's head
+# to it (1.4 m in the photos, 1.34 m here) in the terrace's south-west corner within 14 m of the head (level_r: the
+# photos' points 2 - 20 m from it within 0.3 m of that), not along 백양로 to the flight as the game first laid it.
 # (the bollards: the triangulated row, 1.22 · 1.16 · 1.75 m apart; their spacing in 2008 · 2010 frames agrees, 4.5)
 AUD_RAMP = dict(foot_rng=(7.56, -9.22), bearing=38.0, run=22.0, w=4.7, walk=1.8, band=4.45, band_t0=-2.5, mouth=5.0, z1=datum.up(21.1, 8.12, 37.62),
                 bollards=(-1.22, 0.0, 1.16, 2.91))
@@ -3411,6 +3414,7 @@ _rf = np.array(AUD_RAMP['foot'])
 AUD_RAMP['pts'] = [[round(float(v_), 2) for v_ in _rf + _ru * t_] for t_ in (-AUD_RAMP['mouth'], 0.0, AUD_RAMP['run'])]
 AUD_RAMP['z0'] = round(prof_h(s_off(*_rf)[0]) + AUD_BANK['walk_z'], 3)
 AUD_RAMP['s_head'] = round(s_off(*AUD_RAMP['pts'][-1])[0], 2)
+AUD_RAMP['level_r'] = 14.0                                      # (the terrace level from this far off the head)
 
 
 def ramp_xy(t, o):
@@ -3428,9 +3432,9 @@ def aud_ramp_z(x, y):
     return AUD_RAMP['z0'] + (AUD_RAMP['z1'] - AUD_RAMP['z0']) * t_ / AUD_RAMP['run']
 
 
-def aud_terrace_z(s_):
-    """the terrace along 백양로: from the drive's head up to the flight's head, level north of it"""
-    f_ = min(1.0, max(0.0, (s_ - AUD_RAMP['s_head']) / (AUD_FLIGHT['s'] - AUD_RAMP['s_head'])))
+def aud_terrace_z(x, y):
+    """the terrace at (x, y): from the drive's head up to the flight's head's level level_r m off it, level beyond"""
+    f_ = min(1.0, math.hypot(x - AUD_RAMP['pts'][-1][0], y - AUD_RAMP['pts'][-1][1]) / AUD_RAMP['level_r'])
     return AUD_RAMP['z1'] + (AUD_T - AUD_RAMP['z1']) * f_
 
 
@@ -3484,8 +3488,7 @@ def aud_upper_z(x, y):
     return AUD_UPPER['z0'] + (AUD_UPPER['z1'] - AUD_UPPER['z0']) * f_
 
 
-COURT_Z = round(aud_terrace_z(s_at(*COURT_RNG['pos'])), 3)          # (the old court's level: the terrace at its middle)
-COURT_H = round(aud_terrace_z(s_at(*COURT['pos'])), 3)              # (the hoops' court: north of the flight, level)
+COURT_H = round(aud_terrace_z(*COURT['pos']), 3)              # (the hoops' court: north of the flight, level)
 # (the 1997 net court on the terrace's south-east part, JOKGU: the photos have it on the terrace's one level, 39.3 -
 # 39.9 m like the terrace north of the flight's head, where the game's ground fell away to the upper
 # road and the old court's level: its pad at the terrace's level north of the flight, AUD_T)
@@ -3496,11 +3499,12 @@ _cw = shapely.contains_xy(court_poly(5.0, COURT_RNG), X, Y) & ~_jw
 _uw = shapely.contains_xy(AUD_UPPER_POLY, X, Y) & ~_tw & ~_rw
 _zt = np.full(X.shape, AUD_T)
 for _j, _i in zip(*np.nonzero(_tw)):
-    _zt[_j, _i] = AUD_T if _jw[_j, _i] else COURT_Z if _cw[_j, _i] else aud_terrace_z(s_at(X[_j, _i], Y[_j, _i]))
+    _zt[_j, _i] = AUD_T if _jw[_j, _i] else aud_terrace_z(X[_j, _i], Y[_j, _i])   # (the old court's place too)
 for _j, _i in zip(*np.nonzero(_rw)):
     _zt[_j, _i] = aud_ramp_z(X[_j, _i], Y[_j, _i])
 for _j, _i in zip(*np.nonzero(_uw)):
-    _zt[_j, _i] = aud_upper_z(X[_j, _i], Y[_j, _i])
+    # (no lower than the terrace's climb off the drive's head: the scans have the road at the terrace's level from x 36)
+    _zt[_j, _i] = max(aud_upper_z(X[_j, _i], Y[_j, _i]), aud_terrace_z(X[_j, _i], Y[_j, _i]))
 _in = _tw | _rw | _uw
 _ni = ndimage.distance_transform_edt(~_in, return_distances=False, return_indices=True)
 _zt = _zt[_ni[0], _ni[1]]                                           # (beyond them: the nearest node's level)
@@ -3509,9 +3513,9 @@ _tw *= np.clip((dist - ROAD_HALF - 1.0) / 3.0, 0, 1)
 _tw[(near_buildings(11.0) & ~_rw & ~_cw & ~_uw & ~_jw) | near_buildings(3.0) | FIXED] = 0.0   # (the court's margin: level)
 Hn[:] = Hn * (1 - _tw) + _zt * _tw
 FIXED[_tw > 0.999] = True
-print('대강당 앞 진입로: z %.2f -> %.2f over %.1f m (%.1f %%), head at s %.1f; terrace %.2f -> %.2f, court %.2f'
+print('대강당 앞 진입로: z %.2f -> %.2f over %.1f m (%.1f %%), head at s %.1f; terrace %.2f -> %.2f, level from %.0f m off the head'
       % (AUD_RAMP['z0'], AUD_RAMP['z1'], AUD_RAMP['run'], 100 * (AUD_RAMP['z1'] - AUD_RAMP['z0']) / AUD_RAMP['run'],
-         AUD_RAMP['s_head'], AUD_RAMP['z1'], AUD_T, COURT_Z))
+         AUD_RAMP['s_head'], AUD_RAMP['z1'], AUD_T, AUD_RAMP['level_r']))
 print('별관 북쪽 윗단 길: %.2f -> %.2f m, grid nodes %d' % (AUD_UPPER['z0'], AUD_UPPER['z1'], int(_uw.sum())))
 
 
@@ -3534,7 +3538,7 @@ for _s in sorted(set([round(float(v_), 3) for v_ in np.arange(AUD_BANK['s0'], AU
     _far = [sample(Hn, NEAR_HALF, NEAR_STEP, *along_raw(_s, AUD_BANK['side'] * (E_WALK + o_))[:2])
             for o_ in (_to, (_to + _ext) / 2, _ext)]
     # the top edge at the terrace's level (the 5 m grid rounds it off); south of the drive's head, at the drive's
-    _far[0] = max(_far[0], aud_terrace_z(_s)) if _s >= AUD_RAMP['s_head'] else \
+    _far[0] = max(_far[0], aud_terrace_z(*along_raw(_s, AUD_BANK['side'] * (E_WALK + _to))[:2])) if _s >= AUD_RAMP['s_head'] else \
         aud_ramp_z(*along_raw(_s, AUD_BANK['side'] * (E_WALK + _to))[:2])
     _ab.append((float(_s), _zb, _top, max(_far[0], _top + 0.05), _far, _to, _ext))
 _abs = np.array([a_[0] for a_ in _ab])
