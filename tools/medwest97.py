@@ -354,6 +354,58 @@ def grade(Hn, X, Y, FIXED, halls_keep, fill, road_ls, road_hw, step=5.0, half=80
     return ctrl | free, info
 
 
+# 정문 동쪽 주차장 (the lined car park south-west of 백주년기념관, build_campus.py LOT_C_LOT; reference/고증/2.10 「정문 동쪽
+# (백주년기념관 남서쪽) 주차장」, 3.1.2): in the rows' frame (LOT_O, LOT_U along the rows' stalls east-south-east, LOT_V
+# north-north-east) the 1997 scans' heights over its three aisles and two cross profiles (26 points, each two pairs or
+# more within 0.7 m, five frames) fit z = c0 + c1 u + c2 v + c3 u^2 (해발) with rms 0.26 m: 27.1 m at the west aisle,
+# 28.3 m along the middle one, 27.7 m at the east end, where the game's ground had a hollow 0.2 m (by 백양로) to 2.4 m
+# (the middle aisle) under them.  The stall lines' own height read before (A row: the ground, B row 1 m over it)
+# agrees.  LOT_RECT the rows' extent (u, v); the ground eased in over LOT_RING m round it
+LOT_O, LOT_U, LOT_V = (-66.0, -312.0), (0.9744, -0.225), (0.225, 0.9744)
+LOT_RECT = (-3.6, 55.6, 11.8, 44.0)
+LOT_Z = (26.2525, 0.0721, 0.0275, -0.0011)
+LOT_RING = 10.0
+LOT_KEEP = ((-39.5, -257.0), 16.0)       # 백주년기념관's round forecourt and its terrace stay
+
+
+def lot_uv(x, y):
+    dx, dy = np.asarray(x) - LOT_O[0], np.asarray(y) - LOT_O[1]
+    return dx * LOT_U[0] + dy * LOT_U[1], dx * LOT_V[0] + dy * LOT_V[1]
+
+
+def lot_z(x, y):
+    """the fitted surface (해발)"""
+    u, v = lot_uv(x, y)
+    return LOT_Z[0] + LOT_Z[1] * u + LOT_Z[2] * v + LOT_Z[3] * u * u
+
+
+def lot_grade(Hn, X, Y, FIXED, halls_keep, fill, bline, road_half, step=5.0, half=800.0):
+    """정문 동쪽 주차장 on the scans' surface (lot_z, taken up to the working datum), the ground round it eased in over
+    LOT_RING m; 백양로's mesh and its verge (road_half + 2 m), the halls' feet (7 m), the round forecourt (LOT_KEEP)
+    and what another rule set (FIXED) stay.  Returns the nodes set and a summary."""
+    H0 = Hn.copy()
+    U, V = lot_uv(X, Y)
+    pts = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
+    by_road = (shapely.distance(pts, bline) <= road_half + 2.0).reshape(X.shape)
+    near_hall = shapely.contains_xy(unary_union([h.buffer(7.0) for h in halls_keep]), X, Y)
+    fore = np.hypot(X - LOT_KEEP[0][0], Y - LOT_KEEP[0][1]) <= LOT_KEEP[1]
+    Um, Vm = uv(X, Y)
+    mine = (shapely.contains_xy(CLEAR_UV.buffer(10.0), Um, Vm) | shapely.contains_xy(WEST_EASE_UV, Um, Vm)) \
+        & ~shapely.contains_xy(NW_KEEP_UV, Um, Vm)                 # (grade's, below: south-east of the brick wall)
+    keep = FIXED | by_road | near_hall | fore | mine
+    u0, u1, v0, v1 = LOT_RECT
+    lot = (U >= u0) & (U <= u1) & (V >= v0) & (V <= v1)
+    m = lot & ~keep
+    Hn[m] = datum.up(X[m], Y[m], lot_z(X[m], Y[m]), nd=None)
+    ring = (U >= u0 - LOT_RING) & (U <= u1 + LOT_RING) & (V >= v0 - LOT_RING) & (V <= v1 + LOT_RING) & ~lot & ~keep
+    if ring.any():
+        fill(ring)
+    d = Hn - H0
+    return m | ring, dict(lot=int(m.sum()), kept=int((lot & keep).sum()), ring=int(ring.sum()),
+                          lift=(round(float(d[m].min()), 2), round(float(d[m].max()), 2)) if m.any() else None,
+                          eased=(round(float(d[ring].min()), 2), round(float(d[ring].max()), 2)) if ring.any() else None)
+
+
 def paint():
     """for the game's map: (cleared to lawn, asphalt, paving) in campus metres.  Today's walks, drives and roundabout
     go; the entrance road, the road along the hall's side, the forecourt, the ramps and the drive are asphalt; the

@@ -6564,6 +6564,10 @@ print('의료원 주차장 셋:', MED97_GRADE)
 # forecourt, its ramps and 안 · 이비인후과병원's terrace on the 1997 photos' heights (today's lawn ran one slope 2 - 5 m
 # under them); the raised surfaces themselves are meshes over it (out['med_west'] below).  Late, here: the planting
 # has read the ground as it was
+# (정문 동쪽 주차장 first, on the 1997 scans' surface: 2.10 「정문 동쪽 주차장」, its bank down from the drive eased to it)
+_lc_took, LOT_C_GRADE = medwest97.lot_grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, bline, ROAD_HALF)
+FIXED[_lc_took] = True
+print('정문 동쪽 주차장:', LOT_C_GRADE)
 _mw_took, MEDWEST_GRADE = medwest97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
 FIXED[_mw_took] = True
 print('의료원 서쪽:', MEDWEST_GRADE)
