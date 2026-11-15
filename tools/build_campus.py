@@ -9400,14 +9400,19 @@ _ypaint(list(shapely.ops.split(CENT_SW_PAVE, LineString([(CENT_SW_C[0], -280.0),
 #   (the paving 0.2 - 0.5 m under the top 6.3 m out, the rim 0.3 - 0.65 m under it), none on the north: the roadview
 #   of 2010-12 and 2011-04 has about five steps on the south side thinning out towards the library.  So: five tiers
 #   of circles inside the outline, all touching it at the north on the library's axis (each 0.3 m smaller and 0.3 m
-#   further north than the one under it), 0.17 m apart (blender/landmarks.py hangeul_tower).  The ground is the
-#   bed's as it was (the 5 m grid cannot carry the scans' boundary, 0.2 - 0.4 m over the bed's surface round the
-#   foot): the steps go down into it.  rot = the library's axis: the cross of its legs lies along it, local +x (the
-#   bore through the head) looks at 백양로 (azimuth 107 +- 3 in the roadview), -y (the leg with the name) south
+#   further north than the one under it), 0.17 m apart (blender/landmarks.py hangeul_tower).  The ground round the
+#   foot stands 0.3 - 0.45 m over the bed's surface in the scans, which the 5 m grid cannot carry: foot = the rim's
+#   height under the top by azimuth (az / drop, null = the bed as it is: no heights on the west), a band in the
+#   ground's own material at that height from the steps out to flat m past the outline, down to the ground by out
+#   m; the steps under it go into it (east two seen, south four, north none).  rot = the library's axis: the cross of
+#   its legs lies along it, local +x (the bore through the head) looks at 백양로 (azimuth 107 +- 3 in the roadview),
+#   -y (the leg with the name) south
 LIB_S_DISC = Point(-63.2, -110.9).buffer(7.6, quad_segs=24)
 _ypaint([LIB_S_DISC], _gp)
 HANGEUL_TOWER = dict(pos=[-63.5, -111.0], h=7.2, rot=round(math.radians(-14.6), 4),
-                     base=dict(c=[-63.2, -110.9], r=7.6, up=0.64, n=5, rise=0.17, d=0.3, az=14.74))
+                     base=dict(c=[-63.2, -110.9], r=7.6, up=0.64, n=5, rise=0.17, d=0.3, az=14.74,
+                               foot=dict(az=[-30, 0, 40, 90, 120, 150, 180, 210],
+                                         drop=[None, 0.0, 0.0, 0.34, 0.42, 0.63, 0.64, None], flat=2.0, out=3.0)))
 out['hangeul_tower'] = HANGEUL_TOWER
 _ht_z = Point(*HANGEUL_TOWER['pos']).buffer(3.4)
 assert not any(_ht_z.contains(Point(c_[1], c_[2])) for c_ in cars), 'a car at 한글탑'

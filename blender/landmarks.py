@@ -6295,7 +6295,8 @@ def hangeul_base(B, seg=120):
     all touch it at azimuth az (the library's side): tier m from the top is r - (n - m) d across, its centre (n - m) d
     from c towards az, its tread rise m down from the top (top = the ground at c + up).  The steps are widest on the
     south and come to nothing at the north; where the ground is over a tier it goes down into it (a skirt under the
-    lowest one).  Walked on: the top and one ramp through the nosings.  Returns ([meshes], the top's height)."""
+    lowest one).  foot: the ground round it as the scans have it, over the 5 m grid's (hangeul_foot).  Walked on: the
+    top and one ramp through the nosings.  Returns ([meshes], the top's height)."""
     if not B:
         return [], None
     cx, cy = B['c']
@@ -6335,7 +6336,60 @@ def hangeul_base(B, seg=120):
         P, Q = rings[n][i], rings[n][j]
         if math.hypot(P[0] - p[0], P[1] - p[1]) > 0.05:          # (at the touching point the steps are one upright face)
             WALK_FACES.append([(p[0], p[1], top), (P[0], P[1], zs[n]), (Q[0], Q[1], zs[n]), (q[0], q[1], top)])
+    if B.get('foot'):
+        hangeul_foot(mb, B['foot'], (cx, cy), R, a, seg, rings, top, rise, n)
     return [mb], top
+
+
+def hangeul_foot(mb, F, c, R, a, seg, rings, top, rise, n):
+    """The ground round 연세한글탑's foot (reference/고증/4.14 「둥근 계단 단」): the scans have the rim of the paving
+    0 - 0.64 m under the top by azimuth (F az / drop; None: the bed as it is), 0.3 - 0.45 m over the 5 m grid's ground,
+    which cannot carry it.  A band in the ground's own material (the splat paints it): at the rim's height from the
+    lowest tier still over it out to F flat m past the outline, then down to the ground by F out m; the tiers under it
+    go into it.  Where the scans give no height it comes down to the ground over the listed azimuths.  Walked on."""
+    cx, cy = c
+    AZ, DR = F['az'], F['drop']
+
+    def height(az, g):                                         # the band's height at the outline, None: none there
+        az = (az + 180.0 - AZ[0]) % 360.0 - 180.0 + AZ[0]      # into the list's range when it can be
+        if az < AZ[0] or az > AZ[-1]:
+            return None
+        k = max(i for i in range(len(AZ) - 1) if AZ[i] <= az)
+        w = (az - AZ[k]) / (AZ[k + 1] - AZ[k])
+        d0, d1 = DR[k], DR[k + 1]
+        if d0 is None and d1 is None:
+            return None
+        if d0 is None or d1 is None:                           # towards the game's ground: the rise over it fades
+            rs = top - (d1 if d0 is None else d0) - g
+            return g + rs * (w if d0 is None else 1.0 - w)
+        return top - (d0 * (1.0 - w) + d1 * w)
+
+    cols = []
+    for i in range(seg):
+        ang = a + 2 * math.pi * i / seg
+        ux, uy = math.cos(ang), math.sin(ang)
+        ex, ey = cx + R * ux, cy + R * uy
+        h = height((90.0 - math.degrees(ang)) % 360.0, ground_top(ex, ey))
+        if h is None or h < ground_top(ex, ey) + 0.03:
+            cols.append(None)
+            continue
+        k = max(0, min(n, math.ceil((top - h) / rise - 1e-6) - 1))        # the lowest tier seen over the band
+        fx, fy = cx + (R + F['flat']) * ux, cy + (R + F['flat']) * uy
+        ox, oy = cx + (R + F['out']) * ux, cy + (R + F['out']) * uy
+        cols.append((k, h, (fx, fy, max(h, ground_top(fx, fy) + 0.02)), (ox, oy, ground_top(ox, oy) + 0.02)))
+    # the inner edge at each point: the lowest tier seen there or beside it (under a tier seen on one side, not over
+    # it), so that the strips on both sides of a point share it and no gap opens where the tier changes
+    kv = [None if cols[i] is None else min(cols[m][0] for m in ((i - 1) % seg, i, (i + 1) % seg) if cols[m] is not None)
+          for i in range(seg)]
+    for i in range(seg):
+        j = (i + 1) % seg
+        if cols[i] is None or cols[j] is None:
+            continue
+        Ei, Ej = rings[kv[i]][i], rings[kv[j]][j]
+        for q in ([(Ei[0], Ei[1], cols[i][1]), (Ej[0], Ej[1], cols[j][1]), cols[j][2], cols[i][2]],
+                  [cols[i][2], cols[j][2], cols[j][3], cols[i][3]]):
+            oface(mb, q, 'terrain_drape', (0, 0, 1))
+            WALK_FACES.append(q)
 
 
 # ============================================================================= 제1공학관 안뜰의 낮은 동과 서쪽 옹벽
