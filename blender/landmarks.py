@@ -1321,14 +1321,21 @@ def stair_flight(mb, x, y_face, width, zl, n=8, mat='stone_granite', landing=1.8
         for sg in (-1, 1):
             xo = x + sg * (width / 2 + flare * 0.6 + cheek / 2)
             hz0, hz1 = zl + 0.55, zbot + 0.35
-            # sloped coping wall: a wedge from the landing down to the foot of the flight
-            ya, yb = y_face + 0.4, y_foot - 0.1
+            # coping wall: level beside the landing (so that its top stays over the landing's edge: 2026-11-15, the
+            # walker stepped off a high landing's sides where the wedge from the wall had already sunk under it), then
+            # a wedge down to the foot of the flight
+            ya, yl, yb = y_face + 0.4, y_face - landing, y_foot - 0.1
             xa, xb = xo - cheek / 2, xo + cheek / 2
-            pts = lambda yy, zz, xx: (xx, yy, zz)
-            for (x0, x1) in ((xa, xb),):
-                mb.quad((x0, yb, ground), (x0, ya, ground), (x0, ya, hz0), (x0, yb, hz1), cheek_mat) if sg < 0 else \
-                    mb.quad((x1, ya, ground), (x1, yb, ground), (x1, yb, hz1), (x1, ya, hz0), cheek_mat)
-            mb.quad((xa, yb, hz1), (xb, yb, hz1), (xb, ya, hz0), (xa, ya, hz0), cheek_mat)       # sloping top
+            # (both faces: the walker on the landing feels the inner one; with the flare the outer one is beyond its reach)
+            for xf_, out_ in ((xa, -1), (xb, 1)):
+                if out_ > 0:                                  # (facing +x)
+                    mb.quad((xf_, yb, ground), (xf_, yl, ground), (xf_, yl, hz0), (xf_, yb, hz1), cheek_mat)
+                    mb.quad((xf_, yl, ground), (xf_, ya, ground), (xf_, ya, hz0), (xf_, yl, hz0), cheek_mat)
+                else:                                         # (facing -x)
+                    mb.quad((xf_, yl, ground), (xf_, yb, ground), (xf_, yb, hz1), (xf_, yl, hz0), cheek_mat)
+                    mb.quad((xf_, ya, ground), (xf_, yl, ground), (xf_, yl, hz0), (xf_, ya, hz0), cheek_mat)
+            mb.quad((xa, yb, hz1), (xb, yb, hz1), (xb, yl, hz0), (xa, yl, hz0), cheek_mat)       # sloping top
+            mb.quad((xa, yl, hz0), (xb, yl, hz0), (xb, ya, hz0), (xa, ya, hz0), cheek_mat)       # level top
             mb.quad((xa, yb, ground), (xa, yb, hz1), (xb, yb, hz1), (xb, yb, ground), cheek_mat)  # foot end
             mb.quad((xb, ya, ground), (xb, ya, hz0), (xa, ya, hz0), (xa, ya, ground), cheek_mat)  # wall end
             if newel:
@@ -6146,8 +6153,10 @@ def kwangbok():
             sc = (k0 + 1.5) * bw
             o_ = P(sc, zm, 0)
             mb.xf = Matrix.Translation(Vector(o_)) @ Matrix.Rotation(ang, 4, 'Z')
+            # (the landing stands 1.6 m over the forecourt beside it: low granite walls along its sides and the flight's,
+            # so that nobody steps off; the 1996 photo shows the flight and its rails, not the landing's sides)
             stair_flight(mb, 0.0, 0.0, 3 * bw - 0.3, 0.0, mat='stone_step', landing=2.4, tread=0.33, flare=0.0, rail=True,
-                         rail_mat='frame_silver', gfn=local_ground(mb), maxrise=0.165)
+                         rail_mat='frame_silver', gfn=local_ground(mb), maxrise=0.165, cheek=0.3, cheek_mat=PIL)
             mb.xf = Matrix.Identity(4)
 
     hw, so, no, hn, tw = W['head_w'], W['south'], W['north'], W['head_n'], W['tower']
