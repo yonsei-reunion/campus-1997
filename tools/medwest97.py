@@ -510,13 +510,14 @@ def _dive(p, u, v):
     return z
 
 
-SEAM, SEAM_DZ = 0.2, 0.15      # walked strips over the seams between two surfaces at one height: half width, height step
+SEAM, SEAM_DZ, SEAM_STEP = 0.2, 0.5, 0.25   # walked strips over the seams where two surfaces meet within a step: half width,
+                                           # height step, the run checked at a time
 
 
 def build(Hn, half, step, halls=()):
     """dict for campus.json `med_west`: plates (for blender/common.py ground: the ground on a raised surface is that
     surface), top (the surfaces: drawn as the ground is, walked on), walk (walked on only: the flight's slope, strips
-    over the seams where two surfaces meet at one height: SEAM),
+    over the seams where two surfaces meet within a step: SEAM),
     quads ([material, four points]: the walls down to what lies beside each surface, the parapets, the flight's steps)"""
     ground = _terrain(Hn, half, step)
     hb = unary_union([h.buffer(-0.3) for h in halls] + [_to_xy(Polygon(h['uv']).buffer(0)).buffer(0.3) for h in (HEAD_HALL, WING_HALL)])
@@ -570,21 +571,25 @@ def build(Hn, half, step, halls=()):
                 nu, nv = (vb - va) / L, -(ub - ua) / L            # (outwards: to the right going round)
                 if hb.contains(Point(*xy((ua + ub) / 2 + nu * 0.4, (va + vb) / 2 + nv * 0.4))):
                     continue                                      # (against a hall's wall)
-                bot, zos = [], []
+                bot = []
                 for u, v in ((ua, va), (ub, vb)):
                     zo = surface_uv(u + nu * 0.12, v + nv * 0.12, skip=p)
-                    zos.append(zo)
                     bot.append(zo if zo is not None else ground(*xy(u + nu * 0.12, v + nv * 0.12)) - 0.3)
                 za, zb = _dive(p, ua, va), _dive(p, ub, vb)
-                if None not in zos and abs(zos[0] - za) < SEAM_DZ and abs(zos[1] - zb) < SEAM_DZ:
-                    # (another surface at its height there: a walked strip SEAM wide over the seam, at this one's
-                    # height, so that no ray down slips between the two meshes' edges)
-                    (xa, ya), (xb, yb) = xy(ua - nu * SEAM, va - nv * SEAM), xy(ub - nu * SEAM, vb - nv * SEAM)
-                    (xc, yc), (xd, yd) = xy(ub + nu * SEAM, vb + nv * SEAM), xy(ua + nu * SEAM, va + nv * SEAM)
-                    walk.append([[round(xa, 3), round(ya, 3), round(za, 3)], [round(xb, 3), round(yb, 3), round(zb, 3)],
-                                 [round(xc, 3), round(yc, 3), round(zb, 3)]])
-                    walk.append([[round(xa, 3), round(ya, 3), round(za, 3)], [round(xc, 3), round(yc, 3), round(zb, 3)],
-                                 [round(xd, 3), round(yd, 3), round(za, 3)]])
+                # (another surface beside it within a step: a walked strip SEAM wide over the seam at this one's
+                # height, so that no ray down slips between the two meshes' edges; checked every SEAM_STEP m)
+                ns = max(1, int(math.ceil(L / SEAM_STEP)))
+                for k in range(ns):
+                    (ua_, va_), (ub_, vb_) = [(ua + (ub - ua) * t, va + (vb - va) * t) for t in (k / ns, (k + 1) / ns)]
+                    zs_ = [_dive(p, ua_, va_), _dive(p, ub_, vb_)]
+                    zo_ = [surface_uv(u + nu * 0.12, v + nv * 0.12, skip=p) for u, v in ((ua_, va_), (ub_, vb_))]
+                    if None in zo_ or abs(zo_[0] - zs_[0]) > SEAM_DZ or abs(zo_[1] - zs_[1]) > SEAM_DZ:
+                        continue
+                    (xa, ya), (xb, yb) = xy(ua_ - nu * SEAM, va_ - nv * SEAM), xy(ub_ - nu * SEAM, vb_ - nv * SEAM)
+                    (xc, yc), (xd, yd) = xy(ub_ + nu * SEAM, vb_ + nv * SEAM), xy(ua_ + nu * SEAM, va_ + nv * SEAM)
+                    za_, zb_ = round(zs_[0], 3), round(zs_[1], 3)
+                    walk.append([[round(xa, 3), round(ya, 3), za_], [round(xb, 3), round(yb, 3), zb_], [round(xc, 3), round(yc, 3), zb_]])
+                    walk.append([[round(xa, 3), round(ya, 3), za_], [round(xc, 3), round(yc, 3), zb_], [round(xd, 3), round(yd, 3), za_]])
                 if max(za - bot[0], zb - bot[1]) < 0.04:
                     continue
                 mat = p['wall']
