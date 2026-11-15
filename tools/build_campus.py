@@ -6594,6 +6594,11 @@ for b_ in buildings:
         _mh_d = _mh_a if b_['id'] == MUSIC_A else _mh_b
         b_['base'], b_['top_ground'] = round(b_['base'] + _mh_d, 2), round(b_['top_ground'] + _mh_d, 2)
 print('음악관 두 동:', MUSIC97_HALLS)
+# 신관 앞마당의 남동쪽 (tools/music97.py forecourt_se, reference/고증/3.11 「신관 앞마당의 남동쪽과 앞 찻길 남쪽의 칸 줄」): the
+# forecourt falling south-east to the exit road and the kerb on the 1997 scans' bare asphalt, late, here
+_mf_took, MUSIC97_FORECOURT = music97.forecourt_se(Hn, X, Y, FIXED, harmonic_fill)
+FIXED[_mf_took] = True
+print('신관 앞마당의 남동쪽:', MUSIC97_FORECOURT)
 # 청송대 숲 · 동쪽 언덕 (tools/east97.py, reference/고증/3.23_청송대.md; #189): the wood's floor east of the east road and
 # the knoll west of it on the 1:5000 survey's surface (the surface model had the canopy in it, 8 - 12 m over the
 # ground in the wood, and the knolls cut 4 - 6 m), nudged to the 1997 photos where they see the ground; the halls in
@@ -9282,6 +9287,10 @@ _ypaint([SCI_YARD.difference(unary_union([Polygon(b_['footprint']) for b_ in LAT
 # 용재관's car park and the drive to 노천극장 (YJ_LOT, YJ_BRANCH), a paved strip along the walls
 _ypaint([YJ_LOT.difference(unary_union([Polygon(b_['footprint']).buffer(1.0) for b_ in YONGJAE_BUILDINGS])),
          YJ_BRANCH.buffer(3.0)], _ga)
+# 음악관 앞 (music97.MUSIC_PAVE97, reference/고증/3.11): the road along 구관 out to the back of its stalls and the forecourt south
+# of 신관's lawn bed out to the kerb, asphalt as the 1997 scans have them (the game had lawn under the row of cars)
+_ypaint([music97.MUSIC_PAVE97.difference(unary_union([Polygon(b_['footprint']).buffer(0.5) for b_ in buildings
+                                                      if b_['id'] in (MUSIC_A, MUSIC_B)]))], _ga)
 # 대강당 앞 돌계단: the forecourt's paving runs on to the head of the flight (the 2009 photo: cars parked at its top)
 _ypaint([Polygon([tuple(_fo + _fu * u_ + _fv * v_) for u_, v_ in ((-4.5, AUD_FLIGHT['run'] - 0.2), (4.5, AUD_FLIGHT['run'] - 0.2),
                                                                    (6.0, 26.0), (-6.0, 26.0))])], _ga)

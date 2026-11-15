@@ -32,6 +32,10 @@ the working datum the ground is laid on (해발 + tilt: tools/datum.py) where it
   platform is lifted by what it lacks (the shapes on it stay: build_campus.py music_grade), the lift eased to nothing
   at the hill behind (GRID), the car parks south and east (tools/med97.py) and 26 m off; the halls' floors go with it.
   신관's east yard (EAST_YARD) on the photos' own grade: a terrace over the car park east of it.
+- 신관 앞마당의 남동쪽 (forecourt_se; 3.11 「신관 앞마당의 남동쪽과 앞 찻길 남쪽의 칸 줄」): south of the level forecourt the asphalt
+  fell south-east to the exit road and the row of stalls along the kerb, on the scans' bare asphalt between the cars
+  (FORECOURT_SE).  MUSIC_PAVE97: the asphalt there and along 구관's road out to the back of its stalls (painted by
+  build_campus.py), so that the row of cars along the kerb stands on it (tools/cars97_new.json).
 - Nothing here draws from build_campus.py's `rng`.
 """
 # (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
@@ -64,6 +68,27 @@ HALLS_EASE = 26.0                 # the lift fades out this far round the platfo
 # over the car park east of it at its south end, level with it at its north end), and its outline
 EAST_YARD = datum.up3([(276.0, -26.0, 55.0), (276.0, 22.0, 56.34)])
 EAST_YARD_POLY = Polygon([(262.5, -31.0), (283.5, -31.0), (283.5, 23.5), (271.5, 23.5), (270.5, 14.5), (263.5, -15.0)])
+# 신관 앞마당의 남동쪽 (3.11 「신관 앞마당의 남동쪽과 앞 찻길 남쪽의 칸 줄」): south of 신관's level forecourt the asphalt fell
+# south-east to the exit road and the row of stalls along the south kerb, on the 1997 scans' bare asphalt between the cars
+# (126 points, 1.25 m windows, three or more frame pairs within 0.35 m; a smooth surface through them, cross-validated
+# 0.15 m).  The game's grid had the forecourt level 5 m further south and then dropped 2.5 m in 10 m under the row's
+# east end.  (x, y, height) of the game's 5 m nodes inside FORECOURT_SE_ZONE
+FORECOURT_SE = datum.up3([
+    (210.0, -40.0, 55.24), (215.0, -40.0, 55.17), (220.0, -40.0, 54.95), (225.0, -40.0, 54.57), (230.0, -40.0, 54.35),
+    (235.0, -40.0, 54.23), (240.0, -40.0, 53.96), (245.0, -40.0, 54.14),
+    (210.0, -45.0, 55.23), (215.0, -45.0, 55.00), (220.0, -45.0, 54.61), (225.0, -45.0, 53.97), (230.0, -45.0, 53.69),
+    (235.0, -45.0, 53.38), (240.0, -45.0, 53.24), (245.0, -45.0, 53.33),
+    (210.0, -50.0, 55.08), (215.0, -50.0, 54.84), (220.0, -50.0, 54.31), (225.0, -50.0, 53.65), (230.0, -50.0, 53.25),
+    (235.0, -50.0, 52.86), (240.0, -50.0, 52.45), (245.0, -50.0, 52.32),
+    (225.0, -55.0, 53.43), (230.0, -55.0, 52.99), (235.0, -55.0, 52.55), (240.0, -55.0, 51.94)])
+FORECOURT_SE_ZONE = Polygon([(205, -37.5), (232, -36.5), (246, -37.5), (246, -49), (242, -57.5), (232, -57.5), (220, -54), (205, -49)])
+FORECOURT_SE_RING = 8.0
+# the asphalt in 1997 (the scans): the road along 구관's front out to the back of its row of stalls (white lines, nose to
+# the kerb), and south of 신관's lawn bed the forecourt out to the kerb behind the row of cars along it
+MUSIC_PAVE97 = Polygon([(226.5, -34.6), (231.0, -31.5), (233.0, -28.3), (243.0, -28.3), (243.0, -40.0), (236.0, -45.0),
+                        (234.8, -46.2), (232.7, -55.7), (223.4, -53.1), (210.5, -47.6), (190.3, -41.2), (185.8, -39.4),
+                        (150.4, -30.1), (145.6, -28.6), (148.0, -19.2), (152.8, -20.7), (188.2, -30.0), (192.8, -31.8),
+                        (201.7, -34.6)])
 GRID_X0, GRID_Y0, GRID_D = 115.0, 30.0, 5.0       # (the grid's south-west node, spacing: the game's 5 m nodes)
 GRID = np.array([[int(v) for v in r.split()] for r in """
 5047 5135 5472 5590 5567 6104 6272 6429 6246 7004 6911 6759 6606 6503 6961 6998 7506 7503 7510 7498 7005 7003 6500 6487 5925 5762 5659 5667 5734 5842 5869 5916 5934 5951 5909
@@ -273,3 +298,22 @@ def halls(Hn, X, Y, fp_a, fp_b, front_a, front_b, anchors, sample):
                 east_yard_lift=(round(float(d[ey].min()), 2), round(float(d[ey].max()), 2)), eased=int(free.sum()),
                 eased_max=round(float(d[free].max()), 2) if free.any() else 0.0)
     return float(da), float(db), plat, info
+
+
+def forecourt_se(Hn, X, Y, FIXED, fill):
+    """신관 앞마당의 남동쪽 on the 1997 scans' bare asphalt (FORECOURT_SE: those nodes to their heights, the platform's
+    level giving way there), eased (harmonic) over FORECOURT_SE_RING round the zone at the nodes no other rule holds.
+    Returns the nodes set (to be FIXED) and a summary."""
+    H0 = Hn.copy()
+    took = np.zeros(X.shape, bool)
+    for x, y, z in FORECOURT_SE:
+        jj, ii = np.nonzero((np.abs(X - x) < 0.01) & (np.abs(Y - y) < 0.01))
+        Hn[jj, ii] = z
+        took[jj, ii] = True
+    ring = shapely.contains_xy(FORECOURT_SE_ZONE.buffer(FORECOURT_SE_RING), X, Y) & ~took & ~FIXED
+    if ring.any():
+        fill(ring)
+    d = Hn - H0
+    return took | ring, dict(nodes=int(took.sum()), moved=(round(float(d[took].min()), 2), round(float(d[took].max()), 2)),
+                             ring=int(ring.sum()), ring_moved=(round(float(d[ring].min()), 2), round(float(d[ring].max()), 2))
+                             if ring.any() else (0.0, 0.0))
