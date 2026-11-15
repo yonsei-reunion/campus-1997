@@ -413,6 +413,8 @@ COURTS = [429077768, 429077769, 429077775]
 # (OSM's car parks: 1444557748 east of 우유처리장 is tools/north97.py's LOT97 as the 1997 frames have it; 1358516368
 # between the two dormitories is later, a long flat roof stood there in 1997: reference/고증/3.21 「남은 한계」)
 LOTS = [north97.LOT97]
+# (the bare yards: south of 농업개발원, tools/north97.py AGRI_YARD)
+YARDS = [north97.AGRI_YARD]
 APRON = Polygon([(45.0, 955.0), (60.0, 952.0), (75.0, 960.0), (73.0, 975.0), (58.0, 977.0), (46.0, 966.0)])
 
 
@@ -497,7 +499,7 @@ def ground_map(line, roads, hall_polys):
     courts = [Polygon(O[i][1]).buffer(0) for i in COURTS]
     asph_u = unary_union(asph)
     pav = unary_union([rd[1]]).difference(asph_u)
-    dirt = unary_union(courts + [SITE]).difference(asph_u)
+    dirt = unary_union(courts + [SITE] + YARDS).difference(asph_u)
     wood = unary_union([Polygon(g).buffer(0) for t, g in O.values() if (t.get('landuse') == 'forest' or t.get('natural') == 'wood')
                         and len(g) > 3] + [Polygon([(200, 800), (340, 800), (340, 1280), (200, 1280)]),
                                            Polygon([(140, 800), (260, 800), (260, 905), (140, 905)])])

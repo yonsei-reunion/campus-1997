@@ -6857,8 +6857,8 @@ HN = muak.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP, lambda x_, y_: ndimage.map_c
     ground=north97.grid_z)                    # (the survey's surface + T and the 1997 photos: tools/north97.py)
 MUAK_ROADS = muak.lanes()
 MUAK_PROF, _mk_fixed = muak.level(HN, MUAK, MUAK_ROADS)
-MUAK_PADS = muak.pads(HN, [Polygon(muak.osm()[i_][1]).buffer(0) for i_ in muak.COURTS] + [north97.LOT97], _mk_fixed,
-                      north97.pad_levels(muak.COURTS))
+MUAK_PADS = muak.pads(HN, [Polygon(muak.osm()[i_][1]).buffer(0) for i_ in muak.COURTS] + [north97.LOT97, north97.AGRI_YARD],
+                      _mk_fixed, north97.pad_levels(muak.COURTS))
 print('무악학사 · 북문 땅: %.1f .. %.1f m, roads %s, courts %s' % (HN.min(), HN.max(),
       {k_: (round(float(v_[1][0]), 1), round(float(v_[1][-1]), 1)) for k_, v_ in MUAK_PROF.items()}, MUAK_PADS))
 

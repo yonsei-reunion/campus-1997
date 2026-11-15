@@ -3,7 +3,7 @@ tools/build_campus.py 가 부른다.
 
     took, info = north97.grade(Hn, X, Y, FIXED, halls, fill)     # 격자 안(y 600 ~ 800): 심기가 끝난 뒤, 무악학사 길 바로 앞
     HN = muak.patch(raw, Hn, half, step, far, ground=north97.grid_z)    # 격자 북쪽 조각(muak.NORTH)
-    muak.pads(HN, polys, fixed, north97.pad_levels(...))          # 정구장 셋과 우유처리장 동쪽 주차장
+    muak.pads(HN, polys, fixed, north97.pad_levels(...))          # 정구장 셋, 우유처리장 동쪽 주차장, 농업개발원 앞마당
 
 Frame: campus metres, x east, y north.  Every absolute height written here is above sea level (해발), taken up
 to the working datum (해발 + tilt: tools/datum.py) where it is read, each at its place: GRID's nodes are (GRID_X0 + 5 i, GRID_Y0 + 5 j).
@@ -36,8 +36,8 @@ to the working datum (해발 + tilt: tools/datum.py) where it is read, each at i
   clearings the 1997 frames see on it (28, 540) · (28, 548) six pairs agree with the survey within 0.3 m.  GRID there,
   the built nodes (FIXED: the back yard, its roads) and the halls' feet kept, eased over MOUND_RING only (the school's
   yard west of it stays level).
-- PADS: the level terraces the 5 m contours cannot hold, on the 1997 scans: the three 정구장 and the car park east of
-  우유처리장 (LOT97, a plane).
+- PADS: the level terraces the 5 m contours cannot hold, on the 1997 scans: the three 정구장, the car park east of
+  우유처리장 (LOT97, a plane) and the yard south of 농업개발원 (AGRI_YARD, a plane).
 - Nothing here draws from build_campus.py's `rng`.
 """
 import json
@@ -88,6 +88,14 @@ LOT97 = Polygon([(130.6, 879.0), (154.2, 877.5), (157.0, 877.3), (157.2, 869.5),
                  (153.0, 826.5), (141.5, 826.5), (139.5, 832.0), (136.0, 835.5), (129.6, 833.0), (110.6, 853.6),
                  (110.5, 861.9), (127.7, 859.7)])
 LOT97_PLANE = dict(o=(145.0, 855.0), z=datum.up(145.0, 855.0, 72.24), gx=0.03, gy=-0.008)      # 해발 @ (145, 855); rising east 3 % on the working datum
+# the yard south of 농업개발원 (1997 frames 26/14 · 27/15 · 27/16): bare and as bright as the courts, eleven cars on it
+# (eight nose in under the hall's south wall, two past its east end, one across its west end: tools/cars97_new.json
+# 「농업개발원 남쪽 앞마당」), the wood south of it; its plane through 16 points where two pairs or more agree within
+# 0.6 m off the cars (rms 0.13 m): 해발 83.85 m at (185, 906), rising 1.7 % east and 0.9 % north in 해발
+# (datum.up_plane makes them the working datum's)
+AGRI_YARD = Polygon([(174.72, 915.85), (201.29, 912.35), (201.55, 914.33), (207.01, 913.62), (205.31, 900.73), (189.38, 902.32),
+                     (180.68, 905.18), (174.85, 906.86), (171.43, 907.71), (171.82, 910.68), (174.0, 910.4)])
+AGRI_PLANE = dict(zip(('z', 'gx', 'gy'), datum.up_plane((83.85, 0.0169, 0.0091), 185.0, 906.0)), o=(185.0, 906.0))
 
 
 def grid_z(x, y):
@@ -98,10 +106,14 @@ def grid_z(x, y):
     return z.reshape(xa.shape) if xa.ndim else float(z[0])
 
 
-def lot_z(x, y):
-    """the car park's plane (on the working datum)"""
-    p = LOT97_PLANE
+def lot_z(x, y, p=LOT97_PLANE):
+    """the car park's plane (on the working datum); p: another plane (AGRI_PLANE)"""
     return p['z'] + p['gx'] * (np.asarray(x, float) - p['o'][0]) + p['gy'] * (np.asarray(y, float) - p['o'][1])
+
+
+def agri_z(x, y):
+    """the yard south of 농업개발원 (on the working datum)"""
+    return lot_z(x, y, AGRI_PLANE)
 
 
 def grade(Hn, X, Y, FIXED, halls, fill):
@@ -136,5 +148,5 @@ def grade(Hn, X, Y, FIXED, halls, fill):
 
 
 def pad_levels(court_ids):
-    """(levels for muak.pads) the courts' in the order given, then the car park's plane"""
-    return [COURT_Z[i] for i in court_ids] + [lot_z]
+    """(levels for muak.pads) the courts' in the order given, then the car park's plane and the yard's"""
+    return [COURT_Z[i] for i in court_ids] + [lot_z, agri_z]
