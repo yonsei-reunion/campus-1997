@@ -37,6 +37,7 @@ import jonghap97
 import libsouth97
 import yongjae97
 import ridge97
+import fieldhill97
 import widang97
 import audnorth97
 import datum
@@ -6900,6 +6901,14 @@ _sm_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if Polygon(b
 _sm_took, SEOMUN_GRADE = seomun.grade(Hn, X, Y, FIXED, _sm_halls, FIELD_PATCH, harmonic_fill)
 FIXED[_sm_took] = True
 print('서문 길: %(nodes)d nodes moved (most %(most).1f m), %(road)d on the roads, the field\'s bank %(bank)d' % SEOMUN_GRADE)
+# 대운동장 북쪽 언덕 (tools/fieldhill97.py, reference/고증/4.12 「북쪽 언덕」; #189), late: the planting has read the
+# ground as it was.  The wooded hill of two tops between the oval and 연희동 on the 2006 survey's contours and spot
+# heights and the 1997 scans' open ground (the game had one slope 7.5 - 10 m under its tops), after 서문's road
+# (its nodes stay), eased into the ground round it; 연희동's houses by 서문 keep the ground at their feet
+_fh_halls = [Polygon(h_[4]).buffer(0) for h_ in seomun.HOUSES] + [Polygon(seomun.SHED)]
+_fh_took, FIELDHILL97 = fieldhill97.grade(Hn, X, Y, FIXED, _fh_halls, harmonic_fill)
+FIXED[_fh_took] = True
+print('대운동장 북쪽 언덕:', FIELDHILL97)
 # 과학관 북서쪽 골짜기 · 독수리상 서쪽 마당 (tools/west_ground.py, reference/고증/4.12 · 4.5.2), late: the planting
 # has read the ground as it was.  The valley's works yard and floor on the 1997 photos (4 - 7 m under the game's
 # slope); the bare yard west of the eagle, its road and lane level at 28.30 m (the game climbed to 35 m)
@@ -9912,6 +9921,9 @@ MUAK_WOODS = muak.woods_strip(MUAK, unary_union([Polygon(b_['footprint']) for b_
 MUAK_RIDGE = muak.woods_ridge(MUAK_WOODS, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))   # (the ridge west of it)
 _mk_floor = unary_union([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD]).intersection(woods_u.buffer(-1.0)).union(MUAK_WOODS).union(MUAK_RIDGE)
 _ypaint([g_ for g_ in (_mk_floor.geoms if hasattr(_mk_floor, 'geoms') else [_mk_floor]) if g_.geom_type == 'Polygon' and g_.area > 0.5], _gf)
+FIELDHILL_WOODS = fieldhill97.woods(FIELD_POLY, _fh_halls)      # (대운동장 북쪽 언덕: the woods' floor; its track and paths bare)
+_ypaint(FIELDHILL_WOODS, _gf)
+_ypaint(fieldhill97.bare(), _gd)
 _ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 길: SCI_DRIVE97)
 _ypaint([KB97_ASPH], _ga)                    # (광복관 안마당 · 서쪽 길 · 북쪽 길, 핀슨관 서쪽 길 · 북쪽 주차장: kwangbok97)
 _ypaint([KB97_FORE], _gd)                    # (광복관 앞마당: the gravel at the foot of the front flight)
@@ -10828,6 +10840,11 @@ print('서쪽 능선 꼭대기: trees off the cleared top', ridge97.trees_aside(
 # 제2인문관 공사장 (tools/widang97.py): the trees on the works yard and the shelf west of it, out to their edges in
 # their places in the list
 print('제2인문관 공사장: trees off the yard', widang97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
+# 대운동장 북쪽 언덕의 숲 (tools/fieldhill97.py; #189): crowns edge to edge in the 1997 scans, filled in clear of the
+# trees already there, at the trees' very end (the web picks each tree's model by its place in the list)
+FIELDHILL_TREES = muak.woods_fill(unary_union(FIELDHILL_WOODS), out["trees"], seed=15996, spacing=8.5)
+out['trees'] += FIELDHILL_TREES
+print('대운동장 북쪽 언덕: trees in the woods', len(FIELDHILL_TREES))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
