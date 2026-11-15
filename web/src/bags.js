@@ -13,6 +13,9 @@
 // skinned to the bones it hangs from (a backpack blended from the chest down to the spine, a hip bag to the pelvis, a
 // carried bag rigidly to the right hand), and merged into the person's one vertex-coloured SkinnedMesh
 // (characters.js Cast.make): no draw call more, in the shadow pass neither, and the walk cycle carries it along.
+// A strap over a shoulder is laid on the body as it stands with the arms down (the idle's first frame: in the bind
+// pose the arms stand out and the shoulders are high), on the body's own surface, and taken back to the bind pose
+// (slung).
 // A carried bag is in the right hand because the wave (emote-yes) lifts the left arm; such a person waves instead of
 // using the right hand (life.js). The heroes' bags are fixed (HERO_BAGS), never carried in the hand: the basketball
 // takes both hands (hoops.js).
@@ -140,10 +143,79 @@ function fitOf(id, mesh) {
     for (let b = Math.max(0, Math.floor((y0 - Y0) / DY)); b <= Math.min(NB - 1, Math.floor((y1 - Y0) / DY)); b++) v = fn(v, a[b]);
     return v;
   };
+  // the surface itself, for what must lie on it (a shoulder bag and its strap): the triangles of the trunk and the
+  // legs, and those with the upper arms
+  const upper = bones.map((b) => /^UpperArm/.test(b.name));
+  const major = new Uint16Array(P.count);
+  for (let i = 0; i < P.count; i++) {
+    let k = 0, w = -1;
+    for (let j = 0; j < 4; j++) { const ww = SW.getComponent(i, j); if (ww > w) { w = ww; k = SI.getComponent(i, j); } }
+    major[i] = k;
+  }
+  const trunk = [], armed = [];
+  for (let t = 0; t < I.count; t += 3) {
+    const a = I.getX(t), b = I.getX(t + 1), c = I.getX(t + 2);
+    const sk = skip[a] + skip[b] + skip[c];
+    if (!sk) trunk.push(a, b, c);
+    if (!sk || [a, b, c].every((i) => !skip[i] || upper[major[i]])) armed.push(a, b, c);
+  }
+  // the body as it stands now: Cast.make (characters.js) has put the bones in the idle's first frame, the arms
+  // hanging, which is how a strap must be laid (in the bind pose the arms stand out sideways and the shoulders
+  // are high). Each bone's matrix from the bind pose to this one, and the vertices there
+  const pose = bones.map((b, i) => new THREE.Matrix4().copy(mesh.bindMatrixInverse).multiply(b.matrixWorld)
+    .multiply(mesh.skeleton.boneInverses[i]).multiply(mesh.bindMatrix));
+  const blend = (ws) => {                                   // the matrix of a point with these bone weights
+    const e = new Array(16).fill(0);
+    let sum = 0;
+    for (const [b, w] of ws) { sum += w; for (let k = 0; k < 16; k++) e[k] += pose[b].elements[k] * w; }
+    return new THREE.Matrix4().fromArray(e.map((x) => x / sum));
+  };
+  const bind = new Float32Array(P.count * 3), stood = new Float32Array(P.count * 3), _p = V();
+  for (let i = 0; i < P.count; i++) {
+    bind.set([P.getX(i), P.getY(i), P.getZ(i)], i * 3);
+    const ws = [];
+    for (let j = 0; j < 4; j++) if (SW.getComponent(i, j) > 0) ws.push([SI.getComponent(i, j), SW.getComponent(i, j)]);
+    _p.fromArray(bind, i * 3).applyMatrix4(blend(ws)).toArray(stood, i * 3);
+  }
+  // where the ray from o (inside the body) along d leaves it within `far`: the last surface it crosses, and the bone
+  // weights of the skin there. arms: with the upper arms; standing: the body as it stands, not the bind pose
+  const ray = (o, d, { arms = false, standing = false, far = 0.3 } = {}) => {
+    const tris = arms ? armed : trunk, X = standing ? stood : bind;
+    let bt = 0, bk = -1, bu = 0, bv = 0;
+    for (let k = 0; k < tris.length; k += 3) {
+      const a = tris[k] * 3, b = tris[k + 1] * 3, c = tris[k + 2] * 3;
+      const ax = X[a], ay = X[a + 1], az = X[a + 2];
+      const e1x = X[b] - ax, e1y = X[b + 1] - ay, e1z = X[b + 2] - az;
+      const e2x = X[c] - ax, e2y = X[c + 1] - ay, e2z = X[c + 2] - az;
+      const px = d.y * e2z - d.z * e2y, py = d.z * e2x - d.x * e2z, pz = d.x * e2y - d.y * e2x;
+      const det = e1x * px + e1y * py + e1z * pz;
+      if (Math.abs(det) < 1e-12) continue;
+      const tx = o.x - ax, ty = o.y - ay, tz = o.z - az;
+      const u = (tx * px + ty * py + tz * pz) / det;
+      if (u < 0 || u > 1) continue;
+      const qx = ty * e1z - tz * e1y, qy = tz * e1x - tx * e1z, qz = tx * e1y - ty * e1x;
+      const v = (d.x * qx + d.y * qy + d.z * qz) / det;
+      if (v < 0 || u + v > 1) continue;
+      const tt = (e2x * qx + e2y * qy + e2z * qz) / det;
+      if (tt > bt && tt < far) { bt = tt; bk = k; bu = u; bv = v; }
+    }
+    if (bk < 0) return null;
+    const ws = new Map();
+    [[tris[bk], 1 - bu - bv], [tris[bk + 1], bu], [tris[bk + 2], bv]].forEach(([i, m]) => {
+      for (let j = 0; j < 4; j++) {
+        const w = SW.getComponent(i, j) * m;
+        if (w > 0) ws.set(SI.getComponent(i, j), (ws.get(SI.getComponent(i, j)) || 0) + w);
+      }
+    });
+    return { p: o.clone().addScaledVector(d, bt), w: [...ws] };
+  };
   const f = {
-    bi, shTop, zB: at(back), zF: at(front), xS: at(side),
+    bi, shTop, zB: at(back), zF: at(front), xS: at(side), ray, blend, ofArm: skipBone,
     backMin: over(back, Math.min), frontMax: over(front, Math.max), sideMax: over(side, Math.max),
     chest: rest('Chest'), torso: rest('Torso'), abd: rest('Abdomen'), hips: rest('Hips'), wristR: rest('WristR'),
+    // (the shoulder joints as the body stands)
+    armL: V().setFromMatrixPosition(pose[bi.UpperArmL].clone().multiply(new THREE.Matrix4().setPosition(rest('UpperArmL')))),
+    armR: V().setFromMatrixPosition(pose[bi.UpperArmR].clone().multiply(new THREE.Matrix4().setPosition(rest('UpperArmR')))),
   };
   fits.set(id, f);
   return f;
@@ -228,7 +300,7 @@ class Kit {
     for (let i = 0; i < n; i++) {
       col.set([color.r, color.g, color.b], i * 3);
       part.set([rough, 3, 0], i * 3);            // (characters.js `part`: roughness, a hard thing, nothing shades it)
-      const w = weigh(P.getX(i), P.getY(i), P.getZ(i)).filter(([, v]) => v > 0.001).slice(0, 4);
+      const w = weigh(P.getX(i), P.getY(i), P.getZ(i), i).filter(([, v]) => v > 0.001).slice(0, 4);
       const sum = w.reduce((s, [, v]) => s + v, 0) || 1;
       w.forEach(([b, v], k) => { si[i * 4 + k] = b; sw[i * 4 + k] = v / sum; });
     }
@@ -249,6 +321,81 @@ const placed = (g, x, y, z, ry = 0, rz = 0) => g.applyMatrix4(new THREE.Matrix4(
 // ---------------------------------------------------------------------------------------------------------------
 // the bags, each fitted to the person (f), its colour col / trim, size s
 
+// a strap over the shoulder of the side sh (+1 the left), laid on the body as it stands with the arms down (fitOf)
+// and then taken back to the bind pose: an arc over the shoulder (arcDeg: from the front to the back, 90 straight
+// up; inset: how far in from the joint, of the joint's distance from the middle), and from the arc's two ends the
+// way down to where the strap is fixed.  front / back: { to (that point, in the bind pose), w (the bone weights it
+// moves with), face(t) (which way the strap faces on its way down, t 0 at the arc .. 1 at the point: added to the
+// arc's own way as that fades), direct (no way down: straight from the arc to the point) }.
+// The way down is the straight line to the point, each sample of it pushed out of the body the way it faces, and
+// the whole is drawn tight: no sample further in than half way between its neighbours, so the strap spans the
+// hollows and leaves the body where the straight way to its end does.
+// Over the shoulder each sample moves with the skin under it (half of the arm's share: a strap does not go with the
+// arm as a sleeve does); further down the strap is a band between the shoulder and its end, the weights going
+// evenly from the one's to the other's, so it stays one even line whatever the skin round the armpit does
+function slung(kit, f, sh, inset, arcDeg, front, back, width, thick, color, rough) {
+  const J = sh > 0 ? f.armL : f.armR;                       // the shoulder joint
+  const Cs = V(J.x * (1 - inset), J.y - 0.04, J.z);         // inside the shoulder, under the strap
+  const arc = (deg) => V(0, Math.sin(deg * Math.PI / 180), Math.cos(deg * Math.PI / 180));
+  const opt = { arms: true, standing: true };
+  const hF = f.ray(Cs, arc(arcDeg[0]), opt), hB = f.ray(Cs, arc(arcDeg[arcDeg.length - 1]), opt);
+  if (!hF || !hB) return;
+  const stood = (e) => e.to.clone().applyMatrix4(f.blend(e.w));
+  const eF = stood(front), eB = stood(back);
+  const down = (from, d0, e, to, n = 24) => {
+    const out = [];
+    for (let i = 1; i < n && !e.direct; i++) {
+      const t = i / n, q = from.clone().lerp(to, t);
+      const dn = d0.clone().multiplyScalar(1 - ss(0, 0.4, t)).add(e.face(t)).normalize();
+      out.push({ c: q.addScaledVector(dn, -0.12), d: dn, arms: t < 0.3, far: 0.3, t, e });
+    }
+    return out;
+  };
+  const rays = [...down(hF.p, arc(arcDeg[0]), front, eF).reverse(), ...arcDeg.map((deg) => ({ c: Cs, d: arc(deg), arms: true, far: 0.3, t: 0 })),
+    ...down(hB.p, arc(arcDeg[arcDeg.length - 1]), back, eB)];
+  const on = [];
+  for (const g of rays) {
+    const hit = f.ray(g.c, g.d, { arms: g.arms, standing: true, far: g.far });
+    if (hit) on.push({ c: g.c, n: g.d, r: hit.p.distanceTo(g.c) + 0.0015, w: hit.w, t: g.t, e: g.e, p: V() });
+  }
+  const put = (q) => q.p.copy(q.c).addScaledVector(q.n, q.r);
+  on.forEach(put);
+  const mid = V();
+  for (let it = 0; it < 60; it++) {
+    for (let i = 0; i < on.length; i++) {
+      const q = on[i];
+      mid.addVectors(i ? on[i - 1].p : eF, i < on.length - 1 ? on[i + 1].p : eB).multiplyScalar(0.5).sub(q.c);
+      if (mid.dot(q.n) > q.r) { q.r = mid.dot(q.n); put(q); }
+    }
+  }
+  const mixed = (wa, wb, k) => {
+    const ws = new Map(wa.map(([b, v]) => [b, v * (1 - k)]));
+    for (const [b, v] of wb) ws.set(b, (ws.get(b) || 0) + v * k);
+    return [...ws].sort((p, q) => q[1] - p[1]).slice(0, 4);
+  };
+  const T0 = 0.3;
+  for (const q of on) q.w = mixed(q.w.map(([b, v]) => [b, f.ofArm[b] ? v * 0.5 : v]), [], 0);
+  for (const [from, step] of [[on.findIndex((q) => q.t === 0), -1], [on.map((q) => q.t).lastIndexOf(0), 1]]) {
+    let last = on[from].w;
+    for (let i = from; i >= 0 && i < on.length; i += step) {
+      const q = on[i];
+      if (q.t <= T0) last = q.w; else q.w = mixed(last, q.e.w, (q.t - T0) / (1 - T0));
+    }
+  }
+  // back to the bind pose
+  const pts = [front.to.clone()], outs = [null];
+  for (const q of on) {
+    const inv = f.blend(q.w).invert();
+    pts.push(q.p.clone().applyMatrix4(inv));
+    outs.push(q.n.clone().transformDirection(inv));
+  }
+  pts.push(back.to.clone());
+  outs[0] = front.out || outs[1];
+  outs.push(back.out || outs[outs.length - 1]);
+  const ws = [front.w, ...on.map((q) => q.w), back.w];
+  kit.add(strap(pts, outs, width, thick), color, rough, (x, y, z, i) => ws[i >> 2]);
+}
+
 // a backpack on the back: sling = hanging off one shoulder (side: +1 the left, -1 the right) by that strap only
 function backpack(kit, f, col, trim, s, woman, { mini = false, sling = false, side = -1 } = {}) {
   const { bi } = f;
@@ -268,22 +415,14 @@ function backpack(kit, f, col, trim, s, woman, { mini = false, sling = false, si
   // (the parts below the bag's middle move out with its lean: a point a below the middle turns to x = a sin(tilt))
   kit.add(placed(pocket, xc + Math.sin(tilt) * h * 0.2, yB + h * 0.3, zc - d / 2 - 0.022, 0, tilt), trim, rough, weigh);
   if (!mini) kit.add(placed(pillow(w * 0.96, 0.05, d * 0.9, { r: 0.02, bevel: 0.01 }), xc + Math.sin(tilt) * (h / 2 - 0.02), yB + 0.02, zc, 0, tilt), trim, rough, weigh);
-  // shoulder straps: from the bag's top over the shoulder, down the chest, under the arm to the bag's lower corner
-  const sides = sling ? [side] : [-1, 1];
-  const yS = f.shTop, yA = f.shTop - 0.2;
-  for (const sx of sides) {
-    const mid = (y) => (f.zB(y) + f.zF(y)) / 2;
-    const pts = [V(xc + sx * 0.07, yT - 0.02, zIn - 0.02),
-      V(sx * 0.085, yS - 0.04, f.zB(yS - 0.04) - 0.006), V(sx * 0.092, yS + 0.006, mid(yS)),
-      V(sx * 0.1, yS - 0.05, f.zF(yS - 0.05) + 0.006), V(sx * 0.11, yS - 0.12, f.zF(yS - 0.12) + 0.006),
-      V(sx * 0.125, yA + 0.02, f.zF(yA + 0.02) * 0.7 + mid(yA) * 0.3 + 0.006),
-      V(sx * (f.xS(yA - 0.03) + 0.006), yA - 0.03, mid(yA - 0.03)),
-      V(xc + sx * (w / 2 - 0.035), yB + 0.07, zIn - 0.02)];
-    const outs = [V(0, 0, -1), V(0, 0.3, -1), V(0, 1, 0), V(0, 0.3, 1), V(0, 0, 1), V(sx * 0.4, 0, 1), V(sx, 0, 0), V(sx * 0.5, 0, -1)];
-    if (sling) { pts.splice(7); outs.splice(7); }              // (the free end of a sling's strap is under the arm)
-    const sb = sx > 0 ? bi.ShoulderL : bi.ShoulderR;
-    const sw = (x, y, z) => (y > yS - 0.07 && z > f.zB(yS) ? [[bi.Chest, 0.6], [sb, 0.4]] : weigh(x, y));
-    kit.add(strap(pts, outs, mini ? 0.028 : 0.042, 0.007), trim, rough, sw);
+  // shoulder straps: from the bag's top over the shoulder, down the chest, under the arm and back to the bag's lower
+  // corner (a sling's one strap the same)
+  for (const sx of sling ? [side] : [-1, 1]) {
+    const top = V(xc + sx * 0.07, yT - 0.02, zIn - 0.02), low = V(xc + sx * (w / 2 - 0.035) + Math.sin(tilt) * (h / 2 - 0.07), yB + 0.07, zIn - 0.02);
+    slung(kit, f, sx, 0.3, [40, 55, 70, 85, 100, 115, 130, 145],
+      { to: low, w: weigh(low.x, low.y), out: V(sx * 0.5, 0, -1),
+        face: (t) => V(sx * ss(0.2, 0.65, t), 0, ss(0, 0.3, t) * (1 - ss(0.3, 0.7, t)) - 0.7 * ss(0.7, 1, t)) },
+      { to: top, w: weigh(top.x, top.y), out: V(0, 0.3, -1), direct: true }, mini ? 0.028 : 0.042, 0.007, trim, rough);
   }
 }
 
@@ -296,45 +435,76 @@ function round(f, y, a, sx, off, span = null) {
   return { p: V(sx * ax * Math.sin(a), y, zc - bz * Math.cos(a)).addScaledVector(n, off), n };
 }
 
-// a bag behind the hip on the side sx: across the chest from the other shoulder (cross) or from its own (shoulder)
-function hipBag(kit, f, col, trim, s, woman, { cross = true, side = 1 } = {}) {
+// a cross bag behind the hip on the side sx, its strap across the chest and the back from the other shoulder
+function crossBag(kit, f, col, trim, s, woman, side) {
   const { bi } = f;
   const sx = side;
-  const [w, h, d] = (cross ? (woman ? [0.27, 0.2, 0.07] : [0.32, 0.25, 0.08]) : [0.26, 0.19, 0.085]).map((v) => v * s);
-  const yT = cross ? f.abd.y + 0.03 : f.torso.y - 0.02, yB = yT - h;
-  const a = cross ? 0.95 : 1.25;                             // how far round from the back it sits
-  const span = [yB - 0.04, yT + 0.02];
-  const at = round(f, (yT + yB) / 2, a, sx, d / 2 + 0.02, span);
+  const [w, h, d] = (woman ? [0.27, 0.2, 0.07] : [0.32, 0.25, 0.08]).map((v) => v * s);
+  const yT = f.abd.y + 0.03, yB = yT - h;
+  const a = 0.95;                                           // how far round from the back it sits
+  const at = round(f, (yT + yB) / 2, a, sx, d / 2 + 0.02, [yB - 0.04, yT + 0.02]);
   const ry = Math.atan2(-at.n.x, -at.n.z);
-  const rough = cross ? 0.75 : 0.55;                         // nylon or canvas, leather
-  const bagBone = cross ? bi.Body : bi.Torso;              // a cross bag rides on the pelvis, a shoulder bag on the spine
-  const bag = placed(pillow(w, h, d, { r: cross ? 0.03 : 0.05, bevel: 0.014, bulge: 0.008 }), at.p.x, (yT + yB) / 2, at.p.z, ry);
-  kit.add(bag, col, rough, () => [[bagBone, 1]]);
+  const rough = 0.75;                                       // nylon or canvas
+  const hang = [[bi.Body, 1]];                              // it rides on the pelvis
+  const bag = placed(pillow(w, h, d, { r: 0.03, bevel: 0.014, bulge: 0.008 }), at.p.x, (yT + yB) / 2, at.p.z, ry);
+  kit.add(bag, col, rough, () => hang);
   // a flap over the outer face
   const flap = placed(pillow(w * 1.02, h * 0.62, 0.012, { r: 0.03, bevel: 0.004 }), 0, 0, 0);
-  kit.add(placed(flap, at.p.x + at.n.x * (d / 2 + 0.004), yT - h * 0.31 + 0.004, at.p.z + at.n.z * (d / 2 + 0.004), ry), trim, rough, () => [[bagBone, 1]]);
-  // the strap: from the bag's front end round the side, up across the chest (or the side) over a shoulder, and down
-  // the back to the bag's back end
+  kit.add(placed(flap, at.p.x + at.n.x * (d / 2 + 0.004), yT - h * 0.31 + 0.004, at.p.z + at.n.z * (d / 2 + 0.004), ry), trim, rough, () => hang);
+  // the strap: from the bag's front end up across the chest, over the other shoulder, and down the back to the
+  // bag's back end
   const tl = V(Math.cos(ry), 0, -Math.sin(ry));            // the bag's length axis in the person's frame
-  const end = (u) => at.p.clone().addScaledVector(tl, u * (w / 2 - 0.03)).setY(yT - 0.01);
+  const end = (u) => at.p.clone().addScaledVector(tl, u * (w / 2 - 0.03)).addScaledVector(at.n, -d / 2 + 0.014).setY(yT - 0.01);
   const fwd = tl.z > 0 ? 1 : -1;                            // which end of the bag is towards the front
-  const yS = f.shTop, wb = (y) => [[bi.Chest, ss(f.abd.y, f.chest.y, y)], [bagBone, 1 - ss(f.abd.y, f.chest.y, y)]];
-  let pts, outs;
-  if (cross) {
-    const os = -sx;                                         // the other shoulder
-    const fr = [round(f, yT + 0.05, 1.75, sx, 0.008), round(f, f.abd.y + 0.12, 2.6, sx, 0.008),
-      round(f, f.chest.y - 0.02, Math.PI, sx, 0.008), round(f, yS - 0.07, 2.75, os, 0.008)];
-    const bk = [round(f, yS - 0.07, 0.35, os, 0.008), round(f, f.chest.y - 0.04, 0.1, sx, 0.008),
-      round(f, f.abd.y + 0.1, 0.55, sx, 0.008)];
-    pts = [end(fwd), ...fr.map((q) => q.p), V(os * 0.095, yS + 0.007, (f.zB(yS) + f.zF(yS)) / 2), ...bk.map((q) => q.p), end(-fwd)];
-    outs = [at.n, ...fr.map((q) => q.n), V(0, 1, 0), ...bk.map((q) => q.n), at.n];
-  } else {
-    const fr = [round(f, yT + 0.06, 1.6, sx, 0.008), round(f, f.chest.y, 1.85, sx, 0.008), round(f, yS - 0.06, 2.2, sx, 0.008)];
-    const bk = [round(f, yS - 0.06, 0.95, sx, 0.008), round(f, f.chest.y, 1.1, sx, 0.008), round(f, yT + 0.06, 1.15, sx, 0.008)];
-    pts = [end(fwd), ...fr.map((q) => q.p), V(sx * 0.11, yS + 0.007, (f.zB(yS) + f.zF(yS)) / 2), ...bk.map((q) => q.p), end(-fwd)];
-    outs = [at.n, ...fr.map((q) => q.n), V(0, 1, 0), ...bk.map((q) => q.n), at.n];
-  }
-  kit.add(strap(pts, outs, cross ? 0.035 : 0.022, 0.006), trim, rough, (x, y) => wb(y));
+  const face = (fb) => (t) => V(sx * (fb > 0 ? 1 : 0.8) * ss(0.55, 0.95, t), 0, fb * ss(0, 0.25, t) * (1 - 0.7 * ss(0.6, 0.95, t)));
+  slung(kit, f, -sx, 0.34, [50, 63, 77, 90, 103, 117, 130],
+    { to: end(fwd), w: hang, out: at.n, face: face(1) }, { to: end(-fwd), w: hang, out: at.n, face: face(-1) }, 0.035, 0.006, trim, rough);
+}
+
+// a shoulder bag: at the waist on the side sx, under the arm (which hangs outside it), its long strap over that
+// side's shoulder. The bag rests against the body: its inner face clear of the waist at its top and of the hip at its
+// bottom (by rays at the body's own surface, not the bands' ellipse), so it leans as the hip is wider.
+function shoulderBag(kit, f, col, trim, s, side) {
+  const { bi } = f;
+  const sx = side;
+  const [w, h, d] = [0.23, 0.185, 0.065].map((v) => v * s);
+  const yT = f.torso.y + 0.02, yB = yT - h, ym = (yT + yB) / 2;
+  const a = 1.0;                                            // how far round from the back it sits
+  const zc = (y) => (f.zB(y) + f.zF(y)) / 2;
+  const dir = (ang) => V(sx * Math.sin(ang), 0, -Math.cos(ang));
+  const at = round(f, ym, a, sx, 0, [yB - 0.04, yT + 0.02]);
+  const tl = V(-at.n.z, 0, at.n.x);                         // the bag's length, level
+  // how far the body stands out under the bag: near its top, near its bottom
+  const stand = (y0, y1) => {
+    let m = -1;
+    for (let y = y0; y <= y1 + 1e-6; y += 0.015) {
+      for (let da = -0.6; da <= 0.6; da += 0.1) {
+        const hit = f.ray(V(0, y, zc(y)), dir(a + da));
+        if (!hit) continue;
+        const q = hit.p.sub(at.p);
+        if (Math.abs(q.dot(tl)) < w / 2 - 0.01) m = Math.max(m, q.dot(at.n));
+      }
+    }
+    return m > -1 ? m : 0.02;
+  };
+  const mT = stand(yT - 0.05, yT - 0.005), mB = stand(yB + 0.005, yB + 0.05);
+  const lean = Math.max(-0.1, Math.min(0.2, Math.atan2(mB - mT, h - 0.055)));
+  const ctr = at.p.clone().addScaledVector(at.n, Math.max((mT + mB) / 2, stand(yB + 0.05, yT - 0.05) - 0.01) + d / 2 + 0.003).setY(ym);
+  const M = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(lean, Math.atan2(-at.n.x, -at.n.z), 0, 'YXZ')).setPosition(ctr);
+  const hang = [[bi.Torso, 0.5], [bi.Hips, 0.5]];           // it hangs from the trunk and rests on the hip
+  const rough = 0.55;
+  kit.add(pillow(w, h, d, { r: 0.05, bevel: 0.014, bulge: 0.008 }).applyMatrix4(M), col, rough, () => hang);
+  // a flap over the outer face
+  const flap = pillow(w * 1.02, h * 0.62, 0.012, { r: 0.03, bevel: 0.004 }).translate(0, h * 0.19 + 0.004, -(d / 2 + 0.004));
+  kit.add(flap.applyMatrix4(M), trim, rough, () => hang);
+
+  // the strap: from the bag's top (its inner edge) up before the armpit, over the shoulder and down behind it
+  const end = (u) => V(u * (w / 2 - 0.025), h / 2 - 0.012, d / 2 - 0.014).applyMatrix4(M);
+  let eF = end(1), eB = end(-1);
+  if (eF.z < eB.z) [eF, eB] = [eB, eF];
+  const face = (fb) => (t) => V(sx * (fb > 0 ? 1 : 0.35) * ss(0.25, 0.9, t), 0, fb * ss(0, 0.3, t) * (1 - 0.8 * ss(0.45, 0.9, t)));
+  slung(kit, f, sx, 0.26, [55, 67, 79, 90, 101, 113, 125],
+    { to: eF, w: hang, out: at.n, face: face(1) }, { to: eB, w: hang, out: at.n, face: face(-1) }, 0.022, 0.005, trim, rough);
 }
 
 // a bag carried by its handles in the right hand (brief: a briefcase, else a handbag). In the T-pose the arm runs
@@ -366,10 +536,13 @@ const cache = new Map();
 
 // the geometry of person `id` (its template SkinnedMesh) carrying `bag`: the body's own merged with the bag's,
 // shared by everyone of that look
-export function baggedGeometry(mesh, id, bag) {
+export function baggedGeometry(mesh, id, bag, stand) {
   const key = `${id}|${bag.type}|${bag.color}|${bag.side ?? 0}|${bag.size ?? 1}`;
   if (cache.has(key)) return cache.get(key);
+  // (stand: puts the bones as the person stands, and gives back what undoes it; the fit reads the pose once)
+  const undo = fits.has(id) ? null : stand?.();
   const f = fitOf(id, mesh);
+  undo?.();
   const woman = isWoman(id);
   const col = new THREE.Color(bag.color);
   const hsl = col.getHSL({});
@@ -381,8 +554,8 @@ export function baggedGeometry(mesh, id, bag) {
     case 'backpack': backpack(kit, f, col, trim, s, woman); break;
     case 'mini': backpack(kit, f, col, trim, s, woman, { mini: true }); break;
     case 'sling': backpack(kit, f, col, trim, s, woman, { sling: true, side }); break;
-    case 'cross': hipBag(kit, f, col, trim, s, woman, { cross: true, side }); break;
-    case 'shoulder': hipBag(kit, f, col, trim, s, woman, { cross: false, side }); break;
+    case 'cross': crossBag(kit, f, col, trim, s, woman, side); break;
+    case 'shoulder': shoulderBag(kit, f, col, trim, s, side); break;
     case 'brief': carried(kit, f, col, trim, s, true, woman); break;
     case 'hand': carried(kit, f, col, trim, s, false, woman); break;
     default: return mesh.geometry;

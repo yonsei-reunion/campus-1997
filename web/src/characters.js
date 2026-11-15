@@ -592,7 +592,16 @@ export class Cast {
     const src = this.models[id];
     const holder = new THREE.Group();
     const root = skeletonClone(src.scene);
-    if (bag) root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = baggedGeometry(o, id, bag); });
+    if (bag) {
+      // (a bag is fitted to the body as it stands, the arms down: the idle's first frame, bags.js fitOf)
+      const stand = () => {
+        const m = new THREE.AnimationMixer(root), clip = this.rigs[src.rig].clips.find((c) => c.name === 'idle');
+        if (clip) { m.clipAction(clip).play(); m.setTime(0); }
+        root.updateMatrixWorld(true);
+        return () => { m.stopAllAction(); m.uncacheRoot(root); root.updateMatrixWorld(true); };
+      };
+      root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = baggedGeometry(o, id, bag, stand); });
+    }
     root.traverse((o) => {
       if (!o.isSkinnedMesh) return;
       o.geometry = dressed(o.geometry, src.ranges, look?.colors, look ? look.glasses : src.glasses, look?.blink, look ? look.print !== false : true);
