@@ -38,6 +38,7 @@ import libsouth97
 import yongjae97
 import ridge97
 import widang97
+import audnorth97
 import datum
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -6742,6 +6743,15 @@ Hn[_yj_nw] = YONGJAE['floor'] + _yj_dz        # (the car across the car park's n
 FIXED[_yj_nw] = True
 print('용재관 바닥과 둘레 땅:', YJ97_PAD)
 print('   the node by the car park\'s north-west edge: %+.2f m' % (float(Hn[_yj_nw]) - _yj_nw0))
+# 대강당 북쪽 날개 둘레 (tools/audnorth97.py, reference/고증/4.5.1 「북쪽 날개 둘레」): the terrace ran on level to the north
+# wing's west wall and along a strip north of it (the 1997 scans: twelve points there within 0.2 m of the terrace, the
+# 2006 survey's surface within 0.3 m), where the 5 m grid dipped 3 - 4 m and the wing stood in the hollow.  The yard
+# to the terrace's level (AUD97['z']), the ring round it one smooth surface between the terrace, 용재관's level ground
+# (which stays: _ypad) and the yard east of the wing; 용재관's bank (the block above) is laid again where it met the
+# hollow.  The wing reads the ground (landmarks.py auditorium): two storeys over the terrace on the next build
+_an_took, AUDN97 = audnorth97.grade(Hn, X, Y, FIXED, near_buildings(0.5) | _ypad, _yj_took & ~_ypad, harmonic_fill, AUD97['z'])
+FIXED[_an_took] = True
+print('대강당 북쪽 날개 둘레:', AUDN97)
 # ---------------------------------------------------------------------------
 # 광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길 (tools/kwangbok97.py; reference/고증/3.9 「둘레 땅의 높이」, 2.9 「서쪽 길의 높이」),
 # after the planting and everything else that read the ground as it was: 광복관's bench (its yard, the roads west and
@@ -9379,6 +9389,9 @@ AUD_YARD = unary_union([AUD_RAMP_CW, AUD_RAMP_WALK, AUD_TERRACE.buffer(-1.0), co
     .difference(AUD_RAMP_BAND).difference(unary_union(AUD_TREE_BEDS))
 _ypaint([AUD_YARD], _ga)
 _ypaint([AUD_SIDE_POLY], _ga)                 # (대강당 북쪽 곁길 어귀 · 별관 앞마당 어귀)
+# 대강당 북쪽 날개 둘레 (audnorth97.PAVE, reference/고증/4.5.1 「북쪽 날개 둘레」): the terrace's paving up to the north
+# wing's west wall and along the strip north of it (the 1997 scans; the game had lawn and today's walks there)
+_ypaint([audnorth97.PAVE.difference(Polygon(next(b_['footprint'] for b_ in buildings if b_['id'] == 371403811)).buffer(0.2))], _ga)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): 심장혈관병원 북쪽 · 치과대학병원 서쪽 paved; the east lot's steep edges
 # lawn (out of the 2005 hospital's site's asphalt, _ga, and the layers under it)
