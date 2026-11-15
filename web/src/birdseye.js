@@ -187,7 +187,7 @@ export class BirdsEye {
       // Camera fitted by least squares to the unchanged halls and to 백양로's carriageway and the eagle where the 1997
       // vertical aerial photos have them (halls within 5 px, the ground within 7 px; issues #82, #83, #162:
       // tools/build_campus.py PHOTO_A)
-      this.fixed = { x: -106.87, y: -396.83, h: 45.22, tx: 54.38, ty: 181.1, th: 4.95 };
+      this.fixed = { x: -106.87, y: -396.83, h: 44.69, tx: 54.38, ty: 181.1, th: 2.17 };
       this.fovGoal = 33.06;
       this.camera.fov = 33.06;
       this.camera.updateProjectionMatrix();
