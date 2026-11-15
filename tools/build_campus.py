@@ -35,6 +35,7 @@ import medwest97
 import jonghap97
 import libsouth97
 import yongjae97
+import ridge97
 import datum
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -6891,6 +6892,23 @@ for b_ in buildings:
         print('   the south wing\'s floor %.2f m' % b_['base'])
     elif b_['id'] == 224955691 and b_.get('entry'):
         b_['entry'].update(p=[round(c_, 2) for c_ in eng97.xy(-48.9, -41.3)], n=[round(eng97._S, 4), round(-eng97._C, 4)])
+# 서쪽 능선의 숲 땅 (tools/ridge97.py, reference/고증/2.8.1 「서쪽 능선의 숲 땅」; #189), late: the planting has read the
+# ground as it was.  The wooded ridge from 연구관's back to 언더우드가 사택 on the 2006 survey's surface (the game's top
+# stood 80 m north of the survey's and 13 m low), its cleared top level on the 1997 scans; after the valley west of it
+# (tools/west_ground.py), eased between it and the ground the other blocks have laid.  The 사택 on the new ground
+_rg_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997 and b_['id'] != ridge97.HOUSE
+             and Polygon(b_['footprint']).intersects(ridge97.RIDGE.buffer(30.0))] + \
+    [p_.buffer(0) for _, _, _, _, p_ in OLD_HALLS if p_.intersects(ridge97.RIDGE.buffer(30.0))] + \
+    [Polygon(v_).buffer(0) for k_, v_ in LATE_FOOTPRINT_1997.items() if Polygon(v_).intersects(ridge97.RIDGE.buffer(30.0))]
+_rg_took, RIDGE97_GRADE = ridge97.grade(Hn, X, Y, FIXED, _rg_halls, harmonic_fill)
+FIXED[_rg_took] = True
+print('서쪽 능선:', RIDGE97_GRADE)
+for b_ in buildings:
+    if b_['id'] == ridge97.HOUSE:
+        _rg_hs = [ground_h(x_, y_) for x_, y_ in b_['footprint']]
+        print('   %s: floor %.2f -> %.2f m (the ground under it %.2f .. %.2f)' % (b_['name'], b_['base'], ridge97.HOUSE_FLOOR,
+                                                                              min(_rg_hs), max(_rg_hs)))
+        b_.update(base=ridge97.HOUSE_FLOOR, top_ground=round(max(_rg_hs), 2))
 # 무악학사 · 북문 (tools/muak.py NORTH): the patch north of the grid (x -60 .. 340, y 800 .. 1280), from the grid's last
 # change; the 1997 roads' beds on it and the courts' pads
 _mk_far = ndimage.gaussian_filter(np.array(tf['rows_south_to_north'], np.float64), 0.7)     # (the far ring as the web draws it)
@@ -10644,6 +10662,9 @@ print('의료원 서쪽: trees moved', _mw_moved, 'left on it', _mw_left, 'plant
 # and where the low block stands, out to their edges in their places in the list
 print('종합관 북쪽 마당: trees out of the yard and the low block',
       jonghap97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
+# 서쪽 능선 꼭대기의 빈터 (tools/ridge97.py; #189): the trees the random planting put on the cleared top, out to its edge in
+# their places in the list
+print('서쪽 능선 꼭대기: trees off the cleared top', ridge97.trees_aside(out['trees']))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
