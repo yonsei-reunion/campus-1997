@@ -1007,7 +1007,10 @@ def centennial_terrace():
     # coped side walls: south of all three flights (the lawn on the wall's side rises with them), north of the upper two
     sS = fL['s1']
     prof = [(fL['d0'], l1 + 0.08), (fM['d0'] + 0.3, l1 + 0.35), (dm1, l2 + 0.4), (fU['d0'] + 0.3, l2 + 0.4), (du1, zp + 0.4), (1.0, zp + 0.4)]
-    for sa, sb, pr in ((sS, sS + 0.4, prof), (fU['s0'] - 0.4, fU['s0'], [p for p in prof if p[0] <= fM['d0'] - 0.2])):
+    # (the north one on to the face: ending a metre short of it, it left a gap at the porch's level through which the
+    # walker stepped off 2.6 m down to the ground north of the terrace)
+    north = [p for p in prof if p[0] <= fM['d0'] - 0.2][:-1] + [(0.0, zp + 0.4)]
+    for sa, sb, pr in ((sS, sS + 0.4, prof), (fU['s0'] - 0.4, fU['s0'], north)):
         for (da, za), (db, zb) in zip(pr[:-1], pr[1:]):
             block([(sa, da), (sb, da), (sb, db), (sa, db)], [za - 0.1, za - 0.1, zb - 0.1, zb - 0.1], l1 - 1.2, G, G)
             block([(sa - 0.04, da), (sb + 0.04, da), (sb + 0.04, db), (sa - 0.04, db)], [za, za, zb, zb], min(za, zb) - 0.14, TRIM, TRIM)
