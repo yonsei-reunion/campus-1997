@@ -6736,7 +6736,12 @@ _yj_dz, _yj_took, YJ97_PAD = yongjae97.raise_pad(Hn, X, Y, FIXED, _ypad, _yj_rin
 FIXED[_yj_took] = True
 for b_ in YONGJAE_BUILDINGS:
     b_['base'], b_['top_ground'] = round(b_['base'] + _yj_dz, 2), round(b_['top_ground'] + _yj_dz, 2)
+_yj_nw = np.unravel_index(np.argmin((X - yongjae97.LOT_NW_NODE[0]) ** 2 + (Y - yongjae97.LOT_NW_NODE[1]) ** 2), X.shape)
+_yj_nw0 = float(Hn[_yj_nw])
+Hn[_yj_nw] = YONGJAE['floor'] + _yj_dz        # (the car across the car park's north-west edge: yongjae97.LOT_NW_NODE)
+FIXED[_yj_nw] = True
 print('용재관 바닥과 둘레 땅:', YJ97_PAD)
+print('   the node by the car park\'s north-west edge: %+.2f m' % (float(Hn[_yj_nw]) - _yj_nw0))
 # ---------------------------------------------------------------------------
 # 광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길 (tools/kwangbok97.py; reference/고증/3.9 「둘레 땅의 높이」, 2.9 「서쪽 길의 높이」),
 # after the planting and everything else that read the ground as it was: 광복관's bench (its yard, the roads west and
@@ -9359,6 +9364,7 @@ _ypaint([SCI_YARD.difference(unary_union([Polygon(b_['footprint']) for b_ in LAT
 # 용재관's car park and the drive to 노천극장 (YJ_LOT, YJ_BRANCH), a paved strip along the walls
 _ypaint([YJ_LOT.difference(unary_union([Polygon(b_['footprint']).buffer(1.0) for b_ in YONGJAE_BUILDINGS])),
          YJ_BRANCH.buffer(3.0)], _ga)
+_ypaint([Polygon(yongjae97.LOT_NW_PAVE)], _ga)   # (the car across the car park's north-west edge)
 # 음악관 앞 (music97.MUSIC_PAVE97, reference/고증/3.11): the road along 구관 out to the back of its stalls and the forecourt south
 # of 신관's lawn bed out to the kerb, asphalt as the 1997 scans have them (the game had lawn under the row of cars)
 _ypaint([music97.MUSIC_PAVE97.difference(unary_union([Polygon(b_['footprint']).buffer(0.5) for b_ in buildings

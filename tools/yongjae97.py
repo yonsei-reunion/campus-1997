@@ -30,6 +30,12 @@ import datum
 
 FLOOR = 45.9                      # 해발: the hall's floor and the level ground round it, the car park before the north walls
 WALK_HALF = 3.0                   # the ground this far either side of the walk's flight follows its grade
+# the car park's north-west edge by the drive to 노천극장: the white car of July 1997 stood across YJ_LOT's edge, askew
+# (27/16 · 27/17: its roof at (92.4, 154.3), 57 deg), on pavement.  The one grid node beside it, which the bank's fill
+# had left 0.7 m under the car park, on the car park's level (no cell the east fork's wheels use has it for a corner:
+# the fork's middle runs 9.4 m off), and the asphalt 1.7 m out from the edge
+LOT_NW_NODE = (90.0, 155.0)
+LOT_NW_PAVE = [(89.5, 152.0), (95.0, 157.5), (93.8, 158.7), (88.3, 153.2)]
 
 
 def raise_pad(Hn, X, Y, FIXED, pad, ring, floor_work, cluster_xy, fill, pad_poly=None, walk=None, bank=None):
