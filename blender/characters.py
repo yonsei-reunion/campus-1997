@@ -170,7 +170,7 @@ PEOPLE = {
                             'feet': canvas('Purple', 'White')},
                      sleeves=dict(r0=.066, r1=.044),
                      face=dict(lid='mono', slant=.10, jaw=1.04, eye=.96, smile=.0016, mouth=.96, glasses=True, brow=1.3, arch=.4,
-                               brow_len=.86, brow_taper=1.6, nose=.84, nose_curve=.9, tip_up=.9, tip_round=1.3, wing=1.1, bridge=.17, nose_w=1.10)),
+                               brow_len=.86, brow_taper=1.6, nose=.84, nose_curve=.95, tip_up=.9, tip_round=1.3, wing=1.1, bridge=.17, nose_w=1.10)),
     'p03': man('up', 'Casual_Hoodie', 'Casual_2', 'Casual_Hoodie',
                       {'Purple': '#23345e', 'LightBlue': '#a8946a', 'feet:White': '#e8e6e0', 'Skin': SKIN['tan'],
                        'Hair': HAIR['black'], 'Brow': '#0e0b0a'},
@@ -222,7 +222,7 @@ PEOPLE = {
                       'Skin': SKIN['d'], 'Hair': HAIR['dark']}, 'campus staff: navy vest, grey trousers',
                      paint={'body': [neckline(('LightBrown',), ring=.006)]},
                      face=dict(lid='mono', slant=.06, jaw=1.07, eye=.95, arch=.7, smile=.0012, age='mid', brow=1.4, brow_len=.92,
-                               brow_taper=1.4, nose=.88, nose_curve=.78, tip_up=.95, tip_round=1.5, wing=1.15, bridge=.18, nose_w=1.14)),
+                               brow_taper=1.4, nose=.88, nose_curve=.9, tip_up=.95, tip_round=1.5, wing=1.15, bridge=.18, nose_w=1.14)),
     'p09': woman('half', 'Casual', 'Casual', 'Casual',
                        {'White': '#f4f1e8', 'Orange': JEANS['light'], 'Grey': '#e8e6e0', 'feet:Bar': '#b3262e', 'feet:Lace': '#cfccc4',
                         'feet:Sole': '#c9c6be', 'Skin': SKIN['a'], 'Hair': HAIR['black']},
@@ -231,14 +231,14 @@ PEOPLE = {
                        paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')}, cut='wide',
                        prints={'body': [dict(name='yonsei_ink', of=('White',), w=.22, z=1.40)]},
                        face=dict(lid='inner', slant=.07, eye=1.03, jaw=1.03, smile=.0030, brow=.9, arch=1.35, brow_peak=.58, brow_len=1.05, brow_up=-.002, brow_soft=1.3,
-                                 nose=.80, nose_curve=.8, tip_up=1.2, tip_round=.95, bridge=.20, nose_w=.96, nose_up=.001)),
+                                 nose=.80, nose_curve=.9, tip_up=1.2, tip_round=.95, bridge=.20, nose_w=.96, nose_up=.001)),
     'p10': woman('tuck', 'Casual', 'Casual', 'Casual',
                         {'White': '#e7a7b6', 'Orange': '#cdb994', 'Grey': '#f0eee8', 'feet:Bar': '#8d8f92', 'feet:Lace': '#d6d3cc',
                          'feet:Sole': '#cfccc4', 'Skin': SKIN['fair'], 'Hair': HAIR['dark']},
                         'pink knit, wide beige trousers, white trainers; short bob, one side behind the ear',
                         paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')},
                         bust=1.3, face=dict(lid='inner', slant=.03, jaw=1.04, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
-                                  nose=.72, nose_curve=.65, tip_up=1.45, tip_round=1.25, bridge=.17, nose_w=1.02, nose_up=.002)),
+                                  nose=.72, nose_curve=.85, tip_up=1.45, tip_round=1.25, bridge=.17, nose_w=1.02, nose_up=.002)),
     # 서연 (the film 건축학개론, 2012: a first-year of the college of music in 1996): a round, soft face, large eyes with
     # double lids, straight soft brows, a small nose, a ready smile; long straight hair worn down
     'p11': woman('long', 'Formal', 'Formal', 'Formal',
@@ -290,7 +290,7 @@ PEOPLE = {
                             'the ears, metal glasses',
                             paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)], 'feet': trainers('women', 'Grey')},
                             face=dict(lid='inner', slant=.05, jaw=1.03, smile=.0024, glasses=True, brow=1.5, arch=.8, brow_taper=1.4, brow_soft=2.2,
-                                      nose=.76, nose_curve=.92, tip_up=1.05, tip_round=1.3, wing=1.1, bridge=.20, nose_w=1.08)),
+                                      nose=.76, nose_curve=.96, tip_up=1.05, tip_round=1.3, wing=1.1, bridge=.20, nose_w=1.08)),
     'p14': woman('perm', 'Suit', 'Suit', 'Suit',
                          {'Black': '#2f3644', 'White': '#eef0f2', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
                          'office staff: navy suit, short permed hair',
@@ -313,7 +313,7 @@ PEOPLE = {
                                           neckline(('LimeGreen',), drop=.030, half=.085, side=.06)],
                                  'feet': trainers('women', 'Grey')},
                           face=dict(lid='inner', slant=.06, eye=1.04, jaw=1.0, smile=.0027, mouth=1.0, brow=1.0, arch=.9, brow_len=1.0,
-                                    brow_soft=1.5, nose=.80, nose_curve=.95, tip_up=1.38, tip_round=.7, bridge=.20, nose_w=1.0, nose_up=.001)),
+                                    brow_soft=1.5, nose=.80, tip_up=1.38, tip_round=.7, bridge=.20, nose_w=1.0, nose_up=.001)),
     'p16': man('curtain', 'Adventurer', 'Casual_2', 'Casual_2',
                      {'Green': '#2f5a45', 'LightGreen': '#1f1f24', 'LightBlue': '#b9a67e', 'Red_Dark': '#3a2c24', 'Skin': SKIN['b'],
                       'Hair': HAIR['black']},
@@ -329,7 +329,7 @@ PEOPLE = {
                          'shoulders with a straight fringe',
                          paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)], 'feet': trainers('women', 'Grey')},
                          bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
-                                   brow_soft=1.6, nose=.78, nose_curve=.7, tip_up=1.12, tip_round=1.05, bridge=.19, nose_w=.98, nose_up=.001)),
+                                   brow_soft=1.6, nose=.78, nose_curve=.88, tip_up=1.12, tip_round=1.05, bridge=.19, nose_w=.98, nose_up=.001)),
 }
 RIGS = {'rig-umc': 'umc', 'rig-women': 'women'}
 PART_MESH = {'head': '_Head', 'body': '_Body', 'legs': '_Legs', 'feet': '_Feet'}
@@ -1724,13 +1724,13 @@ HAIR_AZ = [0, 6, 12, 18, 24, 30, 36, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82,
 # between the brows down the bridge, over a round tip and under it back to the lip, with a wing either side.
 # Of a face, what its line from the side is made of: nose (how far the tip stands off the face, of NOSE_TIP), bridge
 # (how much of that is left between the eyes), nose_curve (the bridge between them: 1 straight, less: a scooped one
-# with the tip standing out; never more: a bridge that is high half way down made the nose a lump), tip_up (the
+# with the tip standing out, and only a little; never more: a bridge that is high half way down made the nose a lump), tip_up (the
 # tip's height over where the nose meets the lip, of NOSE_UNDER: more is a turned-up tip that shows its underside,
 # less a drooping one), nose_up (the tip higher still, m), tip_round (how blunt the tip is: more is a round one,
 # less a fine one).  From the front: nose_w (the wings' width, a scale), wing (how full they are)
 NOSE = dict(nose=0.92, bridge=0.21, nose_curve=1.0, tip_up=1.0, tip_round=1.0, wing=1.0)
-NOSE_TIP = {'umc': 0.0145, 'women': 0.0188}       # (what the packs' wedges stood off the face)
-NOSE_ROOT = 0.012          # the bridge dies away this far over the eye line
+NOSE_TIP = {'umc': 0.0165, 'women': 0.0212}       # (the packs' wedges stood 0.0145, 0.0188 off the face)
+NOSE_ROOT = 0.012          # the bridge dies away this far over the eye line (and only there: it is straight up to it)
 NOSE_UNDER = 0.0085        # the tip over the underside (where the nose meets the lip)
 NOSE_LOW = 0.0055          # (and no lower than this: the nostrils need the room)
 NOSE_EASE = 24             # how often the profile is eased (a tip_round of 1): fewer, and the tip is a corner
@@ -2083,7 +2083,7 @@ def nose_shape(fy, ez, nb, face, rig):
             h = (z - zt) / (ez - zt)
             line = T * (1 - (1 - bridge) * min(h, 1.25) ** curve)
             m = fy(0, z) - (y_t + (y_r - y_t) * h - line)
-            m = max(0.0, m) * (1 - _smooth(ez - NOSE_ROOT, z1, z))
+            m = max(0.0, m) * (1 - _smooth(ez, z1, z))
         else:
             m = T * (1 - ((zt - z) / (zt - nb)) ** NOSE_COL)
         M.append(m)
