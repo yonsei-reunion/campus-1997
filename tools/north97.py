@@ -75,8 +75,11 @@ MOUND_HOLD = LineString([(201.4, 571.3), (193.1, 568.4), (179.7, 563.6), (147.1,
                 (82.0, 486.2)]).buffer(3.5))
 HALL_PAD = 7.1                    # the halls' feet (their floors read the nodes round their corners)
 # the level terraces (1997 scans, the pairs' medians over each; 해발 at the place named)
-COURT_Z = {429077768: datum.up(111.0, 962.0, 64.43),      # 서쪽 정구장 @ (111, 962): three pairs 64.2 - 64.5, rms 0.26; the 2006 spot on it 67.14
-           429077769: datum.up(187.0, 980.0, 85.74),       # 동쪽 정구장 @ (187, 980): 26/14 - 27/15, windows 3 - 7 m 85.7 - 85.89
+COURT_Z = {429077768: datum.up(111.0, 962.0, 64.43),      # 서쪽 정구장 @ (111, 962): three pairs 64.2 - 64.5, rms 0.26; the 2006 spot on it 64.13
+           # 동쪽 정구장 @ (187, 980): the 2024 spot on it (190.1, 996.9) 84.72; both surveys' 85 m contour runs along its
+           # east (uphill) edge.  The pairs disagree by 0.8 m on its pale floor (26/14 - 27/15 85.55, 27/15 - 27/16 84.72,
+           # 0.3 and 0.1 m over the spots round it): reference/고증/3.21 「땅의 높이」
+           429077769: datum.up(187.0, 980.0, 84.72),
            429077775: datum.up(55.0, 1140.0, 59.58)}      # 북서 정구장 @ (55, 1140): 26/14 - 27/15 59.56, rms 0.26
 # the car park east of 우유처리장 as the 1997 scans have it (the angled rows west and south-west of the aisle, the row
 # along the east edge, the five stalls under the hall's south wall, its mouth on the road), and its plane: the aisle
