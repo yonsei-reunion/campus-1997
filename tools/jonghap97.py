@@ -266,11 +266,12 @@ def _strip(Hn, X, Y, pts, half, mask, f=None):
     return m
 
 
-def grade(Hn, X, Y, FIXED, halls, keep, fill):
+def grade(Hn, X, Y, FIXED, halls, keep, fill, eased=None):
     """GRID in HILL and SE, the zones and the roads' profiles round the three halls, the rest between and RING m round
     them one smooth surface (fill: harmonic_fill).  halls: the other halls' outlines (their feet stay), keep: nodes
     that stay as they are (인문관 남쪽 길).  #110's levels round 외솔관2 (FIXED there) give way.  Returns the nodes set
-    (to be FIXED) and a summary."""
+    (to be FIXED) and a summary; `eased`, a dict, gets the nodes only eased between (tools/ridge97.py lays the survey
+    over those of them on the ridge south of HILL)."""
     H0 = Hn.copy()
     north = Y > Y_SOUTH
     stay = keep | shapely.contains_xy(unary_union([h.buffer(HALL_PAD) for h in halls]), X, Y) | ~north
@@ -309,6 +310,8 @@ def grade(Hn, X, Y, FIXED, halls, keep, fill):
     if free.any():
         fill(free)
     info['eased'] = int(free.sum())
+    if eased is not None:
+        eased['nodes'] = free
     d = Hn - H0
     info['moved'] = (int((np.abs(d) > 0.05).sum()), round(float(d.min()), 1), round(float(d.max()), 1))
     return took | free, info

@@ -1,7 +1,7 @@
 """서쪽 능선의 숲 땅 (연구관 북서쪽 언덕 ~ 언더우드가 사택; #189, reference/고증/2.8.1_측량_표고.md 「서쪽 능선의 숲 땅」).
 tools/build_campus.py 가 부른다.
 
-    took, info = ridge97.grade(Hn, X, Y, FIXED, halls, fill)     # 심기가 끝난 뒤, 다른 늦은 블록들 다음
+    took, info = ridge97.grade(Hn, X, Y, FIXED, halls, fill, yield_)   # 심기가 끝난 뒤, 다른 늦은 블록들 다음
     ridge97.HOUSE · HOUSE_FLOOR                                  # 언더우드가 사택: 새 땅 위의 바닥
     ridge97.trees_aside(trees)                                   # 꼭대기 빈터 위의 나무를 목록 제자리에서
 
@@ -26,7 +26,8 @@ What the 1:5000 survey (2006 · 2024) and the 1997-07-28 scans have:
 
 GRID: the 2006 survey's surface (its contours with its spot heights, 2.5 m: the same as tools/jonghap97.py's) at the
 game's 5 m nodes, centimetres; laid in RIDGE short of the ground the other blocks have laid (KEEP_OFF m from their
-nodes: eased between), of the halls that stay and of the valley west of x VALLEY_X (tools/west_ground.py).  PEAK level
+nodes: eased between; the nodes tools/jonghap97.py only eased between its hill and the ground as it was, `yield_`,
+are laid over), of the halls that stay and of the valley west of x VALLEY_X (tools/west_ground.py).  PEAK level
 at PEAK_Z, eased into the slopes round it over PEAK_EASE m.  The trees and shrubs stand on whatever ground is under
 them; the 사택's floor follows (HOUSE_FLOOR).  Nothing here draws from build_campus.py's `rng`.
 """
@@ -114,12 +115,14 @@ def grid_z(x, y):
     return z.reshape(x.shape) if x.ndim else float(z[0])
 
 
-def grade(Hn, X, Y, FIXED, halls, fill):
+def grade(Hn, X, Y, FIXED, halls, fill, yield_=None):
     """GRID in RIDGE (PEAK level), eased round it and between it and what the other blocks have laid (fill:
-    harmonic_fill).  halls: the outlines of the halls that stay (not the 사택).  Returns the nodes set (to be FIXED)
-    and a summary"""
+    harmonic_fill).  halls: the outlines of the halls that stay (not the 사택); yield_: nodes laid before that were
+    only eased (FIXED, but laid over here).  Returns the nodes set (to be FIXED) and a summary"""
     H0 = Hn.copy()
     step = float(X[0, 1] - X[0, 0])
+    if yield_ is not None:
+        FIXED = FIXED & ~(yield_ & shapely.contains_xy(RIDGE, X, Y))
     near_fixed = ndimage.distance_transform_edt(~FIXED) * step < KEEP_OFF
     stay = shapely.contains_xy(unary_union([h.buffer(HALL_PAD) for h in halls]), X, Y) if halls else np.zeros(X.shape, bool)
     stay |= (X < VALLEY_X) & (Y > 40.0) & (Y < 262.0)

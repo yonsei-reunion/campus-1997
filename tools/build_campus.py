@@ -6778,9 +6778,11 @@ BASE_1997[kwangbok97.KB] = kwangbok97.plan()['fore']
 _jh_own = (jonghap97.JONGHAP, jonghap97.OESOL2, jonghap97.INMUN, 246156110, 246156118)
 _jh_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997 and b_['id'] not in _jh_own] + \
     [p_.buffer(0) for _, _, _, _, p_ in OLD_HALLS] + [Polygon(v_).buffer(0) for k_, v_ in LATE_FOOTPRINT_1997.items() if k_ not in _jh_own]
+_jh_eased = {}
 _jh_took, JONGHAP97_GRADE = jonghap97.grade(
     Hn, X, Y, FIXED, _jh_halls,
-    (_inm_u >= INM97['u'][0]) & (_inm_u <= INM97['u'][1]) & (_inm_v >= INM97['v'][0]) & (_inm_v <= INM97['v'][1]), harmonic_fill)
+    (_inm_u >= INM97['u'][0]) & (_inm_u <= INM97['u'][1]) & (_inm_v >= INM97['v'][0]) & (_inm_v <= INM97['v'][1]), harmonic_fill,
+    eased=_jh_eased)
 FIXED[_jh_took] = True
 print('종합관 · 외솔관2 · 인문관 둘레:', JONGHAP97_GRADE)
 # ---------------------------------------------------------------------------
@@ -6900,7 +6902,7 @@ _rg_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] 
              and Polygon(b_['footprint']).intersects(ridge97.RIDGE.buffer(30.0))] + \
     [p_.buffer(0) for _, _, _, _, p_ in OLD_HALLS if p_.intersects(ridge97.RIDGE.buffer(30.0))] + \
     [Polygon(v_).buffer(0) for k_, v_ in LATE_FOOTPRINT_1997.items() if Polygon(v_).intersects(ridge97.RIDGE.buffer(30.0))]
-_rg_took, RIDGE97_GRADE = ridge97.grade(Hn, X, Y, FIXED, _rg_halls, harmonic_fill)
+_rg_took, RIDGE97_GRADE = ridge97.grade(Hn, X, Y, FIXED, _rg_halls, harmonic_fill, _jh_eased['nodes'])
 FIXED[_rg_took] = True
 print('서쪽 능선:', RIDGE97_GRADE)
 for b_ in buildings:
