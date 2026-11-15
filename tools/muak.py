@@ -17,10 +17,12 @@ over the crest (y 760) and down round the hairpin (y 892) to the fork before 북
 - Its height (Z97): the road surface measured on the photos (corr >= 0.7), the bend as the road there has it.
 Nothing here draws from build_campus.py's `rng`: random.Random(15991) for the trees.
 """
-# (2026-11-15: every absolute height in this file's code is on the sea-level datum, 2.0 m under the old game datum;
-# heights quoted in comments written before then are 2.0 m higher: tools/build_campus.py SURFACE_DZ)
+# (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
+# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  Heights quoted in
+# comments written before 2026-11-15 are on the old datum: 2.0 m and the tilt at their place higher)
 import json, math, os, random
 import numpy as np
+import datum
 from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import unary_union, nearest_points
 import shapely
@@ -42,9 +44,12 @@ WALK = (3.25, 5.75)             # the west walk, left of the middle line (s 8 on
 # the frames' 93.9 - 94.2 there), s 488 (116.2, 836.8).  From the hairpin to the fork one fall of 10 - 12 %: the frames'
 # 80 - 82 m at s 430 - 462 was the crowns over the road (the pairs that see the road under them: 78.3 at s 427, 75.8
 # at s 448, 73.3 at s 469, 71.4 at s 483, within 0.8 m of the survey's contours)
-Z97 = [(-14.0, 79.9), (10.0, 83.3), (50.0, 89.0), (90.0, 93.4), (127.0, 96.7), (195.0, 98.6), (225.0, 97.4),
-       (284.0, 94.0), (301.0, 93.5), (329.0, 89.9), (343.0, 88.1), (413.0, 80.1), (448.0, 75.9), (488.0, 70.8),
-       (525.0, 67.0), (558.0, 63.6), (602.0, 58.7), (630.0, 56.0)]
+Z97 = datum.up_at([(-14.0, 77.46), (10.0, 80.73), (50.0, 86.26), (90.0, 90.56), (127.0, 93.78), (195.0, 95.46), (225.0, 94.15),
+       (284.0, 90.56), (301.0, 90.05), (329.0, 86.48), (343.0, 84.73), (413.0, 77.05), (448.0, 73.04), (488.0, 68.07),
+       (525.0, 64.28), (558.0, 60.87), (602.0, 55.95), (630.0, 53.23)],
+                  [(189.3, 563.9), (207.3, 579.4), (223.5, 613.7), (224.2, 653.6), (222.3, 690.5), (231.7, 758.1),
+                   (237.8, 787.4), (247.2, 844.9), (241.5, 860.8), (224.9, 882.9), (213.5, 890.3), (178.5, 834.0),
+                   (149.6, 815.6), (115.9, 835.5), (99.3, 868.8), (86.1, 899.1), (69.5, 939.8), (61.8, 964.8)])
 S_GRID = 238.0                  # where the line leaves the 5 m grid (y 800)
 
 
@@ -402,8 +407,8 @@ OTHER_HALLS = [  # (id, name, style, levels, OSM id or outline, shift, hip)
 # leaf folds into, their inner faces 4.7 m apart, and on the south frame's inner side a flat-roofed lodge with a cut corner
 GATE_FRAMES = [[(11.8, 917.2), (16.8, 917.2), (16.8, 920.6), (11.8, 920.6)], [(13.5, 910.1), (17.5, 910.1), (17.5, 912.5), (13.5, 912.5)]]
 GATE_LODGE = [(14.5, 903.5), (23.0, 903.5), (23.0, 910.0), (16.0, 910.0), (14.5, 908.5)]
-ROOF_TOP = {991021: 81.2,       # 우유처리장's roofs (게임 기준): the west wing @ (120, 878)
-            991033: 79.5}       # ... the hall east of it @ (143, 886)
+ROOF_TOP = {991021: datum.up(120.0, 878.0, 78.34),       # 우유처리장's roofs (게임 기준): the west wing @ (120, 878)
+            991033: datum.up(143.0, 886.0, 76.5)}       # ... the hall east of it @ (143, 886)
 COURTS = [429077768, 429077769, 429077775]
 # (OSM's car parks: 1444557748 east of 우유처리장 is tools/north97.py's LOT97 as the 1997 frames have it; 1358516368
 # between the two dormitories is later, a long flat roof stood there in 1997: reference/고증/3.21 「남은 한계」)

@@ -45,8 +45,8 @@ WOOD = Polygon([(153.0, 240.0), (161.0, 262.0), (168.0, 282.0), (177.0, 302.0), 
 KNOLL = Polygon([(149.0, 346.0), (176.0, 344.0), (190.0, 352.0), (193.0, 372.0), (189.0, 388.0), (162.0, 388.0), (149.0, 382.0)])
 # the hill's top east of 노천극장: (x, y, height on the game's datum) at the grid's nodes round the survey's spot; a node
 # under its height comes up to it (해발 87.5 m at the two nodes either side of the spot, 86.5 · 86.0 m round them)
-PEAK = [(205.0, 85.0, 88.83), (210.0, 85.0, 88.86), (200.0, 85.0, 87.81), (215.0, 85.0, 87.88), (205.0, 80.0, 87.82),
-        (210.0, 80.0, 87.85), (205.0, 90.0, 87.34), (210.0, 90.0, 87.37)]
+PEAK = datum.up3([(205.0, 85.0, 87.5), (210.0, 85.0, 87.5), (200.0, 85.0, 86.5), (215.0, 85.0, 86.49), (205.0, 80.0, 86.5),
+        (210.0, 80.0, 86.5), (205.0, 90.0, 85.99), (210.0, 90.0, 86.0)])
 HALL_PAD = 7.1                    # a hall's feet: the nodes this close to its walls
 RING = 12.0                       # eased (harmonic) this far round WOOD and KNOLL
 GRID_X0, GRID_Y0, GRID_D = 145.0, 25.0, 5.0       # (the grid's south-west node, spacing: the game's 5 m nodes)

@@ -20,10 +20,12 @@ Where things stand (고증 4.10):
   junction as the 1996 photos show them, the rest from their mix, signs standing out from the walls (yro_ functions at
   the end); the corners of the junction carry OSM's big outlines.
 """
-# (2026-11-15: every absolute height in this file's code is on the sea-level datum, 2.0 m under the old game datum;
-# heights quoted in comments written before then are 2.0 m higher: tools/build_campus.py SURFACE_DZ)
+# (every absolute height written in this file's code is above sea level, 해발: datum.up · up3 · up_at · up_plane take it
+# up to the working datum the ground is laid on, 해발 + tilt, where it is read: tools/datum.py.  Heights quoted in
+# comments written before 2026-11-15 are on the old datum: 2.0 m and the tilt at their place higher)
 import json, math, os, random
 import numpy as np
+import datum
 from scipy import ndimage
 from shapely.geometry import Polygon, LineString, Point, box
 from shapely.ops import unary_union
@@ -298,7 +300,7 @@ LANDMARKS = [
 #   machine room over it 57.0 (what 56.8 was), the stair head 60.0, a round tank
 # The blocks keep their storeys (their walls' draws from blender/town.py's stream; the 13th field stretches a storey to
 # the top) but are drawn as LM_SHAPE in blender/town.py landmarks() (town['landmarks']), not as boxes
-LM_TOP = {'그레이스백화점': 71.0, '그랜드백화점': 66.3, '외환은행': 52.0}
+LM_TOP = {'그레이스백화점': datum.up(-191.03, -882.35, 74.13), '그랜드백화점': datum.up(-175.37, -996.2, 69.63), '외환은행': datum.up(-118.81, -1053.76, 55.18)}
 GRACE_1997 = [(-225.27, -896.16), (-179.28, -917.39), (-157.10, -865.66), (-203.55, -849.16)]
 # (the old outline, 2026-11-14: the walls' feet in 27/18 and 1998's 26/17)
 GRACE_1997_OLD = [(-227.8, -895.6), (-179.5, -917.9), (-158.5, -863.3), (-203.0, -847.5)]
@@ -339,11 +341,11 @@ KEXIM_1997 = [(-130.2, -1059.9), (-114.7, -1062.7), (-102.4, -1061.3), (-103.8, 
 # a round face stands off by the bulge).  front: points on the walk before its doors (그레이스: its south-east corner on
 # 양화로; 그랜드: the round face; 외환은행: the north face's east half and the corner) whose ground sets its floor
 LM_SHAPE = {
-    '그레이스백화점': dict(kind='grace', outline=GRACE_1997, deck=66.8, parapet=1.0, glass=(1, 5.5), pipes=1, bands=0,
+    '그레이스백화점': dict(kind='grace', outline=GRACE_1997, deck=datum.up(-191.03, -882.35, 69.93), parapet=1.0, glass=(1, 5.5), pipes=1, bands=0,
                      front=[(-183.5, -918.2), (-178.0, -915.2)],
                      boxes=[(-188.8, -865.0, 46.0, 4.5, -0.333, 2.2)],
                      signs=[dict(cell=12, side=1, at=15.0, w=14.3, h=2.6, top=2.1)]),
-    '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=61.0, screen=(9, 12.0, 8.5, 19.0),
+    '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=datum.up(-175.37, -996.2, 64.33), screen=(9, 12.0, 8.5, 19.0),
                     strip=(2, 2.5, 2.5), pen=GRAND_PEN, signs=[dict(cell=13, side=9, w=16.5, h=3.0, top=2.4, off=1.0)],
                     front=[(-159.8, -998.0), (-161.6, -990.0), (-165.9, -983.3)]),
     '외환은행': dict(kind='kexim', outline=KEXIM_1997, floors=10, front=[(-110.0, -1046.4), (-102.9, -1052.0)],
@@ -560,33 +562,48 @@ def _streets(pl, A, yx=None, old=False):
 # 17.58), up to a crest at y -870 .. -890 and down 0.5 m to the junction, and 양화로 · the 1997 신촌로 (south-west)
 # falling 4 - 6 m away from it.
 # YRO97: (y, z) along 연세로 from under the bridge (its north end eased into 성산로's bed at the south kerb).
-YRO97 = [(-470.0, 21.6), (-500.0, 21.25), (-518.0, 21.1), (-530.0, 20.3), (-542.0, 18.65), (-554.0, 18.7), (-566.0, 18.6),
-         (-578.0, 18.2), (-600.0, 17.4), (-630.0, 16.4), (-657.0, 16.75), (-692.0, 16.45), (-734.0, 15.8), (-770.0, 16.0),
-         (-794.0, 15.95), (-866.0, 18.25), (-890.0, 18.25)]
+YRO97 = datum.up_at([(-470.0, 23.2), (-500.0, 22.93), (-518.0, 22.82), (-530.0, 22.05), (-542.0, 20.43), (-554.0, 20.51), (-566.0, 20.44),
+         (-578.0, 20.07), (-600.0, 19.33), (-630.0, 18.4), (-657.0, 18.82), (-692.0, 18.6), (-734.0, 18.06), (-770.0, 18.35),
+         (-794.0, 18.36), (-866.0, 20.84), (-890.0, 20.9)],
+                    [(-94.0, -470.0), (-94.0, -500.0), (-94.0, -518.0), (-94.0, -530.0), (-94.0, -542.0), (-94.0, -554.0),
+                     (-94.0, -566.0), (-94.0, -578.0), (-94.0, -600.0), (-94.0, -630.0), (-94.0, -657.0), (-94.0, -692.0),
+                     (-94.0, -734.0), (-94.0, -770.0), (-94.0, -794.0), (-94.0, -866.0), (-94.0, -890.0)])
 # ARM97: (s out of the junction, z) along the other four (s 0: the junction's own level); past the last the
 # difference to the arm's old profile fades out over ARM97_FADE m
 ARM97 = {
     # 양화로: the photos to s 110, the survey's spots at s 143 · 152 (15.87 · 16.00), 220 (16.04), 326 (16.91)
-    'sinchon_w': [(10.0, 17.43), (20.0, 17.14), (30.0, 16.75), (40.0, 16.5), (50.0, 16.14), (60.0, 15.95), (70.0, 15.64),
-                  (80.0, 15.18), (90.0, 14.78), (100.0, 14.39), (110.0, 14.13), (147.0, 13.55), (220.0, 13.64), (326.0, 14.51)],
+    'sinchon_w': datum.up_at([(10.0, 20.36), (20.0, 20.12), (30.0, 19.77), (40.0, 19.56), (50.0, 19.24), (60.0, 19.09), (70.0, 18.82),
+                  (80.0, 18.4), (90.0, 18.04), (100.0, 17.68), (110.0, 17.46), (147.0, 17.02), (220.0, 17.38), (326.0, 18.66)],
+                             [(-110.3, -970.6), (-120.1, -968.4), (-129.6, -965.3), (-139.1, -962.3), (-148.6, -959.2),
+                              (-158.0, -955.7), (-167.2, -951.7), (-176.3, -947.6), (-185.4, -943.4), (-194.4, -939.2),
+                              (-203.5, -935.0), (-237.2, -919.6), (-303.7, -889.6), (-401.4, -848.5)]),
     # 1997년 신촌로 (남서): the photos to s 140, the spots at s 86 (17.61) and 166 · 167 (14.81 · 14.33), the survey's
     # contours past it (both editions within 0.1 m: 12.98 · 12.99 at s 200, 12.54 · 12.56 at s 250)
-    'seogang': [(10.0, 17.38), (20.0, 16.86), (30.0, 16.58), (45.0, 15.96), (55.0, 15.9), (86.0, 15.0), (100.0, 14.45),
-                (110.0, 14.09), (120.0, 13.77), (130.0, 13.45), (140.0, 12.94), (166.0, 12.15), (200.0, 10.6), (250.0, 10.15)],
+    'seogang': datum.up_at([(10.0, 20.36), (20.0, 19.9), (30.0, 19.67), (45.0, 19.14), (55.0, 19.14), (86.0, 18.41), (100.0, 17.94),
+                (110.0, 17.64), (120.0, 17.37), (130.0, 17.11), (140.0, 16.66), (166.0, 16.01), (200.0, 14.65), (250.0, 14.49)],
+                           [(-107.8, -995.5), (-116.1, -1001.1), (-124.3, -1006.9), (-136.4, -1015.7), (-144.5, -1021.7),
+                            (-169.2, -1040.3), (-180.3, -1048.9), (-188.2, -1055.0), (-196.1, -1061.1), (-204.0, -1067.3),
+                            (-211.9, -1073.4), (-232.4, -1089.4), (-259.4, -1110.0), (-299.3, -1140.1)]),
     # 1997년 서강로 (남): the photos to s 140 and at y -1173 (s 190, 고증 4.10.4), the spot at s 124 (22.38)
-    'baekbeom': [(10.0, 17.79), (20.0, 17.46), (45.0, 17.25), (60.0, 17.21), (70.0, 17.55), (90.0, 18.38), (100.0, 18.65),
-                 (120.0, 19.6), (140.0, 20.4), (190.0, 22.8)],
+    'baekbeom': datum.up_at([(10.0, 20.71), (20.0, 20.4), (45.0, 20.23), (60.0, 20.22), (70.0, 20.58), (90.0, 21.45), (100.0, 21.73),
+                 (120.0, 22.72), (140.0, 23.56), (190.0, 26.05)],
+                            [(-97.5, -995.1), (-96.1, -1005.0), (-92.5, -1029.7), (-90.7, -1044.6), (-89.6, -1054.5),
+                             (-87.0, -1074.4), (-85.7, -1084.3), (-83.1, -1104.1), (-80.6, -1124.0), (-74.1, -1173.5)]),
     # 신촌로 (동): the photos to s 300, the spots at s 90 (21.74), 191 (26.23), 289 (30.54), 393 (34.93), 491 (39.51)
-    'sinchon_e': [(15.0, 18.11), (30.0, 18.35), (45.0, 18.5), (60.0, 18.79), (75.0, 19.12), (90.0, 19.6), (105.0, 19.9),
-                  (120.0, 20.53), (135.0, 21.03), (150.0, 21.7), (165.0, 22.41), (180.0, 23.14), (195.0, 23.92), (210.0, 24.58),
-                  (225.0, 25.45), (240.0, 26.09), (255.0, 26.87), (270.0, 27.48), (285.0, 28.01), (300.0, 28.66),
-                  (392.0, 32.6), (490.0, 37.2)],
+    'sinchon_e': datum.up_at([(15.0, 20.91), (30.0, 21.07), (45.0, 21.14), (60.0, 21.34), (75.0, 21.59), (90.0, 21.98), (105.0, 22.19),
+                  (120.0, 22.74), (135.0, 23.15), (150.0, 23.73), (165.0, 24.36), (180.0, 25.0), (195.0, 25.69), (210.0, 26.27),
+                  (225.0, 27.05), (240.0, 27.6), (255.0, 28.3), (270.0, 28.82), (285.0, 29.27), (300.0, 29.83),
+                  (392.0, 33.24), (490.0, 37.3)],
+                             [(-85.4, -972.1), (-70.5, -970.9), (-55.9, -967.6), (-41.6, -962.8), (-27.8, -957.0),
+                              (-13.9, -951.3), (-0.1, -945.6), (13.8, -939.9), (27.7, -934.3), (41.6, -928.6), (55.5, -923.0),
+                              (69.4, -917.3), (83.3, -911.7), (97.2, -906.0), (111.1, -900.4), (125.0, -894.8), (138.9, -889.1),
+                              (152.8, -883.4), (166.6, -877.7), (180.5, -872.0), (265.9, -837.9), (362.5, -822.6)]),
 }
 ARM97_FADE = 60.0
 LEVEL_EASE = 30.0              # (the ground eased into the streets' bed this far past the sidewalks: the shop houses on it)
 # the junction's own level (게임 기준; the photos' 17.45 m + 0.3, as the surface model happened to have it smoothed at its
 # middle): held, now that the town round it lies on the survey's surface (tools/town97.py)
-JC_Z = 17.78                   # @ JC (-100, -975)
+JC_Z = datum.up(-100.0, -975.0, 20.67)                   # @ JC (-100, -975)
 
 
 def level(Hn, Hs, half, step, geo, sample_n, keep=None):

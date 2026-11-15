@@ -35,29 +35,33 @@ import json
 import os
 
 import numpy as np
+import datum
 import shapely
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 
 _G = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'north97_ground.json')))
 GRID_X0, GRID_Y0, GRID_D = _G['x0'], _G['y0'], _G['step']      # (the table's south-west node, spacing)
-GRID = np.array([[int(v) for v in r.split()] for r in _G['rows_south_to_north']], float) / 10.0    # 게임 기준, m
+GRID = np.array([[int(v) for v in r.split()] for r in _G['rows_south_to_north']], float) / 100.0    # 해발, m
+# (up to the working datum, to the decimetre it was first written in: tools/datum.py)
+GRID = np.round(GRID + datum.tilt(*np.meshgrid(GRID_X0 + GRID_D * np.arange(GRID.shape[1]),
+                                               GRID_Y0 + GRID_D * np.arange(GRID.shape[0]))), 1)
 # where GRID is laid inside the grid (the patch north of y 800 takes all of it)
 REGION = Polygon([(-100.0, 800.0), (-100.0, 745.0), (-30.0, 745.0), (-30.0, 690.0), (195.0, 690.0), (195.0, 600.0),
                   (400.0, 600.0), (400.0, 800.0)])
 RING = 30.0                       # eased out (harmonic) this far round REGION
 HALL_PAD = 7.1                    # the halls' feet (their floors read the nodes round their corners)
 # the level terraces (1997 scans, the pairs' medians over each; 게임 기준 at the place named)
-COURT_Z = {429077768: 67.45,      # 서쪽 정구장 @ (111, 962): three pairs 67.2 - 67.5, rms 0.26; the 2006 spot on it 67.14
-           429077769: 89.2,       # 동쪽 정구장 @ (187, 980): 26/14 - 27/15, windows 3 - 7 m 89.2 - 89.35
-           429077775: 62.75}      # 북서 정구장 @ (55, 1140): 26/14 - 27/15 62.73, rms 0.26
+COURT_Z = {429077768: datum.up(111.0, 962.0, 64.43),      # 서쪽 정구장 @ (111, 962): three pairs 67.2 - 67.5, rms 0.26; the 2006 spot on it 67.14
+           429077769: datum.up(187.0, 980.0, 85.74),       # 동쪽 정구장 @ (187, 980): 26/14 - 27/15, windows 3 - 7 m 89.2 - 89.35
+           429077775: datum.up(55.0, 1140.0, 59.58)}      # 북서 정구장 @ (55, 1140): 26/14 - 27/15 62.73, rms 0.26
 # the car park east of 우유처리장 as the 1997 scans have it (the angled rows west and south-west of the aisle, the row
 # along the east edge, the five stalls under the hall's south wall, its mouth on the road), and its plane: the aisle
 # between the rows, 24 points where three pairs or more agree within 0.6 m (rms 0.11 m)
 LOT97 = Polygon([(130.6, 879.0), (154.2, 877.5), (157.0, 877.3), (157.2, 869.5), (154.8, 842.0), (153.2, 840.5),
                  (153.0, 826.5), (141.5, 826.5), (139.5, 832.0), (136.0, 835.5), (129.6, 833.0), (110.6, 853.6),
                  (110.5, 861.9), (127.7, 859.7)])
-LOT97_PLANE = dict(o=(145.0, 855.0), z=75.17, gx=0.03, gy=-0.008)      # 게임 기준 @ (145, 855); rising east 3 %
+LOT97_PLANE = dict(o=(145.0, 855.0), z=datum.up(145.0, 855.0, 72.24), gx=0.03, gy=-0.008)      # 게임 기준 @ (145, 855); rising east 3 %
 
 
 def grid_z(x, y):

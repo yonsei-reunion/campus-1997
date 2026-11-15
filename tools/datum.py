@@ -51,9 +51,24 @@ def up(x, y, z, nd=2):
     return v if nd is None else round(float(v), nd)
 
 
-def up3(pts, nd=2):
-    """[(x, y, 해발), ...] -> [(x, y, 작업면 높이), ...] (높이가 None 인 점은 그대로)"""
-    return [(p[0], p[1], None if p[2] is None else up(p[0], p[1], p[2], nd)) + tuple(p[3:]) for p in pts]
+def up3(pts, nd=2, f=None):
+    """[(x, y, 해발), ...] -> [(x, y, 작업면 높이), ...] (높이가 None 인 점은 그대로). f 를 주면 점은 제 틀의 (u, v, 해발)이고
+    f(u, v) 가 그 자리 (x, y) 다"""
+    at = f or (lambda a, b: (a, b))
+    return [(p[0], p[1], None if p[2] is None else up(*at(p[0], p[1]), p[2], nd)) + tuple(p[3:]) for p in pts]
+
+
+def up_uv(f, us, vs, zs, nd=2):
+    """제 틀 f(u, v) -> (x, y) 안에 적은 해발의 줄이나 표 -> 작업면 높이. 한 줄이면 us · vs 가운데 하나가 목록이고(다른
+    하나는 값 하나), 표면 zs[j][i] 가 (us[i], vs[j]) 의 높이다"""
+    if isinstance(zs[0], (list, tuple)):
+        assert len(zs) == len(vs) and all(len(r) == len(us) for r in zs)
+        return [[up(*f(u, v), z, nd) for u, z in zip(us, r)] for v, r in zip(vs, zs)]
+    if isinstance(us, (list, tuple)):
+        assert len(us) == len(zs)
+        return [up(*f(u, vs), z, nd) for u, z in zip(us, zs)]
+    assert len(vs) == len(zs)
+    return [up(*f(us, v), z, nd) for v, z in zip(vs, zs)]
 
 
 def up_at(table, places, nd=2):
@@ -390,6 +405,22 @@ def heights(c):
             for p in run:
                 A(p, 2, p[0], p[1])
                 A(p, 3, p[0], p[1])
+    Mw = c.get('med_west')
+    if Mw:                                                # (tools/medwest97.py: 올린 주차장 · 경사로 · 단. 표는 마디마다)
+        co, si = math.cos(math.radians(Mw['ang'])), math.sin(math.radians(Mw['ang']))
+        for p in Mw['plates']:
+            for j, row in enumerate(p['z']):
+                for i in range(len(row)):
+                    u, v = p['us'][i], p['vs'][j]
+                    A(row, i, Mw['o'][0] + u * co - v * si, Mw['o'][1] + u * si + v * co)
+        for v in Mw['top']['v']:
+            A(v, 2, v[0], v[1])
+        for r in Mw['walk']:
+            for v in r:
+                A(v, 2, v[0], v[1])
+        for q in Mw['quads']:
+            for v in q[1]:
+                A(v, 2, v[0], v[1])
     return out
 
 

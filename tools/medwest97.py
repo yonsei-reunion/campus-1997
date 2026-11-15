@@ -26,13 +26,15 @@ What stood there (the game had today's lawn, walks and roundabout on one slope f
   of 2 m down its south front to a zebra crossing on the drive (the "steps" of the earlier reading were the
   crossing's bars: level within 0.2 m in three frames), the drive rising along a brick wall with a row of stalls.
 
-Every height here is on the game's datum (sea level + T(x, y), tools/aerial97.py); each is kept with its place: the
-plates' tables are (u, v) -> z in the frame above, GROUND_PTS are (x, y, z).
+Every height here is above sea level (해발), taken up to the working datum the ground is laid on (해발 + tilt:
+tools/datum.py) where it is read, each at its own place: the plates' tables at their (u, v) in the frame above
+(datum.up(*xy(u, v), z) · up_uv), GROUND_PTS at their (x, y), the halls' floors at the middle of 외래진료소's frame.
 """
 import math
 import random
 
 import numpy as np
+import datum
 import shapely
 from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import triangulate, unary_union
@@ -67,35 +69,40 @@ T_U0, T_U1, T_V0, T_V1 = -16.8, 33.5, -26.6, 15.0          # (its walls' outer f
 ISLE = (-5.5, 0.1, 6.3, -18.3, 7.6)                        # the middle double row: west edge, the split, east edge, v
 NROW = (12.8, 18.4, -21.0, 11.5)                           # the north-east row
 L3_V = (-29.9, 18.9)                                       # the drive before the hall: on past both ramps' heads
-HEAD = (22.4, 33.5, -6.8, 6.3)                             # 외래진료소's low front block (its roof 41.7 m: three frames)
-Z_L1, Z_L2 = 34.92, 36.49                                  # @ (u -9, v 0) · (u 9.5, v 0): the two aisles
+HEAD = (22.4, 33.5, -6.8, 6.3)                             # 외래진료소's low front block (its roof 42.1 m: three frames)
+Z_L1, Z_L2 = datum.up(*xy(-9.0, 0.0), 35.66), datum.up(*xy(9.5, 0.0), 37.13)        # the two aisles, each at its (u, v)
 T_US = [-16.8, -5.5, 6.3, 12.8, 18.4, 22.0, 28.0, 33.5]
-T_FZ = [Z_L1, Z_L1, Z_L2, Z_L2, 36.85, 37.10, 37.45, 37.70]
+T_FZ = [Z_L1, Z_L1, Z_L2, Z_L2] + datum.up_uv(xy, T_US[4:], 0.0, [37.44, 37.67, 37.99, 38.21])
 T_DV = [-0.010, -0.010, -0.010, -0.010, 0.0, 0.0, 0.0, 0.0]
-# the two ramps and the walk: z along u (level across)
-RAMP_NW = dict(v=(15.0, 18.9), u=[-33.5, 14.0, 18.4], z=[29.42, 36.20, 36.85])
-WALK_NW = dict(v=(18.9, 23.9), u=[-34.5, -33.5, 14.0, 18.4, 22.0, 28.0, 33.5], z=[29.42, 29.57, 36.35, 36.85, 37.10, 37.45, 37.70])
-RAMP_SE = dict(v=(-29.9, -26.6), u=[-33.5, -28.0, 2.0, 16.0, 18.4], z=[28.55, 29.10, 34.20, 36.60, 36.85])
+# the two ramps and the walk: z along u (level across; each height at its u, the middle of its v)
+RAMP_NW = dict(v=(15.0, 18.9), u=[-33.5, 14.0, 18.4])
+RAMP_NW['z'] = datum.up_uv(xy, RAMP_NW['u'], 16.95, [30.32, 36.84, 37.47])
+WALK_NW = dict(v=(18.9, 23.9), u=[-34.5, -33.5, 14.0, 18.4, 22.0, 28.0, 33.5])
+WALK_NW['z'] = datum.up_uv(xy, WALK_NW['u'], 21.4, [30.34, 30.48, 37.0, 37.47, 37.7, 38.02, 38.24])
+RAMP_SE = dict(v=(-29.9, -26.6), u=[-33.5, -28.0, 2.0, 16.0, 18.4])
+RAMP_SE['z'] = datum.up_uv(xy, RAMP_SE['u'], -28.25, [29.38, 29.9, 34.83, 37.15, 37.39])
 # 안 · 이비인후과병원 남쪽: the terrace (its rim an arc: outer parapet line), the flight let into its south front, the
 # drive (N1: from the entrance road at u -17.5 up along the brick wall to under the link between the two halls)
-Y_Z = 34.55                                                # @ (u 25, v 55): six pairs within 0.35 m
+Y_Z = datum.up(*xy(25.0, 55.0), 35.19)                     # (six pairs within 0.35 m)
 Y_ARC = [(24.9, 46.9), (24.5, 48.4), (23.5, 52.0), (22.7, 54.0), (22.2, 56.0), (22.0, 58.0), (22.0, 60.0), (22.3, 61.8),
          (23.4, 63.6), (25.4, 66.6)]
 Y_EAST = [(26.6, 66.4), (32.2, 56.1), (31.6, 55.9), (31.6, 50.28)]     # (the hall's face in the game, the link's wall)
-STAIR = dict(u=(25.4, 31.6), v=(47.2, 50.28), z=(32.60, Y_Z), risers=12)
+STAIR = dict(u=(25.4, 31.6), v=(47.2, 50.28), z=(datum.up(*xy(28.5, 47.2), 33.21), Y_Z), risers=12)
 N1_US = [-17.5, -2.0, 14.0, 28.0, 36.0]
 N1_VS = [28.0, 34.0, 39.5, 44.0, 47.2, 54.0]
-N1_Z = [[29.75, 30.45, 30.75, 31.35, 31.55],               # v 28
-        [29.95, 30.65, 30.85, 31.55, 31.75],               # v 34
-        [30.20, 31.15, 31.45, 31.95, 31.95],               # v 39.5
-        [30.40, 31.30, 32.00, 32.45, 32.50],               # v 44
-        [30.50, 31.35, 32.05, 32.60, 32.60],               # v 47.2
-        [30.60, 31.45, 32.43, 32.60, 32.60]]               # v 54
+N1_Z = datum.up_uv(xy, N1_US, N1_VS, [
+    [30.58, 31.20, 31.41, 31.93, 32.09],                   # v 28
+    [30.79, 31.41, 31.52, 32.14, 32.30],                   # v 34
+    [31.05, 31.92, 32.13, 32.55, 32.51],                   # v 39.5
+    [31.26, 32.07, 32.69, 33.06, 33.06],                   # v 44
+    [31.37, 32.13, 32.74, 33.21, 33.17],                   # v 47.2
+    [31.48, 32.24, 33.13, 33.23, 33.18]])                  # v 54
 # the brick wall's line: the upper level's edge (three pairs within 0.2 - 0.5 m: 31.2 - 31.8 m on it, 27 m 4 m out),
 # 1 - 2 m outside the stalls' back walk; the 2008 skyview's band of red brick runs along it
 N1_WALL = [(-18.13, 40.70), (14.28, 50.45), (14.6, 53.8), (22.9, 53.8)]
 N1_SE = [(36.0, 36.9), (31.6, 36.6), (31.6, 35.2), (13.4, 35.2), (10.2, 33.4), (0.0, 32.2), (-17.5, 30.9)]
-WING = dict(u=(13.4, 33.5), v=(28.4, 35.2), z=43.6, base=31.2)         # 외래진료소's round-ended wing (roof: six pairs)
+# 외래진료소's round-ended wing (roof: six pairs); its levels, the hall's and the low front block's at the hall's middle
+WING = dict(u=(13.4, 33.5), v=(28.4, 35.2), z=datum.up(63.11, -315.57, 44.0), base=datum.up(63.11, -315.57, 31.6))
 
 
 def _interp_rows(us, vs, Z, u, v):
@@ -242,33 +249,34 @@ TREE_UV = [(-30.3, -16.0), (-27.5, -9.5), (-30.0, -4.5), (-25.5, -12.5), (-21.5,
            (23.0, -35.0), (-12.5, -36.2),
            (-6.0, 27.2), (0.0, 28.4), (5.0, 29.8), (-12.0, 26.6), (9.0, 26.4)]
 # the hall's low front block and its round-ended wing (halls(): at the halls' end), the hall's own floors
-HEAD_HALL = dict(id=990045, levels=1, base=37.25, uv=[(HEAD[0], HEAD[2]), (HEAD[1], HEAD[2]), (HEAD[1], HEAD[3]), (HEAD[0], HEAD[3])],
-                 door=((HEAD[0], -0.25), (-1.0, 0.0)))     # base @ (u 22.4, v 0): the drive before it
-WING_HALL = dict(id=990046, levels=3, base=WING['base'],   # base @ (u 20, v 35.2): the drive along its north-west wall
+HEAD_HALL = dict(id=990045, levels=1, base=datum.up(63.11, -315.57, 37.65), uv=[(HEAD[0], HEAD[2]), (HEAD[1], HEAD[2]), (HEAD[1], HEAD[3]), (HEAD[0], HEAD[3])],
+                 door=((HEAD[0], -0.25), (-1.0, 0.0)))     # base: the drive before it (u 22.4, v 0)
+WING_HALL = dict(id=990046, levels=3, base=WING['base'],   # base: the drive along its north-west wall (u 20, v 35.2)
                  uv=[(WING['u'][1], WING['v'][0]), (WING['u'][1], WING['v'][1]), (WING['u'][0], WING['v'][1])] +
                     [(WING['u'][0] + 3.4 * math.cos(math.radians(a)), 31.8 + 3.4 * math.sin(math.radians(a))) for a in range(110, 251, 20)] +
                     [(WING['u'][0], WING['v'][0])])
-CLINIC_BASE = 30.42            # @ (u 31.6, v 21.4): 외래진료소's third floor (base + 2 x 3.6) level with the walk's head, 37.62
+# 외래진료소's third floor (base + 2 x 3.6 = 38.02) level with the walk's head (u 31.6, v 21.4)
+CLINIC_BASE = datum.up(63.11, -315.57, 30.82)
 CLINIC_DOOR = (31.7, 21.4)     # (u, v): at the walk's head, on the hall's south-west face
 # the ground the 1997 scans have round them, on the game's 5 m nodes (x, y, z): the median of the photo points within
 # 3 m of each (two pairs or more within 0.5 m; a car's roof or a crown, 0.9 m over the lowest third round it, dropped)
-GROUND_PTS = [
-    (-10, -345, 29.77), (-20, -350, 29.59), (-25, -355, 30.12), (-20, -355, 29.52), (-20, -360, 29.31),
-    (0, -360, 29.68), (-20, -365, 29.17), (-10, -365, 29.26), (-5, -365, 29.43), (0, -365, 29.56), (75, -365, 30.20),
-    (80, -365, 30.18), (-10, -370, 28.84), (-5, -370, 28.95), (0, -370, 29.47), (5, -370, 29.46), (60, -370, 29.90),
-    (80, -370, 30.09), (-10, -375, 28.81), (0, -375, 28.68), (5, -375, 29.27), (10, -375, 29.32), (55, -375, 29.72),
-    (60, -375, 29.73), (65, -375, 29.74), (70, -375, 29.82), (75, -375, 30.17), (80, -375, 30.26), (-5, -380, 28.35),
-    (0, -380, 28.47), (5, -380, 28.45), (10, -380, 28.61), (60, -380, 29.54), (65, -380, 29.63), (70, -380, 29.95),
-    (5, -385, 28.18), (10, -385, 28.33), (20, -385, 29.16), (25, -385, 29.47), (45, -385, 29.36), (60, -385, 29.43),
-    (5, -390, 28.08), (10, -390, 28.07), (15, -390, 28.41), (20, -390, 28.95), (40, -390, 29.37), (45, -390, 29.23),
-    (50, -390, 29.07), (55, -390, 29.31), (60, -390, 29.61), (-10, -395, 28.89), (5, -395, 27.77), (10, -395, 27.84),
-    (15, -395, 28.07), (25, -395, 28.43), (30, -395, 28.61), (35, -395, 28.82), (40, -395, 29.07), (45, -395, 28.95),
-    (50, -395, 29.03), (55, -395, 29.36), (10, -400, 27.80), (15, -400, 27.86), (20, -400, 28.44), (25, -400, 28.41),
-    (30, -400, 28.58), (35, -400, 28.73), (50, -400, 29.20), (15, -405, 27.73), (20, -405, 27.83), (25, -405, 28.00),
-    (30, -405, 28.22), (35, -405, 28.34), (-5, -410, 26.74), (0, -410, 26.59), (15, -410, 28.02), (20, -410, 27.99),
-    (25, -410, 28.09), (30, -410, 28.18), (35, -410, 28.45), (0, -415, 26.48),
+GROUND_PTS = datum.up3([
+    (-10, -345, 30.63), (-20, -350, 30.51), (-25, -355, 31.08), (-20, -355, 30.45), (-20, -360, 30.26),
+    (0, -360, 30.52), (-20, -365, 30.13), (-10, -365, 30.17), (-5, -365, 30.31), (0, -365, 30.41), (75, -365, 30.66),
+    (80, -365, 30.62), (-10, -370, 29.76), (-5, -370, 29.84), (0, -370, 30.34), (5, -370, 30.3), (60, -370, 30.45),
+    (80, -370, 30.54), (-10, -375, 29.74), (0, -375, 29.56), (5, -375, 30.12), (10, -375, 30.15), (55, -375, 30.31),
+    (60, -375, 30.29), (65, -375, 30.28), (70, -375, 30.33), (75, -375, 30.66), (80, -375, 30.72), (-5, -380, 29.27),
+    (0, -380, 29.36), (5, -380, 29.31), (10, -380, 29.45), (60, -380, 30.12), (65, -380, 30.18), (70, -380, 30.47),
+    (5, -385, 29.06), (10, -385, 29.18), (20, -385, 29.96), (25, -385, 30.24), (45, -385, 30.03), (60, -385, 30.02),
+    (5, -390, 28.97), (10, -390, 28.93), (15, -390, 29.25), (20, -390, 29.76), (40, -390, 30.08), (45, -390, 29.91),
+    (50, -390, 29.72), (55, -390, 29.94), (60, -390, 30.21), (-10, -395, 29.87), (5, -395, 28.67), (10, -395, 28.72),
+    (15, -395, 28.92), (25, -395, 29.23), (30, -395, 29.38), (35, -395, 29.56), (40, -395, 29.79), (45, -395, 29.64),
+    (50, -395, 29.7), (55, -395, 30.0), (10, -400, 28.69), (15, -400, 28.72), (20, -400, 29.28), (25, -400, 29.22),
+    (30, -400, 29.36), (35, -400, 29.49), (50, -400, 29.88), (15, -405, 28.6), (20, -405, 28.68), (25, -405, 28.82),
+    (30, -405, 29.02), (35, -405, 29.11), (-5, -410, 27.73), (0, -410, 27.55), (15, -410, 28.91), (20, -410, 28.85),
+    (25, -410, 28.92), (30, -410, 28.99), (35, -410, 29.23), (0, -415, 27.46),
     # (the car park south-west of the entrance road, its east edge: the ground there stands 2.4 - 3.9 m over the game's)
-    (-20, -395, 28.10), (-15, -395, 27.70), (-15, -400, 27.70), (-10, -400, 28.20)]
+    (-20, -395, 29.13), (-15, -395, 28.71), (-15, -400, 28.72), (-10, -400, 29.19)])
 # where the game's ground is eased into the photos' (harmonic): 10 m round what is drawn again, and west of the
 # entrance road as far as the wooded knoll (the scans have that ground 1 - 2.5 m over the game's too)
 WEST_EASE_UV = _rect(-80.0, -49.0, -52.0, 42.0)
@@ -282,7 +290,7 @@ N_BANK_UV = Polygon([(-34.0, 24.4), (33.5, 24.4), (33.5, 28.4), (13.4, 28.4), (1
 # to the car park).  SW_RUN_Z @ (u -32, v 32): from there up to the plate's own height at its end (u -17.5)
 SW_RUN_UV = Polygon([(-17.5, 30.9), (-18.13, 40.7), (-21.0, 40.6), (-31.5, 39.5), (-37.0, 37.0), (-42.5, 29.0), (-35.5, 25.5),
                      (-33.0, 28.3), (-25.0, 30.0)])
-SW_RUN_Z = 29.60
+SW_RUN_Z = datum.up(*xy(-32.0, 32.0), 30.52)
 
 
 def _wall_line():
@@ -395,7 +403,7 @@ def move_off(trees, shrubs, props, halls):
 
 def halls():
     """외래진료소's low front block and its round-ended wing as the 1997 scans have them (three and six pairs on each
-    roof): for the halls' end (blender/build.py draws each hall's looks in its order).  Flat roofs at 41.7 and 43.6 m"""
+    roof): for the halls' end (blender/build.py draws each hall's looks in its order).  Flat roofs at 42.1 and 44.0 m"""
     out = []
     for h in (HEAD_HALL, WING_HALL):
         poly = shapely.geometry.polygon.orient(Polygon([xy(u, v) for u, v in h['uv']]).buffer(0), 1.0)
