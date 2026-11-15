@@ -6823,6 +6823,13 @@ _e97_halls = [(b_['id'], Polygon(b_['footprint']).buffer(0)) for b_ in buildings
 ENG97 = eng97.grade(Hn, X, Y, FIXED, _e97_halls, harmonic_fill, TENNIS['o'], TENNIS['rot'], GW_PIT, GW_SLAB)
 print('제1공학관 안뜰 · 남쪽 · 공학원 공사장: %(nodes)d nodes moved (most %(most).1f m), %(n_pulled)d behind the wall, smoothed '
       '%(ring)d; the pit %(pit).2f m, the slab %(slab).2f m' % ENG97)
+# 공학원 공사장의 서쪽 · 남쪽 가 (tools/west_ground.py site_edges, reference/고증/4.4; #189, we), late: the band west of the
+# west hoarding at the site's ground as the 1997 scans have it (the game's ramp stood up to 2.2 m over it), and between
+# the south hoarding and 성산로's bed the surface model's ridge on the row of trees down to the survey's level
+_wg_took, WEST_SITE = west_ground.site_edges(Hn, X, Y, FIXED, TENNIS['o'], TENNIS['rot'], TOWN_PLAN['road'], gate_town.HW)
+FIXED[_wg_took] = True
+print('공학원 공사장 서쪽 띠 · 남쪽 가: band %(band)d nodes (most %(band_most).1f m), strip %(strip)d (most %(strip_most).1f m), '
+      '%(nodes)d moved' % WEST_SITE)
 # (the site's hoarding, deck, slab, offices and crane on the ground as it is now)
 _e97_gs = STATUES['gongwon_site']
 for q_ in _e97_gs['ring']:
@@ -9707,6 +9714,7 @@ _ypaint([SEOMUN_ASPH], _ga)
 _ypaint([SEOMUN_YARD], _gd)                    # (the bare yard round the small building south of the mouth)
 _ypaint([west_ground.YARD], _gd)               # (독수리상 서쪽 마당: bare earth, the walks across it under it)
 _ypaint([west_ground.road_south()], _ga)       # (... and the paved margin south of its road, where cars stood along it)
+_ypaint([west_ground.site_band(TENNIS['o'], TENNIS['rot'])], _gd)     # (공학원 공사장 서쪽 띠: bare, at the site's ground)
 MUAK_WOODS = muak.woods_strip(MUAK, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))
 MUAK_RIDGE = muak.woods_ridge(MUAK_WOODS, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))   # (the ridge west of it)
 _mk_floor = unary_union([l_.buffer(w_ / 2 + 0.3, cap_style='flat') for l_, w_ in MUAK_OLD]).intersection(woods_u.buffer(-1.0)).union(MUAK_WOODS).union(MUAK_RIDGE)

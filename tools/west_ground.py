@@ -218,6 +218,58 @@ def eagle_yard(Hn, X, Y, FIXED, halls, fill):
     return dict(lot=int(m.sum()), ring=int(ring.sum()), nodes=int((moved > 0.05).sum()), most=float(moved.max()))
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# 공학원 공사장의 서쪽 · 남쪽 가 (reference/고증/4.4 「서쪽 가림막 밖의 띠」 · 「남쪽 가의 땅」; #189), after eng97.grade has
+# laid the site's own ground, before the hoarding is set on it.  In the site's frame (build_campus.py TENNIS: u along
+# its south side, v north-north-west):
+# - West of the west hoarding (u -80.5) the 1997 scans (26/16 · 26/15, the one pair that sees it) have a level band at
+#   the site's ground, 67 points on 28.94 m (sd 0.37; u -96 .. -80.5, v 30 .. 80), and a step up at u -97 .. -100 to
+#   the ground west of it (47 points on 31.33 m, the game's 31.35 m).  The game ran eng97's ring across it as a ramp
+#   from 29 to 31.3 m, up to 2.2 m over the band.  SITE_BAND: the band's u, v (eased in over v 18 .. 30: south of v 30
+#   it is in one frame only) and its level.
+# - Between the south hoarding and 성산로's bed the game kept the surface model's ground: a ridge of 30 - 32.4 m along
+#   the row of trees there (the canopy in the model), 3 - 4 m over both the site's ground and the road's side.  The
+#   scans see only the crowns (the same row stands in the 1998 frame); the survey (2006 · 2024) has no 30 m contour
+#   between x -290 and -165 and its 2024 spot at the hoarding's line, (-237.8, -388.7), reads 29.84 m.  What the ground
+#   under the trees did between those is not known (a smooth fill from the site to the road would put that spot 1.9 m
+#   low): SITE_STRIP takes the ridge down to the spot's level, top, and leaves its sides as they were (between the
+#   hoarding and the road's bed, gate_town's carriageway and 2.5 m)
+SITE_BAND = dict(u=(-96.0, -80.5), v=(18.0, 30.0, 80.0), z=28.95)
+SITE_STRIP = dict(u=(-80.0, 52.0), v=(-45.0, 6.0), top=29.84)
+
+
+def site_band(site_o, site_rot):
+    """the band west of the west hoarding as ground to paint (bare earth: the scans' bright band, a road or a yard)"""
+    c, s = np.cos(site_rot), np.sin(site_rot)
+    (u0, u1), (va, vb, vc) = SITE_BAND['u'], SITE_BAND['v']
+    return Polygon([(site_o[0] + u * c - v * s, site_o[1] + u * s + v * c)
+                    for u, v in ((u0 + 1.0, va + 4.0), (u1, va + 4.0), (u1, vc + 2.0), (u0 + 2.0, vc + 2.0))])
+
+
+def site_edges(Hn, X, Y, FIXED, site_o, site_rot, road, half_w):
+    """The band west of the 공학원 site down to SITE_BAND's level and the ridge south of it down to SITE_STRIP's top.
+    road: gate_town's (Line), half_w its carriageway's half width.  Returns the nodes taken (to keep) and a summary"""
+    H0 = Hn.copy()
+    c, s = np.cos(site_rot), np.sin(site_rot)
+    U = (X - site_o[0]) * c + (Y - site_o[1]) * s
+    V = -(X - site_o[0]) * s + (Y - site_o[1]) * c
+    (u0, u1), (va, vb, vc) = SITE_BAND['u'], SITE_BAND['v']
+    w = ((U >= u0) & (U <= u1) & (V >= va) & (V <= vc) & ~FIXED) * _smooth((V - va) / (vb - va))
+    Hn[:] = Hn * (1 - w) + (SITE_BAND['z'] + datum.tilt(X, Y)) * w
+    band = w > 0.999
+    (su0, su1), (sv0, sv1) = SITE_STRIP['u'], SITE_STRIP['v']
+    box = (U >= su0) & (U <= su1) & (V >= sv0) & (V < sv1)
+    d = np.full(X.shape, 1e9)
+    d[box] = shapely.distance(road.ls, shapely.points(X[box], Y[box]))
+    top = SITE_STRIP['top'] + datum.tilt(X, Y)
+    strip = box & (d > half_w + 2.5) & ~FIXED & ~band & (Hn > top)
+    Hn[strip] = top[strip]
+    moved = Hn - H0
+    return band | strip, dict(band=int(band.sum()), strip=int(strip.sum()), nodes=int((np.abs(moved) > 0.05).sum()),
+                              band_most=float(moved[w > 0].min()) if (w > 0).any() else 0.0,
+                              strip_most=float(moved[strip].min()) if strip.any() else 0.0)
+
+
 def move_off(trees, shrubs, props):
     """what stood on the yard: trees step aside to its north edge, among the curved row of trees the scans have there
     (in their places in the list), shrubs and props go"""
