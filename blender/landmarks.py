@@ -2783,6 +2783,10 @@ def gyoyuk_north_flight(mb, iv, f, s0, s1, bd=2.4, fw=2.3, pt=0.35, ld=2.0, T=0.
     W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
     WALK_FACES.append([W_(xf, ya, zl), W_(xs, ya, zl), W_(xs, yb, zl), W_(xf, yb, zl)])
     WALK_FACES.append([W_(xs, ya, zl), W_(xs + n * T, ya, zbot), W_(xs + n * T, yb, zbot), W_(xs, yb, zl)])
+    # (the upper door's reveal, 0.4 m into the bay to its dark leaf: a floor at the threshold, run 0.1 m onto the landing,
+    # or the walker's feet drop through the opening to the ground inside the bay, 3.9 m down)
+    ym_, dh_ = (y0 + y1) / 2, 0.6
+    WALK_FACES.append([W_(xf - 0.42, ym_ - dh_, zl), W_(xf + 0.1, ym_ - dh_, zl), W_(xf + 0.1, ym_ + dh_, zl), W_(xf - 0.42, ym_ + dh_, zl)])
     # the zone over the flight (note_entrance takes flights going down towards -y: this one goes out along +x)
     o = mb.xf @ Vector((xf, yc, 0.0))
     u = (mb.xf.to_3x3() @ Vector((0.0, 1.0, 0.0))).normalized()
