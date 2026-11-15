@@ -1,11 +1,12 @@
 """광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길의 1997년 땅 (#189; reference/고증/3.9_광복관.md 「둘레 땅의 높이」 · 「1997년의 평면과
-지붕」, 2.9_찻길.md 「서쪽 길의 높이」, 3.15-3.17_일반_건물.md 「핀슨관 · 한경관의 바닥」).  tools/build_campus.py 가 부른다.
+지붕」 · 「서쪽 찻길 위 둑」, 2.9_찻길.md 「서쪽 길의 높이」, 3.15-3.17_일반_건물.md 「핀슨관 · 한경관의 바닥」).  tools/build_campus.py 가 부른다.
 
     took, info = kwangbok97.grade(Hn, X, Y, FIXED, keep, fill, tr_pts, tr_n)   # 심기가 끝난 뒤, 저장 바로 앞
     kwangbok97.outline()                      # 광복관의 1997년 외곽 (LATE_FOOTPRINT_1997)
     kwangbok97.paint()                        # (걷어 낼 것, 아스팔트, 보도블록) 다각형
     kwangbok97.walks(paths)                   # 길 목록: 1997년 땅에 놓일 수 없는 것을 빼고 1997년의 길을 더함
     kwangbok97.move_off(trees, shrubs, props) # 마당 · 길 위의 나무는 가장자리로(목록 제자리), 관목 · 소품은 뺌
+    kwangbok97.bank_nodes(X, Y)               # 서쪽 찻길 위 둑의 마디 (ridge97.grade 의 flush: 능선 땅이 바로 이어짐)
 
 Frame: campus metres, x east, y north.  Nothing here draws from build_campus.py's `rng`: the lists keep their order.
 
@@ -28,6 +29,8 @@ the survey's spot heights and contours (2006 · 2024).  The two agree to 0.5 m w
 GRID: the ground at the game's 5 m nodes inside REGION: the level places and the roads as measured, the 2006 survey's
 surface elsewhere (핀슨관's knoll, 한경관, the wood between the two roads), eased between them.  Its row y 230 is the
 boundary with the ground north of it (인문관 · 교육관 쪽: tools/jonghap97.py), on the heights agreed there.
+BANK_GRID: the cut bank over the west side of the road west of the hall (고증 3.9 「서쪽 찻길 위 둑」), from the road's edge
+up to the ridge's ground (tools/ridge97.py), where the game had a shelf eased between the two.
 """
 import math
 
@@ -190,6 +193,71 @@ REGION = Polygon([(-178.0, 52.0), (-176.0, 62.0), (-171.0, 71.0), (-166.0, 80.0)
                   (-57.0, 131.0), (-62.5, 127.5), (-66.0, 123.0), (-68.0, 117.0), (-69.5, 110.0), (-74.0, 100.0), (-77.5, 90.0),
                   (-81.0, 80.0), (-84.0, 71.0), (-86.0, 62.0), kb_xy(52.0, -1.0), kb_xy(34.5, -14.5), kb_xy(-5.5, -14.5),
                   kb_xy(-5.5, -1.0), (-156.0, 66.0), (-163.0, 60.0), (-168.0, 52.0)])
+# --- the bank over the road west of the hall (고증 3.9 「서쪽 찻길 위 둑」) ------------------------------------------------
+# The road is cut into the ridge's east side.  Its west edge has not moved since 1997: the cars parked along it in the
+# scans reach 4.9 m west of the road's middle line (ROAD_KB_W), the survey's road edge is at 5.9 - 7.9 m (2006's two
+# publishings, 2024), the 2024 survey's 50 m contour at 5.2 - 5.6 m, the foot wall in Naver's street view of 2010-09
+# about 5.8 m from the camera.  From that edge the bank rises at once, 35 - 45 deg: the three editions' 55 m contour
+# 10 - 13.5 m from the middle line, 60 m at 15 - 20 m, 65 m at 24 - 30 m; the street view has a concrete foot wall
+# about 0.9 m high (not put in: nothing of 1997 shows it), a lattice-framed slope and rocks straight over it and the
+# slope's brow 6 - 7 m over the road 11 - 14 m off.  The game had the road's level run on 8 - 10 m and a slope eased up
+# to the ridge beyond it, 2 - 6 m under the three editions.
+# BANK_GRID: at the game's 5 m nodes (x BANK_X0 + 5 i, y BANK_Y0 + 5 j; rows south -> north) in BANK, the median of
+# the three editions' surfaces, each laid from its own contours with the bank's foot (BANK_FOOT m west of the middle
+# line) at the road's height; 해발 in decimetres, 0 outside.  The three within 1.6 m of each other (median; 2.8 m at
+# 84 %).  North of BANK (the road's bend towards 연합신학대학원) the editions part by 2 - 4 m and the game lies between
+# them: left as it was.  The grid cells under the cars parked along the foot (grade's `lot`) stay on the road's level,
+# so behind each of them the bank starts a node farther west
+BANK_FOOT = 6.0
+BANK_X0, BANK_Y0 = -215.0, 35.0
+BANK_GRID = np.array([[int(v) for v in r.split()] for r in """
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 520 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 584 550 500 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 650 628 600 575 550 495 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 658 650 624 600 550 528 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 659 650 617 600 550 516 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 658 641 612 584 550 502 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 671 650 632 600 567 526 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 663 650 620 600 550 502 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 675 650 635 609 580 531 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 664 650 622 600 550 521 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 657 637 610 580 550 501 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 667 650 623 600 570 525 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 650 633 611 600 550 525 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 640 621 600 579 550 498 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 650 629 610 600 563 550 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 636 619 605 584 556 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 626 610 600 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 613 600 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+""".strip().splitlines()], float) / 10.0
+# (the strip BANK_FOOT .. 31 m west of the road's middle line, from 8 m short of ROAD_KB_W's south end to 4 m past its
+# north end)
+BANK = Polygon([(-183.4, 52.3), (-203.3, 67.4), (-195.9, 77.3), (-167.3, 124.2), (-155.5, 137.8), (-147.0, 143.7), (-134.0, 122.3),
+                (-138.4, 119.5), (-147.0, 109.6), (-175.2, 63.3)])
+
+
+def bank_z(X, Y):
+    """BANK_GRID at the game's nodes (X, Y arrays of node places): 해발, 0 where the table has none"""
+    i = np.round((np.asarray(X, float) - BANK_X0) / GRID_D).astype(int)
+    j = np.round((np.asarray(Y, float) - BANK_Y0) / GRID_D).astype(int)
+    ok = (i >= 0) & (i < BANK_GRID.shape[1]) & (j >= 0) & (j < BANK_GRID.shape[0])
+    z = np.zeros(i.shape)
+    z[ok] = BANK_GRID[j[ok], i[ok]]
+    return z
+
+
+def bank_nodes(X, Y):
+    """the nodes BANK_GRID lays (for tools/ridge97.py: the same surveys' ground, so its own comes right up to them)"""
+    return shapely.contains_xy(BANK, X, Y) & (bank_z(X, Y) > 0.0)
+
+
 RING = 15.0                       # eased out (harmonic) this far round REGION
 NORTH_Y = 230.0                   # (no easing north of it: the ground there is jonghap97's)
 HALL_PAD = 2.6                    # the feet of the halls that stay (백양관 북쪽 날개, 연합신학대학원)
@@ -282,6 +350,12 @@ def grade(Hn, X, Y, FIXED, keep, fill, tr_pts, tr_n, step=5.0, half=800.0):
             lot[j, i] = True
     info['cars'] = int(lot.sum())
     took = inr | road | lot
+    # the bank over the road's west side (BANK_GRID): from the road's edge up to the ridge's ground, where the nodes
+    # were eased between the two
+    bank = bank_nodes(X, Y) & ~took & ~keep & ~FIXED
+    Hn[bank] = (bank_z(X, Y) + Tn)[bank]
+    info['bank'] = (int(bank.sum()), round(float((Hn - H0)[bank].min()), 1), round(float((Hn - H0)[bank].max()), 1))
+    took = took | bank
     # round them
     north = Y > NORTH_Y + 1.0                           # (jonghap97's ground)
     east = ((X > 4.0) & (Y > 147.0)) | (X > 14.0)       # (스팀슨관's south yard and back, the 삼거리: as they are)

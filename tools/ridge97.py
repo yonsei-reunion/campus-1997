@@ -116,15 +116,17 @@ def grid_z(x, y):
     return z.reshape(x.shape) if x.ndim else float(z[0])
 
 
-def grade(Hn, X, Y, FIXED, halls, fill, yield_=None):
+def grade(Hn, X, Y, FIXED, halls, fill, yield_=None, flush=None):
     """GRID in RIDGE (PEAK level), eased round it and between it and what the other blocks have laid (fill:
     harmonic_fill).  halls: the outlines of the halls that stay (not the 사택); yield_: nodes laid before that were
-    only eased (FIXED, but laid over here).  Returns the nodes set (to be FIXED) and a summary"""
+    only eased (FIXED, but laid over here); flush: nodes laid before on the same surveys' ground (the bank over 광복관's
+    west road, tools/kwangbok97.py BANK_GRID), which stay but need no KEEP_OFF: GRID comes right up to them.
+    Returns the nodes set (to be FIXED) and a summary"""
     H0 = Hn.copy()
     step = float(X[0, 1] - X[0, 0])
     if yield_ is not None:
         FIXED = FIXED & ~(yield_ & shapely.contains_xy(RIDGE, X, Y))
-    near_fixed = ndimage.distance_transform_edt(~FIXED) * step < KEEP_OFF
+    near_fixed = ndimage.distance_transform_edt(~(FIXED if flush is None else FIXED & ~flush)) * step < KEEP_OFF
     stay = shapely.contains_xy(unary_union([h.buffer(HALL_PAD) for h in halls]), X, Y) if halls else np.zeros(X.shape, bool)
     stay |= (X < VALLEY_X) & (Y > 40.0) & (Y < 262.0)
     inr = shapely.contains_xy(RIDGE, X, Y)
