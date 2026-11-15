@@ -8,6 +8,11 @@ tools/build_campus.py 가 부른다. 근거와 잰 값은 reference/고증/3.8_�
     eng97.nb_outline(fp)                 # 제1공학관 북쪽 동의 1997년 외곽(서쪽 날개의 서쪽 면 · 북쪽 끝, 가운데 날개의 북쪽 끝)
     eng97.north_paved()                  # 제2공학관 북쪽 길 · 공학관 사이 윗단 · 골목의 포장
     eng97.move_off(trees, shrubs, props) # 안뜰 건물 자리의 나무는 1997년에 나무가 있던 곳으로(목록 제자리), 관목 · 소품은 뺌
+    eng97.south_paint()                  # 제3공학관 남쪽: 걷어 낼 것, 맨땅, 테라스의 포장 (3.8 「제3공학관 남쪽」)
+    eng97.garden_paint()                 # 남쪽 동 남동쪽 정원: 잔디, 대각선 길
+    eng97.south_walks(paths)             # 그 자리의 뒷날 보행로 · 진입로를 빼고 정원의 대각선 길을 넣음
+    eng97.move_off_south(trees, shrubs, props)   # 제3공학관 남쪽의 나무는 정원의 나무 자리로(목록 제자리), 관목 · 소품은 뺌
+    eng97.s3_floor(base)                 # 제3공학관: 테라스에서 지붕까지 여섯 층 (levels, fh)
 
 What the scans (26/16 · 26/15 · 27/17, each pair by itself, 1.5 - 3 m windows) and the 2006 survey have:
 - The three wings stand on one nearly level platform: the court between them 27.9 m (north alley) to 27.2 m (south
@@ -32,6 +37,21 @@ What the scans (26/16 · 26/15 · 27/17, each pair by itself, 1.5 - 3 m windows)
   it and the gap's upper ground 1.4 - 2.7 m higher (the 2006 · 2024 35 m contours across it agree).  The north block's
   west wing ends 2.1 m east of OSM's face (u -28.6) and 2.3 m north of it (v 60.0; the middle wing v 60.4), where the
   cars parked along the lane and nose in to the north wall have it (four frames on the roof's plane, within 0.3 m).
+
+- 제3공학관 남쪽 (the third round; 26/16 · 26/15 alone reach it): the hall's roof deck 54.5 m (two rows of points along
+  it), where the game's five storeys ended at 52.4 m.  South of it a terrace, its tile-paved east part (u -65.5 .. -43,
+  v -61.3 .. -42.5) at 31.0 m; a flight 16 m wide (u -92 .. -76) climbs from the yard at v -64.5 to the hall's door
+  under a canopy (32.8 m at v -61, 35.3 m at v -55), stepped planters either side, a raised lawn west of it (its kerb
+  32.5 - 32.8 m), sunk courts between: only the tile deck's level and the ground round it go into the game.  The yard
+  west and south of the hall and the track along it are level at 31.3 - 31.5 m west of u -78 (the game 32.5 - 33.0 m),
+  the track falling east to 28.1 m at u -30; bare earth all of it, no tree.  Along 공학원's north hoarding a bench
+  3 - 4 m wide at 28.3 - 28.6 m, the yard's edge over it a retaining wall with a bright cap at the yard's own height
+  (31.0 - 31.3 m on the cap's plane, the two frames within 0.05 m; v -81.9 .. -82.6 west of u -81, v -77 .. -79.6 east
+  of it): 2.9 m at its west end, where a ramp comes down to the bench, nothing by u -40.
+- The garden south-east of the south wing (26/16 · 27/17): a lawn u 26.8 .. 51.2, v -58.3 .. -32.6 with trees, one walk
+  2 m wide across it from its north-east corner to its south-west one.
+- The north block's west court (between its west and middle wings): level with the yard's south road and the lane
+  (27.5 - 27.8 m, nine points; sheds and stores on it), where the game had a lawn climbing to 33 m.
 
 All heights written here are above sea level (해발); CTRL is the one table of absolute heights, each taken up to
 the working datum the ground is laid on at its own place (datum.up3: tools/datum.py).  Nothing here draws from build_campus.py's `rng`.
@@ -67,6 +87,7 @@ WALL_RUNS = [(1.2, [(-38.85, 30.0), (-38.9, -22.0)]),
              (1.2, [(-52.0, 72.0), (-39.7, 72.0)], (0.0, 0.8)),
              # (and at the deck's south end, over the service road south of the wings: 제3공학관's terrace edge)
              (1.2, [(-40.9, -62.0), (-52.0, -62.0)], (0.0, -0.8))]
+# (제3공학관 남쪽: the wall along the yard's south edge over the bench, STEP_LINE below: added after it)
 WALL_UP = 8.0                               # (how far behind the wall a node may be pulled down)
 GAP_N = 72.0                                # (the wall's north end, its return: the deck behind it ends there)
 # the lane under it: from the court's north alley (v 30) to the yard (v 66; west_ground.LOT_Z there), 해발
@@ -106,8 +127,50 @@ CTRL = datum.up3([
 ])
 # where the trees of the court go (the scans' own trees: the clump in the lot's south-west corner, the garden south-east
 # of the south wing), (u, v)
-TREE_SPOTS = [(-33.0, -13.5), (-36.5, -18.5), (-31.5, -19.5), (33.0, -40.0), (39.0, -36.0), (46.0, -38.0), (40.0, -45.0),
-              (48.0, -48.0), (35.0, -54.0)]
+TREE_SPOTS = [(-33.0, -13.5), (-36.5, -18.5), (-31.5, -19.5), (33.0, -36.5), (41.0, -34.8), (36.5, -39.5), (49.2, -41.2),
+              (48.5, -52.0), (37.5, -54.5)]
+
+
+# 제3공학관 남쪽 (the third round).  The ground south and west of the hall along u (해발 at (u, v -72)): the yard, level
+# west of u -78, and the track along it falling east to the service road south of the wings (CTRL's, east of u -30)
+S3 = 224955691
+YARD_U = [(-135.0, 31.4), (-75.0, 31.4), (-72.0, 31.3), (-69.0, 31.0), (-66.0, 30.6), (-63.0, 30.55), (-60.0, 30.3),
+          (-57.0, 30.2), (-54.0, 30.0), (-51.0, 29.9), (-48.0, 29.6), (-45.0, 29.5), (-42.0, 29.35), (-39.0, 29.1),
+          (-36.0, 28.6), (-33.0, 28.4), (-30.0, 28.1)]
+S3_WEST_U, S3_END_U = -133.0, -125.5        # (the zone's west edge; the hall's west end: north of v -46 only east of it)
+S3_DECK_Z = 31.0                            # the tile-paved terrace (해발 at (-232, -279)), east of u -76, north of v -61.3
+S3_DECK_UV = (-76.0, -61.3)
+S3_ROOF, S3_LEVELS = 54.5, 6                # the roof's deck (해발 at (-250, -260)); the storeys from the terrace up to it
+# the retaining wall along the yard's south edge over the bench by 공학원's north hoarding: the cap's line (u, v), the
+# bench's height along u (해발 at (u, the line's v - 2); its west end a ramp up to the yard, its east end the track's own
+# height), the wall's top over the yard (the scans' cap is about level with it: a cap, the walker kept off the edge by
+# walkguard97), and how far north of the line the yard's nodes may go down to the bench (the deck over them)
+STEP_LINE = [(-104.0, -82.6), (-100.0, -82.5), (-96.0, -82.1), (-93.0, -81.9), (-81.0, -81.9), (-79.5, -79.5), (-76.5, -77.9),
+             (-72.0, -77.7), (-66.0, -77.2), (-55.0, -76.9), (-53.5, -77.6), (-51.0, -79.0), (-46.0, -79.6)]
+BENCH_U = [(-110.0, 31.2), (-107.0, 30.2), (-104.0, 29.3), (-98.0, 28.8), (-92.0, 28.6), (-82.0, 28.5), (-70.0, 28.3),
+           (-50.0, 28.3), (-46.0, 28.4), (-42.0, 28.9), (-38.0, 28.95)]
+STEP_TOP, STEP_DEEP = 0.15, 7.5
+WALL_RUNS.append((STEP_TOP, STEP_LINE, (0.0, -0.8)))
+# the garden south-east of the south wing: the lawn (u0, u1, v0, v1), the walk across it (its middle line, width),
+# where the six trees from 제3공학관's terrace go (the scans' crowns, off the walk; the court's six: TREE_SPOTS)
+GARDEN_UV = (26.8, 51.2, -58.3, -32.6)
+GARDEN_WALK, GARDEN_WALK_W = [(28.2, -56.6), (50.9, -35.4)], 2.0
+GARDEN_MORE = [(44.8, -36.2), (30.5, -47.5), (45.5, -45.5), (44.5, -50.0), (44.5, -56.3), (31.0, -57.0)]
+# the north block's west court (between the west and the middle wing, open to the yard's south road): u0, u1, v0, v1,
+# its ground (해발: nine points)
+NB_COURT_UV, NB_COURT_Z = (-13.8, 5.3, 31.0, 60.2), 27.75
+# the strip along the north block's north face (the cars' row nosed in to it, the yard's south road): its ground at the
+# face (해발, the scans' v 62 - 66) and where it meets the yard west of the eagle as the game has it (west_ground)
+NB_STRIP_V, NB_STRIP_Z = (64.0, 72.0), 27.9
+# 제3공학관 남쪽: the raised lawn west of the flight (its kerb 32.5 - 32.8 m in the scans, the game's ground there as it
+# is), the flight and the landing before the door (as it is), the hall's south face west and east of its porch, the
+# hall's floor at the landing (해발; 32.8 - 33.0 m at its south end) and its door (u, the porch's middle)
+S3_RAISED = [(-124.0, -41.6), (-93.8, -41.6), (-93.8, -46.3), (-92.0, -46.3), (-92.0, -64.0), (-103.0, -64.0), (-122.0, -49.4),
+             (-124.0, -49.4)]
+S3_PLAZA = [(-92.0, -46.3), (-76.0, -46.3), (-76.0, -64.5), (-92.0, -64.5)]
+S3_FACE_V, S3_FLOOR, S3_DOOR_U = -41.3, 32.85, -86.5
+# 공학원's north hoarding (the site's ring), the bench's south edge: (u, v)
+HOARD = [(-99.5, -87.6), (-47.0, -85.4)]
 
 
 def xy(u, v):
@@ -196,6 +259,8 @@ def upper(h0):
     def f(x, y):
         u_, v_ = (float(c) for c in uv(x, y))
         w_ = float(_west(v_))
+        if v_ < S3_FACE_V and S3_WEST_U - 5.0 <= u_ <= w_ + 0.05:              # (제3공학관 남쪽: s3_grade's yard and deck)
+            return float(s3_z(u_, v_)) + float(datum.tilt(x, y))
         if u_ <= w_ + 0.05 and 21.0 <= v_ <= GAP_N and u_ > GAP_W:             # (the gap: all of it north_grade's)
             return float(north_z(u_, v_)) + float(datum.tilt(x, y))
         if u_ <= w_ + 0.05 and -22.0 <= v_ < 21.0 and u_ > -48.5:
@@ -287,6 +352,17 @@ def upper_poly():
                  (-60.0, -62.0), (-60.0, GAP_N)])
 
 
+def step_poly():
+    """the yard's side of the wall over the bench (제3공학관 남쪽), as deep as the nodes s3_grade pulls down and a cell"""
+    d = STEP_DEEP + 5.5
+    return poly(STEP_LINE + [(STEP_LINE[-1][0], STEP_LINE[-1][1] + d), (STEP_LINE[0][0], STEP_LINE[0][1] + d)])
+
+
+def deck_side():
+    """where a deck may lie: behind the west wall (upper_poly), and north of the wall over the bench (step_poly)"""
+    return upper_poly().union(step_poly())
+
+
 def deck_parts(G, gx, step):
     """the cells with a node pulled down behind the wall, and the part of them behind the wall: build_campus.py's
     dwb_deck lays the upper ground over it"""
@@ -295,8 +371,10 @@ def deck_parts(G, gx, step):
     cells = {(j + a, i + b) for j, i in zip(jj, ii) for a in (-1, 0) for b in (-1, 0) if 0 <= j + a < n and 0 <= i + b < n}
     # (and every cell across the wall's line: one whose nodes behind the wall all lie north of the return at GAP_N
     # was left out, a hole down to the lane's level by the deck's north-east corner)
+    side = deck_side()
     band = LineString([xy(u, v) for u, v in ((-39.7, GAP_N), (-39.7, 31.0), (-38.85, 30.0), (-38.9, -22.0), (-40.6, -22.0),
                                              (-40.6, -41.3), (-40.9, -62.0))]).buffer(2.0).intersection(upper_poly())
+    band = band.union(LineString([xy(u, v) for u, v in STEP_LINE]).buffer(2.0).intersection(step_poly()))
     x0, y0, x1, y1 = band.bounds
     for j in range(max(0, int((y0 - gx[0]) // step)), min(n, int((y1 - gx[0]) // step) + 1)):
         for i in range(max(0, int((x0 - gx[0]) // step)), min(n, int((x1 - gx[0]) // step) + 1)):
@@ -305,7 +383,7 @@ def deck_parts(G, gx, step):
     # (their neighbours wholly off the deck's side, the lane's and north of the return, count as the deck's for dwb_deck:
     # along an edge shared with a cell that is not, it takes the ground's height, here the lane's or the bank's, not
     # the upper ground's; they get no triangles)
-    up_ = upper_poly()
+    up_ = side
     for j, i in list(cells):
         for a in (-1, 0, 1):
             for b in (-1, 0, 1):
@@ -313,7 +391,7 @@ def deck_parts(G, gx, step):
                 if q not in cells and 0 <= q[0] < n and 0 <= q[1] < n and \
                         box(gx[q[1]], gx[q[0]], gx[q[1]] + step, gx[q[0]] + step).intersection(up_).area < 0.05:
                     cells.add(q)
-    area = unary_union([box(gx[i], gx[j], gx[i] + step, gx[j] + step) for j, i in cells]).intersection(upper_poly())
+    area = unary_union([box(gx[i], gx[j], gx[i] + step, gx[j] + step) for j, i in cells]).intersection(side)
     area = unary_union([g for g in getattr(area, 'geoms', [area]) if g.geom_type == 'Polygon' and g.area > 0.05])
     return cells, area
 
@@ -371,3 +449,184 @@ def move_off(trees, shrubs, props):
     shrubs[:] = [s for s in shrubs if not hz.contains(Point(s[1], s[2]))]
     props[:] = [p for p in props if not hz.contains(Point(p[1], p[2]))]
     return moved, n0[0] - len(shrubs), n0[1] - len(props)
+
+
+# ----------------------------------------------------------------------------------------- 제3공학관 남쪽 (the third round)
+def step_v(U):
+    """the wall's line over the bench: its v at u"""
+    return np.interp(U, *zip(*STEP_LINE))
+
+
+def bench_z(U):
+    """the bench along 공학원's north hoarding (해발) at u: its ramp up to the yard at the west end"""
+    return np.interp(U, *zip(*BENCH_U))
+
+
+def s3_z(U, V):
+    """the 1997 ground south and west of 제3공학관 (해발): the yard and the track along it (YARD_U along u), the tile deck"""
+    yard = np.interp(U, *zip(*YARD_U))
+    return np.where((U >= S3_DECK_UV[0]) & (V >= S3_DECK_UV[1]), S3_DECK_Z, yard)
+
+
+def _hoard_v(U):
+    return np.where(U < HOARD[0][0], -90.0, np.interp(U, *zip(*HOARD)))
+
+
+def s3_region():
+    """the ground s3_grade lays (the hall, the raised lawn and the landing taken out by the caller): from the hall's west
+    end to the lane west of the south wing, the hall's south face down to the wall over the bench, the bench to the
+    hoarding, and west of the wall's end over the ramp"""
+    south = [(-46.0, -79.6), (-46.0, -85.4)] + [(u, float(_hoard_v(u))) for u in (-60.0, -80.0, -99.5)] + \
+        [(-113.5, -86.0), (S3_WEST_U, -86.0)]       # (south of it west_ground.site_edges' band, and the yard as it is)
+    return poly([(S3_WEST_U, S3_FACE_V), (-40.9, S3_FACE_V), (-40.9, -64.0), (-46.0, -64.0)] + south)
+
+
+def s3_grade(Hn, X, Y, FIXED, G, hall, fill, avoid):
+    """제3공학관 남쪽, after grade (the planting has read the ground as it was): the yard west and south of the hall and the
+    track along it on the 1997 heights (s3_z), the tile deck at S3_DECK_Z, the bench along 공학원's hoarding (bench_z);
+    the yard's nodes in the cells across the wall over the bench down to the bench (deck_parts lays the yard over them);
+    the raised lawn and the landing before the door as they are; the ground round it smoothed (fill) into what stays.
+    hall: 제3공학관's outline.  G: grade's (zone and pulled grow).  avoid: nodes another block keeps (the site's west band)"""
+    H0 = Hn.copy()
+    U, V = uv(X, Y)
+    T = datum.tilt(X, Y)
+    keep = shapely.contains_xy(poly(S3_RAISED), X, Y) | shapely.contains_xy(poly(S3_PLAZA), X, Y) | G['pulled'] | avoid
+    inr = shapely.contains_xy(s3_region(), X, Y) & ~keep
+    inh = shapely.contains_xy(hall, X, Y)
+    sv = step_v(U)
+    wall = (U >= STEP_LINE[0][0]) & (U <= STEP_LINE[-1][0])
+    bench = inr & (U >= BENCH_U[0][0]) & (U <= STEP_LINE[-1][0]) & (V < np.where(wall, sv, -82.6)) & (V > _hoard_v(U) - 1.0)
+    yard = inr & ~bench & ~inh
+    Hn[yard] = (s3_z(U, V) + T)[yard]
+    Hn[bench] = (bench_z(U) + T)[bench]
+    # (under the hall within a cell of its south face: the deck's level east of the landing, so that the ground meets
+    # the face level)
+    under = inh & (V < S3_FACE_V + 5.5) & (U >= S3_DECK_UV[0]) & (U <= -40.9) & ~keep
+    Hn[under] = (S3_DECK_Z + T)[under]
+    zone = yard | bench | under
+    # the wall over the bench: the yard's nodes in a cell with a bench node, within STEP_DEEP of the line, go down
+    cell = bench[:-1, :-1] | bench[:-1, 1:] | bench[1:, :-1] | bench[1:, 1:]
+    touch = np.zeros(bench.shape, bool)
+    touch[:-1, :-1] |= cell
+    touch[:-1, 1:] |= cell
+    touch[1:, :-1] |= cell
+    touch[1:, 1:] |= cell
+    pulled = yard & wall & touch & (V >= sv) & (V < sv + STEP_DEEP)
+    Hn[pulled] = (bench_z(U) + T)[pulled]
+    # the ring: 15 m round it, not the raised lawn, the landing, the hall, the other halls' feet or what is fixed
+    ring = binary_dilation(zone, iterations=3) & ~zone & ~keep & ~inh & ~FIXED
+    if ring.any():
+        fill(ring)
+    FIXED[zone] = True
+    G['zone'] = G['zone'] | zone
+    G['pulled'] = G['pulled'] | pulled
+    d = Hn - H0
+    return dict(nodes=int((np.abs(d) > 0.05).sum()), most=round(float(d.min()), 2), up=round(float(d.max()), 2),
+                yard=int(yard.sum()), bench=int(bench.sum()), pulled=int(pulled.sum()), ring=int(ring.sum()))
+
+
+def nb_grade(Hn, X, Y, FIXED, nb):
+    """the north block's west court at its 1997 ground (NB_COURT_Z: the game had a lawn climbing to 33 m in it), the
+    nodes under the wings within a cell of it with it; the strip along the block's north face down to the scans' ground
+    there, up to the yard west of the eagle as the game has it.  nb: the block's outline"""
+    H0 = Hn.copy()
+    U, V = uv(X, Y)
+    T = datum.tilt(X, Y)
+    u0, u1, v0, v1 = NB_COURT_UV
+    court = (U >= u0 - 5.0) & (U <= u1 + 5.0) & (V >= v0 - 5.0) & (V <= v1)
+    court &= shapely.contains_xy(nb.buffer(0.5), X, Y) | shapely.contains_xy(poly([(u0, v0), (u1, v0), (u1, v1), (u0, v1)]), X, Y)
+    court &= (U > NB_WEST_U + 6.0)                  # (the lane's, west of it: grade)
+    Hn[court] = NB_COURT_Z + T[court]
+    north = (V > v1) & (V <= NB_STRIP_V[1]) & (U > NB_WEST_U + 6.0) & (U < 21.0)
+    top = H0 - T                                    # (the yard's ground as the game has it, 해발)
+    zn = NB_STRIP_Z + (top - NB_STRIP_Z) * np.clip((V - NB_STRIP_V[0]) / (NB_STRIP_V[1] - NB_STRIP_V[0]), 0.0, 1.0)
+    north &= zn < top
+    Hn[north] = (zn + T)[north]
+    FIXED[court | north] = True
+    d = Hn - H0
+    return dict(court=int(court.sum()), north=int(north.sum()), most=round(float(d.min()), 2))
+
+
+def s3_paint():
+    """제3공학관 남쪽 in 1997: bare earth all round (the yard, the track, the bench), the tile deck and the landing paved;
+    and the area to clear first (OSM's later lawn, walks and asphalt there).  Returns (clear, bare, paved)"""
+    deck = poly([(S3_DECK_UV[0], S3_FACE_V), (-40.9, S3_FACE_V), (-40.9, S3_DECK_UV[1]), (S3_DECK_UV[0], S3_DECK_UV[1])])
+    plaza = poly(S3_PLAZA)
+    region = s3_region()
+    bare = region.difference(deck).difference(plaza).difference(poly(S3_RAISED))
+    return region, bare, deck.union(plaza)
+
+
+def garden():
+    """the garden south-east of the south wing: its lawn and the walk across it"""
+    u0, u1, v0, v1 = GARDEN_UV
+    return poly([(u0, v0), (u1, v0), (u1, v1), (u0, v1)]), [xy(u, v) for u, v in GARDEN_WALK]
+
+
+def south_walks(paths):
+    """the map's walks: the later ones across the yard south of 제3공학관 and across the garden out (OSM's paths there:
+    the terrace's walks and flights, the garden's; the drives down into 공학원's site across the wall), the walk across
+    the garden in (the flight to the hall's door stays).  Returns (out, in)"""
+    lawn, walk = garden()
+    clear = s3_region().union(poly(S3_RAISED)).buffer(0.5)
+    wall = LineString([xy(u, v) for u, v in STEP_LINE])
+    n0 = len(paths)
+    keep = []
+    for p in paths:
+        if p['kind'] == 'service' and len(p['pts']) > 1 and LineString([q[:2] for q in p['pts']]).crosses(wall):
+            continue
+        if p['kind'] in ('footway', 'path', 'steps', 'pedestrian') and len(p['pts']) > 1:
+            ls = LineString([q[:2] for q in p['pts']])
+            if clear.contains(ls) or lawn.buffer(0.3).contains(ls):
+                continue
+            if lawn.buffer(-1.0).intersection(ls).length > 1.0:          # (one crossing the lawn: cut where it does)
+                parts = ls.difference(lawn.buffer(-0.5))
+                for g in getattr(parts, 'geoms', [parts]):
+                    if g.length > 1.0:
+                        keep.append({**p, 'pts': [[round(x, 2), round(y, 2)] for x, y in g.coords]})
+                continue
+        keep.append(p)
+    paths[:] = keep
+    w = dict(kind='footway', w=GARDEN_WALK_W, pts=[[round(x, 2), round(y, 2)] for x, y in walk])
+    paths.append(w)
+    return n0 - len(paths) + 1, 1
+
+
+def move_off_south(trees, shrubs, props):
+    """what the planting put on the yard, the terrace and the landing south of 제3공학관 (bare earth and paving in the
+    scans, no tree): trees go, each in its place in the list, to the garden's crowns (GARDEN_MORE, the nearest free one);
+    shrubs and props go.  On the garden's lawn the motorbikes of photo A (its depth along the view is loose) stand at
+    its east edge, on the paving.  Returns (trees moved, shrubs out, props out, motorbikes moved)"""
+    zone = s3_region().union(poly(S3_RAISED)).union(poly(S3_PLAZA))
+    spots = [xy(u, v) for u, v in GARDEN_MORE]
+    moved = []
+    for t in trees:
+        if zone.contains(Point(t[1], t[2])) and spots:
+            q = min(spots, key=lambda q_: math.hypot(q_[0] - t[1], q_[1] - t[2]))
+            spots.remove(q)
+            moved.append((t[0], t[1], t[2]))
+            t[1], t[2] = round(q[0], 2), round(q[1], 2)
+    n0 = (len(shrubs), len(props))
+    shrubs[:] = [s for s in shrubs if not zone.contains(Point(s[1], s[2]))]
+    props[:] = [p for p in props if not zone.contains(Point(p[1], p[2]))]
+    lawn, _ = garden()
+    mb = 0
+    for p in props:
+        if p[0] == 'motorbike' and lawn.buffer(0.4).contains(Point(p[1], p[2])):
+            u_, v_ = (float(c) for c in uv(p[1], p[2]))
+            p[1], p[2] = (round(c, 2) for c in xy(GARDEN_UV[1] + 0.9, v_))
+            mb += 1
+    return moved, n0[0] - len(shrubs), n0[1] - len(props), mb
+
+
+def s3_hall(b):
+    """제3공학관 as the scans have it: its floor at the landing (S3_FLOOR), its roof's deck at S3_ROOF, five storeys between
+    (지상 5층 in the record), its door at the head of the flight.  b: its campus.json entry (work-datum heights)"""
+    cx, cy = xy(-83.0, -34.0)
+    base = datum.up(cx, cy, S3_FLOOR)
+    lv = b['levels']
+    fh = round((S3_ROOF - S3_FLOOR) / lv, 3)
+    b.update(base=base, fh=fh, height=round(lv * fh + 1.2, 2))
+    if b.get('entry'):
+        b['entry'].update(p=[round(c, 2) for c in xy(S3_DOOR_U, -46.3)], n=[round(_S, 4), round(-_C, 4)])
+    return base, fh

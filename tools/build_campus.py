@@ -6980,6 +6980,18 @@ _wg_took, WEST_SITE = west_ground.site_edges(Hn, X, Y, FIXED, TENNIS['o'], TENNI
 FIXED[_wg_took] = True
 print('공학원 공사장 서쪽 띠 · 남쪽 가: band %(band)d nodes (most %(band_most).1f m), strip %(strip)d (most %(strip_most).1f m), '
       '%(nodes)d moved' % WEST_SITE)
+# 제3공학관 남쪽 (tools/eng97.py s3_grade, reference/고증/3.8 「제3공학관 남쪽」; #189), late: the yard west and south of
+# the hall and the track along it on the 1997 scans' heights (the game's ground stood 1 - 1.5 m over them), the tile
+# deck of the terrace, the bench along 공학원's north hoarding under the retaining wall at the yard's edge (the yard's
+# nodes across the wall down to the bench: the deck over them goes in with the court's, ENG1_HALL below); the raised
+# lawn and the landing before the door as they were.  And the north block's west court and the strip along its north
+# face on the scans' ground (nb_grade)
+_e97_s3 = next(b_ for b_ in buildings if b_['id'] == eng97.S3)
+ENG97S = eng97.s3_grade(Hn, X, Y, FIXED, ENG97, Polygon(_e97_s3['footprint']).buffer(0), harmonic_fill, _wg_took)
+print('제3공학관 남쪽: yard %(yard)d nodes, bench %(bench)d, %(pulled)d down to the bench behind the wall, smoothed %(ring)d; '
+      '%(nodes)d moved (%(most)+.2f .. %(up)+.2f m)' % ENG97S)
+ENG97NB = eng97.nb_grade(Hn, X, Y, FIXED, Polygon(LATE_FOOTPRINT_1997[eng97.NB_ID]))
+print('제1공학관 북쪽 동: the west court %(court)d nodes, the strip along the north face %(north)d (most %(most)+.2f m)' % ENG97NB)
 # (the site's hoarding, deck, slab, offices and crane on the ground as it is now)
 _e97_gs = STATUES['gongwon_site']
 for q_ in _e97_gs['ring']:
@@ -6988,16 +7000,18 @@ _e97_gs['pit'][4], _e97_gs['slab'][4], _e97_gs['crane'][2] = ENG97['pit'], ENG97
 for r_ in _e97_gs['sheds']:
     r_[4] = round(min(ground_h(*site_xy(u_, v_)) for u_ in r_[:2] for v_ in r_[2:4]), 2)
 # (the south wing on the ground at its door: its roof in the scans is 1.0 - 1.3 m under the north block's, 45.0 m, where
-# the game had its floor 2 m over the alleys' ground; 제3공학관's door, which opened east onto the road the game ran
-# along the wall's top, goes to its south wall by the terrace there: the scans do not show a door)
+# the game had its floor 2 m over the alleys' ground; the north block's floor with it: its roof's deck in the scans is
+# level with the south and east wings' (46.6 - 47.0 m), where the game's stood 1.4 m over them.  제3공학관's door, which
+# opened east onto the road the game ran along the wall's top, goes to the head of its flight on the south side)
 for b_ in buildings:
     if b_['id'] == eng97.SOUTH_WING:
         _e97_hs = [ground_h(x_, y_) for x_, y_ in b_['footprint']]
         b_.update(base=round(float(ground_h(*b_['entry']['p'])) + 0.05 if b_.get('entry') else min(_e97_hs), 2),
                   top_ground=round(max(_e97_hs), 2))
-        print('   the south wing\'s floor %.2f m' % b_['base'])
-    elif b_['id'] == 224955691 and b_.get('entry'):
-        b_['entry'].update(p=[round(c_, 2) for c_ in eng97.xy(-48.9, -41.3)], n=[round(eng97._S, 4), round(-eng97._C, 4)])
+        BASE_1997[eng97.NB_ID] = b_['base']
+        print('   the south wing\'s floor %.2f m, the north block\'s with it' % b_['base'])
+    elif b_['id'] == eng97.S3:             # (제3공학관: its floor at the landing, its roof where the scans have it, its door)
+        print('   제3공학관\'s storeys %.2f m' % eng97.s3_hall(b_)[1])
     elif b_['id'] == eng97.BYEOLDONG:      # (its floor on the road before its door, its roof where the scans have it)
         _e97_hs = [ground_h(x_, y_) for x_, y_ in b_['footprint']]
         _e97_e = b_['entry']
@@ -9257,6 +9271,9 @@ _ypaint([ANNEX_ISLAND], _yg)                 # (학생회관 별관 앞 섬: law
 _ypaint([p_.buffer(5.5) for p_ in FIELD_GONE_SITES], _yg)    # (대운동장 북쪽 끝: the two later halls' aprons out)
 _ypaint([p_.buffer(5.5) for p_ in HILL_GONE_SITES], _yg)    # (노천극장 동쪽 봉우리: the house's apron out; its round floor, _ga below)
 _ypaint([GONGWON_SITE.buffer(0.5), GW_LOT, GW_ROW, GW_YARD], _yg)    # (공학원 공사장: OSM's later roads and walks across it out)
+ENG3_CLEAR, ENG3_BARE, ENG3_PAVED = eng97.s3_paint()
+ENG3_LAWN, ENG3_WALK = eng97.garden()
+_ypaint([ENG3_CLEAR, ENG3_LAWN], _yg)       # (제3공학관 남쪽, 남쪽 동 남동쪽 정원: OSM's later lawn, walks and roads out; eng97)
 # (the aprons of the halls left out or moved since the planting was laid, GONE_LAWN · SITES_NEW_1997: lawn where no hall of
 # 1997 stands; 과학관's court paved to the bank's foot and under its flight)
 _old_aprons = unary_union([Polygon(g_['footprint']) for g_ in RND_GHOSTS if g_['id'] in GONE_LAWN] +
@@ -9936,6 +9953,9 @@ SEOMUN_ASPH, SEOMUN_YARD = seomun.paint()      # (서문 길: the road, the mout
 _ypaint([SEOMUN_ASPH], _ga)
 _ypaint([SEOMUN_YARD], _gd)                    # (the bare yard round the small building south of the mouth)
 _ypaint([west_ground.YARD], _gd)               # (독수리상 서쪽 마당: bare earth, the walks across it under it)
+_ypaint([ENG3_BARE], _gd)                      # (제3공학관 남쪽: bare earth all round the hall, the track, the bench)
+_ypaint([ENG3_PAVED], _gp)                     # (... its tile deck and the landing before its door)
+_ypaint([ENG3_WALK], _gp, width=eng97.GARDEN_WALK_W)   # (the walk across the garden south-east of the south wing)
 _ypaint([west_ground.road_south()], _ga)       # (... and the paved margin south of its road, where cars stood along it)
 _ypaint([west_ground.site_band(TENNIS['o'], TENNIS['rot'])], _gd)     # (공학원 공사장 서쪽 띠: bare, at the site's ground)
 _ypaint(eng97.north_paved(), _ga)               # (제2공학관 북쪽 길, 공학관 사이 윗단과 골목: tools/eng97.py)
@@ -10704,6 +10724,10 @@ print('독수리상 서쪽 마당: shrubs taken out %d, props %d, trees moved as
 # south wing); shrubs and props under the hall go.  OSM's later walk along the retaining wall's line (on the wall's
 # top and at its foot by turns) is off the map and the crowd's walks
 _e97_n = eng97.move_off(trees, shrubs, props)
+_e97_s = eng97.move_off_south(trees, shrubs, props)       # (제3공학관 남쪽: to the garden's trees; photo A's motorbikes)
+_e97_sw = eng97.south_walks(out['paths'])
+print('제3공학관 남쪽 · 남쪽 동 남동쪽 정원: trees moved to the garden %d, shrubs taken out %d, props %d, motorbikes moved %d; '
+      'walks out %d, in %d' % (len(_e97_s[0]), _e97_s[1], _e97_s[2], _e97_s[3], *_e97_sw), _e97_s[0])
 _e97_nn = eng97.move_off_north(trees, shrubs, props)      # (제2공학관 북쪽 길 · 공학관 사이: off the 1997 asphalt)
 print('제2공학관 북쪽 길 · 공학관 사이: trees moved aside %d, shrubs taken out %d, props %d' % (len(_e97_nn[0]), _e97_nn[1], _e97_nn[2]),
       _e97_nn[0])
