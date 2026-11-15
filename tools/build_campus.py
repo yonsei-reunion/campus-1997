@@ -6752,6 +6752,19 @@ print('   the node by the car park\'s north-west edge: %+.2f m' % (float(Hn[_yj_
 _an_took, AUDN97 = audnorth97.grade(Hn, X, Y, FIXED, near_buildings(0.5) | _ypad, _yj_took & ~_ypad, harmonic_fill, AUD97['z'])
 FIXED[_an_took] = True
 print('대강당 북쪽 날개 둘레:', AUDN97)
+# 백양로 북쪽 끝 삼거리 (tools/audnorth97.py, reference/고증/2.8 「삼거리의 땅」): the carriageway's section (PROF_Q) is the
+# scans' at the 삼거리 too (38.2 - 38.5 m at s 570 - 580), but one of HILL_Q's points there, read off the previews,
+# had pulled the grid 0.2 - 0.45 m under the road's mesh, whose edges showed as a step across the 삼거리; and the
+# node before the foot of the end steps had gone 0.7 m down with those under the flights (a pit a metre wide between
+# the road's end and the first riser: the west flight could not be walked onto).  The road's last metres run level
+# onto the steps' foot (UW_STEPS h0: the section had it 0.18 m over the foot), the grid comes up to the section under
+# the mesh and to the foot's level before the steps.  Late: the planting has read the ground as it was
+_jn_k = (ss >= audnorth97.JN_FLAT_S) & (ss <= BY_END_S + 4.0)
+prof[_jn_k] = np.minimum(prof[_jn_k], np.interp(ss[_jn_k], [audnorth97.JN_FLAT_S, BY_END_S],
+                                                 [prof_h(audnorth97.JN_FLAT_S), UW_STEPS['h0'] + 0.02]))
+_jn_up, JN97 = audnorth97.junction(Hn, X, Y, spos, dist, prof_h, BY_END_S, STU, STV, UW_STEPS['h0'])
+FIXED[_jn_up] = True
+print('백양로 북쪽 끝 삼거리:', JN97)
 # ---------------------------------------------------------------------------
 # 광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길 (tools/kwangbok97.py; reference/고증/3.9 「둘레 땅의 높이」, 2.9 「서쪽 길의 높이」),
 # after the planting and everything else that read the ground as it was: 광복관's bench (its yard, the roads west and
@@ -9392,6 +9405,11 @@ _ypaint([AUD_SIDE_POLY], _ga)                 # (대강당 북쪽 곁길 어귀 
 # 대강당 북쪽 날개 둘레 (audnorth97.PAVE, reference/고증/4.5.1 「북쪽 날개 둘레」): the terrace's paving up to the north
 # wing's west wall and along the strip north of it (the 1997 scans; the game had lawn and today's walks there)
 _ypaint([audnorth97.PAVE.difference(Polygon(next(b_['footprint'] for b_ in buildings if b_['id'] == 371403811)).buffer(0.2))], _ga)
+# 백양로 끝 계단 발치 (reference/고증/2.8 「삼거리의 땅」): the road's asphalt on to the foot of the end steps (a strip of
+# lawn lay between them; in the spring 2003 photo the flights rise straight off the road)
+_ypaint([Polygon([st_xy(-5.4, -2.2), st_xy(5.4, -2.2), st_xy(5.4, 0.05), st_xy(-5.4, 0.05)])]
+        + [Polygon([st_xy(sg_ * 1.0, 0.0), st_xy(sg_ * 5.4, 0.0), st_xy(sg_ * 5.4, 0.6), st_xy(sg_ * 1.0, 0.6)]) for sg_ in (-1, 1)],
+        _ga)                                  # (and on under the flights' first treads, not up the lawn strip between)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): 심장혈관병원 북쪽 · 치과대학병원 서쪽 paved; the east lot's steep edges
 # lawn (out of the 2005 hospital's site's asphalt, _ga, and the layers under it)
