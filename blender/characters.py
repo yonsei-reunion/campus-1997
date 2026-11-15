@@ -91,7 +91,7 @@ def woman(hair, body, legs, feet, colors=None, note='', **more):
 def neckline(of, drop=.014, half=.044, side=.090, lean=0.0, vee=0.0, to='Skin', ring=.012, lobe=2.0):
     """A paint rule (see `paint`): the top's neckline, `drop` under the neck's joint in the middle of the front
     (the top's rim stands 1 - 2 cm over the joint there: that much more skin shows).  The men's is cut out instead,
-    by `drop`, `ring` and `lobe` alone (neck_bib)."""
+    by `drop`, `ring` and `lobe` alone (neck_bib); where the top's front lies is LIE's (lay_collar)."""
     return dict(of=of, to=to, neck=dict(drop=drop, half=half, side=side, lean=lean, vee=vee, ring=ring, lobe=lobe))
 
 
@@ -176,7 +176,7 @@ PEOPLE = {
                        'Hair': HAIR['black'], 'Brow': '#0e0b0a'},
                       'oversized navy hoodie, wide khaki cargo trousers, canvas shoes; short hair swept up and back, the sides '
                       'and the back run over with clippers (the scalp shows through), tanned',
-                      paint={'feet': canvas('Purple', 'White')},
+                      paint={'body': [neckline(('Purple',), drop=.024, ring=.006, lobe=1.5)], 'feet': canvas('Purple', 'White')},
                       face=dict(lid='mono', slant=.14, jaw=.97, eye=.98, smile=.0027, mouth=1.08, brow=1.5, brow_tilt=.09,
                                 brow_corner=True, brow_peak=.70, brow_drop=1.2, brow_taper=1.3, brow_soft=1.4, nose=1.04, tip_up=.85,
                                 bridge=.28)),
@@ -188,7 +188,7 @@ PEOPLE = {
                       'feet:Lace': '#d6d3cc', 'Skin': SKIN['c'], 'Hair': HAIR['black']},
                      'Yonsei-blue jumper, YONSEI in white across the chest, black jeans, white trainers; a two-block cut, '
                      'the long top swept from a 7:3 parting',
-                     paint={'feet': trainers('umc', 'Red_Dark')}, cut='wide',
+                     paint={'body': [neckline(('Purple',), drop=.024, ring=.006, lobe=1.5)], 'feet': trainers('umc', 'Red_Dark')}, cut='wide',
                      prints={'body': [dict(name='yonsei', of=('Purple',), w=.27, z=1.36)]},
                      face=dict(lid='double', slant=.03, jaw=1.0, chin=1.14, eye=1.04, eye_open=.82, mouth=1.25, smile=.0040,
                                lip=1.2, brow=1.7, arch=.55, brow_len=1.1, brow_peak=.6, brow_up=-.0022, brow_taper=1.5,
@@ -663,6 +663,35 @@ def hold_chest(ob, arm, C):
             chest.add([v.index], free, 'REPLACE')
 
 
+# The packs hang a top's collar partly on the arms (0.13 - 0.17 of a point 2 cm off the neck is the upper arm's, whose
+# joint lies 10 cm out and 10 cm under it): with the arms let down from the T pose the sides of the collar swing 2.5 cm
+# out and a round neck 13 cm across stands 19 cm wide, twice the neck's width.  HOLD: what of the top lies within
+# the first radius of the neck's axis (m, the source's units, in the T pose) gives the arms' share to the chest, all
+# of it, easing to none of it at the second; down to `under` below the neck's joint.
+HOLD = dict(r=(.090, .135), under=.10)
+
+
+def hold_collar(ob, arm, C=HOLD):
+    cn = arm.matrix_world @ arm.data.bones['Neck'].head_local
+    mw = ob.matrix_world
+    arms = {g.index for g in ob.vertex_groups if g.name.startswith(('UpperArm.', 'LowerArm.'))}
+    if not arms:
+        return
+    chest = ob.vertex_groups.get('Chest') or ob.vertex_groups.new(name='Chest')
+    for v in ob.data.vertices:
+        ws = {g.group: g.weight for g in v.groups if g.weight > 0}
+        held = sum(w for gi, w in ws.items() if gi in arms)
+        if held < 1e-6:
+            continue
+        c = mw @ v.co
+        keep = max(_smooth(*C['r'], math.hypot(c.x - cn.x, c.y - cn.y)), 1 - _smooth(cn.z - C['under'], cn.z - C['under'] + .03, c.z))
+        if keep >= 1:
+            continue
+        for gi in arms & ws.keys():
+            ob.vertex_groups[gi].add([v.index], ws[gi] * keep, 'REPLACE')
+        chest.add([v.index], ws.get(chest.index, 0.0) + held * (1 - keep), 'REPLACE')
+
+
 # ---------- the women's bust ----------
 # The pack's bust is a shelf across the chest whose side view is a triangle: a line down from the collarbone to a
 # corner 8 cm under the shoulder joints, and a straight line back from it to the ribs at 45 degrees, on rows of
@@ -879,7 +908,7 @@ def _centres(points, key_fn):
 
 
 # The collar stays with the neck: loosened with the rest of a top it gaped a finger's width off it all round (a hood
-# may).  The packs' tees have a rim standing 3 - 4 cm up the neck, level all round: COLLAR brings it down (the share
+# may: its front is laid lower and opened by lay_collar and a neckline).  The packs' tees have a rim standing 3 - 4 cm up the neck, level all round: COLLAR brings it down (the share
 # of its height that is left) and dips it at the front (m, the source's units), as a round neck lies.
 OPEN_NECK = ('Casual_Hoodie',)
 COLLAR = {'Casual_2': (.45, .010), 'Worker': (.45, .010)}
@@ -932,6 +961,45 @@ def loosen(ob, part, outfit, arm, roomy=None):
     for v in me.vertices:
         if v.index in co:
             v.co = inv @ co[v.index]
+
+
+# Where a top's neck lies.  The packs' chest stands 8 cm before the neck's axis at the height of its joint, the neck's
+# own front 4.5 cm: a round neck cut where the tee lies under the joint stood 3.5 cm off the throat, and the skin
+# between ran out to it as a ramp, lit from above and paler than the neck.  `pull` draws the front of the top in
+# toward the neck (m, the source's units: full from `band` off the neck's radius `rn` out to r[0], none past r[1] and
+# none `low` under the joint), so the collar lies at the foot of the neck and the chest slopes down from it.  A hood's
+# collar is a roll standing level round the neck 2 - 4 cm over its joint, a cloth across inside it: `dip` lowers the
+# front of it (none of it behind the neck), down to where a hood's edges meet under the throat.
+LIE = {'Casual_2': dict(pull=.018), 'Worker': dict(pull=.018),
+       'Casual_Hoodie': dict(dip=.040, turn=1.5, r=(.105, .165))}
+LIE_ALL = dict(pull=0.0, dip=0.0, turn=1.5, rn=.050, band=.035, r=(.095, .150), low=(.11, .04))
+
+
+def lay_collar(ob, outfit, arm):
+    C = dict(LIE_ALL, **LIE.get(outfit, {}))
+    if not C['pull'] and not C['dip']:
+        return
+    me, mw = ob.data, ob.matrix_world.copy()
+    inv = mw.inverted()
+    skin = _skin_verts(me)
+    cn = arm.matrix_world @ arm.data.bones['Neck'].head_local
+    for v in me.vertices:
+        if v.index in skin:
+            continue
+        c = mw @ v.co
+        dx, dy = c.x - cn.x, c.y - cn.y
+        r = math.hypot(dx, dy)
+        if r > C['r'][1] or r < 1e-5 or c.z < cn.z - C['low'][0]:
+            continue
+        f = (1 - _smooth(*C['r'], r)) * _smooth(cn.z - C['low'][0], cn.z - C['low'][1], c.z)
+        ca = -dy / r                                         # (1 in front, -1 behind)
+        if C['pull']:
+            d = C['pull'] * max(0.0, ca) ** C['turn'] * f * _smooth(C['rn'], C['rn'] + C['band'], r)
+            c.x -= dx / r * d
+            c.y -= dy / r * d
+        if C['dip']:
+            c.z -= C['dip'] * ((1 + ca) / 2) ** C['turn'] * f
+        v.co = inv @ c
 
 
 # ---------- an even arm ----------
@@ -1384,8 +1452,10 @@ def _paint_neck(ob, bm, rule, cn, bib=False):
     if bib and N.get('ring') and rule['to'] == 'Skin':
         dl = bm.verts.layers.deform.verify()
         round_ = (ob.vertex_groups.get(ROUND) or ob.vertex_groups.new(name=ROUND)).index
+        # (and the top's own skin there, an open collar's: the neck's takes its place)
+        own = src | {i for i, n in enumerate(names) if n == 'Skin'}
         for f in bm.faces:
-            if f.material_index in src and all(math.hypot(v.co.x, v.co.y - cn.y) < 0.13 and v.co.z > cn.z - 0.06 for v in f.verts):
+            if f.material_index in own and all(math.hypot(v.co.x, v.co.y - cn.y) < 0.13 and v.co.z > cn.z - 0.06 for v in f.verts):
                 for v in f.verts:
                     v[dl][round_] = 1.0
         return
@@ -2719,19 +2789,27 @@ def head_1997(pid, head, body, arm, spec):
 # their points: a line round the neck, a tone either side of it.
 # Men (neck_bib): a neckline is not painted but cut out of the top, as one round line: `ring` off the neck all
 # round (the packs' rim, which stands up the neck there, goes with it) and in front out to where the top lies `drop`
-# under the neck's joint, drawn in to the sides by cos^`lobe`.  The neck itself, cut off `top` over its joint, is
-# drawn out from there to under the edge of the cloth: down its own line, then out in a curve to end `slope`
-# degrees off upright `under` below where the cloth's edge was, and on for `past` beneath the cloth (`sink` under
-# the lowest cloth there: a shirt may lie over the tee).  One skin from the chin to the collar; where nothing is cut
-# the neck goes down into the collar as before (`tube`).  The new points move with the neck above and with the
-# top's own bones at the cloth's edge.
+# under the neck's joint, drawn in to the sides by cos^`lobe`; a top's own skin there (an open collar's wedge of
+# chest) goes too.  The line is then eased (`line`: within that of what went, so many times): cut by planes it has
+# corners, and where it runs into a pack's own V it has steps.  The neck itself, cut off `top` over its joint (under
+# the chin: lower, the pack's neck is drawn in like a waist, and the new skin turned out from it at a crease), is
+# drawn out from there to under the edge of the cloth: down its own line, then out in a curve to end `slope` degrees
+# off upright `under` below where the cloth's edge was, and on for `past` beneath the cloth (`sink` under the lowest
+# cloth there: a shirt may lie over the tee).  One skin from the chin to the collar; where nothing is cut the neck
+# goes down into the collar on the line of the pack's own (`tube`: the collars were made to it; narrower, a vest's
+# collar stood a finger's width off it and the ground showed between).  The new points move with the neck above and
+# with the top's own bones at the cloth's edge.
+# The game draws a face from its front alone: past the neck, in the gap a collar leaves as the head turns, the
+# ground showed through the back of the top.  `liner`: the cloth that reaches within that of the neck's axis and no
+# lower than that under its joint is there twice, the second time turned and a hair inside the first (lying in it,
+# it shaded it in specks).
 # Women (neck_cut, neck_seam): the neck is cut off level `lift` over the body's rim (its own foot is turned in under
 # itself in front: over a low rim that showed as a slot) and joined to the rim by new faces: one surface, lit as one.
 # The skin within `band` of the join is then eased `ease` times, most at the join and little over it (`up`: the
 # jaw is close), so that the corner becomes a hollow curve.
 BARE = 'bare'                 # the vertex group of what a neckline bared (paint)
 ROUND = 'round'               # and of the top's faces about the neck that may go for the collar's ring
-FOOT = dict(top=0.040, slope=46, under=0.0025, past=0.010, sink=0.005, rings=6, tube=0.05, lift=0.005, band=0.032, up=(0.004, 0.014), ease=14, fold=(0.008, 0.016))
+FOOT = dict(top=0.058, slope=25, under=0.0025, past=0.010, sink=0.005, rings=6, tube=0.08, line=(0.008, 8), liner=(0.095, 0.045, 0.002), lift=0.005, band=0.032, up=(0.004, 0.014), ease=14, fold=(0.008, 0.016))
 
 
 def _ring(edges):
@@ -2761,6 +2839,7 @@ def neck_bib(head, body, arm, ring_w=0.0, drop=0.0, lobe=2.0):
     """The men's neck drawn out to under a neckline's edge, and what was bared cut out of the top (see above)."""
     import bmesh
     from mathutils.bvhtree import BVHTree
+    from mathutils.kdtree import KDTree
     group, round_ = body.vertex_groups.get(BARE), body.vertex_groups.get(ROUND)
     if group is None and round_ is None:
         return
@@ -2786,7 +2865,11 @@ def neck_bib(head, body, arm, ring_w=0.0, drop=0.0, lobe=2.0):
     fs = [f for f in hb.faces if neck(f)]
     geom = fs + sorted({e for f in fs for e in f.edges}, key=lambda e: e.index) + sorted({v for f in fs for v in f.verts}, key=lambda v: v.index)
     bmesh.ops.bisect_plane(hb, geom=geom, dist=1e-5, plane_co=Vector((0, 0, z1)), plane_no=Vector((0, 0, 1)))
-    bmesh.ops.delete(hb, geom=[f for f in hb.faces if neck(f) and f.calc_center_median().z < z1], context='FACES')
+    hb.verts.index_update()
+    low = [f for f in hb.faces if neck(f) and f.calc_center_median().z < z1]
+    # (the post that goes: where no neckline is cut the new neck keeps its line, which the collars were made to)
+    post = BVHTree.FromPolygons([v.co.copy() for v in hb.verts], [[v.index for v in f.verts] for f in low])
+    bmesh.ops.delete(hb, geom=low, context='FACES')
     hb.verts.index_update()
     hb.edges.index_update()
     ring = _ring([e for e in hb.edges if e.is_boundary and all(abs(v.co.z - z1) < 1e-4 for v in e.verts)])
@@ -2805,7 +2888,7 @@ def neck_bib(head, body, arm, ring_w=0.0, drop=0.0, lobe=2.0):
     bl = bb.verts.layers.deform.verify()
     skin = {i for i, m in enumerate(body.data.materials) if is_skin(m)}
     held_by = lambda f, g: g is not None and all(v[bl].get(g.index, 0.0) > 0.5 for v in f.verts)          # noqa: E731
-    if ring_w and round_ is not None:
+    if round_ is not None:
         # the collar: what of the top lies within `ring` of the neck all round goes too (the packs' rim stands up the
         # neck there: cut by a neckline, its ends stood either side of the throat as two points), and in front out
         # to where the top lies `drop` under the neck's joint, drawn in to the sides (cos^lobe): one round line
@@ -2839,9 +2922,28 @@ def neck_bib(head, body, arm, ring_w=0.0, drop=0.0, lobe=2.0):
         cand = within = lambda f: False                                                                   # noqa: E731
     bb.faces.ensure_lookup_table()
     bb.faces.index_update()
-    bare = [(f.material_index in skin and held_by(f, group)) or (cand(f) and within(f)) for f in bb.faces]
+    bare = [(f.material_index in skin and (held_by(f, group) or held_by(f, round_))) or (cand(f) and within(f)) for f in bb.faces]
     if not any(bare):
         raise SystemExit(f'{body.name}: nothing bared for the neck to run to')
+    # the neckline eased: the cut's corners (it is cut by planes), and a pack's own open collar that the cut runs
+    # into (a V with a notch at its foot, steps where the two meet)
+    kept = lambda f: not bare[f.index] and cand(f)                                                        # noqa: E731
+    near = KDTree(sum(len(f.verts) for f, b in zip(bb.faces, bare) if b))
+    for i, v in enumerate(v for f, b in zip(bb.faces, bare) if b for v in f.verts):
+        near.insert(v.co, i)
+    near.balance()
+    at = {}
+    for e in bb.edges:
+        if sum(1 for f in e.link_faces if kept(f)) == 1 and all(kept(f) or bare[f.index] for f in e.link_faces):
+            a, b = e.verts
+            if all(near.find(v.co)[2] < F['line'][0] for v in (a, b)):
+                at.setdefault(a, []).append(b)
+                at.setdefault(b, []).append(a)
+    line = sorted((v for v, vs in at.items() if len(vs) == 2), key=lambda v: v.index)
+    for _ in range(F['line'][1]):
+        to = {v: (at[v][0].co + at[v][1].co) / 2 for v in line}
+        for v in line:
+            v.co = v.co.lerp(to[v], 0.5)
     tree = BVHTree.FromBMesh(bb)
     # (a shirt worn over the tee, or what is left of its rim, may hang over the opening: the opening is measured on
     # what was bared alone)
@@ -2896,8 +2998,13 @@ def neck_bib(head, body, arm, ring_w=0.0, drop=0.0, lobe=2.0):
             ze = lowest(at(re), zq)
             pts.append((re, min(zq - F['past'] / ta, zq if ze is None else ze - F['sink']), 1.0))
         else:
+            r = R
             for k in range(1, K + 1):
-                pts.append((R * (1 - 0.03 * k), z1 - F['tube'] * k / K, k / K))
+                z = z1 - F['tube'] * k / K
+                hit = post.ray_cast(Vector((cx, cy, z)), Vector((dx, dy, 0)), 0.12)
+                if hit[0] is not None and 0.75 * R < hit[3] < 1.35 * R:     # (not the post's closed foot)
+                    r = hit[3]
+                pts.append((r, z, k / K))
         col = [v]
         for r, z, t in pts:
             x, y = at(r)
@@ -2924,6 +3031,15 @@ def neck_bib(head, body, arm, ring_w=0.0, drop=0.0, lobe=2.0):
     hb.to_mesh(head.data)
     hb.free()
     bmesh.ops.delete(bb, geom=[f for f, b in zip(bb.faces[:], bare) if b], context='FACES')
+    # the collar's inside: the cloth about the opening again, turned (the game draws a face from its front alone: past
+    # the neck, in the gap a collar leaves as the head turns, the ground showed through the back of the top)
+    lin = [f for f in bb.faces if f.material_index not in skin
+           and any(math.hypot(v.co.x - cx, v.co.y - cy) < F['liner'][0] and v.co.z > cn.z - F['liner'][1] for v in f.verts)]
+    made = bmesh.ops.duplicate(bb, geom=lin)['geom']
+    bmesh.ops.reverse_faces(bb, faces=[g for g in made if isinstance(g, bmesh.types.BMFace)])
+    bb.normal_update()
+    for v in sorted((g for g in made if isinstance(g, bmesh.types.BMVert)), key=lambda v: v.index):
+        v.co += v.normal * F['liner'][2]              # (a hair inside the cloth: lying in it, it shaded it in specks)
     bb.transform(body.matrix_world.inverted())
     bb.to_mesh(body.data)
     bb.free()
@@ -3103,10 +3219,14 @@ def build_person(pid, spec):
         # rig's widening of it, for a narrow jaw over which the neck stood as wide as the face)
         shape_body(ob, arm, rig, spec.get('neck', 1.0))
         loosen(ob, part, outfit, arm, spec.get('roomy'))
+        if part == 'body' and rig == 'umc':
+            lay_collar(ob, outfit, arm)
         if part == 'body' and spec.get('sleeves'):
             long_sleeves(ob, arm, **spec['sleeves'])
         elif part == 'body' and rig == 'umc':
             even_arms(ob, arm)
+        if part == 'body' and rig == 'umc':
+            hold_collar(ob, arm)
         atlas_layer(ob)
         ob.name = f'{pid}-{part}'
         parts.append(ob)
