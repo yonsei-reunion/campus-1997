@@ -98,7 +98,11 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 ### 백양로
 
 - 1997년 항공 사진(`reference/1997_백양로_항공사진.jpg`)의 카메라를 역산해 길의 자리 · 폭 · 화단섬 · 현수막 · 초소 · 나무 높이를 사진에서 재어 옮겼습니다(고증 2장).
-- 높이는 재창조 설계 보고서의 종단면도(`tools/build_campus.py`, `blender/road.py`).
+- 높이는 재창조 설계 보고서의 종단면도와 1997년 7월 항공사진 · 1:5000 측량(`tools/build_campus.py`, `blender/road.py`). 게임의 높이는 해발입니다(고증 2.8 「측량 표고」).
+  - `build_campus.py` 와 `blender/` 는 「작업면」(해발 + `tools/datum.py` 의 `tilt(x, y)` = 0.052 + 0.522 · x/100 + 0.248 · y/100 m) 위에서 땅을 깔고 메시를 짓고, 내보낼 때 그 기울기를 뺍니다. 무작위 심기 · 길 단면 · 창과 텍스처의 자리가 작업면에서 정해져 있어서입니다.
+  - 소스의 절대 높이는 제 자리의 해발로 적고 읽는 곳에서 올립니다(`datum.up(x, y, z)` · `up3` · `up_at` · `up_plane` · `up_uv`). `data/terrain_*.npy` · `campus.json` · GLB는 해발이고, `campus.json` 의 높이 필드 목록은 `datum.heights()` 에 있습니다(새 필드를 더하면 거기에도 한 줄).
+  - 건물은 값 하나(`buildings[].tilt`)로 내려가 기울지 않고 발치 7.5 m의 땅이 함께 내려갑니다. 건물이 아닌데 수평이어야 하는 것은 `build_campus.py` 끝의 `_dz_zones` 에 더합니다.
+  - `Y97_WORK_DUMP=<폴더>` 로 `build_campus.py` 를 돌리면 작업면의 `campus.json` · 지형이 그 폴더에 남습니다. 전의 것과 잎마다 같으면 심기가 흔들리지 않은 것입니다.
 - 날아가기의 「1997 사진 시점」은 그 역산한 카메라입니다.
 
 ### 건물
