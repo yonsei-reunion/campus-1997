@@ -1214,9 +1214,64 @@ def lift_base(z0, cx, cy, ang, d, zl, rise):
     return max(z0, g - zl + rise)
 
 
+WALK_PAD = 0.05      # m every walk face is pushed out in its own plane (pad_walk_face)
+
+
+def pad_walk_face(q, e=WALK_PAD):
+    """A walk face pushed out by e at every edge, in its own plane.  Faces that only meet at an edge (the chords of one
+    arc cut at different steps, a landing clipped along a flight's top riser, a deck's plates) leave slits of a few
+    millimetres to two centimetres between them, and the walker's ground ray (web/src/player.js groundAt) falls through
+    them to the ground under a deck or a terrace: the walker drops 1 - 7 m and is shut in underneath.  Padded, the
+    faces overlap.  The faces are never drawn; a planter's soil (inset 0.2 m from its edges so the walker does not step
+    onto it) keeps 0.15 m.  Each corner moves along its bisector (miter at most 3 e); its height follows the two edges
+    that meet there."""
+    pts = []
+    for p in q:
+        if not pts or (abs(p[0] - pts[-1][0]) + abs(p[1] - pts[-1][1]) + abs(p[2] - pts[-1][2])) > 1e-6:
+            pts.append(tuple(p))
+    if len(pts) > 1 and (abs(pts[0][0] - pts[-1][0]) + abs(pts[0][1] - pts[-1][1]) + abs(pts[0][2] - pts[-1][2])) <= 1e-6:
+        pts.pop()
+    n = len(pts)
+    if n < 3:
+        return q
+    ar = sum(pts[i][0] * pts[(i + 1) % n][1] - pts[(i + 1) % n][0] * pts[i][1] for i in range(n)) / 2
+    if abs(ar) < 1e-4:                                    # (upright or degenerate: as it is)
+        return q
+    sg = 1.0 if ar > 0 else -1.0
+    out = []
+    for i in range(n):
+        (px, py, pz), (cx, cy, cz), (nx, ny, nz) = pts[i - 1], pts[i], pts[(i + 1) % n]
+        e1x, e1y, e2x, e2y = cx - px, cy - py, nx - cx, ny - cy
+        l1, l2 = math.hypot(e1x, e1y), math.hypot(e2x, e2y)
+        if l1 < 1e-6 or l2 < 1e-6:
+            out.append((cx, cy, cz))
+            continue
+        n1x, n1y = sg * e1y / l1, -sg * e1x / l1             # outward normals of the two edges
+        n2x, n2y = sg * e2y / l2, -sg * e2x / l2
+        mx, my = n1x + n2x, n1y + n2y
+        ml = math.hypot(mx, my)
+        if ml < 1e-6:
+            out.append((cx, cy, cz))
+            continue
+        mx, my = mx / ml, my / ml
+        k = e / max(mx * n1x + my * n1y, 1.0 / 3.0)
+        dx, dy = mx * k, my * k
+        # the height along (dx, dy) from the corner's two edges: (dx, dy) = a * e1 + b * e2
+        det = e1x * e2y - e1y * e2x
+        if abs(det) > 1e-9:
+            a = (dx * e2y - dy * e2x) / det
+            b = (e1x * dy - e1y * dx) / det
+            dz = a * (cz - pz) + b * (nz - cz)
+        else:
+            dz = 0.0
+        out.append((cx + dx, cy + dy, cz + dz))
+    return out
+
+
 def walk_mesh():
     mb = MeshBuilder('walk_stairs')
     for q in WALK_FACES:
+        q = pad_walk_face(q)
         mb.face(q, 'concrete')
         mb.face(q[::-1], 'concrete')
     WALK_FACES.clear()
