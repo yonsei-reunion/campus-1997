@@ -60,7 +60,7 @@ const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 
 const CAR_FAR = 20;     // parked cars farther than this from the camera: their lighter models (a fifth of the triangles)
 // phones: no parked car drawn farther than this (the 1997 aerial scans put 506 on the campus; from the gate some 460
 // were in view, 1.6 M triangles of the lighter models, most of them behind 백양로's trees)
-const CAR_MAX_MOBILE = 250;
+const CAR_MAX_MOBILE = 250;     // (the moving ones too: life.js Traffic.reach)
 const SHRUB_R = { topiary_cone: 0.6, azalea_red: 0.62, pine_cloud: 0.3, topiary_dome: 1.0, topiary_egg: 1.15 };   // (walls, m at scale 1; the pine: its trunk)
 const SHRUB_FAR = 25;   // shrubs, hedges and flower beds farther than this: theirs (blender/shrubs.py far_version)
 // the vegetation campus.json plants: two models of each tree species, one of each shrub (and its lighter one, _far)
@@ -1068,7 +1068,10 @@ async function main() {
     curbs.update(camera.position);
     // the shadow frustum follows the view in texel-snapped steps; people and cars are redrawn into it every frame
     shadows.update(focus, bird.active ? focus.y : camera.position.y - 10, span);
-    if (MOBILE) for (const s of carSets) s.m2 = bird.active ? 0 : CAR_MAX_MOBILE ** 2;   // (the tour shows them all)
+    if (MOBILE) {                                                  // (the tour shows them all)
+      for (const s of carSets) s.m2 = bird.active ? 0 : CAR_MAX_MOBILE ** 2;
+      traffic.reach(camera.position, bird.active ? 0 : CAR_MAX_MOBILE);
+    }
     kitCull.update(camera);
     updatePcss(sun, post.hq);    // contact-hardening shadows on the desktop HQ path only
     if (bird.active) {

@@ -815,6 +815,20 @@ export class Traffic {
         x: lane.at(s0).x, y: lane.at(s0).y, hx: 1, hy: 0, stopK: lane.stops ? lane.stops.filter((q) => q.s < s0).length : 0 });
     }
   }
+  // phones while walking: the cars farther than r (m) from the camera are not drawn, like the parked ones (main.js
+  // CAR_MAX_MOBILE; from the gate 14 of the 16 in view were 400 ~ 900 m up the loops, 27 draw calls each). They go on
+  // and are heard: root.visible stays the gate's (audio.js, blobs.js). r 0: all drawn
+  reach(cam, r) {
+    const r2 = r * r;
+    for (const c of this.cars) {
+      const p = c.root.position;
+      const far = r > 0 && (p.x - cam.x) ** 2 + (p.y - cam.y) ** 2 + (p.z - cam.z) ** 2 > r2;
+      if (far === !!c.far) continue;
+      c.far = far;
+      c.parts ||= c.root.children.filter((o) => o.visible && o !== c.driver?.holder);     // (not a scooter's stand)
+      for (const o of c.parts) o.visible = !far;
+    }
+  }
   // 스쿠터를 탄 학생들 (blender/bikes.py): they ride the cars' loops round and out again, taking no stall.  The rider
   // sits on the 'sit' clip, the arms brought to the grips (reachFor, above); the scooter leans into the bends
   addBikes(scene, gltf, lanes, n, cast, riderIds, rndSeed = 31) {
