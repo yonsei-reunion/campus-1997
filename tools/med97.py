@@ -17,7 +17,8 @@ taken up to the working datum where it is read: tools/datum.py): EAST_Z, NE_PROF
   every 5 m), 3.5 m under the lot at s 30 and 7 m at s 60: the lot is held up by a wall, its south-east edge by a wooded
   bank 10 m down to 성산로.  The 5 m grid makes both a steep bank one cell wide (grass: BANK).  The road's lower
   end eases to the ground it meets beyond 성산로's east end (since 2026-11-15 gate_town has the road on the same
-  photos to its end and tools/town97.py its run on north-east: 0.2 m off the profile; 3 - 5 m before).
+  photos to its end and tools/town97.py its run on north-east: 0.2 m off the profile; 3 - 5 m before).  Where
+  성산로's kerb lane passes the bank's foot, the nodes of the cells it crosses stand at the road's height (KERB_LANE).
 - 심장혈관병원 북쪽 (HEART_LOT): paved, three rows and a row along the east, 44 → 46 m to the north (5 %); the game had
   a lawn rising to 45.1 m.
 - 치과대학병원 서쪽 · 음악대학 동쪽 (DENT_LOT): paved, the long double row of slanting stalls and the rows along both
@@ -82,6 +83,47 @@ def ne_band(s0=None, s1=None):
     return Polygon([q(s0, NE_SIDE[0]), q(s1, NE_SIDE[0]), q(s1, NE_SIDE[1]), q(s0, NE_SIDE[1])])
 
 
+KERB_LANE = (3.85, 0.75)          # the kerb lane's band: from (road_hw - 3.85) to (road_hw - 0.75) m off the road's middle
+                                  # (gate_town: LANE_W 3.1, GUTTER 0.75)
+KERB_BOX = (280.0, 380.0, -300.0, -180.0)      # (x0, x1, y0, y1): along the east lot's bank only
+
+
+def _side(ls, x, y):
+    """which side of the line ls the point is on (+ left)"""
+    s = ls.project(Point(x, y))
+    a, b = ls.interpolate(max(s - 0.5, 0.0)), ls.interpolate(min(s + 0.5, ls.length))
+    return (b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x)
+
+
+def _road_z(H, ls, x, y, step, half):
+    """the ground on the road's middle abreast of (x, y) (gate_town levels its bed across)"""
+    m = ls.interpolate(ls.project(Point(x, y)))
+    fx, fy = (m.x + half) / step, (m.y + half) / step
+    i, j = int(fx), int(fy)
+    ax, ay = fx - i, fy - j
+    return float(H[j, i] * (1 - ax) * (1 - ay) + H[j, i + 1] * ax * (1 - ay) + H[j + 1, i] * (1 - ax) * ay
+                 + H[j + 1, i + 1] * ax * ay)
+
+
+def kerb_lane_nodes(ls, hw, shape, step, half, side):
+    """the grid nodes of every cell the kerb lane's band (KERB_LANE) crosses on the given side, inside KERB_BOX"""
+    out = np.zeros(shape, bool)
+    x0, x1, y0, y1 = KERB_BOX
+    for s in np.arange(0.0, ls.length, 0.5):
+        a, b = ls.interpolate(s), ls.interpolate(min(s + 0.5, ls.length))
+        t = np.array([b.x - a.x, b.y - a.y])
+        if not np.any(t):
+            continue
+        t /= np.linalg.norm(t)
+        n = np.array([-t[1], t[0]]) * side
+        for o in np.arange(hw - KERB_LANE[0], hw - KERB_LANE[1] + 0.01, 0.5):
+            x, y = a.x + n[0] * o, a.y + n[1] * o
+            if x0 < x < x1 and y0 < y < y1:
+                j, i = int(math.floor((y + half) / step)), int(math.floor((x + half) / step))
+                out[j:j + 2, i:i + 2] = True
+    return out
+
+
 def grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw, step=5.0, half=800.0):
     """The three lots on the photos' planes, the road north-east of the east lot on its profile, the ground round them
     eased in (fill: build_campus.py harmonic_fill) as far as RING out; the halls' feet (HALL_PAD), 성산로's bed
@@ -106,6 +148,20 @@ def grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw, step=5.0, half=800.0):
     Hn[band] = zr[band]
     took |= band
     info['ne_road'] = (int(band.sum()), round(dj, 2))
+    # 성산로's kerb lane past the east lot's bank (the buses' lane, its band KERB_LANE m north of the road's middle):
+    # every node of a 5 m cell that band crosses stands at the road's own height abreast of it, the lot's own nodes
+    # aside.  The bank's foot stood there 1.5 - 4.6 m over the road (20 - 21 m from its middle, just past the bed
+    # gate_town levels), and a bus on that lane rolled 22 deg at x 318 (now 1.2: kerb_lane_tilt in the build's line)
+    ring = shapely.contains_xy(unary_union([p.buffer(pad + RING) for _, p, _, pad in LOTS] + [ne_band().buffer(10.0)]), X, Y)
+    lot_side = np.sign(_side(road_ls, EAST_LOT.centroid.x, EAST_LOT.centroid.y))
+    kn = kerb_lane_nodes(road_ls, road_hw, X.shape, step, half, lot_side) & ring & ~keep & ~band \
+        & ~shapely.contains_xy(EAST_LOT.buffer(LOTS[0][3]), X, Y)
+    jj, ii = np.nonzero(kn)
+    zk = np.array([_road_z(H0, road_ls, X[j, i], Y[j, i], step, half) for j, i in zip(jj, ii)])
+    Hn[jj, ii] = zk
+    keep = keep | kn
+    took |= kn
+    info['kerb_lane'] = int(kn.sum())
     # the lots
     for nm, poly, c, pad in LOTS:
         m = shapely.contains_xy(poly.buffer(pad), X, Y) & ~keep & ~band
@@ -114,7 +170,6 @@ def grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw, step=5.0, half=800.0):
         d = Hn[m] - H0[m]
         info[nm] = (int(m.sum()), round(float(d.min()), 1) if m.any() else 0.0, round(float(d.max()), 1) if m.any() else 0.0)
     # round them: one smooth surface out to what stays
-    ring = shapely.contains_xy(unary_union([p.buffer(pad + RING) for _, p, _, pad in LOTS] + [ne_band().buffer(10.0)]), X, Y)
     free = ring & ~took & ~keep
     if free.any():
         fill(free)
@@ -133,7 +188,34 @@ def grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw, step=5.0, half=800.0):
     BANK.extend(g for g in getattr(band, 'geoms', [band]) if g.geom_type == 'Polygon' and g.area > 1.0)
     moved = np.abs(Hn - H0)
     info['moved'] = (int((moved > 0.05).sum()), round(float(moved.max()), 1))
+    info['kerb_lane_tilt'] = kerb_lane_tilt(Hn, road_ls, road_hw, lot_side, step, half)
     return took | free, info
+
+
+def kerb_lane_tilt(H, ls, hw, side, step, half):
+    """the most a car leans (roll, pitch in degrees) on the kerb lane's middle inside KERB_BOX: its four tyres
+    1.33 m ahead and behind, 0.72 m to either side, on the grid as web/src/life.js Path.setTracks reads it"""
+    def h(x, y):
+        fx, fy = (x + half) / step, (y + half) / step
+        i, j = int(fx), int(fy)
+        ax, ay = fx - i, fy - j
+        return H[j, i] * (1 - ax) * (1 - ay) + H[j, i + 1] * ax * (1 - ay) + H[j + 1, i] * (1 - ax) * ay + H[j + 1, i + 1] * ax * ay
+    x0, x1, y0, y1 = KERB_BOX
+    rl = pt = 0.0
+    o = hw - (KERB_LANE[0] + KERB_LANE[1]) / 2
+    for s in np.arange(1.0, ls.length - 1.0, 1.0):
+        a, b = ls.interpolate(s - 1.0), ls.interpolate(s + 1.0)
+        t = np.array([b.x - a.x, b.y - a.y])
+        t /= np.linalg.norm(t)
+        n = np.array([-t[1], t[0]]) * side
+        m = ls.interpolate(s)
+        c = np.array([m.x, m.y]) + n * o
+        if not (x0 < c[0] < x1 and y0 < c[1] < y1):
+            continue
+        q = [h(*(c + t * u + n * v)) for u, v in ((1.33, 0.72), (1.33, -0.72), (-1.33, 0.72), (-1.33, -0.72))]
+        pt = max(pt, abs(math.degrees(math.atan2((q[0] + q[1] - q[2] - q[3]) / 2, 2.66))))
+        rl = max(rl, abs(math.degrees(math.atan2((q[0] + q[2] - q[1] - q[3]) / 2, 1.44))))
+    return round(rl, 1), round(pt, 1)
 
 
 def paint():
