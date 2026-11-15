@@ -36,6 +36,7 @@ import jonghap97
 import libsouth97
 import yongjae97
 import ridge97
+import widang97
 import datum
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -6778,11 +6779,20 @@ BASE_1997[kwangbok97.KB] = kwangbok97.plan()['fore']
 _jh_own = (jonghap97.JONGHAP, jonghap97.OESOL2, jonghap97.INMUN, 246156110, 246156118)
 _jh_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997 and b_['id'] not in _jh_own] + \
     [p_.buffer(0) for _, _, _, _, p_ in OLD_HALLS] + [Polygon(v_).buffer(0) for k_, v_ in LATE_FOOTPRINT_1997.items() if k_ not in _jh_own]
+# 제2인문관 공사장 (tools/widang97.py, reference/고증/3.12 「잔디 남쪽의 둑과 제2인문관 공사장」; #189): the works yard of
+# July 1997 dug down to the ground west and north of 교육관, the shelf west of it, before 종합관's grading so that the
+# ring round its roads eases into them (it keeps the level nodes, and lays its roads over this one's ring)
+_wd_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997 and b_['id'] not in _jh_own
+             and Polygon(b_['footprint']).distance(widang97.YARD) < 30.0] + \
+    [Polygon(v_).buffer(0) for k_, v_ in LATE_FOOTPRINT_1997.items() if Polygon(v_).distance(widang97.YARD) < 30.0]
+_wd_took, _wd_core, WIDANG97_GRADE = widang97.grade(Hn, X, Y, FIXED, _wd_halls, harmonic_fill)
+FIXED[_wd_took] = True
+print('제2인문관 공사장:', WIDANG97_GRADE)
 _jh_eased = {}
 _jh_took, JONGHAP97_GRADE = jonghap97.grade(
     Hn, X, Y, FIXED, _jh_halls,
-    (_inm_u >= INM97['u'][0]) & (_inm_u <= INM97['u'][1]) & (_inm_v >= INM97['v'][0]) & (_inm_v <= INM97['v'][1]), harmonic_fill,
-    eased=_jh_eased)
+    ((_inm_u >= INM97['u'][0]) & (_inm_u <= INM97['u'][1]) & (_inm_v >= INM97['v'][0]) & (_inm_v <= INM97['v'][1])) | _wd_core,
+    harmonic_fill, eased=_jh_eased)
 FIXED[_jh_took] = True
 print('종합관 · 외솔관2 · 인문관 둘레:', JONGHAP97_GRADE)
 # ---------------------------------------------------------------------------
@@ -9153,6 +9163,7 @@ _ypaint([BILL_LAWN], _yg)                    # (빌링슬리관: OSM's box and a
 KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
 _ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
 _ypaint(jonghap97.GRASS, _yg)                # (외솔관2 동쪽 뜰: lawn where OSM's outline of it and its apron were)
+_ypaint([widang97.YARD, widang97.BENCH, widang97.BANK], _yg)   # (제2인문관 공사장: OSM's later roads and walks across it out; bare: _gd below)
 if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
 # 찻길, the east road on the 1997 photos' line (TR_E, RD97 above), after the planting has read the ground as it was:
@@ -9209,7 +9220,7 @@ spl[..., 2] = np.maximum(spl[..., 2], np.minimum(ndimage.gaussian_filter(np.arra
 # its own walls
 _gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
 _YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
-_ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5), GW_YARD], _gd)
+_ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5), GW_YARD, widang97.YARD, widang97.BENCH], _gd)
 # (and 경영학교실단's front flight: paved to 2 m past its foot; 교육관's north flight, which comes down 9.5 m out of
 # the gable onto the yard (blender/landmarks.py gyoyuk_north_flight): paved round its foot and the low wall past it)
 _bkc = _bk_a + BK_T * 45.66
@@ -10172,6 +10183,12 @@ for p_ in list(out['paths']):
         out['paths'] = [q_ for q_ in out['paths'] if q_ is not p_]
         _nm[1] += 1
 print('의료원: walks cut back at the 1997 halls', _nm[0], '- taken out', _nm[1])
+# 제2인문관 공사장 (tools/widang97.py): the walks and drives across the works yard go from the walks the game reads, and
+# the decals on its pavements
+_wd_zone = unary_union([widang97.YARD, widang97.BENCH, widang97.BANK]).buffer(1.0)
+_wd_nd = len(out['decals'])
+out['decals'] = [d_ for d_ in out['decals'] if not _wd_zone.contains(Point(d_[1], d_[2]))]
+print('제2인문관 공사장: walks (cut, gone)', widang97.cut_paths(out['paths']), 'decals -%d' % (_wd_nd - len(out['decals'])))
 _nd = len(out['decals'])
 
 
@@ -10667,6 +10684,9 @@ print('종합관 북쪽 마당: trees out of the yard and the low block',
 # 서쪽 능선 꼭대기의 빈터 (tools/ridge97.py; #189): the trees the random planting put on the cleared top, out to its edge in
 # their places in the list
 print('서쪽 능선 꼭대기: trees off the cleared top', ridge97.trees_aside(out['trees']))
+# 제2인문관 공사장 (tools/widang97.py): the trees on the works yard and the shelf west of it, out to their edges in
+# their places in the list
+print('제2인문관 공사장: trees off the yard', widang97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
