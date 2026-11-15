@@ -465,7 +465,12 @@ export class Player {
     // ground: step up curbs and terraces, fall down slopes
     this.vy -= 14 * dt;
     let ny = this.pos.y + this.vy * dt;
-    const g = this.groundAt(nx, nz) ?? this.hf.height(nx, -nz);
+    let g = this.groundAt(nx, nz);
+    // the edge of the walked world (past the near, south and north terrains: beyond x -100 or y 1,300 in the north,
+    // where only the far terrain is drawn): nothing walked under the step even from high up, so it is not taken
+    // (the heightfield's clamped edge there stood up to 44 m off the ground drawn)
+    if (g === null && this.groundAt(nx, nz, 400) === null) { nx = this.pos.x; nz = this.pos.z; g = this.groundAt(nx, nz); }
+    g ??= this.hf.height(nx, -nz);
     if (ny <= g + 0.02 || (this.vy <= 0 && ny < g + 0.35)) { ny = g; this.vy = 0; }
     this.pos.set(nx, ny, nz);
     this.actor.holder.rotation.y = this.heading;
