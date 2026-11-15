@@ -269,6 +269,12 @@
     {"name": "screenshots/seomun", "doc": "고증 3.22: 연희로10길에서 동쪽으로 본 서문(2011년 4월 로드뷰 1017248897과 비슷한 자리)",
      "cam": {"x": -380, "y": -16.3, "dh": 1.8, "tx": -356, "ty": -19.5, "tdh": 2.2, "fov": 60}, "size": [1350, 860],
      "out": [{"path": "docs/screenshots/seomun.jpg", "width": 900}]},
+    {"name": "screenshots/north_road", "doc": "고증 3.21.1: 대우관 북동쪽 모퉁이 북쪽 오르막(s 40)에서 본 북문 가는 길: 가운데 선, 1996년 겨울 사진의 밑동에 선 두 줄 나무",
+     "cam": {"x": 222.5, "y": 603.9, "dh": 1.7, "tx": 224.0, "ty": 640.0, "tdh": 1.7, "fov": 60}, "size": [1400, 800],
+     "out": [{"path": "docs/screenshots/north_road.jpg", "width": 900}]},
+    {"name": "screenshots/north_gate", "doc": "고증 3.21: 북문 밖 고리길에서 동쪽으로 본 북문의 ㄇ 틀 둘과 수위실(카카오 로드뷰 2009년 5월 4611473 쪽)",
+     "cam": {"x": -4.0, "y": 909.5, "dh": 1.7, "tx": 18.0, "ty": 915.5, "tdh": 2.5, "fov": 60}, "size": [1400, 800],
+     "out": [{"path": "docs/screenshots/north_gate.jpg", "width": 900}]},
 
     {"name": "anthology/underwood", "doc": "문집 「언더우드관 전경」: 언더우드 동상 뒤에서 정원 축을 따라",
      "cam": {"x": 48.4, "y": 192.7, "dh": 9, "tx": 60.25, "ty": 239.9, "tdh": 0, "fov": 55}, "size": [1388, 747],
