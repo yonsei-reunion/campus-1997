@@ -6213,15 +6213,16 @@ def hangeul_tower():
     and 2011: seen straight through from azimuth 107), -y at the eagle and the gate: 「연세한글탑」 is cut in that
     leg's face (the unveiling photographs of 1992; the letters not modelled).  The dark plate low on the north leg's
     east flank is from the roadview.  Its top 7.2 m over the paving in the 1997 scans (four frames); the head 2.65 m
-    across by the roadview, the legs' reach and the profile after photographs, an approximation.  The round stepped
-    foot (the 「땅」, five steps) is not built: the game's bed slopes under it (남은 한계)."""
+    across by the roadview, the legs' reach and the profile after photographs, an approximation.  It stands on its
+    round stepped foot (the 「땅」, hangeul_base)."""
     T = CAMPUS.get('hangeul_tower')
     if not T:
         return []
     x, y = T['pos']
     k = T['h'] / 7.2
+    base, top = hangeul_base(T.get('base'))
     mb = MeshBuilder('lm_hangeul_tower')
-    mb.xf = local_frame(x, y, T['rot'], ground(x, y))
+    mb.xf = local_frame(x, y, T['rot'], ground(x, y) if top is None else top)
     S = 'stone_granite'
 
     def out_face(pts, n, mat=S, **kw):
@@ -6256,7 +6257,56 @@ def hangeul_tower():
         out_face([P(-hl, ri, a0), P(hl, ri, a0), P(hl, ri, a1), P(-hl, ri, a1)], tuple(-v for v in rad), smooth='ht_bore')
         for sg in (-1, 1):
             out_face([P(sg * hl, ri, a0), P(sg * hl, Rs(hl), a0), P(sg * hl, Rs(hl), a1), P(sg * hl, ri, a1)], (sg, 0, 0))
-    return [mb]
+    return [mb] + base
+
+
+def hangeul_base(B, seg=120):
+    """연세한글탑's round stepped foot (tools/build_campus.py HANGEUL_TOWER base, reference/고증/4.14): a level top of
+    small paving blocks and granite steps round it, n tiers of circles inside the outline (centre c, radius r) that
+    all touch it at azimuth az (the library's side): tier m from the top is r - (n - m) d across, its centre (n - m) d
+    from c towards az, its tread rise m down from the top (top = the ground at c + up).  The steps are widest on the
+    south and come to nothing at the north; where the ground is over a tier it goes down into it (a skirt under the
+    lowest one).  Walked on: the top and one ramp through the nosings.  Returns ([meshes], the top's height)."""
+    if not B:
+        return [], None
+    cx, cy = B['c']
+    R, n, rise, d = B['r'], B['n'], B['rise'], B['d']
+    top = ground(cx, cy) + B['up']
+    a = math.radians(90.0 - B['az'])
+    ux, uy = math.cos(a), math.sin(a)
+    zb = top - n * rise - 0.8                                  # the skirt's foot: under the lowest ground round it
+
+    def ring(m):                                               # tier m (0 = the top): its edge, from the touching point on
+        s, rr = (n - m) * d, R - (n - m) * d
+        return [(cx + s * ux + rr * math.cos(a + 2 * math.pi * i / seg), cy + s * uy + rr * math.sin(a + 2 * math.pi * i / seg))
+                for i in range(seg)]
+
+    rings = [ring(m) for m in range(n + 1)]
+    zs = [top - m * rise for m in range(n + 1)]
+    mb = MeshBuilder('lm_hangeul_base')
+    c0 = (cx + n * d * ux, cy + n * d * uy)
+    for i in range(seg):                                       # the top: small blocks
+        j = (i + 1) % seg
+        p, q = rings[0][i], rings[0][j]
+        mb.face([(c0[0], c0[1], top), (p[0], p[1], top), (q[0], q[1], top)], 'pavers')
+    for m in range(n + 1):
+        lo = zs[m + 1] if m < n else zb
+        for i in range(seg):
+            j = (i + 1) % seg
+            p, q = rings[m][i], rings[m][j]
+            mb.face([(p[0], p[1], lo), (q[0], q[1], lo), (q[0], q[1], zs[m]), (p[0], p[1], zs[m])], 'stone_step')   # riser
+            if m:
+                pi_, qi = rings[m - 1][i], rings[m - 1][j]
+                if math.hypot(p[0] - pi_[0], p[1] - pi_[1]) + math.hypot(q[0] - qi[0], q[1] - qi[1]) > 0.01:
+                    mb.face([(p[0], p[1], zs[m]), (q[0], q[1], zs[m]), (qi[0], qi[1], zs[m]), (pi_[0], pi_[1], zs[m])], 'stone_step')
+    for i in range(seg):
+        j = (i + 1) % seg
+        p, q = rings[0][i], rings[0][j]
+        WALK_FACES.append([(c0[0], c0[1], top), (p[0], p[1], top), (q[0], q[1], top)])
+        P, Q = rings[n][i], rings[n][j]
+        if math.hypot(P[0] - p[0], P[1] - p[1]) > 0.05:          # (at the touching point the steps are one upright face)
+            WALK_FACES.append([(p[0], p[1], top), (P[0], P[1], zs[n]), (Q[0], Q[1], zs[n]), (q[0], q[1], top)])
+    return [mb], top
 
 
 # ============================================================================= 제1공학관 안뜰의 낮은 동과 서쪽 옹벽
