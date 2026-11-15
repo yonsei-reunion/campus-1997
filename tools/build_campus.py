@@ -41,6 +41,7 @@ import fieldhill97
 import gymnorth97
 import widang97
 import audnorth97
+import gyoyuk97
 import datum
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -6840,6 +6841,17 @@ _jh_took, JONGHAP97_GRADE = jonghap97.grade(
     harmonic_fill, eased=_jh_eased)
 FIXED[_jh_took] = True
 print('종합관 · 외솔관2 · 인문관 둘레:', JONGHAP97_GRADE)
+# 교육관 북쪽 마당 · 연희관 서쪽 옆길 (tools/gyoyuk97.py, reference/고증/3.5.1 「1997년 7월 원본 스캔으로 다시 잰 띠의 서쪽」 ·
+# 3.18 「교육관」; #189, hk): the yard north of 교육관 and east of the works yard to the drive west of 연희관, and that
+# drive to abreast of the wing's north end, on the 1997 scans' level, where the game kept a ridge between the works
+# yard and 연희관's back (the drive 2 - 4 m over the scans) and the hall's floor for the yard north of it.  The drive
+# goes on up one grade to the 상뜰's footway (3.6's, which stays).  Late, here: the planting has read the ground as it was
+_gy_halls = [(Polygon(b_['footprint']).buffer(0), 3.5 if b_['id'] == 245623193 else 2.0)
+             for b_ in buildings if b_['id'] in (246156111, 245623759, 245623193)]
+_gy_took, GYOYUK97_GRADE = gyoyuk97.grade(Hn, X, Y, FIXED, _gy_halls, harmonic_fill,
+                                          lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
+FIXED[_gy_took] = True
+print('교육관 북쪽 마당 · 연희관 서쪽 옆길:', GYOYUK97_GRADE)
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------

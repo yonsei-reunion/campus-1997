@@ -2847,7 +2847,9 @@ def gyoyuk():
                       dormers=[(-13.7, -5.9, 5), (5.9, 13.7, 5)],
                       stairs=dict(width=2.0, wl=3.4, rise=0.5, side=1),
                       door=dict(w=1.7, arch='pointed', spring=1.6, style='panel', rec=0.5),
-                      extra=lambda mb, iv, f: gyoyuk_north_flight(mb, iv, f, 12.4, 16.2))
+                      # (the north flight's risers no higher than 0.18 m: the 2003 photo counts 15 - 17 treads down to the
+                      # yard, which the 1997 scans have a metre over the floor, tools/gyoyuk97.py)
+                      extra=lambda mb, iv, f: gyoyuk_north_flight(mb, iv, f, 12.4, 16.2, maxrise=0.18))
 
 
 GYOYUK_FLOOR = CAMPUS.get('gyoyuk_floor', 51.0)     # 교육관's floor: the drive along its west side and the yard north of it
