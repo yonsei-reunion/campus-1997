@@ -10770,7 +10770,6 @@ buildings += MUAK_HALLS_LATE                 # (무악학사 · 북문: after ev
 # 의료원 서쪽 (tools/medwest97.py; md): 외래진료소's low front block and round-ended wing of the 1997 scans, at the
 # halls' end (blender/build.py draws each hall's looks in its order)
 buildings += medwest97.halls()
-buildings += medwest97.wl_halls()            # (들어오는 길 서쪽의 모임지붕 단층과 낮은 평지붕 동)
 out['seomun'] = seomun.gate(ground_tn)
 out['markers'].append(dict(name='서문', pos=[-362.0, -18.4], top=round(out['seomun']['z'] + 4.0, 1)))
 # 종합관's low east block (tools/jonghap97.py PODIUM: 1994's two storeys across the slab's east end), at the halls' end
@@ -10787,6 +10786,9 @@ _jhe = _entry(_jhb, _jhp)
 _jhb['entry'] = dict(p=[round(_jhe[1], 2), round(_jhe[2], 2)], n=[round(_jhe[3], 4), round(_jhe[4], 4)],
                      **ENTRY_AT[jonghap97.PODIUM][1])
 buildings.append(_jhb)
+# 의료원 들어오는 길 서쪽의 모임지붕 단층과 낮은 평지붕 동 (tools/medwest97.py wl_halls; md): at the very end (blender/build.py
+# draws each hall's looks in its order: none after them changes its looks)
+buildings += medwest97.wl_halls()
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
 # edges in their places in the list
