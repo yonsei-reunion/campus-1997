@@ -180,8 +180,8 @@ export class BirdsEye {
       Object.assign(g, { dist: 14, pitch: 0.08, lift: 0 });
       this.fovGoal = this.baseFov;
       this.stopAuto();
-    } else if (what === 'overview') {    // the whole campus from high above
-      Object.assign(g, { x: -20, y: -40, dist: 900, pitch: 1.0, lift: 0 });
+    } else if (what === 'overview') {    // the whole campus from high above: 정문 at the foot, 북문 and 무악학사 at the top
+      Object.assign(g, { x: -20, y: 50, dist: 1000, pitch: 0.87, lift: 0 });
       this.fovGoal = this.baseFov;
     } else if (what === 'photo') {       // the 1997 aerial photo (reference/1997_백양로_항공사진.jpg): taken ~19 m over the gate with a
       this.stopAuto();                   // normal lens, up 백양로 to 언더우드관 and 대우관 (any other control returns to the orbit view).

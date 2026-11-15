@@ -33,7 +33,14 @@ export class UI {
     });
     this.minimap = $('#minimap');
     this.minimapCtx = this.minimap.getContext('2d');
+    this.north = [];            // [{ name, pos, x, y, yaw }]: the places of the big map's inset (main.js, places.js NORTH)
     this.mapCanvas = this._renderMap();
+    // 무악학사 · 북문's roads are in no path of campus.json: drawn from the terrain's own map of the north once it is in
+    if (campus.tsplat?.north) {
+      const img = new Image();
+      img.onload = () => { this.mapCanvas = this._renderMap(img); if (this.mapOpen) this._drawBig(...(this._bigAt || [])); };
+      img.src = versioned('assets/textures/ground_splat_town.png');
+    }
     this._bindMap();
     $('#memory .close').onclick = () => this.closeMemory();
     $('#mapview .close').onclick = () => this.toggleMap(false);
@@ -41,9 +48,14 @@ export class UI {
   }
 
   // ---------------------------------------------------------------- base map (1 px = 0.6 m)
-  _renderMap() {
-    // (the splat's rectangle, down to 신촌 로터리 where the town's own map reaches it: tools/sinchon_rotary.py)
-    const S = this.c.tsplat ? { ...this.c.splat, y0: Math.min(this.c.splat.y0, -1060) } : this.c.splat;
+  // north: the terrain's map of the north patch (terrain.js uTSplat), or null before it has come
+  _renderMap(north = null) {
+    // (the splat's rectangle, down to 신촌 로터리 where the town's own map reaches it: tools/sinchon_rotary.py, and up
+    // to 무악학사 where the north patch's does: tools/muak.py)
+    const TS = this.c.tsplat, S = { ...this.c.splat };
+    if (TS) S.y0 = Math.min(S.y0, -1060);
+    if (TS?.north) S.y1 = Math.max(S.y1, TS.north[3]);
+    this.mapRect = S;
     const k = 1 / 0.6;
     const W = Math.round((S.x1 - S.x0) * k), H = Math.round((S.y1 - S.y0) * k);
     const cv = document.createElement('canvas');
@@ -67,6 +79,28 @@ export class UI {
         x.closePath(); x.fill(); x.stroke();
       });
       for (const d of lms) { trace(x, d.outline, P); x.closePath(); x.fill(); x.stroke(); }
+    }
+    // the north patch: R asphalt, G paving, B earth (255) or the woods' floor (170), the rest lawn. It lies beside the
+    // town's map in the one texture (campus.json tsplat.atlas: its left edge, width and height, as fractions), its
+    // top row the north edge
+    if (north && TS?.north) {
+      const [nx0, ny0, nx1, ny1] = TS.north, A = TS.atlas;
+      const w = Math.round((nx1 - nx0) * k), h = Math.round((ny1 - ny0) * k);
+      const cv2 = document.createElement('canvas');
+      cv2.width = w; cv2.height = h;
+      const g = cv2.getContext('2d');
+      g.drawImage(north, A[2] * north.width, 0, A[3] * north.width, A[4] * north.height, 0, 0, w, h);
+      const im = g.getImageData(0, 0, w, h), d = im.data;
+      const put = (i, r, gg, b) => { d[i] = r; d[i + 1] = gg; d[i + 2] = b; d[i + 3] = 255; };
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] > 127) put(i, 0x8d, 0x90, 0x96);
+        else if (d[i + 1] > 127) put(i, 0xef, 0xe6, 0xd4);
+        else if (d[i + 2] > 212) put(i, 0xd9, 0xc3, 0x9b);
+        else if (d[i + 2] > 85) put(i, 0x9d, 0xbb, 0x84);
+        else d[i + 3] = 0;
+      }
+      g.putImageData(im, 0, 0);
+      x.drawImage(cv2, ...P(nx0, ny1));
     }
     // paths & roads
     x.lineCap = 'round'; x.lineJoin = 'round';
@@ -154,13 +188,26 @@ export class UI {
       const mx = (e.clientX - r.left) / r.width * cv.width, my = (e.clientY - r.top) / r.height * cv.height;
       const { ox, oy, s } = this._bigView;
       const u = (mx - ox) / s, v = (my - oy) / s;
-      const S = this.c.splat, k = this.mapScale;
-      let px = u / k + S.x0, py = S.y1 - v / k;
-      // snap to a landmark if close
-      for (const l of this.spots) if (Math.hypot(l.pos[0] - px, l.pos[1] - py) < 18) [px, py] = l.pos;
+      const S = this.mapRect, k = this.mapScale;
+      let px = u / k + S.x0, py = S.y1 - v / k, facing = null;
+      const I = this._inset;
+      if (I && mx >= I.x && mx <= I.x + I.w && my >= I.y && my <= I.y + I.h) {
+        // the inset: its own scale; a place of it within 45 m (the name's spot or where its walker stands) is that
+        // place, the walker before it and facing it
+        px = I.x0 + (mx - I.x) / I.s; py = I.y1 - (my - I.y) / I.s;
+        let near = null, nd = 45;
+        for (const p of this.north) {
+          const dd = Math.min(Math.hypot(p.pos[0] - px, p.pos[1] - py), Math.hypot(p.x - px, p.y - py));
+          if (dd < nd) { nd = dd; near = p; }
+        }
+        if (near) { px = near.x; py = near.y; facing = near.yaw; }
+      } else {
+        // snap to a landmark if close
+        for (const l of this.spots) if (Math.hypot(l.pos[0] - px, l.pos[1] - py) < 18) [px, py] = l.pos;
+      }
       for (const b of this.c.buildings) if (pointInPoly(px, py, b.footprint)) return;
       this.toggleMap(false);
-      this.opts.onTeleport(px, py);
+      this.opts.onTeleport(px, py, facing);
     });
   }
   toggleMap(show, px, py) {
@@ -174,8 +221,9 @@ export class UI {
   _drawBig(px, py) {
     const cv = $('#bigmap'), x = cv.getContext('2d');
     const W = cv.width;
+    this._bigAt = [px, py];
     // view: the core campus
-    const S = this.c.splat, k = this.mapScale;
+    const k = this.mapScale;
     const [u0, v0] = this.toMap(-360, 560), [u1, v1] = this.toMap(420, -480);
     const s = Math.min(W / (u1 - u0), W / (v1 - v0));
     const ox = -u0 * s + (W - (u1 - u0) * s) / 2, oy = -v0 * s + (W - (v1 - v0) * s) / 2;
@@ -205,6 +253,43 @@ export class UI {
       const [a, b] = this.toMap(px, py);
       dot(x, ox + a * s, oy + b * s, 8, '#e63946', '#fff', 3);
     }
+    this._inset = this.north.length ? this._drawInset(x, px, py) : null;
+  }
+  // 북문 · 무악학사 lie 350 - 600 m past the sheet's top: an inset of their own in the corner the town outside the west
+  // wall fills (a smaller scale; a press in it moves there as on the sheet). → its rectangle on the canvas and its
+  // projection, for the press
+  _drawInset(x, px, py) {
+    const R = { x0: -25, x1: 232, y0: 878, y1: 1238 }, s = 0.68, m = 12, k = this.mapScale;
+    const w = (R.x1 - R.x0) * s, h = (R.y1 - R.y0) * s;
+    const at = (a, b) => [m + (a - R.x0) * s, m + (R.y1 - b) * s];
+    const inside = (a, b) => a > R.x0 && a < R.x1 && b > R.y0 && b < R.y1;
+    x.fillStyle = '#fffdf6'; x.fillRect(m - 5, m - 5, w + 10, h + 28);
+    x.save();
+    x.beginPath(); x.rect(m, m, w, h); x.clip();
+    x.fillStyle = '#b5cf9a'; x.fillRect(m, m, w, h);
+    x.drawImage(this.mapCanvas, ...this.toMap(R.x0, R.y1), (R.x1 - R.x0) * k, (R.y1 - R.y0) * k, m, m, w, h);
+    x.textAlign = 'center';
+    x.font = 'bold 11px "Noto Sans KR", sans-serif';
+    x.lineWidth = 3; x.strokeStyle = 'rgba(255,253,246,.9)'; x.fillStyle = '#4a5260';
+    for (const mk of this.c.markers || []) {
+      if (!inside(...mk.pos) || this.north.some((p) => p.name === mk.name)) continue;
+      const [X, Y] = at(...mk.pos);
+      x.strokeText(mk.name, X, Y + 4); x.fillText(mk.name, X, Y + 4);
+    }
+    x.font = 'bold 15px "Noto Sans KR", sans-serif';
+    for (const p of this.north) {
+      const [X, Y] = at(...p.pos);
+      dot(x, X, Y, 9, '#fff', '#143c8c', 3);
+      const tw = x.measureText(p.name).width + 12;
+      x.fillStyle = 'rgba(255,253,246,.92)'; x.fillRect(X - tw / 2, Y - 34, tw, 22);
+      x.fillStyle = '#143c8c'; x.fillText(p.name, X, Y - 18);
+    }
+    if (px !== undefined && inside(px, py)) dot(x, ...at(px, py), 8, '#e63946', '#fff', 3);
+    x.restore();
+    x.strokeStyle = '#857d70'; x.lineWidth = 1.5; x.strokeRect(m, m, w, h);
+    x.textAlign = 'center'; x.font = 'bold 12px "Noto Sans KR", sans-serif'; x.fillStyle = '#4a5260';
+    x.fillText('캠퍼스 북쪽', m + w / 2, m + h + 16);
+    return { x: m, y: m, w, h, s, x0: R.x0, y1: R.y1 };
   }
 
   // ---------------------------------------------------------------- place / prompts

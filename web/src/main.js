@@ -25,7 +25,7 @@ import { WalkLabels } from './labels.js';
 import { Bubbles } from './talk.js';
 import { FountainWater } from './water/fountain.js';
 import { Birthday } from './birthday.js';
-import { startPlaces } from './places.js';
+import { startPlaces, NORTH } from './places.js';
 import { SunMap, bakeSunMap } from './bakedshadow.js';
 import { Blobs } from './blobs.js';
 import { Birds } from './birds.js';
@@ -622,10 +622,10 @@ async function main() {
   };
   const post = new Post(renderer, scene, camera);
   const ui = new UI(campus, {
-    onTeleport: (x, y) => {
+    onTeleport: (x, y, facing = null) => {         // (facing: a place of the map's inset, its walker's yaw)
       if (bird.active) leaveBird();
       const [lx, ly, yaw] = landAt(x, y);
-      player.teleport(lx, ly, yaw);
+      player.teleport(lx, ly, yaw ?? facing);
       forest.update(camera.position, true);
       resume();
     },
@@ -693,6 +693,13 @@ async function main() {
   }
   heroPlace = (id) => { const i = places.findIndex((p) => p.name === HERO[id]?.place); placeEl.value = i < 0 ? '' : i; };
   heroPlace(heroId);
+  // 북문 · 무악학사 (places.js NORTH): past the map's sheet, so the map has them in an inset, and the tour pins them as
+  // it does the memory spots (seen from over the campus, not only from close by)
+  const north = NORTH.map((name) => {
+    const m = (campus.markers || []).find((q) => q.name === name), p = places.find((q) => q.name === name);
+    return m && p && { id: `north-${name}`, name, pos: m.pos, x: p.x, y: p.y, yaw: p.yaw };
+  }).filter(Boolean);
+  ui.north = north;
 
   const setSeason = (v) => {
     season = v;
@@ -901,7 +908,7 @@ async function main() {
     return b;
   })();
   const bird = new BirdsEye({
-    camera, dom: canvas, landmarks: campus.landmarks, markers: campus.markers || [],
+    camera, dom: canvas, landmarks: [...campus.landmarks, ...north], markers: (campus.markers || []).filter((m) => !NORTH.includes(m.name)),
     heightAt: (x, y) => hfNear.height(x, y),
     groundAt,
     surfaceAt,

@@ -14,7 +14,15 @@ const polyDist = (p, poly) => (pointInPoly(p[0], p[1], poly) ? 0 : Math.min(...p
 const yawTo = (dx, dy) => Math.atan2(-dx, dy);          // Player.teleport's yaw: the walker then faces (-sin yaw, cos yaw)
 // a building whose flights give on a court too narrow to stand back in (의과대학: between its two halls, a wall 6 m
 // before the door): where to stand instead, and the point of its wall to face (the long hall's open north-west side)
-const STAND = { 의과대학: { at: [128.9, -321.9], face: [134.5, -327.5] } };
+// 북문 is no hall but two frames the loop road runs between (고증 3.21: the gap's middle (15, 915), the road in from
+// the east): on that road 10 m inside them, facing the gap. 무악학사's name stands in the middle of its first hall,
+// between wings the walker could not get out from: on the bend of the road before the two halls, facing the court
+// between them
+const STAND = { 의과대학: { at: [128.9, -321.9], face: [134.5, -327.5] },
+  북문: { at: [25.5, 918.0], face: [15.0, 915.0] }, 무악학사: { at: [141.5, 1152.5], face: [133.5, 1176.0] } };
+// the places 350 - 600 m north of the campus map's sheet (campus.json markers): the map shows them in an inset
+// (ui.js) and the tour pins them as it does the memory spots (main.js)
+export const NORTH = ['북문', '무악학사'];
 
 // → [{ name, group, x, y, yaw, front }] (front: standing at the door); resolve(x, y, r) pushes a circle out of the colliders
 export function startPlaces(campus, zones, resolve) {
