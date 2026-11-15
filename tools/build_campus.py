@@ -9168,11 +9168,14 @@ CENT_SW_PAVE = Polygon([(-48.6, -248.0), (-49.49, -245.5), (-49.7, -244.7), (-49
     .difference(Point(CENT_SW_C).buffer(CENT_SW_R[0], quad_segs=24))
 _ypaint(list(shapely.ops.split(CENT_SW_PAVE, LineString([(CENT_SW_C[0], -280.0), (CENT_SW_C[0], -200.0)])).geoms), _gp)
 # - 중앙도서관 남쪽 화단: a round paved disc in the middle bed (fitted in three frames to 0.2 m, two trees over its west
-#   side), and on its middle 연세한글탑 (1992; reference/고증/2.3.4 「도서관 남쪽 둥근 포장과 한글탑」): the tall pale thing
-#   that leans away from each camera, its top 7.2 m over the paving where four frames agree (-63.7, -111.0), there in
-#   the Kakao skyview of 2008 and 2010 too, until the 백양로 rebuilding moved it.  The paving stands 0.5 - 0.9 m over
-#   the lawn east of it in the scans (the tower's lost foot, 「땅」); the game's bed slopes west under it, so the disc
-#   stays on the ground (남은 한계).  The tower's legs set by the bed's walks (the library's south face): not known
+#   side), and on its middle 연세한글탑 (1992; reference/고증/4.14, the scans' numbers in 2.3.4): the tall pale thing
+#   that leans away from each camera, its top 7.2 m over the paving where four frames agree (-63.7, -111.0).  The
+#   tower itself stands there in the roadview of 2010-12 and 2011-04 and in the unveiling photographs of 1992, and the
+#   Kakao skyview of 2008 and 2010 has the disc within 0.3 m of the scans', until the 백양로 rebuilding moved it.  The
+#   paving stands 0.5 - 0.9 m over the lawn east of it in the scans (the tower's round stepped foot, 「땅」, lost in the
+#   move); the game's bed slopes west under it, so the disc stays on the ground (남은 한계).  rot = the library's axis:
+#   the cross of its legs lies along it, local +x (the bore through the head) looks at 백양로 (azimuth 107 +- 3 in the
+#   roadview), -y (the leg with the name) south
 LIB_S_DISC = Point(-63.2, -110.9).buffer(7.6, quad_segs=24)
 _ypaint([LIB_S_DISC], _gp)
 HANGEUL_TOWER = dict(pos=[-63.5, -111.0], h=7.2, rot=round(math.radians(-14.6), 4))

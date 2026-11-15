@@ -6122,10 +6122,14 @@ def kwangbok():
 # ============================================================================= 연세한글탑 (1992)
 def hangeul_tower():
     """연세한글탑 (1992, 전뢰진; granite) on the round paving south of 중앙도서관, where it stood until the 백양로
-    rebuilding (tools/build_campus.py HANGEUL_TOWER, reference/고증/2.3.4 「도서관 남쪽 둥근 포장과 한글탑」): four
-    splayed legs on a cross plan, a square shaft between them, and on it a thick ring on edge (the 원 of 천 · 지 · 인,
-    the letters round it not modelled).  Its top 7.2 m over the paving in the 1997 scans (four frames); the shape after
-    photographs of the tower as it stands now, the proportions an approximation."""
+    rebuilding (tools/build_campus.py HANGEUL_TOWER, reference/고증/4.14): four legs on a cross plan, each an upright
+    slab that runs out into a boot, and on them a barrel on its side with a bore through it (the 원 of 천 · 지 · 인;
+    the letters and grooves round it not modelled).  Local +x looks at 백양로 (the bore's way, the roadview of 2010
+    and 2011: seen straight through from azimuth 107), -y at the eagle and the gate: 「연세한글탑」 is cut in that
+    leg's face (the unveiling photographs of 1992; the letters not modelled).  The dark plate low on the north leg's
+    east flank is from the roadview.  Its top 7.2 m over the paving in the 1997 scans (four frames); the head 2.65 m
+    across by the roadview, the legs' reach and the profile after photographs, an approximation.  The round stepped
+    foot (the 「땅」, five steps) is not built: the game's bed slopes under it (남은 한계)."""
     T = CAMPUS.get('hangeul_tower')
     if not T:
         return []
@@ -6135,31 +6139,38 @@ def hangeul_tower():
     mb.xf = local_frame(x, y, T['rot'], ground(x, y))
     S = 'stone_granite'
 
-    def out_face(pts, n):
+    def out_face(pts, n, mat=S, **kw):
         """pts wound so that the face looks along n"""
         a, b, c = (Vector(p) for p in pts[:3])
-        mb.face(pts if (b - a).cross(c - b).dot(Vector(n)) > 0 else pts[::-1], S)
+        mb.face(pts if (b - a).cross(c - b).dot(Vector(n)) > 0 else pts[::-1], mat, **kw)
 
-    mb.box((0, 0, 2.3 * k), (1.15 * k, 1.15 * k, 4.6 * k), S, skip=('bottom',))
-    prof = [(0.5, -0.3), (2.8, -0.3), (2.8, 1.15), (2.05, 1.45), (1.1, 3.6), (0.5, 4.3)]       # a leg: (out, up)
-    w = 0.62 * k
+    w = 0.75 * k                                                                            # the slabs' half width
+    mb.box((0, 0, 2.15 * k), (2 * w, 2 * w, 4.9 * k), S, skip=('bottom',))
+    # a leg's outer line, (out, up): the toe's blunt end, the instep, the upright slab and its shoulder
+    prof = [(3.0, -0.3), (3.0, 0.85), (2.75, 1.1), (1.9, 1.55), (1.3, 2.1), (1.12, 2.6), (1.05, 4.2), (0.9, 4.5), (0.6, 4.6)]
     for q in range(4):
         c_, s_ = math.cos(q * math.pi / 2), math.sin(q * math.pi / 2)
         W = lambda r, t, z: (r * k * c_ - t * s_, r * k * s_ + t * c_, z * k)
-        for sg in (-1, 1):
-            out_face([W(r, sg * w, z) for r, z in prof], (-sg * s_, sg * c_, 0))
-        for (r0, z0), (r1, z1) in zip(prof[1:], prof[2:]):
-            out_face([W(r0, -w, z0), W(r0, w, z0), W(r1, w, z1), W(r1, -w, z1)], (c_ * (z1 - z0 + 1e-6), s_ * (z1 - z0 + 1e-6), r0 - r1 + 0.3))
-    # the ring on edge: its axis level, across the tower's front
-    zc, ro, ri, hl, n = 5.9 * k, 1.3 * k, 0.62 * k, 0.95 * k, 20
+        for (r0, z0), (r1, z1) in zip(prof, prof[1:]):
+            for sg in (-1, 1):                                                              # the flanks, in level bands
+                out_face([W(0.6, sg * w, z0), W(r0, sg * w, z0), W(r1, sg * w, z1), W(0.6, sg * w, z1)], (-sg * s_, sg * c_, 0))
+            out_face([W(r0, -w, z0), W(r0, w, z0), W(r1, w, z1), W(r1, -w, z1)], (c_ * (z1 - z0), s_ * (z1 - z0), r0 - r1 + 1e-6))
+    # the plate on the north leg's east flank
+    mb.box((w + 0.02 * k, 1.5 * k, 0.8 * k), (0.05 * k, 0.8 * k, 0.55 * k), 'bronze', skip=('bottom',))
+    # the head: a barrel on its side, the bore along x
+    zc, R0, hl, ri, n, ns = 5.875 * k, 1.325 * k, 0.95 * k, 0.58 * k, 24, 6
+    Rs = lambda s: R0 * math.sqrt(1.0 - (0.6 * s / hl) ** 2)                                # 0.8 R0 at the ends
+    P = lambda s, r, a: (s, r * math.cos(a), zc + r * math.sin(a))
     for i in range(n):
         a0, a1 = 2 * math.pi * i / n, 2 * math.pi * (i + 1) / n
-        P = lambda r, a, yy: (r * math.cos(a), yy, zc + r * math.sin(a))
         am = (a0 + a1) / 2
-        out_face([P(ro, a0, -hl), P(ro, a1, -hl), P(ro, a1, hl), P(ro, a0, hl)], (math.cos(am), 0, math.sin(am)))
-        out_face([P(ri, a0, -hl), P(ri, a1, -hl), P(ri, a1, hl), P(ri, a0, hl)], (-math.cos(am), 0, -math.sin(am)))
-        for yy in (-hl, hl):
-            out_face([P(ri, a0, yy), P(ro, a0, yy), P(ro, a1, yy), P(ri, a1, yy)], (0, yy, 0))
+        rad = (0, math.cos(am), math.sin(am))
+        for j in range(ns):
+            s0, s1 = -hl + 2 * hl * j / ns, -hl + 2 * hl * (j + 1) / ns
+            out_face([P(s0, Rs(s0), a0), P(s1, Rs(s1), a0), P(s1, Rs(s1), a1), P(s0, Rs(s0), a1)], rad, smooth='ht_head')
+        out_face([P(-hl, ri, a0), P(hl, ri, a0), P(hl, ri, a1), P(-hl, ri, a1)], tuple(-v for v in rad), smooth='ht_bore')
+        for sg in (-1, 1):
+            out_face([P(sg * hl, ri, a0), P(sg * hl, Rs(hl), a0), P(sg * hl, Rs(hl), a1), P(sg * hl, ri, a1)], (sg, 0, 0))
     return [mb]
 
 
