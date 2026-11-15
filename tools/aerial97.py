@@ -55,10 +55,12 @@ ZONE = '199705A0301'          # 사업코드: 지자체 공간정보(서울특�
 _C = json.load(open(os.path.join(ROOT, 'tools/aerial97_cam.json')))
 F_MM = _C['f_mm']             # 초점 거리(사진 테두리의 「152.85」)
 GSD = 0.54                    # 땅 위 한 화소(m, 캠퍼스 가운데: 카메라가 땅 위 약 930 m)
+GSD_MM = _C['pix_mm']         # 미리보기 한 화소(mm)
 # (코스, 사진 번호): M 은 화소 -> 사진 좌표(mm) 아핀(지표 여덟 개), cam 은 카메라 자리(게임 x, y, z)와 돎(ω, φ, κ rad)
 FRAMES = {tuple(int(v) for v in k.split('/')): dict(M=np.array(f['M']), cam=np.array(f['cam'])) for k, f in _C['frames'].items()}
 SCALE = 4.25                  # 원본 스캔 화소 = 미리보기 화소 × SCALE + (SCALE - 1) / 2
 SRC = os.environ.get('AERIAL97_SRC', 'scan')
+FLIGHT = '1997'               # frames_at · surface_z 가 기본으로 쓰는 비행(aerial_more.py 의 명령이 바꿈)
 _H = None
 _IM = {}
 _SC = {}
@@ -66,17 +68,27 @@ _R = {}
 
 
 def path(frame):
-    return os.path.join(DIR, 'ngii_1997_%s_c%d_n%d.jpg' % (ZONE, *frame))
+    return FRAMES.get(frame, {}).get('jpg') or os.path.join(DIR, 'ngii_1997_%s_c%d_n%d.jpg' % (ZONE, *frame))
 
 
 def scan_path(frame):
-    return os.path.join(DIR, 'ngii_1997_%s_c%d_n%d.tif' % (ZONE, *frame))
+    return FRAMES.get(frame, {}).get('tif') or os.path.join(DIR, 'ngii_1997_%s_c%d_n%d.tif' % (ZONE, *frame))
+
+
+def focal(frame):
+    """초점 거리(mm). 다른 비행의 사진(tools/aerial_more.py 가 더한 것)은 제 카메라의 값"""
+    return FRAMES[frame].get('f', F_MM)
+
+
+def flight_of(frame):
+    """그 사진의 비행: 1997년 7월 것(과 aerial_resect 가 더한 것)은 '1997', aerial_more 가 더한 것은 제 이름('1996' …)"""
+    return FRAMES[frame].get('flight', '1997')
 
 
 def scan(frame):
     """원본 스캔(8비트 회색, 팔레트 번호 = 밝기)을 메모리 사상으로. 없으면(또는 AERIAL97_SRC=preview) None"""
     if frame not in _SC:
-        npy = os.path.join(DIR, 'cache', 'c%d_n%d.npy' % frame)
+        npy = FRAMES.get(frame, {}).get('npy') or os.path.join(DIR, 'cache', 'c%d_n%d.npy' % frame)
         if SRC != 'scan' or not (os.path.exists(npy) or os.path.exists(scan_path(frame))):
             _SC[frame] = None
             return None
@@ -135,7 +147,7 @@ def to_px(frame, x, y, z=None):
     z = ground(x, y) if z is None else z
     P = np.stack(np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float), np.asarray(z, float) + block_dz(x, y)), -1)
     d = (P - fr['cam'][:3]) @ rot(frame).T
-    mm = -F_MM * d[..., :2] / d[..., 2:3]
+    mm = -focal(frame) * d[..., :2] / d[..., 2:3]
     px = (mm - fr['M'][2]) @ np.linalg.inv(fr['M'][:2])
     return (float(px[0]), float(px[1])) if px.ndim == 1 else px
 
@@ -144,7 +156,7 @@ def ray(frame, px, py):
     """화소 -> (카메라 자리, 세계 방향), 높이는 해발: 블록의 광선에서 기울어진 면을 뺀 것(직선은 직선으로 옮겨진다)"""
     fr = FRAMES[frame]
     mm = np.array([px, py, 1.0]) @ fr['M']
-    d = np.array([mm[0], mm[1], -F_MM]) @ rot(frame)
+    d = np.array([mm[0], mm[1], -focal(frame)]) @ rot(frame)
     c = np.array(fr['cam'][:3], float)
     c[2] -= block_dz(c[0], c[1])
     d = d - np.array([0.0, 0.0, (TILT[1] * d[0] + TILT[2] * d[1]) / 100.0])
@@ -164,15 +176,24 @@ def to_game(frame, px, py, z=None):
 
 
 def inside(frame, px, py, margin=20):
-    """사진 면(지표 안쪽) 안인가. 코스 27은 자료 띠가 위에 있어 사진 면이 168 화소 아래"""
+    """사진 면(지표 안쪽) 안인가. 코스 27은 자료 띠가 위에 있어 사진 면이 168 화소 아래.
+    다른 비행의 사진(half_mm 이 있는 것)은 사진 좌표로: 주점에서 ±half_mm 안"""
+    hm = FRAMES.get(frame, {}).get('half_mm')
+    if hm is not None:
+        M = FRAMES[frame]['M']
+        mm = np.stack(np.broadcast_arrays(np.asarray(px, float), np.asarray(py, float)), -1) @ M[:2] + M[2]
+        return (np.abs(mm[..., 0]) < hm - margin * GSD_MM) & (np.abs(mm[..., 1]) < hm - margin * GSD_MM)
     y0 = 160 if frame[0] == 26 else 328
     return (px > 160 + margin) & (px < 2482 - margin) & (py > y0 + margin) & (py < y0 + 2322 - margin)
 
 
-def frames_at(x, y, z=None, margin=20):
-    """그 점이 찍힌 사진들: (카메라 아래 점에서의 거리 m, frame, px, py), 가까운 것부터"""
+def frames_at(x, y, z=None, margin=20, flight=None):
+    """그 점이 찍힌 사진들: (카메라 아래 점에서의 거리 m, frame, px, py), 가까운 것부터.
+    flight 가 없으면 1997년 7월 비행의 것만(다른 비행은 '1996' 처럼 이름을: tools/aerial_more.py)"""
     out = []
     for fr, f in FRAMES.items():
+        if flight_of(fr) != (flight or FLIGHT):
+            continue
         px, py = to_px(fr, x, y, z)
         if inside(fr, px, py, margin):
             out.append((math.hypot(x - f['cam'][0], y - f['cam'][1]), fr, px, py))
@@ -207,12 +228,12 @@ def ortho(frame, x, y, half, res, z=None, dz=0.0):
     return sample(frame, p[..., 0], p[..., 1])
 
 
-def ground_offset(x, y, half, n=5):
+def ground_offset(x, y, half, n=5, flight=None):
     """(x, y) 둘레 ±half m 의 n x n 점에서 사진으로 잰 땅 높이 - 게임 지형의 중앙값(m)과 쓴 점의 수. 잴 수 없으면 (0, 0)"""
     d = []
     for gx in np.linspace(x - half * 0.8, x + half * 0.8, n):
         for gy in np.linspace(y - half * 0.8, y + half * 0.8, n):
-            pk, _ = surface_z(gx, gy, 3.0, -9.0, 9.0)
+            pk, _ = surface_z(gx, gy, 3.0, -9.0, 9.0, flight=flight)
             if pk and pk[0][0] >= 0.7 and (len(pk) < 2 or pk[1][0] < pk[0][0] - 0.15):
                 d.append(pk[0][1] - ground(gx, gy))
     return (float(np.median(d)), len(d)) if len(d) >= 3 else (0.0, 0)
@@ -234,11 +255,11 @@ def _peaks(zs, s, n=3):
     return sorted(out, reverse=True)[:n]
 
 
-def surface_z(x, y, win=4.0, lo=-8.0, hi=45.0, step=0.25, frames=None, grid=None):
+def surface_z(x, y, win=4.0, lo=-8.0, hi=45.0, step=0.25, frames=None, grid=None, flight=None):
     """평면 자리 (x, y)의 표면 높이. 높이 후보마다 그 높이의 수평 창(±win m)을 사진들에 투영해 서로의 상관을 본다.
     돌려주는 것: [(점수, 높이)] 봉우리 높은 것부터, 쓴 사진들. 창에 지붕과 땅이 함께 들면 봉우리가 둘 나온다"""
     g = ground(x, y)
-    frs = frames or [f[1] for f in frames_at(x, y, g, margin=40)]
+    frs = frames or [f[1] for f in frames_at(x, y, g, margin=40, flight=flight)]
     if len(frs) < 2:
         return [], frs
     gr = grid or 0.5              # 창 안 점 사이(m). 원본 스캔에서 좁은 것(계단 · 연석)을 잴 때는 창을 줄이고 0.25 m 로
@@ -259,7 +280,7 @@ def match_xyz(frame, px, py, win=4.0, lo=-8.0, hi=45.0, step=0.25):
     g = to_game(frame, px, py)[2]
     zs = np.arange(g + lo, g + hi + step / 2, step)
     P = c + d * ((zs - c[2]) / d[2])[:, None]
-    others = [f for f in FRAMES if f != frame and all(inside(f, *to_px(f, q[0], q[1], q[2]), 40) for q in (P[0], P[-1]))]
+    others = [f for f in FRAMES if f != frame and flight_of(f) == flight_of(frame) and all(inside(f, *to_px(f, q[0], q[1], q[2]), 40) for q in (P[0], P[-1]))]
     if not others:
         return None
     n = int(round(2 * win / 0.5)) + 1
@@ -286,25 +307,35 @@ def survey_dz(x, y):
     return c + ax * np.asarray(x, float) / 100.0 + ay * np.asarray(y, float) / 100.0
 
 
+ALIAS = {}                    # (비행, (코스, 번호)) -> FRAMES 의 키: aerial_more.register() 가 채움
+
+
 def _frame_arg(a):
-    return tuple(int(v) for v in a.split('/'))
+    k = tuple(int(v) for v in a.split('/'))
+    return ALIAS.get((FLIGHT, k), k)
 
 
-if __name__ == '__main__':
-    cmd, a = sys.argv[1], sys.argv[2:]
+def label(frame):
+    """사진의 이름: '26/15', 다른 비행은 '1996 26/15'"""
+    return FRAMES[frame].get('label') or '%d/%d' % frame
+
+
+def main(argv):
+    """명령줄(머리말). aerial_more.py 가 다른 비행의 사진으로 같은 명령을 돌릴 때도 씀"""
+    cmd, a = argv[0], argv[1:]
     if cmd == 'where':
         x, y = float(a[0]), float(a[1])
         z = float(a[2]) if len(a) > 2 else None
         print('땅 높이 %.1f m' % ground(x, y))
         for d, fr, px, py in frames_at(x, y, z):
-            print('코스 %d 사진 %d: 화소 (%.1f, %.1f), 카메라 아래에서 %.0f m, %s' % (*fr, px, py, d, path(fr)))
+            print('사진 %s: 화소 (%.1f, %.1f), 카메라 아래에서 %.0f m, %s' % (label(fr), px, py, d, path(fr)))
     elif cmd == 'px':
         fr = _frame_arg(a[0])
         print('게임 좌표 (%.1f, %.1f), 높이 %.1f m' % to_game(fr, float(a[1]), float(a[2]), float(a[3]) if len(a) > 3 else None))
     elif cmd == 'z':
         x, y = float(a[0]), float(a[1])
         pk, frs = surface_z(x, y, *(float(v) for v in a[2:5]))
-        print('땅(지형) 해발 %.1f m, 사진 %s' % (ground(x, y), ' '.join('%d/%d' % f for f in frs)))
+        print('땅(지형) 해발 %.1f m, 사진 %s' % (ground(x, y), ' · '.join(label(f) for f in frs)))
         for sc, z in pk:
             print('  높이 해발 %.1f m (상관 %.2f)' % (z, sc))
     elif cmd == 'xyz':
@@ -313,7 +344,7 @@ if __name__ == '__main__':
         if r is None:
             print('겹쳐 찍힌 다른 사진이 없음')
         else:
-            print('사진 %s' % ' '.join('%d/%d' % f for f in r[1]))
+            print('사진 %s' % ' · '.join(label(f) for f in r[1]))
             for sc, x, y, z in r[0]:
                 print('  (%.1f, %.1f) 높이 %.1f m (상관 %.2f)' % (x, y, z, sc))
     elif cmd == 'crop':
@@ -352,5 +383,9 @@ if __name__ == '__main__':
                 if gx % (2 * g) == 0 and gy % (2 * g) == 0:
                     d.text((p[0] + 3, p[1] + 2), '%d,%d' % (gx, gy), fill=(0, 255, 255))
         c.save(out)
-        print(out, c.size, '사진 %d/%d, %.2f m/화소, 카메라 아래 (%.0f, %.0f), 땅 높이 = %s' % (
-            *fr, res, cam[0], cam[1], '%.1f m 수평면' % zp if zp is not None else '게임 지형 %+.1f m (사진으로 잰 %d점)' % (dz, nz)))
+        print(out, c.size, '사진 %s, %.2f m/화소, 카메라 아래 (%.0f, %.0f), 땅 높이 = %s' % (
+            label(fr), res, cam[0], cam[1], '%.1f m 수평면' % zp if zp is not None else '게임 지형 %+.1f m (사진으로 잰 %d점)' % (dz, nz)))
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
