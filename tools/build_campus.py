@@ -6976,6 +6976,7 @@ _fs_hall = Polygon([(-523.9, -176.1), (-514.7, -166.8), (-493.5, -188.5), (-507.
 _fs_took, FIELDSPUR97 = fieldhill97.spur(Hn, X, Y, FIXED & ~(_fpd & shapely.contains_xy(fieldhill97.SPUR, X, Y)), _fs_hall,
                                          harmonic_fill)
 FIXED[_fh_took | _fs_took] = True
+BASE_1997[990020] = round(FIELD['pad_z'] + gate_town.WEST_DZ, 2)     # (학군단: on its pad on the field side; its yards rose)
 print('학군단 북쪽 비탈:', FIELDSPUR97)
 # 과학관 남쪽 공터의 동쪽 반 · 체육교육관 북쪽 끝 앞 (tools/gymnorth97.py, reference/고증/3.22 「과학관 남쪽 공터의 높이」 ·
 # 3.10 「마당의 둑과 차 길」; #189), late: the planting has read the ground as it was.  The drive round the court (south
