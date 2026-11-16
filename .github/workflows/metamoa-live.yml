@@ -1,0 +1,44 @@
+name: 메타모아 접속자 수
+
+# 메타모아(https://metamoa.com)에 지금 접속자 수를 10분마다 보낸다.
+# 게임에 접속자를 셀 서버가 없어 늘 1 을 보낸다.
+# 공간 키는 secret METAMOA_KEY. 없으면(승인 전) 건너뛴다.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: metamoa-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: 접속자 수 1 보내기
+        env:
+          METAMOA_KEY: ${{ secrets.METAMOA_KEY }}
+          SPACE_ID: yonsei-1997-benelog-net-mwj6vzb6
+        run: |
+          if [ -z "$METAMOA_KEY" ]; then
+            echo "METAMOA_KEY 가 없어 건너뜀"
+            exit 0
+          fi
+          code=$(curl -s -o body.txt -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $METAMOA_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{"count":1}' \
+            "https://metamoa.com/api/live/$SPACE_ID")
+          echo "HTTP $code"
+          cat body.txt
+          echo
+          case "$code" in
+            204) ;;
+            429) echo "9분 안에 다시 보내 거절됨(일정이 밀린 실행): 건너뜀" ;;
+            *) exit 1 ;;
+          esac
