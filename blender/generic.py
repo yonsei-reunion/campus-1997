@@ -495,11 +495,14 @@ def barrel_roof(mb, cx, cy, L, W, ang, zt, rise=0.22, seg=12):
     P = lambda x, y, z: (cx + x * c - y * s, cy + x * s + y * c, z)
     h = W * rise
     prof = [(-W / 2 + W * k / seg, zt + h * math.sin(math.pi * k / seg)) for k in range(seg + 1)]
+    # (the vault and both gables face outwards: the vault's quads had faced down, so that from above the walls stood
+    # round an open box, and the west gable had faced in)
     for (y0, z0), (y1, z1) in zip(prof, prof[1:]):
-        mb.quad(P(-L / 2 - 0.4, y0, z0), P(-L / 2 - 0.4, y1, z1), P(L / 2 + 0.4, y1, z1), P(L / 2 + 0.4, y0, z0), 'metal')
+        mb.quad(P(L / 2 + 0.4, y0, z0), P(L / 2 + 0.4, y1, z1), P(-L / 2 - 0.4, y1, z1), P(-L / 2 - 0.4, y0, z0), 'metal')
     for x in (-L / 2, L / 2):           # arched gable ends
         for (y0, z0), (y1, z1) in zip(prof, prof[1:]):
-            mb.quad(P(x, y0, zt), P(x, y1, zt), P(x, y1, z1), P(x, y0, z0), 'concrete')
+            q = [P(x, y0, zt), P(x, y1, zt), P(x, y1, z1), P(x, y0, z0)]
+            mb.quad(*(q if x > 0 else q[::-1]), 'concrete')
 
 
 # ----------------------------------------------------------------------------- rooftop features the outlines cannot say
