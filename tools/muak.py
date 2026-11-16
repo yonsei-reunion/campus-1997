@@ -12,8 +12,9 @@ over the crest (y 760) and down round the hairpin (y 892) to the fork before 북
 - The line: the 2008 skyview survey's middle line (tools/roadview/muak/proposal_roads.json, +-1 m), moved left by what
   the photos show (OFF97): the white middle line of the leafless winter scans of 1996 (27/15, course 27 of 1996-11-28)
   every metre from s 10 to 283, which lies within 0.15 m of the 1997-07-28 frames' (27/15, 27/16) wherever those see
-  it; at s 515 - 610 the line where 1996 26/14 and 1997 27/15 · 27/16 agree.  Between (the hairpin) as the 1997 frames
-  had it.  OSM's line is 2 - 3 m east of the survey's.
+  it; at s 515 - 610 the line where 1996 26/14 and 1997 27/15 · 27/16 agree.  Below the hairpin (s 355 - 500) the thin
+  white line where four or more frames of 1996, 1997 and 1999 (both courses) put it within 0.2 m on Z97's surface.
+  The hairpin's apex (s 300 - 350) as the 1997 frames had it.  OSM's line is 2 - 3 m east of the survey's.
 - Its width: 6.0 m between the kerbs (the photos' east kerb and west edge at s 30 - 160), the walk on the west 2.5 m.
 - Its height (Z97): the road surface measured on the photos (corr >= 0.7), the bend as the road there has it.
 Nothing here draws from build_campus.py's `rng`: random.Random(15991) for the trees.  The rows and the woods are still
@@ -35,9 +36,13 @@ import north97
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 _P = json.load(open(os.path.join(ROOT, 'tools/roadview/muak/proposal_roads.json')))
 # the middle line left of the survey's (the survey's s, m): s 0 - 295 the 1996 winter scan 27/15's white middle line
-# (with the heights below: 333 points within 0.15 m (90 %) of this line), the hairpin s 300 - 500 as the 1997 frames
-# had it (0.5 m at s 282 - 298 and the road between +4 and -1 m at s 500 - 600 in 26/14), s 505 - 630 where 1996 26/14
-# and 1997 27/15 · 27/16 put the line (1.1 - 1.9 m left of that), eased into the fork
+# (with the heights below: 333 points within 0.15 m (90 %) of this line), the hairpin's apex s 300 - 350 as the 1997
+# frames had it (0.5 m at s 282 - 298), s 360 - 500 the thin white middle line every 4 m (a ridge brighter than both sides,
+# so not a kerb's edge) where three or more frames agree within 0.2 m on Z97's surface: 1997 26/13 · 26/14 · 27/15 ·
+# 27/16 and 1999 27/15 · 26/15 from both courses at s 362 - 370, 414 - 422 and 478 - 490, the two 1996 frames between
+# (their split, 26/14 and 27/15 0.3 m apart, is 27/15's: the 1997 frames agree with 26/14 at s 362 - 370); the knots
+# below give a line within 0.27 m of every reading (reference/고증/3.21.1 「자리」), s 505 - 630 where 1996 26/14
+# and 1997 27/15 · 27/16 put the line (1.1 - 1.9 m left of the survey's line before), eased into the fork
 OFF97 = [(0, 2.00), (5, 2.01), (10, 2.06), (15, 2.11), (20, 2.22), (25, 2.36), (30, 2.45), (35, 2.33), (40, 2.06),
          (45, 1.74), (50, 1.67), (55, 1.24), (60, 0.87), (65, 0.94), (70, 1.07), (75, 1.20), (80, 1.31), (85, 1.49),
          (90, 1.64), (95, 1.72), (100, 1.71), (105, 1.90), (110, 2.02), (115, 2.16), (120, 2.35), (125, 2.59), (130, 2.61),
@@ -45,7 +50,9 @@ OFF97 = [(0, 2.00), (5, 2.01), (10, 2.06), (15, 2.11), (20, 2.22), (25, 2.36), (
          (175, 1.55), (180, 1.32), (185, 1.04), (190, 0.59), (195, 0.49), (200, 0.31), (205, 0.08), (210, -0.16),
          (215, -0.37), (220, -0.63), (225, -0.89), (230, -1.10), (235, -1.20), (240, -1.17), (245, -1.06), (250, -0.86),
          (255, -0.73), (260, -0.79), (265, -0.94), (270, -1.20), (275, -1.12), (280, -0.49), (285, -0.10), (290, 0.39),
-         (295, 0.50), (300, 0.50), (420, 0.50), (500, 1.50), (505, 2.02), (510, 2.85), (515, 3.22), (520, 3.24),
+         (295, 0.50), (300, 0.50), (350, 0.50), (360, -0.20), (370, -0.21), (380, -0.16), (390, -0.35), (400, -0.64),
+         (410, -1.42), (420, -1.48), (430, -0.64), (440, -0.15), (450, 0.03), (460, 0.27), (470, -0.85), (480, -0.57),
+         (490, 0.26), (500, 1.54), (505, 2.02), (510, 2.85), (515, 3.22), (520, 3.24),
          (525, 3.20), (530, 3.07), (535, 2.97), (540, 2.92), (545, 2.79), (550, 2.78), (555, 2.76), (560, 2.58),
          (565, 2.54), (570, 2.46), (575, 2.36), (580, 2.20), (585, 2.19), (590, 2.37), (595, 2.42), (600, 2.58),
          (605, 2.57), (610, 2.41), (615, 1.88), (620, 1.16), (625, 0.46), (630, 0.01)]
@@ -66,15 +73,21 @@ WALK = (3.25, 5.75)             # the west walk, left of the middle line (s 8 on
 # the middle line, on the carriageway), s 284 (248.8, 845.6 · 246.7, 847.2, with the frames' 91.2 - 91.5 there), s 488
 # (116.2, 836.8).  From the hairpin to the fork one fall of 10 - 12 %: the frames' 77 - 79 m at s 430 - 462 was the
 # crowns over the road (the pairs that see the road under them: 75.6 at s 427, 73.1 at s 448, 70.6 at s 469, 68.7 at
-# s 483, within 0.8 m of the survey's contours)
+# s 483, within 0.8 m of the survey's contours).  Below the hairpin the line's own readings (u and z solved together
+# from frames of both courses) stand within 0.4 m of this profile at s 362 - 370, 414 - 422 and 478 - 490.  Before the
+# fork s 612 · 620 (2 m windows on the line and 1.5 m either side): 1997 26/14 x 26/13 (corr 0.88 - 0.96) and the 1999
+# east-west pair 27/15 x 26/15 read 0.47 - 0.73 m under the straight fall from s 602 to the fork at s 608 - 616 and
+# 0.2 - 0.4 m at s 620 with the 1997 east-west pairs; at s 600 - 604 and the fork itself the profile as it was
 Z97 = datum.up_at([(-14.0, 77.46), (10.0, 80.73), (25.0, 82.50), (35.0, 83.63), (50.0, 85.36), (65.0, 86.99), (80.0, 88.97),
                    (100.0, 90.96), (112.0, 92.17), (127.0, 93.78), (140.0, 95.0), (152.0, 95.8), (162.0, 96.05), (175.0, 95.8),
                    (195.0, 95.46), (225.0, 93.9), (284.0, 90.56), (301.0, 90.05), (329.0, 86.48), (343.0, 84.73), (413.0, 77.05),
-                   (448.0, 73.04), (488.0, 68.07), (525.0, 64.28), (558.0, 60.87), (602.0, 55.95), (630.0, 53.23)],
+                   (448.0, 73.04), (488.0, 68.07), (525.0, 64.28), (558.0, 60.87), (602.0, 55.95), (612.0, 54.45), (620.0, 53.80),
+                   (630.0, 53.23)],
                   [(189.3, 563.9), (207.3, 579.4), (215.7, 591.2), (220.1, 599.8), (223.8, 613.7), (224.5, 628.6), (224.1, 643.6),
                    (223.5, 663.5), (223.0, 675.5), (222.3, 690.5), (222.2, 703.6), (222.8, 715.7), (224.1, 725.8), (226.9, 738.7),
                    (232.1, 758.0), (239.3, 787.1), (247.9, 845.1), (241.6, 860.8), (224.9, 882.9), (213.5, 890.3), (178.5, 834.0),
-                   (149.6, 815.6), (115.9, 835.5), (97.8, 868.1), (85.0, 898.6), (68.4, 939.4), (61.6, 964.7)])
+                   (149.6, 815.6), (115.9, 835.5), (97.8, 868.1), (85.0, 898.6), (68.4, 939.4), (65.1, 948.9), (63.3, 956.8),
+                   (61.6, 964.7)])
 S_GRID = 238.0                  # where the line leaves the 5 m grid (y 800)
 
 
@@ -133,11 +146,16 @@ def strip(line, s0, s1, o0, o1, step=1.0):
 
 
 def project(line, x, y):
-    """(s, offset left +) of points (arrays) off the line"""
+    """(s, offset left +) of points (arrays) off the line.  s is the line's own s (the survey's on road(), as at() and
+    the profile take it): the length along the moved line is mapped through its points' cumulative length, since the
+    moved line is up to 4 m shorter or longer than the survey's by the fork (before 2026-11-16 the length itself was
+    taken for s, and the profile was read that far off along the road)"""
     pts = shapely.points(np.stack([np.ravel(x), np.ravel(y)], 1))
     d = shapely.line_locate_point(line['ls'], pts)
-    s = line['s'][0] + d
-    k = np.clip(np.round(d).astype(int), 0, len(line['s']) - 1)
+    if 'cum' not in line:
+        line['cum'] = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(line['p'], axis=0).T))])
+    s = np.interp(d, line['cum'], line['s'])
+    k = np.clip(np.round(s - line['s'][0]).astype(int), 0, len(line['s']) - 1)
     v = np.stack([np.ravel(x), np.ravel(y)], 1) - line['p'][k]
     # (the offset's size is the distance to the line: past its ends the side's component alone would be small)
     o = np.where((v * line['n'][k]).sum(1) >= 0, 1.0, -1.0) * shapely.distance(line['ls'], pts)
@@ -188,9 +206,10 @@ def paint(line, s1):
 
 # the paint the 1996 and 1997 scans show on it (campus.json road_paint: blender/landmarks.py road_paint): the middle line
 # where it was read (unbroken in the 1996 winter scans; yellow as the campus's other roads in 2008 - 2010, the scans are
-# black and white), the stop line across the down lane at s 5.5 and the zebra crossing at s 33 - 35.  Not the solid
-# line bending west at s 281 - 295 nor the crossings at the hairpin and the fork (where the road's line is not settled)
-PAINT_MIDDLE = [(8.0, 32.0), (36.0, 281.0), (512.0, 604.0)]
+# black and white; below the hairpin from s 356, past its crossing, where 1996, 1997 and 1999 read it), the stop line
+# across the down lane at s 5.5 and the zebra crossing at s 33 - 35.  Not the solid line bending west at s 281 - 295
+# nor the crossings at the hairpin's apex and the fork (where the road's line is not settled)
+PAINT_MIDDLE = [(8.0, 32.0), (36.0, 281.0), (356.0, 604.0)]
 PAINT_STOP = (5.5, 0.1, HALF - 0.1, 0.4)        # (s, from, to left of the middle line, width)
 PAINT_ZEBRA = (34.0, 2.0)                        # (s, length along the road)
 
