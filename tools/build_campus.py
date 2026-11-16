@@ -11017,10 +11017,11 @@ print('중앙도서관 서쪽 길 · 북서쪽 굽은 길: shrubs moved aside %d
 # cars off the map and the crowd's walks; the round evergreens along the beds' north kerb of 1997 at the list's end
 _ln_n = libnorth97.move_off(trees, shrubs, props)
 _ln_w = libnorth97.walks_cut(out['paths'])
+_ln_a = libnorth97.align_band(shrubs, cars)       # (the clipped mounds by the cars of the lane at the terrace's foot)
 LN97_SHRUBS = libnorth97.shrubs()
 shrubs += LN97_SHRUBS
-print('중앙도서관 북쪽 찻길: trees moved aside %d, shrubs taken out %d, props %d, walks out %d, shrubs added %d'
-      % (len(_ln_n[0]), _ln_n[1], _ln_n[2], _ln_w, len(LN97_SHRUBS)), _ln_n[0])
+print('중앙도서관 북쪽 찻길: trees moved aside %d, shrubs taken out %d, props %d, walks out %d, shrubs added %d, band mounds turned %d'
+      % (len(_ln_n[0]), _ln_n[1], _ln_n[2], _ln_w, len(LN97_SHRUBS), _ln_a), _ln_n[0])
 _kb_w = kwangbok97.walks(out['paths'])
 print('광복관 · 핀슨관: shrubs taken out %d, props %d, trees moved aside %d, walks out %d' % (_kb_n[0], _kb_n[1], len(_kb_n[2]), _kb_w), _kb_n[2])
 print('독수리상 서쪽 마당: shrubs taken out %d, props %d, trees moved aside %d' % (_wg_n[0], _wg_n[1], len(_wg_n[2])), _wg_n[2])
