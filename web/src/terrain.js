@@ -213,11 +213,12 @@ export function groundPacks() {
 }
 
 // the rotary island's bed (campus.json town.island.bed: [outer radius, what grows there] from the middle out): the
-// radii the dark band starts at, the white flowers start at and end at; none (zeros) without the two bands
+// radii the dark band starts at, the white flowers start at and end at (the dark band's end where no white band
+// follows it); none (zeros) without the dark band
 function islandBed(bed) {
   const i = bed ? bed.findIndex((b) => b[1] === 'dark') : -1;
-  if (i < 1 || bed[i + 1]?.[1] !== 'white') return [0, 0, 0];
-  return [bed[i - 1][0], bed[i][0], bed[i + 1][0]];
+  if (i < 1) return [0, 0, 0];
+  return [bed[i - 1][0], bed[i][0], bed[i + 1]?.[1] === 'white' ? bed[i + 1][0] : bed[i][0]];
 }
 
 export function makeNearTerrain(hf, campus, lib) {

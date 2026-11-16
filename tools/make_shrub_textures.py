@@ -19,6 +19,8 @@ Names (the month each is worn: web/src/hedges.js shrubTexture):
   azalea_summer  진달래 leaves (late May)
   azalea_autumn  철쭉 · 영산홍 · 진달래 in late October: mostly still green, some bronze and red
   pansy          팬지 border, all year
+  summerbed      신촌 로터리 섬의 여름 화단 (서울연구원 52127, 1996.8): the pansy's low leaves under flowers of three
+                 colours mixed, scarlet, yellow and violet, a few white
 Needs the scan: python3 tools/fetch_polyhaven.py models 2k periwinkle_plant
 Run: .venv/bin/python tools/make_shrub_textures.py [name ...]
 """
@@ -38,9 +40,9 @@ CELL = 512              # atlas cell, px (atlas = 2x2 cells)
 # metres per surface tile: the leaves come out at their real size (boxwood 1.2-2 cm, azalea leaves 2.5-4 cm,
 # flowers 4-5 cm, pansies 4-6 cm). web/src/hedges.js reads the same numbers.
 TILE = {'boxwood': 0.5, 'azalea_spring': 0.7, 'azalea_summer': 0.7, 'azalea': 0.7, 'azalea_red': 0.7,
-        'azalea_violet': 0.7, 'azalea_autumn': 0.7, 'pansy': 0.6}
+        'azalea_violet': 0.7, 'azalea_autumn': 0.7, 'pansy': 0.6, 'summerbed': 0.6}
 CARD_M = {'boxwood': 0.22, 'azalea_spring': 0.32, 'azalea_summer': 0.32, 'azalea': 0.32, 'azalea_red': 0.32,
-          'azalea_violet': 0.34, 'azalea_autumn': 0.32, 'pansy': 0.2}      # metres across a card cell (blender/shrubs.py CARDS)
+          'azalea_violet': 0.34, 'azalea_autumn': 0.32, 'pansy': 0.2, 'summerbed': 0.2}      # metres across a card cell (blender/shrubs.py CARDS)
 
 
 def srgb2lin(c):
@@ -289,6 +291,9 @@ FLOWER = {  # sRGB petals, share, and the centre (colour, inner, outer radius as
                       ((200, 96, 174), 0.2, ((164, 62, 140), 0.0, 0.32))],
     # the few buds and first flowers of 철쭉 in April: paler
     'azalea_spring': [((228, 120, 140), 1.0, ((186, 70, 96), 0.0, 0.3))],
+    # 신촌 로터리 섬의 여름 화단 (52127, 1996.8): scarlet, yellow and violet mixed over the band, a few white
+    'summerbed': [((212, 40, 36), 0.38, ((150, 20, 20), 0.0, 0.3)), ((242, 192, 38), 0.3, ((206, 136, 20), 0.0, 0.35)),
+                  ((128, 70, 168), 0.26, ((88, 40, 120), 0.0, 0.3)), ((238, 234, 222), 0.06, ((222, 200, 120), 0.0, 0.3))],
     'pansy': [((244, 204, 40), 0.84, ((58, 36, 26), 0.0, 0.42)), ((246, 242, 230), 0.08, ((96, 60, 132), 0.0, 0.3)),
               ((112, 62, 152), 0.08, ((240, 200, 60), 0.0, 0.16))],
 }
@@ -431,14 +436,14 @@ def surface_painter(name, S):
                   rnd.randint(8, 13), (0.011, 0.017), cols, fresh, 0.3, gloss, sqr=BOX)
         return P, (22, 30, 15), 0.05
     leafset = {'azalea_summer': 'azalea', 'azalea': 'azalea', 'azalea_red': 'azalea', 'azalea_autumn': 'autumn',
-               'azalea_spring': 'spring', 'azalea_violet': 'violet', 'pansy': 'pansy'}[name]
+               'azalea_spring': 'spring', 'azalea_violet': 'violet', 'pansy': 'pansy', 'summerbed': 'pansy'}[name]
     cols, fresh, gloss = LEAF[leafset]
-    if name == 'pansy':
+    if name in ('pansy', 'summerbed'):
         for k in range(int(A * 900)):               # rosettes of small round leaves
             shoot(P, rnd.uniform(0, n), rnd.uniform(0, n), rnd.random() ** 0.8 * 0.7, rnd.uniform(0.03, 0.045),
                   rnd.randint(5, 8), (0.022, 0.034), cols, fresh, 0.2, gloss)
         for k in range(int(A * 520)):               # flowers held over them, facing up and out
-            petal = pick(rnd, FLOWER['pansy'])
+            petal = pick(rnd, FLOWER[name])
             P.flower(rnd.uniform(0, n), rnd.uniform(0, n), rnd.uniform(0.042, 0.058), 0.72 + rnd.random() * 0.28,
                      jit(petal[0], rnd, 0.06), petal[2], (rnd.uniform(-0.3, 0.3), rnd.uniform(-0.3, 0.3)))
         return P, (34, 34, 22), 0.06
@@ -513,9 +518,10 @@ def card_painter(name, S, rnd):
     bx, by = n * 0.5, n * 0.995
     bark = [(96, 80, 60), (112, 96, 72)]
     leafset = {'boxwood': 'boxwood', 'azalea_summer': 'azalea', 'azalea': 'azalea', 'azalea_red': 'azalea',
-               'azalea_autumn': 'autumn', 'azalea_spring': 'spring', 'azalea_violet': 'violet', 'pansy': 'pansy'}[name]
+               'azalea_autumn': 'autumn', 'azalea_spring': 'spring', 'azalea_violet': 'violet', 'pansy': 'pansy',
+               'summerbed': 'pansy'}[name]
     cols, fresh, gloss = LEAF[leafset]
-    if name == 'pansy':
+    if name in ('pansy', 'summerbed'):
         for k in range(rnd.randint(9, 13)):          # the leaves low down
             x = bx + rnd.uniform(-0.38, 0.38) * n
             y = by - rnd.uniform(0.0, 0.3) * n
@@ -526,7 +532,7 @@ def card_painter(name, S, rnd):
             x = bx + rnd.uniform(-0.32, 0.32) * n
             y = by - rnd.uniform(0.42, 0.78) * n
             P.twig(x + rnd.uniform(-8, 8), by - 0.15 * n, x, y, 0.0014, 0.6, (96, 132, 60))
-            petal = pick(rnd, FLOWER['pansy'])
+            petal = pick(rnd, FLOWER[name])
             P.flower(x, y, rnd.uniform(0.044, 0.056), 0.7 + 0.3 * (by - y) / n, jit(petal[0], rnd, 0.06), petal[2],
                      (0, -0.3), squash=rnd.uniform(0.75, 1.0))
         return P
@@ -608,7 +614,8 @@ def make_atlas(name, S):
     save_atlas(name, cells)
 
 
-NAMES = ['boxwood', 'azalea_spring', 'azalea_summer', 'azalea', 'azalea_red', 'azalea_violet', 'azalea_autumn', 'pansy']
+NAMES = ['boxwood', 'azalea_spring', 'azalea_summer', 'azalea', 'azalea_red', 'azalea_violet', 'azalea_autumn', 'pansy',
+         'summerbed']
 
 if __name__ == '__main__' and ONLY != {'__none__'}:
     S = cut_stamps()

@@ -1039,6 +1039,8 @@
  "leaf_poplar": {"leaf": "poplar"},
  "leaf_pansy": {"leaf": "pansy"},
  "hedge_pansy": {"leaf": "pansy", "opaque": true},
+ "leaf_summerbed": {"leaf": "summerbed"},
+ "hedge_summerbed": {"leaf": "summerbed", "opaque": true},
  "canvas_green": {"color": [0.06, 0.24, 0.17], "rough": 0.9, "side": "double"},
  "paint_black": {"color": [0.03, 0.03, 0.03], "rough": 0.6},
  "notice_posters": {"image": "notice_posters.png", "rough": 0.85},

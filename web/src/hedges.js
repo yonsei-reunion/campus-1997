@@ -9,7 +9,7 @@
 import { MOBILE } from './util.js';
 
 // metres per repeat of each surface tile (tools/make_shrub_textures.py TILE: the leaves at their real size)
-const TILE = { boxwood: 0.5, azalea: 0.7, azalea_red: 0.7, azalea_violet: 0.7, pansy: 0.6 };
+const TILE = { boxwood: 0.5, azalea: 0.7, azalea_red: 0.7, azalea_violet: 0.7, pansy: 0.6, summerbed: 0.6 };
 const tiles = {};
 
 // The textures a shrub wears in a season (spring = mid-April, summer = late May, autumn = late October):
@@ -18,7 +18,8 @@ const tiles = {};
 // the eagle, 2003 April photos), in late May in bloom, red and magenta (the May 1997 photo of the gate island).
 // 진달래 flowers before its leaves, from about the end of March (Seoul's mean, KMA 1971-2000: 3-31) into the cherries'
 // bloom (1997: 4-8): still out in mid-April, the first leaves coming (reference/용재관.jpg, 2003 April photos); leaves
-// in May. In late October the azaleas' leaves bronze and red. Boxwood and the pansy border all year.
+// in May. In late October the azaleas' leaves bronze and red. Boxwood and the pansy border all year, and so the
+// rotary island's summer bed (summerbed: 신촌 로터리, 52127 of August 1996, the bed as July 1997's scans have it).
 export function shrubTexture(species, season) {
   if (species === 'azalea') return season === 'spring' ? 'azalea_spring' : season === 'autumn' ? 'azalea_autumn' : 'azalea';
   if (species === 'azalea_red') return season === 'spring' ? 'azalea_spring' : season === 'autumn' ? 'azalea_autumn' : 'azalea_red';
@@ -35,7 +36,7 @@ export function hedgeMaps(species, season) {
 // The sprig cards (leaf_<name>, not opaque): blender/shrubs.py gives each card the body's normal at its foot, so it
 // shades like the clipped face it grows from, from either side. three turns a double-sided face's normal round when
 // its back is seen, which would light half of the cards as if they faced into the shrub: they keep it.
-export const SHRUB_LEAVES = new Set(['boxwood', 'azalea', 'azalea_red', 'azalea_violet', 'pansy']);
+export const SHRUB_LEAVES = new Set(['boxwood', 'azalea', 'azalea_red', 'azalea_violet', 'pansy', 'summerbed']);
 export const CARD_KEY = 'shrubCard';
 export const cardEdit = (sh) => {
   sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>

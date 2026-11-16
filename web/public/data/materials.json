@@ -1210,6 +1210,13 @@
   "leaf": "pansy",
   "opaque": true
  },
+ "leaf_summerbed": {
+  "leaf": "summerbed"
+ },
+ "hedge_summerbed": {
+  "leaf": "summerbed",
+  "opaque": true
+ },
  "canvas_green": {
   "color": [
    0.06,

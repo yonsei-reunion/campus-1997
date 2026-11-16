@@ -19,7 +19,7 @@ from common import MeshBuilder
 
 # card cell size in metres across (tools/make_shrub_textures.py CARD_M: the leaves come out at their real size)
 CARD_M = {'boxwood': 0.22, 'azalea_summer': 0.32, 'azalea': 0.32, 'azalea_red': 0.32, 'azalea_violet': 0.34,
-          'azalea_autumn': 0.32, 'pansy': 0.2}
+          'azalea_autumn': 0.32, 'pansy': 0.2, 'summerbed': 0.2}
 
 
 class ShrubBuilder(MeshBuilder):
@@ -453,6 +453,13 @@ def make_shrub(kind, seed=0):
                 lift=_wobble(rnd, 0.12, (2, 4)))
         cards(mb, rnd, 136, 'leaf_azalea_violet', CARD_M['azalea_violet'], W=(0.8, 1.2), Hf=(0.6, 0.9),
               tilt=(10, 70), depth=0.07, weight=lambda p, n: 0.3 if p.z < 0.15 else 0.6 + 0.4 * max(0.0, n.z))
+    elif kind == 'summer_bed':
+        # one 1.96 m length of 신촌 로터리 섬's summer bed (서울연구원 52127, 1996.8): the pansy border's low cushion under
+        # flowers of three colours mixed, scarlet, yellow and violet (tools/make_shrub_textures.py summerbed)
+        rounded_box(mb, 0.98, 0.36, 0.16, (0.08, 0.1, 0.07), 'hedge_summerbed', _ao_box(0.16, foot=0.04, lo=0.55),
+                    taper=0.03, tuck=(0.0, 0.0), z0=-0.1, segs=(1, 2, 1))
+        cards(mb, rnd, 52, 'leaf_summerbed', CARD_M['summerbed'], W=(0.7, 1.0), Hf=(0.75, 1.0), tilt=(0, 35), depth=0.05,
+              weight=lambda p, n: 0.15 + 0.85 * max(0.0, n.z))
     elif kind == 'pansy_bed':
         # one 1.96 m length of the pansy border on top of the banks by the steps up to 언더우드관 정원 (the 2003
         # spring photo): a low cushion of leaves and flowers (local x along the border)

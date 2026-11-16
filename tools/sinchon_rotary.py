@@ -108,7 +108,17 @@ CORNER_R = 9.0                 # the kerbs' rounding at the corners
 # (the same flight's, 0.13 m/px) agree at (-73.3, -1000.9) on ground 20.5 m (0.2 m apart).  The pole and 「연세대」:
 # below (52158 solved again, the scans)
 ISLAND = dict(c=(-73.3, -1000.9), r=7.8, ring=8.45)
-BED = [(2.5, 'lawn'), (4.3, 'yellow'), (5.6, 'dark'), (6.1, 'white'), (7.6, 'lawn')]
+# The bed in summer (2026-11-17): 52127 (August 1996, from 그레이스's roof) has a clipped dark-green mound in the middle,
+# a wide band of flowers of three colours mixed round it (scarlet, yellow and violet) and a lawn outside: the rings of
+# the July 1997 scans (a dark disc to r 2.3, a bright band to about 5, then darker, the lawn), not May 1996's (52158:
+# lawn, a yellow band of pansies, a dark band, white flowers).  BED_MAY is that one, as it was laid until then
+BED = [(2.3, 'mound'), (5.0, 'dark'), (7.6, 'lawn')]
+BED_MAY = [(2.5, 'lawn'), (4.3, 'yellow'), (5.6, 'dark'), (6.1, 'white'), (7.6, 'lawn')]
+# its planting: the mound seven clipped domes (topiary_dome, 2.2 m across, one in the middle and six round it at
+# ISLAND_MOUND_R), the band rings of the summer bed's lengths (summer_bed, 1.96 x 0.72 m: blender/shrubs.py) laid
+# along it [radius, how many]; the ground under the band painted dark leaves (BED 'dark': web/src/terrain.js)
+ISLAND_MOUND_R = 1.3
+ISLAND_FLOWER_RINGS = [(2.75, 9), (3.45, 11), (4.15, 13), (4.7, 15)]
 # The bed is a low mound (2026-11-15, 고증 4.10.2 「가운데 섬」): the scans of 27/18 and 27/19 (windows of 2.5 m every 20°
 # round rings of 1.5 .. 7.4 m, correlation 0.9 - 0.99) have its top over the plane of the road round it (34 points
 # 2 - 4 m outside the kerb, rms 0.09 m; it rises 2.9 % to the north) by 0.76 m at 1.5 m from the middle, 0.70 at 2.5,
@@ -117,9 +127,9 @@ BED = [(2.5, 'lawn'), (4.3, 'yellow'), (5.6, 'dark'), (6.1, 'white'), (7.6, 'law
 # h: m over the ground at its middle, r: where it meets the ground, inside the lawn's edge.
 # blender/town.py island() draws it; the 5 m grid under it stays flat
 ISLAND_MOUND = dict(h=0.72, r=7.0)
-# BED goes out as campus.json town.island.bed: the ground's shader (web/src/terrain.js) paints its dark and white
-# bands round the island's middle (no plant model fits them; painting keeps every planting draw), the yellow band
-# is the pansy border (layout: shrubs)
+# BED goes out as campus.json town.island.bed: the ground's shader (web/src/terrain.js) paints its dark band round
+# the island's middle under the flowers (painting keeps every planting draw); the mound and the flowers are shrubs
+# (layout: shrubs, the first 23 in the 23 places May 1996's pansy border had, the rest at the shrubs' end)
 # 52158 solved again (2026-11-14, 고증 4.10.3): its camera stood on 그랜드백화점's roof, west of the island, not on
 # 그레이스's.  Through it the pole's foot is 6.7 m north-north-west of the island's middle (bearing 331°), its mast
 # arm about 6 m up; the scans of 27/18 and 27/19 put the arm's far end at (-74.6, -984.5), 6.85 m up (the two
@@ -1679,14 +1689,20 @@ def layout(geo, town, extras, ground, taken_z):
             if abs(du) < L_ / 2 + 1.5 and abs(dv) < W_ / 2 + 0.8:
                 q = np.array(t_[1:3]) + u_ * ((L_ / 2 + 1.5) * (1 if du >= 0 else -1) - du)
                 t_[1:3] = [round(float(q[0]), 2), round(float(q[1]), 2)]
-    # the island's bed (52158, May 1996): the yellow band (BED, r 2.5 - 4.3) two rows of the pansy border round the
-    # inner lawn; the dark and the white bands and the outer lawn are the ground's grass
-    shrubs = []
-    for rr_, nn in ((3.0, 10), (3.85, 13)):
+    # the island's bed in summer (52127, August 1996; BED): the clipped mound in the middle, the summer bed's lengths
+    # in rings round it, the lawn outside the ground's grass.  May 1996's pansy border (52158) had 23 places in the
+    # shrubs' list: the first 23 of these take them, the rest go at the shrubs' end (shrubs_late: tools/build_campus.py)
+    bed_ = [['topiary_dome', round(float(ic[0]), 2), round(float(ic[1]), 2), 1.0, 0.4]]
+    for i in range(6):
+        a_ = 2 * math.pi * i / 6
+        bed_.append(['topiary_dome', round(float(ic[0] + ISLAND_MOUND_R * math.cos(a_)), 2),
+                     round(float(ic[1] + ISLAND_MOUND_R * math.sin(a_)), 2), 1.0, round(a_ + 1.1, 2)])
+    for k_, (rr_, nn) in enumerate(ISLAND_FLOWER_RINGS):
         for i in range(nn):
-            a_ = 2 * math.pi * (i + 0.5 * (rr_ < 3.5)) / nn
-            shrubs.append(['pansy_bed', round(float(ic[0] + rr_ * math.cos(a_)), 2), round(float(ic[1] + rr_ * math.sin(a_)), 2),
-                           0.9, round(a_ + math.pi / 2, 2)])
+            a_ = 2 * math.pi * (i + 0.5 * (k_ % 2)) / nn
+            bed_.append(['summer_bed', round(float(ic[0] + rr_ * math.cos(a_)), 2), round(float(ic[1] + rr_ * math.sin(a_)), 2),
+                         1.0, round(a_ + math.pi / 2, 2)])
+    shrubs, shrubs_late = bed_[:23], bed_[23:]
     # ---- 신촌 로터리's bus stops (52145 · 52142: flat pale roofs at the kerb, buses pulled in and people waiting on
     # 양화로's south walk at the 그랜드백화점 corner; 52145 · 52187: on 신촌로's south walk in front of 한일은행)
     stops_r, waiting = rot_stops(A)
@@ -1801,7 +1817,7 @@ def layout(geo, town, extras, ground, taken_z):
     # (the walkers' signals' poles: the walker goes round them)
     ped_coll = [R2([(x_ - 0.18, y_ - 0.18), (x_ + 0.18, y_ - 0.18), (x_ + 0.18, y_ + 0.18), (x_ - 0.18, y_ + 0.18)]) for x_, y_, *_ in peds]
     return dict(markers=markers, props=props, colliders=barrier + coll + ped_coll, paints=paints, paths=paths, corner=corner, trees=trees,
-                shrubs=shrubs, walk_open=walk_open, walk_holes=walk_holes)
+                shrubs=shrubs, shrubs_late=shrubs_late, walk_open=walk_open, walk_holes=walk_holes)
 
 
 # ----------------------------------------------------------------------------- the 1995 · 1996 rooftop photos
