@@ -287,8 +287,13 @@ ROT_TURNS = {
 # across 연세로): the walkers went under, by 신촌역's passages
 ROT_NO_ZEBRA = {'yonsei', 'sinchon_w', 'sinchon_e'}
 ROT_STOP_E = 59.0              # 신촌로's south bus stop, m out along it (rot_stops): east of the wedge
-# 연세로's crossing between the junction and the bridge (51979: a zebra with its own signals a third of the way up)
-MID_CROSS_Y = -790.0
+# 연세로's crossing between the junction and the bridge, with its own signals (고증 4.10.1 「건널목」): the 1997-07-28
+# scan of 26/16, with 1996-11-28 27/17 · 27/18 and 1998-10-08 26/17 within 0.2 - 0.6 m: two rows of bars, y -786.9 ..
+# -778.8 with 0.6 m between them; the stop lines (0.5 m, each from its south edge) of the cars going south y -775.8,
+# west half, and of those going north y -790.9, east half.  MID_CROSS_Y_RNG: the crossing the game had till then
+# (y -790 .. -785.5, from 52006 · 51979), what the 연세로 row's trees are decided round
+MID_CROSS = dict(y=(-786.9, -778.8), gap=0.6, stop_n=-775.8, stop_s=-790.9)
+MID_CROSS_Y_RNG = -790.0
 GRAND_YARD_BOX = (-178.0, -1012.0, -142.0, -972.0)     # the 그랜드백화점's forecourt the walker may cross (layout)
 # the junction's landmarks (the photos 52095 · 52108, 서울연구원 labels; 연세춘추, 위키백과): OSM outline (a point in
 # it), storeys, wall band (blender/town.py), the sign cell of sign_sinchon2 and its height
@@ -1115,18 +1120,26 @@ def layout(geo, town, extras, ground, taken_z):
                         hs = a.half - sgn * mid_of(k, s)                 # (the half on that side of the painted middle)
                         pts.append(AT(a, k, s, sgn * (0.3 + (hs - 0.3) / a.lanes * kk)))
                     paint.append(dict(kind='white_dash', w=0.12, pts=R2(pts)))
-    # 연세로's crossing between the junction and the bridge, with stop lines either side
-    s_mid = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS_Y)))
+    # 연세로's crossing between the junction and the bridge, with stop lines either side (MID_CROSS: s_mid its south
+    # edge, mid_dep its depth, s_stop_n / s_stop_s where its stop lines begin)
+    s_mid = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS['y'][0])))
+    mid_dep = MID_CROSS['y'][1] - MID_CROSS['y'][0]
+    s_stop_n = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS['stop_n'])))
+    s_stop_s = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS['stop_s'])))
+    s_mid_rng = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS_Y_RNG)))
     # (and the one further up at y -690 the 1997 frames show, 4.9 m across: no signals of its own in the game)
     s_c2 = float(ya.ls.project(Point(gt.YONSEI_X, YRO_CROSS2_Y))) - 2.45
     # (its other two crossings with the signals 51979 has over them: [s of the south edge, depth]; -575 is gate_town's)
     yro_cross = [(s_c2, 4.5), (float(ya.ls.project(Point(gt.YONSEI_X, gt.YZEBRA2[1]))), gt.YZEBRA2[0] - gt.YZEBRA2[1])]
-    for s_z in (s_mid, s_c2):
-        for o in np.arange(-ya.half + 0.5, ya.half - 0.4, 0.95):
-            c = [ya.at(s_z)[0] + ya.at(s_z)[2] * o, ya.at(s_z + 4.5)[0] + ya.at(s_z + 4.5)[2] * o,
-                 ya.at(s_z + 4.5)[0] + ya.at(s_z + 4.5)[2] * (o + 0.45), ya.at(s_z)[0] + ya.at(s_z)[2] * (o + 0.45)]
-            zebra.append(R2(c))
-        for s_, o0, o1 in ((s_z + 6.0, 0.3, ya.half - 0.3), (s_z - 2.0, -ya.half + 0.3, -0.3)):
+    hm = (mid_dep - MID_CROSS['gap']) / 2
+    for s_z, rows, stops_ in ((s_mid, ((0.0, hm), (mid_dep - hm, mid_dep)), (s_stop_n, s_stop_s)),
+                              (s_c2, ((0.0, 4.5),), (s_c2 + 6.0, s_c2 - 2.0))):
+        for r0, r1 in rows:
+            for o in np.arange(-ya.half + 0.5, ya.half - 0.4, 0.95):
+                c = [ya.at(s_z + r0)[0] + ya.at(s_z + r0)[2] * o, ya.at(s_z + r1)[0] + ya.at(s_z + r1)[2] * o,
+                     ya.at(s_z + r1)[0] + ya.at(s_z + r1)[2] * (o + 0.45), ya.at(s_z + r0)[0] + ya.at(s_z + r0)[2] * (o + 0.45)]
+                zebra.append(R2(c))
+        for s_, o0, o1 in ((stops_[0], 0.3, ya.half - 0.3), (stops_[1], -ya.half + 0.3, -0.3)):
             zebra.append(R2([ya.at(s_)[0] + ya.at(s_)[2] * o0, ya.at(s_ + 0.5)[0] + ya.at(s_ + 0.5)[2] * o0,
                              ya.at(s_ + 0.5)[0] + ya.at(s_ + 0.5)[2] * o1, ya.at(s_)[0] + ya.at(s_)[2] * o1]))
     # the island: its kerb a ring, the white ring of short dashes round it (52158: some 0.6 m long, as long apart)
@@ -1195,11 +1208,11 @@ def layout(geo, town, extras, ground, taken_z):
         # 연세로's crossing: northbound cars stop south of it, southbound north of it (group 1: 0 cars go, 1 walkers)
         # (and at its other two, -690 and -575, as they come: yro_cross; the same group, they turn together)
         if k_in == 'yonsei':
-            for s_q in [s_z + dep_ + 1.5 for s_z, dep_ in yro_cross[::-1]] + [s_mid + 6.0]:
+            for s_q in [s_z + dep_ + 1.5 for s_z, dep_ in yro_cross[::-1]] + [s_stop_n]:
                 q = ya.at(s_q)[0] + ya.at(s_q)[2] * o_in
                 stops.insert(len(stops) - 1, [round(float(ls.project(Point(*q))) - 0.5, 1), 1, 0])
         if k_out == 'yonsei':
-            for s_q in [s_mid - 2.0] + [s_z - 2.0 for s_z, _ in yro_cross]:
+            for s_q in [s_stop_s] + [s_z - 2.0 for s_z, _ in yro_cross]:
                 q = ya.at(s_q)[0] + ya.at(s_q)[2] * o_out
                 stops.append([round(float(ls.project(Point(*q))) - 0.5, 1), 1, 0])
         return dict(kind='car', pts=R2(pts), stops=stops)
@@ -1217,10 +1230,10 @@ def layout(geo, town, extras, ground, taken_z):
         ls = LineString(pts)
         stops = [[round(float(ls.project(Point(*via[-2]))), 1), 0, phase]]
         if k_in == 'yonsei':
-            q = ya.at(s_mid + 6.0)[0] + ya.at(s_mid + 6.0)[2] * o_in
+            q = ya.at(s_stop_n)[0] + ya.at(s_stop_n)[2] * o_in
             stops.insert(0, [round(float(ls.project(Point(*q))) - 0.5, 1), 1, 0])
         if k_out == 'yonsei':
-            q = ya.at(s_mid - 2.0)[0] + ya.at(s_mid - 2.0)[2] * o_out
+            q = ya.at(s_stop_s)[0] + ya.at(s_stop_s)[2] * o_out
             stops.append([round(float(ls.project(Point(*q))) - 0.5, 1), 1, 0])
         return dict(kind='car', pts=R2(pts), stops=stops)
 
@@ -1290,7 +1303,7 @@ def layout(geo, town, extras, ground, taken_z):
                 # no pole of the game's rule there; where their signals hung is not known but the island's own pole)
                 continue
         heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(t[1], t[0]), 4), 0, ph, round(a.half * 0.75, 1)])
-    for sgn, s_ in ((1, s_mid + 6.5), (-1, s_mid - 2.5)):
+    for sgn, s_ in ((1, s_stop_n + 0.5), (-1, s_stop_s - 0.5)):
         p, t, n = ya.at(s_)
         q = p + n * sgn * (ya.half + 0.8)
         heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(t[1] * sgn, t[0] * sgn), 4), 1, 0,
@@ -1398,8 +1411,8 @@ def layout(geo, town, extras, ground, taken_z):
             W_parts.append(a.poly(-a.half - a.walk, o1 + ROT_APRON_WALK + 0.5, s_x - 0.25, s_x + ROT_S_CROSS['depth'] + 0.25).intersection(street))
         else:
             W_parts.append(a.poly(-a.half - a.walk, a.half + a.walk, s_x - 0.25, s_x + deps[k] + 0.25).intersection(street))
-    for s_z in (s_mid, s_c2):
-        W_parts.append(ya.poly(-ya.half - 5.0, ya.half + 5.0, s_z - 0.25, s_z + 4.75).intersection(street))
+    for s_z, dep_ in ((s_mid, mid_dep), (s_c2, 4.5)):
+        W_parts.append(ya.poly(-ya.half - 5.0, ya.half + 5.0, s_z - 0.25, s_z + dep_ + 0.25).intersection(street))
     for y0_, y1_ in (gt.YZEBRA2, gt.YZEBRA):          # (gate_town's: south of the bridge, and over 연세로's mouth)
         W_parts.append(box(gt.YONSEI_X - gt.YONSEI_HALF - gt.YONSEI_WALK, y1_ - 0.25, gt.YONSEI_X + gt.YONSEI_HALF + gt.YONSEI_WALK, y0_ + 0.25).intersection(street.union(extras['walk_s'])))
     cx0, cx1, cy0, cy1 = extras['cross_box']          # (gate_town's crossing over 성산로, kerb to kerb)
@@ -1529,7 +1542,7 @@ def layout(geo, town, extras, ground, taken_z):
     trees = []
     busy_t = unary_union([Polygon(c_) .buffer(1.5) for c_ in coll_rng] +
                          [a.poly(-a.half - 6, a.half + 6, xs_rng[k] - 3.0, xs_rng[k] + 8.0) for k, a in A_dec.items()] +
-                         [ya.poly(-ya.half - 6, ya.half + 6, s_mid - 3.0, s_mid + 8.0)])
+                         [ya.poly(-ya.half - 6, ya.half + 6, s_mid_rng - 3.0, s_mid_rng + 8.0)])
     s_top_t = float(ya.ls.project(Point(gt.YONSEI_X, -508.0)))           # (south of the baked sun shadow's edge)
     # 연세로's row from its own stream (random.Random(4813)), 8 m apart (2010 skyview: the crowns' autocorrelation
     # 8.1 - 8.4 m along both walks from y -517 to -790; 7 m before); 4802 skips the draws the old row took, so that
