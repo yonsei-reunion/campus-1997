@@ -16,7 +16,7 @@
   - 북동쪽 끝은 y −163 에서 자름(그 너머는 「학생회관 남쪽 북동 찻길」)
 
 build_campus.py 가 무작위 심기 뒤의 늦은 칠(정문 동쪽 주차장의 LOT_C_LOT 곁)에서 asphalt() 를 _ga 로 칠하고, 그 위의 관목을
-shrubs_off() 로 뺀다. 나무는 옮기지 않는다(그 자리에 게임 나무가 없음; 남서쪽 띠의 소나무 하나만 찻길에 섬).
+shrubs_off() 로 뺀다. 그 위의 나무(남서쪽 찻길의 소나무 하나: 사진에는 없음)는 trees_off() 로 목록 제자리에서 TREE_SPOTS 로.
 """
 import math
 
@@ -37,6 +37,9 @@ LAWN_N = [(-24.5, -164.3), (-22.0, -166.3), (-20.0, -166.9), (-18.0, -167.1), (-
           (0.0, -166.5), (0.9, -164.0), (1.6, -163.0)]
 TERRACE_N = ((-21.4, -180.8), 7.8)       # 테라스 북쪽 끝 둥근 단과 그 가의 화단(사진, 0.04 m/화소): 칠하지 않음
 HALL_BAND = 4.5                          # 건물 북쪽 면 앞의 밝은 포장 띠(화분 줄이 그 가에)
+# 아스팔트 위에 심긴 나무가 비킬 자리: 가장 가까운 잔디인 둥근 앞마당 가운데 화단(반지름 5.1 m)의 남동쪽, 화단 가에서 2 m 안쪽.
+# 1996년 겨울 장(26/16)에서 잎 없는 가지가 모이는 곳 곁(1997년 7월에는 화단을 덮는 수관 하나). 둘레 차 · 길에서 3 m 넘게
+TREE_SPOTS = [(-37.3, -258.7)]
 
 
 def band_y(x):
@@ -70,6 +73,22 @@ def asphalt(sw_pave, sw_c, sw_r, road_keep, halls, hall, lot):
     for g in (sw_area(sw_pave, sw_c, sw_r, road_keep, halls, lot), n_area(road_keep, hall)):
         out += [p for p in getattr(g, 'geoms', [g]) if p.geom_type == 'Polygon' and p.area > 1.0]
     return out
+
+
+def trees_off(trees, areas, pad=0.5):
+    """아스팔트 위(가에서 pad 밖까지)에 심긴 나무를 목록의 제자리에서 TREE_SPOTS 의 가까운 빈 자리로(목록의 길이 · 차례 그대로).
+    돌려주는 것: [(종류, 전 x, 전 y, 후 x, 후 y)]"""
+    zone = unary_union(areas).buffer(pad)
+    free = list(TREE_SPOTS)
+    moved = []
+    for t in trees:
+        if not free or not zone.contains(Point(t[1], t[2])):
+            continue
+        q = min(free, key=lambda s: math.dist(s, (t[1], t[2])))
+        free.remove(q)
+        moved.append((t[0], t[1], t[2], q[0], q[1]))
+        t[1], t[2] = q
+    return moved
 
 
 def shrubs_off(shrubs, areas, pad=0.3):

@@ -10209,14 +10209,16 @@ print('정문 동쪽 잔디 주차: asphalt %.0f m2 (the pad %.0f m2)' % (LOT_C_
 # 백주년기념관 둘레 (tools/cent97.py, reference/고증/2.10 「백주년기념관 둘레」): the car park's north drive round the round
 # forecourt's south and west and along the low block's paved band, and the car park north of the hall, asphalt in the
 # July 1997 scans where the game had lawn (cars stand on both in 1996 - 1999).  Painted after the planting: no draw
-# moves; the shrubs on it go (shrubs draw nothing by their place in the list)
+# moves; the shrubs on it go (shrubs draw nothing by their place in the list), a tree on it moves to the nearest lawn
+# in its place in the list (cent97.TREE_SPOTS)
 _ct_hall = Polygon(next(b_['footprint'] for b_ in buildings if b_['id'] == 324328422))
 CENT97_ASPH = cent97.asphalt(CENT_SW_PAVE, CENT_SW_C, CENT_SW_R[1], bline.buffer(ROAD_HALF + 0.3),
                              [Polygon(b_['footprint']) for b_ in buildings if abs(b_['footprint'][0][0] + 20) < 90
                               and abs(b_['footprint'][0][1] + 230) < 90], _ct_hall, LOT_C_LOT)
 _ypaint(CENT97_ASPH, _ga)
-print('백주년기념관 둘레: asphalt %.0f m2, shrubs off it %s' % (
-    sum(p_.area for p_ in CENT97_ASPH), [s_[:3] for s_ in cent97.shrubs_off(shrubs, CENT97_ASPH)]))
+print('백주년기념관 둘레: asphalt %.0f m2, shrubs off it %s, trees moved off it %s' % (
+    sum(p_.area for p_ in CENT97_ASPH), [s_[:3] for s_ in cent97.shrubs_off(shrubs, CENT97_ASPH)],
+    cent97.trees_off(trees, CENT97_ASPH)))
 _ypaint(HK_PADS, _ga)                         # (한경길 · 연희관 앞길의 세운 차 줄: asphalt under the rows)
 # (and under the cars' way round 한경길 and into its free stalls: the lanes, the round at the west end, the stalls' mouths)
 _hk_way = LineString(HK_N + HK_TURN + HK_S)
