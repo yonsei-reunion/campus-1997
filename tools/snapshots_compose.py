@@ -28,6 +28,39 @@ def fit(im, w, h):
     return im.crop((x0, y0, x0 + w, y0 + h))
 
 
+CJK = '/usr/share/fonts/opentype/noto/NotoSansCJK-{}.ttc'     # index 1 = KR (fonts-noto-cjk)
+
+
+def title(im, c):
+    """위쪽 가운데 하늘에 제목 화면 같은 글씨를 얹는다: c = {"eyebrow", "title", "sub"} (공유 대표 이미지).
+    제목은 민트색에 흰 그림자(style.css 의 h1), 뒤에 흐린 흰 빛을 깔아 구름 · 파란 하늘 어디서나 읽히게."""
+    from PIL import ImageDraw, ImageFilter, ImageFont
+    k = im.width / 1200                    # sizes below are for a 1200 px wide image
+    px = lambda v: max(1, round(v * k))
+    rows = [(c.get('eyebrow'), 'Bold', 30, '#16202e', 16), (c.get('title'), 'Black', 84, '#0e6f6b', 14),
+            (c.get('sub'), 'Bold', 40, '#16202e', 0)]
+    rows = [(t, ImageFont.truetype(CJK.format(w), px(s), index=1), col, px(gap)) for t, w, s, col, gap in rows if t]
+    y, placed = px(34), []
+    for t, f, col, gap in rows:
+        b = f.getbbox(t)
+        placed.append((t, f, col, ((im.width - (b[2] - b[0])) // 2 - b[0], y - b[1])))
+        y += b[3] - b[1] + gap
+    glow = Image.new('L', im.size, 0)      # soft white light behind the words
+    gd = ImageDraw.Draw(glow)
+    for t, f, _, xy in placed:
+        gd.text(xy, t, font=f, fill=255, stroke_width=px(10), stroke_fill=255)
+    glow = glow.filter(ImageFilter.GaussianBlur(px(18))).point(lambda v: v * 0.55)
+    im = Image.composite(Image.new('RGB', im.size, '#ffffff'), im, glow)
+    d = ImageDraw.Draw(im)
+    for t, f, col, (x, y) in placed:
+        big = col == '#0e6f6b'
+        if big:                            # h1 { text-shadow: 3px 3px 0 #fff, 5px 5px 0 rgba(14,111,107,.18) }
+            d.text((x + px(6), y + px(6)), t, font=f, fill='#c9dedb')
+            d.text((x + px(4), y + px(4)), t, font=f, fill='#ffffff')
+        d.text((x, y), t, font=f, fill=col, stroke_width=0 if big else px(2), stroke_fill='#ffffff')
+    return im
+
+
 def save(im, outs):
     for o in outs:
         p = os.path.normpath(os.path.join(ROOT, o['path']))
@@ -36,6 +69,11 @@ def save(im, outs):
             continue
         w = o.get('width')
         out = im if not w or w == im.width else im.resize((w, round(im.height * w / im.width)), Image.LANCZOS)
+        if o.get('title'):
+            if not os.path.exists(CJK.format('Black')):     # keep the old image rather than write one with no title
+                print('skip (no Noto Sans CJK font for the title)', o['path'])
+                continue
+            out = title(out, o['title'])
         out.save(p, quality=o.get('quality', 86), optimize=True, progressive=True)
         print('wrote', o['path'], out.size)
 

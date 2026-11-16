@@ -8,7 +8,7 @@
     "season: spring(4월) · summer(5월, 기본) · autumn(10월). film: 1997 필름 감성. ui: 걷기에서 UI 를 숨기려면 false.",
     "README 「사진과 비교」의 짝은 이름 compare/<이름> 이 docs/compare/<이름>_game.jpg 로 간다. 사진에 맞춘 카메라이므로 건물을 고친 뒤에도 그대로 다시 찍는다.",
     "screenshots/<이름> 은 docs/screenshots/<이름>.jpg 로 간다. reference/고증.md 가 가리키는 대상 가운데 docs/compare 에 짝이 없는 것의 지금 모습이다.",
-    "share/og 는 web/public/og.jpg(1200 × 630): 페이스북 · 카카오톡 등에 주소를 공유할 때 보이는 대표 이미지(index · news · people.html 의 og:image)."
+    "share/og 는 web/public/og.jpg(1200 × 630): 페이스북 · 카카오톡 등에 주소를 공유할 때 보이는 대표 이미지(index · news · people.html 의 og:image). out 의 title 은 위쪽 가운데에 제목 화면 같은 글씨를 얹는다(Noto Sans CJK 글꼴이 없으면 쓰지 않고 건너뜀)."
   ],
   "shots": [
     {"name": "compare/baekyangro", "doc": "1997년 백양로 항공 사진(birdseye.js 「1997 사진 시점」과 같은 카메라). 문집의 「같은 시점에서 본 버드 아이뷰」도",
@@ -135,9 +135,10 @@
     {"name": "game/map", "doc": "M: 캠퍼스 지도",
      "walk": {"x": -46, "y": -54, "yaw": 0.6, "dist": 7}, "size": [1600, 900], "keys": ["KeyM"], "keyWait": 2500, "keysAfter": ["KeyM"],
      "out": [{"path": "docs/game/map.jpg", "width": 1400}]},
-    {"name": "share/og", "doc": "공유 대표 이미지(og:image): 10월, 정문 위에서 백양로를 따라 북쪽. 왼쪽 중앙도서관, 오른쪽 백주년기념관, 끝에 언더우드관과 안산",
-     "cam": {"x": -125, "y": -440, "dh": 42, "tx": 12, "ty": 0, "tdh": 0, "fov": 34}, "size": [1600, 840], "season": "autumn",
-     "out": [{"path": "web/public/og.jpg", "width": 1200, "quality": 84}]},
+    {"name": "share/og", "doc": "공유 대표 이미지(og:image): 5월, 정문 위에서 백양로를 따라 북쪽. 왼쪽 중앙도서관, 오른쪽 백주년기념관, 끝에 언더우드관과 안산. 위쪽 하늘에 제목",
+     "cam": {"x": -125, "y": -440, "dh": 42, "tx": 12, "ty": 0, "tdh": 45, "fov": 36}, "size": [1600, 840],
+     "out": [{"path": "web/public/og.jpg", "width": 1200, "quality": 84,
+              "title": {"eyebrow": "설레던 백양로, 첫 시작의 기억", "title": "연세대 신촌 캠퍼스 1997", "sub": "그 시절 우리 학교는"}}]},
 
     {"name": "screenshots/centennial_porch", "doc": "고증 3.4: 백주년기념관 백양로 쪽 현관과 앞마당, 백양로 건너편에서",
      "cam": {"x": -78, "y": -228, "dh": 6, "tx": -18, "ty": -205, "tdh": 7, "fov": 48}, "size": [1350, 860],
