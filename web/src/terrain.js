@@ -490,13 +490,13 @@ export function makeFarTerrain(hf, nearHalf, south = null) {
 
 // Forest canopy on the far hills (안산, 인왕산 …): clumps of low-poly crowns so the slopes read as woodland
 // rather than a smooth green dome.
-export function makeFarForest(hf, nearHalf, maxR = 3800, south = null, north = null) {
+export function makeFarForest(hf, nearHalf, maxR = 3800, south = null, north = null, hfRng = hf) {
   const pr = patchRects(south);
   // the north patch keeps its woods (무악학사 · 북문: 안산's slopes), the crowns on the patch's own ground and off what
   // is built or paved there (north: { hf: the near Heightfield, rect, clear })
   const rnd = mulberry(77);
   const pts = [];
-  const { n, half, step, data } = hf;
+  const { n, half, step } = hf;
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
       const x = -half + i * step, y = -half + j * step;
@@ -504,7 +504,7 @@ export function makeFarForest(hf, nearHalf, maxR = 3800, south = null, north = n
       if (nearAny(pr, x, y, -50) && !(north && nearPatch(north.rect, x, y, -50))) continue;
       const r = Math.hypot(x, y);
       if (r > maxR) continue;
-      const h = data[j * n + i] + oldTilt(x, y);
+      const h = hfRng.data[j * n + i] + oldTilt(x, y);           // (hfRng: the heights the draws were made on)
       if (h < 68 + hillNoise(x, y) * 30) continue;
       const k = r < 2400 ? 14 : 6;
       for (let m = 0; m < k; m++) pts.push([x + (rnd() - 0.5) * step, y + (rnd() - 0.5) * step]);
@@ -573,7 +573,7 @@ export function makeSummitTower(hf, near = [710, 1400]) {
 }
 
 // Distant 1990s Seoul: instanced apartment blocks scattered on the low ground of the far ring.
-export function makeCity(hf, nearHalf, count = 1600, south = null) {
+export function makeCity(hf, nearHalf, count = 1600, south = null, hfRng = hf) {
   const pr = patchRects(south);
   const c = document.createElement('canvas');
   c.width = 64; c.height = 128;
@@ -599,8 +599,8 @@ export function makeCity(hf, nearHalf, count = 1600, south = null) {
     tries++;
     const X = (rnd() * 2 - 1) * 6500, Y = (rnd() * 2 - 1) * 6500;
     if (Math.abs(X) < nearHalf + 150 && Math.abs(Y) < nearHalf + 150) continue;
-    const h = hf.height(X, Y) + oldTilt(X, Y);
-    if (h > 58 || h < 6) continue;
+    const h = hf.height(X, Y) + oldTilt(X, Y), hr = hfRng.height(X, Y) + oldTilt(X, Y);   // (hfRng: as makeFarForest)
+    if (hr > 58 || hr < 6) continue;
     const apt = rnd() < 0.45;
     s.set(apt ? 14 : 10 + rnd() * 20, apt ? 25 + rnd() * 20 : 6 + rnd() * 12, apt ? 60 + rnd() * 40 : 10 + rnd() * 20);
     if (nearAny(pr, X, Y, 150)) s.setScalar(1e-4);    // (over the patches past the grid: drawn, not seen, so the rest stay)

@@ -1,9 +1,10 @@
 """동네 땅: 성산로 남쪽 · 경의선 남쪽의 창천동 · 노고산동 · 동교동과 신촌 로터리 둘레를 측량 표고로 (#189;
 reference/고증/4.8.3_동네_땅.md, 2.8.1).  tools/build_campus.py 가 부른다.
 
-    info = town97.lay(Hn, X, Y)              # 철둑 · 성산로 · 연세로를 놓기 바로 앞(심기가 끝난 뒤)
-    info = town97.lay_patch(Hs, S)           # 남쪽 조각(tools/sinchon_rotary.py patch)에도 같은 면
-    town97.rim_patch(Hs, Hs_old, S)          # 길의 바닥을 놓은 뒤: 조각의 바깥 가장자리는 전의 땅으로
+    info = town97.far_ring(Hf, half, step, n)  # 먼 지형(100 m 격자)의 남쪽: 측량 면으로(Hf 를 고침). 아래 셋보다 먼저
+    info = town97.lay(Hn, X, Y, Hf)          # 철둑 · 성산로 · 연세로를 놓기 바로 앞(심기가 끝난 뒤)
+    info = town97.lay_patch(Hs, S, Hf)       # 남쪽 조각(tools/sinchon_rotary.py patch)에도 같은 면
+    town97.rim_patch(Hs, S, Hf)              # 길의 바닥을 놓은 뒤: 조각의 바깥 가장자리는 먼 지형의 가장자리로
 
 Frame: campus metres, x east, y north.
 
@@ -22,12 +23,27 @@ Frame: campus metres, x east, y north.
   Checked against the 2024 survey's spots in the town (169, a survey of its own): surface − spot −0.07 m in the
   middle, 16 - 84 % −0.66 .. +0.48 (the contours alone +0.72, −0.34 .. +1.88); against the photos' heights on a 10 m
   grid east of x −200 (1,800 points, most of them roofs) the lowest mode, the ground's, lies at −0.5 .. 0 m.
+- FAR: the far terrain's nodes (100 m) south of the campus, x -3300 .. 3200, y -2400 .. -200, 해발 in decimetres: the
+  same survey of 2006 on six sheets (서울077 · 078 · 079 · 087 · 088 · 089, 고증 1.5) made the same way on a 10 m grid
+  over x -3350 .. 3260, y -2400 .. 400 (1,594 spots; 158 whose residual stood more than 3 m off their neighbours'
+  within 150 m left out: bridges, flyovers, banks), then smoothed (gaussian, σ 50 m) at each node.  Against the
+  2024 survey's spots south of y -450 (303): surface − spot −0.12 m in the middle, 16 - 84 % −0.83 .. +0.64; against
+  GRID on its 10 m nodes 0.01 (−0.56 .. +0.71).  The surface model it replaces stood 3 - 13 m over it in the town
+  west of 연세로 (홍대 앞 · 동교동: the blocks' roofs), and up to 12 m under it on 아현동's hills east of the
+  game (the 2010s' 뉴타운 cut them down; the survey of 2006 is the nearer one to 1997).
+- far_ring(): the far nodes take FAR (+ T) over the table, eased out over 300 m at its west, east and south ends and
+  over 200 m south of y -100 (north of it, round the campus, the far terrain stays as it was), and kept where the
+  surface model is the Han (under 6 m, eased over 4 m); next to the near grid's east edge, where the near ground
+  is not the town's, over 200 m east of it.  The nodes on the town's outer edges (the near grid's west and south
+  edges, the patch's west, south and east ones: OUTER) take what the town's ground is there, GRID by weight().
 - The build's working datum is 해발 + T (tools/datum.py tilt); surf() adds it.
 - weight(): 1 inside REGION (the town: south of 성산로's middle line and of the road north-west of its end, 성산로's run
   on north-east, the wedge east of it), eased to 0 over EDGE m inside its north side (성산로's bed, laid after it,
-  covers that), over RIM m at the outer edges of the near terrain and of the patch (the far terrain round them is the
-  surface model still) and towards the west end's north side.  Nothing here draws from any random stream; the town's
-  houses, signs, trees read the ground when they are laid (their bases follow).
+  covers that) and towards the west end's north side.  Over RIM m at the outer edges of the near terrain and of the
+  patch the ground eases into the far terrain's edge (edge_z: along OUTER, straight between its nodes as the web
+  draws the far ring), so that the two meet.  Nothing here draws from any random stream; the town's houses, signs,
+  trees read the ground when they are laid (their bases follow).  The far terrain's forest and city in the web
+  decide on its heights as they were (campus.json terrain.far.rng, tools/build_campus.py).
 """
 import numpy as np
 import shapely
@@ -50,7 +66,9 @@ NORTH = [(-800.0, -100.0), (-640.0, -100.0), (-575.0, -170.0), (-516.0, -235.0),
          (277.7, -322.9), (299.7, -299.9), (322.1, -277.2), (300.8, -256.1), (452.8, -107.5),
          (500.0, -140.0), (646.0, -250.0)]
 EAST = [(646.0, -250.0), (720.0, -810.0)]              # (the town's zone ends on this line: tools/gate_town.py layout)
-REGION = Polygon(NORTH + [EAST[1], (400.0, -810.0), (400.0, -1210.0), (-600.0, -1210.0), (-600.0, -810.0), (-810.0, -810.0),
+# (10 m past the near grid's and the patch's outer edges, so that their nodes, and the far terrain's nodes on them,
+# are the town's: the ground eases into the far terrain there, _rim)
+REGION = Polygon(NORTH + [EAST[1], (410.0, -810.0), (410.0, -1210.0), (-610.0, -1210.0), (-610.0, -810.0), (-810.0, -810.0),
                           (-810.0, -100.0)])
 WEST_FADE = (-600.0, -110.0, -180.0)                   # west of x: weight 0 at the first y, 1 at the second
 GRID = None
@@ -85,32 +103,148 @@ def surf(x, y):
     return sea(x, y) + tilt(x, y)
 
 
-def weight(X, Y):
-    """how much of the survey's surface the ground takes at each (X, Y): see the module's head"""
+def _core(X, Y):
+    """weight() without the outer rim"""
     P = shapely.points(np.stack([np.ravel(X), np.ravel(Y)], 1))
     inside = shapely.contains_xy(REGION, np.ravel(X), np.ravel(Y))
     d = shapely.distance(P, LineString(NORTH + [EAST[1]]))
     w = np.where(inside, _smooth(d / EDGE), 0.0).reshape(np.shape(X))
-    # the outer edges of the ground the game holds on 5 m nodes: the near grid (+-800) and the patch south of it
+    xa, ya = np.asarray(X, float), np.asarray(Y, float)
+    xw, y0, y1 = WEST_FADE
+    return w * np.where(xa < xw, _smooth((y0 - ya) / (y0 - y1)), 1.0)
+
+
+def _rim(X, Y):
+    """0 at the outer edges of the ground the game holds on 5 m nodes (the near grid, +-800, and the patch south of
+    it), 1 from RIM m inside them"""
     xa, ya = np.asarray(X, float), np.asarray(Y, float)
     e_near = np.minimum(800.0 - np.abs(xa), ya + 800.0)
     e_patch = np.minimum(np.minimum(xa + 600.0, 400.0 - xa), ya + 1200.0)
     e = np.where(ya >= -800.0, np.where((xa >= -600.0) & (xa <= 400.0), np.minimum(800.0 - np.abs(xa), np.maximum(e_near, e_patch)), e_near),
                  e_patch)
-    w = w * _smooth(e / RIM)
-    xw, y0, y1 = WEST_FADE
-    return w * np.where(xa < xw, _smooth((y0 - ya) / (y0 - y1)), 1.0)
+    return _smooth(e / RIM)
 
 
-def lay(Hn, X, Y, keep=None):
-    """The near grid's nodes in the town onto the survey's surface (Hn in place); keep: nodes left as they are.
-    Returns a summary."""
-    w = weight(X, Y)
+def weight(X, Y):
+    """how much of the survey's surface the ground takes at each (X, Y), the outer rim's easing in: see the module's
+    head"""
+    return _core(X, Y) * _rim(X, Y)
+
+
+# the town's outer edges on the far terrain's nodes (100 m): the near grid's west edge from the region's north side,
+# its south edge to the patch, the patch's west, south and east edges, the near grid's south edge on to its east end
+OUTER = ([(-800.0, float(y)) for y in range(-100, -801, -100)] + [(-700.0, -800.0), (-600.0, -800.0)]
+         + [(-600.0, float(y)) for y in range(-900, -1201, -100)] + [(float(x), -1200.0) for x in range(-500, 401, 100)]
+         + [(400.0, float(y)) for y in range(-1100, -799, 100)] + [(float(x), -800.0) for x in range(500, 801, 100)])
+FAR_X0, FAR_Y0, FAR_D = -3300.0, -2400.0, 100.0
+FAR_EASE = dict(west=300.0, east=300.0, south=300.0, north=(-100.0, 200.0), river=(6.0, 4.0), near_east=200.0)
+FAR = None
+
+
+def _far():
+    global FAR
+    if FAR is None:
+        FAR = np.array([[int(v) for v in r.split()] for r in _FAR.strip().split('\n')], float) / 10.0
+    return FAR
+
+
+def far_sea(x, y):
+    """FAR (해발) at (x, y), bilinear (nearest past its ends)"""
+    xa, ya = np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float))
+    r = ndimage.map_coordinates(_far(), [(ya.ravel() - FAR_Y0) / FAR_D, (xa.ravel() - FAR_X0) / FAR_D], order=1,
+                                mode='nearest').reshape(xa.shape)
+    return float(r) if r.ndim == 0 else r
+
+
+def _node(Hf, half, step, x, y):
+    return int(round((y + half) / step)), int(round((x + half) / step))
+
+
+def far_ring(Hf, half, step, n):
+    """The far terrain's nodes south of the campus onto the survey's surface (Hf: the far ring on the working datum,
+    rows south -> north, in place); the nodes on OUTER take the town's ground there.  Returns a summary."""
+    fx = -half + np.arange(n) * step
+    FX, FY = np.meshgrid(fx, fx)
+    ny_, nx_ = _far().shape
+    E = FAR_EASE
+    x1, y1 = FAR_X0 + (nx_ - 1) * FAR_D, FAR_Y0 + (ny_ - 1) * FAR_D
+    inside = (FX >= FAR_X0) & (FX <= x1) & (FY >= FAR_Y0) & (FY <= y1)
+    w = inside * _smooth((FX - FAR_X0) / E['west']) * _smooth((x1 - FX) / E['east']) * _smooth((FY - FAR_Y0) / E['south'])
+    w = w * _smooth((E['north'][0] - FY) / E['north'][1])
+    w = w * _smooth((Hf - E['river'][0]) / E['river'][1])
+    w = w * np.where((FX >= 800.0) & (FY >= -800.0), _smooth((FX - 800.0) / E['near_east']), 1.0)
+    H0 = Hf.copy()
+    Hf[:] = H0 * (1 - w) + (far_sea(FX, FY) + tilt(FX, FY)) * w
+    # the town's outer edges: its own ground there
+    ox, oy = np.array(OUTER).T
+    wc = _core(ox, oy)
+    g = sea(ox, oy)
+    assert np.all(g[wc > 0] > 1.0), 'GRID has no value on OUTER'
+    for k_, (x_, y_) in enumerate(OUTER):
+        j_, i_ = _node(Hf, half, step, x_, y_)
+        Hf[j_, i_] = H0[j_, i_] * (1 - wc[k_]) + (g[k_] + tilt(x_, y_)) * wc[k_]
+    d = (Hf - H0)[w > 0.999]
+    return dict(nodes=int((np.abs(Hf - H0) > 1e-6).sum()), whole=int((w > 0.999).sum()), median=round(float(np.median(d)), 2),
+                p16=round(float(np.percentile(d, 16)), 2), p84=round(float(np.percentile(d, 84)), 2),
+                low=round(float((Hf - H0).min()), 1), high=round(float((Hf - H0).max()), 1))
+
+
+def edge_z(X, Y, far):
+    """The far terrain's edge along OUTER at each (X, Y) on it: straight between its nodes, as the web draws the far
+    ring.  far: (Hf, half, step) after far_ring()"""
+    Hf, half, step = far
+    L = LineString(OUTER)
+    cum = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(np.array(OUTER), axis=0).T))])
+    zs = np.array([Hf[_node(Hf, half, step, x_, y_)] for x_, y_ in OUTER], float)
+    s_ = shapely.line_locate_point(L, shapely.points(np.stack([np.ravel(X), np.ravel(Y)], 1)))
+    return np.interp(s_, cum, zs).reshape(np.shape(X))
+
+
+def _edge_pts(lines):
+    """the 5 m nodes along these pieces of OUTER, and how far along OUTER each lies"""
+    pts = []
+    for P0, P1 in lines:
+        n_ = int(round(np.hypot(P1[0] - P0[0], P1[1] - P0[1]) / 5.0))
+        pts += [(P0[0] + (P1[0] - P0[0]) * k_ / n_, P0[1] + (P1[1] - P0[1]) * k_ / n_) for k_ in range(n_ + 1)]
+    pts = np.array(pts)
+    s_ = shapely.line_locate_point(LineString(OUTER), shapely.points(pts))
+    o = np.argsort(s_, kind='stable')
+    return pts[o], s_[o]
+
+
+def _ease(X, Y, far, base, lines=None):
+    """How much the ground at each (X, Y) moves to meet the far terrain's edge: at the nearest point of OUTER (of
+    lines, pieces of it) the far edge less base(x, y) there, eased in over RIM m (_rim).  So the ground keeps its own
+    shape across the rim and only the difference along the edge -- the relief between the far terrain's 100 m nodes --
+    fades in"""
+    pts, cs = _edge_pts(lines or list(zip(OUTER[:-1], OUTER[1:])))
+    dz = edge_z(pts[:, 0], pts[:, 1], far) - base(pts[:, 0], pts[:, 1])
+    L = LineString(OUTER)
+    s_ = shapely.line_locate_point(L, shapely.points(np.stack([np.ravel(X), np.ravel(Y)], 1)))
+    if lines:
+        # (nearest along those pieces only)
+        s_ = np.array([cs[np.argmin(np.hypot(pts[:, 0] - x_, pts[:, 1] - y_))] for x_, y_ in zip(np.ravel(X), np.ravel(Y))])
+    return (np.interp(s_, cs, dz) * (1 - _rim(np.ravel(X), np.ravel(Y)))).reshape(np.shape(X))
+
+
+def _onto(H0, X, Y, w, far):
+    """the survey's surface by w, eased over the rim into the far terrain's edge"""
+    t = surf(X, Y)
+    e = _rim(X, Y) < 0.999
+    if np.any(e):
+        t[e] = t[e] + _ease(X[e], Y[e], far, surf)
+    return H0 * (1 - w) + t * w
+
+
+def lay(Hn, X, Y, far, keep=None):
+    """The near grid's nodes in the town onto the survey's surface (Hn in place), eased into the far terrain's edge
+    (far: (Hf, half, step) after far_ring()); keep: nodes left as they are.  Returns a summary."""
+    w = _core(X, Y)
     if keep is not None:
         w = np.where(keep, 0.0, w)
     m = w > 0
     H0 = Hn[m].copy()
-    Hn[m] = H0 * (1 - w[m]) + surf(X[m], Y[m]) * w[m]
+    Hn[m] = _onto(H0, X[m], Y[m], w[m], far)
     d = Hn[m] - H0
     full = w[m] > 0.999
     return dict(nodes=int(m.sum()), whole=int(full.sum()), median=round(float(np.median(d[full])), 2),
@@ -118,34 +252,35 @@ def lay(Hn, X, Y, keep=None):
                 low=round(float(d.min()), 1), high=round(float(d.max()), 1))
 
 
-def lay_patch(Hs, S):
+def lay_patch(Hs, S, far):
     """the same on the patch south of the grid (tools/sinchon_rotary.py SOUTH: Hs[j, i] at x0 + i step, y0 + j step);
     its top row is the grid's bottom row and takes the same surface"""
     X, Y = np.meshgrid(S['x0'] + np.arange(S['nx']) * S['step'], S['y0'] + np.arange(S['ny']) * S['step'])
-    w = weight(X, Y)
+    w = _core(X, Y)
     m = w > 0
     H0 = Hs[m].copy()
-    Hs[m] = H0 * (1 - w[m]) + surf(X[m], Y[m]) * w[m]
+    Hs[m] = _onto(H0, X[m], Y[m], w[m], far)
     d = Hs[m] - H0
     full = w[m] > 0.999
     return dict(nodes=int(m.sum()), whole=int(full.sum()), median=round(float(np.median(d[full])), 2),
                 low=round(float(d.min()), 1), high=round(float(d.max()), 1))
 
 
-def rim_patch(Hs, Hs_old, S):
-    """the patch's outer rim as it was (Hs_old: the patch made on the ground as it was, its streets' beds laid the same
-    way): the streets' beds run out to its west, east and south edges, where the far terrain round it is the surface
-    model still; blended over RIM m (Hs in place, the top row, the near grid's bottom one, left alone).  Returns the
-    most a node on the edge would have differed."""
+def rim_patch(Hs, S, far):
+    """after the streets' beds (they run out to the patch's west, east and south edges): the patch eased into the far
+    terrain's edge along them again over RIM m (Hs in place, the top row, the near grid's bottom one, left alone).
+    Returns the most a node on the edge moved."""
     X, Y = np.meshgrid(S['x0'] + np.arange(S['nx']) * S['step'], S['y0'] + np.arange(S['ny']) * S['step'])
-    x1 = S['x0'] + (S['nx'] - 1) * S['step']
-    e = np.minimum(np.minimum(X - S['x0'], x1 - X), Y - S['y0'])
-    r = 1.0 - _smooth(e / RIM)
-    edge = np.abs(Hs - Hs_old)[e <= 0.0]
-    top = Hs[-1].copy()
-    Hs[:] = Hs * (1 - r) + Hs_old * r
-    Hs[-1] = top
-    return round(float(edge.max()), 2)
+    x1, y1 = S['x0'] + (S['nx'] - 1) * S['step'], S['y0'] + (S['ny'] - 1) * S['step']
+    e = _rim(X, Y) < 0.999
+    e[-1] = False
+    c = [(S['x0'], y1), (S['x0'], S['y0']), (x1, S['y0']), (x1, y1)]
+    base = lambda x_, y_: ndimage.map_coordinates(Hs, [(np.asarray(y_) - S['y0']) / S['step'], (np.asarray(x_) - S['x0']) / S['step']],
+                                                  order=1, mode='nearest')
+    d = _ease(X[e], Y[e], far, base, lines=list(zip(c[:-1], c[1:])))
+    on = (_rim(X[e], Y[e]) <= 0.0)
+    Hs[e] = Hs[e] + d
+    return round(float(np.abs(d[on]).max()), 2)
 
 
 _GRID = """
@@ -260,4 +395,31 @@ _GRID = """
 227 226 226 218 226 198 202 204 206 209 212 217 223 230 237 243 258 273 285 296 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 366 357 347 339 342 344 345 345 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 224 223 222 221 221 221 218 214 213 213 215 217 222 228 235 240 256 270 283 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 372 358 348 345 344 345 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 221 220 219 218 218 217 217 217 217 219 218 222 227 233 241 254 268 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 352 347 346 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+"""
+
+# the far ring south of the campus (FAR_X0, FAR_Y0, every FAR_D m; rows south -> north), 해발 in decimetres
+_FAR = """
+145 207 202 171 200 202 169 142 165 209 220 204 193 196 185 165 176 181 184 220 212 172 130 98 73 58 65 114 171 194 171 131 101 89 86 105 167 163 116 96 94 92 93 99 109 122 146 195 271 398 533 543 432 304 256 301 368 372 328 293 234 169 155 159 167 171
+130 153 150 166 200 209 176 148 146 167 172 151 121 133 161 158 161 159 165 192 181 145 104 79 71 76 110 148 172 178 139 106 95 89 88 114 169 167 130 102 98 95 96 103 108 116 134 170 249 408 548 529 434 329 295 331 392 399 359 318 236 175 163 166 171 173
+83 91 115 155 191 206 176 136 119 145 169 141 101 104 131 137 132 134 162 190 172 128 94 93 109 121 129 139 146 169 122 104 99 92 93 105 146 176 158 112 102 101 103 107 111 116 124 141 220 411 560 536 448 362 349 397 448 423 338 282 222 186 176 178 178 176
+56 72 97 138 177 194 156 106 118 168 172 143 122 128 135 130 130 135 149 186 217 183 139 123 118 120 120 126 129 157 133 118 122 101 101 105 140 178 154 115 110 111 114 123 125 122 125 133 180 356 555 594 523 440 412 464 456 392 323 274 232 193 185 187 184 176
+53 62 79 107 136 143 122 120 146 180 178 159 147 146 137 126 129 137 155 198 244 259 181 124 120 121 122 128 127 152 153 135 144 120 110 109 125 156 143 119 120 127 146 197 199 155 135 135 150 236 421 561 591 528 469 493 488 458 413 351 279 201 192 214 221 195
+51 58 70 83 90 94 119 156 168 179 178 169 161 154 140 128 126 132 146 176 214 261 217 161 153 142 134 134 132 156 173 185 191 158 127 127 132 138 134 126 134 162 201 304 320 220 155 142 150 180 277 421 517 564 551 560 566 559 531 462 335 218 208 237 286 278
+52 56 63 69 86 121 139 151 156 162 168 170 169 161 144 129 125 128 136 152 181 207 231 265 240 183 149 139 133 143 182 235 222 174 150 152 152 144 136 135 152 210 276 387 363 241 188 160 158 170 208 295 407 528 618 653 677 671 622 493 343 237 232 253 377 418
+57 58 64 90 133 146 135 129 130 138 155 171 178 171 153 133 127 128 133 140 158 182 281 438 405 270 173 143 133 144 209 263 223 180 168 170 175 172 155 149 183 268 369 432 357 259 218 180 164 169 180 231 350 505 647 719 754 669 566 440 307 245 255 280 411 487
+65 66 92 139 154 140 121 110 109 121 145 171 188 188 173 150 135 133 135 141 158 206 357 603 588 399 232 161 135 137 185 221 192 186 206 200 210 210 180 164 186 266 418 497 403 323 288 217 174 171 178 216 314 479 624 699 725 648 531 396 275 237 253 266 329 414
+77 98 137 153 140 122 107 100 104 121 146 174 197 208 200 184 167 158 163 170 178 229 370 614 731 553 370 232 146 134 158 181 183 215 297 315 306 291 231 188 190 243 394 547 504 427 327 229 184 181 197 229 302 436 585 648 660 671 604 452 320 247 256 255 293 357
+111 141 144 133 113 102 96 97 109 131 154 177 196 214 215 208 204 201 201 203 207 247 347 534 787 835 589 359 186 142 169 189 210 251 343 432 458 416 308 233 212 260 379 575 646 523 384 260 200 204 253 267 330 413 525 586 567 603 614 504 357 258 263 268 309 374
+140 132 112 99 95 93 91 95 112 136 153 167 175 193 202 196 198 203 213 220 228 271 345 417 539 671 644 501 289 158 175 220 263 285 380 569 703 634 449 322 270 297 420 588 706 581 419 295 224 208 250 294 381 486 625 596 478 435 424 361 287 253 263 278 335 397
+118 101 93 91 92 93 94 95 102 115 126 138 145 153 153 146 145 156 183 203 211 242 280 287 325 395 446 363 238 148 163 226 274 324 446 674 858 807 571 403 338 373 518 668 768 649 481 349 276 227 249 353 421 551 783 716 524 393 324 285 253 249 261 274 314 356
+102 93 89 89 91 93 95 96 96 98 102 110 117 121 120 116 114 122 142 164 176 195 205 193 213 250 295 249 180 143 147 198 236 273 384 530 691 777 634 469 401 449 583 738 797 706 534 421 339 272 259 361 457 623 850 793 608 448 365 314 265 251 262 274 292 357
+97 91 89 90 91 93 95 97 97 97 98 102 105 105 107 105 103 107 119 132 142 157 157 153 167 200 236 211 180 151 149 179 211 238 299 374 471 577 609 555 472 531 655 746 719 720 615 464 360 287 267 321 444 650 810 694 568 483 430 349 280 260 267 283 314 424
+96 91 90 91 91 93 95 97 99 98 98 100 102 102 104 104 102 102 107 115 120 125 132 139 159 197 223 233 203 172 165 178 205 249 290 323 376 441 500 532 511 559 670 676 586 557 526 425 340 291 289 326 441 628 748 704 660 599 512 379 287 263 265 284 321 429
+95 91 91 93 92 92 94 98 100 99 98 98 99 101 105 106 105 105 106 108 109 113 123 137 155 182 228 263 232 193 169 170 188 249 341 376 371 387 418 473 521 564 628 618 536 481 446 397 345 317 327 350 432 574 649 778 797 695 531 370 282 262 261 277 306 365
+94 92 94 98 96 92 93 97 101 99 95 95 97 100 105 108 108 108 108 107 106 112 131 152 165 194 260 316 285 222 184 178 185 206 316 492 455 365 371 429 512 596 686 714 620 540 482 436 383 339 346 375 413 476 568 706 675 552 441 350 299 277 273 283 301 340
+87 87 93 100 98 92 90 94 99 99 96 98 99 100 104 107 108 106 106 106 107 117 144 180 210 219 299 383 351 268 213 197 195 204 238 348 388 340 352 392 465 604 740 822 783 689 594 527 443 358 377 425 475 503 537 572 534 458 399 375 321 290 296 302 310 343
+83 84 88 94 95 91 93 100 105 119 152 193 165 114 102 106 106 103 102 103 106 118 149 223 301 283 326 406 369 307 263 241 230 241 245 258 285 323 368 394 436 541 705 832 850 766 668 582 470 384 416 512 580 619 510 458 458 454 421 383 323 308 319 332 340 351
+85 87 87 88 89 94 116 152 171 215 315 394 365 190 113 106 104 102 101 101 106 118 144 219 308 330 361 421 359 310 288 262 245 273 285 277 281 317 391 442 423 493 677 850 876 727 592 525 469 411 439 575 702 712 537 414 408 425 396 344 311 313 320 349 363 369
+101 95 90 90 89 103 152 250 341 402 462 497 401 199 121 109 104 102 102 105 110 116 132 172 214 262 331 418 370 314 301 274 263 304 343 326 300 309 384 474 449 449 627 830 890 702 528 452 412 403 454 635 811 739 543 412 394 403 365 319 296 300 320 356 376 382
+136 126 113 108 99 119 207 334 432 390 331 333 214 136 121 117 108 103 103 111 118 118 125 145 176 216 263 347 367 344 340 310 287 308 373 392 366 335 362 450 522 529 643 826 820 656 530 464 423 413 475 684 817 664 500 402 378 370 343 315 298 308 354 377 374 365
 """

@@ -6413,9 +6413,16 @@ TOWN_SECS_RNG = gate_town.bank_fix(gate_town.plan(_hn_rng, NEAR_HALF, NEAR_STEP,
 # 동네 땅 (tools/town97.py, reference/고증/4.8.3_동네_땅.md; #189): the town south of 성산로 and of the rails on the 1:5000
 # survey's surface (the surface model's roofs and trees stood 4.7 m over it), here: the banks' sections as they were
 # (TOWN_SECS_RNG, what the planting on them decides) have read the old ground; 성산로's bed, the rails' and the streets'
-# are laid on the new one below
-_hn_pre97 = Hn.copy()
-TOWN97_NEAR = town97.lay(Hn, X, Y, keep=FIXED)
+# are laid on the new one below.  The far terrain (100 m) south of the campus goes onto the same survey first, and the
+# town's ground eases into its edge at the near grid's and the patch's outer edges (they meet there).  HF_RNG: the far
+# ring as it was, on which the web's far forest and city still decide (campus.json terrain.far.rng)
+Hf = np.array(tf['rows_south_to_north'], dtype=np.float32)
+Hf = ndimage.gaussian_filter(Hf, 0.7).astype(np.float32)
+HF_RNG = Hf.copy()
+TOWN97_FAR = town97.far_ring(Hf, tf['half'], tf['step'], tf['n'])
+print('동네 땅 (먼 지형): nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m (16 - 84 %%: %(p16)+.2f .. %(p84)+.2f), %(low)+.1f .. %(high)+.1f' % TOWN97_FAR)
+_far97 = (Hf, tf['half'], tf['step'])
+TOWN97_NEAR = town97.lay(Hn, X, Y, _far97, keep=FIXED)
 print('동네 땅: nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m (16 - 84 %%: %(p16)+.2f .. %(p84)+.2f), %(low)+.1f .. %(high)+.1f' % TOWN97_NEAR)
 TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h,
                            keep_nodes=near_buildings(1.5))
@@ -6451,19 +6458,15 @@ print('대운동장 남서쪽 · 야구장: road bed %(bed)d nodes, 야구장 %(
 # 신촌 로터리 (tools/sinchon_rotary.py, reference/고증/4.10_신촌_로터리.md): the near terrain's patch south of the grid
 # (y -1200 .. -800), and the bed of 연세로 south of the bridge and of the junction, levelled across
 HS = sinchon_rotary.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP)
-TOWN97_SOUTH = town97.lay_patch(HS, sinchon_rotary.SOUTH)          # (동네 땅, above: the patch too)
+TOWN97_SOUTH = town97.lay_patch(HS, sinchon_rotary.SOUTH, _far97)  # (동네 땅, above: the patch too)
 print('동네 땅 (남쪽 조각): nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m, %(low)+.1f .. %(high)+.1f' % TOWN97_SOUTH)
 ROT_GEO = sinchon_rotary.streets(TOWN_PLAN)
 # (the banks keep the ground their slopes' feet were set on; the bridge's opening is 연세로's: 고증 4.10.4 「길의 높이」)
 _rl_keep = gate_town.bank_poly(TOWN_SECS)[0].difference(Polygon([(gate_town.BRIDGE[0], -440), (gate_town.BRIDGE[1], -440),
                                                                   (gate_town.BRIDGE[1], -530), (gate_town.BRIDGE[0], -530)]))
 ROT_LEVEL = sinchon_rotary.level(Hn, HS, NEAR_HALF, NEAR_STEP, ROT_GEO, ground_h, keep=_rl_keep)
-# (the patch's outer rim as it was: the far terrain round it is the surface model still, and the streets' beds run out
-# to its edges.  The same patch and beds made on the ground before 동네 땅, blended in over town97.RIM)
-_hs_old = sinchon_rotary.patch(raw_grid, _hn_pre97, NEAR_HALF, NEAR_STEP)
-sinchon_rotary.level(_hn_pre97, _hs_old, NEAR_HALF, NEAR_STEP, ROT_GEO, ground_h, keep=_rl_keep)
-print('동네 땅 (남쪽 조각의 가장자리): 전의 땅으로 이음, 가장자리 마디의 차 %.2f m 까지' % town97.rim_patch(HS, _hs_old, sinchon_rotary.SOUTH))
-del _hn_pre97, _hs_old
+# (the patch's outer rim, the streets' beds too, into the far terrain's edge: town97.far_ring above, over town97.RIM)
+print('동네 땅 (남쪽 조각의 가장자리): 먼 지형의 가장자리로 이음, 가장자리 마디가 움직인 것 %.2f m 까지' % town97.rim_patch(HS, sinchon_rotary.SOUTH, _far97))
 print('신촌 로터리: 교차로 높이 %.2f m, 연세로 %s, 길 %s' % (ROT_LEVEL['z_junction'], ROT_LEVEL['z_yonsei'], ROT_LEVEL['arms']))
 
 
@@ -7071,8 +7074,7 @@ print('무악학사 · 북문 땅: %.1f .. %.1f m, roads %s, courts %s' % (HN.mi
 def ground_tn(x, y):
     """the ground as saved, both patches too"""
     return muak.sample_n(HN, x, y) if muak.in_patch(x, y) else ground_t(x, y)
-Hf = np.array(tf['rows_south_to_north'], dtype=np.float32)
-Hf = ndimage.gaussian_filter(Hf, 0.7).astype(np.float32)
+# (Hf, the far ring: above, 동네 땅)
 # ---------------------------------------------------------------------------
 # Building name markers (bird's-eye pins, walk-mode labels, big map).  One per name, over its largest footprint.
 # MARKER_NAME: the name a 1997 student would use (or None: no marker, e.g. not built yet in 1997).
@@ -11045,6 +11047,16 @@ for i_, b_ in enumerate(out['buildings']):
     if b_['id'] in muak.GATE_FRAME_IDS + (991043,):     # (and the lodge, a plain white hall before: muak.GATE_LODGE)
         RND_GHOSTS.append({**{k_: v_ for k_, v_ in b_.items() if k_ != 'tilt'}, 'style': 'white', 'height': 3.3, 'fh': 3.3,
                            'at': i_})       # (as the boxes they were: one 3.3 m storey)
+# the far ring as it was where 동네 땅 changed it (town97.far_ring): web/src/terrain.js's far forest and city decide on
+# these, so that their draws stay as they were; 해발 as terrain_far.bin is written below (float32, shortest decimals)
+_fx = -tf['half'] + np.arange(tf['n']) * tf['step']
+_ft = datum.tilt(*np.meshgrid(_fx, _fx))
+_fo = (HF_RNG - _ft).astype(np.float32)
+_fj, _fi = np.nonzero(_fo != (Hf - _ft).astype(np.float32))
+if len(_fj):
+    _fb = _fo[_fj.min():_fj.max() + 1, _fi.min():_fi.max() + 1]
+    out['terrain']['far']['rng'] = dict(i0=int(_fi.min()), j0=int(_fj.min()), nx=int(_fb.shape[1]), ny=int(_fb.shape[0]),
+                                        h=[float(np.format_float_positional(v_, unique=True)) for v_ in _fb.ravel()])
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))

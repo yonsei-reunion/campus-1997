@@ -171,6 +171,14 @@ async function main() {
   const northPatch = T.north && northData ? hfNear.setPatch(northData, T.north, true) : null;
   lib.setTerrain(hfNear);
   const hfFar = new Heightfield(farData, T.far.half, T.far.step, T.far.n);
+  // the far ring as it was where the town's ground went onto the survey (tools/town97.py far_ring): the far forest and
+  // city decide on these heights, so that their draws stay as they were
+  let hfFarRng = hfFar;
+  if (T.far.rng) {
+    const { i0, j0, nx, ny, h } = T.far.rng, d = farData.slice();
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) d[(j0 + j) * T.far.n + i0 + i] = h[j * nx + i];
+    hfFarRng = new Heightfield(d, T.far.half, T.far.step, T.far.n);
+  }
   // the campus's static sun shadow baked into one texture (src/bakedshadow.js): the phones' only sun shadow, the
   // desktop's beyond the shadow map; on the terrain here, on every other lit material once the scene is built.
   // Phones also take the halls' and landmarks' own baked shadow on their walls and roofs (blender/bake.py).
@@ -186,13 +194,14 @@ async function main() {
   const fall = new Fall(renderer, scene, lib, hfNear, campus, sunMap);   // petals / leaves coming down round it
   const patches = [hfNear.ext && T.south, northPatch && T.north].filter(Boolean);
   scene.add(makeFarTerrain(hfFar, T.near.half, patches));
-  scene.add(makeCity(hfFar, T.near.half, 1600, patches));
+  scene.add(makeCity(hfFar, T.near.half, 1600, patches, hfFarRng));
   // the kits placed for good, the forest and the far hills' trees, drawn only where in view (world.js); whole into
   // the shadow cache
   const kitCull = new KitCuller();
   shadows.wholeSets = (on) => kitCull.shadowPass(on);
   const farForest = makeFarForest(hfFar, T.near.half, 3800, patches, northPatch &&
-    { hf: hfNear, rect: [northPatch.x0, northPatch.y0, northPatch.x1, northPatch.y1], clear: T.north.clear || [], woods: T.north.woods || [] });
+    { hf: hfNear, rect: [northPatch.x0, northPatch.y0, northPatch.x1, northPatch.y1], clear: T.north.clear || [], woods: T.north.woods || [] },
+    hfFarRng);
   kitCull.add([farForest]);
   scene.add(farForest);
   scene.add(makeSummitTower(hfFar));
