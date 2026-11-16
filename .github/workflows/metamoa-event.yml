@@ -1,0 +1,77 @@
+name: 메타모아 이벤트
+
+# 메타모아 첫 화면 「이벤트」 줄에 올릴 이벤트를 손으로 보고 · 올리고 · 지운다
+# (tools/metamoa_event.py). 시각은 한국 시각, 「YYYY-MM-DD HH:MM」.
+# 한도: 제목 30자, 설명 40자(링크 없이), 기간 31일, 끝나지 않은 것 다섯 개.
+# 공간 키는 secret METAMOA_KEY.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '할 일'
+        type: choice
+        options: [list, add, delete]
+        default: list
+      title:
+        description: '(add) 제목, 30자까지'
+        required: false
+      start:
+        description: '(add) 시작, YYYY-MM-DD HH:MM'
+        required: false
+      end:
+        description: '(add) 끝, YYYY-MM-DD HH:MM (24:00 은 다음 날 0시)'
+        required: false
+      desc:
+        description: '(add) 한 줄 설명, 40자까지 · 링크 없이'
+        required: false
+      daily:
+        description: '(add) 매일 열리는 시각 HH:MM-HH:MM'
+        required: false
+      url:
+        description: '(add) 이 사이트 안의 주소, 예: ?game=shoot'
+        required: false
+      id:
+        description: '(delete) 이벤트 번호(list 로 봄)'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: metamoa-event
+  cancel-in-progress: false
+
+jobs:
+  event:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/metamoa_event.py
+          sparse-checkout-cone-mode: false
+      - name: 이벤트
+        env:
+          METAMOA_KEY: ${{ secrets.METAMOA_KEY }}
+          METAMOA_SPACE_ID: yonsei-1997-benelog-net-mwj6vzb6
+          IN_ACTION: ${{ inputs.action }}
+          IN_TITLE: ${{ inputs.title }}
+          IN_START: ${{ inputs.start }}
+          IN_END: ${{ inputs.end }}
+          IN_DESC: ${{ inputs.desc }}
+          IN_DAILY: ${{ inputs.daily }}
+          IN_URL: ${{ inputs.url }}
+          IN_ID: ${{ inputs.id }}
+        run: |
+          case "$IN_ACTION" in
+            list) python3 tools/metamoa_event.py list ;;
+            delete) python3 tools/metamoa_event.py delete "$IN_ID" ;;
+            add)
+              args=(--title "$IN_TITLE" --start "$IN_START" --end "$IN_END")
+              [ -n "$IN_DESC" ] && args+=(--desc "$IN_DESC")
+              [ -n "$IN_DAILY" ] && args+=(--daily "$IN_DAILY")
+              [ -n "$IN_URL" ] && args+=(--url "$IN_URL")
+              python3 tools/metamoa_event.py add "${args[@]}"
+              python3 tools/metamoa_event.py list ;;
+          esac

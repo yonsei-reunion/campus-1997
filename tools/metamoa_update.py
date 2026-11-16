@@ -19,6 +19,8 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parent.parent
 RELEASES = ROOT / 'web/public/data/releases.json'
 SITE = 'https://yonsei-1997.benelog.net/'
+# Cloudflare 가 Python-urllib 기본 User-Agent 를 막는다(403, error code 1010)
+USER_AGENT = 'campus-1997-metamoa/1.0'
 LIMIT = 200
 
 
@@ -89,7 +91,8 @@ def post(space, key, text):
         f'https://metamoa.com/api/update/{space}',
         data=json.dumps({'text': text}, ensure_ascii=False).encode(),
         headers={'Authorization': f'Bearer {key}',
-                 'Content-Type': 'application/json'},
+                 'Content-Type': 'application/json',
+                 'User-Agent': USER_AGENT},
         method='POST')
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
