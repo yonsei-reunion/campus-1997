@@ -284,6 +284,82 @@ class Line:
         o = np.broadcast_to(np.asarray(o, float), (len(self.P),))
         return self.P + self.N * o[:, None]
 
+    def offn(self, o):
+        """off() on the section as laid (sec_off: the north kerb along 의료원 where the 1997 scans have it, hn)"""
+        o = np.broadcast_to(np.asarray(o, float), (len(self.P),))
+        hn = getattr(self, 'hn', None)
+        return self.P + self.N * (o if hn is None else sec_off(o, hn))[:, None]
+
+
+# 성산로's north kerb along 의료원 (#152; 고증 2.10 「의료원 종합관 남동쪽 주차장의 먼 줄과 성산로 북쪽 가」, 3.1.2): from the
+# 종합관's car park to the road's east end the game had it 6 - 10 m north of the 1997 kerb (OSM's middle, ten lanes), the
+# road's asphalt over the planted strip and the sidewalk before the car park's far row.  The 1997-07-28 scans 27/17 ·
+# 27/18 (26/16 east of u 100) on the road's own height: the kerb's bright band (kerb and gutter) along the road, the two
+# frames within 0.1 - 0.3 m, the far course's 26/16 within 0.1 m where it sees it.  (u, v): 3.1.2's frame (o (150,
+# -250), u along 43 deg, v to its left); v here is the kerb's line, 0.1 m north of the band's middle.  Before 의과대학
+# 신관 (u -82.6 .. -1.9) the kerb runs on straight (-130.0 under the street trees, the frames' readings 27/18 · 1996
+# 27/17 · 27/18 within 0.5 m): the game's within 0.2 m from u -60 to -20, its bend towards the junction west of the hall
+# 0.4 - 5 m north of it.  Eased in over KN97_IN, where the 1997 kerb too turns north into the junction (its islands
+# and the eastbound way's split are not in the game: 4.8).  The south kerb stays (1997: 0.5 -
+# 2.4 m north of the game's); the section between the two kerbs is drawn in to the new width (sec_off): the ten lanes
+# 2.2 - 2.6 m (the scans have seven or eight of 3.0 - 3.4 m), the middle strip and the gutters with them.  What the
+# town's streams decide by the road's edge (bound, zone, the campus's things cleared off the road) stays on the old one
+KN97_O, KN97_ANG = (150.0, -250.0), 43.0
+KN97_UV = [(-95.0, -129.95), (-60.0, -129.95), (-35.0, -129.9), (-30.0, -129.85), (-15.0, -129.5), (-5.0, -129.45), (5.0, -129.3), (15.0, -129.1),
+           (25.0, -128.95), (35.0, -128.7), (45.0, -128.45), (55.0, -128.05), (65.0, -127.65), (70.0, -127.35),
+           (80.0, -127.0), (85.0, -126.95), (100.0, -126.85), (160.0, -126.85)]
+KN97_IN = (-85.0, -75.0)
+KN97_WALK = 3.6            # (the sidewalk behind that kerb, at the road's level: 3.3 m before the east car park's bank)
+
+
+def _kn97_uv(x, y):
+    a = math.radians(KN97_ANG)
+    dx, dy = np.asarray(x, float) - KN97_O[0], np.asarray(y, float) - KN97_O[1]
+    return dx * math.cos(a) + dy * math.sin(a), -dx * math.sin(a) + dy * math.cos(a)
+
+
+def north_hw(road):
+    """the north kerb's offset from the road's middle at each of its points: HW, but along 의료원 where the normal meets
+    the 1997 kerb (KN97_UV), eased in over KN97_IN"""
+    hn = np.full(len(road.P), HW)
+    ku, kv = zip(*KN97_UV)
+    ts = np.arange(4.0, HW + 6.0, 0.02)
+    for k, (p, n) in enumerate(zip(road.P, road.N)):
+        u0, _ = _kn97_uv(*p)
+        if not (ku[0] - 25.0 < u0 < ku[-1]):
+            continue
+        q = p[None, :] + n[None, :] * ts[:, None]
+        uu, vv = _kn97_uv(q[:, 0], q[:, 1])
+        inside = (uu >= ku[0]) & (uu <= ku[-1])
+        cross = np.nonzero(inside & (vv >= np.interp(uu, ku, kv)))[0]
+        if not len(cross):
+            continue
+        i = cross[0]
+        w = _smooth((uu[i] - KN97_IN[0]) / (KN97_IN[1] - KN97_IN[0]))
+        hn[k] = HW + w * (ts[i] - HW)
+    # (smoothed over 8 m: where the game's middle line bends into the junction the kerb eases in without a jog, and the
+    # lanes drawn in with it shift no more than 0.25 m a metre)
+    return ndimage.gaussian_filter1d(hn, 2.0, mode='nearest')
+
+
+def bed_n(road):
+    """how far north of the road's middle its bed is levelled: 2.5 m past the north kerb, along 의료원 its sidewalk
+    (KN97_WALK) where the kerb is the 1997 one"""
+    hn = getattr(road, 'hn', None)
+    if hn is None:
+        return np.full(len(road.P), HW + 2.5)
+    w = np.clip((HW - hn) / 1.0, 0.0, 1.0)
+    return hn + 2.5 + (KN97_WALK - 2.5) * w
+
+
+def sec_off(o, hn):
+    """an offset o (m, + north) on the section as first laid -> on the section as laid: the carriageway between the
+    south kerb (-HW, kept) and the north one (hn) drawn in evenly, what lies north of the kerb with it, south of the south
+    kerb as it was"""
+    o, hn = np.asarray(o, float), np.asarray(hn, float)
+    b = (hn + HW) / (2.0 * HW)
+    return np.where(o > HW, o + (hn - HW), np.where(o < -HW, o, -HW + (o + HW) * b))
+
 
 def plan(Hn, half, step, gate, heading, wall, sample, old=False, keep_nodes=None):
     """Levels 성산로's bed and cuts the rails' bed into the ground where it stands higher (Hn in place).
@@ -298,6 +374,8 @@ def plan(Hn, half, step, gate, heading, wall, sample, old=False, keep_nodes=None
     mid = _mid(RD_N, RD_S, 8.0)
     c = [(x, y - SHIFT * shift_w(x)) for x, y, _ in mid]
     road = Line(_resample(_chaikin(c, 2), 4.0))
+    if not old:
+        road.hn = north_hw(road)             # (the north kerb along 의료원 where the 1997 scans have it)
     wsh = np.array([shift_w(x) for x in road.P[:, 0]])
     # its height: the ground along it, smoothed (the valley of the 창천 before the gate, up towards 금화터널 in the east)
     z = np.array([sample(x, y) for x, y in road.P])
@@ -312,9 +390,11 @@ def plan(Hn, half, step, gate, heading, wall, sample, old=False, keep_nodes=None
     edge = LineString(RD_N).parallel_offset(12.5, 'left')
     kn = np.clip(np.searchsorted(road.cum, s.ravel()), 1, len(road.cum) - 1).reshape(X.shape)
     side = (X - road.P[kn, 0]) * road.N[kn, 0] + (Y - road.P[kn, 1]) * road.N[kn, 1]
-    reach = np.array([max(3.0, edge.distance(Point(*q)) - HW - 2.5) for q in road.P])
+    reach = np.array([max(3.0, edge.distance(Point(*q)) - b_) for q, b_ in zip(road.P, bed_n(road))])
     reach = np.where(side > 0, np.minimum(12.0, np.interp(s, road.cum, reach)), 12.0)
-    wgt = 1.0 - np.clip((d - (HW + 2.5)) / reach, 0, 1)
+    # (the bed: 2.5 m past the kerb on either side; on the north side the kerb as laid, hn)
+    bed = np.where(side > 0, np.interp(s, road.cum, bed_n(road)), HW + 2.5)
+    wgt = 1.0 - np.clip((d - bed) / reach, 0, 1)
     wgt = wgt * wgt * (3 - 2 * wgt)
     wgt[(s <= 0.5) | (s >= road.cum[-1] - 0.5)] = 0.0          # (not past its ends)
     # the gate keeps its ground: nothing north of the line 2 m before the wall, between its ends
@@ -444,7 +524,8 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
     top = rail_z - BALLAST
     rnd = random.Random(4801)
     R2 = lambda a: [[round(float(x), 2), round(float(y), 2)] for x, y in a]
-    kerb_n, kerb_s = road.off(HW), road.off(-HW)
+    kerb_n, kerb_s = road.offn(HW), road.off(-HW)
+    kerb_n0 = road.off(HW)          # (the north kerb as first laid: what is cleared off the road is decided by it)
     back_s = road.off(-(HW + SW_S))
     # ---- the campus side: the real road's north edge (the strip left over is sidewalk), and the gate's wall
     # (12.5 m north of the middle of OSM's north carriageway: its kerb and sidewalk, where the game's ground had its
@@ -492,6 +573,7 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
     zone = Polygon([tuple(p) for p in bound] + [(road.P[-1][0] + 300, road.P[-1][1]), (720, -810), (-660, -810),
                                                  (-660, road.P[0][1])]).buffer(0).union(mouth).buffer(0)
     road_poly = Polygon([tuple(p) for p in kerb_n] + [tuple(p) for p in kerb_s[::-1]]).buffer(0)
+    road_poly0 = Polygon([tuple(p) for p in kerb_n0] + [tuple(p) for p in kerb_s[::-1]]).buffer(0)
     walk_n = Polygon([tuple(p) for p in bound] + [tuple(p) for p in kerb_n[::-1]]).buffer(0)
     walk_s = Polygon([tuple(p) for p in kerb_s] + [tuple(p) for p in back_s[::-1]]).buffer(0)
     # just inside the wall: the old game's forecourt strokes of asphalt along it go, paved like the gate's square
@@ -670,9 +752,9 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
     for a, b in ((-470.0, open_x[0]), (open_x[1], 330.0)):
         part = (sx > a) & (sx < b)
         for sgn in (1, -1):
-            paint.append(dict(kind='yellow', w=0.15, pts=R2(road.off(sgn * (MID / 2 - 0.08))[part])))
+            paint.append(dict(kind='yellow', w=0.15, pts=R2(road.offn(sgn * (MID / 2 - 0.08))[part])))
             for kk in range(1, LANES):
-                paint.append(dict(kind='white_dash', w=0.12, pts=R2(road.off(sgn * (MID / 2 + LANE_W * kk))[part])))
+                paint.append(dict(kind='white_dash', w=0.12, pts=R2(road.offn(sgn * (MID / 2 + LANE_W * kk))[part])))
     hatch_x = (BOX_X[0] - 48.0, BOX_X[0] - 4.5)
     for x in np.arange(hatch_x[0], hatch_x[1], 3.0):   # the hatched strip's bars
         paint.append(dict(kind='yellow', w=0.3, pts=R2([at(x, -MID / 2 + 0.2), at(x + 1.6, MID / 2 - 0.2)])))
@@ -729,15 +811,15 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
     drive = (sx > -500) & (sx < 345)
     for sgn in (-1, 1):
         for kk in range(LANES):
-            pts = road.off(sgn * (MID / 2 + LANE_W * (kk + 0.5)))[drive]
+            pts = road.offn(sgn * (MID / 2 + LANE_W * (kk + 0.5)))[drive]
             lanes.append(dict(kind='bus' if kk == LANES - 1 else 'car', pts=R2(pts if sgn < 0 else pts[::-1])))
     # ---- the walker's barrier: along the north kerb, the carriageway side, open at the crossing (shut 2026-11-11 ..
     # 14): over it the walker goes on to 연세로 and 신촌 로터리, whose walks tools/sinchon_rotary.py walls and gives the
     # web as walk_open.  The barrier's north edge goes out as town.limit: the web sets no walker down south of it but
     # in walk_open (web/src/main.js beyondGate: the map, the bird's eye view, the start list)
     barrier = []
-    bl = road.off(HW - 0.9)
-    bh = road.off(HW - 0.1)
+    bl = road.offn(HW - 0.9)
+    bh = road.offn(HW - 0.1)
     limit = []
     gap = Polygon([(cross_x[0], ks - 1.0), (cross_x[1], ks - 1.0), (cross_x[1], kn + 1.0), (cross_x[0], kn + 1.0)])
     for k in range(0, len(bl) - 3, 3):
@@ -763,7 +845,7 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
             continue
         a = math.atan2(road.T[k][1], road.T[k][0])
         for sgn, off, rot in ((1, HW + 0.7, a), (-1, HW + 0.7, a + math.pi)):
-            q = road.P[k + (5 if sgn < 0 else 0)] + road.N[k + (5 if sgn < 0 else 0)] * sgn * off
+            q = road.P[k + 5] - road.N[k + 5] * off if sgn < 0 else road.offn(off)[k]
             if mouth_rng.buffer(2.0).contains(Point(*q)) or BRIDGE[0] - 3 < q[0] < BRIDGE[1] + 3 and sgn < 0:
                 continue
             props.append(['lamp_arm', round(float(q[0]), 2), round(float(q[1]), 2), round(rot, 3)])
@@ -855,4 +937,4 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
              dict(kind='tertiary', w=2 * YONSEI_HALF, pts=[[YONSEI_X, round(y_top, 1)], [YONSEI_X, -640.0]])]       # (the map)
     return town, dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, bank_rng=bank_r, paths=paths,
                       mouth=mouth, mouth_rng=mouth_rng,
-                      road_poly=road_poly.union(walk_s), cross_box=(cross_x[0], cross_x[1], ks, kn), walk_s=walk_s)
+                      road_poly=road_poly0.union(walk_s), cross_box=(cross_x[0], cross_x[1], ks, kn), walk_s=walk_s)

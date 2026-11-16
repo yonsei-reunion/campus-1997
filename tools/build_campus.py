@@ -6711,7 +6711,8 @@ print('대우관 별관 앞: nodes %d between the wall and the drive to the driv
 # (the 1997 old halls too) and 성산로's bed stay
 _md_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997] + \
     [p_.buffer(0) for _, _, _, _, p_ in OLD_HALLS] + [Polygon(v_).buffer(0) for v_ in LATE_FOOTPRINT_1997.values()]
-_md_took, MED97_GRADE = med97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
+_md_took, MED97_GRADE = med97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW,
+                                    road=TOWN_PLAN['road'])
 FIXED[_md_took] = True
 print('의료원 주차장 셋:', MED97_GRADE)
 # 의료원의 남은 줄 (tools/med97.py lots_grade, reference/고증/2.10 「의료원의 남은 줄」; #152, md): 의료원 종합관's south-east
@@ -6724,9 +6725,23 @@ BASE_1997[990032] = med97.JH_BASE
 _lt_took, MED97_LOTS = med97.lots_grade(Hn, X, Y, FIXED, [p_ for p_, (pid_, _, _, _, _) in zip(
     [q_.buffer(0) for _, _, _, _, q_ in OLD_HALLS], OLD_HALLS) if pid_ != 990032] + [Polygon(b_['footprint']).buffer(0)
     for b_ in buildings if b_['id'] not in GONE_1997] + [Polygon(v_).buffer(0) for v_ in LATE_FOOTPRINT_1997.values()],
-    harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
+    harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW, road=TOWN_PLAN['road'])
 FIXED[_lt_took] = True
 print('의료원의 남은 줄:', MED97_LOTS, '- 의과대학 신관 floor', BASE_1997[990037])
+# 성산로 북쪽 가 (tools/med97.py strip_*, reference/고증/2.10 「의료원 종합관 남동쪽 주차장의 먼 줄과 성산로 북쪽 가」; #152,
+# md): 성산로's north kerb along 의료원 where the 1997 scans have it (gate_town KN97_UV), and between it and the 종합관's
+# car park the sidewalk at the road's level under a wall and the planted strip on the car park's (a deck over the cells
+# the sidewalk pulls down: MED_STRIP_DECK below); late, here
+_ms_took, MED_STRIP_CELLS, MED_STRIP_POLY, MED_STRIP = med97.strip_grade(Hn, X, Y, FIXED, TOWN_PLAN['road'], TOWN_PLAN['road_z'],
+                                                                        _md_halls)
+FIXED[_ms_took] = True
+print('성산로 북쪽 가 (의료원):', MED_STRIP)
+# 간호대학 북쪽 주차장 (tools/med97.py nurse_*, reference/고증/2.10 「간호대학 북쪽 주차장」; #152, md): the lined car park
+# on its platform 4 - 4.8 m over the game's lawn, walls on its south and east faces (a deck over their cells:
+# NURSE_DECK below); late, here
+_nl_took, NURSE_CELLS, NURSE_POLY, NURSE_LOT = med97.nurse_grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill)
+FIXED[_nl_took] = True
+print('간호대학 북쪽 주차장:', NURSE_LOT)
 # 의료원 서쪽 (tools/medwest97.py, reference/고증/3.1.2 「외래진료소 서쪽」; md): the ground round 외래진료소's raised
 # forecourt, its ramps and 안 · 이비인후과병원's terrace on the 1997 photos' heights (today's lawn ran one slope 2 - 5 m
 # under them); the raised surfaces themselves are meshes over it (out['med_west'] below).  Late, here: the planting
@@ -6780,6 +6795,12 @@ print('신관 앞마당의 남동쪽:', MUSIC97_FORECOURT)
 _mi_took, MUSIC97_ISLAND = music97.island(Hn, X, Y)
 FIXED[_mi_took] = True
 print('신관 앞마당의 섬과 동쪽 칸 줄:', MUSIC97_ISLAND)
+# 음악대학 동쪽 큰 주차장 서쪽 통로 (tools/med97.py foot_*; #152, md): the row at the foot of the bank west of it, whose
+# wheels' cells ran up the bank (8 - 30 deg): the bank's nodes there down to the lot, a deck carrying the bank's
+# surface over them west of a low wall (FOOT_DECK below); after the music halls' yard (music97.halls) above
+_ft_took, FOOT_CELLS, FOOT_POLY, FOOT_H0, FOOT_INFO = med97.foot_grade(Hn, X, Y)
+FIXED[_ft_took] = True
+print('음악대학 동쪽 큰 주차장 서쪽 통로:', FOOT_INFO)
 # 청송대 숲 · 동쪽 언덕 (tools/east97.py, reference/고증/3.23_청송대.md; #189): the wood's floor east of the east road and
 # the knoll west of it on the 1:5000 survey's surface (the surface model had the canopy in it, 8 - 12 m over the
 # ground in the wood, and the knolls cut 4 - 6 m), nudged to the 1997 photos where they see the ground; the halls in
@@ -7778,6 +7799,9 @@ _nw_poly = unary_union([g_ for g_ in (_nw_poly.geoms if hasattr(_nw_poly, 'geoms
 # already, the upper level's surface, as the deck beside it there: no step between the two)
 _nw_h = lambda x_, y_: dwb_h(x_, y_) if x_ > gx[_ni] + 1e-6 and y_ > gx[_nj] + 1e-6 else sample(_Hn0, NEAR_HALF, NEAR_STEP, x_, y_)
 DAEWOO_BACK['deck_nw'] = dwb_deck(_nw_cells, _nw_poly, _nw_h)
+MED_STRIP_DECK = dwb_deck(MED_STRIP_CELLS, MED_STRIP_POLY, med97.strip_h)       # (성산로 북쪽 가: med97.strip_grade above)
+NURSE_DECK = dwb_deck(NURSE_CELLS, NURSE_POLY, med97.nurse_h)                   # (간호대학 북쪽 주차장: med97.nurse_grade above)
+FOOT_DECK = dwb_deck(FOOT_CELLS, FOOT_POLY, FOOT_H0)                             # (음악대학 동쪽 큰 주차장 서쪽 통로: med97.foot_grade)
 print('   its deck: %.1f m2, %d triangles' % (_nw_poly.area, len(DAEWOO_BACK['deck_nw']['f'])))
 DAEWOO_BACK['lot_z'] = [round(dwb_lot_z(v_), 3) for v_ in (36.0, 75.0, 86.0)]
 print('daewoo back deck: %d vertices, %d triangles, rim %d' % (len(DAEWOO_BACK['deck']['v']), len(DAEWOO_BACK['deck']['f']),
@@ -9948,6 +9972,11 @@ _ypaint([p_.difference(gymnorth97.GYM_POLY.buffer(0.3)) for p_ in gymnorth97.PAV
 _md_asph, _md_bank = med97.paint()
 _ypaint(_md_asph, _ga)
 _ypaint(med97.lots_paint(), _ga)               # (의료원의 남은 줄: the paving under the 1997 rows, med97.PAVE_MORE; md)
+_nl_asph, _nl_lawn = med97.nurse_paint()         # (간호대학 북쪽 주차장: the platform's asphalt, its island's lawn; md)
+for g_ in _nl_asph + _nl_lawn:
+    for l_, v_ in (('_yg', 255), ('_gp', 0), ('_yp', 0)):
+        SPLAT_OPS.append(('poly', l_, list(g_.exterior.coords), v_))
+_ypaint(_nl_asph, _ga)
 for g_ in _md_bank:                            # (_yg is the 0.5 m map's by now: the fine one's strokes only)
     SPLAT_OPS.append(('poly', '_yg', list(g_.exterior.coords), 255))
     SPLAT_OPS.append(('poly', '_ga', list(g_.exterior.coords), 0))
@@ -9966,6 +9995,35 @@ _ypaint(_wl_pave, _gp)
 out['med_west'] = medwest97.build(Hn, NEAR_HALF, NEAR_STEP, [Polygon(b_['footprint']) for b_ in buildings
                                                              if b_['id'] in (990030, 324328472)])
 print('의료원 서쪽: surfaces %d triangles, walls and parapets %d quads' % (len(out['med_west']['top']['f']), len(out['med_west']['quads'])))
+# 성산로 북쪽 가 (med97 strip_*; md): the planted strip's deck, the wall under it and its coping go with 의료원 서쪽's raised
+# surfaces (blender/landmarks.py med_west draws them, blender/common.py ground stands things on the plate); the guards
+# along the coping (campus.json colliders: a 2 m drop to the sidewalk)
+# (and 간호대학 북쪽 주차장's platform the same way: med97 nurse_*)
+_mv = out['med_west']
+for _nm, _dk, _dp, _dh, _dw in (('ssr_strip', MED_STRIP_DECK, MED_STRIP_POLY, med97.strip_h, med97.strip_walls),
+                                ('nurse_lot', NURSE_DECK, NURSE_POLY, med97.nurse_h, med97.nurse_walls),
+                                ('music_east_foot', FOOT_DECK, FOOT_POLY, FOOT_H0, med97.foot_walls)):
+    _mv_n0 = len(_mv['top']['v'])
+    _mv['top']['v'] += _dk['v']
+    _mv['top']['f'] += [[i_ + _mv_n0 for i_ in f_] for f_ in _dk['f']]
+    shapely.prepare(_dp)
+    _ms_top = lambda x_, y_, P_=_dp, H_=_dh: (H_(x_, y_) + 0.025 if shapely.contains_xy(P_, x_, y_)
+                                             else sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
+    _ms_quads, _ms_guards = _dw(_ms_top, lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
+    _mv['quads'] += _ms_quads
+    out['colliders'] += _ms_guards
+    for g_ in getattr(_dp, 'geoms', [_dp]):
+        if g_.geom_type != 'Polygon' or g_.area < 0.5:
+            continue
+        _pu, _pv = zip(*[medwest97.uv(x_, y_) for x_, y_ in g_.exterior.coords])
+        # (its table: the two corners where the surface is a plane, every metre where it is the bank's as it was)
+        _st = 1.0 if _nm == 'music_east_foot' else None
+        _pus, _pvs = ([round(float(v_), 3) for v_ in np.arange(min(_pu) - 0.5, max(_pu) + 1.5, _st)],
+                      [round(float(v_), 3) for v_ in np.arange(min(_pv) - 0.5, max(_pv) + 1.5, _st)]) if _st else \
+            ([round(float(min(_pu)) - 0.5, 3), round(float(max(_pu)) + 0.5, 3)], [round(float(min(_pv)) - 0.5, 3), round(float(max(_pv)) + 0.5, 3)])
+        _mv['plates'].append(dict(name=_nm, poly=[[round(x_, 3), round(y_, 3)] for x_, y_ in list(g_.exterior.coords)[:-1]], holes=[],
+                                  us=_pus, vs=_pvs, z=[[round(float(_dh(*medwest97.xy(u_, v_))) + 0.025, 3) for u_ in _pus] for v_ in _pvs]))
+    print('%s: deck %d triangles, wall quads %d, guards %d' % (_nm, len(_dk['f']), len(_ms_quads), len(_ms_guards)))
 # 찻길 (TRAFFIC, its middle line TR_CENTRE above): the two lanes, the car park's round, the loop the game reads
 # (that was the cars' loop till the alumnus's word on it: the drive itself stays, levelled and paved; the cars take
 # the outer roads, TR_E and TR_W above)
@@ -10502,6 +10560,12 @@ _tl = {k_: Image.new('L', (SW, SH), 0) for k_ in ('clear', 'asphalt', 'pavers', 
 for k_, im_ in _tl.items():
     _YN[id(im_)] = '_t' + k_[0]
     _ypaint(TOWN['paints'][k_], im_)
+# (성산로 북쪽 가, med97.strip_paint; md: the planted strip on the 종합관's car park's level, lawn; the town's sidewalk
+# paving, walk_n, reached over part of it from its old north edge)
+for g_ in med97.strip_paint():
+    for k_, v_ in (('clear', 255), ('asphalt', 0), ('pavers', 0)):
+        ImageDraw.Draw(_tl[k_]).polygon([to_px(x_, y_) for x_, y_ in g_.exterior.coords], fill=v_)
+        SPLAT_OPS.append(('poly', '_t' + k_[0], list(g_.exterior.coords), v_))
 
 
 def town_splat(S, c, a, p, d):
@@ -11451,6 +11515,13 @@ print('의료원 주차장 셋: trees out of the yards',
 # edge in their places in the list
 print('의료원의 남은 줄: trees, shrubs off the paving',
       [med97.lots_aside(out[k_], [Polygon(b_['footprint']) for b_ in out['buildings']]) for k_ in ('trees', 'shrubs')])
+# 간호대학 북쪽 주차장 (tools/med97.py nurse_aside; md): the trees the planting put on the platform, to its north edge in
+# their places in the list; its shrubs and props go
+print('간호대학 북쪽 주차장: trees off the platform', med97.nurse_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
+_nl_n = (len(out['shrubs']), len(out['props']))
+out['shrubs'] = [s_ for s_ in out['shrubs'] if not med97.NL_LOT.contains(Point(s_[1], s_[2]))]
+out['props'] = [p_ for p_ in out['props'] if not med97.NL_LOT.contains(Point(p_[1], p_[2]))]
+print('   shrubs -%d, props -%d' % (_nl_n[0] - len(out['shrubs']), _nl_n[1] - len(out['props'])))
 # 의료원 서쪽 (tools/medwest97.py; md): the game's trees on what is paved or built again there go to the 1997 scans'
 # trees, each in its place in the list, the scans' trees still without one are planted at the trees' end; the shrubs,
 # props and decals on it go; today's walks out of the walks the game reads, the 1997 ones in
@@ -11486,6 +11557,12 @@ FIELDHILL_TREES = muak.woods_fill(unary_union(FIELDHILL_WOODS), out["trees"], se
 out['trees'] += FIELDHILL_TREES
 print('대운동장 북쪽 언덕: trees in the woods', len(FIELDHILL_TREES))
 out['trees'] += MUAK_ROW_EXTRA                # (무악학사 길: the rows' trunks of the 1996 winter scans the old rows had no tree for)
+# 성산로 북쪽 가 (tools/med97.py strip_plants; md): the street trees on the sidewalk along 의료원 and the shrubs on the
+# planted strip over the wall, at the lists' very ends
+MED_STRIP_TREES, MED_STRIP_SHRUBS = med97.strip_plants()
+out['trees'] += MED_STRIP_TREES
+out['shrubs'] += MED_STRIP_SHRUBS
+print('성산로 북쪽 가 (의료원): street trees %d, shrubs %d' % (len(MED_STRIP_TREES), len(MED_STRIP_SHRUBS)))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 # 1학사 남쪽 굽은 길 (tools/north97.py HEDGE97): the hedge along the 1997 road's south side, at the shrubs' end
 out['shrubs'] += north97.hedge97()

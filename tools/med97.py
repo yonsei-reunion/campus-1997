@@ -105,7 +105,30 @@ def _road_z(H, ls, x, y, step, half):
                  + H[j + 1, i + 1] * ax * ay)
 
 
-def kerb_lane_nodes(ls, hw, shape, step, half, side):
+def _sec(road, ls, s, o, side):
+    """an offset o off the road's middle at s on the section as laid (gate_town.sec_off: the north kerb along 의료원
+    where the 1997 scans have it); as it is without the road's Line"""
+    if road is None or side < 0 or getattr(road, 'hn', None) is None:
+        return o
+    import gate_town
+    return float(gate_town.sec_off(o, np.interp(s, road.cum, road.hn)))
+
+
+def on_road(X, Y, road_ls, road_hw, road=None, pad=2.5):
+    """the grid nodes within pad m past the road's kerbs (its bed: gate_town.plan), on the north side the kerb as laid"""
+    pts = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
+    d = shapely.distance(pts, road_ls)
+    if road is None or getattr(road, 'hn', None) is None:
+        return (d <= road_hw + pad).reshape(X.shape)
+    import gate_town
+    s = shapely.line_locate_point(road.ls, pts)
+    k = np.clip(np.searchsorted(road.cum, s), 1, len(road.cum) - 1)
+    side = (X.ravel() - road.P[k, 0]) * road.N[k, 0] + (Y.ravel() - road.P[k, 1]) * road.N[k, 1]
+    hw = np.where(side > 0, np.interp(s, road.cum, gate_town.bed_n(road)) - 2.5, road_hw)
+    return (d <= hw + pad).reshape(X.shape)
+
+
+def kerb_lane_nodes(ls, hw, shape, step, half, side, road=None):
     """the grid nodes of every cell the kerb lane's band (KERB_LANE) crosses on the given side, inside KERB_BOX"""
     out = np.zeros(shape, bool)
     x0, x1, y0, y1 = KERB_BOX
@@ -116,7 +139,7 @@ def kerb_lane_nodes(ls, hw, shape, step, half, side):
             continue
         t /= np.linalg.norm(t)
         n = np.array([-t[1], t[0]]) * side
-        for o in np.arange(hw - KERB_LANE[0], hw - KERB_LANE[1] + 0.01, 0.5):
+        for o in np.arange(_sec(road, ls, s, hw - KERB_LANE[0], side), _sec(road, ls, s, hw - KERB_LANE[1], side) + 0.01, 0.5):
             x, y = a.x + n[0] * o, a.y + n[1] * o
             if x0 < x < x1 and y0 < y < y1:
                 j, i = int(math.floor((y + half) / step)), int(math.floor((x + half) / step))
@@ -124,16 +147,14 @@ def kerb_lane_nodes(ls, hw, shape, step, half, side):
     return out
 
 
-def grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw, step=5.0, half=800.0):
+def grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw, step=5.0, half=800.0, road=None):
     """The three lots on the photos' planes, the road north-east of the east lot on its profile, the ground round them
     eased in (fill: build_campus.py harmonic_fill) as far as RING out; the halls' feet (HALL_PAD), 성산로's bed
     (road_ls, road_hw: gate_town's middle line and half width, + 2.5 m) and nodes another rule set (FIXED) stay.
     Returns the nodes set (to be FIXED) and a summary."""
     H0 = Hn.copy()
     near_hall = shapely.contains_xy(unary_union([h.buffer(HALL_PAD) for h in halls]), X, Y)
-    pts = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
-    on_road = (shapely.distance(pts, road_ls) <= road_hw + 2.5).reshape(X.shape)
-    keep = FIXED | near_hall | on_road
+    keep = FIXED | near_hall | on_road(X, Y, road_ls, road_hw, road)
     took = np.zeros(X.shape, bool)
     info = {}
     # the road north-east of the east lot: its profile, eased at the lower end to 성산로's bed as the game has it
@@ -154,7 +175,7 @@ def grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw, step=5.0, half=800.0):
     # gate_town levels), and a bus on that lane rolled 22 deg at x 318 (now 1.2: kerb_lane_tilt in the build's line)
     ring = shapely.contains_xy(unary_union([p.buffer(pad + RING) for _, p, _, pad in LOTS] + [ne_band().buffer(10.0)]), X, Y)
     lot_side = np.sign(_side(road_ls, EAST_LOT.centroid.x, EAST_LOT.centroid.y))
-    kn = kerb_lane_nodes(road_ls, road_hw, X.shape, step, half, lot_side) & ring & ~keep & ~band \
+    kn = kerb_lane_nodes(road_ls, road_hw, X.shape, step, half, lot_side, road) & ring & ~keep & ~band \
         & ~shapely.contains_xy(EAST_LOT.buffer(LOTS[0][3]), X, Y)
     jj, ii = np.nonzero(kn)
     zk = np.array([_road_z(H0, road_ls, X[j, i], Y[j, i], step, half) for j, i in zip(jj, ii)])
@@ -188,11 +209,11 @@ def grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw, step=5.0, half=800.0):
     BANK.extend(g for g in getattr(band, 'geoms', [band]) if g.geom_type == 'Polygon' and g.area > 1.0)
     moved = np.abs(Hn - H0)
     info['moved'] = (int((moved > 0.05).sum()), round(float(moved.max()), 1))
-    info['kerb_lane_tilt'] = kerb_lane_tilt(Hn, road_ls, road_hw, lot_side, step, half)
+    info['kerb_lane_tilt'] = kerb_lane_tilt(Hn, road_ls, road_hw, lot_side, step, half, road)
     return took | free, info
 
 
-def kerb_lane_tilt(H, ls, hw, side, step, half):
+def kerb_lane_tilt(H, ls, hw, side, step, half, road=None):
     """the most a car leans (roll, pitch in degrees) on the kerb lane's middle inside KERB_BOX: its four tyres
     1.33 m ahead and behind, 0.72 m to either side, on the grid as web/src/life.js Path.setTracks reads it"""
     def h(x, y):
@@ -209,7 +230,7 @@ def kerb_lane_tilt(H, ls, hw, side, step, half):
         t /= np.linalg.norm(t)
         n = np.array([-t[1], t[0]]) * side
         m = ls.interpolate(s)
-        c = np.array([m.x, m.y]) + n * o
+        c = np.array([m.x, m.y]) + n * _sec(road, ls, s, o, side)
         if not (x0 < c[0] < x1 and y0 < c[1] < y1):
             continue
         q = [h(*(c + t * u + n * v)) for u, v in ((1.33, 0.72), (1.33, -0.72), (-1.33, 0.72), (-1.33, -0.72))]
@@ -322,6 +343,12 @@ PAVE_MORE = {
     '의학도서관 북동쪽 칸 줄': _rect(MED, 34.6, 41.0, -62.5, -47.0),
     '음악대학 동쪽 큰 주차장 서쪽 칸 줄': _rect(WC, -17.0, 27.0, -1.8, 3.0),
     '광혜관 남쪽 마당': _rect(MED, -75.0, -57.0, 50.0, 74.5),
+    # (2026-11-17 다섯째, md) cars of the 1997 rows the game's paving left half on the lawn (the scans: asphalt under them):
+    # 특별병동 남동 주차장's car at the south-west end by the hall's south-east face and two at the north row's east end,
+    # 음악대학 남쪽's second of the row heading west-north-west
+    '특별병동 남동 주차장 차 밑': unary_union([_carbox(193.23, -152.39, 40.0, 0.5), _carbox(213.67, -128.06, 130.0, 0.5),
+                                       _carbox(219.53, -123.14, 130.0, 0.5)]),
+    '음악대학 남쪽 서북서 줄 둘째 차 밑': _carbox(247.7, -60.5, 160.0, 0.5),
 }
 # 의학도서관 (OSM 324328456): its roof in four frames (27/17 · 26/16 · 27/18 · 26/15, on the roof's plane 49.3 m) ends at
 # u 28.6 (28.4 - 28.7), 8.6 m short of OSM's north-east face; the ground beyond is the yard's (38.3 - 38.5 m, five
@@ -331,13 +358,12 @@ LIB_ID = 324328456
 LIB_1997 = [(196.93, -295.97), MED(28.6, -65.80), MED(28.6, -48.06), (184.68, -283.35)]
 
 
-def lots_grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw):
+def lots_grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw, road=None):
     """The 종합관's car park and the 동문회관 row on the scans' planes (halls: every hall's outline but the 종합관's),
     the ground round them eased; 성산로's bed (road_ls, road_hw + 2.5 m), the other halls' feet (JH_PAD) and nodes
     another rule set (FIXED) stay.  Returns the nodes set and a summary"""
     H0 = Hn.copy()
-    pts = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
-    on_road = (shapely.distance(pts, road_ls) <= road_hw + 2.5).reshape(X.shape)
+    on_road_ = on_road(X, Y, road_ls, road_hw, road)
     hall_in = shapely.contains_xy(JH_HALL.difference(JH_IN), X, Y)          # (the rest under the hall stays)
     took = np.zeros(X.shape, bool)
     info = {}
@@ -346,16 +372,16 @@ def lots_grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw):
         near_hall = shapely.contains_xy(unary_union([h.buffer(pad) for h in halls]), X, Y) if pad is not None \
             else np.zeros(X.shape, bool)
         inz = shapely.contains_xy(zone, X, Y)
-        m = inz & ~FIXED & ~on_road & ~near_hall
+        m = inz & ~FIXED & ~on_road_ & ~near_hall
         (c0, cx, cy), x0, y0 = c
         Hn[m] = c0 + cx * (X[m] - x0) + cy * (Y[m] - y0)
         took |= m
-        free = shapely.contains_xy(zone.buffer(ring), X, Y) & ~inz & ~FIXED & ~on_road & ~near_hall & ~took & ~hall_in
+        free = shapely.contains_xy(zone.buffer(ring), X, Y) & ~inz & ~FIXED & ~on_road_ & ~near_hall & ~took & ~hall_in
         if free.any():
             fill(free)
         took |= free
         d = Hn - H0
-        info[nm] = dict(nodes=int(m.sum()), kept=dict(fixed=int((inz & FIXED).sum()), road=int((inz & on_road).sum()),
+        info[nm] = dict(nodes=int(m.sum()), kept=dict(fixed=int((inz & FIXED).sum()), road=int((inz & on_road_).sum()),
                                                       hall=int((inz & near_hall).sum())),
                         moved=(round(float(d[m].min()), 2), round(float(d[m].max()), 2)) if m.any() else None,
                         eased=(int(free.sum()), round(float(d[free].min()), 2), round(float(d[free].max()), 2)) if free.any() else None)
@@ -388,3 +414,370 @@ def lots_aside(items, halls, pad=1.2):
         moved.append((t[0], t[1], t[2], round(q.x, 2), round(q.y, 2)))
         t[1], t[2] = round(q.x, 2), round(q.y, 2)
     return moved
+
+
+# =====================================================================================================================
+# 성산로 북쪽 가 (#152, 2026-11-17 다섯째; reference/고증/2.10_세운_차.md 「의료원 종합관 남동쪽 주차장의 먼 줄과 성산로
+# 북쪽 가」, 3.1.2): between the 종합관's car park and 성산로 the 1997-07-28 scans (27/17 · 27/18 · 26/16, the leaf-off
+# 1996 27/17 · 27/18 · 27/16) have, south of the car park's far row (its stalls' back ends at v -120.4): a planted
+# strip on the car park's own level (v -120.8 .. -124.0; its tops 31.3 - 31.5 m, three 1996 pairs), a wall down to the
+# sidewalk (the strip's south edge, a bright coping with posts in the 1996 frames), the sidewalk at the road's level
+# (28.5 - 28.7 m at u 40 - 60, three 1996 pairs 0.94 - 0.97; 29.0 m at u 80 - 100) with a row of street trees, and the
+# kerb (gate_town KN97_UV: the road's north kerb moved there).  The game's road had come over the strip to v -121.
+#
+#     took, cells, poly, info = med97.strip_grade(Hn, X, Y, FIXED, road, road_z)   # late, after lots_grade
+#     deck = dwb_deck(cells, poly, med97.strip_h)                                  # build_campus: the strip's level
+#     quads, guards = med97.strip_walls(deck_z, ground)                            # the wall's face and its coping
+#     med97.strip_paint()                                                          # the strip's lawn (after the town's)
+#     trees, shrubs = med97.strip_plants()                                         # at the lists' ends
+#
+# The 5 m grid cannot hold a 2 m wall: every node of a cell with a part of the sidewalk goes to the sidewalk's level, and
+# a deck (a surface over the ground, walked and stood on) carries the car park's level over those cells north of the
+# wall's face, as the terrace before 스팀슨관 does (build_campus.py dwb_deck).  The far row's cars stand on it.
+SW_FACE = -124.0                 # the wall's face (v): the planted strip's south edge, the sidewalk's back
+SW_LOW = (-1.9, 88.0)            # (u: the nodes set low, from 의과대학 신관's east face to the car park's way out)
+SW_RUN = (-8.0, 88.0)            # (u: the deck and the wall, over every cell with such a node)
+SW_WALK = (0.0, 86.0)            # (u: the sidewalk under the wall)
+SW_STRIP = (-124.0, -120.8)      # the planted strip (the car park's paving ends at v -120.8)
+SW_DZ = 0.12                     # the sidewalk over the road's edge
+SW_COPE = (0.3, 0.25)            # the coping over the wall's top: high, thick
+SW_OPEN = (17.0, 34.0)           # (u: the footbridge's stair and landing on the sidewalk: no street tree)
+
+
+def strip_h(x, y):
+    """the planted strip's and the far row's level: the car park's plane (JH_Z, working datum)"""
+    c0, cx, cy = JH_Z
+    return c0 + cx * (x - 250.0) + cy * (y + 300.0)
+
+
+def _road_poly(road):
+    import gate_town
+    kn, ks = road.offn(gate_town.HW), road.off(-gate_town.HW)
+    return Polygon([tuple(p) for p in kn] + [tuple(p) for p in ks[::-1]]).buffer(0)
+
+
+def sidewalk(road):
+    """the sidewalk under the wall: between the wall's face and the road's north kerb as laid"""
+    return _rect(MED, SW_WALK[0], SW_WALK[1], -140.0, SW_FACE).difference(_road_poly(road))
+
+
+def strip_grade(Hn, X, Y, FIXED, road, road_z, halls=(), step=5.0, half=800.0):
+    """The sidewalk's nodes (every node of a 5 m cell with a part of it, but those in the road) at the road's height
+    abreast + SW_DZ; the other nodes on the strip's band on the car park's plane.  Returns the nodes set, the cells a
+    deck must cover (those with a node set low), the deck's outline and a summary"""
+    H0 = Hn.copy()
+    sw = sidewalk(road)
+    rp = _road_poly(road).buffer(0.05)
+    x0, y0, x1, y1 = sw.bounds
+    cells = set()
+    for j in range(int(math.floor((y0 + half) / step)) - 1, int(math.ceil((y1 + half) / step)) + 1):
+        for i in range(int(math.floor((x0 + half) / step)) - 1, int(math.ceil((x1 + half) / step)) + 1):
+            bx = shapely.geometry.box(-half + i * step, -half + j * step, -half + (i + 1) * step, -half + (j + 1) * step)
+            if bx.intersection(sw).area > 0.02:
+                cells.add((j, i))
+    low = np.zeros(X.shape, bool)
+    for j, i in cells:
+        for a, b in ((0, 0), (0, 1), (1, 0), (1, 1)):
+            x, y = X[j + a, i + b], Y[j + a, i + b]
+            u, _ = uv_med(x, y)
+            if SW_LOW[0] <= u <= SW_LOW[1] and not rp.contains(Point(x, y)):
+                low[j + a, i + b] = True
+    jj, ii = np.nonzero(low)
+    s = shapely.line_locate_point(road.ls, shapely.points(np.stack([X[low], Y[low]], 1)))
+    Hn[jj, ii] = np.interp(s, road.cum, road_z) + SW_DZ
+    # the strip's band and the far row's back: the car park's plane where no cell of the sidewalk reaches
+    u_, v_ = uv_med(X, Y)
+    band = (u_ >= SW_LOW[0]) & (u_ <= SW_WALK[1]) & (v_ > SW_FACE) & (v_ <= -114.0) & ~low & ~FIXED
+    Hn[band] = strip_h(X[band], Y[band])
+    deck_cells = {(j + a, i + b) for j, i in zip(jj, ii) for a in (-1, 0) for b in (-1, 0)}
+    poly = unary_union([shapely.geometry.box(-half + i * step, -half + j * step, -half + (i + 1) * step, -half + (j + 1) * step)
+                        for j, i in deck_cells]).intersection(_rect(MED, SW_RUN[0], SW_RUN[1], SW_FACE, -100.0)) \
+        .difference(unary_union([JH_HALL] + list(halls)).buffer(0.05))
+    d = Hn - H0
+    info = dict(low=int(low.sum()), low_dz=(round(float(d[low].min()), 2), round(float(d[low].max()), 2)),
+                band=int(band.sum()), band_dz=(round(float(d[band].min()), 2), round(float(d[band].max()), 2)) if band.any() else None,
+                deck_cells=len(deck_cells), deck_m2=round(poly.area, 1))
+    return low | band, deck_cells, poly, info
+
+
+def uv_med(x, y):
+    """campus metres -> MED's (u, v)"""
+    a = math.radians(43.0)
+    dx, dy = np.asarray(x, float) - 150.0, np.asarray(y, float) + 250.0
+    return dx * math.cos(a) + dy * math.sin(a), -dx * math.sin(a) + dy * math.cos(a)
+
+
+def strip_walls(top, foot, step=0.5):
+    """the wall along the sidewalk's back (its face south, concrete) from the deck's edge (top(x, y)) down to the
+    sidewalk (foot(x, y)), and over it the coping (SW_COPE) where it stands more than half a metre; and the guards
+    (campus.json colliders) along its top where it stands more than a metre: [material, four points], polygons"""
+    quads, guards = [], []
+    us = np.arange(SW_RUN[0], SW_RUN[1] + 1e-6, step)
+    P = [MED(u, SW_FACE) for u in us]
+    B = [MED(u, SW_FACE + SW_COPE[1]) for u in us]
+    zt = [top(*MED(u, SW_FACE + 0.02)) for u in us]
+    zb = [foot(*MED(u, SW_FACE - 0.05)) - 0.05 for u in us]
+    R = lambda q, z: [round(q[0], 3), round(q[1], 3), round(float(z), 3)]
+    run = []
+    for k in range(len(us) - 1):
+        h0, h1 = zt[k] - zb[k], zt[k + 1] - zb[k + 1]
+        if max(h0, h1) < 0.1:
+            continue
+        cope = min(h0, h1) > 0.5
+        c0, c1 = zt[k] + (SW_COPE[0] if cope else 0.0), zt[k + 1] + (SW_COPE[0] if cope else 0.0)
+        quads.append(['concrete', [R(P[k], zb[k]), R(P[k + 1], zb[k + 1]), R(P[k + 1], c1), R(P[k], c0)]])      # (its face)
+        if cope:
+            quads.append(['concrete', [R(P[k], c0), R(P[k + 1], c1), R(B[k + 1], c1), R(B[k], c0)]])          # (top)
+            quads.append(['concrete', [R(B[k], zt[k] - 0.05), R(B[k], c0), R(B[k + 1], c1), R(B[k + 1], zt[k + 1] - 0.05)]])  # (back)
+        if min(h0, h1) > 1.0:
+            run.append(us[k])
+        elif run:
+            guards.append((run[0], run[-1] + step))
+            run = []
+    if run:
+        guards.append((run[0], run[-1] + step))
+    polys = []
+    for a, b in guards:                     # (in pieces of 4 m: a thin band along the coping)
+        for u0 in np.arange(a, b, 4.0):
+            u1 = min(u0 + 4.0, b)
+            polys.append([[round(c, 3) for c in MED(u, v)] for u, v in ((u0, SW_FACE + 0.02), (u1, SW_FACE + 0.02),
+                                                                       (u1, SW_FACE + 0.3), (u0, SW_FACE + 0.3))])
+    return quads, polys
+
+
+SW_SIN_BAND = (-80.0, -3.0, -124.0, -121.5)     # (의과대학 신관 앞: the planted band between its paved apron and the sidewalk)
+
+
+def strip_paint():
+    """the planted strip on the car park's level and the band before 의과대학 신관: lawn (the town's paving over them
+    out, gate_town walk_n)"""
+    return [_rect(MED, SW_LOW[0] + 1.0, SW_WALK[1], SW_STRIP[0] + SW_COPE[1], SW_STRIP[1]), _rect(MED, *SW_SIN_BAND)]
+
+
+# the street trees on the sidewalk (u along it; the 1996 frames' trunks and their shadows 5 - 7 m apart, the 1997 crowns
+# a band over the strip and the sidewalk: their kind not read, zelkovas) and before 의과대학 신관 (3.1.2 「의과대학 신관과
+# 성산로 사이」: its sidewalk's row from the hall's west end), the strip's shrubs (dark clumps in the leaf-off frames)
+SW_TREE_V, SW_TREE_DU = -126.6, 6.5
+SW_TREES_U = [(-80.0, -6.0), (3.0, 16.0), (35.0, 85.0)]
+
+
+def strip_plants(seed=15297):
+    import random
+    rnd = random.Random(seed)
+    trees, shrubs = [], []
+    for a, b in SW_TREES_U:
+        n = int(round((b - a) / SW_TREE_DU))
+        for k in range(n + 1):
+            u = a + (b - a) * k / max(n, 1) + rnd.uniform(-0.6, 0.6)
+            x, y = MED(u, SW_TREE_V + rnd.uniform(-0.3, 0.3))
+            trees.append(['zelkova', round(x, 2), round(y, 2), round(rnd.uniform(0.75, 0.95), 2), round(rnd.uniform(0, 6.28), 2)])
+    for u in list(np.arange(SW_SIN_BAND[0] + 1.5, SW_SIN_BAND[1] - 1.0, 2.4)) + list(np.arange(1.5, 85.0, 2.4)):
+        if SW_OPEN[0] - 1.0 < u < SW_OPEN[1] + 1.0 and u > 22.0:
+            continue
+        x, y = MED(u + rnd.uniform(-0.4, 0.4), (-122.75 if u < 0 else -122.6) + rnd.uniform(-0.3, 0.3))
+        shrubs.append([rnd.choice(['hedge_blob', 'hedge_blob', 'topiary_round']), round(x, 2), round(y, 2),
+                       round(rnd.uniform(0.8, 1.1), 2), round(rnd.uniform(0, 6.28), 2)])
+    return trees, shrubs
+
+
+# =====================================================================================================================
+# 간호대학 북쪽 주차장 (#152, 2026-11-17 다섯째; reference/고증/2.10_세운_차.md 「간호대학 북쪽 주차장」): between 간호대학
+# and 알렌관 the 1997-07-28 scans (course 27 only: 27/16 · 27/17 · 27/18; the leaf-off 1996 27/15 · 27/16 · 27/17 and
+# 1999 27/15 · 27/16 · 27/17) have a lined car park on a platform: its aisle at 56.0 m (nine pairs of the three
+# flights within 55.8 - 56.1 m at u 0, 55.9 - 56.1 at u 18), the forecourt south of it (간호대학's north side) and the
+# ground east of it at 50.0 - 50.9 m, with a parapet along its south edge 1.2 m over it (56.98 - 57.45, four pairs).
+# The game had a lawn and a walk at 51.2 - 52.1 m.  Frame NL: o (380, 7), u along the rows (-17.9 deg), v to their
+# left (north).  Two rows of white-lined stalls 2.5 m apart (the lines in 27/17 and 27/16 within 0.05 - 0.15 m): the
+# north row's fifteen (v 5.2 .. 10.2), the south row's sixteen (v -1.1 .. -5.8), the aisle between; on 28 July one
+# car (27/17; under the trees in 27/16), in a stall: the one-course rule takes it.
+#
+#     took, cells, poly, info = med97.nurse_grade(Hn, X, Y, FIXED, halls, fill)    # late, with the strip
+#     deck = dwb_deck(cells, poly, med97.nurse_h)                                  # the platform over the walls' cells
+#     quads, guards = med97.nurse_walls(top, foot)
+#     med97.nurse_paint()
+#     med97.nurse_aside(trees, halls)                                              # the planting off the platform
+NL = fr((380.0, 7.0), -17.9)
+NL_LOT = _rect(NL, -26.0, 21.9, -7.2, 11.2)            # the platform: its south and east faces walls
+NL_RAISE = _rect(NL, -31.0, 21.9, -7.2, 15.0)          # (the nodes raised: the platform and on west and north, where
+#                                                        the ground meets it without a wall: 53.5 m at the road west
+#                                                        of it, 55.5 m by the trees north of it)
+NL_LOW = unary_union([_rect(NL, -40.0, 34.0, -20.0, -7.2), _rect(NL, 21.9, 34.0, -20.0, 20.0)])   # (below the walls)
+NL_Z = datum.up_plane((56.0, 0.0, 0.0), 380.0, 7.0)
+NL_RING = 8.0
+NL_PARAPET = (1.2, 0.3)                                 # (its height over the platform, thickness)
+NL_ISLAND = Polygon([NL(u, v) for u, v in ((-26.0, -6.6), (-22.6, -6.6), (-22.6, 0.6), (-24.3, 1.1), (-26.0, 0.6))])
+
+
+def nurse_h(x, y):
+    """the platform's level (working datum)"""
+    c0, cx, cy = NL_Z
+    return c0 + cx * (np.asarray(x) - 380.0) + cy * (np.asarray(y) - 7.0)
+
+
+def nurse_grade(Hn, X, Y, FIXED, halls, fill, step=5.0, half=800.0):
+    """The platform's nodes on its level, those of the cells its walls cross left as they are (the deck carries the
+    platform over them), the ground on west and north eased to it.  Returns the nodes set, the deck's cells and
+    outline, a summary"""
+    H0 = Hn.copy()
+    hb = unary_union([h.buffer(HALL_PAD) for h in halls])
+    x0, y0, x1, y1 = NL_RAISE.bounds
+    wall_cells = set()
+    for j in range(int(math.floor((y0 + half) / step)) - 1, int(math.ceil((y1 + half) / step)) + 1):
+        for i in range(int(math.floor((x0 + half) / step)) - 1, int(math.ceil((x1 + half) / step)) + 1):
+            bx = shapely.geometry.box(-half + i * step, -half + j * step, -half + (i + 1) * step, -half + (j + 1) * step)
+            if bx.intersection(NL_LOT).area > 0.02 and bx.intersection(NL_LOW).area > 0.02:
+                wall_cells.add((j, i))
+    low = np.zeros(X.shape, bool)
+    for j, i in wall_cells:
+        low[j:j + 2, i:i + 2] = True
+    near_hall = shapely.contains_xy(hb, X, Y)
+    up = shapely.contains_xy(NL_RAISE.buffer(0.5), X, Y) & ~low & ~near_hall & ~FIXED
+    Hn[up] = nurse_h(X[up], Y[up])
+    keep = FIXED | near_hall | low | up | shapely.contains_xy(NL_LOW, X, Y)
+    free = shapely.contains_xy(NL_RAISE.buffer(NL_RING), X, Y) & ~keep
+    if free.any():
+        fill(free)
+    # (every cell with a node left low: those beside the walls' cells share their nodes and would dip to them)
+    jj, ii = np.nonzero(low)
+    deck_cells = {(j + a, i + b) for j, i in zip(jj, ii) for a in (-1, 0) for b in (-1, 0)}
+    poly = unary_union([shapely.geometry.box(-half + i * step, -half + j * step, -half + (i + 1) * step, -half + (j + 1) * step)
+                        for j, i in deck_cells]).intersection(NL_LOT).difference(unary_union(list(halls)).buffer(0.05)) \
+        if deck_cells else Polygon()
+    d = Hn - H0
+    info = dict(raised=int(up.sum()), dz=(round(float(d[up].min()), 2), round(float(d[up].max()), 2)) if up.any() else None,
+                low=int(low.sum()), eased=int(free.sum()), deck_cells=len(deck_cells), deck_m2=round(poly.area, 1))
+    return up | free, deck_cells, poly, info
+
+
+def nurse_walls(top, foot, step=0.5):
+    """the platform's south and east walls (concrete, their faces out) from its edge (top) down to what lies below
+    (foot), the parapet along them (NL_PARAPET) and the guards along it: [material, four points], polygons"""
+    quads, polys = [], []
+    R = lambda q, z: [round(q[0], 3), round(q[1], 3), round(float(z), 3)]
+    ph, pt = NL_PARAPET
+    for (ua, va), (ub, vb), (nu, nv) in (((-26.0, -7.2), (21.9, -7.2), (0.0, -1.0)), ((21.9, -7.2), (21.9, 11.2), (1.0, 0.0))):
+        L = math.hypot(ub - ua, vb - va)
+        n = max(1, int(math.ceil(L / step)))
+        S = [(ua + (ub - ua) * k / n, va + (vb - va) * k / n) for k in range(n + 1)]
+        P = [NL(u, v) for u, v in S]
+        B = [NL(u - nu * pt, v - nv * pt) for u, v in S]
+        zt = [top(*NL(u - nu * 0.02, v - nv * 0.02)) for u, v in S]
+        zb = [foot(*NL(u + nu * 0.05, v + nv * 0.05)) - 0.05 for u, v in S]
+        for k in range(n):
+            if max(zt[k] - zb[k], zt[k + 1] - zb[k + 1]) < 0.1:
+                continue
+            c0, c1 = zt[k] + ph, zt[k + 1] + ph
+            # (seen from outside the run goes left to right on both walls: the face, the parapet's top, its back)
+            quads.append(['concrete', [R(P[k], zb[k]), R(P[k + 1], zb[k + 1]), R(P[k + 1], c1), R(P[k], c0)]])
+            quads.append(['concrete', [R(P[k], c0), R(P[k + 1], c1), R(B[k + 1], c1), R(B[k], c0)]])
+            quads.append(['concrete', [R(B[k], zt[k] - 0.05), R(B[k], c0), R(B[k + 1], c1), R(B[k + 1], zt[k + 1] - 0.05)]])
+        for u0 in np.arange(0.0, L, 4.0):
+            u1 = min(u0 + 4.0, L)
+            q = [NL(ua + (ub - ua) * t / L - nu * w, va + (vb - va) * t / L - nv * w) for t, w in ((u0, -0.02), (u1, -0.02), (u1, pt), (u0, pt))]
+            polys.append([[round(c, 3) for c in p] for p in q])
+    return quads, polys
+
+
+def nurse_paint():
+    """(asphalt, lawn): the platform's asphalt, the round-ended island at its west end"""
+    return [NL_LOT.difference(NL_ISLAND)], [NL_ISLAND]
+
+
+def nurse_aside(items, halls, pad=1.5):
+    """trees the planting put on the platform: each in its place in the list to the nearest point pad m outside its
+    north edge (the 1997 trees between it and 알렌관), clear of the halls by 2.5 m and of the other trees by 3 m"""
+    hb = unary_union([h.buffer(2.5) for h in halls])
+    edge = LineString([NL(-18.0, 11.2 + pad), NL(20.0, 11.2 + pad)])
+    spots = [edge.interpolate(d) for d in np.arange(0.0, edge.length, 0.5)]
+    spots = [q for q in spots if not hb.contains(q)]
+    moved = []
+    inside = [t for t in items if NL_LOT.buffer(0.5).contains(Point(t[1], t[2]))]
+    others = [Point(t[1], t[2]) for t in items if t not in inside and NL_LOT.buffer(15.0).contains(Point(t[1], t[2]))]
+    spots = [q for q in spots if all(q.distance(o) > 3.0 for o in others)]
+    for t in inside:
+        if not spots:
+            break
+        q = min(spots, key=lambda q_: q_.distance(Point(t[1], t[2])))
+        moved.append((t[0], t[1], t[2], round(q.x, 2), round(q.y, 2)))
+        t[1], t[2] = round(q.x, 2), round(q.y, 2)
+        spots = [s for s in spots if s.distance(q) > 3.0]
+    return moved
+
+
+# =====================================================================================================================
+# 음악대학 동쪽 큰 주차장 서쪽 통로 (#152, 2026-11-17 다섯째, md): the row along the lot's west edge (A1 · A2 · A4 · A5 of
+# 「음악대학 동쪽 큰 주차장 서쪽 통로(나무 띠 가)」 and the 치과대학병원 서쪽 길 car at its south end) stands at the foot of
+# the bank of trees west of it, which the 1997 scans have 2 - 3 m over the lot within 3 - 6 m of the cars' west wheels
+# ((277, -30) 55.4 m sea level beside (283, -30) 52.2 m; music97 EAST_YARD_POLY and the bank south of it).  The 5 m grid
+# ran one cell's slope from the bank's nodes under the cars' wheels: they leaned 8 - 30 deg.  The bank's nodes of the
+# cells under the wheels go down to the lot's plane and a deck carries the bank's surface (the ground as it was) over
+# them west of a face 1.5 m inside the lot's edge, with a low wall down to the lot.
+#
+#     took, cells, poly, h0 = med97.foot_grade(Hn, X, Y, cars)     # late, after the music halls and the lots
+#     deck = dwb_deck(cells, poly, h0)                               # build_campus
+#     quads = med97.foot_walls(top, foot)
+FOOT_CARS = [(278.01, -55.62, -104.9), (279.36, -50.58, 73.4), (280.57, -45.46, 73.4), (284.08, -33.67, 73.4), (285.11, -28.5, 73.4)]
+FOOT_FACE = LineString([(276.0, -65.0), (275.0, -55.0), (282.0, -25.0), (285.0, 0.0)]).parallel_offset(1.5, 'right')
+FOOT_SIDE = Polygon(list(LineString([(276.0, -65.0), (275.0, -55.0), (282.0, -25.0), (285.0, 0.0)]).parallel_offset(1.5, 'right').coords)
+                    + [(255.0, 0.0), (255.0, -65.0)])          # (the bank's side of the face: west)
+
+
+def foot_grade(Hn, X, Y, cars=FOOT_CARS, step=5.0, half=800.0, tol=0.3):
+    """The nodes of the cells under the row's wheels standing over the lot's plane by more than tol: down to it.  Returns
+    them, the deck's cells (those with such a node) and outline (their part west of the face), the bank's surface as it
+    was (h0(x, y), working datum) and a summary"""
+    H0 = Hn.copy()
+    low = np.zeros(X.shape, bool)
+    for x, y, h in cars:
+        t = np.array([math.cos(math.radians(h)), math.sin(math.radians(h))])
+        n = np.array([-t[1], t[0]])
+        for a in (1.42, -1.28):
+            for b in (0.75, -0.75):
+                p = np.array([x, y]) + t * a + n * b
+                i, j = int(math.floor((p[0] + half) / step)), int(math.floor((p[1] + half) / step))
+                for dj in (0, 1):
+                    for di in (0, 1):
+                        z = plane(DENT_Z, X[j + dj, i + di], Y[j + dj, i + di])
+                        if Hn[j + dj, i + di] > z + tol:
+                            low[j + dj, i + di] = True
+    jj, ii = np.nonzero(low)
+    Hn[jj, ii] = plane(DENT_Z, X[jj, ii], Y[jj, ii])
+    cells = {(j + a, i + b) for j, i in zip(jj, ii) for a in (-1, 0) for b in (-1, 0)}
+    poly = unary_union([shapely.geometry.box(-half + i * step, -half + j * step, -half + (i + 1) * step, -half + (j + 1) * step)
+                        for j, i in cells]).intersection(FOOT_SIDE) if cells else Polygon()
+
+    def h0(x, y):
+        fx, fy = (x + half) / step, (y + half) / step
+        i, j = int(fx), int(fy)
+        ax, ay = fx - i, fy - j
+        return float(H0[j, i] * (1 - ax) * (1 - ay) + H0[j, i + 1] * ax * (1 - ay) + H0[j + 1, i] * (1 - ax) * ay + H0[j + 1, i + 1] * ax * ay)
+    d = Hn - H0
+    info = dict(low=[(int(X[j, i]), int(Y[j, i]), round(float(d[j, i]), 2)) for j, i in zip(jj, ii)], cells=len(cells),
+                deck_m2=round(poly.area, 1))
+    return low, cells, poly, h0, info
+
+
+def foot_walls(top, foot, step=0.5):
+    """the low wall along the face (stone, its face east to the lot) where the deck stands over the lot, and the guards
+    along its top where it stands more than a metre (campus.json colliders): [material, four points], polygons"""
+    quads, guards = [], []
+    R = lambda q, z: [round(q[0], 3), round(q[1], 3), round(float(z), 3)]
+    L = FOOT_FACE.length
+    for d in np.arange(0.0, L - 1e-6, step):
+        p0, p1 = FOOT_FACE.interpolate(d), FOOT_FACE.interpolate(min(d + step, L))
+        t = np.array([p1.x - p0.x, p1.y - p0.y])
+        if not np.any(t):
+            continue
+        t /= np.linalg.norm(t)
+        e = np.array([t[1], -t[0]])                      # (east: out of the bank)
+        q0, q1 = (p0.x, p0.y), (p1.x, p1.y)
+        a0, a1 = top(*(np.array(q0) - e * 0.02)), top(*(np.array(q1) - e * 0.02))
+        b0, b1 = foot(*(np.array(q0) + e * 0.05)) - 0.05, foot(*(np.array(q1) + e * 0.05)) - 0.05
+        if max(a0 - b0, a1 - b1) < 0.15:
+            continue
+        # (seen from the lot, east of it, q0 south on the left, q1 north on the right)
+        quads.append(['stone_granite', [R(q0, b0), R(q1, b1), R(q1, a1), R(q0, a0)]])
+        if min(a0 - b0, a1 - b1) > 1.0:
+            guards.append([[round(c, 3) for c in p] for p in (np.array(q0) + e * 0.02, np.array(q1) + e * 0.02,
+                                                              np.array(q1) - e * 0.28, np.array(q0) - e * 0.28)])
+    return quads, guards
