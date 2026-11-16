@@ -6049,10 +6049,14 @@ def north_gate_lodge(bid=991043):
         else:                                           # the east and south faces: plain
             wall(a, c, [])
     # the slab: 0.5 m out from the walls, 0.32 m thick, its fascia white
-    from shapely.geometry import Polygon as _Poly
-    R = list(_Poly(P).buffer(0.5, join_style=2).exterior.coords)[:-1]
-    if area2(R) < 0:
-        R.reverse()
+    def nrm(a, c):
+        L = math.dist(a, c)
+        return ((c[1] - a[1]) / L, -(c[0] - a[0]) / L)          # (outward on a counter-clockwise outline)
+    R = []
+    for i in range(len(P)):                          # (each corner where its two walls' lines 0.5 m out meet)
+        n1, n2 = nrm(P[i - 1], P[i]), nrm(P[i], P[(i + 1) % len(P)])
+        k = 0.5 / (1.0 + n1[0] * n2[0] + n1[1] * n2[1])
+        R.append((P[i][0] + (n1[0] + n2[0]) * k, P[i][1] + (n1[1] + n2[1]) * k))
     mb.face([(x, y, top) for x, y in R], 'roof_flat')
     mb.face([(x, y, zs) for x, y in R][::-1], 'plaster_white')
     for i in range(len(R)):
