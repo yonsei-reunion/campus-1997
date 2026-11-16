@@ -41,6 +41,7 @@ import yongjae97
 import ridge97
 import fieldhill97
 import gymnorth97
+import scinorth97
 import widang97
 import appen97
 import audnorth97
@@ -7154,6 +7155,25 @@ print('체육교육관 · 체육관 둘레:', GYM_AROUND)
 _gw_took, GYM_WEST = gymnorth97.west_half(Hn, X, Y, FIXED, harmonic_fill)
 FIXED[_gw_took] = True
 print('과학관 남쪽 공터 서쪽 반:', GYM_WEST)
+# 과학관 북쪽 길 · 연구관 서쪽 마당 (tools/scinorth97.py, reference/고증/2.10 「과학관 북쪽 길 · 연구관 서쪽 마당」; #152), late: the
+# planting has read the ground as it was.  The road along the east wing's north face (lined bays both sides) on the 1997
+# scans' profile, 4 - 4.5 m under the game's in its middle; the yard west of 연구관 on their plane (rising north-north-
+# east and west, where the game had it flat at 48.3 m) and the road on north-north-east to 광복관's bench (which stays);
+# the cut bank north of the road and the ring round both smooth.  The other blocks' ground and the other halls' feet stay
+_sn_box = shapely.geometry.box(-300.0, -40.0, -140.0, 90.0)
+_sn_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997 and b_['id'] not in LATE_FOOTPRINT_1997
+             and b_['id'] not in (scinorth97.JK_ID, scinorth97.JK_N_ID) and Polygon(b_['footprint']).intersects(_sn_box)] + \
+    [p_.buffer(0) for pid_, _, _, _, p_ in OLD_HALLS if pid_ not in LATE_FOOTPRINT_1997 and pid_ != scinorth97.JK_N_ID and p_.intersects(_sn_box)] + \
+    [Polygon(v_).buffer(0) for k_, v_ in LATE_FOOTPRINT_1997.items() if k_ not in (scinorth97.SCI_ID, scinorth97.JK_ID, scinorth97.JK_N_ID)
+     and Polygon(v_).intersects(_sn_box)]
+_sn_keep = shapely.contains_xy(unary_union([h_.buffer(2.0) for h_ in _sn_halls] +
+                                           [SCI_COURT97.buffer(0.5), SCI_DRIVE97.buffer(0.5), SCI_BANK97.buffer(0.5),
+                                            sci_poly([(-118.7, -25.6), (-121.0, -12.0), (-86.0, 15.5), (-72.4, 18.4), (-72.4, 0.3),
+                                                      (-67.7, 0.3), (-67.7, -25.6)])]), X, Y) | _lw_took | _gn_took | \
+    (_kb_took & (shapely.contains_xy(kwangbok97.REGION.buffer(2.5), X, Y) | kwangbok97.bank_nodes(X, Y)))   # (its bench and bank: not the ring it eased)
+_sn_took, SCINORTH97 = scinorth97.grade(Hn, X, Y, FIXED, _sn_keep, harmonic_fill, dump=os.environ.get('Y97_SN_DUMP'))
+FIXED[_sn_took] = True
+print('과학관 북쪽 길 · 연구관 서쪽 마당:', SCINORTH97)
 # 과학관 북서쪽 골짜기 · 독수리상 서쪽 마당 (tools/west_ground.py, reference/고증/4.12 · 4.5.2), late: the planting
 # has read the ground as it was.  The valley's works yard and floor on the 1997 photos (4 - 7 m under the game's
 # slope); the bare yard west of the eagle, its road and lane level at 28.30 m (the game climbed to 35 m)
@@ -9406,6 +9426,11 @@ print('루스채플 남쪽 마당: trees, shrubs, props moved off the yard', [le
 # (학생회관 남쪽 북동 찻길: the same, union97.clear)
 UNION97_CLEAR = (union97.clear(trees), union97.clear(shrubs), union97.clear(props))
 print('학생회관 남쪽 찻길: trees, shrubs, props moved off the road', [len(m_) for m_ in UNION97_CLEAR], UNION97_CLEAR)
+# (과학관 북쪽 길 · 연구관 서쪽 마당 (scinorth97): what the planting put on the 1997 asphalt steps off it first, in its
+# place in the list, to its edge away from the halls)
+_sn_n = scinorth97.move_off(trees, shrubs, props, [Polygon(LATE_FOOTPRINT_1997[k_]) for k_ in (scinorth97.SCI_ID, scinorth97.JK_ID)] +
+                            [p_ for pid_, _, _, _, p_ in OLD_HALLS if pid_ == scinorth97.JK_N_ID])
+print('과학관 북쪽 길 · 연구관 서쪽 마당: shrubs moved aside %d, props %d, trees %d' % (_sn_n[0], _sn_n[1], len(_sn_n[2])), _sn_n[2])
 for area_, lst_ in cars97.NEW_CARS.items():
     for x_, y_, h_, s_, w_ in lst_:
         c97_new(x_, y_, math.radians(h_), s_, w_)
@@ -9790,6 +9815,7 @@ _ypaint(libwest97.paint(), _ga)               # (중앙도서관 서쪽 길 · �
 # slant walk and the walk along their far side paved on to the 1997 kerb (the beds' lawn with them, LIB97_NORTH above)
 _ypaint(libnorth97.west(), _ga)
 _ypaint(libnorth97.walks(), _gp)
+_ypaint(scinorth97.paint(), _ga)              # (과학관 북쪽 길, 연구관 서쪽 마당과 북북동쪽 길)
 # 체육관 동쪽 마당 · 남동쪽 끝 (gymnorth97.PAVE2, reference/고증/3.24): asphalt under the 1997 cars where the game had
 # lawn and walks
 _ypaint([p_.difference(gymnorth97.GYM_POLY.buffer(0.3)) for p_ in gymnorth97.PAVE2], _ga)
