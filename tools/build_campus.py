@@ -2861,12 +2861,14 @@ def tr_line(raw, radii):
     return cp_, cn_, css_
 
 
-def tr_grade(cp_, cn_, k0, k1, grades, tag, also=None, tail=True, mine=None):
+def tr_grade(cp_, cn_, k0, k1, grades, tag, also=None, tail=True, mine=None, rng=None):
     """The ground under cp_[k0:k1] level across on the drive's own profile (as TR_LEVEL above).  grades: stretches of
     it on one grade, (point, height or None for what is there, point, height or None); also: a polygon whose nodes
     take the drive's height abreast of them too (a car park beside it); mine: a polygon in which the drive's nodes
     take its height though another rule has set them (a hall's yard or terrace levelled out as far as the drive: the
-    drive keeps its grade and the bank stands between them), 4 m and more from the halls' walls."""
+    drive keeps its grade and the bank stands between them), 4 m and more from the halls' walls.  rng: (points, normals)
+    of the line as it was before a change farther on: where the line has not moved (5 cm), its cells are chosen from
+    those points, so that the few mm tr_line shifts every point by do not flip a cell at the wheels' outer edge."""
     seg_ = cp_[k0:k1]
     z_ = np.array([sample(Hn, NEAR_HALF, NEAR_STEP, *q_) for q_ in seg_])
     zs_ = ndimage.gaussian_filter1d(z_, 3.0, mode='nearest')
@@ -2882,9 +2884,14 @@ def tr_grade(cp_, cn_, k0, k1, grades, tag, also=None, tail=True, mine=None):
     te_ = np.clip(np.minimum(np.arange(len(z_)), (len(z_) - 1 - np.arange(len(z_))) if tail else 1e9) / 8.0, 0, 1)   # (its ends as they are)
     zs_ = z_ + (zs_ - z_) * te_
     cells_ = set()
-    for k_ in range(len(seg_)):
+    pick_ = [(seg_[k_], cn_[k0 + k_]) for k_ in range(len(seg_))]
+    if rng is not None:
+        rls_ = LineString([tuple(q_) for q_ in rng[0]])
+        pick_ = [(p_, n_) for p_, n_ in pick_ if rls_.distance(Point(*p_)) > 0.05] + \
+            [(np.array(p_), np.array(n_)) for p_, n_ in zip(rng[0][k0:k1], rng[1][k0:k1]) if ls_.distance(Point(*p_)) <= 0.05]
+    for q_, n_ in pick_:
         for o_ in np.arange(-2.7, 2.71, 0.9):
-            x_, y_ = seg_[k_] + cn_[k0 + k_] * o_
+            x_, y_ = q_ + n_ * o_
             cells_.add((int(math.floor((y_ + NEAR_HALF) / NEAR_STEP)), int(math.floor((x_ + NEAR_HALF) / NEAR_STEP))))
     nodes_ = {(j_ + a_, i_ + b_) for j_, i_ in cells_ for a_ in (0, 1) for b_ in (0, 1)}
     if also is not None:
@@ -3070,7 +3077,8 @@ tr_grade(TR_E, TR_EN, TR_EK0, len(TR_E), [
     (tuple(TR_E[TR_EKH]), _zh, (181.1, 563.8), dwb_road_z((181.1, 563.8))),
     ((181.1, 563.8), dwb_road_z((181.1, 563.8)), (153.6, 551.6), dwb_road_z((153.6, 551.6))),      # down the road north of it
     ((153.6, 551.6), dwb_road_z((153.6, 551.6)), (147.1, 547.2), dwb_road_z((147.1, 547.2))),
-    ((147.1, 547.2), dwb_road_z((147.1, 547.2)), tuple(TR_E[-1]), dwb_road_z(tuple(TR_E[-1])))], 'east', tail=False, mine=_emine)
+    ((147.1, 547.2), dwb_road_z((147.1, 547.2)), tuple(TR_E[-1]), dwb_road_z(tuple(TR_E[-1])))], 'east', tail=False, mine=_emine,
+    rng=(TR_E_RNG, TR_EN_RNG))
 # (west of the road, EAST_Q97 above: one smooth surface; 논지당's terrace as it was)
 _ewest &= ~FIXED & ~near_buildings(1.0) & (dist > ROAD_HALF + 1.0) & (_njw <= 0.0)
 _ew0 = Hn.copy()
