@@ -668,9 +668,10 @@ def level(Hn, Hs, half, step, geo, sample_n, keep=None):
     xs = S['x0'] + np.arange(nx) * step
     X, Y = np.meshgrid(xs, ys)
     Cs = ndimage.gaussian_filter(C, 3.0)
-    # (off the patch's south edge the sampling reads cval: the old datum's 0, 2.0 m under today's, so that the arms'
-    # profiles there stay as they were drawn)
-    smp = lambda x, y: float(ndimage.map_coordinates(Cs, [[(y - S['y0']) / step], [(x - S['x0']) / step]], order=1, cval=-2.0)[0])
+    # (off the patch's south edge, where 1997년 신촌로(남서)'s and 서강로's last few metres run, the nearest node's
+    # ground: till 2026-11-16 a constant -2.0 m there, which pulled their profiles' last 60 m down by up to 3 m once the
+    # rim kept their beds, tools/town97.py street_hold)
+    smp = lambda x, y: float(ndimage.map_coordinates(Cs, [[(y - S['y0']) / step], [(x - S['x0']) / step]], order=1, mode='nearest')[0])
     zj = JC_Z
     prof = {}
     for k, a in A.items():

@@ -6458,15 +6458,17 @@ print('대운동장 남서쪽 · 야구장: road bed %(bed)d nodes, 야구장 %(
 # 신촌 로터리 (tools/sinchon_rotary.py, reference/고증/4.10_신촌_로터리.md): the near terrain's patch south of the grid
 # (y -1200 .. -800), and the bed of 연세로 south of the bridge and of the junction, levelled across
 HS = sinchon_rotary.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP)
-TOWN97_SOUTH = town97.lay_patch(HS, sinchon_rotary.SOUTH, _far97)  # (동네 땅, above: the patch too)
-print('동네 땅 (남쪽 조각): nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m, %(low)+.1f .. %(high)+.1f' % TOWN97_SOUTH)
 ROT_GEO = sinchon_rotary.streets(TOWN_PLAN)
+# (동네 땅, above: the patch too; its streets keep their beds to its edges, the ground beside them meets the far terrain)
+_rot_hold = town97.street_hold(sinchon_rotary.SOUTH, ROT_GEO['street'], sinchon_rotary.LEVEL_EASE)
+TOWN97_SOUTH = town97.lay_patch(HS, sinchon_rotary.SOUTH, _far97, _rot_hold)
+print('동네 땅 (남쪽 조각): nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m, %(low)+.1f .. %(high)+.1f' % TOWN97_SOUTH)
 # (the banks keep the ground their slopes' feet were set on; the bridge's opening is 연세로's: 고증 4.10.4 「길의 높이」)
 _rl_keep = gate_town.bank_poly(TOWN_SECS)[0].difference(Polygon([(gate_town.BRIDGE[0], -440), (gate_town.BRIDGE[1], -440),
                                                                   (gate_town.BRIDGE[1], -530), (gate_town.BRIDGE[0], -530)]))
 ROT_LEVEL = sinchon_rotary.level(Hn, HS, NEAR_HALF, NEAR_STEP, ROT_GEO, ground_h, keep=_rl_keep)
 # (the patch's outer rim, the streets' beds too, into the far terrain's edge: town97.far_ring above, over town97.RIM)
-print('동네 땅 (남쪽 조각의 가장자리): 먼 지형의 가장자리로 이음, 가장자리 마디가 움직인 것 %.2f m 까지' % town97.rim_patch(HS, sinchon_rotary.SOUTH, _far97))
+print('동네 땅 (남쪽 조각의 가장자리): 먼 지형의 가장자리로 이음, 가장자리 마디가 움직인 것 %.2f m 까지' % town97.rim_patch(HS, sinchon_rotary.SOUTH, _far97, _rot_hold))
 print('신촌 로터리: 교차로 높이 %.2f m, 연세로 %s, 길 %s' % (ROT_LEVEL['z_junction'], ROT_LEVEL['z_yonsei'], ROT_LEVEL['arms']))
 
 

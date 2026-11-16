@@ -227,13 +227,22 @@ def _ease(X, Y, far, base, lines=None):
     return (np.interp(s_, cs, dz) * (1 - _rim(np.ravel(X), np.ravel(Y)))).reshape(np.shape(X))
 
 
-def _onto(H0, X, Y, w, far):
-    """the survey's surface by w, eased over the rim into the far terrain's edge"""
+def _onto(H0, X, Y, w, far, hold=None):
+    """the survey's surface by w, eased over the rim into the far terrain's edge (not by as much as hold, 0 .. 1)"""
     t = surf(X, Y)
     e = _rim(X, Y) < 0.999
     if np.any(e):
-        t[e] = t[e] + _ease(X[e], Y[e], far, surf)
+        t[e] = t[e] + _ease(X[e], Y[e], far, surf) * (1.0 if hold is None else 1.0 - hold[e])
     return H0 * (1 - w) + t * w
+
+
+def street_hold(S, street, ease):
+    """on the patch's nodes: 1 on the streets (street: their carriageways and walks), 0 from ease m off them -- as
+    tools/sinchon_rotary.py level lays their beds.  The streets keep their beds (the 1997 photos', past them the
+    survey's ground along them) to the patch's edge; the ground beside them eases into the far terrain's edge"""
+    X, Y = np.meshgrid(S['x0'] + np.arange(S['nx']) * S['step'], S['y0'] + np.arange(S['ny']) * S['step'])
+    d = shapely.distance(shapely.points(np.stack([X.ravel(), Y.ravel()], 1)), street).reshape(X.shape)
+    return 1.0 - _smooth(d / ease)
 
 
 def lay(Hn, X, Y, far, keep=None):
@@ -252,24 +261,24 @@ def lay(Hn, X, Y, far, keep=None):
                 low=round(float(d.min()), 1), high=round(float(d.max()), 1))
 
 
-def lay_patch(Hs, S, far):
+def lay_patch(Hs, S, far, hold=None):
     """the same on the patch south of the grid (tools/sinchon_rotary.py SOUTH: Hs[j, i] at x0 + i step, y0 + j step);
-    its top row is the grid's bottom row and takes the same surface"""
+    its top row is the grid's bottom row and takes the same surface.  hold: street_hold()"""
     X, Y = np.meshgrid(S['x0'] + np.arange(S['nx']) * S['step'], S['y0'] + np.arange(S['ny']) * S['step'])
     w = _core(X, Y)
     m = w > 0
     H0 = Hs[m].copy()
-    Hs[m] = _onto(H0, X[m], Y[m], w[m], far)
+    Hs[m] = _onto(H0, X[m], Y[m], w[m], far, None if hold is None else hold[m])
     d = Hs[m] - H0
     full = w[m] > 0.999
     return dict(nodes=int(m.sum()), whole=int(full.sum()), median=round(float(np.median(d[full])), 2),
                 low=round(float(d.min()), 1), high=round(float(d.max()), 1))
 
 
-def rim_patch(Hs, S, far):
+def rim_patch(Hs, S, far, hold=None):
     """after the streets' beds (they run out to the patch's west, east and south edges): the patch eased into the far
-    terrain's edge along them again over RIM m (Hs in place, the top row, the near grid's bottom one, left alone).
-    Returns the most a node on the edge moved."""
+    terrain's edge along them again over RIM m (Hs in place, the top row, the near grid's bottom one, left alone), the
+    streets not (hold: street_hold()).  Returns the most a node on the edge moved."""
     X, Y = np.meshgrid(S['x0'] + np.arange(S['nx']) * S['step'], S['y0'] + np.arange(S['ny']) * S['step'])
     x1, y1 = S['x0'] + (S['nx'] - 1) * S['step'], S['y0'] + (S['ny'] - 1) * S['step']
     e = _rim(X, Y) < 0.999
@@ -278,6 +287,8 @@ def rim_patch(Hs, S, far):
     base = lambda x_, y_: ndimage.map_coordinates(Hs, [(np.asarray(y_) - S['y0']) / S['step'], (np.asarray(x_) - S['x0']) / S['step']],
                                                   order=1, mode='nearest')
     d = _ease(X[e], Y[e], far, base, lines=list(zip(c[:-1], c[1:])))
+    if hold is not None:
+        d = d * (1.0 - hold[e])
     on = (_rim(X[e], Y[e]) <= 0.0)
     Hs[e] = Hs[e] + d
     return round(float(np.abs(d[on]).max()), 2)
