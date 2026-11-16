@@ -43,6 +43,7 @@ import gymnorth97
 import widang97
 import appen97
 import audnorth97
+import chapel97
 import gyoyuk97
 import datum
 
@@ -6845,6 +6846,15 @@ ISLE_LAWN, ISLE_PAVE, ISLE_ROAD = audnorth97.isle_geom(_isn)
 _is_old, _is_oldw = audnorth97.isle_old_street(paths_out)
 ISLE_OLD = _is_old.buffer(_is_oldw / 2 + 0.4, cap_style='flat') if _is_old is not None and not _is_old.is_empty else Polygon()
 assert ISLE97['flight']['n'] == _isn, (ISLE97['flight']['n'], _isn)
+# 루스채플 남쪽 마당 (tools/chapel97.py, reference/고증/2.10 「루스채플 남쪽 마당의 땅」): one sheet of asphalt between the two
+# round lawns before the chapel and the belt of trees south of it in the 1997 scans, cars parked in a fan along the
+# lawns' kerbs and in a slanting row before the trees, all but level (해발 36.5 m in the west, 36.9 m at the east end);
+# the game had lawn on one slope there (35.1 m in the west, 39.4 m in the east) and OSM's 6 m road across it.  The
+# yard's nodes on the photos' profile, the ring round it smooth (the halls' feet stay); asphalt below (_ga), the cars
+# in tools/cars97_new.json.  Late: the planting has read the ground as it was
+_ch_took, CHAPEL97_GRADE = chapel97.grade(Hn, X, Y, FIXED, near_buildings(2.0), harmonic_fill)
+FIXED[_ch_took] = True
+print('루스채플 남쪽 마당:', CHAPEL97_GRADE)
 print('대강당 윗단 북쪽 끝 너머:', {k_: v_ for k_, v_ in ISLE97_GRADE.items() if k_ != 'at'}, 'flight', ISLE97['flight']['n'],
       ISLE97['flight']['z_top'], ISLE97['flight']['z_foot'])
 # ---------------------------------------------------------------------------
@@ -9253,6 +9263,9 @@ for t_ in cars97.GROUP_TARGETS['핀슨관 옆']:
 PINSON_FREE[:] = [tuple(q_) for q_ in _p9['free']]
 for x_, y_ in PINSON_FREE:
     c97_stall(_l, x_, y_, math.radians(_p9['h']))
+# (루스채플 남쪽 마당: what the planting put on the 1997 yard steps off it first, in its place in the list: chapel97.clear)
+CHAPEL97_CLEAR = (chapel97.clear(trees), chapel97.clear(shrubs), chapel97.clear(props))
+print('루스채플 남쪽 마당: trees, shrubs, props moved off the yard', [len(m_) for m_ in CHAPEL97_CLEAR], CHAPEL97_CLEAR)
 for area_, lst_ in cars97.NEW_CARS.items():
     for x_, y_, h_, s_, w_ in lst_:
         c97_new(x_, y_, math.radians(h_), s_, w_)
@@ -9620,6 +9633,8 @@ _ypaint([AUD_SIDE_POLY], _ga)                 # (대강당 북쪽 곁길 어귀 
 _ypaint([audnorth97.PAVE.difference(Polygon(next(b_['footprint'] for b_ in buildings if b_['id'] == 371403811)).buffer(0.2))], _ga)
 # ... and beyond its north end the asphalt down to the 삼거리 west of the 1997 island (audnorth97.isle_geom)
 _ypaint([g_ for g_ in getattr(ISLE_ROAD, 'geoms', [ISLE_ROAD]) if g_.geom_type == 'Polygon'], _ga)
+# 루스채플 남쪽 마당 (chapel97.yard): asphalt from the round lawns' kerbs to the trees, where the 1997 scans have the cars
+_ypaint([chapel97.yard()], _ga)
 # 백양로 끝 계단 발치 (reference/고증/2.8 「삼거리의 땅」): the road's asphalt on to the foot of the end steps (a strip of
 # lawn lay between them; in the spring 2003 photo the flights rise straight off the road)
 _ypaint([Polygon([st_xy(-5.4, -2.2), st_xy(5.4, -2.2), st_xy(5.4, 0.05), st_xy(-5.4, 0.05)])]
