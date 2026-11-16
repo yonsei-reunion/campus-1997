@@ -7226,7 +7226,8 @@ _sn_keep = shapely.contains_xy(unary_union([h_.buffer(2.0) for h_ in _sn_halls] 
                                            [SCI_COURT97.buffer(0.5), SCI_DRIVE97.buffer(0.5), SCI_BANK97.buffer(0.5),
                                             sci_poly([(-118.7, -25.6), (-121.0, -12.0), (-86.0, 15.5), (-72.4, 18.4), (-72.4, 0.3),
                                                       (-67.7, 0.3), (-67.7, -25.6)])]), X, Y) | _lw_took | _gn_took | \
-    (_kb_took & (shapely.contains_xy(kwangbok97.REGION.buffer(2.5), X, Y) | kwangbok97.bank_nodes(X, Y)))   # (its bench and bank: not the ring it eased)
+    (_kb_took & (shapely.contains_xy(kwangbok97.REGION.buffer(2.5), X, Y) | kwangbok97.bank_nodes(X, Y) |
+                 kwangbok97.car_nodes(X, Y)))   # (its bench, bank and the cells under its cars: not the ring it eased)
 _sn_took, SCINORTH97 = scinorth97.grade(Hn, X, Y, FIXED, _sn_keep, harmonic_fill, dump=os.environ.get('Y97_SN_DUMP'))
 FIXED[_sn_took] = True
 print('과학관 북쪽 길 · 연구관 서쪽 마당:', SCINORTH97)

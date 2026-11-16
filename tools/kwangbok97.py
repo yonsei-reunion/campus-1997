@@ -33,6 +33,8 @@ BANK_GRID: the cut bank over the west side of the road west of the hall (고증 
 up to the ridge's ground (tools/ridge97.py), where the game had a shelf eased between the two.
 BENCH_EAST, BEND96: the bench out to its east edge and the bank north of the road's bend, on the leafless scans of 1996
 (고증 3.9 「단의 동쪽 끝: 1996년 겨울 사진」 · 「서쪽 찻길 둑의 북쪽 굽이」).
+SW_PROFILE, SW_PAVE: the bench's south-west end, where the road comes up from the yard west of 연구관, and the cars along
+both its edges (고증 2.10 「광복관 단 남서쪽 끝 · 서쪽 길 숲 가」).
 """
 import math
 
@@ -122,9 +124,10 @@ BENCH_PAVED_EAST = [(-85.0, 121.0), (-75.0, 118.5), (-70.5, 122.0), (-67.0, 127.
 # edge go to the bench's level (the wall is not made: the 5 m grid's bank starts at it)
 BENCH_EAST_U = 63.8
 BENCH_EAST = unary_union([kb_rect(46.9, BENCH_EAST_U, 25.55, 76.0), kb_rect(50.0, BENCH_EAST_U, 17.0, 25.55)])
-# the road west of 광복관 (OSM's line, which the scans' road follows to 1 m): its height along it, from where it leaves
-# the game's ground (x, y, 해발)
-ROAD_KB_W = [(-173.8, 55.1, 48.3), (-170.2, 60.0, 49.2), (-167.1, 65.0, 49.8), (-163.9, 70.1, 50.05), (-157.7, 80.4, 50.2),
+# the road west of 광복관 (OSM's line, which the scans' road follows to 1 m): its height along it (x, y, 해발).  Its
+# first three points, where it comes up from the yard west of 연구관 (tools/scinorth97.py), are the 1997 · 1996 · 1998 ·
+# 1999 scans' profile (SW_PROFILE below); they had been the game's old ground there (48.3 m)
+ROAD_KB_W = [(-173.8, 55.1, 49.58), (-170.2, 60.0, 49.76), (-167.1, 65.0, 49.87), (-163.9, 70.1, 50.05), (-157.7, 80.4, 50.2),
              (-148.3, 95.8, 50.2), (-142.1, 106.1, 50.0), (-134.3, 115.1, 49.85)]
 # the road up 핀슨관's west side to the car park north of the hall: its middle line and the scans' heights on it
 ROAD_PIN_W = [(-93.2, 137.5, 49.9), (-92.1, 144.2, 51.4), (-91.05, 150.0, 52.4), (-90.3, 154.0, 53.2), (-89.75, 157.0, 53.85),
@@ -151,13 +154,14 @@ ROW_230 = [(-60.0, 55.0), (-50.0, 54.4), (-40.0, 53.8), (-30.0, 52.85), (-20.0, 
 
 # --- GRID: the ground at the game's 5 m nodes (x GRID_X0 + 5 i, y GRID_Y0 + 5 j; rows south -> north), 해발 in decimetres;
 # made by the composer in this file's history (the level places and roads above, the 2006 survey's surface elsewhere,
-# harmonic between them); 0 where REGION does not reach
+# harmonic between them); 0 where REGION does not reach.  The south-west tip's road nodes ((-175 .. -165, 55 .. 65))
+# on SW_PROFILE (below)
 GRID_X0, GRID_Y0, GRID_D = -180.0, 50.0, 5.0
 GRID = np.array([[int(v) for v in r.split()] for r in """
 0 0 0 0 0 0 0 0 0 0 0 0 449 425 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-0 483 486 0 0 0 0 0 450 451 454 456 459 447 437 428 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-0 498 492 484 0 450 453 456 458 461 464 466 469 472 457 450 450 450 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-0 0 496 498 485 0 463 466 468 471 474 476 479 480 470 465 466 467 455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 496 496 0 0 0 0 0 450 451 454 456 459 447 437 428 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 497 498 498 0 450 453 456 458 461 464 466 469 472 457 450 450 450 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 499 499 485 0 463 466 468 471 474 476 479 480 470 465 466 467 455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 0 509 500 501 487 473 476 478 480 480 480 480 480 476 475 480 498 477 458 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 0 0 501 501 502 490 485 480 480 480 480 480 480 480 480 480 498 498 477 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 0 0 514 502 502 502 492 480 480 480 480 480 480 498 498 498 498 498 498 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -202,6 +206,23 @@ REGION = Polygon([(-178.0, 52.0), (-176.0, 62.0), (-171.0, 71.0), (-166.0, 80.0)
                   (-57.0, 131.0), (-62.5, 127.5), (-66.0, 123.0), (-68.0, 117.0), (-69.5, 110.0), (-74.0, 100.0), (-77.5, 90.0),
                   (-81.0, 80.0), (-84.0, 71.0), (-86.0, 62.0), kb_xy(52.0, -1.0), kb_xy(34.5, -14.5), kb_xy(-5.5, -14.5),
                   kb_xy(-5.5, -1.0), (-156.0, 66.0), (-163.0, 60.0), (-168.0, 52.0)])
+# --- the bench's south-west end (고증 2.10 「광복관 단 남서쪽 끝 · 서쪽 길 숲 가」, 2026-11-17): where the road west of the
+# hall comes up from the yard west of 연구관 (tools/scinorth97.py) past the north end of 연구관's north block.  The scans
+# (1997 26/15 · 26/16 with 1996-12 · 1998-10 · 1999-05 pairs, each by itself, 1.5 m windows, corr 0.8 or more, aligned
+# and lifted as scinorth97: 411 points on the road between the two rows of cars, 260 kept, rms 0.17 m) have the road
+# rising from the yard's level to the bench's and level across: SW_PROFILE along 연구관's axis (scinorth97's JK frame,
+# u north-north-east).  The game had the tip 0.4 - 1.3 m under it (its first points were the old ground).
+SW_PROFILE = [(28.0, 49.39), (34.0, 49.44), (40.0, 49.62), (46.0, 49.81), (52.0, 49.89), (58.0, 49.88), (64.0, 49.92), (70.0, 50.01),
+              (76.0, 50.07)]
+# the cars parked along both edges there (tools/cars97_new.json 「광복관 단 남서쪽 끝 · 서쪽 길 숲 가」): their grid cells
+# laid as the others' (grade's `lot`), but only under the tyres (SW_CAR_A along, as the axles; SW_CAR_B across), so that a
+# row along the wood's edge pulls down no more of the bank than the cells its tyres stand in
+SW_CARS = ('kb-N3', 'kb-N4', 'kb-N5', 'kb-W6', 'kb-W7', 'kb-W8', 'kb-T3', 'kb-E1', 'kb-E2', 'kb-E3', 'kb-E4')
+SW_CAR_A, SW_CAR_B = (-1.4, 0.0, 1.4), 0.78
+# its asphalt out to the wood's edge (the west row's outer side, 1 m short of the bank's foot) and south to the yard's
+# north end: the bench (BENCH) had stopped 1 - 3.8 m short of the west row and 5 m short of the yard
+SW_PAVE = Polygon([(-173.5, 48.8), (-170.0, 53.9), (-166.3, 60.8), (-163.1, 65.9), (-160.5, 69.1), (-161.8, 77.6), (-164.6, 79.0),
+                   (-165.5, 77.8), (-168.5, 73.1), (-171.6, 68.5), (-174.7, 63.9), (-178.0, 59.4), (-181.8, 52.9)])
 # --- the bank over the road west of the hall (고증 3.9 「서쪽 찻길 위 둑」) ------------------------------------------------
 # The road is cut into the ridge's east side.  Its west edge has not moved since 1997: the cars parked along it in the
 # scans reach 4.9 m west of the road's middle line (ROAD_KB_W), the survey's road edge is at 5.9 - 7.9 m (2006's two
@@ -329,6 +350,34 @@ def cars_1997():
     return out
 
 
+def car_cells(x, y, h, lab, step=5.0, half=800.0):
+    """the grid nodes (j, i) of the cells under a car (grade's `lot`): under its body, or under its tyres (SW_CARS)"""
+    t, n = (math.cos(h), math.sin(h)), (-math.sin(h), math.cos(h))
+    aa, bb = (SW_CAR_A, SW_CAR_B) if lab in SW_CARS else ((-1.7, -0.6, 0.6, 1.7), 0.85)
+    cells = {(int(math.floor((y + t[1] * a + n[1] * b + half) / step)), int(math.floor((x + t[0] * a + n[0] * b + half) / step)))
+             for a in aa for b in (-bb, bb)}
+    return {(j + a, i + b) for j, i in cells for a in (0, 1) for b in (0, 1)}
+
+
+def car_nodes(X, Y, step=5.0, half=800.0):
+    """every node grade may lay under a car of cars_1997() (for the blocks after it: tools/scinorth97.py keeps them)"""
+    m = np.zeros(X.shape, bool)
+    for x, y, h, lab in cars_1997():
+        for j, i in car_cells(x, y, h, lab, step, half):
+            m[j, i] = True
+    return m
+
+
+_ja = math.radians(63.4)
+_JK_O, _JK_A = np.array([-179.75, 15.0]), np.array([math.cos(_ja), math.sin(_ja)])     # (scinorth97's JK frame: its u)
+
+
+def sw_z(x, y):
+    """SW_PROFILE at (x, y): 해발"""
+    u = (np.asarray(x, float) - _JK_O[0]) * _JK_A[0] + (np.asarray(y, float) - _JK_O[1]) * _JK_A[1]
+    return np.interp(u, *zip(*SW_PROFILE))
+
+
 def grade(Hn, X, Y, FIXED, keep, fill, tr_pts, tr_n, step=5.0, half=800.0):
     """GRID + T inside REGION (FIXED there yields; `keep`, the feet of the halls that stay, does not), the cars' west
     road on ROAD_W level across (the cells its wheels cross), then eased out round REGION (fill: harmonic_fill) over
@@ -361,16 +410,15 @@ def grade(Hn, X, Y, FIXED, keep, fill, tr_pts, tr_n, step=5.0, half=800.0):
     # with the bank beside it
     lot = np.zeros(X.shape, bool)
     for x, y, h, lab in cars_1997():
-        t, n = (math.cos(h), math.sin(h)), (-math.sin(h), math.cos(h))
-        cells = {(int(math.floor((y + t[1] * a + n[1] * b + half) / step)), int(math.floor((x + t[0] * a + n[0] * b + half) / step)))
-                 for a in (-1.7, -0.6, 0.6, 1.7) for b in (-0.85, 0.85)}
-        for j, i in {(j + a, i + b) for j, i in cells for a in (0, 1) for b in (0, 1)}:
+        for j, i in car_cells(x, y, h, lab, step, half):
             if keep[j, i] or road[j, i]:
                 continue
             if lab.startswith('pin-R'):
                 z = float(_prof(ROAD_PIN_W, X[j, i], Y[j, i])[0])
             elif lab.startswith('pin-P'):
                 z = PIN_LOT_Z
+            elif lab in SW_CARS:
+                z = float(sw_z(X[j, i], Y[j, i]))
             else:
                 z = float(bench_z(X[j, i], Y[j, i]))
             Hn[j, i] = z + Tn[j, i]
@@ -424,8 +472,8 @@ def hall():
 
 
 def paved():
-    """the bench's asphalt (the yard, the two roads, the place south of 핀슨관), the road up 핀슨관's west side and the
-    car park north of it"""
+    """the bench's asphalt (the yard, the two roads, the place south of 핀슨관, its south-west end SW_PAVE), the road up
+    핀슨관's west side and the car park north of it"""
     east = Polygon([kb_xy(46.9, 63.9), kb_xy(26.8, 63.9)] + [(-106.0, 137.5), (-100.5, 139.5), (-92.0, 141.0), (-86.5, 139.5),
                     (-82.5, 137.5), (-78.0, 138.5), (-76.3, 148.3), (-65.6, 145.5), (-61.5, 142.5), (-58.5, 137.5)] +
                    BENCH_PAVED_EAST[::-1])
@@ -434,7 +482,7 @@ def paved():
     yard = unary_union([west, east]).difference(hall().buffer(0.3)).difference(annex().buffer(0.3))
     pin = _strip(ROAD_PIN_W, *PIN_W_HALF)
     mouth = Polygon([(-65.6, 145.5), (-58.5, 147.0), (-55.0, 140.0), (-58.5, 137.5), (-61.5, 142.5)])   # (where the cars' road comes in)
-    return unary_union([yard, pin, mouth, PIN_LOT.difference(Polygon(PINSON_FP).buffer(0.6))]).buffer(0)
+    return unary_union([yard, pin, mouth, PIN_LOT.difference(Polygon(PINSON_FP).buffer(0.6)), SW_PAVE]).buffer(0)
 
 
 PINSON_FP = [(-65.09, 146.74), (-58.57, 171.72), (-69.09, 174.43), (-75.61, 149.45)]      # (OSM 246156113)

@@ -299,7 +299,10 @@ def north_paved():
     road = poly([(NROAD_U[0][0], 39.3), (GAP_W, 39.3), (GAP_W, NROAD_V[1]), (NROAD_U[0][0], NROAD_V[1])])
     gap = poly([(GAP_W, 38.85), (-42.3, 38.85), (-42.3, GAP_N), (GAP_W, GAP_N)])
     lane = poly([(-39.6, 30.0), (NB_WEST_U, 30.0), (NB_WEST_U, GAP_N), (-39.6, GAP_N)])
-    return [road, gap, lane]
+    # (the dead-end alley along 별동연구동's east wall, between it and the kerb at the wood's edge, where a car stood:
+    # 26/16 · 26/15, the same grey as the road; game coordinates.  Its ground is the grid's: reference/고증/2.10)
+    alley = Polygon([(-246.6, -155.0), (-240.3, -155.0), (-240.0, -147.5), (-244.7, -147.5)])
+    return [road, gap, lane, alley]
 
 
 def grade(Hn, X, Y, FIXED, halls, fill, site_o, site_rot, pit, slab):
