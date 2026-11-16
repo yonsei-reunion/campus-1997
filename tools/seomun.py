@@ -2,7 +2,7 @@
 
     took = seomun.grade(Hn, X, Y, FIXED, halls, field_patch, harmonic_fill)   # 1997년 사진 높이로 땅(심기가 끝난 뒤, 저장 바로 앞)
     seomun.takeup(paths_out)          # OSM 의 선 가운데 1997년 길과 다른 토막(대운동장 북동쪽 길 끝)이 깔던 아스팔트
-    asph, dirt = seomun.paint()       # 남남동 찻길 · 서문 안 갈림목 · 문 밖 골목(집 앞까지 아스팔트), 작은 건물 둘레 마당
+    asph, dirt = seomun.paint()       # 남남동 찻길 · 서문 안 갈림목 · 문 밖 골목(집 앞까지 아스팔트), 작은 건물 둘레 마당 · 트럭 곁 길가
     seomun.houses(ground)             # 골목 둘레 연희동 집(OSM 외곽선, 1997년 사진에도 있는 것) · 갈림목 남쪽 작은 건물
     seomun.gate(ground)               # 서문의 기둥 · 문짝 · 담(campus.json seomun, blender/landmarks.py seomun)
 
@@ -57,9 +57,14 @@ ALLEY_HALF = 1.3
 # to the road, the big tree's crown north of it)
 APRON = [(-359.9, -16.5), (-355.5, -15.6), (-349.6, -16.5), (-348.3, -21.0), (-347.9, -25.8), (-352.5, -25.6), (-357.0, -23.4),
          (-361.7, -20.3)]
-# the yard west of the hedge, round the small building (the scans: bare and pale, 44 - 45 m)
-YARD = [(-357.5, -26.0), (-348.6, -26.4), (-346.8, -33.0), (-344.8, -41.0), (-344.0, -50.5), (-352.0, -51.5), (-356.0, -44.0),
-        (-360.5, -30.0)]
+# the yard west of the hedge, round the small building (the scans: bare and pale, 44 - 45 m); east of the building it
+# runs on to the road's edge, where a car stood against the building's east wall in July 1997 (26/16 · 26/15) and in
+# Dec. 1996 (26/16): reference/고증/3.22 「세운 차」
+YARD = [(-357.5, -26.0), (-348.6, -26.4), (-346.8, -33.0), (-344.8, -40.0), (-342.0, -41.5), (-339.5, -51.0), (-344.0, -51.5),
+        (-352.0, -51.5), (-356.0, -44.0), (-360.5, -30.0)]
+# the pale ground east of the road's carriageway beside the trucks (the scans: one surface with the road, 1.3 - 4.7 m
+# off its east edge, the middle truck on it; 42.1 m, the game's ground within 0.3 m): bare
+ROADSIDE = [(-318.5, -95.0), (-310.0, -95.5), (-309.8, -106.0), (-311.0, -110.5), (-316.0, -110.5)]
 SHED = [(-351.7, -40.4), (-346.3, -39.5), (-345.0, -48.4), (-350.4, -49.5)]    # its roof on the scans, 44.8 m
 SHED_TOP = datum.up(-348.36, -44.46, 44.78) + 0.3
 # the walls either side of the gate: north, the boundary along the lane's end and up past house 83 (a granite wall in
@@ -283,7 +288,8 @@ def paint():
     arc = C[2][1]['ls'].buffer(ARC_HALF, cap_style='flat')
     alley = C[3][1]['ls'].buffer(ALLEY_HALF, cap_style='flat')
     asph = unary_union([road, lane, arc, alley, Polygon(APRON).buffer(0)])
-    yard = Polygon(YARD).buffer(0).difference(asph).difference(Polygon(SHED).buffer(0.2))
+    yard = unary_union([Polygon(YARD).buffer(0), Polygon(ROADSIDE)]).difference(asph)
+    yard = yard.difference(Polygon(SHED).buffer(0.2))
     return asph, yard
 
 
