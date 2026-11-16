@@ -25,7 +25,7 @@ working datum the ground is laid on (해발 + tilt: tools/datum.py) where it is 
 """
 import numpy as np
 import shapely
-from shapely.geometry import LineString, Point
+from shapely.geometry import LineString, Point, Polygon
 import datum
 
 FLOOR = 45.9                      # 해발: the hall's floor and the level ground round it, the car park before the north walls
@@ -36,6 +36,18 @@ WALK_HALF = 3.0                   # the ground this far either side of the walk'
 # the fork's middle runs 9.4 m off), and the asphalt 1.7 m out from the edge
 LOT_NW_NODE = (90.0, 155.0)
 LOT_NW_PAVE = [(89.5, 152.0), (95.0, 157.5), (93.8, 158.7), (88.3, 153.2)]
+# South of the hall the level ground ran on 8 - 18 m past the walls (reference/고증/3.13 「평평한 땅의 남쪽 가」): the 1997
+# scans 45.8 - 45.9 m at x 94 to y 78 and 46.2 - 47.1 m at x 96 - 100 to y 72 (rising east), 45.4 - 46.4 m south-west
+# of the tower (x 68 - 74, y 94 - 98); the leafless 1996 frames 45.5 - 45.9 m at x 64 - 96, y 84 - 90; the 2006
+# survey's 45 m contour runs round it a metre or two out ((66.6, 89.6), (71.1, 86.5), (81.8, 83.4), (92.0, 78.2),
+# (96.9, 72.1), (100.4, 68.0)), and below it the 대강당's yard (40 m) as the scans have it.  The game had the bank from
+# 3 m past the walls, 1.5 - 3.9 m under that.  SOUTH: the nodes on it (1.5 m inside the contour), at FLOOR and
+# SOUTH_RISE a metre east of x 95; the ring round them (SOUTH_RING) eased again to the yard and the ground east
+# (audnorth97 keeps them)
+SOUTH = [(65.5, 98.0), (101.5, 88.6), (101.5, 70.0), (98.5, 72.0), (94.5, 76.5), (93.0, 79.5), (82.4, 84.8), (71.6, 88.0),
+         (69.9, 88.9), (68.0, 90.6), (67.5, 92.5), (66.5, 95.0)]
+SOUTH_RISE = 0.15
+SOUTH_RING = 8.0
 
 
 def raise_pad(Hn, X, Y, FIXED, pad, ring, floor_work, cluster_xy, fill, pad_poly=None, walk=None, bank=None):
@@ -72,3 +84,19 @@ def raise_pad(Hn, X, Y, FIXED, pad, ring, floor_work, cluster_xy, fill, pad_poly
     info = dict(rise=dz, pad=int(pad.sum()), walk=int(along.sum()), bank=int(free.sum()),
                 bank_rise=(round(float(d[free].min()), 2), round(float(d[free].max()), 2)) if free.any() else (0.0, 0.0))
     return dz, pad | along | free, info
+
+
+def south_edge(Hn, X, Y, FIXED, pad, keep, fill, floor_work_at, bank):
+    """SOUTH's nodes (but those of the level ground already, pad, and keep: the halls' feet) at FLOOR rising SOUTH_RISE a
+    metre east of x 95, on the working datum (floor_work_at(x, y): FLOOR there); the ring round them that no other
+    rule holds (not FIXED, or the bank raise_pad laid) eased.  Returns (the nodes set, the ring eased, a summary)"""
+    P = Polygon(SOUTH)
+    zone = shapely.contains_xy(P, X, Y) & ~pad & ~keep
+    h0 = Hn.copy()
+    Hn[zone] = floor_work_at(X[zone], Y[zone]) + SOUTH_RISE * np.maximum(X[zone] - 95.0, 0.0)
+    ring = shapely.contains_xy(P.buffer(SOUTH_RING), X, Y) & ~zone & ~pad & ~keep & (~FIXED | bank)
+    if ring.any():
+        fill(ring)
+    d = Hn - h0
+    return zone, ring, dict(nodes=int(zone.sum()), rise=(round(float(d[zone].min()), 2), round(float(d[zone].max()), 2)) if zone.any() else (0, 0),
+                            ring=int(ring.sum()))

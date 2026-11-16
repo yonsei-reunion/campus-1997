@@ -6783,13 +6783,24 @@ Hn[_yj_nw] = YONGJAE['floor'] + _yj_dz        # (the car across the car park's n
 FIXED[_yj_nw] = True
 print('용재관 바닥과 둘레 땅:', YJ97_PAD)
 print('   the node by the car park\'s north-west edge: %+.2f m' % (float(Hn[_yj_nw]) - _yj_nw0))
+# 용재관 평평한 땅의 남쪽 가 (tools/yongjae97.py SOUTH, reference/고증/3.13 「평평한 땅의 남쪽 가」): south of the south block
+# the level ground ran on to the top of the bank down to 대강당's yard (the 1997 and 1996 scans, the 2006 survey's 45 m
+# contour); the ring round it eased again, and 대강당 북쪽 날개 둘레 (below) keeps it
+_ys_zone, _ys_ring, YJ97_SOUTH = yongjae97.south_edge(
+    Hn, X, Y, FIXED, _ypad, near_buildings(1.0), harmonic_fill,
+    lambda x_, y_: np.full(np.shape(x_), YONGJAE['floor'] + _yj_dz),          # (the level ground's own: one value)
+    _yj_took & ~_ypad)
+FIXED[_ys_zone | _ys_ring] = True
+_yj_took |= _ys_ring
+print('용재관 평평한 땅의 남쪽 가:', YJ97_SOUTH)
 # 대강당 북쪽 날개 둘레 (tools/audnorth97.py, reference/고증/4.5.1 「북쪽 날개 둘레」): the terrace ran on level to the north
 # wing's west wall and along a strip north of it (the 1997 scans: twelve points there within 0.2 m of the terrace, the
 # 2006 survey's surface within 0.3 m), where the 5 m grid dipped 3 - 4 m and the wing stood in the hollow.  The yard
 # to the terrace's level (AUD97['z']), the ring round it one smooth surface between the terrace, 용재관's level ground
 # (which stays: _ypad) and the yard east of the wing; 용재관's bank (the block above) is laid again where it met the
 # hollow.  The wing reads the ground (landmarks.py auditorium): two storeys over the terrace on the next build
-_an_took, AUDN97 = audnorth97.grade(Hn, X, Y, FIXED, near_buildings(0.5) | _ypad, _yj_took & ~_ypad, harmonic_fill, AUD97['z'])
+_an_took, AUDN97 = audnorth97.grade(Hn, X, Y, FIXED, near_buildings(0.5) | _ypad | _ys_zone, _yj_took & ~_ypad, harmonic_fill,
+                                    AUD97['z'])
 FIXED[_an_took] = True
 print('대강당 북쪽 날개 둘레:', AUDN97)
 # 백양로 북쪽 끝 삼거리 (tools/audnorth97.py, reference/고증/2.8 「삼거리의 땅」): the carriageway's section (PROF_Q) is the
