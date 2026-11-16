@@ -2,6 +2,7 @@
 tools/build_campus.py 가 부른다.
 
     took, info = fieldhill97.grade(Hn, X, Y, FIXED, halls, fill)     # 심기가 끝난 뒤, 다른 늦은 블록들 다음
+    took, info = fieldhill97.spur(Hn, X, Y, FIXED, hall, fill)       # 그 바로 뒤: 학군단 북쪽 비탈(1996년 겨울 스캔)
     fieldhill97.woods(oval)                                           # 숲 바닥을 칠하고 나무를 채울 자리
     fieldhill97.bare()                                                # 언덕 위 맨땅 길 (땅 지도에 칠함)
 
@@ -129,6 +130,75 @@ def grade(Hn, X, Y, FIXED, halls, fill):
                 moved=(int((np.abs(d) > 0.05).sum()), round(float(d.min()), 1), round(float(d.max()), 1)),
                 tops=(round(float(Hn[core].max()), 2),))
     return core | free, info
+
+
+# The spur between the hill and 학군단 (BOWL's floor: reference/고증/4.12 「학군단 북쪽 비탈」).  The 2006 survey's later
+# edition (고시 2007) has a bowl under 40 m there and the 1997-07-28 scans crowns 60 - 66 m over it; the hill's GRID and
+# the base terrain had 43 - 48 m.  The leaf-off scans of 1996-12-23 (26/16 · 26/15) see the forest floor: a spur falling
+# south from the hill to 학군단's yards, 47 - 52 m over the bowl's middle, 3 m over the game's ground there; the 2006
+# survey's earlier edition (고시 2006-08: suchi1_37608078_2005) draws the same spur (the 1996 floor - its surface: median
+# +0.24, sd 1.2 on these points), and the crowns stand over it in 1997-07 and 1998-10 (cut after 1998).  SPUR_PTS: the
+# 1996 floor's points (two windows within 0.6 m, corr 0.7 and over), crowns dropped (more than 1.5 m over their
+# neighbours'), kept where the earlier edition agrees within 2 m; the yards north-west and north-east of 학군단 among
+# them (38.6 - 39.3 m: 1997-07 and 1998-10 the same within 0.5 m, the 2024 survey's spot (-523.55, -161.38) 39.24 m) --
+# the hall's field side and south-west side stay on its pad (the field's level: the scans have 33.3 - 33.8 m there).
+# The ground in SPUR takes the points' difference from the game's (Gaussian, SPUR_SIGMA; out of reach it fades to
+# nothing), its pad north of the diagonal through its west and east corners included; eased round over SPUR_RING m
+SPUR_PTS = datum.up3([
+    (-476, -118, 53.63), (-479, -121, 53.67), (-482, -124, 52.95), (-479, -124, 53.34), (-476, -124, 53.72),
+    (-509, -127, 51.20), (-503, -127, 50.89), (-500, -127, 51.47), (-497, -127, 51.72), (-494, -127, 51.96),
+    (-485, -127, 52.54), (-482, -127, 52.76), (-479, -127, 53.03), (-476, -127, 53.65), (-512, -130, 49.45),
+    (-509, -130, 49.30), (-503, -130, 49.50), (-488, -130, 51.29), (-485, -130, 51.88), (-518, -133, 48.31),
+    (-515, -133, 48.25), (-512, -133, 48.28), (-509, -133, 48.62), (-506, -133, 48.92), (-503, -133, 48.97),
+    (-500, -133, 49.11), (-497, -133, 49.47), (-494, -133, 49.63), (-491, -133, 50.47), (-488, -133, 51.07),
+    (-485, -133, 51.36), (-518, -136, 48.34), (-515, -136, 48.17), (-512, -136, 48.15), (-509, -136, 48.28),
+    (-506, -136, 48.25), (-503, -136, 48.55), (-500, -136, 48.80), (-497, -136, 49.09), (-494, -136, 49.41),
+    (-491, -136, 50.25), (-488, -136, 50.71), (-536, -139, 44.04), (-533, -139, 44.22), (-515, -139, 48.02),
+    (-512, -139, 47.97), (-509, -139, 47.72), (-497, -139, 48.48), (-494, -139, 48.88), (-491, -139, 49.30),
+    (-488, -139, 50.51), (-485, -139, 50.65), (-479, -139, 51.49), (-476, -139, 51.69), (-473, -139, 51.83),
+    (-536, -142, 43.09), (-524, -142, 46.73), (-497, -142, 47.88), (-491, -142, 48.69), (-488, -142, 49.91),
+    (-482, -142, 50.62), (-479, -142, 51.12), (-476, -142, 51.46), (-473, -142, 51.67), (-536, -145, 42.89),
+    (-524, -145, 46.32), (-497, -145, 47.51), (-488, -145, 48.86), (-482, -145, 50.47), (-479, -145, 50.76),
+    (-476, -145, 51.31), (-542, -148, 42.20), (-539, -148, 42.55), (-536, -148, 42.74), (-482, -148, 49.70),
+    (-542, -151, 42.07), (-488, -151, 48.50), (-485, -151, 48.99), (-503, -154, 44.74), (-500, -154, 45.43),
+    (-494, -154, 46.71), (-506, -157, 44.51), (-503, -157, 44.17), (-500, -157, 45.04), (-539, -160, 39.09),
+    (-536, -160, 39.18), (-533, -160, 39.72), (-539, -163, 39.21), (-536, -163, 39.25), (-533, -163, 39.39),
+    (-530, -163, 38.81), (-512, -163, 40.49), (-533, -166, 39.55), (-530, -166, 38.92), (-527, -166, 38.83),
+    (-524, -166, 38.99), (-530, -169, 39.16), (-527, -169, 39.02), (-527, -172, 39.28), (-497, -175, 40.03),
+    (-494, -175, 40.63), (-500, -178, 38.70), (-497, -178, 38.80), (-494, -178, 38.81), (-491, -178, 38.60),
+    (-497, -181, 38.83), (-494, -181, 38.78), (-491, -181, 38.83), (-485, -184, 40.07), (-488, -187, 38.56),
+    (-485, -187, 38.68), (-491, -190, 38.59), (-488, -190, 38.32), (-485, -190, 38.38),
+])
+SPUR = Polygon([(-542.0, -168.7), (-540.0, -150.0), (-534.0, -132.0), (-522.0, -121.0), (-505.0, -114.0), (-490.0, -114.0),
+                (-478.0, -119.0), (-468.0, -127.0), (-460.0, -138.0), (-462.0, -152.0), (-470.0, -160.0), (-476.0, -170.0),
+                (-480.0, -180.0), (-482.0, -193.2)])          # (its south side: the diagonal through 학군단's west and east corners)
+SPUR_SIGMA, SPUR_PRIOR, SPUR_RING = 4.5, 0.1, 8.0
+
+
+def spur(Hn, X, Y, FIXED, hall, fill):
+    """The spur north of 학군단 on SPUR_PTS (the hill's GRID and ring there included).  hall: 학군단's outline (its own
+    nodes and 0.5 m round them stay).  FIXED nodes stay (pass the field's pad as free).  Returns the nodes set and a
+    summary"""
+    H0 = Hn.copy()
+    step = float(X[0, 1] - X[0, 0])
+    i0, j0 = float(X[0, 0]), float(Y[0, 0])
+
+    def g0(x, y):
+        return float(ndimage.map_coordinates(H0, [[(y - j0) / step], [(x - i0) / step]], order=1, mode='nearest')[0])
+    cx = np.array([p[0] for p in SPUR_PTS]); cy = np.array([p[1] for p in SPUR_PTS])
+    cd = np.array([p[2] - g0(p[0], p[1]) for p in SPUR_PTS])
+    keep = shapely.contains_xy(hall.buffer(0.5), X, Y)
+    m = shapely.contains_xy(SPUR, X, Y) & ~FIXED & ~keep
+    xs, ys = X[m], Y[m]
+    w = np.exp(-((xs[:, None] - cx[None]) ** 2 + (ys[:, None] - cy[None]) ** 2) / (2 * SPUR_SIGMA * SPUR_SIGMA))
+    Hn[m] = H0[m] + (w * cd[None]).sum(1) / (w.sum(1) + SPUR_PRIOR)
+    free = shapely.contains_xy(SPUR.buffer(SPUR_RING), X, Y) & ~m & ~FIXED & ~keep
+    if free.any():
+        fill(free)
+        Hn[free] = np.maximum(Hn[free], H0[free])      # (the ring only rises to meet the spur: nothing round it read lower)
+    d = Hn - H0
+    return m | free, dict(nodes=int(m.sum()), eased=int(free.sum()), pts=len(SPUR_PTS),
+                          moved=(int((np.abs(d) > 0.05).sum()), round(float(d.min()), 1), round(float(d.max()), 1)))
 
 
 def bare():

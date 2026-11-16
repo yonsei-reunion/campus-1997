@@ -123,6 +123,49 @@ VALLEY_BENCH = Polygon([(-314.0, 54.0), (-313.5, 64.0), (-313.5, 104.0), (-310.5
                         (-301.5, 60.0), (-304.5, 53.0)])
 VALLEY_BENCH_Z = [(60.0, 52.18), (74.0, 52.39), (90.0, 52.04), (106.0, 51.92), (122.0, 51.76), (136.0, 51.81)]
 VALLEY_BOX = (-390.0, -260.0, 40.0, 250.0)
+# The pit at the yard's south end (reference/고증/4.12 「골짜기 공사 마당의 남쪽 끝과 북쪽 바닥」): the 1997 scans (26/16 ·
+# 26/15, windows 1.5 and 2.5 m agreeing, every 2 m) have its floor at 45.05 m (x -342 .. -316, y 57 .. 69: 70 points,
+# 10 - 90 % 44.7 .. 45.7) and 44.55 m in its north-west arm (x -342 .. -330, y 70 .. 78: 32 points), cut 7 m under 과학관's
+# north road (52.2 m at y 50, the floor at y 56) and under the bench east of it (51.9 m from x -313), 2.5 m under the
+# yard's slab north of it (47.5 m); west of it a terrace at 45.6 m (x -352 .. -342, y 68 .. 90) and higher ground south
+# of that (48.5 m).  In December 1996 the same place was the valley's natural slope at 51 - 52 m.  VALLEY_PIT_PTS: those
+# points every 4 m (+0.3, as VALLEY_PTS); VALLEY_PIT: the floor's two parts, their nodes on its level (the grid's cells
+# round them make the walls)
+VALLEY_PIT_PTS = datum.up3([
+    (-352, 78, 45.78), (-348, 78, 45.94), (-344, 78, 46.00), (-340, 78, 44.58), (-336, 78, 45.07), (-324, 78, 47.91),
+    (-320, 78, 47.85), (-316, 78, 47.90), (-352, 74, 46.11), (-348, 74, 45.89), (-344, 74, 45.89), (-340, 74, 44.72),
+    (-336, 74, 44.71), (-332, 74, 45.07), (-324, 74, 47.82), (-320, 74, 47.82), (-316, 74, 47.83), (-352, 70, 46.00),
+    (-348, 70, 45.92), (-344, 70, 45.85), (-340, 70, 44.90), (-336, 70, 44.76), (-332, 70, 46.04), (-320, 70, 47.92),
+    (-316, 70, 47.89), (-340, 66, 45.10), (-336, 66, 45.14), (-332, 66, 45.60), (-328, 66, 45.57), (-320, 66, 45.32),
+    (-316, 66, 45.35), (-348, 62, 48.57), (-340, 62, 45.03), (-336, 62, 45.06), (-332, 62, 45.27), (-328, 62, 45.57),
+    (-324, 62, 45.43), (-320, 62, 45.29), (-316, 62, 45.38), (-352, 58, 49.11), (-348, 58, 48.75), (-344, 58, 48.51),
+    (-336, 58, 45.79), (-332, 58, 45.84), (-328, 58, 45.57), (-324, 58, 45.28), (-320, 58, 45.52), (-352, 54, 49.45),
+    (-348, 54, 49.00), (-344, 54, 48.60),
+])
+VALLEY_PIT = [(Polygon([(-343.0, 56.0), (-315.5, 56.0), (-315.5, 69.5), (-343.0, 69.5)]), 45.35),
+              (Polygon([(-343.0, 69.5), (-329.0, 69.5), (-329.0, 78.5), (-343.0, 78.5)]), 44.85)]
+# Between the yard's north end and the floor north of it (y 154 .. 202) the 1997 scans see crowns; the leaf-off ones of
+# December 1996 (26/16 · 26/15) see the forest floor: VALLEY_NORTH_PTS, their points (two windows within 0.6 m, crowns
+# more than 1.5 m over their neighbours' dropped, every 6 m, +0.3).  Where the 1997 and 1998 frames see the ground too
+# they read 0.5 m higher (1997, 50 points: crowns' edges) and 0.2 m lower (1998, 85).  East of x -318 (a row of dark
+# crowns in 1996) none is kept north of y 160
+VALLEY_NORTH_PTS = datum.up3([
+    (-358, 202, 40.36), (-352, 202, 41.08), (-346, 202, 41.80), (-340, 202, 42.85), (-334, 202, 43.32), (-328, 202, 44.13),
+    (-322, 202, 44.94), (-352, 196, 40.61), (-346, 196, 41.39), (-340, 196, 42.55), (-334, 196, 43.66), (-328, 196, 44.50),
+    (-322, 196, 45.25), (-352, 190, 40.22), (-340, 190, 42.44), (-334, 190, 43.58), (-328, 190, 44.36), (-322, 190, 45.28),
+    (-352, 184, 39.69), (-346, 184, 40.92), (-340, 184, 41.94), (-334, 184, 43.25), (-328, 184, 44.20), (-322, 184, 44.84),
+    (-352, 178, 39.27), (-346, 178, 40.41), (-334, 178, 42.35), (-328, 178, 43.86), (-322, 178, 44.51), (-346, 172, 39.52),
+    (-340, 172, 40.77), (-334, 172, 41.25), (-346, 166, 38.70), (-334, 166, 42.11), (-358, 154, 45.73), (-346, 154, 42.54),
+    (-322, 154, 47.69), (-316, 154, 47.94), (-310, 154, 48.42), (-304, 154, 48.85),
+    # (the track round the yard's north end, east side: 1996 · 1997 · 1998 within 0.8 m, their median)
+    (-304, 181, 47.2), (-304, 193, 48.3), (-304, 199, 49.2), (-304, 205, 49.1), (-304, 211, 47.95), (-301, 187, 49.5),
+    (-301, 199, 49.6), (-298, 184, 48.4), (-298, 193, 49.8), (-298, 196, 49.8),
+])
+# where the ground stays as it was round them (difference 0): west of the north floor (x -374, beyond the points), the
+# bank east of the track round the north end (x -288), and east of the bench by the pit (x -300, y 54 .. 78: the 1997
+# scans 55.0 - 55.8 m, the game's 55.3 m)
+VALLEY_KEEP = [(-374.0, y) for y in range(150, 216, 5)] + [(-288.0, y) for y in range(150, 231, 5)] + \
+    [(-300.0, y) for y in range(54, 79, 4)]
 
 
 def _bilinear(H, x0, step):
@@ -141,16 +184,10 @@ def valley(Hn, X, Y, FIXED, halls, half=800.0, step=5.0, sigma=6.0, prior=0.05):
     H0 = Hn.copy()
     g0 = _bilinear(H0, -half, step)
     cx, cy, cd = [], [], []
-    for x, y, z in VALLEY_PTS:
+    for x, y, z in VALLEY_PTS + VALLEY_PIT_PTS + VALLEY_NORTH_PTS:
         cx.append(x); cy.append(y); cd.append(z - float(g0(x, y)))
-    # between the yard's north end and the floor north of it (y 154 .. 196) the photos see only crowns: their difference
-    # from the game's ground carried across the gap, from the one row to the other (the survey's 2024 spot in it,
-    # (-313.2, 181.2) 46.31 m, is 7.3 m under the game: more than this)
-    dzs = np.mean([d for (x, y, _), d in zip(VALLEY_PTS, cd) if 148 <= y <= 154])
-    dzn = np.mean([d for (x, y, _), d in zip(VALLEY_PTS, cd) if 196 <= y <= 202])
-    for y in np.arange(160.0, 192.0, 6.0):
-        for x in np.arange(-342.0, -305.0, 6.0):
-            cx.append(x); cy.append(y); cd.append(dzs + (dzn - dzs) * (y - 154.0) / 42.0)
+    for x, y in VALLEY_KEEP:
+        cx.append(x); cy.append(y); cd.append(0.0)
     for x in np.arange(-356.0, -280.0, 4.0):           # (과학관's north road and the ground by it: as it is)
         for y in (40.0, 44.0, 48.0):
             cx.append(x); cy.append(y); cd.append(0.0)
@@ -171,8 +208,15 @@ def valley(Hn, X, Y, FIXED, halls, half=800.0, step=5.0, sigma=6.0, prior=0.05):
     bench = shapely.contains_xy(VALLEY_BENCH, X, Y) & ~FIXED
     by, bz = zip(*VALLEY_BENCH_Z)
     Hn[bench] = np.interp(Y[bench], by, bz) + datum.tilt(X[bench], Y[bench])
+    # the pit's floor at the yard's south end: its nodes on its level
+    pit = np.zeros(X.shape, bool)
+    for poly, z in VALLEY_PIT:
+        p = shapely.contains_xy(poly, X, Y) & ~FIXED
+        Hn[p] = z + datum.tilt(X[p], Y[p])
+        pit |= p
     moved = np.abs(Hn - H0)
-    return dict(nodes=int((moved > 0.05).sum()), most=float(moved.max()), pts=len(VALLEY_PTS), bench=int(bench.sum()))
+    return dict(nodes=int((moved > 0.05).sum()), most=float(moved.max()), pts=len(VALLEY_PTS) + len(VALLEY_PIT_PTS) + len(VALLEY_NORTH_PTS),
+                bench=int(bench.sum()), pit=int(pit.sum()))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -247,8 +291,18 @@ def eagle_yard(Hn, X, Y, FIXED, halls, fill):
 #   under the trees did between those is not known (a smooth fill from the site to the road would put that spot 1.9 m
 #   low): SITE_STRIP takes the ridge down to the spot's level, top, and leaves its sides as they were (between the
 #   hoarding and the road's bed, gate_town's carriageway and 2.5 m)
-SITE_BAND = dict(u=(-96.0, -80.5), v=(18.0, 30.0, 80.0), z=28.95)
-SITE_STRIP = dict(u=(-80.0, 52.0), v=(-45.0, 6.0), top=29.84)
+# The leaf-off scans of December 1996 (26/16 · 26/17 · 26/15: reference/고증/4.4 「서쪽 가림막 밖의 띠」 · 「남쪽 가의 땅」):
+# - the band north of v 30 on the same level as in July (1996 - 1997: +0.1 .. +0.25 m), and its south end, which the
+#   1997 pair does not reach, rising to the site's south-west corner: v 25 29.0, v 20 29.4, v 15 - 5 29.9, v 0 30.1 m
+#   (8 - 10 points every 5 m of v, u -95 .. -83).  SITE_BAND z_v: that profile, (v, 해발)
+# - under the row of trees south of the site (then inside the hoarding, which stood at the pavement's north edge) a
+#   terrace 0.85 - 1.15 m over the pavement, falling east with it: SITE_STRIP top_u, the ridge's top along u where the
+#   1996 pair reads that ground (5 - 7 points every 8 m of u, v -13 .. -4); east of u -24 (the hoarding's top, no ground
+#   read) the 2024 survey's spot height as before
+SITE_BAND = dict(u=(-96.0, -80.5), v=(-4.0, 0.0, 80.0), z=28.95,
+                 z_v=[(0.0, 30.1), (5.0, 29.95), (10.0, 29.9), (15.0, 29.9), (20.0, 29.4), (25.0, 29.0), (30.0, 28.9), (40.0, 28.95)])
+SITE_STRIP = dict(u=(-80.0, 52.0), v=(-45.0, 6.0), top=29.84,
+                  top_u=[(-88.0, 30.25), (-80.0, 29.8), (-56.0, 29.65), (-48.0, 29.45), (-40.0, 29.1), (-32.0, 29.2), (-24.0, 29.84)])
 
 
 def site_band(site_o, site_rot):
@@ -268,13 +322,15 @@ def site_edges(Hn, X, Y, FIXED, site_o, site_rot, road, half_w):
     V = -(X - site_o[0]) * s + (Y - site_o[1]) * c
     (u0, u1), (va, vb, vc) = SITE_BAND['u'], SITE_BAND['v']
     w = ((U >= u0) & (U <= u1) & (V >= va) & (V <= vc) & ~FIXED) * _smooth((V - va) / (vb - va))
-    Hn[:] = Hn * (1 - w) + (SITE_BAND['z'] + datum.tilt(X, Y)) * w
+    zv, zz = zip(*SITE_BAND['z_v'])
+    Hn[:] = Hn * (1 - w) + (np.interp(V, zv, zz) + datum.tilt(X, Y)) * w
     band = w > 0.999
     (su0, su1), (sv0, sv1) = SITE_STRIP['u'], SITE_STRIP['v']
     box = (U >= su0) & (U <= su1) & (V >= sv0) & (V < sv1)
     d = np.full(X.shape, 1e9)
     d[box] = shapely.distance(road.ls, shapely.points(X[box], Y[box]))
-    top = SITE_STRIP['top'] + datum.tilt(X, Y)
+    tu, tz = zip(*SITE_STRIP['top_u'])
+    top = np.interp(U, tu, tz) + datum.tilt(X, Y)
     strip = box & (d > half_w + 2.5) & ~FIXED & ~band & (Hn > top)
     Hn[strip] = top[strip]
     moved = Hn - H0

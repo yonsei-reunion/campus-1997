@@ -6449,9 +6449,17 @@ _wdz_d[_wdz_b] = shapely.distance(FIELD_PAD, shapely.points(X[_wdz_b], Y[_wdz_b]
 _wdz_r = np.clip(1.0 - _wdz_d / 6.0, 0, 1) * (~FIXED) * (~_wg_keep)
 Hn[_fm | _fpd] += gate_town.WEST_DZ
 Hn += gate_town.WEST_DZ * _wdz_r * _wdz_r * (3 - 2 * _wdz_r)
+# The oval itself level above sea level at 33.20 m (reference/고증/4.12 「바닥의 절대 높이와 물매」): four frame pairs of
+# three flights (1996-12 26/16 · 26/15, 26/16 · 26/17, 26/15 · 26/17; 1997-07 26/16 · 26/15; 1998-10 26/16 · 26/17) put
+# its dirt on one level, 33.16 - 33.35 m in the middle, east -0.06 .. +0.05 and north +0.08 .. +0.30 m in 100 m, and
+# the survey's spot on it (-396.9, -182.1) reads 33.17 m.  Laid flat on the working datum it stood 33.40 m in the
+# middle and fell 0.58 % north-east above sea level: here it goes on FIELD_Z97 above sea level, node by node (on the
+# working datum it tilts by T; the banks round it are smoothed to it below)
+FIELD_Z97 = 33.20
+Hn[_fm] = FIELD_Z97 + datum.tilt(X[_fm], Y[_fm])
 STATUES['pitch']['h'] = round(ground_h(*STATUES['pitch']['pos']), 2)
-print('대운동장 · 학군단 바닥: %+.2f m (%d nodes, %d round the pad), the field %.2f m' % (
-    gate_town.WEST_DZ, int((_fm | _fpd).sum()), int((_wdz_r > 0).sum()), FIELD['z'] + gate_town.WEST_DZ))
+print('대운동장 · 학군단 바닥: %+.2f m (%d nodes, %d round the pad), the field %.2f m above sea level' % (
+    gate_town.WEST_DZ, int((_fm | _fpd).sum()), int((_wdz_r > 0).sum()), FIELD_Z97))
 WEST_FIELD_SW = west_ground.field_sw(Hn, X, Y, FIXED, TOWN_PLAN['road'], gate_town.HW, gate_town.SSR_W_DATUM, FIELD_PATCH,
                                      shapely.contains_xy(FIELD_POLY.buffer(2.0), X, Y), FIELD_PAD, Polygon([xy(p) for p in ways[west_ground.BASEBALL['way']]['geometry']]).buffer(0),
                                      _wg_keep, harmonic_fill)
@@ -6961,8 +6969,14 @@ print('서문 길: %(nodes)d nodes moved (most %(most).1f m), %(road)d on the ro
 # (its nodes stay), eased into the ground round it; 연희동's houses by 서문 keep the ground at their feet
 _fh_halls = [Polygon(h_[4]).buffer(0) for h_ in seomun.HOUSES] + [Polygon(seomun.SHED)]
 _fh_took, FIELDHILL97 = fieldhill97.grade(Hn, X, Y, FIXED, _fh_halls, harmonic_fill)
-FIXED[_fh_took] = True
 print('대운동장 북쪽 언덕:', FIELDHILL97)
+# the spur between the hill and 학군단 on the leaf-off scans of December 1996 (tools/fieldhill97.py spur, reference/
+# 고증/4.12 「학군단 북쪽 비탈」), the hill's south-west ring and 학군단's pad north of its diagonal with it: late, as above
+_fs_hall = Polygon([(-523.9, -176.1), (-514.7, -166.8), (-493.5, -188.5), (-507.0, -201.0)])
+_fs_took, FIELDSPUR97 = fieldhill97.spur(Hn, X, Y, FIXED & ~(_fpd & shapely.contains_xy(fieldhill97.SPUR, X, Y)), _fs_hall,
+                                         harmonic_fill)
+FIXED[_fh_took | _fs_took] = True
+print('학군단 북쪽 비탈:', FIELDSPUR97)
 # 과학관 남쪽 공터의 동쪽 반 · 체육교육관 북쪽 끝 앞 (tools/gymnorth97.py, reference/고증/3.22 「과학관 남쪽 공터의 높이」 ·
 # 3.10 「마당의 둑과 차 길」; #189), late: the planting has read the ground as it was.  The drive round the court (south
 # of its north arm), the garden south-east of it and the yard before 체육교육관's north wall on the 1997 scans' open
@@ -6980,7 +6994,7 @@ WEST_VALLEY = west_ground.valley(Hn, X, Y, FIXED, [Polygon(b_['footprint']).buff
 _wg_box = Polygon([(-230, -260), (-60, -260), (-60, -100), (-230, -100)])
 WEST_YARD = west_ground.eagle_yard(Hn, X, Y, FIXED, [(Polygon(b_['footprint']).buffer(0), b_['base']) for b_ in buildings
                                                      if Polygon(b_['footprint']).intersects(_wg_box)], harmonic_fill)
-print('과학관 북서쪽 골짜기: %(nodes)d nodes moved (most %(most).1f m) on %(pts)d points, the east bench %(bench)d' % WEST_VALLEY)
+print('과학관 북서쪽 골짜기: %(nodes)d nodes moved (most %(most).1f m) on %(pts)d points, the east bench %(bench)d, the pit %(pit)d' % WEST_VALLEY)
 print('독수리상 서쪽 마당: lot %(lot)d nodes, smoothed %(ring)d; %(nodes)d moved, most %(most).1f m' % WEST_YARD)
 print('무악학사 길: %d nodes graded (%d level), most moved %.1f m; the road %.1f m at s 10, %.1f m at the crest' % (
     _mk_n, int(_mk_took.sum()), _mk_dz, float(np.interp(10.0, MUAK['s'], MUAK['z'])), float(MUAK['z'].max())))
