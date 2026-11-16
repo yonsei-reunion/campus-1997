@@ -243,6 +243,24 @@ def west_clear(items, kind, pad=0.4):
     return out
 
 
+# 공중전화 부스 셋(build_campus.py: OSM 서쪽 면 가운데 3 m 밖)은 덱의 난간 줄 · 계단 머리에 걸려, 목록 제자리에서 계단 남쪽 덱
+# 앞벽 곁 앞마당으로(앞이 백양로 쪽인 것은 그대로)
+PAYPHONES = [(46.6, -1.4), (45.4, -1.4), (44.2, -1.4)]
+
+
+def west_payphones(props):
+    """덱 · 계단 둘레(1 m 안)의 'payphone' 을 차례대로 PAYPHONES 로. 돌려주는 것: [(전, 후)]"""
+    zone = deck_poly().buffer(1.0)
+    free = [uv97(*q) for q in PAYPHONES]
+    out = []
+    for p_ in props:
+        if p_[0] == 'payphone' and free and zone.contains(Point(p_[1], p_[2])):
+            q = free.pop(0)
+            out.append(((p_[1], p_[2]), (round(q[0], 2), round(q[1], 2))))
+            p_[1], p_[2] = round(q[0], 2), round(q[1], 2)
+    return out
+
+
 def landmark():
     """blender/landmarks.py union 이 쓰는 것(campus.json buildings[] 'union97'): 높이는 바닥에서의 m, 자리는 캠퍼스 (x, y)"""
     hw = STAIR['w'] / 2

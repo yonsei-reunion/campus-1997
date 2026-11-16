@@ -9538,6 +9538,7 @@ print('학생회관 남쪽 찻길: trees, shrubs, props moved off the road', [le
 UNION97_WEST_CLEAR = (union97.west_clear(trees, 'tree'), union97.west_clear(shrubs, 'shrub'), union97.west_clear(props, 'prop'))
 print('학생회관 서쪽 덱 · 계단 · 드는 길: trees moved, shrubs, props out', [len(m_) for m_ in UNION97_WEST_CLEAR],
       UNION97_WEST_CLEAR[0], [s_[:3] for s_ in UNION97_WEST_CLEAR[1]], [s_[:3] for s_ in UNION97_WEST_CLEAR[2]])
+print('학생회관 공중전화 부스: off the deck and the flight onto the yard', union97.west_payphones(props))
 # (과학관 북쪽 길 · 연구관 서쪽 마당 (scinorth97): what the planting put on the 1997 asphalt steps off it first, in its
 # place in the list, to its edge away from the halls)
 _sn_n = scinorth97.move_off(trees, shrubs, props, [Polygon(LATE_FOOTPRINT_1997[k_]) for k_ in (scinorth97.SCI_ID, scinorth97.JK_ID)] +

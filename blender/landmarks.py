@@ -2,7 +2,7 @@
 world coordinates (local frames are applied through MeshBuilder.xf)."""
 import math, random
 from mathutils import Vector, Matrix
-from common import MeshBuilder, ground, ground_top, min_area_rect, local_frame, offset_poly, poly_area, CAMPUS, _odz
+from common import MeshBuilder, ground, ground_top, min_area_rect, local_frame, offset_poly, poly_area, CAMPUS, _odz, DATUM
 import generic
 
 rnd = random.Random(97)
@@ -421,10 +421,17 @@ def union_deck(mb, b, L, W, u97):
     # the flight down to the yard (the 2009 photo: seventeen or eighteen low granite risers between white cheeks)
     stair_flight(mb, xc, yd, sw, zf, landing=u97['stair']['landing'], tread=u97['stair']['tread'], flare=0.0, cheek=cheek,
                  cheek_mat='stone_white', rail=False, gfn=gfn, risers=u97['stair']['risers'], mat='stone_step')
-    # the deck's walked floor, from the parapet to the glazing under the arcade (the flight's landing face meets it)
-    W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
+    # the deck's walked floor, from the parapet to the glazing under the arcade (the flight's landing face meets it), in
+    # 3 m strips: the walk faces go down to sea level by the datum at their own place (common.to_sea), the hall by its
+    # one value, and by 학생회관 별관's north end the two part by up to 0.2 m: each corner is lifted by the difference
+    def W_(lx, ly, lz):
+        w = mb.xf @ Vector((lx, ly, lz))
+        return (w.x, w.y, w.z + float(DATUM.at(w.x, w.y)) - b.get('tilt', 0.0))
     yg = -W / 2 + 2.0 - 0.05
-    WALK_FACES.append([W_(xn, yd + t, zf), W_(xs, yd + t, zf), W_(xs, yg, zf), W_(xn, yg, zf)])
+    nseg = max(1, int(math.ceil((xs - xn) / 3.0)))
+    for k in range(nseg):
+        xa_, xb_ = xn + (xs - xn) * k / nseg, xn + (xs - xn) * (k + 1) / nseg
+        WALK_FACES.append([W_(xa_, yd + t, zf), W_(xb_, yd + t, zf), W_(xb_, yg, zf), W_(xa_, yg, zf)])
     WALK_FACES.append([W_(gap0 + cheek, yd - 0.2, zf), W_(gap1 - cheek, yd - 0.2, zf), W_(gap1 - cheek, yd + t + 0.2, zf),
                        W_(gap0 + cheek, yd + t + 0.2, zf)])
 
