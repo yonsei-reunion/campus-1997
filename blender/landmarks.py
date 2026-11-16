@@ -2851,7 +2851,10 @@ def gyoyuk():
     plinth, fh = 0.6, 3.4
     ends = {1: [(2.4, 4.4, 2, 0), (2.4, 4.4, 2, 1), (2.4, 4.4, 2, 2), (7.6, 9.6, 2, 2), (13.1, 15.1, 2, 2)],
             3: [(Le_ + a, Le_ + b_, 2, f_) for Le_ in (8.95,) for a, b_ in ((-5.4, -3.2), (3.2, 5.4)) for f_ in range(3)]}
-    return stone_hall('gyoyuk', b, front, groups, ivy=0.9, fh=fh, wall='stone_rubble_gray', pitch=0.72, floors=3,
+    # (the roof's pitch: on the 1997 and the leafless 1996 scans, west against east frames, the eaves 65.5 m both sides
+    # (the wall top, floor + 11.6 m) and the ridge 68.9 - 69.2 m along its length: 3.6 m over the eaves on a 17.9 m
+    # span, 0.41.  It was 0.72, the ridge 2.8 m over the scans': reference/고증/3.5.1 「교육관 지붕」)
+    return stone_hall('gyoyuk', b, front, groups, ivy=0.9, fh=fh, wall='stone_rubble_gray', pitch=0.41, floors=3,
                       plinth=plinth, basement=False, z0=GYOYUK_FLOOR, end_wins=ends,
                       porch=dict(s0=L / 2 - 2.2, s1=L / 2 + 2.2, proj=1.3, top=plinth + 2 * fh + 0.35, hump=False,
                                  wall='stone_trim', win=(1.6, [1.0, 1.0])),
