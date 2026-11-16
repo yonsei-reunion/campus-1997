@@ -392,6 +392,10 @@ KUMKANG_TOP = (-123.0, -920.0, 33.0)            # (x, y, 해발 of its parapet's
 KUMKANG_FRONT = [(-112.0, -927.6), (-121.0, -930.3)]
 HONGIK_FLOORS = 6
 HONGIK_TOP = (-83.0, -909.3, 37.45)             # (x, y, 해발 of its parapet's top)
+# its back (east) wall (2026-11-17): the leaf-off 1996 26/17, which does not see that wall, has the roof end at x -74.2
+# .. -75.4 at its measured top; 1999's 26/17 · 27/17 -73.4 .. -74.0; the 2005 survey's outline -74.0 .. -75.9.  The row
+# box ended at -77.6 (OSM 356219103, 11 m deep).  Its front stays the row's (고증 4.10.1 「집마다 다른 앞벽」)
+HONGIK_BACK_X = -74.5
 TOWER97 = dict(outline=[(-68.9, -908.5), (-54.8, -919.1), (-61.3, -926.9), (-62.1, -926.4), (-67.9, -933.5), (-70.9, -931.3),
                         (-85.0, -921.2), (-85.5, -918.9), (-85.0, -916.8), (-84.0, -914.8), (-81.5, -913.7), (-79.4, -913.7),
                         (-77.2, -914.9), (-75.4, -916.4)],
@@ -984,7 +988,10 @@ def layout(geo, town, extras, ground, taken_z):
     kk_b, hk_b = fronts[-1][-1], fronts[1][-1]
     kk_pg = Polygon(KUMKANG_1997).difference(street.buffer(0.3))
     kk_pg = shapely.geometry.polygon.orient(max(getattr(kk_pg, 'geoms', [kk_pg]), key=lambda g_: g_.area).simplify(0.1), 1.0)
-    hk_pg = shapely.geometry.polygon.orient(_box(hk_b), 1.0)
+    # (홍익문고: its row box, the back stretched east along its axis to HONGIK_BACK_X; the front stays the row's)
+    ext_ = HONGIK_BACK_X - (hk_b[0] + hk_b[2] / 2 * math.cos(hk_b[4]))
+    hk_box = [hk_b[0] + ext_ / 2 * math.cos(hk_b[4]), hk_b[1] + ext_ / 2 * math.sin(hk_b[4]), hk_b[2] + ext_, hk_b[3], hk_b[4]]
+    hk_pg = shapely.geometry.polygon.orient(_box(hk_box), 1.0)
     tw_pg = shapely.geometry.polygon.orient(Polygon(TOWER97['outline']), 1.0)
     idx_of = lambda b: next(i for i, x in enumerate(blocks) if x is b)
 
