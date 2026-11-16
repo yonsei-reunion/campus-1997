@@ -9,7 +9,7 @@ Outputs (web/public/assets/textures):
   banner_halls.png                the cloth banners on 백주년기념관's museum porch and over 대우관's door
 Run: .venv/bin/python tools/make_textures.py
 """
-import math, os, random, sys
+import json, math, os, random, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from scipy import ndimage
@@ -1079,6 +1079,157 @@ def hall_banners():
 
 
 hall_banners()
+
+
+# sign_mouth.png (RGBA, 1024 x 1024, drawn at 2048) and data/sign_mouth_uv.json (each piece's rectangle as u0, v0, u1, v1, v up):
+# the boards of 연세로's mouth and 그랜드마트 as the 1995 · 1996 photos show them (고증 4.10.7, blender/town.py _kumkang,
+# _hongik, _grand).  금강제화 (52206 · 52006): the white band over the ground floor, a maroon arch with 「금강제화」 in
+# white and 「Kumkang」 in red; the corner's red-and-white upright; the clinics' and academies' boards up the floors.
+# 홍익문고 (52004 · 52006): the white board along the top of the south face, a dark green ring with its mark and
+# 「홍익문고」 in red; the black upright on the west face.  그랜드마트 (52135 · 52119 · 52095): the red mark and 「그랜드마트
+# 신촌점」 straight on the tiles (transparent round them), the sale banners down the round face, the poster, the
+# fascia over the shop windows.  The words of the banners and boards are what the photos let one read; the poster's
+# picture is not drawn, only its words
+def mouth_signs():
+    if ONLY and 'sign_mouth' not in ONLY:
+        return
+    fb = '/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc'
+    fbo = '/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc'
+
+    def fnt(size, path=fb):
+        for i in (1, 0, 2, 3):
+            try:
+                return ImageFont.truetype(path, size, index=i)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+
+    W = 2048
+    img = Image.new('RGBA', (W, W), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    uv = {}
+
+    def piece(name, x0, y0, w, h):
+        uv[name] = [round(x0 / W, 5), round(1 - (y0 + h) / W, 5), round((x0 + w) / W, 5), round(1 - y0 / W, 5)]
+        return x0, y0, w, h
+
+    def fit(txt, size, maxw, path=fb):
+        while True:
+            f = fnt(size, path)
+            if d.textlength(txt, font=f) <= maxw or size < 14:
+                return f
+            size -= 2
+
+    def text_c(cx, cy, txt, size, maxw, fill, path=fb, spacing=0):
+        f = fit(txt, size, maxw, path)
+        if spacing:
+            ws = [d.textlength(ch, font=f) for ch in txt]
+            tot = sum(ws) + spacing * (len(txt) - 1)
+            x = cx - tot / 2
+            for ch, w_ in zip(txt, ws):
+                d.text((x, cy), ch, font=f, fill=fill, anchor='lm')
+                x += w_ + spacing
+            return
+        w_ = d.textlength(txt, font=f)
+        d.text((cx - w_ / 2, cy), txt, font=f, fill=fill, anchor='lm')
+
+    def vtext(cx, y0, y1, txt, size, fill, path=fb):
+        f = fnt(size, path)
+        step = (y1 - y0) / len(txt)
+        for k, ch in enumerate(txt):
+            w_ = d.textlength(ch, font=f)
+            d.text((cx - w_ / 2, y0 + step * (k + 0.5)), ch, font=f, fill=fill, anchor='lm')
+
+    white, maroon, kred = (246, 245, 240, 255), (112, 26, 26, 255), (196, 40, 36, 255)
+    # 금강제화's band over the ground floor, the south face (16 : 1): Kumkang | the arch | Kumkang
+    x0, y0, w, h = piece('kk_band', 0, 0, 2048, 128)
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=white)
+    d.line([(x0, y0 + h - 3), (x0 + w, y0 + h - 3)], fill=(200, 196, 188, 255), width=5)
+    d.chord([x0 + 470, y0 + 14, x0 + 1290, y0 + 14 + 2 * (h - 14)], 180, 360, fill=maroon)     # (a low arch on the band's foot)
+    text_c(x0 + 880, y0 + 78, '금강제화', 74, 520, white, spacing=26)
+    text_c(x0 + 1640, y0 + 66, 'Kumkang', 70, 420, kred, path=fbo)
+    text_c(x0 + 230, y0 + 66, 'Kumkang', 70, 420, kred, path=fbo)
+    # the east face's (8 : 1)
+    x0, y0, w, h = piece('kk_band_e', 0, 128, 1024, 128)
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=white)
+    d.line([(x0, y0 + h - 3), (x0 + w, y0 + h - 3)], fill=(200, 196, 188, 255), width=5)
+    text_c(x0 + 512, y0 + 66, 'Kumkang', 70, 600, kred, path=fbo)
+    # the corner's upright (1 : 5)
+    x0, y0, w, h = piece('kk_up', 1024, 128, 128, 640)
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=white)
+    d.rectangle([x0 + 10, y0 + 14, x0 + w - 11, y0 + h - 15], outline=kred, width=6)
+    d.ellipse([x0 + 22, y0 + 40, x0 + w - 22, y0 + 120], fill=kred)
+    vtext(x0 + w / 2, y0 + 150, y0 + h - 40, '금강제화', 74, kred)
+    # the boards up the floors (4 : 1 and 5 : 1): [words, ground, ink]
+    boards = [('포켓볼전용', (200, 34, 30, 255), white), ('법무사', (22, 30, 70, 255), white), ('신진 바둑', (236, 234, 228, 255), (90, 90, 96, 255)),
+              ('주인일 내과', (244, 242, 236, 255), (190, 30, 36, 255)), ('박비뇨기과 · 피부과', (28, 34, 82, 255), white),
+              ('이비인후과의원', (244, 242, 236, 255), (196, 30, 40, 255)), ('신촌치과의원', (246, 244, 238, 255), (190, 28, 34, 255)),
+              ('영어학원', (30, 70, 140, 255), white)]
+    for i, (txt, bg, fg) in enumerate(boards):
+        x0, y0, w, h = piece('kk_b%d' % i, 1152 + (i % 2) * 448, 128 + (i // 2) * 112, 440, 104)
+        d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=bg)
+        d.rectangle([x0 + 4, y0 + 4, x0 + w - 5, y0 + h - 5], outline=tuple(int(c * 0.8) for c in fg[:3]) + (255,), width=3)
+        text_c(x0 + w / 2, y0 + h / 2 + 2, txt, 64, w - 40, fg)
+    # 홍익문고's board along the top of the south face (4.2 : 1): the ring with its mark, 「홍익문고」 in red
+    x0, y0, w, h = piece('hk_top', 0, 256, 1024, 244)
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(242, 240, 234, 255))
+    gr = (30, 74, 50, 255)
+    cx_, cy_, r_ = x0 + 130, y0 + h / 2, 86
+    d.ellipse([cx_ - r_, cy_ - r_, cx_ + r_, cy_ + r_], outline=gr, width=13)
+    d.rectangle([cx_ - 40, cy_ - 52, cx_ - 22, cy_ + 52], fill=gr)
+    d.rectangle([cx_ + 22, cy_ - 52, cx_ + 40, cy_ + 52], fill=gr)
+    d.rectangle([cx_ - 40, cy_ - 9, cx_ + 40, cy_ + 9], fill=gr)
+    d.line([(cx_ - 64, cy_ - 52), (cx_ + 64, cy_ - 52)], fill=gr, width=12)
+    d.line([(cx_ - 64, cy_ + 52), (cx_ + 64, cy_ + 52)], fill=gr, width=12)
+    text_c(x0 + 600, y0 + h / 2 + 4, '홍익문고', 150, 700, (200, 40, 34, 255), path=fbo, spacing=70)
+    # its upright on the west face (1 : 4.5), black with white words
+    x0, y0, w, h = piece('hk_up', 1024, 768, 112, 504)
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(20, 20, 22, 255))
+    vtext(x0 + w / 2, y0 + 20, y0 + h - 20, '홍익문고', 70, (240, 240, 236, 255))
+    # its ground floor's fascia on 연세로 (6 : 1)
+    x0, y0, w, h = piece('hk_shop', 0, 512, 768, 128)
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(22, 70, 150, 255))
+    text_c(x0 + w / 2, y0 + h / 2 + 2, '홍익문고  ·  서적 · 문구', 70, w - 60, (255, 255, 255, 255))
+    # 그랜드마트's mark and words on the tiles (transparent round them): the red square with its white sweep,
+    # 「그랜드마트」, 「신촌점」 under it
+    x0, y0, w, h = piece('gm_logo', 0, 1024, 1024, 330)
+    red = (204, 32, 40, 255)
+    d.rounded_rectangle([x0 + 20, y0 + 30, x0 + 190, y0 + 200], 22, fill=red)
+    d.polygon([(x0 + 52, y0 + 168), (x0 + 160, y0 + 60), (x0 + 176, y0 + 80), (x0 + 74, y0 + 182)], fill=(255, 255, 255, 255))
+    d.polygon([(x0 + 52, y0 + 110), (x0 + 110, y0 + 60), (x0 + 124, y0 + 76), (x0 + 70, y0 + 124)], fill=(255, 255, 255, 255))
+    text_c(x0 + 600, y0 + 118, '그랜드마트', 168, 780, red, spacing=8)
+    text_c(x0 + 600, y0 + 270, '신 촌 점', 96, 400, (176, 30, 36, 255))
+    # the banners down the round face (1 : 6.4)
+    banners = [('그랜드 파격가 총정리', (196, 30, 36, 255), (255, 255, 255, 255)),
+               ('여름인기상품 창고大공개', (246, 246, 244, 255), (30, 60, 150, 255)),
+               ('산지직송 가격파괴', (250, 248, 240, 255), (200, 30, 40, 255)),
+               ('가격파괴', (240, 196, 40, 255), (180, 24, 30, 255))]
+    for i, (txt, bg, fg) in enumerate(banners):
+        x0, y0, w, h = piece('gm_ban%d' % i, 1152 + i * 160, 768, 150, 960)
+        d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=bg)
+        d.rectangle([x0 + 8, y0 + 8, x0 + w - 9, y0 + h - 9], outline=fg, width=4)
+        chars = txt.replace(' ', '')
+        vtext(x0 + w / 2, y0 + 40, y0 + h - 40, chars, min(96, int((h - 80) / len(chars) * 0.9)), fg)
+    # the poster (1 : 1.35): its words only
+    x0, y0, w, h = piece('gm_poster', 0, 1400, 480, 648)
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(238, 236, 228, 255))
+    d.rectangle([x0, y0 + 430, x0 + w - 1, y0 + h - 1], fill=(250, 220, 60, 255))
+    d.ellipse([x0 + 70, y0 + 60, x0 + 410, y0 + 400], fill=(232, 200, 176, 255))
+    text_c(x0 + w / 2, y0 + 500, '가려워!', 110, w - 60, (210, 30, 40, 255))
+    text_c(x0 + w / 2, y0 + 600, '그랜드마트 신촌점', 48, w - 80, (40, 40, 60, 255))
+    # the fascia over the shop windows (10 : 1)
+    x0, y0, w, h = piece('gm_fascia', 512, 1760, 1024, 102)
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(34, 70, 56, 255))
+    text_c(x0 + w / 2, y0 + h / 2 + 2, 'GRAND MART   그랜드마트', 66, w - 80, (240, 240, 230, 255), path=fbo)
+    # (drawn at twice, kept at 1024 in a palette of 128 colours: about 80 KB)
+    img.resize((W // 2, W // 2), Image.LANCZOS).quantize(128, method=Image.FASTOCTREE).save(os.path.join(OUT, 'sign_mouth.png'), optimize=True)
+    with open(os.path.join(ROOT, 'data/sign_mouth_uv.json'), 'w') as fp:
+        json.dump(uv, fp, indent=1, ensure_ascii=False)
+        fp.write('\n')
+    print('sign_mouth')
+
+
+mouth_signs()
 
 if ONLY:
     raise SystemExit(0)

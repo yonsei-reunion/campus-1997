@@ -104,8 +104,9 @@ export class Street {
       const bb = root.geometry.boundingBox;
       this.cars.push({ root, lane, s, speed, v: speed, len: bb.max.x - bb.min.x, kind, x: 0, y: 0, dx: 1, dy: 0 });
     };
-    const path = (l) => { const p = new Path(l.pts, groundAt); p.stops = l.stops || []; return p; };
-    const lanes = (kind, junction) => T.lanes.filter((l) => l.kind === kind && !!l.stops === junction).map(path);
+    const path = (l) => { const p = new Path(l.pts, groundAt); p.stops = l.stops || []; p.rot = !!l.stops && !l.ss; return p; };
+    // (the junction's lanes keep an eye on one another; 성산로's (ss) only wait at their signal since 2026-11-16)
+    const lanes = (kind, junction) => T.lanes.filter((l) => l.kind === kind && (!!l.stops && !l.ss) === junction).map(path);
     const carLanes = lanes('car', false), busLanes = lanes('bus', false), rotLanes = lanes('car', true);
     const nCars = MOBILE ? 12 : 26, nBus = P.bus ? (MOBILE ? 3 : 5) : 0;
     for (let i = 0; i < nCars; i++) {
@@ -144,6 +145,7 @@ export class Street {
     });
     this.amber = T.signals?.amber ?? 3; this.red = T.signals?.red ?? 3;
     this.heads = T.heads ? new SignalHeads(scene, T.heads, groundAt) : null;
+    this.peds = T.peds?.length ? new PedHeads(scene, T.peds, groundAt) : null;
   }
   // the light a phase of a group shows now: 0 red, 1 amber, 2 green
   light(g, ph) {
@@ -156,6 +158,21 @@ export class Street {
       t -= span;
     }
     return 0;
+  }
+  // the walkers' light a crossing shows now (its group, the phases whose green lets them go, bits): 0 red, 2 green,
+  // 3 green blinking (its last 6 s). A run of such phases is one green, through the amber and all red between them
+  walk(g, mask) {
+    const G = this.groups[g];
+    if (!G) return 0;
+    const n = G.green.length, span = (k) => G.green[k] + this.amber + this.red;
+    let t = G.t % G.cyc, k = 0;
+    while (k < n - 1 && t >= span(k)) { t -= span(k); k++; }
+    if (!(mask >> k & 1)) return 0;
+    // (t: seconds into phase k; what is left: to the end of the last walking phase's green in the run from k on)
+    let left = G.green[k] - t, j = k;
+    for (let c = 1; c < n && (mask >> ((j + 1) % n) & 1); c++) { j = (j + 1) % n; left += this.amber + this.red + G.green[j]; }
+    if (left <= 0) return 0;
+    return left < 6 ? 3 : 2;
   }
   // camPos: the view (three coords); walker: {x, y} in the campus frame (cars stop short of them)
   update(dt, camPos, walker = null) {
@@ -187,7 +204,7 @@ export class Street {
           if (gap > -1 && gap < 14) target = Math.min(target, gap < 4 ? 0 : o.v * 0.92);
           continue;
         }
-        if (!c.lane.stops.length && !o.lane.stops.length) continue;      // (성산로's lanes keep apart)
+        if (!c.lane.rot && !o.lane.rot) continue;                         // (성산로's lanes keep apart)
         const rx = o.x - c.x, ry = o.y - c.y;
         const along = rx * c.dx + ry * c.dy;
         if (along < 0.5 || along > AHEAD + o.len) continue;
@@ -233,6 +250,106 @@ export class Street {
       if (camPos) c.root.visible = (p.x - camPos.x) ** 2 + (p.y + camPos.z) ** 2 < SEEN * SEEN;
     }
     this.heads?.update(this, camPos);
+    this.peds?.update(this, camPos);
+  }
+}
+
+// The walkers' signals at the crossings (campus.json town.peds: [x, y, the way the lamps face, group, phases]): a grey
+// pole with a pointed cap at each end of a zebra, on its side at 2.4 - 3.1 m a black box of two lamps under hoods, the
+// red standing figure over the green walking one (서울연구원 50377, 1995.10; 30197, 1996.10). The figures: drawn once on
+// a canvas, lit by each instance's colour
+const PED_ON = { r: new THREE.Color(1.0, 0.12, 0.06), g: new THREE.Color(0.2, 1.0, 0.62) };
+function figureTex(walking) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d');
+  x.fillStyle = '#080808';
+  x.fillRect(0, 0, 64, 64);
+  x.fillStyle = '#fff'; x.strokeStyle = '#fff'; x.lineCap = 'round'; x.lineWidth = 6;
+  x.beginPath(); x.arc(32, 13, 6, 0, Math.PI * 2); x.fill();          // (the head)
+  const L = (pts) => { x.beginPath(); x.moveTo(...pts[0]); for (const p of pts.slice(1)) x.lineTo(...p); x.stroke(); };
+  if (walking) {
+    L([[32, 22], [29, 40]]); L([[29, 40], [21, 56]]); L([[29, 40], [38, 49], [41, 57]]);
+    L([[31, 26], [22, 36]]); L([[31, 26], [40, 33]]);
+  } else {
+    x.lineWidth = 8; L([[32, 22], [32, 40]]); x.lineWidth = 6;
+    L([[29, 40], [28, 57]]); L([[35, 40], [36, 57]]); L([[28, 25], [24, 41]]); L([[36, 25], [40, 41]]);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+class PedHeads {
+  constructor(scene, peds, groundAt) {
+    const grey = new THREE.MeshStandardMaterial({ color: 0x8a8e92, roughness: 0.55, metalness: 0.35 });
+    const black = new THREE.MeshStandardMaterial({ color: 0x0c0c0d, roughness: 0.6 });
+    for (const m of [grey, black]) { pcss(m); globalPatch(m); }
+    this.peds = peds;
+    const poles = [], boxes = [];
+    this.meshes = {};
+    const lampGeo = new THREE.PlaneGeometry(0.25, 0.25);
+    for (const k of ['r', 'g']) {
+      const mat = new THREE.MeshBasicMaterial({ map: figureTex(k === 'g') });
+      this.meshes[k] = new THREE.InstancedMesh(lampGeo, mat, peds.length);
+      this.meshes[k].instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(peds.length * 3), 3);
+      this.meshes[k].frustumCulled = false;
+    }
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), v = new THREE.Vector3();
+    peds.forEach(([x, y, face], i) => {
+      const z = groundAt(x, y), fx = Math.cos(face), fy = Math.sin(face), rot = Math.atan2(fy, fx);   // (box x: out the face)
+      poles.push(new THREE.CylinderGeometry(0.06, 0.07, 3.3, 8).translate(x, z + 1.65, -y));
+      poles.push(new THREE.ConeGeometry(0.075, 0.22, 8).translate(x, z + 3.41, -y));
+      const hx = x + fx * 0.2, hy = y + fy * 0.2, hz = z + 2.75;       // (the box on the pole's side, towards the street)
+      const add = (g, a, up, b) => { g.rotateY(rot); g.translate(hx + fx * a, hz + up, -(hy + fy * a)); boxes.push(g); };
+      add(new THREE.BoxGeometry(0.2, 0.66, 0.34), 0, 0, 0);
+      for (const up of [0.16, -0.16]) add(new THREE.BoxGeometry(0.16, 0.02, 0.32), 0.17, up + 0.14, 0);   // (the hoods)
+      for (const up of [0.16, -0.16]) for (const s of [-1, 1]) {
+        const g = new THREE.BoxGeometry(0.16, 0.26, 0.015);
+        g.translate(0, 0, s * 0.155);
+        add(g, 0.17, up + 0.01, 0);
+      }
+      add(new THREE.BoxGeometry(0.12, 0.06, 0.06), -0.14, 0.2, 0);        // (its brackets)
+      add(new THREE.BoxGeometry(0.12, 0.06, 0.06), -0.14, -0.2, 0);
+      ['r', 'g'].forEach((k, j) => {
+        v.set(hx + fx * 0.102, hz + (j === 0 ? 0.16 : -0.16), -(hy + fy * 0.102));
+        e.set(0, Math.atan2(fx, -fy), 0);
+        q.setFromEuler(e);
+        m4.compose(v, q, one);
+        this.meshes[k].setMatrixAt(i, m4);
+      });
+    });
+    const strip = (g) => { g.deleteAttribute('uv'); return g; };
+    const pm = new THREE.Mesh(mergeGeometries(poles.map(strip), false), grey);
+    const bm = new THREE.Mesh(mergeGeometries(boxes.map(strip), false), black);
+    pm.castShadow = pm.receiveShadow = bm.castShadow = bm.receiveShadow = true;
+    pm.name = 'town_ped_poles'; bm.name = 'town_ped_boxes';
+    scene.add(pm, bm);
+    for (const k in this.meshes) { this.meshes[k].name = 'town_ped_' + k; scene.add(this.meshes[k]); }
+    this.frame = [pm, bm];
+    this.off = new THREE.Color(0.07, 0.07, 0.07);
+    this.cx = peds.reduce((a, h) => a + h[0], 0) / peds.length;
+    this.cy = peds.reduce((a, h) => a + h[1], 0) / peds.length;
+    this.reach = Math.max(...peds.map(([x, y]) => Math.hypot(x - this.cx, y - this.cy))) + SEEN;
+    this.last = peds.map(() => -1);
+    this.t = 0;
+  }
+  update(street, camPos) {
+    const near = !camPos || (this.cx - camPos.x) ** 2 + (this.cy + camPos.z) ** 2 < this.reach * this.reach;
+    for (const m of this.frame) m.visible = near;
+    for (const k in this.meshes) this.meshes[k].visible = near;
+    if (!near) return;
+    const blink = (performance.now() % 1000) < 500;
+    let changed = false;
+    this.peds.forEach(([, , , g, mask], i) => {
+      let l = street.walk(g, mask);
+      if (l === 3) l = blink ? 2 : 1;                   // (blinking: on, then dark)
+      if (l === this.last[i]) return;
+      this.last[i] = l;
+      changed = true;
+      this.meshes.r.setColorAt(i, l === 0 ? PED_ON.r : this.off);
+      this.meshes.g.setColorAt(i, l === 2 ? PED_ON.g : this.off);
+    });
+    if (changed) for (const k in this.meshes) this.meshes[k].instanceColor.needsUpdate = true;
   }
 }
 

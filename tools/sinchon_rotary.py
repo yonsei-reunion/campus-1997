@@ -355,13 +355,41 @@ LM_SHAPE = {
                      boxes=[(-188.8, -865.0, 46.0, 4.5, -0.333, 2.2)],
                      signs=[dict(cell=12, side=1, at=15.0, w=14.3, h=2.6, top=2.1)]),
     '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=datum.up(-175.37, -996.2, 64.33), screen=(9, 12.0, 8.5, 19.0),
-                    strip=(2, 2.5, 2.5), pen=GRAND_PEN, signs=[dict(cell=13, side=9, w=16.5, h=3.0, top=2.4, off=1.0)],
+                    strip=(2, 2.5, 2.5), pen=GRAND_PEN, signs=[],
+                    # (2026-11-16: the mark and words on the tiles, the banners, the poster [side, w, h, its middle m
+                    # below the top] and the fascia's sides, blender/town.py _grand; 52135 · 52119 · 52095)
+                    banners=[(7, 'gm_ban0'), (12, 'gm_ban1'), (13, 'gm_ban2')], poster=(11, 5.6, 7.6, 29.0),
+                    fascia=[5, 6, 7, 9, 11, 12, 13],
                     front=[(-159.8, -998.0), (-161.6, -990.0), (-165.9, -983.3)]),
     '외환은행': dict(kind='kexim', outline=KEXIM_1997, floors=10, front=[(-110.0, -1046.4), (-102.9, -1052.0)],
                  boxes=[(-114.5, -1053.7, 13.5, 3.6, -0.207, 3.0), (-113.5, -1059.0, 6.5, 4.0, -0.207, 6.0)],
                  tanks=[(-127.2, -1052.5, 1.9, 3.5)],
                  signs=[dict(cell=14, side=4, at=12.7, w=12.0, h=2.0, top=1.3), dict(cell=15, side=4, at=12.7, w=8.5, h=1.7, up=9.6)]),
 }
+# ---- 연세로's mouth, its two corners and the lot east of them (2026-11-16, 고증 4.10.7), drawn as the landmarks are:
+# - 금강제화 (north-west): the scans of 27/18 · 27/19 have one flat roof 32 - 35 m (four storeys over the 20 m walk)
+#   from x -137 to -107 between y -914 and -928, along 양화로 (the 1996 photos 52206 · 52006: its long south face, the
+#   shoe shop's maroon arch over the ground floor, clinics' and academies' boards up the floors, a round drum on the
+#   roof's west end, 34 - 35 m in the scans); OSM 356215992's outline from x -137.5 east.  The row box (20 m along
+#   연세로) it was keeps its draws
+# - 홍익문고 (north-east): its row box (OSM 356219103), six storeys (52004 · 52006: five rows of windows over the
+#   ground floor; 51979's camera on its roof 21.7 m over the road), the sign along the top of the south face
+# - the lot south of it: the tower going up in July 1997 (엘리트 빌딩 now, 1998's 삼성증권 · 맥도날드 신촌점 1999.7
+#   31669 · 33000): OSM 356219104's outline, 15 storeys; the scans have its frame's roof at 74.5 m (27/18 · 27/19,
+#   27/18 · 27/20 and 27/19 · 27/20 agree to 0.5 m: 56 m over the ground, 15 storeys of 3.65 m), a ring over the
+#   cylinder by 연세로 about 83 m, and a crane's jib about 80 - 88 m out over 홍익문고 and 연세로
+KUMKANG_1997 = [(-137.5, -913.4), (-115.9, -913.4), (-115.9, -913.9), (-109.6, -913.9), (-109.5, -923.6), (-110.3, -925.0),
+                (-121.2, -927.7), (-132.5, -932.2), (-137.5, -923.4)]
+KUMKANG_TOP = (-123.0, -920.0, 33.0)            # (x, y, 해발 of its parapet's top)
+KUMKANG_FRONT = [(-112.0, -927.6), (-121.0, -930.3)]
+HONGIK_FLOORS = 6
+TOWER97 = dict(outline=[(-68.9, -908.5), (-54.8, -919.1), (-61.3, -926.9), (-62.1, -926.4), (-67.9, -933.5), (-70.9, -931.3),
+                        (-85.0, -921.2), (-85.5, -918.9), (-85.0, -916.8), (-84.0, -914.8), (-81.5, -913.7), (-79.4, -913.7),
+                        (-77.2, -914.9), (-75.4, -916.4)],
+               top=(-70.0, -921.0, 74.5), floors=15, front=[(-86.8, -923.6)],
+               cyl=(-80.6, -918.9, 4.9),               # (the round end by 연세로: OSM's arc)
+               crown=(5.0, 3.4, 8.5, 6.0),             # (its stair drum's height over the roof and radius, the ring's height and radius)
+               crane=(-65.5, -921.5, 295.0, 38.0, 13.0, 11.5))   # (x, y, the jib's bearing, jib, counter-jib, its top over the roof)
 # ---- 2호선 신촌역's stairs as they stood in July 1997 (2026-11-15, 고증 4.10.2 「지하철 출입구의 지붕」).  The white roofs
 # of the scans 27/18 · 27/19 at the four corners (five of 11 x 5 m and the 「white kiosk」 east of the island) are the
 # stairs' canopies, not bus shelters or kiosks: 서울연구원 52206 (1996.6, from 외환은행's roof: a tiled stairwell walled to
@@ -937,6 +965,41 @@ def layout(geo, town, extras, ground, taken_z):
             b[6] = -b[6]
             n_moved += 1
     fronts, n_yro_gone = yro_rows(geo, blocks, ground)           # (연세로's rows from the 1996 photos, at the end)
+    # ---- 연세로's mouth (2026-11-16): 금강제화 and 홍익문고 as landmarks on their rows' boxes, the tower going up on the
+    # lot south of 홍익문고 (KUMKANG_1997, HONGIK_FLOORS, TOWER97); what stood inside their outlines goes, its draws kept
+    kk_b, hk_b = fronts[-1][-1], fronts[1][-1]
+    kk_pg = Polygon(KUMKANG_1997).difference(street.buffer(0.3))
+    kk_pg = shapely.geometry.polygon.orient(max(getattr(kk_pg, 'geoms', [kk_pg]), key=lambda g_: g_.area).simplify(0.1), 1.0)
+    hk_pg = shapely.geometry.polygon.orient(_box(hk_b), 1.0)
+    tw_pg = shapely.geometry.polygon.orient(Polygon(TOWER97['outline']), 1.0)
+    idx_of = lambda b: next(i for i, x in enumerate(blocks) if x is b)
+
+    def mouth_lm(name, kind, pg, front, top, block, **extra):
+        o_ = list(pg.exterior.coords)[:-1]
+        foot = round(min(ground(x_, y_) for x_, y_ in o_) - 0.3, 2)
+        floor = round(min(ground(x_, y_) for x_, y_ in front) - 0.05, 2)
+        d_ = dict(kind=kind, name=name, block=block, base=max(foot, floor), top=round(top, 2), foot=min(foot, floor), outline=R2(o_))
+        d_.update(extra)
+        return d_
+    # (홍익문고's floor: the walk before its west face, 1 m out; its top: a ground floor of 3.6 m, five of 3.0 and the
+    # parapet)
+    hk_front = [(hk_b[0] - (hk_b[2] / 2 + 1.0) * math.cos(hk_b[4]), hk_b[1] - (hk_b[2] / 2 + 1.0) * math.sin(hk_b[4]))]
+    hk_floor = round(min(ground(x_, y_) for x_, y_ in hk_front) - 0.05, 2)
+    lm_mouth = [mouth_lm('금강제화', 'kumkang', kk_pg, KUMKANG_FRONT, datum.up(*KUMKANG_TOP), idx_of(kk_b)),
+                mouth_lm('홍익문고', 'hongik', hk_pg, hk_front, hk_floor + 3.6 + 3.0 * (HONGIK_FLOORS - 1) + 0.4, idx_of(hk_b),
+                         floors=HONGIK_FLOORS),
+                mouth_lm('신축 공사장', 'tower97', tw_pg, TOWER97['front'], datum.up(*TOWER97['top']), None,
+                         floors=TOWER97['floors'], cyl=list(TOWER97['cyl']), crown=list(TOWER97['crown']),
+                         crane=list(TOWER97['crane']))]
+    n_mouth_gone = 0
+    for pg_ in (kk_pg, tw_pg):
+        shapely.prepare(pg_)
+        for b in blocks:
+            if b[6] > 0 and b is not kk_b and b is not hk_b and shapely.intersects(pg_, _box(b).buffer(-0.5)):
+                b[6] = -b[6]
+                n_mouth_gone += 1
+    lm_draw += lm_mouth
+    print('연세로 어귀: 금강제화 · 홍익문고 · 공사장 as landmarks, %d boxes inside them gone' % n_mouth_gone)
     # ---- kerbs: the carriageways' edge (gate_town's 연세로 north of y -560 has its own), lane paint, crossings
     kerbs, paint, zebra = [], [], []
     rings = [road] if road.geom_type == 'Polygon' else list(road.geoms)
@@ -1251,6 +1314,70 @@ def layout(geo, town, extras, ground, taken_z):
             q = p + n * sgn * (ya.half + 0.8)
             heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(t[1] * sgn, t[0] * sgn), 4), 1, 0,
                           round(ya.half * 0.75, 1)])
+    # 성산로 at the gate (2026-11-16): 51995 (1995.10, 서울연구원) has a grey pole at the kerb by the crossing east of the
+    # gate, a long arm over the lanes and two heads of three lamps on it.  Its own group (2: the cars 40 s, the walkers
+    # 20 s); its cars stop at the lines gate_town paints (eastbound before 연세로's box, westbound past the crossing)
+    s_lines = {1: gt.BOX_X[0] - 3.5, -1: gt.CROSS_X[1] + 3.5}       # (+1: eastbound, on the south side)
+    for l in town['lanes']:
+        if l.get('stops') is not None or l['kind'] not in ('car', 'bus'):
+            continue
+        P_ = np.array(l['pts'])
+        way = 1 if P_[-1][0] > P_[0][0] else -1
+        ls_ = LineString(P_)
+        xs_ = s_lines[way]
+        k_ = int(np.argmin(np.abs(P_[:, 0] - xs_)))
+        l['stops'] = [[round(float(ls_.project(Point(*P_[k_]))) + (xs_ - P_[k_][0]) * way - 0.5, 1), 2, 0]]
+        l['ss'] = 1                                     # (성산로's: its cars keep to their own lanes, web/src/town.js)
+    for way, face in ((1, math.pi), (-1, 0.0)):
+        l = next(l for l in town['lanes'] if l.get('ss') and l['kind'] == 'bus' and (l['pts'][-1][0] > l['pts'][0][0]) == (way > 0))
+        P_ = np.array(l['pts'])
+        k_ = int(np.argmin(np.abs(P_[:, 0] - s_lines[way])))
+        d_ = P_[min(k_ + 1, len(P_) - 1)] - P_[max(k_ - 1, 0)]
+        d_ = d_ / np.linalg.norm(d_)
+        q = P_[k_] + np.array([d_[1], -d_[0]]) * 3.2           # (right of the way: the kerb, 0.8 m behind it)
+        for reach in (8.75, 15.0):                      # (two heads on the one arm, as 51995 has them)
+            heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(face, 4), 2, 0, reach])
+    signals['groups'].append(dict(green=[40.0, 20.0]))
+    # ---- the walkers' signals (2026-11-16, user's request): at each end of every crossing the walker may use, a grey
+    # pole beside the zebra and on it a black box of two lamps, the red standing figure over the green walking one,
+    # each under its hood, facing across the street to those waiting on the far side.  Their look: 서울연구원 50377
+    # (1995.10, 압구정 갤러리아 앞: the pole with a pointed cap, the box on its side at 2.4 - 3.1 m) and 30197 (1996.10);
+    # no photo shows those of 연세로 or the junction (고증 4.10.2 「보행 신호등」).  [x, y, the way the lamps face (rad),
+    # group, phases whose green lets the walkers go (bits)]: 연세로's with its crossings' own walkers' phase, the one
+    # over its mouth by 성산로 with 성산로's cars (no car turns there), 서강로's while 신촌로 · 양화로 and the
+    # south-west arm go, the south-west arm's while 연세로 · 서강로 and 신촌로 · 양화로 go (who turns in yields)
+    peds = []
+    road_ped = road.buffer(0.45)
+
+    def ped(p, inward, face, grp, mask):
+        """a pole at p, moved back from the kerb (against `inward`) till it stands clear of the asphalt"""
+        q = np.array(p, float)
+        for _ in range(30):
+            if not road_ped.contains(Point(*q)):
+                break
+            q = q - np.array(inward) * 0.1
+        peds.append([round(float(q[0]), 2), round(float(q[1]), 2), round(face, 4), grp, mask])
+
+    def ped_arm(a, s0, s1, grp, mask):
+        """both ends of a zebra over arm a from s0 to s1 (outward along it): the +n end at its outer edge, the -n end
+        at its inner one"""
+        for sgn, s_ in ((1, s1 + 0.55), (-1, s0 - 0.55)):
+            p, t, n = a.at(s_)
+            q = p + n * sgn * (a.half + 0.5)
+            ped(q, n * sgn * -1.0, math.atan2(-n[1] * sgn, -n[0] * sgn), grp, mask)
+    ped_arm(ya, s_mid, s_mid + 4.5, 1, 0b10)
+    ped_arm(ya, s_c2, s_c2 + 4.5, 1, 0b10)
+    for (y0_, y1_), grp, mask in ((gt.YZEBRA2, 1, 0b10), (gt.YZEBRA, 2, 0b01)):      # (gate_town's two over 연세로)
+        xw, xe = gt.YONSEI_X - gt.YONSEI_HALF - 0.5, gt.YONSEI_X + gt.YONSEI_HALF + 0.5
+        ped((xw, y1_ - 0.55), (1, 0), 0.0, grp, mask)
+        ped((xe, y0_ + 0.55), (-1, 0), math.pi, grp, mask)
+    ped_arm(A['seogang'], xs['seogang'], xs['seogang'] + deps['seogang'], 0, 0b011)
+    yc0, yc1 = ROT_S_CROSS['y'] - ROT_S_CROSS['depth'] / 2, ROT_S_CROSS['y'] + ROT_S_CROSS['depth'] / 2
+    ped((ROT_S_CROSS['x'][0] - 0.5, yc0 - 0.55), (1, 0), 0.0, 0, 0b110)            # (서강로's: 외환은행's side)
+    ped((ROT_S_CROSS['x'][1] + 0.5, yc1 + 0.55), (-1, 0), math.pi, 0, 0b110)       # (and the wedge's walk)
+    cx0_, cx1_, ks_, kn_ = extras['cross_box']
+    ped((cx1_ + 0.55, ks_ - 0.5), (0, 1), math.pi / 2, 2, 0b10)                     # (성산로's: its south walk)
+    ped((cx0_ - 0.55, kn_ + 0.5), (0, -1), -math.pi / 2, 2, 0b10)                   # (and the gate's side)
     # ---- the walks open to the walker again (2026-11-14, user's request; shut 2026-11-11): from 성산로's crossing over
     # its south walk, 연세로's two sidewalks with their three crossings, the junction's corners within REACH and the
     # crossings July 1997 had there (서강로's in front of 외환은행 and the south-west arm's: none over 연세로's,
@@ -1287,6 +1414,12 @@ def layout(geo, town, extras, ground, taken_z):
         box(*GRAND_YARD_BOX)).convex_hull.difference(road).difference(Polygon(GRAND_1997).buffer(0.3))
     W_parts.append(yard.difference(unary_union([_box(b).buffer(0.4) for b in blocks
                                                 if len(b) == 12 and b[6] > 0 and _box(b).intersects(yard)])))
+    # the carriageways too (2026-11-16, user's request): 연세로's from the bridge to the junction and the five arms'
+    # within REACH, so the walker may step off the kerb anywhere and cross where 1997 had no zebra (연세로's, 양화로's and
+    # 신촌로's mouths: the north and south corners meet over the asphalt now, not only under it).  The cars stop short of
+    # the walker (web/src/town.js).  성산로's stays shut but for its crossing: its north kerb is the campus's own edge
+    W_parts.append(street.intersection(near))
+    W_parts.append(street.intersection(box(-140.0, JC[1] - 10.0, -50.0, geo['y_top'] - 1.0)))
     Wk = unary_union(W_parts).buffer(0.05).buffer(-0.05)
     walk_open, walk_holes, barrier = [], [], []
     y_open = cy1 + 0.1                             # (north of this: the campus's side of 성산로)
@@ -1577,11 +1710,16 @@ def layout(geo, town, extras, ground, taken_z):
     town['lanes'] += lanes
     town['signals'] = signals
     town['heads'] = heads
+    town['peds'] = peds                                        # (web/src/town.js PedHeads)
     town['entrances'] = entrances
     town['signs2'] = signs2
     town['landmarks'] = lm_draw                                # (blender/town.py landmarks(), web/src/ui.js's map)
     town['names2'] = names[1] + names[-1]
-    town['vsigns'] = yro_wall_signs(blocks)                    # (연세로's wall signs and banner: yro_)
+    # (연세로's wall signs and banner: yro_; none on 금강제화's and 홍익문고's walls, which carry their own boards:
+    # blender/town.py _kumkang, _hongik)
+    own_walls = unary_union([kk_pg, hk_pg]).buffer(1.6)
+    town['vsigns'] = [q for q in yro_wall_signs(blocks) if not own_walls.contains(Point(q[0], q[1]))]
+    town['signs2'] = [q for q in town['signs2'] if not own_walls.contains(Point(q[0], q[1]))]
     town['banner'] = yro_banner(geo, ground)
     print('연세로: rows %d + %d, gone %d, wall signs %d, ginkgos %d (+ %d on the banks)' % (
         len(fronts[1]), len(fronts[-1]), n_yro_gone, len(town['vsigns']), YRO_TREE_SLOTS - n_bank, n_bank))
@@ -1615,11 +1753,14 @@ def layout(geo, town, extras, ground, taken_z):
     hk = fronts[1][-1]
     top = lambda b: round(b[5] + 0.3 + _storey(b) * b[6] + 1.0, 1)
     markers = [dict(name=lm['name'], pos=[b[0], b[1]], top=top(b)) for lm, b in corner] + [
-        dict(name='홍익문고', pos=[hk[0], hk[1]], top=top(hk)),
+        dict(name='홍익문고', pos=[hk[0], hk[1]], top=round(lm_mouth[1]['top'] + 1.0, 1)),
+        dict(name='금강제화', pos=[round(kk_pg.centroid.x, 2), round(kk_pg.centroid.y, 2)], top=round(lm_mouth[0]['top'] + 1.0, 1)),
         dict(name='신촌 로터리', pos=list(ISLAND['c']), top=round(ground(*ISLAND['c']) + 9.0, 1)),
         dict(name='신촌역 (2호선)', pos=[entrances[1][0], entrances[1][1]], top=round(entrances[1][6] + 5.0, 1))]
     print('신촌 로터리: the walker\'s walks %d (holes %d), barrier %d boxes' % (len(walk_open), len(walk_holes), len(barrier)))
-    return dict(markers=markers, props=props, colliders=barrier + coll, paints=paints, paths=paths, corner=corner, trees=trees,
+    # (the walkers' signals' poles: the walker goes round them)
+    ped_coll = [R2([(x_ - 0.18, y_ - 0.18), (x_ + 0.18, y_ - 0.18), (x_ + 0.18, y_ + 0.18), (x_ - 0.18, y_ + 0.18)]) for x_, y_, *_ in peds]
+    return dict(markers=markers, props=props, colliders=barrier + coll + ped_coll, paints=paints, paths=paths, corner=corner, trees=trees,
                 shrubs=shrubs, walk_open=walk_open, walk_holes=walk_holes)
 
 

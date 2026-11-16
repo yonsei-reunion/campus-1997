@@ -319,12 +319,12 @@ def _grand(mb, d):
     for i in range(m):
         p0, t, n, L = _side(o, i)
         a, b = o[i], o[(i + 1) % m]
-        _quad(mb, a, b, base, base + 0.4, 'tile_white', smooth=tags[i])
+        _quad(mb, a, b, base, base + 0.4, 'stone_granite', smooth=tags[i])
         _quad(mb, a, b, base + 0.4, base + 5.0, 'glass', panes=(max(1, round(L / 3.2)), 1), smooth=tags[i])
-        _quad(mb, a, b, base + 5.0, top, 'tile_white', smooth=tags[i])
+        _quad(mb, a, b, base + 5.0, top, 'tile_grand', smooth=tags[i])
     _flat(mb, [o, court[::-1]], top, 'roof_flat')
     for i in range(len(court)):
-        _quad(mb, court[(i + 1) % len(court)], court[i], deck, top, 'tile_white')
+        _quad(mb, court[(i + 1) % len(court)], court[i], deck, top, 'tile_grand')
     _flat(mb, [court], deck, 'roof_flat')
     side, w, h, below = d['screen']
     p0, t, n, L = _side(o, side)
@@ -337,6 +337,21 @@ def _grand(mb, d):
     p0, t, n, L = _side(o, side)
     a, b = p0 + t * (s - w / 2), p0 + t * (s + w / 2)
     _quad(mb, (a.x, a.y), (b.x, b.y), base + 5.4, top - 1.2, 'glass', out=0.03, n=n, panes=(1, round((top - base - 6.6) / 4.5)))
+    # (2026-11-16) what 1996's photos have on the round face (52135 · 52119, 52095 in 1995; 고증 4.10.7): the red mark
+    # and 「그랜드마트 신촌점」 straight on the tiles over the screen, the sale banners down it either side, the poster
+    # under the screen, the dark green fascia over the shop windows
+    p0, t, n, L = _side(o, d['screen'][0])
+    _board(mb, p0 + t * (L / 2), t, n, top - 4.8, 15.0, 15.0 * 330 / 1024, 'gm_logo', off=1.1, rim=None)
+    for side_, piece in d.get('banners', []):
+        p0, t, n, L = _side(o, side_)
+        _board(mb, p0 + t * (L / 2), t, n, top - 9.6, 1.7, 11.0, piece, off=0.3, rim=None)
+    if d.get('poster'):
+        side_, w_, h_, below = d['poster']
+        p0, t, n, L = _side(o, side_)
+        _board(mb, p0 + t * (L / 2), t, n, top - below, w_, h_, 'gm_poster', off=0.6)
+    for i in d.get('fascia', []):
+        p0, t, n, L = _side(o, i)
+        _board(mb, p0 + t * (L / 2), t, n, base + 5.6, L + 0.1, 1.0, 'gm_fascia', off=0.3, rim=None)
     # the cooling towers' screen on the roof's south end (tools/sinchon_rotary.py GRAND_PEN; 52119 · 31662): a white box
     # open to the sky, a blue band round its foot, standing out over a foot set back under it; the towers inside and
     # beside it
@@ -384,10 +399,296 @@ def _kexim(mb, d):
     _roof_boxes(mb, d, top)
 
 
+# ----------------------------------------------------------------------------- 연세로's mouth (2026-11-16, 고증 4.10.7)
+# The boards of sign_mouth.png (tools/make_textures.py mouth_signs): each piece's rectangle in data/sign_mouth_uv.json
+_MOUTH_UV = None
+
+
+def _muv(name):
+    global _MOUTH_UV
+    if _MOUTH_UV is None:
+        import json, os
+        _MOUTH_UV = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'sign_mouth_uv.json')))
+    return _MOUTH_UV[name]
+
+
+def _board(mb, q, t, n, z, w, h, piece, off=0.12, u=(0.0, 1.0), rim='metal_dark'):
+    """a flat board of sign_mouth on a wall: its middle at q (2D) z, along t, facing n, w x h, `off` out from the
+    wall (the edges dark between); u: the part of the piece's width it shows (a band laid over several sides)"""
+    u0, v0, u1, v1 = _muv(piece)
+    ua, ub = u0 + (u1 - u0) * u[0], u0 + (u1 - u0) * u[1]
+    c = Vector((q[0], q[1], 0)) + n * off
+    a, b = c - t * (w / 2), c + t * (w / 2)
+    mb.face([(a.x, a.y, z - h / 2), (b.x, b.y, z - h / 2), (b.x, b.y, z + h / 2), (a.x, a.y, z + h / 2)], 'sign_mouth',
+            uvs=[(ua, v0), (ub, v0), (ub, v1), (ua, v1)])
+    if off > 0.03 and rim:
+        a0, b0 = a - n * off, b - n * off
+        _quad(mb, (a0.x, a0.y), (a.x, a.y), z - h / 2, z + h / 2, rim)
+        _quad(mb, (b.x, b.y), (b0.x, b0.y), z - h / 2, z + h / 2, rim)
+        mb.face([(a0.x, a0.y, z + h / 2), (a.x, a.y, z + h / 2), (b.x, b.y, z + h / 2), (b0.x, b0.y, z + h / 2)], rim)
+        mb.face([(a.x, a.y, z - h / 2), (a0.x, a0.y, z - h / 2), (b0.x, b0.y, z - h / 2), (b.x, b.y, z - h / 2)], rim)
+
+
+def _upright(mb, q, n, z0, z1, out, piece, th=0.16):
+    """a board standing out from a wall at q (2D) along its outward way n, `out` m, from z0 to z1, both faces
+    reading down (sign_mouth's upright pieces)"""
+    t = Vector((-n.y, n.x, 0))
+    u0, v0, u1, v1 = _muv(piece)
+    P = lambda a, b, z: (q[0] + n.x * a + t.x * b, q[1] + n.y * a + t.y * b, z)
+    a0, a1 = 0.1, 0.1 + out
+    mb.face([P(a1, th, z0), P(a0, th, z0), P(a0, th, z1), P(a1, th, z1)], 'sign_mouth', uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
+    mb.face([P(a0, -th, z0), P(a1, -th, z0), P(a1, -th, z1), P(a0, -th, z1)], 'sign_mouth', uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
+    mb.face([P(a1, -th, z0), P(a1, th, z0), P(a1, th, z1), P(a1, -th, z1)], 'metal_dark')
+    mb.face([P(a0, -th, z1), P(a1, -th, z1), P(a1, th, z1), P(a0, th, z1)], 'metal_dark')
+    mb.face([P(a0, th, z0), P(a1, th, z0), P(a1, -th, z0), P(a0, -th, z0)], 'metal_dark')
+    for zz in (z0 + 0.3, z1 - 0.3):                   # (its two brackets to the wall)
+        mb.box((q[0] + n.x * 0.06, q[1] + n.y * 0.06, zz), (0.12, 0.08, 0.08), 'metal_dark', rotz=math.atan2(n.y, n.x))
+
+
+def _kumkang(mb, d):
+    """금강제화 (52206 · 52006, 1996.6 - 8): four storeys of pale grey tile along 양화로, the shoe shop's windows round
+    the ground floor under its white band (the maroon arch with 「금강제화」, 「Kumkang」), three floors of window bands
+    between pilasters, the clinics' and academies' boards over the windows of the top two, the red-and-white upright
+    on the corner over 연세로, a round drum on the roof's west end and a dark steel frame on its east half"""
+    o, base, top = _ccw([tuple(p) for p in d['outline']]), d['base'], d['top']
+    zg, zb = base + 3.1, base + 4.6                       # (the shop windows' head, the band's top: the first floor's)
+    zp = top - 0.9                                        # (the parapet's foot)
+    hf = (zp - zb) / 3
+    sides = [_side(o, i) for i in range(len(o))]
+    front = lambda n: n.y < -0.55 or n.x > 0.7            # (양화로's face and 연세로's)
+    for i, (p0, t, n, L) in enumerate(sides):
+        a, b = o[i], o[(i + 1) % len(o)]
+        if front(n) and L > 1.5:
+            _quad(mb, a, b, base, base + 0.35, 'stone_granite')
+            _quad(mb, a, b, base + 0.35, zg, 'glass', panes=(max(1, round(L / 2.4)), 1))
+            k = max(1, round(L / 4.2))
+            for j in range(k + 1):                         # (the striped piers between the windows)
+                q = p0 + t * (0.35 + (L - 0.7) * j / k) + n * 0.12
+                mb.box((q.x, q.y, (base + zg) / 2), (0.7, 0.24, zg - base), 'tile_white', rotz=math.atan2(t.y, t.x))
+            _quad(mb, a, b, zg, zb, 'paint_white')
+        else:
+            _quad(mb, a, b, base, zb, 'tile_white')
+        for f in range(3):                                 # (each floor: a tiled sill band, a window band, a head)
+            z0 = zb + hf * f
+            _quad(mb, a, b, z0, z0 + 0.95, 'tile_white')
+            if L > 2.5 and (front(n) or f % 2 == 0):
+                _quad(mb, a, b, z0 + 0.95, z0 + hf - 0.5, 'glass', panes=(max(1, round(L / 1.7)), 1))
+            else:
+                _quad(mb, a, b, z0 + 0.95, z0 + hf - 0.5, 'tile_white')
+            _quad(mb, a, b, z0 + hf - 0.5, z0 + hf, 'tile_white')
+        _quad(mb, a, b, zp, top, 'tile_white')
+        _quad(mb, a, b, zp - 0.12, zp + 0.05, 'plaster_grey', out=0.05, n=n)
+        if front(n) and L > 3.0:                           # (the pilasters up the floors)
+            k = max(1, round(L / 3.4))
+            for j in range(k + 1):
+                q = p0 + t * (0.2 + (L - 0.4) * j / k) + n * 0.1
+                mb.box((q.x, q.y, (zb + zp) / 2), (0.45, 0.2, zp - zb), 'tile_white', rotz=math.atan2(t.y, t.x))
+    # the band: along the south faces as one strip (the arch where the photos have it), the east face's own
+    south = [i for i, (p0, t, n, L) in enumerate(sides) if n.y < -0.55]
+    run = sum(sides[i][3] for i in south)
+    acc = 0.0
+    for i in sorted(south, key=lambda i: (sides[i][0].x)):
+        p0, t, n, L = sides[i]
+        _board(mb, p0 + t * (L / 2), t, n, (zg + zb) / 2 + 0.02, L, zb - zg - 0.1, 'kk_band', off=0.25, u=(acc / run, (acc + L) / run))
+        acc += L
+    east = max(range(len(sides)), key=lambda i: sides[i][2].x * sides[i][3])
+    p0, t, n, L = sides[east]
+    _board(mb, p0 + t * (L / 2), t, n, (zg + zb) / 2 + 0.02, L, zb - zg - 0.1, 'kk_band_e', off=0.25)
+    # the corner's upright over 연세로, near the south end of the east face (it runs north from p0); the boards over the top two floors' windows
+    _upright(mb, p0 + t * 1.2, n, zb + 0.6, zp + 0.4, 1.0, 'kk_up')
+    big = max(south, key=lambda i: sides[i][3])
+    for row, (f, cells) in enumerate(((2, ('kk_b0', 'kk_b1', 'kk_b2')), (1, ('kk_b3', 'kk_b4', 'kk_b5', 'kk_b6')))):
+        z = zb + hf * f + hf - 0.25
+        for i in south:
+            p0, t, n, L = sides[i]
+            k = max(1, int(L // 4.6))
+            for j in range(k):
+                cell = cells[(j + i * 2 + row) % len(cells)]
+                _board(mb, p0 + t * (L * (j + 0.5) / k), t, n, z, 3.9, 0.92, cell, off=0.14)
+    p0, t, n, L = sides[east]
+    for f, cell in ((2, 'kk_b7'), (1, 'kk_b5')):
+        _board(mb, p0 + t * (L * 0.45), t, n, zb + hf * f + hf - 0.25, 3.9, 0.92, cell, off=0.14)
+    # the roof: inside the parapet, the drum at its west end (34 - 35 m in the scans), the steel frame
+    _flat(mb, [o], top, 'roof_flat')
+    x_w = min(p[0] for p in o)
+    west = [p for p in o if p[0] < x_w + 6.0]
+    dc = (x_w + 3.9, sum(p[1] for p in west) / len(west))    # (the drum: 34 - 35 m at (-136 .. -130, -920 .. -926))
+    mb.cylinder(dc, 2.9, top, top + 1.5, 'plaster_cream', seg=24, mat_cap='roof_cement')
+    mb.cylinder(dc, 3.05, top + 1.25, top + 1.55, 'paint_white', seg=24, cap_top=False)
+    e_ = max(range(len(o)), key=lambda i: o[i][0])
+    fc = (o[e_][0] - 7.0, o[e_][1] + 2.0)
+    for dx in (-3.2, 3.2):
+        for dy in (-1.8, 1.8):
+            mb.box((fc[0] + dx, fc[1] + dy, top + 0.6), (0.18, 0.18, 2.7), 'metal_dark')
+    for dy in (-1.8, 1.8):
+        mb.box((fc[0], fc[1] + dy, top + 1.95), (6.6, 0.16, 0.16), 'metal_dark')
+    for dx in (-2.0, 0.0, 2.0):
+        mb.box((fc[0] + dx, fc[1], top - 0.15), (1.3, 1.6, 1.4), 'metal_dark')
+
+
+def _hongik(mb, d):
+    """홍익문고 (52004 · 52006 · 52206): six storeys; the south face over the corner lot a blank wall of cream tiles
+    in a grid of darker bands, a column of small windows at its east end, the white board with the green ring and the
+    red 「홍익문고」 along its top; the west face on 연세로 framed in teal blue round its window bays, the black
+    upright, the shop under its blue fascia"""
+    o, base, top, nf = _ccw([tuple(p) for p in d['outline']]), d['base'], d['top'], d['floors']
+    z1 = base + 3.6
+    hf = (top - 0.4 - z1) / (nf - 1)
+    for i in range(len(o)):
+        p0, t, n, L = _side(o, i)
+        a, b = o[i], o[(i + 1) % len(o)]
+        ang = math.atan2(t.y, t.x)
+        if n.x < -0.7:                                     # (연세로's face)
+            _quad(mb, a, b, base, base + 0.3, 'stone_granite')
+            _quad(mb, a, b, base + 0.3, z1 - 1.1, 'glass', panes=(max(1, round(L / 2.4)), 1))
+            _board(mb, p0 + t * (L / 2), t, n, z1 - 0.55, L - 0.4, 0.9, 'hk_shop', off=0.18)
+            _quad(mb, a, b, z1 - 1.1, z1, 'paint_blue')
+            for f in range(nf - 1):
+                z0 = z1 + hf * f
+                _quad(mb, a, b, z0, z0 + 0.8, 'paint_blue')
+                _quad(mb, a, b, z0 + 0.8, z0 + hf, 'glass', panes=(3, 1))
+            _quad(mb, a, b, top - 0.4, top, 'paint_blue')
+            for s_ in (0.3, L - 0.3):                      # (the teal piers at its two corners, standing out)
+                q = p0 + t * s_ + n * 0.15
+                mb.box((q.x, q.y, (z1 + top) / 2), (0.6, 0.3, top - z1), 'paint_blue', rotz=ang)
+            _upright(mb, p0 + t * (L - 0.9), n, z1 + 1.2, z1 + 1.2 + 5.6, 1.15, 'hk_up')
+            continue
+        _quad(mb, a, b, base, z1, 'plaster_grey' if n.y < -0.7 else 'tile_cream')
+        _quad(mb, a, b, z1, top, 'tile_cream')
+        if n.y < -0.7:                                     # (the corner lot's face)
+            for f in range(nf - 1):                        # (the grid's bands: each floor, three columns)
+                z0 = z1 + hf * f
+                _quad(mb, a, b, z0 - 0.12, z0 + 0.12, 'stone_ashlar', out=0.04, n=n)
+            for s_ in (L * 0.36, L * 0.7):
+                q = p0 + t * s_ + n * 0.04
+                mb.box((q.x, q.y, (z1 + top - 2.8) / 2), (0.24, 0.08, top - 2.8 - z1), 'stone_ashlar', rotz=ang)
+            for f in range(nf - 2):                        # (the small windows in its east column)
+                q = p0 + t * (L * 0.86) + n * 0.03
+                z0 = z1 + hf * f + hf * 0.45
+                a_, b_ = q - t * 0.4, q + t * 0.4
+                mb.face([(a_.x, a_.y, z0), (b_.x, b_.y, z0), (b_.x, b_.y, z0 + 0.85), (a_.x, a_.y, z0 + 0.85)], 'glass', panes=(2, 1))
+            _board(mb, p0 + t * (L / 2), t, n, top - 1.55, L, 2.5, 'hk_top', off=0.15)
+        elif n.y > 0.7 or n.x > 0.7:
+            for f in range(nf - 1):
+                z0 = z1 + hf * f
+                q = p0 + t * (L / 2) + n * 0.03
+                a_, b_ = q - t * 0.6, q + t * 0.6
+                mb.face([(a_.x, a_.y, z0 + 0.9), (b_.x, b_.y, z0 + 0.9), (b_.x, b_.y, z0 + 2.2), (a_.x, a_.y, z0 + 2.2)], 'glass', panes=(2, 1))
+    _flat(mb, [o], top, 'roof_flat')
+    c = (sum(p[0] for p in o) / len(o), sum(p[1] for p in o) / len(o))
+    mb.box((c[0] + 2.0, c[1] + 0.8, top + 1.2), (3.0, 2.6, 2.4), 'plaster_cream', mats={'top': 'concrete'})
+    mb.cylinder((c[0] - 2.6, c[1] - 1.2), 0.8, top, top + 1.6, 'paint_blue', seg=10)
+
+
+def _tower97(mb, d):
+    """The tower going up on the corner lot south of 홍익문고 in July 1997 (엘리트 빌딩 now; 1998's 삼성증권 and
+    맥도날드 신촌점): fifteen storeys of bare concrete frame up to its roof (74.5 m in the scans of 27/18 · 27/19 ·
+    27/20), the slabs' edges and the columns light, the bays between them open and dark, no glass yet; the round end by
+    연세로 carrying its stair drum and the ring over it; a tower crane climbing in its east part, the jib out over
+    홍익문고 and 연세로 (the scans' 80 - 88 m)"""
+    o, base, top, nf = _ccw([tuple(p) for p in d['outline']]), d['base'], d['top'], d['floors']
+    z1 = base + 4.5
+    hf = (top - z1) / (nf - 1)
+    cyl = d['cyl']
+    for i in range(len(o)):
+        p0, t, n, L = _side(o, i)
+        a, b = o[i], o[(i + 1) % len(o)]
+        at = lambda s_: (p0.x + t.x * s_, p0.y + t.y * s_)
+        _quad(mb, a, b, base, z1 - 0.6, 'trim_black')     # (the ground floor: open, behind the hoarding)
+        _quad(mb, a, b, z1 - 0.6, z1, 'concrete')
+        cols = max(1, round(L / 3.6))
+        for f in range(1, nf):
+            z0 = z1 + hf * (f - 1)
+            ze, zs, zh = z0 + hf, z0 + 1.1, z0 + hf - 0.6
+            _quad(mb, a, b, z0, zs, 'concrete')           # (the sill wall over the slab)
+            _quad(mb, a, b, zh, ze, 'concrete')           # (the beam and the next slab's edge)
+            for j in range(cols):                          # (the bays: a pier each side, the opening between, no glass)
+                s0, s1 = L * j / cols, L * (j + 1) / cols
+                if s1 - s0 < 1.6:
+                    _quad(mb, at(s0), at(s1), zs, zh, 'concrete')
+                    continue
+                _quad(mb, at(s0), at(s0 + 0.5), zs, zh, 'concrete')
+                _quad(mb, at(s0 + 0.5), at(s1 - 0.5), zs, zh, 'trim_black')
+                _quad(mb, at(s1 - 0.5), at(s1), zs, zh, 'concrete')
+    _flat(mb, [o], top, 'roof_flat')
+    h_dr, r_dr, h_ring, r_ring = d['crown']
+    mb.cylinder((cyl[0], cyl[1]), r_dr, top, top + h_dr, 'concrete', seg=20, mat_cap='roof_flat')
+    for k in range(6):                                     # (the ring's posts)
+        a_ = 2 * math.pi * k / 6 + 0.3
+        q = (cyl[0] + (r_ring - 0.4) * math.cos(a_), cyl[1] + (r_ring - 0.4) * math.sin(a_))
+        mb.box((q[0], q[1], top + h_dr + (h_ring - h_dr) / 2), (0.45, 0.45, h_ring - h_dr), 'concrete')
+    ring_o = _arc((cyl[0], cyl[1]), r_ring, 0.0, 2 * math.pi, 32)[:-1]
+    ring_i = _arc((cyl[0], cyl[1]), r_ring - 1.1, 0.0, 2 * math.pi, 32)[:-1]
+    _flat(mb, [ring_o, ring_i[::-1]], top + h_ring + 0.6, 'concrete')
+    _flat(mb, [ring_o, ring_i[::-1]], top + h_ring, 'concrete', down=True)
+    for lp, inward in ((ring_o, False), (ring_i, True)):
+        for k in range(len(lp)):
+            p, q = lp[k], lp[(k + 1) % len(lp)]
+            if inward:
+                p, q = q, p
+            _quad(mb, p, q, top + h_ring, top + h_ring + 0.6, 'concrete', smooth='ring%d' % inward)
+    # the tower crane: a lattice mast from the roof (it climbs inside the frame), the slewing deck, the cab, the A-frame,
+    # the jib's triangular truss and the counter-jib with its weights, the two ties
+    mx, my, brg, jib, cjib, over = d['crane']
+    zt = top + over
+    yel = 'paint_yellow'
+    s_ = 0.8
+    corners = [(mx - s_, my - s_, 0), (mx + s_, my - s_, 0), (mx + s_, my + s_, 0), (mx - s_, my + s_, 0)]
+    for cx_, cy_, _ in corners:
+        _bar(mb, (cx_, cy_, top - 0.5), (cx_, cy_, zt), 0.16, yel)
+    zz = top
+    while zz < zt - 0.5:
+        z2 = min(zt, zz + 1.8)
+        for k in range(4):
+            (ax, ay, _), (bx, by, _) = corners[k], corners[(k + 1) % 4]
+            _bar(mb, (ax, ay, z2), (bx, by, z2), 0.08, yel)
+            _bar(mb, (ax, ay, zz), (bx, by, z2), 0.07, yel)
+        zz = z2
+    u = Vector((math.sin(math.radians(brg)), math.cos(math.radians(brg)), 0))
+    v = Vector((-u.y, u.x, 0))
+    ang = math.atan2(u.y, u.x)
+    m0 = Vector((mx, my, 0))
+    mb.box((mx, my, zt + 0.4), (2.6, 2.6, 0.8), yel, rotz=ang)
+    cab = m0 + u * 1.6 + v * 1.5
+    mb.box((cab.x, cab.y, zt + 1.6), (1.6, 1.4, 1.8), 'paint_white', rotz=ang)
+    P = lambda along, side, z: tuple(m0 + u * along + v * side + Vector((0, 0, z)))
+    for side in (-0.6, 0.6):                               # (the jib's two lower chords)
+        _bar(mb, P(0.0, side, zt + 0.9), P(jib, side, zt + 0.9), 0.14, yel)
+    _bar(mb, P(0.0, 0.0, zt + 2.3), P(jib, 0.0, zt + 2.3), 0.14, yel)       # (its top chord)
+    k = int(jib // 2.0)
+    for j in range(k):                                     # (the web: two diagonals and a strut each 2 m)
+        a0, a1 = 2.0 * j, 2.0 * (j + 1)
+        for side in (-0.6, 0.6):
+            _bar(mb, P(a0, side, zt + 0.9), P(a1, 0.0, zt + 2.3), 0.06, yel)
+        _bar(mb, P(a1, -0.6, zt + 0.9), P(a1, 0.6, zt + 0.9), 0.06, yel)
+    for side in (-0.5, 0.5):                               # (the counter-jib)
+        _bar(mb, P(0.0, side, zt + 0.9), P(-cjib, side, zt + 0.9), 0.24, yel)
+    w_ = P(-(cjib - 2.0), 0.0, zt + 0.2)
+    mb.box(w_, (3.0, 2.0, 2.0), 'concrete', rotz=ang)
+    _bar(mb, (mx, my, zt + 0.8), (mx, my, zt + 6.8), 0.45, yel)            # (the A-frame's mast)
+    for along, z in ((jib * 0.62, zt + 2.3), (-(cjib - 1.0), zt + 1.0)):   # (the ties to the jib and the weights' end)
+        _bar(mb, (mx, my, zt + 6.8), P(along, 0.0, z), 0.06, 'metal_dark')
+
+
+def _bar(mb, p, q, w, mat):
+    """a thin square bar from p to q (3D), w across"""
+    p, q = Vector(p), Vector(q)
+    a = q - p
+    if a.length < 1e-6:
+        return
+    a.normalize()
+    r = a.cross(Vector((0, 0, 1)) if abs(a.z) < 0.9 else Vector((1, 0, 0))).normalized() * (w / 2)
+    s = a.cross(r).normalized() * (w / 2)
+    c = [r + s, -r + s, -r - s, r - s]
+    for k in range(4):
+        e0, e1 = c[k], c[(k + 1) % 4]
+        mb.face([tuple(p + e0), tuple(p + e1), tuple(q + e1), tuple(q + e0)], mat)
+
+
 def landmarks():
     mb = MeshBuilder('town_landmarks')
     for d in T.get('landmarks', []):
-        dict(grace=_grace, grand=_grand, kexim=_kexim)[d['kind']](mb, d)
+        dict(grace=_grace, grand=_grand, kexim=_kexim, kumkang=_kumkang, hongik=_hongik, tower97=_tower97)[d['kind']](mb, d)
         # (its walls down from the floor, which is the front walk's, to the ground's lowest corner behind: `foot`)
         if d.get('foot', d['base']) < d['base'] - 0.02:
             o = _ccw([tuple(p) for p in d['outline']])

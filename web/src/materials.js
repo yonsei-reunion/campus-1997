@@ -763,6 +763,7 @@ export class MaterialLibrary {
         m.emissiveMap = m.map;
         m.emissive = new THREE.Color(0.35, 0.35, 0.35);
       }
+      if (d.cut) m.alphaTest = d.cut;                 // (boards whose words stand on a wall: the rest cut away)
     } else {
       const P = d.clearcoat ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
       m = new P({
