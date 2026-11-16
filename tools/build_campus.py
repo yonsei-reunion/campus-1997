@@ -6864,15 +6864,21 @@ _jh_took, JONGHAP97_GRADE = jonghap97.grade(
     harmonic_fill, eased=_jh_eased)
 FIXED[_jh_took] = True
 print('종합관 · 외솔관2 · 인문관 둘레:', JONGHAP97_GRADE)
-# 교육관 북쪽 마당 · 연희관 서쪽 옆길 (tools/gyoyuk97.py, reference/고증/3.5.1 「1997년 7월 원본 스캔으로 다시 잰 띠의 서쪽」 ·
-# 3.18 「교육관」; #189, hk): the yard north of 교육관 and east of the works yard to the drive west of 연희관, and that
-# drive to abreast of the wing's north end, on the 1997 scans' level, where the game kept a ridge between the works
-# yard and 연희관's back (the drive 2 - 4 m over the scans) and the hall's floor for the yard north of it.  The drive
-# goes on up one grade to the 상뜰's footway (3.6's, which stays).  Late, here: the planting has read the ground as it was
+# 교육관 북쪽 마당 · 연희관 서쪽 옆길 · 상뜰 서쪽 길 · 상뜰 남쪽 보도 (tools/gyoyuk97.py, reference/고증/3.5.1 「1997년 7월 원본
+# 스캔으로 다시 잰 띠의 서쪽」 · 「옆길 북쪽과 상뜰 남쪽 보도」, 3.18 「교육관」; #189): the yard north of 교육관 and east of
+# the works yard to the drive west of 연희관, that drive on beside the 상뜰 to 대우관's west wing, the footway along the
+# 상뜰's south edge and its two links down to the car park behind 연희관 and on to 별관's drive, on the 1997 scans' (and
+# the leafless 1996 frames') levels, where the game kept a ridge between the works yard and 연희관's back, the hall's
+# floor for the yard north of it and the drive, the footway and the drive beside the 상뜰 2 - 3.6 m over the scans.
+# The 상뜰 (its level, under its south flight), 대우관's terrace but for its corner in the drive's edge and the halls'
+# feet stay.  Late, here: the planting has read the ground as it was
 _gy_halls = [(Polygon(b_['footprint']).buffer(0), 3.5 if b_['id'] == 245623193 else 2.0)
-             for b_ in buildings if b_['id'] in (246156111, 245623759, 245623193)]
+             for b_ in buildings if b_['id'] in (246156111, 245623759, 245623193, 242897922, 242897923)]
+_gy_keep = shapely.contains_xy(Polygon(SANG_DIAMOND).buffer(3.0), X, Y) | \
+    (_court & (shapely.distance(gyoyuk97.DRIVE, shapely.points(X, Y)) > 4.0))
 _gy_took, GYOYUK97_GRADE = gyoyuk97.grade(Hn, X, Y, FIXED, _gy_halls, harmonic_fill,
-                                          lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
+                                          lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_), _gy_keep,
+                                          (DAEWOO['stair']['top'], DAEWOO['stair']['foot'], SANG_STAIR['width'] / 2 + 1.6))
 FIXED[_gy_took] = True
 print('교육관 북쪽 마당 · 연희관 서쪽 옆길:', GYOYUK97_GRADE)
 # ---------------------------------------------------------------------------
