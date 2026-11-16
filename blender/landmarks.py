@@ -459,18 +459,10 @@ def union():
         mb.quad(P(0, H + 1.0, 0), P(Le, H + 1.0, 0), P(Le, H + 1.0, -0.9), P(0, H + 1.0, -0.9), 'stone_panel')
     mb.face([(p[0], p[1], H + 0.2) for p in offset_poly(rect(L, W), -0.9)], 'roof_flat')
     mb.box((L * 0.2, 2, H + 1.6), (8, 6, 3.0), 'stone_panel', mats={'top': 'roof_flat'})
-    # long vertical cloth banners (동아리 / 총학생회 현수막) on the front facade
-    banners = []
-    cols = ['banner_yellow', 'banner_red', 'banner_orange', 'banner_yellow']
-    bm = MeshBuilder('lm_union_banners')
-    bm.xf = mb.xf
-    for k, c in enumerate(cols):
-        s = -6 + k * 2.6
-        y = -W / 2 - 0.1
-        bm.quad((s, y, g + 1.5), (s + 1.8, y, g + 1.5), (s + 1.8, y, H - 0.6), (s, y, H - 0.6), c,
-                uvs=[(k * 0.25, 0), (k * 0.25 + 0.25, 0), (k * 0.25 + 0.25, 1), (k * 0.25, 1)])
+    # (no banners on the front: the four long coloured ones hang in one photo alone, 1997_학생회관.jpg; the 1997 April
+    # marathon's, the 2009 and 2025 photos and 학교연혁_학생회관.jpg show the screen bare, reference/고증 3.3)
     # the lower white wing in the 1997 photo (학생회관 별관 is generic) -> nothing else
-    return [mb, bm]
+    return [mb]
 
 
 # ============================================================================= 백주년기념관
@@ -874,18 +866,28 @@ def museum_porch(A, B, z0, HR, PD):
     zz = zf + 6.0
     mb.box(P((S0 + S1) / 2, zz, (dg0 - 7.0) / 2 + (dg1 - dg0) * ((zz - g0) / (g1 - g0)) / 2), (S1 - S0, 7.0 - 1.6, 0.3), D,
            rotz=math.atan2(t.y, t.x))
-    # the white tubes slanting up in front of the glass, and the museum's banners hanging between them
+    # the white tubes slanting up in front of the glass, and the museum's banners hanging between them: six, one in
+    # every bay (the three front photos), 「YONSEI UNIVERSITY MUSEUM」 down each (banner_halls: its first row lying down,
+    # the image's top along the banner's right edge), the cloth's back plain
     for k in range(1, 6):
         s_ = S0 + (S1 - S0) * k / 6
         rod(mb, P(s_, zct, -1.6), P(s_, HR - 0.3, 0.55), 0.2, 'paint_white', seg=10, caps=True)
-    for k in (1, 2, 3, 4):
+    Va, Vb = 1 - 1 / 1024, 1 - 300 / 1024                     # (make_textures.py HALL_BANNERS['museum'])
+    for k in range(6):
         s_ = S0 + (S1 - S0) * (k + 0.5) / 6
         zt_, zb_ = g1 - 0.2, zct + 0.5
-        mb.quad(P(s_ - 0.5, zb_, 0.3), P(s_ + 0.5, zb_, 0.3), P(s_ + 0.5, zt_, 0.3), P(s_ - 0.5, zt_, 0.3), 'flag_cloth')
+        mb.quad(P(s_ - 0.5, zb_, 0.3), P(s_ + 0.5, zb_, 0.3), P(s_ + 0.5, zt_, 0.3), P(s_ - 0.5, zt_, 0.3), 'banner_halls',
+                uvs=[(1.0, Vb), (1.0, Va), (0.0, Va), (0.0, Vb)])
         mb.quad(P(s_ + 0.5, zb_, 0.3), P(s_ - 0.5, zb_, 0.3), P(s_ - 0.5, zt_, 0.3), P(s_ + 0.5, zt_, 0.3), 'flag_cloth')
-        for zz in (zb_ + 0.4, zt_ - 0.8):
-            mb.quad(P(s_ - 0.5, zz, 0.31), P(s_ + 0.5, zz, 0.31), P(s_ + 0.5, zz + 0.12, 0.31), P(s_ - 0.5, zz + 0.12, 0.31), 'paint_blue')
         bar(mb, P, s_ - 0.55, zt_ + 0.03, s_ + 0.55, zt_ + 0.03, 0.06, 0.25, 0.36, 'metal_dark', ends=True)
+    # the lecture's banner hung under the canopy's edge, in front of the doors (박물관 강좌 「민요의 현장을 찾아서」, three
+    # of the four photos: about half the canopy's width, its foot over the doors' heads), and the exhibition's round the
+    # cylinder's west side from the granite band up to the cap (「예학명과 중국 양자강 유역 석각」, all four photos)
+    Va, Vb = 1 - 377 / 1024, 1 - 506 / 1024                   # (HALL_BANNERS['lecture'])
+    sm, zl = (S0 + S1) / 2, zcb - 0.03
+    mb.quad(P(sm - 3.7, zl - 0.95, 0.56), P(sm + 3.7, zl - 0.95, 0.56), P(sm + 3.7, zl, 0.56), P(sm - 3.7, zl, 0.56), 'banner_halls',
+            uvs=[(0.0, Vb), (1.0, Vb), (1.0, Va), (0.0, Va)])
+    mb.quad(P(sm + 3.7, zl - 0.95, 0.55), P(sm - 3.7, zl - 0.95, 0.55), P(sm - 3.7, zl, 0.55), P(sm + 3.7, zl, 0.55), 'flag_cloth')
     # the canopy: a deep dark slab over the doors, its fascia the whole width
     ang = math.atan2(t.y, t.x)
     mb.box(P((S0 + S1) / 2, (zcb + zct) / 2, (dr + 0.5) / 2), (S1 - S0, 0.5 - dr, zct - zcb), D, rotz=ang)
@@ -907,6 +909,15 @@ def museum_porch(A, B, z0, HR, PD):
         zk = zf + k * 1.2
         if not zb0 - 0.2 < zk < zb1 + 0.2:
             mb.cylinder((cx, cy), 2.62, z0 + zk, z0 + zk + 0.04, 'stone_ashlar', seg=28, cap_top=False)
+    # its banner (HALL_BANNERS['show']): 100 degrees of it facing 백양로, from over the granite band to under the cap,
+    # read from the left
+    Va, Vb = 1 - 513 / 1024, 1 - 822 / 1024
+    a0, rb, za_, zb_, N = math.atan2(n.y, n.x), 2.68, z0 + zb1 + 0.1, z0 + ZC - 0.8, 16
+    ring = [(cx + rb * math.cos(a0 + math.radians(100 * (i / N - 0.5))), cy + rb * math.sin(a0 + math.radians(100 * (i / N - 0.5))))
+            for i in range(N + 1)]
+    for i, (p_, q_) in enumerate(zip(ring, ring[1:])):
+        mb.quad((*p_, za_), (*q_, za_), (*q_, zb_), (*p_, zb_), 'banner_halls', smooth='mu_show',
+                uvs=[(i / N, Vb), ((i + 1) / N, Vb), ((i + 1) / N, Va), (i / N, Va)])
     # the flights down to 백양로: the terrace before the face (centennial_terrace; before it, one flight as wide as the
     # entrance down to the forecourt)
     if not CAMPUS.get('centennial_terrace'):
@@ -3781,10 +3792,10 @@ def daewoo_front(mb, lv, z0):
     shopfront(mb, Pf, fa + 0.05, fa + ow - 0.05, zP, zc - 0.01, -3.0)
     vestibule(mb, Pf, fa + 0.03, fa + ow - 0.03, zP + 0.005, zc - 0.03, -3.02, vl - vr - 0.05, lights=3)
     hp = (ib - ia) / 2
-    zb0 = zc + 0.45                                                    # the blue name board over the arch
-    mb.quad(Pf(hp - 4.6, zb0, 0.05), Pf(hp + 4.6, zb0, 0.05), Pf(hp + 4.6, zb0 + 0.62, 0.05), Pf(hp - 4.6, zb0 + 0.62, 0.05), 'sign_blue')
-    bar(mb, Pf, hp - 4.7, zb0 + 0.31, hp + 4.7, zb0 + 0.31, 0.72, 0.0, 0.04, 'stone_trim', ends=True)
-    mb.quad(Pf(hp - 3.8, zb0 + 0.27, 0.06), Pf(hp + 3.8, zb0 + 0.27, 0.06), Pf(hp + 3.8, zb0 + 0.35, 0.06), Pf(hp - 3.8, zb0 + 0.35, 0.06), 'paint_white')
+    zb0 = zc + 0.45                                                    # the blue banner over the arch
+    Va, Vb = 1 - 305 / 1024, 1 - 372 / 1024                            # (make_textures.py HALL_BANNERS['daewoo'])
+    mb.quad(Pf(hp - 4.6, zb0, 0.03), Pf(hp + 4.6, zb0, 0.03), Pf(hp + 4.6, zb0 + 0.62, 0.03), Pf(hp - 4.6, zb0 + 0.62, 0.03), 'banner_halls',
+            uvs=[(0.0, Vb), (1.0, Vb), (1.0, Va), (0.0, Va)])
     for k in range(5):                                                 # horizontal joints of the ashlar face
         z = zP + 0.6 + k * (zT - zP - 0.6) / 5
         if zs - 0.3 < z < zc + 1.2:

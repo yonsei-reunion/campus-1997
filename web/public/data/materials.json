@@ -1319,6 +1319,11 @@
   "image": "sign_yonseiro.png",
   "rough": 0.85
  },
+ "banner_halls": {
+  "_doc": "백주년기념관 박물관 현관의 현수막(세로 여섯 · 차양 밑 강좌 · 원통의 전시)과 대우관 아치 위 파란 현수막 (tools/make_textures.py banner_halls, 한 줄에 한 장)",
+  "image": "banner_halls.png",
+  "rough": 0.85
+ },
  "sign_rotary": {
   "_doc": "신촌 로터리 북쪽 연세로 위의 파란 방향 표지 「모래내 · 독립문」 (tools/make_textures.py sign_rotary, 1996년 사진 51979)",
   "image": "sign_rotary.png",

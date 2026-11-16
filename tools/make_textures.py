@@ -6,6 +6,7 @@ Outputs (web/public/assets/textures):
   litter_petals.png               fallen cherry petals, the same
   sign_shops.png                  4x4 atlas of 1997 Sinchon storefront signboards
   sign_gate.png                   延世大學校 gate plaque
+  banner_halls.png                the cloth banners on 백주년기념관's museum porch and over 대우관's door
 Run: .venv/bin/python tools/make_textures.py
 """
 import math, os, random, sys
@@ -962,6 +963,122 @@ def rot_signs():
 
 
 rot_signs()
+
+
+# banner_halls.png: the cloth banners hung on two halls (blender/landmarks.py museum_porch, daewoo_front), 1024 x 1024,
+# one row each (HALL_BANNERS: first row, rows; the same numbers set the UVs there):
+# - 백주년기념관's long museum banners, six before the glass (the 1996 graduation photos, reference/백주년기념관_박물관입구_
+#   1996_*.jpg): white cloth 1.0 x 3.4 m, 「YONSEI UNIVERSITY MUSEUM」 read downwards in each half, a blue band
+#   between the halves, a green and an orange line down the left edge, the museum's small green mark at the foot.
+#   Drawn lying down: x down the banner from its top, the image's top row along its right edge
+# - 대우관's blue banner over the arched door (대우관_정면_전경.jpg, 대우관_블로그_본관_정면_상뜰.jpg: blue cloth, white
+#   words, a mark at each end; the words of 1997 are made up: 상경대학 dates from 연희전문's 상과 of 1915), 9.2 x 0.62 m
+# - the lecture's banner under the porch's canopy (박물관 강좌 「민요의 현장을 찾아서 — 한국전통민요의 이해와 감상」,
+#   read off three of the four photos; the year and the number left off), 7.4 x 0.95 m
+# - the exhibition's banner round the porch's white cylinder (「예학명과 중국 양자강 유역 석각」, all four photos; the
+#   small print is made up), 4.7 m round x 1.4 m
+HALL_BANNERS = dict(museum=(0, 301), daewoo=(304, 69), lecture=(376, 131), show=(512, 312))
+
+
+def hall_banners():
+    if ONLY and 'banner_halls' not in ONLY:
+        return
+    K = 2                                                              # drawn at twice the size, then halved
+
+    def fnt(size, path='/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc'):
+        for i in (1, 0, 2, 3):
+            try:
+                return ImageFont.truetype(path, int(size * K), index=i)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+
+    def fit(d, txt, f_of, size, room):
+        """the font of txt at size, made smaller until it is no wider than room (px of the final image)"""
+        while size > 8 and d.textlength(txt, font=f_of(size)) > room * K:
+            size -= 1
+        return f_of(size)
+
+    def squeezed(txt, f, fg, bg, w, h):
+        """txt drawn at the font f and squeezed to w x h px (of the final image): a condensed face"""
+        tw, th = int(f.getlength(txt)) + 4, int(f.size * 1.4)
+        t = Image.new('RGB', (tw, th), bg)
+        ImageDraw.Draw(t).text((2, th / 2), txt, font=f, fill=fg, anchor='lm')
+        bb = ImageDraw.Draw(t).textbbox((2, th / 2), txt, font=f, anchor='lm')
+        t = t.crop((max(0, bb[0] - 2), max(0, bb[1] - 2), min(tw, bb[2] + 2), min(th, bb[3] + 2)))
+        return t.resize((int(w * K), int(h * K)), Image.LANCZOS)
+
+    def mark(d, x, y, s, fg, bg):
+        """the museum's small mark: a green square with a dark bar under it (s px of the final image)"""
+        d.rectangle([x * K, y * K, (x + s) * K, (y + s * 0.62) * K], fill=(40, 140, 80))
+        d.rectangle([x * K, (y + s * 0.7) * K, (x + s) * K, (y + s) * K], fill=(36, 36, 36))
+        d.rectangle([(x + s * 0.18) * K, (y + s * 0.16) * K, (x + s * 0.82) * K, (y + s * 0.46) * K], fill=bg)
+
+    W = 1024
+    img = Image.new('RGB', (W * K, W * K), (240, 240, 236))
+    d = ImageDraw.Draw(img)
+    white, ink, green, orange, blue = (246, 246, 242), (62, 62, 66), (40, 140, 80), (226, 120, 40), (30, 72, 168)
+
+    # the museum banner (lying down: x from its top, row 0 its right edge)
+    y0, h = HALL_BANNERS['museum']
+    d.rectangle([0, y0 * K, W * K, (y0 + h) * K], fill=white)
+    band = 470
+    d.rectangle([band * K, y0 * K, (band + 16) * K, (y0 + h) * K], fill=blue)
+    for xa, xb, col in ((12, band - 6, green), (band + 22, W - 12, orange)):
+        d.rectangle([xa * K, (y0 + h - 40) * K, xb * K, (y0 + h - 34) * K], fill=col)
+    word = squeezed('YONSEI UNIVERSITY MUSEUM', fnt(60, '/usr/share/fonts/opentype/noto/NotoSansCJK-Medium.ttc'), ink, white, 410, 44)
+    for xa in (36, band + 56):
+        img.paste(word, (xa * K, (y0 + h - 94) * K))
+    mark(d, W - 70, y0 + h - 86, 40, green, white)
+
+    # 대우관's banner: blue cloth, white words, a round mark at each end
+    y0, h = HALL_BANNERS['daewoo']
+    d.rectangle([0, y0 * K, W * K, (y0 + h) * K], fill=(26, 66, 160))
+    for xc in (34, W - 34):
+        r = h * 0.36
+        d.ellipse([(xc - r) * K, (y0 + h / 2 - r) * K, (xc + r) * K, (y0 + h / 2 + r) * K], outline=white, width=3 * K)
+        d.rectangle([(xc - r * 0.45) * K, (y0 + h / 2 - r * 0.5) * K, (xc + r * 0.45) * K, (y0 + h / 2 + r * 0.5) * K], fill=white)
+    txt = '상경대학 창립 82주년 기념 학술 심포지엄'
+    f = fit(d, txt, fnt, 34, W - 150)
+    d.text((W / 2 * K, (y0 + h / 2) * K), txt, font=f, fill=white, anchor='mm')
+
+    # the lecture: white cloth, a green flag top left, the title in black, the subtitle in green, a green foot
+    y0, h = HALL_BANNERS['lecture']
+    d.rectangle([0, y0 * K, W * K, (y0 + h) * K], fill=white)
+    d.polygon([(0, y0 * K), (430 * K, y0 * K), (400 * K, (y0 + 26) * K), (0, (y0 + 26) * K)], fill=green)
+    d.text((24 * K, (y0 + 13) * K), '연세대학교 박물관 강좌', font=fnt(19), fill=white, anchor='lm')
+    d.text((W / 2 * K, (y0 + 56) * K), '민요의 현장을 찾아서', font=fit(d, '민요의 현장을 찾아서', fnt, 50, 820), fill=(24, 24, 24), anchor='mm')
+    d.text((W / 2 * K, (y0 + 96) * K), '— 한국전통민요의 이해와 감상 —', font=fnt(19), fill=green, anchor='mm')
+    d.rectangle([0, (y0 + h - 20) * K, W * K, (y0 + h) * K], fill=green)
+    d.text((W / 2 * K, (y0 + h - 10) * K), '▪ 곳: 백주년기념관 시청각실        ▪ 주최: 연세대학교 박물관',
+           font=fnt(13), fill=white, anchor='mm')
+
+    # the exhibition round the cylinder: white, a green and an orange line down the left, a blue line along the top,
+    # the stone's name in pale grey brush strokes on the left, the title in black on the right
+    y0, h = HALL_BANNERS['show']
+    d.rectangle([0, y0 * K, W * K, (y0 + h) * K], fill=white)
+    d.rectangle([60 * K, (y0 + 10) * K, 68 * K, (y0 + 70) * K], fill=green)
+    d.rectangle([60 * K, (y0 + 70) * K, 68 * K, (y0 + h - 10) * K], fill=orange)
+    d.text((86 * K, (y0 + 34) * K), '연세대학교 박물관 특별 전시', font=fnt(19), fill=ink, anchor='lm')
+    d.polygon([(76 * K, (y0 + 64) * K), (W * K, (y0 + 58) * K), (W * K, (y0 + 66) * K), (76 * K, (y0 + 72) * K)], fill=blue)
+    fs = fnt(66, '/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc')
+    for k, ch in enumerate('瘞鶴銘'):
+        d.text((150 * K, (y0 + 118 + k * 66) * K), ch, font=fs, fill=(196, 196, 192), anchor='mm')
+    fs = fnt(50, '/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc')
+    for k, ch in enumerate('鶴壽不知'):
+        d.text((232 * K, (y0 + 120 + k * 52) * K), ch, font=fs, fill=(206, 206, 202), anchor='mm')
+    d.text((640 * K, (y0 + 132) * K), '예학명과', font=fnt(54), fill=(24, 24, 24), anchor='mm')
+    d.text((640 * K, (y0 + 208) * K), '중국 양자강 유역 석각', font=fit(d, '중국 양자강 유역 석각', fnt, 54, 600), fill=(24, 24, 24), anchor='mm')
+    d.text((330 * K, (y0 + 268) * K), '전시장소: 연세대학교 박물관 (백주년기념관)', font=fnt(15), fill=ink, anchor='lm')
+    d.text((330 * K, (y0 + 290) * K), '주최: 연세대학교 박물관', font=fnt(15), fill=ink, anchor='lm')
+    mark(d, W - 80, y0 + h - 66, 44, green, white)
+
+    img = img.resize((W, W), Image.LANCZOS)
+    img.save(os.path.join(OUT, 'banner_halls.png'), optimize=True)
+    print('banner_halls')
+
+
+hall_banners()
 
 if ONLY:
     raise SystemExit(0)
