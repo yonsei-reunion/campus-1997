@@ -5,7 +5,7 @@ tools/build_campus.py 가 부른다. 근거와 잰 값은 reference/고증/3.8_�
     eng97.grade(Hn, X, Y, FIXED, halls, fill, site_o, site_rot, pit, slab)   # 땅 (저장 바로 앞, 심기가 끝난 뒤)
     eng97.deck_parts(G, gx, step)        # 서쪽 옹벽 윗단의 데크가 덮을 칸과 그 평면
     eng97.walls(low, up)                 # 옹벽의 줄 [x, y, 발치, 윗단 땅]
-    eng97.nb_outline(fp)                 # 제1공학관 북쪽 동의 1997년 외곽(서쪽 날개의 서쪽 면 · 북쪽 끝, 가운데 날개의 북쪽 끝)
+    eng97.outline(eng97.NORTH_1997)      # 제1공학관 세 동(EAST_1997 · SOUTH_1997 · NORTH_1997)의 1997년 외곽, 게임 좌표로
     eng97.north_paved()                  # 제2공학관 북쪽 길 · 공학관 사이 윗단 · 골목의 포장
     eng97.move_off(trees, shrubs, props) # 안뜰 건물 자리의 나무는 1997년에 나무가 있던 곳으로(목록 제자리), 관목 · 소품은 뺌
     eng97.south_paint()                  # 제3공학관 남쪽: 걷어 낼 것, 맨땅, 테라스의 포장 (3.8 「제3공학관 남쪽」)
@@ -37,6 +37,9 @@ What the scans (26/16 · 26/15 · 27/17, each pair by itself, 1.5 - 3 m windows)
   it and the gap's upper ground 1.4 - 2.7 m higher (the 2006 · 2024 35 m contours across it agree).  The north block's
   west wing ends 2.1 m east of OSM's face (u -28.6) and 2.3 m north of it (v 60.0; the middle wing v 60.4), where the
   cars parked along the lane and nose in to the north wall have it (four frames on the roof's plane, within 0.3 m).
+- The three blocks (#201): the 2006 survey's outline fits every roof edge of the 1997 scans once moved u +1.47,
+  v -0.78 (the survey's frame against the scans' block here); the faces read on their own above agree with it within
+  0.5 m.  EAST_1997 · SOUTH_1997 · NORTH_1997 are that outline.
 
 - 제3공학관 남쪽 (the third round; 26/16 · 26/15 alone reach it): the hall's roof deck 54.5 m (two rows of points along
   it), where the game's five storeys ended at 52.4 m.  South of it a terrace, its tile-paved east part (u -65.5 .. -43,
@@ -94,6 +97,21 @@ GAP_N = 72.0                                # (the wall's north end, its return:
 LANE_V, LANE_Z = (30.0, 66.0), (27.9, 28.7)
 # the north block's west wing in 1997 (its roof's edges on the roof's plane): the west face, the north ends
 NB_ID, NB_WEST_U, NB_NORTH_V, NB_MID_NORTH_V = 1451926793, -28.6, 60.0, 60.4
+# The three blocks in 1997 (#201, reference/고증/3.8.1): the 2006 survey's outline of the hall
+# (1:5000 「서울078」: before the 2007 storey and the 2014 - 2015 wings) moved onto the 1997 scans' roofs, u +1.47 m,
+# v -0.78 m (26/15 · 26/16 · 27/17 on the roofs' plane 47.6 m 해발, within 0.1 m of each other, turned under 0.1°),
+# split where the game splits the hall: the east wing (blender/landmarks.py engineering), the south block and the north
+# block, each up to the east wing's west face.  OSM had them 1.5 - 2 m west, the north block's south face 3.2 m south
+EAST_1997 = [(35.32, -29.52), (34.52, 33.78), (49.67, 33.87), (50.4, -29.33)]
+SOUTH_1997 = [(-27.43, -57.13), (-27.43, -21.51), (22.38, -20.84), (22.44, -26.12), (35.28, -25.94), (35.32, -29.52),
+              (22.19, -29.69), (22.49, -56.42), (7.56, -56.6), (7.49, -33.76), (8.21, -33.76), (8.2, -30.99), (3.97, -31.01),
+              (3.97, -30.16), (-12.11, -30.08), (-12.3, -56.94)]
+NORTH_1997 = [(34.56, 30.44), (21.49, 30.26), (21.56, 24.92), (-28.11, 24.23), (-28.55, 59.8), (-13.66, 59.99), (-13.32, 33.1),
+              (3.13, 33.34), (3.11, 34.46), (7.65, 34.52), (7.61, 37.46), (6.51, 37.44), (6.41, 59.9), (21.58, 59.99), (21.7, 33.71),
+              (34.52, 33.78)]
+# the two blocks' doors as first put (on OSM's outlines), on the same faces of the 1997 ones: the north block's on the
+# north face of its link to the east wing, the south block's on the south face of its link
+NB_DOOR_UV, SW_DOOR_UV = (27.35, 33.74), (28.0, -29.61)
 # 제2공학관 북쪽 길 (the road north of 제2공학관, its two rows of cars, from the 체육관 junction at its west end to the gap):
 # level across from the hall's north face to v 62, its height along u (해발): the scans' pair 26/16 · 26/15 on the
 # aisle (v 47 - 56, 2 m windows, medians), the survey's spot at the west end
@@ -156,9 +174,9 @@ WALL_RUNS.append((STEP_TOP, STEP_LINE, (0.0, -0.8)))
 GARDEN_UV = (26.8, 51.2, -58.3, -32.6)
 GARDEN_WALK, GARDEN_WALK_W = [(28.2, -56.6), (50.9, -35.4)], 2.0
 GARDEN_MORE = [(44.8, -36.2), (30.5, -47.5), (45.5, -45.5), (44.5, -50.0), (44.5, -56.3), (31.0, -57.0)]
-# the north block's west court (between the west and the middle wing, open to the yard's south road): u0, u1, v0, v1,
-# its ground (해발: nine points)
-NB_COURT_UV, NB_COURT_Z = (-13.8, 5.3, 31.0, 60.2), 27.75
+# the north block's west court (between the west and the middle wing of NORTH_1997, open to the yard's south road): u0,
+# u1, v0, v1, its ground (해발: nine points)
+NB_COURT_UV, NB_COURT_Z = (-13.5, 6.45, 33.2, 60.0), 27.75
 # the strip along the north block's north face (the cars' row nosed in to it, the yard's south road): its ground at the
 # face (해발, the scans' v 62 - 66) and where it meets the yard west of the eagle as the game has it (west_ground)
 NB_STRIP_V, NB_STRIP_Z = (64.0, 72.0), 27.9
@@ -270,20 +288,9 @@ def upper(h0):
     return f
 
 
-def nb_outline(fp):
-    """the north block's 1997 outline from OSM's (fp, its vertices in OSM's order): the west wing's west face at
-    NB_WEST_U, its north end at NB_NORTH_V, the middle wing's north end at NB_MID_NORTH_V"""
-    out = []
-    for x, y in fp:
-        u_, v_ = (float(c) for c in uv(x, y))
-        if abs(u_ + 30.7) < 0.5:
-            u_ = NB_WEST_U
-        if abs(v_ - 57.7) < 0.5 and u_ < 0.0:
-            v_ = NB_NORTH_V
-        elif abs(v_ - 58.0) < 0.5 and u_ > 0.0:
-            v_ = NB_MID_NORTH_V
-        out.append(tuple(round(c, 2) for c in xy(u_, v_)))
-    return out
+def outline(uvs):
+    """an outline given in the wings' frame (EAST_1997, SOUTH_1997, NORTH_1997) in game coordinates"""
+    return [tuple(round(float(c), 2) for c in xy(u_, v_)) for u_, v_ in uvs]
 
 
 def north_paved():
@@ -306,7 +313,7 @@ def grade(Hn, X, Y, FIXED, halls, fill, site_o, site_rot, pit, slab):
     c, s = math.cos(site_rot), math.sin(site_rot)
     US, VS = (X - site_o[0]) * c + (Y - site_o[1]) * s, -(X - site_o[0]) * s + (Y - site_o[1]) * c
     east = np.where(V > -30.6, 40.0, 50.0)
-    top = np.where(U < -28.5, 30.0, 27.0)
+    top = np.where(U > 21.0, 30.5, 30.0)          # (5 - 6 m in under NORTH_1997's bar, up to its link east of it)
     yard = (V >= -64.0) & (V < top) & (U > _west(V)) & (U < east)
     road = (V < -64.0) & (V >= -74.5) & (U >= -88.0) & (U <= 56.0)
     site = (US >= -80.5) & (US <= 54.0) & (VS >= 6.0) & (VS <= 90.0)

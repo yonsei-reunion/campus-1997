@@ -161,15 +161,15 @@ LATE_FOOTPRINT_1997 = {1178743320: [(482.62, 70.11), (489.63, 62.96), (493.39, 6
 #   OSM's north face (86 - 88 m along; the 2011 roadview and the 1994 photo see it 2 - 7 m short, reference/고증.md
 #   5장).  The 1997-07-28 vertical aerial photos (reference/고증/3.8) end the roof 64.2 m north of that corner, three
 #   frames within 0.5 m (the south end on the roadview's corner to 0.4 m): 2.6 m past OSM's north face, as every
-#   north edge of the halls west of it stands 2.6 - 3 m north of OSM's there.  The hall goes on to there.
-_ENG_N = 2.6
-_ent = np.array([16.14, 59.49]) / 61.64                       # along the east face, south to north
+#   north edge of the halls west of it stands 2.6 - 3 m north of OSM's there.  The hall went on to there (ENG_FP_RNG,
+#   as the planting and the clearings read it).  Since #201 all three blocks stand where the 1997 scans have their
+#   roofs, in the frame the roads are laid in (eng97.EAST_1997 · SOUTH_1997 · NORTH_1997: the 2006 survey's outline
+#   moved onto the scans' roofs): the east wing 1.5 - 2 m east of the roadview's corner, 15.1 m wide (OSM's 14.0 m)
 ENG_FP_RNG = [(-124.14, -280.18), (-108.0, -220.69), (-121.44, -216.91), (-137.84, -276.66)]
 LATE_FOOTPRINT_1997.update({
     429249499: [(62.85, -84.25), (106.77, -95.8), (113.08, -72.16), (69.16, -60.6)],
     256933753: [(-59.05, 125.82), (-13.1, 113.6), (-18.23, 94.69), (-64.14, 106.9)],
-    205583531: [ENG_FP_RNG[0]] + [tuple(round(float(c_), 2) for c_ in np.array(q_) + _ent * _ENG_N) for q_ in ENG_FP_RNG[1:3]]
-               + [ENG_FP_RNG[3]],
+    205583531: eng97.outline(eng97.EAST_1997),
 })
 # 의료원 (1990 · 1995 지도, 1990년 무렵 항공 사진; reference/고증.md 3.1.2).  The new 세브란스병원 (2005.5) and
 # 의료원 종합관 (2008) go; a name of None leaves the site a car park (asphalt), with no 공사중 marker: the old halls
@@ -7129,28 +7129,35 @@ print('무악학사 길: %d nodes graded (%d level), most moved %.1f m; the road
 # planting has read the ground as it was.  The three wings' platform, the service road south of it and the site on the
 # 1997 scans' heights (the game climbed west across them, 4 - 5 m too high at the west lot, where the 2006 survey has
 # its spot); the pit under the site's ground and the slab on it as they were made; the nodes behind the retaining wall
-# west of the lot down to the lot's level (the deck over them: ENG1_HALL below, after dwb_deck)
-_e97_halls = [(b_['id'], Polygon(b_['footprint']).buffer(0)) for b_ in buildings if Polygon(b_['footprint']).intersects(eng97.BOX)]
+# west of the lot down to the lot's level (the deck over them: ENG1_HALL below, after dwb_deck).  The three blocks' feet
+# kept are their 1997 outlines (eng97.EAST_1997 · SOUTH_1997 · NORTH_1997, #201), which go in with the late ones below
+ENG1_1997 = {205583531: eng97.EAST_1997, eng97.SOUTH_WING: eng97.SOUTH_1997, eng97.NB_ID: eng97.NORTH_1997}
+ENG1_1997 = {k_: Polygon(eng97.outline(v_)) for k_, v_ in ENG1_1997.items()}
+_e97_halls = [(b_['id'], ENG1_1997.get(b_['id'], Polygon(b_['footprint']).buffer(0))) for b_ in buildings
+              if Polygon(b_['footprint']).intersects(eng97.BOX)]
 # 제2공학관 북쪽 길 · 공학관 사이 (tools/eng97.py north_grade, reference/고증/2.10 · 3.8; #189), late, before the court:
 # the road north of 제2공학관 and the upper ground behind the retaining wall (on north of the lot to the yard) on the
 # 1997 scans' heights, 1.4 - 2.7 m under the game's (the 2006 · 2024 survey's spot and contours agree); 별동연구동's
-# feet with the road.  The yard west of the eagle (west_ground.eagle_yard above) stays as it is.  The north block's
-# west wing as the scans have it (2.1 m shorter on the west, 2.3 m longer on the north): its outline goes in with the
-# other late ones below, its floor and door as they were
+# feet with the road.  The yard west of the eagle (west_ground.eagle_yard above) stays as it is.  The north and south
+# blocks as the scans have them (OSM had them 1.5 - 2 m west and 0.5 - 3.2 m south; #201): their outlines go in with
+# the other late ones below, their floors and doors as they were, the doors on the same faces
 FIXED[shapely.contains_xy(west_ground.lot(), X, Y)] = True
 _e97n_box = Polygon([eng97.xy(u_, v_) for u_, v_ in ((-170.0, -30.0), (0.0, -30.0), (0.0, 110.0), (-170.0, 110.0))])
-_e97n_halls = [(b_['id'], Polygon(b_['footprint']).buffer(0)) for b_ in buildings if Polygon(b_['footprint']).intersects(_e97n_box)]
+_e97n_halls = [(b_['id'], ENG1_1997.get(b_['id'], Polygon(b_['footprint']).buffer(0))) for b_ in buildings
+               if Polygon(b_['footprint']).intersects(_e97n_box)]
 _e97n_took, ENG97N = eng97.north_grade(Hn, X, Y, FIXED, _e97n_halls, harmonic_fill,
                                        next(p_ for i_, p_ in _e97n_halls if i_ == eng97.BYEOLDONG))
 FIXED[_e97n_took] = True
 print('제2공학관 북쪽 길 · 공학관 사이 윗단: %(zone)d nodes on the 1997 heights (mean %(road)+.2f m), smoothed %(ring)d; '
       '%(nodes)d moved, most %(most)+.2f m' % ENG97N)
 _e97_nb = next(b_ for b_ in buildings if b_['id'] == eng97.NB_ID)
-LATE_FOOTPRINT_1997[eng97.NB_ID] = eng97.nb_outline(_e97_nb['footprint'])
-LATE_NO_SIMPLIFY.add(eng97.NB_ID)
-SITES_NEW_1997.add(eng97.NB_ID)
+for _e97_id, _e97_uv, _e97_door in ((eng97.NB_ID, eng97.NORTH_1997, eng97.NB_DOOR_UV),
+                                    (eng97.SOUTH_WING, eng97.SOUTH_1997, eng97.SW_DOOR_UV)):
+    LATE_FOOTPRINT_1997[_e97_id] = eng97.outline(_e97_uv)
+    LATE_NO_SIMPLIFY.add(_e97_id)
+    SITES_NEW_1997.add(_e97_id)
+    ENTRY_AT[_e97_id] = (tuple(round(float(c_), 2) for c_ in eng97.xy(*_e97_door)), {})
 BASE_1997[eng97.NB_ID] = _e97_nb['base']
-ENTRY_AT[eng97.NB_ID] = (tuple(_e97_nb['entry']['p']), {})
 ENG97 = eng97.grade(Hn, X, Y, FIXED, _e97_halls, harmonic_fill, TENNIS['o'], TENNIS['rot'], GW_PIT, GW_SLAB)
 print('제1공학관 안뜰 · 남쪽 · 공학원 공사장: %(nodes)d nodes moved (most %(most).1f m), %(n_pulled)d behind the wall, smoothed '
       '%(ring)d; the pit %(pit).2f m, the slab %(slab).2f m' % ENG97)
@@ -7189,7 +7196,7 @@ for b_ in buildings:
         _e97_hs = [ground_h(x_, y_) for x_, y_ in b_['footprint']]
         b_.update(base=round(float(ground_h(*b_['entry']['p'])) + 0.05 if b_.get('entry') else min(_e97_hs), 2),
                   top_ground=round(max(_e97_hs), 2))
-        BASE_1997[eng97.NB_ID] = b_['base']
+        BASE_1997[eng97.NB_ID] = BASE_1997[eng97.SOUTH_WING] = b_['base']
         print('   the south wing\'s floor %.2f m, the north block\'s with it' % b_['base'])
     elif b_['id'] == eng97.S3:             # (제3공학관: its floor at the landing, its roof where the scans have it, its door)
         print('   제3공학관\'s storeys %.2f m' % eng97.s3_hall(b_)[1])
