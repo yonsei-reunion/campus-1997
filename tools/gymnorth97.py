@@ -1,7 +1,10 @@
 """과학관 남쪽 공터의 동쪽 반 · 체육교육관 북쪽 끝 앞 (#189, reference/고증/3.22_서문.md 「과학관 남쪽 공터의 높이」,
-3.10 「마당의 둑과 차 길」, 2.10 「체육교육관 북쪽 끝 앞의 땅」). tools/build_campus.py 가 부른다.
+3.10 「마당의 둑과 차 길」, 2.10 「체육교육관 북쪽 끝 앞의 땅」), 그리고 체육교육관 · 체육관 둘레(reference/고증/3.24_체육관_체육교육관.md).
+tools/build_campus.py 가 부른다.
 
     took, info = gymnorth97.grade(Hn, X, Y, FIXED, drive, bank, court, fill)     # 심기가 끝난 뒤, 과학관 마당 블록 다음
+    took, info = gymnorth97.around(Hn, X, Y, FIXED, fill)                        # 그 바로 뒤(독수리상 서쪽 마당보다 앞)
+    took, info = gymnorth97.west_half(Hn, X, Y, FIXED, fill)                     # 과학관 남쪽 공터의 서쪽 반, 그다음
 
 Frames: campus metres, x east, y north.  Every absolute height is above sea level (해발), taken up to the working
 datum (해발 + tilt: tools/datum.py) where it is read.
@@ -26,7 +29,7 @@ between the court and the drive and RING m round them are filled smoothly.  The 
 """
 import numpy as np
 import shapely
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
 import datum
@@ -129,6 +132,213 @@ def grade(Hn, X, Y, FIXED, drive, bank, court, fill, cut=None):
         fill(free)
     dd = Hn - H0
     info = dict(points=len(PTS), core=int(core.sum()), by_median=nmed, eased=int(free.sum()),
+                moved=(int((np.abs(dd) > 0.05).sum()), round(float(dd.min()), 2), round(float(dd.max()), 2)),
+                photo_minus_game=round(float(np.median(d)), 2))
+    return core | free, info
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 체육교육관 · 체육관 둘레 (reference/고증/3.24_체육관_체육교육관.md; #189).  The 1997-07-28 scans (26/16 · 26/15, and
+# east of x -185 also 26/15 · 27/16, 26/16 · 27/17, 27/17 · 27/16), the leaf-off 1996 pair (26/16 · 26/15) and 1998's
+# (26/16 · 26/17), each pair by itself; the N-S pairs read 0.25 m under the survey and the E-W pairs here (PTS2 has
+# them taken up):
+# - the lane between the halls lies level from end to end at 38.45 m (1996 and 1997 on its east half, 1998 across its
+#   whole width where no car stood, +-0.1; the readings of 39.3 m on its west half are the parked cars' bodies), and
+#   the strip along 체육관's south face out to u 30 at 38.65 m (+-0.15): both at LANE_Z.  From there it falls
+#   south-east, 37.4 m at u 44 and 36.1 m by the hall's south-east corner.  The game had the lane at 40.4 - 42.8 m,
+#   tilted up towards 체육교육관, and the strip at 39.7 - 41.5 m.
+# - east of 체육관 the ground falls gently east and south: PLANE (rms 0.23 m over 55 of the points; the 2024 survey's
+#   spot (-157.8, -103.0) 35.62 m on it within 0.1), steeper up to the hall's east wall (37.3 - 37.7 m 4 - 6 m off it).
+#   The game had a slope of 20 degrees across the 1997 row of cars there (38 -> 35.5 m).
+# LANE2: the lane between the two faces, 3 m on past the halls' north corners and 3 m out of their south ends;
+# STRIP2: 0 .. 9.5 m out of 체육관's south face (the scans: level to 9 - 10 m out, then up to the wooded terrace), u -2 .. 30 (u along the face from its south-west corner).  SE_EAST: the
+# strip's east end and the ground east of the hall, on PLANE plus the Gaussian-weighted residuals (SIGMA2) of PTS2 (a
+# node with two points or more within NEAR takes their median).  The nodes inside 체육관 are filled smoothly from round it, those
+# inside 체육교육관 within IN_GYMED m of its east face take LANE_Z (the lane's cells reach under the walls); RING2 m round
+# it all filled smoothly.  Nothing here draws from build_campus.py's `rng`.
+GYM_ID, GYMED_ID = 421415366, 421415365
+GYM_POLY = Polygon([(-233.4, -104.95), (-181.14, -119.03), (-172.24, -86.45), (-224.51, -72.36)])
+GYMED_POLY = Polygon([(-263.12, -102.48), (-240.4, -108.93), (-229.02, -69.31), (-251.73, -62.86)])
+LANE_Z = 38.5
+LANE2 = Polygon([(-241.21, -111.82), (-228.21, -66.42), (-223.70, -69.47), (-234.21, -107.84)])
+_GO = (-233.4, -104.95)
+_GT = (0.96556, -0.26014)          # (along 체육관's south face; out of it: (-0.26014, -0.96556))
+
+
+def gym_xy(u, w):
+    """체육관's south-face frame: u along the face from its south-west corner, w out of it (south)"""
+    return (_GO[0] + _GT[0] * u + _GT[1] * w, _GO[1] + _GT[1] * u - _GT[0] * w)
+
+
+STRIP2 = Polygon([gym_xy(-2.0, -0.5), gym_xy(30.0, -0.5), gym_xy(30.0, 9.5), gym_xy(-2.0, 9.5)])
+SE_EAST = unary_union([Polygon([gym_xy(30.0, -0.5), gym_xy(57.0, -0.5), gym_xy(57.0, 16.0), gym_xy(30.0, 16.0)]),
+                       Polygon([(-182.0, -126.0), (-150.0, -126.0), (-150.0, -80.0), (-172.0, -80.0)])]).difference(GYM_POLY)
+PLANE = (36.06, -0.0763, 0.0247)   # (해발 at (-165, -100), per metre east, per metre north)
+IN_GYMED = 5.5
+RING2 = 6.0
+SIGMA2 = 1.5          # (the ground by the hall's east wall stands 1 - 1.5 m over the row of cars 4 m off)
+# the ground's points (x, y, 해발): each the median of the pairs that agree within 0.4 m (on the 1997 cars' places the
+# leaf-off 1996 pair alone, corr 0.85 or more), a point 0.6 m off its neighbours' median left out
+PTS2 = [
+    (-203.0, -121.5, 38.56), (-203.0, -120.0, 38.85), (-198.5, -126.0, 38.13), (-198.5, -123.0, 38.27), (-197.0, -127.5, 38.43), (-197.0, -126.0, 38.22),
+    (-195.5, -129.0, 38.31), (-195.5, -127.5, 38.25), (-194.0, -130.5, 37.86), (-194.0, -129.0, 38.15), (-194.0, -126.0, 37.99), (-194.0, -124.5, 38.46),
+    (-192.5, -130.5, 37.42), (-192.5, -129.0, 38.10), (-192.5, -126.0, 37.87), (-192.5, -124.5, 38.14), (-191.0, -130.5, 37.25), (-191.0, -127.5, 37.42),
+    (-191.0, -126.0, 37.72), (-191.0, -124.5, 38.00), (-189.5, -127.5, 37.22), (-188.0, -127.5, 36.98), (-186.5, -129.0, 36.48), (-185.0, -130.5, 35.91),
+    (-183.5, -129.0, 36.03), (-182.0, -129.0, 36.09), (-182.0, -127.5, 36.31), (-182.0, -126.0, 36.47), (-171.5, -85.5, 37.47), (-170.0, -99.0, 37.74),
+    (-170.0, -85.5, 37.28), (-168.5, -115.5, 35.87), (-168.5, -114.0, 35.96), (-168.5, -111.0, 36.05), (-168.5, -99.0, 37.53), (-168.5, -97.5, 37.39),
+    (-168.5, -91.5, 36.67), (-168.5, -90.0, 36.83), (-167.0, -117.0, 35.83), (-167.0, -115.5, 35.89), (-167.0, -114.0, 35.92), (-167.0, -108.0, 35.68),
+    (-167.0, -106.5, 36.01), (-167.0, -103.5, 35.74), (-167.0, -102.0, 36.06), (-167.0, -97.5, 36.52), (-167.0, -87.0, 36.01), (-167.0, -85.5, 36.71),
+    (-165.5, -117.0, 35.96), (-165.5, -115.5, 35.94), (-165.5, -114.0, 36.08), (-165.5, -108.0, 35.57), (-165.5, -106.5, 35.60), (-165.5, -105.0, 35.75),
+    (-165.5, -93.0, 35.95), (-165.5, -88.5, 36.19), (-165.5, -87.0, 36.18), (-164.0, -117.0, 35.65), (-164.0, -115.5, 35.67), (-164.0, -114.0, 35.87),
+    (-164.0, -112.5, 36.03), (-164.0, -111.0, 35.85), (-164.0, -109.5, 35.74), (-164.0, -108.0, 35.55), (-164.0, -106.5, 35.53), (-164.0, -105.0, 35.57),
+    (-164.0, -103.5, 35.58), (-164.0, -102.0, 35.68), (-164.0, -85.5, 36.40), (-162.5, -117.0, 35.38), (-162.5, -115.5, 35.48), (-162.5, -114.0, 35.50),
+    (-162.5, -109.5, 35.65), (-162.5, -108.0, 35.55), (-162.5, -106.5, 35.50), (-162.5, -105.0, 35.53), (-162.5, -103.5, 35.54), (-162.5, -102.0, 35.56),
+    (-162.5, -100.5, 35.63), (-162.5, -99.0, 35.65), (-162.5, -97.5, 35.73), (-162.5, -96.0, 35.81), (-162.5, -94.5, 35.65), (-162.5, -93.0, 35.62),
+    (-162.5, -91.5, 35.54), (-162.5, -88.5, 36.00), (-162.5, -87.0, 35.91), (-161.0, -109.5, 35.54), (-161.0, -108.0, 35.56), (-161.0, -106.5, 35.53),
+    (-161.0, -105.0, 35.52), (-161.0, -103.5, 35.49), (-161.0, -102.0, 35.54), (-161.0, -100.5, 35.68), (-161.0, -99.0, 35.63), (-161.0, -97.5, 35.70),
+    (-161.0, -94.5, 35.66), (-161.0, -93.0, 35.70), (-161.0, -91.5, 35.85), (-161.0, -90.0, 35.81), (-161.0, -88.5, 35.93), (-161.0, -81.0, 36.07),
+    (-159.5, -112.5, 35.34), (-159.5, -109.5, 35.28), (-159.5, -108.0, 35.39), (-159.5, -103.5, 35.45), (-159.5, -102.0, 35.50), (-159.5, -100.5, 35.50),
+    (-159.5, -99.0, 35.46), (-159.5, -97.5, 35.57), (-159.5, -96.0, 35.57), (-159.5, -94.5, 35.55), (-159.5, -93.0, 35.59), (-159.5, -82.5, 35.77),
+    (-159.5, -81.0, 35.94), (-158.0, -102.0, 35.47), (-158.0, -100.5, 35.72), (-158.0, -99.0, 35.39), (-158.0, -97.5, 35.41), (-158.0, -96.0, 35.50),
+    (-158.0, -94.5, 35.66), (-158.0, -85.5, 35.72), (-158.0, -84.0, 35.82), (-158.0, -82.5, 35.83), (-158.0, -81.0, 35.92), (-156.5, -85.5, 35.72),
+    (-156.5, -84.0, 35.81), (-156.5, -82.5, 35.83), (-156.5, -81.0, 35.91), (-155.0, -118.5, 34.34), (-155.0, -114.0, 35.09), (-155.0, -112.5, 35.14),
+    (-155.0, -111.0, 34.89), (-155.0, -105.0, 35.16), (-155.0, -100.5, 35.31), (-155.0, -85.5, 35.68), (-155.0, -84.0, 35.85), (-155.0, -82.5, 35.95),
+    (-155.0, -81.0, 35.65), (-153.5, -114.0, 34.92), (-153.5, -112.5, 35.01), (-152.0, -112.5, 34.79), (-152.0, -111.0, 35.22), (-152.0, -108.0, 34.86),
+    (-152.0, -82.5, 36.55), (-152.0, -81.0, 36.54), (-150.5, -112.5, 34.72), (-150.5, -111.0, 34.76), (-150.5, -109.5, 34.66), (-150.5, -84.0, 36.34),
+    (-150.5, -82.5, 36.53), (-150.5, -81.0, 36.58),
+]
+# the halls' floors: 체육교육관's lowest storey at the lane (its door, at the lane's south end) and five storeys of 3.6 m
+# (지하 1층 · 지상 4층: 3.1; its roof then 57.7 m, the scans' 57.1 - 57.4 + 0.25); 체육관 on the ground at its door
+# (the south end of its east face), its walls to the vault's springing and the vault to its crown (the scans: 55.1 -
+# 55.35 + 0.25 at v 11 - 18 in three flights, their tops within 0.1; 52.85 m at v 6)
+GYMED_FLOOR, GYMED_LEVELS = LANE_Z, 5
+# asphalt where the 1997 cars stood on what the game had as lawn and walks: the yard east of the hall (the row along
+# the low building against its east face, and the aisle east of it: light paving in 26/16 and 27/17) and the patch
+# off its south-east end where two cars stood in July 1997 as in the winter before (26/16 of both)
+PAVE2 = [Polygon([(-169.0, -120.5), (-156.0, -120.5), (-156.0, -84.0), (-170.5, -84.0)]),
+         Polygon([(-203.0, -118.5), (-186.0, -122.5), (-186.0, -129.0), (-192.0, -133.0), (-199.0, -133.5), (-203.0, -128.0)])]
+GYM_FLOOR, GYM_SPRING, GYM_CROWN = 36.8, 49.75, 55.55
+
+
+def plane(x, y):
+    a, bx, by = PLANE
+    return a + bx * (np.asarray(x, float) + 165.0) + by * (np.asarray(y, float) + 100.0)
+
+
+def around(Hn, X, Y, FIXED, fill):
+    """the lane, the strip and the ground east of 체육관 (above).  Returns the nodes set (to be FIXED) and a summary"""
+    H0 = Hn.copy()
+    T = datum.tilt(X, Y)
+    lane = shapely.contains_xy(unary_union([LANE2, STRIP2]), X, Y)
+    d_e = shapely.distance(LineString([(-240.4, -108.93), (-229.02, -69.31)]), shapely.points(X, Y))
+    in_ed = shapely.contains_xy(GYMED_POLY, X, Y) & (d_e < IN_GYMED)
+    Hn[lane | in_ed] = LANE_Z + T[lane | in_ed]
+    se = shapely.contains_xy(SE_EAST, X, Y) & ~lane
+    P = np.array(PTS2)
+    r = P[:, 2] - plane(P[:, 0], P[:, 1])
+    nmed = 0
+    for j, i in zip(*np.nonzero(se)):
+        r2 = (P[:, 0] - X[j, i]) ** 2 + (P[:, 1] - Y[j, i]) ** 2
+        near = r2 < NEAR ** 2
+        if near.sum() >= 2:
+            Hn[j, i] = float(np.median(P[near, 2])) + T[j, i]
+            nmed += 1
+            continue
+        w = np.exp(-r2 / (2 * SIGMA2 ** 2))
+        Hn[j, i] = float(plane(X[j, i], Y[j, i]) + (w * r).sum() / (w.sum() + W0)) + T[j, i]
+    core = lane | in_ed | se
+    inside = shapely.contains_xy(GYM_POLY, X, Y) & ~core
+    zone = unary_union([LANE2, STRIP2, SE_EAST, GYM_POLY])
+    ring = shapely.contains_xy(zone.buffer(RING2), X, Y) & ~core & ~FIXED & ~shapely.contains_xy(GYMED_POLY, X, Y)
+    free = inside | ring
+    if free.any():
+        fill(free)
+    dd = Hn - H0
+    info = dict(lane=int((lane | in_ed).sum()), se=int(se.sum()), by_median=nmed, filled=int(free.sum()),
+                moved=(int((np.abs(dd) > 0.05).sum()), round(float(dd.min()), 2), round(float(dd.max()), 2)))
+    return core | free, info
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 과학관 남쪽 공터의 서쪽 반 · 남서 날개 남쪽 발치 (reference/고증/3.22_서문.md 「과학관 남쪽 공터의 서쪽 반」; #189).
+# The 1997-07-28 scans' pair (26/16 · 26/15) and the leaf-off 1996 pair (26/16 · 26/15, five months earlier) each by
+# itself, both taken up 0.25 m: on 188 points (1.5 m apart) the two agree within 0.4 m (PTS3: their mean).  Over the
+# open yard they read as the game's (median -0.01 m); the game stood 0.3 - 1.6 m high towards the south-west wing's
+# south face and in the yard's north-east corner.  The south-east part, where materials were stacked in July 1997, is
+# left as it is: a heap 2 m over the yard in December 1996, the stacks (47.6 - 48.2 m on top) in July and still in
+# October 1997 (25/16 of 1997-10-13, the one frame that reaches it), a pit 5 - 6 m deep in October 1998.  Laid as
+# grade() lays the drive's south-east: a node with three points or more within NEAR takes their median, the others
+# move by the points' Gaussian-weighted residuals (SIGMA, W0); RING3 m round it filled smoothly.
+SCI_POLY = Polygon([(-218.12, 7.45), (-213.42, 24.93), (-283.91, 43.9), (-288.62, 26.42), (-284.08, 25.2), (-290.81, 0.19),
+                    (-323.93, 9.1), (-340.05, 13.44), (-344.73, -3.94), (-274.05, -22.96), (-269.37, -5.58), (-277.19, -3.47),
+                    (-270.46, 21.54)])
+WEST3 = Polygon([(-326.0, -12.0), (-326.0, -50.0), (-305.0, -50.0), (-305.0, -47.0), (-262.0, -47.0), (-262.0, -18.0),
+                 (-274.05, -22.96), (-344.73, -3.94)]).difference(SCI_POLY.buffer(0.5))
+RING3 = 6.0
+PTS3 = [
+    (-325.5, -39.0, 46.12), (-325.5, -34.5, 46.86), (-324.0, -40.5, 46.10), (-324.0, -37.5, 46.57), (-324.0, -22.5, 46.96), (-324.0, -21.0, 46.95),
+    (-322.5, -39.0, 46.72), (-321.0, -37.5, 46.91), (-321.0, -30.0, 46.95), (-321.0, -27.0, 47.16), (-319.5, -48.0, 45.72), (-319.5, -37.5, 46.84),
+    (-319.5, -36.0, 46.93), (-319.5, -31.5, 47.02), (-319.5, -27.0, 47.09), (-319.5, -25.5, 47.09), (-318.0, -48.0, 45.78), (-318.0, -46.5, 45.79),
+    (-318.0, -40.5, 46.69), (-318.0, -39.0, 46.75), (-318.0, -37.5, 46.81), (-318.0, -36.0, 46.92), (-318.0, -31.5, 47.05), (-318.0, -28.5, 47.05),
+    (-318.0, -27.0, 47.05), (-316.5, -48.0, 45.82), (-316.5, -46.5, 45.83), (-316.5, -42.0, 46.69), (-316.5, -40.5, 46.73), (-316.5, -39.0, 46.77),
+    (-316.5, -37.5, 46.80), (-316.5, -36.0, 46.87), (-316.5, -34.5, 47.03), (-316.5, -33.0, 47.05), (-316.5, -28.5, 47.20), (-316.5, -27.0, 47.20),
+    (-316.5, -25.5, 47.14), (-316.5, -24.0, 47.11), (-315.0, -42.0, 46.75), (-315.0, -40.5, 46.80), (-315.0, -39.0, 46.83), (-315.0, -37.5, 46.88),
+    (-315.0, -36.0, 46.97), (-315.0, -34.5, 46.98), (-315.0, -27.0, 47.12), (-315.0, -25.5, 47.12), (-315.0, -24.0, 47.03), (-313.5, -48.0, 45.99),
+    (-313.5, -46.5, 45.99), (-313.5, -43.5, 46.50), (-313.5, -42.0, 46.77), (-313.5, -40.5, 46.80), (-313.5, -39.0, 46.88), (-313.5, -37.5, 46.92),
+    (-313.5, -36.0, 46.98), (-313.5, -34.5, 46.98), (-313.5, -33.0, 47.03), (-313.5, -27.0, 47.06), (-312.0, -48.0, 45.95), (-312.0, -46.5, 46.13),
+    (-312.0, -45.0, 46.20), (-312.0, -42.0, 46.84), (-312.0, -40.5, 46.88), (-312.0, -39.0, 46.93), (-312.0, -37.5, 46.91), (-312.0, -36.0, 46.99),
+    (-312.0, -34.5, 47.02), (-310.5, -46.5, 46.11), (-310.5, -42.0, 46.90), (-310.5, -40.5, 46.91), (-310.5, -34.5, 47.00), (-309.0, -46.5, 46.20),
+    (-309.0, -45.0, 46.47), (-309.0, -42.0, 46.83), (-309.0, -39.0, 47.12), (-309.0, -37.5, 47.09), (-309.0, -36.0, 47.09), (-309.0, -34.5, 47.05),
+    (-307.5, -46.5, 46.30), (-307.5, -45.0, 46.54), (-307.5, -42.0, 46.82), (-307.5, -39.0, 47.02), (-307.5, -37.5, 47.08), (-307.5, -36.0, 47.08),
+    (-306.0, -48.0, 45.93), (-306.0, -46.5, 46.11), (-306.0, -45.0, 46.62), (-306.0, -43.5, 46.86), (-306.0, -42.0, 46.87), (-306.0, -40.5, 46.89),
+    (-306.0, -36.0, 47.18), (-304.5, -46.5, 46.08), (-304.5, -45.0, 46.70), (-304.5, -43.5, 46.86), (-304.5, -42.0, 46.91), (-304.5, -36.0, 47.25),
+    (-303.0, -46.5, 46.16), (-303.0, -43.5, 46.88), (-303.0, -42.0, 46.93), (-303.0, -40.5, 47.04), (-303.0, -39.0, 47.22), (-303.0, -37.5, 47.21),
+    (-303.0, -33.0, 46.99), (-301.5, -46.5, 46.51), (-301.5, -39.0, 47.15), (-301.5, -37.5, 47.16), (-301.5, -31.5, 47.05), (-300.0, -46.5, 46.49),
+    (-300.0, -45.0, 46.77), (-300.0, -43.5, 46.91), (-300.0, -42.0, 46.96), (-300.0, -40.5, 47.11), (-300.0, -39.0, 47.13), (-300.0, -37.5, 47.11),
+    (-298.5, -46.5, 46.75), (-298.5, -45.0, 46.97), (-298.5, -43.5, 47.05), (-298.5, -42.0, 47.03), (-298.5, -40.5, 47.17), (-298.5, -39.0, 47.16),
+    (-298.5, -37.5, 47.14), (-297.0, -46.5, 46.95), (-297.0, -45.0, 47.02), (-297.0, -43.5, 47.08), (-297.0, -42.0, 47.08), (-297.0, -40.5, 47.19),
+    (-297.0, -39.0, 47.19), (-297.0, -37.5, 47.15), (-295.5, -46.5, 47.02), (-295.5, -45.0, 47.06), (-295.5, -43.5, 47.10), (-295.5, -42.0, 47.11),
+    (-295.5, -40.5, 47.20), (-295.5, -39.0, 47.22), (-295.5, -37.5, 47.16), (-294.0, -46.5, 47.13), (-294.0, -45.0, 47.05), (-294.0, -43.5, 46.98),
+    (-294.0, -42.0, 47.09), (-294.0, -40.5, 47.16), (-294.0, -39.0, 47.19), (-294.0, -34.5, 47.19), (-294.0, -33.0, 47.16), (-292.5, -45.0, 47.23),
+    (-292.5, -43.5, 47.09), (-292.5, -42.0, 47.07), (-292.5, -40.5, 47.14), (-292.5, -39.0, 47.17), (-292.5, -33.0, 47.20), (-291.0, -46.5, 47.31),
+    (-291.0, -45.0, 47.25), (-291.0, -43.5, 47.13), (-291.0, -42.0, 47.09), (-291.0, -40.5, 47.19), (-291.0, -39.0, 47.20), (-291.0, -28.5, 47.00),
+    (-289.5, -45.0, 47.12), (-289.5, -43.5, 47.14), (-289.5, -40.5, 47.19), (-289.5, -33.0, 47.16), (-286.5, -46.5, 46.79), (-286.5, -45.0, 46.83),
+    (-286.5, -43.5, 47.10), (-286.5, -34.5, 47.29), (-286.5, -30.0, 47.59), (-285.0, -46.5, 46.91), (-285.0, -45.0, 46.80), (-285.0, -36.0, 47.13),
+    (-285.0, -34.5, 47.31), (-285.0, -33.0, 47.46), (-282.0, -46.5, 47.30), (-280.5, -45.0, 47.38), (-279.0, -45.0, 47.37), (-279.0, -43.5, 47.32),
+    (-268.5, -31.5, 47.94), (-267.0, -28.5, 48.06), (-265.5, -46.5, 47.14), (-265.5, -34.5, 47.73), (-265.5, -33.0, 47.58), (-265.5, -31.5, 47.58),
+    (-265.5, -30.0, 47.84), (-265.5, -28.5, 47.89), (-265.5, -27.0, 47.95), (-264.0, -46.5, 47.16), (-264.0, -34.5, 47.67), (-264.0, -33.0, 47.60),
+    (-264.0, -31.5, 47.86), (-264.0, -30.0, 47.69),
+]
+
+
+def west_half(Hn, X, Y, FIXED, fill):
+    """the 공터's west half and the south-west wing's south foot (above).  Returns the nodes set and a summary"""
+    P = np.array(PTS3)
+    zt = P[:, 2] + datum.tilt(P[:, 0], P[:, 1])
+    gx = X[0, :]; gy = Y[:, 0]
+    st = gx[1] - gx[0]
+    fi = (P[:, 0] - gx[0]) / st; fj = (P[:, 1] - gy[0]) / st
+    i0 = np.floor(fi).astype(int); j0 = np.floor(fj).astype(int); tx = fi - i0; ty = fj - j0
+    g = (Hn[j0, i0] * (1 - tx) * (1 - ty) + Hn[j0, i0 + 1] * tx * (1 - ty) + Hn[j0 + 1, i0] * (1 - tx) * ty +
+         Hn[j0 + 1, i0 + 1] * tx * ty)
+    d = zt - g
+    H0 = Hn.copy()
+    core = shapely.contains_xy(WEST3, X, Y) & ~FIXED
+    nmed = 0
+    for j, i in zip(*np.nonzero(core)):
+        r2 = (P[:, 0] - X[j, i]) ** 2 + (P[:, 1] - Y[j, i]) ** 2
+        near = r2 < NEAR ** 2
+        if near.sum() >= 3:
+            Hn[j, i] = float(np.median(zt[near]))
+            nmed += 1
+            continue
+        w = np.exp(-r2 / (2 * SIGMA ** 2))
+        Hn[j, i] += float((w * d).sum() / (w.sum() + W0))
+    free = shapely.contains_xy(WEST3.buffer(RING3), X, Y) & ~core & ~FIXED & ~shapely.contains_xy(SCI_POLY, X, Y)
+    if free.any():
+        fill(free)
+    dd = Hn - H0
+    info = dict(points=len(PTS3), core=int(core.sum()), by_median=nmed, eased=int(free.sum()),
                 moved=(int((np.abs(dd) > 0.05).sum()), round(float(dd.min()), 2), round(float(dd.max()), 2)),
                 photo_minus_game=round(float(np.median(d)), 2))
     return core | free, info

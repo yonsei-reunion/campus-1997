@@ -6986,6 +6986,36 @@ _gn_took, GYMNORTH97 = gymnorth97.grade(Hn, X, Y, FIXED, SCI_DRIVE97, SCI_BANK97
                                         cut=sci_poly([(-60.0, gymnorth97.VCUT), (10.0, gymnorth97.VCUT), (10.0, -80.0), (-60.0, -80.0)]))
 FIXED[_gn_took] = True
 print('과학관 남쪽 · 체육교육관 북쪽 끝:', GYMNORTH97)
+# 체육교육관 · 체육관 둘레 (tools/gymnorth97.py around, reference/고증/3.24; #189), late: the planting has read the
+# ground as it was.  The lane between the halls and the strip along 체육관's south face level at the 1997 and 1996 scans'
+# 38.5 m (the game had them 2 - 4 m higher, tilted up towards 체육교육관), the ground east of 체육관 on the scans' gentle
+# plane (the game crossed the 1997 row of cars there at 20 degrees).  Before 독수리상 서쪽 마당: its ring keeps these.
+# 체육교육관's lowest storey goes down to the lane, at its door (지하 1층 · 지상 4층, its roof where it was); 체육관 stands
+# on the ground at its door, its vault's crown down 4 m to the scans' (blender/generic.py barrel_roof: rise)
+_ga_took, GYM_AROUND = gymnorth97.around(Hn, X, Y, FIXED, harmonic_fill)
+FIXED[_ga_took] = True
+for b_ in buildings:
+    if b_['id'] in (gymnorth97.GYMED_ID, gymnorth97.GYM_ID):
+        _gc = Polygon(b_['footprint']).centroid
+        _gb0, _gh0 = b_['base'], b_['base'] + b_['height']
+        if b_['id'] == gymnorth97.GYMED_ID:
+            b_.update(base=datum.up(_gc.x, _gc.y, gymnorth97.GYMED_FLOOR), levels=gymnorth97.GYMED_LEVELS,
+                      height=round(gymnorth97.GYMED_LEVELS * FLOOR_H['white'] + 1.2, 2))
+        else:
+            _grr = np.array(Polygon(b_['footprint']).minimum_rotated_rectangle.exterior.coords)[:3]
+            _gw = float(min(np.hypot(*(_grr[1] - _grr[0])), np.hypot(*(_grr[2] - _grr[1]))))     # (the vault's span)
+            _gfh = round((gymnorth97.GYM_SPRING - gymnorth97.GYM_FLOOR) / b_['levels'], 3)
+            b_.update(base=datum.up(_gc.x, _gc.y, gymnorth97.GYM_FLOOR), fh=_gfh, height=round(b_['levels'] * _gfh + 1.2, 2),
+                      rise=round((gymnorth97.GYM_CROWN - gymnorth97.GYM_SPRING) / _gw, 4))
+        b_['top_ground'] = round(max(ground_h(x_, y_) for x_, y_ in b_['footprint']), 2)
+        print('   %s: floor %.2f -> %.2f m, top %.2f -> %.2f m%s' % (b_['name'], _gb0, b_['base'], _gh0, b_['base'] + b_['height'],
+              ', vault %.2f' % (b_['rise'] * _gw) if 'rise' in b_ else ''))
+print('체육교육관 · 체육관 둘레:', GYM_AROUND)
+# 과학관 남쪽 공터의 서쪽 반 · 남서 날개 남쪽 발치 (tools/gymnorth97.py west_half, reference/고증/3.22; #189), late: the
+# 1997 and the leaf-off 1996 scans agree on the open yard (as the game's); the game stood up to 1.6 m high by the wing
+_gw_took, GYM_WEST = gymnorth97.west_half(Hn, X, Y, FIXED, harmonic_fill)
+FIXED[_gw_took] = True
+print('과학관 남쪽 공터 서쪽 반:', GYM_WEST)
 # 과학관 북서쪽 골짜기 · 독수리상 서쪽 마당 (tools/west_ground.py, reference/고증/4.12 · 4.5.2), late: the planting
 # has read the ground as it was.  The valley's works yard and floor on the 1997 photos (4 - 7 m under the game's
 # slope); the bare yard west of the eagle, its road and lane level at 28.30 m (the game climbed to 35 m)
@@ -9567,6 +9597,9 @@ _ypaint([Polygon([st_xy(-5.4, -2.2), st_xy(5.4, -2.2), st_xy(5.4, 0.05), st_xy(-
         _ga)                                  # (and on under the flights' first treads, not up the lawn strip between)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
 _ypaint(libwest97.paint(), _ga)               # (중앙도서관 서쪽 길 · 자재 마당 · 북쪽 면 앞 띠, 북서쪽 굽은 길)
+# 체육관 동쪽 마당 · 남동쪽 끝 (gymnorth97.PAVE2, reference/고증/3.24): asphalt under the 1997 cars where the game had
+# lawn and walks
+_ypaint([p_.difference(gymnorth97.GYM_POLY.buffer(0.3)) for p_ in gymnorth97.PAVE2], _ga)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): 심장혈관병원 북쪽 · 치과대학병원 서쪽 paved; the east lot's steep edges
 # lawn (out of the 2005 hospital's site's asphalt, _ga, and the layers under it)
 _md_asph, _md_bank = med97.paint()

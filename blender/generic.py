@@ -778,8 +778,8 @@ def build_generic(b, rnd):
         cx, cy, L, W, ang = min_area_rect(poly)
         hip_roof(mb, cx, cy, L, W, ang, zt, hip.get('mat', 'roof_slate'), pitch=hip.get('pitch', 0.45), over=hip.get('over', 0.5),
                  gable=st['wall'] if hip.get('gable') else None)
-    elif style == 'gym':
-        barrel_roof(mb, cx, cy, L, W, ang, zt)
+    elif style == 'gym':               # (rise: build_campus.py's own, 체육관 from the 1997 scans: tools/gymnorth97.py)
+        barrel_roof(mb, cx, cy, L, W, ang, zt, rise=b.get('rise', 0.22))
     else:
         roof = 'roof_green' if (style == 'city' and rnd.random() < 0.6) else 'roof_flat'
         at = None
