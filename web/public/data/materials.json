@@ -1357,5 +1357,25 @@
   ],
   "sat": 0.15,
   "rough": 0.9
+ },
+ "sign_mouth": {
+  "_doc": "연세로 어귀의 금강제화 · 홍익문고 간판과 그랜드마트의 표 · 현수막 · 광고판 (tools/make_textures.py sign_mouth, 1995 · 1996년 사진, 고증 4.10.7): 투명한 곳은 잘라 냄",
+  "image": "sign_mouth.png",
+  "rough": 0.5,
+  "emissiveMap": true,
+  "cut": 0.5
+ },
+ "tile_grand": {
+  "_doc": "그랜드백화점의 연회색 큰 타일 (52135 · 52119: 한 장 약 60 cm)",
+  "weather": 0.35,
+  "streak": 0.5,
+  "tex": "white_square_tiles",
+  "tile": 4.8,
+  "tint": [
+   0.9,
+   0.9,
+   0.92
+  ],
+  "rough": 0.5
  }
 }
