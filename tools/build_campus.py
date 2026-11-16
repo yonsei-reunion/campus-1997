@@ -9293,6 +9293,7 @@ KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
 _ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
 _ypaint(jonghap97.GRASS, _yg)                # (외솔관2 동쪽 뜰: lawn where OSM's outline of it and its apron were)
 _ypaint([widang97.WORKS, widang97.BANK], _yg)   # (제2인문관 공사장: OSM's later roads and walks across it out; bare: _gd below)
+_ypaint([east97.SITE_BARE], _yg)            # (새천년관 공사장: OSM's later drives and walks across it out; bare: _gd below)
 _ypaint([appen97.WALK_OUT], _yg)            # (아펜젤러관 뒤 찻길 서쪽 가: OSM's walk out, the bank's lawn to the kerb; tools/appen97.py)
 if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
@@ -9350,7 +9351,8 @@ spl[..., 2] = np.maximum(spl[..., 2], np.minimum(ndimage.gaussian_filter(np.arra
 # its own walls
 _gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
 _YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
-_ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5), GW_YARD, widang97.WORKS], _gd)
+_ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5), GW_YARD, widang97.WORKS,
+                                                                    east97.SITE_BARE], _gd)
 # (and 경영학교실단's front flight: paved to 2 m past its foot; 교육관's north flight, which comes down 9.5 m out of
 # the gable onto the yard (blender/landmarks.py gyoyuk_north_flight): paved round its foot and the low wall past it)
 _bkc = _bk_a + BK_T * 45.66
@@ -10374,6 +10376,11 @@ _wd_zone = unary_union([widang97.WORKS, widang97.BANK]).buffer(1.0)
 _wd_nd = len(out['decals'])
 out['decals'] = [d_ for d_ in out['decals'] if not _wd_zone.contains(Point(d_[1], d_[2]))]
 print('제2인문관 공사장: walks (cut, gone, pieces added)', widang97.cut_paths(out['paths']), 'decals -%d' % (_wd_nd - len(out['decals'])))
+# 새천년관 공사장 (tools/east97.py SITE97): the same for the works yard north of 알렌관
+_st_zone = east97.SITE_BARE.buffer(1.0)
+_st_nd = len(out['decals'])
+out['decals'] = [d_ for d_ in out['decals'] if not _st_zone.contains(Point(d_[1], d_[2]))]
+print('새천년관 공사장: walks (cut, gone, pieces added)', east97.site_cut_paths(out['paths']), 'decals -%d' % (_st_nd - len(out['decals'])))
 _nd = len(out['decals'])
 
 
@@ -10935,6 +10942,8 @@ print('서쪽 능선 꼭대기: trees off the cleared top', ridge97.trees_aside(
 # 제2인문관 공사장 (tools/widang97.py): the trees on the works yard and the shelf west of it, out to their edges in
 # their places in the list
 print('제2인문관 공사장: trees off the yard', widang97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
+# 새천년관 공사장 (tools/east97.py SITE97): the trees on the works yard, six into its two clumps, the rest out to its edge, in their places in the list
+print('새천년관 공사장: trees off the yard', len(east97.site_trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']])))
 # 대운동장 북쪽 언덕의 숲 (tools/fieldhill97.py; #189): crowns edge to edge in the 1997 scans, filled in clear of the
 # trees already there, at the trees' very end (the web picks each tree's model by its place in the list)
 FIELDHILL_TREES = muak.woods_fill(unary_union(FIELDHILL_WOODS), out["trees"], seed=15996, spacing=8.5)

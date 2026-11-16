@@ -26,6 +26,12 @@ absolute height written here (해발, lifted at its place: datum.up3).
   총장공관, 영빈관): their floors are read again from the ground under their corners (the ids returned).
 - PEAK: the top of the hill east of 노천극장 (in music97's REGION): the 2024 survey's spot (207.5, 85.8) 87.51 m in the
   top loop of both surveys' 85 m contours, where the grid laid there dipped to 84.7 - 85.6 m.
+- SITE97 (새천년관 공사장, 3.23 「새천년관 공사장과 알렌관 둘레」): north of 알렌관 the 1997-07-28 scans (27/16 · 27/17, the
+  only frames on it) have a bare works yard: dirt tracks in a hairpin, four prefab huts at its north-west end, a few
+  clumps of trees left standing (SITE_CLUMPS).  In November 1996 the place was still woods and houses, by October 1998 a
+  hall's frame stood on it: the yard is July 1997's alone.  Painted bare (build_campus.py), OSM's later drives and
+  walks across it taken up (site_cut_paths), the trees the planting put on it moved in their places in the list, six
+  into the two clumps, the rest out to its edge (site_trees_aside).  Its ground stays (GRID: the survey nudged to the one frame pair's heights there).
 - Nothing here draws from build_campus.py's `rng`; trees, benches and walks stand where they stood, on the new ground.
 """
 import math
@@ -47,6 +53,16 @@ KNOLL = Polygon([(149.0, 346.0), (176.0, 344.0), (190.0, 352.0), (193.0, 372.0),
 # under its height comes up to it (해발 87.5 m at the two nodes either side of the spot, 86.5 · 86.0 m round them)
 PEAK = datum.up3([(205.0, 85.0, 87.5), (210.0, 85.0, 87.5), (200.0, 85.0, 86.5), (215.0, 85.0, 86.49), (205.0, 80.0, 86.5),
         (210.0, 80.0, 86.5), (205.0, 90.0, 85.99), (210.0, 90.0, 86.0)])
+# 새천년관 공사장 (1997-07-28 27/16 · 27/17: the bare yard's edge where both frames agree on the game's ground, +- 1.5 m)
+SITE97 = Polygon([(363.0, 130.0), (366.0, 142.0), (364.0, 152.0), (366.0, 164.0), (375.0, 167.0), (385.0, 165.0),
+                  (392.0, 152.0), (398.0, 160.0), (408.0, 160.0), (412.0, 148.0), (418.0, 135.0), (421.0, 118.0),
+                  (429.0, 112.0), (430.0, 95.0), (430.0, 75.0), (428.0, 60.0), (420.0, 54.0), (413.0, 62.0), (410.0, 70.0),
+                  (398.0, 76.0), (385.0, 79.0), (372.0, 80.0), (366.0, 84.0), (363.0, 100.0), (363.0, 115.0)])
+# the clumps of trees left standing on it (crowns 8 - 9 m across in both frames): three of the trees taken off the yard
+# stand in each (site_trees_aside)
+SITE_CLUMP_XY = [(414.0, 117.0), (408.0, 92.0)]
+SITE_CLUMPS = [Point(*c).buffer(4.5) for c in SITE_CLUMP_XY]
+SITE_BARE = SITE97
 HALL_PAD = 7.1                    # a hall's feet: the nodes this close to its walls
 RING = 12.0                       # eased (harmonic) this far round WOOD and KNOLL
 GRID_X0, GRID_Y0, GRID_D = 145.0, 25.0, 5.0       # (the grid's south-west node, spacing: the game's 5 m nodes)
@@ -220,3 +236,61 @@ def grade(Hn, X, Y, FIXED, halls, hold, fill, tr_pts, tr_n, step=5.0, half=800.0
                 median=round(float(np.median(d[took])), 1), halls=sorted(ins_ids), kept_halls=len(outside), peak=int(peak.sum()),
                 ring=int(ring.sum()), road=int((road & zone).sum()))
     return took | peak, sorted(ins_ids), info
+
+
+def site_cut_paths(paths):
+    """the drives and walks the game reads (OSM's, round the later hall) that ran across the works yard: each keeps its
+    longest stretch off the yard (5 m or more) in its place in the list, its other stretches of 10 m or more at the list's
+    end; one with none goes (as tools/widang97.py cut_paths).  Returns (cut, gone, added)"""
+    zone = SITE_BARE.buffer(1.0)
+    n, more = [0, 0], []
+    for p in list(paths):
+        if len(p['pts']) < 2:
+            continue
+        ls = LineString(p['pts'])
+        if ls.intersection(zone).length <= 1.0:
+            continue
+        d = ls.difference(zone)
+        pcs = sorted([g for g in getattr(d, 'geoms', [d]) if g.geom_type == 'LineString' and g.length >= 5.0],
+                     key=lambda g: -g.length)
+        if pcs:
+            p['pts'] = [[round(x, 1), round(y, 1)] for x, y in pcs[0].coords]
+            more += [dict(p, pts=[[round(x, 1), round(y, 1)] for x, y in g.coords]) for g in pcs[1:] if g.length >= 10.0]
+            n[0] += 1
+        else:
+            paths[:] = [q for q in paths if q is not p]
+            n[1] += 1
+    paths += more
+    return n[0], n[1], len(more)
+
+
+def site_trees_aside(trees, halls, pad=2.0):
+    """the trees the random planting put on the works yard (the scans have none there but its two clumps): each moved in
+    its place in the list, the nearest three to each clump into it (2.2 m round its middle), the rest to the nearest free
+    point pad m outside the yard, clear of the halls by 2.5 m and of the trees there by 3 m (as tools/widang97.py
+    trees_aside).  Returns the moves"""
+    hb = unary_union([h.buffer(2.5) for h in halls])
+    ring = SITE97.buffer(pad).exterior
+    spots = [ring.interpolate(d) for d in np.arange(0.0, ring.length, 0.5)]
+    spots = [q for q in spots if not hb.contains(q)]
+    inside = [t for t in trees if SITE_BARE.buffer(0.5).contains(Point(t[1], t[2]))]
+    near = [Point(t[1], t[2]) for t in trees if not any(t is i for i in inside) and SITE97.buffer(40.0).contains(Point(t[1], t[2]))]
+    spots = [q for q in spots if all(q.distance(o) > 3.0 for o in near)]
+    moved = []
+    for cx, cy in SITE_CLUMP_XY:
+        for a in (0.5, 2.6, 4.7):                                 # (three round the clump's middle, 2.2 m out)
+            q = Point(cx + 2.2 * math.cos(a), cy + 2.2 * math.sin(a))
+            t = min(inside, key=lambda t_: q.distance(Point(t_[1], t_[2])), default=None)
+            if t is None:
+                break
+            moved.append((t[0], t[1], t[2], round(q.x, 2), round(q.y, 2)))
+            t[1], t[2] = round(q.x, 2), round(q.y, 2)
+            inside = [i for i in inside if i is not t]
+    for t in inside:
+        if not spots:
+            break
+        q = min(spots, key=lambda q_: q_.distance(Point(t[1], t[2])))
+        moved.append((t[0], t[1], t[2], round(q.x, 2), round(q.y, 2)))
+        t[1], t[2] = round(q.x, 2), round(q.y, 2)
+        spots = [s_ for s_ in spots if s_.distance(q) > 3.5]
+    return moved
