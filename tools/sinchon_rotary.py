@@ -1321,7 +1321,7 @@ def layout(geo, town, extras, ground, taken_z):
     # ground has two heads hung over the road just beyond each for the cars going north, on an arm from the east walk
     # (5.5 - 6.2 m up: y -679 .. -693 and -568 .. -580; x 1.3 m east and 0.9 m west of the middle at the near one, 0.3 and
     # 2.7 m east at the far one).  A pole each side, its head beyond the crossing for the cars it faces (the ones going
-    # south: taken to mirror them); they turn with the crossing at -790 (group 1)
+    # south: taken to mirror them); they turn with the crossing at -783 (group 1)
     for s_z, dep_ in yro_cross:
         for sgn, s_ in ((1, s_z - 2.5), (-1, s_z + dep_ + 2.5)):          # (beyond the crossing for those they face)
             p, t, n = ya.at(s_)
@@ -1379,7 +1379,7 @@ def layout(geo, town, extras, ground, taken_z):
             p, t, n = a.at(s_)
             q = p + n * sgn * (a.half + 0.5)
             ped(q, n * sgn * -1.0, math.atan2(-n[1] * sgn, -n[0] * sgn), grp, mask)
-    ped_arm(ya, s_mid, s_mid + 4.5, 1, 0b10)
+    ped_arm(ya, s_mid, s_mid + mid_dep, 1, 0b10)
     ped_arm(ya, s_c2, s_c2 + 4.5, 1, 0b10)
     for (y0_, y1_), grp, mask in ((gt.YZEBRA2, 1, 0b10), (gt.YZEBRA, 2, 0b01)):      # (gate_town's two over 연세로)
         xw, xe = gt.YONSEI_X - gt.YONSEI_HALF - 0.5, gt.YONSEI_X + gt.YONSEI_HALF + 0.5
