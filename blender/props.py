@@ -621,6 +621,22 @@ def bollard():
     return mb
 
 
+def bollard_stone():
+    """콘크리트 볼라드 (아펜젤러관 뒤 동쪽 찻길의 서쪽 가, tools/appen97.py; reference/고증/3.5): a square concrete post behind
+    the kerb.  Kakao roadview 2010-12 (1016786075): square concrete posts in a row; the 1996 winter scans: their shadows,
+    0.68 m at the sun's 28.7 deg, so about 0.45 m high.  20 cm square, its top cut off at the corners."""
+    mb = MeshBuilder('bollard_stone')
+    w, h, c = 0.2, 0.45, 0.03
+    mb.prism([(-w / 2, -w / 2), (w / 2, -w / 2), (w / 2, w / 2), (-w / 2, w / 2)], -0.1, h - c, 'concrete')
+    t = w / 2 - c                                      # (the chamfer: a smaller square on top, sloping faces between)
+    lo = [(-w / 2, -w / 2, h - c), (w / 2, -w / 2, h - c), (w / 2, w / 2, h - c), (-w / 2, w / 2, h - c)]
+    hi = [(-t, -t, h), (t, -t, h), (t, t, h), (-t, t, h)]
+    for k in range(4):
+        mb.face([lo[k], lo[(k + 1) % 4], hi[(k + 1) % 4], hi[k]], 'concrete')
+    mb.face(hi, 'concrete')
+    return mb
+
+
 def tent_kiosk():
     """녹색 천막 매점 (2003_가을_연희관_정면.jpg, 2003_봄_언더우드관_앞길_벚나무.jpg): a green canvas tent on slim steel
     poles, 3.2 m by 2.4 m, its gable roof with a short valance; under it a counter at the open front (-Y) with drinks

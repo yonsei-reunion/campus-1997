@@ -40,6 +40,7 @@ import ridge97
 import fieldhill97
 import gymnorth97
 import widang97
+import appen97
 import audnorth97
 import gyoyuk97
 import datum
@@ -9292,6 +9293,7 @@ KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
 _ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
 _ypaint(jonghap97.GRASS, _yg)                # (외솔관2 동쪽 뜰: lawn where OSM's outline of it and its apron were)
 _ypaint([widang97.WORKS, widang97.BANK], _yg)   # (제2인문관 공사장: OSM's later roads and walks across it out; bare: _gd below)
+_ypaint([appen97.WALK_OUT], _yg)            # (아펜젤러관 뒤 찻길 서쪽 가: OSM's walk out, the bank's lawn to the kerb; tools/appen97.py)
 if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
 # 찻길, the east road on the 1997 photos' line (TR_E, RD97 above), after the planting has read the ground as it was:
@@ -9697,6 +9699,9 @@ _troad = unary_union([LineString([tuple(q_) for q_ in TR_E[TR_EK0:]]).buffer(3.6
 _n0 = (len(shrubs), len(props))
 shrubs[:] = [s_ for s_ in shrubs if not _troad.contains(Point(s_[1], s_[2]))]
 props[:] = [p_ for p_ in props if not _troad.contains(Point(p_[1], p_[2]))]
+# (아펜젤러관 뒤 찻길 서쪽 가: the concrete posts of the 1996 winter scans, 0.45 m behind the kerb, past the cars' wheels;
+# tools/appen97.py)
+props += appen97.bollards()
 _tmoved = []
 for t_ in trees:
     q_ = Point(t_[1], t_[2])
@@ -9724,6 +9729,7 @@ for sp_, x_, y_, sc_, grp_, _ in RD97['trees']:
     near_ = min((math.dist((q_.x, q_.y), (t_[1], t_[2])) for t_ in trees + RD_NEW_TREES), default=99.0)
     px_, py_ = to_px(q_.x, q_.y)
     paved_ = float(spl[int(py_), int(px_), 0] + spl[int(py_), int(px_), 1]) > 128.0
+    paved_ = paved_ or appen97.WALK_OUT.contains(q_)    # (아펜젤러관 뒤: OSM's walk, paved when these were first chosen)
     if _rd_halls.contains(q_) or near_ < (3.5 if guess_ else 2.0) or (guess_ and paved_):
         _rd_skip.append((grp_, round(x_, 1), round(y_, 1), round(near_, 1), paved_))
         continue

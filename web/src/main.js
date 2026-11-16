@@ -55,7 +55,7 @@ const json = (u) => fetchCounted(u).then((b) => JSON.parse(new TextDecoder().dec
 const MODELS = 'assets/models/';
 const CARS = ['sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'van'];
 const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'scooter',
-  ...CARS.flatMap((k) => [`car_${k}`, `car_${k}_far`]), 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard',
+  ...CARS.flatMap((k) => [`car_${k}`, `car_${k}_far`]), 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard', 'bollard_stone',
   'tent_kiosk', 'notice_board', 'haetae', 'parking_booth', 'bus'];
 const CAR_FAR = 20;     // parked cars farther than this from the camera: their lighter models (a fifth of the triangles)
 // phones: no parked car drawn farther than this (the 1997 aerial scans put 506 on the campus; from the gate some 460
@@ -314,7 +314,7 @@ async function main() {
     for (const pr of campus.props) (byKind[pr[0]] ||= []).push(pr);
     const rnd = mulberry(5);
     const COLLIDE = { lamp_double: 0.25, lamp_quad: 0.25, lamp_arm: 0.25, flag_white: 0.12, planter: 0.5, stone_marker: 1.0, sign_board: 0.9, payphone: 0.62, guard_booth: 1.05,
-      bollard: 0.12, tent_kiosk: 1.5, notice_board: 0.7, haetae: 0.95, parking_booth: 1.3, recycle_bin: 0.7 };
+      bollard: 0.12, bollard_stone: 0.14, tent_kiosk: 1.5, notice_board: 0.7, haetae: 0.95, parking_booth: 1.3, recycle_bin: 0.7 };
     // (the 오토바이 parked before 제1공학관: the scooter the students ride, blender/bikes.py, on its stand)
     const BIKE_PAINT = ['#b3262b', '#e6e4dc', '#1f3f8f', '#d2a81c', '#1b1b1e', '#1f6f66', '#8e9399', '#7a1f2c'];
     for (const [kind, list] of Object.entries(byKind)) {

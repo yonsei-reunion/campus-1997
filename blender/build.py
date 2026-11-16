@@ -170,7 +170,8 @@ if want('props'):
     for name, fn in (('lamp_double', props.lamp_double), ('lamp_arm', props.lamp_arm),
                      ('lamp_quad', props.lamp_quad), ('flag_white', props.flag_white), ('planter', props.planter),
                      ('stone_marker', props.stone_marker), ('sign_board', props.sign_board), ('guard_booth', props.guard_booth),
-                     ('barrier_arm', props.barrier_arm), ('bollard', props.bollard), ('tent_kiosk', props.tent_kiosk),
+                     ('barrier_arm', props.barrier_arm), ('bollard', props.bollard), ('bollard_stone', props.bollard_stone),
+                     ('tent_kiosk', props.tent_kiosk),
                      ('notice_board', props.notice_board), ('haetae', props.haetae), ('bench', props.bench),
                      ('recycle_bin', props.recycle_bin), ('parking_booth', props.parking_booth)):
         reset_scene()
