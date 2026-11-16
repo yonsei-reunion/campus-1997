@@ -2,6 +2,7 @@
 tools/build_campus.py 가 부른다.
 
     took, info = ridge97.grade(Hn, X, Y, FIXED, halls, fill, yield_)   # 심기가 끝난 뒤, 다른 늦은 블록들 다음
+    took, info = ridge97.uts_grade(Hn, X, Y, hall, keep, fill)         # 그 다음: 연합신학대학원 서쪽 · 북쪽 비탈(UTS_W)
     ridge97.HOUSE · HOUSE_FLOOR · HOUSE_DOOR                     # 언더우드가 사택: 새 땅 위의 바닥, 앞 잔디 쪽 문
     ridge97.trees_aside(trees)                                   # 꼭대기 빈터 위의 나무를 목록 제자리에서
 
@@ -104,6 +105,25 @@ KEEP_OFF = 10.0                   # (clear of the nodes the other blocks have la
 RING = 12.0                       # eased out (harmonic) this far round RIDGE
 VALLEY_X = -297.0                 # (west of it, 40 < y < 262: tools/west_ground.py valley's)
 HALL_PAD = 7.1                    # the halls' feet that stay (their floors read the nodes round their corners)
+# the ridge's north-east flank down to 연합신학대학원 (고증 2.8.1 「서쪽 능선 가장자리의 이은 띠」): the crest road's last
+# 50 m, the slope east of it down to the 1997 hall's west wall and the ground north of the hall, where the game had
+# GRID's edge (contour plateaus; east of x -140 GRID's last column), the crest road's nodes levelled on the old ground and
+# the ring eased between them and the hall's shelf, 2 - 5 m over the ground.  The leafless scans of 1996-12-23 (course
+# 26: 26/14 · 26/15 · 26/16, pair by pair, raw 2.5 m windows and low-passed 3 m ones, corr over 0.7) see that ground
+# between the bare trees: UTS96, the nodes where two or three independent pairs agree to 0.6 m and the value is no more
+# than 1.5 m over the three surveys' surfaces (higher ones are trees or the hut north of the hall, left out).  On open
+# ground the same pairs read 0.2 - 0.3 m over the 1997-07-28 scans (광복관's yard, the 사택's lawn) and 0.2 m under them
+# (the strip east of the hall).  Their heights stand 2.2 m (median; 84 % 3.6 m) under the game's, 0.4 under the 2006
+# survey, 0.65 under 2024's.  Laid: UTS96 at its nodes, the rest of UTS_W between them and the ground round it (fill)
+UTS_W = Polygon([(-162.5, 197.5), (-112.5, 197.5), (-112.5, 247.5), (-162.5, 247.5)])
+UTS96 = [(-160, 200, 67.34), (-155, 200, 67.77), (-150, 200, 65.55), (-160, 205, 68.51), (-155, 205, 67.13),
+         (-150, 210, 66.43), (-160, 215, 68.35), (-150, 215, 66.02), (-130, 215, 61.76), (-155, 220, 66.96),
+         (-150, 220, 65.57), (-145, 220, 64.83), (-140, 220, 63.45), (-130, 220, 62.17), (-125, 220, 61.26),
+         (-155, 225, 67.19), (-145, 225, 65.25), (-140, 225, 63.28), (-125, 225, 61.27), (-160, 230, 68.99),
+         (-140, 230, 65.05), (-125, 230, 60.69), (-120, 230, 59.65), (-115, 230, 60.28), (-155, 235, 68.68),
+         (-140, 235, 65.22), (-125, 235, 62.20), (-120, 235, 59.31), (-155, 240, 68.39), (-140, 240, 65.70),
+         (-135, 240, 65.33), (-130, 240, 64.25), (-125, 240, 63.14), (-120, 240, 59.35), (-135, 245, 65.75)]
+UTS_HALL_PAD = 1.5                # (the 1997 hall and its shelf: its floor reads its corners' ground)
 HOUSE = 429079066                 # 언더우드가 사택: its floor at the lawn before its south front (the scans 54.7 - 54.9 m)
 HOUSE_FLOOR = datum.up(-264.0, 220.0, 54.8)
 HOUSE_DOOR = (-264.52, 219.46)            # (the middle of its south front, to the lawn: the scans show no door)
@@ -144,6 +164,29 @@ def grade(Hn, X, Y, FIXED, halls, fill, yield_=None, flush=None):
     info = dict(core=int(core.sum()), peak=int((peak & core).sum()), eased=int(free.sum()),
                 moved=(int((np.abs(d) > 0.05).sum()), round(float(d.min()), 1), round(float(d.max()), 1)))
     return took | free, info
+
+
+def uts_grade(Hn, X, Y, hall, keep, fill):
+    """the flank north-east of the ridge down to 연합신학대학원 (UTS_W): UTS96 at its nodes, the rest between them and
+    the ground round it (fill: harmonic_fill).  hall: the 1997 hall's outline (it and UTS_HALL_PAD round it stay);
+    keep: nodes other blocks have laid that stay (인문관 남쪽 길, the ground round the three halls north of it).
+    Returns the nodes set and a summary"""
+    H0 = Hn.copy()
+    inz = shapely.contains_xy(UTS_W, X, Y) & ~keep & ~shapely.contains_xy(hall.buffer(UTS_HALL_PAD), X, Y)
+    meas = np.zeros(X.shape, bool)
+    step = float(X[0, 1] - X[0, 0])
+    for x, y, z in UTS96:
+        i, j = int(round((x - X[0, 0]) / step)), int(round((y - Y[0, 0]) / step))
+        if inz[j, i]:
+            Hn[j, i] = datum.up(x, y, z)
+            meas[j, i] = True
+    free = inz & ~meas
+    if free.any():
+        fill(free)
+    d = Hn - H0
+    took = inz
+    return took, dict(measured=int(meas.sum()), eased=int(free.sum()),
+                      moved=(int((np.abs(d) > 0.05).sum()), round(float(d[took].min()), 1), round(float(d[took].max()), 1)))
 
 
 def trees_aside(trees, pad=2.0):

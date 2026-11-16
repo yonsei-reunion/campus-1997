@@ -7032,6 +7032,14 @@ _rg_took, RIDGE97_GRADE = ridge97.grade(Hn, X, Y, FIXED, _rg_halls, harmonic_fil
                                         flush=kwangbok97.bank_nodes(X, Y) | kwangbok97.bend_nodes(X, Y))
 FIXED[_rg_took] = True
 print('서쪽 능선:', RIDGE97_GRADE)
+# (the ridge's north-east flank down to 연합신학대학원, ridge97.UTS_W: the leafless 1996-12-23 scans' ground between the
+# crest road and the 1997 hall and north of it, 2 - 5 m under what the blocks round it had eased there.  인문관 남쪽 길 and
+# the ground jonghap97 and kwangbok97 laid stay)
+_rg_uts_keep = (_jh_took & ~_jh_eased['nodes']) | _kb_took | ((_inm_u >= INM97['u'][0]) & (_inm_u <= INM97['u'][1]) & (_inm_v >= INM97['v'][0])
+                                      & (_inm_v <= INM97['v'][1]))
+_rg_uts_took, RIDGE97_UTS = ridge97.uts_grade(Hn, X, Y, Polygon(LATE_FOOTPRINT_1997[UTS]), _rg_uts_keep, harmonic_fill)
+FIXED[_rg_uts_took] = True
+print('서쪽 능선 → 연합신학대학원:', RIDGE97_UTS)
 for b_ in buildings:
     if b_['id'] == ridge97.HOUSE:
         _rg_hs = [ground_h(x_, y_) for x_, y_ in b_['footprint']]
