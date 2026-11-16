@@ -44,6 +44,7 @@ import widang97
 import appen97
 import audnorth97
 import chapel97
+import union97
 import gyoyuk97
 import datum
 
@@ -6918,6 +6919,25 @@ assert ISLE97['flight']['n'] == _isn, (ISLE97['flight']['n'], _isn)
 _ch_took, CHAPEL97_GRADE = chapel97.grade(Hn, X, Y, FIXED, near_buildings(2.0), harmonic_fill)
 FIXED[_ch_took] = True
 print('루스채플 남쪽 마당:', CHAPEL97_GRADE)
+# ... its east end (chapel97.east_grade, reference/고증/2.10 「루스채플 남쪽 마당 동쪽 끝과 의료원 쪽 찻길」): the drive up from
+# the yard's east end to 심장혈관병원's north car park climbed 14 - 15 % in the 1997 scans, 0.6 - 1.8 m under the grid's
+# slope (nodes 의료원 주차장 셋's easing had fixed at the old heights), and the yard's south-east end ran on at the yard's
+# level where the grid stood at the foot of OSM's later wing of 심장혈관병원 (a car park in 1997), 2.1 - 2.6 m higher.
+# Those nodes alone: the hedge row south of the drive and the car park beyond it (심장혈관병원 서쪽 주차장's cars) stay
+_ce_took, CHAPEL97_EAST = chapel97.east_grade(Hn)
+for j_, i_ in _ce_took:
+    FIXED[j_, i_] = True
+print('루스채플 남쪽 마당 동쪽 끝:', CHAPEL97_EAST)
+# 학생회관 남쪽 북동 찻길 · 남동 모퉁이 (tools/union97.py, reference/고증/3.2-3.3 「학생회관 남쪽 찻길과 남동 모퉁이의 땅」): the
+# road from 백주년기념관's north side up north-east to the paved corner south-east of 학생회관, cars along both kerbs, and
+# that corner on to the chapel's yard, on the 1997 scans' heights (0.4 - 1.4 m over the grid, which had lawn and OSM's
+# walk there); the ring north of it smooth, the belt south of it (lower in the scans) as it was.  학생회관's own foot
+# comes up with the corner (its walls reach 4 m under its floor); asphalt below (_ga), the cars in tools/cars97_new.json
+_un_fp = footprint(ways[union97.UNION])
+_un_took, UNION97_GRADE = union97.grade(Hn, X, Y, FIXED, _un_fp, near_buildings(2.0) & ~shapely.contains_xy(_un_fp.buffer(2.0), X, Y),
+                                        harmonic_fill)
+FIXED[_un_took] = True
+print('학생회관 남쪽 찻길 · 남동 모퉁이:', UNION97_GRADE)
 print('대강당 윗단 북쪽 끝 너머:', {k_: v_ for k_, v_ in ISLE97_GRADE.items() if k_ != 'at'}, 'flight', ISLE97['flight']['n'],
       ISLE97['flight']['z_top'], ISLE97['flight']['z_foot'])
 # ---------------------------------------------------------------------------
@@ -9350,6 +9370,9 @@ for x_, y_ in PINSON_FREE:
 # (루스채플 남쪽 마당: what the planting put on the 1997 yard steps off it first, in its place in the list: chapel97.clear)
 CHAPEL97_CLEAR = (chapel97.clear(trees), chapel97.clear(shrubs), chapel97.clear(props))
 print('루스채플 남쪽 마당: trees, shrubs, props moved off the yard', [len(m_) for m_ in CHAPEL97_CLEAR], CHAPEL97_CLEAR)
+# (학생회관 남쪽 북동 찻길: the same, union97.clear)
+UNION97_CLEAR = (union97.clear(trees), union97.clear(shrubs), union97.clear(props))
+print('학생회관 남쪽 찻길: trees, shrubs, props moved off the road', [len(m_) for m_ in UNION97_CLEAR], UNION97_CLEAR)
 for area_, lst_ in cars97.NEW_CARS.items():
     for x_, y_, h_, s_, w_ in lst_:
         c97_new(x_, y_, math.radians(h_), s_, w_)
@@ -9719,6 +9742,7 @@ _ypaint([audnorth97.PAVE.difference(Polygon(next(b_['footprint'] for b_ in build
 _ypaint([g_ for g_ in getattr(ISLE_ROAD, 'geoms', [ISLE_ROAD]) if g_.geom_type == 'Polygon'], _ga)
 # 루스채플 남쪽 마당 (chapel97.yard): asphalt from the round lawns' kerbs to the trees, where the 1997 scans have the cars
 _ypaint([chapel97.yard()], _ga)
+_ypaint(union97.paint(), _ga)                 # (학생회관 남쪽 북동 찻길: union97.road)
 # 백양로 끝 계단 발치 (reference/고증/2.8 「삼거리의 땅」): the road's asphalt on to the foot of the end steps (a strip of
 # lawn lay between them; in the spring 2003 photo the flights rise straight off the road)
 _ypaint([Polygon([st_xy(-5.4, -2.2), st_xy(5.4, -2.2), st_xy(5.4, 0.05), st_xy(-5.4, 0.05)])]
