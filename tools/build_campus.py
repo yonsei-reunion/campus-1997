@@ -6824,6 +6824,29 @@ prof[_jn_k] = np.minimum(prof[_jn_k], np.interp(ss[_jn_k], [audnorth97.JN_FLAT_S
 _jn_up, JN97 = audnorth97.junction(Hn, X, Y, spos, dist, prof_h, BY_END_S, STU, STV, UW_STEPS['h0'])
 FIXED[_jn_up] = True
 print('백양로 북쪽 끝 삼거리:', JN97)
+# 대강당 윗단 북쪽 끝 너머 (tools/audnorth97.py isle, reference/고증/4.5.1 「윗단 북쪽 끝 너머」, 3.13 「삼거리에서 대강당 쪽으로
+# 가는 곁길」): the 1997 scans have the asphalt from the terrace down to the 삼거리 where the game's lawn island stood, a
+# long lawn island east of it (a low retaining wall along its south-west side) and along the island's east side a paved
+# walk 3.5 m wide from a flight at the terrace's north-east corner to the east fork, where the game had OSM's 6 m
+# living street.  The grid's nodes there on the photos' heights (less the terrace's 0.75 m, eased off to the north), the
+# ring round them smooth; the flight up to the walk (ISLE97['flight']: blender/landmarks.py aud_north); the paint, the
+# shrubs on the new paving and the walks the game reads below.  Late: the planting has read the ground as it was
+_isf = audnorth97.ISLE_FLIGHT
+_isd = np.array(_isf['up'])
+_isz_foot = AUD97['z']
+_isz_top0 = audnorth97.ISLE_WALK_S - audnorth97.isle_off(96.0)                     # (해발)
+_isn = audnorth97.isle_flight_n(_isz_top0, _isz_foot - datum.tilt(*_isf['foot']))
+_ist = np.array(_isf['foot']) + _isd * (_isf['landing'] + _isn * _isf['tread'])
+ISLE97 = dict(flight=flight_at('aud_north', _ist, -_isd, datum.up(*_ist, _isz_top0), _isz_foot, _isf['width'],
+                               landing=_isf['landing'], tread=_isf['tread'], maxrise=_isf['maxrise'], cheek=0.3))
+_is_took, ISLE97_GRADE = audnorth97.isle_grade(Hn, X, Y, FIXED, harmonic_fill, AUD97['z'], _isn, _isz_foot)
+FIXED[_is_took] = True
+ISLE_LAWN, ISLE_PAVE, ISLE_ROAD = audnorth97.isle_geom(_isn)
+_is_old, _is_oldw = audnorth97.isle_old_street(paths_out)
+ISLE_OLD = _is_old.buffer(_is_oldw / 2 + 0.4, cap_style='flat') if _is_old is not None and not _is_old.is_empty else Polygon()
+assert ISLE97['flight']['n'] == _isn, (ISLE97['flight']['n'], _isn)
+print('대강당 윗단 북쪽 끝 너머:', {k_: v_ for k_, v_ in ISLE97_GRADE.items() if k_ != 'at'}, 'flight', ISLE97['flight']['n'],
+      ISLE97['flight']['z_top'], ISLE97['flight']['z_foot'])
 # ---------------------------------------------------------------------------
 # 광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길 (tools/kwangbok97.py; reference/고증/3.9 「둘레 땅의 높이」, 2.9 「서쪽 길의 높이」),
 # after the planting and everything else that read the ground as it was: 광복관's bench (its yard, the roads west and
@@ -7556,6 +7579,7 @@ for _sd, _s in ((-1, 226.9), (-1, 369.6), (-1, 370.7), (-1, 378.6), (-1, 380.0),
 out['baekyangro']['walls'].append([-1, round(s_at(*ct_xy(CT_PAVED_S[1], 33.0)), 2), round(s_at(*ct_xy(CT_PAVED_S[0], 33.0)), 2)])
 out['aud_bank'] = {k: v for k, v in AUD_BANK.items()}
 out['aud_flight'] = AUD_FLIGHT                # (blender/landmarks.py aud_flight)
+out['aud_north'] = dict(flights=[ISLE97['flight']])   # (윗단 북동쪽 모퉁이에서 보도로 오르는 계단: landmarks.py aud_north)
 out['pave'] = PAVE                            # paving kinds in ground_dry.png's G and B (web/src/terrain.js)
 
 
@@ -9360,6 +9384,8 @@ _ypaint([YJ_GARDEN.difference(_kept)], _yg)
 _ypaint([YJ_EAST_LAWN], _yg)                   # (용재관 북동쪽: the 2015 forecourt's paving out; YJ_LOT, YJ_BRANCH below)
 _ypaint([BK_ISLAND], _yg)                   # (백양관 북쪽 주차장 앞 섬: lawn over the strip's place)
 _ypaint([ANNEX_ISLAND], _yg)                 # (학생회관 별관 앞 섬: lawn, the later walks across it cleared)
+_ypaint([ISLE_LAWN, ISLE_OLD, ISLE_PAVE], _yg)   # (대강당 윗단 북쪽 끝 너머: the 1997 island lawn, OSM's living street up, the walk's place
+#  cleared for its paving: _gp below; audnorth97)
 _ypaint([p_.buffer(5.5) for p_ in FIELD_GONE_SITES], _yg)    # (대운동장 북쪽 끝: the two later halls' aprons out)
 _ypaint([p_.buffer(5.5) for p_ in HILL_GONE_SITES], _yg)    # (노천극장 동쪽 봉우리: the house's apron out; its round floor, _ga below)
 _ypaint([GONGWON_SITE.buffer(0.5), GW_LOT, GW_ROW, GW_YARD], _yg)    # (공학원 공사장: OSM's later roads and walks across it out)
@@ -9466,6 +9492,8 @@ _ypaint([Polygon([ct_xy(s_, sec_[0][0] + 0.3)[:2] for s_, sec_ in _ap] + [ct_xy(
 # shrub band, which is the side road west of the eagle (SIDE_W, the grey drive of photo A) run on past the hall's front
 # to the north drive: the photos have cars parked along it
 _ypaint([LIB97_TERRACE, LIB97_OUTER] + list(LIB97_SLANT.geoms if hasattr(LIB97_SLANT, 'geoms') else [LIB97_SLANT]), _gp)
+# 대강당 윗단 북쪽 끝 너머 (audnorth97.isle_geom): the walk along the island's east side and its flight, paved
+_ypaint([g_ for g_ in getattr(ISLE_PAVE, 'geoms', [ISLE_PAVE]) if g_.geom_type == 'Polygon'], _gp)
 # 1997년 보행로 (#151; the 1997-07-28 scans, 0.13 m a pixel; reference/고증/2.3 「섬처럼 놓인 포장」), in the game's map
 # only (the planting and the decals have read the ground):
 # - 백주년기념관 남서쪽: a round plaza before the low block's west face, a paved ring (5.1 - 9.75 m, its two edges fitted
@@ -9590,6 +9618,8 @@ _ypaint([AUD_SIDE_POLY], _ga)                 # (대강당 북쪽 곁길 어귀 
 # 대강당 북쪽 날개 둘레 (audnorth97.PAVE, reference/고증/4.5.1 「북쪽 날개 둘레」): the terrace's paving up to the north
 # wing's west wall and along the strip north of it (the 1997 scans; the game had lawn and today's walks there)
 _ypaint([audnorth97.PAVE.difference(Polygon(next(b_['footprint'] for b_ in buildings if b_['id'] == 371403811)).buffer(0.2))], _ga)
+# ... and beyond its north end the asphalt down to the 삼거리 west of the 1997 island (audnorth97.isle_geom)
+_ypaint([g_ for g_ in getattr(ISLE_ROAD, 'geoms', [ISLE_ROAD]) if g_.geom_type == 'Polygon'], _ga)
 # 백양로 끝 계단 발치 (reference/고증/2.8 「삼거리의 땅」): the road's asphalt on to the foot of the end steps (a strip of
 # lawn lay between them; in the spring 2003 photo the flights rise straight off the road)
 _ypaint([Polygon([st_xy(-5.4, -2.2), st_xy(5.4, -2.2), st_xy(5.4, 0.05), st_xy(-5.4, 0.05)])]
@@ -10476,6 +10506,19 @@ _st_zone = east97.SITE_BARE.buffer(1.0)
 _st_nd = len(out['decals'])
 out['decals'] = [d_ for d_ in out['decals'] if not _st_zone.contains(Point(d_[1], d_[2]))]
 print('새천년관 공사장: walks (cut, gone, pieces added)', east97.site_cut_paths(out['paths']), 'decals -%d' % (_st_nd - len(out['decals'])))
+# 대강당 윗단 북쪽 끝 너머 (audnorth97.isle_paths): OSM's living street across the 1997 island cut back to the terrace's
+# north end, the 1997 drive, flight and walk in; a decal left on the island's lawn moves onto the drive beside it (in
+# its place in the list)
+_is_np = audnorth97.isle_paths(out['paths'], ISLE97['flight']['n'])
+ISLE_SHRUBS = audnorth97.isle_shrubs(shrubs, unary_union([ISLE_PAVE, ISLE_ROAD]))      # (진달래동산's, planted above)
+_is_dm = 0
+_is_rin = ISLE_ROAD.buffer(-0.8)
+for d_ in out['decals']:
+    if ISLE_LAWN.buffer(0.3).contains(Point(d_[1], d_[2])):
+        q_ = nearest_points(_is_rin, Point(d_[1], d_[2]))[0]
+        d_[1], d_[2] = round(q_.x, 2), round(q_.y, 2)
+        _is_dm += 1
+print('대강당 윗단 북쪽 끝 너머: walks cut', _is_np, '- decals moved off the island', _is_dm, '- shrubs off the paving', len(ISLE_SHRUBS))
 _nd = len(out['decals'])
 
 

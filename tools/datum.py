@@ -249,6 +249,9 @@ def heights(c):
             A(f, k, *f['o'])
         for k in range(len(f['far'])):
             A(f['far'], k, *f['o'])
+    for fl in c.get('aud_north', {}).get('flights', []):       # (대강당 윗단 북쪽 끝 너머의 계단: tools/audnorth97.py)
+        A(fl, 'z_top', *fl['top'])
+        A(fl, 'z_foot', *fl['foot'])
     R = c['baekyangro']
     for i, s in enumerate(R['profile_s']):
         A(R['profile_h'], i, *_line_at(R['pts'], s))

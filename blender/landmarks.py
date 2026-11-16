@@ -5290,7 +5290,14 @@ def aud_bank():
         qs += [[P(o0, lo), P(o1, lo), P(o1, z1), P(o0, z0)] for (o0, z0), (o1, z1) in zip(sec['prof'][:-1], sec['prof'][1:])]
         for q in qs:
             mb.face(q if south else q[::-1], 'stone_rubble_warm')
-    return [mb] + aud_flight()
+    return [mb] + aud_flight() + aud_north()
+
+
+def aud_north():
+    """The flight at the terrace's north-east corner up onto the walk along the lawn island north of it (tools/
+    audnorth97.py ISLE_FLIGHT; reference/고증/4.5.1 「윗단 북쪽 끝 너머」): its foot in line with the island's low
+    retaining wall, the risers along it, low side walls."""
+    return [garden_flight(f) for f in CAMPUS.get('aud_north', {}).get('flights', [])]
 
 
 def aud_flight():
