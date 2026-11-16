@@ -7029,7 +7029,7 @@ _rg_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] 
     [p_.buffer(0) for _, _, _, _, p_ in OLD_HALLS if p_.intersects(ridge97.RIDGE.buffer(30.0))] + \
     [Polygon(v_).buffer(0) for k_, v_ in LATE_FOOTPRINT_1997.items() if Polygon(v_).intersects(ridge97.RIDGE.buffer(30.0))]
 _rg_took, RIDGE97_GRADE = ridge97.grade(Hn, X, Y, FIXED, _rg_halls, harmonic_fill, _jh_eased['nodes'],
-                                        flush=kwangbok97.bank_nodes(X, Y))
+                                        flush=kwangbok97.bank_nodes(X, Y) | kwangbok97.bend_nodes(X, Y))
 FIXED[_rg_took] = True
 print('서쪽 능선:', RIDGE97_GRADE)
 for b_ in buildings:

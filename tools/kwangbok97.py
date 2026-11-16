@@ -31,6 +31,8 @@ surface elsewhere (핀슨관's knoll, 한경관, the wood between the two roads)
 boundary with the ground north of it (인문관 · 교육관 쪽: tools/jonghap97.py), on the heights agreed there.
 BANK_GRID: the cut bank over the west side of the road west of the hall (고증 3.9 「서쪽 찻길 위 둑」), from the road's edge
 up to the ridge's ground (tools/ridge97.py), where the game had a shelf eased between the two.
+BENCH_EAST, BEND96: the bench out to its east edge and the bank north of the road's bend, on the leafless scans of 1996
+(고증 3.9 「단의 동쪽 끝: 1996년 겨울 사진」 · 「서쪽 찻길 둑의 북쪽 굽이」).
 """
 import math
 
@@ -113,6 +115,13 @@ BENCH = Polygon([(-176.0, 54.0), (-172.5, 64.0), (-168.5, 71.0), (-166.0, 76.5),
                  (-168.0, 58.0), (-170.0, 54.0)])
 # what of it was paved (asphalt): not the hall, not the planted bank east of the north wing
 BENCH_PAVED_EAST = [(-85.0, 121.0), (-75.0, 118.5), (-70.5, 122.0), (-67.0, 127.0), (-63.0, 131.5), (-60.5, 134.5)]     # (the place's south-east edge)
+# the bench's east edge (고증 3.9 「단의 동쪽 끝」): the leafless scans of 1996 (26/15 · 26/16 of 12-23, 27/15 · 27/16 · 27/17
+# of 11-28, pair by pair) have the bench's level, 49.2 - 50.6 m, out to u 63.2 - 64.9 all along the north wing (v 25 -
+# 77), 17 m east of its east face, and at v 34 a drop of 3.7 m within a metre (a wall), a strip of 46 - 47.3 m under it
+# 4 m wide, then 42.5 - 44.5 m.  The game's bench had stopped at u 58 - 60, its bank starting there: the nodes out to the
+# edge go to the bench's level (the wall is not made: the 5 m grid's bank starts at it)
+BENCH_EAST_U = 63.8
+BENCH_EAST = unary_union([kb_rect(46.9, BENCH_EAST_U, 25.55, 76.0), kb_rect(50.0, BENCH_EAST_U, 17.0, 25.55)])
 # the road west of 광복관 (OSM's line, which the scans' road follows to 1 m): its height along it, from where it leaves
 # the game's ground (x, y, 해발)
 ROAD_KB_W = [(-173.8, 55.1, 48.3), (-170.2, 60.0, 49.2), (-167.1, 65.0, 49.8), (-163.9, 70.1, 50.05), (-157.7, 80.4, 50.2),
@@ -243,6 +252,18 @@ BANK = Polygon([(-183.4, 52.3), (-203.3, 67.4), (-195.9, 77.3), (-167.3, 124.2),
                 (-138.4, 119.5), (-147.0, 109.6), (-175.2, 63.3)])
 
 
+# the bank north of the road's bend towards 연합신학대학원 (고증 3.9 「서쪽 찻길 둑의 북쪽 굽이」), north of BANK: GRID and
+# the ring round it had it 0.7 - 2.4 m under the three editions' surfaces on its east part.  The leafless scans of
+# 1996-12-23 (26/14 · 26/15 · 26/16, pair by pair as tools/ridge97.py UTS96) see its ground between the bare trees:
+# BEND96, the nodes where two or three pairs agree to 0.6 m (those more than 1 m over the three surveys' surfaces are
+# trees, more than 3 m under them a wrong match: left out).  Laid at those nodes, the rest of BEND between them (fill)
+BEND = Polygon([(-147.5, 137.5), (-97.5, 137.5), (-97.5, 172.5), (-147.5, 172.5)])
+BEND96 = [(-145, 140, 59.53), (-135, 140, 56.25), (-125, 140, 53.51), (-110, 140, 53.28), (-105, 140, 52.56),
+          (-100, 140, 51.92), (-145, 145, 59.24), (-140, 145, 58.05), (-125, 145, 56.92), (-115, 145, 55.42),
+          (-140, 150, 59.37), (-135, 150, 58.94), (-125, 150, 58.49), (-135, 155, 60.60), (-130, 155, 60.31),
+          (-125, 155, 59.29), (-110, 155, 58.16), (-135, 160, 62.68), (-130, 170, 65.00)]
+
+
 def bank_z(X, Y):
     """BANK_GRID at the game's nodes (X, Y arrays of node places): 해발, 0 where the table has none"""
     i = np.round((np.asarray(X, float) - BANK_X0) / GRID_D).astype(int)
@@ -256,6 +277,12 @@ def bank_z(X, Y):
 def bank_nodes(X, Y):
     """the nodes BANK_GRID lays (for tools/ridge97.py: the same surveys' ground, so its own comes right up to them)"""
     return shapely.contains_xy(BANK, X, Y) & (bank_z(X, Y) > 0.0)
+
+
+def bend_nodes(X, Y):
+    """the nodes BEND lays (for tools/ridge97.py's flush, as bank_nodes: the photos' ground there agrees with the
+    surveys', so the ridge's own comes right up to them)"""
+    return shapely.contains_xy(BEND, X, Y) & ~bank_nodes(X, Y)
 
 
 RING = 15.0                       # eased out (harmonic) this far round REGION
@@ -350,6 +377,24 @@ def grade(Hn, X, Y, FIXED, keep, fill, tr_pts, tr_n, step=5.0, half=800.0):
             lot[j, i] = True
     info['cars'] = int(lot.sum())
     took = inr | road | lot
+    # the bench out to its east edge (BENCH_EAST), where GRID had begun the bank down towards 경영학교실단
+    edge = shapely.contains_xy(BENCH_EAST, X, Y) & ~keep & ~road & ~lot
+    Hn[edge] = BENCH_Z + Tn[edge]
+    info['east edge'] = (int(edge.sum()), round(float((Hn - H0)[edge].min()), 1), round(float((Hn - H0)[edge].max()), 1))
+    took = took | edge
+    # the bank north of the road's bend (BEND96 and between them), clear of BANK's nodes
+    bz = shapely.contains_xy(BEND, X, Y) & ~keep & ~road & ~lot & ~bank_nodes(X, Y)
+    meas = np.zeros(X.shape, bool)
+    for x, y, z in BEND96:
+        i, j = int(round((x + half) / step)), int(round((y + half) / step))
+        if bz[j, i]:
+            Hn[j, i] = z + Tn[j, i]
+            meas[j, i] = True
+    if (bz & ~meas).any():
+        fill(bz & ~meas)
+    info['bend'] = (int(meas.sum()), int((bz & ~meas).sum()), round(float((Hn - H0)[bz].min()), 1),
+                    round(float((Hn - H0)[bz].max()), 1))
+    took = took | bz
     # the bank over the road's west side (BANK_GRID): from the road's edge up to the ridge's ground, where the nodes
     # were eased between the two
     bank = bank_nodes(X, Y) & ~took & ~keep & ~FIXED

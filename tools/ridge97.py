@@ -120,7 +120,8 @@ def grade(Hn, X, Y, FIXED, halls, fill, yield_=None, flush=None):
     """GRID in RIDGE (PEAK level), eased round it and between it and what the other blocks have laid (fill:
     harmonic_fill).  halls: the outlines of the halls that stay (not the 사택); yield_: nodes laid before that were
     only eased (FIXED, but laid over here); flush: nodes laid before on the same surveys' ground (the bank over 광복관's
-    west road, tools/kwangbok97.py BANK_GRID), which stay but need no KEEP_OFF: GRID comes right up to them.
+    west road, tools/kwangbok97.py BANK_GRID, and the photos' ground north of its bend that agrees with them, BEND),
+    which stay but need no KEEP_OFF: GRID comes right up to them.
     Returns the nodes set (to be FIXED) and a summary"""
     H0 = Hn.copy()
     step = float(X[0, 1] - X[0, 0])
