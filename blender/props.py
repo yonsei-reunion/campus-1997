@@ -1,6 +1,6 @@
 """Street furniture, statues, the main gate, 1990s Korean cars and pedestrians."""
 import math, random
-from mathutils import Vector, Matrix
+from mathutils import Matrix, Quaternion, Vector
 from common import MeshBuilder
 from landmarks import arch_fill, rod
 
@@ -754,6 +754,42 @@ def recycle_bin():
     return mb
 
 
+def _ellipsoid(mb, c, abc, q=None, seg=32, rings=18):
+    """A closed ellipsoid, its rows sharing the pole vertices: a solid for the voxel union."""
+    R = (q or Quaternion()).to_matrix()
+    c = Vector(c)
+    P = [[c + R @ Vector((abc[0] * math.sin(th) * math.cos(ph), abc[1] * math.sin(th) * math.sin(ph), abc[2] * math.cos(th)))
+          for ph in (2 * math.pi * i / seg for i in range(seg))]
+         for th in (math.pi * j / rings for j in range(rings + 1))]
+    tag = 'e%d' % len(mb.faces)
+    for j in range(rings):
+        for i in range(seg):
+            k = (i + 1) % seg
+            if j == 0:
+                q = [P[0][0], P[1][i], P[1][k]]
+            elif j == rings - 1:
+                q = [P[j][i], P[rings][0], P[j][k]]
+            else:
+                q = [P[j][i], P[j + 1][i], P[j + 1][k], P[j][k]]
+            mb.face(q, 'stone_haetae', smooth=tag)
+
+
+def _blob(name, elems, voxel, smooth=4, factor=0.6):
+    """An organic form from overlapping solids: their union on a voxel grid, the creases where they meet smoothed
+    (sculpt.union).  elems: ('ell', c, (a, b, c)[, quat]) | ('ball', c, r) | ('cap', p0, p1, r)."""
+    import sculpt
+    from statues import _capsule
+    mb = MeshBuilder(name)
+    for e in elems:
+        if e[0] == 'ell':
+            _ellipsoid(mb, e[1], e[2], e[3] if len(e) > 3 else None)
+        elif e[0] == 'ball':
+            _ellipsoid(mb, e[1], (e[2],) * 3, None, seg=20, rings=12)
+        else:
+            _capsule(mb, e[1], e[2], e[3])
+    return sculpt.union([mb.build()], voxel, smooth=smooth, factor=factor, name=name)
+
+
 def _haetae_curls(E, c, abc, angs, r, out=1.0):
     """Curls of the mane or the coat: small balls set on the surface of an ellipsoid at (azimuth, elevation) pairs."""
     for az, el in angs:
@@ -770,7 +806,7 @@ def haetae():
     of Joseon stone 해태 (the photo is too small for it): bulging eyes under heavy brows, a broad nose, a mouth of teeth
     and two fangs, a knob of a horn; curls of the mane round the head and down the spine, a bushy tail curled up the
     back.  It looks along -Y."""
-    from statues import _blob, _qx, _qy
+    from statues import _eq
     E = [
         ('ell', (0, 0.2, 0.2), (0.22, 0.23, 0.2)),                 # haunches
         ('ell', (0, 0.0, 0.3), (0.19, 0.27, 0.19)),                # the back, running forward
@@ -792,9 +828,9 @@ def haetae():
             ('cap', (sx * 0.12, -0.2, 0.42), (sx * 0.12, -0.26, 0.07), 0.062), # forelegs
             ('ell', (sx * 0.12, -0.3, 0.04), (0.068, 0.09, 0.042)),            # fore paws
             ('ball', (sx * 0.08, -0.37, 0.77), 0.036),                         # bulging eyes
-            ('ell', (sx * 0.08, -0.36, 0.81), (0.052, 0.027, 0.021), _qy(sx * -12)),   # heavy brows
+            ('ell', (sx * 0.08, -0.36, 0.81), (0.052, 0.027, 0.021), _eq('Y', sx * -12)),   # heavy brows
             ('ball', (sx * 0.036, -0.468, 0.67), 0.021),                       # nostrils
-            ('ell', (sx * 0.16, -0.2, 0.78), (0.025, 0.04, 0.055), _qy(sx * 55)),     # ears, laid out sideways
+            ('ell', (sx * 0.16, -0.2, 0.78), (0.025, 0.04, 0.055), _eq('Y', sx * 55)),     # ears, laid out sideways
             ('ell', (sx * 0.062, -0.42, 0.59), (0.017, 0.017, 0.034)),         # fangs
             ('ell', (sx * 0.11, -0.34, 0.61), (0.032, 0.052, 0.037)),          # cheeks
             ('ball', (sx * 0.035, 0.44, 0.24), 0.04),                          # the bushy tail
