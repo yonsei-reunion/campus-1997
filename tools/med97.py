@@ -252,3 +252,139 @@ def trees_aside(trees, halls, pad=1.5):
             t[1], t[2] = round(q.x, 2), round(q.y, 2)
             spots = [s for s in spots if s.distance(q) > 3.5]
     return moved
+
+
+# =====================================================================================================================
+# 의료원의 남은 줄 (#152, 2026-11-17; reference/고증/2.10_세운_차.md 「의료원의 남은 줄」, 3.1.2): the rows of the 1997 scans
+# the game could not take, on the ground and paving those scans give.  Late, after med97.grade (the planting and the
+# halls' first floors have read the ground as it was); the 종합관's floor and storeys and 의학도서관's outline go with
+# it in build_campus.py (BASE_1997, LATE_FOOTPRINT_1997).
+#
+#     took, info = med97.lots_grade(Hn, X, Y, FIXED, halls, harmonic_fill, road_ls, road_hw)
+#     med97.lots_paint()                      # asphalt on the game's map (late)
+#     med97.lots_aside(trees, shrubs, halls)  # what the planting put on the new paving, in its place in the list
+#
+# Every absolute height here is above sea level (해발), taken up to the working datum where it is read.
+
+def fr(o, ang):
+    """a frame: (u, v) -> campus metres, u along ang (deg from east), v to its left"""
+    a = math.radians(ang)
+    c, s = math.cos(a), math.sin(a)
+    return lambda u, v: (o[0] + u * c - v * s, o[1] + u * s + v * c)
+
+
+def _rect(f, u0, u1, v0, v1):
+    return Polygon([f(u0, v0), f(u1, v0), f(u1, v1), f(u0, v1)])
+
+
+MED = fr((150.0, -250.0), 43.0)         # the quarter's frame (3.1.2 「1997년 7월 수직 항공사진」)
+# 의료원 종합관 남동쪽 주차장: between the hall's south-east face (v -96.7 .. -97.7) and the planted strip along 성산로
+# (v -121), three rows of slanting stalls (the hall's row seen from course 27 only: the roof leans over it in 26/16)
+# and two aisles, ONE level: the aisles 31.07 (v -114, sixteen points) and 31.16 m (v -106, twelve), two or three pairs
+# within 0.05 - 0.45 m each, the cars' roofs 32.0 - 32.5 m.  The game had 33.6 - 35.0 m by the hall falling to 29.5 m
+# at the far row (today's lawn bank).  The plane: 31.1 m at v -109, 0.012 m up per metre towards the hall
+JH_LOT = Polygon([(218.06, -318.75), (279.45, -262.89), MED(86.5, -97.75), MED(86.5, -121.0), MED(-0.6, -121.0),
+                  MED(-0.6, -96.6)])            # (u -0.6: 0.9 m off 의과대학 신관's north-east face, the first stall's line at u 0.6)
+JH_HALL = Polygon([(218.06, -318.75), (279.45, -262.89), (266.79, -248.98), (205.4, -304.84)])   # (종합관, 990032)
+JH_IN = Polygon([(218.06, -318.75), (279.45, -262.89), MED(85.9, -91.2), MED(2.9, -90.2)])  # (under the hall, by the face)
+JH_DOOR = MED(26.0, -97.05)                  # (its door on that face, where the scans' hatched strip crosses the hall's row)
+JH_Z = datum.up_plane((31.15, -0.00818, 0.00878), 250.0, -300.0)
+JH_BASE = datum.up(248.75, -290.8, 31.24)    # (the hall's floor: the lot at the middle of its face)
+JH_RING, JH_PAD = 10.0, 1.0                  # (eased round it; the other halls' feet: 의과대학 신관's floor is pinned)
+# 동문회관 북서쪽 길: the stall row south-east of the road (twelve stalls 2.3 m, nine cars) and the road beside it level
+# at 44.85 m (course 27 only: three pairs within 0.05 - 0.35 m on the bare stalls and the road; the leaf-off 1996 and
+# 1999 frames 44.7 - 44.9 m), where the game's road rose 0.8 m to the north-east and its lawn fell 0.7 - 1.3 m under
+# the stalls.  Frame: o (380, -100), u along the road 45 deg, v to its left (north-west)
+DM = fr((380.0, -100.0), 45.0)
+DM_ZONE = _rect(DM, -1.5, 30.0, -5.4, 6.8)
+DM_Z = datum.up_plane((44.85, 0.0, 0.0), 385.0, -95.0)
+DM_RING, DM_PAD = 8.0, None                  # (raised only: the halls' feet, 동문회관's north corner too, go under it)
+# the paving the scans have under the rows (the game: lawn), asphalt on the game's map
+MU = fr((278.59, -99.86), 42.0)          # (음악대학 남쪽 · 재활병원 동쪽: the south-east row's first stall, along the row)
+WC = fr((274.0, -31.0), 75.0)            # (음악대학 동쪽 큰 주차장 서쪽 빈 칸 줄: along the row)
+
+
+def _carbox(x, y, h, pad=0.0, L=4.7, W=1.8):
+    t, n = np.array([math.cos(math.radians(h)), math.sin(math.radians(h))]), np.array([-math.sin(math.radians(h)), math.cos(math.radians(h))])
+    c = np.array([x, y])
+    return Polygon([tuple(c + t * a * (L / 2 + pad) + n * b * (W / 2 + pad)) for a, b in ((1, 1), (1, -1), (-1, -1), (-1, 1))])
+
+
+PAVE_MORE = {
+    '종합관 남동쪽 주차장': JH_LOT.intersection(_rect(MED, -5.0, 95.0, -120.8, -90.0)),
+    '동문회관 북서쪽 칸 줄': _rect(DM, 0.3, 28.5, -5.15, 0.0),
+    '음악대학 남쪽 칸 줄': unary_union([_rect(MU, -2.0, 14.0, -2.75, 9.0), _rect(MU, 5.6, 8.2, -5.3, -2.7)]),
+    '음악대학 남쪽 굽은 길 가': unary_union([_carbox(278.4, -71.7, -48.0, 0.5), _carbox(279.85, -69.9, -35.0, 0.5)]).convex_hull,
+    '특별병동 남동쪽': unary_union([_carbox(204.58, -129.28, 40.0, 0.7), _carbox(205.72, -132.51, 40.0, 0.7),
+                              _carbox(208.93, -129.03, 40.0, 0.7)]).convex_hull,
+    '종합관 북서 마당 서쪽 셋': _rect(MED, 35.0, 40.4, -42.0, -34.0),
+    '종합관 북서 마당 칸 줄': _rect(MED, 43.4, 57.7, -46.5, -41.0),
+    '의학도서관 북동쪽 칸 줄': _rect(MED, 34.6, 41.0, -62.5, -47.0),
+    '음악대학 동쪽 큰 주차장 서쪽 칸 줄': _rect(WC, -17.0, 27.0, -1.8, 3.0),
+    '광혜관 남쪽 마당': _rect(MED, -75.0, -57.0, 50.0, 74.5),
+}
+# 의학도서관 (OSM 324328456): its roof in four frames (27/17 · 26/16 · 27/18 · 26/15, on the roof's plane 49.3 m) ends at
+# u 28.6 (28.4 - 28.7), 8.6 m short of OSM's north-east face; the ground beyond is the yard's (38.3 - 38.5 m, five
+# pairs at u 33), with the row of six cars nose to a kerb at u 34.7.  The other three faces stay OSM's (within 0.5 -
+# 1.5 m of the frames')
+LIB_ID = 324328456
+LIB_1997 = [(196.93, -295.97), MED(28.6, -65.80), MED(28.6, -48.06), (184.68, -283.35)]
+
+
+def lots_grade(Hn, X, Y, FIXED, halls, fill, road_ls, road_hw):
+    """The 종합관's car park and the 동문회관 row on the scans' planes (halls: every hall's outline but the 종합관's),
+    the ground round them eased; 성산로's bed (road_ls, road_hw + 2.5 m), the other halls' feet (JH_PAD) and nodes
+    another rule set (FIXED) stay.  Returns the nodes set and a summary"""
+    H0 = Hn.copy()
+    pts = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
+    on_road = (shapely.distance(pts, road_ls) <= road_hw + 2.5).reshape(X.shape)
+    hall_in = shapely.contains_xy(JH_HALL.difference(JH_IN), X, Y)          # (the rest under the hall stays)
+    took = np.zeros(X.shape, bool)
+    info = {}
+    for nm, zone, c, ring, pad in (('종합관 남동쪽', JH_LOT.union(JH_IN), (JH_Z, 250.0, -300.0), JH_RING, JH_PAD),
+                                   ('동문회관 북서쪽', DM_ZONE, (DM_Z, 385.0, -95.0), DM_RING, DM_PAD)):
+        near_hall = shapely.contains_xy(unary_union([h.buffer(pad) for h in halls]), X, Y) if pad is not None \
+            else np.zeros(X.shape, bool)
+        inz = shapely.contains_xy(zone, X, Y)
+        m = inz & ~FIXED & ~on_road & ~near_hall
+        (c0, cx, cy), x0, y0 = c
+        Hn[m] = c0 + cx * (X[m] - x0) + cy * (Y[m] - y0)
+        took |= m
+        free = shapely.contains_xy(zone.buffer(ring), X, Y) & ~inz & ~FIXED & ~on_road & ~near_hall & ~took & ~hall_in
+        if free.any():
+            fill(free)
+        took |= free
+        d = Hn - H0
+        info[nm] = dict(nodes=int(m.sum()), kept=dict(fixed=int((inz & FIXED).sum()), road=int((inz & on_road).sum()),
+                                                      hall=int((inz & near_hall).sum())),
+                        moved=(round(float(d[m].min()), 2), round(float(d[m].max()), 2)) if m.any() else None,
+                        eased=(int(free.sum()), round(float(d[free].min()), 2), round(float(d[free].max()), 2)) if free.any() else None)
+    return took, info
+
+
+def lots_paint():
+    """asphalt under the rows (the game's map, late)"""
+    return list(PAVE_MORE.values())
+
+
+def lots_aside(items, halls, pad=1.2):
+    """trees or shrubs the planting put on the new paving: each in its place in the list to the nearest point pad m
+    outside that paving, off the other new paving and clear of the halls by 2 m.  Returns the moves"""
+    paved = unary_union(list(PAVE_MORE.values()))
+    hb = unary_union([h.buffer(2.0) for h in halls])
+    moved = []
+    for t in items:
+        p = Point(t[1], t[2])
+        if not paved.contains(p):
+            continue
+        ring = paved.buffer(pad)
+        ring = ring.geoms if hasattr(ring, 'geoms') else [ring]
+        edge = min(ring, key=lambda g: g.distance(p)).exterior
+        spots = [edge.interpolate(d) for d in np.arange(0.0, edge.length, 0.25)]
+        spots = [q for q in spots if not hb.contains(q) and not paved.contains(q)]
+        if not spots:
+            continue
+        q = min(spots, key=lambda q_: q_.distance(p))
+        moved.append((t[0], t[1], t[2], round(q.x, 2), round(q.y, 2)))
+        t[1], t[2] = round(q.x, 2), round(q.y, 2)
+    return moved

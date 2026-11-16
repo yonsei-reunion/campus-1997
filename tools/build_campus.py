@@ -5480,6 +5480,7 @@ ENTRY_AT[413217834] = ((112.14, 251.72), {})
 # second's at the head of the walk up to its raised forecourt, on its third floor
 ENTRY_AT[324328472] = ((5.41, -286.88), dict(floor=2))
 ENTRY_AT[990030] = (tuple(round(c_, 2) for c_ in medwest97.xy(*medwest97.CLINIC_DOOR)), dict(floor=2))
+ENTRY_AT[990032] = (tuple(round(c_, 2) for c_ in med97.JH_DOOR), {})   # (의료원 종합관: on its car park, med97)
 # 경영학교실단 (백양관)'s front door (reference/고증.md 3.15): at the north end of the low front between the wings, where
 # the annex before the north wing begins, 44.9 m along its face to 백양로 (± 3 m; the door takes the two bays nearest,
 # 45.7 m).  The 2008 and 2010 roadview count thirteen risers in one straight flight, about 7 m wide over its side
@@ -6656,6 +6657,19 @@ _md_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] 
 _md_took, MED97_GRADE = med97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
 FIXED[_md_took] = True
 print('의료원 주차장 셋:', MED97_GRADE)
+# 의료원의 남은 줄 (tools/med97.py lots_grade, reference/고증/2.10 「의료원의 남은 줄」; #152, md): 의료원 종합관's south-east
+# car park on its 1997 level (2 - 3.5 m under the game's ground by the hall, its far row on today's lawn bank) and
+# the 동문회관 stall row with the road beside it; late, here.  종합관's floor comes down to the car park (JH_BASE,
+# LATE_HALLS below); 의과대학 신관's, at the car park's south-west end, stays where it was
+_jh_sin = next(p_ for pid_, _, _, _, p_ in OLD_HALLS if pid_ == 990037)
+BASE_1997[990037] = round(min(ground_h(x_, y_) for x_, y_ in _jh_sin.simplify(0.05).exterior.coords), 2)
+BASE_1997[990032] = med97.JH_BASE
+_lt_took, MED97_LOTS = med97.lots_grade(Hn, X, Y, FIXED, [p_ for p_, (pid_, _, _, _, _) in zip(
+    [q_.buffer(0) for _, _, _, _, q_ in OLD_HALLS], OLD_HALLS) if pid_ != 990032] + [Polygon(b_['footprint']).buffer(0)
+    for b_ in buildings if b_['id'] not in GONE_1997] + [Polygon(v_).buffer(0) for v_ in LATE_FOOTPRINT_1997.values()],
+    harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
+FIXED[_lt_took] = True
+print('의료원의 남은 줄:', MED97_LOTS, '- 의과대학 신관 floor', BASE_1997[990037])
 # 의료원 서쪽 (tools/medwest97.py, reference/고증/3.1.2 「외래진료소 서쪽」; md): the ground round 외래진료소's raised
 # forecourt, its ramps and 안 · 이비인후과병원's terrace on the 1997 photos' heights (today's lawn ran one slope 2 - 5 m
 # under them); the raised surfaces themselves are meshes over it (out['med_west'] below).  Late, here: the planting
@@ -7318,6 +7332,9 @@ for pid, nm, style, lv, poly in OLD_HALLS:
                            base=BK_FRONT_BASE if pid == 990022 else BASE_1997.get(pid, round(min(hs), 2)),
                            top_ground=round(max(hs), 2),
                            footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]))
+    if pid == 990032:      # (의료원 종합관: its floor on the south-east car park, med97.JH_BASE; six storeys of 3.85 m to its
+        LATE_HALLS[-1].update(levels=6, fh=3.85, height=round(6 * 3.85 + 1.2, 2))  # roof, 55.4 m in the scans: four
+                           # over the yard north-west of it, as its windows there, two more by the car park)
 buildings += LATE_HALLS
 # (연합신학대학원: the 1997 hall's door in the middle of its east wall, where OSM's walk from the road east of it comes
 # in; the photos do not show it.  Set here: the planting ran with the door of OSM's outline)
@@ -7404,6 +7421,13 @@ for b in buildings:
     LATE_SITES.append(poly)
     if b['id'] not in SITES_NEW_1997 and MED_SITES_RNG.get(b['id'], poly) is not None:
         LATE_SITES_RNG.append(MED_SITES_RNG.get(b['id'], poly))
+# 의학도서관 as the 1997 scans have it (tools/med97.py LIB_1997, reference/고증/3.1.2): OSM's outline 8.6 m short at its
+# north-east end, where a row of cars stood nose to a kerb; its floor and door (south-west face) as they were.  Not a
+# late site: nothing round it is cleared (it only gives up ground)
+for b in buildings:
+    if b['id'] == med97.LIB_ID:
+        b.update(footprint=[[round(x_, 2), round(y_, 2)] for x_, y_ in med97.LIB_1997],
+                 top_ground=round(max(ground_h(x_, y_) for x_, y_ in med97.LIB_1997), 2))
 # (종합관 · 외솔관2 · 인문관, above: their storeys.  외솔관2's low white gabled roof draws nothing from blender/build.py's
 # stream, so its flat-roofed self draws in its place: RND_GHOSTS.  종합관's low block: its site cleared with the others)
 for b in buildings:
@@ -9773,6 +9797,7 @@ _ypaint([p_.difference(gymnorth97.GYM_POLY.buffer(0.3)) for p_ in gymnorth97.PAV
 # lawn (out of the 2005 hospital's site's asphalt, _ga, and the layers under it)
 _md_asph, _md_bank = med97.paint()
 _ypaint(_md_asph, _ga)
+_ypaint(med97.lots_paint(), _ga)               # (의료원의 남은 줄: the paving under the 1997 rows, med97.PAVE_MORE; md)
 for g_ in _md_bank:                            # (_yg is the 0.5 m map's by now: the fine one's strokes only)
     SPLAT_OPS.append(('poly', '_yg', list(g_.exterior.coords), 255))
     SPLAT_OPS.append(('poly', '_ga', list(g_.exterior.coords), 0))
@@ -11236,6 +11261,10 @@ out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # edges in their places in the list
 print('의료원 주차장 셋: trees out of the yards',
       med97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
+# 의료원의 남은 줄 (tools/med97.py PAVE_MORE; md): the trees and shrubs the planting put on the 1997 rows' paving, to its
+# edge in their places in the list
+print('의료원의 남은 줄: trees, shrubs off the paving',
+      [med97.lots_aside(out[k_], [Polygon(b_['footprint']) for b_ in out['buildings']]) for k_ in ('trees', 'shrubs')])
 # 의료원 서쪽 (tools/medwest97.py; md): the game's trees on what is paved or built again there go to the 1997 scans'
 # trees, each in its place in the list, the scans' trees still without one are planted at the trees' end; the shrubs,
 # props and decals on it go; today's walks out of the walks the game reads, the 1997 ones in
