@@ -2956,9 +2956,17 @@ TR_EKH_OSM = int(round(LineString([tuple(q_) for q_ in TR_E_OSM]).project(Point(
 # east of OSM's line abreast of 대우관 별관, which is the walk beside the road there).  Its width is the photos' too
 # (7.5 - 8.5 m; 9.5 m round the island with the pine, RD_ISLAND).  The bend: the approach through the crossing the
 # photos have before it, (192.5, 557.5), so OSM's corner 3.6 m back along the road north of the hall, rounded as it was.
+# (2026-11-17) The road north of the hall: the 1997 scans and the leaf-off ones of 1996 (eight frames, two seasons) have
+# it straight from its west end on to the corner, its middle line (painted white) 0.3 m north of OSM's west leg and
+# 1.2 - 3.4 m north of OSM's east leg, which bent 4.4 degrees south of it over the lawn island with the cooling tower
+# (reference/고증/3.6.2 「북쪽 길」).  So the bend now joins the approach (the last leg of the photos' east road, through
+# the crossing) to OSM's west leg carried straight on east: their meeting point, rounded with the same 5.5 m.
 RD97 = json.load(open(os.path.join(ROOT, 'tools/roadview/roads/adopted.json')))
-_en = np.array([147.1 - _ej[0], 547.2 - _ej[1]]) / math.dist(_ej, (147.1, 547.2))
-_ej = _ej + _en * 3.6
+_eh = np.array(RD97['E']['centre'][-1][:2]) - np.array(RD97['E']['centre'][-2][:2])
+_eh = _eh / np.linalg.norm(_eh)
+_en = np.array([128.6 - 147.1, 537.2 - 547.2]) / math.dist((128.6, 537.2), (147.1, 547.2))
+_ej = np.array(RD97['E']['centre'][-1][:2]) + _eh * float(np.linalg.solve(np.array([_eh, _en]).T,
+                                                                            np.array([147.1, 547.2]) - np.array(RD97['E']['centre'][-1][:2]))[0])
 _er, _ea = 5.5, math.acos(float(np.clip(-_eh @ _en, -1.0, 1.0)))         # (the bend's radius, the angle between its two legs)
 _et = _er / math.tan(_ea / 2)
 _eo = _ej + (_en - _eh) / np.linalg.norm(_en - _eh) * (_er / math.sin(_ea / 2))
@@ -3000,8 +3008,10 @@ _emine = LineString([tuple(q_) for q_ in TR_E[TR_EK0 + 2:int(_els.project(Point(
 # wood's canopy (66 - 70 m) as far as the corner, 58.9 there, and 63.2 · 66.5 · 70.0 m up past the annex.  EAST_Q97:
 # (x, y, height) on the road's middle line, survey s 140 (where the grade is left as it was: the photos' heights south
 # of it are not settled), 184, 196, 208, 296, 304 ... 400 (beyond it the road had the photos' heights already).
+# (2026-11-17) s 228 · 258 · 282 under the canopy: the leaf-off winter scans of 1996, each course's pair on its own,
+# the two within 0.4 m (reference/고증/2.9 「동쪽 길의 높이」): 0.2 - 0.6 m over the one grade that joined s 208 to s 296.
 EAST_Q97 = datum.up3([(132.6, 222.4, 46.8), (149.7, 262.8, 49.11), (152.6, 274.4, 50.37), (156.4, 285.8, 51.42),
-            (207.5, 356.2, 58.88), (210.3, 363.4, 59.75), (210.4, 375.3, 61.22), (208.0, 391.1, 63.19),
+            (164.15, 304.19, 53.37), (182.25, 327.92, 56.31), (198.21, 345.82, 57.91), (207.5, 356.2, 58.88), (210.3, 363.4, 59.75), (210.4, 375.3, 61.22), (208.0, 391.1, 63.19),
             (205.9, 403.0, 64.67), (203.9, 414.8, 66.45), (201.5, 426.5, 67.94), (197.5, 436.8, 69.03),
             (190.7, 446.2, 69.95), (185.8, 452.8, 70.91)])
 # The ground beside it was the surface model's (the wood's canopy in it, 청송대 east of the road): uphill, east of the
@@ -3035,7 +3045,7 @@ if _elow_fill.any():
     harmonic_fill(_elow_fill)
 print('traffic east, the photos\' heights s 140 - 400: road down %.1f m at most (%.1f m at the corner under 청송대), '
       'ground beside it down at %d nodes (%.1f m at most), %d by the halls eased' % (
-          -_ed.min(), -_ed[int(round(_eq_s[4]))], int((_edz < -0.05).sum()), -_edz.min(), int(_elow_fill.sum())))
+          -_ed.min(), -_ed[int(round(_eq_s[7]))], int((_edz < -0.05).sum()), -_edz.min(), int(_elow_fill.sum())))
 tr_grade(TR_E, TR_EN, TR_EK0, len(TR_E), [
     ((50.4, 124.8), None, (69.1, 146.2), UW_TOP),                         # (one grade up from the 삼거리, over 용재관's old bank)
     ((69.1, 146.2), UW_TOP, (110.0, 194.0), UW_TOP + 0.05),               # along the square at its level, past 아펜젤러관's yard
@@ -9662,7 +9672,16 @@ for l_, w_, walk_ in _rd_oth:
 _rk = [k_ for k_ in range(TR_EK0 + 6, TR_EKH_OSM - 44)
        if 355.0 < TR_E_OSM[k_][1] < 452.0 and _els.distance(Point(*TR_E_OSM[k_])) > TR_EHW[int(round(_els.project(Point(*TR_E_OSM[k_]))))] + 1.5]
 RD_WALK = [tuple(q_) for q_ in TR_E_OSM[max(_rk[0] - 7, 0):_rk[-1] + 8]] if _rk else []
-_ypaint([_rd_clear, RD_ISLAND], _yg)
+# (the road north of the hall, TR_E above: its east leg now runs straight on north of OSM's, as the 1996 · 1997 scans
+# have it.  Its asphalt kerb to kerb, 6.4 m (_ga below); OSM's asphalt south of it, over the cooling tower's island
+# between its two rounded ends (P s 2 - 37: the scans' island), lawn again)
+_ekn = min(range(TR_EKH, len(TR_E)), key=lambda k_: math.dist(TR_E[k_], (186.4, 568.4)))   # (the bend's end)
+DWN_ROAD = LineString([tuple(q_) for q_ in TR_E[_ekn - 2:]]).buffer(3.2, cap_style='flat')
+_dwn_side = Polygon([(183.71, 565.09), (152.63, 551.3), (155.27, 545.36), (186.35, 559.15)])   # (south of it, along the island)
+DWN_LAWN = LineString([(201.4, 571.3), (147.1, 547.2)]).buffer(3.6, cap_style='flat').intersection(_dwn_side).difference(
+    DWN_ROAD.buffer(0.05))
+_ypaint([_rd_clear, RD_ISLAND, DWN_LAWN], _yg)
+print('대우관 북쪽 길: OSM\'s asphalt over the island taken up %.0f m2' % DWN_LAWN.area)
 print('찻길 east: road %.0f m2, old asphalt taken up %.0f m2 (kept for %d roads and walks, %d joined on), walk beside it %.0f m' % (
     RD_ROAD.area, _rd_clear.area, len(_rd_oth), len(_rd_join), LineString(RD_WALK).length if RD_WALK else 0.0))
 _yz = ndimage.gaussian_filter(np.array(_yz, np.float32) / 255.0, 0.7)
@@ -10034,9 +10053,11 @@ if RD_WALK:
     _ypaint([RD_WALK], _gp, width=2.6)
 _n0 = len(out['decals'])                      # (and the old asphalt's stains and lids with it)
 out['decals'][:] = [d_ for d_ in out['decals'] if not (_rd_clear.contains(Point(d_[1], d_[2])) and not RD_ROAD.contains(Point(d_[1], d_[2])))]
+out['decals'][:] = [d_ for d_ in out['decals'] if not DWN_LAWN.contains(Point(d_[1], d_[2]))]
 print('찻길 east: decals gone with the old asphalt', _n0 - len(out['decals']))
 _ypaint([[tuple(q_) for q_ in TR_E[TR_EKH - 42:TR_EKH + 24]]], _ga, width=8.6)
-_ekc = int(round(_els.project(Point(212.6, 356.4))))               # (the corner where the road under 청송대 goes on east)
+_ypaint([DWN_ROAD], _ga)                                       # (대우관 북쪽 길: its east leg on the scans' line, above)
+_ekc =int(round(_els.project(Point(212.6, 356.4))))               # (the corner where the road under 청송대 goes on east)
 _ypaint([[tuple(q_) for q_ in TR_E[_ekc - 16:_ekc + 22]]], _ga, width=8.6)
 _ypaint([_lot[:10], _lot[-10:]], _ga, width=5.6)
 _wki = int(round(_wls.project(Point(-14.5, 204.6))))
@@ -10117,8 +10138,8 @@ _rd_marks = []
 for m_ in RD97['marks']:
     k_ = int(round(_els.project(Point(*m_['xy']))))
     _rd_marks.append((m_, k_))
-    if m_['kind'] != 'stop':
-        _rd_cut |= set(range(k_ - int(m_['size'][1] / 2 + 1.2), k_ + int(m_['size'][1] / 2 + 1.2) + 1))
+    if m_['kind'] not in ('stop', 'bar'):
+        _rd_cut |=set(range(k_ - int(m_['size'][1] / 2 + 1.2), k_ + int(m_['size'][1] / 2 + 1.2) + 1))
 
 
 def _rd_run(cp, cn, k0, k1, off, kind, w=0.15, cut=()):
@@ -10155,16 +10176,35 @@ for m_, k_ in _rd_marks:
     elif m_['kind'] == 'hump':
         RD_PAINT['humps'].append(dict(xy=[round(float(v_), 2) for v_ in c_], t=[round(float(v_), 4) for v_ in t_],
                                       half=round(half_, 2), len=m_['size'][1]))
-    else:                                                               # (the stop line: across the road north of the hall)
-        RD_PAINT['lines'].append(dict(kind='white', w=m_['size'][1], pts=[[round(float(v_), 2) for v_ in c_ + n_ * o_]
-                                                                          for o_ in np.linspace(-half_, half_, 5)]))
-        # that road's own lines from the stop line on: the middle line, the north edge, the south edge but for the
-        # mouth of the upper car park (the 1997 photos have three lines along it; yellow as in 2010)
-        _mo = np.array(_me(0.0, 0.0))
-        _rd_run(TR_E, TR_EN, k_ + 2, len(TR_E) - 2, 0.0, 'yellow')
-        _rd_run(TR_E, TR_EN, k_ + 2, len(TR_E) - 2, -2.95, 'yellow')
-        _rd_run(TR_E, TR_EN, k_ + 2, len(TR_E) - 2, 2.95, 'yellow',
-                cut={j_ for j_ in range(len(TR_E)) if math.dist(TR_E[j_], _mo) < 7.0})
+    elif m_['kind'] == 'bar':                                           # (a thin white line across the road, kerb to kerb)
+        _mc_ = np.array(m_['xy'], float)
+        _bh_ = float(TR_EHW[k_]) - 0.1
+        _mc_ = _mc_ + n_ * float(np.dot(c_ - _mc_, n_))                 # (its own place along, the road's middle across)
+        RD_PAINT['lines'].append(dict(kind='white', w=m_['size'][1], pts=[[round(float(v_), 2) for v_ in _mc_ + n_ * o_]
+                                                                          for o_ in np.linspace(-_bh_, _bh_, 5)]))
+    else:                                                               # (the road north of the hall, from its mouth on)
+        # The 1996 · 1997 scans (eight frames; reference/고증/3.6.2 「북쪽 길」): a white middle line and no edge lines,
+        # in two runs either side of the upper car park's mouth, each closed by a stop line across one lane at either
+        # end: the eastbound (south) lane at the mouth by the corner and at the car park's, the westbound (north) lane
+        # at the island's west end and 66 m on.  The four lines' places along the road, as read: (x, y, lane side)
+        _tn = TR_E[-1] - TR_E[-2]
+        _tn = _tn / np.linalg.norm(_tn)
+
+        def _dwn_at(q_):
+            s_ = _els.project(Point(*q_))
+            if s_ < _els.length - 1.0:
+                k2_ = int(round(s_ * (len(TR_E) - 1) / _els.length))
+                return k2_, np.array(TR_E[k2_], float), np.array(TR_EN[k2_], float)
+            return len(TR_E) - 1, TR_E[-1] + _tn * float(np.dot(np.array(q_) - TR_E[-1], _tn)), np.array(TR_EN[-1], float)
+
+        _bars = [_dwn_at(q_) + (sd_,) for q_, sd_ in (((185.23, 564.12), 1.0), ((155.07, 550.74), -1.0),
+                                                       ((151.41, 549.12), 1.0), ((123.98, 534.71), -1.0))]
+        for _, b_, bn_, sd_ in _bars:
+            RD_PAINT['lines'].append(dict(kind='white', w=0.45, pts=[[round(float(v_), 2) for v_ in b_ + bn_ * sd_ * o_]
+                                                                     for o_ in np.linspace(0.0, 3.0, 4)]))
+        _rd_run(TR_E, TR_EN, _bars[0][0], _bars[1][0], 0.0, 'white')
+        _rd_run(TR_E, TR_EN, _bars[2][0], len(TR_E) - 1, 0.0, 'white')
+        RD_PAINT['lines'].append(dict(kind='white', w=0.15, pts=[[round(float(v_), 2) for v_ in q_] for q_ in (TR_E[-1], _bars[3][1])]))
 RD_PAINT['lines'] += medwest97.zebra()        # (의료원 서쪽: the three crossings of the 1997 scans)
 RD_PAINT['lines'] += muak.paint_lines(MUAK)   # (무악학사 길: the middle line, a stop line and a crossing of the 1996 · 1997 scans)
 out['road_paint'] = RD_PAINT
