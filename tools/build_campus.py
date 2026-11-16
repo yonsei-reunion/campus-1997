@@ -6743,6 +6743,13 @@ print('노천극장 갈림길 남쪽: %d nodes filled smoothly, %+.2f .. %+.2f m
 _ls_took, LIBSOUTH97 = libsouth97.grade(Hn, X, Y, FIXED, near_buildings(3.0), harmonic_fill)
 FIXED[_ls_took] = True
 print('중앙도서관 남쪽 화단:', LIBSOUTH97)
+# 화단 남쪽 ~ 독수리상 둘레 (tools/libsouth97.py belt, reference/고증/2.3.4 「화단 남쪽 ~ 독수리상 둘레의 땅」): the tree belt south
+# of the beds, the west bed and the side road through the belt on the leaf-off 1996 scans' ground (level at 30.2 - 30.9 m
+# where the grid fell 1.1 m towards the eagle), at the beds' level (LIBSOUTH97 dz); the yard (west_ground, below) and the
+# eagle's round stay
+_lb_took, LIBBELT97 = libsouth97.belt(Hn, X, Y, FIXED, near_buildings(3.0), harmonic_fill, LIBSOUTH97['dz'], west_ground.lot())
+FIXED[_lb_took] = True
+print('중앙도서관 화단 남쪽 ~ 독수리상 둘레:', LIBBELT97)
 # 용재관 바닥과 둘레 땅 (tools/yongjae97.py, reference/고증/3.13 「바닥과 둘레 땅의 높이」): the level ground round the
 # hall and the car park before its north walls (YJ_PAD) on the 1997 scans' and the 2006 survey's height (해발 45.9 m,
 # 2.2 m over the game's), the 진달래동산 bank round it one smooth surface out to the east fork, 백양로 and the drive
