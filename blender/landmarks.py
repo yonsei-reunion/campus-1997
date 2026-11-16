@@ -1679,12 +1679,9 @@ def terrace_steps(mb, y_face, zl, wu, tr, y_wall, wall='stone_rubble', mat='ston
     # cheeks, n risers, T going, head the top riser's d, road the bank's top there, zr / zg the road and the walk): a
     # landing at the road's level from the bank's top to the top riser, the treads down to the walk, coped rubble
     # cheeks along both, capped posts at the foot
-    y_lf = None
-    for fl in tr['flights']:
-        lx, wl, ct, nl, T = fl['s'], fl['w'], fl['ct'], fl['n'], fl['T']
-        hl, zrf, zgf = wl / 2, fl['zr'], fl['zg']
+    def flight(lx, wl, ct, nl, T, y_r, y_h, zrf, zgf):
+        hl = wl / 2
         rl = (zrf - zgf) / nl
-        y_r, y_h = y_wall - fl['road'], y_wall - fl['head']
         y_lf = y_h - (nl - 1) * T
         g_ = min(gnd, zgf - 1.0)
         mb.box((lx, (y_r + 0.3 + y_h) / 2, (zrf + 0.015 + g_) / 2), (wl, y_r + 0.3 - y_h, zrf + 0.015 - g_), mat, skip=('bottom',))
@@ -1697,6 +1694,20 @@ def terrace_steps(mb, y_face, zl, wu, tr, y_wall, wall='stone_rubble', mat='ston
             x0, x1 = sorted((lx + sg * hl, lx + sg * (hl + ct)))
             sloped_wall(mb, x0, x1, [(y_r + 0.15, zrf + 0.6), (y_h - 0.1, zrf + 0.6), (y_lf + 0.1, zgf + rl + 0.62)], g_, wall)
             pedestal(mb, lx + sg * (hl + ct / 2), y_lf - 0.05, zgf + 1.0, g_, wall)
+        return y_lf
+
+    y_lf = None
+    for fl in tr['flights']:
+        y_lf = flight(fl['s'], fl['w'], fl['ct'], fl['n'], fl['T'], y_wall - fl['road'], y_wall - fl['head'], fl['zr'], fl['zg'])
+    # --- 스팀슨관's flight off the terrace's south end down to the plaza (tools/build_campus.py TERR south: s of the top
+    # riser, d of the axis), the same make, going down along the front (-x): built in a frame turned a quarter, x' = d out
+    # of the wall, y' = s
+    sf = tr.get('south')
+    if sf:
+        xf0 = mb.xf
+        mb.xf = xf0 @ Matrix(((0, 1, 0, 0), (-1, 0, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
+        flight(sf['d'] - y_wall, sf['w'], sf['ct'], sf['n'], sf['T'], sf['s'], sf['s'], sf['zr'], sf['zg'])
+        mb.xf = xf0
     return y_lf
 
 
@@ -2622,7 +2633,9 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
     elif stairs['terrace']:                    # two flights, the road between them (스팀슨관)
         tr_ = stairs['terrace']
         terrace_steps(mb, y_face, zd, stairs['width'], dict(tr_, zr0=tr_['zr0'] - z0, zg0=tr_['zg0'] - z0,
-                                                             flights=[dict(f_, zr=f_['zr'] - z0, zg=f_['zg'] - z0) for f_ in tr_['flights']]),
+                                                             flights=[dict(f_, zr=f_['zr'] - z0, zg=f_['zg'] - z0) for f_ in tr_['flights']],
+                                                             south=dict(tr_['south'], zr=tr_['south']['zr'] - z0, zg=tr_['south']['zg'] - z0)
+                                                             if tr_.get('south') else None),
                       -W / 2, wall=wall, rec=door['rec'])
     else:
         hall_steps(mb, y_face, zd, stairs['width'], gl, wall=wall, wl=stairs['wl'], cheeks=stairs['cheeks'],

@@ -4477,25 +4477,35 @@ _AF = lambda s0, s1, d0, d1: Polygon([AP_XY(s0, d0), AP_XY(s1, d0), AP_XY(s1, d1
 # foot, the walk's edge), zr / zg ([(s, z)]: the road's and the walk's heights), walk (d of the parterre's edge, where
 # the walk's level gives back to the garden as it was), whole / ease (s: where the terrace is whole, eased out by),
 # z0 (the hall's floor), up (the door's flight: risers, going), flights (through the bank: s of the axis, width between
-# the cheeks, risers, going, d of the top riser; the road's level from the bank's top to it)
+# the cheeks, risers, going, d of the top riser; the road's level from the bank's top to it), south (스팀슨관's flight
+# off the terrace's south end down to the plaza, along s: s of the top riser, d of the axis, width between the cheeks,
+# the cheeks, risers, going; the terrace is whole to its head and eased down beside it to its foot)
 TERR = dict(
-    st=dict(xy=ST_XY, m=_stm, t=_stt, f=_stf, z0=datum.up(17.71, 229.29, 43.69), road=3.1,
+    st=dict(xy=ST_XY, m=_stm, t=_stt, f=_stf, z0=datum.up(17.71, 229.29, 43.69),
+            # (the road's near edge: the kerb at the outer edge of the planted band at the walls' foot, the scans' bright
+            # line 1.29 m out in 27/16 and 27/17; the door's flight stands out onto the road)
+            road=1.3,
+            pull=3.1,                  # (the nodes pulled down under the road and the bank: from the door's flight's foot out)
             # (the scans' s minus ST_S0; the road's edge 6.2 - 6.7 where both sides agree on a ground-level edge)
             far=[(-57.0, 6.9), (-48.5, 6.9), (-44.0, 6.4), (15.5, 6.4), (19.5, 6.4)],
             bank=[(-51.0, 11.35), (-39.5, 11.35), (-30.5, 11.11), (-21.5, 11.04), (-12.5, 10.89), (-6.5, 10.81),
                   (6.5, 10.61), (12.5, 10.35), (15.5, 10.2)],
-            zr=datum.up_at([(-51.5, 43.38), (-48.5, 43.51), (-36.5, 43.61), (-30.5, 43.69), (-24.5, 43.77), (-18.5, 43.85),
-                (-12.5, 44.08), (-6.5, 44.18), (0.0, 44.2), (6.5, 44.33), (12.5, 44.43), (15.5, 44.49)],
-                           [(15.9, 176.4), (16.7, 179.3), (19.8, 190.9), (21.4, 196.7), (23.0, 202.5), (24.6, 208.3),
+            # (s -55: the road at its south end, 3 m windows at s -54 .. -56 in the July 1997 and the winter 1996 frames)
+            zr=datum.up_at([(-55.0, 43.27), (-51.5, 43.38), (-48.5, 43.51), (-36.5, 43.61), (-30.5, 43.69), (-24.5, 43.77),
+                            (-18.5, 43.85), (-12.5, 44.08), (-6.5, 44.18), (0.0, 44.2), (6.5, 44.33), (12.5, 44.43), (15.5, 44.49)],
+                           [(15.0, 173.0), (15.9, 176.4), (16.7, 179.3), (19.8, 190.9), (21.4, 196.7), (23.0, 202.5), (24.6, 208.3),
                             (26.1, 214.1), (27.7, 219.8), (29.4, 226.1), (31.1, 232.4), (32.7, 238.2), (33.4, 241.1)]),
             zg=datum.up_at([(-51.0, 42.46), (-39.0, 42.37), (-33.5, 42.61), (-27.5, 42.76), (-21.5, 42.78), (-18.5, 42.89),
                 (-12.5, 42.96), (-6.5, 43.09), (0.0, 43.3), (6.5, 43.36), (9.5, 43.42), (12.5, 43.51), (15.5, 43.55)],
                            [(26.2, 174.1), (29.4, 185.7), (30.8, 191.0), (32.4, 196.8), (33.9, 202.6), (34.7, 205.5),
                             (36.3, 211.3), (37.9, 217.1), (39.6, 223.4), (41.3, 229.6), (42.1, 232.5), (42.8, 235.4),
                             (43.6, 238.3)]),
-            walk=15.3, whole=(-57.0, 19.0), ease=(-61.0, 23.0), up=dict(n=5, T=0.35),
+            walk=15.3, whole=(-56.7, 19.0), ease=(-58.62, 23.0), up=dict(n=5, T=0.35),
             flights=[dict(s=0.0, w=3.3, ct=0.45, n=6, T=0.33, head=8.2),
-                     dict(s=-44.0, w=3.6, ct=0.45, n=6, T=0.33, head=8.3)]),
+                     dict(s=-44.0, w=3.6, ct=0.45, n=6, T=0.33, head=8.3)],
+            # (reference/고증/3.5.3 「단의 남쪽 끝」: the risers' lines at s -56.70 .. -58.62 in 26/15 and 26/16, the
+            # cheeks' copings at d 3.52 and 6.05 from all four frames)
+            south=dict(s=-56.7, d=4.79, w=2.2, ct=0.35, n=7, T=0.32)),
     ap=dict(xy=AP_XY, m=_apm, t=_apt, f=_apf, z0=datum.up(91.31, 210.07, 43.7), road=2.25,
             # (the scans' s minus AP_S0)
             far=[(-28.0, 6.2), (-12.5, 6.3), (6.7, 6.1), (12.7, 6.0), (21.7, 5.4), (27.7, 5.4), (33.7, 5.2), (36.7, 4.75),
@@ -4515,7 +4525,7 @@ TERR = dict(
             walk=15.6, whole=(-18.0, 54.0), ease=(-23.0, 58.0), up=dict(n=6, T=0.29),
             flights=[dict(s=0.0, w=3.3, ct=0.45, n=7, T=0.34, head=8.25),
                      dict(s=45.2, w=3.35, ct=0.45, n=7, T=0.34, head=6.85)]))
-ST_ROAD = (TERR['st']['road'], 6.4)            # (at the door)
+ST_ROAD = (3.1, 6.4)            # (at the door, between the door's flight's foot and the bank: the walkers' line)
 ST_ZR, ST_ZG = TERR['st']['zr'], TERR['st']['zg']
 
 
@@ -4534,11 +4544,16 @@ for _T, _F in ((TERR['st'], _SF), (TERR['ap'], _AF)):
                                                [_T['xy'](s_, terr_at(_T, key_, s_) + (d1_ or 0.0)) for s_ in np.arange(_s1, _s0 - 0.01, -1.0)])
     for _ly in ('asphalt', 'pavers', 'dirt'):
         draw_poly(_ly, _band(-0.6, 'bank'), 0)              # (lawn at the walls' foot and on the bank)
-    draw_poly('asphalt', _band(_T['road'], 'far'))           # the road
+    _road = _band(_T['road'], 'far')
+    if _T.get('south'):                                      # (past the south flight's head the flight only: lawn beside it)
+        _sf = _T['south']
+        _road = _road.difference(_F(_s0 - 5.0, _sf['s'], -20.0, 40.0)).union(
+            _F(_sf['s'] - (_sf['n'] - 1) * _sf['T'], _sf['s'] + 0.01, _sf['d'] - _sf['w'] / 2 - _sf['ct'], _sf['d'] + _sf['w'] / 2 + _sf['ct']))
+    draw_poly('asphalt', _road)                              # the road
     if _T is TERR['st']:                                     # (past the hall's south end the 마사토 of the forecourt: 3.5.2)
         _sx = Polygon([_T['xy'](-21.0, -20.0), _T['xy'](_s0 - 3.0, -20.0), _T['xy'](_s0 - 3.0, 9.0), _T['xy'](-21.0, 9.0)])
-        draw_poly('dirt', _band(_T['road'], 'far').intersection(_sx))
-        draw_poly('asphalt', _band(_T['road'], 'far').intersection(_sx), 0)
+        draw_poly('dirt', _road.intersection(_sx))
+        draw_poly('asphalt', _road.intersection(_sx), 0)
     for _f in _T['flights']:                                 # the landing before each flight, its foot on the walk
         _hw = _f['w'] / 2 + _f['ct']
         draw_poly('asphalt', _F(_f['s'] - _f['w'] / 2, _f['s'] + _f['w'] / 2, terr_at(_T, 'far', _f['s']) - 0.3, _f['head']))
@@ -6603,12 +6618,25 @@ for _tk, _T in TERR.items():
     _tm = (_ts > _T['ease'][0]) & (_ts < _T['ease'][1]) & (_td > -8.0) & (_td < _T['walk'] + 4.0)
     Hn[_tm] = terrace_h(_T, X[_tm], Y[_tm], _tf_h0[_tm])
     _tb = np.interp(_ts, *zip(*_T['bank']))
-    _tpull = (_ts >= _T['whole'][0] + 1.0) & (_ts <= _T['whole'][1] - 1.0) & (_td > _T['road'] - 0.1) & (_td < _tb)
+    _tpull = (_ts >= _T['whole'][0] + 1.0) & (_ts <= _T['whole'][1] - 1.0) & (_td > _T.get('pull', _T['road']) - 0.1) & (_td < _tb)
     Hn[_tpull] = np.interp(_ts[_tpull], *zip(*_T['zg'])) - 0.02
-    _cells = {(j_ + a_, i_ + b_) for j_, i_ in zip(*np.nonzero(_tpull)) for a_ in (-1, 0) for b_ in (-1, 0)}
     _F = lambda s0_, s1_, d0_, d1_, T_=_T: Polygon([T_['xy'](s0_, d0_), T_['xy'](s1_, d0_), T_['xy'](s1_, d1_), T_['xy'](s0_, d1_)])
     _cut = unary_union([_F(f_['s'] - f_['w'] / 2 - f_['ct'], f_['s'] + f_['w'] / 2 + f_['ct'],
                           float(np.interp(f_['s'], *zip(*_T['far']))) - 0.05, 40.0) for f_ in _T['flights']])
+    _so = None
+    if _T.get('south'):
+        # the flight off the south end: the nodes under it down to the plaza at its foot (the ground as it was there),
+        # the deck over their cells too, the flight's place cut out of it
+        _sf = _T['south']
+        _sfoot = _sf['s'] - (_sf['n'] - 1) * _sf['T']
+        _shw = _sf['w'] / 2 + _sf['ct']
+        _so = dict(_sf, zr=round(float(np.interp(_sf['s'], *zip(*_T['zr']))), 3),
+                   zg=round(float(terrace_h(_T, *_T['xy'](_sfoot, _sf['d']))), 3))
+        _spull = (_ts > _sfoot - 0.5) & (_ts < _sf['s'] + 0.5) & (np.abs(_td - _sf['d']) < _shw + 0.5)
+        Hn[_spull] = np.minimum(Hn[_spull], _so['zg'] - 0.02)
+        _tpull = _tpull | _spull
+        _cut = _cut.union(_F(_sfoot, _sf['s'] + 0.05, _sf['d'] - _shw, _sf['d'] + _shw))
+    _cells = {(j_ + a_, i_ + b_) for j_, i_ in zip(*np.nonzero(_tpull)) for a_ in (-1, 0) for b_ in (-1, 0)}
     _poly = unary_union([shapely.geometry.box(gx[i_], gx[j_], gx[i_] + NEAR_STEP, gx[j_] + NEAR_STEP) for j_, i_ in _cells]) \
         .intersection(_F(-90.0, 90.0, -0.05, 40.0)).difference(_cut)
     _fl = []
@@ -6624,6 +6652,10 @@ for _tk, _T in TERR.items():
                          # (the frame: the door on the wall, s along the front, d out of it; the walk's d: tools/datum.py)
                          frame=dict(m=[round(float(v_), 3) for v_ in _T['m']], t=[round(float(v_), 5) for v_ in _T['t']],
                                     f=[round(float(v_), 5) for v_ in _T['f']], walk=_T['walk']))
+    if _so:
+        TERR_OUT[_tk]['south'] = _so
+        print('%s 앞 단의 남쪽 끝 계단: %d risers of %.3f m, %.2f -> %.2f (work plane)' % (
+            _tk, _so['n'], (_so['zr'] - _so['zg']) / _so['n'], _so['zr'], _so['zg']))
     _T['cells'], _T['poly'] = _cells, _poly
     print('%s 앞 단과 둑: nodes %d (pulled down %d), deck cells %d, %.0f m2; road %.2f, walk %.2f m at the door' % (
         _tk, int(_tm.sum()), int(_tpull.sum()), len(_cells), _poly.area, TERR_OUT[_tk]['zr0'], TERR_OUT[_tk]['zg0']))

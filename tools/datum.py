@@ -228,6 +228,10 @@ def heights(c):
         for fl in F['flights']:
             A(fl, 'zr', *xy(fl['s'], dr))
             A(fl, 'zg', *xy(fl['s'], dg))
+        sf = F.get('south')            # (스팀슨관 앞 단의 남쪽 끝 계단: its head and its foot on its axis)
+        if sf:
+            A(sf, 'zr', *xy(sf['s'], sf['d']))
+            A(sf, 'zg', *xy(sf['s'] - (sf['n'] - 1) * sf['T'], sf['d']))
     for key, dk in (('stimson_front', 'deck'), ('appenzeller_front', 'deck'), ('daewoo_front', 'deck'), ('daewoo_back', 'deck'),
                     ('daewoo_back', 'deck_nw')):
         d = c.get(key, {}).get(dk)
