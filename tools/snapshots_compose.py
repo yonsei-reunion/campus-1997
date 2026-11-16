@@ -32,32 +32,25 @@ CJK = '/usr/share/fonts/opentype/noto/NotoSansCJK-{}.ttc'     # index 1 = KR (fo
 
 
 def title(im, c):
-    """위쪽 가운데 하늘에 제목 화면 같은 글씨를 얹는다: c = {"eyebrow", "title", "sub"} (공유 대표 이미지).
-    제목은 민트색에 흰 그림자(style.css 의 h1), 뒤에 흐린 흰 빛을 깔아 구름 · 파란 하늘 어디서나 읽히게."""
-    from PIL import ImageDraw, ImageFilter, ImageFont
+    """위쪽 가운데 하늘에 제목 한 줄을 얹는다: c = {"text", "color", "size"(폭 1200 기준 px), "top"} (공유 대표 이미지).
+    제목 화면의 h1 처럼 흰 그림자를 두고, 뒤에 흐린 흰 빛을 깔아 구름 · 파란 하늘 어디서나 읽히게."""
+    from PIL import ImageColor, ImageDraw, ImageFilter, ImageFont
     k = im.width / 1200                    # sizes below are for a 1200 px wide image
     px = lambda v: max(1, round(v * k))
-    rows = [(c.get('eyebrow'), 'Bold', 30, '#16202e', 16), (c.get('title'), 'Black', 84, '#0e6f6b', 14),
-            (c.get('sub'), 'Bold', 40, '#16202e', 0)]
-    rows = [(t, ImageFont.truetype(CJK.format(w), px(s), index=1), col, px(gap)) for t, w, s, col, gap in rows if t]
-    y, placed = px(34), []
-    for t, f, col, gap in rows:
-        b = f.getbbox(t)
-        placed.append((t, f, col, ((im.width - (b[2] - b[0])) // 2 - b[0], y - b[1])))
-        y += b[3] - b[1] + gap
+    t, col = c['text'], c.get('color', '#00205b')
+    f = ImageFont.truetype(CJK.format('Black'), px(c.get('size', 90)), index=1)
+    b = f.getbbox(t)
+    xy = ((im.width - (b[2] - b[0])) // 2 - b[0], px(c.get('top', 60)) - b[1])
     glow = Image.new('L', im.size, 0)      # soft white light behind the words
-    gd = ImageDraw.Draw(glow)
-    for t, f, _, xy in placed:
-        gd.text(xy, t, font=f, fill=255, stroke_width=px(10), stroke_fill=255)
-    glow = glow.filter(ImageFilter.GaussianBlur(px(18))).point(lambda v: v * 0.55)
+    ImageDraw.Draw(glow).text(xy, t, font=f, fill=255, stroke_width=px(12), stroke_fill=255)
+    glow = glow.filter(ImageFilter.GaussianBlur(px(20))).point(lambda v: v * 0.55)
     im = Image.composite(Image.new('RGB', im.size, '#ffffff'), im, glow)
     d = ImageDraw.Draw(im)
-    for t, f, col, (x, y) in placed:
-        big = col == '#0e6f6b'
-        if big:                            # h1 { text-shadow: 3px 3px 0 #fff, 5px 5px 0 rgba(14,111,107,.18) }
-            d.text((x + px(6), y + px(6)), t, font=f, fill='#c9dedb')
-            d.text((x + px(4), y + px(4)), t, font=f, fill='#ffffff')
-        d.text((x, y), t, font=f, fill=col, stroke_width=0 if big else px(2), stroke_fill='#ffffff')
+    tint = tuple(round(0.18 * v + 0.82 * 255) for v in ImageColor.getrgb(col))
+    x, y = xy                              # h1 { text-shadow: 3px 3px 0 #fff, 5px 5px 0 <color at 18 %> }
+    d.text((x + px(6), y + px(6)), t, font=f, fill=tint)
+    d.text((x + px(4), y + px(4)), t, font=f, fill='#ffffff')
+    d.text((x, y), t, font=f, fill=col)
     return im
 
 
