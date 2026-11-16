@@ -32,6 +32,7 @@ import town97
 import east97
 import walkguard97
 import kwangbok97
+import westisle97
 import medwest97
 import jonghap97
 import libsouth97
@@ -7026,6 +7027,24 @@ print('대강당 윗단 북쪽 끝 너머:', {k_: v_ for k_, v_ in ISLE97_GRADE.
 # 한경관 3 - 6 m up on the scans and the 2006 survey, the cars' west road (TR_W) on the survey's profile.  The halls
 # that stay keep their feet; 핀슨관 and 한경관 stand on the new ground (below), 광복관 on its 1997 outline
 # ---------------------------------------------------------------------------
+# 서쪽 화단 섬 (tools/westisle97.py, reference/고증/2.9 「서쪽 화단 섬과 서쪽 길: 1996년 겨울 사진」): the island stood
+# 2 - 4 m south of the game's and the garden's kerb 4 - 5 m south of the game's lawn, so the road round the island's
+# south ran 4 m south of OSM's.  The old line is what the ground was graded along before the planting (TR_W_RNG,
+# tr_grade above); from here on the cars, the ground's road cells, the asphalt and the trees out of the way take the
+# 1997 one
+TR_W_RNG, _wls_rng = TR_W, _wls
+_w_raw = _w_raw[:11] + westisle97.LANE + _w_raw[11 + len(westisle97.LANE):]
+_w_r[11 + len(westisle97.LANE)] = westisle97.LANE_R
+TR_W, TR_WN, TR_WS = tr_line(_w_raw, _w_r)
+TR_WO = np.interp(TR_WS, [TR_SJC - 9.0, TR_SJC + 12.0], [TR_LANE_BY, TR_LANE])
+_wls = LineString([tuple(q_) for q_ in TR_W])
+TR_WK1 = int(round(_wls.project(Point(-14.5, 204.6)))) - 4
+TR_WV = np.where(TR_WS < TR_SJC - 12.0, TR_V['by'], np.where(np.arange(len(TR_W)) < int(round(_wls.project(Point(-62.2, 138.4)))),
+                                                             TR_V['drive'], TR_V['back']))
+_wi_k = [k_ for k_ in range(len(TR_W)) if -36.0 < TR_W[k_][0] < -18.0 and 205.0 < TR_W[k_][1] < 220.0]
+print('서쪽 화단 섬: the line %d -> %d points; a car on the outward / inward lane clear of the island and the garden\'s '
+      'kerb by %s / %s m' % (len(TR_W_RNG), len(TR_W), *[westisle97.check([tuple(TR_W[k_] + TR_WN[k_] * s_ * TR_WO[k_])
+                                                                         for k_ in _wi_k]) for s_ in (-1.0, 1.0)]))
 _kb_mine = (kwangbok97.KB, kwangbok97.PINSON, kwangbok97.HANGYEONG)
 _kb_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997 and b_['id'] not in _kb_mine] + \
     [p_.buffer(0) for _, _, _, _, p_ in OLD_HALLS] + [Polygon(v_).buffer(0) for k_, v_ in LATE_FOOTPRINT_1997.items() if k_ not in _kb_mine]
@@ -7033,6 +7052,12 @@ _kb_box = shapely.geometry.box(-230.0, 20.0, 40.0, 270.0)
 _kb_keep = shapely.contains_xy(unary_union([h_.buffer(kwangbok97.HALL_PAD) for h_ in _kb_halls if h_.intersects(_kb_box)]), X, Y)
 _kb_took, KB97_GRADE = kwangbok97.grade(Hn, X, Y, FIXED, _kb_keep, harmonic_fill, TR_W, TR_WN)
 FIXED[_kb_took] = True
+# (서쪽 화단 섬: the row 5 - 7 m north of the road round the island's south (y 220) is corners of the cells its wheels
+# cross, so grade() laid it on the road's height; it stands on the island and the paved place either side of it, which
+# rise to the north 16 % (the survey's surface, kwangbok97.GRID, and OSM's roads north of it): back to that)
+for x_, y_ in westisle97.NORTH_NODES:
+    i_, j_ = int(round((x_ + NEAR_HALF) / NEAR_STEP)), int(round((y_ + NEAR_HALF) / NEAR_STEP))
+    Hn[j_, i_] = kwangbok97.grid_z(x_, y_) + float(kwangbok97.T(x_, y_))
 print('광복관 · 핀슨관 둘레와 서쪽 찻길:', KB97_GRADE)
 tr_tilt_of(TR_W, TR_WN, TR_WO, next(k_ for k_, q_ in enumerate(TR_W) if bline.distance(Point(*q_)) > ROAD_HALF + 4.0), 'west (kwangbok97)')
 # (핀슨관 · 한경관 on the new ground: their floors at the ground before their doors (핀슨관's south door on the paved
@@ -9646,6 +9671,7 @@ _ypaint([UTS_LAWN], _yg)                     # (연합신학대학원: OSM's out
 _ypaint([BILL_LAWN], _yg)                    # (빌링슬리관: OSM's box and apron lawn again; the landing: _gp)
 KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
 _ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
+_ypaint([westisle97.lawn()], _yg)              # (서쪽 화단 섬: the 1997 island and the garden's north end; the road round them, _ga below)
 _ypaint(jonghap97.GRASS, _yg)                # (외솔관2 동쪽 뜰: lawn where OSM's outline of it and its apron were)
 _ypaint([widang97.WORKS, widang97.BANK], _yg)   # (제2인문관 공사장: OSM's later roads and walks across it out; bare: _gd below)
 _ypaint([east97.SITE_BARE], _yg)            # (새천년관 공사장: OSM's later drives and walks across it out; bare: _gd below)
@@ -10076,7 +10102,14 @@ _ekc =int(round(_els.project(Point(212.6, 356.4))))               # (the corner 
 _ypaint([[tuple(q_) for q_ in TR_E[_ekc - 16:_ekc + 22]]], _ga, width=8.6)
 _ypaint([_lot[:10], _lot[-10:]], _ga, width=5.6)
 _wki = int(round(_wls.project(Point(-14.5, 204.6))))
-_ypaint([[tuple(q_) for q_ in TR_W[_wki:int(round(_wls.project(Point(-36.1, 210.7))))]]], _ga, width=7.4)
+# (round the island: the band along the 1997 line and the old one, the old island's place, to the garden's kerb; the
+# 1997 island's lawn open in it: westisle97)
+_wki_rng = int(round(_wls_rng.project(Point(-14.5, 204.6))))
+_wsec = unary_union([LineString([tuple(q_) for q_ in l_[k0_:int(round(s_.project(Point(-36.1, 210.7))))]]).buffer(3.7)
+                     for l_, s_, k0_ in ((TR_W, _wls, _wki), (TR_W_RNG, _wls_rng, _wki_rng))])
+_ypaint([westisle97.asphalt(_wsec)], _ga)
+ImageDraw.Draw(_ga).polygon([to_px(x_, y_) for x_, y_ in westisle97.ISLAND.exterior.coords], fill=0)
+SPLAT_OPS.append(('poly', '_ga', list(westisle97.ISLAND.exterior.coords), 0))
 _ypaint([[tuple(q_) for q_ in TR_W[int(round(_wls.project(Point(-62.2, 138.4)))):]]], _ga, width=6.4)
 _ypaint([PINSON_LOT], _ga)
 # what stands in the cars' way off 백양로: the shrubs and the props go, a tree moves aside in its place in the list
@@ -11186,6 +11219,12 @@ shrubs += LN97_SHRUBS
 print('중앙도서관 북쪽 찻길: trees moved aside %d, shrubs taken out %d, props %d, walks out %d, shrubs added %d, band mounds turned %d'
       % (len(_ln_n[0]), _ln_n[1], _ln_n[2], _ln_w, len(LN97_SHRUBS), _ln_a), _ln_n[0])
 _kb_w = kwangbok97.walks(out['paths'])
+# (서쪽 화단 섬: OSM's road round the island's south on the 1997 line, for the map)
+for p_ in out['paths']:
+    if p_['kind'] == 'service' and len(p_['pts']) == 6 and math.dist(p_['pts'][0], (-19.6, 216.5)) < 0.1 and \
+            math.dist(p_['pts'][-1], (-33.7, 217.2)) < 0.1:
+        p_['pts'] = westisle97.path_pts()
+        print('서쪽 화단 섬: OSM\'s road round the island\'s south on the 1997 line (map)')
 print('광복관 · 핀슨관: shrubs taken out %d, props %d, trees moved aside %d, walks out %d' % (_kb_n[0], _kb_n[1], len(_kb_n[2]), _kb_w), _kb_n[2])
 print('독수리상 서쪽 마당: shrubs taken out %d, props %d, trees moved aside %d' % (_wg_n[0], _wg_n[1], len(_wg_n[2])), _wg_n[2])
 # 제1공학관 안뜰 (tools/eng97.py): the trees the planting put where the low hall stands go, each in its place in the

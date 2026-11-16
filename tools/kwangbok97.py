@@ -141,9 +141,11 @@ HK_APRON_Z = 52.1                 # 해발 @ (-40, 216)
 HK_FLOOR = 52.1                   # 해발 @ (-40.2, 216.4): 한경관's floor at its east door (the scans: 51.9 - 52.3 m at the wall's foot)
 # the cars' west road (TR_W): (x, y, 해발) on its middle line.  The 삼거리 and the first 30 m as the game has them
 # (the survey's 40 m contour crosses it at s 27 - 33 m, where the game stands at 39.7 - 40.4)
+# (round the island: the 1997 line south of it and the 1996 winter scans' heights on it, tools/westisle97.py ROAD_Z;
+# before, OSM's line 4 m north with 49.8 · 50.15 · 50.55 · 50.9 m)
 ROAD_W = [(6.2, 140.7, 40.05), (1.6, 149.6, 41.25), (-1.5, 159.1, 42.55), (-4.6, 168.6, 43.7), (-7.7, 178.1, 44.6),
-          (-10.4, 186.6, 45.4), (-13.3, 197.3, 46.6), (-14.8, 205.3, 47.8), (-17.5, 211.6, 48.8), (-21.0, 217.2, 49.8),
-          (-24.2, 218.4, 50.15), (-28.8, 218.3, 50.55), (-33.7, 217.2, 50.9), (-36.0, 211.0, 50.7), (-38.3, 203.0, 50.45),
+          (-10.4, 186.6, 45.4), (-13.3, 197.3, 46.6), (-14.8, 205.3, 47.8), (-17.4, 210.2, 48.35), (-21.0, 212.3, 48.85),
+          (-27.5, 213.4, 49.7), (-33.0, 212.8, 50.15), (-36.0, 211.0, 50.55), (-38.3, 203.0, 50.45),
           (-41.1, 193.4, 50.3), (-45.3, 179.0, 50.25), (-50.9, 159.8, 50.2), (-56.4, 145.9, 50.1), (-62.7, 138.1, 49.95),
           (-71.6, 133.9, 49.85), (-108.0, 130.4, 49.85)]
 # the two roads north of the island (OSM's, to 인문관 and to 교육관), south of y 230: the heights agreed with the ground
