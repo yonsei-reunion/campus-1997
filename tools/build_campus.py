@@ -7018,6 +7018,29 @@ _un_took, UNION97_GRADE = union97.grade(Hn, X, Y, FIXED, _un_fp, near_buildings(
                                         harmonic_fill)
 FIXED[_un_took] = True
 print('학생회관 남쪽 찻길 · 남동 모퉁이:', UNION97_GRADE)
+# 학생회관 서쪽 (tools/union97.py west_*, reference/고증/3.2-3.3 「학생회관 바닥과 서쪽 앞마당」): in the 1997 scans and photos
+# the hall's floor (the glazed ground floor and its doors) stands at 36.6 m 해발 on a deck along its west front, a broad
+# flight down to the paved yard (34.1 m) before it, a storey under the deck at the yard's level; the yard south of it
+# falls to the forecourt (32.2 - 33.0 m) and a paved way runs from 백양로's sidewalk (30.9 m) up east to the forecourt.
+# The game had the floor at its lowest corner (31.74 m), the yard and forecourt 1.2 - 2 m low and lawn on the way.
+# The yard's, forecourt's and way's nodes on the scans' heights, the ring round them smooth (백양로's sidewalk and strip,
+# the halls' feet stay); the deck and flight drawn by blender/landmarks.py union (campus.json 'union97')
+_unw_took, UNION97_WEST = union97.west_grade(Hn, X, Y, FIXED, near_buildings(2.0) & ~shapely.contains_xy(_un_fp.buffer(2.0), X, Y),
+                                            harmonic_fill, dist, E_WALK, ROAD_HALF)
+FIXED[_unw_took] = True
+print('학생회관 서쪽 앞마당 · 남쪽 앞마당 · 드는 길:', UNION97_WEST)
+# 백주년기념관 북쪽 마당의 건물 발치 (tools/cent97.py foot_grade, reference/고증/3.4 「북쪽 면의 창 띠와 발치」): the nodes
+# within 7 m of the hall's north-west and north corners stood 1.4 - 2.8 m under the yard's plane in the 1997 scans
+# (the elevation data's smear of the hall); up to it, so the cars of the yard's north row and the north road stand
+# level.  The north faces' window rows go up with them (blender/landmarks.py north_box: the 2010 roadview)
+_cn_took, CENT97_FOOT = cent97.foot_grade(Hn, X, Y, FIXED, datum.up)
+FIXED[_cn_took] = True
+print('백주년기념관 북쪽 마당의 건물 발치:', CENT97_FOOT)
+for b_ in buildings:
+    if b_['id'] == union97.UNION:
+        _unc = Polygon(b_['footprint']).centroid
+        print('   학생회관: base %.2f -> %.2f m (working; the floor 0.3 m over it)' % (b_['base'], datum.up(_unc.x, _unc.y, union97.BASE)))
+        b_.update(base=datum.up(_unc.x, _unc.y, union97.BASE), union97=union97.landmark())
 print('대강당 윗단 북쪽 끝 너머:', {k_: v_ for k_, v_ in ISLE97_GRADE.items() if k_ != 'at'}, 'flight', ISLE97['flight']['n'],
       ISLE97['flight']['z_top'], ISLE97['flight']['z_foot'])
 # ---------------------------------------------------------------------------
@@ -9511,6 +9534,10 @@ print('루스채플 남쪽 마당: trees, shrubs, props moved off the yard', [le
 # (학생회관 남쪽 북동 찻길: the same, union97.clear)
 UNION97_CLEAR = (union97.clear(trees), union97.clear(shrubs), union97.clear(props))
 print('학생회관 남쪽 찻길: trees, shrubs, props moved off the road', [len(m_) for m_ in UNION97_CLEAR], UNION97_CLEAR)
+# (학생회관 서쪽 덱 · 앞 계단 · 드는 길: the trees step off in their place in the list, shrubs and props there go)
+UNION97_WEST_CLEAR = (union97.west_clear(trees, 'tree'), union97.west_clear(shrubs, 'shrub'), union97.west_clear(props, 'prop'))
+print('학생회관 서쪽 덱 · 계단 · 드는 길: trees moved, shrubs, props out', [len(m_) for m_ in UNION97_WEST_CLEAR],
+      UNION97_WEST_CLEAR[0], [s_[:3] for s_ in UNION97_WEST_CLEAR[1]], [s_[:3] for s_ in UNION97_WEST_CLEAR[2]])
 # (과학관 북쪽 길 · 연구관 서쪽 마당 (scinorth97): what the planting put on the 1997 asphalt steps off it first, in its
 # place in the list, to its edge away from the halls)
 _sn_n = scinorth97.move_off(trees, shrubs, props, [Polygon(LATE_FOOTPRINT_1997[k_]) for k_ in (scinorth97.SCI_ID, scinorth97.JK_ID)] +
@@ -9678,6 +9705,7 @@ _ypaint([east97.SITE_BARE], _yg)            # (새천년관 공사장: OSM's lat
 _ypaint([appen97.WALK_OUT], _yg)            # (아펜젤러관 뒤 찻길 서쪽 가: OSM's walk out, the bank's lawn to the kerb; tools/appen97.py)
 if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
+_ypaint(union97.west_paint(), _yp)         # (학생회관 남쪽 앞마당으로 드는 길: paving, as the forecourt's; tools/union97.py)
 # 찻길, the east road on the 1997 photos' line (TR_E, RD97 above), after the planting has read the ground as it was:
 #  - OSM's asphalt along the old line (TR_E_OSM) is taken up (lawn; the woods' floor again in the woods, _gf below),
 #    but for the roads and walks that met it, which keep their ends and run on to the new road (_rd_join: _ga, _gp);

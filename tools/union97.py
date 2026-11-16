@@ -13,6 +13,17 @@
   마디를 매끈하게. 그보다 남쪽은 사진에서 게임보다 낮은 나무 띠 · 잔디라 손대지 않음(둑이 됨). 학생회관 발치 안쪽 1.5 m 까지만
   함께 올림
 - 무작위 심기가 끝난 뒤의 늦은 블록에서 부른다. 찻길 위의 나무 · 관목 · 소품은 제자리에서 옮긴다(clear)
+
+서쪽(reference/고증/3.2-3.3 「학생회관 바닥과 서쪽 앞마당」): 1997년 7월 원본 스캔과 1997 · 2009 · 2025년 사진에서 본동의
+바닥(1층, 유리 벽과 현관)은 해발 36.6 m 이고 그 앞 서쪽 면을 따라 난간을 두른 덱이 있다. 덱 밑은 앞마당 높이의 낮은 층,
+가운데에 앞마당(34.1 m)에서 덱으로 오르는 넓은 계단. 본동은 1층 위에 세 층(게임은 네 층이었다). 그 남쪽 앞마당은 백양로
+동쪽 보도(30.9 m)에서 동쪽으로 오르는 포장 길로 이어진다.
+
+- 틀: 본동의 1997년 외곽(사진 네 장의 지붕, 3.3)의 (u, v): 원점은 남쪽 동 남서 모서리 O97, u 북쪽 · v 동쪽. 본동 서쪽 면은 v 7.2
+- FLOOR: 바닥(해발). DECK: 덱 앞 난간의 바깥 줄(v)과 덱의 남 · 북 끝(u), 난간 높이. STAIR: 계단의 가운데(u) · 폭 · 단 수 · 디딤판
+- WEST_PTS: 앞마당 · 남쪽 앞마당의 높이(해발): 서쪽 × 동쪽 코스 짝 둘 넘게 0.4 m 안에서 맞는 점을 4 m 칸마다 모은 것.
+  PATH: 보도에서 남쪽 앞마당으로 드는 길(x 를 따라 해발), 그 띠 PATH_Y
+- west_grade: WEST_ZONE(덱 앞 앞마당 · 남쪽 앞마당 · 드는 길)의 마디를 그 높이로, 둘레 RING m 를 매끈하게(백양로의 보도 · 띠는 뺌)
 """
 import math
 
@@ -104,3 +115,138 @@ def clear(items, pad=0.5):
         moved.append((i_, (t_[1], t_[2]), (round(q_.x, 2), round(q_.y, 2))))
         t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
     return moved
+
+
+# ----------------------------------------------------------------------------- 서쪽: 바닥 · 덱 · 앞 계단 · 앞마당 · 드는 길
+O97 = np.array([4.45, -110.95])                # 본동 · 남쪽 동의 1997년 외곽의 틀(3.3 「지붕 외곽선」): 남쪽 동 남서 모서리
+U97 = np.array([6.01, 23.09]) / math.hypot(6.01, 23.09)
+V97 = np.array([U97[1], -U97[0]])
+FACE_V = 7.2                                   # 본동 서쪽 면(사진의 지붕 가, u 26.2 ~ 83.0)
+FLOOR = 36.6                                   # 본동 바닥(해발): 덱 · 현관
+BASE = FLOOR - 0.3                             # (blender/landmarks.py union: 바닥은 기단 윗면, 건물의 base 위 0.3 m)
+STOREYS = dict(n=3, g=4.6, fh=3.9)             # 1층(유리 벽) 위 세 층(1997 · 2009 · 2025년 사진: 뾰족창 세 줄)
+DECK = dict(v=0.9, u0=24.0, u1=84.0, parapet=0.7)   # 난간 바깥 줄 v(서쪽 면에서 6.3 m), 덱의 남 · 북 끝 u, 난간 높이
+STAIR = dict(u=55.1, w=12.0, risers=18, tread=0.34, landing=0.4)   # 앞마당에서 덱으로: 가운데 u, 폭, 단 수, 디딤판
+PLAZA_Z = 34.1                                 # 계단 발치의 앞마당(해발)
+WEST_PTS = [(-8.5, -106.0, 32.29), (-9.5, -102.0, 32.33), (-10.6, -98.4, 32.22), (-10.6, -94.8, 32.25), (-6.2, -102.4, 32.44),
+            (-7.2, -99.5, 32.39), (-2.2, -104.9, 32.55), (-2.2, -102.3, 32.70), (-3.0, -90.7, 32.39), (1.8, -102.2, 32.88),
+            (1.3, -99.0, 32.38), (2.5, -94.0, 32.69), (5.4, -93.9, 32.64), (5.0, -90.2, 32.64), (5.0, -86.8, 32.76),
+            (10.5, -79.8, 33.31), (8.5, -70.5, 33.12), (9.5, -66.1, 33.79), (10.1, -62.1, 34.04), (10.6, -59.0, 34.06),
+            (9.8, -53.9, 33.91), (10.0, -51.5, 33.89), (9.6, -42.8, 34.01), (10.3, -38.6, 33.97), (10.6, -34.9, 33.92),
+            (13.7, -66.0, 33.59), (13.4, -54.2, 34.11), (13.2, -50.8, 34.14), (13.9, -46.9, 34.32), (13.4, -42.3, 34.13),
+            (13.6, -38.6, 34.14), (13.9, -34.5, 34.10), (14.4, -30.8, 34.11), (17.4, -46.9, 34.35), (17.0, -42.0, 34.01),
+            (16.8, -38.4, 34.00), (17.6, -34.4, 33.87), (17.4, -31.0, 33.95), (21.0, -35.0, 33.88), (22.0, -30.5, 33.75)]
+PATH = [(-24.0, 30.85), (-16.6, 31.7), (-9.0, 32.25)]   # (x, 해발): 보도 · 흰 차 XW 밑(지붕 32.9 m − 1.2 m) · 남쪽 앞마당 가
+PATH_Y = (-112.5, -104.0)                      # 길의 두 가(양쪽 나무 화단의 연석)
+RING_W = 10.0
+
+
+def uv97(u, v):
+    return tuple(float(c) for c in O97 + U97 * u + V97 * v)
+
+
+def to_uv97(x, y):
+    dx, dy = np.asarray(x, float) - O97[0], np.asarray(y, float) - O97[1]
+    return dx * U97[0] + dy * U97[1], dx * V97[0] + dy * V97[1]
+
+
+def uv_box(u0, u1, v0, v1):
+    return Polygon([uv97(u0, v0), uv97(u1, v0), uv97(u1, v1), uv97(u0, v1)])
+
+
+def stair_foot_v():
+    return DECK['v'] - STAIR['landing'] - (STAIR['risers'] - 1) * STAIR['tread']
+
+
+def deck_poly():
+    """덱(난간 바깥 줄에서 본동 서쪽 면 안쪽 3 m 까지)과 앞 계단(디딤판의 발치까지)"""
+    hw = STAIR['w'] / 2 + 0.5
+    return unary_union([uv_box(DECK['u0'], DECK['u1'], DECK['v'], FACE_V + 3.0),
+                        uv_box(STAIR['u'] - hw, STAIR['u'] + hw, stair_foot_v(), DECK['v'] + 0.1)])
+
+
+def path_poly():
+    return Polygon([(PATH[0][0] - 1.5, PATH_Y[0]), (PATH[-1][0], PATH_Y[0]), (PATH[-1][0], PATH_Y[1]), (PATH[0][0] - 1.5, PATH_Y[1])])
+
+
+def west_zone():
+    """고르는 넓이: 덱 앞 앞마당(난간 바깥에서 21 m 까지 · 그 밑까지), 남쪽 앞마당, 드는 길"""
+    plaza = uv_box(20.0, 86.0, FACE_V - 21.0, DECK['v'] + 1.0)
+    fore = Polygon([(-12.5, -91.0), uv97(20.0, -3.0), uv97(20.0, -0.8), uv97(-1.0, -0.8), (-12.5, -112.5)])
+    return unary_union([plaza, fore, path_poly()])
+
+
+def path_z(x):
+    return np.interp(x, [p[0] for p in PATH], [p[1] for p in PATH])
+
+
+def west_z(X, Y):
+    """앞마당 · 남쪽 앞마당 · 길의 높이(해발): 사진 점(WEST_PTS), 계단 발치의 줄, 길의 단면을 잇는 삼각형 면(밖은 가장 가까운 점)"""
+    from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
+    pts = list(WEST_PTS)
+    fv = stair_foot_v() - 0.3
+    for du in (-7.0, -3.5, 0.0, 3.5, 7.0):                       # (계단 발치: 앞마당의 높이)
+        pts.append((*uv97(STAIR['u'] + du, fv), PLAZA_Z))
+    for x in np.arange(PATH[0][0] - 1.5, PATH[-1][0] + 0.1, 2.5):
+        for y in (PATH_Y[0] + 0.3, (PATH_Y[0] + PATH_Y[1]) / 2, PATH_Y[1] - 0.3):
+            pts.append((float(x), y, float(path_z(x))))
+    P = np.array(pts)
+    lin = LinearNDInterpolator(P[:, :2], P[:, 2])
+    near = NearestNDInterpolator(P[:, :2], P[:, 2])
+    z = lin(np.asarray(X, float), np.asarray(Y, float))
+    bad = ~np.isfinite(z)
+    if np.any(bad):
+        z = np.where(bad, near(np.asarray(X, float), np.asarray(Y, float)), z)
+    return z
+
+
+def west_grade(Hn, X, Y, FIXED, keep, fill, road_d, walk_out, road_half):
+    """WEST_ZONE 의 마디(백양로의 보도 밖)를 사진의 높이로(작업면), 둘레 RING_W m 의 남은 마디(백양로의 보도 · 띠, 다른 건물 발치,
+    정한 마디 밖)를 매끈하게. road_d: 백양로 중심선에서의 거리, walk_out · road_half: 보도의 바깥 가 · 띠의 바깥 가.
+    돌려주는 것: (정한 마디, 요약)"""
+    zone = shapely.contains_xy(west_zone(), X, Y) & (road_d > walk_out) & ~keep
+    h0 = Hn.copy()
+    zz = west_z(X[zone], Y[zone])
+    Hn[zone] = [datum.up(x_, y_, float(z_), None) for x_, y_, z_ in zip(X[zone], Y[zone], zz)]
+    ring = shapely.contains_xy(west_zone().buffer(RING_W), X, Y) & ~zone & ~FIXED & ~keep & (road_d > road_half + 0.5)
+    if ring.any():
+        fill(ring)
+    d = Hn - h0
+    return zone | ring, dict(zone=int(zone.sum()), zone_dz=(round(float(d[zone].min()), 2), round(float(d[zone].max()), 2)),
+                             ring=int(ring.sum()), ring_dz=(round(float(d[ring].min()), 2), round(float(d[ring].max()), 2)) if ring.any() else 0)
+
+
+def west_paint():
+    """땅 지도의 포장(앞마당과 같은 보도 블록): 백양로 보도에서 남쪽 앞마당으로 드는 길"""
+    return [path_poly()]
+
+
+def west_clear(items, kind, pad=0.4):
+    """덱 · 앞 계단 위(가에서 pad 밖까지)와 드는 길 위에 놓인 것: 나무는 목록 제자리에서 그 넓이 밖 0.8 m 로 옮기고
+    (kind 'tree'), 관목은 뺀다. 소품은 계단 · 길 위의 것만 뺀다(덱 위의 것은 덱의 걷는 면에 선다: 공중전화 부스).
+    돌려주는 것: 옮기거나 뺀 것"""
+    hw = STAIR['w'] / 2 + 0.8
+    stair = uv_box(STAIR['u'] - hw, STAIR['u'] + hw, stair_foot_v() - 0.8, DECK['v'])
+    zone = unary_union([stair, path_poly().buffer(-0.2)] + ([] if kind == 'prop' else [deck_poly().buffer(pad)]))
+    edge = zone.buffer(0.8)
+    out = []
+    if kind == 'tree':
+        for i_, t_ in enumerate(items):
+            p_ = Point(t_[1], t_[2])
+            if zone.contains(p_):
+                q_ = nearest_points(edge.boundary, p_)[0]
+                out.append((i_, (t_[1], t_[2]), (round(q_.x, 2), round(q_.y, 2))))
+                t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
+        return out
+    out = [s for s in items if zone.contains(Point(s[1], s[2]))]
+    items[:] = [s for s in items if not zone.contains(Point(s[1], s[2]))]
+    return out
+
+
+def landmark():
+    """blender/landmarks.py union 이 쓰는 것(campus.json buildings[] 'union97'): 높이는 바닥에서의 m, 자리는 캠퍼스 (x, y)"""
+    hw = STAIR['w'] / 2
+    return dict(storeys=STOREYS, parapet=DECK['parapet'],
+                deck=[list(uv97(DECK['u0'], DECK['v'])), list(uv97(DECK['u1'], DECK['v']))],
+                stair=dict(a=list(uv97(STAIR['u'] - hw, DECK['v'])), b=list(uv97(STAIR['u'] + hw, DECK['v'])),
+                           risers=STAIR['risers'], tread=STAIR['tread'], landing=STAIR['landing']))

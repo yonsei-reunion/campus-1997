@@ -97,3 +97,25 @@ def shrubs_off(shrubs, areas, pad=0.3):
     gone = [s for s in shrubs if zone.contains(Point(s[1], s[2]))]
     shrubs[:] = [s for s in shrubs if not zone.contains(Point(s[1], s[2]))]
     return gone
+
+
+# 북쪽 마당의 건물 발치(3.4 「북쪽 면의 창 띠와 발치」): 북서 모서리 · 북쪽 모서리 발치 7 m 안의 마디가
+# PLANE_N 보다 1.4 ~ 2.8 m 낮은 비탈이었다(고도 자료가 건물 덩어리를 번진 것). 2010년 12월 북쪽 길 로드뷰(1016786960, 줌 0)에서 북북서 면의
+# 발치는 앞 포장 띠(1997년 스캔 32.3 ~ 32.6 m)와 한 높이이고, 맨 아래 창 띠의 밑이 그 위 3.0 m(blender/landmarks.py north_box rows).
+# FOOT: 그 면으로 올릴 마디의 넓이(마당 · 북서 모서리 발치 · 북쪽 모서리 발치. 그 동쪽 동쪽 앞마당 CENT_NE 은 사진 29.5 ~ 30.9 m 로
+# 게임 30.46 m 와 같아 그대로)
+FOOT = Polygon([(-16.0, -176.0), (-16.0, -183.5), (-6.0, -183.5), (2.0, -186.5), (12.0, -179.0), (16.5, -172.5),
+                (16.5, -166.0), (8.0, -165.0), (-4.0, -168.0)])
+FOOT_TOL = 0.3                           # 면보다 이만큼 넘게 낮은 마디만
+
+
+def foot_grade(Hn, X, Y, FIXED, up):
+    """FOOT 안에서 PLANE_N 보다 FOOT_TOL 넘게 낮은 마디를 그 면으로(작업면: up(x, y, 해발)). 돌려주는 것: (정한 마디, 요약)"""
+    inside = shapely.contains_xy(FOOT, X, Y) & ~FIXED
+    pz = Hn.copy()
+    pz[inside] = [up(x_, y_, float(plane_n(x_, y_)), None) for x_, y_ in zip(X[inside], Y[inside])]
+    low = inside & (Hn < pz - FOOT_TOL)
+    d = np.where(low, pz - Hn, 0.0)
+    Hn[low] = pz[low]
+    return low, dict(n=int(low.sum()), dz=(round(float(d[low].min()), 2), round(float(d[low].max()), 2)) if low.any() else 0,
+                     at=[(float(x_), float(y_)) for x_, y_ in zip(X[low], Y[low])])

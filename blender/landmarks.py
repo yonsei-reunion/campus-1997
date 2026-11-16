@@ -367,16 +367,85 @@ def library():
 
 
 # ============================================================================= 학생회관
+def union_deck(mb, b, L, W, u97):
+    """학생회관's deck along its west front (tools/union97.py, reference/고증/3.2-3.3 「학생회관 바닥과 서쪽 앞마당」), in the
+    hall's frame (local -y out of the west face, z 0 its base, the floor 0.3 over it): the 1997 scans have its parapet
+    6.3 m out from the screen's face, 0.7 m over the floor, and the broad flight in its middle down to the yard; the 1997
+    photo a white wall under the parapet over a dark band of the storey beneath at the yard's level.  The deck's top and
+    the flight are walked (WALK_FACES), the deck's floor running under the arcade to the glazing"""
+    inv = mb.xf.inverted()
+    loc = lambda p: inv @ Vector((p[0], p[1], mb.xf.translation.z))
+    da, db = loc(u97['deck'][0]), loc(u97['deck'][1])
+    yd = (da.y + db.y) / 2                                  # the parapet's outer face
+    xn, xs = max(-L / 2, min(da.x, db.x)), min(L / 2, max(da.x, db.x))
+    sa, sb = loc(u97['stair']['a']), loc(u97['stair']['b'])
+    xc, sw = (sa.x + sb.x) / 2, abs(sb.x - sa.x)
+    zf, ph, t = 0.3, u97['parapet'], 0.25                  # the floor; the parapet's height and thickness
+    cheek = 0.35
+    gap0, gap1 = xc - sw / 2 - cheek, xc + sw / 2 + cheek   # (the flight's opening in the parapet)
+    yb = -W / 2                                              # the screen's face
+    gfn = local_ground(mb)
+    # the deck: a solid block from under the yard to the floor, its front wall white up to the parapet's top
+    mb.prism([(xn, yd), (xs, yd), (xs, yb + 0.3), (xn, yb + 0.3)], -7.0, zf, 'stone_white', 'pavers')
+    P, Le, tt, nn = edge_P((xn, yd), (xs, yd))
+    for s0, s1 in ((0.0, gap0 - xn), (gap1 - xn, Le)):
+        if s1 - s0 < 0.3:
+            continue
+        flat_wall(mb, P, s0, s1, zf, zf + ph, 'stone_white')                       # parapet, outer face
+        mb.quad(P(s0, zf + ph, 0), P(s1, zf + ph, 0), P(s1, zf + ph, -t), P(s0, zf + ph, -t), 'stone_white')   # top
+        mb.quad(P(s1, zf, -t), P(s0, zf, -t), P(s0, zf + ph, -t), P(s1, zf + ph, -t), 'stone_white')   # inner face
+        mb.quad(P(s1, zf, 0), P(s1, zf, -t), P(s1, zf + ph, -t), P(s1, zf + ph, 0), 'stone_white')     # ends
+        mb.quad(P(s0, zf, -t), P(s0, zf, 0), P(s0, zf + ph, 0), P(s0, zf + ph, -t), 'stone_white')
+        # the storey under the deck: a band of dark glazing from 0.4 m over the yard to 0.3 m under the floor
+        k = s0 + 0.6
+        while k < s1 - 0.8:
+            k1 = min(k + 2.4, s1 - 0.6)
+            gz = max(gfn(*(P(k + (k1 - k) * f_, 0.0)[:2])) for f_ in (0.0, 0.5, 1.0)) + 0.4
+            if zf - 0.3 - gz > 0.8:
+                glass_run(mb, P, k, k1, gz, zf - 0.3, 0.06, [], hall=False)
+                mb.quad(P(k, gz, 0.06), P(k1, gz, 0.06), P(k1, gz, 0.0), P(k, gz, 0.0), 'stone_white')
+            k = k1 + 0.3
+    # south of the deck the same storey looks out of the plinth onto the forecourt (the south wing's front: 남은 한계)
+    P2, Le2, _, _ = edge_P((xs, yb - 0.3), (L / 2, yb - 0.3))
+    k = 0.8
+    while k < Le2 - 0.8:
+        k1 = min(k + 2.4, Le2 - 0.6)
+        gz = max(gfn(*(P2(k + (k1 - k) * f_, 0.0)[:2])) for f_ in (0.0, 0.5, 1.0)) + 0.4
+        if zf - 0.3 - gz > 0.8:
+            glass_run(mb, P2, k, k1, gz, zf - 0.3, 0.06, [], hall=False)
+            mb.quad(P2(k, gz, 0.06), P2(k1, gz, 0.06), P2(k1, gz, 0.0), P2(k, gz, 0.0), 'stone_granite')
+        k = k1 + 0.3
+    for x_ in (xn, xs):                                      # parapets across the deck's ends, back to the screen
+        sg = 1 if x_ == xn else -1
+        mb.box((x_ + sg * t / 2, (yd + yb) / 2, zf + ph / 2), (t, yb - yd, ph), 'stone_white')
+    # the flight down to the yard (the 2009 photo: seventeen or eighteen low granite risers between white cheeks)
+    stair_flight(mb, xc, yd, sw, zf, landing=u97['stair']['landing'], tread=u97['stair']['tread'], flare=0.0, cheek=cheek,
+                 cheek_mat='stone_white', rail=False, gfn=gfn, risers=u97['stair']['risers'], mat='stone_step')
+    # the deck's walked floor, from the parapet to the glazing under the arcade (the flight's landing face meets it)
+    W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
+    yg = -W / 2 + 2.0 - 0.05
+    WALK_FACES.append([W_(xn, yd + t, zf), W_(xs, yd + t, zf), W_(xs, yg, zf), W_(xn, yg, zf)])
+    WALK_FACES.append([W_(gap0 + cheek, yd - 0.2, zf), W_(gap1 - cheek, yd - 0.2, zf), W_(gap1 - cheek, yd + t + 0.2, zf),
+                       W_(gap0 + cheek, yd + t + 0.2, zf)])
+
+
 def union():
     b = bld(1444448640)
     cx, cy, L, W, ang, z0 = frame_for(b, (-1.0, 0.25))
     L, W = L - 2, min(W, 24)
     mb = MeshBuilder('lm_union')
     mb.xf = local_frame(cx, cy, ang, z0)
-    fh, nf = 3.9, 4
-    g = 4.6                     # pilotis ground floor
+    # the 1997 hall (tools/union97.py, reference/고증/3.2-3.3 「학생회관 바닥과 서쪽 앞마당」): three storeys of the screen
+    # over the glazed ground floor (the 1997, 2009 and 2025 photos: three rows of lancets), its floor at the deck along
+    # the west front, a storey under the deck at the yard's level
+    u97 = b.get('union97') or {}
+    st = u97.get('storeys', {})
+    fh, nf = st.get('fh', 3.9), st.get('n', 4)
+    g = st.get('g', 4.6)        # pilotis ground floor
     H = g + nf * fh
-    mb.prism(offset_poly(rect(L, W), 0.3), -4, 0.3, 'stone_granite', 'stone_granite')
+    mb.prism(offset_poly(rect(L, W), 0.3), -7 if u97 else -4, 0.3, 'stone_granite', 'stone_granite')
+    if u97:
+        union_deck(mb, b, L, W, u97)
     # recessed glazed ground floor + pilotis
     core = rect(L - 4, W - 4)
     for i in range(4):
@@ -1107,7 +1176,12 @@ def north_box(A, B, C, z0, ZB=10.8):
     mb = MeshBuilder('lm_centennial_north')
     A, B, C = Vector(A), Vector(B), Vector(C)
     W = 'stone_ashlar'
-    rows = (3.4, 6.2, 9.0)                          # sills over the hall's datum (its ground there is ~2.5 m up)
+    # sills over the hall's datum: the 2010-12 roadview from the north road (1016786960, zoom 0, the north-north-west face
+    # between the paving at its foot and its coping, reference/고증/3.4 「북쪽 면의 창 띠와 발치」) has the lowest row's
+    # sill 3.0 m over the paving (32.5 m 해발 in the 1997 scans, 4.7 m over the hall's datum), the rows 4.6 m apart and
+    # 0.65 m high.  The box here stands 3.3 m under the scans' roof (CENT_BOX_TOP): the upper two rows closed up to
+    # 4.1 m so that the top one stays under the coping
+    rows = (7.7, 11.8, 15.9)
     for p, q in ((A, B), (B, C)):
         P, L, t, n = edge_P(tuple(p), tuple(q), z0)
         holes = []
@@ -1115,7 +1189,7 @@ def north_box(A, B, C, z0, ZB=10.8):
         w_ = (L - 2.0) / nb
         for zs_ in rows:
             for k in range(nb):
-                holes.append((1.0 + w_ * k + 0.5, 1.0 + w_ * (k + 1) - 0.5, zs_, zs_ + 0.75))
+                holes.append((1.0 + w_ * k + 0.5, 1.0 + w_ * (k + 1) - 0.5, zs_, zs_ + 0.65))
         wall_holes(mb, P, 0.0, L, -3.0, ZB, W, holes)
         for a_, b_, za_, zb_ in holes:
             reveal(mb, P, a_, b_, za_, zb_, 0.25, W)
