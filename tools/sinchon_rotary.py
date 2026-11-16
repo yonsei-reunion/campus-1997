@@ -378,7 +378,10 @@ LM_SHAPE = {
 #   roof's west end, 34 - 35 m in the scans); OSM 356215992's outline from x -137.5 east.  The row box (20 m along
 #   연세로) it was keeps its draws
 # - 홍익문고 (north-east): its row box (OSM 356219103), six storeys (52004 · 52006: five rows of windows over the
-#   ground floor; 51979's camera on its roof 21.7 m over the road), the sign along the top of the south face
+#   ground floor), the sign along the top of the south face.  Its parapet's top 37.45 m (2026-11-17): the leaf-off
+#   scans of 1996 (26/17 · 27/18), taken before the tower south of it rose, see its roof's west edge meet there from
+#   both sides, and their windows on the roof give 37.5 - 37.9; 1999's 39.3 (26/17 · 27/17) is the blue shed on its
+#   roof in 31669 (고증 4.10.7 「홍익문고의 높이」)
 # - the lot south of it: the tower going up in July 1997 (엘리트 빌딩 now, 1998's 삼성증권 · 맥도날드 신촌점 1999.7
 #   31669 · 33000): OSM 356219104's outline, 15 storeys; the scans have its frame's roof at 74.5 m (27/18 · 27/19,
 #   27/18 · 27/20 and 27/19 · 27/20 agree to 0.5 m: 56 m over the ground, 15 storeys of 3.65 m), a ring over the
@@ -388,6 +391,7 @@ KUMKANG_1997 = [(-137.5, -913.4), (-115.9, -913.4), (-115.9, -913.9), (-109.6, -
 KUMKANG_TOP = (-123.0, -920.0, 33.0)            # (x, y, 해발 of its parapet's top)
 KUMKANG_FRONT = [(-112.0, -927.6), (-121.0, -930.3)]
 HONGIK_FLOORS = 6
+HONGIK_TOP = (-83.0, -909.3, 37.45)             # (x, y, 해발 of its parapet's top)
 TOWER97 = dict(outline=[(-68.9, -908.5), (-54.8, -919.1), (-61.3, -926.9), (-62.1, -926.4), (-67.9, -933.5), (-70.9, -931.3),
                         (-85.0, -921.2), (-85.5, -918.9), (-85.0, -916.8), (-84.0, -914.8), (-81.5, -913.7), (-79.4, -913.7),
                         (-77.2, -914.9), (-75.4, -916.4)],
@@ -987,13 +991,11 @@ def layout(geo, town, extras, ground, taken_z):
         d_ = dict(kind=kind, name=name, block=block, base=max(foot, floor), top=round(top, 2), foot=min(foot, floor), outline=R2(o_))
         d_.update(extra)
         return d_
-    # (홍익문고's floor: the walk before its west face, 1 m out; its top: a ground floor of 3.6 m, five of 3.0 and the
-    # parapet)
+    # (홍익문고's floor: the walk before its west face, 1 m out; its top: the 1996 scans' parapet, HONGIK_TOP, the upper
+    # five storeys sharing what is left over a ground floor of 3.6 m: blender/town.py _hongik)
     hk_front = [(hk_b[0] - (hk_b[2] / 2 + 1.0) * math.cos(hk_b[4]), hk_b[1] - (hk_b[2] / 2 + 1.0) * math.sin(hk_b[4]))]
-    hk_floor = round(min(ground(x_, y_) for x_, y_ in hk_front) - 0.05, 2)
     lm_mouth = [mouth_lm('금강제화', 'kumkang', kk_pg, KUMKANG_FRONT, datum.up(*KUMKANG_TOP), idx_of(kk_b)),
-                mouth_lm('홍익문고', 'hongik', hk_pg, hk_front, hk_floor + 3.6 + 3.0 * (HONGIK_FLOORS - 1) + 0.4, idx_of(hk_b),
-                         floors=HONGIK_FLOORS),
+                mouth_lm('홍익문고', 'hongik', hk_pg, hk_front, datum.up(*HONGIK_TOP), idx_of(hk_b), floors=HONGIK_FLOORS),
                 mouth_lm('신축 공사장', 'tower97', tw_pg, TOWER97['front'], datum.up(*TOWER97['top']), None,
                          floors=TOWER97['floors'], cyl=list(TOWER97['cyl']), crown=list(TOWER97['crown']),
                          crane=list(TOWER97['crane']))]
