@@ -401,6 +401,48 @@ def lanes():
     return [('loop', loop, 3.25, None), ('west', west, 2.0, None), ('east', east, 2.0, None)]
 
 
+def west97():
+    """the west road as the 1997 frames have it round 1학사 (tools/north97.py WEST97_*, reference/고증/3.21 「1학사 남쪽
+    굽은 길」): OSM's line to its (94.8, 1103.1), then WEST97_MID; with 'hw' (its half width along s: OSM's 2 m, the
+    bend's 3.7 m), 'z97' (the 1997 surface on the working datum along s and its weight: eased in from the ground along
+    the line and out over the last 12 m into the east road's) and 'poly' (its paving: OSM's 4 m to its s 178, then
+    WEST97_PAVE)"""
+    osm_ = _P['dorm_west_osm']
+    k = next(i for i, q in enumerate(osm_) if math.dist(q, north97.WEST97_MID[0]) < 0.05)
+    ln = _line_of([tuple(q) for q in osm_[:k + 1]] + north97.WEST97_MID[1:])
+    s0 = north97.WEST97_S0
+    a, b, hw = north97.WEST97_HW
+    ln['hw'] = np.interp(ln['s'], [s0 + a, s0 + b], [2.0, hw])
+    zs = [s0 + s for s, _ in north97.WEST97_Z]
+    places = [tuple(at_line(ln, s)) for s in zs]
+    zt = datum.up_at([(s, z) for s, (_, z) in zip(zs, north97.WEST97_Z)], places)
+    z = np.interp(ln['s'], [s for s, _ in zt], [z for _, z in zt])
+    i0, i1 = north97.WEST97_Z_IN
+    w = np.clip((ln['s'] - (s0 + i0)) / (i1 - i0), 0, 1) * np.clip((ln['s'][-1] - ln['s']) / 12.0, 0, 1)
+    ln['z97'] = (z, w * w * (3 - 2 * w))
+    head = LineString([q for s, q in zip(ln['s'], ln['p']) if s <= s0 + 28.0])
+    ln['poly'] = unary_union([head.buffer(2.0, cap_style='flat'), north97.WEST97_PAVE]).buffer(0)
+    return ln
+
+
+def at_line(ln, s):
+    """the point at s on a line of _line_of()"""
+    return np.array(ln['ls'].interpolate(float(np.clip(s, ln['s'][0], ln['s'][-1]))).coords[0])
+
+
+def lanes97():
+    """lanes() with the west road round 1학사 as the 1997 frames have it (west97()): for its bed (level) and the drawn
+    map only.  The houses, the rows over the roads and the far forest's clear and woods keep lanes(), as they were
+    decided on it"""
+    out = []
+    for nm, ln, hw, wk in lanes():
+        if nm == 'west':
+            ln = west97()
+            hw = ln['hw']
+        out.append((nm, ln, hw, wk))
+    return out
+
+
 LANE_SMOOTH = 8.0               # the lanes' beds: the ground along them smoothed this far (sigma, m)
 
 
@@ -422,12 +464,16 @@ def level(Hs, line, roads):
             s0, _ = project(line, np.array([ln['p'][0][0]]), np.array([ln['p'][0][1]]))
             k = np.clip(1.0 - ln['s'] / 25.0, 0, 1)
             z = z * (1 - k) + float(np.interp(s0[0], line['s'], line['z'])) * k
+        if 'z97' in ln:                               # (the 1997 surface where the frames read it: west97())
+            z97, w97 = ln['z97']
+            z = z * (1 - w97) + z97 * w97
         todo.append((nm, ln, hw, wk, z))
     for nm, ln, hw, wk, z in todo:
         sx, ox = project(ln, X, Y)
         zs = np.interp(sx, ln['s'], z)
         a = np.abs(ox)
-        core = np.where(ox > 0, wk[1] + 0.5, hw + 1.0) if wk else np.full(ox.shape, hw + 1.0)
+        hwx = np.interp(sx, ln['s'], hw) if np.ndim(hw) else np.full(ox.shape, float(hw))     # (west97(): along s)
+        core = np.where(ox > 0, wk[1] + 0.5, hwx + 1.0) if wk else hwx + 1.0
         w = np.clip(1.0 - (a - core) / 10.0, 0, 1)
         w = w * w * (3 - 2 * w)
         w *= (sx > ln['s'][0] - 2.0) & (sx < ln['s'][-1] + 2.0)
@@ -717,7 +763,7 @@ def ground_map(line, roads, hall_polys):
     """the patch's ground map: {asphalt, pavers, dirt, woods} polygons"""
     O = osm()
     rd = [strip(line, S_GRID - 6.0, line['s'][-1] - 0.5, -HALF, HALF), strip(line, S_GRID - 6.0, 300.0, WALK[0], WALK[1])]
-    asph = [rd[0], APRON] + [ln['ls'].buffer(hw, cap_style='flat') for _, ln, hw, _ in roads]
+    asph = [rd[0], APRON] + [ln['poly'] if 'poly' in ln else ln['ls'].buffer(hw, cap_style='flat') for _, ln, hw, _ in roads]
     asph += LOTS
     asph += [LineString(g).buffer(2.5) for t, g in O.values() if t.get('highway') == 'residential' and any(in_patch(*q) for q in g)]
     courts = [Polygon(O[i][1]).buffer(0) for i in COURTS]

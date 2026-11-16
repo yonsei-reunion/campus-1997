@@ -16,10 +16,11 @@ const yawTo = (dx, dy) => Math.atan2(-dx, dy);          // Player.teleport's yaw
 // before the door): where to stand instead, and the point of its wall to face (the long hall's open north-west side)
 // 북문 is no hall but two frames the loop road runs between (고증 3.21: the gap's middle (15, 915), the road in from
 // the east): on that road 10 m inside them, facing the gap. 무악학사's name stands in the middle of its first hall,
-// between wings the walker could not get out from: on the bend of the road before the two halls, facing the court
+// between wings the walker could not get out from: on the bend of the road before the two halls (its 1997 line,
+// 고증 3.21 「1학사 남쪽 굽은 길」), facing the court
 // between them
 const STAND = { 의과대학: { at: [128.9, -321.9], face: [134.5, -327.5] },
-  북문: { at: [25.5, 918.0], face: [15.0, 915.0] }, 무악학사: { at: [141.5, 1152.5], face: [133.5, 1176.0] } };
+  북문: { at: [25.5, 918.0], face: [15.0, 915.0] }, 무악학사: { at: [141.0, 1156.6], face: [133.5, 1176.0] } };
 // the places 350 - 600 m north of the campus map's sheet (campus.json markers): the map shows them in an inset
 // (ui.js) and the tour pins them as it does the memory spots (main.js)
 export const NORTH = ['북문', '무악학사'];

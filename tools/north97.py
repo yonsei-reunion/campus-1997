@@ -4,8 +4,10 @@ tools/build_campus.py 가 부른다.
     took, info = north97.grade(Hn, X, Y, FIXED, halls, fill)     # 격자 안(y 600 ~ 800): 심기가 끝난 뒤, 무악학사 길 바로 앞
     HN = muak.patch(raw, Hn, half, step, far, ground=north97.grid_z)    # 격자 북쪽 조각(muak.NORTH)
     muak.pads(HN, courts + north97.PADS, fixed, north97.pad_levels(...))   # 정구장 셋, 우유처리장 동쪽 주차장, 농업개발원 앞마당,
-                                                                         # 2학사 앞마당, 2학사 서쪽 날개 윗단
+                                                                         # 2학사 앞마당, 2학사 서쪽 날개 윗단, 1학사 앞마당 · 섬 동쪽 빈터
     muak.draw_map(north97.paint97(gm))                              # 그 둘의 칠(그리기만)
+    muak.lanes97()                                                  # 서쪽 학사길의 1학사 남쪽 굽은 길(WEST97_*): 땅과 칠만
+    north97.hedge97()                                               # 그 남쪽 가의 생울타리(관목 목록 끝)
 
 Frame: campus metres, x east, y north.  Every absolute height written here is above sea level (해발), taken up
 to the working datum (해발 + tilt: tools/datum.py) where it is read, each at its place: GRID's nodes are (GRID_X0 + 5 i, GRID_Y0 + 5 j).
@@ -40,7 +42,12 @@ to the working datum (해발 + tilt: tools/datum.py) where it is read, each at i
   yard west of it stays level).
 - PADS: the level terraces the 5 m contours cannot hold, on the 1997 scans: the three 정구장, the car park east of
   우유처리장 (LOT97, a plane), the yard south of 농업개발원 (AGRI_YARD, a plane), the yard in front of 2학사 (DORM_YARD,
-  a quadric) and the terrace along its west wing (NW_TERRACE, level); the last two paved in the drawn map only (paint97).
+  a quadric), the terrace along its west wing (NW_TERRACE, level), the yard in front of 1학사 (DORM1_YARD, a plane) and
+  the pocket east of the island by it (POCKET97, a plane);
+  the 2학사 two paved in the drawn map only (paint97), 1학사's with the west road (WEST97_PAVE).
+- WEST97_*: the west road round 1학사 as the 1997 frames have it (its middle line, half width, surface and paving):
+  muak.lanes97() lays its bed and draws it; the houses, the rows and the far forest's clear and woods keep OSM's line
+  (muak.lanes()), so that no list moves.  HEDGE97: the hedge along its south side (shrubs at the list's end).
 - Nothing here draws from build_campus.py's `rng`.
 """
 import json
@@ -133,6 +140,64 @@ DORM_YARD = Polygon([(106.5, 1127.5), (106.5, 1141.0), (100.2, 1141.0), (96.3, 1
                      (115.5, 1156.0), (113.2, 1153.5), (113.0, 1150.0), (114.3, 1149.0), (114.3, 1135.0), (115.5, 1132.0),
                      (120.0, 1129.5), (117.5, 1126.0), (113.0, 1126.0)])
 DORM_YARD_FIT = (69.991, 0.349, 0.713, -0.302, -0.302)       # (해발 @ (108, 1140), u, v, uv, vv)
+# the west road round 1학사 (from the barrier south-west of 2학사's yard round 1학사's south side to the east road) as
+# the 1997 frames 26/14 · 26/13 · 27/15 have it (reference/고증/3.21 「1학사 남쪽 굽은 길」): its two edges read across
+# the road every 2 m in the frame that leans least there (the hedge on its south side 1.4 - 3 m high, the island's
+# kerbs, the kerb along its north side), 6.6 - 8.2 m apart; OSM's line (4 m) ran along its south edge, over the hedge
+# at the bend.  WEST97_MID: the middle line on from OSM's (94.8, 1103.1) (OSM's to its s 176, then the 1997 middle
+# from (118.5, 1127) on, smoothed), to the east road's end
+WEST97_MID = [
+    (94.8, 1103.1), (99.1, 1107.9), (113.3, 1120.6), (129.9, 1146.8), (133.2, 1151.2), (136.2, 1154.0),
+    (138.3, 1155.5), (141.0, 1156.7), (144.0, 1157.3), (147.0, 1157.3), (150.0, 1156.6), (161.0, 1152.0),
+    (164.0, 1150.6), (167.2, 1148.6), (169.7, 1146.9), (171.7, 1145.1), (174.3, 1142.2), (180.8, 1132.8),
+    (185.2, 1127.1), (191.1, 1112.1)]
+WEST97_S0 = 150.0                 # (WEST97_MID's start on OSM's line: its s there)
+WEST97_HW = (24.0, 32.0, 3.7)     # (the half width for the bed: OSM's 2 m to WEST97_MID's s 24, 3.7 m from s 32)
+# its surface (해발 on WEST97_MID's own s): 90 points every 1.5 m, at a quarter, half and three quarters across, where
+# two pairs or more of 26/14 x 26/13, 26/14 x 27/15, 26/13 x 27/15 agree within 0.6 m (off the cars), knots every 8 m
+# (rms 0.13 m, the largest 0.33 m).  Against the game's ground as the road had it: 0.4 - 0.7 m lower at s 32 - 64 (the
+# leg north-east past the yard's mouth), the same at s 72 - 96, 0.4 - 0.7 m higher at s 104 - 136
+WEST97_Z = [(32, 68.85), (40, 70.60), (48, 72.25), (56, 73.87), (64, 75.52), (72, 76.89), (80, 77.93), (88, 79.01),
+            (96, 80.14), (104, 81.18), (112, 82.07), (120, 82.89), (128, 83.56), (136, 84.14), (144, 84.65)]
+WEST97_Z_IN = (32.0, 40.0)        # (eased in from the ground along the line over these s; out over the last 12 m)
+# the paving (drawn): OSM's 4 m to its s 178, then the carriageway between the two edges, the yard in front of 1학사
+# (DORM1_YARD) through its mouth, the island's west and south kerbs (the cars along them), the pocket east of the island
+# (a car in it) and the woods' edge, on to the east road's end
+WEST97_PAVE = Polygon([
+    (115.0, 1119.4), (112.3, 1122.3), (114.9, 1128.2), (116.1, 1131.9), (117.8, 1133.9), (119.8, 1136.8),
+    (128.4, 1150.6), (131.7, 1154.5), (133.8, 1156.5), (135.0, 1157.5), (137.7, 1159.1), (140.8, 1160.4),
+    (144.1, 1161.0), (147.4, 1161.0), (148.9, 1160.7), (152.9, 1159.5), (162.1, 1155.7), (163.5, 1157.0),
+    (165.0, 1162.0), (166.0, 1166.0), (168.5, 1169.0), (170.5, 1171.0), (174.0, 1171.5), (175.3, 1170.0),
+    (177.0, 1158.0), (176.4, 1154.7), (177.1, 1149.8), (177.5, 1145.4), (178.4, 1142.6), (179.0, 1141.6),
+    (182.7, 1136.3), (185.2, 1133.2), (187.5, 1132.3), (189.0, 1130.8), (190.0, 1136.0), (194.0, 1136.5),
+    (196.5, 1133.0), (196.5, 1126.0), (194.2, 1123.2), (193.0, 1120.4), (194.4, 1115.4), (193.3, 1110.0),
+    (189.0, 1110.0), (186.2, 1113.3), (184.9, 1117.9), (183.7, 1121.1), (182.5, 1123.4), (176.7, 1132.4),
+    (172.4, 1138.6), (169.5, 1142.0), (167.2, 1144.0), (165.5, 1145.2), (162.9, 1146.9), (161.1, 1147.8),
+    (157.4, 1149.3), (152.9, 1151.5), (149.2, 1153.1), (146.2, 1153.9), (144.1, 1153.9), (141.2, 1153.2),
+    (139.4, 1152.2), (137.8, 1151.1), (135.1, 1148.3), (133.3, 1145.9), (125.9, 1134.0), (124.2, 1131.5),
+    (121.1, 1127.6), (118.8, 1124.2)])
+# the yard in front of 1학사 (between its wings, west of the island; 26/14 · 26/13 · 27/15: paved, as grey as the road):
+# a level terrace 1.0 - 1.4 m over the road at its mouth.  Its plane through the 19 points on it where two pairs or more
+# agree within 0.6 m (off the trees by its west side and the planting by the east wing): 해발 81.66 m at (170, 1163),
+# rising 4.8 % east and 0.65 % north (rms 0.09 m, the largest 0.27 m); the game had it 1.6 - 2.0 m low
+DORM1_YARD = Polygon([(163.5, 1157.0), (165.0, 1162.0), (166.0, 1166.0), (168.5, 1169.0), (170.5, 1171.0), (174.0, 1171.5),
+                      (175.3, 1170.0), (177.0, 1158.0), (176.4, 1155.5), (170.0, 1155.5)])
+DORM1_PLANE = dict(zip(('z', 'gx', 'gy'), datum.up_plane((81.66, 0.048, 0.0065), 170.0, 1163.0)), o=(170.0, 1163.0))
+# the paved pocket east of the island's east end (a car in it, the woods east of it): its plane through the six points
+# on it where two pairs or more agree within 0.6 m (off the car and the white boxes on its south-east): 해발 84.40 m at
+# (193, 1130), rising 8.9 % east and falling 2.3 % north (rms 0.04 m); the game had a 25 % bank across it
+POCKET97 = Polygon([(189.0, 1130.8), (190.0, 1136.0), (194.0, 1136.5), (196.5, 1133.0), (196.5, 1126.0), (193.0, 1125.0)])
+POCKET97_PLANE = dict(zip(('z', 'gx', 'gy'), datum.up_plane((84.40, 0.089, -0.023), 193.0, 1130.0)), o=(193.0, 1130.0))
+# the hedge along the road's south side (the dark band all three frames have from the 2학사 corner round the bend to
+# the east road, its top 1.4 - 3 m high by the lean between them): clipped blocks 0.9 m out from the edge, every 2 m
+HEDGE97 = [
+    (146.1, 1153.0), (148.0, 1152.5), (149.8, 1151.9), (151.6, 1151.1), (153.4, 1150.2), (155.2, 1149.4),
+    (157.1, 1148.5), (158.9, 1147.7), (160.8, 1146.9), (162.6, 1146.0), (164.3, 1144.9), (166.0, 1143.7),
+    (167.7, 1142.5), (169.1, 1141.1), (170.4, 1139.8), (171.4, 1138.5), (172.2, 1137.3), (173.0, 1136.1),
+    (173.9, 1134.8), (174.9, 1133.5), (175.9, 1131.9), (177.0, 1130.2), (178.1, 1128.5), (179.2, 1126.9),
+    (180.3, 1125.2), (181.2, 1123.7), (182.1, 1122.2), (182.8, 1120.7), (183.5, 1119.2), (184.0, 1117.6),
+    (184.5, 1115.9), (185.0, 1114.0)]
+HEDGE97_SC = 1.3                  # (hedge_blob: 2.6 x 1.8 x 1.2 m)
 
 
 def grid_z(x, y):
@@ -164,6 +229,25 @@ def yard_z(x, y):
     v = (np.clip(np.asarray(y, float), 1126.0, 1162.0) - 1140.0) / 10.0
     c = DORM_YARD_FIT
     return c[0] + c[1] * u + c[2] * v + c[3] * u * v + c[4] * v * v + datum.tilt(x, y)
+
+
+def yard1_z(x, y):
+    """the yard in front of 1학사 (on the working datum)"""
+    return lot_z(x, y, DORM1_PLANE)
+
+
+def pocket_z(x, y):
+    """the pocket east of the island by 1학사 (on the working datum)"""
+    return lot_z(x, y, POCKET97_PLANE)
+
+
+def hedge97():
+    """the hedge along the west road's south side round 1학사 (HEDGE97): campus.json shrubs, at the list's end"""
+    out = []
+    for k, (x, y) in enumerate(HEDGE97):
+        a, b = HEDGE97[max(k - 1, 0)], HEDGE97[min(k + 1, len(HEDGE97) - 1)]
+        out.append(['hedge_blob', x, y, HEDGE97_SC, round(math.atan2(b[1] - a[1], b[0] - a[0]), 3)])
+    return out
 
 
 def paint97(gm):
@@ -209,8 +293,9 @@ def grade(Hn, X, Y, FIXED, halls, fill):
 
 def pad_levels(court_ids):
     """(levels for muak.pads) the courts' in the order given, then the car park's plane, the yard's south of 농업개발원,
-    the yard's in front of 2학사 and the terrace's by its west wing (PADS)"""
-    return [COURT_Z[i] for i in court_ids] + [lot_z, agri_z, yard_z, terrace_z]
+    the yard's in front of 2학사, the terrace's by its west wing, the yard's in front of 1학사 and the pocket's east of the
+    island by it (PADS)"""
+    return [COURT_Z[i] for i in court_ids] + [lot_z, agri_z, yard_z, terrace_z, yard1_z, pocket_z]
 
 
-PADS = [LOT97, AGRI_YARD, DORM_YARD, NW_TERRACE]       # (after the courts: muak.pads, in pad_levels' order)
+PADS = [LOT97, AGRI_YARD, DORM_YARD, NW_TERRACE, DORM1_YARD, POCKET97]     # (after the courts: muak.pads, in pad_levels' order)

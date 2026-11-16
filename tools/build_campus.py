@@ -7342,7 +7342,10 @@ HN = muak.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP, lambda x_, y_: ndimage.map_c
     _mk_far, [(np.asarray(y_) + tf['half']) / tf['step'], (np.asarray(x_) + tf['half']) / tf['step']], order=1, mode='nearest'),
     ground=north97.grid_z)                    # (the survey's surface + T and the 1997 photos: tools/north97.py)
 MUAK_ROADS = muak.lanes()
-MUAK_PROF, _mk_fixed = muak.level(HN, MUAK, MUAK_ROADS)
+# (the west road round 1학사 as the 1997 frames have it, tools/north97.py WEST97_*: its bed here and the drawn map below;
+# the houses, the rows and the far forest's clear and woods keep MUAK_ROADS, OSM's line, as they were decided on it)
+MUAK_ROADS97 = muak.lanes97()
+MUAK_PROF, _mk_fixed = muak.level(HN, MUAK, MUAK_ROADS97)
 MUAK_PADS = muak.pads(HN, [Polygon(muak.osm()[i_][1]).buffer(0) for i_ in muak.COURTS] + north97.PADS,
                       _mk_fixed, north97.pad_levels(muak.COURTS))
 print('무악학사 · 북문 땅: %.1f .. %.1f m, roads %s, courts %s' % (HN.min(), HN.max(),
@@ -11248,7 +11251,9 @@ for h_ in [h_ for h_ in MUAK_HOUSES if h_.get('gone97')]:
 MUAK_HOUSES97 = [h_ for h_ in MUAK_HOUSES if not h_.get('gone97')]
 _mk_gm = muak.ground_map(MUAK, MUAK_ROADS, [Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES97])
 out['tsplat'] = dict(sinchon_rotary.TSPLAT, **muak.pack(os.path.join(ROOT, 'web/public/assets/textures/ground_splat_town.png'),
-                                                         muak.draw_map(north97.paint97(_mk_gm))))   # (2학사's yard and terrace paved: drawn only)
+                                                         muak.draw_map(north97.paint97(muak.ground_map(
+    MUAK, MUAK_ROADS97, [Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES97])))))
+# (2학사's yard and terrace paved, the west road round 1학사 and 1학사's yard on the 1997 frames' lines: drawn only)
 _mk_dec = []
 MUAK_N_TREES = muak.trees_n(MUAK_RNG, MUAK_ROADS, _mk_taken.difference(MUAK_RNG['ls'].buffer(6.5)).union(
     unary_union([p_ for p_ in (muak.poly_rng(b_) for b_ in MUAK_HALLS + MUAK_HOUSES) if p_ is not None]).buffer(2.5)).union(
@@ -11359,6 +11364,8 @@ out['trees'] += FIELDHILL_TREES
 print('대운동장 북쪽 언덕: trees in the woods', len(FIELDHILL_TREES))
 out['trees'] += MUAK_ROW_EXTRA                # (무악학사 길: the rows' trunks of the 1996 winter scans the old rows had no tree for)
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
+# 1학사 남쪽 굽은 길 (tools/north97.py HEDGE97): the hedge along the 1997 road's south side, at the shrubs' end
+out['shrubs'] += north97.hedge97()
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
 # the 1997 photos' block had (0.052 + 0.522 x/100 + 0.248 y/100 m): the levels the photos read as flat, the roads'
