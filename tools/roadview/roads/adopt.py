@@ -112,8 +112,8 @@ def proj(key, x, y):
     return float(sv), float((-(x - px) * (y1 - y0) + (y - py) * (x1 - x0)) / math.hypot(x1 - x0, y1 - y0))
 
 
-def mid_hw(key, sv):
-    """그 s 에서 게임이 쓸 길 가운데(조사 선에서 왼쪽으로, m)와 반폭"""
+def mid_hw(key, sv, w96=True):
+    """그 s 에서 게임이 쓸 길 가운데(조사 선에서 왼쪽으로, m)와 반폭. w96=False 면 1996년 겨울 장으로 옮기기 전(E_rng)"""
     cc, s = _line(key)
     sv = np.asarray(sv, float)
     hw0 = np.interp(sv, s, cc[:, 2])
@@ -128,7 +128,7 @@ def mid_hw(key, sv):
     sm = lambda v: np.convolve(np.pad(v, 3, mode='edge'), k, mode='valid')
     mid[2:], hw[2:] = sm(mid[2:]), sm(hw[2:])
     w = np.array(W96, float)
-    m96 = np.interp(sv, w[:, 0], w[:, 1], left=0.0, right=0.0)
+    m96 = np.interp(sv, w[:, 0], w[:, 1], left=0.0, right=0.0) if w96 else np.zeros_like(sv)
     return np.where(sv < 280, m96, np.interp(sv, ss, mid)), np.where(sv < 280, hw0, np.interp(sv, ss, hw))
 
 
@@ -142,8 +142,12 @@ def build():
     sv = np.arange(E_FROM, E_TO + 0.1, 3.0)
     m, hw = mid_hw('E', sv)
     x, y = at('E', sv, m)
+    m0, hw0 = mid_hw('E', sv, w96=False)
+    x0, y0 = at('E', sv, m0)
     out = dict(note='tools/roadview/roads/adopt.py 가 씀: proposal.json(2008 ~ 2010년 조사)을 1997년 7월 항공사진으로 거른 것',
                E=dict(centre=[[round(float(a), 2), round(float(b), 2), round(float(c), 2)] for a, b, c in zip(x, y, hw)]),
+               # (W96 로 옮기기 전의 선: build_campus.py 가 그 선을 따라 정하던 것(격자 칸)이 흔들리지 않게 TR_E_RNG 로만 씀)
+               E_rng=dict(centre=[[round(float(a), 2), round(float(b), 2), round(float(c), 2)] for a, b, c in zip(x0, y0, hw0)]),
                lines=[], marks=MARKS, trees=[])
     for road, side, kind, (s0, s1), dbl, src in LINES:
         pa, pb = adopted_xy(road, s0), adopted_xy(road, s1)

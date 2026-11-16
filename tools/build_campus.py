@@ -2962,21 +2962,34 @@ TR_EKH_OSM = int(round(LineString([tuple(q_) for q_ in TR_E_OSM]).project(Point(
 # (reference/고증/3.6.2 「북쪽 길」).  So the bend now joins the approach (the last leg of the photos' east road, through
 # the crossing) to OSM's west leg carried straight on east: their meeting point, rounded with the same 5.5 m.
 RD97 = json.load(open(os.path.join(ROOT, 'tools/roadview/roads/adopted.json')))
+
+
+def _e_bend(ej_, eh_, en_, er_=5.5):
+    """the bend at the corner ej_ between the leg in (heading eh_) and the leg out (en_), rounded with radius er_"""
+    ea_ = math.acos(float(np.clip(-eh_ @ en_, -1.0, 1.0)))                # (the angle between its two legs)
+    et_ = er_ / math.tan(ea_ / 2)
+    eo_ = ej_ + (en_ - eh_) / np.linalg.norm(en_ - eh_) * (er_ / math.sin(ea_ / 2))
+    a0_, a1_ = (math.atan2(q_[1] - eo_[1], q_[0] - eo_[0]) for q_ in (ej_ - eh_ * et_, ej_ + en_ * et_))
+    da_ = (a1_ - a0_ + math.pi) % (2 * math.pi) - math.pi
+    return [tuple(eo_ + er_ * np.array([math.cos(a0_ + da_ * k_ / 16), math.sin(a0_ + da_ * k_ / 16)])) for k_ in range(17)]
+
+
+# (the line as it was before 2026-11-17, for the choices made along it that would else flip a grid cell where nothing
+# moved: tr_line spaces its points evenly over the whole length, so a change at the far end moves every point by a few
+# mm.  E_rng: the survey's line to s 280 m; the bend at OSM's corner 3.6 m back)
+_en_rng = np.array([147.1 - _ej[0], 547.2 - _ej[1]]) / math.dist(_ej, (147.1, 547.2))
+_e_raw_rng = _e_raw[:3] + [tuple(q_[:2]) for q_ in RD97['E_rng']['centre']] + _e_bend(_ej + _en_rng * 3.6, _eh, _en_rng) + \
+    [(147.1, 547.2), (128.6, 537.2)]
 _eh = np.array(RD97['E']['centre'][-1][:2]) - np.array(RD97['E']['centre'][-2][:2])
 _eh = _eh / np.linalg.norm(_eh)
 _en = np.array([128.6 - 147.1, 537.2 - 547.2]) / math.dist((128.6, 537.2), (147.1, 547.2))
 _ej = np.array(RD97['E']['centre'][-1][:2]) + _eh * float(np.linalg.solve(np.array([_eh, _en]).T,
                                                                             np.array([147.1, 547.2]) - np.array(RD97['E']['centre'][-1][:2]))[0])
-_er, _ea = 5.5, math.acos(float(np.clip(-_eh @ _en, -1.0, 1.0)))         # (the bend's radius, the angle between its two legs)
-_et = _er / math.tan(_ea / 2)
-_eo = _ej + (_en - _eh) / np.linalg.norm(_en - _eh) * (_er / math.sin(_ea / 2))
-_a0, _a1 = (math.atan2(q_[1] - _eo[1], q_[0] - _eo[0]) for q_ in (_ej - _eh * _et, _ej + _en * _et))
-_da = (_a1 - _a0 + math.pi) % (2 * math.pi) - math.pi
-_e_arc = [tuple(_eo + _er * np.array([math.cos(_a0 + _da * k_ / 16), math.sin(_a0 + _da * k_ / 16)])) for k_ in range(17)]
-_e_raw = _e_raw[:3] + [tuple(q_[:2]) for q_ in RD97['E']['centre']] + _e_arc + [(147.1, 547.2), (128.6, 537.2)]
+_e_raw = _e_raw[:3] + [tuple(q_[:2]) for q_ in RD97['E']['centre']] + _e_bend(_ej, _eh, _en) + [(147.1, 547.2), (128.6, 537.2)]
 _e_r = [12.0] * len(_e_raw)
 _e_r[2] = 9.0
 TR_E, TR_EN, TR_ES = tr_line(_e_raw, _e_r)
+TR_E_RNG, TR_EN_RNG, _ = tr_line(_e_raw_rng, [12.0] * 2 + [9.0] + [12.0] * (len(_e_raw_rng) - 3))
 _esj = TR_SJ - 1.5 - TR_S0
 _els = LineString([tuple(q_) for q_ in TR_E])
 # (its half width along it: the survey's and the photos'; 3.3 m on the road north of the hall, as that was drawn)
@@ -6736,9 +6749,10 @@ print('의료원 들어오는 길 서쪽 주차장:', MEDWEST_LOT_GRADE, _wl_eas
 # 노천극장 · 음악관 뒤 언덕 · 동쪽 찻길 남쪽 (tools/music97.py, reference/고증/3.14 「땅의 높이」; #189, te): the ground
 # round the old bowl and on the hill north of 음악관 on the 1997 photos and the 2006 survey (6 - 23 m over the game's),
 # the bowl cut into it on the photos' floor (AMPH['arena_h'] set there), TR_E from 아펜젤러관's yard to the fork on
-# the survey's heights; late, here: the planting has read the ground as it was
+# the survey's heights; late, here: the planting has read the ground as it was.  (TR_E_RNG: the same road there to a few
+# mm, but its cells as they were chosen before the line moved farther on)
 _mu_took, MUSIC97_GRADE = music97.grade(Hn, X, Y, FIXED, _md_halls, np.zeros(X.shape, bool), harmonic_fill, AMPH,
-                                        TR_E, TR_EN)
+                                        TR_E_RNG, TR_EN_RNG)
 FIXED[_mu_took] = True
 print('노천극장 · 음악관 뒤 언덕:', MUSIC97_GRADE)
 tr_tilt_of(TR_E, TR_EN, TR_EO, TR_EK0, 'east (music97)')
