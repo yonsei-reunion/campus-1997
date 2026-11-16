@@ -5578,7 +5578,9 @@ def flight_zone(p, n, hw, depth, inside=0.5):
 # 교육관's and 성암관's flights (blender/landmarks.py builds them, not generic.porch): the front doors, east and west,
 # and 교육관's outside flight from the bay on its north end straight out to the yard (gyoyuk_north_flight).  The zone
 # along that end's wall is the one the flight had when it was drawn running east along it: the paving decals below
-# are drawn against these zones, and dropping it shifts every crack and stain on the campus
+# are drawn against these zones, and dropping it shifts every crack and stain on the campus.  So does moving one: the
+# last zone is where the flight was drawn till the scans put it in the middle of the gable (s 7.0 - 10.8 of the zone's
+# 11.9 - 16.7; nothing was planted there, reference/고증/3.18)
 ENTRY_ZONES += [flight_zone((39.65, 327.89), (0.97, -0.25), 2.8, 9.0), flight_zone((117.18, 307.08), (-0.97, 0.24), 3.0, 9.0),
                 flight_zone((33.7, 347.9), (0.25, 0.97), 7.0, 5.5), flight_zone((30.29, 348.78), (0.25, 0.97), 2.4, 12.5)]
 _ez = unary_union(ENTRY_ZONES + [tennis_poly(pd_, 2.5) for pd_ in TENNIS['pads']])     # (and off the tennis courts)
@@ -6115,14 +6117,18 @@ for (x_, y_), h_, gone_ in _dw_spots[:53]:
                  rng5.randrange(8)] + (['gone'] if gone_ else []))
 CAR_GROUPS['대우관 뒤'] = cars[_n_dw:]
 # 교육관's north yard, full of cars in the 2003 autumn photo (2003_가을_연희관앞정원과_교육관_북쪽계단.jpg): a row nose in
-# towards the hall, east of the outside flight that comes down from the bay near its west corner
+# towards the hall, east of the outside flight that comes down from the bay.  (The photo's court came after 제2인문관:
+# in July 1997 a tall structure stood across these places and the works yard beyond it, so the 1997 scans' pass below
+# lets them go: cars97.GROUP_TARGETS, reference/고증/3.18)
 _gt, _gn = np.array([-0.969, 0.248]), np.array([0.248, 0.969])     # along its north end (from the east corner), out of it
 rng9 = random.Random(1997 + 2004)
+_n_gy = len(cars)
 for s_ in (1.8, 4.4, 7.0, 9.6):
     if rng9.random() < 0.9:
         q_ = np.array([44.15, 345.23]) + _gt * s_ + _gn * 8.2
         cars.append([rng9.choice(['sedan', 'sedan', 'sedan', 'hatch']), round(float(q_[0]), 2), round(float(q_[1]), 2),
                      round(math.atan2(-_gn[1], -_gn[0]) + rng9.uniform(-.04, .04), 3), rng9.randrange(8)])
+CAR_GROUPS['교육관 북쪽 마당'] = cars[_n_gy:]
 # motorbikes in front of the south end of 제1공학관 (the 1997 photo: by its south-east corner, next to the island): from
 # 5 m before its south face (LATE_FOOTPRINT_1997) south-south-east to 19 m, as photo A shows them through PHOTO_A with
 # the ground there the 2.3 m lower that the corner's foot wants (reference/고증.md 3.8)
@@ -9354,6 +9360,7 @@ for name_, tg_ in cars97.GROUP_TARGETS.items():
             c97_gone(c_)
         elif t_ != 'keep':
             c97_move(c_, t_[0], t_[1], math.radians(t_[2]), t_[3:])
+c97_lot('교육관 북쪽 마당', None)        # (its stalls go with its cars: cars97 '교육관 북쪽 마당')
 # 핀슨관 옆 (PINSON): the two lined blocks along 광복관's north wall; the stalls the photos have and the game's cars do not
 # take are where the cars of 백양로 drive in (PINSON_FREE: TRAFFIC below)
 _l = c97_lot('핀슨관 옆', 'white')
@@ -9592,10 +9599,11 @@ _gd, _gp = Image.new('L', (SW, SH), 0), Image.new('L', (SW, SH), 0)
 _YN[id(_gd)], _YN[id(_gp)] = '_gd', '_gp'       # (redrawn sharp for the game's map: splat_aa below)
 _ypaint([p_.buffer(2.0) for n_, p_ in GONE_SITES if n_] + [GONGWON_SITE.buffer(0.5), GW_YARD, widang97.WORKS,
                                                                     east97.SITE_BARE], _gd)
-# (and 경영학교실단's front flight: paved to 2 m past its foot; 교육관's north flight, which comes down 9.5 m out of
-# the gable onto the yard (blender/landmarks.py gyoyuk_north_flight): paved round its foot and the low wall past it)
+# (and 경영학교실단's front flight: paved to 2 m past its foot; 교육관's north flight, which comes down 8.6 m out of
+# the middle of the gable onto the yard (blender/landmarks.py gyoyuk_north_flight; reference/고증/3.18): paved round
+# its foot and the low wall past it)
 _bkc = _bk_a + BK_T * 45.66
-_gyc, _gyt, _gyn = np.array([30.29, 348.78]), np.array([-0.969, 0.248]), np.array([0.248, 0.969])
+_gyc, _gyt, _gyn = np.array([35.48, 347.45]), np.array([-0.969, 0.248]), np.array([0.248, 0.969])
 # (빌링슬리관 stands on its lawn, no apron: the scans have the lawn and the planting up to its walls; only the landing
 # before its door, out to the walk's end, BILL_UV)
 _bll = BILL_UV['landing']

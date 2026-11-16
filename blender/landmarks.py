@@ -2683,7 +2683,7 @@ def profile_wall(mb, ya, yb, xs, tops, bots, wall, cap='stone_trim', ct=0.14):
 
 
 def gyoyuk_north_flight(mb, iv, f, s0, s1, bd=2.4, fw=2.3, pt=0.35, ld=2.0, T=0.3, maxrise=0.21):
-    """교육관's north end: a square stone bay standing out from the gable near its west corner, a pointed-arched door
+    """교육관's north end: a square stone bay standing out from the middle of the gable, a pointed-arched door
     in its north face a storey up and a plain door under it at the ground; before the upper door a landing, and from
     it a straight granite flight down to the yard, square to the gable (out along +x, the bay's axis), between solid
     parapets of the wall's stone with a pale coping that end at the foot in square capped posts.  The landing and the
@@ -2862,8 +2862,12 @@ def gyoyuk():
                       stairs=dict(width=2.0, wl=3.4, rise=0.5, side=1),
                       door=dict(w=1.7, arch='pointed', spring=1.6, style='panel', rec=0.5),
                       # (the north flight's risers no higher than 0.18 m: the 2003 photo counts 15 - 17 treads down to the
-                      # yard, which the 1997 scans have a metre over the floor, tools/gyoyuk97.py)
-                      extra=lambda mb, iv, f: gyoyuk_north_flight(mb, iv, f, 12.4, 16.2, maxrise=0.18))
+                      # yard, which the 1997 scans have a metre over the floor, tools/gyoyuk97.py.  The bay and the flight
+                      # in the middle of the gable, under its one column of lights: the scans of Dec. 1996, July 1997,
+                      # Oct. 1998 and May 1999 put the flight's treads there, both courses, its middle 8.9 +- 0.3 m from
+                      # the east corner; it had been drawn 5.4 m to the west, s 12.4 - 16.2: reference/고증/3.18)
+                      extra=lambda mb, iv, f: gyoyuk_north_flight(mb, iv, f, f['W'] / 2 - 1.9, f['W'] / 2 + 1.9,
+                                                                  maxrise=0.18))
 
 
 GYOYUK_FLOOR = CAMPUS.get('gyoyuk_floor', 51.0)     # 교육관's floor: the drive along its west side and the yard north of it
