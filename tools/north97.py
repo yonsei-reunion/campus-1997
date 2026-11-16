@@ -3,7 +3,9 @@ tools/build_campus.py 가 부른다.
 
     took, info = north97.grade(Hn, X, Y, FIXED, halls, fill)     # 격자 안(y 600 ~ 800): 심기가 끝난 뒤, 무악학사 길 바로 앞
     HN = muak.patch(raw, Hn, half, step, far, ground=north97.grid_z)    # 격자 북쪽 조각(muak.NORTH)
-    muak.pads(HN, polys, fixed, north97.pad_levels(...))          # 정구장 셋, 우유처리장 동쪽 주차장, 농업개발원 앞마당
+    muak.pads(HN, courts + north97.PADS, fixed, north97.pad_levels(...))   # 정구장 셋, 우유처리장 동쪽 주차장, 농업개발원 앞마당,
+                                                                         # 2학사 앞마당, 2학사 서쪽 날개 윗단
+    muak.draw_map(north97.paint97(gm))                              # 그 둘의 칠(그리기만)
 
 Frame: campus metres, x east, y north.  Every absolute height written here is above sea level (해발), taken up
 to the working datum (해발 + tilt: tools/datum.py) where it is read, each at its place: GRID's nodes are (GRID_X0 + 5 i, GRID_Y0 + 5 j).
@@ -37,10 +39,12 @@ to the working datum (해발 + tilt: tools/datum.py) where it is read, each at i
   the built nodes (FIXED: the back yard, its roads) and the halls' feet kept, eased over MOUND_RING only (the school's
   yard west of it stays level).
 - PADS: the level terraces the 5 m contours cannot hold, on the 1997 scans: the three 정구장, the car park east of
-  우유처리장 (LOT97, a plane) and the yard south of 농업개발원 (AGRI_YARD, a plane).
+  우유처리장 (LOT97, a plane), the yard south of 농업개발원 (AGRI_YARD, a plane), the yard in front of 2학사 (DORM_YARD,
+  a quadric) and the terrace along its west wing (NW_TERRACE, level); the last two paved in the drawn map only (paint97).
 - Nothing here draws from build_campus.py's `rng`.
 """
 import json
+import math
 import os
 
 import numpy as np
@@ -96,6 +100,39 @@ LOT97_PLANE = dict(o=(145.0, 855.0), z=datum.up(145.0, 855.0, 72.24), gx=0.03, g
 AGRI_YARD = Polygon([(174.72, 915.85), (201.29, 912.35), (201.55, 914.33), (207.01, 913.62), (205.31, 900.73), (189.38, 902.32),
                      (180.68, 905.18), (174.85, 906.86), (171.43, 907.71), (171.82, 910.68), (174.0, 910.4)])
 AGRI_PLANE = dict(zip(('z', 'gx', 'gy'), datum.up_plane((83.85, 0.0169, 0.0091), 185.0, 906.0)), o=(185.0, 906.0))
+# the paved terrace along 2학사's west wing (between it and the bank down to the north-west courts) as the 1997 frames
+# have it: 10.5 m wide from 2.5 m off the wing's west wall, a row of stalls against the wall (white lines every 2.3 m,
+# a long line 7.2 m out) and the drive beyond, four cars in it (tools/cars97_new.json 「북서 정구장 동쪽 윗단」); at its
+# south end the drive turns south past the wing's corner.  Level: 26/14 x 26/13 put it at 66.0 - 66.4 m along the wing
+# (the pair reads the courts 0.3 m under the east-west pairs), and the east-west pairs where the wing does not hide it
+# (84 - 90, 1124 - 1136) at 66.1 - 66.4: 해발 66.3 m (reference/고증/3.21 「북서 정구장 동쪽 윗단 · 2학사 앞마당」).
+# Laid in the wing's frame: the wing's south-west corner (89.4, 1135.9) as the game has it, along 102 deg
+_WING = (89.4, 1135.9, 102.0)
+
+
+def _wing_xy(u, v):
+    """the wing's frame -> campus metres: u along the wing (north-north-west), v out of its west wall"""
+    x0, y0, a = _WING
+    t = (math.cos(math.radians(a)), math.sin(math.radians(a)))
+    return round(x0 + t[0] * u - t[1] * v, 2), round(y0 + t[1] * u + t[0] * v, 2)
+
+
+NW_TERRACE = Polygon([_wing_xy(u, v) for u, v in ((-12.0, 0.0), (-12.0, 6.5), (-4.0, 6.5), (0.0, 13.5), (44.0, 13.5),
+                                                  (44.0, 2.5), (0.0, 2.5), (0.0, 0.0))])
+NW_TERRACE_PLANE = dict(zip(('z', 'gx', 'gy'), datum.up_plane((66.3, 0.0, 0.0), 82.0, 1150.0)), o=(82.0, 1150.0))
+# (the drive on from its south end, between the wood and the works' hoarding, down to the west road: paved, on the
+# ground as it is)
+NW_TERRACE_DRIVE = Polygon([(85.54, 1122.81), (86.5, 1113.0), (87.5, 1103.0), (92.5, 1104.0), (92.0, 1113.0), (91.89, 1124.16)])
+# the yard in front of 2학사 (between its wings, west of the planted island, round the island's south end to the west
+# road where the barrier stood): asphalt, four cars on it (tools/cars97_new.json 「2학사 앞마당」).  Its surface: the 96
+# points on it (1 m apart) where two pairs or more of 26/14 x 26/13, 26/14 x 27/15, 26/13 x 27/15 agree within 0.6 m,
+# off the cars, as a quadric in (u, v) = ((x - 108) / 10, (y - 1140) / 10), rms 0.15 m (the largest 0.4 m): level at
+# 70.2 - 70.4 m by the wings, falling to the south-west (69.0 - 69.2 m at the yard's south end, 68.4 - 68.7 m by the
+# road).  The game had it 1.5 - 1.8 m low by the west wing, rising east 9 %
+DORM_YARD = Polygon([(106.5, 1127.5), (106.5, 1141.0), (100.2, 1141.0), (96.3, 1159.5), (96.0, 1162.0), (114.0, 1164.0),
+                     (115.5, 1156.0), (113.2, 1153.5), (113.0, 1150.0), (114.3, 1149.0), (114.3, 1135.0), (115.5, 1132.0),
+                     (120.0, 1129.5), (117.5, 1126.0), (113.0, 1126.0)])
+DORM_YARD_FIT = (69.991, 0.349, 0.713, -0.302, -0.302)       # (해발 @ (108, 1140), u, v, uv, vv)
 
 
 def grid_z(x, y):
@@ -114,6 +151,29 @@ def lot_z(x, y, p=LOT97_PLANE):
 def agri_z(x, y):
     """the yard south of 농업개발원 (on the working datum)"""
     return lot_z(x, y, AGRI_PLANE)
+
+
+def terrace_z(x, y):
+    """the terrace along 2학사's west wing (on the working datum)"""
+    return lot_z(x, y, NW_TERRACE_PLANE)
+
+
+def yard_z(x, y):
+    """the yard in front of 2학사 (on the working datum): DORM_YARD_FIT, held at its edge past the points it was fitted on"""
+    u = (np.clip(np.asarray(x, float), 100.0, 118.0) - 108.0) / 10.0
+    v = (np.clip(np.asarray(y, float), 1126.0, 1162.0) - 1140.0) / 10.0
+    c = DORM_YARD_FIT
+    return c[0] + c[1] * u + c[2] * v + c[3] * u * v + c[4] * v * v + datum.tilt(x, y)
+
+
+def paint97(gm):
+    """the patch's ground map as drawn (muak.draw_map): gm with the terrace by 2학사's west wing and its drive paved and
+    the yard in front of 2학사 asphalt.  The map's other uses (the halls' and houses' taken ground, the far forest's
+    clear and woods: web/src/terrain.js draws their crowns in order) keep gm as it was, so that nothing moves"""
+    asph = gm['asphalt'].union(DORM_YARD)
+    pav = gm['pavers'].union(unary_union([NW_TERRACE, NW_TERRACE_DRIVE])).difference(asph)
+    done = asph.union(pav)
+    return dict(gm, asphalt=asph, pavers=pav, dirt=gm['dirt'].difference(done), woods=gm['woods'].difference(done))
 
 
 def grade(Hn, X, Y, FIXED, halls, fill):
@@ -148,5 +208,9 @@ def grade(Hn, X, Y, FIXED, halls, fill):
 
 
 def pad_levels(court_ids):
-    """(levels for muak.pads) the courts' in the order given, then the car park's plane and the yard's"""
-    return [COURT_Z[i] for i in court_ids] + [lot_z, agri_z]
+    """(levels for muak.pads) the courts' in the order given, then the car park's plane, the yard's south of 농업개발원,
+    the yard's in front of 2학사 and the terrace's by its west wing (PADS)"""
+    return [COURT_Z[i] for i in court_ids] + [lot_z, agri_z, yard_z, terrace_z]
+
+
+PADS = [LOT97, AGRI_YARD, DORM_YARD, NW_TERRACE]       # (after the courts: muak.pads, in pad_levels' order)

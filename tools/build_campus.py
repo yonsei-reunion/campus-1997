@@ -7269,7 +7269,7 @@ HN = muak.patch(raw_grid, Hn, NEAR_HALF, NEAR_STEP, lambda x_, y_: ndimage.map_c
     ground=north97.grid_z)                    # (the survey's surface + T and the 1997 photos: tools/north97.py)
 MUAK_ROADS = muak.lanes()
 MUAK_PROF, _mk_fixed = muak.level(HN, MUAK, MUAK_ROADS)
-MUAK_PADS = muak.pads(HN, [Polygon(muak.osm()[i_][1]).buffer(0) for i_ in muak.COURTS] + [north97.LOT97, north97.AGRI_YARD],
+MUAK_PADS = muak.pads(HN, [Polygon(muak.osm()[i_][1]).buffer(0) for i_ in muak.COURTS] + north97.PADS,
                       _mk_fixed, north97.pad_levels(muak.COURTS))
 print('무악학사 · 북문 땅: %.1f .. %.1f m, roads %s, courts %s' % (HN.min(), HN.max(),
       {k_: (round(float(v_[1][0]), 1), round(float(v_[1][-1]), 1)) for k_, v_ in MUAK_PROF.items()}, MUAK_PADS))
@@ -11127,7 +11127,7 @@ for h_ in [h_ for h_ in MUAK_HOUSES if h_.get('gone97')]:
 MUAK_HOUSES97 = [h_ for h_ in MUAK_HOUSES if not h_.get('gone97')]
 _mk_gm = muak.ground_map(MUAK, MUAK_ROADS, [Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES97])
 out['tsplat'] = dict(sinchon_rotary.TSPLAT, **muak.pack(os.path.join(ROOT, 'web/public/assets/textures/ground_splat_town.png'),
-                                                         muak.draw_map(_mk_gm)))
+                                                         muak.draw_map(north97.paint97(_mk_gm))))   # (2학사's yard and terrace paved: drawn only)
 _mk_dec = []
 MUAK_N_TREES = muak.trees_n(MUAK_RNG, MUAK_ROADS, _mk_taken.difference(MUAK_RNG['ls'].buffer(6.5)).union(
     unary_union([p_ for p_ in (muak.poly_rng(b_) for b_ in MUAK_HALLS + MUAK_HOUSES) if p_ is not None]).buffer(2.5)).union(
