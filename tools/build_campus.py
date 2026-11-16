@@ -5313,7 +5313,7 @@ for sg in (-1, 1):
     for (e_, n_, sc_) in ((-24.0, 17.2, 0.95), (-27.5, 13.5, 0.85), (-27.0, 7.2, 0.8)):   # (clear of the walks and the podium)
         x_, y_ = SG(sg * e_, n_)
         if sg < 0 and (e_, n_) == (-27.0, 7.2):
-            # (the east lawn's third pine stood where the walk to 별관 has its clipped pine, DW_ANNEX_BEDS below: on
+            # (the east lawn's third pine stood where the walk to 별관 has its north cushion, DW_ANNEX_BEDS below: on
             # the bank south of the lower walk, where the 1997 aerial photos have a crown 8 m across)
             x_, y_ = SG(21.8, -10.5)
         trees.append(['pine', round(x_, 2), round(y_, 2), sc_, round(rng6.uniform(0, 6.28), 2)])
@@ -10118,9 +10118,12 @@ print('대우관 테라스 · 석축: clipped shrubs', len(DW_BEDS), {k_: sum(1 
 #  - the planters either side of the flight to the door (blender/landmarks.py flat_portal: their soil a walked face):
 #    a small clipped pine and a low cushion in the north one, two pointed conifers and a cushion in the south one.
 #    A sixth field marks them as planted by the flight: web/src/main.js clearEntrances leaves them where they are
-#  - where the 상뜰's walks reach the drive before the hall: a clipped pine north of them and an egg-shaped conifer
-#    south of them (the two dark crowns of July 1997 at (136.4, 424.3) and (136.1, 416.5), the pine 2.8 m further from
-#    the walk than the photos have it: the game's upper walk runs over its place), a broad cushion on each lawn corner
+#  - where the 상뜰's walks reach the drive before the hall: a low broad clipped cushion north and south of them (the
+#    two dark masses of July 1997 at (136.3, 424.2) and (136.1, 416.8), 2.0 and 2.4 m across, lie on the lawn's own
+#    height in four frames of both courses, and again in 1999: a dome no higher than about 1.5 m, not the 2020s
+#    photo's clipped pine and egg-shaped conifer, which grew later; reference/고증/3.6.6 「1996 ~ 1999년 원본 스캔으로
+#    잰 높이」), the north one 2.8 m further from the walk than the photos have it (the game's upper walk runs over its
+#    place), a broad cushion on each lawn corner
 # (AB: lx along the front, southwards from the door's axis, d out from the wall)
 _ab_r = random.Random(1997 + 168)
 _ab_q = np.array(list(footprint(ways[242897923]).minimum_rotated_rectangle.exterior.coords)[:-1])
@@ -10140,7 +10143,7 @@ DW_ANNEX_BEDS = [
     ['topiary_dome', *AB(3.3, 4.12), 0.42, round(_ab_r.uniform(0, 6.28), 3), 1]]
 # (the two cushions: either side of the lower flight's head, on the lawn corners inside the walk's curved kerbs, where
 # the 1997 scans have two small dark crowns at the road's edge; before, on the lawn 13 m out, where the flight now is)
-for kind_, at_, sc_ in (('pine_cloud', SG(28.9, 5.9), 0.85), ('topiary_egg', SG(29.6, -4.4), 1.0),
+for kind_, at_, sc_ in (('topiary_dome', SG(28.9, 5.9), 0.9), ('topiary_dome', SG(29.6, -4.4), 1.1),
                         ('topiary_dome', AB(-3.4, 12.0), 1.0), ('topiary_dome', AB(3.4, 12.0), 1.0)):
     DW_ANNEX_BEDS.append([kind_, *(round(float(c_), 2) for c_ in at_), sc_, round(_ab_r.uniform(0, 6.28), 3)])
 shrubs += DW_ANNEX_BEDS

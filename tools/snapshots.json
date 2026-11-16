@@ -158,7 +158,7 @@
     {"name": "screenshots/stimson_steps", "doc": "고증 3.5.3: 스팀슨관 앞의 두 토막 계단과 그 사이로 지나는 길, 정원의 가로 길에서 (reference/학교연혁_스팀슨관.jpg 의 자리)",
      "cam": {"x": 47, "y": 210, "dh": 2.2, "tx": 27, "ty": 227, "tdh": 2.0, "fov": 45}, "size": [1350, 950],
      "out": [{"path": "docs/screenshots/stimson_steps.jpg", "width": 900}]},
-    {"name": "screenshots/daewoo_annex", "doc": "고증 3.6.6: 상뜰 동쪽 길 끝에서 본 별관(상대별관) 현관: 화분의 조경 소나무와 원뿔 향나무, 길 끝 양옆의 낮은 덩어리 · 조경 소나무 · 달걀꼴 침엽수 (reference/대우관_별관_정면_현관.jpg 의 자리)",
+    {"name": "screenshots/daewoo_annex", "doc": "고증 3.6.6: 상뜰 동쪽 길 끝에서 본 별관(상대별관) 현관: 화분의 조경 소나무와 원뿔 향나무, 길 끝 양옆의 낮고 넓게 다듬은 덩어리 넷 (reference/대우관_별관_정면_현관.jpg 의 자리)",
      "cam": {"x": 127.2, "y": 422.6, "dh": 1.6, "tx": 151.7, "ty": 416.6, "tdh": 3.2, "fov": 52}, "size": [1350, 1012],
      "out": [{"path": "docs/screenshots/daewoo_annex.jpg", "width": 900}]},
     {"name": "screenshots/daewoo_back", "doc": "고증 3.6: 대우관 뒤쪽의 계단탑 · 계단실 덩어리, 옹벽 머리의 침엽수와 계단, 북쪽 길 둔덕 위에서",
