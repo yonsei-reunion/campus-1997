@@ -5296,7 +5296,7 @@ def aud_bank():
 def aud_north():
     """The flight at the terrace's north-east corner up onto the walk along the lawn island north of it (tools/
     audnorth97.py ISLE_FLIGHT; reference/고증/4.5.1 「윗단 북쪽 끝 너머」): its foot in line with the island's low
-    retaining wall, the risers along it, low side walls."""
+    retaining wall, the risers along it; no side walls (the walk leaves the landing northwards over its north-west side)."""
     return [garden_flight(f) for f in CAMPUS.get('aud_north', {}).get('flights', [])]
 
 

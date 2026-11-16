@@ -6839,7 +6839,7 @@ _isz_top0 = audnorth97.ISLE_WALK_S - audnorth97.isle_off(96.0)                  
 _isn = audnorth97.isle_flight_n(_isz_top0, _isz_foot - datum.tilt(*_isf['foot']))
 _ist = np.array(_isf['foot']) + _isd * (_isf['landing'] + _isn * _isf['tread'])
 ISLE97 = dict(flight=flight_at('aud_north', _ist, -_isd, datum.up(*_ist, _isz_top0), _isz_foot, _isf['width'],
-                               landing=_isf['landing'], tread=_isf['tread'], maxrise=_isf['maxrise'], cheek=0.3))
+                               landing=_isf['landing'], tread=_isf['tread'], maxrise=_isf['maxrise']))   # (no side walls: the walk leaves the landing northwards)
 _is_took, ISLE97_GRADE = audnorth97.isle_grade(Hn, X, Y, FIXED, harmonic_fill, AUD97['z'], _isn, _isz_foot)
 FIXED[_is_took] = True
 ISLE_LAWN, ISLE_PAVE, ISLE_ROAD = audnorth97.isle_geom(_isn)
