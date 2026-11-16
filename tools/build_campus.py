@@ -35,6 +35,7 @@ import kwangbok97
 import medwest97
 import jonghap97
 import libsouth97
+import libwest97
 import yongjae97
 import ridge97
 import fieldhill97
@@ -6750,6 +6751,15 @@ print('중앙도서관 남쪽 화단:', LIBSOUTH97)
 _lb_took, LIBBELT97 = libsouth97.belt(Hn, X, Y, FIXED, near_buildings(3.0), harmonic_fill, LIBSOUTH97['dz'], west_ground.lot())
 FIXED[_lb_took] = True
 print('중앙도서관 화단 남쪽 ~ 독수리상 둘레:', LIBBELT97)
+# 중앙도서관 서쪽 길 · 북서쪽 굽은 길 (tools/libwest97.py, reference/고증/2.10 「중앙도서관 서쪽 길 · 북서쪽 굽은 길」): the
+# road between the hall's west face and the trees, the yard at its north-west corner and the strip before its north face
+# level on the 1997 scans' 33.15 - 33.35 m (the grid ran round the hall at its floor, 34.24 m, and up the slope west and
+# north, 1 - 2 m over them); the curved drive round that yard to the north road a level higher (36.05 -> 34.96 m), its
+# west leg down to the road between them.  The hall's granite plinth reaches 4 m under its floor, so its west and
+# north sides go down with the road
+_lw_took, LIBWEST97 = libwest97.grade(Hn, X, Y, FIXED, near_buildings(3.0), harmonic_fill, _lib)
+FIXED[_lw_took] = True
+print('중앙도서관 서쪽 길 · 북서쪽 굽은 길:', LIBWEST97)
 # 용재관 바닥과 둘레 땅 (tools/yongjae97.py, reference/고증/3.13 「바닥과 둘레 땅의 높이」): the level ground round the
 # hall and the car park before its north walls (YJ_PAD) on the 1997 scans' and the 2006 survey's height (해발 45.9 m,
 # 2.2 m over the game's), the 진달래동산 bank round it one smooth surface out to the east fork, 백양로 and the drive
@@ -9524,6 +9534,7 @@ _ypaint([Polygon([st_xy(-5.4, -2.2), st_xy(5.4, -2.2), st_xy(5.4, 0.05), st_xy(-
         + [Polygon([st_xy(sg_ * 1.0, 0.0), st_xy(sg_ * 5.4, 0.0), st_xy(sg_ * 5.4, 0.6), st_xy(sg_ * 1.0, 0.6)]) for sg_ in (-1, 1)],
         _ga)                                  # (and on under the flights' first treads, not up the lawn strip between)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
+_ypaint(libwest97.paint(), _ga)               # (중앙도서관 서쪽 길 · 자재 마당 · 북쪽 면 앞 띠, 북서쪽 굽은 길)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): 심장혈관병원 북쪽 · 치과대학병원 서쪽 paved; the east lot's steep edges
 # lawn (out of the 2005 hospital's site's asphalt, _ga, and the layers under it)
 _md_asph, _md_bank = med97.paint()
@@ -10758,6 +10769,9 @@ print('서문 길: shrubs taken out %d, props %d, trees moved aside %d' % _sm_n)
 _wg_n = west_ground.move_off(trees, shrubs, props)
 # 광복관 · 핀슨관 (kwangbok97): the same on the 1997 asphalt; the map's walks on the 1997 ground
 _kb_n = kwangbok97.move_off(trees, shrubs, props)
+# 중앙도서관 서쪽 길 · 북서쪽 굽은 길 (libwest97): the same on the 1997 asphalt (trees to its edge away from the hall)
+_lw_n = libwest97.move_off(trees, shrubs, props, _lib)
+print('중앙도서관 서쪽 길 · 북서쪽 굽은 길: shrubs moved aside %d, props %d, trees %d' % (_lw_n[0], _lw_n[1], len(_lw_n[2])), _lw_n[2])
 _kb_w = kwangbok97.walks(out['paths'])
 print('광복관 · 핀슨관: shrubs taken out %d, props %d, trees moved aside %d, walks out %d' % (_kb_n[0], _kb_n[1], len(_kb_n[2]), _kb_w), _kb_n[2])
 print('독수리상 서쪽 마당: shrubs taken out %d, props %d, trees moved aside %d' % (_wg_n[0], _wg_n[1], len(_wg_n[2])), _wg_n[2])
