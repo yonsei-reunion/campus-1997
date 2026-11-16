@@ -80,7 +80,7 @@ async function main() {
   texCount.onChange = () => loading.textures(texCount.asked, texCount.done);
   // every model of the loading screen asked for at once (world.js prefetch), the vegetation once campus.json names it;
   // the halls first, the rest at low priority. The environment map comes down with the data.
-  const halls = ['campus_buildings.glb', 'campus_landmarks.glb', 'baekyangro.glb', 'campus_town.glb'].map((f) => MODELS + f);
+  const halls = ['campus_buildings.glb', 'campus_landmarks.glb', 'baekyangro.glb', 'campus_town_ground.glb'].map((f) => MODELS + f);
   prefetch(halls);
   prefetch([...PROPS.map((n) => `${MODELS}props/${n}.glb`), ...castFiles(Object.keys(PEOPLE))], 'low');
   const envHdr = new RGBELoader().loadAsync(versioned('assets/hdri/env_1k_nosun.hdr'));
@@ -204,7 +204,9 @@ async function main() {
     load('campus_buildings.glb', '건물을 세우는 중…', 115),
     load('campus_landmarks.glb', '언더우드관에 담쟁이를 심는 중…', 115),
     load('baekyangro.glb', '백양로에 차선을 긋는 중…', 115),
-    load('campus_town.glb', '굴다리 너머 신촌에 불을 켜는 중…', 20).catch(() => null),      // 정문 밖 (src/town.js)
+    // 정문 밖 (src/town.js): here only the banks the walker and the trees stand on; the town's houses, landmarks and
+    // signs (campus_town.glb) come after the loading screen (the end of main)
+    load('campus_town_ground.glb', '굴다리 너머 신촌에 불을 켜는 중…', 20).catch(() => null),
   ]);
   bindMaterials(bld.scene, lib, false, true);
   bindMaterials(lms.scene, lib, false, true);
@@ -1203,6 +1205,17 @@ async function main() {
   $('#start').disabled = false;
   $('#tour-start').disabled = false;
   $('#shoot-start').disabled = false;
+  // the town beyond the gate: its houses, 신촌 로터리's landmarks and signs, the bridge (campus_town.glb, 1.3 MB), down
+  // while the title card is up rather than on the loading screen (2026-11-16). __y97.townLoaded: for the tools that
+  // shoot or bake (tools/snapshots.mjs, tools/bake_sun_shadows.mjs)
+  window.__y97.townLoaded = !campus.town;
+  if (campus.town) {
+    window.__y97.townReady = loadGLB(MODELS + 'campus_town.glb').then((g) => {
+      const had = new Set(scene.children);
+      addTown(scene, g, lib, terrain.material);
+      for (const o of scene.children) if (!had.has(o)) sunMap.patchScene(o, farScenery);
+    }).catch((e) => console.warn('no campus_town.glb:', e)).finally(() => { window.__y97.townLoaded = true; });
+  }
 }
 
 // The halls with a pitched roof and the gym stand on the smallest rectangle round their OSM outline (blender/generic.py

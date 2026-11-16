@@ -74,7 +74,7 @@ const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
 page.on('pageerror', (e) => console.log('pageerror', e.message));
 page.on('console', (m) => { if (m.type() === 'error') console.log('console', m.text().slice(0, 300)); });
 await page.goto(`http://localhost:${port}/`, { waitUntil: 'load' });
-await page.waitForFunction(() => window.__y97 && window.__y97.bird, null, { timeout: 300000 });
+await page.waitForFunction(() => window.__y97 && window.__y97.bird && window.__y97.townLoaded !== false, null, { timeout: 300000 });   // (the town comes after the loading screen)
 await page.evaluate(() => window.__y97.setSeason('summer'));     // the leaves of May (April and October differ little)
 await page.waitForTimeout(8000);
 const t0 = Date.now();

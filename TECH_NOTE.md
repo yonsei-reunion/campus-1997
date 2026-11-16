@@ -126,6 +126,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 철도 선형과 창천동의 길 · 건물 외곽선은 `tools/fetch_gate_osm.py` 가 받은 `data/raw/osm_gate_south.json`(OSM API 의 상자 하나).
 - 동네 집 1,600여 동은 상자와 모임지붕뿐이고 아틀라스 한 장(`town_atlas.jpg`: 띠 하나가 벽 한 층, 가로로 반복)으로 그립니다. 320 m 칸마다 한 메시.
 - 철둑 비탈은 땅의 재질(`terrain_drape`)로 그리고, 둑 메시(`town_bank_*`)는 걷는 면 목록에 넣어 둑의 나무가 그 위에 섭니다.
+- 동네 GLB는 둘입니다. 둑 · 섬만 담은 `campus_town_ground.glb`(약 50 KB)는 캠퍼스와 함께 받습니다. 나머지 `campus_town.glb`(약 1.3 MB)와 그 간판 텍스처는 로딩 화면이 끝난 뒤 시작 화면에서 받아 붙입니다(`main.js` 끝, `__y97.townLoaded`). 화면을 찍거나 굽는 도구(`tools/snapshots.mjs`, `tools/bake_sun_shadows.mjs`)는 그것을 기다립니다.
 - 성산로의 차는 먼 거리용 모델(`car_*_far`)을 한 메시로 합치고 재질 색을 정점에 적어 한 대가 draw call 하나입니다(바퀴는 돌지 않음). 백양로의 차는 그대로.
 - 정문 앞 연석 안쪽에 보이지 않는 충돌 띠(`campus.json` `colliders`)가 있어 차도로는 나가지 못합니다.
 - 땅 지도 밖의 근경 지형은 낮은 곳을 먼 도시와 같은 회색으로 칠합니다(`terrain.js`).
@@ -369,7 +370,7 @@ blender -b --factory-startup --python blender/characters.py       # 사람 17명
 blender -b --factory-startup --python blender/build.py -- statues   # 청동 조각상의 원형 → 메시 · 텍스처 (assets_src/blender-human-base-meshes/ 필요, 출처.txt)
 ```
 
-- `blender/build.py` 에 `buildings statues landmarks road town veg shrubs props cars polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다(`statues`: 청동 조각상의 원형을 빚어 메시와 텍스처로 구움, 하나에 2 ~ 3분. `landmarks` 는 구운 메시를 읽기만 하니 원형을 고쳤으면 `statues` → `landmarks`, `town`: 정문 밖 `campus_town.glb` 와 시내버스 `props/bus.glb`, `shrubs`: 나무를 빼고 관목만, `cars`: 다른 소품을 빼고 차만). `noao` 를 더하면 베이크를 건너뜁니다.
+- `blender/build.py` 에 `buildings statues landmarks road town veg shrubs props cars polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다(`statues`: 청동 조각상의 원형을 빚어 메시와 텍스처로 구움, 하나에 2 ~ 3분. `landmarks` 는 구운 메시를 읽기만 하니 원형을 고쳤으면 `statues` → `landmarks`, `town`: 정문 밖 `campus_town_ground.glb`(걷는 둑 · 섬) · `campus_town.glb`(집 · 큰 건물 · 간판 · 굴다리)와 시내버스 `props/bus.glb`, `shrubs`: 나무를 빼고 관목만, `cars`: 다른 소품을 빼고 차만). `noao` 를 더하면 베이크를 건너뜁니다.
 - 순서가 있습니다: 일반 건물과 랜드마크는 서로의 그림자를 상대의 마지막 GLB 에서 읽어 굽습니다. 한쪽을 크게 바꿨으면 `landmarks` → `buildings` → `landmarks` 로 돕니다. 그림자를 지거나 걷는 면이 바뀌면 마지막에 `bake_sun_shadows.mjs`.
 - `bake_sun_shadows.mjs` 는 Playwright 의 Chromium 이 필요합니다(`npx playwright install chromium`).
 

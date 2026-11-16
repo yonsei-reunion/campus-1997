@@ -132,7 +132,10 @@ if want('town'):          # 정문 밖 (blender/town.py): 성산로, the 경의�
     common.to_sea(objs)
     if objs:
         stats['town'] = tri_count(objs)
-        export_glb(objs, os.path.join(OUT, 'campus_town.glb'))
+        # (2026-11-16) two files: the banks the walker and the trees stand on, loaded with the campus, and the rest
+        # (houses, landmarks, signs, the bridge), which web/src/main.js loads after the loading screen
+        export_glb([o for o in objs if o.name.startswith('town_bank')], os.path.join(OUT, 'campus_town_ground.glb'))
+        export_glb([o for o in objs if not o.name.startswith('town_bank')], os.path.join(OUT, 'campus_town.glb'))
     reset_scene()
     mb, wheels = town.bus()
     objs = [mb.build()]
