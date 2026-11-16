@@ -471,14 +471,20 @@ DORM_WINGS = [  # (id, name, centre, axis deg, length, width, shift m, eaves 해
     (991003, '무악학사', (150.8, 1191.9), 102.0, 55.6, 9.7, 3.1, datum.up(150.8, 1191.9, 93.75)),
     (991004, '무악학사', (183.25, 1171.7), 102.0, 54.2, 9.9, 1.2, datum.up(183.25, 1171.7, 100.24)),
 ]
+# Along their axes the wings stood 2 - 5 m north-north-west of OSM's outlines: the 1:5000 survey (2006, both editions:
+# each wing's eaves 12.5 - 13.0 m wide, its ends) and the 1997 frames 26/13 x 26/14 (the ends where the north-south pair
+# agree at the eaves' height) put them there (reference/고증/3.21 「무악학사 1 · 2학사」 「날개의 자리」); 1학사 동 55.4 m long
+DORM_ALONG = {991001: 3.0, 991002: 2.1, 991003: 4.9, 991004: 4.3}
+DORM_LEN = {991004: 55.4}
 # the low blocks between each pair (OSM 429077776's and 429077777's middle, the 식당 1452272054, 1452272055): moved as
-# the pair's mean, three and two storeys
+# the pair's mean (across and along), three and two storeys
 DORM_LOW = [
     (991005, [(99.1, 1163.3), (117.5, 1167.1), (114.9, 1180.0), (95.0, 1175.9)], 3.5, 3),
     (991006, [(112.8, 1190.0), (93.0, 1185.7), (95.0, 1175.9), (114.9, 1180.0)], 3.5, 2),
     (991007, [(161.2, 1171.0), (177.3, 1174.4), (175.7, 1184.8), (157.8, 1181.0)], 2.15, 3),
     (991008, [(173.3, 1196.1), (155.4, 1192.1), (157.8, 1181.0), (175.7, 1184.8)], 2.15, 2),
 ]
+DORM_LOW_ALONG = {991005: 2.55, 991006: 2.55, 991007: 4.6, 991008: 4.6}
 # 3 · 4학사 (completed 1998.4.30) in July 1997: frames up, no roof (4학사's west wing 68.3 m, about 12 m over the west
 # road; 3학사's 89 - 92 m, 13 - 17 m over the yard): OSM's outlines (429077772, 429077773), four and five storeys
 SITE_HALLS = [(991011, 429077772, 4), (991012, 429077773, 5)]
@@ -494,10 +500,21 @@ MILK_EAST = [(130.2, 879.2), (154.0, 877.7), (155.4, 894.1), (131.6, 896.7)]
 # the other halls the 1997 frames show (OSM's outlines):
 # 농업개발원 (two storeys, a gabled roof), 대창고, the sheds east of the road at the crest, the long hall by the school,
 # the hut east of the courts, and on the athletes' dormitory's site (2004) the low hall of 1997
+# 농업개발원 as the 1997 frames have it (26/13, 26/14, 27/15, 27/16 on the roofs' planes, where the four put each edge in
+# one place) and the 1:5000 survey of 2006 draws it (within 1 m): OSM's L-shaped outline is a later hall.  A gabled
+# south block (eaves 90.6 m, the ridge 93.0 m: walls 0.6 m inside the eaves read), the west end of it running on to
+# x 168; west of it a flat-roofed hall (its parapet 91.0 m; AGRI_WEST, at the list's end); north of them a low gabled
+# block one storey over the yard behind (its ridge 88.8 m: the survey's outline, walls 0.5 m inside)
+AGRI_U = (math.cos(math.radians(-7.62)), math.sin(math.radians(-7.62)))
+AGRI_S = [tuple(round(c, 2) for c in (188.0 + AGRI_U[0] * u - AGRI_U[1] * -v, 918.5 + AGRI_U[1] * u + AGRI_U[0] * -v))
+          for u, v in ((-18.9, 4.1), (12.4, 4.1), (12.4, -5.6), (-18.9, -5.6))]
+AGRI_N = [(178.07, 931.68), (201.55, 929.08), (202.42, 937.45), (178.98, 939.96)]
+AGRI_WEST = [(160.67, 917.61), (167.91, 916.64), (170.71, 937.35), (163.47, 938.33)]
+AGRI_TOP = {991022: datum.up(188.0, 918.5, 90.6), 991023: datum.up(190.0, 934.5, 86.8), 991035: datum.up(165.0, 925.0, 90.1)}
 OTHER_HALLS = [  # (id, name, style, levels, OSM id or outline, shift, hip)
     (991021, '우유처리장', 'white', 3, MILK_WEST, (0.0, 0.0), None),
-    (991022, '농업개발원', 'brick', 2, 429077770, (0.0, 0.0), dict(mat='roof_slate', pitch=0.45, over=0.6, gable=True)),
-    (991023, '농업개발원', 'brick', 2, 429077771, (0.0, 0.0), dict(mat='roof_slate', pitch=0.45, over=0.6, gable=True)),
+    (991022, '농업개발원', 'brick', 2, AGRI_S, (0.0, 0.0), dict(mat='roof_slate', pitch=0.45, over=0.6, gable=True)),
+    (991023, '농업개발원', 'brick', 1, AGRI_N, (0.0, 0.0), dict(mat='roof_slate', pitch=0.45, over=0.5, gable=True)),
     (991024, '', 'white', 2, 429077778, (0.0, 0.0), None),
     (991025, '', 'white', 1, 429077782, (0.0, 0.0), None),
     (991026, '', 'white', 1, 1358518046, (0.0, 0.0), None),
@@ -508,6 +525,13 @@ OTHER_HALLS = [  # (id, name, style, levels, OSM id or outline, shift, hip)
     (991031, '', 'white', 1, 1358516348, (0.0, 0.0), None),
     (991032, '', 'white', 2, [(65.0, 862.0), (80.0, 862.0), (80.0, 892.0), (65.0, 892.0)], (0.0, 0.0), None),
 ]
+OTHER_RNG = {991022: (2, 429077770), 991023: (2, 429077771)}      # (as first drawn: OSM's outlines, two storeys)
+# 학사 사이(2학사 동 날개와 1학사 서 날개 사이)의 평지붕 동, gone by October 1998 (the 1998 frame 27/16 has a paved yard there):
+# its ends where 26/13 x 26/14 agree (the south end's parapet 84.0 - 84.2 m), its long sides where the west frames and
+# 27/15 agree (the west parapet 84.4 m; a bright rail along the east side at 85.45 m), 24.85 x 7.4 m; the survey's 2005
+# edition has the same outline within 1 m.  Two storeys under a flat roof (at the list's end)
+BETWEEN = [(131.27, 1170.01), (138.55, 1171.55), (133.43, 1195.86), (126.15, 1194.33)]
+BETWEEN_TOP = datum.up(132.0, 1183.0, 83.3)          # (the walls' top: the parapet 0.9 m over it)
 # 북문 (1997 frames 26/14, 27/15, 27/16, within 0.5 m): two concrete frames along the road, each a ㄇ that the iron
 # leaf folds into, their inner faces 4.7 m apart, and on the south frame's inner side a flat-roofed lodge with a cut corner.
 # The frames' tops 48.6 m (해발: the 1996 and 1997 pairs, nine readings 48.3 - 49.0), 3.4 m over the road between them;
@@ -516,7 +540,14 @@ OTHER_HALLS = [  # (id, name, style, levels, OSM id or outline, shift, hip)
 GATE_FRAMES = [[(11.8, 917.2), (16.8, 917.2), (16.8, 920.6), (11.8, 920.6)], [(13.5, 910.1), (17.5, 910.1), (17.5, 912.5), (13.5, 912.5)]]
 GATE_FRAME_IDS = (991041, 991042)
 GATE_TOP = datum.up(15.0, 915.0, 48.6)
-GATE_LODGE = [(14.5, 903.5), (23.0, 903.5), (23.0, 910.0), (16.0, 910.0), (14.5, 908.5)]
+# 수위실: the flat slab 26/13, 26/14, 27/15, 27/16 put in one place on its plane (48.75 m: six pairs 48.45 - 49.0; the
+# 1996 winter pair the same), x 14.3 - 23.15, y 903.5 - 909.5, its north-west corner cut (the 2006 survey's outline the
+# same within 1 m); the walls 0.5 m inside it, drawn by blender/landmarks.py north_gate_lodge as Kakao roadview
+# 2009-05 and 2010 have it (the same cut-cornered slab)
+GATE_LODGE_ROOF = [(14.3, 903.5), (23.15, 903.5), (23.15, 909.5), (15.8, 909.5), (14.3, 908.0)]
+GATE_LODGE = [(14.8, 904.0), (22.65, 904.0), (22.65, 909.0), (16.01, 909.0), (14.8, 907.79)]
+GATE_LODGE_TOP = datum.up(18.7, 906.5, 48.75)
+GATE_LODGE_RNG = [(14.5, 903.5), (23.0, 903.5), (23.0, 910.0), (16.0, 910.0), (14.5, 908.5)]   # (as first drawn)
 ROOF_TOP = {991021: datum.up(120.0, 878.0, 78.34),       # 우유처리장's roofs (해발): the west wing @ (120, 878)
             991033: datum.up(143.0, 886.0, 76.5)}       # ... the hall east of it @ (143, 886)
 COURTS = [429077768, 429077769, 429077775]
@@ -528,9 +559,11 @@ YARDS = [north97.AGRI_YARD]
 APRON = Polygon([(45.0, 955.0), (60.0, 952.0), (75.0, 960.0), (73.0, 975.0), (58.0, 977.0), (46.0, 966.0)])
 
 
-def halls(ground, osm_=None, late=False):
+def halls(ground, osm_=None, late=False, old=False):
     """campus.json buildings for what stood north of the grid in 1997 (ground(x, y): the patch's or the grid's).
-    late: the halls that go on at the end of the game's list instead (우유처리장's east hall)"""
+    late: the halls that go on at the end of the game's list instead (우유처리장's east hall, 농업개발원's west hall, the flat
+    roof between the dormitories).  old: the outlines as first drawn (what the planting and the houses were decided
+    on: rng_polys)"""
     O = osm_ or osm()
     out = []
 
@@ -551,38 +584,88 @@ def halls(ground, osm_=None, late=False):
         return b
 
     for i, nm, c, ang, L, W, sh, top in DORM_WINGS:
-        g = _shift(_rect(c, ang, L, W), _v(ang, sh))
+        al = 0.0 if old else DORM_ALONG.get(i, 0.0)
+        L = L if old else DORM_LEN.get(i, L)
+        a = math.radians(ang)
+        g = _shift(_rect((c[0] + math.cos(a) * al, c[1] + math.sin(a) * al), ang, L, W), _v(ang, sh))
         hs = [ground(x, y) for x, y in g]
         lv = max(5, int(round((top - min(hs)) / 3.1)))
         add(i, nm, 'brick', lv, g, top=top, hip=dict(mat='roof_slate', pitch=0.4, over=1.3))
     for i, g, sh, lv in DORM_LOW:
-        add(i, '무악학사', 'brick', lv, _shift(g, _v(101.9, sh)), fh=3.3)
+        al = 0.0 if old else DORM_LOW_ALONG.get(i, 0.0)
+        a = math.radians(101.9)
+        add(i, '무악학사', 'brick', lv, _shift(_shift(g, _v(101.9, sh)), (math.cos(a) * al, math.sin(a) * al)), fh=3.3)
     for i, oid, lv in SITE_HALLS:
         add(i, '무악학사 3 · 4학사 (공사중)', 'white', lv, O[oid][1][:-1], fh=3.1)
     for i, nm, style, lv, src, sh, hip in OTHER_HALLS:
+        if old and i in OTHER_RNG:
+            lv, src = OTHER_RNG[i]
         g = O[src][1][:-1] if isinstance(src, int) else src
-        add(i, nm, style, lv, _shift(g, sh), hip=hip, top=ROOF_TOP.get(i))
+        add(i, nm, style, lv, _shift(g, sh), hip=hip, top=None if old else ROOF_TOP.get(i, AGRI_TOP.get(i)))
     for k, g in enumerate(GATE_FRAMES):
         b = add(GATE_FRAME_IDS[k], '북문' if k == 0 else '', 'white', 1, g, top=GATE_TOP)
         b['style'] = 'lm:north_gate_' + 'ns'[k]
-    add(991043, '', 'white', 1, GATE_LODGE, fh=3.2)
+    if old:
+        add(991043, '', 'white', 1, GATE_LODGE_RNG, fh=3.2)
+    else:
+        add(991043, '', 'white', 1, GATE_LODGE, top=GATE_LODGE_TOP)['style'] = 'lm:north_gate_lodge'
     if late:
         out[:] = []
         add(991033, '우유처리장', 'white', 1, MILK_EAST, top=ROOF_TOP[991033])
+        if not old:
+            add(991035, '농업개발원', 'white', 3, AGRI_WEST, top=AGRI_TOP[991035])
+            add(991036, '무악학사', 'white', 2, BETWEEN, top=BETWEEN_TOP)
     return out
+
+
+NEW_HALLS = (991035, 991036)             # (late halls not there when the planting was decided: no say in it)
+_OLD = {}
+
+
+def rng_polys(ground, osm_=None):
+    """{id: Polygon} of every hall and house as first drawn (halls(old=True), houses' OSM outlines): what _mk_taken and
+    the rows north of the grid were decided on, kept so that moving an outline to the 1997 photos moves no tree"""
+    if not _OLD:
+        for b in halls(ground, osm_, old=True) + halls(ground, osm_, late=True, old=True):
+            _OLD[b['id']] = Polygon(b['footprint'])
+    return _OLD
+
+
+def taken_rng(b):
+    """the outline _mk_taken was built from (None: a hall added since)"""
+    if b['id'] in NEW_HALLS:
+        return None
+    return _OLD.get(b['id'], Polygon(b['footprint']))
 
 
 def poly_rng(b, osm_=None):
     """a hall's outline as the rows of trees were first decided on: 우유처리장's was OSM's, 1.6 m west (the 1997 frames'
-    own outline since; a tree's place in the list picks its model in the web, so none is dropped for it)"""
+    own outline since; a tree's place in the list picks its model in the web, so none is dropped for it); the halls and
+    houses moved to the 1997 photos since, as first drawn (rng_polys, fp_rng); None for a hall added since"""
     if b['id'] == 991021:
         return Polygon(_shift((osm_ or osm())[429077767][1][:-1], (-1.6, 0.0)))
-    return Polygon(b['footprint'])
+    if b['id'] in NEW_HALLS:
+        return None
+    if b.get('fp_rng'):
+        return Polygon(b['fp_rng'])
+    return _OLD.get(b['id'], Polygon(b['footprint']))
+
+
+# 연희동's houses by the gate as the 1997 frames and the 2006 survey have them (reference/고증/3.21 「북문 · 갈림길 · 서쪽
+# 학사길」): the long low house west of the gate road's mouth (its roof 47.0 - 47.5 m, one storey; the survey's outline
+# 0.7 m west and 0.35 m south as the lodge's), the one-storey house south of the lodge (its roof 48.2 m: six pairs
+# 48.1 - 48.35; brick under tiles in 2009, a three-storey house by October 2010: OSM's outline is that one), and none
+# east of the lodge (a wood in 1997: OSM's is later).  Each keeps its draw (rd) and its place; the gone one's colour
+# draws are made by a ghost (tools/build_campus.py)
+HOUSES_1997 = {1354344864: ([(-2.0, 895.45), (11.7, 894.35), (12.0, 900.15), (-1.5, 901.25)], 1),
+               1354344865: ([(17.8, 897.15), (23.9, 897.15), (23.9, 903.15), (17.8, 903.15)], 1),
+               1354344866: (None, 0)}
 
 
 def houses(ground, taken, rd, osm_=None):
     """연희동's houses inside the patch west of the campus (OSM's outlines without a name), city blocks of two to four
-    storeys; none where the 1997 roads or halls stand"""
+    storeys; none where the 1997 roads or halls stand.  HOUSES_1997: by the gate as in 1997 (fp_rng: the outline the
+    trees were decided on; gone97: none there in 1997, taken out with a ghost)"""
     O = osm_ or osm()
     out = []
     for oid, (t, g) in sorted(O.items()):
@@ -595,8 +678,19 @@ def houses(ground, taken, rd, osm_=None):
         poly = shapely.geometry.polygon.orient(p.simplify(0.3), 1.0)
         hs = [ground(x, y) for x, y in poly.exterior.coords]
         lv = rd.choice((2, 2, 3, 3, 4))
-        out.append(dict(id=992000 + len(out), name='', style='city', levels=lv, height=round(lv * 3.0, 2), base=round(min(hs), 2),
-                        top_ground=round(max(hs), 2), footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]))
+        h = dict(id=992000 + len(out), name='', style='city', levels=lv, height=round(lv * 3.0, 2), base=round(min(hs), 2),
+                 top_ground=round(max(hs), 2), footprint=[[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]])
+        if oid in HOUSES_1997:
+            g97, lv97 = HOUSES_1997[oid]
+            h['fp_rng'] = h['footprint']
+            if g97 is None:
+                h['gone97'] = True
+            else:
+                q = shapely.geometry.polygon.orient(Polygon(g97), 1.0)
+                hq = [ground(x, y) for x, y in q.exterior.coords]
+                h.update(levels=lv97, height=round(lv97 * 3.0, 2), base=round(min(hq), 2), top_ground=round(max(hq), 2),
+                         footprint=[[round(x, 2), round(y, 2)] for x, y in list(q.exterior.coords)[:-1]])
+        out.append(h)
     return out
 
 
@@ -735,3 +829,43 @@ def trees_n(line, roads, taken, trees_, seed=15992, place=None, dec=None):
     if dec is not None:
         dec += mine + [['', t[1], t[2]] for t in out[n_main:]]
     return out
+
+
+def moved_polys(hall_list):
+    """the outlines that differ from those first drawn (halls and houses moved to the 1997 photos, the halls added)"""
+    out = []
+    for b in hall_list:
+        p = Polygon(b['footprint'])
+        q = poly_rng(b) if b['id'] != 991021 else p
+        if q is None or not p.equals_exact(q, 0.01):
+            out.append(p)
+    return out
+
+
+def trees_aside(trees, polys, halls, pad=1.5):
+    """trees the planting left where a hall now stands (polys: moved_polys), each moved in its place in the list to the
+    nearest free point pad m outside every hall (halls), 2.5 m from the other trees.  Returns the number moved"""
+    if not polys:
+        return 0
+    from shapely.strtree import STRtree
+    bad = unary_union([p.buffer(0.8) for p in polys])
+    allh = unary_union([h.buffer(0) for h in halls])
+    inside = [t for t in trees if bad.contains(Point(t[1], t[2]))]
+    if not inside:
+        return 0
+    zone = bad.buffer(25.0)
+    near = [Point(t[1], t[2]) for t in trees if zone.contains(Point(t[1], t[2])) and not any(t is i for i in inside)]
+    tr = STRtree(near) if near else None
+    ring = allh.buffer(pad).intersection(zone)
+    rings = [g.exterior for g in getattr(ring, 'geoms', [ring]) if g.geom_type == 'Polygon']
+    spots = [r.interpolate(d) for r in rings for d in np.arange(0.0, r.length, 0.5)]
+    spots = [q for q in spots if not allh.buffer(pad - 0.05).contains(q) and (tr is None or all(near[j].distance(q) > 2.5 for j in tr.query(q.buffer(2.5))))]
+    n = 0
+    for t in inside:
+        if not spots:
+            break
+        q = min(spots, key=lambda q_: q_.distance(Point(t[1], t[2])))
+        t[1], t[2] = round(q.x, 2), round(q.y, 2)
+        spots = [s for s in spots if s.distance(q) > 2.5]
+        n += 1
+    return n

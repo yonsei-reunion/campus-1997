@@ -10847,25 +10847,36 @@ print('무악학사 길: shrubs taken out %d, props %d, trees moved aside %d, ne
 # tree, the patch's ground map beside the town's, the far forest kept off what is built or paved there (web/src/terrain.js)
 MUAK_HALLS = muak.halls(ground_tn)
 MUAK_HALLS_LATE = muak.halls(ground_tn, late=True)     # (at the list's very end, below: 우유처리장's east hall)
-_mk_taken = unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE] + [muak.SITE] + muak.LOTS +
+muak.rng_polys(ground_tn)      # (the outlines as first drawn: the houses and the rows are decided on them, muak.taken_rng / poly_rng)
+_mk_taken = unary_union([p_ for p_ in map(muak.taken_rng, MUAK_HALLS + MUAK_HALLS_LATE) if p_ is not None] + [muak.SITE] + muak.LOTS +
                         [ln_['ls'].buffer(hw_ + 3.0) for _, ln_, hw_, _ in MUAK_ROADS] + [MUAK_RNG['ls'].buffer(6.5)])
 MUAK_HOUSES = muak.houses(ground_tn, _mk_taken, random.Random(15993))
 buildings += MUAK_HALLS + MUAK_HOUSES
-_mk_gm = muak.ground_map(MUAK, MUAK_ROADS, [Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES])
+# (the house east of 북문's lodge was a wood in 1997, muak.HOUSES_1997: out of the list, its colour draws made by a ghost)
+for h_ in [h_ for h_ in MUAK_HOUSES if h_.get('gone97')]:
+    i_ = next(k_ for k_, b_ in enumerate(buildings) if b_ is h_)
+    RND_GHOSTS.append({**{k_: v_ for k_, v_ in h_.items() if k_ not in ('fp_rng', 'gone97')}, 'at': i_})
+    del buildings[i_]
+MUAK_HOUSES97 = [h_ for h_ in MUAK_HOUSES if not h_.get('gone97')]
+_mk_gm = muak.ground_map(MUAK, MUAK_ROADS, [Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES97])
 out['tsplat'] = dict(sinchon_rotary.TSPLAT, **muak.pack(os.path.join(ROOT, 'web/public/assets/textures/ground_splat_town.png'),
                                                          muak.draw_map(_mk_gm)))
 _mk_dec = []
 MUAK_N_TREES = muak.trees_n(MUAK_RNG, MUAK_ROADS, _mk_taken.difference(MUAK_RNG['ls'].buffer(6.5)).union(
-    unary_union([muak.poly_rng(b_) for b_ in MUAK_HALLS + MUAK_HOUSES]).buffer(2.5)).union(unary_union(_mk_gm['courts']).buffer(1.5)),
+    unary_union([p_ for p_ in (muak.poly_rng(b_) for b_ in MUAK_HALLS + MUAK_HOUSES) if p_ is not None]).buffer(2.5)).union(
+        unary_union(_mk_gm['courts']).buffer(1.5)),
     _mk_rng, place=MUAK, dec=_mk_dec)
 trees += MUAK_N_TREES
+_mk_moved97 = muak.moved_polys(MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES97)     # (the outlines moved to the 1997 photos)
+for h_ in MUAK_HOUSES:
+    h_.pop('fp_rng', None)
 _mk_rng += _mk_dec
 # (the wooded ridge west of the road, raised into view by tools/north97.py: its trees after every other tree; decided
 # beside the old line's woods as the rows above)
 MUAK_RIDGE_TREES = muak.woods_fill(MUAK_RIDGE_RNG, _mk_rng, seed=15995, spacing=11.0)
 trees += MUAK_RIDGE_TREES
 _mk_clear = unary_union([_mk_gm['asphalt'].buffer(4.0), _mk_gm['pavers'].buffer(3.0), _mk_gm['dirt'].buffer(4.0),
-                         unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES]).buffer(6.0)]).simplify(1.5)
+                         unary_union([Polygon(b_['footprint']) for b_ in MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES97]).buffer(6.0)]).simplify(1.5)
 _mk_woods = _mk_gm['woods'].simplify(1.5)
 out['terrain']['north'] = dict(muak.NORTH, file='data/terrain_north.bin',
                                clear=[[[round(x_, 1), round(y_, 1)] for x_, y_ in g_.exterior.coords]
@@ -10944,6 +10955,9 @@ print('서쪽 능선 꼭대기: trees off the cleared top', ridge97.trees_aside(
 print('제2인문관 공사장: trees off the yard', widang97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
 # 새천년관 공사장 (tools/east97.py SITE97): the trees on the works yard, six into its two clumps, the rest out to its edge, in their places in the list
 print('새천년관 공사장: trees off the yard', len(east97.site_trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']])))
+# 무악학사 · 북문 (tools/muak.py): trees the planting left where the halls moved to the 1997 photos or added stand, each in
+# its place in the list
+print('무악학사 · 북문: trees off the halls as in 1997', muak.trees_aside(out['trees'], _mk_moved97, [Polygon(b_['footprint']) for b_ in out['buildings']]))
 # 대운동장 북쪽 언덕의 숲 (tools/fieldhill97.py; #189): crowns edge to edge in the 1997 scans, filled in clear of the
 # trees already there, at the trees' very end (the web picks each tree's model by its place in the list)
 FIELDHILL_TREES = muak.woods_fill(unary_union(FIELDHILL_WOODS), out["trees"], seed=15996, spacing=8.5)
@@ -11020,7 +11034,7 @@ out['colliders'] += walkguard97.colliders()
 # 북문의 두 틀 (tools/muak.py GATE_FRAMES): drawn by blender/landmarks.py north_gate_frame as ㄇ frames (style 'lm:'); the
 # colour draws the plain white halls made in their places are made by ghosts there, so the halls after them keep their looks
 for i_, b_ in enumerate(out['buildings']):
-    if b_['id'] in muak.GATE_FRAME_IDS:
+    if b_['id'] in muak.GATE_FRAME_IDS + (991043,):     # (and the lodge, a plain white hall before: muak.GATE_LODGE)
         RND_GHOSTS.append({**{k_: v_ for k_, v_ in b_.items() if k_ != 'tilt'}, 'style': 'white', 'height': 3.3, 'fh': 3.3,
                            'at': i_})       # (as the boxes they were: one 3.3 m storey)
 datum.to_sea(out, DATUM)

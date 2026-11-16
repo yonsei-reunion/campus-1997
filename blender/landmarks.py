@@ -5978,6 +5978,89 @@ def north_gate_frame(bid):
     return [mb]
 
 
+def north_gate_lodge(bid=991043):
+    """북문 수위실 (tools/muak.py GATE_LODGE, reference/고증/3.21 「북문 · 갈림길 · 서쪽 학사길」): one storey on the south
+    frame's inner side, its walls (the campus.json outline) 0.5 m inside the flat slab the 1997 scans have (x 14.3 -
+    23.15, y 903.5 - 909.5, the north-west corner cut; top 48.75 m, 3.5 m over the road; the 1996 winter pair the same).
+    The look as in Kakao roadview 2009-05 (4611473) and 2010 (1016786556 - 558), the same cut-cornered slab: white walls,
+    a thick slab with a fascia, big windows on the cut corner and the west face over a grey dressed-stone plinth, the
+    door and a window on the north face towards the road between the frames.  Its colour draws are made by a ghost."""
+    b = next((b for b in CAMPUS['buildings'] if b['id'] == bid), None)
+    if b is None:
+        return []
+    area2 = lambda Q: sum(Q[i][0] * Q[(i + 1) % len(Q)][1] - Q[(i + 1) % len(Q)][0] * Q[i][1] for i in range(len(Q)))
+    P = [tuple(p) for p in b['footprint']]
+    if area2(P) < 0:
+        P.reverse()
+    g = min(ground(*p) for p in P)
+    top = b['base'] + b['height']
+    z0, zf = g - 0.3, g + 0.35                      # (the foundation, the floor: steps up from the road)
+    zs = top - 0.32                                 # (the slab's underside)
+    wb, wt = zf + 0.6, zs - 0.35                    # (the windows' sill and head)
+    mb = MeshBuilder('lm_north_gate_lodge')
+
+    def wall(a, c, openings, plinth=()):
+        """a wall face a -> c (outside on its right), openings [(s0, s1, zb, zt, glass)] along it (m) and heights"""
+        L = math.dist(a, c)
+        t = ((c[0] - a[0]) / L, (c[1] - a[1]) / L)
+        n = (t[1], -t[0])                           # (outward)
+        rz = math.atan2(t[1], t[0])
+        Pt = lambda s, z, o=0.0: (a[0] + t[0] * s + n[0] * o, a[1] + t[1] * s + n[1] * o, z)
+        ss = sorted({0.0, L} | {o[0] for o in openings} | {o[1] for o in openings})
+        zz = sorted({z0, zs} | {o[2] for o in openings} | {o[3] for o in openings})
+        for s0, s1 in zip(ss, ss[1:]):
+            for za, zb in zip(zz, zz[1:]):
+                op = next((o for o in openings if o[0] <= s0 + 1e-6 and s1 <= o[1] + 1e-6 and o[2] <= za + 1e-6 and zb <= o[3] + 1e-6), None)
+                if op is None:
+                    mb.face([Pt(s0, za), Pt(s1, za), Pt(s1, zb), Pt(s0, zb)], 'plaster_white')
+                else:
+                    mb.face([Pt(s0, za, -0.12), Pt(s1, za, -0.12), Pt(s1, zb, -0.12), Pt(s0, zb, -0.12)], op[4])
+        for s0, s1, zb, zt, _ in openings:            # (reveals, head, sill and frames)
+            for q in ([Pt(s0, zb), Pt(s0, zb, -0.12), Pt(s0, zt, -0.12), Pt(s0, zt)], [Pt(s1, zb), Pt(s1, zb, -0.12), Pt(s1, zt, -0.12), Pt(s1, zt)],
+                      [Pt(s0, zt), Pt(s1, zt), Pt(s1, zt, -0.12), Pt(s0, zt, -0.12)]):
+                mb.face(q, 'plaster_white')
+                mb.face(q[::-1], 'plaster_white')
+            if zb > zf + 0.1:
+                mb.box(Pt((s0 + s1) / 2, zb - 0.03, 0.04), (s1 - s0 + 0.1, 0.16, 0.06), 'stone_trim', rotz=rz)
+            for s in [s0 + 0.03, s1 - 0.03] + ([(s0 + s1) / 2] if s1 - s0 > 1.3 else []):
+                mb.box(Pt(s, (zb + zt) / 2, -0.1), (0.05, 0.06, zt - zb), 'frame_silver', rotz=rz)
+            if zt - zb > 1.2:                       # (the transom low in each light, as the 2009 - 2010 views have it)
+                mb.box(Pt((s0 + s1) / 2, zb + (zt - zb) * 0.3, -0.1), (s1 - s0, 0.06, 0.05), 'frame_silver', rotz=rz)
+        for s0, s1 in plinth:                        # (the dressed-stone plinth under the windows, 5 cm proud)
+            mb.box(Pt((s0 + s1) / 2, (z0 + wb - 0.06) / 2, 0.03), (s1 - s0, 0.08, wb - 0.06 - z0), 'stone_ashlar', rotz=rz)
+
+    for i in range(len(P)):
+        a, c = P[i], P[(i + 1) % len(P)]
+        L = math.dist(a, c)
+        nb = math.degrees(math.atan2(c[1] - a[1], -(c[0] - a[0]))) % 360.0     # (the outward normal's bearing)
+        if 300 < nb < 340:                              # the cut corner, facing north-west: one big window
+            wall(a, c, [(0.25, L - 0.25, wb, wt, 'glass')], plinth=[(0.0, L)])
+        elif 255 < nb < 285:                            # the west face: two windows from its north end, plain to the south
+            o = [(L - 1.7, L - 0.2, wb, wt, 'glass'), (L - 3.2, L - 1.95, wb, wt, 'glass')] if L > 3.5 else [(0.3, L - 0.2, wb, wt, 'glass')]
+            wall(a, c, o, plinth=[(max(0.0, o[-1][0] - 0.15), L)])
+        elif nb < 20 or nb > 340:                       # the north face: the door near its west end, a window east of it
+            wall(a, c, [(L - 1.4, L - 0.45, zf, zs - 0.45, 'glass_door'), (L - 2.9, L - 1.8, wb, wt, 'glass')])
+            t = ((c[0] - a[0]) / L, (c[1] - a[1]) / L)
+            n = (t[1], -t[0])
+            for k in range(3):                          # (three steps up to the door from the road between the frames)
+                h, d = zf - k * 0.12, 0.3 * (k + 1)
+                mb.box((a[0] + t[0] * (L - 0.925) + n[0] * d / 2, a[1] + t[1] * (L - 0.925) + n[1] * d / 2, (z0 + h) / 2),
+                       (1.5, d, h - z0), 'stone_step', rotz=math.atan2(t[1], t[0]))
+        else:                                           # the east and south faces: plain
+            wall(a, c, [])
+    # the slab: 0.5 m out from the walls, 0.32 m thick, its fascia white
+    from shapely.geometry import Polygon as _Poly
+    R = list(_Poly(P).buffer(0.5, join_style=2).exterior.coords)[:-1]
+    if area2(R) < 0:
+        R.reverse()
+    mb.face([(x, y, top) for x, y in R], 'roof_flat')
+    mb.face([(x, y, zs) for x, y in R][::-1], 'plaster_white')
+    for i in range(len(R)):
+        a, c = R[i], R[(i + 1) % len(R)]
+        mb.face([(a[0], a[1], zs), (c[0], c[1], zs), (c[0], c[1], top), (a[0], a[1], top)], 'plaster_white')
+    return [mb]
+
+
 # ============================================================================= 공학원 공사장 (1995.8 - 1999.4)
 def _tower_crane(x, y, z, H, brg, jib, cjib):
     """The hammerhead tower crane over 공학원's pit (the July 1997 scans, 고증 4.4): a lattice mast 1.6 m square, the
@@ -6527,4 +6610,5 @@ BUILDERS = {'library': library, 'union': union, 'centennial': centennial, 'under
             'engineering': engineering, 'hanok': hanok, 'yongjae': yongjae, 'none': lambda: [],
             'daewoo': daewoo, 'daewoo_annex': daewoo_annex, 'yeonhui': yeonhui, 'kwangbok': kwangbok,
             'seongam': seongam, 'gyoyuk': gyoyuk,
-            'north_gate_n': lambda: north_gate_frame(991041), 'north_gate_s': lambda: north_gate_frame(991042)}
+            'north_gate_n': lambda: north_gate_frame(991041), 'north_gate_s': lambda: north_gate_frame(991042),
+            'north_gate_lodge': north_gate_lodge}
