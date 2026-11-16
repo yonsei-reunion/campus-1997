@@ -36,6 +36,7 @@ import medwest97
 import jonghap97
 import libsouth97
 import libwest97
+import libnorth97
 import yongjae97
 import ridge97
 import fieldhill97
@@ -9710,7 +9711,8 @@ _ypaint(HILL_GONE_SITES, _ga)                # (노천극장 동쪽 봉우리의
 _li = LIB97['island']
 _ypaint([lf_rect(LIB97['plaza'][0], _li[0], LIB97['depth'], _l9st + 0.4), lf_rect(_li[1], LIB97['plaza'][1], LIB97['depth'], _l9st + 0.4),
          lf_rect(_li[0] - 0.1, _li[1] + 0.1, LIB97['depth'], _li[2]), lf_rect(_li[0] - 0.1, _li[1] + 0.1, _li[3], _l9st + 0.4),
-         LIB97_NORTH, LIB97_WALK], _ga)         # (중앙도서관 앞 광장 · 북쪽 찻길 · 관목 띠를 따르는 찻길)
+         LIB97_NORTH.difference(libnorth97.bed_ext()), LIB97_WALK], _ga)   # (중앙도서관 앞 광장 · 북쪽 찻길 · 관목 띠를 따르는 찻길;
+#  the beds and their walks run on north to the drive's kerb of 1997: libnorth97 below)
 _ypaint([JUNC], _ga, width=JUNC_W)            # (독수리상 서쪽 옆길이 백양로와 만나는 길)
 _ypaint([SCI_YARD.difference(unary_union([Polygon(b_['footprint']) for b_ in LATE_HALLS if b_['id'] in (990060, 990061)]).buffer(0.5))], _ga)
 # 용재관's car park and the drive to 노천극장 (YJ_LOT, YJ_BRANCH), a paved strip along the walls
@@ -9750,6 +9752,11 @@ _ypaint([Polygon([st_xy(-5.4, -2.2), st_xy(5.4, -2.2), st_xy(5.4, 0.05), st_xy(-
         _ga)                                  # (and on under the flights' first treads, not up the lawn strip between)
 _ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
 _ypaint(libwest97.paint(), _ga)               # (중앙도서관 서쪽 길 · 자재 마당 · 북쪽 면 앞 띠, 북서쪽 굽은 길)
+# 중앙도서관 북쪽 찻길 (tools/libnorth97.py, reference/고증/3.2-3.3 「북쪽 찻길과 그 둘레」): the drive's west end
+# asphalt on to the north flight's foot and the curved road (the game had lawn and today's walks there); the beds'
+# slant walk and the walk along their far side paved on to the 1997 kerb (the beds' lawn with them, LIB97_NORTH above)
+_ypaint(libnorth97.west(), _ga)
+_ypaint(libnorth97.walks(), _gp)
 # 체육관 동쪽 마당 · 남동쪽 끝 (gymnorth97.PAVE2, reference/고증/3.24): asphalt under the 1997 cars where the game had
 # lawn and walks
 _ypaint([p_.difference(gymnorth97.GYM_POLY.buffer(0.3)) for p_ in gymnorth97.PAVE2], _ga)
@@ -11006,6 +11013,14 @@ _kb_n = kwangbok97.move_off(trees, shrubs, props)
 # 중앙도서관 서쪽 길 · 북서쪽 굽은 길 (libwest97): the same on the 1997 asphalt (trees to its edge away from the hall)
 _lw_n = libwest97.move_off(trees, shrubs, props, _lib)
 print('중앙도서관 서쪽 길 · 북서쪽 굽은 길: shrubs moved aside %d, props %d, trees %d' % (_lw_n[0], _lw_n[1], len(_lw_n[2])), _lw_n[2])
+# 중앙도서관 북쪽 찻길 (libnorth97): the same on its west end's asphalt; today's walks across the drive and its row of
+# cars off the map and the crowd's walks; the round evergreens along the beds' north kerb of 1997 at the list's end
+_ln_n = libnorth97.move_off(trees, shrubs, props)
+_ln_w = libnorth97.walks_cut(out['paths'])
+LN97_SHRUBS = libnorth97.shrubs()
+shrubs += LN97_SHRUBS
+print('중앙도서관 북쪽 찻길: trees moved aside %d, shrubs taken out %d, props %d, walks out %d, shrubs added %d'
+      % (len(_ln_n[0]), _ln_n[1], _ln_n[2], _ln_w, len(LN97_SHRUBS)), _ln_n[0])
 _kb_w = kwangbok97.walks(out['paths'])
 print('광복관 · 핀슨관: shrubs taken out %d, props %d, trees moved aside %d, walks out %d' % (_kb_n[0], _kb_n[1], len(_kb_n[2]), _kb_w), _kb_n[2])
 print('독수리상 서쪽 마당: shrubs taken out %d, props %d, trees moved aside %d' % (_wg_n[0], _wg_n[1], len(_wg_n[2])), _wg_n[2])
