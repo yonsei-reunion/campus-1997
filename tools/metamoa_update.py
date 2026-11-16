@@ -27,7 +27,9 @@ LIMIT = 200
 def compose(entry):
     m, d = int(entry['date'][5:7]), int(entry['date'][8:10])
     items = list(entry.get('summary') or [])
-    link = f"{SITE}news.html?d={entry['date']}"
+    # 「news.html」 은 메타모아 링크 검사가 다른 사이트(도메인)로 읽어 400 이라
+    # 확장자 없는 주소로(GitHub Pages 가 news.html 을 연다)
+    link = f"{SITE}news?d={entry['date']}"
     while items:
         # 항목 안에 「·」 「,」가 있어 항목 사이는 「 / 」
         head = f"{m}월 {d}일 새 소식: " + ' / '.join(items)
@@ -74,6 +76,14 @@ def main():
         print(f'HTTP {code} {body}')
         if code == 201:
             return
+        if code == 400 and 'link' in body and '\n' in text:
+            # 링크를 다른 사이트로 읽어 거절하면 링크 줄을 빼고 한 번 더
+            text = text.rsplit('\n', 1)[0]
+            print(f'링크를 빼고 다시 올림:\n{text}')
+            code, body, wait = post(space, key, text)
+            print(f'HTTP {code} {body}')
+            if code == 201:
+                return
         if code != 429:
             sys.exit(1)
         if attempt == 2 or wait is None or wait > MAX_WAIT:
