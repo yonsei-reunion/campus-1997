@@ -13,8 +13,9 @@
 //  - the top arris on the paving side rounded, a joint every metre and each stone a shade lighter or darker
 //    (the shared 'curb' material of 백양로's kerbs, with the joints and the tones as a shader edit)
 // The kerbs are built in CELL m squares as the camera comes within reach, on the terrain as it is drawn (each 5 m
-// cell's two triangles, terrain.js gridGeometry); where a flight, a terrace or the road stands over the ground the
-// kerb is left out. Every built square within reach is drawn as one mesh (one draw call), merged again when that set
+// cell's two triangles, terrain.js gridGeometry), or on the raised ground's meshes over it (terrain.js drapeHeight: the
+// halls' terraces and banks, issue #188); where a flight or the road stands over the ground the kerb is left out.
+// Every built square within reach is drawn as one mesh (one draw call), merged again when that set
 // changes; phones reach less far.
 // The lawn behind the kerbs stands nearly level with their tops (issue #86: the 2008 - 2011 roadview, the 2024 photo
 // of the 상뜰), not at the paving's level as the 5 m grid has it: along each kerb a strip of ground in the terrain's own
@@ -126,11 +127,13 @@ function curbEdit(sh) {
 
 export class Curbs {
   // list: campus.json curbs; hf: the near terrain heightfield; over: the walked meshes other than the terrain (the
-  // road, the flights, the terraces: no kerb under them); lib: the material library; lawn: campus.json curb_lawn;
-  // ground: the near terrain's material (the lawn's raised edge; none without it)
-  constructor(scene, list, hf, over, lib, { lawn = [], ground = null } = {}) {
+  // road, the flights: no kerb under them); lib: the material library; lawn: campus.json curb_lawn;
+  // ground: the near terrain's material (the lawn's raised edge; none without it); drape: (x, y) -> the raised ground's
+  // meshes there (terrain.js drapeHeight: a terrace's deck, a bank): a kerb on them stands on them, its lawn's edge too
+  constructor(scene, list, hf, over, lib, { lawn = [], ground = null, drape = null } = {}) {
     this.hf = hf;
     this.over = over;
+    this.drape = drape;
     this.ray = new THREE.Raycaster();
     this.ray.firstHitOnly = true;
     // every run's points, subdivided to SUB m, in flat arrays; segments by cell; D: the lawn behind the kerb there, m;
@@ -206,6 +209,7 @@ export class Curbs {
     Object.assign(this, { X: f32(X), Y: f32(Y), U: f32(U), MX: f32(MX), MY: f32(MY), K: Uint8Array.from(K), D: f32(D), F: f32(F) });
     this.state = new Uint8Array(X.length);            // 0 not looked at, 1 on the ground, 2 under something
     this.lipOk = new Uint8Array(X.length);            // the lawn behind it may be raised (once looked at)
+    this.deck = new Uint8Array(X.length);             // on a raised ground's mesh (drape), not on the terrain
     this.g0 = new Float32Array(X.length);             // ground under the paving side, the lawn side
     this.g1 = new Float32Array(X.length);
     for (const c of this.cells.values()) c.segs = Int32Array.from(c.segs);
@@ -252,26 +256,41 @@ export class Curbs {
     return k === 2 ? KINDS[3].h + (KINDS[2].h - KINDS[3].h) * this.F[i] : KINDS[k].h;
   }
 
-  // ground at point i (both sides of the stone), or under a flight / terrace / the road
+  // the ground at campus (x, y): on a raised ground's mesh (a deck, a bank) where one is there (deck), else the terrain
+  _ground(x, y, deck) {
+    const t = terrainHeight(this.hf, x, y);
+    return deck && this.drape ? Math.max(t, this.drape(x, y)) : t;
+  }
+
+  // ground at point i (both sides of the stone), or under a flight / the road. On a terrace's deck or a bank drawn in
+  // the ground's material (drape) the stone stands on it: its walked face (blender/landmarks.py WALK_FACES) is the
+  // deck itself, not something over the ground
   _look(i) {
     if (this.state[i]) return this.state[i] === 1;
     const x = this.X[i], y = this.Y[i], mx = this.MX[i], my = this.MY[i], { w } = KINDS[this.K[i]];
     const s0 = -LAP, s1 = w - LAP;
-    this.g0[i] = terrainHeight(this.hf, x + mx * s0, y + my * s0);
-    this.g1[i] = terrainHeight(this.hf, x + mx * s1, y + my * s1);
+    const ax = x + mx * s0, ay = y + my * s0, bx = x + mx * s1, by = y + my * s1;
+    let g0 = terrainHeight(this.hf, ax, ay), g1 = terrainHeight(this.hf, bx, by);
+    if (this.drape) {
+      const d0 = this.drape(ax, ay), d1 = this.drape(bx, by);
+      if (d0 > g0 + 0.02 || d1 > g1 + 0.02) { this.deck[i] = 1; g0 = Math.max(g0, d0); g1 = Math.max(g1, d1); }
+    }
+    this.g0[i] = g0;
+    this.g1[i] = g1;
+    const deck = this.deck[i];
     let ok = true;
     if (this.over.length) {
       this.ray.set(_o.set(x + mx * (s0 + s1) / 2, 600, -(y + my * (s0 + s1) / 2)), _down);
       const h = this.ray.intersectObjects(this.over, false);
-      if (h.length && h[0].point.y > Math.min(this.g0[i], this.g1[i]) - 0.3) ok = false;
+      if (h.length && h[0].point.y > (deck ? Math.max(g0, g1) + 0.05 : Math.min(g0, g1) - 0.3)) ok = false;
     }
     // the lawn's raised edge only where nothing walked on lies on the lawn just behind the stone (상뜰's round lawn is
-    // a dome of its own, blender/landmarks.py)
+    // a dome of its own, blender/landmarks.py), the deck itself apart
     if (ok && this.lipMesh && this.over.length) {
       const lx = x + mx * (s1 + 0.4), ly = y + my * (s1 + 0.4);
       this.ray.set(_o.set(lx, 600, -ly), _down);
       const h = this.ray.intersectObjects(this.over, false);
-      this.lipOk[i] = h.length && h[0].point.y > terrainHeight(this.hf, lx, ly) - 0.3 ? 0 : 1;
+      this.lipOk[i] = h.length && h[0].point.y > (deck ? this._ground(lx, ly, true) + 0.05 : terrainHeight(this.hf, lx, ly) - 0.3) ? 0 : 1;
     } else this.lipOk[i] = ok ? 1 : 0;
     this.state[i] = ok ? 1 : 2;
     return ok;
@@ -330,6 +349,7 @@ export class Curbs {
       if (this.K[i] === 3) continue;                                       // (lowered: nothing raised behind it)
       const room = (j) => this.D[j] - 2 * (KINDS[this.K[j]].w - LAP);      // to the next paving's kerb, m
       if (room(i) < 0.1 && room(i + 1) < 0.1) continue;
+      const deck = this.deck[i] || this.deck[i + 1];                      // (on a deck: on it, as the stones)
       for (const j of [i, i + 1]) {
         const x = this.X[j], y = this.Y[j], mx = this.MX[j], my = this.MY[j], s1 = KINDS[this.K[j]].w - LAP;
         const ml = Math.hypot(mx, my), ux = mx / ml, uy = my / ml;
@@ -339,11 +359,16 @@ export class Curbs {
           const px = x + mx * (s1 + o[k]), py = y + my * (s1 + o[k]);
           const k0 = Math.max(0, k - 1), k1 = Math.min(3, k + 1);
           const slope = (z[k1] - z[k0]) / Math.max(1e-3, (o[k1] - o[k0]) * ml);
-          terrainNormal(this.hf, px, py, tn);
+          if (deck) {                                                       // (the deck's own slope there)
+            const e = 0.3;
+            tn[0] = -(this._ground(px + e, py, true) - this._ground(px - e, py, true)) / (2 * e);
+            tn[1] = -(this._ground(px, py + e, true) - this._ground(px, py - e, true)) / (2 * e);
+            tn[2] = 1;
+          } else terrainNormal(this.hf, px, py, tn);
           let nx = tn[0] - slope * ux, ny = tn[1] - slope * uy;
           const nl = Math.hypot(nx, ny, 1);
           nx /= nl; ny /= nl;
-          out[n++] = px; out[n++] = terrainHeight(this.hf, px, py) + z[k]; out[n++] = -py;
+          out[n++] = px; out[n++] = this._ground(px, py, deck) + z[k]; out[n++] = -py;
           out[n++] = nx; out[n++] = 1 / nl; out[n++] = -ny;
           out[n++] = this.K[j] === 2 ? 1 : 0;
         }
@@ -352,8 +377,9 @@ export class Curbs {
     return out.subarray(0, n);
   }
 
-  // the raised lawn's height over the ground at campus (x, y) (0 off it): for the walker and the grass blades
-  lift(x, y) {
+  // the raised lawn's height over the ground at campus (x, y) (0 off it): for the walker and the grass blades. deck:
+  // over a deck's or a bank's mesh (drape) instead of over the terrain
+  lift(x, y, deck = false) {
     if (!this.lipMesh) return 0;
     const bi = Math.floor(x / BIN), bj = Math.floor(y / BIN), key = bi * 65536 + bj;
     let segs = this.bins.get(key);
@@ -372,7 +398,8 @@ export class Curbs {
       const tc = Math.min(1, Math.max(0, t)), s1 = KINDS[this.K[i]].w - LAP;
       const z = lipAt(this.D[i] + (this.D[i + 1] - this.D[i]) * tc - 2 * s1, d - s1, this.K[i] === 2)
         * (this.F[i] + (this.F[i + 1] - this.F[i]) * tc);
-      if (z > best && this._look(i) && this._look(i + 1) && this.lipOk[i] && this.lipOk[i + 1]) best = z;
+      if (z > best && this._look(i) && this._look(i + 1) && this.lipOk[i] && this.lipOk[i + 1] &&
+          !(this.deck[i] || this.deck[i + 1]) === !deck) best = z;
     }
     return best;
   }

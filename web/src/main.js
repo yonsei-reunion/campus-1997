@@ -432,8 +432,9 @@ async function main() {
   scene.add(posters);
   scene.add(makeBoard(campus.landmarks.find((l) => l.id === 'events'), groundAt));
   const decals = new Decals(scene, campus.decals || [], walkables, hfNear, sunMap);   // manholes, oil, patches (src/decals.js)
+  const drapeAt = drapeHeight(drapes);                 // the raised ground's meshes (the terraces' decks, the banks)
   const curbs = new Curbs(scene, campus.curbs || [], hfNear, walkables.slice(1), lib,     // kerbs along the paving (src/curbs.js)
-    { lawn: campus.curb_lawn, ground: terrain.material });
+    { lawn: campus.curb_lawn, ground: terrain.material, drape: drapeAt });
   await castLoaded;
 
   // ---------------------------------------------------------------- life
@@ -576,8 +577,9 @@ async function main() {
   scene.add(hero.holder);
   shadows.addDynamic(hero.holder);
   const player = new Player(camera, canvas, colliders, walkables, hfNear, hero);
-  grass.lift = player.lift = (x, y) => curbs.lift(x, y);     // the lawn raised along the kerbs
-  grass.drape = drapeHeight(drapes);                   // and the blades on the raised ground's meshes
+  grass.lift = player.lift = (x, y, deck) => curbs.lift(x, y, deck);     // the lawn raised along the kerbs
+  player.deckWalk = new Set(stairWalk);                // (the decks' walked faces are with the flights': on them, deck)
+  grass.drape = drapeAt;                               // and the blades on the raised ground's meshes
   for (const name of ['buildings', 'landmarks']) {      // walls for the walker: BVHs built once, shared with the bird's-eye roof picking
     scene.getObjectByName(name)?.traverse((o) => { if (o.isMesh) { if (!o.geometry.boundsTree) o.geometry.computeBoundsTree(); player.walls.push(o); } });
   }

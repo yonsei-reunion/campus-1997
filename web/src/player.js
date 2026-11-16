@@ -445,8 +445,10 @@ export class Player {
     this.ray.far = from ? 1000 : STEP + 60;
     const hits = this.ray.intersectObjects(this.walk, false);
     if (!hits.length) return null;
-    // on the terrain: and on the lawn's raised edge along the kerbs
-    return hits[0].point.y + (this.lift && hits[0].object === this.walk[0] ? this.lift(x, -z) : 0);
+    // on the terrain: and on the lawn's raised edge along the kerbs (on a terrace's deck too: deckWalk, the walked
+    // faces it is in)
+    const o = hits[0].object;
+    return hits[0].point.y + (!this.lift ? 0 : o === this.walk[0] ? this.lift(x, -z) : this.deckWalk?.has(o) ? this.lift(x, -z, true) : 0);
   }
 
   input() {

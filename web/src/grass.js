@@ -253,7 +253,10 @@ export class Grass {
         const t = Math.min(1, (sh - 0.5) / 0.35);
         if (pick > t * t * (3 - 2 * t) * (1 - 0.6 * dry)) continue;
         gy = surface(this.hf, x, y) + (this.lift ? this.lift(x, y) : 0);
-        if (this.drape) gy = Math.max(gy, this.drape(x, y));
+        if (this.drape) {
+          const dh = this.drape(x, y);                   // (on a deck: its own lawn's edge along its kerbs)
+          if (dh > -Infinity) gy = Math.max(gy, dh + (this.lift ? this.lift(x, y, true) : 0));
+        }
       }
       const scale = 0.8 + sc * 0.45;
       m4.compose(v.set(x, gy, -y), q.setFromAxisAngle(UP, rot * Math.PI * 2), s.set(scale, scale * (0.8 + hs * 0.4), scale));
