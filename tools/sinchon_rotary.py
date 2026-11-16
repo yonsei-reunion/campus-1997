@@ -408,11 +408,15 @@ TOWER97 = dict(outline=[(-68.9, -908.5), (-54.8, -919.1), (-61.3, -926.9), (-62.
 # The roofs resampled at their own height in both scans (within 0.3 m of each other): [number: the roof's middle, the
 # way from its closed end to its open end where the sign box stands (deg, from east counter-clockwise), the roof's
 # length and width].  The numbers are OSM's of today (EXITS in layout: the four north ones 2 - 6 m from OSM's nodes);
-# no roof found for 8.  Their tops 2.8 - 3.1 m over the road (the scans' windows, 0.86 - 0.99)
+# 8's (2026-11-17) on 양화로's south walk off 그랜드백화점's north tip, 3.5 m from OSM's node: the same white roof with
+# its dark sign box at the west-north-west end in 27/18 · 27/19 and in 1996's 26/17 and 1998's 26/17 (the four
+# within 0.9 m), its top 21.45 m (27/18 · 27/19, 0.95 - 0.97).  Their tops 2.8 - 3.1 m over the road (the scans'
+# windows, 0.86 - 0.99)
 ENT97 = {1: ((-130.8, -941.9), 205.7, 10.8, 4.5), 2: ((-112.8, -932.6), 26.4, 10.4, 4.65),
          3: ((-81.55, -933.6), 151.4, 10.25, 4.4), 4: ((-63.7, -943.7), -27.6, 10.3, 4.9),
          5: ((-31.3, -978.4), 21.4, 10.0, 4.0), 6: ((-45.6, -994.6), -98.8, 10.35, 5.6),
-         7: ((-150.45, -984.75), -90.0, 9.8, 5.8)}
+         7: ((-150.45, -984.75), -90.0, 9.8, 5.8), 8: ((-164.6, -970.15), 160.4, 9.6, 3.9)}
+ENT97_LATE = {8}               # (found after the lamps were set: a lamp under it moves, none goes)
 ENT97_ROOF = 2.9               # the canopy's top over the walk (m)
 ENT97_KIOSK = (-38.8, -982.95, 2.4)    # the eight-sided kiosk between 5 and 6 (52204: a green hipped roof; the scan: 4.8 m across)
 # Over 연세로's mouth (52206 · 52141 · 52140, 1996.6 - 8; the scan of 27/19 has the east arm, (-88.8, -928.4) to
@@ -1463,7 +1467,11 @@ def layout(geo, town, extras, ground, taken_z):
                     barrier.append(R2([a_ - nrm * 0.05, b_ - nrm * 0.05, b_ + nrm * 0.85, a_ + nrm * 0.85]))
     # ---- lamps along the kerbs (every 30 m, both sides; none in a crossing), the subway's entrances at the corners
     props = []
-    ent_roofs = unary_union([_box([c_[0], c_[1], L_, W_, math.radians(a_)]).buffer(1.0) for c_, a_, L_, W_ in ENT97.values()])
+    ent_roofs = unary_union([_box([c_[0], c_[1], L_, W_, math.radians(a_)]).buffer(1.0) for no_, (c_, a_, L_, W_) in ENT97.items()
+                             if no_ not in ENT97_LATE])
+    # (a roof found later, ENT97_LATE: a lamp under it slides along the kerb out past it, keeping its place in the list)
+    ent_late = unary_union([_box([c_[0], c_[1], L_, W_, math.radians(a_)]).buffer(1.0) for no_, (c_, a_, L_, W_) in ENT97.items()
+                            if no_ in ENT97_LATE])
     apron_in = Polygon(ROT_APRON).buffer(-0.3)
     road_l = road.buffer(-0.2)
     shapely.prepare(road_l)
@@ -1482,7 +1490,16 @@ def layout(geo, town, extras, ground, taken_z):
                     continue
                 if shapely.intersects(ent_roofs, Point(*q)):                      # (a stair canopy of 1997: ENT97)
                     continue
-                rot = math.atan2(t[1], t[0]) + (math.pi if sgn < 0 else 0.0)
+                t_ = t
+                if shapely.intersects(ent_late, Point(*q)):
+                    c_ = np.array(ent_late.centroid.coords[0])
+                    away = 1.0 if float((q - c_) @ t) >= 0 else -1.0
+                    ds = 0.0
+                    while shapely.intersects(ent_late, Point(*q)) and ds < 15.0:
+                        ds += 0.5
+                        p_, t_, n_ = a.at(s + away * ds)
+                        q = p_ + n_ * sgn * (a.half + 0.7)
+                rot = math.atan2(t_[1], t_[0]) + (math.pi if sgn < 0 else 0.0)
                 props.append(['lamp_arm', round(float(q[0]), 2), round(float(q[1]), 2), round(rot, 3)])
     # 2호선 신촌역 (1984): eight stairs down from the corners (OSM's entrance nodes; 1997 numbering not known)
     EXITS = [(1, -137.0, -942.0), (2, -110.0, -930.0), (3, -88.0, -930.0), (4, -63.0, -945.0), (5, -28.0, -976.0),
