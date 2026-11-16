@@ -11,3 +11,4 @@ trailer/*.mp4
 .claude/settings.local.json
 data/raw/copernicus/
 tools/photofit/.cache/
+.envrc
