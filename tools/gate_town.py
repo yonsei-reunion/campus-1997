@@ -434,11 +434,12 @@ def bank_poly(secs):
     return Polygon([tuple(p) for p in cn] + [tuple(p) for p in cs[::-1]]).buffer(0), cs
 
 
-def layout(pl, secs, ground, taken, e_curb0, secs_rng=None):
+def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
     """Everything campus.json carries of the town: the road's lines and lanes, the bridge, the blocks, the trees and
     lamps to add, the walker's barrier and the polygons the ground is painted with.
     ground(x, y): the terrain as saved, taken: the outlines already built (shapely), e_curb0: 백양로's half width,
-    secs_rng: the banks' sections the planting on them decides by (plan(old=True): the rails 1.8 m higher before #189)"""
+    secs_rng: the banks' sections the planting on them decides by (plan(old=True): the rails 1.8 m higher before #189),
+    wall_rng: the gate's wall the lamps and trees by its mouth decide by (before the gate went 0.86 m west, 고증 4.8.1)"""
     road, rail, rail_z = pl['road'], pl['rail'], pl['rail_z']
     top = rail_z - BALLAST
     rnd = random.Random(4801)
@@ -474,6 +475,9 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None):
            (-hw_ - 2.3, -7.5), (-hw_ - 0.7, -3.5)]
     north_of_road = Polygon([tuple(p) for p in road.P] + [(road.P[-1][0], road.P[-1][1] + 600), (road.P[0][0], road.P[0][1] + 600)]).buffer(0)
     mouth = Polygon([tuple(wc + wt * u + wnn * v) for u, v in fan]).buffer(0).intersection(north_of_road).buffer(0)
+    # (the same fan from the wall as it stood before, wall_rng: where the stream decides what stands by the mouth)
+    _wc_r = (np.array(wall_rng[0], float) + np.array(wall_rng[1], float)) / 2 if wall_rng is not None else wc
+    mouth_rng = Polygon([tuple(_wc_r + wt * u + wnn * v) for u, v in fan]).buffer(0).intersection(north_of_road).buffer(0)
     # Its asphalt stops short of that in the east: the low wall turns south-east where the white wall ends and runs
     # down to 성산로's sidewalk (the July 1997 vertical photos, the 2010 skyview, the 2011 roadview: 고증 4.8.1
     # 「동쪽 흰 담과 그 동쪽」; blender/props.py GATE_TURN), lawn behind it.  The fan above still decides the kerb's
@@ -520,7 +524,7 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None):
     def town_ground(bank, cs):
         south = Polygon([tuple(p) for p in cs] + [(720, cs[-1][1]), (720, -810), (-660, -810), (-660, cs[0][1])]).buffer(0)
         between = zone.difference(south).difference(bank.buffer(2.0)).difference(Polygon(
-            [tuple(p) for p in bound] + [tuple(p) for p in back_s[::-1]]).buffer(0)).difference(mouth.buffer(1.0))
+            [tuple(p) for p in bound] + [tuple(p) for p in back_s[::-1]]).buffer(0)).difference(mouth_rng.buffer(1.0))
         yards = unary_union([g for g in getattr(between, 'geoms', [between])
                              if g.geom_type == 'Polygon' and g.area > 200]).intersection(
             unary_union([Polygon([(-660, -810), (-345, -810), (-345, 0), (-660, 0)]),
@@ -760,7 +764,7 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None):
         a = math.atan2(road.T[k][1], road.T[k][0])
         for sgn, off, rot in ((1, HW + 0.7, a), (-1, HW + 0.7, a + math.pi)):
             q = road.P[k + (5 if sgn < 0 else 0)] + road.N[k + (5 if sgn < 0 else 0)] * sgn * off
-            if mouth.buffer(2.0).contains(Point(*q)) or BRIDGE[0] - 3 < q[0] < BRIDGE[1] + 3 and sgn < 0:
+            if mouth_rng.buffer(2.0).contains(Point(*q)) or BRIDGE[0] - 3 < q[0] < BRIDGE[1] + 3 and sgn < 0:
                 continue
             props.append(['lamp_arm', round(float(q[0]), 2), round(float(q[1]), 2), round(rot, 3)])
     # ---- trees: tall slender ones on the banks (the 1995 photo: both slopes west of the bridge), thicker and lower
@@ -803,7 +807,7 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None):
         if wdt < 7.0:
             continue
         q = road.P[k] + road.N[k] * (HW + min(wdt - 2.0, 9.0))
-        if mouth.buffer(2.0).contains(Point(*q)):
+        if mouth_rng.buffer(2.0).contains(Point(*q)):
             continue
         trees.append(['ginkgo', round(float(q[0]), 2), round(float(q[1]), 2), round(rnd.uniform(0.8, 1.0), 2), round(rnd.uniform(0, 6.28), 2)])
     # along the campus's edge of the wide sidewalk west of the gate, the dark row of big trees of the 1995 photo
@@ -811,7 +815,7 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None):
         if not (-420 < sx[k] < -150) or b_off[k] - HW < 9.0:
             continue
         q = bound[k] - road.N[k] * 2.2 + road.T[k] * rnd.uniform(-1.5, 1.5)
-        if mouth.buffer(2.0).contains(Point(*q)):
+        if mouth_rng.buffer(2.0).contains(Point(*q)):
             continue
         trees.append([rnd.choice(['zelkova', 'zelkova', 'pine', 'oak']), round(float(q[0]), 2), round(float(q[1]), 2),
                       round(rnd.uniform(0.6, 0.85), 2), round(rnd.uniform(0, 6.28), 2)])
@@ -850,5 +854,5 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None):
     paths = [dict(kind='primary', w=2 * HW, pts=[[round(float(x), 1), round(float(y), 1)] for x, y in road.P[::3]]),
              dict(kind='tertiary', w=2 * YONSEI_HALF, pts=[[YONSEI_X, round(y_top, 1)], [YONSEI_X, -640.0]])]       # (the map)
     return town, dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, bank_rng=bank_r, paths=paths,
-                      mouth=mouth,
+                      mouth=mouth, mouth_rng=mouth_rng,
                       road_poly=road_poly.union(walk_s), cross_box=(cross_x[0], cross_x[1], ks, kn), walk_s=walk_s)

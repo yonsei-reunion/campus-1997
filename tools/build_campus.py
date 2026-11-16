@@ -354,11 +354,25 @@ bys = [(-108.0, -428.0)] + bys[1:] + [(33.0, 145.0), (38.0, 168.0)]
 # Shift the line, easing back onto OSM at the 삼거리.  (Before #162 it ran 4 m west of OSM, from the first camera of
 # photo A, an oblique view held on the corners at the photo's edges.)
 _bl0 = LineString(bys)
+# Before the gate (고증 4.8.1 「정문 가운데의 동서 자리」): thirteen frames of four flights (1996 winter, July 1997, 1998,
+# 1999) have the gate's two pillars, the carriageway between them and the road 40 m in from it west of the line laid
+# so (the middle between the pillars 0.86 m west of it at the gate, the carriageway 0.55 - 0.7 m at s 37 - 72, the road
+# back on it by s 100); they place the gate among 성산로, 연세로's mouth and the bridge, which were laid off the same
+# frames, to within 0.15 m.  So the line's south end goes west by GATE_WEST (across the road), easing back onto the
+# line from s 40 to s 100, and the gate with it (GATE_C below: x -105.05 with the point north of the gate set back
+# below).  What the planting and the town decide by the gate they still decide by the line before that move (BYS_162,
+# GATE_C_RNG).
+GATE_WEST = 0.98
+
+
+def _west162(s):
+    """the shift of the line off OSM's walk, m to the west (negative: east), as #162 laid it"""
+    return -float(np.interp(s, [0.0, 300.0, 360.0, 480.0, 540.0], [1.4, 1.4, 0.8, 0.8, 0.0]))
 
 
 def _west(s):
     """the shift of the line off OSM's walk, m to the west (negative: east)"""
-    return -float(np.interp(s, [0.0, 300.0, 360.0, 480.0, 540.0], [1.4, 1.4, 0.8, 0.8, 0.0]))
+    return _west162(s) + GATE_WEST * float(np.clip((100.0 - s) / 60.0, 0.0, 1.0))
 
 
 def _west_rng(s):
@@ -384,14 +398,56 @@ def _shift_line(pts, west):
 BYS_RNG = _shift_line(bys, _west_rng)
 BLINE_RNG = LineString(BYS_RNG)
 L_RNG = BLINE_RNG.length
+
+
+def _laid(west):
+    """the line shifted by west(s) off OSM's walk.  (East of the first line, the moved one runs on the inside of the bend
+    40 m in from the gate and is shorter by ~1 m past it: its south end is drawn out by as much, so that an s past the
+    bend names the same spot on both lines and the places measured along the road by s before #162 (crossings,
+    openings, mouths, banners) stay where they were)"""
+    pts_ = _shift_line(bys, west)
+    _bl1 = LineString(pts_)
+    _ds = float(np.median([s_ - _bl1.project(BLINE_RNG.interpolate(s_)) for s_ in np.arange(80.0, 600.0, 5.0)]))
+    _b0, _b1 = np.array(pts_[0]), np.array(pts_[1])
+    pts_[0] = tuple(np.round(_b0 + (_b0 - _b1) / np.linalg.norm(_b0 - _b1) * _ds, 2))
+    return pts_
+
+
+BYS_162 = _laid(_west162)              # (the line before the gate's end went west: GATE_C_RNG)
 bys = _shift_line(bys, _west)
-# (east of the first line, the moved one runs on the inside of the bend 40 m in from the gate and is shorter by ~1 m
-# past it: its south end is drawn out by as much, so that an s past the bend names the same spot on both lines and
-# the places measured along the road by s before #162 (crossings, openings, mouths, banners) stay where they were)
-_bl1 = LineString(bys)
-_ds = float(np.median([s_ - _bl1.project(BLINE_RNG.interpolate(s_)) for s_ in np.arange(80.0, 600.0, 5.0)]))
-_b0, _b1 = np.array(bys[0]), np.array(bys[1])
-bys[0] = tuple(np.round(_b0 + (_b0 - _b1) / np.linalg.norm(_b0 - _b1) * _ds, 2))
+# (its south end drawn out, and the point just north of the gate set back across the road by 0.14 m, so that up to
+# the first point it shares with BYS_162 the line runs the same length as that one, both as drawn and as the road
+# mesh rounds it (Chaikin x3, blender/road.py): every s past s 100 names the same spot as before the gate went west)
+
+
+def _chaikin_len(pts_):
+    P_ = [np.array(p_, float) for p_ in pts_]
+    for _ in range(3):
+        Q_ = [P_[0]]
+        for a_, b_ in zip(P_[:-1], P_[1:]):
+            Q_ += [a_ + (b_ - a_) * 0.25, a_ + (b_ - a_) * 0.75]
+        P_ = Q_ + [P_[-1]]
+    return float(np.sum(np.hypot(*np.diff(np.array(P_), axis=0).T)))
+
+
+_k = next(k_ for k_ in range(1, len(bys)) if all(a_ == b_ for a_, b_ in zip(bys[k_:], BYS_162[k_:])))
+_m = min(_k + 3, len(bys))
+_p0, _p1 = np.array(bys[0], float), np.array(bys[1], float)
+_d01 = (_p0 - _p1) / np.linalg.norm(_p0 - _p1)
+
+
+def _ends(q_):
+    pts_ = [tuple(_p0 + _d01 * q_[0]), tuple(_p1 + np.array([-_d01[1], _d01[0]]) * q_[1])] + list(bys[2:_m])
+    return np.array([LineString(pts_[:_k + 1]).length - LineString(BYS_162[:_k + 1]).length,
+                     _chaikin_len(pts_) - _chaikin_len(BYS_162[:_m])]), pts_
+
+
+_q = np.zeros(2)
+for _ in range(8):
+    _f, _ = _ends(_q)
+    _J = np.array([(_ends(_q + np.eye(2)[j_] * 1e-4)[0] - _f) / 1e-4 for j_ in range(2)]).T
+    _q = _q - np.linalg.solve(_J, _f)
+bys[:2] = _ends(_q)[1][:2]
 GATE = bys[0]
 bline = LineString(bys)
 # Road cross-section, half widths from the centre line.  As in the 1997 aerial photo (reference/1997_백양로_항공사진.jpg):
@@ -460,7 +516,11 @@ def along_raw(s, off, line=None):
 # ---------------------------------------------------------------------------
 GATE_Y = -396.0
 GATE_S = float(next(s_ for s_ in np.arange(0.0, 80.0, 0.05) if bline.interpolate(s_).y >= GATE_Y))
-GATE_C = along_raw(GATE_S, 0.0)[:2]           # the gate's middle, on 백양로's centre line (the opening's: 3 m east)
+GATE_C = along_raw(GATE_S, 0.0)[:2]           # the gate's middle, on 백양로's centre line (고증 4.8.1: x -105.05)
+# (the gate before its end of the line went west, GATE_WEST: what the town and the clearing round the gate decide)
+BLINE_162 = LineString(BYS_162)
+GATE_S_RNG = float(next(s_ for s_ in np.arange(0.0, 80.0, 0.05) if BLINE_162.interpolate(s_).y >= GATE_Y))
+GATE_C_RNG = along_raw(GATE_S_RNG, 0.0, BLINE_162)[:2]
 
 # Height profile along 백양로 (issue #8).  Sampled along the road, the 5 m grid smears the hall blocks and the wooded
 # hill behind 언더우드관 down onto it.  The designers of the 2015 rebuilding (Annual Technical Report(지하융복합)_2023,
@@ -6410,8 +6470,11 @@ _gate_w = np.array([math.cos(_gate_r), math.sin(_gate_r)]) * 31.5
 # decides it decides on these, gate_town.layout secs_rng; the ground as it was before 정문 둘레 above)
 _hn_rng = Hn - _g97
 _smp_rng = lambda x_, y_: sample(_hn_rng, NEAR_HALF, NEAR_STEP, x_, y_)
-TOWN_SECS_RNG = gate_town.bank_fix(gate_town.plan(_hn_rng, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2],
-                                                  (_gate_c - _gate_w, _gate_c + _gate_w), _smp_rng, old=True), _hn_rng, _smp_rng)
+# (and by the gate as it stood before it went 0.86 m west: GATE_C_RNG)
+_gate_c_rng = np.round(np.array(GATE_C_RNG), 2)
+GATE_WALL_RNG = (_gate_c_rng - _gate_w, _gate_c_rng + _gate_w)
+TOWN_SECS_RNG = gate_town.bank_fix(gate_town.plan(_hn_rng, NEAR_HALF, NEAR_STEP, GATE_C_RNG, along_raw(GATE_S_RNG, 0.0, BLINE_162)[2],
+                                                  GATE_WALL_RNG, _smp_rng, old=True), _hn_rng, _smp_rng)
 # 동네 땅 (tools/town97.py, reference/고증/4.8.3_동네_땅.md; #189): the town south of 성산로 and of the rails on the 1:5000
 # survey's surface (the surface model's roofs and trees stood 4.7 m over it), here: the banks' sections as they were
 # (TOWN_SECS_RNG, what the planting on them decides) have read the old ground; 성산로's bed, the rails' and the streets'
@@ -8549,7 +8612,7 @@ out.update(trees=trees, shrubs=shrubs, props=props, cars=cars)
 # 정문 밖: the town's own lists (its banks' trees, the road's lamps, the walker's barrier along the kerb), added after
 # everything drawn from `rng`; what stood in its ground before (OSM's later walks there) goes
 out['town'], TOWN = gate_town.layout(TOWN_PLAN, TOWN_SECS, ground_t, [Polygon(b_['footprint']) for b_ in buildings], E_CURB0,
-                                     secs_rng=TOWN_SECS_RNG)
+                                     secs_rng=TOWN_SECS_RNG, wall_rng=GATE_WALL_RNG)
 _tz = TOWN['road_poly'].union(TOWN['bank_rng']).buffer(1.0)          # (the banks as decided on: gate_town.layout secs_rng)
 shapely.prepare(_tz)
 for _lst in (trees, shrubs, props):
@@ -8564,40 +8627,54 @@ for _lst in (trees, shrubs, props):
 _gw_t = np.array([math.cos(STATUES['gate']['rot']), math.sin(STATUES['gate']['rot'])])
 _gw_n = np.array([-_gw_t[1], _gw_t[0]])
 _gc = np.array(STATUES['gate']['pos'], float)
-_south = Polygon([tuple(_gc + _gw_t * u_ + _gw_n * v_) for u_, v_ in ((-300, -0.6), (300, -0.6), (300, -300), (-300, -300))])
-_gband = Polygon([along_raw(s_, ROAD_HALF + 0.6)[:2] for s_ in np.arange(0.0, GATE_S + 6.01, 2.0)]
-                 + [along_raw(s_, -(ROAD_HALF + 0.6))[:2] for s_ in np.arange(GATE_S + 6.0, -0.01, -2.0)])
-GATE_OUT = TOWN['mouth'].union(_gband).intersection(_south).buffer(0.3)
+# (what goes and what is moved is decided as before the gate went 0.86 m west, GATE_WEST: by the gate, its mouth and
+# the line as they stood then (GATE_C_RNG, gate_town mouth_rng, BLINE_162), each thing at the place it had then:
+# what the planting set along the road short of s 110 has gone west with it, the rest stands where it stood)
+_gc_rng = np.round(np.array(GATE_C_RNG), 2)
+
+
+def _to162(x_, y_):
+    s_, o_ = s_off(x_, y_)
+    if not 0.0 < s_ < 110.0 or abs(o_) > ROAD_HALF + 0.05:
+        return x_, y_
+    return along_raw(s_, o_, BLINE_162)[:2]
+
+
+_south = Polygon([tuple(_gc_rng + _gw_t * u_ + _gw_n * v_) for u_, v_ in ((-300, -0.6), (300, -0.6), (300, -300), (-300, -300))])
+_gband = Polygon([along_raw(s_, ROAD_HALF + 0.6, BLINE_162)[:2] for s_ in np.arange(0.0, GATE_S_RNG + 6.01, 2.0)]
+                 + [along_raw(s_, -(ROAD_HALF + 0.6), BLINE_162)[:2] for s_ in np.arange(GATE_S_RNG + 6.0, -0.01, -2.0)])
+GATE_OUT = TOWN['mouth_rng'].union(_gband).intersection(_south).buffer(0.3)
 shapely.prepare(GATE_OUT)
+_out_at = lambda t_: shapely.contains_xy(GATE_OUT, *_to162(t_[1], t_[2]))
 _gate_rng = random.Random(1380)
 _gate_moved = []
 for _i, _t in enumerate(trees):
-    if not shapely.contains_xy(GATE_OUT, _t[1], _t[2]):
+    if not _out_at(_t):
         continue
     for _ in range(400):
         _u, _v = _gate_rng.uniform(15.0, 30.0), _gate_rng.uniform(15.5, 30.0)       # (the east lawn: the west one is open grass in photo A)
-        _q = _gc + _gw_t * _u + _gw_n * _v
-        if bline.distance(Point(*_q)) < ROAD_HALF + 1.5 or any(Polygon(b_['footprint']).buffer(3.0).contains(Point(*_q)) for b_ in buildings
-                                                              if abs(b_['footprint'][0][0] - _q[0]) < 120):
+        _q = _gc_rng + _gw_t * _u + _gw_n * _v
+        if BLINE_162.distance(Point(*_q)) < ROAD_HALF + 1.5 or any(Polygon(b_['footprint']).buffer(3.0).contains(Point(*_q)) for b_ in buildings
+                                                                   if abs(b_['footprint'][0][0] - _q[0]) < 120):
             continue
-        if min(math.hypot(o_[1] - _q[0], o_[2] - _q[1]) for o_ in trees) < 5.0:
+        if min(math.hypot(q_[0] - _q[0], q_[1] - _q[1]) for q_ in (_to162(o_[1], o_[2]) for o_ in trees)) < 5.0:
             continue
         _gate_moved.append((_i, _t[0], (_t[1], _t[2]), (round(float(_q[0]), 2), round(float(_q[1]), 2))))
         trees[_i] = [_t[0], round(float(_q[0]), 2), round(float(_q[1]), 2)] + list(_t[3:5])
         break
-shrubs[:] = [s_ for s_ in shrubs if not shapely.contains_xy(GATE_OUT, s_[1], s_[2])]
-props[:] = [p_ for p_ in props if not shapely.contains_xy(GATE_OUT, p_[1], p_[2])]
-out['decals'] = [d_ for d_ in out['decals'] if not shapely.contains_xy(GATE_OUT, d_[1], d_[2])]
+shrubs[:] = [s_ for s_ in shrubs if not _out_at(s_)]
+props[:] = [p_ for p_ in props if not _out_at(p_)]
+out['decals'] = [d_ for d_ in out['decals'] if not _out_at(d_)]
 # The gate's own stones (blender/props.py gate, GATE_MAIN / GATE_SIDE / GATE_LODGE / GATE_SLAB; 고증 4.8.1): the main
 # pillars stand on the verges' south ends, the west walk's outer pillar and the lodge on the strip west of it, the
 # tall slab on the strip east of the east walk.  The verges' clipped shrubs and the strips' hedge give way to them.
 # (u0, u1 along the wall eastwards from the gate's middle, v0, v1 north of its line; 0.6 m clear)
 GATE_PARTS = [(-5.8, -4.4, -0.3, 4.5), (4.4, 5.8, -0.3, 4.5), (-11.65, -10.3, -0.3, 2.7), (-18.65, -11.65, -0.3, 9.7),
               (10.25, 11.3, -0.3, 3.3)]
-_gparts = unary_union([Polygon([tuple(_gc + _gw_t * u_ + _gw_n * v_) for u_, v_ in ((a_, c_), (b_, c_), (b_, d_), (a_, d_))])
-                       for a_, b_, c_, d_ in GATE_PARTS]).buffer(0.6)
+_gparts = unary_union([Polygon([tuple(_gc_rng + _gw_t * u_ + _gw_n * v_) for u_, v_ in ((a_, c_), (b_, c_), (b_, d_), (a_, d_))])
+                       for a_, b_, c_, d_ in GATE_PARTS]).buffer(0.6)          # (as they stood: _gc_rng, _to162)
 _ngs = len(shrubs)
-shrubs[:] = [s_ for s_ in shrubs if not shapely.contains_xy(_gparts, s_[1], s_[2])]
+shrubs[:] = [s_ for s_ in shrubs if not shapely.contains_xy(_gparts, *_to162(s_[1], s_[2]))]
 print('정문 앞 어귀: gate at s %.1f (%.1f, %.1f); trees moved %s; shrubs under the gate\'s stones -%d'
       % (GATE_S, *GATE_C, _gate_moved, _ngs - len(shrubs)))
 # The web picks each tree's model by its place in the list (web/src/world.js Forest: one draw a tree, in order), so
