@@ -116,6 +116,12 @@ FAR_X0, FAR_Y0, FAR_D = -3300.0, -500.0, 100.0
 # as the town's
 FAR_EASE = dict(west=300.0, north=300.0, east=300.0, south=(-500.0, 200.0), river=(6.0, 4.0))
 NORTH_PATCH = (-100.0, 400.0, 800.0, 1300.0)
+# the flats west and north of the north patch (the survey's apartment blocks, x -190 .. 115, y 1,240 .. 1,410): the
+# ground there was rebuilt for them in 2001 - 2005 (reference/고증/3.21 「측량 판 너머」: the 1997 scans 5 - 8 m over the
+# survey by them; here 1.5 - 2 m on the few points the 1997 pairs see) -- neither the survey nor the surface model is
+# 1997's, so the far ring stays as it was there, eased over KEEP_EASE m round it
+KEEP = (-250.0, 150.0, 1180.0, 1450.0)
+KEEP_EASE = 100.0
 FAR = None
 
 
@@ -148,6 +154,9 @@ def far_ring(Hf, half, step, n):
     w = inside * _smooth((FX - FAR_X0) / E['west']) * _smooth((y1 - FY) / E['north']) * _smooth((x1 - FX) / E['east'])
     w = w * _smooth((FY - E['south'][0]) / E['south'][1])
     w = w * _smooth((Hf - E['river'][0]) / E['river'][1])
+    kx0, kx1, ky0, ky1 = KEEP
+    kd = np.hypot(np.maximum(np.maximum(kx0 - FX, FX - kx1), 0.0), np.maximum(np.maximum(ky0 - FY, FY - ky1), 0.0))
+    w = w * _smooth(kd / KEEP_EASE)
     H0 = Hf.copy()
     Hf[:] = H0 * (1 - w) + (far_sea(FX, FY) + datum.tilt(FX, FY)) * w
     d = (Hf - H0)[w > 0.999]
