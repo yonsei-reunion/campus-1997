@@ -901,6 +901,125 @@ def bank():
     return mbs
 
 
+
+def _slab(mb, p, q, w, zb, zt, cell=P_CONC, ends=True, bottom=True):
+    """a box along p -> q (plan), w across, its underside zb and top zt at each end (pairs (at p, at q): a sloped one
+    for a flight's cheek), every face outward, in one plain cell"""
+    d = Vector((q[0] - p[0], q[1] - p[1]))
+    if d.length < 1e-6:
+        return
+    n = Vector((-d.y, d.x)).normalized() * (w / 2)
+    zb0, zb1 = zb if isinstance(zb, (tuple, list)) else (zb, zb)
+    zt0, zt1 = zt if isinstance(zt, (tuple, list)) else (zt, zt)
+    L = lambda c, s, z: (c[0] + n.x * s, c[1] + n.y * s, z)
+    flat(mb, [L(p, -1, zt0), L(q, -1, zt1), L(q, 1, zt1), L(p, 1, zt0)], B_PLAIN, cell)                 # top
+    if bottom:
+        flat(mb, [L(p, 1, zb0), L(q, 1, zb1), L(q, -1, zb1), L(p, -1, zb0)], B_PLAIN, cell)
+    flat(mb, [L(p, -1, zb0), L(q, -1, zb1), L(q, -1, zt1), L(p, -1, zt0)], B_PLAIN, cell)              # right side
+    flat(mb, [L(q, 1, zb1), L(p, 1, zb0), L(p, 1, zt0), L(q, 1, zt1)], B_PLAIN, cell)                  # left side
+    if ends:
+        flat(mb, [L(p, 1, zb0), L(p, -1, zb0), L(p, -1, zt0), L(p, 1, zt0)], B_PLAIN, cell)
+        flat(mb, [L(q, -1, zb1), L(q, 1, zb1), L(q, 1, zt1), L(q, -1, zt1)], B_PLAIN, cell)
+
+
+def _at_x(S, x):
+    """the section nearest x along the rails (campus.json town.rail.sections)"""
+    return min(S, key=lambda r: abs(r[0] - x))
+
+
+def yard():
+    """신촌역's yard (tools/ssr97.py, the 1997 scans; 고증 4.8): the tracks besides the two main ones on its level top and
+    its two island platforms, their tops PLATFORM_UP over the bed; and the wall standing on the white retaining wall
+    south of the bank west of the bridge (its top 3.4 m over the bed: a noise wall, up between 1996-12 and 1997-07)"""
+    R = T['rail']
+    S = R['sections']
+    Y = R.get('yard')
+    mb = MeshBuilder('town_yard')
+    v0, v1 = band(B_TRACK)
+    if Y:
+        for x0, x1, o in Y['tracks']:
+            run = [r for r in S if x0 <= r[0] <= x1]
+            cum = 0.0
+            for a, b in zip(run[:-1], run[1:]):
+                seg = math.hypot(b[0] - a[0], b[1] - a[1])
+                pa = lambda off, s_=a: (s_[0] + s_[2] * off, s_[1] + s_[3] * off, s_[11] + 0.012)
+                pb = lambda off, s_=b: (s_[0] + s_[2] * off, s_[1] + s_[3] * off, s_[11] + 0.012)
+                u0, u1 = cum / (4 * BAY), (cum + seg) / (4 * BAY)
+                mb.face([pa(o - 1.6), pb(o - 1.6), pb(o + 1.6), pa(o + 1.6)], ATLAS, uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
+                cum += seg
+        for x0, x1, oa, ob, up in Y['platforms']:
+            run = [r for r in S if x0 <= r[0] <= x1]
+            for i, (a, b) in enumerate(zip(run[:-1], run[1:])):
+                P = lambda s_, off, z: (s_[0] + s_[2] * off, s_[1] + s_[3] * off, z)
+                ta, tb = a[11] + up, b[11] + up
+                ba, bb = a[11] - 0.1, b[11] - 0.1
+                flat(mb, [P(a, ob, ta), P(b, ob, tb), P(b, oa, tb), P(a, oa, ta)], B_PLAIN, P_CONC)
+                flat(mb, [P(a, oa, ba), P(a, oa, ta), P(b, oa, tb), P(b, oa, bb)], B_PLAIN, P_CONC)      # (its north edge)
+                flat(mb, [P(b, ob, bb), P(b, ob, tb), P(a, ob, ta), P(a, ob, ba)], B_PLAIN, P_CONC)
+                for s_, z_, e in ((a, ta, i == 0), (b, tb, i == len(run) - 2)):
+                    if e:
+                        q_ = [P(s_, oa, s_[11] - 0.1), P(s_, ob, s_[11] - 0.1), P(s_, ob, z_), P(s_, oa, z_)]
+                        flat(mb, q_ if s_ is a else q_[::-1], B_PLAIN, P_CONC)
+    W = R.get('wall97') or []
+    for a, b in zip(W[:-1], W[1:]):
+        _slab(mb, a[:2], b[:2], 0.3, (a[2] - 0.4, b[2] - 0.4), (a[3], b[3]), ends=(a is W[0] or b is W[-1]), bottom=False)
+    return mb
+
+
+def footbridges():
+    """육교 (tools/ssr97.py, the 1997 scans; 고증 4.8): a concrete deck from sidewalk to sidewalk under a parapet, at each
+    end a flight down each way along the sidewalk (an H in plan) and a pier under each landing and one mid-way"""
+    mb = MeshBuilder('town_footbridges')
+    for fb in T.get('footbridges', []):
+        a, b = fb['a'], fb['b']
+        za, zb = fb['top']
+        deep, w, fw = fb['deep'], fb['w'], fb['fw']
+        _slab(mb, a, b, w, (za - deep, zb - deep), (za, zb))
+        d = Vector((b[0] - a[0], b[1] - a[1])).normalized()
+        n = Vector((-d.y, d.x))
+        for sg in (1, -1):                                   # the parapets
+            o = sg * (w / 2 - 0.08)
+            pa_, pb_ = (a[0] + n.x * o, a[1] + n.y * o), (b[0] + n.x * o, b[1] + n.y * o)
+            _slab(mb, pa_, pb_, 0.16, (za, zb), (za + 1.1, zb + 1.1))
+        tops = {}
+        for p, q in fb['flights']:
+            end = a if math.hypot(q[0] - a[0], q[1] - a[1]) < math.hypot(q[0] - b[0], q[1] - b[1]) else b
+            zt = za if end is a else zb
+            zg = ground(*p)
+            rise = zt - zg
+            if rise <= 0.3:
+                continue
+            nst = max(2, int(round(rise / 0.16)))
+            dv = Vector((q[0] - p[0], q[1] - p[1]))
+            L = dv.length
+            dn = dv.normalized()
+            for i in range(nst):                              # the steps
+                f0, f1 = i / nst, (i + 1) / nst
+                c0 = (p[0] + dn.x * L * f0, p[1] + dn.y * L * f0)
+                c1 = (p[0] + dn.x * L * f1, p[1] + dn.y * L * f1)
+                _slab(mb, c0, c1, fw, zg - 0.2 + rise * f0, zg + rise * f1, ends=True, bottom=False)
+            nn = Vector((-dn.y, dn.x))
+            for sg in (1, -1):                               # the cheeks and their parapets
+                o = sg * (fw / 2 + 0.08)
+                ca, cb = (p[0] + nn.x * o, p[1] + nn.y * o), (q[0] + nn.x * o, q[1] + nn.y * o)
+                _slab(mb, ca, cb, 0.16, (zg - 0.3, zt - 0.4), (zg + 1.0, zt + 1.1))
+            tops.setdefault(id(end), []).append((q, zt, end))
+        for lst in tops.values():                            # the landing between a deck end's two heads, its pier
+            if len(lst) < 2:
+                continue
+            (q0, zt, end), (q1, _, _) = lst[0], lst[1]
+            _slab(mb, q0, q1, fw + 0.3, zt - deep, zt)
+            c = ((q0[0] + q1[0]) / 2, (q0[1] + q1[1]) / 2)
+            g = ground(*c)
+            mb.box((c[0], c[1], (g - 0.3 + zt - deep) / 2), (0.7, 0.7, zt - deep - g + 0.3), ATLAS)
+        m = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+        g = ground(*m)
+        mb.box((m[0], m[1], (g - 0.3 + (za + zb) / 2 - deep) / 2), (0.8, 0.8, (za + zb) / 2 - deep - g + 0.3), ATLAS)
+    u0, vv0, u1, vv1 = cell_uv(B_PLAIN, P_CONC)
+    mb.faces = [(f[0], f[1], f[2] if f[2] is not None else [(u0, vv0), (u1, vv0), (u1, vv1), (u0, vv1)][:len(f[0])], f[3]) for f in mb.faces]
+    return mb
+
+
 def bridge():
     """The two decks over 연세로 (the 1995 photo: a concrete deck for each track on abutments faced with concrete, a row of
     piers in the middle of the road), and the abutments: the bank's own section as a wall each side of the opening.
@@ -1175,7 +1294,7 @@ def island():
 def build():
     if not T:
         return []
-    return houses() + [landmarks(), signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner()]
+    return houses() + [landmarks(), signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), yard(), footbridges(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner()]
 
 
 # ----------------------------------------------------------------------------- the city bus

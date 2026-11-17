@@ -34,6 +34,7 @@ Where things stand (고증 4.8):
 import json, math, os, random
 import numpy as np
 import datum
+import ssr97
 from scipy import ndimage
 from shapely.geometry import Polygon, LineString, Point
 from shapely.ops import unary_union
@@ -445,9 +446,11 @@ def plan(Hn, half, step, gate, heading, wall, sample, old=False, keep_nodes=None
                 heading=heading, wall=(tuple(w0), tuple(w1)), X=X, Y=Y)
 
 
-def bank_fix(pl, Hn, sample):
+def bank_fix(pl, Hn, sample, y1997=False):
     """The banks' sections (after plan): per station of the rails' middle line the top's half width and, each side,
-    how far out and how high the slope's foot is.  The 5 m grid under the bank is kept below it."""
+    how far out and how high the slope's foot is.  The 5 m grid under the bank is kept below it.
+    y1997: the south side west of the bridge on the white wall's line and 신촌역's yard as the 1997 scans have them
+    (tools/ssr97.py bank_1997; not for the sections the planting decides by)"""
     rail, road, tops = pl['rail'], pl['road'], pl['top']
     foot_line = LineString([tuple(p) for p in road.off(-(HW + SW_S))])      # the south sidewalk's back
     secs = []
@@ -479,6 +482,8 @@ def bank_fix(pl, Hn, sample):
                     wall_z = sample(*(e + n * side * (dd + 0.3)))      # a wall holds the foot up over the sidewalk
             row += [round(float(dd), 2), round(float(zz), 2), None if wall_z is None else round(float(wall_z), 2)]
         secs.append(row + [round(top, 2)])
+    if y1997:
+        ssr97.bank_1997(secs, sample)
     # the grid under the bank's footprint: at least 0.3 m under its surface
     X, Y = pl['X'], pl['Y']
     P = shapely.points(np.stack([X.ravel(), Y.ravel()], 1))
@@ -863,12 +868,17 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
         for side, d, d_ in ((1, dN, dN_), (-1, dS, dS_)):
             if d < 4.0:
                 continue
+            # (where the side is level to a wall now, the white wall west of the bridge and 신촌역's yard: tools/ssr97.py,
+            # the slope's trees and shrubs stand on the ground past its foot, a metre to four out, in the same draws)
+            h0 = hw_
+            if ssr97.is_flat(x, side, hw_):
+                h0, d_ = hw_ + d_ + 1.0, 3.0
             p_tree = (0.85 if west else 0.3) if side > 0 else (0.9 if west else 0.7)
             for row in range(2 if d > 7 else 1):
                 if rnd.random() > p_tree:
                     continue
                 u = rnd.uniform(0.3, 0.55) if row == 0 else rnd.uniform(0.6, 0.85)
-                o, o_r = hw_ + d_ * u, hw + d * u
+                o, o_r = h0 + d_ * u, hw + d * u
                 jx = rnd.uniform(-2.5, 2.5)
                 q = (x + nx * side * o - ny * jx, y + ny * side * o + nx * jx)
                 q_r = (round(x + nx * side * o_r - ny * jx, 2), round(y + ny * side * o_r + nx * jx, 2))   # (as decided: rxy)
@@ -878,7 +888,7 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
                     trees.append([rnd.choice(['zelkova', 'oak', 'zelkova_young']), round(q[0], 2), round(q[1], 2),
                                   round(rnd.uniform(0.45, 0.7), 2), round(rnd.uniform(0, 6.28), 2), q_r])
             if rnd.random() < 0.7:
-                o = hw_ + d_ * rnd.uniform(0.15, 0.9)
+                o = h0 + d_ * rnd.uniform(0.15, 0.9)
                 jx = rnd.uniform(-3, 3)
                 shrubs.append(['topiary_round', round(x + nx * side * o - ny * jx, 2), round(y + ny * side * o + nx * jx, 2),
                                round(rnd.uniform(0.9, 1.8), 2), round(rnd.uniform(0, 6.28), 2)])
@@ -935,6 +945,14 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
                   dirt=[bank_paint])
     paths = [dict(kind='primary', w=2 * HW, pts=[[round(float(x), 1), round(float(y), 1)] for x, y in road.P[::3]]),
              dict(kind='tertiary', w=2 * YONSEI_HALF, pts=[[YONSEI_X, round(y_top, 1)], [YONSEI_X, -640.0]])]       # (the map)
-    return town, dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, bank_rng=bank_r, paths=paths,
-                      mouth=mouth, mouth_rng=mouth_rng,
-                      road_poly=road_poly0.union(walk_s), cross_box=(cross_x[0], cross_x[1], ks, kn), walk_s=walk_s)
+    extra = dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, bank_rng=bank_r, paths=paths,
+                 mouth=mouth, mouth_rng=mouth_rng,
+                 road_poly=road_poly0.union(walk_s), cross_box=(cross_x[0], cross_x[1], ks, kn), walk_s=walk_s)
+    # 성산로 past the game's end, the footbridges, the wall on the bank west of the bridge and 신촌역's yard (tools/ssr97.py,
+    # the 1997 scans; 고증 4.8): what stands in the yard, on the footbridges' landings or on the road goes (b[6] < 0)
+    extra['ext'] = ssr97.layout(town, extra, road, sec_off, HW, MID, LANE_W, LANES, R2)
+    town['rail'].update(ssr97.rail_extras(secs, rail_bed))
+    extra['ext']['blocks_cleared'] = ssr97.clear_blocks(
+        blocks, len(rows) + 1, [ssr97.yard_poly(secs), extra['ext_poly']] + [ssr97.footbridge_polys(fb, 0.5) for fb in ssr97.FOOTBRIDGES])
+    town['moved'] += extra['ext']['blocks_cleared']
+    return town, extra

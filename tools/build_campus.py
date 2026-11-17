@@ -19,6 +19,7 @@ import shapely
 import shapely.validation
 from PIL import Image, ImageDraw
 import gate_town
+import ssr97
 import sinchon_rotary
 import muak
 import north97
@@ -6561,7 +6562,13 @@ _yh_took, YH97_NEAR = yeonhui97.lay(Hn, X, Y, _far97, FIXED, harmonic_fill)
 print('연희동 땅: nodes %(nodes)d (eased %(eased)d), median %(median)+.2f m (16 - 84 %%: %(p16)+.2f .. %(p84)+.2f), %(low)+.1f .. %(high)+.1f' % YH97_NEAR)
 TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h,
                            keep_nodes=near_buildings(1.5))
-TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h)
+TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h, y1997=True)
+# 성산로 past the game's end (tools/ssr97.py, reference/고증/4.8 「1997년 7월 수직 항공사진으로 다시 본 것」; #189, ss): the
+# run on north-east to 금화터널's side, its bed on the 1997 scans; late, here (the planting has read the ground as it
+# was), FIXED so that the lots and roads laid after it (med97) meet it
+_ext_took = ssr97.ext_bed(Hn, X, Y, near_buildings(1.5))
+FIXED[_ext_took] = True
+print('성산로 동쪽 끝 너머: bed nodes', int(_ext_took.sum()))
 print('정문 밖: 성산로 %.0f m, 철둑 %.0f m, 굴다리 위 레일 %.2f m (정문 앞 길 %.2f m), 둑 윗면 %.2f .. %.2f m' % (
     TOWN_PLAN['road'].cum[-1], TOWN_PLAN['rail'].cum[-1], TOWN_PLAN['rail_z'],
     float(np.interp(GATE_C[0], TOWN_PLAN['road'].P[:, 0], TOWN_PLAN['road_z'])), TOWN_PLAN['top'].min(), TOWN_PLAN['top'].max()))
@@ -6776,6 +6783,10 @@ print('정문 동쪽 주차장:', LOT_C_GRADE)
 # eased after it
 _wl_set, _wl_ring, MEDWEST_LOT_GRADE = medwest97.wl_grade(Hn, X, Y, FIXED, _md_halls, TOWN_PLAN['road'].ls, gate_town.HW)
 FIXED[_wl_set] = True
+# (its wood north-west of the car park on the leafless 1996 frames' floor: tools/ssr97.py wood_grade; ss)
+_wd_took, WOOD_GRADE = ssr97.wood_grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill)
+FIXED[_wd_took] = True
+print('들어오는 길 서쪽 주차장 북서쪽 숲:', WOOD_GRADE)
 _mw_took, MEDWEST_GRADE = medwest97.grade(Hn, X, Y, FIXED, _md_halls, harmonic_fill, TOWN_PLAN['road'].ls, gate_town.HW)
 FIXED[_mw_took] = True
 print('의료원 서쪽:', MEDWEST_GRADE)
@@ -7588,6 +7599,9 @@ for pid, nm, style, lv, poly in OLD_HALLS:
     if pid == 990032:      # (의료원 종합관: its floor on the south-east car park, med97.JH_BASE; six storeys of 3.85 m to its
         LATE_HALLS[-1].update(levels=6, fh=3.85, height=round(6 * 3.85 + 1.2, 2))  # roof, 55.4 m in the scans: four
                            # over the yard north-west of it, as its windows there, two more by the car park)
+    if pid == 990030:      # (외래진료소: five low hipped wings over its eaves, tools/ssr97.py clinic_roof; reference/고증/3.1.2)
+        LATE_HALLS[-1].update(fh=ssr97.CLINIC_FH, parapet=0.0, roof=ssr97.clinic_roof(),
+                              height=round(ssr97.CLINIC_RIDGE - ssr97.CLINIC_EAVES + 4 * ssr97.CLINIC_FH, 2))
 buildings += LATE_HALLS
 # (연합신학대학원: the 1997 hall's door in the middle of its east wall, where OSM's walk from the road east of it comes
 # in; the photos do not show it.  Set here: the planting ran with the door of OSM's outline)
@@ -11654,6 +11668,7 @@ buildings.append(_jhb)
 # 의료원 들어오는 길 서쪽의 모임지붕 단층과 낮은 평지붕 동 (tools/medwest97.py wl_halls; md): at the very end (blender/build.py
 # draws each hall's looks in its order: none after them changes its looks)
 buildings += medwest97.wl_halls()
+buildings.append(ssr97.hut())                # (성산로 북쪽 가 육교 곁의 평지붕 오두막, tools/ssr97.py; ss: after them)
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
 # edges in their places in the list
@@ -11711,6 +11726,8 @@ MED_STRIP_TREES, MED_STRIP_SHRUBS = med97.strip_plants()
 out['trees'] += MED_STRIP_TREES
 out['shrubs'] += MED_STRIP_SHRUBS
 print('성산로 북쪽 가 (의료원): street trees %d, shrubs %d' % (len(MED_STRIP_TREES), len(MED_STRIP_SHRUBS)))
+# 육교 (tools/ssr97.py trees_off; ss): the street trees on its flights, out along them in their places in the list
+print('육교: trees off its flights', ssr97.trees_off(out['trees']))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
 # 무악학사 둘레 (tools/north97.py TREES97 · NWOOD97): the 1997 trees round the dormitories (the leafless 1996 scan's blobs
 # where the 1997 frames are dark too) and the wood north of them, at the trees' very end

@@ -685,7 +685,20 @@ def _science_wing(b, poly):
 
 
 ROOF_EXTRAS = {222843398: observatory, 990022: bk_vault}
-PLAN_ROOF = {245623193: billingsley_roof}
+def clinic_roof(mb, b, zt, st):
+    """외래진료소 (1997 scans, tools/ssr97.py clinic_roof): the outline's flat roof at the eaves and five low hipped
+    wings over it, ridged along the hall (b['roof']: o, ang, wings [u0, u1, v0, v1], pitch, over)"""
+    r = b['roof']
+    ca, sa = math.cos(r['ang']), math.sin(r['ang'])
+    poly = b['footprint']
+    mb.face([(x, y, zt + 0.02) for x, y in poly], 'roof_flat')
+    for u0, u1, v0, v1 in r['wings']:
+        uc, vc = (u0 + u1) / 2, (v0 + v1) / 2
+        cx, cy = r['o'][0] + uc * ca - vc * sa, r['o'][1] + uc * sa + vc * ca
+        hip_roof(mb, cx, cy, u1 - u0, v1 - v0, r['ang'], zt, 'roof_cement', pitch=r['pitch'], over=r['over'])
+
+
+PLAN_ROOF = {245623193: billingsley_roof, 990030: clinic_roof}
 # 과학관: cream square glazed tiles, about ten to a window bay (the 1996 album photos reference/과학관_계단_1996_*.jpg;
 # the 2008 roadview, 200 mm tiles); 음악관 신관: white square tiles with grey joints (기악과's 1996 album photo at its
 # door; reference/학교연혁_음악관.jpg still shows them); 구관: smooth white panels (the 2008 roadview, 2381382 - 2381391)

@@ -380,6 +380,12 @@ def heights(c):
             for k in (6, 7, 9, 10, 11):
                 if s[k] is not None:
                     A(s, k, s[0], s[1])
+        for p in ra.get('wall97', []):          # (철둑 남쪽 옹벽 위 벽: the bank's surface, the wall's top; tools/ssr97.py)
+            A(p, 2, p[0], p[1])
+            A(p, 3, p[0], p[1])
+        for fb in T.get('footbridges', []):     # (육교: the deck's top at either end; tools/ssr97.py)
+            A(fb['top'], 0, *fb['a'])
+            A(fb['top'], 1, *fb['b'])
         bx = sum(T['bridge']['x']) / 2
         by = float(np.interp(bx, [p[0] for p in ra['sections']], [p[1] for p in ra['sections']]))
         A(ra, 'z', bx, by)
