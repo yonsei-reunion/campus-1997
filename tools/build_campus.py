@@ -7956,7 +7956,7 @@ _cs_f2 = chapel97.cxy(_cs['u'], _cs['top_v'] - 0.3 - _cs['upper'] * _cs['tread']
 _cs_up = flight_at('chapel_upper', _cs_t1, _cs_d, BASE_1997[chapel97.CHAPEL], datum.up(*_cs_t2, _cs['landing_z']),   # (its head
                    _cs['width'], landing=0.3, tread=_cs['tread'], maxrise=0.19, cheek=0.3, head=0.3)  # flush with the porch)
 _cs_lo = flight_at('chapel_lower', _cs_t2, _cs_d, datum.up(*_cs_t2, _cs['landing_z']), datum.up(*_cs_f2, _cs['foot_z']),
-                   _cs['width'], landing=_cs['mid'], tread=_cs['tread'], maxrise=0.185, cheek=0.3, head=0.3)
+                   _cs['width'], landing=_cs['mid'], tread=_cs['tread'], maxrise=0.205, cheek=0.3, head=0.3)
 assert (_cs_up['n'], _cs_lo['n']) == (_cs['upper'], _cs['lower']), (_cs_up['n'], _cs_lo['n'])
 out['chapel97'] = dict(o=list(chapel97.O), t=list(chapel97.T),
                        parts={k_: dict(uv=list(r_), top=round(z_ - chapel97.FLOOR, 2)) for k_, (r_, z_) in chapel97.PARTS.items()},
