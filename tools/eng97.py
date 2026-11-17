@@ -80,6 +80,8 @@ MONITOR_UV = (-18.3, 29.5, -1.0, 4.3, 1.2)  # the raised strip along the roof: u
 PORCH_UV = (0.2, 5.0, 14.9, 19.6, 3.2)      # the porch on the north side: u0, u1, v0, v1, height
 # the retaining wall west of the lot (the coping's line; the upper ground west of it): two runs, (u, v) and the top
 # over the upper ground (the coping 1.2 m over it where the scans have it; none along 제3공학관's own wall)
+NORTH_END_U, NORTH_BANK_V = -43.5, 75.2     # (the coping's return; the bank's deck north to the grid's cells' edge)
+NORTH_PATH = [(-47.0, 73.6), (-44.0, 73.4), (-41.0, 74.8), (-38.5, 76.6), (-36.0, 78.2)]     # (the footpath, u v; width 1.4)
 # The wall's details (reference/고증/3.8 「서쪽 옹벽의 세부」, 2026-11-17), on the coping's plane of the 1997 scans 26/16 ·
 # 27/17 and the leaf-off 1996 26/16 (33.2 m), and on the terrace's of 26/16 · 26/15 · 1998 26/16 (31.4 m):
 # - BAY: at v 0 the coping bows out east over v -2.1 .. 3.6, 1.55 - 2.0 m at its apex, the planted strip's ground inside
@@ -113,7 +115,12 @@ WALL_RUNS = [(1.2, [(-38.85, 30.0), (-38.88, BAY[0] + BAY[1])]),
              # strip behind it, the parapet is the game's, as the lot's; at its north end a return west along the deck's
              # edge, its low side north: (du, dv) of the low side)
              (1.2, [(-39.7, 72.0), (-39.7, 31.0), (-38.85, 30.0)]),
-             (1.2, [(-52.0, 72.0), (-39.7, 72.0)], (0.0, 0.8)),
+             # (its north end, 2026-11-17: the 1996-12 and 1997-07 scans have the coping turn west at v 71.5 for the
+             # planted strip's width, to u -43.5, and north of it a wooded bank with a footpath down to the yard; the
+             # deck carries that bank, NORTH_BANK, over the grid's cells round the nodes pulled down behind the wall,
+             # and the wall's toe runs on north along the bank's foot to the cells' edge, flush with it)
+             (1.2, [(NORTH_END_U, 72.0), (-39.7, 72.0)], (0.0, 0.8)),
+             (0.05, [(-39.7, 72.0), (-39.7, NORTH_BANK_V)], (0.8, 0.0)),
              # (and at the deck's south end, over the service road south of the wings: 제3공학관's terrace edge)
              (1.2, [(PLANTER_UV[1], PLANTER_UV[2]), (-52.0, PLANTER_UV[2])], (0.0, -0.8))]
 # (제3공학관 남쪽: the wall along the yard's south edge over the bench, STEP_LINE below: added after it)
@@ -306,7 +313,8 @@ def upper(h0):
     def f(x, y):
         u_, v_ = (float(c) for c in uv(x, y))
         w_ = float(_west(v_))
-        if v_ < S3_FACE_V and S3_WEST_U - 5.0 <= u_ <= w_ + 0.05:              # (제3공학관 남쪽: s3_grade's yard and deck)
+        if v_ < S3_FACE_V and S3_WEST_U - 5.0 <= u_ <= w_ + 0.6:               # (제3공학관 남쪽: s3_grade's yard and deck,
+            # its rim at the old edge too: the paved strip and the planter east of it are walked from the deck)
             return float(s3_z(u_, v_)) + float(datum.tilt(x, y))
         if u_ <= w_ + 0.05 and 21.0 <= v_ <= GAP_N and u_ > GAP_W:             # (the gap: all of it north_grade's)
             return float(north_z(u_, v_)) + float(datum.tilt(x, y))
@@ -320,6 +328,19 @@ def upper(h0):
 def outline(uvs):
     """an outline given in the wings' frame (EAST_1997, SOUTH_1997, NORTH_1997) in game coordinates"""
     return [tuple(round(float(c), 2) for c in xy(u_, v_)) for u_, v_ in uvs]
+
+
+def strip_lawn():
+    """the planted strip behind the coping over the lot (the scans' dark band, u -42.3 .. -39.8, the bay in it) and the
+    bay's mouth: lawn on the map, over OSM's later walk that ended at the bay"""
+    return unary_union([poly([(-42.3, -22.0), (-38.85, -22.0), (-38.85, 30.0), (-42.3, 30.0)]),
+                        poly([(-44.5, BAY[0] - BAY[1] - 1.0), (-38.85, BAY[0] - BAY[1] - 1.0), (-38.85, BAY[0] + BAY[1] + 1.0),
+                              (-44.5, BAY[0] + BAY[1] + 1.0)])])
+
+
+def north_path():
+    """the footpath down the bank north of the wall's north end (bare earth): its line in game coordinates"""
+    return LineString([xy(u, v) for u, v in NORTH_PATH])
 
 
 def north_paved():
@@ -386,9 +407,10 @@ def grade(Hn, X, Y, FIXED, halls, fill, site_o, site_rot, pit, slab):
 
 
 def upper_poly():
-    """the ground behind the wall (the deck's side of the line), north to the return at GAP_N"""
-    return poly([(-39.7, GAP_N), (-39.7, 31.0), (-38.85, 30.0), (-38.9, -22.0), (-40.6, -22.0), (-40.6, -41.3), (-40.9, -62.0),
-                 (-60.0, -62.0), (-60.0, GAP_N)])
+    """the ground behind the wall (the deck's side of the line), north to the return at GAP_N and over it the bank as far
+    as the cells round the pulled nodes reach (NORTH_BANK_V)"""
+    return poly([(-39.7, NORTH_BANK_V + 6.0), (-39.7, 31.0), (-38.85, 30.0), (-38.9, -22.0), (-40.6, -22.0), (-40.6, -41.3), (-40.9, -62.0),
+                 (-60.0, -62.0), (-60.0, NORTH_BANK_V + 6.0)])
 
 
 def step_poly():

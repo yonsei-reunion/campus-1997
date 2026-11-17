@@ -9891,6 +9891,7 @@ _ypaint([GONGWON_SITE.buffer(0.5), GW_LOT, GW_ROW, GW_YARD], _yg)    # (공학�
 ENG3_CLEAR, ENG3_BARE, ENG3_PAVED = eng97.s3_paint()
 ENG3_LAWN, ENG3_WALK = eng97.garden()
 _ypaint([ENG3_CLEAR, ENG3_LAWN], _yg)       # (제3공학관 남쪽, 남쪽 동 남동쪽 정원: OSM's later lawn, walks and roads out; eng97)
+_ypaint([eng97.strip_lawn()], _yg)           # (안뜰 서쪽 옹벽 뒤 화단 띠와 활꼴 어귀: lawn, OSM's later walk to the bay out; eng97)
 # (the aprons of the halls left out or moved since the planting was laid, GONE_LAWN · SITES_NEW_1997: lawn where no hall of
 # 1997 stands; 과학관's court paved to the bank's foot and under its flight)
 _old_aprons = unary_union([Polygon(g_['footprint']) for g_ in RND_GHOSTS if g_['id'] in GONE_LAWN] +
@@ -10711,6 +10712,7 @@ _ypaint([SEOMUN_ASPH], _ga)
 _ypaint([SEOMUN_YARD], _gd)                    # (the bare yard round the small building south of the mouth)
 _ypaint([west_ground.YARD], _gd)               # (독수리상 서쪽 마당: bare earth, the walks across it under it)
 _ypaint([ENG3_BARE], _gd)                      # (제3공학관 남쪽: bare earth all round the hall, the track, the bench)
+_ypaint([eng97.north_path().buffer(0.7)], _gd)  # (공학관 사이 북쪽 끝: the footpath down the bank to the yard; eng97)
 _ypaint([ENG3_PAVED], _gp)                     # (... its tile deck and the landing before its door)
 _ypaint([ENG3_WALK], _gp, width=eng97.GARDEN_WALK_W)   # (the walk across the garden south-east of the south wing)
 _ypaint([west_ground.road_south()], _ga)       # (... and the paved margin south of its road, where cars stood along it)
