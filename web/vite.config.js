@@ -41,6 +41,20 @@ function assetHashes() {
   return out;
 }
 
+// Phones' copies of the big textures (tools/mobile_textures.py): source -> [copy, its longest side], for the sources
+// the copy was made from as they are now (src/util.js phoneCopy)
+function phoneCopies() {
+  const pub = new URL('./public/', import.meta.url).pathname;
+  let rec = {};
+  try { rec = JSON.parse(readFileSync(new URL('../tools/mobile_sources.json', import.meta.url), 'utf8')); } catch { /* none yet */ }
+  const out = {};
+  for (const [key, [copy, size, sha]] of Object.entries(rec)) {
+    if (!existsSync(join(pub, key)) || !existsSync(join(pub, copy))) continue;
+    if (createHash('sha1').update(readFileSync(join(pub, key))).digest('hex') === sha) out[key] = [copy, size];
+  }
+  return out;
+}
+
 export default defineConfig(({ command }) => ({
   base: './',
   server: { port: 5197 },
@@ -54,5 +68,6 @@ export default defineConfig(({ command }) => ({
   define: {
     __BUILD__: JSON.stringify(command === 'serve' ? 'dev' : buildId()),
     __ASSETS__: JSON.stringify(command === 'serve' ? {} : assetHashes()),
+    __PHONE__: JSON.stringify(phoneCopies()),
   },
 }));

@@ -1,0 +1,97 @@
+{
+ "assets/hdri/sky_8k.jpg": [
+  "assets/hdri/sky_8k_4k.jpg",
+  4096,
+  "72ff4ef53afa957c89ea89142b65e68fc3a21516"
+ ],
+ "assets/textures/pbr/asphalt_02/diff.jpg": [
+  "assets/textures/pbr/asphalt_02/diff_1k.jpg",
+  1024,
+  "8c3755aea24c4c58aadab57ae1103980a5fec0f6"
+ ],
+ "assets/textures/pbr/asphalt_02/nor.jpg": [
+  "assets/textures/pbr/asphalt_02/nor_1k.jpg",
+  1024,
+  "b0f4a647749bde9a14d5158229a553dd3b90fb9f"
+ ],
+ "assets/textures/pbr/asphalt_02/rough.jpg": [
+  "assets/textures/pbr/asphalt_02/rough_1k.jpg",
+  1024,
+  "5096a809184288285ef925d6dac84b6b3005b1f8"
+ ],
+ "assets/textures/pbr/concrete_wall_008/diff.jpg": [
+  "assets/textures/pbr/concrete_wall_008/diff_1k.jpg",
+  1024,
+  "1a76d82f6f161779bea3294b8eb70b625a8e9fb3"
+ ],
+ "assets/textures/pbr/concrete_wall_008/nor.jpg": [
+  "assets/textures/pbr/concrete_wall_008/nor_1k.jpg",
+  1024,
+  "c3f42d8486ee2deede8ce24a0aa151d536800a9f"
+ ],
+ "assets/textures/pbr/concrete_wall_008/rough.jpg": [
+  "assets/textures/pbr/concrete_wall_008/rough_1k.jpg",
+  1024,
+  "ca713cd1a1e0aec71852638d0b72be93172b2e73"
+ ],
+ "assets/textures/pbr/leafy_grass/diff.jpg": [
+  "assets/textures/pbr/leafy_grass/diff_1k.jpg",
+  1024,
+  "9e45960e42843f46a4e3f6d5888674b2c60accb3"
+ ],
+ "assets/textures/pbr/leafy_grass/nor.jpg": [
+  "assets/textures/pbr/leafy_grass/nor_1k.jpg",
+  1024,
+  "c517e76e265e62165dd56726f8a5a635766122d5"
+ ],
+ "assets/textures/pbr/leafy_grass/rough.jpg": [
+  "assets/textures/pbr/leafy_grass/rough_1k.jpg",
+  1024,
+  "ea842aaec20918a816c24b47b8f6be07431622ef"
+ ],
+ "assets/textures/pbr/old_stone_wall/diff.jpg": [
+  "assets/textures/pbr/old_stone_wall/diff_1k.jpg",
+  1024,
+  "db9e621c768708a2193f8353023a20039853eee8"
+ ],
+ "assets/textures/pbr/old_stone_wall/nor.jpg": [
+  "assets/textures/pbr/old_stone_wall/nor_1k.jpg",
+  1024,
+  "39aa0cce0ea0a54f6f6c2fabd85a7e3ca1437a9b"
+ ],
+ "assets/textures/pbr/old_stone_wall/rough.jpg": [
+  "assets/textures/pbr/old_stone_wall/rough_1k.jpg",
+  1024,
+  "501deca02f5eb4b782a7a42998ad5b5d64c6852a"
+ ],
+ "assets/textures/pbr/patterned_concrete_pavers/diff.jpg": [
+  "assets/textures/pbr/patterned_concrete_pavers/diff_1k.jpg",
+  1024,
+  "2aadfd796086c15f640d6b4b7ce9c5ef17ebbb27"
+ ],
+ "assets/textures/pbr/patterned_concrete_pavers/nor.jpg": [
+  "assets/textures/pbr/patterned_concrete_pavers/nor_1k.jpg",
+  1024,
+  "13042fb65549522ea243b3d7e865d4bd294785ce"
+ ],
+ "assets/textures/pbr/patterned_concrete_pavers/rough.jpg": [
+  "assets/textures/pbr/patterned_concrete_pavers/rough_1k.jpg",
+  1024,
+  "e99caeab5c991536d15eca4b1ccdeed6eaaeeeb6"
+ ],
+ "assets/textures/pbr/white_plaster_02/diff.jpg": [
+  "assets/textures/pbr/white_plaster_02/diff_1k.jpg",
+  1024,
+  "13b573f4e5104cf4e04007feb95278ec4b80cd5c"
+ ],
+ "assets/textures/pbr/white_plaster_02/nor.jpg": [
+  "assets/textures/pbr/white_plaster_02/nor_1k.jpg",
+  1024,
+  "c7bed35faf711b9bbcb2c2d0cee817c2a6495a31"
+ ],
+ "assets/textures/pbr/white_plaster_02/rough.jpg": [
+  "assets/textures/pbr/white_plaster_02/rough_1k.jpg",
+  1024,
+  "df8664924cb78d67c75190a682a3dc99d9519f75"
+ ]
+}

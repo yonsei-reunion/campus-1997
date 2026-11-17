@@ -90,7 +90,7 @@
 - 땅을 칠할 때는 `draw_line` / `draw_poly` 를 쓴다. 따로 그린 층은 `_ypaint` 로 칠하고 `_YN` 에 이름을 단 뒤 `splat_aa` 에 넣는다. 게임이 읽는 땅 지도는 이 기록을 8배로 다시 그린 것이다.
 - `blender/materials.json` 은 손으로 맞춘 형식이라 글로 덧붙인다. 웹 사본 `web/public/data/materials.json` 은 json.dump 로 다시 쓴다. 웹 사본에 없는 재질은 자홍색으로 나온다.
 - 나무와 잎 아틀라스(`vegetation.make_tree`, `make_textures.py`)는 씨앗이 `hash(str)` 라 프로세스마다 바뀐다. 전체를 다시 만들면 모든 나무가 바뀌니 새 이름만 만든다(`make_textures.py <이름>`).
-- 잎 · 낙엽 PNG 는 게임이 곁의 WebP 로 받는다. 텍스처 도구는 함께 쓰지만, 손으로 고친 PNG 는 `python tools/webp_textures.py` 를 돌린다(안 돌리면 PNG 로 나감).
+- 잎 · 낙엽 PNG 는 게임이 곁의 WebP 로 받는다. 텍스처 도구는 함께 쓰지만, 손으로 고친 PNG 는 `python tools/webp_textures.py` 를 돌린다(안 돌리면 PNG 로 나감). PBR 텍스처 · 하늘을 고치면 폰용 사본도 `python tools/mobile_textures.py` 로 다시 만든다.
 - `tools/build_campus.py` 와 `blender/` 는 **작업면**(해발 + `tools/datum.py` 의 `tilt(x, y)`) 위에서 땅을 깔고 메시를 짓고, 내보낼 때 뺀다. 무작위 심기 · 길 단면 · 창과 텍스처의 자리가 그 면에서 정해져 있어서다.
   - 소스의 절대 높이는 해발로, 자리와 함께 적고 읽는 곳에서 올린다(`datum.up(x, y, z)` · `datum.up3` · `datum.up_at` · `datum.up_uv`). 측량 표고를 쓸 때도 같다. 주석의 높이도 해발로 적는다.
   - 기울기 · 먼 두 곳의 높이차를 상수로 둘 때는 작업면의 값임을 곁에 적는다(해발에서는 동쪽으로 0.52 %p, 북쪽으로 0.25 %p 작다).

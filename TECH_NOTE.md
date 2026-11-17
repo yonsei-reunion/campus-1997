@@ -322,6 +322,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 건물 · 랜드마크는 재질 · 160 m 칸마다 한 메시로 합칩니다(`world.js` `mergeStatic`). 작은 불투명 재질을 640 m 칸으로 더 합쳐 그리는 메시를 줄여 보았으나(정문 1,136 → 833개), 실제 폰에서 출발 자리 · 정문이 느려져(약 30 → 22 fps) 되돌림(2026-11-15).
 - 셰이더 패치는 `materials.js` `patchShader` 로 쌓습니다. 캐시 키를 함께 관리해 같은 프로그램이 여러 번 컴파일되지 않게 합니다.
 - 폰은 텍스처를 1024 이하로 줄여 올립니다(2K 세트는 밉맵 포함 약 1 GB).
+  - 큰 텍스처(PBR 2K 세트, 8K 하늘)는 폰용 사본(`<이름>_1k.jpg`, `sky_8k_4k.jpg`)을 받습니다(`util.js` `phoneCopy`). `tools/mobile_textures.py` 가 만들고 원본의 sha1 을 `tools/mobile_sources.json` 에 적습니다. 원본이 바뀌었는데 사본을 다시 만들지 않으면 폰도 원본을 받아 줄입니다.
 
 ### 성능: 정문 밖 · 신촌 로터리
 

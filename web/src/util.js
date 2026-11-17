@@ -27,6 +27,14 @@ if (BUILD !== 'dev' && 'serviceWorker' in navigator && location.protocol !== 'fi
 // Phones / tablets: no shadow maps, smaller textures, fewer people, touch controls and touch help texts.
 // ?touch in the URL forces it (testing the phone layout on a desktop browser).
 export const MOBILE = matchMedia('(pointer: coarse)').matches || /[?&]touch\b/.test(location.search);
+
+// A phone's copy of a big texture (tools/mobile_textures.py), when there is one no larger than `max`, the size the phone
+// shrinks that texture to anyway: the phone then downloads only what it uploads.
+const PHONE = __PHONE__;
+export function phoneCopy(url, max) {
+  const c = MOBILE && PHONE[url.replace(/^\.\//, '')];
+  return c && c[1] <= max ? c[0] : url;
+}
 document.documentElement.classList.toggle('touch', MOBILE);
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));

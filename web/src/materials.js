@@ -1,6 +1,6 @@
 // Shared PBR material library, built from data/materials.json (same file Blender uses).
 import * as THREE from 'three';
-import { MOBILE, versioned, mulberry } from './util.js';
+import { MOBILE, versioned, mulberry, phoneCopy } from './util.js';
 import { LITTER_MATS, litterUniforms, litterEdit, litterSeason } from './litter.js';
 import { wallTone, edgeWear } from './walltone.js';
 import { shrubTexture, hedgeMaps, hedgeEdit, HEDGE_KEY, SHRUB_LEAVES, cardEdit, CARD_KEY } from './hedges.js';
@@ -106,7 +106,7 @@ export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobile
     const pr = new Promise((r) => (done = r));
     pending.add(pr);
     texCount.asked++;
-    const t = texLoader.load(versioned(url), (tx) => {
+    const t = texLoader.load(versioned(phoneCopy(url, mobileMax)), (tx) => {
       if (MOBILE) { tx.image = shrinkImage(tx.image, mobileMax); tx.needsUpdate = true; }
       // clones share the image Source but keep their own version -> bump them once data exists
       for (const c of waiting.get(tx) || []) c.needsUpdate = true;

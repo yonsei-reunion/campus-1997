@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { loadTex, shrinkImage, pcss, upload, packTextures } from './materials.js';
-import { MOBILE, mulberry, placeMatrix, versioned } from './util.js';
+import { MOBILE, mulberry, phoneCopy, placeMatrix, versioned } from './util.js';
 import { ATMOS, ATMOS_GLSL, SKY_DRIFT } from './materials.js';
 import { LITTER_GLSL, litterMagnolias } from './litter.js';
 
@@ -638,7 +638,7 @@ export function makeCity(hf, nearHalf, count = 1600, south = null, hfRng = hf) {
 // 30 deg band the cloud beside the sun was torn; two lookups mixed instead of one bent showed every cloud twice.)
 const SKY_FIX = [Math.cos(60 * Math.PI / 180), Math.cos(2 * Math.PI / 180)];
 export function makeSky(skyMeta) {
-  const tex = new THREE.TextureLoader().load(versioned('assets/hdri/sky_8k.jpg'), (t) => {
+  const tex = new THREE.TextureLoader().load(versioned(phoneCopy('assets/hdri/sky_8k.jpg', 4096)), (t) => {
     if (MOBILE) { t.image = shrinkImage(t.image, 4096); t.needsUpdate = true; }   // 8K sky: 90 MB on the GPU
     upload(t);
   });
