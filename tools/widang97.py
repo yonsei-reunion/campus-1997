@@ -418,7 +418,7 @@ def cut_paths(paths):
     """the walks and drives the game reads (the minimap, the crowd) that ran across the yard (OSM's, after the hall):
     each keeps its longest stretch off the yard (5 m or more) in its place in the list, its other stretches of 10 m or
     more at the list's end; one with none goes.  Returns (cut, gone, added)"""
-    zone = unary_union([WORKS, BANK]).buffer(1.0)
+    zone = unary_union([WORKS, BANK, HOARD.buffer(0.5)]).buffer(1.0)      # (and through the hoarding: no gate in it)
     n, more = [0, 0], []
     for p in list(paths):
         if len(p['pts']) < 2:
