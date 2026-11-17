@@ -216,7 +216,7 @@ NB_COURT_UV, NB_COURT_Z = (-13.5, 6.45, 33.2, 60.0), 27.75
 # south part at v 75 - 97 within 0.15 m of each other, no slope between; reference/고증/3.8 「북쪽 동」), so the yard's
 # level as the game has it (west_ground, at v NB_STRIP_V[1] + NB_STRIP_AT) carried south to the face, NB_STRIP_DZ under
 # it at the face (v NB_STRIP_V[0]) and eased back to it by v NB_STRIP_V[1]
-NB_STRIP_V, NB_STRIP_DZ, NB_STRIP_AT = (64.0, 72.0), 0.15, 4.0
+NB_STRIP_V, NB_STRIP_DZ, NB_STRIP_AT, NB_STRIP_IN = (64.0, 72.0), 0.15, 4.0, 3.0
 # 제3공학관 남쪽: the raised lawn west of the flight (its kerb 32.5 - 32.8 m in the scans, the game's ground there as it
 # is), the flight and the landing before the door (as it is), the hall's south face west and east of its porch, the
 # hall's floor at the landing (해발; 32.8 - 33.0 m at its south end) and its door (u, the porch's middle)
@@ -621,7 +621,9 @@ def nb_grade(Hn, X, Y, FIXED, nb):
     court &= shapely.contains_xy(nb.buffer(0.5), X, Y) | shapely.contains_xy(poly([(u0, v0), (u1, v0), (u1, v1), (u0, v1)]), X, Y)
     court &= (U > NB_WEST_U + 6.0)                  # (the lane's, west of it: grade)
     Hn[court] = NB_COURT_Z + T[court]
-    north = (V > v1) & (V <= NB_STRIP_V[1]) & (U > NB_WEST_U + 6.0) & (U < 21.0)
+    # (and the nodes under the block within a cell of its north face, which eagle_yard left at its old floor, 29.1 m: the
+    # cars nosed in to the face stood on their cells, 8 - 10 degrees up)
+    north = (V > v1 - NB_STRIP_IN) & (V <= NB_STRIP_V[1]) & (U > NB_WEST_U + 6.0) & (U < 21.0) & ~court
     from scipy.ndimage import map_coordinates
     gx, gy = X[0, :], Y[:, 0]
     st = gx[1] - gx[0]
