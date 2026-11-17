@@ -400,13 +400,13 @@ def site():
     return unary_union(hall_polys() + paint()[1] + [LineString([xy(*q) for q in TRENCH_WALL]).buffer(1.5)]).buffer(0.8)
 
 
-def trees_aside(items, halls, pad=1.5):
-    """trees the planting put in the halls' new outlines, the court, the terrace, the trench or the walls' line: each in
-    its place in the list to the nearest point pad m outside them, clear of the halls by 2.5 m and of the other trees
-    by 3 m (none goes onto the yard's asphalt)"""
-    site_ = site()
-    hb = unary_union([h.buffer(2.5) for h in halls] + [p.buffer(2.5) for p in hall_polys()])
+def trees_aside(items, halls, pad=1.5, yard=False):
+    """trees the planting put in the halls' new outlines, the court, the terrace, the trench or the walls' line (and with
+    yard, shrubs and props, the west yard's asphalt too): each in its place in the list to the nearest point pad m
+    outside them, clear of the halls by 2.5 m and of the other trees by 3 m (none goes onto the yard's asphalt)"""
     asph = unary_union(paint()[0])
+    site_ = site().union(asph) if yard else site()
+    hb = unary_union([h.buffer(2.5) for h in halls] + [p.buffer(2.5) for p in hall_polys()])
     ring = site_.buffer(pad)
     rings = [ring.exterior] if ring.geom_type == 'Polygon' else [g.exterior for g in ring.geoms]
     spots = [r.interpolate(d) for r in rings for d in np.arange(0.0, r.length, 0.5)]

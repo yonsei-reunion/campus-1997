@@ -11758,9 +11758,10 @@ print('의료원의 남은 줄: trees, shrubs off the paving',
 # their places in the list; its shrubs and props go
 print('간호대학 북쪽 주차장: trees off the platform', med97.nurse_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
 # 알렌관 둘레 (tools/allen97.py trees_aside; al): the trees, shrubs and props in the hall's new outlines, the court, the
-# terrace and the trench to their edges in their places in the lists
+# terrace and the trench (the shrubs and props on the west yard's asphalt too) to their edges in their places in the lists
 _al_halls = [Polygon(b_['footprint']) for b_ in out['buildings'] if b_['name'] != '알렌관']
-print('알렌관 둘레: trees, shrubs, props aside', [len(allen97.trees_aside(out[k_], _al_halls)) for k_ in ('trees', 'shrubs', 'props')])
+print('알렌관 둘레: trees, shrubs, props aside', [len(allen97.trees_aside(out[k_], _al_halls, yard=k_ != 'trees'))
+                                                for k_ in ('trees', 'shrubs', 'props')])
 _nl_n = (len(out['shrubs']), len(out['props']))
 out['shrubs'] = [s_ for s_ in out['shrubs'] if not med97.NL_LOT.contains(Point(s_[1], s_[2]))]
 out['props'] = [p_ for p_ in out['props'] if not med97.NL_LOT.contains(Point(p_[1], p_[2]))]
