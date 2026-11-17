@@ -275,6 +275,20 @@ def porch_gable(mb, P, Pw, fa, fb, sc, zb, zw, zg, proj, s0, s1, zt, wall):
         LM.flat_wall(mb, Pw, s0, s1, zw, zt, wall)
 
 
+def porch_flat(mb, P, Pw, fa, fb, zb, zw, proj, s0, s1, zt, wall, ang):
+    """연합신학대학원's porch over [fa, fb] (P: its face, proj m out from the hall's wall Pw; the 2003 photos): its face
+    over the arch up to a flat top with a dressed-stone coping, the top back to the wall, its sides, and the hall's wall
+    from the top up to the storey's top zt"""
+    import landmarks as LM
+    ztop = zw + 0.6
+    LM.flat_wall(mb, P, fa, fb, zw, ztop, wall)
+    for s in (fa + 0.2, fb - 0.2):                                         # sides
+        mb.box(P(s, (zb + ztop) / 2, -proj / 2), (0.4, proj, ztop - zb), wall, rotz=ang)
+    mb.box(P((fa + fb) / 2, ztop + 0.12, -proj / 2 + 0.05), (fb - fa + 0.2, proj + 0.1, 0.24), 'stone_trim', rotz=ang)
+    if ztop < zt:
+        LM.flat_wall(mb, Pw, s0, s1, ztop, zt, wall)
+
+
 def porch(mb, a, b, s0, s1, zf, fh, st, style, opts=None):
     """Fill the ground-floor bay [s0, s1] of the wall a->b with the hall's front door: the wall round a recessed
     opening, its glazing and a lit hall behind it (the shells have no rooms), a canopy (or 빌링슬리관's gabled porch),
@@ -282,6 +296,8 @@ def porch(mb, a, b, s0, s1, zf, fh, st, style, opts=None):
     import landmarks as LM
     opts = opts or {}
     E = dict(ENTRY[style])
+    if 'porch' in opts:              # (a porch of a hall's own: 연합신학대학원's, flat-topped, tools/build_campus.py UTS_PORCH)
+        E['porch'] = opts['porch']
     span = opts.get('span', 1)
     if span > 1:                     # a door of several bays (과학관): glass the width of the bays less a pier each side
         E['w'] = (s1 - s0) - 1.2
@@ -345,7 +361,9 @@ def porch(mb, a, b, s0, s1, zf, fh, st, style, opts=None):
             LM.bar(mb, P, sa, za, sb, zb_, 0.26, 0.0, 0.05, 'stone_trim')
         for s in (o0 - 0.11, o1 + 0.11):
             LM.bar(mb, P, s, zd, s, zs, 0.22, 0.0, 0.05, 'stone_trim')
-        if proj:
+        if proj and opts.get('porch_top') == 'flat':
+            porch_flat(mb, P, Pw, fa, fb, zb, zw, proj, s0, s1, zt, wall, math.atan2(t.y, t.x))
+        elif proj:
             porch_gable(mb, P, Pw, fa, fb, sc, zb, zw, zg, proj, s0, s1, zt, wall)
         LM.vestibule(mb, P, o0, o1, zd, zo + 0.05, -rec - 0.03, 2.4, lights=1)
     else:
@@ -816,6 +834,11 @@ SILL_AT[1444448646] = dict(bay=4.2, ww=0.84, sill=0.85, head=0.55, mull=2, depth
 # of 3.4 m.  (Like the hipped roof it had, it draws nothing from rnd.)
 ROOF_AT = {246156121: dict(mat='roof_cement', pitch=0.45, gable=True)}
 FH_AT[246156121] = 3.4
+# ... its windows (the photos of its pulling down, 연합뉴스 2003-01-27): three tall lights side by side under a stone
+# lintel, stone mullions between them, dark steel sashes of small panes (window_group); its door in a porch
+# (tools/build_campus.py UTS_PORCH, porch_flat)
+SILL_AT[246156121] = dict(lights=3, ww=0.8, sill=0.9, head=0.55)
+FRAME[246156121] = 'frame_dark'
 
 
 def build_generic(b, rnd):

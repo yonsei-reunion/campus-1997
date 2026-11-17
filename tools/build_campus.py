@@ -7661,10 +7661,14 @@ for pid, nm, style, lv, poly in OLD_HALLS:
                               height=round(ssr97.CLINIC_RIDGE - ssr97.CLINIC_EAVES + 4 * ssr97.CLINIC_FH, 2))
 buildings += LATE_HALLS
 # (연합신학대학원: the 1997 hall's door in the middle of its east wall, where OSM's walk from the road east of it comes
-# in; the photos do not show it.  Set here: the planting ran with the door of OSM's outline)
+# in and where the 1997-07-28 scans have a small square thing against the wall (2 - 2.5 m, under the eaves' line);
+# the photos of its pulling down (연합뉴스 2003-01-27) have the door in a stone porch standing out from the hall, a
+# pointed arch in its face, a flat top under ivy: UTS_PORCH, its depth from the scans' square, +- 1 m
+# (reference/고증/3.1 「연합신학대학원 옛 건물의 문 · 벽 · 창」).  Set here: the planting ran with the door of OSM's outline)
 UTS_FP = Polygon(LATE_FOOTPRINT_1997[UTS])
 UTS_DOOR = tuple((np.array(LATE_FOOTPRINT_1997[UTS][1]) + np.array(LATE_FOOTPRINT_1997[UTS][2])) / 2)
-ENTRY_AT[UTS] = (UTS_DOOR, {})
+UTS_PORCH = dict(porch=3.0, porch_top='flat')
+ENTRY_AT[UTS] = (UTS_DOOR, UTS_PORCH)
 # 빌링슬리관 as the 1997-07-28 scans have it (reference/고증/3.12 「평면과 지붕」; four frames from both flight lines,
 # each edge read where two frames from opposite sides agree): not OSM's 45 x 19 m box but two end pavilions 8.6 m
 # wide and 14.5 m deep, their fronts 2.3 m behind OSM's line, a middle block between them whose front stands 2.55 m
@@ -8699,7 +8703,8 @@ for p_ in paths_out:
     if len(p_['pts']) == 2 and p_['kind'] == 'footway' and UTS_OSM.buffer(1.0).contains(Point(p_['pts'][0])) \
             and not UTS_OSM.buffer(1.0).contains(Point(p_['pts'][1])) and Point(p_['pts'][0]).distance(Point(UTS_DOOR)) < 12.0:
         _uw0 = LineString(p_['pts']).buffer(p_['w'] / 2 + 0.4)       # (the walk as OSM has it, to the later hall's door)
-        p_['pts'][0] = [round(float(UTS_DOOR[0] + _ut[0] * 1.2), 1), round(float(UTS_DOOR[1] + _ut[1] * 1.2), 1)]
+        _upd = UTS_PORCH['porch'] + 1.2                                # (to the foot of the porch's flight)
+        p_['pts'][0] = [round(float(UTS_DOOR[0] + _ut[0] * _upd), 1), round(float(UTS_DOOR[1] + _ut[1] * _upd), 1)]
         UTS_WALK = [tuple(q_) for q_ in p_['pts']]
 out['paths'] = _ui_paths()
 _uk = unary_union([LineString(p_['pts']).buffer(p_['w'] / 2 + 0.4) for p_ in paths_out
