@@ -10173,7 +10173,9 @@ for p_ in paths_out:
     # 동쪽 to 대우관, and the asphalt stood over the strip of young zelkovas west of the kerb.  2026-11-17)
     if l_.length > 1.0 and l_.distance(_rd_old) < 4.5 and _along < 0.8 * l_.length and _along < 20.0:
         _rd_oth.append((l_, p_['w'], p_['kind'] in ('footway', 'path', 'steps', 'pedestrian')))
-_rd_keep = unary_union([l_.buffer(w_ / 2 + 0.3) for l_, w_, _ in _rd_oth]) if _rd_oth else Polygon()
+# (the roads that met it keep their asphalt; a walk keeps only its own paving, painted again below: kept as a road's, its
+# 0.3 m margins and the old asphalt it was drawn under stood as a grey strip beside it, 2026-11-17)
+_rd_keep = unary_union([l_.buffer(w_ / 2 + 0.3) for l_, w_, walk_ in _rd_oth if not walk_] or [Polygon()])
 _rd_clear = _rd_old.buffer(3.3, cap_style='flat').difference(_rd_keep)
 _rd_join = []                                 # (a road or a walk that ended on the old line: on to the new road's middle)
 for l_, w_, walk_ in _rd_oth:
@@ -10197,6 +10199,9 @@ _dwn_side = Polygon([(183.71, 565.09), (152.63, 551.3), (155.27, 545.36), (186.3
 DWN_LAWN = LineString([(201.4, 571.3), (147.1, 547.2)]).buffer(3.6, cap_style='flat').intersection(_dwn_side).difference(
     DWN_ROAD.buffer(0.05))
 _ypaint([_rd_clear, RD_ISLAND, DWN_LAWN], _yg)
+for l_, w_, walk_ in _rd_oth:                 # (the walks across or along the old line: their paving again, over the lawn)
+    if walk_ and l_.intersects(_rd_clear):
+        _ypaint([list(l_.coords)], _yp, width=w_)
 print('대우관 북쪽 길: OSM\'s asphalt over the island taken up %.0f m2' % DWN_LAWN.area)
 print('찻길 east: road %.0f m2, old asphalt taken up %.0f m2 (kept for %d roads and walks, %d joined on), walk beside it %.0f m' % (
     RD_ROAD.area, _rd_clear.area, len(_rd_oth), len(_rd_join), LineString(RD_WALK).length if RD_WALK else 0.0))
