@@ -6551,7 +6551,12 @@ TOWN97_FAR = town97.far_ring(Hf, tf['half'], tf['step'], tf['n'])
 print('동네 땅 (먼 지형): nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m (16 - 84 %%: %(p16)+.2f .. %(p84)+.2f), %(low)+.1f .. %(high)+.1f' % TOWN97_FAR)
 # 연희동 땅 (tools/yeonhui97.py, reference/고증/4.12 「연희동 땅」; #189): west and north-west of the campus the same survey
 # (the base terrain stood 3 - 9 m over it across 연희동, 5 - 13 m under it on 서울외국인학교's hill); the far terrain's
-# nodes on the near grid's west and north edges there first, so that the town's and 연희동's ground meet them
+# nodes on the near grid's west and north edges there first, so that the town's and 연희동's ground meet them; before
+# them the far terrain west and north of the grid on the same survey, 안산 with it (the surface model stood 2 m over it
+# in the middle, the blocks' roofs and the woods in it, and cut 안산's top 16 m), as the town's south of it; not round
+# the north patch, which meets the far ring as it was
+YH97_FAR_RING = yeonhui97.far_ring(Hf, tf['half'], tf['step'], tf['n'])
+print('연희동 땅 (먼 지형): nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m (16 - 84 %%: %(p16)+.2f .. %(p84)+.2f), %(low)+.1f .. %(high)+.1f' % YH97_FAR_RING)
 YH97_FAR = yeonhui97.far_edge(Hf, tf['half'], tf['step'])
 print('연희동 땅 (먼 지형의 가장자리): nodes %(nodes)d, median %(median)+.2f m, %(low)+.1f .. %(high)+.1f' % YH97_FAR)
 _far97 = (Hf, tf['half'], tf['step'])
