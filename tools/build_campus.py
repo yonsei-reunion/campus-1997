@@ -4581,11 +4581,12 @@ TERR = dict(
             # (s -55: the road at its south end, 3 m windows at s -54 .. -56 in the July 1997 and the winter 1996 frames.
             # s -51.5 .. -24.5 (2026-11-18, 고증 3.5.3 「앞 단 남쪽 토막의 길 높이」): the road's surface by the parallax of
             # edges and shadows in three one-course bundles (1996 course 27 and 26, 1997 course 26), tied to the south
-            # flight's head; the bank-edge solves before read the bank's top, 0.2 - 0.3 m over the road.  North of s -18.5
-            # still the old values: 고증 3.5 「남은 한계」)
+            # flight's head; the bank-edge solves before read the bank's top, 0.2 - 0.3 m over the road.  s -18.5 .. 15.5
+            # (before the hall, 2026-11-18) the same way, each bundle tied by its garden walk to the walk's heights
+            # further south: 0.15 - 0.4 m under the old values)
             zr=datum.up_at([(-55.0, 43.28), (-51.5, 43.32), (-48.5, 43.35), (-44.0, 43.4), (-40.0, 43.45), (-36.5, 43.49),
-                            (-30.5, 43.55), (-24.5, 43.66), (-18.5, 43.85), (-12.5, 44.08), (-6.5, 44.18), (0.0, 44.2),
-                            (6.5, 44.33), (12.5, 44.43), (15.5, 44.49)],
+                            (-30.5, 43.55), (-24.5, 43.66), (-18.5, 43.7), (-12.5, 43.83), (-6.5, 43.9), (0.0, 43.92),
+                            (6.5, 44.03), (12.5, 44.1), (15.5, 44.17)],
                            [(15.0, 173.0), (15.9, 176.4), (16.7, 179.3), (17.9, 183.7), (18.9, 187.5), (19.8, 190.9),
                             (21.4, 196.7), (23.0, 202.5), (24.6, 208.3), (26.1, 214.1), (27.7, 219.8), (29.4, 226.1),
                             (31.1, 232.4), (32.7, 238.2), (33.4, 241.1)]),
@@ -4597,8 +4598,8 @@ TERR = dict(
                             (30.2, 188.6), (30.8, 191.0), (31.6, 193.9), (32.4, 196.8), (33.9, 202.6), (34.7, 205.5),
                             (36.3, 211.3), (37.9, 217.1), (39.6, 223.4), (41.3, 229.6), (42.1, 232.5), (42.8, 235.4),
                             (43.6, 238.3)]),
-            walk=15.3, whole=(-56.7, 19.0), ease=(-58.62, 23.0), up=dict(n=5, T=0.35),
-            flights=[dict(s=0.0, w=3.3, ct=0.45, n=6, T=0.33, head=8.2),
+            walk=15.3, whole=(-56.7, 19.0), ease=(-58.62, 23.0), up=dict(n=6, T=0.29),       # (door's flight: sill 44.89 - road 43.92)
+            flights=[dict(s=0.0, w=3.3, ct=0.45, n=5, T=0.36, head=8.2),     # (the scans' flight d 8.0 - 10.1)
                      dict(s=-44.0, w=3.6, ct=0.45, n=5, T=0.33, head=8.9)],    # (고증 4.2.1: first riser d 8.9, five)
             # (reference/고증/3.5.3 「단의 남쪽 끝」: the risers' lines at s -56.70 .. -58.62 in 26/15 and 26/16, the
             # cheeks' copings at d 3.52 and 6.05 from all four frames)
