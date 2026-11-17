@@ -9058,6 +9058,11 @@ _stz = unary_union([_stm_f(ST_BED), LineString(ST_PATH).buffer(2.2)])    # (clea
 # Its west side is dark on dark under the trees there: as the roadview had it)
 ST_BED = Polygon([(9.4, 186.4), ST_XY(-42.4 - ST_S0, 1.6), ST_XY(-26.75 - ST_S0, 1.6), (9.8, 201.8)]).buffer(-1.5).buffer(1.5)
 ST_MASATO = _stm_f(ST_BED)
+# (and its west apron where the two cars of July 1997 stood, nose to the trees: the 2008 and 2009 winter skyviews' bare
+# earth goes west to x 9 - 10 between the bed and the lawn, reference/고증/3.5_옛_석조관.md 3.5.2.  Not cleared like
+# _stz: nothing stood there but OSM's later walk west, PRUNE_SCRAP)
+ST_APRON = Polygon([(8.0, 185.6), (14.8, 185.6), (14.4, 178.2), (7.8, 178.6)])
+ST_MASATO = ST_MASATO.union(ST_APRON)
 _n0 = (len(trees), len(shrubs), len(props))
 clear_trees(_stz)
 shrubs = [s for s in shrubs if not _stz.contains(Point(s[1], s[2]))]
@@ -11083,7 +11088,9 @@ PRUNE_SCRAP = [(((-115.7, -135.7), (-108.5, -138.0)), '도서관 남서쪽 꺾�
                (((193.2, 198.8), (195.4, 201.1)), '  〃'), (((195.4, 201.1), (190.4, 204.9)), '  〃'),
                (((184.8, 141.7), (200.5, 132.8)), '  〃'), (((178.3, 134.4), (191.0, 125.5)), '  〃'),
                (((18.3, -159.7), (46.5, -146.4)), '수경원 정자각으로 가는 길: 1997년 7월 스캔 세 장에 잔디뿐(포장 없음)'),
-               (((9.7, 151.5), (11.7, 164.5)), '삼거리 둑의 길: 1996년 12월 · 2008년(잎 없는 겨울) · 2010년에 찻길의 동쪽 가, 따로 난 길 없음')]
+               (((9.7, 151.5), (11.7, 164.5)), '삼거리 둑의 길: 1996년 12월 · 2008년(잎 없는 겨울) · 2010년에 찻길의 동쪽 가, 따로 난 길 없음'),
+               (((16.4, 184.4), (-7.9, 178.7)), '스팀슨관 남쪽 마당에서 서쪽 찻길로 가는 길: 1997년 7월 그 선 위에 세운 차 둘(두 코스), '
+                                                '1996년 겨울 · 2008 · 2009년 겨울 스카이뷰에 포장 띠 없음, 2013년부터 보임')]
 PRUNE_TAILS = [((-128.9, 24.1), 30.0, True),    # (도서관 북쪽 길이 서쪽 잔디에서 끝나는 26 m)
                ((146.2, -28.9), 25.0, False),   # (음악관 남쪽 잔디로 나온 두 꼬리: 곁의 포장에 닿아 남았던 것)
                ((162.5, -51.1), 20.0, False),
