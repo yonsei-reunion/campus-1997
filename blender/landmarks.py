@@ -1544,6 +1544,41 @@ def walk_mesh():
     return mb
 
 
+def step_walk(mb, width, t_end, gfn, rise=0.15, tread_min=0.32, mat='stone_step', kerb_mat='concrete', kerb=0.15):
+    """Steps that go down a bank with the ground, in a builder's local frame: from the origin (on the level ground, z 0)
+    along -y to t_end.  A riser wherever the highest ground across the walk has fallen one rise under the tread (never
+    two closer than tread_min), so that every tread sits on the bank, at most a rise over it; each tread a solid block
+    down into the ground; a low kerb either side stepping down with the treads; walked on as one ramp through the
+    nosings.  gfn: local_ground(mb)."""
+    hw = width / 2
+    g = lambda t: across(gfn, -hw - kerb, hw + kerb, -t)
+    z, t, last = 0.0, 0.0, 0.0
+    nose = [(0.0, 0.0)]                                  # (t, z) of each riser's top edge
+    while t < t_end:
+        t += 0.05
+        if g(t) <= z - rise and t - last >= tread_min:
+            nose.append((t, z))
+            z -= rise
+            last = t
+    if len(nose) < 2:
+        return 0
+    ends = [n_[0] for n_ in nose[1:]] + [t_end]
+    zs = [0.0] + [n_[1] - rise for n_ in nose[1:]]
+    for (t0, _), t1, zt in zip(nose, ends, zs):
+        if t0 == 0.0 and zt == 0.0 and t1 - t0 > 0.0:
+            t0 = max(0.0, t1 - 1.2)                      # (on the level ground: only the head tread)
+        lo = min(min(gfn(x_, -tt) for x_ in (-hw - kerb, 0.0, hw + kerb) for tt in (t0, t1)), zt) - 0.6
+        mb.box((0.0, -(t0 + t1) / 2, (zt + lo) / 2), (width, t1 - t0 + 0.02, zt - lo), mat)
+        for sg in (-1, 1):                               # the kerbs, a step down with each tread
+            mb.box((sg * (hw + kerb / 2), -(t0 + t1) / 2, (zt + 0.12 + lo) / 2), (kerb, t1 - t0 + 0.02, zt + 0.12 - lo), kerb_mat)
+    W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
+    pts = nose + [(t_end, zs[-1])]
+    for (ta, za), (tb, zb) in zip(pts, pts[1:]):
+        WALK_FACES.append([W_(-hw, -ta + 0.05, za), W_(hw, -ta + 0.05, za), W_(hw, -tb - 0.05, zb), W_(-hw, -tb - 0.05, zb)])
+    print('용재관 진달래동산 계단: %d risers over %.1f m, %.2f m down' % (len(nose) - 1, t_end, -zs[-1]))
+    return len(nose) - 1
+
+
 def stair_flight(mb, x, y_face, width, zl, n=8, mat='stone_granite', landing=1.8, tread=0.36, flare=0.35,
                  cheek=0.0, cheek_mat=None, newel=False, rail=False, ground=-1.2, zbot=-0.15, gfn=None, maxrise=0.18,
                  rail_mat='metal_dark', risers=None):
@@ -4300,14 +4335,18 @@ def sang_stone_bank(pts, name='lm_sang_stone_bank', seed=8707):
             boulder(p2 + nrm2 * (0.45 + dp / 2), nrm2, rr.uniform(0.55, 0.95), dp * 0.9, g + h1 * 0.5 - 0.1,
                     top2 + rr.uniform(-0.04, 0.05), 'bk%d' % n)
         if rr.random() < 0.3:                                    # a small clipped shrub between the boulders
-            q = p + nrm * rr.uniform(0.6, 0.95) + Vector((nrm.y, -nrm.x)) * (ln / 2)
+            o_ = rr.uniform(0.6, 0.95)
+            q = p + nrm * o_ + Vector((nrm.y, -nrm.x)) * (ln / 2)
             r = rr.uniform(0.22, 0.38)
-            mb.sphere((q.x, q.y, top - 0.05 + r * 0.3), r, 'shrub_green', seg=8, rings=5, sz=0.75)
+            zb = top - max(0.0, 0.95 - o_) * 0.9                  # (on the berm's shoulder: berm() below)
+            mb.sphere((q.x, q.y, zb - 0.05 + r * 0.3), r, 'shrub_green', seg=8, rings=5, sz=0.75)
         n += 1
         s += ln * rr.uniform(0.8, 0.92)
-    # the berm behind: level at the top just past the boulders, then falling back to the lawn (and walked on)
+    # the berm behind: up from behind the front course to the top over the back of the second, level a little, then
+    # falling back to the lawn (and walked on).  (It started level at the top 0.1 m behind the kerb line, which laid a
+    # sheet of grass over the front course's crowns, its edge standing out in front of the second course)
     K = max(2, int(L[-1] / 1.0))
-    offs = [0.1, 0.6, 1.1, 1.7, 2.3, 2.9, 3.5, 4.1, 4.7, 5.3]
+    offs = [0.55, 0.95, 1.3, 1.7, 2.3, 2.9, 3.5, 4.1, 4.7, 5.3]
 
     turn = [0.0] * len(P)                                        # the radius the line bends round at each point
     for i in range(1, len(P) - 1):
@@ -4321,7 +4360,7 @@ def sang_stone_bank(pts, name='lm_sang_stone_bank', seed=8707):
         room = min(turn[i] for i in range(len(P)) if abs(L[i] - s) < 2.0)
         far = o >= offs[-1] or o > room - 0.4                    # (the far edge on the lawn; inside a bend, short)
         q = p + nrm * min(o, max(0.6, room - 0.4))
-        z = -1e9 if far else top - max(0.0, o - 1.1) * 0.55
+        z = -1e9 if far else top - max(0.0, o - 1.3) * 0.55 - max(0.0, 0.95 - o) * 0.9
         return (q.x, q.y, max(z, ground_top(q.x, q.y) + 0.02))
     for k in range(K):
         sa, sb = L[-1] * k / K, L[-1] * (k + 1) / K
@@ -6129,19 +6168,23 @@ def yongjae():
     generic.parapet_and_roof(mb, world2(K), zk, st, rnd, clutter=False)
     out.append(mb)
 
-    # ------------------------------------------------------------------ the flight down the 진달래동산
-    # (tools/build_campus.py YJ_WALK: from the canopy north-north-west, over the edge of the level ground)
+    # ------------------------------------------------------------------ the steps down the 진달래동산
+    # (tools/build_campus.py YJ_WALK: from the canopy north-north-west down the bank to the east fork; reference/고증/3.13
+    # 「진달래동산」: the walk and its steps, the ground laid on one grade along them).  One short flight at the level
+    # ground's edge (2026-11-17, before) kept its landing at the floor 0.3 - 0.6 m over the bank, its east side up to 1 m,
+    # and left the rest a paved slope of 25 - 37 %: the steps now go down with the ground all the way, a riser wherever
+    # the ground under the walk has fallen one rise, so that every tread sits on the bank
     mb = MeshBuilder('lm_yongjae_flight')
     du, dv = -7.0, 9.0
     dl = math.hypot(du, dv)
     du, dv = du / dl, dv / dl
-    tu_ = (-7.0 - (-4.0)) / du                         # where the walk leaves the level ground (u = -7)
-    fu, fv = -4.0 + du * tu_, 22.8 + dv * tu_
-    wx, wy = U(fu, fv, 0)[:2]
+    wx, wy = U(-4.0, 22.8, 0)[:2]                      # (on the level ground, the walk's bend)
     dx, dy = du * ca - dv * sa, du * sa + dv * ca      # the walk's direction (world): local -y
     mb.xf = local_frame(wx, wy, math.atan2(dx, -dy), z0)
-    stair_flight(mb, 0.0, 0.0, 2.6, 0.0, landing=1.2, tread=0.34, flare=0.15, cheek=0.3, cheek_mat='concrete',
-                 mat='stone_step', gfn=local_ground(mb))
+    walk = next((p_['pts'] for p_ in CAMPUS.get('paths', []) if p_.get('w') == 2.6 and len(p_['pts']) == 3
+                 and math.hypot(p_['pts'][1][0] - wx, p_['pts'][1][1] - wy) < 0.3), None)
+    t_end = math.hypot(walk[2][0] - wx, walk[2][1] - wy) - 0.6 if walk else 18.0
+    step_walk(mb, 2.6, t_end, local_ground(mb), mat='stone_step', kerb_mat='concrete')
     out.append(mb)
     return out
 

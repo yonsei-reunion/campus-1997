@@ -9877,6 +9877,8 @@ for r_, i_, c_ in HK_SLOTS:
         x_, y_, h_ = _hkb[r_][i_]
         if c_ is None:
             HK_FREE.append((x_, y_, 1 if r_ < 3 else -1, h_))
+        elif (r_, i_) in cars97.HK_EMPTY:          # (an empty stall in the photos where the car stood in a road's mouth)
+            c97_gone(c_)
         else:
             c97_move(c_, x_, y_, h_)
     elif c_ is not None and (r_, i_) in cars97.YH_SHIFT:
@@ -10166,7 +10168,10 @@ _rd_old = LineString([tuple(q_) for q_ in TR_E_OSM[TR_EK0 + 6:TR_EKH_OSM - 44]])
 _rd_oth = []
 for p_ in paths_out:
     l_ = LineString(p_['pts'])
-    if l_.length > 1.0 and l_.distance(_rd_old) < 4.5 and l_.intersection(_rd_old.buffer(1.2)).length < 0.8 * l_.length:
+    _along = l_.intersection(_rd_old.buffer(1.2)).length
+    # (not OSM's own way of the old line, which runs on north past its end: kept, its width undid the take-up from 성암관
+    # 동쪽 to 대우관, and the asphalt stood over the strip of young zelkovas west of the kerb.  2026-11-17)
+    if l_.length > 1.0 and l_.distance(_rd_old) < 4.5 and _along < 0.8 * l_.length and _along < 20.0:
         _rd_oth.append((l_, p_['w'], p_['kind'] in ('footway', 'path', 'steps', 'pedestrian')))
 _rd_keep = unary_union([l_.buffer(w_ / 2 + 0.3) for l_, w_, _ in _rd_oth]) if _rd_oth else Polygon()
 _rd_clear = _rd_old.buffer(3.3, cap_style='flat').difference(_rd_keep)

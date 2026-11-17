@@ -464,6 +464,20 @@ function inRings(rings, x, y) {
   return false;
 }
 
+// distance from (x, y) to the nearest edge of the rings (0 inside one)
+function ringsDist(rings, x, y) {
+  if (inRings(rings, x, y)) return 0;
+  let d2 = Infinity;
+  for (const r of rings) {
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const ax = r[j][0], ay = r[j][1], dx = r[i][0] - ax, dy = r[i][1] - ay;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)));
+      d2 = Math.min(d2, (x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2);
+    }
+  }
+  return Math.sqrt(d2);
+}
+
 export function makeFarTerrain(hf, nearHalf, south = null) {
   const wc = new THREE.Color();
   const col = (x, y, h) => {
@@ -533,7 +547,12 @@ export function makeFarForest(hf, nearHalf, maxR = 3800, south = null, north = n
     const rr = 9 + rnd() * 8;
     sc.set(rr, rr * (0.55 + rnd() * 0.25), rr * (0.9 + rnd() * 0.2));
     const onN = north && nearPatch(north.rect, x, y, 0);
-    if (onN && inRings(north.clear, x, y)) sc.setScalar(1e-4);      // (drawn, not seen: the rest keep their draws)
+    if (onN) {
+      // (drawn, not seen: the rest keep their draws).  Nor a crown that would reach the cleared ground (roads, walks,
+      // halls): these low-poly domes 18 - 34 m across hung over the roads by 북문 (shrunk to fit, they still stood
+      // by the road as plain domes; the patch's own trees are campus.json trees)
+      if (ringsDist(north.clear, x, y) < (sc.z > sc.x ? sc.z : sc.x)) sc.setScalar(1e-4);
+    }
     im.setMatrixAt(i, placeMatrix(m4, x, (onN ? north.hf.height(x, y) : hf.height(x, y)) + rr * 0.25, y, rnd() * 6.28, sc));
     c.setRGB(0.16 + rnd() * 0.08, 0.26 + rnd() * 0.08, 0.11 + rnd() * 0.05, THREE.SRGBColorSpace);
     im.setColorAt(i, c);
