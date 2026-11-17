@@ -7225,6 +7225,11 @@ _ax_took, ANNEX97_GRADE = annex97.grade(Hn, X, Y, FIXED, (_af_o, _af_t, _af_f), 
                                         _ax_keep, harmonic_fill)
 FIXED[_ax_took] = True
 print('상대별관 앞 찻길:', ANNEX97_GRADE)
+# (and east of it, between the drive past the annex's north end, 북문 가는 길's boulder bank and the annex: the wood with its
+# two bare paths and the low yard east of the annex on the scans' levels; reference/고증/3.6.3 「세모 숲의 오솔길」)
+_aw_took, ANNEX97_WOOD = annex97.wood_grade(Hn, X, Y, FIXED, _ax_halls, harmonic_fill)
+FIXED[_aw_took] = True
+print('상대별관 북동쪽 세모 숲 · 동쪽 마당:', ANNEX97_WOOD)
 # 빌링슬리관 동쪽 면 곁의 찻길과 둑 (tools/bill97.py, reference/고증/3.12 「동쪽 면 곁의 찻길과 둑」; #189): the 1997 scans
 # have 연희관 서쪽 옆길 3.6 m east of OSM's line beside the hall's east face, its west kerb 0.8 - 2 m east of that line and a
 # planted strip 4.5 - 5.5 m wide from it to the face (OSM's line ran the asphalt to the face's foot).  The drive between
@@ -9810,6 +9815,7 @@ def _ypaint(geoms, img, width=None):
                 SPLAT_OPS.append(('poly', _YN[id(img)], list(p_.exterior.coords), 255))
 
 
+print('상대별관 북동쪽 오솔길: trees moved aside in their places', annex97.trail_clear(trees))
 print('빌링슬리관 동쪽 찻길: moved off the new asphalt (trees, shrubs, props, cars)',
       [bill97.clear(l_) for l_ in (trees, shrubs, props, cars)])
 _yz, _yg, _yp = (Image.new('L', (SW, SH), 0) for _ in range(3))
@@ -10668,6 +10674,7 @@ _ypaint(fieldhill97.bare(), _gd)
 _ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 길: SCI_DRIVE97)
 _ypaint([KB97_ASPH], _ga)                    # (광복관 안마당 · 서쪽 길 · 북쪽 길, 핀슨관 서쪽 길 · 북쪽 주차장: kwangbok97)
 _ypaint([KB97_FORE], _gd)                    # (광복관 앞마당: the gravel at the foot of the front flight)
+_ypaint(annex97.trail_polys(), _gd)          # (상대별관 북동쪽 세모 숲의 오솔길 두 갈래: bare earth; annex97)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
 _YN[id(_gw)] = '_gw'
 _ypaint([BK_COURT], _gw)

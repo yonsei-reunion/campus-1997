@@ -37,6 +37,7 @@ Nothing here draws from build_campus.py's `rng`; the trees, the paths and the ca
 """
 import numpy as np
 import shapely
+from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
 import datum
@@ -123,3 +124,74 @@ def grade(Hn, X, Y, FIXED, frame, dh, terrace, halls, keep, fill):
                              eased=int(ring.sum()),
                              moved=(int((np.abs(d) > 0.05).sum()), round(float(d.min()), 2), round(float(d.max()), 2)),
                              drive_dz=(round(float(d[sel].min()), 2), round(float(d[sel].max()), 2)) if sel.any() else None)
+
+
+# --- 세모 숲과 별관 동쪽 마당 (reference/고증/3.6.3 「테라스 찻길의 동쪽 어귀」 · 「세모 숲의 오솔길」): between the drive past
+# the annex's north end, 북문 가는 길's boulder bank and the annex, a wood with two bare paths (the 1997 scans: light bands
+# 1.5 - 2 m wide in 27/15 and 26/14, within 0.5 - 1 m of each other with the frames' lean), the ground under it flat
+# at the drive's level (66.5 - 67.1 m; the game's smooth slope stood 0.3 - 1.7 m over it), and east of the annex a low
+# bare yard (64.8 - 65.7 m, the game 1 - 3 m over it) the southern path runs down into, to OSM's walk round the annex.
+# (x, y): campus metres.  WOOD_Z: the scans' heights there (x, y, 해발; windows 3 m, the median of the pairs over 0.7,
+# three to nine pairs, crowns left out)
+TRAILS = [[(161.0, 453.0), (162.8, 452.3), (166.5, 450.6), (169.8, 448.6), (171.8, 446.3), (172.9, 443.6)],
+          [(160.5, 445.0), (162.6, 444.6), (166.5, 443.9), (170.0, 443.6), (173.0, 443.2), (176.0, 441.8), (178.5, 439.6),
+           (180.4, 436.5), (181.2, 433.0), (181.8, 429.0), (181.8, 425.0), (180.5, 421.8), (177.4, 419.3)]]
+TRAIL_W = 1.5
+WOOD = Polygon([(158.5, 456.5), (166.0, 456.5), (170.5, 452.5), (175.0, 446.0), (178.0, 441.0), (173.0, 438.5), (160.0, 439.5)])
+YARD = Polygon([(173.0, 438.5), (178.0, 441.0), (181.5, 437.0), (184.5, 430.0), (186.5, 420.0), (186.0, 413.0), (173.0, 413.0)])
+WOOD_Z = [(161.0, 452.0, 67.09), (164.0, 452.0, 66.66), (167.0, 452.0, 67.05), (167.0, 449.0, 66.87), (170.0, 449.0, 67.04),
+          (167.0, 446.0, 66.76), (170.0, 446.0, 66.80), (164.0, 443.0, 66.47), (170.0, 443.0, 66.48), (161.0, 440.0, 66.10),
+          (167.0, 440.0, 66.65), (170.0, 440.0, 66.74), (163.8, 451.9, 66.67), (169.1, 449.0, 67.02), (171.2, 447.0, 66.89),
+          (172.6, 444.4, 67.01), (166.4, 443.9, 66.65), (172.4, 443.3, 66.50), (167.0, 437.0, 65.69),
+          (176.0, 437.0, 65.38), (179.0, 437.0, 65.41), (179.0, 434.0, 64.89), (182.0, 428.0, 64.99), (182.0, 425.0, 64.83),
+          (176.0, 422.0, 64.84), (185.0, 422.0, 64.90), (176.0, 419.0, 64.88), (179.0, 419.0, 64.89), (179.0, 416.0, 65.02),
+          (173.0, 416.0, 65.42), (179.7, 421.2, 64.95)]
+WOOD_RING = 5.0
+
+
+def wood_z(x, y):
+    """해발 by inverse squared distance from WOOD_Z"""
+    t = np.asarray(WOOD_Z)
+    w = 1.0 / np.maximum((np.asarray(x)[:, None] - t[:, 0]) ** 2 + (np.asarray(y)[:, None] - t[:, 1]) ** 2, 1.0)
+    return (w * t[:, 2]).sum(1) / w.sum(1)
+
+
+def wood_grade(Hn, X, Y, FIXED, halls, fill):
+    """WOOD and YARD on the scans' levels (WOOD_Z), the ring round them eased where no block before held it; the halls'
+    feet (halls: [(outline, distance)]) stay.  Returns the nodes set and a summary"""
+    H0 = Hn.copy()
+    stay = shapely.contains_xy(unary_union([h.buffer(k) for h, k in halls]), X, Y)
+    m = shapely.contains_xy(unary_union([WOOD, YARD]), X, Y) & ~stay
+    Hn[m] = wood_z(X[m], Y[m]) + datum.tilt(X[m], Y[m])
+    near = shapely.contains_xy(unary_union([h.buffer(max(k, 2.0)) for h, k in halls]), X, Y)
+    ring = shapely.contains_xy(unary_union([WOOD, YARD]).buffer(WOOD_RING), X, Y) & ~m & ~FIXED & ~near
+    if ring.any():
+        fill(ring)
+    d = Hn - H0
+    return m | ring, dict(wood=int(m.sum()), eased=int(ring.sum()),
+                          moved=(int((np.abs(d) > 0.05).sum()), round(float(d.min()), 2), round(float(d.max()), 2)))
+
+
+def trail_polys():
+    return [LineString(t).buffer(TRAIL_W / 2, cap_style='flat') for t in TRAILS]
+
+
+def trail_clear(items, clear=1.3):
+    """trees standing on a path ([kind, x, y, ...]) moved aside to `clear` m off its middle, in their places in the list"""
+    moved = []
+    for it in items:
+        p = shapely.Point(it[1], it[2])
+        for t in TRAILS:
+            ls = LineString(t)
+            d = ls.distance(p)
+            if d < clear:
+                q = ls.interpolate(ls.project(p))
+                v = np.array([it[1] - q.x, it[2] - q.y])
+                if np.linalg.norm(v) < 1e-6:
+                    a, b = ls.interpolate(max(ls.project(p) - 0.5, 0.0)), ls.interpolate(min(ls.project(p) + 0.5, ls.length))
+                    v = np.array([-(b.y - a.y), b.x - a.x])
+                v = v / np.linalg.norm(v)
+                it[1], it[2] = round(float(q.x + v[0] * clear), 2), round(float(q.y + v[1] * clear), 2)
+                moved.append(it[0])
+                break
+    return moved
