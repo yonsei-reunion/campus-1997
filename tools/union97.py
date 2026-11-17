@@ -140,6 +140,22 @@ PATH = [(-24.0, 30.85), (-16.6, 31.7), (-9.0, 32.25)]   # (x, 해발): 보도 ·
 PATH_Y = (-112.5, -104.0)                      # 길의 두 가(양쪽 나무 화단의 연석)
 RING_W = 10.0
 
+# 외곽(reference/고증/3.2-3.3 「본동 · 남쪽 낮은 동 · 옥탑의 외곽과 높이」): 1997년 7월 원본 스캔 네 장(서쪽 코스 둘 · 동쪽 코스
+# 둘)을 지붕 높이의 면에 다시 투영해, 네 장이 0.2 m 안에서 같은 자리에 놓는 가(갓돌 바깥 줄). 기울기가 반대인 두 코스가 함께
+# 맞으므로 그 높이도 ±0.2 m. 높이는 해발. OSM 은 남쪽 동과 본동을 한 L 로 그려 본동이 3 ~ 4 m 좁고 서쪽으로 밀려 있었다
+MAIN97 = dict(u=(26.5, 82.6), v=(7.45, 34.0))  # 본동(뾰족창 스크린의 갓돌, 53.4 m)
+# 남쪽 낮은 동: 어두운 지붕(40.7 m)의 네 가. 그 남쪽 끝 u 1 ~ 8.4 는 덕트가 놓인 띠. 2008년 8월 로드뷰(2381266 · 2381269 ·
+# 2381272)의 흰 칠 벽 두 층, 띠창 두 줄, 갓 밑 갈색 띠, 동쪽 끝의 철문(floor: 서쪽 앞마당 쪽 아래층 바닥)
+SOUTH97 = dict(u=(1.0, 21.7), v=(0.9, 33.3), top=40.7, floor=33.2, storey=3.5)
+# 남쪽 동과 본동 사이 낮은 이음 동: 본동 남쪽 면 앞 4.8 m. 지붕은 짝이 맞지 않아(본동 그늘 · 기울기에 가림) 남쪽 동이 그 위에
+# 드리운 그림자의 폭(0.4 ~ 0.5 m)으로 어림한 38.7 m. 동쪽 찻길(36 ~ 36.5 m) 위 한 층
+LINK97 = dict(u=(21.7, 26.5), v=(7.45, 33.3), top=38.7)
+# 옥탑: 본동 지붕(판 52.5 m) 위 큰 상자 둘과 그 북쪽 계단실. 네 장이 그 높이의 면에서 같은 자리(56.1 m), 남쪽 반은 53.7 ~ 55.9 m
+# 로 갈려 가운데 값
+PENT97 = [dict(u=(51.4, 69.6), v=(9.0, 33.5), top=56.1), dict(u=(39.4, 51.4), v=(9.0, 33.5), top=54.6),
+          dict(u=(69.6, 72.8), v=(15.8, 24.6), top=56.1)]
+BAY97 = 0.99                                   # 스크린의 한 칸(2025년 정면: 57.5 칸이 57 m)
+
 
 def uv97(u, v):
     return tuple(float(c) for c in O97 + U97 * u + V97 * v)
@@ -261,10 +277,29 @@ def west_payphones(props):
     return out
 
 
+def box_corners(u, v):
+    """(u0, u1) x (v0, v1) 의 네 모서리(남서 · 북서 · 북동 · 남동), 캠퍼스 (x, y)"""
+    return [list(uv97(u[0], v[0])), list(uv97(u[1], v[0])), list(uv97(u[1], v[1])), list(uv97(u[0], v[1]))]
+
+
+def outline():
+    """건물의 외곽(본동 · 이음 동 · 남쪽 동을 합친 것, 반시계): campus.json footprint(벽에 부딪히는 선)"""
+    from shapely.geometry.polygon import orient
+    p = unary_union([Polygon(box_corners(d['u'], d['v'])).buffer(0.01, join_style=2) for d in (MAIN97, LINK97, SOUTH97)])
+    p = p.buffer(-0.01, join_style=2).simplify(0.05)
+    return [[round(x, 2), round(y, 2)] for x, y in list(orient(p, 1.0).exterior.coords)[:-1]]
+
+
 def landmark():
     """blender/landmarks.py union 이 쓰는 것(campus.json buildings[] 'union97'): 높이는 바닥에서의 m, 자리는 캠퍼스 (x, y)"""
     hw = STAIR['w'] / 2
-    return dict(storeys=STOREYS, parapet=DECK['parapet'],
+    rel = lambda z: round(z - BASE, 2)                  # (해발 -> 건물 base(바닥 0.3 m 밑)에서의 높이)
+    return dict(storeys=STOREYS, parapet=DECK['parapet'], bay=BAY97,
+                main=box_corners(MAIN97['u'], MAIN97['v']),
+                south=dict(c=box_corners(SOUTH97['u'], SOUTH97['v']), top=rel(SOUTH97['top']), floor=rel(SOUTH97['floor']),
+                           storey=SOUTH97['storey']),
+                link=dict(c=box_corners(LINK97['u'], LINK97['v']), top=rel(LINK97['top'])),
+                pent=[dict(c=box_corners(d['u'], d['v']), top=rel(d['top'])) for d in PENT97],
                 deck=[list(uv97(DECK['u0'], DECK['v'])), list(uv97(DECK['u1'], DECK['v']))],
                 stair=dict(a=list(uv97(STAIR['u'] - hw, DECK['v'])), b=list(uv97(STAIR['u'] + hw, DECK['v'])),
                            risers=STAIR['risers'], tread=STAIR['tread'], landing=STAIR['landing']))

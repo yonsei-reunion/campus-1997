@@ -6327,7 +6327,8 @@ LANDMARKS = [
          title='1997년 학생회관', year='1997',
          credit='사진: 연세춘추 제1316호(1997.5.5) 「4·19 정신잇기」 김민정 기자 · 연세대학교 기록관',
          text='격자무늬 콘크리트 외벽의 학생회관. 동아리방과 식당, 총학생회가 있던 캠퍼스의 사랑방이었다. 벽면에는 늘 대자보와 현수막이 걸려 있었다. 1997년 4월 18일에는 이 앞에서 4·19 정신 계승 마라톤이 열렸다. 200여 명의 학생이 10km를 달리며 선전전을 벌였다.'),
-    dict(id='chapel', name='루스채플', pos=[50, -70], r=18, photo=None,
+    # (루스채플's spot: 2 m clear of 학생회관's 1997 east wall, tools/union97.py MAIN97, which stands where it was)
+    dict(id='chapel', name='루스채플', pos=[52, -70.5], r=18, photo=None,
          title='루스채플', year='1997',
          text='1974년 미국 헨리 루스 재단의 기부금과 학교 보조금으로 지어진 채플. 채플 수업 시간이면 학생들이 이 앞에 모여들었다.'),
     dict(id='auditorium', name='대강당', pos=[38, 30], r=22, photo=['photos/auditorium_2009.jpg', 'photos/auditorium_2009_side.jpg'],
@@ -7076,11 +7077,17 @@ print('학생회관 서쪽 앞마당 · 남쪽 앞마당 · 드는 길:', UNION9
 _cn_took, CENT97_FOOT = cent97.foot_grade(Hn, X, Y, FIXED, datum.up)
 FIXED[_cn_took] = True
 print('백주년기념관 북쪽 마당의 건물 발치:', CENT97_FOOT)
+# (its 1997 outline: the main block on the four frames' coping lines, the low south wing and the link between, as
+# tools/union97.py MAIN97 · SOUTH97 · LINK97 have them; reference/고증/3.2-3.3 「본동 · 남쪽 낮은 동 · 옥탑의 외곽과 높이」.
+# The planting and the grading above ran with OSM's outline; what the hall gained on the east held nothing but lawn
+# and the walk along its old east wall)
 for b_ in buildings:
     if b_['id'] == union97.UNION:
         _unc = Polygon(b_['footprint']).centroid
         print('   학생회관: base %.2f -> %.2f m (working; the floor 0.3 m over it)' % (b_['base'], datum.up(_unc.x, _unc.y, union97.BASE)))
-        b_.update(base=datum.up(_unc.x, _unc.y, union97.BASE), union97=union97.landmark())
+        _unfp = union97.outline()
+        b_.update(base=datum.up(_unc.x, _unc.y, union97.BASE), union97=union97.landmark(), footprint=_unfp,
+                  top_ground=round(max(ground_h(x_, y_) for x_, y_ in _unfp), 2))
 print('대강당 윗단 북쪽 끝 너머:', {k_: v_ for k_, v_ in ISLE97_GRADE.items() if k_ != 'at'}, 'flight', ISLE97['flight']['n'],
       ISLE97['flight']['z_top'], ISLE97['flight']['z_foot'])
 # ---------------------------------------------------------------------------

@@ -377,7 +377,8 @@ def union_deck(mb, b, L, W, u97):
     loc = lambda p: inv @ Vector((p[0], p[1], mb.xf.translation.z))
     da, db = loc(u97['deck'][0]), loc(u97['deck'][1])
     yd = (da.y + db.y) / 2                                  # the parapet's outer face
-    xn, xs = max(-L / 2, min(da.x, db.x)), min(L / 2, max(da.x, db.x))
+    # (the 1997 deck runs 2.5 m on past the main block's south face before the low link, 1.4 m past its north face)
+    xn, xs = max(-L / 2 - 3.0, min(da.x, db.x)), min(L / 2 + 3.0, max(da.x, db.x))
     sa, sb = loc(u97['stair']['a']), loc(u97['stair']['b'])
     xc, sw = (sa.x + sb.x) / 2, abs(sb.x - sa.x)
     zf, ph, t = 0.3, u97['parapet'], 0.25                  # the floor; the parapet's height and thickness
@@ -405,10 +406,11 @@ def union_deck(mb, b, L, W, u97):
                 glass_run(mb, P, k, k1, gz, zf - 0.3, 0.06, [], hall=False)
                 mb.quad(P(k, gz, 0.06), P(k1, gz, 0.06), P(k1, gz, 0.0), P(k, gz, 0.0), 'stone_white')
             k = k1 + 0.3
-    # south of the deck the same storey looks out of the plinth onto the forecourt (the south wing's front: 남은 한계)
+    # south of the deck the same storey looks out of the plinth onto the forecourt (only where the deck stops short of
+    # the block's south end: the 1997 deck runs on past it to the low link)
     P2, Le2, _, _ = edge_P((xs, yb - 0.3), (L / 2, yb - 0.3))
     k = 0.8
-    while k < Le2 - 0.8:
+    while xs < L / 2 - 1.0 and k < Le2 - 0.8:
         k1 = min(k + 2.4, Le2 - 0.6)
         gz = max(gfn(*(P2(k + (k1 - k) * f_, 0.0)[:2])) for f_ in (0.0, 0.5, 1.0)) + 0.4
         if zf - 0.3 - gz > 0.8:
@@ -436,16 +438,91 @@ def union_deck(mb, b, L, W, u97):
                        W_(gap0 + cheek, yd + t + 0.2, zf)])
 
 
+def union_local(mb, pts):
+    """World (x, y) corners -> the builder's local frame, wound anticlockwise (edge_P's normals then point out)"""
+    inv = mb.xf.inverted()
+    q = [tuple((inv @ Vector((p[0], p[1], mb.xf.translation.z)))[:2]) for p in pts]
+    a = sum(q[i - 1][0] * q[i][1] - q[i][0] * q[i - 1][1] for i in range(len(q)))
+    return q if a > 0 else q[::-1]
+
+
+def union_low(mb, poly, zf, ztop, roof, bands=(), door=None, ribbon_edges=None, fascia=False):
+    """A low flat-roofed block of the hall in its local frame (tools/union97.py SOUTH97 · LINK97, reference/고증/3.2-3.3
+    「본동 · 남쪽 낮은 동 · 옥탑의 외곽과 높이」): white painted walls from under the ground to the parapet's top ztop, a
+    flat roof 0.6 m under it, the 2008 roadview's dark brown band under the coping on the windowed faces (fascia; bands:
+    (z0, z1) of window ribbons over the base; a ribbon only where the ground stays under its sill; ribbon_edges: the faces
+    that have them), a steel double door (door: (edge index, s, ground))"""
+    gfn = local_ground(mb)
+    n = len(poly)
+    for i in range(n):
+        a, b = poly[i], poly[(i + 1) % n]
+        P, Le, t, nn = edge_P(a, b)
+        zb = min(gfn(*P(s, 0.0)[:2]) for s in (0.0, Le / 2, Le)) - 1.0
+        # the window ribbons: lights of 3 m between piers of 0.6 m, where the ground stays 0.4 m under the sill
+        wins = []
+        if ribbon_edges is None or i in ribbon_edges:
+            for z0_, z1_ in bands:
+                k = 0.9
+                while k < Le - 1.2:
+                    k1 = min(k + 3.0, Le - 0.9)
+                    gz = max(gfn(*P(k + (k1 - k) * f_, 0.0)[:2]) for f_ in (0.0, 0.5, 1.0))
+                    if gz + 0.4 < z0_ and k1 - k > 0.8:
+                        wins.append((k, k1, z0_, z1_))
+                    k = k1 + 0.6
+        # the wall, cut round the lights
+        zs = sorted({zb, ztop} | {w[2] for w in wins} | {w[3] for w in wins})
+        for za, zz in zip(zs, zs[1:]):
+            cut = sorted((w[0], w[1]) for w in wins if w[2] <= za + 1e-6 and w[3] >= zz - 1e-6)
+            s0 = 0.0
+            for c0, c1 in cut + [(Le, Le)]:
+                if c0 - s0 > 1e-3:
+                    flat_wall(mb, P, s0, c0, za, zz, 'plaster_white')
+                s0 = c1
+        mb.quad(P(0, ztop, 0), P(Le, ztop, 0), P(Le, ztop, -0.3), P(0, ztop, -0.3), 'stone_white')       # coping
+        mb.quad(P(Le, ztop - 0.6, -0.3), P(0, ztop - 0.6, -0.3), P(0, ztop, -0.3), P(Le, ztop, -0.3), 'plaster_white')
+        if fascia and (ribbon_edges is None or i in ribbon_edges) and Le > 2.0:
+            fz0, fz1 = ztop - 1.15, ztop - 0.45                                 # the brown band under the coping
+            mb.quad(P(0, fz0, 0.04), P(Le, fz0, 0.04), P(Le, fz1, 0.04), P(0, fz1, 0.04), 'wood_dark')
+            mb.quad(P(0, fz1, 0.04), P(Le, fz1, 0.04), P(Le, fz1, 0.0), P(0, fz1, 0.0), 'wood_dark')
+            mb.quad(P(Le, fz0, 0.04), P(0, fz0, 0.04), P(0, fz0, 0.0), P(Le, fz0, 0.0), 'wood_dark')
+        for k, k1, z0_, z1_ in wins:          # the light set back 0.12 m: reveals, sill, head, two mullions
+            glass_run(mb, P, k, k1, z0_, z1_, -0.12, [k + (k1 - k) * f_ for f_ in (1 / 3, 2 / 3)], hall=False)
+            mb.quad(P(k, z0_, 0.0), P(k, z0_, -0.12), P(k, z1_, -0.12), P(k, z1_, 0.0), 'plaster_white')
+            mb.quad(P(k1, z0_, -0.12), P(k1, z0_, 0.0), P(k1, z1_, 0.0), P(k1, z1_, -0.12), 'plaster_white')
+            mb.quad(P(k, z0_, 0.06), P(k1, z0_, 0.06), P(k1, z0_, -0.12), P(k, z0_, -0.12), 'stone_white')
+            mb.quad(P(k1, z1_, 0.0), P(k, z1_, 0.0), P(k, z1_, -0.12), P(k1, z1_, -0.12), 'plaster_white')
+            for f_ in (1 / 3, 2 / 3):
+                s_ = k + (k1 - k) * f_
+                mb.quad(P(s_ - 0.04, z0_, -0.1), P(s_ + 0.04, z0_, -0.1), P(s_ + 0.04, z1_, -0.1), P(s_ - 0.04, z1_, -0.1), 'frame_dark')
+    if door:
+        i, s, gz = door
+        a, b = poly[i], poly[(i + 1) % n]
+        P, Le, t, nn = edge_P(a, b)
+        mb.quad(P(s - 0.9, gz, 0.02), P(s + 0.9, gz, 0.02), P(s + 0.9, gz + 2.3, 0.02), P(s - 0.9, gz + 2.3, 0.02), 'metal')
+        mb.quad(P(s - 0.03, gz, 0.03), P(s + 0.03, gz, 0.03), P(s + 0.03, gz + 2.3, 0.03), P(s - 0.03, gz + 2.3, 0.03), 'frame_dark')
+        mb.box(P(s, gz + 2.55, 0.35), (2.6, 0.7, 0.12), 'stone_white', rotz=math.atan2(t.y, t.x))        # its little canopy
+    inner = offset_poly(poly, -0.3)
+    mb.face([(p[0], p[1], ztop - 0.6) for p in inner], roof)
+
+
 def union():
     b = bld(1444448640)
-    cx, cy, L, W, ang, z0 = frame_for(b, (-1.0, 0.25))
-    L, W = L - 2, min(W, 24)
+    u97 = b.get('union97') or {}
+    if u97.get('main'):
+        # the main block on the 1997 scans' coping lines (tools/union97.py MAIN97): corners SW, NW, NE, SE; local -y west
+        sw, nw, ne, se = (Vector((*p, 0.0)) for p in u97['main'])
+        L, W = (nw - sw).length, (se - sw).length
+        cx, cy = (sw.x + ne.x) / 2, (sw.y + ne.y) / 2
+        un = (nw - sw).normalized()
+        ang, z0 = math.atan2(-un.y, -un.x), b['base']
+    else:
+        cx, cy, L, W, ang, z0 = frame_for(b, (-1.0, 0.25))
+        L, W = L - 2, min(W, 24)
     mb = MeshBuilder('lm_union')
     mb.xf = local_frame(cx, cy, ang, z0)
     # the 1997 hall (tools/union97.py, reference/고증/3.2-3.3 「학생회관 바닥과 서쪽 앞마당」): three storeys of the screen
     # over the glazed ground floor (the 1997, 2009 and 2025 photos: three rows of lancets), its floor at the deck along
     # the west front, a storey under the deck at the yard's level
-    u97 = b.get('union97') or {}
     st = u97.get('storeys', {})
     fh, nf = st.get('fh', 3.9), st.get('n', 4)
     g = st.get('g', 4.6)        # pilotis ground floor
@@ -480,7 +557,7 @@ def union():
         # pale green glass set well back. A hood rib springs from the fins round the window's head, and in the band
         # under the next sill a second pointed arch has its feet on the fins at the height of the window's apex.
         # The concrete is more than half of the wall: it reads white, not as dark glass behind thin ribs.
-        npan = max(2, int(round(Le / 1.2)))
+        npan = max(2, int(round(Le / u97.get('bay', 1.2))))     # (the 2025 photo: 57.5 bays over the 57 m front)
         pw = Le / npan
         DS, DG, DR = -0.3, -0.72, -0.2       # the screen's face, the glass, the ribs' face (fins and ledges at 0)
         for f in range(nf):
@@ -534,10 +611,57 @@ def union():
         flat_wall(mb, P, 0, Le, H, H + 1.0, 'stone_panel')
         mb.quad(P(0, H + 1.0, 0), P(Le, H + 1.0, 0), P(Le, H + 1.0, -0.9), P(0, H + 1.0, -0.9), 'stone_panel')
     mb.face([(p[0], p[1], H + 0.2) for p in offset_poly(rect(L, W), -0.9)], 'roof_flat')
-    mb.box((L * 0.2, 2, H + 1.6), (8, 6, 3.0), 'stone_panel', mats={'top': 'roof_flat'})
+    if not u97.get('pent'):
+        mb.box((L * 0.2, 2, H + 1.6), (8, 6, 3.0), 'stone_panel', mats={'top': 'roof_flat'})
+    # the plain boxes on the roof (tools/union97.py PENT97: the four 1997 frames at their tops; the 1997, 2009 and 2025
+    # photos' bare white box rising behind the screen's parapet over the middle of the front) and the stair house
+    for pb in u97.get('pent', []):
+        q = union_local(mb, pb['c'])
+        mb.prism(q, H + 0.2, pb['top'], 'stone_panel', 'roof_flat')
+        for i in range(len(q)):                                     # a coping round each
+            a, bb = q[i], q[(i + 1) % len(q)]
+            P, Le, t, n = edge_P(a, bb)
+            mb.quad(P(0, pb['top'] - 0.25, 0.04), P(Le, pb['top'] - 0.25, 0.04), P(Le, pb['top'], 0.04), P(0, pb['top'], 0.04), 'stone_white')
+    # the low south wing and the link between it and the main block (tools/union97.py SOUTH97 · LINK97; the 2008 roadview
+    # 2381266 · 2381269 · 2381272: white painted walls, two ribbons of windows over the forecourt and the road south of
+    # it, a dark brown band under the coping, a steel double door at the east end; the link one storey with a band of
+    # windows towards the east road).  Their walls go down past the ground, which falls 3 m from the east road to the
+    # forecourt
+    def edge_facing(poly, d):
+        """the edge whose outward normal is nearest the local direction d (the hall's frame: -y west, +x south)"""
+        best = None
+        for i in range(len(poly)):
+            a, bb = Vector((*poly[i], 0)), Vector((*poly[(i + 1) % len(poly)], 0))
+            tt = (bb - a).normalized()
+            sc = tt.y * d[0] - tt.x * d[1]
+            best = max(best or (sc, i), (sc, i))
+        return best[1]
+    if u97.get('south'):
+        S = u97['south']
+        q = union_local(mb, S['c'])
+        zf, hs = S['floor'], S['storey']
+        e_w, e_s, e_e, e_n = (edge_facing(q, d) for d in ((0, -1), (1, 0), (0, 1), (-1, 0)))
+        a, bb = q[e_e], q[(e_e + 1) % 4]
+        Pe, Lee, _, _ = edge_P(a, bb)
+        # (the door 3/4 of the way up the east end from its south corner: the 2008 frame from 2381272)
+        sd = Lee * (0.72 if (Vector((*bb, 0)) - Vector((*a, 0))).x < 0 else 0.28)    # (a: the south corner when x falls)
+        gd = local_ground(mb)(*Pe(sd, 0.0)[:2])
+        union_low(mb, q, zf, S['top'], 'roof_slate', bands=((zf + 0.9, zf + 2.3), (zf + hs + 0.9, zf + hs + 2.6)),
+                  door=(e_e, sd, gd), ribbon_edges={e_w, e_s}, fascia=True)
+        # the ducts on the roof's south strip (the scans' white runs, u 1 - 8.4)
+        a, bb = q[e_s], q[(e_s + 1) % 4]
+        Ps, Ls, ts, _ = edge_P(a, bb)
+        for s0, s1 in ((0.2, 0.32), (0.42, 0.55), (0.7, 0.86)):
+            c = Ps((s0 + s1) / 2 * Ls, S['top'] - 0.6 + 0.45, -3.5)
+            mb.box(c, ((s1 - s0) * Ls, 1.0, 0.9), 'metal', rotz=math.atan2(ts.y, ts.x))
+    if u97.get('link'):
+        K = u97['link']
+        q = union_local(mb, K['c'])
+        gk = min(local_ground(mb)(*p) for p in q)
+        union_low(mb, q, gk, K['top'], 'roof_flat', bands=((K['top'] - 1.9, K['top'] - 1.1),),
+                  ribbon_edges={edge_facing(q, (0, 1))})
     # (no banners on the front: the four long coloured ones hang in one photo alone, 1997_학생회관.jpg; the 1997 April
     # marathon's, the 2009 and 2025 photos and 학교연혁_학생회관.jpg show the screen bare, reference/고증 3.3)
-    # the lower white wing in the 1997 photo (학생회관 별관 is generic) -> nothing else
     return [mb]
 
 
