@@ -4006,10 +4006,19 @@ _ms, _m0, _m1 = MOUTH[0], MOUTH[1], MOUTH[2]
 # blocks; Kakao roadview August 2008 2381234, December 2010 1016785994 and April 2011 1017220165 the asphalt forecourt
 # with the verge open at s 161.3 - 173.0 (2008) and 161.9 - 173.4 (2011), each pano's heading from the yellow edge
 # lines' vanishing point, its place across the road from their slopes, along it from the hall's south-east corner
-# (tools/roadview/eng/mouth.py).  Photo A (May 1997) has the boxwood verge whole over the north half of that, and the
+# (tools/roadview/eng/mouth.py).  Photo A (spring 1999) has the boxwood verge whole over the north half of that, and the
 # sidewalk too: the opening is the strip's only (blender/road.py strip_breaks), the verge and the sidewalk stay.
 # (side, s0, s1)
 ENG_MOUTH = (1, 161.6, 173.2)
+# ... and as the vertical aerial photos of 28 July 1997 have it (26/16 · 27/17 · 27/16 on the ground's plane, in
+# tools/eng97.py's frame: reference/고증/3.8 「현관 앞 진입로」, 2026-11-17): the strip open over the whole forecourt band
+# between the two planted blocks (v -7.0 .. 13.2), the verge open v -5.0 .. 9.4 (a van stood in it), the two frames
+# within 0.1 m; in the band's middle a long bed across it, 12 x 3 m.  4 - 6 m north of the roadview's opening and wider.
+# ENG_MOUTH stays for the planting's decisions (its hedge and ginkgo row, the forecourt's clearing), so that the lists
+# keep their lengths and order; what stands in the 1997 openings steps aside in its place (below, ENG_COURT)
+ENG_MOUTH97 = (1, 163.1, 183.3)
+ENG_VERGE97 = [1, 165.0, 179.4]
+ENG_BED97 = eng97.poly([(70.0, 1.5), (82.0, 1.5), (82.0, 4.5), (70.0, 4.5)])
 # 경영학교실단(백양관) 앞 (reference/고증/3.15): the planting strip opens before the front flight and a walk runs from
 # the sidewalk straight to its foot.  Kakao roadview August 2008 2381318, December 2010 1016786030 and April 2011
 # 1017220201 have the hedges parted there, the walk between them as wide as the flight and no tree on it; the game had
@@ -8105,8 +8114,8 @@ out['baekyangro']['booth'] = BOOTH
 out['baekyangro']['mouths'] += [[1, -2.0, round(GATE_S + 1.0, 2), 0.0, 0.0], [-1, -2.0, round(GATE_S + 1.0, 2), 0.0, 0.0]]
 # 대강당 앞 둑: blender/road.py leaves the planting strip out where the wall stands, blender/landmarks.py aud_bank builds it
 out['baekyangro']['walls'] = [[AUD_BANK['side'], AUD_BANK['s0'], AUD_BANK['s1']]]
-out['baekyangro']['strip_breaks'] = [list(o_) for o_ in STRIP_OPEN]     # (제1공학관 앞 진입로, 백양관 앞)
-out['baekyangro']['breaks'] = VERGE_BREAKS          # (the verge's openings besides crossings and gaps, above)
+out['baekyangro']['strip_breaks'] = [list(ENG_MOUTH97 if o_ is ENG_MOUTH else o_) for o_ in STRIP_OPEN]   # (제1공학관 앞 진입로: 1997, 백양관 앞)
+out['baekyangro']['breaks'] = VERGE_BREAKS + [ENG_VERGE97]     # (the verge's openings besides crossings and gaps, above; 제1공학관 앞: 1997)
 # yellow-and-black bollards on the ramps of the openings, where the 2008 and the 2010 roadview both have them
 # (side, s; 1997 unknown): 백주년기념관 앞 건널목 (the one south of the grate), 학생회관 앞 (two, two, three, two and
 # two in the forecourt's five openings, VERGE_BREAKS)
@@ -9207,11 +9216,23 @@ print('정문 밖: blocks', len(out['town']['blocks']), 'signs', len(out['town']
 # order, web/src/world.js Forest, so no other tree changes its looks).  (2008 - 2011 have a row of bollards across it
 # on the strip's line, left out with the verge's opening)
 _eng_fp = Polygon(next(b_ for b_ in buildings if b_['id'] == 205583531)['footprint'])
-ENG_COURT = Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((ENG_MOUTH[1], E_WALK - 0.2), (ENG_MOUTH[2], E_WALK - 0.2),
-                                                         (ENG_MOUTH[2], 48.0), (ENG_MOUTH[1], 48.0))]).difference(_eng_fp)
-_ez = ENG_COURT.union(Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((ENG_MOUTH[1] - 0.6, E_WALK), (ENG_MOUTH[2] + 0.6, E_WALK),
-                                                                    (ENG_MOUTH[2] + 0.6, ROAD_HALF + 0.6),
-                                                                    (ENG_MOUTH[1] - 0.6, ROAD_HALF + 0.6))]))
+
+
+def _eng_court(m_):
+    return Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((m_[1], E_WALK - 0.2), (m_[2], E_WALK - 0.2),
+                                                        (m_[2], 48.0), (m_[1], 48.0))]).difference(_eng_fp)
+
+
+def _eng_strip(m_, pad):
+    return Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((m_[1] - pad, E_WALK), (m_[2] + pad, E_WALK), (m_[2] + pad, ROAD_HALF + pad),
+                                                        (m_[1] - pad, ROAD_HALF + pad))])
+
+
+# (the clearing below as first laid, ENG_MOUTH, so that the lists keep their order; the 1997 forecourt, ENG_MOUTH97, after it)
+ENG_COURT = _eng_court(ENG_MOUTH97).difference(ENG_BED97)
+_ebs = s_at(ENG_BED97.centroid.x, ENG_BED97.centroid.y)                # (cut across the bed, so that _ypaint, which draws
+ENG_COURT_PAINT = list(shapely.ops.split(ENG_COURT, LineString([along_raw(_ebs, o_)[:2] for o_ in (E_WALK - 1.0, 49.0)])).geoms)  # outlines, leaves it)
+_ez = _eng_court(ENG_MOUTH).union(_eng_strip(ENG_MOUTH, 0.6))
 _nf = (len(trees), len(shrubs), len(props), len(cars))
 for _i in sorted((i_ for i_, t_ in enumerate(trees) if _ez.contains(Point(*to_new(*rxy(t_))))), reverse=True):
     trees[_i] = trees[-1]           # (as first cleared, along the line as first laid: to_new; the moved line's at the end)
@@ -9224,8 +9245,49 @@ props[:] = [p_ for p_ in props if not _ez.contains(Point(p_[1], p_[2]))]
 cars[:] = [c_ for c_ in cars if not _ez.buffer(1.0).contains(Point(c_[1], c_[2]))]
 print('제1공학관 앞 진입로: cleared (trees, shrubs, props, cars)', _nf[0] - len(trees), _nf[1] - len(shrubs),
       _nf[2] - len(props), _nf[3] - len(cars))
-out['paths'].append(dict(kind='service', w=round(ENG_MOUTH[2] - ENG_MOUTH[1], 1),
-                         pts=[[round(v_, 1) for v_ in along_raw((ENG_MOUTH[1] + ENG_MOUTH[2]) / 2, o_)[:2]] for o_ in (ROAD_HALF, 38.0)]))
+# (the 1997 openings, ENG_MOUTH97 · ENG_VERGE97, and the bed: what the planting put there and the clearing above left
+# steps aside in its place in its list -- the strip's hedges into the stretch the 1997 opening closes (s 161.6 - 163.1)
+# and, with the verge's shrubs, into the bed; trees and props out of the forecourt along the road, past its ends)
+_ez97 = ENG_COURT.union(_eng_strip(ENG_MOUTH97, 0.6)).union(
+    Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((ENG_VERGE97[1] - 0.8, E_CURB - 0.3), (ENG_VERGE97[2] + 0.8, E_CURB - 0.3),
+                                                  (ENG_VERGE97[2] + 0.8, E_VERGE + 0.3), (ENG_VERGE97[1] - 0.8, E_VERGE + 0.3))]))
+_eb = ENG_BED97.buffer(-0.6)
+_bed_spots = [(x_, y_) for x_, y_ in (_eb.exterior.interpolate(d_).coords[0] for d_ in np.arange(0.0, _eb.exterior.length, 1.4))]
+_hedge_spots = [along_raw(s_, E_WALK + ROAD['strip'] * 0.5) for s_ in (161.9, 162.8)]
+_mv = [0, 0, 0]
+for s_ in shrubs:
+    if _ez97.contains(Point(s_[1], s_[2])) or ENG_BED97.contains(Point(s_[1], s_[2])):
+        if s_[0] == 'hedge_low' and _hedge_spots:
+            x_, y_, a_ = _hedge_spots.pop(0)
+            s_[1], s_[2], s_[4] = round(x_, 2), round(y_, 2), round(a_, 3)
+        elif _bed_spots:
+            x_, y_ = _bed_spots.pop(0)
+            s_[1], s_[2] = round(x_, 2), round(y_, 2)
+        else:
+            continue
+        _mv[1] += 1
+_eng_spots = []
+for lst_, k_ in ((trees, 0), (props, 2)):
+    for t_ in lst_:
+        if _ez97.contains(Point(t_[1], t_[2])) or ENG_BED97.contains(Point(t_[1], t_[2])):
+            s0_, o0_ = s_off(t_[1], t_[2])
+            south_ = s0_ - ENG_MOUTH97[1] < ENG_MOUTH97[2] - s0_
+            near_ = min(abs(s0_ - ENG_MOUTH97[1]), abs(s0_ - ENG_MOUTH97[2])) < 2.0
+            if near_:               # (just inside an end: out past it along its own line)
+                s1_, o1_ = (ENG_MOUTH97[1] - 1.2 if south_ else ENG_MOUTH97[2] + 1.2), o0_
+            else:                   # (into the planted block beside the forecourt, clear of the row and of each other)
+                s1_, o1_ = (ENG_MOUTH97[1] - 4.5 if south_ else ENG_MOUTH97[2] + 4.5), max(o0_, ROAD_HALF) + 6.0
+                while any(math.hypot(*np.subtract(along_raw(s1_, o1_)[:2], q_)) < 4.0 for q_ in _eng_spots):
+                    o1_ += 4.5
+            x_, y_, _ = along_raw(s1_, o1_)
+            _eng_spots.append((x_, y_))
+            t_[1], t_[2] = round(x_, 2), round(y_, 2)
+            if lst_ is trees and len(t_) > 5:
+                t_[5] = (t_[1], t_[2])
+            _mv[k_] += 1
+print('제1공학관 앞 진입로 1997: moved aside in their places (trees, shrubs, props)', _mv)
+out['paths'].append(dict(kind='service', w=round(ENG_MOUTH97[2] - ENG_MOUTH97[1], 1),
+                         pts=[[round(v_, 1) for v_ in along_raw((ENG_MOUTH97[1] + ENG_MOUTH97[2]) / 2, o_)[:2]] for o_ in (ROAD_HALF, 38.0)]))
 # ---------------------------------------------------------------------------------------------------------------------
 # 중앙도서관 앞 (LIB97 above, reference/고증/3.2): the forecourt of the vertical aerial photos of 28 July 1997 over the
 # one drawn from the 1990 · 1995 maps (LIB_BEDS, LIB_WALKS: the random planting read those, so this comes after every
@@ -10052,6 +10114,7 @@ ENG3_LAWN, ENG3_WALK = eng97.garden()
 _ypaint([ENG3_CLEAR, ENG3_LAWN], _yg)       # (제3공학관 남쪽, 남쪽 동 남동쪽 정원: OSM's later lawn, walks and roads out; eng97)
 _ypaint([eng97.strip_lawn()], _yg)           # (안뜰 서쪽 옹벽 뒤 화단 띠와 활꼴 어귀: lawn, OSM's later walk to the bay out; eng97)
 _ypaint([eng97.plaza_poly(), eng97.upper_paved()], _yg)   # (제2 · 제3공학관 사이와 그 동쪽 윗땅: OSM's later lawn and walks out; _gp · _ga below; eng97)
+_ypaint([ENG_BED97], _yg)                    # (제1공학관 앞 진입로 가운데의 긴 화단, 1997)
 # (the aprons of the halls left out or moved since the planting was laid, GONE_LAWN · SITES_NEW_1997: lawn where no hall of
 # 1997 stands; 과학관's court paved to the bank's foot and under its flight)
 _old_aprons = unary_union([Polygon(g_['footprint']) for g_ in RND_GHOSTS if g_['id'] in GONE_LAWN] +
@@ -10322,7 +10385,7 @@ _ypaint([GATE97_PAVE.difference(bline.buffer(E_CURB0))], _ga)   # (정문 안 �
 _ypaint([Polygon([st_xy(-5.4, -2.2), st_xy(5.4, -2.2), st_xy(5.4, 0.05), st_xy(-5.4, 0.05)])]
         + [Polygon([st_xy(sg_ * 1.0, 0.0), st_xy(sg_ * 5.4, 0.0), st_xy(sg_ * 5.4, 0.6), st_xy(sg_ * 1.0, 0.6)]) for sg_ in (-1, 1)],
         _ga)                                  # (and on under the flights' first treads, not up the lawn strip between)
-_ypaint([ENG_COURT], _ga)                     # (제1공학관 앞 진입로)
+_ypaint(ENG_COURT_PAINT, _ga)                 # (제1공학관 앞 진입로: the 1997 forecourt round the bed)
 _ypaint(libwest97.paint(), _ga)               # (중앙도서관 서쪽 길 · 자재 마당 · 북쪽 면 앞 띠, 북서쪽 굽은 길)
 # 중앙도서관 북쪽 찻길 (tools/libnorth97.py, reference/고증/3.2-3.3 「북쪽 찻길과 그 둘레」): the drive's west end
 # asphalt on to the north flight's foot and the curved road (the game had lawn and today's walks there); the beds'
