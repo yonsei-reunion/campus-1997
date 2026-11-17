@@ -98,8 +98,10 @@ ISLE_TIP = (61.48, 126.66)                          # (북쪽 가가 보도 서�
 # 보도의 두 가: x = a y + b (열다섯 · 열세 자리에 맞춘 곧은 줄, 잔차 rms 0.06 · 0.14 m)
 WALK_W, WALK_E = (0.25354, 29.36788), (0.27255, 30.72928)
 WALK_END = (64.2, 125.2)                            # (보도 동쪽 가의 북쪽 끝: 그 북쪽은 동쪽 갈림길의 아스팔트)
-# 계단: 발치 가운데(섬의 남서쪽 가를 남동쪽으로 늘인 줄 위), 오르는 쪽(북동, 섬의 가에 직각), 폭(가 따라), 디딤판
-ISLE_FLIGHT = dict(foot=(53.89, 93.54), up=(0.8687, 0.4955), width=4.4, tread=0.30, landing=0.6, maxrise=0.165)
+# 계단: 발치 가운데(섬의 남서쪽 가를 남동쪽으로 늘인 줄 위), 오르는 쪽(북동, 섬의 가에 직각), 폭(가 따라), 디딤판.
+# 디딤판: 서쪽 코스 두 장(26/15 · 26/16)의 챌판 줄 사이 0.38 m 는 한 면에 다시 투영한 값이라, 한 단 위의 줄이 그 카메라의
+# 기울기(오르는 쪽으로 높이 1 m 에 0.31 m)만큼 더 멀리 찍힌 것: 0.38 − 0.31 × 단 높이 0.15 = 0.33 m(전 0.30, 흔한 값으로 둔 것)
+ISLE_FLIGHT = dict(foot=(53.89, 93.54), up=(0.8687, 0.4955), width=4.4, tread=0.33, landing=0.6, maxrise=0.165)
 ISLE_WALK_S = 41.2                                  # (보도 남쪽 끝, 계단 머리의 사진 높이 해발: 넷째 ~ 여섯째 점 40.9 ~ 41.25)
 # 격자 마디: (x, y, 사진 높이 해발, 무엇). 사진 높이는 그 마디에서 짝 여섯을 따로 잰 중앙값(창 ±1.25 m, 상관 0.7 넘는 짝),
 # 나무에 가린 마디는 둘레 점에서 이은 값(i), 보도 동쪽 가 마디는 보도 서쪽 가의 높이(동쪽 가는 무늬 없는 띠 끝이라 0.6 m
@@ -233,3 +235,130 @@ def isle_paths(paths, n_flight):
               dict(kind='steps', w=ISLE_FLIGHT['width'], pts=[[round(f[0], 1), round(f[1], 1)], [round(top[0], 1), round(top[1], 1)]]),
               dict(kind='footway', w=3.4, pts=[[round(top[0], 1), round(top[1], 1)], mid(100.0), mid(124.0)])]
     return n
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 4. 섬 남서쪽 옹벽 (isle_wall: reference/고증/4.5.1 「섬 남서쪽 옹벽」). 섬의 남서쪽 가는 길보다 높은 섬을 받치는 낮은 옹벽이다
+# (1997년 7월 원본 스캔: 남동쪽 끝 1.2 m 남짓에서 북서쪽 끝 0 으로). 5 m 격자로는 한 칸의 비탈이라, 옹벽이 지나는 칸의 마디를
+# 길 높이로 두고 섬 · 보도를 그 위의 판(데크, build_campus.py dwb_deck)으로 덮은 뒤 옹벽을 메시로 세운다(med97 nurse_* 와 같은 꼴)
+# 옹벽의 줄: 계단 북서쪽 옆(섬의 남쪽 끝) -> 남서쪽 가 -> 북서쪽 끝(둥근 곳의 시작)
+ISLE_TIP0 = (43.3, 114.2)
+# 옹벽 머리(섬 쪽 0.3 m 안)의 사진 높이(해발): 줄을 따라 잰 거리 -> 높이. 남동쪽 끝은 섬 (53.5, 95.9) 41.0 m, 가 2.5 m 안 41.0
+# (s 6.4) · 1.5 m 안 40.35 (s 10.9) 에서 가로 낮춘 값, y 108 의 가 40.2 m, 북서쪽 끝(K1) 0.7 m 안 39.3 m, 둥근 끝 39.0 m
+ISLE_WALL_TOP = [(0.0, 41.0), (1.43, 41.0), (6.43, 40.6), (10.93, 40.25), (13.93, 40.2), (16.93, 39.8), (19.43, 39.3), (21.2, 39.0)]
+ISLE_COPE = (0.25, 0.08)                            # 갓돌의 두께(옹벽 머리 너머 높이), 너비 넘침
+
+
+def isle_wall_line(n_flight):
+    f, d = np.array(ISLE_FLIGHT['foot']), np.array(ISLE_FLIGHT['up'])
+    nw = f + np.array([-d[1], d[0]]) * ISLE_FLIGHT['width'] / 2
+    return LineString([tuple(nw), ISLE_KERB[0], ISLE_KERB[1], ISLE_TIP0])
+
+
+def _isle_h_fn(n_flight):
+    """섬 · 보도 윗면의 높이(해발, 게임: 사진 높이 − isle_off): 옹벽 머리의 줄과 섬 · 보도 마디(ISLE_NODES)를 잇는 삼각형 면"""
+    from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
+    ln = isle_wall_line(n_flight)
+    isle, _, _ = isle_geom(n_flight)
+    pts = []
+    for s in np.arange(0.0, ln.length + 1e-6, 1.0):
+        p = np.array(ln.interpolate(s).coords[0])
+        q = np.array(ln.interpolate(min(s + 0.5, ln.length)).coords[0]) - np.array(ln.interpolate(max(s - 0.5, 0.0)).coords[0])
+        q = q / max(np.linalg.norm(q), 1e-9)
+        inn = np.array([q[1], -q[0]])                  # (right of the line's run: the island's side)
+        c = p + inn * 0.3
+        pts.append((c[0], c[1], float(np.interp(s, *zip(*ISLE_WALL_TOP)))))
+    for x_, y_, z_, k_ in ISLE_NODES:
+        if k_.split()[0] in ('isle', 'walk'):
+            pts.append((x_, y_, z_))
+    P = np.array(pts)
+    P[:, 2] -= [isle_off(y_) for y_ in P[:, 1]]
+    lin, near = LinearNDInterpolator(P[:, :2], P[:, 2]), NearestNDInterpolator(P[:, :2], P[:, 2])
+
+    def h(x, y):
+        x, y = np.asarray(x, float), np.asarray(y, float)
+        z = lin(x, y)
+        return np.where(np.isfinite(z), z, near(x, y))
+    return h
+
+
+def _isle_road_fn(z_terrace_sea):
+    """길 쪽 높이(해발, 게임): 길 마디(ISLE_NODES road)와 윗단 북쪽 끝 줄을 잇는 면"""
+    from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
+    P = np.array([(x_, y_, z_ - isle_off(y_)) for x_, y_, z_, k_ in ISLE_NODES if k_.split()[0] == 'road'] +
+                 [(x_, y_, z_terrace_sea) for x_, y_ in ISLE_TERRACE])
+    lin, near = LinearNDInterpolator(P[:, :2], P[:, 2]), NearestNDInterpolator(P[:, :2], P[:, 2])
+
+    def h(x, y):
+        z = lin(x, y)
+        return np.where(np.isfinite(z), z, near(x, y))
+    return h
+
+
+def isle_wall_grade(Hn, X, Y, FIXED, n_flight, z_terrace, step=5.0, half=800.0):
+    """옹벽이 지나는 5 m 칸의 마디 가운데 섬 · 보도 쪽의 것을 길 높이로 내리고(그 칸의 길 쪽이 비탈이 되지 않게), 그 마디를
+    나누는 칸들의 섬 · 보도 쪽을 덮을 판의 칸과 다각형을 돌려준다. z_terrace: 윗단의 작업면 높이.
+    돌려주는 것: (내린 마디, 판의 칸, 판의 다각형(섬 · 보도에서 계단을 뺀 것), 판의 높이 함수(작업면), 요약)"""
+    ln = isle_wall_line(n_flight)
+    isle, pave, road = isle_geom(n_flight)
+    raised = unary_union([isle, pave]).difference(isle_flight_poly(n_flight).buffer(0.05))
+    hfun = _isle_h_fn(n_flight)
+    rfun = _isle_road_fn(z_terrace - datum.tilt(*ISLE_TERRACE[0]))
+    cells = set()
+    x0, y0, x1, y1 = ln.bounds
+    for j in range(int(math.floor((y0 + half) / step)), int(math.ceil((y1 + half) / step))):
+        for i in range(int(math.floor((x0 + half) / step)), int(math.ceil((x1 + half) / step))):
+            bx = shapely.geometry.box(-half + i * step, -half + j * step, -half + (i + 1) * step, -half + (j + 1) * step)
+            if bx.intersection(ln).length > 0.05:
+                cells.add((j, i))
+    low = np.zeros(X.shape, bool)
+    for j, i in cells:
+        low[j:j + 2, i:i + 2] = True
+    side = shapely.contains_xy(raised, X, Y)          # (the low nodes on the island's side: down to the road's level)
+    down = low & side
+    h0 = Hn.copy()
+    Hn[down] = [datum.up(x_, y_, float(rfun(x_, y_)), None) for x_, y_ in zip(X[down], Y[down])]
+    jj, ii = np.nonzero(low)
+    deck_cells = {(j + a, i + b) for j, i in zip(jj, ii) for a in (-1, 0) for b in (-1, 0)}
+    poly = unary_union([shapely.geometry.box(-half + i * step, -half + j * step, -half + (i + 1) * step, -half + (j + 1) * step)
+                        for j, i in deck_cells]).intersection(raised)
+    poly = unary_union([g for g in getattr(poly, 'geoms', [poly]) if g.geom_type == 'Polygon' and g.area > 0.05])
+    hw = lambda x, y: datum.up(float(x), float(y), float(hfun(x, y)), None)
+    d = Hn - h0
+    info = dict(wall_cells=len(cells), down=int(down.sum()), dz=(round(float(d[down].min()), 2), round(float(d[down].max()), 2)) if down.any() else None,
+                deck_cells=len(deck_cells), deck_m2=round(poly.area, 1),
+                at=[(float(x_), float(y_), round(float(v_), 2)) for x_, y_, v_ in zip(X[down], Y[down], d[down])])
+    return down, deck_cells, poly, hw, info
+
+
+def isle_walls(top, foot, n_flight, step=0.5):
+    """옹벽: 섬 판의 가(top)에서 길(foot)까지 막돌 면, 그 위에 콘크리트 갓돌. [재질, 네 점] 과 막을 곳(없음)"""
+    ln = isle_wall_line(n_flight)
+    quads = []
+    R = lambda q, z: [round(float(q[0]), 3), round(float(q[1]), 3), round(float(z), 3)]
+    ct, cw = ISLE_COPE
+    L = ln.length
+    n = max(1, int(math.ceil(L / step)))
+    S = [L * k / n for k in range(n + 1)]
+    P, Nrm = [], []
+    for s in S:
+        p = np.array(ln.interpolate(s).coords[0])
+        q = np.array(ln.interpolate(min(s + 0.25, L)).coords[0]) - np.array(ln.interpolate(max(s - 0.25, 0.0)).coords[0])
+        q = q / max(np.linalg.norm(q), 1e-9)
+        P.append(p)
+        Nrm.append(np.array([-q[1], q[0]]))           # (left of the run: out over the road)
+    zt = [top(*(p - nn * 0.05)) for p, nn in zip(P, Nrm)]
+    zb = [foot(*(p + nn * 0.1)) - 0.08 for p, nn in zip(P, Nrm)]
+    for k in range(n):
+        if max(zt[k] - zb[k], zt[k + 1] - zb[k + 1]) < 0.12:
+            continue
+        a, b = P[k], P[k + 1]
+        ao, bo = a + Nrm[k] * cw, b + Nrm[k + 1] * cw
+        ai, bi = a - Nrm[k] * 0.25, b - Nrm[k + 1] * 0.25
+        # (seen from the road the run goes right to left: the face wound so, then the coping's face, top and back)
+        quads.append(['stone_rubble_warm', [R(b, zb[k + 1]), R(a, zb[k]), R(a, zt[k]), R(b, zt[k + 1])]])
+        quads.append(['concrete', [R(bo, zt[k + 1]), R(ao, zt[k]), R(ao, zt[k] + ct), R(bo, zt[k + 1] + ct)]])
+        quads.append(['concrete', [R(bo, zt[k + 1] + ct), R(ao, zt[k] + ct), R(ai, zt[k] + ct), R(bi, zt[k + 1] + ct)]])
+        quads.append(['concrete', [R(ai, zt[k] + ct), R(ai, zt[k] - 0.02), R(bi, zt[k + 1] - 0.02), R(bi, zt[k + 1] + ct)]])
+        quads.append(['concrete', [R(bo, zt[k + 1]), R(b, zt[k + 1]), R(a, zt[k]), R(ao, zt[k])]])   # (under the overhang)
+    return quads, []

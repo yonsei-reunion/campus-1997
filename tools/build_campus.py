@@ -7027,6 +7027,12 @@ ISLE97 = dict(flight=flight_at('aud_north', _ist, -_isd, datum.up(*_ist, _isz_to
                                landing=_isf['landing'], tread=_isf['tread'], maxrise=_isf['maxrise']))   # (no side walls: the walk leaves the landing northwards)
 _is_took, ISLE97_GRADE = audnorth97.isle_grade(Hn, X, Y, FIXED, harmonic_fill, AUD97['z'], _isn, _isz_foot)
 FIXED[_is_took] = True
+# ... and the low retaining wall along the island's south-west side (audnorth97.isle_wall_grade, reference/고증/4.5.1
+# 「섬 남서쪽 옹벽」): the island's nodes in the cells the wall crosses down to the road's level, the island and the walk
+# over them a deck (ISLE_WALL_DECK below), the wall a mesh from the deck's edge to the road (with 의료원 서쪽's surfaces)
+_iw_down, ISLE_WALL_CELLS, ISLE_WALL_POLY, ISLE_WALL_H, ISLE_WALL97 = audnorth97.isle_wall_grade(Hn, X, Y, FIXED, _isn, AUD97['z'])
+FIXED[_iw_down] = True
+print('대강당 윗단 북쪽 끝 너머 섬의 옹벽:', {k_: v_ for k_, v_ in ISLE_WALL97.items() if k_ != 'at'}, ISLE_WALL97['at'])
 ISLE_LAWN, ISLE_PAVE, ISLE_ROAD = audnorth97.isle_geom(_isn)
 _is_old, _is_oldw = audnorth97.isle_old_street(paths_out)
 ISLE_OLD = _is_old.buffer(_is_oldw / 2 + 0.4, cap_style='flat') if _is_old is not None and not _is_old.is_empty else Polygon()
@@ -7858,6 +7864,7 @@ DAEWOO_BACK['deck_nw'] = dwb_deck(_nw_cells, _nw_poly, _nw_h)
 MED_STRIP_DECK = dwb_deck(MED_STRIP_CELLS, MED_STRIP_POLY, med97.strip_h)       # (성산로 북쪽 가: med97.strip_grade above)
 NURSE_DECK = dwb_deck(NURSE_CELLS, NURSE_POLY, med97.nurse_h)                   # (간호대학 북쪽 주차장: med97.nurse_grade above)
 FOOT_DECK = dwb_deck(FOOT_CELLS, FOOT_POLY, FOOT_H0)                             # (음악대학 동쪽 큰 주차장 서쪽 통로: med97.foot_grade)
+ISLE_WALL_DECK = dwb_deck(ISLE_WALL_CELLS, ISLE_WALL_POLY, ISLE_WALL_H)          # (대강당 북쪽 끝 너머 섬: audnorth97.isle_wall_grade)
 print('   its deck: %.1f m2, %d triangles' % (_nw_poly.area, len(DAEWOO_BACK['deck_nw']['f'])))
 DAEWOO_BACK['lot_z'] = [round(dwb_lot_z(v_), 3) for v_ in (36.0, 75.0, 86.0)]
 print('daewoo back deck: %d vertices, %d triangles, rim %d' % (len(DAEWOO_BACK['deck']['v']), len(DAEWOO_BACK['deck']['f']),
@@ -10062,7 +10069,9 @@ print('의료원 서쪽: surfaces %d triangles, walls and parapets %d quads' % (
 _mv = out['med_west']
 for _nm, _dk, _dp, _dh, _dw in (('ssr_strip', MED_STRIP_DECK, MED_STRIP_POLY, med97.strip_h, med97.strip_walls),
                                 ('nurse_lot', NURSE_DECK, NURSE_POLY, med97.nurse_h, med97.nurse_walls),
-                                ('music_east_foot', FOOT_DECK, FOOT_POLY, FOOT_H0, med97.foot_walls)):
+                                ('music_east_foot', FOOT_DECK, FOOT_POLY, FOOT_H0, med97.foot_walls),
+                                ('aud_isle', ISLE_WALL_DECK, ISLE_WALL_POLY, ISLE_WALL_H,
+                                 lambda t_, f_: audnorth97.isle_walls(t_, f_, _isn))):
     _mv_n0 = len(_mv['top']['v'])
     _mv['top']['v'] += _dk['v']
     _mv['top']['f'] += [[i_ + _mv_n0 for i_ in f_] for f_ in _dk['f']]
@@ -10077,7 +10086,7 @@ for _nm, _dk, _dp, _dh, _dw in (('ssr_strip', MED_STRIP_DECK, MED_STRIP_POLY, me
             continue
         _pu, _pv = zip(*[medwest97.uv(x_, y_) for x_, y_ in g_.exterior.coords])
         # (its table: the two corners where the surface is a plane, every metre where it is the bank's as it was)
-        _st = 1.0 if _nm == 'music_east_foot' else None
+        _st = 1.0 if _nm in ('music_east_foot', 'aud_isle') else None
         _pus, _pvs = ([round(float(v_), 3) for v_ in np.arange(min(_pu) - 0.5, max(_pu) + 1.5, _st)],
                       [round(float(v_), 3) for v_ in np.arange(min(_pv) - 0.5, max(_pv) + 1.5, _st)]) if _st else \
             ([round(float(min(_pu)) - 0.5, 3), round(float(max(_pu)) + 0.5, 3)], [round(float(min(_pv)) - 0.5, 3), round(float(max(_pv)) + 0.5, 3)])
