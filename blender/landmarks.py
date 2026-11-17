@@ -6861,14 +6861,15 @@ def kwangbok():
 # ============================================================================= 연세한글탑 (1992)
 def hangeul_tower():
     """연세한글탑 (1992, 전뢰진; granite) on the round paving south of 중앙도서관, where it stood until the 백양로
-    rebuilding (tools/build_campus.py HANGEUL_TOWER, reference/고증/4.14): four legs on a cross plan, each an upright
-    slab that runs out into a boot, and on them a barrel on its side with a bore through it (the 원 of 천 · 지 · 인;
-    the letters and grooves round it not modelled).  Local +x looks at 백양로 (the bore's way, the roadview of 2010
-    and 2011: seen straight through from azimuth 107), -y at the eagle and the gate: 「연세한글탑」 is cut in that
-    leg's face (the unveiling photographs of 1992; the letters not modelled).  The dark plate low on the north leg's
+    rebuilding (tools/build_campus.py HANGEUL_TOWER, reference/고증/4.14): four legs on a cross plan, north and south
+    an upright slab that runs out into a boot, east and west a sloping wing (the 人 seen from the gate), and on them a
+    barrel on its side with a bore through it (the 원 of 천 · 지 · 인), grooves and 자모 strokes round its belt.  Local
+    +x looks at 백양로 (the bore's way, the roadview of 2010 and 2011: seen straight through from azimuth 107), -y at
+    the eagle and the gate: 「연세한글탑」 is cut in that leg's face (han.jpg of the school's 1996 site, the unveiling
+    photographs of 1992), a framed panel high on the east leg's south flank.  The dark plate low on the north leg's
     east flank is from the roadview.  Its top 7.2 m over the paving in the 1997 scans (four frames); the head 2.65 m
-    across by the roadview, the legs' reach and the profile after photographs, an approximation.  It stands on its
-    round stepped foot (the 「땅」, hangeul_base)."""
+    across by the roadview, the legs' reach and profiles after photographs, an approximation.  It stands on its round
+    stepped foot (the 「땅」, hangeul_base)."""
     T = CAMPUS.get('hangeul_tower')
     if not T:
         return []
@@ -6886,17 +6887,36 @@ def hangeul_tower():
 
     w = 0.75 * k                                                                            # the slabs' half width
     mb.box((0, 0, 2.15 * k), (2 * w, 2 * w, 4.9 * k), S, skip=('bottom',))
-    # a leg's outer line, (out, up): the toe's blunt end, the instep, the upright slab and its shoulder
-    prof = [(3.0, -0.3), (3.0, 0.85), (2.75, 1.1), (1.9, 1.55), (1.3, 2.1), (1.12, 2.6), (1.05, 4.2), (0.9, 4.5), (0.6, 4.6)]
+    # a leg's outer line, (out, up).  North and south (the 1990s photographs from the south-south-east, the school's
+    # 1996 photo han.jpg, 2022 after the move; reference/고증/4.14 「생김새와 방향」): an upright slab from the shoulder
+    # down to 1.85 m (the joint under 「연세한글탑」), then the boot's rounded top running out to the toe's blunt end,
+    # 1.4 m high at the end.  East and west, the 人 seen from the gate: the outer line slopes from the shoulder in a
+    # concave sweep to the toe (the east flank in the photograph from the south-south-east), the boot bulging under it.
+    prof_ns = [(3.0, -0.3), (3.0, 1.05), (2.9, 1.3), (2.65, 1.45), (2.2, 1.58), (1.7, 1.68), (1.3, 1.78), (1.12, 1.95),
+               (1.08, 3.0), (1.05, 4.2), (0.9, 4.5), (0.6, 4.6)]
+    prof_ew = [(2.95, -0.3), (2.95, 0.6), (2.9, 0.95), (2.75, 1.25), (2.45, 1.8), (2.05, 2.7), (1.55, 3.75), (1.2, 4.2),
+               (0.85, 4.48), (0.6, 4.6)]
     for q in range(4):
         c_, s_ = math.cos(q * math.pi / 2), math.sin(q * math.pi / 2)
         W = lambda r, t, z: (r * k * c_ - t * s_, r * k * s_ + t * c_, z * k)
+        prof = prof_ew if q % 2 == 0 else prof_ns
         for (r0, z0), (r1, z1) in zip(prof, prof[1:]):
             for sg in (-1, 1):                                                              # the flanks, in level bands
                 out_face([W(0.6, sg * w, z0), W(r0, sg * w, z0), W(r1, sg * w, z1), W(0.6, sg * w, z1)], (-sg * s_, sg * c_, 0))
             out_face([W(r0, -w, z0), W(r0, w, z0), W(r1, w, z1), W(r1, -w, z1)], (c_ * (z1 - z0), s_ * (z1 - z0), r0 - r1 + 1e-6))
     # the plate on the north leg's east flank
     mb.box((w + 0.02 * k, 1.5 * k, 0.8 * k), (0.05 * k, 0.8 * k, 0.55 * k), 'bronze', skip=('bottom',))
+    # 「연세한글탑」 cut down the south slab's face over its joint (han.jpg, 1992 · 1990s photographs): one decal of the
+    # incised letters (tools/make_textures.py hangeul_tower, the left half), 0.44 m wide, 2.1 - 4.2 m
+    rz = lambda z: 1.12 + (1.05 - 1.12) * (z - 1.95) / (4.2 - 1.95)                      # the slab's face, out at height z
+    zl, zh, hw = 2.1, 4.2, 0.22
+    mb.face([(-hw * k, -(rz(zl) + 0.008) * k, zl * k), (hw * k, -(rz(zl) + 0.008) * k, zl * k),
+             (hw * k, -(rz(zh) + 0.008) * k, zh * k), (-hw * k, -(rz(zh) + 0.008) * k, zh * k)],
+            'hangeul_letters', uvs=[(0, 0), (0.5, 0), (0.5, 1), (0, 1)])
+    # the framed panel high on the east leg's south flank (the photograph from the south-south-east; the right half)
+    pr0, pr1, pz0, pz1, py = 0.95, 1.5, 2.75, 3.7, -(w + 0.006)
+    mb.face([(pr0 * k, py, pz0 * k), (pr1 * k, py, pz0 * k), (pr1 * k, py, pz1 * k), (pr0 * k, py, pz1 * k)],
+            'hangeul_letters', uvs=[(0.5, 0), (1, 0), (1, 0.3125), (0.5, 0.3125)])
     # the head: a barrel on its side, the bore along x
     zc, R0, hl, ri, n, ns = 5.875 * k, 1.325 * k, 0.95 * k, 0.58 * k, 24, 6
     Rs = lambda s: R0 * math.sqrt(1.0 - (0.6 * s / hl) ** 2)                                # 0.8 R0 at the ends
@@ -6911,6 +6931,34 @@ def hangeul_tower():
         out_face([P(-hl, ri, a0), P(hl, ri, a0), P(hl, ri, a1), P(-hl, ri, a1)], tuple(-v for v in rad), smooth='ht_bore')
         for sg in (-1, 1):
             out_face([P(sg * hl, ri, a0), P(sg * hl, Rs(hl), a0), P(sg * hl, Rs(hl), a1), P(sg * hl, ri, a1)], (sg, 0, 0))
+    # the grooves round the head's middle belt, north and south alike (han.jpg; the 1992 · 1990s photographs; 2022):
+    # three running the barrel's length at 40, 8 and -35 degrees over level, upright ones across the belt at five
+    # places, two with a short stroke off them (the 자모: ㅏ, ㅓ); an approximation of the pattern
+    e, gw = 0.006 * k, 0.016 * k
+
+    def groove_s(a_, s0, s1, m=8):                       # along the barrel at angle a_
+        da = gw / R0
+        for i in range(m):
+            sa, sb = s0 + (s1 - s0) * i / m, s0 + (s1 - s0) * (i + 1) / m
+            out_face([P(sa, Rs(sa) + e, a_ - da), P(sb, Rs(sb) + e, a_ - da), P(sb, Rs(sb) + e, a_ + da),
+                      P(sa, Rs(sa) + e, a_ + da)], (0, math.cos(a_), math.sin(a_)), mat='stone_haetae')
+
+    def groove_a(s_, a0_, a1_, m=6):                     # round the barrel at s_
+        for i in range(m):
+            aa, ab = a0_ + (a1_ - a0_) * i / m, a0_ + (a1_ - a0_) * (i + 1) / m
+            r_ = Rs(s_) + e
+            out_face([P(s_ - gw, r_, aa), P(s_ + gw, r_, aa), P(s_ + gw, r_, ab), P(s_ - gw, r_, ab)],
+                     (0, math.cos((aa + ab) / 2), math.sin((aa + ab) / 2)), mat='stone_haetae')
+
+    th_top, th_mid, th_bot = (math.radians(d) for d in (40, 8, -35))
+    for side in (lambda th: math.pi - th, lambda th: th):                          # south, north
+        for th in (th_top, th_mid, th_bot):
+            groove_s(side(th), -hl * 0.97, hl * 0.97)
+        for f, (t0, t1) in ((-0.78, (th_bot, th_top)), (-0.42, (th_mid, th_top)), (-0.05, (th_bot, th_top)),
+                            (0.33, (th_bot, th_top)), (0.7, (th_bot, th_mid))):
+            groove_a(f * hl, side(t0), side(t1))
+        groove_s(side(math.radians(24)), -0.78 * hl, -0.78 * hl + 0.14 * k, m=2)      # ㅏ
+        groove_s(side(math.radians(-14)), 0.33 * hl - 0.14 * k, 0.33 * hl, m=2)       # ㅓ
     return [mb] + base
 
 

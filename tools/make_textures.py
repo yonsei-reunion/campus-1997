@@ -1231,6 +1231,47 @@ def mouth_signs():
 
 mouth_signs()
 
+
+# hangeul_tower.png: what is cut in 연세한글탑's granite (blender/landmarks.py hangeul_tower, reference/고증/4.14), the
+# cuts dark, the rest cut away (alpha).  Left half: 「연세한글탑」 down the south slab (0.44 x 2.1 m), the letters as
+# they stand in han.jpg of the school's 1996 site and the 1990s photographs.  Right half, bottom 480 px: the framed
+# panel high on the east leg's south flank (0.55 x 0.95 m) with the two marks seen in the photograph from the
+# south-south-east (its finer cutting does not show; not drawn).
+def hangeul_tower_tex():
+    if ONLY and 'hangeul_tower' not in ONLY:
+        return
+    W, H = 512, 1536
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    ink = (58, 56, 52, 255)
+    # the letters: drawn on a 256 x 1222 canvas (the quad's 0.44 x 2.1 m at one scale) and stretched to 256 x 1536
+    cw, ch = 256 * SS, 1222 * SS
+    col = Image.new('L', (cw, ch), 0)
+    d = ImageDraw.Draw(col)
+    f = ImageFont.truetype('/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc', int(226 * SS), index=1)   # (KR)
+    pitch = ch / 5
+    for i, ch_ in enumerate('연세한글탑'):
+        d.text((cw / 2, pitch * (i + 0.5)), ch_, font=f, fill=255, anchor='mm')
+    col = col.resize((256, 1536), Image.LANCZOS)
+    img.paste(Image.new('RGBA', (256, 1536), ink), (0, 0), col)
+    # the panel: a double frame, two marks like ㅜ side by side in its upper half (a long bar, a short stem)
+    pw, ph = 256 * SS, 480 * SS
+    pan = Image.new('L', (pw, ph), 0)
+    d = ImageDraw.Draw(pan)
+    lw = 7 * SS
+    d.rectangle([lw, lw, pw - 1 - lw, ph - 1 - lw], outline=255, width=lw)
+    d.rectangle([4 * lw, 4 * lw, pw - 1 - 4 * lw, ph - 1 - 4 * lw], outline=255, width=lw // 2 + 1)
+    for cx in (0.33, 0.67):
+        x = cx * pw
+        d.line([(x - 0.15 * pw, 0.3 * ph), (x + 0.15 * pw, 0.3 * ph)], fill=255, width=lw)
+        d.line([(x, 0.3 * ph), (x, 0.4 * ph)], fill=255, width=lw)
+    pan = pan.resize((256, 480), Image.LANCZOS)
+    img.paste(Image.new('RGBA', (256, 480), ink), (256, H - 480), pan)
+    img.save(os.path.join(OUT, 'hangeul_tower.png'), optimize=True)
+    print('hangeul_tower')
+
+
+hangeul_tower_tex()
+
 if ONLY:
     raise SystemExit(0)
 

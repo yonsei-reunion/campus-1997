@@ -1384,5 +1384,11 @@
    0.92
   ],
   "rough": 0.5
+ },
+ "hangeul_letters": {
+  "_doc": "연세한글탑에 새긴 「연세한글탑」 글씨와 동쪽 다리의 네모 판 (tools/make_textures.py hangeul_tower, 고증 4.14): 새긴 홈만 남기고 잘라 냄",
+  "image": "hangeul_tower.png",
+  "rough": 0.8,
+  "cut": 0.5
  }
 }
