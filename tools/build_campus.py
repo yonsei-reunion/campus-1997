@@ -11756,6 +11756,31 @@ for b_ in buildings:
     if b_['id'] == allen97.ALLEN:
         allen97.south_block(b_)
 buildings += allen97.halls()
+# 백양관 가건물 (reference/고증/3.9 「경영학교실단 앞동 서쪽의 가건물」; the 1997-07-28 scans, four frames from both
+# flight lines read on the roof's own plane): the flat-roofed block against the front block's west wall, which OSM and
+# the game never had -- the student societies' 「백양관 가건물」 · 「백양관 (자치)별관」 of 연세춘추 2001 (pulled down
+# in 2001 for the new 광복관).  In 경영학교실단's west-face frame (o its south-west corner (-57.62, 55.45), u along
+# that face north-north-east, v east): u 13.0 - 41.9, v -7.6 - 0 (the photos' roof 7.6 m wide, its east edge on the
+# hall's wall); the roof 44.1 m, the ground at its south end 36.7 m: two storeys.  At the very end (blender/build.py
+# draws each hall's looks in its order: none before it changes)
+BK_HUT = dict(id=990097, o=(-57.62, 55.45), t=(0.26032, 0.96552), uv=(13.0, 41.9, -7.6, 0.0), floor=36.7, roof=44.1,
+              parapet=0.6)
+
+
+def bk_hut_xy(u_, v_):
+    o_, t_ = BK_HUT['o'], BK_HUT['t']
+    return (round(o_[0] + t_[0] * u_ + t_[1] * v_, 2), round(o_[1] + t_[1] * u_ - t_[0] * v_, 2))
+
+
+_bh_u0, _bh_u1, _bh_v0, _bh_v1 = BK_HUT['uv']
+_bh_fp = [bk_hut_xy(u_, v_) for u_, v_ in ((_bh_u0, _bh_v1), (_bh_u1, _bh_v1), (_bh_u1, _bh_v0), (_bh_u0, _bh_v0))]
+_bh_c = bk_hut_xy((_bh_u0 + _bh_u1) / 2, (_bh_v0 + _bh_v1) / 2)
+_bh_fh = round((BK_HUT['roof'] - BK_HUT['floor']) / 2, 3)
+buildings.append(dict(id=BK_HUT['id'], name='', style='white', levels=2, fh=_bh_fh,
+                      height=round(BK_HUT['roof'] - BK_HUT['floor'] + BK_HUT['parapet'], 2), parapet=BK_HUT['parapet'],
+                      base=datum.up(*_bh_c, BK_HUT['floor']),
+                      top_ground=round(max(ground_h(x_, y_) for x_, y_ in _bh_fp), 2),
+                      footprint=[list(p_) for p_ in shapely.geometry.polygon.orient(Polygon(_bh_fp), 1.0).exterior.coords][:-1]))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
 # edges in their places in the list
@@ -11797,6 +11822,34 @@ print('종합관 북쪽 마당: trees out of the yard and the low block',
       jonghap97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
 # 외솔관2 서쪽 끝 바깥의 박공 건물 (jonghap97.ow_halls): the trees, shrubs and props on its two footprints out to their
 # edges, each in its place in its list
+_bh_poly = Polygon(_bh_fp)
+_bh_ring = _bh_poly.buffer(3.2).exterior
+_bh_moved = []
+for k_ in ('trees', 'shrubs', 'props'):        # (백양관 가건물, BK_HUT: what stands on it to the nearest point 3.2 m out,
+    for t_ in out[k_]:                         # each in its place in its list, past the walk 1.2 m off its west face)
+        if _bh_poly.buffer(0.8).contains(Point(t_[1], t_[2])):
+            q_ = _bh_ring.interpolate(_bh_ring.project(Point(t_[1], t_[2])))
+            _bh_moved.append((t_[0], round(q_.x, 2), round(q_.y, 2)))
+            t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
+for p_ in out['paths']:
+    if len(p_['pts']) > 1 and LineString(p_['pts']).intersection(_bh_poly).length > 1.0:
+        _bh_line = LineString(p_['pts'])
+        _bh_out = _bh_line.difference(_bh_poly.buffer(1.2))
+        _bh_keep = [g_ for g_ in getattr(_bh_out, 'geoms', [_bh_out]) if g_.length > 0.5]
+        _bh_a, _bh_b = _bh_keep[0], _bh_keep[-1]                 # (round the hall's buffered outline between them)
+        _bh_ring2 = _bh_poly.buffer(1.2, join_style=2).exterior
+        _d0, _d1 = _bh_ring2.project(Point(_bh_a.coords[-1])), _bh_ring2.project(Point(_bh_b.coords[0]))
+        _ds = sorted([_d0, _d1])
+        _arc = [_bh_ring2.interpolate(d_) for d_ in np.linspace(_ds[0], _ds[1], 6)]
+        _arc2 = [_bh_ring2.interpolate((_ds[1] + (_bh_ring2.length - _ds[1] + _ds[0]) * f_) % _bh_ring2.length)
+                 for f_ in np.linspace(0.0, 1.0, 6)][::-1]
+        _arc = _arc if LineString(_arc).length <= LineString(_arc2).length else _arc2
+        if _d0 > _d1:
+            _arc = _arc[::-1]
+        _bh_new = list(_bh_a.coords) + [(q_.x, q_.y) for q_ in _arc] + list(_bh_b.coords)
+        p_['pts'] = [[round(x_, 1), round(y_, 1)] for x_, y_ in _bh_new]
+        _bh_moved.append(('walk', len(p_['pts'])))
+print('백양관 가건물: off it', _bh_moved)
 print('외솔관2 서쪽 박공 건물: trees, shrubs, props off it', jonghap97.ow_aside(out['trees'], out['shrubs'], out['props'],
                                                                      [Polygon(b_['footprint']) for b_ in out['buildings']]))
 # 서쪽 능선 꼭대기의 빈터 (tools/ridge97.py; #189): the trees the random planting put on the cleared top, out to its edge in
