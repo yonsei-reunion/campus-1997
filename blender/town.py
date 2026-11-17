@@ -1438,6 +1438,15 @@ def rot_dirsign():
         mb.face([(xa, yq, zq - pl['h'] / 2), (xb, yq, zq - pl['h'] / 2), (xb, yq, zq + pl['h'] / 2), (xa, yq, zq + pl['h'] / 2)], 'sign_rotary',
                 uvs=[(0, 0), (170 / 1024, 0), (170 / 1024, V_M), (0, V_M)])
         mb.face([(xb, yq + 0.04, zq - pl['h'] / 2), (xa, yq + 0.04, zq - pl['h'] / 2), (xa, yq + 0.04, zq + pl['h'] / 2), (xb, yq + 0.04, zq + pl['h'] / 2)], 'metal_dark')
+        # (52007) the plate between the two heads on the same arm, 「좌회신호시 / 동교동 창전로」: x 180 - 298 of the
+        # last 80 rows
+        lp = mo.get('lplate')
+        if lp:
+            zq = ground_top(*pl['pole']) + lp['z']
+            xa, xb = lp['x'] - lp['w'] / 2, lp['x'] + lp['w'] / 2
+            mb.face([(xa, yq, zq - lp['h'] / 2), (xb, yq, zq - lp['h'] / 2), (xb, yq, zq + lp['h'] / 2), (xa, yq, zq + lp['h'] / 2)], 'sign_rotary',
+                    uvs=[(180 / 1024, 0), (298 / 1024, 0), (298 / 1024, V_M), (180 / 1024, V_M)])
+            mb.face([(xb, yq + 0.04, zq - lp['h'] / 2), (xa, yq + 0.04, zq - lp['h'] / 2), (xa, yq + 0.04, zq + lp['h'] / 2), (xb, yq + 0.04, zq + lp['h'] / 2)], 'metal_dark')
     return mb
 
 

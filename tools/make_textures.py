@@ -932,32 +932,49 @@ def rot_signs():
     f = fnt(84)
     w = d.textlength('130m', font=f)
     d.text((cx - 40 - w, H_ - 110), '130m', font=f, fill=white, anchor='lm')
-    # the mouth's three panels
+    # the mouth's three panels, as 서울연구원 52007 (1996.8, from the ground south of the mouth) reads them: the side
+    # panels' arrows carry route 6's oval, the middle one has its arrow left of two names, each with the romanization
+    # of the time under it
     y0, ph = 704, 240
     pw = 1024 / 3
-    for k, (top, rom, arrow) in enumerate((('양화대교', 'Yanghwa Brg.', 'l'), ('연희IC · 연세대', 'Yonhui IC · Yonsei Univ.', 'u'),
-                                         ('아현교차로', 'Ahyon Jct.', 'r'))):
+    for k, (top, rom, arrow) in enumerate((('양화대교', 'Yanghwa Brdg.', 'l'), (None, None, 'u'), ('아현교차로', 'Ahyŏn Jct.', 'r'))):
         x0 = k * pw
         d.rectangle([x0 + 5, y0 + 5, x0 + pw - 6, y0 + ph - 6], outline=white, width=5)
-        f, fr = fnt(58 if k != 1 else 44), fnt(22)
+        ax, ay = x0 + pw / 2, y0 + 176
+        if arrow == 'u':
+            ax = x0 + 70
+            d.line([(ax, ay + 44), (ax, ay - 70)], fill=white, width=22)
+            d.polygon([(ax, ay - 112), (ax - 36, ay - 64), (ax + 36, ay - 64)], fill=white)
+            for txt, rom_, yy in (('연희 I.C', 'Yŏnhŭi', y0 + 48), ('연세대', 'Yŏnsei Univ.', y0 + 150)):
+                f, fr = fnt(54), fnt(22)
+                w, wr = d.textlength(txt, font=f), d.textlength(rom_, font=fr)
+                xm = x0 + 200
+                d.text((xm - w / 2, yy), txt, font=f, fill=white, anchor='lm')
+                d.text((xm - wr / 2, yy + 46), rom_, font=fr, fill=white, anchor='lm')
+            continue
+        f, fr = fnt(58), fnt(24)
         w, wr = d.textlength(top, font=f), d.textlength(rom, font=fr)
         d.text((x0 + pw / 2 - w / 2, y0 + 62), top, font=f, fill=white, anchor='lm')
         d.text((x0 + pw / 2 - wr / 2, y0 + 112), rom, font=fr, fill=white, anchor='lm')
-        ax, ay = x0 + pw / 2, y0 + 176
-        if arrow == 'u':
-            d.line([(ax, ay + 38), (ax, ay - 20)], fill=white, width=16)
-            d.polygon([(ax, ay - 46), (ax - 30, ay - 12), (ax + 30, ay - 12)], fill=white)
-        else:
-            sg = -1 if arrow == 'l' else 1
-            d.line([(ax - sg * 70, ay), (ax + sg * 40, ay)], fill=white, width=16)
-            d.polygon([(ax + sg * 78, ay), (ax + sg * 36, ay - 30), (ax + sg * 36, ay + 30)], fill=white)
-    # the name plate
+        sg = -1 if arrow == 'l' else 1
+        d.line([(ax - sg * 120, ay), (ax + sg * 90, ay)], fill=white, width=16)
+        d.polygon([(ax + sg * 128, ay), (ax + sg * 86, ay - 32), (ax + sg * 86, ay + 32)], fill=white)
+        d.ellipse([ax - 44, ay - 27, ax + 44, ay + 27], fill=blue, outline=white, width=5)
+        f6 = fnt(40)
+        d.text((ax - d.textlength('6', font=f6) / 2, ay), '6', font=f6, fill=white, anchor='lm')
+    # the name plate (52007: 「신촌로터리」 over 「Shinchon R.」)
     y0 = 944
     d.rectangle([3, y0 + 3, 166, y0 + 76], outline=white, width=3)
-    f, fr = fnt(28), fnt(13)
-    w, wr = d.textlength('신촌로터리', font=f), d.textlength('Sinchon Rotary', font=fr)
+    f, fr = fnt(28), fnt(15)
+    w, wr = d.textlength('신촌로터리', font=f), d.textlength('Shinchon R.', font=fr)
     d.text((85 - w / 2, y0 + 30), '신촌로터리', font=f, fill=white, anchor='lm')
-    d.text((85 - wr / 2, y0 + 58), 'Sinchon Rotary', font=fr, fill=white, anchor='lm')
+    d.text((85 - wr / 2, y0 + 58), 'Shinchon R.', font=fr, fill=white, anchor='lm')
+    # the plate between the mouth's two signal heads (52007): 「좌회신호시 / 동교동 창전로」, x 180 - 298 of the last 80
+    d.rectangle([182, y0 + 3, 295, y0 + 76], outline=white, width=3)
+    for txt, yy, sz in (('좌회신호시', y0 + 25, 21), ('동교동 창전로', y0 + 56, 17)):
+        f = fnt(sz)
+        w = d.textlength(txt, font=f)
+        d.text((239 - w / 2, yy), txt, font=f, fill=white, anchor='lm')
     img.save(os.path.join(OUT, 'sign_rotary.png'), optimize=True)
     print('sign_rotary')
 

@@ -356,8 +356,10 @@ KEXIM_1997 = [(-130.2, -1059.9), (-114.7, -1062.7), (-102.4, -1061.3), (-103.8, 
 #   the corner and how far it is cut back along each side), five steel pipes with crowns up the east face (`pipes`: the
 #   side, from the corner), three rows of square frames over them, three green window bands on the south face near the
 #   corner (`bands`), the cooling towers along the roof's north side (`boxes`)
-# - 그랜드: white tile, the video screen on the round face (`screen`: on side i, w, h, m below the top to its middle),
-#   a dark glass strip up the south end of the south-east face (`strip`: side, m along it, width)
+# - 그랜드: white tile, the video screen on the round face (`screen`: on side i, w, h, m below the top to its middle;
+#   10 x 8 m as the paper had it when 그랜드마트 신촌점 opened, 「정문 위에는 가로 10m, 세로 8m 짜리 대형
+#   아스트로비전」 경향 1995-09-29: 12 x 8.5 before 2026-11-17), a dark glass strip up the south end of the
+#   south-east face (`strip`: side, m along it, width)
 # - 외환은행: black glass storeys with dark bands (`floors`), the machine room, stair head and tank on the roof
 # Sides: side i runs from outline[i] to outline[i + 1].  boxes: [x, y, L, W, angle, height over the roof]; tanks: [x,
 # y, r, height]; signs: the cell of sign_sinchon2 on side i, m along it to its middle (None: the side's middle), width,
@@ -369,7 +371,7 @@ LM_SHAPE = {
                      front=[(-183.5, -918.2), (-178.0, -915.2)],
                      boxes=[(-188.8, -865.0, 46.0, 4.5, -0.333, 2.2)],
                      signs=[dict(cell=12, side=1, at=15.0, w=14.3, h=2.6, top=2.1)]),
-    '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=datum.up(-175.37, -996.2, 64.33), screen=(9, 12.0, 8.5, 19.0),
+    '그랜드백화점': dict(kind='grand', outline=GRAND_1997, court=GRAND_COURT, deck=datum.up(-175.37, -996.2, 64.33), screen=(9, 10.0, 8.0, 19.0),
                     strip=(2, 2.5, 2.5), pen=GRAND_PEN, signs=[],
                     # (2026-11-16: the mark and words on the tiles, the banners, the poster [side, w, h, its middle m
                     # below the top] and the fascia's sides, blender/town.py _grand; 52135 · 52119 · 52095)
@@ -438,9 +440,17 @@ ENT97_KIOSK = (-38.8, -982.95, 2.4)    # the eight-sided kiosk between 5 and 6 (
 # the road, two signal heads on it (x -95.9, -92.8) and the junction's name plate; from a pole on the north-west
 # corner, behind the kiosk east of stairs 2, an arm east with the blue direction sign of three panels, 「양화대교 ← ·
 # 연희IC 연세대 ↑ · 아현교차로 →」, 5.3 x 1.25 m, its foot about 5 m up (its depth, so its height, +- 2 m: 52140 has it
-# beyond the signal arm).  Both face south
-MOUTH_SIGNAL = dict(pole=(-88.8, -928.4), heads=(-95.9, -92.8), plate=(-90.3, 1.5, 0.7), h=6.0)
+# beyond the signal arm).  Both face south.  52007 (1996.8, from the ground south of the mouth: 고증 4.10.6) reads the
+# panels and has the heads of four lamps (red, amber, the left arrow, green: `heads`' 7th field) and between them a
+# plate 「좌회신호시 / 동교동 창전로」 (lplate: x, w, h; its middle at the arm, 5.9 m up as the web hangs the arm)
+MOUTH_SIGNAL = dict(pole=(-88.8, -928.4), heads=(-95.9, -92.8), plate=(-90.3, 1.5, 0.7), h=6.0, lplate=(-94.45, 1.17, 0.8))
 MOUTH_SIGN = dict(pole=(-104.2, -925.5), x=(-102.9, -97.6), h=1.25, z0=5.0)
+# The same make for the cars that cross the junction from 양화로 into 신촌로 (2026-11-17, 52208, 1996.8, from the roof
+# of 외환은행 east along 신촌로: 고증 4.10.6): a pole on the corner of the walk east of the turning lane, west of the
+# kiosk, its arm out north-west with two heads facing west and the 「신촌로터리」 plate.  The pole: the arm's root
+# back-projected at 6.0 m over the road (the camera solved from stairs 5's roof corners, 4 px; +-0.5 m in that height
+# moves it 1.3 m along the ray from the south-west); the arm's reach from its length in the photo (about 7 m)
+FAR_E_SIGNAL = dict(pole=(-45.0, -983.4), face=180.0, reach=7.0)
 LANE_W = 3.25
 # 연세로's two lanes each way, their middles m off its line (2026-11-15): 4.10.1's 13 m of carriageway, two lanes of
 # 3.2 - 3.3 m a way (the scan of 27/19 at the mouth: the southbound queue's two rows 1.4 and 4.4 m west of the
@@ -1313,7 +1323,8 @@ def layout(geo, town, extras, ground, taken_z):
     # 연세로's crossing (0 cars, 1 walkers): green s each, then amber and all red
     signals = dict(groups=[dict(green=[26.0, 30.0, 14.0]), dict(green=[45.0, 18.0])], amber=3.0, red=3.0)
     # the signal heads: one at the far side of each arm's mouth facing the inbound traffic, and one at its stop line
-    # [x, y of the pole, the way the lamps face (rad), group, phase, the mast arm's reach over the lanes]
+    # [x, y of the pole, the way the lamps face (rad), group, phase, the mast arm's reach over the lanes(, lamps: 4 at
+    # the junction, red · amber · the left arrow · green as 52007 and 52111 · 52139 have them, 1996; else three)]
     heads = []
     road_pole = road.buffer(0.6)
     for k, ph in (('yonsei', 0), ('baekbeom', 0), ('seogang', 2), ('sinchon_w', 1), ('sinchon_e', 1)):
@@ -1326,7 +1337,7 @@ def layout(geo, town, extras, ground, taken_z):
                 # (1997's wedges are asphalt on both sides of 연세로's, 양화로's, 신촌로's and 1997년 신촌로's stop lines:
                 # no pole of the game's rule there; where their signals hung is not known but the island's own pole)
                 continue
-        heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(t[1], t[0]), 4), 0, ph, round(a.half * 0.75, 1)])
+        heads.append([round(float(q[0]), 2), round(float(q[1]), 2), round(math.atan2(t[1], t[0]), 4), 0, ph, round(a.half * 0.75, 1), 4])
     for sgn, s_ in ((1, s_stop_n + 0.5), (-1, s_stop_s - 0.5)):
         p, t, n = ya.at(s_)
         q = p + n * sgn * (ya.half + 0.8)
@@ -1334,12 +1345,16 @@ def layout(geo, town, extras, ground, taken_z):
                       round(ya.half * 0.75, 1)])
     # the island's own pole (52158 · 52145 · 52142: on its north-north-west edge, the arm out over the lanes north)
     fb = math.radians(ROT_POLE['face'])
-    heads.append([ROT_POLE['at'][0], ROT_POLE['at'][1], round(math.atan2(math.cos(fb), math.sin(fb)), 4), 0, 1, ROT_POLE['reach']])
+    heads.append([ROT_POLE['at'][0], ROT_POLE['at'][1], round(math.atan2(math.cos(fb), math.sin(fb)), 4), 0, 1, ROT_POLE['reach'], 4])
     # 연세로's mouth, the far side for the cars coming up from 서강로 (MOUTH_SIGNAL: 52206 · 52141, the scan of 27/19): the
     # north-east corner's pole, its arm west over their lanes, a head over each (the web hangs a head at 0.8 of the reach)
     mx_, my_ = MOUTH_SIGNAL['pole']
     for hx_ in MOUTH_SIGNAL['heads']:
-        heads.append([mx_, my_, round(-math.pi / 2, 4), 0, 0, round((mx_ - hx_) / 0.8, 2)])
+        heads.append([mx_, my_, round(-math.pi / 2, 4), 0, 0, round((mx_ - hx_) / 0.8, 2), 4])
+    # (2026-11-17) and 신촌로's for the cars from 양화로 (FAR_E_SIGNAL, 52208): one head on its arm (the photo's two are
+    # 2 - 3 m apart on it; the web hangs one at 0.8 of the reach), with 신촌로 · 양화로 (phase 1)
+    fe = FAR_E_SIGNAL
+    heads.append([fe['pole'][0], fe['pole'][1], round(math.radians(fe['face']), 4), 0, 1, fe['reach'], 4])
     # 연세로's other two crossings (y -690 and gate_town's at -575): 51979 (1996.5) through its camera solved on the 1997
     # ground has two heads hung over the road just beyond each for the cars going north, on an arm from the east walk
     # (5.5 - 6.2 m up: y -679 .. -693 and -568 .. -580; x 1.3 m east and 0.9 m west of the middle at the near one, 0.3 and
@@ -1518,7 +1533,8 @@ def layout(geo, town, extras, ground, taken_z):
                         q = p_ + n_ * sgn * (a.half + 0.7)
                 rot = math.atan2(t_[1], t_[0]) + (math.pi if sgn < 0 else 0.0)
                 props.append(['lamp_arm', round(float(q[0]), 2), round(float(q[1]), 2), round(rot, 3)])
-    # 2호선 신촌역 (1984): eight stairs down from the corners (OSM's entrance nodes; 1997 numbering not known)
+    # 2호선 신촌역 (1984): eight stairs down from the corners (OSM's entrance nodes and today's numbers; 6 is the
+    # same in the papers of 1995 - 99, the others' 1997 numbers not known: 고증 4.10.6)
     EXITS = [(1, -137.0, -942.0), (2, -110.0, -930.0), (3, -88.0, -930.0), (4, -63.0, -945.0), (5, -28.0, -976.0),
              (6, -56.0, -1011.0), (7, -149.0, -995.0), (8, -172.0, -968.0)]
     entrances, coll, coll_rng = [], [], []
@@ -2034,7 +2050,8 @@ def rot_dirsign(ya, s_mid):
     c = p - n * DIRSIGN_E
     ms, mg = MOUTH_SIGN, MOUTH_SIGNAL
     mouth = dict(pole=list(ms['pole']), x=list(ms['x']), h=ms['h'], z0=ms['z0'],
-                 plate=dict(pole=list(mg['pole']), x=mg['plate'][0], w=mg['plate'][1], h=mg['plate'][2], z=mg['h'] - 0.55))
+                 plate=dict(pole=list(mg['pole']), x=mg['plate'][0], w=mg['plate'][1], h=mg['plate'][2], z=mg['h'] - 0.55),
+                 lplate=dict(x=mg['lplate'][0], w=mg['lplate'][1], h=mg['lplate'][2], z=5.9))
     return dict(pole=[round(float(pole[0]), 2), round(float(pole[1]), 2)], c=[round(float(c[0]), 2), round(float(c[1]), 2)],
                 face=round(math.atan2(-t[1], -t[0]), 4), w=DIRSIGN_W, h=2.2, z0=DIRSIGN[1], mouth=mouth)
 

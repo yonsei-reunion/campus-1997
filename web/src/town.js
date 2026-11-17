@@ -353,10 +353,11 @@ class PedHeads {
   }
 }
 
-// 신촌 로터리's signals (campus.json town.heads: [x, y, the way the lamps face, group, phase, the mast arm's reach]):
-// a grey pole at the kerb, a mast arm over the lanes, a box of three lamps (red, amber, green, the Korean order left
-// to right) lit as the cycle goes. One merged mesh for the poles and boxes, the lamps a mesh each colour whose
-// instances turn on and off.
+// 신촌 로터리's signals (campus.json town.heads: [x, y, the way the lamps face, group, phase, the mast arm's reach,
+// lamps]): a grey pole at the kerb, a mast arm over the lanes, a box of three lamps (red, amber, green, the Korean
+// order left to right) lit as the cycle goes; the junction's (lamps 4: 서울연구원 52007 · 52111 · 52139, 1996) a box
+// of four, the left arrow between amber and green, always dark (the game's cycle has no turn of its own). One merged
+// mesh for the poles and boxes, the lamps a mesh each colour whose instances turn on and off.
 const LAMP_ON = { r: new THREE.Color(1.0, 0.08, 0.05), a: new THREE.Color(1.0, 0.55, 0.05), g: new THREE.Color(0.1, 0.95, 0.55) };
 class SignalHeads {
   constructor(scene, heads, groundAt) {
@@ -370,14 +371,16 @@ class SignalHeads {
     const m4 = new THREE.Matrix4();
     this.mats = {};
     this.meshes = {};
-    for (const k of ['r', 'a', 'g']) {
+    for (const k of ['r', 'a', 'g', 'l']) {
       this.mats[k] = new THREE.MeshBasicMaterial({ color: 0xffffff });
       this.meshes[k] = new THREE.InstancedMesh(lampGeo, this.mats[k], heads.length);
       this.meshes[k].instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(heads.length * 3), 3);
       this.meshes[k].frustumCulled = false;
     }
     const q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(1, 1, 1), v = new THREE.Vector3();
-    heads.forEach(([x, y, face, , , reach], i) => {
+    const none = new THREE.Matrix4().makeScale(0, 0, 0);
+    const dark = new THREE.Color(0.06, 0.06, 0.06);
+    heads.forEach(([x, y, face, , , reach, nl], i) => {
       const z = groundAt(x, y);
       const fx = Math.cos(face), fy = Math.sin(face);           // the way the lamps look (at the cars coming)
       const ax = fy, ay = -fx;                                  // the mast arm reaches out over the lanes: to the right
@@ -385,17 +388,20 @@ class SignalHeads {
       const arm = new THREE.BoxGeometry(reach, 0.12, 0.12);
       arm.rotateY(Math.atan2(ay, ax)).translate(x + ax * reach / 2, z + 5.9, -(y + ay * reach / 2));
       const hx = x + ax * reach * 0.8, hy = y + ay * reach * 0.8;
-      const box = new THREE.BoxGeometry(1.15, 0.42, 0.3);
+      const four = nl === 4;
+      const box = new THREE.BoxGeometry(four ? 1.51 : 1.15, 0.42, 0.3);
       box.rotateY(Math.atan2(ay, ax)).translate(hx, z + 5.6, -hy);
       geos.push(pole, arm, box);
-      ['r', 'a', 'g'].forEach((k, j) => {
-        const o = (j - 1) * 0.36;                               // red at the left as the driver sees it
+      (four ? ['r', 'a', 'l', 'g'] : ['r', 'a', 'g']).forEach((k, j, ks) => {
+        const o = (j - (ks.length - 1) / 2) * 0.36;             // red at the left as the driver sees it
         v.set(hx - ax * o + fx * 0.16, z + 5.6, -(hy - ay * o + fy * 0.16));
         e.set(0, Math.atan2(fx, -fy), 0);
         q.setFromEuler(e);
         m4.compose(v, q, sc);
         this.meshes[k].setMatrixAt(i, m4);
       });
+      if (!four) this.meshes.l.setMatrixAt(i, none);
+      this.meshes.l.setColorAt(i, dark);
     });
     const g = mergeGeometries(geos.map((x) => { x.deleteAttribute('uv'); return x; }), false);
     const frame = new THREE.Mesh(g, grey);
