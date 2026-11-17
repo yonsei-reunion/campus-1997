@@ -808,14 +808,28 @@ def drum_band(mb, pts, flat, za, zb, mat, zflat=None, tag=None):
 # (-9.2, -241.7), or (-7.0, -243.2) with that corner where Kakao's base map has it), the 1994 photo (the roof rim's line
 # of centres, d 31 - 33 m) and the skyview's ring less its lean (-8, -244.6): (-8.6, -241.8) ± 1.2 m, 0.7 m out past the
 # outline's face line (the roadview shows the face running smoothly into it).  North of it a flat-topped box (the 1994
-# photo, the 2010 north road).  Heights from photo A through PHOTO_A (tools/build_campus.py, reference/고증.md 2.2):
-# the box's north-west corner 17.2 m over the hall's floor, the drum's rim 0.2 m higher (18.4 - 18.9 m through the
-# other refitted cameras).
+# photo, the 2010 north road).  Heights: the 1997 scans (CENT_SEA below; photo A through PHOTO_A had the box's
+# north-west corner 17.2 m over the hall's floor, the drum's rim 0.2 m higher, 18.4 - 18.9 m through the other
+# refitted cameras).
 # Moved with the hall (tools/build_campus.py BLD_MOVE, #162): 3.2 m out of the 백양로 face, where the 1997 vertical
 # aerial photos have the hall (their drum's rim (-5.0, -242.8) ± (0.8, 0.7) from three frames, 1.0 m from this).
-CENT_DRUM = dict(c=(-8.6 + 3.11, -241.8 - 0.73), r=17.0, top=17.4)
-CENT_BOX_TOP = 16.7               # the box's walls over the hall's floor (its coping 0.5 m over)
+CENT_DRUM = dict(c=(-8.6 + 3.11, -241.8 - 0.73), r=17.0)
 CENT_FACE_DRUM = 54.0             # where the box's 백양로 face meets the drum, m from the north-west corner (2011 roadview)
+# The heights as the 1997-07-28 scans have them, 해발 (reference/고증/3.4 「북쪽 상자 · 원통 · 무대 탑의 높이와 모양」): the four
+# frames (both flight lines) meet on the box's roof at 48.3 - 48.4 m over its whole north part (as the 2010 north road
+# frame 1016786960 does from the paving at its foot), on the drum's rim at 50.0 m (its ring on the same circle in all
+# four) and its roof inside at 49.3 - 49.6 m; photo A's 17.2 m (PHOTO_A's depth: the box 16.7 m and its coping, the
+# drum 17.4 m) stood 3.3 m short.  centennial() takes them over the hall's floor 해발 (its base less its tilt)
+CENT_SEA = dict(box=48.5, drum=50.0, drum_roof=49.4,
+                rows=(35.5, 40.1, 44.7))      # (north_box's window rows' sills: the 2010 frame, 3.0 / 7.6 / 12.2 m over the paving)
+# the stage house (the same scans, at their tops): a box over a lower body, both square to the hall's north-east face
+# (bearing 143 deg along a; b across it, north-east), and a stair shaft at the box's south corner
+CENT_STAGE97 = dict(c=(19.5, -209.9), bearing=143.0, upper=dict(a=(-5.75, 5.75), b=(-4.25, 4.25), top=56.0),
+                    lower=dict(a=(-5.75, 5.75), b=(-12.5, 10.5), top=52.5), shaft=dict(c=(11.4, -223.3), w=2.5, top=56.2))
+# the box's roof (the scans at 48.4 m): a round light well (its rim's ring, four frames within 0.3 m; the glass dome at
+# its bottom some 4 m down) and two glazed strips, one along the 백양로 face and one square to it
+CENT_WELL97 = dict(c=(3.9, -208.4), r=7.0)
+CENT_SKY97 = [((-9.0, -200.4), (-11.4, -210.5)), ((-12.8, -217.8), (4.0, -223.2))]
 
 
 def centennial():
@@ -832,8 +846,9 @@ def centennial():
     F = [Vector(p) for p in fp]
     mb = MeshBuilder('lm_centennial')
     HP = 7.0                                       # the old podium's height: joint bands, the lobby glass's band
-    c, R, HD = CENT_DRUM['c'], CENT_DRUM['r'], CENT_DRUM['top']
-    HB = CENT_BOX_TOP
+    c, R = CENT_DRUM['c'], CENT_DRUM['r']
+    sea0 = z0 - b.get('tilt', 0.0)                 # (the hall's floor 해발: the 1997 scans' heights over it)
+    HB, HD = CENT_SEA['box'] - 0.5 - sea0, CENT_SEA['drum'] - sea0
     A_, B_ = F[3], F[4]                            # the 백양로 (west) face, north to south
     tw = (B_ - A_).normalized()
     nw = Vector((-tw.y, tw.x))                     # into the building
@@ -901,7 +916,7 @@ def centennial():
         mb.quad((e0.x, e0.y, z0 + K['h']), (e1.x, e1.y, z0 + K['h']), (e1.x, e1.y, zt), (e0.x, e0.y, zt), 'stone_panel_white')
     # the drum, with incised horizontal joints, from the ground (inside the box and the block it is hidden), above the
     # lobby glass only from the glass's band up
-    joints = [j for j in (3.2, 6.0, HP + 0.9, HP + 3.9, HP + 6.9, HP + 9.9) if j < HD - 1.5]
+    joints = [j for j in (3.2, 6.0, HP + 0.9, HP + 3.9, HP + 6.9, HP + 9.9, HP + 12.9) if j < HD - 1.5]
     o0, f0 = drum_outline(c, R, (a_w, a_k) if a_w is not None else None)
     oj, fj = drum_outline(c, R - 0.1, (a_w, a_k) if a_w is not None else None)
     z = z0 - 3.0
@@ -913,23 +928,53 @@ def centennial():
     oc, fc = drum_outline(c, R + 0.3)
     drum_band(mb, oc, fc, z0 + HD - 1.2, z0 + HD, 'stone_ashlar', tag=tag + 'c')
     oi, _ = drum_outline(c, R - 0.5)
-    zr = max(HD - 1.0, HB + 0.55)                  # its roof inside the parapet (over the box's, which runs in under it)
+    zr = max(CENT_SEA['drum_roof'] - sea0, HB + 0.55)   # its roof inside the parapet (over the box's, which runs in under it)
     n_ = len(oc)
     for i in range(n_):
         j = (i + 1) % n_
         mb.quad((*oc[i], z0 + HD), (*oc[j], z0 + HD), (*oi[j], z0 + HD), (*oi[i], z0 + HD), 'stone_ashlar')
         mb.quad((*oi[j], z0 + HD), (*oi[j], z0 + zr), (*oi[i], z0 + zr), (*oi[i], z0 + HD), 'concrete')
     mb.face([(*p, z0 + zr) for p in oi], 'roof_flat')
-    # stage house: a plain stone box standing over the box and the drum north-east of the drum, with a slot window
-    # (photo A x 1735 - 1910 and the 1994 photo's box over the drum's east half: its corners at about (-1, -219) and
-    # (12, -225.5), its top ~6 m over the drum's)
+    # the box's roof (CENT_WELL97, CENT_SKY97): the light well's ring and the glass dome in it, two low glazed strips
+    zroof = HB + 0.5
+    wc, wr = CENT_WELL97['c'], CENT_WELL97['r']
+    mb.cylinder(wc, wr, z0 + zroof, z0 + zroof + 0.6, 'stone_ashlar', seg=48, cap_top=False)
+    mb.cylinder(wc, wr - 0.5, z0 + zroof + 0.6, z0 + zroof, 'stone_ashlar', seg=48, cap_top=False)   # (its inner face)
+    for k in range(48):                                                         # (the ring's top)
+        a, a1 = 2 * math.pi * k / 48, 2 * math.pi * (k + 1) / 48
+        mb.quad(*[(wc[0] + r_ * math.cos(t_), wc[1] + r_ * math.sin(t_), z0 + zroof + 0.6)
+                  for r_, t_ in ((wr - 0.5, a), (wr, a), (wr, a1), (wr - 0.5, a1))], 'stone_ashlar')
+    mb.cylinder(wc, wr - 0.5, z0 + zroof + 0.1, z0 + zroof + 1.2, 'glass', seg=24, r1=0.6, mat_cap='glass')
+    for p, q in CENT_SKY97:
+        p, q = Vector(p), Vector(q)
+        d = (q - p).normalized()
+        mb.box(((p.x + q.x) / 2, (p.y + q.y) / 2, z0 + zroof + 0.2), ((q - p).length, 0.8, 0.4), 'glass',
+               rotz=math.atan2(d.y, d.x), skip=('bottom',))
+    # stage house (CENT_STAGE97, the 1997 scans: the box 56.0 m and its lower body 52.5 m square to the north-east face,
+    # the shaft 56.2 m; photo A x 1735 - 1910 and the 1994 photo had it standing over the drum's east half), plain
+    # stone with a slot window
+    S7 = CENT_STAGE97
     sh = MeshBuilder('lm_centennial_stage')
-    sh.xf = local_frame(6.0, -219.5, math.radians(-8), z0)
-    sh.box((0, 0, (HD + 6.5) / 2), (14.0, 12.0, HD + 6.5), 'stone_ashlar', mats={'top': 'roof_flat'})
-    sh.box((0, 0, HD + 6.5 + 0.45), (14.4, 12.4, 0.9), 'stone_ashlar', skip=('bottom',))
-    sh.face([(-3.0, -6.03, HD + 3.0), (3.0, -6.03, HD + 3.0), (3.0, -6.03, HD + 4.2), (-3.0, -6.03, HD + 4.2)], 'glass')
-    sh.box((4.5, 3.0, HD + 8.0), (3.0, 3.0, 2.2), 'concrete', mats={'top': 'roof_flat'})
-    out = [mb, sh, museum_porch(tuple(X_n), tuple(X_s), z0, HR, PD), north_box(fp[0], fp[1], fp[2], z0, HB)] + centennial_terrace()
+    sh.xf = local_frame(*S7['c'], math.radians(90.0 - S7['bearing']), z0)
+    for part, cap in ((S7['lower'], 0.6), (S7['upper'], 0.9)):
+        a0, a1 = part['a']
+        b0, b1 = part['b']
+        zt = part['top'] - sea0
+        sh.box(((a0 + a1) / 2, (b0 + b1) / 2, (HB + zt) / 2), (a1 - a0, b1 - b0, zt - HB), 'stone_ashlar',
+               mats={'top': 'roof_flat'}, skip=('bottom',))
+        sh.box(((a0 + a1) / 2, (b0 + b1) / 2, zt + cap / 2 - 0.3), (a1 - a0 + 0.3, b1 - b0 + 0.3, cap), 'stone_ashlar',
+               skip=('bottom',))
+    zt = S7['upper']['top'] - sea0
+    a0, a1 = S7['upper']['a']
+    sh.face([(-3.0, S7['upper']['b'][1] + 0.03, zt - 3.0), (3.0, S7['upper']['b'][1] + 0.03, zt - 3.0),
+             (3.0, S7['upper']['b'][1] + 0.03, zt - 1.8), (-3.0, S7['upper']['b'][1] + 0.03, zt - 1.8)][::-1], 'glass')
+    sx = MeshBuilder('lm_centennial_shaft')
+    sx.xf = local_frame(*S7['shaft']['c'], math.radians(90.0 - S7['bearing']), z0)
+    w_ = S7['shaft']['w']
+    sx.box((0, 0, (HB + S7['shaft']['top'] - sea0) / 2), (w_, w_, S7['shaft']['top'] - sea0 - HB), 'concrete',
+           mats={'top': 'roof_flat'}, skip=('bottom',))
+    out = [mb, sh, sx, museum_porch(tuple(X_n), tuple(X_s), z0, HR, PD),
+           north_box(fp[0], fp[1], fp[2], z0, HB, rows=tuple(z - sea0 for z in CENT_SEA['rows']))] + centennial_terrace()
     # the low front block before the podium's south-west corner (tools/build_campus.py CENT_BLOCK, issue #9)
     if K:
         bk = MeshBuilder('lm_centennial_block')
@@ -1300,7 +1345,7 @@ def centennial_terrace():
     return [mb]
 
 
-def north_box(A, B, C, z0, ZB=10.8):
+def north_box(A, B, C, z0, ZB=10.8, rows=None):
     """백주년기념관's north end (2010 roadview from the road along its north side, reference/고증.md 3.4): the north-east
     face (A -> B, towards 광혜원) and the north-north-west side (B -> C) of the box (centennial), ZB high, three rows of
     strip windows in its lower part in the same grey panels as the podium, the plain wall above."""
@@ -1310,9 +1355,9 @@ def north_box(A, B, C, z0, ZB=10.8):
     # sills over the hall's datum: the 2010-12 roadview from the north road (1016786960, zoom 0, the north-north-west face
     # between the paving at its foot and its coping, reference/고증/3.4 「북쪽 면의 창 띠와 발치」) has the lowest row's
     # sill 3.0 m over the paving (32.5 m 해발 in the 1997 scans, 4.7 m over the hall's datum), the rows 4.6 m apart and
-    # 0.65 m high.  The box here stands 3.3 m under the scans' roof (CENT_BOX_TOP): the upper two rows closed up to
-    # 4.1 m so that the top one stays under the coping
-    rows = (7.7, 11.8, 15.9)
+    # 0.65 m high (rows: their sills over the hall's datum; the box now stands at the scans' roof, CENT_SEA, so the rows
+    # are the frame's own; without them, three closed up under a lower coping)
+    rows = rows or (7.7, 11.8, 15.9)
     for p, q in ((A, B), (B, C)):
         P, L, t, n = edge_P(tuple(p), tuple(q), z0)
         holes = []
