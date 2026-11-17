@@ -301,6 +301,14 @@ BASE_1997 = {222843398: SCI['base']}
 GONE_1997[472512292] = None
 GONE_LAWN = {472512292}
 GONE_NEW = {472512292}              # (left out since the planting was laid: the trees by them go at the list's end)
+# 영빈관 · 행정동 (OSM 472534641 「영빈관」, 722550503 「행정동」 building=hospital): not in the 1997-07-28 scans (27/16 ·
+# 27/15 · 27/17: inside 영빈관's outline trees and the garden at the ground's height, a gabled single storey on its north
+# corner, GUEST97 below; small houses on 행정동's; reference/고증/3.1 「3.1.1」 「그 밖의 건물의 1997년」).  They go after
+# the planting with every list as it was (GONE_KEEP: nothing round them is cleared), their sites lawn
+GONE_KEEP = {472534641, 722550503}
+GONE_1997.update({k_: None for k_ in GONE_KEEP})
+GONE_LAWN |= GONE_KEEP
+GONE_NEW |= GONE_KEEP
 
 # ---------------------------------------------------------------------------
 # Terrain
@@ -7631,6 +7639,7 @@ buildings[:] = [b for b in buildings if not any(b is q for q in YONGJAE_SCATTER)
 GONE_SITES = [(GONE_1997[b['id']], Polygon(b['footprint'])) for b in buildings if b['id'] in GONE_1997
               and b['id'] not in FIELD_GONE + HILL_GONE]     # (대운동장 북쪽 끝의 둘: no site, cleared with the field below)
 FIELD_GONE_SITES = [Polygon(b['footprint']) for b in buildings if b['id'] in FIELD_GONE]
+GONE_KEEP_SITES = [Polygon(b['footprint']) for b in buildings if b['id'] in GONE_KEEP]
 HILL_GONE_SITES = [Polygon(b['footprint']) for b in buildings if b['id'] in HILL_GONE]
 # (blender/build.py draws each hall's colours and roof clutter from one stream in this list's order: it still draws
 # for these at their old place, `at`, so that the halls after them keep their looks)
@@ -8528,7 +8537,8 @@ print('yongjae: cleared (trees, shrubs, props, cars)', _n0[0] - len(trees) + 2, 
 # (공학원's site as the 1997 photos have it, with its car park, yard and offices: GW_CLEAR; not the part of the car
 # park that photo A's apron already was, where its booth and planters stand)
 GW_CLEAR = unary_union([GW_LOT.difference(GATE_APRON.buffer(1.0)), GW_ROW, GW_YARD] + [p_.buffer(1.0) for p_ in GW_SHED_POLYS])
-_gz = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for p_ in LATE_SITES] +
+_gz = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES if not any(p_.equals(q_) for q_ in GONE_KEEP_SITES)] +
+                  [p_.buffer(2.0) for p_ in LATE_SITES] +
                   [GONGWON_SITE.buffer(1.5), GW_CLEAR])
 _gwd = GONGWON_SITE.buffer(1.0).union(GW_YARD)
 out['decals'] = [d_ for d_ in out['decals'] if not _gwd.contains(Point(d_[1], d_[2]))]
@@ -8564,7 +8574,8 @@ _n0 = (len(trees), len(shrubs), len(props), len(cars))
 MED_TREE_SPOTS = [(130.0, -297.0), (117.0, -284.0), (102.0, -291.0), (160.0, -265.0), (146.0, -250.0), (166.0, -236.0),
                   (44.45, -334.76), (10.0, -320.0), (145.46, -157.15)]
 _mz = unary_union([Polygon(b_['footprint']).buffer(2.0) for b_ in buildings if b_['id'] in MED_SITES_RNG])
-_mzr = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES] + [p_.buffer(2.0) for p_ in LATE_SITES_RNG])
+_mzr = unary_union([p_.buffer(6.0) for _, p_ in GONE_SITES if not any(p_.equals(q_) for q_ in GONE_KEEP_SITES)] +
+                   [p_.buffer(2.0) for p_ in LATE_SITES_RNG])
 _msp = list(MED_TREE_SPOTS)
 _mn = 0
 for t_ in trees:
@@ -11792,6 +11803,22 @@ buildings.append(dict(id=BK_HUT['id'], name='', style='white', levels=2, fh=_bh_
                       base=datum.up(*_bh_c, BK_HUT['floor']),
                       top_ground=round(max(ground_h(x_, y_) for x_, y_ in _bh_fp), 2),
                       footprint=[list(p_) for p_ in shapely.geometry.polygon.orient(Polygon(_bh_fp), 1.0).exterior.coords][:-1]))
+# 영빈관 자리의 1997년 단층 박공집 (GONE_KEEP above; reference/고증/3.1 「3.1.1」 「그 밖의 건물의 1997년」; we): the
+# 1997-07-28 scans (27/16 · 27/15 · 27/17 on the 78 m plane) have its roof on the north corner of OSM's 영빈관, its
+# ridge along that outline's north-east side (143 deg), about 15 x 7 m, the eaves 3 m and the ridge 4.5 m over the
+# garden (해발 74.6 m); a low wing on its south-west side left out.  At the very end (blender/build.py: no hall after
+# it changes its looks); nothing of the lists stands on it
+GUEST97 = dict(c=(442.0, 343.0), t=(0.602, -0.799), L=15.0, W=7.0, floor=74.6, eaves=77.6, ridge=79.1, over=0.4)
+_g7c, _g7t = np.array(GUEST97['c']), np.array(GUEST97['t'])
+_g7n = np.array([-_g7t[1], _g7t[0]])
+_g7fp = [_g7c + _g7t * a_ * GUEST97['L'] / 2 + _g7n * b_ * GUEST97['W'] / 2 for a_, b_ in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+_g7p = (GUEST97['ridge'] - GUEST97['eaves']) / (GUEST97['W'] / 2 + GUEST97['over'])
+_g7wt = GUEST97['ridge'] - GUEST97['W'] / 2 * _g7p
+buildings.append(dict(id=990120, name='', style='white', levels=1, fh=round(_g7wt - GUEST97['floor'], 3),
+                      height=round(_g7wt - GUEST97['floor'], 2), base=datum.up(*GUEST97['c'], GUEST97['floor']),
+                      top_ground=datum.up(*GUEST97['c'], GUEST97['floor']),
+                      hip=dict(mat='roof_cement', pitch=round(_g7p, 4), over=GUEST97['over'], gable=True),
+                      footprint=[[round(float(x_), 2), round(float(y_), 2)] for x_, y_ in _g7fp]))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
 # edges in their places in the list
