@@ -7055,6 +7055,22 @@ _ce_took, CHAPEL97_EAST = chapel97.east_grade(Hn)
 for j_, i_ in _ce_took:
     FIXED[j_, i_] = True
 print('루스채플 남쪽 마당 동쪽 끝:', CHAPEL97_EAST)
+# 루스채플과 그 앞 (chapel97.front_grade, reference/고증/3.25): the 1997 · 1996 scans have the chapel's floor on its south
+# porch (41.65 m 해발), a flat roof 9.25 m over it and a lower north strip, east block and north wing; the two round
+# lawns are banks from the yard's kerbs (37.2 m) up to the porch and the south face (40.5 - 41.2 m), a walled flight
+# of two runs between them.  The game had the hall's floor on its lowest corner (36.8 m) and the lawns on the yard's
+# easing (36.5 - 37.5 m).  The lawns' and the west foot's nodes on the scans' heights, the outline's own nodes smooth;
+# the outline, floor and roofs below (LATE_FOOTPRINT_1997, BASE_1997, out['chapel97']).  Late: the planting has read
+# the ground as it was
+_cf_took, _cf_inner, CHAPEL97_FRONT = chapel97.front_grade(Hn, X, Y, harmonic_fill)
+for j_, i_ in _cf_took:
+    FIXED[j_, i_] = True
+FIXED[_cf_inner] = True
+LATE_FOOTPRINT_1997[chapel97.CHAPEL] = chapel97.outline()
+LATE_NO_SIMPLIFY.add(chapel97.CHAPEL)
+SITES_NEW_1997.add(chapel97.CHAPEL)            # (what the 1997 outline gains: trees step aside, walks through it trimmed)
+BASE_1997[chapel97.CHAPEL] = datum.up(*datum.centroid(chapel97.outline()), chapel97.FLOOR)
+print('루스채플과 그 앞:', CHAPEL97_FRONT, '- floor', BASE_1997[chapel97.CHAPEL])
 # 학생회관 남쪽 북동 찻길 · 남동 모퉁이 (tools/union97.py, reference/고증/3.2-3.3 「학생회관 남쪽 찻길과 남동 모퉁이의 땅」): the
 # road from 백주년기념관's north side up north-east to the paved corner south-east of 학생회관, cars along both kerbs, and
 # that corner on to the chapel's yard, on the 1997 scans' heights (0.4 - 1.4 m over the grid, which had lawn and OSM's
@@ -7608,6 +7624,8 @@ for b in buildings:
     if b['id'] == kwangbok97.KB:       # (blender/landmarks.py kwangbok: the 1997 walls, roofs and heights)
         b['plan'] = kwangbok97.plan()
         b['height'] = round(b['plan']['tower'] - b['base'], 2)
+    if b['id'] == chapel97.CHAPEL:     # (blender/landmarks.py chapel: the hall's flat roof over its floor; out['chapel97'])
+        b['height'] = round(chapel97.PARTS['hall'][1] - chapel97.FLOOR, 2)
     if b['id'] == BILL:                # (blender/generic.py billingsley_roof: the blocks and their roofs)
         b['height'] = round(BILL_UV['cornice'] + BILL_UV['pav_rise'], 2)
         b['roof'] = dict(o=[float(v_) for v_ in _blo], t=[round(float(v_), 5) for v_ in _blt], pav=BILL_UV['pav'],
@@ -7927,6 +7945,23 @@ out['baekyangro']['walls'].append([-1, round(s_at(*ct_xy(CT_PAVED_S[1], 33.0)), 
 out['aud_bank'] = {k: v for k, v in AUD_BANK.items()}
 out['aud_flight'] = AUD_FLIGHT                # (blender/landmarks.py aud_flight)
 out['aud_north'] = dict(flights=[ISLE97['flight']])   # (윗단 북동쪽 모퉁이에서 보도로 오르는 계단: landmarks.py aud_north)
+# 루스채플 (tools/chapel97.py, reference/고증/3.25): the 1997 hall and its parts (u, v in the chapel's frame, roofs over
+# its floor), the south porch at the floor's level with the walled planter at its west end, and the flight of two runs
+# down between the round lawns to the yard (blender/landmarks.py chapel)
+_cs = chapel97.STAIR
+_cs_d = (-chapel97.N[0], -chapel97.N[1])
+_cs_t1 = chapel97.cxy(_cs['u'], _cs['top_v'])
+_cs_t2 = chapel97.cxy(_cs['u'], _cs['top_v'] - 0.3 - _cs['upper'] * _cs['tread'])
+_cs_f2 = chapel97.cxy(_cs['u'], _cs['top_v'] - 0.3 - _cs['upper'] * _cs['tread'] - _cs['mid'] - _cs['lower'] * _cs['tread'])
+_cs_up = flight_at('chapel_upper', _cs_t1, _cs_d, BASE_1997[chapel97.CHAPEL], datum.up(*_cs_t2, _cs['landing_z']),   # (its head
+                   _cs['width'], landing=0.3, tread=_cs['tread'], maxrise=0.19, cheek=0.3, head=0.3)  # flush with the porch)
+_cs_lo = flight_at('chapel_lower', _cs_t2, _cs_d, datum.up(*_cs_t2, _cs['landing_z']), datum.up(*_cs_f2, _cs['foot_z']),
+                   _cs['width'], landing=_cs['mid'], tread=_cs['tread'], maxrise=0.185, cheek=0.3, head=0.3)
+assert (_cs_up['n'], _cs_lo['n']) == (_cs['upper'], _cs['lower']), (_cs_up['n'], _cs_lo['n'])
+out['chapel97'] = dict(o=list(chapel97.O), t=list(chapel97.T),
+                       parts={k_: dict(uv=list(r_), top=round(z_ - chapel97.FLOOR, 2)) for k_, (r_, z_) in chapel97.PARTS.items()},
+                       porch=list(chapel97.PORCH), planter=list(chapel97.PLANTER), flights=[_cs_up, _cs_lo])
+print('루스채플 앞 계단:', [(f_['n'], f_['z_top'], f_['z_foot']) for f_ in out['chapel97']['flights']])
 out['pave'] = PAVE                            # paving kinds in ground_dry.png's G and B (web/src/terrain.js)
 
 
@@ -9794,6 +9829,7 @@ _ypaint(jonghap97.GRASS, _yg)                # (외솔관2 동쪽 뜰: lawn wher
 _ypaint([widang97.WORKS, widang97.BANK], _yg)   # (제2인문관 공사장: OSM's later roads and walks across it out; bare: _gd below)
 _ypaint([east97.SITE_BARE], _yg)            # (새천년관 공사장: OSM's later drives and walks across it out; bare: _gd below)
 _ypaint([appen97.WALK_OUT], _yg)            # (아펜젤러관 뒤 찻길 서쪽 가: OSM's walk out, the bank's lawn to the kerb; tools/appen97.py)
+_ypaint([chapel97.front_lawn()], _yg)        # (루스채플 남쪽 면 앞: lawn to the walls but the porch and the flight; tools/chapel97.py)
 if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
 _ypaint(union97.west_paint(), _yp)         # (학생회관 남쪽 앞마당으로 드는 길: paving, as the forecourt's; tools/union97.py)
@@ -9871,11 +9907,12 @@ _gyc, _gyt, _gyn = np.array([35.48, 347.45]), np.array([-0.969, 0.248]), np.arra
 # before its door, out to the walk's end, BILL_UV)
 _bll = BILL_UV['landing']
 # (not over the court east of 외솔관2, jonghap97.GRASS: lawn between the two aprons there)
-_ypaint([p_.buffer(3.5, join_style=2).difference(unary_union(jonghap97.GRASS)) for p_ in LATE_SITES if not BILL_POLY.buffer(0.5).contains(p_)
+_ypaint([p_.buffer(3.5, join_style=2).difference(unary_union(jonghap97.GRASS)).difference(chapel97.front_lawn()) for p_ in LATE_SITES if not BILL_POLY.buffer(0.5).contains(p_)
          and not kwangbok97.hall().buffer(0.5).contains(p_)]      # (광복관: the scans' asphalt runs up to its walls, cars against them)
         + [Polygon([bill_xy(u_, v_) for u_, v_ in ((_bll[0], _bll[2]), (_bll[1], _bll[2]), (_bll[1], _bll[3]), (_bll[0], _bll[3]))])]
         + [Polygon([tuple(_bkc + BK_T * u + BK_N * v) for u, v in ((-4.5, 0.0), (4.5, 0.0), (4.5, 7.1), (-4.5, 7.1))])]
         + [Polygon([tuple(_gyc + _gyt * u + _gyn * v) for u, v in ((-2.6, 8.4), (2.6, 8.4), (2.6, 12.6), (-2.6, 12.6))])], _gp)
+_ypaint([chapel97.porch_poly(), chapel97.stair_poly()], _gp)   # (루스채플 남쪽 단과 두 잔디 사이 계단 밑: tools/chapel97.py)
 # 백주년기념관 앞 테라스 (CENT_TERRACE): the apron paved out to the sidewalk, and under the flights, landings and the
 # porch's level to just inside their side walls and the retaining wall (so no kerb runs along them)
 _ypaint([Polygon([ct_xy(s_, sec_[0][0] + 0.3)[:2] for s_, sec_ in _ap] + [ct_xy(s_, sec_[2][0] - 0.25)[:2] for s_, sec_ in _ap[::-1]]),

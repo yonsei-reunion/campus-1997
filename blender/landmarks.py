@@ -3629,39 +3629,96 @@ def auditorium():
 
 # ============================================================================= 루스채플
 def chapel():
+    """루스채플 as the 1997-07-28 and 1996 winter scans have it (tools/chapel97.py, reference/고증/3.25; campus.json
+    'chapel97'): the hall under a flat roof 9.25 m over its floor, its parapet a dark band round the striped roof of four
+    bays; a lower strip along its north face, a block against its east face and a low wing north of the strip with four
+    skylights, all flat-roofed; the floor on the south porch's level, a granite plinth down to the ground, which falls
+    to the west road; the porch before the south face with a walled planter at its west end and the doors on the axis
+    of the flight that goes down in two runs between the round lawns (garden_flight).  No tower: the scans have none"""
     b = bld(429249499)
-    cx, cy, L, W, ang, z0 = frame_for(b, (-1.0, 0.25))
+    P = CAMPUS['chapel97']
+    o, t = P['o'], P['t']
     mb = MeshBuilder('lm_chapel')
-    mb.xf = local_frame(cx, cy, ang, z0)
-    L, W = min(L, 34), min(W * 0.75, 18)
-    H = 8.0
-    body = rect(L, W)
-    mb.prism(offset_poly(body, 0.3), -4, 0.6, 'stone_granite', 'stone_granite')
-    for i in range(4):
-        a, bb = body[i], body[(i + 1) % 4]
-        P, Le, t, n = edge_P(a, bb)
-        flat_wall(mb, P, 0, Le, 0.6, H, 'brick_red')
-        nf = int(Le / 2.6)
-        for k in range(1, nf):
-            s = k * Le / nf
-            mb.quad(P(s - 0.35, 1.6, 0.02), P(s + 0.35, 1.6, 0.02), P(s + 0.35, H - 0.8, 0.02), P(s - 0.35, H - 0.8, 0.02), 'glass')
-            mb.quad(P(s - 0.45, 1.5, 0.05), P(s + 0.45, 1.5, 0.05), P(s + 0.45, 1.6, 0.05), P(s - 0.45, 1.6, 0.05), 'stone_trim')
-        if Le < W + 0.1:
-            hz = H + W / 2 * 1.25
-            mb.face([P(0, H), P(Le, H), P(Le / 2, hz)], 'brick_red')
-    hz = H + W / 2 * 1.25
-    mb.face([(-L / 2 - 0.6, -W / 2 - 0.6, H - 0.75), (L / 2 + 0.6, -W / 2 - 0.6, H - 0.75), (L / 2 + 0.6, 0, hz), (-L / 2 - 0.6, 0, hz)], 'roof_slate')
-    mb.face([(L / 2 + 0.6, W / 2 + 0.6, H - 0.75), (-L / 2 - 0.6, W / 2 + 0.6, H - 0.75), (-L / 2 - 0.6, 0, hz), (L / 2 + 0.6, 0, hz)], 'roof_slate')
-    # slim bell tower with cross at the front corner
-    tx, ty = -L / 2 + 2.0, -W / 2 - 2.5
-    mb.box((tx, ty, 8.5), (2.4, 2.4, 17.0), 'concrete', mats={'top': 'concrete'})
-    mb.box((tx, ty - 1.21, 13.5), (1.0, 0.02, 4.0), 'metal_dark')
-    mb.box((tx, ty, 17.0 + 2.0), (0.25, 0.25, 4.0), 'metal')
-    mb.box((tx, ty, 17.0 + 2.8), (1.6, 0.25, 0.25), 'metal')
-    # entrance porch
-    mb.box((-L / 2 - 1.5, 0, 3.5), (3.0, 6.0, 0.4), 'concrete')
-    flat = edge_P((-L / 2, -2.0), (-L / 2, 2.0))
-    return [mb]
+    mb.xf = local_frame(o[0], o[1], math.atan2(t[1], t[0]), b['base'])       # (local x = u, y = v, z over the floor)
+    gl = local_ground(mb)
+    W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
+
+    def ring(u0, u1, v0, v1):
+        return [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+
+    def low(poly, step=1.0):
+        zs = []
+        for a, c in zip(poly, poly[1:] + poly[:1]):
+            n = max(1, int(math.hypot(c[0] - a[0], c[1] - a[1]) / step))
+            zs += [gl(a[0] + (c[0] - a[0]) * k / n, a[1] + (c[1] - a[1]) * k / n) for k in range(n)]
+        return min(zs)
+
+    pu0, pu1, pv0, pv1 = P['porch']
+    door0, door1 = -8.0, -3.0                                     # (the doors: on the flight's axis)
+    for name in ('hall', 'north', 'east', 'wing'):
+        u0, u1, v0, v1 = P['parts'][name]['uv']
+        top = P['parts'][name]['top']
+        poly = ring(u0, u1, v0, v1)
+        zb = min(0.0, low(poly)) - 0.5
+        zw = 0.6 if name == 'hall' else zb + 0.5                     # (the hall's granite plinth up to its floor's ledge)
+        mb.prism(offset_poly(poly, 0.12), zb, zw, 'stone_granite', 'stone_granite')
+        for i in range(4):
+            a, c = poly[i], poly[(i + 1) % 4]
+            Pw, Le, tw, nw = edge_P(a, c)
+            flat_wall(mb, Pw, 0, Le, top - 0.7, top, 'concrete_dark' if name == 'hall' else 'stone_trim')   # (the parapet band)
+            if name != 'hall' and Le > 6.0 and top > 3.0:
+                # a row of windows on the floor's level (the low parts' walls are not in the scans: brick as the hall's)
+                flat_wall(mb, Pw, 0, Le, zw, 0.6, 'brick_red')
+                for s0_, s1_ in ((0, 1.0), (Le - 1.0, Le)):
+                    flat_wall(mb, Pw, s0_, s1_, 0.6, top - 0.7, 'brick_red')
+                window_grid(mb, Pw, Le, 0.6, 1, top - 1.3, 3.2, 'brick_red', ww=0.5, sill=0.9, head=0.4, trim='stone_trim',
+                            s_start=1.0, s_end=Le - 1.0)
+                continue
+            flat_wall(mb, Pw, 0, Le, zw, top - 0.7, 'brick_red')
+            if name == 'hall' and i in (0, 1, 3):
+                # tall narrow windows between brick piers; on the south face not over the doors
+                nf = int(Le / 2.6)
+                for k in range(1, nf):
+                    s_ = k * Le / nf
+                    if i == 0 and door0 - 0.8 < u0 + s_ < door1 + 0.8:
+                        continue
+                    mb.quad(Pw(s_ - 0.35, 1.6, 0.02), Pw(s_ + 0.35, 1.6, 0.02), Pw(s_ + 0.35, top - 1.6, 0.02), Pw(s_ - 0.35, top - 1.6, 0.02), 'glass')
+                    mb.quad(Pw(s_ - 0.45, 1.5, 0.05), Pw(s_ + 0.45, 1.5, 0.05), Pw(s_ + 0.45, 1.6, 0.05), Pw(s_ - 0.45, 1.6, 0.05), 'stone_trim')
+        # the roof inside its parapet
+        rin = offset_poly(poly, -0.7 if name == 'hall' else -0.3)
+        zr = top - (0.45 if name == 'hall' else 0.25)
+        mb.face([(x_, y_, zr) for x_, y_ in rin], 'roof_cement' if name == 'hall' else 'roof_flat')
+        for i in range(4):                                        # (the parapet's top and inner face)
+            a, c, ai, ci = poly[i], poly[(i + 1) % 4], rin[i], rin[(i + 1) % 4]
+            mb.quad((*a, top), (*c, top), (*ci, top), (*ai, top), 'concrete_dark' if name == 'hall' else 'stone_trim')
+            mb.quad((*ai, top), (*ci, top), (*ci, zr), (*ai, zr), 'concrete_dark' if name == 'hall' else 'stone_trim')
+        if name == 'hall':                                        # (the three ribs between the four bays)
+            for k in (1, 2, 3):
+                uk = u0 + (u1 - u0) * k / 4
+                mb.box((uk, (v0 + v1) / 2, zr + 0.08), (0.35, v1 - v0 - 1.4, 0.16), 'concrete_dark')
+        if name == 'wing':                                        # (four skylights on its roof)
+            for du in (0.3, 0.7):
+                for dv in (0.3, 0.7):
+                    mb.box((u0 + (u1 - u0) * du, v0 + (v1 - v0) * dv, zr + 0.3), (3.6, 3.6, 0.6), 'glass', mats={'top': 'glass'})
+    # the porch at the floor's level, before the south face
+    porch = ring(pu0, pu1, pv0, pv1)
+    zpb = min(-0.3, low(porch) - 0.4)
+    mb.prism(porch, zpb, 0.0, 'stone_granite', 'stone_step')
+    WALK_FACES.append([W_(pu0, pv0, 0.0), W_(pu1, pv0, 0.0), W_(pu1, pv1 + 0.3, 0.0), W_(pu0, pv1 + 0.3, 0.0)])
+    # the walled planter at its west end
+    qu0, qu1, qv0, qv1 = P['planter']
+    for c_, s_ in (((qu0 + qu1) / 2, qv0 + 0.12), ((qu0 + qu1) / 2, qv1 - 0.12)):
+        mb.box((c_, s_, 0.2), (qu1 - qu0, 0.24, 0.4), 'stone_trim')
+    for c_ in (qu0 + 0.12, qu1 - 0.12):
+        mb.box((c_, (qv0 + qv1) / 2, 0.2), (0.24, qv1 - qv0 - 0.48, 0.4), 'stone_trim')
+    mb.quad((qu0 + 0.24, qv0 + 0.24, 0.25), (qu1 - 0.24, qv0 + 0.24, 0.25), (qu1 - 0.24, qv1 - 0.24, 0.25), (qu0 + 0.24, qv1 - 0.24, 0.25), 'soil')
+    # the doors on the flight's axis
+    hall_v0 = P['parts']['hall']['uv'][2]
+    mb.quad((door0, hall_v0 - 0.03, 0.0), (door1, hall_v0 - 0.03, 0.0), (door1, hall_v0 - 0.03, 2.8), (door0, hall_v0 - 0.03, 2.8), 'glass_door')
+    mb.box(((door0 + door1) / 2, hall_v0 - 0.05, 2.9), (door1 - door0 + 0.3, 0.1, 0.2), 'frame_dark')
+    for u_ in (door0, door0 + 1.25, (door0 + door1) / 2, door1 - 1.25, door1):
+        mb.box((u_, hall_v0 - 0.05, 1.4), (0.1, 0.1, 2.8), 'frame_dark')
+    return [mb] + [garden_flight(f, wall='stone_trim', mat='stone_step', apron=False) for f in P.get('flights', [])]
 
 
 # ============================================================================= 제1공학관 (front slab on 백양로)

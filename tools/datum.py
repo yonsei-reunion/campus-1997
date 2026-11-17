@@ -256,6 +256,9 @@ def heights(c):
     for fl in c.get('aud_north', {}).get('flights', []):       # (대강당 윗단 북쪽 끝 너머의 계단: tools/audnorth97.py)
         A(fl, 'z_top', *fl['top'])
         A(fl, 'z_foot', *fl['foot'])
+    for fl in c.get('chapel97', {}).get('flights', []):       # (루스채플 앞 두 잔디 사이 계단: tools/chapel97.py)
+        A(fl, 'z_top', *fl['top'])
+        A(fl, 'z_foot', *fl['foot'])
     R = c['baekyangro']
     for i, s in enumerate(R['profile_s']):
         A(R['profile_h'], i, *_line_at(R['pts'], s))
