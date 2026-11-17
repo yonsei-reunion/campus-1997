@@ -348,6 +348,10 @@ def isle_walls(top, foot, n_flight, step=0.5):
         P.append(p)
         Nrm.append(np.array([-q[1], q[0]]))           # (left of the run: out over the road)
     zt = [top(*(p - nn * 0.05)) for p, nn in zip(P, Nrm)]
+    # (the head along the run: the deck's edge follows its 1.25 m lattice; a running mean over 2.5 m, never more than
+    # 0.1 m under the edge, so that the coping (ct over it) still covers the deck)
+    zs = np.convolve(np.pad(zt, 2, mode='edge'), np.ones(5) / 5, mode='valid')
+    zt = [max(float(a), b - 0.1) for a, b in zip(zs, zt)]
     zb = [foot(*(p + nn * 0.1)) - 0.08 for p, nn in zip(P, Nrm)]
     for k in range(n):
         if max(zt[k] - zb[k], zt[k + 1] - zb[k + 1]) < 0.12:

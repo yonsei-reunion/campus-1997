@@ -11132,6 +11132,7 @@ def curb_runs(F3):
     keep_out = unary_union([bline.buffer(ROAD_HALF + 0.4), city.buffer(2.0),
                             Point(*FOUNTAIN['pos']).buffer(FOUNTAIN['pave'] + 0.6)] +    # (활천대's flagstones run into the turf)
                            [Polygon(b_['footprint']).buffer(0.5) for b_ in out['buildings']] +
+                           [audnorth97.isle_wall_line(_isn).buffer(0.5)] +   # (대강당 북쪽 끝 너머 섬: its wall is the edge)
                            [LineString(xy(q) for q in w_['geometry']).buffer(WID[w_['tags']['highway']] / 2 + 1.5)
                             for w_ in ways.values() if w_.get('tags', {}).get('highway') in ('primary', 'secondary')])
     area = unary_union([Polygon(b_['footprint']).buffer(45.0) for b_ in out['buildings'] if b_['style'] != 'city'] +
