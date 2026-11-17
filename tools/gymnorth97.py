@@ -217,7 +217,39 @@ GYMED_FLOOR, GYMED_LEVELS = LANE_Z, 5
 # off its south-east end where two cars stood in July 1997 as in the winter before (26/16 of both)
 PAVE2 = [Polygon([(-169.0, -120.5), (-156.0, -120.5), (-156.0, -84.0), (-170.5, -84.0)]),
          Polygon([(-203.0, -118.5), (-186.0, -122.5), (-186.0, -129.0), (-192.0, -133.0), (-199.0, -133.5), (-203.0, -128.0)])]
-GYM_FLOOR, GYM_SPRING, GYM_CROWN = 36.8, 49.75, 55.55
+GYM_FLOOR, GYM_SPRING, GYM_CROWN = 36.8, 45.8, 55.55
+# 체육관 as the 1997 scans have it (reference/고증/3.24 「체육관의 몸과 지느러미 벽」, 2026-11-17): in the frame of OSM's
+# outline (origin its south-west corner, u east-south-east along the south face, v north-north-east) the vault's eaves
+# on the plane 45.8 m at v -1.0 and 30.0 in 26/16 · 27/17 · 26/15 (within 0.1 m: that plane is the springing), its
+# crown 55.55 m at v 14.5 -- OSM's outline (v 0 - 33.8) runs on north over the fins of its north face; its ends as
+# OSM's.  The fins: fifteen a side, 3.66 m apart, from the eaves down to the ground 4.2 m out (26/16 on the ground's
+# plane; the school's photo of the north face, 자료 R gym.jpg)
+GYM_O, GYM_T = (-233.4, -104.95), (0.96556, -0.26015)
+GYM_UV = (0.0, 54.1, -1.0, 30.0)
+GYM_FINS = dict(n=15, step=3.66, out=4.2, w=0.6, t=0.4)
+
+
+def gym_outline():
+    """체육관's 1997 outline (GYM_UV) in game coordinates, anticlockwise"""
+    (ox, oy), (tx, ty) = GYM_O, GYM_T
+    u0, u1, v0, v1 = GYM_UV
+    return [(round(ox + tx * u - ty * v, 2), round(oy + ty * u + tx * v, 2)) for u, v in ((u0, v0), (u1, v0), (u1, v1), (u0, v1))]
+
+
+def fin_colliders():
+    """the fins' outer ends, where they come down under head height (the outer 1.8 m), as the walker's walls: as
+    blender/generic.py gym_1997 sets them (spaced about the outline's middle along its length)"""
+    (ox, oy), (tx, ty) = GYM_O, GYM_T
+    u0, u1, v0, v1 = GYM_UV
+    F = GYM_FINS
+    um = (u0 + u1) / 2
+    out = []
+    for k in range(F['n']):
+        u = um + (k - (F['n'] - 1) / 2) * F['step']
+        for va, vb in ((v1 + F['out'] - 1.8, v1 + F['out'] + 0.2), (v0 - F['out'] - 0.2, v0 - F['out'] + 1.8)):
+            out.append([[round(ox + tx * uu - ty * vv, 2), round(oy + ty * uu + tx * vv, 2)]
+                        for uu, vv in ((u - F['t'] / 2, va), (u + F['t'] / 2, va), (u + F['t'] / 2, vb), (u - F['t'] / 2, vb))])
+    return out
 
 
 def plane(x, y):
@@ -549,3 +581,22 @@ def square(Hn, X, Y, FIXED, fill, keep):
     info = dict(by_points=int(done.sum()), filled=int(free.sum()),
                 moved=(int((np.abs(dd) > 0.05).sum()), round(float(dd.min()), 2), round(float(dd.max()), 2)))
     return done | free, info
+
+
+def clear_fins(cars):
+    """cars parked along the long faces stand clear of the fins' feet (in place: a car whose side would meet a foot
+    steps straight out from the face, 0.7 m beyond it); returns how many moved"""
+    (ox, oy), (tx, ty) = GYM_O, GYM_T
+    u0, u1, v0, v1 = GYM_UV
+    lo, hi = v0 - GYM_FINS['out'] - 1.6, v1 + GYM_FINS['out'] + 1.6
+    n = 0
+    for c in cars:
+        dx, dy = c[1] - ox, c[2] - oy
+        u, v = dx * tx + dy * ty, -dx * ty + dy * tx
+        if not (u0 - 1.0 < u < u1 + 1.0) or not (lo < v < v0 or v1 < v < hi):
+            continue
+        v = lo if v < v0 else hi
+        c[1], c[2] = round(ox + tx * u - ty * v, 2), round(oy + ty * u + tx * v, 2)
+        n += 1
+    return n
+

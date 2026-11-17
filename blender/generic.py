@@ -576,6 +576,62 @@ def barrel_roof(mb, cx, cy, L, W, ang, zt, rise=0.22, seg=12):
             mb.quad(*(q if x > 0 else q[::-1]), 'concrete')
 
 
+def gym_1997(mb, b, cx, cy, L, W, ang, z0, zt):
+    """체육관 as the 1997 scans and the school's photo of the mid-1990s have it (자료 R gym.jpg; tools/gymnorth97.py
+    GYM_FINS, reference/고증/3.24 「체육관의 몸과 지느러미 벽」): along both long faces a row of fins, slender slabs
+    leaning from the eaves down to the ground 4.2 m out; in the east gable, under the vault's arch, a band of tall
+    narrow lights, and a second row of windows under the wall's band (the lobby's two storeys)"""
+    F = b['fins']
+    c, s = math.cos(ang), math.sin(ang)
+    P = lambda x, y, z: (cx + x * c - y * s, cy + x * s + y * c, z)
+    n_, step, out, w, t = F['n'], F['step'], F['out'], F['w'], F['t']
+    for side in (-1, 1):
+        for k in range(n_):
+            x = (k - (n_ - 1) / 2) * step
+            yt, zt_ = side * W / 2, zt - 0.2
+            yf = side * (W / 2 + out)
+            gx, gy, _ = P(x, yf, 0)
+            zf = ground(gx, gy) - 0.3
+            # the slab's centre line from (yt, zt_) to (yf, zf) in the face's normal plane, w across it, t along the wall
+            dy, dz = yf - yt, zf - zt_
+            ln = math.hypot(dy, dz)
+            ny, nz = -dz / ln * w / 2, dy / ln * w / 2
+            corners = [(yt + ny, zt_ + nz), (yf + ny, zf + nz), (yf - ny, zf - nz), (yt - ny, zt_ - nz)]
+            A = [P(x - t / 2, y_, z_) for y_, z_ in corners]
+            B = [P(x + t / 2, y_, z_) for y_, z_ in corners]
+            for q in [[A[i], A[(i + 1) % 4], B[(i + 1) % 4], B[i]] for i in range(4)] + [A, B]:
+                mb.face(q, 'concrete')           # (both windings: the slab is seen from every side)
+                mb.face(q[::-1], 'concrete')
+    # the east gable: the end whose normal is the door's
+    en = (b.get('entry') or {}).get('n', [c, s])
+    xe = L / 2 if en[0] * c + en[1] * s > 0 else -L / 2
+    o = 1 if xe > 0 else -1
+    h = W * b.get('rise', 0.22)
+    nlit = 8
+    for k in range(nlit):                # (the arch's tall narrow lights)
+        y = (k - (nlit - 1) / 2) * (W * 0.62 / nlit)
+        top = zt + h * math.sin(math.pi * (y + W / 2) / W) - 1.2
+        if top - zt < 1.5:
+            continue
+        q = [P(xe + o * 0.03, y - 0.45, zt + 0.6), P(xe + o * 0.03, y + 0.45, zt + 0.6), P(xe + o * 0.03, y + 0.45, top),
+             P(xe + o * 0.03, y - 0.45, top)]
+        mb.quad(*(q if o > 0 else q[::-1]), 'glass')
+    # the lower row of the lobby's windows, either side of the door (its place along the face from the entry)
+    ep = (b.get('entry') or {}).get('p')
+    yd = None
+    if ep:
+        dx, dy_ = ep[0] - cx, ep[1] - cy
+        yd = -dx * s + dy_ * c
+    nwin = 7
+    for k in range(nwin):
+        y = (k - (nwin - 1) / 2) * (W - 4.0) / nwin
+        if yd is not None and abs(y - yd) < 2.6:
+            continue
+        q = [P(xe + o * 0.03, y - 1.0, z0 + 1.1), P(xe + o * 0.03, y + 1.0, z0 + 1.1), P(xe + o * 0.03, y + 1.0, z0 + 3.3),
+             P(xe + o * 0.03, y - 1.0, z0 + 3.3)]
+        mb.quad(*(q if o > 0 else q[::-1]), 'glass')
+
+
 # ----------------------------------------------------------------------------- rooftop features the outlines cannot say
 def dome_tower(mb, c, ang, zt, st, T, Ht, R, seg, rings, slit, drum, win, seam=0.04, phase=0.0):
     """A square tower T a side and Ht over the roof zt at c (its sides along ang), with a window (half width, sill and
@@ -957,6 +1013,8 @@ def build_generic(b, rnd):
             burn_clutter(poly, rnd)
     elif style == 'gym':               # (rise: build_campus.py's own, 체육관 from the 1997 scans: tools/gymnorth97.py)
         barrel_roof(mb, cx, cy, L, W, ang, zt, rise=b.get('rise', 0.22))
+        if b.get('fins'):              # (its fins and the east gable's windows: nothing drawn from rnd)
+            gym_1997(mb, b, cx, cy, L, W, ang, z0, zt)
     else:
         roof = 'roof_green' if (style == 'city' and rnd.random() < 0.6) else 'roof_flat'
         at = None

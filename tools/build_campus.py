@@ -7445,11 +7445,17 @@ for b_ in buildings:
             b_.update(base=datum.up(_gc.x, _gc.y, gymnorth97.GYMED_FLOOR), levels=gymnorth97.GYMED_LEVELS,
                       height=round(gymnorth97.GYMED_LEVELS * FLOOR_H['white'] + 1.2, 2))
         else:
-            _grr = np.array(Polygon(b_['footprint']).minimum_rotated_rectangle.exterior.coords)[:3]
-            _gw = float(min(np.hypot(*(_grr[1] - _grr[0])), np.hypot(*(_grr[2] - _grr[1]))))     # (the vault's span)
+            # (its 1997 outline, gymnorth97.GYM_UV: the vault 31 m across from eave to eave, 2.4 m south of OSM's
+            # middle; it goes in with the late outlines below, its floor as set here)
+            _gw = gymnorth97.GYM_UV[3] - gymnorth97.GYM_UV[2]                                   # (the vault's span)
+            _gc = Polygon(gymnorth97.gym_outline()).centroid
             _gfh = round((gymnorth97.GYM_SPRING - gymnorth97.GYM_FLOOR) / b_['levels'], 3)
             b_.update(base=datum.up(_gc.x, _gc.y, gymnorth97.GYM_FLOOR), fh=_gfh, height=round(b_['levels'] * _gfh + 1.2, 2),
                       rise=round((gymnorth97.GYM_CROWN - gymnorth97.GYM_SPRING) / _gw, 4))
+            b_['fins'] = dict(gymnorth97.GYM_FINS)
+            LATE_FOOTPRINT_1997[b_['id']] = gymnorth97.gym_outline()
+            LATE_NO_SIMPLIFY.add(b_['id'])
+            BASE_1997[b_['id']] = b_['base']
         b_['top_ground'] = round(max(ground_h(x_, y_) for x_, y_ in b_['footprint']), 2)
         print('   %s: floor %.2f -> %.2f m, top %.2f -> %.2f m%s' % (b_['name'], _gb0, b_['base'], _gh0, b_['base'] + b_['height'],
               ', vault %.2f' % (b_['rise'] * _gw) if 'rise' in b_ else ''))
@@ -10253,6 +10259,8 @@ out['eng1_yard'] = dict(o=list(eng97.O), ang=round(eng97.ANG, 6), hall=list(eng9
 # windows in the wall over the lot, blender/landmarks.py eng_hall; eng97.plaza_parts)
 out['eng2_plaza'] = eng97.plaza_parts()
 out['colliders'] += eng97.plaza_colliders()
+out['colliders'] += gymnorth97.fin_colliders()     # (체육관's fins: their outer ends, where they come under head height)
+print('체육관 지느러미 벽: cars stepped clear of the feet', gymnorth97.clear_fins(cars))
 print('제1공학관 안뜰: the hall\'s floor %.2f m, the deck behind the wall %.0f m2 (%d triangles), the wall %.0f m' % (
     buildings[-1]['base'], _e97_area.area, len(out['eng1_yard']['deck']['f']),
     sum(LineString([q_[:2] for q_ in r_[1]]).length for r_ in out['eng1_yard']['walls'])))
