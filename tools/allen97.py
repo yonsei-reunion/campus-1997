@@ -154,7 +154,7 @@ TRENCH_WALL = [(14.0, 40.5), (38.5, 40.5)]
 KEEP_UPPER = [(1.8, 20.6), (20.7, 20.6), (20.7, 20.8), (55.0, 20.8), (55.0, 40.5), (14.0, 40.5), (14.0, 38.1),
               (-1.8, 38.1), (-1.8, 27.4), (1.8, 27.4)]
 KEEP_HILL = [(0.0, 40.5), (55.0, 40.5), (55.0, 80.0), (0.0, 80.0)]
-DECK_U = {'allen_terrace': (-10.0, 40.0), 'allen_hill': (15.0, 37.5)}
+DECK_U = {'allen_terrace': (-10.0, 45.0), 'allen_hill': (15.0, 37.5)}
 RUNS = {}                          # (set by grade: the walls' runs along the decks' edges)
 PARAPET = (1.0, 0.25)              # (over the terrace's edge: height, thickness)
 COPING = (0.3, 0.3)                # (over the trench's wall)
