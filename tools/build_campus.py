@@ -7224,6 +7224,17 @@ print('대강당 윗단 북쪽 끝 너머:', {k_: v_ for k_, v_ in ISLE97_GRADE.
 TR_W_RNG, _wls_rng = TR_W, _wls
 _w_raw = _w_raw[:11] + westisle97.LANE + _w_raw[11 + len(westisle97.LANE):]
 _w_r[11 + len(westisle97.LANE)] = westisle97.LANE_R
+# 스팀슨관 서쪽 찻길 (reference/고증/3.5.2 「서쪽 찻길의 자리」): OSM drew the road's west kerb as its middle.  The
+# middle between the two kerbs of the 1996 winter scans (six frames; 1997 - 1999 and the 2008 skyview where they show),
+# from the bend south of the 삼거리 shortcut (path 41's end) to the island's fork, which stays; the old line (OSM's
+# paint, TR_W_RNG) is what the planting read
+ST_WEST97 = [(0.33, 161.25), (-2.33, 173.11), (-3.77, 177.06), (-5.37, 181.06), (-6.78, 184.86), (-8.36, 188.76),
+             (-9.73, 192.72), (-11.24, 196.3), (-12.25, 200.24)]
+ST_WEST97_W = 5.6                     # (kerb to kerb 5.3 - 5.9 m)
+_wk7, _wk10 = _w_raw.index((-2.0, 160.5)), _w_raw.index((-14.5, 204.6))
+ST_WEST97_OLD = _w_raw[_wk7 - 1:_wk10 + 1]
+_w_raw = _w_raw[:_wk7] + ST_WEST97 + _w_raw[_wk10:]
+_w_r = _w_r[:_wk7] + [6.0] * len(ST_WEST97) + _w_r[_wk10:]
 TR_W, TR_WN, TR_WS = tr_line(_w_raw, _w_r)
 TR_WO = np.interp(TR_WS, [TR_SJC - 9.0, TR_SJC + 12.0], [TR_LANE_BY, TR_LANE])
 _wls = LineString([tuple(q_) for q_ in TR_W])
@@ -10213,7 +10224,15 @@ DWN_ROAD = LineString([tuple(q_) for q_ in TR_E[_ekn - 2:]]).buffer(3.2, cap_sty
 _dwn_side = Polygon([(183.71, 565.09), (152.63, 551.3), (155.27, 545.36), (186.35, 559.15)])   # (south of it, along the island)
 DWN_LAWN = LineString([(201.4, 571.3), (147.1, 547.2)]).buffer(3.6, cap_style='flat').intersection(_dwn_side).difference(
     DWN_ROAD.buffer(0.05))
-_ypaint([_rd_clear, RD_ISLAND, DWN_LAWN], _yg)
+# (스팀슨관 서쪽 찻길, ST_WEST97 above: OSM's asphalt west of the 1997 road taken up but for the roads that meet it)
+_sw_new = LineString(ST_WEST97 + [(-14.5, 204.6)]).buffer(ST_WEST97_W / 2)
+_sw_old = LineString(ST_WEST97_OLD[1:])
+_sw_keep = unary_union([LineString(p_['pts']).buffer(p_['w'] / 2 + 0.3) for p_ in paths_out if len(p_['pts']) > 1
+                        and p_['kind'] not in ('footway', 'path', 'steps', 'pedestrian')
+                        and min(_sw_old.distance(Point(*p_['pts'][0])), _sw_old.distance(Point(*p_['pts'][-1]))) < 0.5
+                        and LineString(p_['pts']).intersection(_sw_old.buffer(1.2)).length < 0.5 * LineString(p_['pts']).length])
+ST_WEST97_CLEAR = _sw_old.buffer(3.3, cap_style='flat').difference(_sw_keep).difference(_sw_new)
+_ypaint([_rd_clear, RD_ISLAND, DWN_LAWN, ST_WEST97_CLEAR], _yg)
 for l_, w_, walk_ in _rd_oth:                 # (the walks across or along the old line: their paving again, over the lawn)
     if walk_ and l_.intersects(_rd_clear):
         _ypaint([list(l_.coords)], _yp, width=w_)
@@ -10228,7 +10247,7 @@ spl[..., 2] *= (1.0 - _yz) * (1.0 - _yg)
 spl[..., 1] = np.minimum(np.maximum(spl[..., 1], ndimage.gaussian_filter(np.array(_yp, np.float32), 0.7)), 255 - spl[..., 0])
 _gf = Image.new('L', (SW, SH), 0)                # (찻길: the woods' floor where the old line's asphalt was taken up)
 _YN[id(_gf)] = '_gf'
-_rd_floor = _rd_clear.intersection(woods_u.buffer(-1.0))
+_rd_floor = unary_union([_rd_clear, ST_WEST97_CLEAR]).intersection(woods_u.buffer(-1.0))
 _ypaint([g_ for g_ in (_rd_floor.geoms if hasattr(_rd_floor, 'geoms') else [_rd_floor]) if g_.geom_type == 'Polygon' and g_.area > 0.5], _gf)
 spl[..., 2] = np.maximum(spl[..., 2], np.minimum(ndimage.gaussian_filter(np.array(_gf, np.float32), 0.7) * (170.0 / 255.0),
                                                  255.0 - spl[..., 0] - spl[..., 1]))
@@ -10657,6 +10676,7 @@ if RD_WALK:
 _n0 = len(out['decals'])                      # (and the old asphalt's stains and lids with it)
 out['decals'][:] = [d_ for d_ in out['decals'] if not (_rd_clear.contains(Point(d_[1], d_[2])) and not RD_ROAD.contains(Point(d_[1], d_[2])))]
 out['decals'][:] = [d_ for d_ in out['decals'] if not DWN_LAWN.contains(Point(d_[1], d_[2]))]
+out['decals'][:] = [d_ for d_ in out['decals'] if not ST_WEST97_CLEAR.buffer(0.3).contains(Point(d_[1], d_[2]))]   # (스팀슨관 서쪽 찻길)
 print('찻길 east: decals gone with the old asphalt', _n0 - len(out['decals']))
 _ypaint([[tuple(q_) for q_ in TR_E[TR_EKH - 42:TR_EKH + 24]]], _ga, width=8.6)
 _ypaint([DWN_ROAD], _ga)                                       # (대우관 북쪽 길: its east leg on the scans' line, above)
@@ -10674,6 +10694,7 @@ ImageDraw.Draw(_ga).polygon([to_px(x_, y_) for x_, y_ in westisle97.ISLAND.exter
 SPLAT_OPS.append(('poly', '_ga', list(westisle97.ISLAND.exterior.coords), 0))
 _ypaint([[tuple(q_) for q_ in TR_W[int(round(_wls.project(Point(-62.2, 138.4)))):]]], _ga, width=6.4)
 _ypaint([PINSON_LOT], _ga)
+_ypaint([[(1.6, 149.5)] + ST_WEST97 + [(-14.5, 204.6)]], _ga, width=ST_WEST97_W)      # (스팀슨관 서쪽 찻길, 1997)
 # what stands in the cars' way off 백양로: the shrubs and the props go, a tree moves aside in its place in the list
 # (web/src/world.js picks the trees' models by their order)
 _troad = unary_union([LineString([tuple(q_) for q_ in TR_E[TR_EK0:]]).buffer(3.6), LineString([tuple(q_) for q_ in TR_W[TR_K0:]]).buffer(3.6),
@@ -11749,6 +11770,9 @@ if _rd_ui:
     for k_ in _rd_ui[:0:-1]:
         out['paths'].pop(k_)
 print('찻길 east: the map\'s ways along the old line', len(_rd_ui), '-> 1')
+for p_ in out['paths']:                       # (스팀슨관 서쪽 찻길: the map's and the crowd's line on the 1997 road)
+    if p_['kind'] == 'service' and p_['pts'][:2] == [[-2.0, 160.5], [-7.9, 178.7]] and p_['pts'][-1] == [-14.5, 204.6]:
+        p_['pts'] = [[-2.0, 160.5]] + [list(q_) for q_ in ST_WEST97] + [[-14.5, 204.6]]
 # 백주년기념관 남서쪽 둥근 마당 (CENT_SW_PAVE above, #151): the walk along the strip runs on to 백양로's sidewalk as the
 # scans' paving does (the map, the crowd), and the trees the planting left on the paved ring step off it in their
 # places in the list: the nearest to it into the bed, where the scans have the bed's one crown, the others off the
