@@ -3352,7 +3352,7 @@ OLD_HALLS = [
     #   windows (3.75 m apart) over the car park north-west of it (38.9 m), a floor or two more down the slope to 성산로
     # - 특별병동: the slab 71 x 15 m, 5 - 9 m east and 2 m north of OSM's 어린이병원 (as Kakao's outline is)
     # (외래진료소: four storeys since tools/medwest97.py: its roof 45 - 46 m in the scans, its forecourt two storeys up)
-    (990030, '외래진료소', 'white', 4, med_rect(-129.0, -83.0, -26.4, 46.5)),
+    (990030, '외래진료소', 'white', 4, med_poly(ssr97.CLINIC_UV)),     # (its two north wings on to 제중관: tools/ssr97.py)
     (990031, '의과대학', 'white', 5, block_poly((140.5, -333.75), (0.705, 0.710), 59.0, 9.0)),
     (990032, '의료원 종합관', 'white', 5, med_rect(3.0, 86.0, -97.2, -78.4, -0.7)),
     (990033, '선우학사', 'white', 3, med_rect(73.8, 127.5, -17.1, 0.6, -0.5)),
@@ -3415,6 +3415,13 @@ LATE_FOOTPRINT_1997[990012] = list(Point(-163.5, -24.0).buffer(7.5, 3).exterior.
 LATE_LEVELS = {990011: 2, 990012: 1}
 BASE_1997.update({990010: datum.up(-176.38, 20.6, 44.02), 990014: datum.up(-176.38, 20.6, 44.02), 990011: datum.up(-156.25, -24.0, 37.82), 990012: datum.up(-163.5, -24.0, 44.16), 990060: SCI['yard'], 990061: SCI['yard']})
 BASE_1997[990030] = medwest97.CLINIC_BASE      # (외래진료소: its third floor level with its raised forecourt)
+# 제중관 (OSM 473006251: today's outline) without its west lobe, u -76 .. -55.5 and v 9 .. 43 on 의료원's grid: there the
+# 1997 scans have 외래진료소's two north wings and the flat block south of them (roofs 45.5 - 47 m, the hall's 48 - 57 m
+# begins at u -55.5; reference/고증/3.1.2 「외래진료소의 덩어리」, tools/ssr97.py JEJUNG_CUT).  Late: the planting has read
+# OSM's outline
+_jj_fp = footprint(ways[473006251]).difference(med_rect(*ssr97.JEJUNG_CUT))
+_jj_fp = max(getattr(_jj_fp, 'geoms', [_jj_fp]), key=lambda g_: g_.area)
+LATE_FOOTPRINT_1997[473006251] = [(round(x_, 2), round(y_, 2)) for x_, y_ in list(shapely.geometry.polygon.orient(_jj_fp, 1.0).exterior.coords)[:-1]]
 # (the outlines and halls put back since the planting was laid, as MED_SITES_RNG's None: no clearing was made for
 # them, so the trees by them step aside in their places in the list)
 SITES_NEW_1997 = {222843398, 990010, 990011, 990012, 990014, 990060, 990061, 990050, 990051, 990052}

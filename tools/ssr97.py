@@ -426,10 +426,16 @@ def hut():
 # (고증 3.1.2 「외래진료소의 덩어리」; 2.10's / 3.1.2's frame: o (150, -250), u along 43 deg, v north-west of it.)  Five
 # low hipped wings ridged along u side by side across v, each 12 m wide with a flat strip of 3 m at the eaves between
 # them (the 1997 scans: the ridges at v -20.3, -5.2, 10.0, 25.4, 40.6, 46.4 - 46.9 m; the eaves and the strips 45.4 - 46.0 m,
-# four pairs of frames on two lines across).  Wings 1 - 2 run on north-east past the outline (u -83) to 제중관 (u -54):
-# here they end in a hip at the outline as the other three do.
+# four pairs of frames on two lines across).  Wings 1 - 2 run on north-east to u -55.5 (a 2.5 m grid of heights over the
+# hall and 제중관, 26/16 x 27/17 and 27/17 x 27/18: their eaves and ridge go on unbroken to there, 제중관's 47.3 - 57 m
+# begins), with the flat block south of them.
 CLINIC_WINGS = [(-129.0, -83.0, -26.4, -14.3), (-129.0, -83.0, -11.2, 0.8), (-129.0, -83.0, 4.0, 16.0),
-                (-129.0, -83.0, 19.4, 31.4), (-129.0, -83.0, 34.6, 46.5)]
+                (-129.0, -55.5, 19.4, 31.4), (-129.0, -55.5, 34.6, 46.5)]
+# its outline: the three south wings to u -83, the two north ones and the flat block south of them (v 7 .. 19.4, eaves'
+# height with two cooling towers) on to u -55.5, where 제중관's higher roofs begin (JEJUNG_CUT: what goes off 제중관's
+# OSM outline, u0, u1, v0, v1)
+CLINIC_UV = [(-129.0, -26.4), (-83.0, -26.4), (-83.0, 7.0), (-55.5, 7.0), (-55.5, 46.5), (-129.0, 46.5)]
+JEJUNG_CUT = (-80.0, -55.5, 0.0, 47.0)
 CLINIC_EAVES, CLINIC_RIDGE = 45.6, 46.65
 CLINIC_FH = 3.7                      # (four storeys from its floor, medwest97.CLINIC_BASE 30.82, to the eaves)
 
