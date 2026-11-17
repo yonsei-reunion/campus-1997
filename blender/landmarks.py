@@ -6409,6 +6409,48 @@ def north_gate_lodge(bid=991043):
 
 
 # ============================================================================= 공학원 공사장 (1995.8 - 1999.4)
+def north_toll():
+    """북문 주차 요금정산소와 차단기 (campus.json `north_toll`, tools/build_campus.py NORTH_TOLL; reference/고증/3.21
+    「북문 · 갈림길 · 서쪽 학사길」): the box on the loop's inner edge 31 m from the fork in the 1996 - 1999 scans (3.2 x
+    1.5 m, 2.2 - 2.6 m over the road) with a bar across the road at each end, the toll booth of the campus's paid parking
+    (1994-11: 북문 among the five gates with barriers and booths, 동아일보 1994-04-27; 「북문 자동차출입 통제 게이트」,
+    조선일보 1996-04-08).  The look after the campus's booth on 백양로 in autumn 1997 (reference/학교홈페이지/bakyang.jpg):
+    yellow walls with big dark windows, a flat roof, a yellow ticket post, a red and white bar; on a low island.  The bars
+    lowered across the road as the scans have them.  Local u along the road, -v towards it."""
+    T = CAMPUS.get('north_toll')
+    if not T:
+        return []
+    x, y = T['pos']
+    L, W = T['size']
+    c, s = math.cos(T['rot']), math.sin(T['rot'])
+    W_ = lambda u, v: (x + u * c - v * s, y + u * s + v * c)
+    z0 = min(ground(*W_(u, v)) for u in (-L / 2, L / 2) for v in (-W / 2, W / 2))
+    mb = MeshBuilder('lm_north_toll')
+    mb.xf = local_frame(x, y, T['rot'], z0)
+    up = max(ground(*W_(u, v)) for u in (-L / 2, L / 2) for v in (-W / 2, W / 2)) - z0
+    zi = up + 0.15                                                      # (the island's top)
+    mb.box((0, 0, (zi - 0.3) / 2), (L + 0.6, W + 0.6, zi + 0.3), 'concrete', skip=('bottom',))
+    zt = zi + T['height'] - 0.3                                              # (the walls' head; the roof slab over it)
+    mb.box((0, 0, zi + 0.45), (L, W, 0.9), 'paint_yellow', skip=('bottom', 'top'))
+    for sg in (-1, 1):                                                  # glass all round over the sills
+        mb.box((0, sg * (W / 2 - 0.02), zi + 1.45), (L - 0.3, 0.04, 1.1), 'glass')
+        mb.box((sg * (L / 2 - 0.02), 0, zi + 1.45), (0.04, W - 0.3, 1.1), 'glass')
+        for k in (-1, 1):                                               # the corner posts
+            mb.box((sg * (L / 2 - 0.08), k * (W / 2 - 0.08), zi + 1.45), (0.16, 0.16, 1.1), 'paint_yellow', skip=('bottom', 'top'))
+    mb.box((0, 0, (zi + 2.0 + zt) / 2), (L, W, zt - zi - 2.0), 'paint_yellow', skip=('bottom',))
+    mb.box((0, 0, zt + 0.08), (L + 0.2, W + 0.2, 0.16), 'paint_yellow')
+    mb.box((0, 0, zt + 0.17), (L + 0.36, W + 0.36, 0.02), 'roof_metal', skip=('bottom',))
+    # the bars: a post at each end of the box on the road side, the bar lowered across the road
+    for u in T['bars_u']:
+        zr = ground(*W_(u, -W / 2 - 0.45)) - z0
+        mb.box((u, -W / 2 - 0.45, zr + 0.45), (0.3, 0.3, 0.9), 'paint_yellow', skip=('bottom',))
+        n = 6
+        for k in range(n):                                              # white with red bands
+            v0 = -W / 2 - 0.6 - k * T['bar'] / n
+            mb.box((u, v0 - T['bar'] / n / 2, zr + 0.85), (0.07, T['bar'] / n, 0.07), 'paint_white' if k % 2 == 0 else 'light_red')
+    return [mb]
+
+
 def _tower_crane(x, y, z, H, brg, jib, cjib):
     """The hammerhead tower crane over 공학원's pit (the July 1997 scans, 고증 4.4): a lattice mast 1.6 m square, the
     slewing ring and the cab on it, a tower head over that with the pendants to the jib and the counter-jib, a

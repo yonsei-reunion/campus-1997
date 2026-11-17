@@ -12002,6 +12002,16 @@ OESOL_BUST = dict(pos=[104.0, 170.0], rot=round(math.radians(-75.0), 4))
 OESOL_BUST['h'] = round(float(ground_h(*OESOL_BUST['pos'])), 2)
 out['statues']['oesol_bust'] = OESOL_BUST
 out['colliders'].append(_dz_box(OESOL_BUST['pos'], OESOL_BUST['rot'], 0.36, 0.31))
+# 북문 주차 요금정산소와 차단기 (1994-11 ~, reference/고증/3.21 「북문 · 갈림길 · 서쪽 학사길」; nth): the white box on the
+# loop's inner edge 31 m from the fork in the 1996 - 1999 scans (3.2 x 1.5 m along the road, 2.2 - 2.6 m high) and the
+# white bar across the road at each of its ends: the campus's paid parking had a barrier and a booth at 북문 (동아일보
+# 1994-04-27, 조선일보 1996-04-08) and took tolls from cars through 북문 ~ 동문 (조선일보 1997-05-02); a booth stands
+# there in the roadview of 2008-08.  The look after the booth on 백양로 in autumn 1997 (자료 R bakyang.jpg).  rot: along
+# the loop there (muak.lanes 'loop'), the road on its -v side; blender/landmarks.py north_toll.
+# Late and nothing drawn; the booth and its island a collider, the bars not (lowered, walked under)
+NORTH_TOLL = dict(pos=[37.4, 947.0], rot=round(math.radians(-111.0), 4), size=[3.2, 1.5], height=2.4, bars_u=[-1.8, 1.8], bar=3.4)
+out['north_toll'] = NORTH_TOLL
+out['colliders'].append(_dz_box(NORTH_TOLL['pos'], NORTH_TOLL['rot'], 1.9, 1.05))
 if os.environ.get('Y97_WORK_DUMP'):          # (the working datum's own result, to compare two builds on it)
     os.makedirs(os.environ['Y97_WORK_DUMP'], exist_ok=True)
     json.dump(out, open(os.path.join(os.environ['Y97_WORK_DUMP'], 'campus.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
