@@ -7206,6 +7206,7 @@ _bl_keep = shapely.contains_xy(Polygon(SANG_DIAMOND).buffer(3.0), X, Y)
 _bl_took, BILL97_GRADE = bill97.grade(Hn, X, Y, FIXED, [(bill97.HALL_E, 2.0)], _bl_keep, harmonic_fill)
 FIXED[_bl_took] = True
 print('빌링슬리관 동쪽 찻길:', BILL97_GRADE)
+DAEWOO['bank'] = bill97.bank_pts()           # (the 상뜰's boulder bank behind the 1997 east kerb, 6.8 m out of OSM's line)
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------

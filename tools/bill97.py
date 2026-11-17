@@ -4,6 +4,7 @@
     took, info = bill97.grade(Hn, X, Y, FIXED, keep, fill)      # 심기가 끝난 뒤, annex97 다음
     bill97.OLD_STRIP · NEW_STRIP                                 # (칠: 걷어 낼 아스팔트, 새 아스팔트)
     moved = bill97.clear(items)                                  # (새 아스팔트 위의 나무 · 관목 · 소품 · 차를 목록의 제자리에서 비킴)
+    DAEWOO['bank'] = bill97.bank_pts()                           # (상뜰 바위 둑을 1997년 동쪽 연석 뒤로)
 
 Frames: campus metres, x east, y north; s along OSM's line of 연희관 서쪽 옆길 (tools/gyoyuk97.py DRIVE, from 연희관 앞길's
 west end), v across it, west +.  Every absolute height is above sea level (해발), taken up to the working datum at its own
@@ -21,7 +22,9 @@ its south-east corner; and the 상뜰's bank (gyoyuk97's DRIVE_BANK, 4 - 8.5 m e
 half.
 
 - OLD_STRIP: OSM's asphalt west of the 1997 west kerb, s 46 - 86, taken up (lawn: the planted strip)
-- NEW_STRIP: the drive's east half where the bank was, s 61 - 86, asphalt
+- bank_pts: the 상뜰's boulder bank (build_campus.py DAEWOO['bank'], from the 2008 roadview) behind the 1997 east kerb
+  instead of 3.2 m out of OSM's line
+- NEW_STRIP: the drive between its 1997 kerbs, asphalt (s 61 - 86 its east half where the bank was; s 46 - 61 to 5.5 m east)
 - heights: the drive's nodes between its kerbs (and the strip's first 2.5 m west of the west kerb, under its kerb) at
   gyoyuk97's profile (the scans along OSM's line; along the 1997 middle line they read within 0.3 m of it: 55.6 at s
   46, 56.8 at 62, 58.85 at 70, 59.5 at 74, 60.1 at 78, 60.6 at 82 m); the 상뜰's bank east of it from the east kerb's
@@ -73,7 +76,7 @@ def _side_strip(s0, s1, v0f, v1f, step=1.0):
 
 
 OLD_STRIP = _side_strip(S_A, S_B, kerb_w, lambda s: OLD_W)
-NEW_STRIP = _side_strip(S_NEW, S_B, lambda s: KERB_E, lambda s: min(-2.8, float(kerb_w(s))))
+NEW_STRIP = _side_strip(S_A, S_B, lambda s: KERB_E if s >= S_NEW else -5.5, kerb_w)   # (the whole drive between its kerbs)
 
 
 def grade(Hn, X, Y, FIXED, halls, keep, fill):
@@ -127,3 +130,33 @@ def clear(items, kind_r=None, pad=0.6):
         it[1], it[2] = round(float(q[0]), 2), round(float(q[1]), 2)
         n += 1
     return n
+
+
+def bank_pts(out=6.8, edge=6.4):
+    """build_campus.py DAEWOO['bank'] (blender/landmarks.py sang_stone_bank: the 상뜰's boulder bank along its west drive,
+    round the corner and on along the footway) behind the 1997 east kerb: the same course as build_campus.py lays it
+    3.2 m out of OSM's line (2.8 m: the drive's edge there), `out` m (edge m)"""
+    import math
+    kd, ke = np.array([-0.2301, -0.9732]), np.array([0.9732, -0.2301])     # (the drive southwards, its east side)
+    fd, fn = np.array([0.9685, -0.2491]), np.array([0.2491, 0.9685])       # (the footway eastwards, its north side)
+    c0 = np.array([71.8, 436.3])
+    f0 = np.array([66.6, 414.3]) + fn * 1.5
+    a = np.linalg.solve(np.array([kd, -fd]).T, f0 - (c0 + ke * out))
+    q = c0 + ke * out + kd * a[0]                                         # (where the two kerb lines meet)
+    r = 2.4
+    kt = r * math.tan(math.acos(float(kd @ fd)) / 2)
+    o = q - kd * kt + ke * r
+    pts = []
+    s_end = float((q - kd * kt - c0 - ke * out) @ kd)
+    for s in np.linspace(2.0, s_end, int(round(s_end - 2.0)) + 1):
+        c = c0 + kd * s
+        pts.append([*(c + ke * out), *(c + ke * edge), 0.6 + 0.4 * (s - 2.0) / (s_end - 2.0)])
+    a0, a1 = math.atan2(*(-ke)[::-1]), math.atan2(*(-fn)[::-1])
+    for k in range(1, 4):
+        an = a0 + (((a1 - a0 + math.pi) % (2 * math.pi)) - math.pi) * k / 4
+        p = o + r * np.array([math.cos(an), math.sin(an)])
+        pts.append([*p, *(p + (p - o) / r * 0.4), 1.0])
+    for t in np.linspace(0.0, 4.0, 5):
+        p = q + fd * (kt + t)
+        pts.append([*p, *(p - fn * 0.4), 1.0])
+    return [[round(float(v), 2) for v in p] for p in pts]
