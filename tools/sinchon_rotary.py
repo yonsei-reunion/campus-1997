@@ -2169,7 +2169,13 @@ YRO_CROSS2_Y = -690.0         # the zebra over 연세로 at y -687.5 .. -692.4 (
 # over it (they had been at -776 and -805 through the camera solved on the old ground, 10 and 9 m up on the new one)
 DIRSIGN = (-720.0, 5.4)        # (y, the panel's foot over the road)
 DIRSIGN_W, DIRSIGN_E = 3.2, 4.4    # its width (1.45 : 1), its middle east of the road's
-YRO_BANNER_Y = -756.0         # the festival's banner (51979 · 52106, 1996.5)
+# the festival's banner (1996.5): its cloth's west end tied to the lamp pole behind the west kerb in 51980 and 52106,
+# their cameras solved on 연세로's 1997 paint (the crossings at -783 and -690, the yellow middle, the west kerb): its
+# bottom edge there at y -741.6 · -737.9, 3.7 · 3.0 m over the road, the cloth 1.1 m high (51979 through its own camera:
+# 3.2 m and 1.1 m at that depth; 고증 4.10.2 「연세로 현수막」).  -756 m, 4.6 m and 1.3 m before 2026-11-17 (51979 alone,
+# its bottom's height taken).  Its east end is behind the east walk's ginkgos in all three
+YRO_BANNER_Y = -740.0
+YRO_BANNER_Z = (3.5, 1.1)     # (its bottom over the road, its height)
 
 
 def yro_walk_poly(a, s_kerb, yx=None, old=False):
@@ -2289,4 +2295,4 @@ def yro_banner(geo, ground):
     p, t, n = ya.at(float(ya.ls.project(Point(-99.0, YRO_BANNER_Y))))
     a, b = p + n * (ya.half + 0.6), p - n * (ya.half + 0.6)
     return [round(float(a[0]), 2), round(float(a[1]), 2), round(float(b[0]), 2), round(float(b[1]), 2),
-            round(ground(*p), 2), 4.6, 1.3]
+            round(ground(*p), 2), YRO_BANNER_Z[0], YRO_BANNER_Z[1]]
