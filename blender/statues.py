@@ -2286,3 +2286,65 @@ def eagle_statue(site=None):
         bpy.context.view_layer.update()
         out.append(g)
     return out
+
+
+# ============================================================================= 외솔 최현배 흉상
+# 외솔 최현배's bust (1994; 「외솔 선생 얼굴상(1994)」, 새국어생활 2011 겨울): from 1994 until 2001 on the island at the fork
+# to 노천극장 north of 용재관, then moved before 외솔관 (연세춘추 2007-03-25 「위당? 외솔? 그 정체를 밝혀보자!」; 한결
+# 김윤경's bust stood on the island in 2008 · 2010).  65 cm of bronze, 1.5 times life, in a 두루마기 with the crossed
+# collar, on a rectangular granite block (the same article).  The block after the bust there in the 2010 street view
+# (0.6 x 0.5 m, 0.92 m and a 0.08 m cap); the face and the coat are a sketch.  Local frame: front = -Y, z from the
+# block's foot (reference/고증/2.9 「노천극장 쪽 갈림길의 세모 섬」).
+BUST_BLOCK = (0.6, 0.5, 0.92, 0.08)       # width, depth, height, cap
+
+
+def bust_foot(st, gfn):
+    """the lowest ground under the block's corners (the block goes on down 0.3 m into it)"""
+    w, d = BUST_BLOCK[0] / 2, BUST_BLOCK[1] / 2
+    c, s = math.cos(st['rot']), math.sin(st['rot'])
+    x, y = st['pos']
+    return min(gfn(x + u * c - v * s, y + u * s + v * c) for u in (-w, w) for v in (-d, d))
+
+
+def _ring(z, ax, ay, k=2.6, y0=0.0, n=28):
+    out = []
+    for i in range(n):
+        t = 2 * math.pi * i / n
+        c, s = math.cos(t), math.sin(t)
+        out.append((ax * math.copysign(abs(c) ** (2 / k), c), y0 + ay * math.copysign(abs(s) ** (2 / k), s), z))
+    return out
+
+
+def oesol_bust(st, z0, gfn):
+    w, d, h, cap = BUST_BLOCK
+    G, B = 'stone_granite', 'bronze_underwood'
+    mb = MeshBuilder('oesol_bust')
+    # the block, and how far the ground rises over its foot at the highest corner (it shows that much less)
+    x, y = st['pos']
+    c, s = math.cos(st['rot']), math.sin(st['rot'])
+    up = max(gfn(x + u * c - v * s, y + u * s + v * c) for u in (-w / 2, w / 2) for v in (-d / 2, d / 2)) - z0
+    zb = up + h                                                          # the block's top over its lowest foot
+    mb.box((0, 0, (zb - 0.3) / 2), (w, d, zb + 0.3), G, skip=('bottom',))
+    mb.box((0, 0, zb + cap / 2), (w + 0.06, d + 0.06, cap), G, skip=('bottom',))
+    z = zb + cap
+    # the bust: the chest cut off flat on the block, the shoulders, the neck and the head (front = -Y)
+    rings = [_ring(z, 0.27, 0.16), _ring(z + 0.12, 0.31, 0.175), _ring(z + 0.24, 0.33, 0.175),
+             _ring(z + 0.30, 0.30, 0.165), _ring(z + 0.355, 0.2, 0.14, k=2.2), _ring(z + 0.385, 0.1, 0.1, k=2.0, y0=-0.005),
+             _ring(z + 0.43, 0.078, 0.085, k=2.0, y0=-0.01)]
+    loft(mb, rings, B, cap0=True, cap1=False, tag='bust_body')
+    # the head: an egg a little forward of the neck, the face to -Y
+    hc, hr = (0.0, -0.02, z + 0.555), (0.112, 0.13, 0.155)
+    P = [[(hc[0] + hr[0] * math.sin(th) * math.cos(ph), hc[1] + hr[1] * math.sin(th) * math.sin(ph) * (1.0 if math.sin(ph) > 0 else 0.92),
+           hc[2] - hr[2] * math.cos(th)) for ph in (2 * math.pi * i / 24 for i in range(24))]
+         for th in (math.pi * (j + 0.5) / 12 for j in range(12))]
+    loft(mb, P, B, tag='bust_head')
+    for sg in (-1, 1):                                                   # ears
+        mb.sphere((sg * 0.112, -0.01, z + 0.56), 0.03, B, seg=8, rings=5, sz=1.6)
+    mb.sphere((0.0, -0.145, z + 0.54), 0.025, B, seg=8, rings=5, sz=1.4)   # the nose
+    # the 두루마기's crossed collar: a raised band from each shoulder down to the crossing on the chest
+    for sg in (-1, 1):
+        a0, a1 = (sg * 0.09, -0.12, z + 0.37), (sg * -0.02, -0.17, z + 0.17)
+        q = [(a0[0] - 0.025 * sg, a0[1] - 0.01, a0[2]), (a0[0] + 0.03 * sg, a0[1] - 0.01, a0[2]),
+             (a1[0] + 0.03 * sg, a1[1] - 0.012, a1[2]), (a1[0] - 0.025 * sg, a1[1] - 0.012, a1[2])]
+        mb.face(q[::-1] if sg > 0 else q, B)
+    return [mb.build()]

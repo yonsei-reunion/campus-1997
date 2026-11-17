@@ -88,6 +88,14 @@ if want('landmarks'):
             ob.matrix_world = M @ ob.matrix_world
             ob.name = key + '_' + ob.name
             objs.append(ob)
+    if 'oesol_bust' in S:            # (외솔 흉상: its block's foot on the lowest ground under it, statues.oesol_bust)
+        st = S['oesol_bust']
+        z_ = statues.bust_foot(st, common.ground)
+        M = Matrix.Translation((st['pos'][0], st['pos'][1], z_)) @ Matrix.Rotation(st['rot'], 4, 'Z')
+        for ob in statues.oesol_bust(st, z_, common.ground):
+            ob.matrix_world = M @ ob.matrix_world
+            ob.name = 'oesol_bust_' + ob.name
+            objs.append(ob)
     # the Underwood statue's curb ring and the lawn inside it are walked onto, not bumped into (the walker's ankle ray,
     # 0.1 m, would otherwise stop at the curb: web/src/player.js WALL_RAY_H); an entry with an inner radius is a ring
     st = S['underwood_statue']

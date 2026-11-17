@@ -11993,6 +11993,15 @@ for l_ in out['town']['landmarks']:                      # (신촌 로터리의 
     _dz_zones.append(dict(name=l_['name'], t=l_['tilt'], poly=l_['outline']))
 out['datum'] = dict(tilt=list(datum.TILT), core=list(datum.CORE), fade=datum.FADE, pad=datum.PAD, ease=datum.EASE, zones=_dz_zones)
 DATUM = datum.field(out)
+# 외솔 최현배 흉상 (1994 ~ 2001, reference/고증/2.9 「노천극장 쪽 갈림길의 세모 섬」; nth): on the island at the fork to
+# 노천극장 north of 용재관 (연세춘추 2007-03-25: 「용재관 앞 노천극장 가는 길목」 until 2001, 한결 김윤경's bust there after).
+# Its place is that of the bust there in the 2010 street view (three panoramas' bearings meet within +- 2 m), the face
+# west-south-west down the fork as that one's block; blender/statues.py oesol_bust (front = -Y), the block a collider.
+# Late, after the grading, and nothing drawn: the trees and the ground stay as they were
+OESOL_BUST = dict(pos=[104.0, 170.0], rot=round(math.radians(-75.0), 4))
+OESOL_BUST['h'] = round(float(ground_h(*OESOL_BUST['pos'])), 2)
+out['statues']['oesol_bust'] = OESOL_BUST
+out['colliders'].append(_dz_box(OESOL_BUST['pos'], OESOL_BUST['rot'], 0.36, 0.31))
 if os.environ.get('Y97_WORK_DUMP'):          # (the working datum's own result, to compare two builds on it)
     os.makedirs(os.environ['Y97_WORK_DUMP'], exist_ok=True)
     json.dump(out, open(os.path.join(os.environ['Y97_WORK_DUMP'], 'campus.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
