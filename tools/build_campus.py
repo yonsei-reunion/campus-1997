@@ -3348,7 +3348,8 @@ OLD_HALLS = [
     # - 외래진료소: the comb of four gabled wings and its head, 46 x 73 m (the 2008 skyview's roof too), 12 - 15 m
     #   south-east of the box it had
     # - 선우학사 · 간호학관: two gabled three-storey halls 54 x 18 m and 56 x 15 m, 28 m apart; 향난숙사 the short one
-    #   south-east of 간호학관's east half (half under trees: 25 x 20 m, within 3 m)
+    #   south-east of 간호학관's east half, 27.6 x 19.5 m: its north-east end (under the trees' crowns in July) at u 100.1
+    #   in the leaf-off scans of winter 1996 (27/16 and 27/17 within 0.5 m on the roof's plane, 2026-11-17)
     # - 의료원 종합관: the slab along 성산로 south-east of them, 83 x 19 m, its flat roof at 55.4 m: four rows of
     #   windows (3.75 m apart) over the car park north-west of it (38.9 m), a floor or two more down the slope to 성산로
     # - 특별병동: the slab 71 x 15 m, 5 - 9 m east and 2 m north of OSM's 어린이병원 (as Kakao's outline is)
@@ -3358,7 +3359,7 @@ OLD_HALLS = [
     (990032, '의료원 종합관', 'white', 5, med_rect(3.0, 86.0, -97.2, -78.4, -0.7)),
     (990033, '선우학사', 'white', 3, med_rect(73.8, 127.5, -17.1, 0.6, -0.5)),
     (990034, '간호학관', 'white', 3, med_rect(73.0, 128.8, -44.6, -29.6, -0.9)),
-    (990035, '향난숙사', 'white', 3, med_rect(72.5, 97.0, -74.0, -54.5, -0.7)),
+    (990035, '향난숙사', 'white', 3, med_rect(72.5, 100.1, -74.0, -54.5, -0.7)),     # (its north-east end: below)
     (990036, '특별병동', 'white', 10, med_rect(38.2, 108.8, 48.6, 63.85, -1.1)),
     # and in those photos, not in the game before (at the list's end: blender/build.py's draws for the rows above keep
     # their order): 의과대학 신관 (1973, four storeys under a gabled roof then; two more in 2003) along 성산로, 82 x 22 m
@@ -11707,13 +11708,17 @@ for nm_ in ('무악학사', '무악학사 3 · 4학사 (공사중)', '우유처�
     _mp = unary_union([Polygon(b_['footprint']) for b_ in _mb]).representative_point() if nm_ != '북문' else Point(15.0, 915.0)
     out['markers'].append(dict(name=nm_, pos=[round(_mp.x, 1), round(_mp.y, 1)],
                                top=round(max(b_['base'] + b_['height'] for b_ in _mb) + (4.0 if nm_ == '무악학사' else 1.0), 1)))
-# 동문 쪽 학사 (reference/고증/3.1.2 「제중학사 · 법현학사」): the six-storey slab the 1997 frames 27/16 and 27/17 have
-# where 제중학사 · 에비슨하우스 (2017) stand, its roof 18.9 m over the yard south of it; which of the two dormitories
-# (1974, 1975) it is they cannot tell.  At the halls' end (blender/build.py draws the halls' looks in their order)
+# 제중학사 (reference/고증/3.1.2 「동문 쪽 학사」 · 「두 학사의 기록과 1997년의 자리」): the six-storey slab the 1997
+# frames 27/16 and 27/17 have where 제중학사 · 에비슨하우스 (2017) stand, its roof 18.9 m over the yard south of it.  The
+# record's 「지상 5층 지하 1층」, 866평 (1974) is its 48 x 10 m times six; 법현학사 (1975, 1979: a basement and three
+# storeys, 382평) stood 90 m east of it, past the game's ground map (x 640 m), and is not drawn.  At the halls' end
+# (blender/build.py draws the halls' looks in their order); its name tag here, the markers being made before it
 _jj = shapely.geometry.polygon.orient(Polygon([(558.2, 186.6), (592.0, 154.4), (600.4, 161.0), (564.2, 194.6)]), 1.0)
 _jjh = [ground_tn(x_, y_) for x_, y_ in _jj.exterior.coords]
-buildings.append(dict(id=991051, name='', style='brick', levels=6, height=round(6 * 3.15, 2), fh=3.15, base=round(min(_jjh), 2),
+buildings.append(dict(id=991051, name='제중학사', style='brick', levels=6, height=round(6 * 3.15, 2), fh=3.15, base=round(min(_jjh), 2),
                       top_ground=round(max(_jjh), 2), footprint=[[x_, y_] for x_, y_ in list(_jj.exterior.coords)[:-1]]))
+out['markers'].append(dict(name='제중학사', pos=[round(_jj.centroid.x, 1), round(_jj.centroid.y, 1)],
+                           top=round(buildings[-1]['base'] + buildings[-1]['height'] + 1.0, 1)))
 print('무악학사 · 북문: halls %d, houses %d, trees %d (and %d on the ridge), cleared for the far forest %d pieces' % (
     len(MUAK_HALLS), len(MUAK_HOUSES), len(MUAK_N_TREES), len(MUAK_RIDGE_TREES), len(out['terrain']['north']['clear'])))
 # 서문 (tools/seomun.py): 연희동's houses along 연희로10길 out of the gate and the small building south of its mouth, at the
