@@ -4,7 +4,7 @@
 Commons, Category:Statue of Horace Grant Underwood, 2009 - 2019, and the 2010 roadview): a balding man with a full
 moustache in a morning coat with tails over a waistcoat of six buttons, both arms held out in front of him, palms up,
 on a bronze plate on a tapering light granite pedestal (a cavetto cap, the inscribed plaque on the front, a base block
-with a sloped wash) standing on an octagonal slab, an octagon of rock-faced blocks and a round platform in a curb ring.
+with a sloped wash) standing on an octagonal slab and an octagon of rock-faced blocks on a lawn in a curb ring.
 The figure is sculpted densely and baked onto a light mesh (blender/sculpt.py); its head and hands start from the
 Blender Foundation's CC0 "Human Base Meshes".
 
@@ -71,11 +71,13 @@ UW_PED = 0.94                  # the pedestal and platform, drawn below at their
 #                                figure is 0.92 of the pedestal's height (1990s telephoto, reference/용재관.jpg)
 UW_PLATE = 3.87 * UW_PED       # top of the bronze plate under his feet
 UW_K = 0.78                    # the whole statue (figure, pedestal, platform) is built to the sizes above and set up at this
-#                                scale: the 1997 scans have the round slab's edge 2.40 m from its middle (3.1 m above), the
+#                                scale: the 1997 scans have the dark band round it 2.40 m from its middle (3.1 m above), the
 #                                1990s telephoto's camera solved with 용재관's roof on the scans' height puts the figure at
 #                                0.78 of 2.45 m, the people sitting on its steps agree (reference/고증/4.2 「크기」)
-UW_WALK = ((3.85 * UW_PED * UW_K, 0.30 * UW_PED * UW_K), (3.25 * UW_PED * UW_K, 0.34 * UW_PED * UW_K))   # (radius, height):
-#                                the curb ring with its gravel, the round slab (blender/build.py makes them walkable)
+UW_LAWN = 0.20                 # the lawn inside the curb ring (pedestal units, under the curb's top 0.30)
+UW_WALK = ((3.85 * UW_PED * UW_K, 0.30 * UW_PED * UW_K, 3.55 * UW_PED * UW_K), (3.55 * UW_PED * UW_K, UW_LAWN * UW_PED * UW_K))
+#                                (outer radius, height[, inner radius]): the curb ring, the lawn inside it (blender/build.py
+#                                makes them walkable)
 HBM = os.path.join(ROOT, 'assets_src', 'blender-human-base-meshes', 'human-base-meshes-bundle-v1.4.1',
                    'human_base_meshes_bundle.blend')
 HBM_HEAD = 'GEO-head_sculpting_realistic'
@@ -1020,8 +1022,8 @@ def underwood_pedestal():
     measured on the 2011 photo (numbers below in units of a 2.3 m base block, all scaled by UW_PED): a square shaft
     tapering 1.66 -> 1.40 with the inscribed bronze plaque on the front and a small one on the back, a cap of a
     cavetto, a slab and a sloped top; under the shaft a plain base block of two stones with a sloped wash; a smooth
-    octagonal slab on an octagon of rock-faced blocks, on a round stone slab inside a ring of granite curb blocks round
-    a band of gravel, one stepping stone at the front."""
+    octagonal slab on an octagon of rock-faced blocks, on a lawn inside a ring of granite curb blocks (1971 and the
+    1990s; the round stone slab, gravel band and stepping stone of the 2011 photo came later)."""
     mb = MeshBuilder('underwood_pedestal')
     SC = Matrix.Scale(UW_PED, 4)
     mb.xf = SC
@@ -1043,22 +1045,22 @@ def underwood_pedestal():
             mb.face([(*ro[i], h), (*ro[i + 1], h), (*ri[i + 1], h), (*ri[i], h)], G)
         mb.face([(*ro[0], -0.4), (*ro[0], h), (*ri[0], h), (*ri[0], 0.2)], G)
         mb.face([(*ro[3], h), (*ro[3], -0.4), (*ri[3], 0.2), (*ri[3], h)], G)
-    # the gravel band and the round slab (its rim bevelled), the stepping stone across the band at the front
+    # inside the ring a lawn up to the octagon, the curb standing a little over it: the 1971 photo and the 1990s spring
+    # photo of the school's site (reference/학교홈페이지/1-16.jpg; the 1997 scans' dark band round it).  The round slab,
+    # its gravel band and the stepping stone of the 2010 - 2011 roadview and photos came later (reference/고증/4.2)
     n = 64
     ring = lambda r, z: [(r * math.cos(2 * math.pi * i / n), r * math.sin(2 * math.pi * i / n), z) for i in range(n)]
-    g0, g1 = ring(R0, 0.28), ring(3.25, 0.28)
+    g0 = ring(R0, UW_LAWN)
     for i in range(n):
         j = (i + 1) % n
-        mb.face([g0[i], g0[j], g1[j], g1[i]], 'dirt_pale')
-    d0, d1, d2 = ring(3.3, 0.26), ring(3.3, 0.31), ring(3.24, 0.34)
-    loft(mb, [d0, d1, d2], Gs, cap0=False, cap1=True, tag='disc')
-    mb.box((0, -(R0 + 3.25) / 2, 0.28), (1.9, 0.62, 0.09), Gs)
-    # the octagon of rock-faced blocks (across the flats 4.4 m, 0.37 m high), two or three blocks a side
+        mb.face([(0, 0, UW_LAWN), g0[i], g0[j]], 'grass')
+    # the octagon of rock-faced blocks (across the flats 4.4 m, 0.37 m high over the slab that came later), two or three
+    # blocks a side, on the lawn
     def octagon(rin, z):
         rc = rin / math.cos(math.pi / 8)
         return [(rc * math.cos(math.pi / 8 + i * math.pi / 4), rc * math.sin(math.pi / 8 + i * math.pi / 4), z) for i in range(8)]
     O = octagon(2.2, 0.0)
-    z0, z1 = 0.33, 0.71
+    z0, z1 = UW_LAWN - 0.02, 0.71
     for i in range(8):
         a, b = Vector(O[i]), Vector(O[(i + 1) % 8])
         nb_ = 3 if i % 2 == 0 else 2

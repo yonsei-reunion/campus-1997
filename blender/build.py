@@ -88,15 +88,18 @@ if want('landmarks'):
             ob.matrix_world = M @ ob.matrix_world
             ob.name = key + '_' + ob.name
             objs.append(ob)
-    # the Underwood statue's curb ring and round slab are walked onto, not bumped into (the walker's ankle ray, 0.1 m,
-    # would otherwise stop at the curb: web/src/player.js WALL_RAY_H)
+    # the Underwood statue's curb ring and the lawn inside it are walked onto, not bumped into (the walker's ankle ray,
+    # 0.1 m, would otherwise stop at the curb: web/src/player.js WALL_RAY_H); an entry with an inner radius is a ring
     st = S['underwood_statue']
-    for r_, z_ in statues.UW_WALK:
+    for w_ in statues.UW_WALK:
+        r_, z_, ri_ = (w_ + (0.0,))[:3]
         for k in range(32):
             a0, a1 = 2 * math.pi * k / 32, 2 * math.pi * (k + 1) / 32
-            landmarks.WALK_FACES.append([(st['pos'][0], st['pos'][1], st['h'] + z_),
-                                         (st['pos'][0] + r_ * math.cos(a0), st['pos'][1] + r_ * math.sin(a0), st['h'] + z_),
-                                         (st['pos'][0] + r_ * math.cos(a1), st['pos'][1] + r_ * math.sin(a1), st['h'] + z_)])
+            P_ = lambda r, a: (st['pos'][0] + r * math.cos(a), st['pos'][1] + r * math.sin(a), st['h'] + z_)
+            if ri_:
+                landmarks.WALK_FACES.append([P_(ri_, a0), P_(r_, a0), P_(r_, a1), P_(ri_, a1)])
+            else:
+                landmarks.WALK_FACES.append([P_(0.0, 0.0), P_(r_, a0), P_(r_, a1)])
     # the eagle's brick ring, a step up from its walks, is walked on round the dais (the dais itself is not)
     st = S['eagle']
     if 'ring' in st:

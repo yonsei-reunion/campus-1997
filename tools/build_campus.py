@@ -5144,8 +5144,8 @@ UWG = frame(*UW_STATUE, *_wuu)
 _uwr = random.Random(1997 + 99)
 _uw_own0 = (len(trees), len(shrubs))
 # (1997, reference/고증/4.2.1: the scans have every radial bed filled with low planting under round crowns 2.5 - 4 m
-# across standing 1.3 - 2.7 m over the walks, two to four a bed; the species is not to be told, shown as big round
-# clipped crowns)
+# across standing 1.3 - 2.7 m over the walks, two to four a bed; the 1990s spring photo shows clipped evergreen domes
+# and azalea mounds among boxwood: big round clipped crowns and one mound of azaleas a bed)
 for bed_ in UW_BEDS['radial']:
     underwood_hedge_poly(bed_, 0.45)
     c_ = bed_.representative_point()
@@ -5159,7 +5159,10 @@ for bed_ in UW_BEDS['radial']:
         if _q is None or min(math.dist(_q, g_) for g_ in _got) < 3.2:
             break
         _got.append(_q)
-        shrubs.append(['topiary_round', round(_q[0], 2), round(_q[1], 2), round(1.75 + 0.15 * _k, 2), round(1.3 * _k + 0.7, 2)])
+        # (the second a mound of azaleas, pink to red in late April: the school's 1990s spring photo up the axis,
+        # reference/학교홈페이지/1-16.jpg, has azalea mounds among the clipped evergreen domes in every bed it shows)
+        shrubs.append(['azalea_red' if _k else 'topiary_round', round(_q[0], 2), round(_q[1], 2),
+                       1.7 if _k else round(1.75 + 0.15 * _k, 2), round(1.3 * _k + 0.7, 2)])
 # (the half-round beds became the quarter-round ones of the 1997 scans, UW_QC: the same plants inside them)
 for sg_ in (-1, 1):                      # the half-round beds: a clipped pine either side of the axis in each
     underwood_hedge_poly(UW_BEDS['half'][0 if sg_ < 0 else 1], 0.45)
