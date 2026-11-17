@@ -7461,7 +7461,13 @@ for b_ in buildings:
             _gfh = round((gymnorth97.GYM_SPRING - gymnorth97.GYM_FLOOR) / b_['levels'], 3)
             b_.update(base=datum.up(_gc.x, _gc.y, gymnorth97.GYM_FLOOR), fh=_gfh, height=round(b_['levels'] * _gfh + 1.2, 2),
                       rise=round((gymnorth97.GYM_CROWN - gymnorth97.GYM_SPRING) / _gw, 4))
-            b_['fins'] = dict(gymnorth97.GYM_FINS)
+            # (its fins, the vault's east end, the east block's glass front: blender/generic.py gym_1997; the face's
+            # own windows none, the porch of three bays over its glazed doors and their flight, ENTRY_AT, set here so
+            # that only the late entry below reads it -- the planting kept the first)
+            _gu0, _gu1, _gv0, _gv1 = gymnorth97.GYM_UV
+            b_['gym'] = gymnorth97.gym_parts()
+            b_['blank'] = [list(gymnorth97.gym_xy(_gu1, (_gv0 + _gv1) / 2))]
+            ENTRY_AT[b_['id']] = (gymnorth97.gym_xy(_gu1, gymnorth97.GYM_DOOR['v']), dict(gymnorth97.GYM_DOOR['opts']))
             LATE_FOOTPRINT_1997[b_['id']] = gymnorth97.gym_outline()
             LATE_NO_SIMPLIFY.add(b_['id'])
             BASE_1997[b_['id']] = b_['base']

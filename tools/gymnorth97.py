@@ -221,12 +221,44 @@ GYM_FLOOR, GYM_SPRING, GYM_CROWN = 36.8, 45.8, 55.55
 # 체육관 as the 1997 scans have it (reference/고증/3.24 「체육관의 몸과 지느러미 벽」, 2026-11-17): in the frame of OSM's
 # outline (origin its south-west corner, u east-south-east along the south face, v north-north-east) the vault's eaves
 # on the plane 45.8 m at v -1.0 and 30.0 in 26/16 · 27/17 · 26/15 (within 0.1 m: that plane is the springing), its
-# crown 55.55 m at v 14.5 -- OSM's outline (v 0 - 33.8) runs on north over the fins of its north face; its ends as
-# OSM's.  The fins: fifteen a side, 3.66 m apart, from the eaves down to the ground 4.2 m out (26/16 on the ground's
-# plane; the school's photo of the north face, 자료 R gym.jpg)
+# crown 55.55 m at v 14.5 -- OSM's outline (v 0 - 33.8) runs on north over the fins of its north face.  The fins:
+# fifteen a side, 3.66 m apart (u 1.8 - 53.0), from the eaves down to the ground 4.2 m out (26/16 on the ground's
+# plane; the school's photo of the north face, 자료 R gym.jpg).  The vault as an arc of a circle through the eaves and
+# the crown (R 17.2 m: the 1997 heights at v 6 - 9 and 20 - 22, and the east gable's lights, stand above a sine).
+# The east end (27/17 · 27/16, which see it from the east, rectified on vertical planes; the plane where the two agree):
+# the vault's roof ends at u 53.3, its gable wall 1 m in under it at u 52.25, ten tall lights in it 3.0 m apart; in
+# front a block as wide as the hall, its flat roof at the eaves, its face at u 56.0 (OSM's end, 54.1, between) with
+# the two-storey glass front: under the frame's head six upper windows over three glazed bays (the doors, their sill
+# 38.65 m: a terrace and steps before them), and a window either side.  The west end as OSM's (the roof's edge at
+# u 0.5 in 26/16 · 26/15)
 GYM_O, GYM_T = (-233.4, -104.95), (0.96556, -0.26015)
-GYM_UV = (0.0, 54.1, -1.0, 30.0)
-GYM_FINS = dict(n=15, step=3.66, out=4.2, w=0.6, t=0.4)
+GYM_UV = (0.0, 56.0, -1.0, 30.0)
+GYM_FINS = dict(n=15, step=3.66, out=4.2, w=0.6, t=0.4, u=27.4)
+GYM_VAULT = dict(roof=(-0.4, 53.3), gable=52.25, arc='circle')
+GYM_LIGHTS = dict(n=10, step=3.0, w=1.2, v=14.55)
+# the east face (u = GYM_UV[1]): (v0, v1, z0, z1), heights 해발; the doors: the porch of blender/generic.py over three
+# of the face's seven bays (tools/build_campus.py ENTRY_AT), glazed 2.2 m high; its flight 6 m wide in the middle (the
+# ground rises 0.6 m northwards across the front: a flight the frame's width, its foot on the highest ground across it,
+# would stand 0.8 m over the ground at its south end)
+GYM_FRONT = dict(windows=[(1.7, 3.44, 40.85, 43.6), (25.85, 27.6, 41.05, 43.96)],
+                 slits=[(8.36, 10.16), (10.55, 12.35), (12.7, 14.5), (14.9, 16.7), (17.05, 18.85), (19.25, 21.05)],
+                 slit_z=(42.2, 43.7), soffit=(5.66, 23.45, 43.95, 44.35))
+GYM_DOOR = dict(v=14.55, opts=dict(span=3, canopy=0.8, stair_w=6.0, door_h=2.2, door_top=0.0))
+
+
+def gym_xy(u, v):
+    """the gym frame's (u, v) in game coordinates"""
+    (ox, oy), (tx, ty) = GYM_O, GYM_T
+    return round(ox + tx * u - ty * v, 2), round(oy + ty * u + tx * v, 2)
+
+
+def gym_parts():
+    """what blender/generic.py gym_1997 draws, for campus.json (the building's `gym`): the frame and the parts in it
+    (heights 해발: the builder reads them over the hall's floor, GYM_FLOOR)"""
+    front = dict(windows=[list(r) for r in GYM_FRONT['windows']], slits=[list(r) for r in GYM_FRONT['slits']],
+                 slit_z=list(GYM_FRONT['slit_z']), soffit=list(GYM_FRONT['soffit']))
+    return dict(o=list(GYM_O), t=list(GYM_T), uv=list(GYM_UV), fins=dict(GYM_FINS), vault=dict(GYM_VAULT),
+                lights=dict(GYM_LIGHTS), front=front, floor=GYM_FLOOR)
 
 
 def gym_outline():
@@ -238,11 +270,11 @@ def gym_outline():
 
 def fin_colliders():
     """the fins' outer ends, where they come down under head height (the outer 1.8 m), as the walker's walls: as
-    blender/generic.py gym_1997 sets them (spaced about the outline's middle along its length)"""
+    blender/generic.py gym_1997 sets them (spaced about u = GYM_FINS['u'])"""
     (ox, oy), (tx, ty) = GYM_O, GYM_T
     u0, u1, v0, v1 = GYM_UV
     F = GYM_FINS
-    um = (u0 + u1) / 2
+    um = F['u']
     out = []
     for k in range(F['n']):
         u = um + (k - (F['n'] - 1) / 2) * F['step']

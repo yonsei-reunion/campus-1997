@@ -48,7 +48,7 @@ def wall_edge(mb, a, b, z0, z1, nfloors, fh, st, rnd, skip_windows=False, ground
     if found:
         mb.quad(P(0, z0 - 4), P(L, z0 - 4), P(L, z0), P(0, z0), 'concrete_dark', smooth='fd%d' % len(mb.faces))
     bays = int(round(L / st['bay']))
-    if L < 2.6 or bays < 1 or skip_windows:
+    if L < 2.6 or bays < 1 or (skip_windows and not door):
         mb.quad(P(0, z0), P(L, z0), P(L, z1), P(0, z1), wall)
         return
     bw = L / bays
@@ -74,6 +74,9 @@ def wall_edge(mb, a, b, z0, z1, nfloors, fh, st, rnd, skip_windows=False, ground
                 continue
             if back and f == back['floor'] and k == back['bay']:
                 backs.back_door(mb, a2, b2, s0, s1, zf, fh, st, back)
+                continue
+            if skip_windows:            # (a face without windows but with its door: 체육관's east block)
+                mb.quad(P(s0, zf), P(s1, zf), P(s1, zf + fh), P(s0, zf + fh), wall)
                 continue
             mid = a + t * ((s0 + s1) / 2) + n * 0.6
             g = ground(mid.x, mid.y)
@@ -560,34 +563,104 @@ def hip_roof(mb, cx, cy, L, W, ang, zt, mat, pitch=0.6, over=0.5, fascia='frame_
         mb.quad(p, q, (q[0], q[1], q[2] - 0.25), (p[0], p[1], p[2] - 0.25), fascia)
 
 
-def barrel_roof(mb, cx, cy, L, W, ang, zt, rise=0.22, seg=12):
-    """체육관 (1960): a reinforced-concrete arched (barrel-vaulted) roof spanning the short side, with arched end walls."""
+def barrel_roof(mb, cx, cy, L, W, ang, zt, rise=0.22, seg=12, xr=None, xg=None, arc=None):
+    """체육관 (1960): a reinforced-concrete arched (barrel-vaulted) roof spanning the short side, with arched end walls.
+    xr: the roof's ends along the length (local x; 0.4 m past the outline's ends by default); xg: the gables' (the
+    outline's ends); arc 'circle': an arc of a circle through the eaves and the crown instead of a sine"""
     c, s = math.cos(ang), math.sin(ang)
     P = lambda x, y, z: (cx + x * c - y * s, cy + x * s + y * c, z)
     h = W * rise
-    prof = [(-W / 2 + W * k / seg, zt + h * math.sin(math.pi * k / seg)) for k in range(seg + 1)]
+    if arc == 'circle':
+        R = (W * W / 4 + h * h) / (2 * h)
+        prof = [(y, zt + h - R + math.sqrt(max(R * R - y * y, 0.0))) for y in (-W / 2 + W * k / seg for k in range(seg + 1))]
+    else:
+        prof = [(-W / 2 + W * k / seg, zt + h * math.sin(math.pi * k / seg)) for k in range(seg + 1)]
+    x0, x1 = sorted(xr) if xr else (-L / 2 - 0.4, L / 2 + 0.4)
+    gs = sorted(xg) if xg else (-L / 2, L / 2)
     # (the vault and both gables face outwards: the vault's quads had faced down, so that from above the walls stood
     # round an open box, and the west gable had faced in)
     for (y0, z0), (y1, z1) in zip(prof, prof[1:]):
-        mb.quad(P(L / 2 + 0.4, y0, z0), P(L / 2 + 0.4, y1, z1), P(-L / 2 - 0.4, y1, z1), P(-L / 2 - 0.4, y0, z0), 'metal')
-    for x in (-L / 2, L / 2):           # arched gable ends
+        mb.quad(P(x1, y0, z0), P(x1, y1, z1), P(x0, y1, z1), P(x0, y0, z0), 'metal')
+        for a_, b_ in ((x0, gs[0]), (gs[1], x1)):       # (the eaves past the gables, seen from under them)
+            if b_ - a_ > 0.5:
+                mb.quad(P(a_, y0, z0), P(a_, y1, z1), P(b_, y1, z1), P(b_, y0, z0), 'concrete')
+    for x, out in ((gs[0], False), (gs[1], True)):     # arched gable ends
         for (y0, z0), (y1, z1) in zip(prof, prof[1:]):
             q = [P(x, y0, zt), P(x, y1, zt), P(x, y1, z1), P(x, y0, z0)]
-            mb.quad(*(q if x > 0 else q[::-1]), 'concrete')
+            mb.quad(*(q if out else q[::-1]), 'concrete')
+    return prof
 
 
 def gym_1997(mb, b, cx, cy, L, W, ang, z0, zt):
-    """체육관 as the 1997 scans and the school's photo of the mid-1990s have it (자료 R gym.jpg; tools/gymnorth97.py
-    GYM_FINS, reference/고증/3.24 「체육관의 몸과 지느러미 벽」): along both long faces a row of fins, slender slabs
-    leaning from the eaves down to the ground 4.2 m out; in the east gable, under the vault's arch, a band of tall
-    narrow lights, and a second row of windows under the wall's band (the lobby's two storeys)"""
-    F = b['fins']
+    """체육관 as the 1997 scans and the school's photo of the mid-1990s have it (자료 R gym.jpg; tools/gymnorth97.py,
+    reference/고증/3.24 「체육관의 몸과 지느러미 벽」 · 「동쪽 끝」), in the hall's own frame (campus.json `gym`: its
+    origin o and axis t, u along the hall, v across; heights 해발 over its floor): the vault on an arc of a circle, its
+    roof ending 1 m past the east gable, which stands back behind a flat-roofed block the width of the hall; in the
+    gable ten tall narrow lights; on the block's face its two-storey glass front (a dark soffit, six slit windows,
+    a window either side; the glazed doors are the porch's, ENTRY_AT); along both long faces a row of fins, slender
+    slabs leaning from the eaves down to the ground 4.2 m out"""
+    G = b['gym']
     c, s = math.cos(ang), math.sin(ang)
     P = lambda x, y, z: (cx + x * c - y * s, cy + x * s + y * c, z)
+    (ox, oy), (tx, ty) = G['o'], G['t']
+
+    def loc(u, v):                      # the hall's (u, v) -> this outline's local (x, y)
+        X, Y = ox + tx * u - ty * v, oy + ty * u + tx * v
+        return (X - cx) * c + (Y - cy) * s, -(X - cx) * s + (Y - cy) * c
+
+    Z = lambda h: z0 + (h - G['floor'])  # (a height 해발 on the hall's floor)
+    u0, u1, v0, v1 = G['uv']
+    vm = (v0 + v1) / 2
+    V = G['vault']
+    xr = (loc(V['roof'][0], vm)[0], loc(V['roof'][1], vm)[0])
+    xw, xe = loc(u0, vm)[0], loc(V['gable'], vm)[0]
+    xf = loc(u1, vm)[0]                 # the east block's face
+    prof = barrel_roof(mb, cx, cy, L, W, ang, zt, rise=b.get('rise', 0.22), seg=16, xr=xr, xg=(xw, xe), arc=V.get('arc'))
+    o = 1 if xf > xe else -1            # (outwards at the east end)
+    # the east block's flat roof, inside the walls' parapet
+    ya, yb = -W / 2, W / 2
+    q = [P(xe, ya, zt + 0.02), P(xf, ya, zt + 0.02), P(xf, yb, zt + 0.02), P(xe, yb, zt + 0.02)]
+    mb.quad(*(q if (xf - xe) * (yb - ya) > 0 else q[::-1]), 'roof_flat')
+
+    def face_quad(x, y0_, y1_, za, zb, mat, d=0.03):
+        y0_, y1_ = sorted((y0_, y1_))
+        q = [P(x + o * d, y0_, za), P(x + o * d, y1_, za), P(x + o * d, y1_, zb), P(x + o * d, y0_, zb)]
+        kw = dict(panes=(max(1, round((y1_ - y0_) / 1.5)), max(1, round((zb - za) / 2.6)), True)) if mat == 'glass' else {}
+        mb.quad(*(q if o > 0 else q[::-1]), mat, **kw)          # (glass: its panes, the hall behind: common.py)
+        if mat == 'glass':              # (a dark frame round it)
+            for (sa, za_), (sb, zb_) in (((y0_, za), (y1_, za)), ((y0_, zb), (y1_, zb)), ((y0_, za), (y0_, zb)), ((y1_, za), (y1_, zb))):
+                mb.box(((P(x, (sa + sb) / 2, 0)[0] + P(x + o * 0.05, (sa + sb) / 2, 0)[0]) / 2,
+                        (P(x, (sa + sb) / 2, 0)[1] + P(x + o * 0.05, (sa + sb) / 2, 0)[1]) / 2, (za_ + zb_) / 2),
+                       (0.1, max(0.08, abs(sb - sa)), max(0.08, abs(zb_ - za_))), 'frame_dark', rotz=ang)
+
+    # the gable's lights, from over the block's parapet up under the arch
+    Lt = G['lights']
+    def arch(y):                        # (the vault's height over local y, along its profile)
+        for (ya_, za_), (yb_, zb_) in zip(prof, prof[1:]):
+            if ya_ <= y <= yb_:
+                return za_ + (zb_ - za_) * (y - ya_) / (yb_ - ya_)
+        return zt
+    for k in range(Lt['n']):
+        vk = Lt['v'] + (k - (Lt['n'] - 1) / 2) * Lt['step']
+        yk = loc(V['gable'], vk)[1]
+        top = min(arch(yk - Lt['w'] / 2), arch(yk + Lt['w'] / 2)) - 0.5
+        if top - (zt + 0.6) < 1.0:
+            continue
+        face_quad(xe, yk - Lt['w'] / 2, yk + Lt['w'] / 2, zt + 0.6, top, 'glass')
+    # the block's face: its two windows, the slits, the soffit over them
+    Fr = G['front']
+    for va, vb, ha, hb in Fr['windows']:
+        face_quad(xf, loc(u1, va)[1], loc(u1, vb)[1], Z(ha), Z(hb), 'glass')
+    for va, vb in Fr['slits']:
+        face_quad(xf, loc(u1, va)[1], loc(u1, vb)[1], Z(Fr['slit_z'][0]), Z(Fr['slit_z'][1]), 'glass')
+    va, vb, ha, hb = Fr['soffit']
+    face_quad(xf, loc(u1, va)[1], loc(u1, vb)[1], Z(ha), Z(hb), 'concrete_dark', d=0.02)
+    # the fins
+    F = G['fins']
     n_, step, out, w, t = F['n'], F['step'], F['out'], F['w'], F['t']
     for side in (-1, 1):
         for k in range(n_):
-            x = (k - (n_ - 1) / 2) * step
+            x = loc(F['u'] + (k - (n_ - 1) / 2) * step, vm)[0]
             yt, zt_ = side * W / 2, zt - 0.2
             yf = side * (W / 2 + out)
             gx, gy, _ = P(x, yf, 0)
@@ -602,34 +675,6 @@ def gym_1997(mb, b, cx, cy, L, W, ang, z0, zt):
             for q in [[A[i], A[(i + 1) % 4], B[(i + 1) % 4], B[i]] for i in range(4)] + [A, B]:
                 mb.face(q, 'concrete')           # (both windings: the slab is seen from every side)
                 mb.face(q[::-1], 'concrete')
-    # the east gable: the end whose normal is the door's
-    en = (b.get('entry') or {}).get('n', [c, s])
-    xe = L / 2 if en[0] * c + en[1] * s > 0 else -L / 2
-    o = 1 if xe > 0 else -1
-    h = W * b.get('rise', 0.22)
-    nlit = 8
-    for k in range(nlit):                # (the arch's tall narrow lights)
-        y = (k - (nlit - 1) / 2) * (W * 0.62 / nlit)
-        top = zt + h * math.sin(math.pi * (y + W / 2) / W) - 1.2
-        if top - zt < 1.5:
-            continue
-        q = [P(xe + o * 0.03, y - 0.45, zt + 0.6), P(xe + o * 0.03, y + 0.45, zt + 0.6), P(xe + o * 0.03, y + 0.45, top),
-             P(xe + o * 0.03, y - 0.45, top)]
-        mb.quad(*(q if o > 0 else q[::-1]), 'glass')
-    # the lower row of the lobby's windows, either side of the door (its place along the face from the entry)
-    ep = (b.get('entry') or {}).get('p')
-    yd = None
-    if ep:
-        dx, dy_ = ep[0] - cx, ep[1] - cy
-        yd = -dx * s + dy_ * c
-    nwin = 7
-    for k in range(nwin):
-        y = (k - (nwin - 1) / 2) * (W - 4.0) / nwin
-        if yd is not None and abs(y - yd) < 2.6:
-            continue
-        q = [P(xe + o * 0.03, y - 1.0, z0 + 1.1), P(xe + o * 0.03, y + 1.0, z0 + 1.1), P(xe + o * 0.03, y + 1.0, z0 + 3.3),
-             P(xe + o * 0.03, y - 1.0, z0 + 3.3)]
-        mb.quad(*(q if o > 0 else q[::-1]), 'glass')
 
 
 # ----------------------------------------------------------------------------- rooftop features the outlines cannot say
@@ -980,7 +1025,7 @@ def build_generic(b, rnd):
     n_doors = len(DOORS)
     back = backs.back_plan(b, poly, st, fh, z0, zt, nf, door, shop, pitched=pitched, ups=ups,
                            tops=[zt - backs.EAVE * backs.PITCH[style] if pitched else zt + up * fh for up in ups])
-    blank = BLANK_EDGES.get(b['id'], ())
+    blank = list(BLANK_EDGES.get(b['id'], ())) + [tuple(q_) for q_ in b.get('blank', ())]   # (체육관: campus.json)
     for i in range(len(poly)):
         up = ups[i]
         mid_ = ((poly[i][0] + poly[(i + 1) % len(poly)][0]) / 2, (poly[i][1] + poly[(i + 1) % len(poly)][1]) / 2)
@@ -1012,9 +1057,10 @@ def build_generic(b, rnd):
         if hip.get('burn'):            # (a hall given its gabled roof in its flat-roofed place in the list: 의료원 학사들)
             burn_clutter(poly, rnd)
     elif style == 'gym':               # (rise: build_campus.py's own, 체육관 from the 1997 scans: tools/gymnorth97.py)
-        barrel_roof(mb, cx, cy, L, W, ang, zt, rise=b.get('rise', 0.22))
-        if b.get('fins'):              # (its fins and the east gable's windows: nothing drawn from rnd)
+        if b.get('gym'):               # (1997: its vault's ends, fins, east block and glass front; nothing from rnd)
             gym_1997(mb, b, cx, cy, L, W, ang, z0, zt)
+        else:
+            barrel_roof(mb, cx, cy, L, W, ang, zt, rise=b.get('rise', 0.22))
     else:
         roof = 'roof_green' if (style == 'city' and rnd.random() < 0.6) else 'roof_flat'
         at = None
