@@ -22,7 +22,10 @@ to the working datum (해발 + tilt: tools/datum.py) where it is read, each at i
   - to the survey sheet's north edge (y 1215): the 2006 edition's contours (5 m) filled between (harmonic) and
     smoothed 2.5 m, its spot heights' residuals spread over 12 m (the 2024 edition's spots too where the two editions'
     contours agree within 1.5 m), + T
-  - past the sheet's edge the surface model, the difference at the edge faded out over 60 m
+  - past the sheet's edge the surface model, the difference at the edge faded out over 60 m; east of x 280 (x 255 -
+    280 blended) the northern sheet's 2006 edition (서울068, the same survey: within 0.8 m of 서울078 2006 along the
+    edge) filled the same way, since the model stood 3 - 4.5 m over it in the wood (its crowns) and no two 1997
+    frames see the ground there (27/15 alone) (2026-11-17: reference/고증/3.21 「측량 판 너머의 땅」)
   - nudged to the 1997 scans where they see the ground: 2.5 m lattice, 3 m windows, the pairs that agree within
     0.6 m (north of y 1000 the one east-west pair 26/14 - 27/15, correlation 0.78 or more), off the halls, within 4 m of
     the survey, locally plane (rms 0.3 m over 6.5 m); spread over 5 m.  This is where the ground of July 1997 differs
