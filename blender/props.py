@@ -329,7 +329,7 @@ def sign_board():
 # make from the April 2011 roadview, which still had the east pillar: reference/고증/4.8.1_정문의_생김새.md.
 # Local frame: x east along the gate's line from the carriageway's middle, y north (inside), front = -y, z from the
 # ground at the gate's middle.  Along the line (m): a low rubble wall with an iron fence and stone piers, the lodge
-# (-18.65 .. -11.65), the west walk's outer pillar, the walk (4.65 m), the west main pillar, the carriageway (8.5 m), the
+# (-19.18 .. -12.18), the west walk's outer pillar, the walk (5.0 m), the west main pillar, the carriageway (8.8 m), the
 # east main pillar, the walk, its outer pillar and the white wall, then the low wall again (turning south-east).  The main pillars stand
 # on 백양로's verges (ROAD verge, 4.2 .. 5.65 m off the centre line) and the walks pass between them and the outer ones.
 # The main pillars and the lodge run far back from the line (the July 1997 vertical photos: both pillars 4.3 .. 5.0 m,
@@ -337,14 +337,16 @@ def sign_board():
 # tools/build_campus.py GATE_PARTS keeps the shrubs off these footprints.
 GATE_FRONT = -0.3            # the pillars' and the lodge's south faces, from the gate's line
 GATE_MAIN = dict(u=5.1, w=1.4, d=4.8, fin=0.34, h=4.9, h_back=4.5, core=4.45)     # (10.2 m apart: the July 1997 scans' 10.25, 고증 4.8.1)
-GATE_SIDE = dict(u=-10.98, w=1.35, d=3.0, fin=0.34, h=3.75, h_back=3.45, core=3.4)
-GATE_LODGE = dict(u0=-18.65, u1=-11.65, d=10.0, h=2.8, solid=3.75)
-GATE_EAST = dict(u=10.78, w=1.05, d=3.6, fin=0.3, h=3.7, h_back=3.45, core=3.4)    # the east walk's outer pillar: a narrow core
+# the walks' outer pillars stand symmetric, 11.5 m either side (the scans' tops; the lodge stays against the west one,
+# as in the 1996 photo: 고증 4.8.1 「바깥 기둥과 흰 담을 원본 스캔에서 함께」)
+GATE_SIDE = dict(u=-11.5, w=1.35, d=3.0, fin=0.34, h=3.75, h_back=3.45, core=3.4)
+GATE_LODGE = dict(u0=-19.18, u1=-12.18, d=10.0, h=2.8, solid=3.75)
+GATE_EAST = dict(u=11.5, w=1.05, d=3.6, fin=0.3, h=3.7, h_back=3.45, core=3.4)    # the east walk's outer pillar: a narrow core
 # the white wall's line (u, v): out of the east outer pillar's front corner at 42 deg to the gate's line, then along it
-# 3.5 m in front of it (the July 1997 scans at its coping's height, 고증 4.8.1 「동쪽 흰 담의 자리」); a bay each way
-GATE_WALL = dict(pts=[(11.35, -0.55), (14.65, -3.5), (19.3, -3.5)], h=2.7, t=0.35)
+# 3.3 m in front of it (the July 1997 scans at its coping's height, 고증 4.8.1 「동쪽 흰 담의 자리」); a bay each way
+GATE_WALL = dict(pts=[(12.19, -0.36), (15.49, -3.31), (20.14, -3.31)], h=2.7, t=0.35)
 GATE_END = 31.5              # the low wall's ends (tools/build_campus.py reads the same length for the ground)
-GATE_TURN = dict(u0=19.8, v0=-3.6, to=(33.3, -10.7))   # the east low wall: south-east from the white wall's end (tools/gate_town.py EAST_TURN)
+GATE_TURN = dict(u0=20.64, v0=-3.41, to=(34.14, -10.51))   # the east low wall: south-east from the white wall's end (tools/gate_town.py EAST_TURN)
 GATE_LEAF = 2.8              # the iron leaves' height
 
 

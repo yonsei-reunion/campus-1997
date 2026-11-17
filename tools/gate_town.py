@@ -87,10 +87,10 @@ CROSS_X = (-75.0, -61.5)     # the zebra over 성산로, east of the junction's 
 BOX_X = (-108.7, -79.5)      # the box junction's white frame before 연세로 (x; 2.9 m in from the north kerb, 1.9 m from
 #                              the south one)
 # the gate's east side in its own frame (u along its line eastwards from its middle, v north of it; m): the white wall's
-# line (blender/props.py GATE_WALL: a slanting bay out of the outer pillar's front corner, then one along the line 3.5 m
+# line (blender/props.py GATE_WALL: a slanting bay out of the outer pillar's front corner, then one along the line 3.3 m
 # in front of it; the July 1997 scans, 고증 4.8.1) and where the low wall turns south-east from its end, and its end
-EAST_WALL = [(11.35, -0.55), (14.65, -3.5), (19.3, -3.5)]
-EAST_TURN, EAST_TO = (19.8, -3.6), (33.3, -10.7)
+EAST_WALL = [(12.19, -0.36), (15.49, -3.31), (20.14, -3.31)]
+EAST_TURN, EAST_TO = (20.64, -3.41), (34.14, -10.51)
 YZEBRA = (-459.5, -466.5)    # the zebra over 연세로's mouth (y)
 YONSEI_X = -94.0             # 연세로's middle from the bridge south (고증 4.10.1)
 YONSEI_X_RNG = -96.0         # (where it was: what the random streams decide is decided round it)

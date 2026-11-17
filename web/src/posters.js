@@ -7,8 +7,8 @@
 import * as THREE from 'three';
 
 // the white wall in the gate's frame (blender/props.py GATE_WALL): u along the gate's line from its middle, v north of
-// it, m.  Two bays: one slanting out of the outer pillar's front corner, one along the line 3.5 m in front of it
-const WALL = { pts: [[11.35, -0.55], [14.65, -3.5], [19.3, -3.5]], h: 2.7, t: 0.35 };
+// it, m.  Two bays: one slanting out of the outer pillar's front corner, one along the line 3.3 m in front of it
+const WALL = { pts: [[12.19, -0.36], [15.49, -3.31], [20.14, -3.31]], h: 2.7, t: 0.35 };
 const BAY2 = 3.85, BAY2_AT = 4.43;     // the sheets' u past the old pilaster (3.85) start on the second bay, at its corner
 const FONT = '"Do Hyeon", "Jua", "Noto Sans KR", sans-serif';
 const INK = { k: '#17171a', r: '#b3201f', b: '#1c2f86', g: '#1f6a3a' };
