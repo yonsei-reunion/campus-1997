@@ -207,9 +207,13 @@ def paint(line, s1):
 # the paint the 1996 and 1997 scans show on it (campus.json road_paint: blender/landmarks.py road_paint): the middle line
 # where it was read (unbroken in the 1996 winter scans; yellow as the campus's other roads in 2008 - 2010, the scans are
 # black and white; below the hairpin from s 356, past its crossing, where 1996, 1997 and 1999 read it), the stop line
-# across the down lane at s 5.5 and the zebra crossing at s 33 - 35.  Not the solid line bending west at s 281 - 295
-# nor the crossings at the hairpin's apex and the fork (where the road's line is not settled)
+# across the down lane at s 5.5 and the zebra crossing at s 33 - 35; where the middle line ends at s 281, a straight
+# solid line, brighter and wider than it in every frame (white), on to 2.3 m left of it at s 293 (1997 27/15 · 27/16 ·
+# 26/13 and 1996 27/15 within 0.15 m: the up lane widened before the mouth of the east road).  Not the stop line
+# across the up lane at s 295 (plain in 1996 27/15 alone) nor the crossings at the hairpin's apex and the fork (where
+# the road's line is not settled)
 PAINT_MIDDLE = [(8.0, 32.0), (36.0, 281.0), (356.0, 604.0)]
+PAINT_BEND = ((281.0, 0.0), (293.0, 2.3), 0.2)    # (from (s, left of the middle line), to, width): straight on the ground
 PAINT_STOP = (5.5, 0.1, HALF - 0.1, 0.4)        # (s, from, to left of the middle line, width)
 PAINT_ZEBRA = (34.0, 2.0)                        # (s, length along the road)
 
@@ -221,6 +225,9 @@ def paint_lines(line):
         out.append(dict(kind='yellow', w=0.15, pts=[[round(float(v), 2) for v in at(line, s_)] for s_ in np.arange(a, b + 0.01, 1.0)]))
     s0, o0, o1, w = PAINT_STOP
     out.append(dict(kind='white', w=w, pts=[[round(float(v), 2) for v in at(line, s0, o)] for o in np.linspace(o0, o1, 5)]))
+    (sa, oa), (sb, ob), w = PAINT_BEND
+    pa, pb = at(line, sa, oa), at(line, sb, ob)
+    out.append(dict(kind='white', w=w, pts=[[round(float(v), 2) for v in pa + (pb - pa) * f] for f in np.linspace(0, 1, 7)]))
     sz, lz = PAINT_ZEBRA
     for o in np.arange(-HALF + 0.5, HALF - 0.49, 1.0):           # (0.5 m stripes a metre apart, along the road)
         out.append(dict(kind='white', w=0.5, pts=[[round(float(v), 2) for v in at(line, s_, o)] for s_ in np.linspace(sz - lz / 2, sz + lz / 2, 5)]))
