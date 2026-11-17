@@ -3445,6 +3445,22 @@ LATE_FOOTPRINT_1997[473006251] = [(round(x_, 2), round(y_, 2)) for x_, y_ in lis
 # them, so the trees by them step aside in their places in the list)
 SITES_NEW_1997 = {222843398, 990010, 990011, 990012, 990014, 990060, 990061, 990050, 990051, 990052}
 SITES_NEW_1997.add(990013)                     # (청경관 at the scans' place)
+# 총장공관 as the 1997-07-28 scans have it (27/15 · 27/16 · 27/17 and the 1996 winter 27/16, all on the 81 m plane, the roof
+# edges within 0.5 m frame to frame; reference/고증/3.1 「그 밖의 건물의 1997년 …」): in OSM's frame (o its west corner, u
+# north-east along its long side, v south-east) the main roofs u 0 - 15.5, v -1.5 - 11 (OSM's u 0 - 17.9, v 0 - 8.7: its
+# north-east 2.4 m the garden's ground, 75.4 m), the roof 81.5 - 83.3 m over the garden's 75 m (two storeys), and a wing
+# on its south-west end (CJ97_WING, at the halls' end).  The walls 0.4 m inside the roofs' edges.  The planting ran with
+# OSM's outline; the trees in what it gained step aside
+CJ97 = dict(o=(392.07, 325.81), t=(0.588, 0.809))
+
+
+def cj_xy(u_, v_):
+    o_, t_ = CJ97['o'], CJ97['t']
+    return (round(o_[0] + t_[0] * u_ + t_[1] * v_, 2), round(o_[1] + t_[1] * u_ - t_[0] * v_, 2))
+
+
+LATE_FOOTPRINT_1997[472534642] = [cj_xy(u_, v_) for u_, v_ in ((0.4, -1.1), (15.1, -1.1), (15.1, 10.6), (0.4, 10.6))]
+SITES_NEW_1997.add(472534642)
 # 광복관 as the 1997-07-28 scans have it (tools/kwangbok97.py, reference/고증/3.9 「1997년의 평면과 지붕」): not OSM's L
 # (the hall of the 2010s) but a narrower one 8 - 12 m inside it, a deeper head at its west end, a head at the north
 # wing's end and a flat-roofed block where the wings meet.  The planting ran with OSM's outline; the hall goes in
@@ -11941,6 +11957,12 @@ for k_, g_ in enumerate(sorted([g_ for g_ in getattr(_e2p, 'geoms', [_e2p]) if g
                           top_ground=round(max(_e2h), 2),
                           footprint=[[round(x_, 2), round(y_, 2)] for x_, y_ in list(g_.exterior.coords)[:-1]]))
     print('제2공학관 남쪽의 낮은 동 %d: %.0f m2' % (k_, g_.area))
+# 총장공관의 남서쪽 곁채 (CJ97 above): the scans' wing roof u -4.2 - 0, v 1.5 - 7.0, 81.5 m (two low storeys and a hipped
+# roof), its walls 0.4 m inside and run 0.8 m into the hall; after the house above (nothing after it changes its looks)
+CJ97_WING = [cj_xy(u_, v_) for u_, v_ in ((-3.8, 1.9), (0.8, 1.9), (0.8, 6.6), (-3.8, 6.6))]
+buildings.append(dict(id=990121, name='', style='house', levels=2, fh=3.0, height=6.0, base=datum.up(*cj_xy(-1.5, 4.25), 74.7),
+                      top_ground=datum.up(*cj_xy(-1.5, 4.25), 74.7),
+                      footprint=[list(p_) for p_ in shapely.geometry.polygon.orient(Polygon(CJ97_WING), 1.0).exterior.coords][:-1]))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
 # edges in their places in the list
