@@ -237,7 +237,7 @@
      "cam": {"x": 40, "y": -640, "dh": 230, "tx": 185, "ty": -250, "tdh": 5, "fov": 36}, "size": [1500, 900],
      "out": [{"path": "docs/screenshots/medical.jpg", "width": 900}]},
     {"name": "screenshots/cheonggyeong", "doc": "고증 3.16: 유억겸 기념관 남서쪽의 청경관(1997년 7월 항공사진의 자리)",
-     "cam": {"x": 42, "y": 274, "dh": 16, "tx": 14, "ty": 300, "tdh": 3, "fov": 50}, "size": [1350, 860],
+     "cam": {"x": 14, "y": 255, "dh": 30, "tx": 14, "ty": 300, "tdh": 2, "fov": 50}, "size": [1350, 860],
      "out": [{"path": "docs/screenshots/cheonggyeong.jpg", "width": 900}]},
     {"name": "screenshots/jonghap", "doc": "고증 3.1: 1997년 7월 수직 항공사진과 측량으로 다시 세운 종합관(높은 몸체와 동쪽 끝의 낮은 동) · 외솔관2 · 인문관, 동쪽 위에서",
      "cam": {"x": 70, "y": 300, "dh": 56, "tx": -55, "ty": 295, "tdh": -7, "fov": 50}, "size": [1350, 860],
