@@ -33,8 +33,9 @@ edges read on each roof's own plane from opposite flight lines) and the 1:5000 s
 - the ground: the road east of 종합관 level at 60.45 m (photos; survey spots 60.24 · 60.54 m 해발), falling south to
   53.7 m before 인문관's east end; the paved yard north of the slab 72.1 m to u 30, a terrace at the low block's roof
   (68.6 m) between them and the slab; the road from the yard down to the east road falls 8 m in its first 14 m (the
-  photos and the 2006 contours alike), then runs level; the lane behind 인문관 and round its west end under 60 m
-  해발 (both surveys' 60 · 65 m contours run along 외솔관2's south wall and wrap 인문관's west end); the wooded hill
+  photos and the 2006 contours alike), then runs level; the lane behind 인문관 under 60 m 해발 (both surveys' 60 ·
+  65 m contours run along 외솔관2's south wall); 인문관's west wall on the hill road's level, 4 - 5 m of planting
+  between them, the bank down to 인문관 남쪽 길 south of its south-west corner (the 2010-12 roadview); the wooded hill
   north-west of the halls up to 102 m 해발 (the game had 87 m).
 
 GRID: the 2006 survey's surface (its contours with its spot heights, 2.5 m) + T at the game's 5 m nodes, for the
@@ -184,7 +185,7 @@ Z_ROOF = datum.up(-40.0, 310.0, 68.29)        # under the low block's roof, by t
 Z_COURT = datum.up(-52.0, 287.0, 68.81)       # the passage between the slab and 외솔관2, its east
 Z_PASS_W = datum.up(-92.0, 294.0, 70.1)       # ... its west mouth, by 외솔관2's north-west corner
 Z_OESOL_W = datum.up(-97.0, 287.0, 69.54)     # the ground at 외솔관2's west end
-Z_LANE = datum.up(-80.0, 272.0, 58.29)        # the lane behind 인문관 and round its west end
+Z_LANE = datum.up(-80.0, 272.0, 58.29)        # the lane behind 인문관
 Z_INMUN = datum.up(-92.78, 264.0, 58.18)      # 인문관's floor (its frame's middle): the road along its south face
 Z_APRON = datum.up_at(((38.0, 58.02), (46.0, 57.78), (82.0, 53.72)),
                       [(-59.7, 259.3), (-52.0, 257.2), (-17.2, 248.0)])      # (u, z) before 인문관's east end, at v -30
@@ -204,6 +205,13 @@ SW_ROAD = datum.up3([
     (-88.0, 318.1, 72.22), (-103.6, 307.7, 72.73), (-116.9, 298.8, 72.82), (-123.5, 294.4, 72.26), (-129.8, 289.6, 71.51),
     (-131.0, 285.8, 70.32), (-132.1, 282.0, 69.54), (-133.3, 278.1, 68.85), (-134.4, 274.3, 68.37), (-135.6, 270.5, 67.98),
     (-136.7, 266.6, 67.8), (-137.9, 262.8, 67.62)])
+# the planted strip between that road's kerb and 인문관's west wall, 0.3 m under the road abreast of it (v): the 2010-12
+# roadview (1016787042 ~ 045) has the wall's foot there, a light well at it, and no lane round the west end
+_SW_VZ = sorted((float(uv(x_, y_)[1]), z_) for x_, y_, z_ in SW_ROAD)
+
+
+def _west_strip(u, v):
+    return np.interp(v, [a for a, _ in _SW_VZ], [b for _, b in _SW_VZ]) - 0.3
 GRID_X0, GRID_Y0, GRID_D = -225.0, 230.0, 5.0     # (the grid's south-west node, spacing: the game's 5 m nodes)
 GRID = np.array([[int(v) for v in r.split()] for r in """
 6495 7003 7000 6997 7585 7832 8000 8017 8004 7492 6999 7496 7404 7211 6999 6856 6673 6501 6498 5996 6003 5970 5918 5875 5833 5780 5737 5685 5632 5570 5497 5494 5472 5459 5446 5414 5391 5359 5316 5253 5191 5128 5076 5033 5000 4998 4495 4503 4490
@@ -371,21 +379,24 @@ ZONES = [
     ('south wing, east', rect(58.0, 76.5, -17.5, 12.0), lambda u, v: np.interp(v, *zip(*Z_SWING_E))),
     ('apron', rect(44.0, 84.0, -40.0, -19.6), _apron),                      # (before 인문관's east end, falling east)
     ('low block, south', rect(45.2, 64.6, -17.5, -11.0), _apron),
-    # (behind 인문관 and round its west end; west of 외솔관2 its north edge 3 m further south, the bank up to the ground
-    # at 외솔관2's west end clear of that hall's door)
-    ('lane', poly([(-33.5, -46.0), (46.0, -46.0), (46.0, -19.6), (-2.0, -19.6), (-2.0, -23.5), (-33.5, -23.5)]), _const(Z_LANE)),
+    # (behind 인문관 to the line of its west wall; west of 외솔관2 its north edge 3 m further south, the bank up to the
+    # ground at 외솔관2's west end clear of that hall's door)
+    ('lane', poly([(-29.3, -46.0), (46.0, -46.0), (46.0, -19.6), (-2.0, -19.6), (-2.0, -23.5), (-29.3, -23.5)]), _const(Z_LANE)),
     ('외솔관2 south', rect(5.0, 34.0, -18.25, -11.0), _const(Z_LANE)),
     ('외솔관2 west end, inside', rect(-4.5, 5.0, -18.25, -11.0), _const(Z_OESOL_W)),   # (its end wall's foot level)
     ('인문관', rect(-29.3, 42.2, -45.5, -24.1), _const(Z_INMUN)),             # (its porch and the low strip along its south too)
     ('인문관 south-west', rect(-33.5, -17.7, -51.0, -42.8), _const(Z_INMUN)),  # (west and east of 인문관 남쪽 길, INM97)
     ('인문관 south-east', rect(31.3, 42.2, -53.0, -42.8), _const(Z_INMUN)),
+    ('인문관 west end', rect(-36.0, -29.3, -42.8, -21.0), _west_strip),      # (the hill road's level up to the wall)
 ]
 # the yard's paving and the terrace on the game's map (paint); the trees the planting put on them step aside
 PAVED = [poly([(-16.0, -3.0), (-1.6, -3.0), (-1.6, 22.6), (30.0, 22.6), (30.0, 40.5), (21.0, 43.5), (10.0, 40.0), (2.5, 31.0),
                (-5.0, 24.0), (-16.0, 12.0)]), rect(35.0, 45.2, 22.6, 40.5)]
 # the court between 외솔관2's east end and the low block (trees in the scans) and the bank under its south edge: lawn
-# over the paving OSM's outlines had left there
-GRASS = [poly([(38.4, 0.0), (45.2, 0.0), (45.2, -17.5), (46.5, -21.5), (36.0, -21.5), (38.4, -18.25)])]
+# over the paving OSM's outlines had left there; the planted strip between the hill road and 인문관's west wall
+# (the 2010-12 roadview: shrubs and trees up to the wall) over the hall's apron
+GRASS = [poly([(38.4, 0.0), (45.2, 0.0), (45.2, -17.5), (46.5, -21.5), (36.0, -21.5), (38.4, -18.25)]),
+         rect(-35.0, -29.3, -42.8, -21.0)]
 
 
 def _strip(Hn, X, Y, pts, half, mask, f=None):

@@ -9933,7 +9933,7 @@ _ypaint([bill97.OLD_STRIP], _yg)             # (빌링슬리관 동쪽 면 곁: 
 KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
 _ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
 _ypaint([westisle97.lawn()], _yg)              # (서쪽 화단 섬: the 1997 island and the garden's north end; the road round them, _ga below)
-_ypaint(jonghap97.GRASS, _yg)                # (외솔관2 동쪽 뜰: lawn where OSM's outline of it and its apron were)
+_ypaint(jonghap97.GRASS, _yg)                # (외솔관2 동쪽 뜰 · 인문관 서쪽 끝: lawn where OSM's outline and the aprons were)
 _ypaint([widang97.WORKS, widang97.BANK], _yg)   # (제2인문관 공사장: OSM's later roads and walks across it out; bare: _gd below)
 _ypaint([east97.SITE_BARE], _yg)            # (새천년관 공사장: OSM's later drives and walks across it out; bare: _gd below)
 _ypaint([appen97.WALK_OUT], _yg)            # (아펜젤러관 뒤 찻길 서쪽 가: OSM's walk out, the bank's lawn to the kerb; tools/appen97.py)
@@ -10014,7 +10014,7 @@ _gyc, _gyt, _gyn = np.array([35.48, 347.45]), np.array([-0.969, 0.248]), np.arra
 # (빌링슬리관 stands on its lawn, no apron: the scans have the lawn and the planting up to its walls; only the landing
 # before its door, out to the walk's end, BILL_UV)
 _bll = BILL_UV['landing']
-# (not over the court east of 외솔관2, jonghap97.GRASS: lawn between the two aprons there)
+# (not over the court east of 외솔관2 and the strip west of 인문관, jonghap97.GRASS: lawn there)
 _ypaint([p_.buffer(3.5, join_style=2).difference(unary_union(jonghap97.GRASS)).difference(chapel97.front_lawn()) for p_ in LATE_SITES if not BILL_POLY.buffer(0.5).contains(p_)
          and not kwangbok97.hall().buffer(0.5).contains(p_)]      # (광복관: the scans' asphalt runs up to its walls, cars against them)
         + [Polygon([bill_xy(u_, v_) for u_, v_ in ((_bll[0], _bll[2]), (_bll[1], _bll[2]), (_bll[1], _bll[3]), (_bll[0], _bll[3]))])]
