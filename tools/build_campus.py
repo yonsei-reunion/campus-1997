@@ -4578,19 +4578,28 @@ TERR = dict(
             far=[(-57.0, 6.9), (-48.5, 6.9), (-44.0, 6.4), (15.5, 6.4), (19.5, 6.4)],
             bank=[(-51.0, 11.35), (-39.5, 11.35), (-30.5, 11.11), (-21.5, 11.04), (-12.5, 10.89), (-6.5, 10.81),
                   (6.5, 10.61), (12.5, 10.35), (15.5, 10.2)],
-            # (s -55: the road at its south end, 3 m windows at s -54 .. -56 in the July 1997 and the winter 1996 frames)
-            zr=datum.up_at([(-55.0, 43.27), (-51.5, 43.38), (-48.5, 43.51), (-36.5, 43.61), (-30.5, 43.69), (-24.5, 43.77),
-                            (-18.5, 43.85), (-12.5, 44.08), (-6.5, 44.18), (0.0, 44.2), (6.5, 44.33), (12.5, 44.43), (15.5, 44.49)],
-                           [(15.0, 173.0), (15.9, 176.4), (16.7, 179.3), (19.8, 190.9), (21.4, 196.7), (23.0, 202.5), (24.6, 208.3),
-                            (26.1, 214.1), (27.7, 219.8), (29.4, 226.1), (31.1, 232.4), (32.7, 238.2), (33.4, 241.1)]),
-            zg=datum.up_at([(-51.0, 42.46), (-39.0, 42.37), (-33.5, 42.61), (-27.5, 42.76), (-21.5, 42.78), (-18.5, 42.89),
+            # (s -55: the road at its south end, 3 m windows at s -54 .. -56 in the July 1997 and the winter 1996 frames.
+            # s -51.5 .. -24.5 (2026-11-18, 고증 3.5.3 「앞 단 남쪽 토막의 길 높이」): the road's surface by the parallax of
+            # edges and shadows in three one-course bundles (1996 course 27 and 26, 1997 course 26), tied to the south
+            # flight's head; the bank-edge solves before read the bank's top, 0.2 - 0.3 m over the road.  North of s -18.5
+            # still the old values: 고증 3.5 「남은 한계」)
+            zr=datum.up_at([(-55.0, 43.28), (-51.5, 43.32), (-48.5, 43.35), (-44.0, 43.4), (-40.0, 43.45), (-36.5, 43.49),
+                            (-30.5, 43.55), (-24.5, 43.66), (-18.5, 43.85), (-12.5, 44.08), (-6.5, 44.18), (0.0, 44.2),
+                            (6.5, 44.33), (12.5, 44.43), (15.5, 44.49)],
+                           [(15.0, 173.0), (15.9, 176.4), (16.7, 179.3), (17.9, 183.7), (18.9, 187.5), (19.8, 190.9),
+                            (21.4, 196.7), (23.0, 202.5), (24.6, 208.3), (26.1, 214.1), (27.7, 219.8), (29.4, 226.1),
+                            (31.1, 232.4), (32.7, 238.2), (33.4, 241.1)]),
+            # (s -58 .. -30.5 the same way, 2026-11-18: the dip at s -39 was not there)
+            zg=datum.up_at([(-58.0, 42.38), (-55.0, 42.4), (-51.0, 42.45), (-46.0, 42.52), (-43.0, 42.55), (-39.0, 42.59),
+                            (-36.0, 42.64), (-33.5, 42.69), (-30.5, 42.73), (-27.5, 42.76), (-21.5, 42.78), (-18.5, 42.89),
                 (-12.5, 42.96), (-6.5, 43.09), (0.0, 43.3), (6.5, 43.36), (9.5, 43.42), (12.5, 43.51), (15.5, 43.55)],
-                           [(26.2, 174.1), (29.4, 185.7), (30.8, 191.0), (32.4, 196.8), (33.9, 202.6), (34.7, 205.5),
+                           [(24.4, 167.4), (25.2, 170.3), (26.2, 174.1), (27.5, 179.0), (28.3, 181.9), (29.4, 185.7),
+                            (30.2, 188.6), (30.8, 191.0), (31.6, 193.9), (32.4, 196.8), (33.9, 202.6), (34.7, 205.5),
                             (36.3, 211.3), (37.9, 217.1), (39.6, 223.4), (41.3, 229.6), (42.1, 232.5), (42.8, 235.4),
                             (43.6, 238.3)]),
             walk=15.3, whole=(-56.7, 19.0), ease=(-58.62, 23.0), up=dict(n=5, T=0.35),
             flights=[dict(s=0.0, w=3.3, ct=0.45, n=6, T=0.33, head=8.2),
-                     dict(s=-44.0, w=3.6, ct=0.45, n=6, T=0.33, head=8.3)],
+                     dict(s=-44.0, w=3.6, ct=0.45, n=5, T=0.33, head=8.9)],    # (고증 4.2.1: first riser d 8.9, five)
             # (reference/고증/3.5.3 「단의 남쪽 끝」: the risers' lines at s -56.70 .. -58.62 in 26/15 and 26/16, the
             # cheeks' copings at d 3.52 and 6.05 from all four frames)
             south=dict(s=-56.7, d=4.79, w=2.2, ct=0.35, n=7, T=0.32)),
@@ -12277,6 +12286,13 @@ DORM97_TREES = north97.trees97(out['trees'], muak.woods_fill)
 out['trees'] += DORM97_TREES
 out['trees'] += GATE97_NEW_TREES             # (정문 안 갈림길 · 정문 동쪽 담 뒤, 1997: at the trees' very end, GATE97 above)
 out['trees'] += MUAK_ROW_EXTRA               # (무악학사 길: the 1996 rows' trunks with no tree in the list, at the very end)
+# the bank's crown row south of UW_BANK_PINES, by the garden's south-west flight (s -44): three round evergreen crowns,
+# dark in the July 1997 scans and in the leaf-off 1996 winter ones (Nov. and Dec.), the same in 1998 and 1999;
+# reference/고증/4.2_언더우드_동상.md 4.2.1.  (s, d, scale): crowns 3.5 - 4.2 m across, tops 2 - 2.9 m over the road.
+# At the very end (the passes above drop a tree by moving the list's last one into its place)
+UW_BANK_PINES_S = [(-39.9, 8.3, 0.36, 1.1), (-48.9, 8.4, 0.32, 4.0), (-54.4, 8.5, 0.32, 2.3)]
+for s_, d_, sc_, r_ in UW_BANK_PINES_S:
+    out['trees'].append(['pine', *(round(v_, 2) for v_ in TERR['st']['xy'](s_, d_)), sc_, r_])
 print('무악학사 둘레: trees %d (and %d in the wood north of the wings)' % (len(north97.TREES97), len(DORM97_TREES) - len(north97.TREES97)))
 # 1학사 남쪽 굽은 길 (tools/north97.py HEDGE97): the hedge along the 1997 road's south side, at the shrubs' end
 out['shrubs'] += north97.hedge97()
