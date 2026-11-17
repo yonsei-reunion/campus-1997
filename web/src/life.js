@@ -423,7 +423,8 @@ export class Crowd {
         // (m.id: a named seat; pickX is drawn all the same, so nobody else changes)
         const drawn = pickX(), id = m.id || drawn, n = 2000 + this.people.length;
         // (nothing on the back against the bench's; a bag in the hand would hang through the seat)
-        const a = cast.make(id, null, crowdLook(id, n));
+        // (a named seat keeps the person's own clothes and colours, as the hero wears them: no crowd look)
+        const a = cast.make(id, null, m.id ? null : crowdLook(id, n));
         play(a, 'sit', { fade: 0 });
         a.mixer.update(0);
         // the hips THIGH over the seat: where the clip holds them over the holder, at this person's size

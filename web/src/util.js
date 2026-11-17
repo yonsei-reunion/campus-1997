@@ -24,6 +24,21 @@ if (BUILD !== 'dev' && 'serviceWorker' in navigator && location.protocol !== 'fi
   navigator.serviceWorker.register('./sw.js').catch(() => { /* (private windows, blocked storage) */ });
 }
 
+// GitHub Pages caches index.html for 10 minutes, and index.html is what names this deploy's script. So a visit just
+// after a deploy (or a cached page) can run the old game. On load, ask the server (no-store) which script the page names;
+// if it is not the one running, reload once for it (the sessionStorage mark keeps a stale CDN edge from looping).
+if (BUILD !== 'dev' && /^https?:$/.test(location.protocol)) {
+  const mine = document.querySelector('script[type="module"][src*="main-"]')?.getAttribute('src');
+  if (mine) {
+    fetch(`./index.html?fresh=${Date.now()}`, { cache: 'no-store' }).then((r) => (r.ok ? r.text() : '')).then((html) => {
+      const now = html.match(/src="([^"]*main-[^"]+\.js)"/)?.[1];
+      if (!now || now === mine) return;
+      try { if (sessionStorage.getItem('y97-reload') === now) return; sessionStorage.setItem('y97-reload', now); } catch { return; }
+      location.reload();
+    }).catch(() => { /* offline: the page as it is */ });
+  }
+}
+
 // Phones / tablets: no shadow maps, smaller textures, fewer people, touch controls and touch help texts.
 // ?touch in the URL forces it (testing the phone layout on a desktop browser).
 export const MOBILE = matchMedia('(pointer: coarse)').matches || /[?&]touch\b/.test(location.search);
