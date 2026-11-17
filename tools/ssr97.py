@@ -183,8 +183,8 @@ def is_flat(x, side, hw):
 
 
 def trees_off(trees, step=0.4):
-    """trees standing on a footbridge's flight or landing: along the flight out past it, in their places in the list.
-    Returns the moved"""
+    """trees standing on a footbridge's flight or landing: along the flight out past it and 3 m clear of the trees
+    round it, in their places in the list.  Returns the moved"""
     moved = []
     for fb in FOOTBRIDGES:
         g = footbridge_polys(fb, 0.6)
@@ -195,8 +195,10 @@ def trees_off(trees, step=0.4):
             d = np.array(p, float) - np.array(q, float)
             d /= np.linalg.norm(d)
             x, y = t[1], t[2]
-            for _ in range(60):
-                if not g.contains(Point(x, y)):
+            others = [(o[1], o[2]) for o in trees if o is not t and abs(o[1] - x) < 40 and abs(o[2] - y) < 40]
+            for _ in range(120):
+                clear = min((math.hypot(ox - x, oy - y) for ox, oy in others), default=99.0) >= 3.0
+                if not g.contains(Point(x, y)) and clear:
                     break
                 x, y = x + d[0] * step, y + d[1] * step
             moved.append((t[0], t[1], t[2], round(float(x), 2), round(float(y), 2)))
@@ -445,7 +447,7 @@ def clinic_roof():
 # 29 points on a 4 m grid (u -34 .. -14, v -10 .. 22), each 1996 26/16 x 26/17, 27/17 x 27/18 or 26/15 x 26/16 (two
 # or three pairs within 0.1 - 0.4 m at 14 of them), lie on one plane z = 29.01 + 0.0613 u + 0.0259 v (해발) with rms
 # 0.27 m (largest 0.91 m, a crown): 26.8 - 27.4 m at u -34, 28.2 - 28.6 m at the car park's edge (u -14).  The game's
-# ground there fell 1.5 - 2.4 m lower (a bank down from the car park).
+# ground there fell 1.5 - 3.2 m lower (a bank down from the car park).
 WOOD_O, WOOD_A = (-35.0, -385.0), -43.0
 WOOD_PLANE = (29.01, 0.0613, 0.0259)
 WOOD_UV = (-35.0, -12.0, 0.0, 20.0)   # (where two pairs or three agree; the gate's east lawn, south-west, stays)
