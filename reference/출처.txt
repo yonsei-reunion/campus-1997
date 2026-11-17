@@ -922,3 +922,4 @@ reference/ 사진 출처
   - 2021-11-07_28342_28342_15433_109.jpg: https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=28342 (2021-11-07, 「[연세 옛날이야기] 독수리상, 연세의 정신을 담다」, 사진 박물관 제공: 1970년 5월 9일 제막). reference/고증/4.1_독수리상.md
   - 2022-10-02_29237_29237_16278_2937.jpg: https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=29237 (2022-10-02, 「[연세 옛날이야기] 연세인의 한글 사랑, 변함 없이 한결같이」: 금호아트홀 앞으로 옮긴 뒤의 연세한글탑). reference/고증/4.14_연세한글탑.md
   - 2010-10-02_15555_2619_8541_1627.jpg · _8542_1636.jpg · _8547_1734.jpg · _8548_1743.jpg: https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=15555 (2010-10-02, 「윤동주도 '기숙사생'이었다고?!」, 이해인 기자, 사진에 www.YONDO.net 표시: 알로하(개관식 · 확장된 모습 · 명패), 선우학사(1985년 오픈하우스), 제중학사, 법현학사). reference/고증/3.1.2.1_학사와_옛_이름.md
+  - 2007-11-04_11275_1226_3653_3357.jpg: https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=11275 (2007-11-04, 「'제2중도' 학술정보관 미리보기」, 김정하 기자 · 사진 홍선화 기자: 「▲ 장기원 기념관」, 헐리기 전 가을). reference/고증/3.15-3.17_일반_건물.md 「3.16」

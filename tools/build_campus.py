@@ -3424,8 +3424,16 @@ LATE_FOOTPRINT_1997[990010] = list(block_poly(JK_O + JK_A * -1.875 + JK_V * -0.7
 LATE_FOOTPRINT_1997[990011] = list(block_poly((-156.25, -24.0), _lib_u, 17.0, 4.75).exterior.coords)[:-1]
 LATE_FOOTPRINT_1997[990012] = list(Point(-163.5, -24.0).buffer(7.5, 3).exterior.coords)[:-1]
 LATE_LEVELS = {990011: 2, 990012: 1}
+# 청경관 (학생식당, 990013 above from the 1994 map's drawing, 35 m too far south): the 1997-07-28 scans (26/15 · 27/16 ·
+# 26/16 · 27/17 on the 59.5 m plane) have its roofs south-west of 교육관 where the 1990 · 1994 maps' no. 12 stands
+# (reference/고증/3.15-3.17 「3.16」 「청경관」): a flat block 10.3 x 6.9 m on the north (turned 10 deg) and a hipped hall
+# south of it ending in a point, the roofs 59 - 60 m, 7 - 9 m over the slope (two storeys); its low wing south-west
+# left out.  The map's place, where the scans have the trees' crowns, is lawn after it (_old_aprons)
+LATE_FOOTPRINT_1997[990013] = [(11.0, 310.9), (10.3, 304.0), (8.1, 303.5), (8.0, 294.5), (14.8, 290.7), (18.9, 295.2),
+                               (20.9, 302.9), (21.1, 309.1)]
 BASE_1997.update({990010: datum.up(-176.38, 20.6, 44.02), 990014: datum.up(-176.38, 20.6, 44.02), 990011: datum.up(-156.25, -24.0, 37.82), 990012: datum.up(-163.5, -24.0, 44.16), 990060: SCI['yard'], 990061: SCI['yard']})
 BASE_1997[990030] = medwest97.CLINIC_BASE      # (외래진료소: its third floor level with its raised forecourt)
+BASE_1997[990013] = datum.up(15.0, 300.0, 51.0)    # (청경관: on the slope's foot east of it, its roof 59.4 m)
 # 제중관 (OSM 473006251: today's outline) without its west lobe, u -76 .. -55.5 and v 9 .. 43 on 의료원's grid: there the
 # 1997 scans have 외래진료소's two north wings and the flat block south of them (roofs 45.5 - 47 m, the hall's 48 - 57 m
 # begins at u -55.5; reference/고증/3.1.2 「외래진료소의 덩어리」, tools/ssr97.py JEJUNG_CUT).  Late: the planting has read
@@ -3436,6 +3444,7 @@ LATE_FOOTPRINT_1997[473006251] = [(round(x_, 2), round(y_, 2)) for x_, y_ in lis
 # (the outlines and halls put back since the planting was laid, as MED_SITES_RNG's None: no clearing was made for
 # them, so the trees by them step aside in their places in the list)
 SITES_NEW_1997 = {222843398, 990010, 990011, 990012, 990014, 990060, 990061, 990050, 990051, 990052}
+SITES_NEW_1997.add(990013)                     # (청경관 at the scans' place)
 # 광복관 as the 1997-07-28 scans have it (tools/kwangbok97.py, reference/고증/3.9 「1997년의 평면과 지붕」): not OSM's L
 # (the hall of the 2010s) but a narrower one 8 - 12 m inside it, a deeper head at its west end, a head at the north
 # wing's end and a flat-roofed block where the wings meet.  The planting ran with OSM's outline; the hall goes in
@@ -9934,7 +9943,7 @@ _ypaint([eng97.strip_lawn()], _yg)           # (안뜰 서쪽 옹벽 뒤 화단 
 # (the aprons of the halls left out or moved since the planting was laid, GONE_LAWN · SITES_NEW_1997: lawn where no hall of
 # 1997 stands; 과학관's court paved to the bank's foot and under its flight)
 _old_aprons = unary_union([Polygon(g_['footprint']) for g_ in RND_GHOSTS if g_['id'] in GONE_LAWN] +
-                          [q_ for pid_, _, _, _, q_ in OLD_HALLS if pid_ in (990010, 990011, 990012)]).buffer(4.2)
+                          [q_ for pid_, _, _, _, q_ in OLD_HALLS if pid_ in (990010, 990011, 990012, 990013)]).buffer(4.2)
 _ypaint([_old_aprons.difference(unary_union(LATE_SITES).buffer(3.5))], _yg)
 _ypaint([SCI_COURT97.union(flight_zone(SCI_DOOR, SCI_N, 8.8, 7.0))], _yp)
 _ypaint([SCI_BANK97.difference(SCI_COURT97)], _yg)   # (과학관 마당 둘레: the bank planted; its drive asphalt, _ga below)

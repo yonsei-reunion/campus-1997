@@ -839,6 +839,9 @@ FH_AT[246156121] = 3.4
 # (tools/build_campus.py UTS_PORCH, porch_flat)
 SILL_AT[246156121] = dict(lights=3, ww=0.8, sill=0.9, head=0.55)
 FRAME[246156121] = 'frame_dark'
+# 장기원 기념관 (1971 - 2006; the 연세춘추 photo of 2007, reference/고증/3.15-3.17 「3.16」): a white concrete frame
+# round broad lights, two storeys over the road behind 중앙도서관 (its colour draw is still made)
+SILL_AT[990011] = dict(ww=0.75, sill=0.9, head=0.45)
 
 
 def build_generic(b, rnd):
