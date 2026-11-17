@@ -12245,7 +12245,6 @@ print('무악학사 · 북문: trees off the halls as in 1997', muak.trees_aside
 FIELDHILL_TREES = muak.woods_fill(unary_union(FIELDHILL_WOODS), out["trees"], seed=15996, spacing=8.5)
 out['trees'] += FIELDHILL_TREES
 print('대운동장 북쪽 언덕: trees in the woods', len(FIELDHILL_TREES))
-out['trees'] += MUAK_ROW_EXTRA                # (무악학사 길: the rows' trunks of the 1996 winter scans the old rows had no tree for)
 # 성산로 북쪽 가 (tools/med97.py strip_plants; md): the street trees on the sidewalk along 의료원 and the shrubs on the
 # planted strip over the wall, at the lists' very ends
 MED_STRIP_TREES, MED_STRIP_SHRUBS = med97.strip_plants()
@@ -12260,6 +12259,7 @@ out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first pl
 DORM97_TREES = north97.trees97(out['trees'], muak.woods_fill)
 out['trees'] += DORM97_TREES
 out['trees'] += GATE97_NEW_TREES             # (정문 안 갈림길 · 정문 동쪽 담 뒤, 1997: at the trees' very end, GATE97 above)
+out['trees'] += MUAK_ROW_EXTRA               # (무악학사 길: the 1996 rows' trunks with no tree in the list, at the very end)
 print('무악학사 둘레: trees %d (and %d in the wood north of the wings)' % (len(north97.TREES97), len(DORM97_TREES) - len(north97.TREES97)))
 # 1학사 남쪽 굽은 길 (tools/north97.py HEDGE97): the hedge along the 1997 road's south side, at the shrubs' end
 out['shrubs'] += north97.hedge97()

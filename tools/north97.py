@@ -226,7 +226,10 @@ SHRUBS97 = (  # (kind, x, y, scale)
     [('bush', 118.7, 1149.5, 1.0), ('bush', 121.6, 1150.9, 1.0), ('bush', 119.9, 1147.1, 1.0)] +
     [('topiary_round', x, y, 1.15) for x, y in ((144.4, 1168.9), (149.6, 1166.7), (154.2, 1167.0), (149.1, 1162.0), (152.8, 1165.1),
                                                 (152.5, 1160.8), (155.3, 1160.1), (155.5, 1162.8), (157.8, 1158.7), (159.3, 1161.6),
-                                                (160.4, 1163.9), (160.6, 1157.5), (162.4, 1161.8))])
+                                                (160.4, 1163.9), (160.6, 1157.5), (162.4, 1161.8))] +
+    # (the 1996 26/13 scan, downloaded 2026-11-17, with 26/14: dark round blobs within 0.75 m in both, one by the
+    #  low block between the halls and the island's two ends)
+    [('topiary_round', 136.6, 1164.5, 1.0), ('topiary_round', 147.4, 1165.2, 1.1), ('topiary_round', 170.1, 1158.5, 1.1)])
 # the wood north of the wings (the 1997 frames 26/13 · 27/15: closed crowns from the wings' north ends to the houses on
 # 연희로 at y 1255, the path across it from the yard behind 1학사 kept clear; x 200 east is the patch's woods already)
 NWOOD97 = Polygon([(118.0, 1236.0), (127.0, 1228.0), (137.0, 1228.5), (147.0, 1230.0), (153.0, 1226.0), (160.0, 1215.0),

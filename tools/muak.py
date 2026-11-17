@@ -207,15 +207,17 @@ def paint(line, s1):
 # the paint the 1996 and 1997 scans show on it (campus.json road_paint: blender/landmarks.py road_paint): the middle line
 # where it was read (unbroken in the 1996 winter scans; yellow as the campus's other roads in 2008 - 2010, the scans are
 # black and white; below the hairpin from s 356, past its crossing, where 1996, 1997 and 1999 read it), the stop line
-# across the down lane at s 5.5 and the zebra crossing at s 33 - 35; where the middle line ends at s 281, a straight
-# solid line, brighter and wider than it in every frame (white), on to 2.3 m left of it at s 293 (1997 27/15 · 27/16 ·
-# 26/13 and 1996 27/15 within 0.15 m: the up lane widened before the mouth of the east road).  Not the stop line
-# across the up lane at s 295 (plain in 1996 27/15 alone) nor the crossings at the hairpin's apex and the fork (where
-# the road's line is not settled)
+# across the down lane at s 5.5, the zebra crossing at s 33 - 35 and the dashed bars at s 294.9; where the middle
+# line ends at s 281, a straight solid line, brighter and wider than it in every frame (white), on to 2.3 m left of it
+# at s 293 (1997 27/15 · 27/16 · 26/13 and 1996 27/15 within 0.15 m: the up lane widened before the mouth of the east
+# road).  Not the crossings at the hairpin's apex and the fork (where the road's line is not settled)
 PAINT_MIDDLE = [(8.0, 32.0), (36.0, 281.0), (356.0, 604.0)]
 PAINT_BEND = ((281.0, 0.0), (293.0, 2.3), 0.2)    # (from (s, left of the middle line), to, width): straight on the ground
 PAINT_STOP = (5.5, 0.1, HALF - 0.1, 0.4)        # (s, from, to left of the middle line, width)
 PAINT_ZEBRA = (34.0, 2.0)                        # (s, length along the road)
+# the dashed line across the road at s 294.9 (1996 27/14 · 27/15 · 26/13 and 1997 26/13 · 26/14 · 27/15 · 27/16 within
+# 0.2 m of s, so on the road's own height): a short bar either side of the middle, read where three frames agree
+PAINT_DASH = (294.9, ((2.0, 0.8), (-1.2, -2.6)), 0.4)   # (s, (from, to left of the middle line) per bar, width)
 
 
 def paint_lines(line):
@@ -225,6 +227,9 @@ def paint_lines(line):
         out.append(dict(kind='yellow', w=0.15, pts=[[round(float(v), 2) for v in at(line, s_)] for s_ in np.arange(a, b + 0.01, 1.0)]))
     s0, o0, o1, w = PAINT_STOP
     out.append(dict(kind='white', w=w, pts=[[round(float(v), 2) for v in at(line, s0, o)] for o in np.linspace(o0, o1, 5)]))
+    s0, bars, w = PAINT_DASH
+    for o0, o1 in bars:
+        out.append(dict(kind='white', w=w, pts=[[round(float(v), 2) for v in at(line, s0, o)] for o in np.linspace(o0, o1, 3)]))
     (sa, oa), (sb, ob), w = PAINT_BEND
     pa, pb = at(line, sa, oa), at(line, sb, ob)
     out.append(dict(kind='white', w=w, pts=[[round(float(v), 2) for v in pa + (pb - pa) * f] for f in np.linspace(0, 1, 7)]))
@@ -237,12 +242,16 @@ def paint_lines(line):
 # the rows' trunks in the 1996 winter scans (leafless: the foot of each bare tree and its long shadow), where two or more
 # frames put one within 0.9 m: pairs across the road about 7 m apart, the west row in the walk 0.75 m from its kerb,
 # the east row on the bank 1 m behind the kerb (the 1997 crowns lean 3 - 4 m west in 27/15 · 27/16, where the rows were
-# read at 8 and 5 m).  (s, offset); the rows' first trees in the list move there, those left keep their places
+# read at 8 and 5 m).  s 160 - 300 also from 26/13 and 27/14 (downloaded 2026-11-17): the west row on to s 261, the
+# east row's gaps at s 162 - 205 and three past the crest.  (s, offset); the rows' trees in the list move there in s
+# order, the trunks left over go at the trees' very end (build_campus.py)
 ROW97_W = [(54.4, 4.0), (60.9, 4.0), (67.3, 4.0), (73.6, 4.0), (80.6, 4.0), (87.3, 4.0), (94.1, 4.0), (102.0, 4.0),
-           (108.0, 4.0), (114.8, 4.0), (121.9, 4.0), (128.8, 4.0), (135.8, 4.0), (142.4, 4.0), (163.0, 4.0), (177.2, 4.0),
-           (184.5, 4.0), (191.5, 4.0), (198.2, 4.0), (205.1, 4.0), (212.2, 4.0), (219.5, 4.0), (226.8, 4.0)]
+           (108.0, 4.0), (114.8, 4.0), (121.9, 4.0), (128.8, 4.0), (135.8, 4.0), (142.4, 4.0), (163.0, 4.0),
+           (169.5, 4.0), (177.2, 4.0), (184.5, 4.0), (191.5, 4.0), (198.2, 4.0), (205.1, 4.0), (212.2, 4.0),
+           (219.5, 4.0), (226.8, 4.0), (232.5, 4.0), (247.3, 4.0), (252.3, 4.0), (261.3, 4.0)]
 ROW97_E = [(61.1, -3.95), (68.9, -3.95), (74.4, -3.95), (81.6, -3.95), (88.4, -3.95), (94.5, -3.95), (101.4, -3.95),
-           (128.9, -3.95), (135.9, -3.95), (142.7, -3.95), (150.0, -3.95), (156.3, -3.95), (181.2, -3.95)]
+           (128.9, -3.95), (135.9, -3.95), (142.7, -3.95), (150.0, -3.95), (156.3, -3.95), (162.8, -3.95),
+           (169.9, -3.95), (181.2, -3.95), (185.2, -3.95), (205.1, -3.95), (254.8, -3.95), (296.1, -3.95)]
 
 
 def rows97(trees_, sides, line, seed=15997):

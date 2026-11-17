@@ -63,8 +63,8 @@ PIX = 0.089295                # 미리보기 한 화소(mm): aerial97_cam.json �
 # 맞출 사진들(영상이 있는 것만 씀), 이어 볼 고정된 사진들('26/15' = 1997년 7월 여섯 장, '1997_27_18' = aerial_resect)
 FLIGHTS = {
     '1996': dict(zone='199612A0302', dir='assets_src/aerial_other', f=152.54, fid='zeiss4', half_mm=109.0,
-                 frames=['26/14', '26/15', '26/16', '26/17', '27/15', '27/16', '27/17', '27/18'],
-                 known=['26/14', '26/15', '26/16', '27/15', '27/16', '27/17', '1997_27_18', '1997_27_19']),
+                 frames=['26/13', '26/14', '26/15', '26/16', '26/17', '27/14', '27/15', '27/16', '27/17', '27/18'],
+                 known=['26/14', '26/15', '26/16', '27/15', '27/16', '27/17', '1997_27_18', '1997_27_19', '1997_26_13']),
     # 1997년 7월 비행(자료 Q)의 북쪽 장: 여섯 장과 같은 카메라(WILD 15/4 UAG-S No 13230), 같은 비행으로 셈(flight '1997')
     '1997': dict(zone='199705A0301', dir='assets_src/aerial_1997', stem='ngii_1997_%s_c%s_n%s', cache='c%s_n%s',
                  f=152.85, fid='wild8', half_mm=104.0, frames=['26/13'], known=['26/14', '26/15', '27/15', '27/16']),
@@ -110,6 +110,13 @@ def _cache(flight, fr, tail):
 def frames(flight):
     """그 비행에서 원본 스캔이 있는 사진들"""
     return [fr for fr in FLIGHTS[flight]['frames'] if os.path.exists(tif(flight, fr))]
+
+
+def _only(flight):
+    """AERIAL_MORE_ONLY=26/13,27/14 이면 io · fit 이 그 사진만 다룬다(fit 은 그 비행의 다른 맞춘 사진을 고정해 이음점에 씀:
+    앞서 그 사진들로 잰 값이 움직이지 않게)"""
+    v = os.environ.get('AERIAL_MORE_ONLY')
+    return [fr for fr in frames(flight) if not v or fr in v.split(',')]
 
 
 def key(flight, fr):
@@ -291,7 +298,7 @@ def cmd_io(flight):
     e = d.setdefault(flight, {})
     e.update(zone=fl['zone'], f_mm=fl['f'], fid=fl['fid'], half_mm=fl['half_mm'])
     fs = e.setdefault('frames', {})
-    for fr in frames(flight):
+    for fr in _only(flight):
         a = scan(flight, fr)
         if fl['fid'] == 'zeiss4':
             sp, top = _fid_zeiss(a)
@@ -362,6 +369,9 @@ def tri_many(cams, fs, ci, pi, ob, npt, refine=1):
 def _known(f):
     """고정된 1997년 7월 사진: (카메라, 화소 -> mm 아핀, 초점 거리, 미리보기 파일, 사진 면의 위 줄(미리보기 화소))"""
     import aerial97 as A
+    if f == '1997_26_13':                                    # (1997년 7월 비행의 북쪽 장: 이 도구의 '1997' 로 맞춘 것)
+        c = data()['1997']['frames']['26/13']
+        return np.array(c['cam']), np.array(c['M']), A.F_MM, preview('1997', '26/13'), 160
     if f.startswith('1997_'):
         import aerial_resect as R
         c = json.load(open(R.OUT))[f]
@@ -667,17 +677,23 @@ def cmd_fit(flight):
     fl = FLIGHTS[flight]
     d = data()
     fs_ = d[flight]['frames']
-    new = [fr for fr in frames(flight) if 'M' in fs_.get(fr, {})]
+    new = [fr for fr in _only(flight) if 'M' in fs_.get(fr, {})]
+    held = [fr for fr in frames(flight) if fr not in new and 'reproj_px' in fs_.get(fr, {})]
     ties = json.load(open(_ties_path(flight)))['ties']
-    names = list(fl['known']) + ['n' + fr for fr in new]
-    kn = len(fl['known'])
-    Ms = [_known(f)[1] for f in fl['known']] + [np.array(fs_[fr]['M']) for fr in new]
-    fo = np.array([_known(f)[2] for f in fl['known']] + [fl['f']] * len(new))
+    names = list(fl['known']) + ['n' + fr for fr in held] + ['n' + fr for fr in new]
+    k97 = len(fl['known'])
+    kn = k97 + len(held)
+    Ms = [_known(f)[1] for f in fl['known']] + [np.array(fs_[fr]['M']) for fr in held + new]
+    fo = np.array([_known(f)[2] for f in fl['known']] + [fl['f']] * (len(held) + len(new)))
     cams0 = np.zeros((len(names), 6))
     for k, f in enumerate(fl['known']):
         cams0[k] = _known(f)[0]
+    for j, fr in enumerate(held):
+        cams0[k97 + j] = fs_[fr]['cam']
+    if held:
+        print('고정한 이 비행의 사진: %s' % ' '.join(held))
     # 처음 값: 1997년 사진과 이음점이 많은 장부터, 그 뒤는 먼저 놓은 새 장에도 기대어
-    solved = {f: (cams0[k], Ms[k], fo[k]) for k, f in enumerate(fl['known'])}
+    solved = {names[k]: (cams0[k], Ms[k], fo[k]) for k in range(kn)}
     todo = list(new)
     fitted = all('reproj_px' in fs_[fr] for fr in new) and os.environ.get('AERIAL_MORE_RESTART') != '1'
     for fr in new:                                           # (한 번 맞춘 카메라가 있으면 그것에서)
@@ -701,7 +717,8 @@ def cmd_fit(flight):
     cap = int(os.environ.get('AERIAL_MORE_CAP', '600'))
     rng = np.random.default_rng(7)
     ties = [{f: p for f, p in t.items() if f in names} for t in ties]
-    ties = [t for t in ties if len(t) >= 2 and any(f.startswith('n') for f in t)]
+    solve = set(names[kn:])
+    ties = [t for t in ties if len(t) >= 2 and any(f in solve for f in t)]
     bad = np.zeros(len(ties), bool)
     if fitted:
         # (모든 새 사진에 앞서 번들 조정한 카메라가 있으면(처음 값만이 아니라): 모든 궤적을 그 카메라로 삼각측량해 재투영이 3 화소 넘는 관측이 있는 궤적을 먼저 뺀다.
@@ -723,7 +740,7 @@ def cmd_fit(flight):
     keep = []
     for i in order:
         t = {f: p for f, p in ties[i].items() if f in names}
-        if len(t) < 2 or not any(f.startswith('n') for f in t):
+        if len(t) < 2 or not any(f in solve for f in t):
             continue
         prs = [(a, b) for a in t for b in t if a < b]
         if all(used.get(q, 0) >= cap for q in prs):
@@ -769,7 +786,7 @@ def cmd_fit(flight):
         print('  %d회: 궤적 %d, 관측 %d, 잔차 중앙값 %.2f 화소' % (it + 1, n, len(ci), np.median(e)), flush=True)
     e = np.hypot(*(res(x) * 0.5).T)
     has97 = np.zeros(n, bool)
-    np.logical_or.at(has97, pi, ci < kn)
+    np.logical_or.at(has97, pi, ci < k97)
     cams = x.reshape(nn, 6)
     for j, fr in enumerate(new):
         m = ci == kn + j
