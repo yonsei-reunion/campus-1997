@@ -38,8 +38,9 @@ edges read on each roof's own plane from opposite flight lines) and the 1:5000 s
   north-west of the halls up to 102 m 해발 (the game had 87 m).
 
 GRID: the 2006 survey's surface (its contours with its spot heights, 2.5 m) + T at the game's 5 m nodes, for the
-woods (HILL) and the slope south-east of the halls (SE), where no photo sees the ground or the photos agree with it
-(the roads east of 인문관 within 0.5 m).  ZONES · STRIPS: the levels and profiles read from the photos.
+slope south-east of the halls (SE), where the photos agree with it (the roads east of 인문관 within 0.5 m); the woods
+(HILL) on HILL06, the later 2006 edition alone (GRID had mixed the two editions' contours there).  ZONES · STRIPS: the
+levels and profiles read from the photos.
 Nothing here draws from build_campus.py's `rng`.
 """
 import numpy as np
@@ -252,6 +253,54 @@ GRID = np.array([[int(v) for v in r.split()] for r in """
 # (centimetres above sea level; up to the working datum, to the decimetre it was first written in: tools/datum.py)
 GRID = np.round(GRID + datum.tilt(*np.meshgrid(GRID_X0 + GRID_D * np.arange(GRID.shape[1]),
                                                GRID_Y0 + GRID_D * np.arange(GRID.shape[0]))), 1)
+# HILL06: the wood north-west of the halls on the 2006 survey's later edition alone (2026-11-17; 고증 3.1 「북서쪽
+# 숲의 땅」): GRID there had been filled between the contours of both 2006 editions at once, which disagree by 10 - 15 m on
+# this hill (the earlier file's 80 - 85 m contours run where the later one's 95 - 100 m run), so that its nodes jumped
+# between them (3 - 15 m under the later edition west of x -150).  The later edition: its 5 m contours filled in
+# between (harmonic, 2.5 m), its two spots' residuals (+1.5, +2.2 m) as 30 m bumps; against the 2024 survey's three spots
+# in the box +0.3 .. +1.2 m (GRID -2.8 m at the summit), against tools/yeonhui97.py's surface (the same edition) -0.9 m
+# in the middle, and the 1997-07-28 canopy 11 - 14 m over it (24 m over the earlier edition west of x -140).
+# Decimetres 해발 every 5 m, x -210 .. -55, y 255 .. 430 (rows south -> north)
+HILL06_X0, HILL06_Y0 = -210.0, 255.0
+HILL06 = np.array([[int(v) for v in r.split()] for r in """
+804 818 833 847 856 845 828 805 797 782 763 743 714 694 679 665 650 600 599 598 597 596 594 593 591 589 588 586 585 584 583 583
+811 828 846 856 858 857 854 833 803 794 774 751 722 701 682 666 653 600 600 599 599 598 597 596 595 594 594 593 593 593 593 593
+818 835 853 859 863 864 861 853 832 802 790 762 734 700 686 664 625 600 600 601 601 600 600 600 599 599 599 600 600 601 605 601
+825 842 856 866 873 875 872 864 852 826 801 776 750 712 693 670 650 600 601 602 603 603 603 603 604 604 605 604 610 600 625 650
+832 851 863 877 887 891 890 881 863 851 821 800 750 726 700 679 650 600 602 604 605 605 607 605 611 600 625 650 640 646 645 646
+840 851 872 890 901 902 902 901 881 861 850 816 775 740 711 691 663 600 602 605 611 600 625 650 644 650 649 650 650 651 651 650
+850 863 884 901 904 906 906 903 900 881 862 850 800 750 728 700 700 625 625 650 665 681 700 677 666 662 660 659 658 657 656 656
+856 874 900 903 909 912 913 912 908 900 887 863 829 800 750 729 714 700 705 706 705 704 702 694 681 674 670 667 665 664 662 661
+860 882 900 908 915 920 923 923 919 912 900 888 850 825 800 750 738 728 723 719 716 712 706 700 691 683 678 675 672 670 668 666
+862 887 905 915 924 931 936 939 934 929 920 908 900 850 829 800 750 750 739 733 727 721 713 704 696 690 685 682 679 677 675 672
+862 887 907 921 934 944 950 951 950 950 940 930 915 901 876 851 801 781 750 746 740 732 722 709 700 694 690 687 685 684 681 678
+860 886 909 930 950 951 952 954 955 955 954 951 941 925 901 901 851 826 801 768 751 745 734 720 700 697 694 693 692 691 690 686
+850 882 907 934 951 953 955 958 961 963 963 961 956 952 935 919 902 877 851 801 785 763 750 737 716 699 698 697 697 698 700 700
+850 872 900 932 951 954 958 962 967 973 976 975 970 963 953 953 930 913 887 852 827 798 771 750 750 700 700 700 704 702 700 700
+842 861 900 920 950 954 959 966 974 985 993 992 985 978 970 961 955 941 916 903 877 852 801 786 766 750 736 728 720 708 699 693
+832 850 880 900 950 953 960 968 979 994 1004 1005 1001 994 986 977 967 956 944 922 903 887 862 826 792 776 761 750 741 720 700 688
+819 841 863 900 925 951 959 968 981 996 1005 1007 1008 1009 1004 994 983 970 958 940 921 903 886 860 851 801 790 774 759 750 719 700
+800 827 850 880 901 951 956 966 979 994 1007 1009 1011 1012 1013 1013 999 985 969 958 938 918 903 882 860 851 815 800 780 763 750 700
+800 811 837 863 901 931 952 962 975 990 1005 1011 1013 1015 1016 1016 1016 1000 982 965 951 930 912 902 877 857 836 812 800 777 750 708
+780 800 825 851 885 912 941 957 970 985 1002 1013 1015 1017 1018 1019 1018 1016 994 975 959 939 921 903 889 867 851 825 806 786 761 725
+765 791 810 838 868 896 923 954 964 980 997 1014 1017 1018 1020 1020 1020 1018 1005 984 965 947 928 911 902 875 851 833 812 792 764 730
+750 778 800 824 853 881 907 932 956 973 993 1015 1017 1018 1020 1020 1020 1019 1016 992 970 952 933 916 902 879 859 840 819 800 766 733
+750 765 791 810 839 867 893 915 945 967 986 1006 1015 1016 1018 1019 1019 1018 1016 997 974 957 936 918 902 881 861 850 823 800 767 733
+740 750 778 800 826 853 879 904 927 958 977 996 1007 1012 1015 1017 1018 1017 1015 1000 977 957 937 919 902 883 865 850 825 800 767 734
+731 750 765 791 814 840 864 890 916 957 968 984 997 1006 1012 1015 1015 1015 1013 999 975 956 936 918 902 883 866 850 825 800 767 735
+722 740 750 775 801 826 850 875 904 936 962 974 990 1003 1010 1012 1013 1012 1011 994 968 955 933 915 901 882 865 850 825 800 767 737
+713 729 744 750 788 814 838 852 892 919 945 963 982 1011 1010 1010 1010 1010 1009 981 955 945 927 910 901 879 861 850 824 800 767 737
+705 720 734 746 774 801 826 852 881 904 928 949 969 990 1009 1009 1008 1008 986 964 954 936 920 906 893 875 858 842 821 800 767 738
+700 711 728 741 750 800 815 840 864 903 915 936 955 972 986 994 992 982 966 954 940 926 912 901 887 870 855 840 820 800 767 738
+700 710 723 736 750 776 808 831 851 882 902 924 944 959 967 972 970 962 953 941 929 916 901 893 880 865 850 836 818 800 767 739
+700 709 720 732 744 750 800 821 843 863 901 910 927 952 953 957 953 952 939 928 918 907 901 886 874 861 850 833 816 800 768 750
+700 707 717 727 738 750 775 809 830 851 870 901 909 922 934 938 937 930 923 916 909 901 890 879 868 857 845 830 814 800 772 750
+697 700 713 722 732 742 750 800 815 833 850 865 888 901 908 912 912 910 908 904 900 892 881 871 862 853 842 826 809 794 772 750
+700 703 710 718 726 735 743 750 800 817 833 850 860 873 884 888 890 891 891 891 886 879 871 863 856 850 837 822 807 791 771 750
+700 701 706 713 720 729 737 746 750 800 817 833 844 850 858 866 870 873 874 873 870 866 860 855 850 844 830 817 805 790 770 750
+689 697 700 707 714 722 730 739 747 750 800 817 829 838 844 850 850 857 858 857 856 854 850 850 842 833 823 812 800 788 769 750
+""".strip().splitlines()], float) / 10.0
+HILL06 = HILL06 + datum.tilt(*np.meshgrid(HILL06_X0 + 5.0 * np.arange(HILL06.shape[1]), HILL06_Y0 + 5.0 * np.arange(HILL06.shape[0])))
 # ---------------------------------------------------------------------------------------------------------------------
 # where GRID is laid.  HILL: the woods north-west and west of the halls (the game 5 - 16 m under the survey), short of
 # 연희동's houses west of x -205 and north of y 400 there, of 제2인문관's building site east of x -62 and of the ground
@@ -272,6 +321,14 @@ def grid_z(x, y):
     from scipy.ndimage import map_coordinates
     x, y = np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float))
     z = map_coordinates(GRID, [(y.ravel() - GRID_Y0) / GRID_D, (x.ravel() - GRID_X0) / GRID_D], order=1, mode='nearest')
+    return z.reshape(x.shape) if x.ndim else float(z[0])
+
+
+def hill_z(x, y):
+    """HILL06, bilinear (on the working datum)"""
+    from scipy.ndimage import map_coordinates
+    x, y = np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float))
+    z = map_coordinates(HILL06, [(y.ravel() - HILL06_Y0) / 5.0, (x.ravel() - HILL06_X0) / 5.0], order=1, mode='nearest')
     return z.reshape(x.shape) if x.ndim else float(z[0])
 
 
@@ -366,8 +423,9 @@ def grade(Hn, X, Y, FIXED, halls, keep, fill, eased=None):
     took = np.zeros(X.shape, bool)
     # the survey's surface (not between the zones round the halls, where its contours run through the halls: those
     # nodes are eased between the zones below)
-    base = (shapely.contains_xy(HILL, X, Y) | shapely.contains_xy(SE, X, Y)) & ~in_block & ~stay & ~fixed
-    Hn[base] = grid_z(X, Y)[base]
+    in_hill = shapely.contains_xy(HILL, X, Y)
+    base = (in_hill | shapely.contains_xy(SE, X, Y)) & ~in_block & ~stay & ~fixed
+    Hn[base] = np.where(in_hill, hill_z(X, Y), grid_z(X, Y))[base]        # (the wood on HILL06, SE on GRID)
     took |= base
     info['survey'] = (int(base.sum()), round(float((Hn - H0)[base].min()), 1), round(float((Hn - H0)[base].max()), 1))
     # the road down from the yard (the terrace and the low block's foot beside it: the levels below, over it)
