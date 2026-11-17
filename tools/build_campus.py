@@ -12384,6 +12384,11 @@ if len(_fj):
     _fb = _fo[_fj.min():_fj.max() + 1, _fi.min():_fi.max() + 1]
     out['terrain']['far']['rng'] = dict(i0=int(_fi.min()), j0=int(_fj.min()), nx=int(_fb.shape[1]), ny=int(_fb.shape[0]),
                                         h=[float(np.format_float_positional(v_, unique=True)) for v_ in _fb.ravel()])
+# (three azaleas of the bank fall on the east fork's asphalt and kerb at the walk's mouth; the 1997 aerial photo, frame
+# 26/15, has the junction open there.  Dropped last of all, so that the others stay)
+_YJ_ON_ROAD = [(60.38, 127.19), (63.11, 126.8), (59.95, 124.68)]
+out['shrubs'] = [s_ for s_ in out['shrubs'] if not any(s_[0].startswith('azalea') and math.hypot(s_[1] - x_, s_[2] - y_) < 0.3
+                                            for x_, y_ in _YJ_ON_ROAD)]
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))

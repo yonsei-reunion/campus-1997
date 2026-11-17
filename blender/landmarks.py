@@ -6183,7 +6183,9 @@ def yongjae():
     mb.xf = local_frame(wx, wy, math.atan2(dx, -dy), z0)
     walk = next((p_['pts'] for p_ in CAMPUS.get('paths', []) if p_.get('w') == 2.6 and len(p_['pts']) == 3
                  and math.hypot(p_['pts'][1][0] - wx, p_['pts'][1][1] - wy) < 0.3), None)
-    t_end = math.hypot(walk[2][0] - wx, walk[2][1] - wy) - 0.6 if walk else 18.0
+    # (the flight stops at the east fork's kerb, 4.2 m short of where the walk's line meets the drive: the last treads lay
+    # on the asphalt of the junction, where the 1997 aerial photo, frame 26/15, has the walk run out into the open road)
+    t_end = math.hypot(walk[2][0] - wx, walk[2][1] - wy) - 0.6 - 4.2 if walk else 11.0
     step_walk(mb, 2.6, t_end, local_ground(mb), mat='stone_step', kerb_mat='concrete')
     out.append(mb)
     return out
