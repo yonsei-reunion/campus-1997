@@ -200,7 +200,7 @@ def round_canopy(mb, P, sc, zc, R):
     mb.face(top, 'plaster_white')
     mb.face(bot[::-1], 'plaster_white')
     for k in range(len(pl) - 1):
-        mb.quad(bot[k], bot[k + 1], top[k + 1], top[k], 'plaster_white')
+        mb.quad(bot[k], bot[k + 1], top[k + 1], top[k], R.get('fascia', 'plaster_white'))
     for sg in (-1, 1):
         x, y, _ = P(sc + sg * R['col'][0], 0, R['col'][1])
         mb.cylinder((x, y), 0.2, zc - 3.5, zc, 'plaster_white', seg=20)

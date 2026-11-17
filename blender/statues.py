@@ -2289,7 +2289,7 @@ def eagle_statue(site=None):
 
 
 # ============================================================================= 외솔 최현배 흉상
-# 외솔 최현배's bust (1994; 「외솔 선생 얼굴상(1994)」, 새국어생활 2011 겨울): from 1994 until 2001 on the island at the fork
+# 외솔 최현배's bust (unveiled 1994-10-31 with three more, 동아일보 1994-11-01; by 홍성도): from 1994 until 2001 on the island at the fork
 # to 노천극장 north of 용재관, then moved before 외솔관 (연세춘추 2007-03-25 「위당? 외솔? 그 정체를 밝혀보자!」; 한결
 # 김윤경's bust stood on the island in 2008 · 2010).  65 cm of bronze, 1.5 times life, in a 두루마기 with the crossed
 # collar, on a rectangular granite block (the same article).  The block after the bust there in the 2010 street view

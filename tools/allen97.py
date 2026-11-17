@@ -91,7 +91,7 @@ DOOR_UV = ((16.0, -0.6), (0.0, -1.0))          # (C's door in its south face, wh
 # round front's tip, the fascia and the two columns (either side of the door, out from the wall) after the roadview
 DOOR_B = ((B_UV[0][0], R_C[1]), (-1.0, 0.0))
 DOOR_B_OPTS = dict(floor=0, door_w=2.6, door_h=2.1, door_top=0.3, landing=4.6,
-                   round=dict(r=R_R, depth=round(B_UV[0][0] - (R_C[0] - R_R), 2), t=0.6, col=[1.9, 4.3]))
+                   round=dict(r=R_R, depth=round(B_UV[0][0] - (R_C[0] - R_R), 2), t=0.6, col=[1.9, 4.3], fascia='concrete_dark'))
 
 
 def hall_polys():
