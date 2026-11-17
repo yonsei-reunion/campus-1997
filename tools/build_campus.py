@@ -50,6 +50,8 @@ import audnorth97
 import chapel97
 import union97
 import gyoyuk97
+import annex97
+import bill97
 import cent97
 import datum
 
@@ -7181,6 +7183,29 @@ _gy_took, GYOYUK97_GRADE = gyoyuk97.grade(Hn, X, Y, FIXED, _gy_halls, harmonic_f
                                           (DAEWOO['stair']['top'], DAEWOO['stair']['foot'], SANG_STAIR['width'] / 2 + 1.6))
 FIXED[_gy_took] = True
 print('교육관 북쪽 마당 · 연희관 서쪽 옆길:', GYOYUK97_GRADE)
+# 상대별관 앞 찻길 · 대우관 테라스 찻길의 동쪽 어귀 (tools/annex97.py, reference/고증/3.6.6 「1997년 7월 원본 스캔으로 잰 찻길」,
+# 3.6.3 「테라스 찻길의 동쪽 어귀」; #189): the drive before the annex from the footway's east end to the terrace drive
+# on the 1997 scans' profiles (it ran 0.5 - 0.95 m over them north and south of the door, 0.4 - 0.8 m under them by the
+# footway's end), the strip between it and the wall to its height, and the terrace drive's last metres eased down to
+# it.  The door's apron (its two flights and the threshold) and the hall's floor stay.  Late, here: the planting has
+# read the ground as it was
+_ax_halls = [(Polygon(b_['footprint']).buffer(0), 0.6 if b_['id'] == 242897923 else 1.0)
+             for b_ in buildings if b_['id'] in (242897923, 242897922)]
+_ax_keep = shapely.contains_xy(Polygon(SANG_DIAMOND).buffer(3.0), X, Y) | (_court & (DH_U < 50.0))
+_ax_took, ANNEX97_GRADE = annex97.grade(Hn, X, Y, FIXED, (_af_o, _af_t, _af_f), (DH_U, DH_V), DAEWOO['terrace'], _ax_halls,
+                                        _ax_keep, harmonic_fill)
+FIXED[_ax_took] = True
+print('상대별관 앞 찻길:', ANNEX97_GRADE)
+# 빌링슬리관 동쪽 면 곁의 찻길과 둑 (tools/bill97.py, reference/고증/3.12 「동쪽 면 곁의 찻길과 둑」; #189): the 1997 scans
+# have 연희관 서쪽 옆길 3.6 m east of OSM's line beside the hall's east face, its west kerb 0.8 - 2 m east of that line and a
+# planted strip 4.5 - 5.5 m wide from it to the face (OSM's line ran the asphalt to the face's foot).  The drive between
+# its 1997 kerbs on gyoyuk97's profile, the 상뜰's bank east of it moved back to its east kerb; the asphalt west of the
+# west kerb taken up and the east half laid where the bank was (_yg · _ga below), what stood there moved off (below).
+# Late, here: the planting has read the ground as it was
+_bl_keep = shapely.contains_xy(Polygon(SANG_DIAMOND).buffer(3.0), X, Y)
+_bl_took, BILL97_GRADE = bill97.grade(Hn, X, Y, FIXED, [(bill97.HALL_E, 2.0)], _bl_keep, harmonic_fill)
+FIXED[_bl_took] = True
+print('빌링슬리관 동쪽 찻길:', BILL97_GRADE)
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
@@ -7805,7 +7830,10 @@ def dwb_deck(cells=None, poly=None, hfun=None):
 
 
 DAEWOO_BACK['deck'] = dwb_deck()
-DAEWOO['deck'] = dwb_deck(DW_FDECK_CELLS, DW_FDECK_POLY, lambda x_, y_: DAEWOO['terrace'])
+# (its east end, past the terrace wall's end, over the drive's mouth: down with the ground annex97 laid there, from the
+# terrace's level at u 52 to the ground's at u 56)
+DAEWOO['deck'] = dwb_deck(DW_FDECK_CELLS, DW_FDECK_POLY, lambda x_, y_: annex97.deck_h(
+    dh_uv((x_, y_))[0], DAEWOO['terrace'], annex97.mouth_z(x_, y_, (_af_o, _af_t, _af_f), DAEWOO['terrace'])))
 UW_STEPS['garden'] = []          # (the south-west flight is ST_FRONT's second: TERR)
 for _tk, _T in TERR.items():
     TERR_OUT[_tk]['deck'] = dwb_deck(_T['cells'], _T['poly'], lambda x_, y_, T_=_T: float(terrace_h(T_, x_, y_)))
@@ -9708,6 +9736,8 @@ def _ypaint(geoms, img, width=None):
                 SPLAT_OPS.append(('poly', _YN[id(img)], list(p_.exterior.coords), 255))
 
 
+print('빌링슬리관 동쪽 찻길: moved off the new asphalt (trees, shrubs, props, cars)',
+      [bill97.clear(l_) for l_ in (trees, shrubs, props, cars)])
 _yz, _yg, _yp = (Image.new('L', (SW, SH), 0) for _ in range(3))
 _YN = {id(_yz): '_yz', id(_yg): '_yg', id(_yp): '_yp'}
 MUAK_OLD = muak.takeup(paths_out)              # (무악학사 길: OSM's road north of the corner and its walk taken up)
@@ -9741,6 +9771,7 @@ _ypaint([YJ_WALK], _yp, width=2.6)
 _ypaint([LIB97_ZONE.difference(LIB97_TERRACE.buffer(-0.2))], _yg)   # (중앙도서관 앞: lawn; its walks and plaza below, _gp · _ga)
 _ypaint([UTS_LAWN], _yg)                     # (연합신학대학원: OSM's outline and its apron lawn again; the 1997 hall's: _gp)
 _ypaint([BILL_LAWN], _yg)                    # (빌링슬리관: OSM's box and apron lawn again; the landing: _gp)
+_ypaint([bill97.OLD_STRIP], _yg)             # (빌링슬리관 동쪽 면 곁: OSM's asphalt west of the 1997 kerb, the planted strip; bill97)
 KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
 _ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
 _ypaint([westisle97.lawn()], _yg)              # (서쪽 화단 섬: the 1997 island and the garden's north end; the road round them, _ga below)
@@ -9932,6 +9963,7 @@ assert not any(ENG1_HALL.buffer(0.3).contains(Point(c_[1], c_[2])) for c_ in car
 # 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'
+_ypaint([bill97.NEW_STRIP], _ga)             # (빌링슬리관 동쪽 면 곁: the 1997 drive's east half, where the 상뜰's bank was; bill97)
 _ypaint([p_ for n_, p_ in GONE_SITES if not n_ and not any(p_.equals(q_) for q_ in _gone_lawn)], _ga)
 _ypaint(HILL_GONE_SITES, _ga)                # (노천극장 동쪽 봉우리의 둥근 바닥)
 _li = LIB97['island']

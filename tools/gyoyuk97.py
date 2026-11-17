@@ -36,8 +36,7 @@ had kept a ridge between the two (56 - 59 m) and had 교육관's floor (53.84 m)
   behind 연희관 (BACK_END, path 72): the car park 55.4 - 55.6 m to its east end (both flights), the link 56.9 · 57.5 ·
   58.1 m a third, a half, two thirds of the way up (the 1996 frames).  The game had the road climbing 2.5 m in its
   last 10 m to the link (58.3 m); the road's first metres off the drive (BACK_START) 55.5 m where the game had 57.7
-- EAST_FOOT (the start of path 561, the drive past 대우관 별관's front): from the footway's end to 59.95 m 13 m on
-  (1996: 59.8 - 60.0 m), beyond it 3.6's ground, the ring eased between
+- (the drive past 대우관 별관's front, from the footway's end on: tools/annex97.py, after this)
 
 Nothing here draws from build_campus.py's `rng`; the trees, the paths and the cars stay where they are.
 """
@@ -71,8 +70,6 @@ BACK_END = LineString([(112.0, 384.9), (132.1, 379.3)])     # (path 72's last me
 BACK_END_PROF = [(0.0, 55.3), (12.0, 55.4), (16.0, 55.55), (20.9, 55.8)]
 BACK_START = LineString([(61.7, 398.7), (80.0, 393.7)])      # (and its first: 55.5 m off the drive, twelve pairs)
 BACK_START_PROF = [(0.0, 55.7), (8.0, 55.5), (19.0, 55.15)]
-EAST_FOOT = LineString([(137.7, 396.5), (141.4, 409.0)])     # (path 561's first metres)
-EAST_FOOT_PROF = [(0.0, 59.25), (13.0, 59.95)]
 LINK_HALF = 3.0
 YARD = Polygon([(20.5, 353.5), (27.0, 351.2), (44.6, 346.7), (51.0, 348.5), (51.0, 362.0), (46.5, 364.0), (46.5, 388.0),
                 (40.0, 386.5), (34.0, 385.5), (34.0, 362.5), (21.0, 362.5)])
@@ -166,7 +163,7 @@ def grade(Hn, X, Y, FIXED, halls, fill, sample, keep, flight):
     took = yd | dr | fw
     links = {}
     for nm, ls, prof in (('east_link', EAST_LINK, EAST_LINK_PROF), ('back_end', BACK_END, BACK_END_PROF),
-                         ('east_foot', EAST_FOOT, EAST_FOOT_PROF), ('back_start', BACK_START, BACK_START_PROF)):
+                         ('back_start', BACK_START, BACK_START_PROF)):
         sl = shapely.line_locate_point(ls, P)
         m = (shapely.distance(ls, P) <= LINK_HALF) & (sl > 0.0) & (sl < ls.length) & ~stay & ~took
         if nm == 'back_end':
@@ -192,8 +189,7 @@ def grade(Hn, X, Y, FIXED, halls, fill, sample, keep, flight):
     old_free = (shapely.contains_xy(unary_union([YARD, substring(DRIVE, 0.0, S_FOOT).buffer(DRIVE_HALF)]).buffer(RING), X, Y)
                 & ~FIXED) | shapely.contains_xy(LOOSE, X, Y)
     ways = unary_union([substring(DRIVE, 34.0, S_JOIN).buffer(DRIVE_HALF + WAYS_RING, cap_style='flat'),
-                        FOOTWAY.buffer(FOOT_HALF + WAYS_RING - 2.0), EAST_LINK.buffer(LINK_HALF + 5.0),
-                        EAST_FOOT.buffer(LINK_HALF + 5.0, cap_style='flat')])
+                        FOOTWAY.buffer(FOOT_HALF + WAYS_RING - 2.0), EAST_LINK.buffer(LINK_HALF + 5.0)])
     new_free = shapely.contains_xy(ways, X, Y) & ~shapely.contains_xy(CARS_KEEP, X, Y)
     free = (old_free | new_free) & ~took & ~near & ~stay
     if free.any():
