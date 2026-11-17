@@ -7532,6 +7532,11 @@ for _e97_id, _e97_uv, _e97_door in ((eng97.NB_ID, eng97.NORTH_1997, eng97.NB_DOO
     SITES_NEW_1997.add(_e97_id)
     ENTRY_AT[_e97_id] = (tuple(round(float(c_), 2) for c_ in eng97.xy(*_e97_door)), {})
 BASE_1997[eng97.NB_ID] = _e97_nb['base']
+# 제2 · 제3공학관 사이 (tools/eng97.py plaza_grade, reference/고증/3.8 「제2 · 제3공학관 사이」; eng), late, before grade (the
+# deck behind the wall reads grade's copy of the ground): the paved deck between the two halls on the 1997 scans' heights,
+# 1 - 2.3 m over the game's lawn (the school's photo of 1994 - 1995, 자료 R eng2.jpg, has it paved, a glass dome on it)
+ENG97P = eng97.plaza_grade(Hn, X, Y, FIXED, _e97_halls, harmonic_fill)
+print('제2 · 제3공학관 사이: %(nodes)d nodes on the plaza\'s heights (%(most)+.2f .. %(up)+.2f m), smoothed %(ring)d' % ENG97P)
 ENG97 = eng97.grade(Hn, X, Y, FIXED, _e97_halls, harmonic_fill, TENNIS['o'], TENNIS['rot'], GW_PIT, GW_SLAB)
 print('제1공학관 안뜰 · 남쪽 · 공학원 공사장: %(nodes)d nodes moved (most %(most).1f m), %(n_pulled)d behind the wall, smoothed '
       '%(ring)d; the pit %(pit).2f m, the slab %(slab).2f m' % ENG97)
@@ -9940,6 +9945,7 @@ ENG3_CLEAR, ENG3_BARE, ENG3_PAVED = eng97.s3_paint()
 ENG3_LAWN, ENG3_WALK = eng97.garden()
 _ypaint([ENG3_CLEAR, ENG3_LAWN], _yg)       # (제3공학관 남쪽, 남쪽 동 남동쪽 정원: OSM's later lawn, walks and roads out; eng97)
 _ypaint([eng97.strip_lawn()], _yg)           # (안뜰 서쪽 옹벽 뒤 화단 띠와 활꼴 어귀: lawn, OSM's later walk to the bay out; eng97)
+_ypaint([eng97.plaza_poly(), eng97.upper_paved()], _yg)   # (제2 · 제3공학관 사이와 그 동쪽 윗땅: OSM's later lawn and walks out; _gp · _ga below; eng97)
 # (the aprons of the halls left out or moved since the planting was laid, GONE_LAWN · SITES_NEW_1997: lawn where no hall of
 # 1997 stands; 과학관's court paved to the bank's foot and under its flight)
 _old_aprons = unary_union([Polygon(g_['footprint']) for g_ in RND_GHOSTS if g_['id'] in GONE_LAWN] +
@@ -10142,6 +10148,10 @@ out['eng1_yard'] = dict(o=list(eng97.O), ang=round(eng97.ANG, 6), hall=list(eng9
                         top=eng97.HALL_TOP, roof=eng97.HALL_ROOF, monitor=list(eng97.MONITOR_UV), porch=list(eng97.PORCH_UV),
                         walls=eng97.walls(ground_h, _e97_up), deck=dwb_deck(_e97_cells, _e97_area, _e97_up),
                         bay=eng97.bay_top(_e97_up), planter=eng97.planter(_e97_up))
+# (제2 · 제3공학관 사이: the dome, the pyramid's planter, the flight down east, the bridge to the north block and the
+# windows in the wall over the lot, blender/landmarks.py eng_hall; eng97.plaza_parts)
+out['eng2_plaza'] = eng97.plaza_parts()
+out['colliders'] += eng97.plaza_colliders()
 print('제1공학관 안뜰: the hall\'s floor %.2f m, the deck behind the wall %.0f m2 (%d triangles), the wall %.0f m' % (
     buildings[-1]['base'], _e97_area.area, len(out['eng1_yard']['deck']['f']),
     sum(LineString([q_[:2] for q_ in r_[1]]).length for r_ in out['eng1_yard']['walls'])))
@@ -10772,10 +10782,12 @@ _ypaint([west_ground.YARD], _gd)               # (독수리상 서쪽 마당: ba
 _ypaint([ENG3_BARE], _gd)                      # (제3공학관 남쪽: bare earth all round the hall, the track, the bench)
 _ypaint([eng97.north_path().buffer(0.7)], _gd)  # (공학관 사이 북쪽 끝: the footpath down the bank to the yard; eng97)
 _ypaint([ENG3_PAVED], _gp)                     # (... its tile deck and the landing before its door)
+_ypaint([eng97.plaza_poly()], _gp)             # (제2 · 제3공학관 사이: the paved deck; eng97)
 _ypaint([ENG3_WALK], _gp, width=eng97.GARDEN_WALK_W)   # (the walk across the garden south-east of the south wing)
 _ypaint([west_ground.road_south()], _ga)       # (... and the paved margin south of its road, where cars stood along it)
 _ypaint([west_ground.site_band(TENNIS['o'], TENNIS['rot'])], _gd)     # (공학원 공사장 서쪽 띠: bare, at the site's ground)
 _ypaint(eng97.north_paved(), _ga)               # (제2공학관 북쪽 길, 공학관 사이 윗단과 골목: tools/eng97.py)
+_ypaint([eng97.upper_paved()], _ga)              # (주차장 위 벽 뒤 윗땅: the grey deck; eng97)
 MUAK_WOODS = muak.woods_strip(MUAK, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))
 MUAK_RIDGE = muak.woods_ridge(MUAK_WOODS, unary_union([Polygon(b_['footprint']) for b_ in buildings]).buffer(3.0))   # (the ridge west of it)
 # (the same on the line as it was before the 1996 winter scans moved it: what the woods' trees are decided on, below)
@@ -11596,6 +11608,9 @@ print('제3공학관 남쪽 · 남쪽 동 남동쪽 정원: trees moved to the g
 _e97_nn = eng97.move_off_north(trees, shrubs, props)      # (제2공학관 북쪽 길 · 공학관 사이: off the 1997 asphalt)
 print('제2공학관 북쪽 길 · 공학관 사이: trees moved aside %d, shrubs taken out %d, props %d' % (len(_e97_nn[0]), _e97_nn[1], _e97_nn[2]),
       _e97_nn[0])
+_e97_pl = eng97.move_off_plaza(trees, shrubs, props)      # (제2 · 제3공학관 사이: off the 1997 paving and the podium)
+_e97_pw = eng97.plaza_walks(out['paths'])
+print('제2 · 제3공학관 사이: moved aside in their places trees %d, shrubs %d, props %d; walks out %d, in %d' % (*_e97_pl, *_e97_pw))
 _e97_w = LineString([eng97.xy(u_, v_) for u_, v_ in ((-39.3, 64.0), (-39.3, -66.0))]).buffer(1.6)
 _e97_p0 = len(out['paths'])
 out['paths'][:] = [p_ for p_ in out['paths'] if not (p_['kind'] in ('footway', 'path') and len(p_['pts']) > 1
@@ -11828,6 +11843,20 @@ buildings.append(dict(id=990120, name='', style='white', levels=1, fh=round(_g7w
                       top_ground=datum.up(*GUEST97['c'], GUEST97['floor']),
                       hip=dict(mat='roof_cement', pitch=round(_g7p, 4), over=GUEST97['over'], gable=True),
                       footprint=[[round(float(x_), 2), round(float(y_), 2)] for x_, y_ in _g7fp]))
+# 제2공학관 남쪽의 낮은 동 (tools/eng97.py PODIUM_UV, reference/고증/3.8 「제2 · 제3공학관 사이」; eng): the podium along its
+# south face (the 1997 scans' roof 41.4 - 42.0 m, the school's photo), on the plaza's east level, either side of the
+# hall's own bay; at the very end, so that no hall after it changes its looks
+_e2t = Polygon(next(b_['footprint'] for b_ in buildings if b_['id'] == 256932940)).buffer(0)
+_e2p = eng97.podium_poly().difference(_e2t.buffer(0.05))
+for k_, g_ in enumerate(sorted([g_ for g_ in getattr(_e2p, 'geoms', [_e2p]) if g_.area > 20.0], key=lambda g_: -g_.area)):
+    g_ = shapely.geometry.polygon.orient(g_.simplify(0.05), 1.0)
+    _e2h = [float(ground_h(x_, y_)) for x_, y_ in g_.exterior.coords]
+    buildings.append(dict(id=eng97.PODIUM_ID + k_, name='', style='modern', levels=2, fh=3.2,
+                          height=round(eng97.PODIUM_TOP - eng97.PODIUM_BASE, 2),
+                          base=round(float(datum.up(g_.centroid.x, g_.centroid.y, eng97.PODIUM_BASE)), 2),
+                          top_ground=round(max(_e2h), 2),
+                          footprint=[[round(x_, 2), round(y_, 2)] for x_, y_ in list(g_.exterior.coords)[:-1]]))
+    print('제2공학관 남쪽의 낮은 동 %d: %.0f m2' % (k_, g_.area))
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
 # edges in their places in the list

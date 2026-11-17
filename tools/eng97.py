@@ -227,6 +227,32 @@ S3_FACE_V, S3_FLOOR, S3_DOOR_U = -41.3, 32.85, -86.5
 # 공학원's north hoarding (the site's ring), the bench's south edge: (u, v)
 HOARD = [(-99.5, -87.6), (-47.0, -85.4)]
 
+# 제2 · 제3공학관 사이 (2026-11-17, reference/고증/3.8 「제2 · 제3공학관 사이」): the 1997 scans 26/16 · 26/15 resampled on the
+# plaza's plane (35.5 m) and on a 2.5 m grid of heights (window 1.25 m, correlation over 0.7), and the school's own photo
+# of 1994 - 1995 from the south wing (자료 R, reference/학교홈페이지/eng2.jpg): no lawn but a paved deck over the
+# basement.  Its west part laid in rings round a glass dome, level at 36.0 m (40 points within 0.1 m); its east part in
+# squares a step down, 35.1 m (34.5 m at its south end by 제3공학관), round a raised planter with a glass pyramid in it;
+# a flight 7 m wide down east to the upper ground behind the wall (32.2 m) between stepped planters (OSM's steps there);
+# along 제2공학관's south face a podium, its roof 41.4 - 42.0 m.  (u0, u1, v0, v1) in the wings' frame, heights 해발
+PLAZA_RING_UV, PLAZA_RING_Z = (-105.3, -68.5, -13.0, 11.7), 36.0
+PLAZA_SQ_UV = (-68.5, -53.5, -22.0, 11.7)
+PLAZA_SQ_Z = [(-22.0, 34.5), (-17.0, 34.5), (-13.0, 35.1), (11.7, 35.1)]      # (along v)
+PLAZA_DOME = (-85.15, 0.3, 4.4, 40.3)                    # its middle u, v, its radius, its top (해발)
+PLAZA_PYRAMID = (-70.3, -57.3, -3.3, 4.0, -68.5, -60.3, -1.8, 2.5, 36.3)   # the planter, the glass, the planter's rim (해발)
+PLAZA_FLIGHT = (-53.5, -47.0, -3.0, 4.0)                 # its head u, its foot u, v0, v1
+# the upper ground between the plaza's east edge and the planted strip behind the wall, south of the gap's asphalt
+# (north_paved): the scans' pale surface (26/16 on its plane, as bright as the plaza's squares, no tree) and the school's
+# photo's grey deck; the game had a lawn with trees on it
+UPPER_PAVE_UV = (-53.5, -42.3, -22.0, 38.85)
+PODIUM_ID, PODIUM_UV, PODIUM_TOP, PODIUM_BASE = 990071, (-136.5, -56.0, 12.7, 22.5), 41.8, 35.1
+# the bridge from 제2공학관's east end over the lane to the north block's west wing (26/16 · 27/17 · 26/15 and the
+# school's photo): u0 (제2공학관's east face as the game has it), u1 (the north block's west face), v0, v1, its floor and
+# its roof (해발; three pairs of the scans on its roof 43.6 - 44.2 m); one storey, a band of windows
+BRIDGE = (-54.7, -28.6, 29.3, 32.5, 39.9, 43.9)
+# the wall over the lot: a storey's face under the upper ground, white tile, a row of windows and a glazed door under
+# the bay (the school's photo); along v, its bays' width
+WALL_WINDOWS_V, WALL_BAY = (-18.0, 27.5), 3.6
+
 
 def xy(u, v):
     return O[0] + u * _C - v * _S, O[1] + u * _S + v * _C
@@ -722,3 +748,147 @@ def s3_hall(b):
     if b.get('entry'):
         b['entry'].update(p=[round(c, 2) for c in xy(S3_DOOR_U, -46.3)], n=[round(_S, 4), round(-_C, 4)])
     return base, fh
+
+
+# ----------------------------------------------------------------------------- 제2 · 제3공학관 사이 (the seventh round)
+def plaza_z(U, V):
+    """the 1997 plaza between 제2 · 제3공학관 (해발): the ring-paved west part, the square-paved east part a step down"""
+    sq = np.interp(V, *zip(*PLAZA_SQ_Z))
+    return np.where(np.asarray(U) <= PLAZA_RING_UV[1], PLAZA_RING_Z, sq)
+
+
+def plaza_poly():
+    """the plaza's outline in game coordinates (both parts)"""
+    a, b = PLAZA_RING_UV, PLAZA_SQ_UV
+    return poly([(a[0], a[2]), (a[1], a[2]), (b[0], b[2]), (b[1], b[2]), (b[1], b[3]), (a[0], a[3])])
+
+
+def podium_poly():
+    u0, u1, v0, v1 = PODIUM_UV
+    return poly([(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
+
+
+def upper_paved():
+    """the upper ground behind the wall south of the gap's asphalt, paved (UPPER_PAVE_UV)"""
+    u0, u1, v0, v1 = UPPER_PAVE_UV
+    return poly([(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
+
+
+def plaza_grade(Hn, X, Y, FIXED, halls, fill):
+    """the plaza on the scans' heights (plaza_z), and under the podium the east part's level; the ground round it (two
+    cells) smoothed (fill) into what stays: not the halls' feet, not what is fixed, not the strip behind the wall
+    (north_grade's).  Before grade, so that the deck's upper ground (grade's H0) has it.  halls: [(id, outline)]"""
+    H0 = Hn.copy()
+    U, V = uv(X, Y)
+    T = datum.tilt(X, Y)
+    hp = unary_union([p.buffer(1.0) for _, p in halls])
+    feet = shapely.contains_xy(hp, X, Y)
+    zone = shapely.contains_xy(plaza_poly(), X, Y) & ~FIXED & ~feet
+    Hn[zone] = (plaza_z(U, V) + T)[zone]
+    pod = shapely.contains_xy(podium_poly(), X, Y) & ~FIXED & ~zone
+    Hn[pod] = (PODIUM_BASE + T)[pod]
+    zone |= pod
+    strip = (U > -48.5) & (V >= -22.0) & (V < 21.0)
+    ring = binary_dilation(zone, iterations=2) & ~zone & ~FIXED & ~feet & ~strip
+    if ring.any():
+        fill(ring)
+    FIXED[zone | ring] = True
+    d = Hn - H0
+    return dict(nodes=int(zone.sum()), ring=int(ring.sum()), up=round(float(d.max()), 2), most=round(float(d.min()), 2))
+
+
+def plaza_walks(paths):
+    """OSM's later walks across the plaza out (cut where they leave it); the flight down east to the upper ground in,
+    on the scans' line (OSM's steps there go).  Returns (out, in)"""
+    clear = plaza_poly().buffer(0.5)
+    u0, u1, v0, v1 = PLAZA_FLIGHT
+    fl = LineString([xy(u0 - 1.0, (v0 + v1) / 2), xy(u1, (v0 + v1) / 2)])
+    n0 = len(paths)
+    keep = []
+    for p in paths:
+        if p['kind'] in ('footway', 'path', 'steps', 'pedestrian') and len(p['pts']) > 1:
+            ls = LineString([q[:2] for q in p['pts']])
+            if p['kind'] == 'steps' and ls.distance(fl) < 4.0:
+                continue
+            if clear.intersects(ls):
+                parts = ls.difference(clear)
+                for g in getattr(parts, 'geoms', [parts]):
+                    if g.length > 2.0:
+                        keep.append({**p, 'pts': [[round(x, 2), round(y, 2)] for x, y in g.coords]})
+                continue
+        keep.append(p)
+    paths[:] = keep
+    paths.append(dict(kind='steps', w=round(v1 - v0, 1), pts=[[round(c, 2) for c in q] for q in fl.coords]))
+    return n0 + 1 - len(paths), 1
+
+
+def move_off_plaza(trees, shrubs, props):
+    """what the planting put on the plaza, under the podium and on the paved upper ground behind the wall (paving in
+    the scans, no tree): trees, shrubs and props
+    step aside to the plaza's nearest edge outside it, each in its place in its list.  Returns what moved"""
+    zone = plaza_poly().union(podium_poly()).union(upper_paved())
+    edge = zone.buffer(2.0).boundary
+    moved = []
+    for lst, r in ((trees, 1.0), (shrubs, 0.5), (props, 0.5)):
+        n = 0
+        for t in lst:
+            if zone.buffer(r).contains(Point(t[1], t[2])):
+                q = nearest_points(edge, Point(t[1], t[2]))[0]
+                t[1], t[2] = round(q.x, 2), round(q.y, 2)
+                n += 1
+        moved.append(n)
+    return moved
+
+
+def plaza_colliders():
+    """the dome's curb and the pyramid's planter keep the walker off (game coordinates)"""
+    cu, cv, r, _ = PLAZA_DOME
+    dome = Point(*xy(cu, cv)).buffer(r + 0.3, 8)
+    p = PLAZA_PYRAMID
+    pyr = poly([(p[0], p[2]), (p[1], p[2]), (p[1], p[3]), (p[0], p[3])])
+    return [[[round(x, 2), round(y, 2)] for x, y in g.exterior.coords[:-1]] for g in (dome, pyr)]
+
+
+def plaza_parts():
+    """what blender/landmarks.py eng_hall draws on and by the plaza (z working datum): the dome, the pyramid's planter,
+    the flight down east (its treads), the bridge to the north block, the windows in the wall over the lot"""
+    def T(u, v, z):
+        return round(float(datum.up(*xy(u, v), z)), 3)
+    cu, cv, r, top = PLAZA_DOME
+    p = PLAZA_PYRAMID
+    pc = ((p[0] + p[1]) / 2, (p[2] + p[3]) / 2)
+    out = dict(dome=[round(float(c), 2) for c in xy(cu, cv)] + [r, T(cu, cv, PLAZA_RING_Z), T(cu, cv, top)],
+               pyramid=dict(rim=outline([(p[0], p[2]), (p[1], p[2]), (p[1], p[3]), (p[0], p[3])]),
+                            glass=outline([(p[4], p[6]), (p[5], p[6]), (p[5], p[7]), (p[4], p[7])]),
+                            z=T(*pc, float(plaza_z(p[1], 0.0))), top=T(*pc, p[8])))
+    # the flight: risers from the plaza's level at its head down to the upper ground's at its foot
+    u0, u1, v0, v1 = PLAZA_FLIGHT
+    vm = (v0 + v1) / 2
+    zh, zf = float(plaza_z(u0, vm)), float(north_z(np.array(u1 + 1.0), np.array(vm)))
+    n = max(2, int(round((zh - zf) / 0.16)))
+    run = (u1 - u0) / n
+    treads = []
+    for k in range(n):
+        ua, ub = u0 + k * run, u0 + (k + 1) * run
+        treads.append(dict(q=outline([(ua, v0), (ub, v0), (ub, v1), (ua, v1)]),
+                           z=T((ua + ub) / 2, vm, zh - (k + 1) * (zh - zf) / n)))
+    out['flight'] = dict(treads=treads)
+    b = BRIDGE
+    bc = ((b[0] + b[1]) / 2, (b[2] + b[3]) / 2)
+    out['bridge'] = dict(q=outline([(b[0], b[2]), (b[1], b[2]), (b[1], b[3]), (b[0], b[3])]), z0=T(*bc, b[4]), z1=T(*bc, b[5]))
+    # the windows in the wall over the lot (on its face on the lot's side): bays of WALL_BAY either side of the bay, none
+    # where its curve meets the straight wall; in the bay's front, at its apex, its glazed door
+    w0, w1 = WALL_WINDOWS_V
+    wins = [dict(a=outline([(-38.88 + BAY[2] + 0.2, BAY[0] - 1.0)])[0], b=outline([(-38.88 + BAY[2] + 0.2, BAY[0] + 1.0)])[0],
+                 door=True)]
+    for v_edge, sg in ((BAY[0] - BAY[1] - 0.5, -1), (BAY[0] + BAY[1] + 0.5, 1)):
+        k = 0
+        while True:
+            va, vb = sorted((v_edge + sg * (k * WALL_BAY + 0.45), v_edge + sg * ((k + 1) * WALL_BAY - 0.45)))
+            if va < w0 or vb > w1:
+                break
+            wins.append(dict(a=outline([(-38.66, va)])[0], b=outline([(-38.66, vb)])[0], door=False))
+            k += 1
+    out['wall_windows'] = wins
+    out['tile_runs'] = [0, 1, 2]                 # (WALL_RUNS: the lot's three runs, the bay between)
+    return out

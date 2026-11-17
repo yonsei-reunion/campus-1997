@@ -3763,18 +3763,25 @@ def engineering():
     for i in (0, 2):
         generic.wall_edge(mbw, world[i], world[(i + 1) % 4], z0 + 0.4, z0 + H + 0.9, nf, fh, st, rnd_)
     generic.parapet_and_roof(mbw, world, z0 + H, st, rnd_)
-    # the hall is the 1997 one (tools/build_campus.py LATE_FOOTPRINT_1997: 64 m, before the 2014 - 2015 wings).  As
-    # photo A shows it through its camera (reference/고증.md 3.8): a white rooftop storey over the south 25 m (the
-    # sixth floor was only built out in 2007), 2.2 m over the parapet, with two windows on the 백양로 side 11 and 19 m
-    # from the south end; and a flat canopy on columns along the 백양로 front from 25 to 45 m (its north front corner
-    # in the photo stops short of the hall's north end), the entrance doors at its south end
-    mb.box((-L / 2 + 12.45, 0.3, H + 1.55), (24.9, W - 0.6, 3.1), 'plaster_white', mats={'top': 'roof_flat'})
-    for s_ in (11.0, 19.3):
-        mb.box((-L / 2 + s_, -W / 2 + 0.57, H + 1.15), (2.0, 0.08, 1.1), 'glass')
-    x0c, x1c = -L / 2 + 25.1, -L / 2 + 45.1
-    mb.box(((x0c + x1c) / 2, -W / 2 - 2.2, 4.0), (x1c - x0c, 4.4, 0.45), 'concrete', mats={'top': 'roof_flat'})
-    for k in range(6):
-        mb.cylinder((x0c + 0.6 + k * (x1c - x0c - 1.2) / 5, -W / 2 - 4.0), 0.22, 0.4, 3.8, 'concrete', seg=8, cap_top=False)
+    # the hall is the 1997 one (tools/build_campus.py LATE_FOOTPRINT_1997: 64 m, before the 2014 - 2015 wings).  Its
+    # rooftop storey (the sixth floor was only built out in 2007) as the 1997 scans have it on the plane of its top
+    # (26/16 · 27/17, reference/고증/3.8 「옥탑층」): a white box along the roof's west edge, flush with the west face,
+    # 6.5 m wide (its east face 8.6 m in from the 백양로 front) and 27 m long, from 22.4 m north of the south end, 4.0 m
+    # over the roof's deck, two doors in its east face.  (Photo A, through its camera, had it over the south 25 m and the
+    # whole width: a box set back that far, seen along the front from the south, falls there on the front's plane; the
+    # 1996 photo from above 서울연구원 51989 has it as the scans do.)  And a flat canopy on columns over the forecourt on
+    # the 백양로 front, as the 1997 scans have it on its own plane (32.1 - 32.4 m, 27/17 · 26/16 · 27/16): from 25.3 to
+    # 37.7 m from the south end, 7.5 m out from the face (photo A, of spring 1999, had 25 - 45 m and 4.4 m on the face's
+    # plane); the entrance doors at its south end
+    ok0, ok1, okw, okh = 22.4, 49.4, 6.5, 4.0
+    mb.box((-L / 2 + (ok0 + ok1) / 2, W / 2 - okw / 2, H + okh / 2), (ok1 - ok0, okw, okh), 'plaster_white',
+           mats={'top': 'roof_flat'})
+    for s_ in (32.9, 44.9):
+        mb.box((-L / 2 + s_, W / 2 - okw - 0.03, H + 1.05), (1.0, 0.08, 2.1), 'frame_dark')
+    x0c, x1c, cd = -L / 2 + 25.3, -L / 2 + 37.7, 7.5
+    mb.box(((x0c + x1c) / 2, -W / 2 - cd / 2, 4.3), (x1c - x0c, cd, 0.45), 'concrete', mats={'top': 'roof_flat'})
+    for k in range(4):
+        mb.cylinder((x0c + 0.6 + k * (x1c - x0c - 1.2) / 3, -W / 2 - cd + 0.4), 0.25, 0.4, 4.1, 'concrete', seg=8, cap_top=False)
     xe = x0c + 3.4
     # concrete flight with handrails under the canopy, glass double doors behind a landing
     stair_flight(mb, xe, -W / 2, 6.4, 0.4, n=4, mat='stone_granite', landing=1.8, tread=0.4, flare=0.6, rail=True, gfn=local_ground(mb))
@@ -7163,10 +7170,14 @@ def eng_hall():
     mb.box(((p0 + p1) / 2, q1 + 0.02, 1.25), (1.8, 0.06, 2.2), 'glass')
     mb.box(((p0 + p1) / 2, q1 + 0.03, 2.4), (2.0, 0.1, 0.12), 'frame_dark')
     out = [mb]
-    # the retaining wall and the deck behind it (world coordinates)
+    # the retaining wall and the deck behind it (world coordinates).  Over the lot (its first three runs) the wall is a
+    # storey's face under the upper ground in the school's photo of 1994 - 1995 (자료 R eng2.jpg, reference/고증/3.8
+    # 「서쪽 옹벽의 세부」): white square tiles, a solid parapet under a pale coping, a row of windows (eng2_plaza below)
+    P2 = CAMPUS.get('eng2_plaza') or {}
+    tiled = set(P2.get('tile_runs', []))
     wl = MeshBuilder('lm_eng_wall')
-    for top_up, pts in G.get('walls', []):
-        _wall_run(wl, pts, 0.4, top_up, 'concrete', 'stone_trim', cap_t=0.12)
+    for k, (top_up, pts) in enumerate(G.get('walls', [])):
+        _wall_run(wl, pts, 0.4, top_up, 'tile_white' if k in tiled else 'concrete', 'stone_trim', cap_t=0.12)
     dk = G.get('deck')
     if dk:
         for f in dk['f']:
@@ -7213,7 +7224,94 @@ def eng_hall():
         wl.face(q, 'pavers')
         WALK_FACES.append(q)
     out.append(wl)
+    if P2:
+        out.append(_eng2_plaza(P2))
     return out
+
+
+def _ccw(q):
+    """a plan outline counter-clockwise"""
+    a = sum(q[i][0] * q[(i + 1) % len(q)][1] - q[(i + 1) % len(q)][0] * q[i][1] for i in range(len(q)))
+    return q if a > 0 else q[::-1]
+
+
+def _eng2_plaza(P):
+    """제2 · 제3공학관 사이 in 1997 (tools/eng97.py plaza_parts, reference/고증/3.8 「제2 · 제3공학관 사이」): the 1997 scans
+    and the school's photo of 1994 - 1995 (자료 R eng2.jpg) on the paved deck: a glass dome on a low white curb in the
+    middle of its ring-paved west part, a white planter with a glass pyramid in it on its east part, the flight down east
+    to the upper ground behind the wall; the one-storey bridge from 제2공학관's east end over the lane to the north block;
+    the windows in the wall over the lot.  World coordinates, heights on the working datum"""
+    mb = MeshBuilder('lm_eng2_plaza')
+    x, y, r, z0, zt = P['dome']
+    curb = 0.45
+    mb.cylinder((x, y), r + 0.3, z0 - 0.3, z0 + curb, 'tile_white', seg=24)
+    rings, seg = 5, 20                                   # (a faceted glass dome, its frame the facets' edges)
+    hz = zt - z0 - curb
+    pts = [[(x + r * math.cos(math.pi / 2 * i / rings) * math.cos(2 * math.pi * k / seg),
+             y + r * math.cos(math.pi / 2 * i / rings) * math.sin(2 * math.pi * k / seg),
+             z0 + curb + hz * math.sin(math.pi / 2 * i / rings)) for k in range(seg)] for i in range(rings)]
+    top = (x, y, zt)
+    for i in range(rings):
+        for k in range(seg):
+            j = (k + 1) % seg
+            if i + 1 < rings:
+                mb.quad(pts[i][k], pts[i][j], pts[i + 1][j], pts[i + 1][k], 'glass_green')
+            else:
+                mb.face([pts[i][k], pts[i][j], top], 'glass_green')
+    py = P['pyramid']
+    rim, gl, zp, zr = _ccw([tuple(q) for q in py['rim']]), _ccw([tuple(q) for q in py['glass']]), py['z'], py['top']
+    for a, b in zip(rim, rim[1:] + rim[:1]):            # (the planter's white sides, its top a bed of shrubs)
+        mb.quad((a[0], a[1], zp - 0.3), (b[0], b[1], zp - 0.3), (b[0], b[1], zr), (a[0], a[1], zr), 'tile_white')
+    mb.face([(q[0], q[1], zr - 0.05) for q in rim], 'grass')
+    cx, cy = sum(q[0] for q in gl) / 4, sum(q[1] for q in gl) / 4
+    for a, b in zip(gl, gl[1:] + gl[:1]):
+        mb.quad((a[0], a[1], zr - 0.05), (b[0], b[1], zr - 0.05), (b[0], b[1], zr + 0.25), (a[0], a[1], zr + 0.25), 'frame_white')
+        mb.face([(a[0], a[1], zr + 0.25), (b[0], b[1], zr + 0.25), (cx, cy, zr + 2.4)], 'glass_green')
+    # the flight: a granite block to each tread; walked on as one ramp through the nosings (flat faces per tread keep
+    # the feet under the next riser, whose back the wall rays hit), from the plaza's edge to the upper ground
+    trs = P['flight']['treads']
+    zfoot = trs[-1]['z'] - 0.6
+    for t in trs:
+        q = _ccw([tuple(c) for c in t['q']])
+        mb.prism(q, zfoot, t['z'], 'stone_granite', mat_top='stone_granite')
+    rise = trs[0]['z'] - trs[1]['z']
+    h0, h1, f1, f0 = trs[0]['q'][0], trs[0]['q'][3], trs[-1]['q'][2], trs[-1]['q'][1]
+    zh, zf = trs[0]['z'] + rise + 0.02, trs[-1]['z'] + 0.02
+    ramp = [(h0[0], h0[1], zh), (f0[0], f0[1], zf), (f1[0], f1[1], zf), (h1[0], h1[1], zh)]
+    if (ramp[1][0] - ramp[0][0]) * (ramp[2][1] - ramp[0][1]) - (ramp[1][1] - ramp[0][1]) * (ramp[2][0] - ramp[0][0]) < 0:
+        ramp = ramp[::-1]
+    WALK_FACES.append(ramp)
+    # the bridge: white tile walls, a band of windows each side, a flat roof
+    br = P['bridge']
+    q, b0, b1 = _ccw([tuple(c) for c in br['q']]), br['z0'], br['z1']
+    mb.prism(q, b0, b1, 'tile_white', mat_top='roof_flat', mat_bottom='concrete')
+    for a, b in zip(q, q[1:] + q[:1]):
+        L = math.hypot(b[0] - a[0], b[1] - a[1])
+        if L < 8.0:                                     # (the short ends stand against the two halls)
+            continue
+        nx, ny = (b[1] - a[1]) / L * 0.03, -(b[0] - a[0]) / L * 0.03
+        n = int(L / 2.2)
+        for i in range(n):
+            s0, s1 = (i + 0.12) / n, (i + 0.88) / n
+            pa = (a[0] + (b[0] - a[0]) * s0 + nx, a[1] + (b[1] - a[1]) * s0 + ny)
+            pb = (a[0] + (b[0] - a[0]) * s1 + nx, a[1] + (b[1] - a[1]) * s1 + ny)
+            mb.quad((pa[0], pa[1], b0 + 1.0), (pb[0], pb[1], b0 + 1.0), (pb[0], pb[1], b1 - 0.9), (pa[0], pa[1], b1 - 0.9), 'glass')
+    # the windows in the wall over the lot (and the glazed door under the bay), from the lot's ground at their foot
+    for w in P.get('wall_windows', []):
+        (ax, ay), (bx, by) = w['a'], w['b']
+        L = math.hypot(bx - ax, by - ay)
+        nx, ny = (by - ay) / L, -(bx - ax) / L          # (out of the wall, over the lot)
+        g = min(ground(ax + nx * 1.2, ay + ny * 1.2), ground(bx + nx * 1.2, by + ny * 1.2))
+        z0w, z1w = (g + 0.05, g + 2.6) if w['door'] else (g + 0.7, g + 3.5)
+        e = 0.03
+        A, B = (ax + nx * e, ay + ny * e), (bx + nx * e, by + ny * e)
+        mb.quad((A[0], A[1], z0w), (B[0], B[1], z0w), (B[0], B[1], z1w), (A[0], A[1], z1w), 'glass')
+        for s in (0.0, 0.5, 1.0):                       # (the frame: the jambs and a mullion, the head)
+            px, py_ = A[0] + (B[0] - A[0]) * s + nx * 0.03, A[1] + (B[1] - A[1]) * s + ny * 0.03
+            mb.box((px, py_, (z0w + z1w) / 2), (0.08, 0.08, z1w - z0w), 'frame_dark', rotz=math.atan2(by - ay, bx - ax))
+        mb.box(((A[0] + B[0]) / 2 + nx * 0.03, (A[1] + B[1]) / 2 + ny * 0.03, z1w), (L + 0.08, 0.08, 0.1), 'frame_dark',
+               rotz=math.atan2(by - ay, bx - ax))
+    return mb
 
 
 BUILDERS = {'library': library, 'union': union, 'centennial': centennial, 'underwood': underwood, 'eng_hall': eng_hall,

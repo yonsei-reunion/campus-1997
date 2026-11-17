@@ -296,6 +296,17 @@ def heights(c):
             P_ = E['planter']
             for k in ('top', 'deck'):
                 A(P_, k, *centroid(P_['box']))
+    E = c.get('eng2_plaza')                      # (제2 · 제3공학관 사이의 돔 · 피라미드 · 계단, 구름다리: tools/eng97.py plaza_parts)
+    if E:
+        d = E['dome']
+        A(d, 3, d[0], d[1])
+        A(d, 4, d[0], d[1])
+        for k in ('z', 'top'):
+            A(E['pyramid'], k, *centroid(E['pyramid']['rim']))
+        for t in E['flight']['treads']:
+            A(t, 'z', *centroid(t['q']))
+        for k in ('z0', 'z1'):
+            A(E['bridge'], k, *centroid(E['bridge']['q']))
     for b in c.get('rnd_ghosts', []):
         for k in ('base', 'top_ground'):
             A(b, k, *centroid(b['footprint']))
