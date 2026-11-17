@@ -7218,9 +7218,9 @@ print('종합관 · 외솔관2 · 인문관 둘레:', JONGHAP97_GRADE)
 # 제2인문관 공사장의 흙막이 (widang97.cut_grade; 2026-11-17, jh): the soldier piles round the dig's south-west corner hold up
 # the road on 종합관's low block's north side and the shelf; the nodes either side on their own levels, after jonghap97's
 # roads (the deck over the cells the line crosses and the piles themselves: WD_CUT_DECK, med_west below)
+# (the halls as jonghap97 has them: OSM's 종합관 still stands in `buildings` here, its low block 7.6 m too far east)
 _wd_cut, WD_CUT_CELLS, WD_CUT_POLY, WIDANG97_CUT = widang97.cut_grade(
-    Hn, X, Y, FIXED, [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997
-                      and Polygon(b_['footprint']).distance(widang97.CUT) < 15.0] + [jonghap97.OUTLINE[jonghap97.PODIUM]])
+    Hn, X, Y, FIXED, [h_ for h_ in _jh_halls if h_.distance(widang97.CUT) < 15.0] + [jonghap97.OUTLINE[jonghap97.PODIUM]])
 FIXED[_wd_cut] = True
 print('제2인문관 공사장 흙막이:', WIDANG97_CUT)
 # 교육관 북쪽 마당 · 연희관 서쪽 옆길 · 상뜰 서쪽 길 · 상뜰 남쪽 보도 (tools/gyoyuk97.py, reference/고증/3.5.1 「1997년 7월 원본
