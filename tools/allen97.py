@@ -309,6 +309,8 @@ def grade(Hn, X, Y, FIXED, fill, step=5.0, half=800.0):
     # the terrace's and the court's walls: the nodes of their cells on the low side's level, the court's or the yard's
     low_u = (_wall_nodes(TERRACE_WALL, X.shape, step, half) | _wall_nodes(COURT_WALL, X.shape, step, half)
              | _wall_nodes([B_UV[3], B_UV[2]], X.shape, step, half)) & ~halls_in
+    # (on the upper side past the deck's cells (DECK_U) the nodes stay up: no pit east of the terrace's deck)
+    low_u &= ~((U > DECK_U['allen_terrace'][1]) & (V > COURT_WALL[0][1]))
     upper = shapely.contains_xy(P(UPPER_UV), X, Y) & ~halls_in & ~low_u
     Hn[upper] = upper_h(X, Y)[upper]
     done |= upper
@@ -319,6 +321,7 @@ def grade(Hn, X, Y, FIXED, fill, step=5.0, half=800.0):
     done |= low_u
     # the trench's wall: the hill's nodes of its cells down to the trench; the hill north of it
     low_h = _wall_nodes(TRENCH_WALL, X.shape, step, half) & ~halls_in
+    low_h &= ~((V > TRENCH_WALL[0][1]) & ((U < DECK_U['allen_hill'][0]) | (U > DECK_U['allen_hill'][1])))
     Hn[low_h] = TRENCH_Z + T[low_h]
     done |= low_h
     hill = shapely.contains_xy(P(HILL_UV), X, Y) & ~low_h
