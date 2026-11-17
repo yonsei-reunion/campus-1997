@@ -149,7 +149,13 @@ UPPER_UV = [(1.8, 20.6), (20.7, 20.6), (20.7, 20.8), (42.0, 20.8), (42.0, 31.0),
 TERRACE_WALL = [(1.8, 27.4), (1.8, 20.6), (4.4, 20.6)]
 COURT_WALL = [(20.7, 20.8), (38.5, 20.8)]
 TRENCH_WALL = [(14.0, 40.5), (38.5, 40.5)]
-TRENCH_RETURNS = [[(14.0, 46.0), (14.0, 40.5)], [(38.5, 40.5), (38.5, 46.0)]]
+# (the decks' outlines: the upper level's and the hill's sides, the walls their only edges that are not the cells' own;
+# the cells taken by their middles' u, so that a deck's ends are the cells' edges, shared with the ground as it runs)
+KEEP_UPPER = [(1.8, 20.6), (20.7, 20.6), (20.7, 20.8), (55.0, 20.8), (55.0, 40.5), (14.0, 40.5), (14.0, 38.1),
+              (-1.8, 38.1), (-1.8, 27.4), (1.8, 27.4)]
+KEEP_HILL = [(0.0, 40.5), (55.0, 40.5), (55.0, 80.0), (0.0, 80.0)]
+DECK_U = {'allen_terrace': (-10.0, 40.0), 'allen_hill': (15.0, 37.5)}
+RUNS = {}                          # (set by grade: the walls' runs along the decks' edges)
 PARAPET = (1.0, 0.25)              # (over the terrace's edge: height, thickness)
 COPING = (0.3, 0.3)                # (over the trench's wall)
 HILL = (63.6, 43.5, 0.95, 68.6)    # (north of the trench: a bench at 63.6 m to v 43.5, then up 0.95 m a metre to 68.6)
@@ -240,9 +246,10 @@ def _wall_nodes(line_uv, shape, step, half):
     return out
 
 
-def _deck(Hn, low, keep_poly, hfun, step, half, halls, tol=0.3):
-    """every cell over the level's outline (off the halls) with a node the walls or a hall's floor left more than tol
-    under the level (low): a deck carries the level over it.  Returns the deck's cells and outline (cut to them)"""
+def _deck(Hn, low, keep_poly, hfun, step, half, halls, urange, tol=0.3):
+    """every cell over the level's outline (off the halls), its middle's u in urange, with a node the walls or a hall's
+    floor left more than tol under the level (low): a deck carries the level over it.  Returns the deck's cells and
+    outline (cut to them)"""
     keep = keep_poly.difference(unary_union(halls).buffer(0.05)) if halls else keep_poly
     x0, y0, x1, y1 = keep.bounds
     cells = set()
@@ -251,11 +258,20 @@ def _deck(Hn, low, keep_poly, hfun, step, half, halls, tol=0.3):
             if _box(j, i, step, half).intersection(keep).area < 0.02:
                 continue
             xs, ys = (-half + i * step, -half + (i + 1) * step), (-half + j * step, -half + (j + 1) * step)
+            if not urange[0] <= float(uv((xs[0] + xs[1]) / 2, (ys[0] + ys[1]) / 2)[0]) <= urange[1]:
+                continue
             if any(low[j + a, i + c] and Hn[j + a, i + c] < float(hfun(xs[c], ys[a])) - tol for a in (0, 1) for c in (0, 1)):
                 cells.add((j, i))
     poly = unary_union([_box(j, i, step, half) for j, i in cells]).intersection(keep) if cells else Polygon()
     cells = {c for c in cells if _box(*c, step, half).intersection(poly).area > 0.02}
     return cells, poly
+
+
+def _run(poly, v, u0, u1):
+    """the stretch of the line v (u0 .. u1 at least) along which the deck's outline runs"""
+    us = [float(uv(x, y)[0]) for g in getattr(poly, 'geoms', [poly]) if g.geom_type == 'Polygon'
+          for x, y in g.exterior.coords if abs(float(uv(x, y)[1]) - v) < 0.05]
+    return [(round(min(us + [u0]), 2), v), (round(max(us + [u1]), 2), v)]
 
 
 def grade(Hn, X, Y, FIXED, fill, step=5.0, half=800.0):
@@ -314,10 +330,12 @@ def grade(Hn, X, Y, FIXED, fill, step=5.0, half=800.0):
     ring = shapely.contains_xy(Z.buffer(RING), X, Y) & ~inz & ~FIXED
     if ring.any():
         fill(ring)
-    cu, pu = _deck(Hn, low_u | halls_in, P(UPPER_UV), upper_h, step, half, hp)
-    ch, ph = _deck(Hn, low_h, P(HILL_UV), hill_h, step, half, hp)
+    cu, pu = _deck(Hn, low_u | halls_in, P(KEEP_UPPER), upper_h, step, half, hp, DECK_U['allen_terrace'])
+    ch, ph = _deck(Hn, low_h, P(KEEP_HILL), hill_h, step, half, hp, DECK_U['allen_hill'])
+    RUNS['court'] = _run(pu, COURT_WALL[0][1], COURT_WALL[0][0], COURT_WALL[1][0])
+    RUNS['trench'] = _run(ph, TRENCH_WALL[0][1], 1e9, -1e9) if not ph.is_empty else TRENCH_WALL
     d = Hn - H0
-    info = dict(nodes=int(inz.sum()), from_grid=int(have.sum()), eased=int(free.sum()), ring=int(ring.sum()),
+    info = dict(runs=dict(RUNS), nodes=int(inz.sum()), from_grid=int(have.sum()), eased=int(free.sum()), ring=int(ring.sum()),
                 yielded=int((inz & FIXED).sum()), up=round(float(d[inz].max()), 1), down=round(float(d[inz].min()), 1),
                 median=round(float(np.median(d[inz])), 2), terrace_deck=(len(cu), round(pu.area, 1)),
                 hill_deck=(len(ch), round(ph.area, 1)))
@@ -357,12 +375,12 @@ def _walls(lines, top, foot, ph, pt, step=0.5):
 
 def terrace_walls(top, foot):
     """the terrace's west face and the court's north face, the parapet along the terrace's edge"""
-    return _walls([TERRACE_WALL, COURT_WALL], top, foot, *PARAPET)
+    return _walls([TERRACE_WALL, RUNS.get('court', COURT_WALL)], top, foot, *PARAPET)
 
 
 def hill_walls(top, foot):
-    """the trench's north face up to the hill and its returns, the coping"""
-    return _walls([TRENCH_WALL] + TRENCH_RETURNS, top, foot, *COPING)
+    """the trench's north face up to the hill along the deck's south edge, the coping"""
+    return _walls([RUNS.get('trench', TRENCH_WALL)], top, foot, *COPING)
 
 
 def paint():
