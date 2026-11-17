@@ -186,6 +186,26 @@ def music_canopy(mb, P, sc, w, zc, ang, zd):
         mb.cylinder((x, y), 0.28, zd - 0.3, zd + 0.08, 'stone_granite', seg=20)
 
 
+def round_canopy(mb, P, sc, zc, R):
+    """알렌관's porch (Kakao roadview 2010-12, the 1996 - 1999 scans' round-ended flat roof at the middle range's west
+    end: tools/allen97.py R_UV): a flat white canopy with a thick fascia, its plan straight out from the wall and then
+    a half round, carried near its front on two round white columns.  R: half its width, its depth from the wall, the
+    fascia's depth, the columns' distance either side of the door and out from the wall"""
+    r0, h, t = R['r'], R['depth'], R['t']
+    dep = lambda x: (h - r0) + math.sqrt(max(r0 * r0 - x * x, 0.0))
+    pl = [(-r0, 0.0)] + [(-r0 + 2 * r0 * k / 24, dep(-r0 + 2 * r0 * k / 24)) for k in range(25)] + [(r0, 0.0)]
+    zt = zc + t
+    top = [P(sc + x, zt, d) for x, d in pl]
+    bot = [P(sc + x, zc, d) for x, d in pl]
+    mb.face(top, 'plaster_white')
+    mb.face(bot[::-1], 'plaster_white')
+    for k in range(len(pl) - 1):
+        mb.quad(bot[k], bot[k + 1], top[k + 1], top[k], 'plaster_white')
+    for sg in (-1, 1):
+        x, y, _ = P(sc + sg * R['col'][0], 0, R['col'][1])
+        mb.cylinder((x, y), 0.2, zc - 3.5, zc, 'plaster_white', seg=20)
+
+
 def music_planters(mb, fw, y_foot, gfn):
     """the white-tiled planters either side of 음악관's steps, waist high on the landing, with shrubs in them and a
     steel rail along the right one (local frame of the flight)"""
@@ -298,6 +318,9 @@ def porch(mb, a, b, s0, s1, zf, fh, st, style, opts=None):
     E = dict(ENTRY[style])
     if 'porch' in opts:              # (a porch of a hall's own: 연합신학대학원's, flat-topped, tools/build_campus.py UTS_PORCH)
         E['porch'] = opts['porch']
+    for k_, e_ in (('door_w', 'w'), ('door_h', 'h'), ('door_top', 'top')):     # (알렌관: the door under its porch)
+        if k_ in opts:
+            E[e_] = opts[k_]
     span = opts.get('span', 1)
     if span > 1:                     # a door of several bays (과학관): glass the width of the bays less a pier each side
         E['w'] = (s1 - s0) - 1.2
@@ -384,6 +407,8 @@ def porch(mb, a, b, s0, s1, zf, fh, st, style, opts=None):
         zc = zo + 0.12
         if opts.get('music'):
             music_canopy(mb, P, sc, w, zc, ang, zd)
+        elif opts.get('round'):
+            round_canopy(mb, P, sc, zc, opts['round'])
         else:
             ct = opts.get('canopy_t', 0.22)          # (경영학교실단's thick flat canopy: 0.4)
             c = P(sc, zc + ct / 2, cd / 2)

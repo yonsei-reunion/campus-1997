@@ -23,7 +23,10 @@ so each flight's pairs measure the same surfaces: 1996's three same-day pairs, 1
   - A, the north range: gabled, ridged along u, in three lengths: u -2.1 .. 14.3 (eaves v 27.1 / 38.4, ridge 69.35),
     14.3 .. 26.5 (26.4 / 36.1, ridge 69.45), 26.5 .. 33.3 (28.4 / 36.1, ridge 68.7); eaves 67.2
   - W, a lower gabled bay at A's west end: u -6.5 .. -2.1, eaves 64.2, ridge 65.95
-  - R, a round-ended flat-roofed bay at B's west end: u -1.4 .. 4.1, v 13.4 .. 19.2, roof 60.25
+  - R, a round-ended flat roof at B's west end: u -1.4 .. 4.1, v 13.4 .. 19.2, roof 60.25: the porch of the hall's
+    door (Kakao roadview 2010-12 1016786300 - 302: a flat white canopy with a thick fascia on two round white columns,
+    the glass door in B's west gable under a half-round fanlight, three steps and a ramp up from the west yard), so
+    no hall: B's door carries it (DOOR_B, blender/generic.py round_canopy)
 - The ground: the court east of B and north of C at 56.95 m (1996's pairs: 56.94 - 56.95, corr 1.0); between B and A and
   east of A an upper level at 61.3 m (the terrace: 1997 umbrellas on it, a 4.3 m wall down to the court and to the west
   yard), going round A's east end into a trench along A's north wall (61.1); north of the trench a wall up to the hill
@@ -82,9 +85,13 @@ R_ROOF, R_COPE, R_BASE = 60.25, 0.3, 56.6
 GABLES = [(990091, B_UV, FLOOR, 2, 62.7, 64.75, None), (990092, A1_UV, FLOOR, 3, 67.2, 69.35, None),
           (990093, A2_UV, FLOOR, 3, 67.2, 69.45, 32.5), (990094, A3_UV, FLOOR, 3, 67.2, 68.7, None),
           (990095, W_UV, 57.0, 2, 64.2, 65.95, None)]
-R_ID = 990096
 HALLS_UV = [C_UV, B_UV, A1_UV, A2_UV, A3_UV, W_UV, R_UV]
 DOOR_UV = ((16.0, -0.6), (0.0, -1.0))          # (C's door in its south face, where OSM's was)
+# B's door in its west gable under R (the roadview of 2010-12): the canopy's top R_ROOF, half its width R_R, out to the
+# round front's tip, the fascia and the two columns (either side of the door, out from the wall) after the roadview
+DOOR_B = ((B_UV[0][0], R_C[1]), (-1.0, 0.0))
+DOOR_B_OPTS = dict(floor=0, door_w=2.6, door_h=2.1, door_top=0.3, landing=4.6,
+                   round=dict(r=R_R, depth=round(B_UV[0][0] - (R_C[0] - R_R), 2), t=0.6, col=[1.9, 4.3]))
 
 
 def hall_polys():
@@ -111,8 +118,8 @@ def south_block(b):
 
 
 def halls():
-    """B, A's three lengths and W (gabled, slate, brick walls; blender/generic.py hip_roof with gable) and R (flat roof),
-    for the halls' end (blender/build.py draws each hall's looks in its order: none after them changes its looks)"""
+    """B, A's three lengths and W (gabled, slate, brick walls; blender/generic.py hip_roof with gable; R is B's door's
+    porch, DOOR_B), for the halls' end (blender/build.py draws each hall's looks in its order: none after them changes its looks)"""
     out = []
     for hid, q, z0, nf, eave, ridge, rv in GABLES:
         c = datum.centroid([xy(*p) for p in q])
@@ -130,11 +137,12 @@ def halls():
                         top_ground=base, footprint=_fp(q),
                         hip=dict(mat='roof_slate', pitch=pitch, over=OVER, gable=True, off=round(off, 2),
                                  ridge=[round(float(AL_T[0]), 4), round(float(AL_T[1]), 4)])))
-    c = xy(1.0, 16.3)
-    base = datum.up(*c, R_BASE)
-    fh = round(R_ROOF - R_COPE - R_BASE, 3)
-    out.append(dict(id=R_ID, name='알렌관', style='brick', levels=1, fh=fh, height=round(R_ROOF - R_BASE, 2), base=base,
-                    parapet=R_COPE, top_ground=base, footprint=_fp(R_UV)))
+        if hid == GABLES[0][0]:                                # (B: the door under R's canopy)
+            (du, dv), (nu, nv) = DOOR_B
+            p = xy(du, dv)
+            n = (nu * AL_T[0] + nv * AL_N[0], nu * AL_T[1] + nv * AL_N[1])
+            out[-1]['entry'] = dict(p=[round(p[0], 2), round(p[1], 2)], n=[round(float(n[0]), 4), round(float(n[1]), 4)],
+                                    **DOOR_B_OPTS)
     return out
 
 
