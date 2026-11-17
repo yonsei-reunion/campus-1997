@@ -7410,6 +7410,30 @@ _e97n_took, ENG97N = eng97.north_grade(Hn, X, Y, FIXED, _e97n_halls, harmonic_fi
 FIXED[_e97n_took] = True
 print('제2공학관 북쪽 길 · 공학관 사이 윗단: %(zone)d nodes on the 1997 heights (mean %(road)+.2f m), smoothed %(ring)d; '
       '%(nodes)d moved, most %(most)+.2f m' % ENG97N)
+# 체육관 남쪽 숲 둔덕 (tools/gymnorth97.py mound, reference/고증/3.24 「체육관 남쪽 숲 둔덕」; #189, we), late: the planting
+# has read the ground as it was.  The wooded rise between 체육관's south strip and the road north of 제2공학관 level at the
+# leaf-off 1996 scans' 43.4 m (the game had a slope 2 - 6 m under it), its banks down to the strip, the roads and the
+# alley by 별동연구동, the ground south of 체육교육관 and the ledge along 별동연구동's north face on the same scans.  The
+# road band north_grade laid and the halls' feet stay
+_e97_by = next(p_ for i_, p_ in _e97n_halls if i_ == eng97.BYEOLDONG)
+_gm_keep = eng97.north_zone(*eng97.uv(X, Y), X, Y, _e97_by) | shapely.contains_xy(unary_union(
+    [_e97_by.buffer(1.5)] + [Polygon(b_['footprint']).buffer(1.0) for b_ in buildings if b_['id'] not in GONE_1997 and
+                             Polygon(b_['footprint']).intersects(gymnorth97.MOUND_FOOT.buffer(10.0))]), X, Y)
+_gm_took, GYM_MOUND = gymnorth97.mound(Hn, X, Y, FIXED, harmonic_fill, _gm_keep)
+FIXED[_gm_took] = True
+print('체육관 남쪽 숲 둔덕:', GYM_MOUND)
+# 도서관 남서 광장 (tools/gymnorth97.py square, reference/고증/3.24 「도서관 남서 광장과 동쪽 마당 동쪽 끝」; #189, we), late:
+# the paved square north-east of 체육관 and the walk past the wood south of the library on the 1997 and 1996 scans
+# (the game had the square 1 - 2.8 m under them); the library's west road, its beds and wood and the halls' feet stay
+_gs_s, _gs_o = libsouth97.sxy(X, Y)
+_gs_keep = shapely.contains_xy(unary_union([libwest97.LOWER] + [Polygon(b_['footprint']).buffer(1.0) for b_ in buildings
+                                                                 if b_['id'] not in GONE_1997 and
+                                                                 Polygon(b_['footprint']).intersects(gymnorth97.SQ.buffer(10.0))]), X, Y)
+for _gs_z in libsouth97.BELT + [libsouth97.ZONE]:
+    _gs_keep |= (_gs_s >= _gs_z[0]) & (_gs_s <= _gs_z[1]) & (_gs_o >= _gs_z[2]) & (_gs_o <= _gs_z[3])
+_gs_took, GYM_SQUARE = gymnorth97.square(Hn, X, Y, FIXED, harmonic_fill, _gs_keep)
+FIXED[_gs_took] = True
+print('도서관 남서 광장:', GYM_SQUARE)
 _e97_nb = next(b_ for b_ in buildings if b_['id'] == eng97.NB_ID)
 for _e97_id, _e97_uv, _e97_door in ((eng97.NB_ID, eng97.NORTH_1997, eng97.NB_DOOR_UV),
                                     (eng97.SOUTH_WING, eng97.SOUTH_1997, eng97.SW_DOOR_UV)):
@@ -10071,6 +10095,7 @@ _ypaint(scinorth97.paint(), _ga)              # (과학관 북쪽 길, 연구관
 # 체육관 동쪽 마당 · 남동쪽 끝 (gymnorth97.PAVE2, reference/고증/3.24): asphalt under the 1997 cars where the game had
 # lawn and walks
 _ypaint([p_.difference(gymnorth97.GYM_POLY.buffer(0.3)) for p_ in gymnorth97.PAVE2], _ga)
+_ypaint([gymnorth97.SQ_PAVE.difference(gymnorth97.GYM_POLY.buffer(0.3))], _ga)   # (도서관 남서 광장, the 1997 square's paving)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): 심장혈관병원 북쪽 · 치과대학병원 서쪽 paved; the east lot's steep edges
 # lawn (out of the 2005 hospital's site's asphalt, _ga, and the layers under it)
 _md_asph, _md_bank = med97.paint()

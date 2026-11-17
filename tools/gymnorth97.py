@@ -342,3 +342,206 @@ def west_half(Hn, X, Y, FIXED, fill):
                 moved=(int((np.abs(dd) > 0.05).sum()), round(float(dd.min()), 2), round(float(dd.max()), 2)),
                 photo_minus_game=round(float(np.median(d)), 2))
     return core | free, info
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 체육관 남쪽 숲 둔덕 (reference/고증/3.24_체육관_체육교육관.md 「체육관 남쪽 숲 둔덕」; #189).  The wooded rise between 체육관's
+# south strip, the road north of 제2공학관 and 별동연구동: the leaf-off 1996-12-23 pair (26/16 · 26/15, taken up 0.25 m as
+# the other points here) has its top level at 43.41 m (317 points 1.25 m apart, 10 - 90 % 43.25 - 43.55), the July 1997
+# pair through the gaps in the crowns the same (+0.07 m on 62 of them), the 1998 pair round the kendo hall built on it
+# by then +0.13 m on 47; the 1:5000 survey of 2005 has its 40 m contour round the rise's foot and no 45 m one.  The game
+# had a slope 39.6 - 42 m there.  Round the top banks down to the strip (its foot 11 m out of 체육관's south face: the
+# survey's slope line), the road along its east side, the road north of 제2공학관 and the alley along 별동연구동's east
+# wall; west of the top the ground south of 체육교육관 falls south 45.2 -> 42.3 m to a level ledge along 별동연구동's
+# north face and round its north-east corner (40.4 - 40.8 m).  MOUND_FOOT: the banks' feet; MOUND_TOP: the top's edge
+# on the 1996 points.  MOUND_PTS (x, y, 해발): the 1996 pair's points (corr 0.78 or more, off the halls and the crowns),
+# medians in 2.5 m cells.  A node inside the feet with two points or more within NEAR takes their median, one with a
+# point within MOUND_ONE their weighted mean; one inside the top without, MOUND_Z; one on a bank within MOUND_BANK m
+# of the top, the height between its foot (the ground just out of the feet) and MOUND_Z by its distances to the two
+# lines; the others and MOUND_RING m round all smoothly.  The strip, the lane, the yard east of 체육관 (around), the
+# road band north of 제2공학관 (eng97.north_zone) and the halls' feet stay.  Nothing here draws from build_campus.py's `rng`
+MOUND_FOOT = Polygon([(-266.0, -111.0), (-241.5, -112.5), (-237.23, -115.31), (-207.29, -123.38), (-203.0, -126.5), (-199.5, -131.5),
+                      (-198.3, -135.0), (-198.0, -141.5), (-199.0, -148.5), (-202.0, -161.0), (-206.23, -161.47), (-218.76, -158.02),
+                      (-233.22, -154.04), (-245.28, -150.72), (-240.2, -147.5), (-241.6, -140.6), (-265.0, -133.5), (-266.0, -133.5)])
+MOUND_TOP = Polygon([(-246.0, -121.5), (-240.5, -122.0), (-236.0, -122.5), (-230.0, -124.5), (-222.0, -125.2), (-218.0, -126.0),
+                     (-214.0, -127.8), (-211.0, -129.8), (-207.5, -132.2), (-205.0, -134.5), (-204.2, -138.0), (-204.5, -143.5),
+                     (-206.0, -146.5), (-208.5, -148.0), (-208.5, -152.3), (-212.0, -152.8), (-220.0, -152.3), (-222.0, -150.5),
+                     (-227.0, -146.5), (-229.5, -143.5), (-229.8, -139.0), (-231.0, -136.5), (-232.5, -134.5), (-237.5, -132.8),
+                     (-241.0, -131.5), (-246.0, -131.0)])
+MOUND_Z = 43.41
+MOUND_BANK = 9.0
+MOUND_RING = 6.0
+MOUND_ONE, MOUND_SIGMA = 3.75, 1.5      # (a node with one point within MOUND_ONE: the Gaussian-weighted mean of those within it)
+MOUND_PTS = [
+    (-266.25, -126.25, 43.25), (-266.25, -121.25, 44.24), (-266.25, -116.25, 45.13), (-263.75, -126.25, 43.36),
+    (-263.75, -116.25, 45.23), (-261.25, -128.75, 42.70), (-261.25, -126.25, 43.74), (-261.25, -121.25, 44.84),
+    (-261.25, -118.75, 45.10), (-261.25, -116.25, 45.23), (-258.75, -126.25, 43.84), (-258.75, -121.25, 44.76),
+    (-258.75, -116.25, 45.17), (-256.25, -128.75, 42.29), (-256.25, -126.25, 43.96), (-256.25, -121.25, 44.84),
+    (-256.25, -118.75, 44.92), (-256.25, -116.25, 44.91), (-253.75, -121.25, 44.64), (-253.75, -116.25, 44.70),
+    (-251.25, -133.75, 40.56), (-251.25, -128.75, 43.16), (-251.25, -126.25, 43.89), (-251.25, -123.75, 44.15),
+    (-251.25, -121.25, 44.50), (-251.25, -118.75, 44.71), (-251.25, -116.25, 44.69), (-248.75, -126.25, 43.85),
+    (-248.75, -121.25, 44.32), (-246.25, -133.75, 40.41), (-246.25, -128.75, 43.68), (-246.25, -126.25, 43.76),
+    (-246.25, -123.75, 44.01), (-246.25, -121.25, 44.28), (-246.25, -118.75, 44.27), (-241.25, -136.25, 40.39),
+    (-241.25, -133.75, 40.55), (-241.25, -131.25, 43.49), (-241.25, -128.75, 43.49), (-241.25, -126.25, 43.59),
+    (-241.25, -123.75, 43.59), (-238.75, -136.25, 40.56), (-238.75, -131.25, 43.48), (-238.75, -126.25, 43.42),
+    (-236.25, -136.25, 40.80), (-236.25, -131.25, 43.44), (-236.25, -128.75, 43.53), (-236.25, -126.25, 43.42),
+    (-233.75, -136.25, 41.24), (-233.75, -131.25, 43.42), (-233.75, -126.25, 43.53), (-231.25, -141.25, 43.16),
+    (-231.25, -138.75, 42.44), (-231.25, -136.25, 43.52), (-231.25, -133.75, 43.40), (-231.25, -131.25, 43.48),
+    (-231.25, -128.75, 43.44), (-231.25, -126.25, 43.46), (-228.75, -141.25, 43.49), (-228.75, -136.25, 43.53),
+    (-228.75, -131.25, 43.43), (-226.25, -146.25, 43.91), (-226.25, -143.75, 43.94), (-226.25, -141.25, 43.67),
+    (-226.25, -138.75, 43.49), (-226.25, -136.25, 43.51), (-226.25, -133.75, 43.46), (-226.25, -131.25, 43.39),
+    (-226.25, -126.25, 43.44), (-223.75, -136.25, 43.44), (-223.75, -131.25, 43.42), (-221.25, -143.75, 43.89),
+    (-221.25, -141.25, 43.53), (-221.25, -138.75, 43.48), (-221.25, -136.25, 43.40), (-221.25, -133.75, 43.37),
+    (-221.25, -131.25, 43.44), (-221.25, -126.25, 42.67), (-218.75, -151.25, 42.92), (-218.75, -146.25, 43.39),
+    (-218.75, -141.25, 43.51), (-218.75, -136.25, 43.33), (-218.75, -131.25, 43.34), (-218.75, -126.25, 43.53),
+    (-216.25, -153.75, 41.48), (-216.25, -151.25, 42.61), (-216.25, -148.75, 43.23), (-216.25, -146.25, 43.31),
+    (-216.25, -143.75, 43.40), (-216.25, -141.25, 43.43), (-216.25, -138.75, 43.40), (-216.25, -136.25, 43.40),
+    (-216.25, -133.75, 43.31), (-216.25, -131.25, 43.46), (-216.25, -128.75, 43.52), (-216.25, -126.25, 43.43),
+    (-213.75, -151.25, 43.12), (-213.75, -146.25, 43.28), (-213.75, -141.25, 43.39), (-213.75, -136.25, 43.37),
+    (-213.75, -131.25, 43.44), (-211.25, -151.25, 43.11), (-211.25, -146.25, 43.28), (-211.25, -143.75, 43.38),
+    (-211.25, -141.25, 43.41), (-211.25, -138.75, 43.36), (-211.25, -136.25, 43.32), (-211.25, -133.75, 43.32),
+    (-211.25, -131.25, 43.51), (-208.75, -151.25, 42.89), (-208.75, -141.25, 43.38), (-208.75, -136.25, 43.28),
+    (-206.25, -146.25, 43.09), (-206.25, -143.75, 43.23), (-206.25, -141.25, 43.30), (-206.25, -138.75, 43.22),
+    (-206.25, -136.25, 43.28), (-201.25, -156.25, 38.24), (-198.75, -136.25, 40.03)
+]
+
+
+def _bilinear(H, X, Y, x, y):
+    gx = X[0, :]; gy = Y[:, 0]
+    st = gx[1] - gx[0]
+    fi = (x - gx[0]) / st; fj = (y - gy[0]) / st
+    i0, j0 = int(np.floor(fi)), int(np.floor(fj))
+    tx, ty = fi - i0, fj - j0
+    return float(H[j0, i0] * (1 - tx) * (1 - ty) + H[j0, i0 + 1] * tx * (1 - ty) + H[j0 + 1, i0] * (1 - tx) * ty +
+                 H[j0 + 1, i0 + 1] * tx * ty)
+
+
+def mound(Hn, X, Y, FIXED, fill, keep):
+    """the rise south of 체육관 (above).  keep: the nodes not to touch besides around's (the road band north of 제2공학관,
+    the halls' feet).  Returns the nodes set and a summary"""
+    H0 = Hn.copy()
+    T = datum.tilt(X, Y)
+    keep = keep | shapely.contains_xy(unary_union([LANE2, STRIP2, SE_EAST, GYM_POLY.buffer(1.0), GYMED_POLY.buffer(1.0)]), X, Y)
+    inn = shapely.contains_xy(MOUND_FOOT, X, Y) & ~keep
+    top = shapely.contains_xy(MOUND_TOP, X, Y)
+    P = np.array(MOUND_PTS)
+    done = np.zeros_like(inn)
+    nmed = ntop = nbank = 0
+    foot_l, top_l = MOUND_FOOT.exterior, MOUND_TOP.exterior
+    for j, i in zip(*np.nonzero(inn)):
+        x, y = float(X[j, i]), float(Y[j, i])
+        near = (P[:, 0] - x) ** 2 + (P[:, 1] - y) ** 2 < NEAR ** 2
+        r2 = (P[:, 0] - x) ** 2 + (P[:, 1] - y) ** 2
+        if near.sum() >= 2:
+            Hn[j, i] = float(np.median(P[near, 2])) + T[j, i]
+            nmed += 1
+        elif r2.min() < MOUND_ONE ** 2:
+            w = np.exp(-r2 / (2 * MOUND_SIGMA ** 2)) * (r2 < MOUND_ONE ** 2)
+            Hn[j, i] = float((w * P[:, 2]).sum() / w.sum()) + T[j, i]
+            nmed += 1
+        elif top[j, i]:
+            Hn[j, i] = MOUND_Z + T[j, i]
+            ntop += 1
+        else:
+            p = shapely.Point(x, y)
+            dt = top_l.distance(p)
+            if dt > MOUND_BANK:
+                continue
+            df = foot_l.distance(p)
+            q = foot_l.interpolate(foot_l.project(p))
+            r = top_l.interpolate(top_l.project(p))
+            ux, uy = q.x - r.x, q.y - r.y
+            n = max(float(np.hypot(ux, uy)), 1e-6)
+            zf = _bilinear(H0, X, Y, q.x + 1.5 * ux / n, q.y + 1.5 * uy / n)
+            Hn[j, i] = zf + (MOUND_Z + T[j, i] - zf) * df / (df + dt)
+            nbank += 1
+        done[j, i] = True
+    free = (inn & ~done) | (shapely.contains_xy(MOUND_FOOT.buffer(MOUND_RING), X, Y) & ~shapely.contains_xy(MOUND_FOOT, X, Y)
+                            & ~keep & ~FIXED)
+    if free.any():
+        fill(free)
+    dd = Hn - H0
+    info = dict(by_median=nmed, top=ntop, bank=nbank, filled=int(free.sum()),
+                moved=(int((np.abs(dd) > 0.05).sum()), round(float(dd.min()), 2), round(float(dd.max()), 2)))
+    return done | free, info
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 도서관 남서 광장 (reference/고증/3.24_체육관_체육교육관.md 「도서관 남서 광장과 동쪽 마당 동쪽 끝」; #189).  North-east of 체육관,
+# between its north-east corner, the row of trees along 중앙도서관's west road and the wood south of the library, the
+# 1997-07-28 scans have one wide paved square (the brightest ground here); its east edge is the row of trees, under
+# which the ground falls to the library's west road (libwest97 LOWER, 33.2 m), and the paved walk from the library's
+# south walk down past the wood (libsouth97 BELT) to the road north of 제2공학관.  SQ_PTS (x, y, 해발): the points
+# 2.5 m apart where two pairs or more agree within 0.4 m (the 1997 pairs 26/16 · 26/15 (+ 0.25), 26/16 · 27/17,
+# 26/15 · 27/17, 26/16 · 27/16, 26/15 · 27/16, 27/16 · 27/17 and the leaf-off 1996 pairs, their median), not on the
+# row of trees, the bed of trees off the square's south-east corner (cars stood along it in December 1996) or 체육관's
+# roof: the square 35.5 - 36.2 m, rising to 36.6 - 37.5 m towards 체육관's north-east corner, the walk 33.4 - 34.5 m.
+# The game had the square 1.0 - 2.8 m under them, falling east across it to the road.  The 1:5000 survey of 2005 has
+# its 35 m contour along the row of trees.  Laid as mound() lays its points (a node farther from them, their wider
+# mean); SQ_RING m round smoothly, not the terrace north of the square (44 - 45 m, its wall's foot at the square's).  The yard
+# east of 체육관 (around), the library's west road (libwest97), the beds and the wood south of the library
+# (libsouth97) and 체육관's feet stay.  Nothing here draws from build_campus.py's `rng`
+SQ = Polygon([(-173.0, -49.0), (-146.0, -49.0), (-146.0, -73.0), (-139.0, -73.0), (-139.0, -106.0), (-151.0, -106.0),
+              (-151.0, -80.5), (-173.0, -80.5)])
+SQ_RING = 5.0
+SQ_FAR, SQ_SIGMA = 8.0, 3.0       # (a node with no point within MOUND_ONE: the Gaussian-weighted mean of those within SQ_FAR)
+SQ_WALL = (-150.0, -49.5)         # (west of x, north of y: the terrace north of the square, 44.3 m, a wall over it: stays)
+# the square's paving (the game had lawn and today's walks on it), on to PAVE2's north edge
+SQ_PAVE = Polygon([(-172.5, -51.5), (-148.0, -51.5), (-147.5, -72.0), (-150.5, -81.0), (-150.5, -84.0), (-170.5, -84.0),
+                   (-172.5, -80.0)])
+SQ_PTS = [
+    (-170.0, -57.5, 38.38), (-167.5, -60.0, 37.51), (-165.0, -60.0, 37.50), (-162.5, -72.5, 36.71),
+    (-162.5, -70.0, 36.35), (-162.5, -65.0, 36.77), (-162.5, -62.5, 36.58), (-160.0, -80.0, 35.96),
+    (-160.0, -77.5, 36.16), (-160.0, -75.0, 36.17), (-160.0, -72.5, 36.55), (-160.0, -70.0, 36.31),
+    (-160.0, -67.5, 36.20), (-160.0, -65.0, 36.96), (-160.0, -62.5, 36.57), (-160.0, -60.0, 36.72),
+    (-160.0, -55.0, 35.96), (-157.5, -80.0, 35.95), (-157.5, -77.5, 36.12), (-157.5, -75.0, 36.09),
+    (-157.5, -70.0, 36.06), (-157.5, -67.5, 36.06), (-157.5, -55.0, 35.83), (-155.0, -77.5, 35.86),
+    (-155.0, -75.0, 35.81), (-155.0, -72.5, 35.86), (-155.0, -70.0, 35.87), (-155.0, -67.5, 36.01),
+    (-155.0, -65.0, 35.97), (-155.0, -62.5, 35.82), (-152.5, -72.5, 35.82), (-152.5, -70.0, 35.77),
+    (-152.5, -67.5, 35.73), (-152.5, -57.5, 35.73), (-152.5, -55.0, 35.52), (-150.0, -97.5, 35.22),
+    (-150.0, -95.0, 35.39), (-150.0, -90.0, 36.22), (-150.0, -87.5, 36.09), (-150.0, -72.5, 35.70),
+    (-150.0, -70.0, 35.72), (-150.0, -67.5, 35.67), (-150.0, -62.5, 35.61), (-150.0, -60.0, 35.58),
+    (-150.0, -52.5, 35.58), (-147.5, -102.5, 34.94), (-147.5, -97.5, 35.13), (-147.5, -95.0, 35.21),
+    (-147.5, -92.5, 35.64), (-147.5, -72.5, 35.94), (-147.5, -70.0, 35.78), (-147.5, -67.5, 35.69),
+    (-147.5, -65.0, 35.58), (-147.5, -62.5, 35.64), (-147.5, -55.0, 35.46), (-147.5, -52.5, 35.53),
+    (-145.0, -102.5, 34.76), (-145.0, -100.0, 34.76), (-145.0, -97.5, 34.86), (-142.5, -105.0, 34.52),
+    (-142.5, -102.5, 34.50), (-142.5, -100.0, 33.79), (-142.5, -97.5, 33.51), (-142.5, -75.0, 33.46),
+    (-140.0, -105.0, 34.27), (-140.0, -102.5, 33.80), (-140.0, -100.0, 33.58), (-140.0, -97.5, 33.41),
+    (-140.0, -95.0, 33.47), (-140.0, -92.5, 33.60), (-140.0, -90.0, 33.53), (-140.0, -75.0, 33.46)
+]
+
+
+def square(Hn, X, Y, FIXED, fill, keep):
+    """the square north-east of 체육관 and the walk past the wood (above).  keep: the nodes the library's blocks laid (its
+    west road, the beds and the wood south of it).  Returns the nodes set and a summary"""
+    H0 = Hn.copy()
+    T = datum.tilt(X, Y)
+    keep = keep | shapely.contains_xy(unary_union([SE_EAST, GYM_POLY.buffer(1.0)]), X, Y)
+    inn = shapely.contains_xy(SQ, X, Y) & ~keep
+    P = np.array(SQ_PTS)
+    done = np.zeros_like(inn)
+    for j, i in zip(*np.nonzero(inn)):
+        r2 = (P[:, 0] - X[j, i]) ** 2 + (P[:, 1] - Y[j, i]) ** 2
+        near = r2 < NEAR ** 2
+        if near.sum() >= 2:
+            Hn[j, i] = float(np.median(P[near, 2])) + T[j, i]
+        elif r2.min() < MOUND_ONE ** 2:
+            w = np.exp(-r2 / (2 * MOUND_SIGMA ** 2)) * (r2 < MOUND_ONE ** 2)
+            Hn[j, i] = float((w * P[:, 2]).sum() / w.sum()) + T[j, i]
+        elif r2.min() < SQ_FAR ** 2:
+            w = np.exp(-r2 / (2 * SQ_SIGMA ** 2)) * (r2 < SQ_FAR ** 2)
+            Hn[j, i] = float((w * P[:, 2]).sum() / w.sum()) + T[j, i]
+        else:
+            continue
+        done[j, i] = True
+    ring = shapely.contains_xy(SQ.buffer(SQ_RING), X, Y) & ~shapely.contains_xy(SQ, X, Y) & ~keep & ~FIXED
+    ring &= ~((Y > SQ_WALL[1]) & (X < SQ_WALL[0]))
+    free = (inn & ~done) | ring
+    if free.any():
+        fill(free)
+    dd = Hn - H0
+    info = dict(by_points=int(done.sum()), filled=int(free.sum()),
+                moved=(int((np.abs(dd) > 0.05).sum()), round(float(dd.min()), 2), round(float(dd.max()), 2)))
+    return done | free, info
