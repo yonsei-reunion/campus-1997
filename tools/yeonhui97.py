@@ -29,9 +29,10 @@ Frame: campus metres, x east, y north.
   surface model's 6 - 11 m over it), north of the valley's floor (y 205, the scans' points end at y 202) to the
   ridge's west edge (x -295), the ridge's north edge (tools/ridge97.py RIDGE, y 262), west of the wood
   north-west of the halls (tools/jonghap97.py HILL, x -205, y 400 - 425) and on north along x -160 through
-  서울외국인학교 (its east half, where the game is within 2 m of the survey, stays); south it overlaps the town's
-  (tools/town97.py: its weight fades out west of x -600 between y -180 and -110).  The blocks laid after this one on
-  their own data (the road's bed, 서문, the hill, the spur, the valley, the ridge, the wood) ease into it themselves.
+  서울외국인학교 (its east half, where the game is mostly within 2 m of the survey, 3.3 m at most, stays); south
+  it overlaps the town's (tools/town97.py: its weight fades out west of x -600 between y -180 and -110).  The blocks
+  laid after this one on their own data (the road's bed, 서문, the hill, the spur, the valley, the ridge, the wood)
+  ease into it themselves.
 - lay(): the nodes in REGION (not `keep`) take GRID (+ T); round its campus side, out to RING m, the ground is
   smoothed (fill: harmonic) between it and the ground that stays; over RIM m at the near grid's outer edges (x -800,
   y 800) the ground eases into the far terrain's edge (straight between its 100 m nodes, as the web draws the far
