@@ -480,7 +480,9 @@ def gate():
     # ---- east of the east walk's outer pillar: the white wall (two bays, a pilaster at the bend and an end pier; papered
     # over with the students' posters in the 1995 and 1996 photos, the name in metal letters on it in 2008 and 2011).
     # Its first bay runs out of the outer pillar's front corner at a slant, the second along the gate's line 3.5 m in
-    # front of it (the July 1997 scans; seen from the south, as in the 1996 photo, the two read as one flat wall)
+    # front of it (the July 1997 scans; seen from the south, as in the 1996 photo, the two read as one flat wall).
+    # No name on it: the school site's photo of the gate from the rail bank (gate.jpg, summer 1996 or before) has the
+    # wall bare of posters and of any board or letters (reference/고증/4.8.1 「자료 R 의 정문 사진」)
     P = W['pts']
     z = min(gz(u, v) for u, v in P)
     for k in range(len(P) - 1):
@@ -489,13 +491,6 @@ def gate():
         cx, cy = (ua + ub) / 2, (va + vb) / 2
         mb.box((cx, cy, z + W['h'] / 2 - 0.3), (ln + W['t'] * 0.5, W['t'], W['h'] + 0.6), 'gate_granite', rotz=a, skip=('bottom',))
         mb.box((cx, cy, z + W['h'] + 0.05), (ln + W['t'] * 0.5, W['t'] + 0.1, 0.1), 'gate_granite', rotz=a)
-        if k == 0:                                         # the old name board, on the first bay (behind the posters now)
-            tx, ty = (ub - ua) / ln, (vb - va) / ln
-            nx, ny = ty, -tx                                # (the front: the mouth's side)
-            p0 = (ua + tx * 0.9 + nx * (W['t'] / 2 + 0.012), va + ty * 0.9 + ny * (W['t'] / 2 + 0.012))
-            p1 = (p0[0] + tx * 1.9, p0[1] + ty * 1.9)
-            pz = z + 1.38
-            mb.face([(*p0, pz), (*p1, pz), (*p1, pz + 0.475), (*p0, pz + 0.475)], 'sign_gate', uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
     (u1, v1), (u2, v2) = P[1], P[2]
     a1 = math.atan2(P[1][1] - P[0][1], P[1][0] - P[0][0])
     mb.box((u1, v1, z + (W['h'] + 0.2) / 2 - 0.3), (0.36, W['t'] + 0.14, W['h'] + 0.8), 'gate_granite', rotz=a1 / 2, skip=('bottom',))
