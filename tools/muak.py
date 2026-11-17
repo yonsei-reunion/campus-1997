@@ -550,6 +550,11 @@ DORM_LOW = [
     (991008, [(173.3, 1196.1), (155.4, 1192.1), (157.8, 1181.0), (175.7, 1184.8)], 2.15, 2),
 ]
 DORM_LOW_ALONG = {991005: 2.55, 991006: 2.55, 991007: 4.6, 991008: 4.6}
+# the front blocks' flat roofs where the 1997 frames put them (cross-course pairs 26/13 x 27/15 and 26/14 x 27/15,
+# corr 0.73 - 0.83, the frames' roofs one outline on that plane): 2학사's at 74.7 m (its arched north edge 75.6), 1학사's
+# at 86.1 m (seven points 86.0 - 86.3), one storey over the yards before them (70.3, 81.5 m); Naver street view
+# 2010-09 has 1학사's as one storey and a flight from its yard.  Their walls from the lowest corner up to it
+DORM_LOW_TOP = {991005: datum.up(102.7, 1173.3, 74.7), 991007: datum.up(165.0, 1181.9, 86.1)}
 # 3 · 4학사 (completed 1998.4.30) in July 1997: frames up, no roof (4학사's west wing 68.3 m, about 12 m over the west
 # road; 3학사's 89 - 92 m, 13 - 17 m over the yard): OSM's outlines (429077772, 429077773), four and five storeys
 SITE_HALLS = [(991011, 429077772, 4), (991012, 429077773, 5)]
@@ -659,7 +664,11 @@ def halls(ground, osm_=None, late=False, old=False):
     for i, g, sh, lv in DORM_LOW:
         al = 0.0 if old else DORM_LOW_ALONG.get(i, 0.0)
         a = math.radians(101.9)
-        add(i, '무악학사', 'brick', lv, _shift(_shift(g, _v(101.9, sh)), (math.cos(a) * al, math.sin(a) * al)), fh=3.3)
+        g = _shift(_shift(g, _v(101.9, sh)), (math.cos(a) * al, math.sin(a) * al))
+        if not old and i in DORM_LOW_TOP:       # (two storeys of the walls from the low corner, one over the yard)
+            add(i, '무악학사', 'brick', 2, g, top=DORM_LOW_TOP[i])
+        else:
+            add(i, '무악학사', 'brick', lv, g, fh=3.3)
     for i, oid, lv in SITE_HALLS:
         add(i, '무악학사 3 · 4학사 (공사중)', 'white', lv, O[oid][1][:-1], fh=3.1)
     for i, nm, style, lv, src, sh, hip in OTHER_HALLS:
