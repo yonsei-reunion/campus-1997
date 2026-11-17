@@ -514,6 +514,16 @@ def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True, 
             mb.box((x, y, zt + 0.6), (1.6, 1.0, 1.2), 'metal', rotz=ang, skip=('bottom',))
 
 
+def burn_clutter(poly, rnd):
+    """The draws parapet_and_roof's roof clutter makes from the halls' stream, made and dropped: a hall that had a flat
+    roof (and its clutter) at its place in the list and is given a gabled one keeps the stream, so that the halls after
+    it keep their colours and roof clutter (tools/build_campus.py `hip` with `burn`)"""
+    if abs(poly_area(poly)) > 200:
+        for _ in range(rnd.randint(1, 4)):
+            rnd.uniform(-1.0, 1.0)
+            rnd.uniform(-1.0, 1.0)
+
+
 def hip_roof(mb, cx, cy, L, W, ang, zt, mat, pitch=0.6, over=0.5, fascia='frame_white', gable=None, off=0.0):
     """A hipped roof over the L x W rectangle at (cx, cy), its ridge along ang; gable: the end walls' material, for a
     gabled roof instead (the ridge runs the whole length, the end walls go up to it, the roof sails `over` past them).
@@ -943,6 +953,8 @@ def build_generic(b, rnd):
                 ang += math.pi                          # (its left, where `off` puts the ridge, the ridge's own)
         hip_roof(mb, cx, cy, L, W, ang, zt, hip.get('mat', 'roof_slate'), pitch=hip.get('pitch', 0.45), over=hip.get('over', 0.5),
                  gable=st['wall'] if hip.get('gable') else None, off=hip.get('off', 0.0))
+        if hip.get('burn'):            # (a hall given its gabled roof in its flat-roofed place in the list: 의료원 학사들)
+            burn_clutter(poly, rnd)
     elif style == 'gym':               # (rise: build_campus.py's own, 체육관 from the 1997 scans: tools/gymnorth97.py)
         barrel_roof(mb, cx, cy, L, W, ang, zt, rise=b.get('rise', 0.22))
     else:

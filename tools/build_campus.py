@@ -11967,6 +11967,96 @@ CJ97_WING = [cj_xy(u_, v_) for u_, v_ in ((-3.8, 1.9), (0.8, 1.9), (0.8, 6.6), (
 buildings.append(dict(id=990121, name='', style='house', levels=2, fh=3.0, height=6.0, base=datum.up(*cj_xy(-1.5, 4.25), 74.7),
                       top_ground=datum.up(*cj_xy(-1.5, 4.25), 74.7),
                       footprint=[list(p_) for p_ in shapely.geometry.polygon.orient(Polygon(CJ97_WING), 1.0).exterior.coords][:-1]))
+# 의료원의 박공지붕 (reference/고증/3.1.2 「학사들의 박공지붕」; the 1997-07-28 scans, the roofs' heights across them on
+# 의료원's grid): 선우학사 · 간호학관 · 행란사 and the L north of 선우학사 had gabled roofs, the ridges along their
+# lengths, where the game drew flat ones.  The first three keep their places in the list and their flat roofs' draws
+# from blender/build.py's stream (`burn`: generic.burn_clutter), so that no hall after them changes its looks; the L's
+# gabled south-west wing keeps its place the same way (on part of its outline), its low flat-roofed north-west strip
+# and its gabled north-east wing go in at the very end.  Heights 해발 (eaves at the outline, ridge), raised here.
+MED_GABLES = {990033: (51.52, 53.91, 0.0, 3), 990034: (49.33, 51.88, 0.0, 3), 990035: (47.18, 49.95, 0.95, 3),
+              990040: (50.2, 52.64, 0.0, 2)}
+MED_L_UV = dict(sw=(135.0, 171.8, 11.0, 22.2), nw=(135.0, 171.8, 22.2, 28.6), ne=(171.8, 184.6, -1.8, 28.6))
+MED_L_NW = dict(id=990041, roof=49.0, parapet=0.3)                     # (its flat roof 49.3 → 48.2 m across it)
+MED_L_NE = dict(id=990042, eaves=52.75, ridge=54.62, levels=2)
+
+
+def _med_gable(b_, eaves, ridge, off, levels, along):
+    """b_ given a gabled roof: its walls' head at the eaves (해발, at its outline), the ridge `off` to the left of its
+    line `along` (generic.hip_roof: pitch = the ridge over the head / half the width)"""
+    p_ = Polygon(b_['footprint'])
+    rr_ = np.array(list(p_.minimum_rotated_rectangle.exterior.coords)[:4])
+    e_ = [np.linalg.norm(rr_[(k_ + 1) % 4] - rr_[k_]) for k_ in range(4)]
+    d_ = [(rr_[(k_ + 1) % 4] - rr_[k_]) / e_[k_] for k_ in range(4)]
+    k_ = max(range(4), key=lambda k_: abs(float(d_[k_] @ np.array(along))))
+    w_ = e_[(k_ + 1) % 4]                                              # (the width across the ridge)
+    c_ = p_.centroid
+    zt_ = datum.up(c_.x, c_.y, eaves)
+    b_.update(levels=levels, fh=round((zt_ - b_['base']) / levels, 3), height=round(zt_ - b_['base'], 2),
+              hip=dict(mat='roof_slate', pitch=round(float((ridge - eaves) / (w_ / 2)), 4), over=0.3, gable=True,
+                       off=round(off, 2), ridge=[round(float(along[0]), 4), round(float(along[1]), 4)]))
+    return b_
+
+
+for b_ in buildings:
+    if b_['id'] == 990040:             # (the L: its south-west wing in its place; its door, on the north-west face, to the strip)
+        _l_entry = b_.pop('entry', None)
+        _p = shapely.geometry.polygon.orient(med_rect(*MED_L_UV['sw']), 1.0)
+        b_.update(footprint=[[x_, y_] for x_, y_ in list(_p.exterior.coords)[:-1]],
+                  base=round(min(ground_tn(x_, y_) for x_, y_ in _p.exterior.coords), 2),
+                  top_ground=round(max(ground_tn(x_, y_) for x_, y_ in _p.exterior.coords), 2))
+    if b_['id'] in MED_GABLES:
+        _med_gable(b_, *MED_GABLES[b_['id']], along=_med_u)
+        b_['hip']['burn'] = True
+for _k, _q in (('nw', MED_L_NW), ('ne', MED_L_NE)):
+    _p = shapely.geometry.polygon.orient(med_rect(*MED_L_UV[_k]), 1.0)
+    _hs = [ground_tn(x_, y_) for x_, y_ in _p.exterior.coords]
+    _b = dict(id=_q['id'], name='', style='white', levels=1, base=round(min(_hs), 2), top_ground=round(max(_hs), 2),
+              footprint=[[x_, y_] for x_, y_ in list(_p.exterior.coords)[:-1]])
+    if _k == 'nw':
+        if _l_entry:
+            _b['entry'] = _l_entry
+        _zt = datum.up(_p.centroid.x, _p.centroid.y, _q['roof'] - _q['parapet'])
+        _b.update(fh=round(_zt - _b['base'], 3), height=round(_zt - _b['base'] + _q['parapet'], 2), parapet=_q['parapet'])
+    else:
+        _med_gable(_b, _q['eaves'], _q['ridge'], 0.0, _q['levels'], along=_med_v)
+    buildings.append(_b)
+# the small hipped house south of the L, by the car park (reference/고증/3.1.2 「ㄱ자 동 남쪽의 작은 집」): the roof's
+# cells on a 2 m grid in the July 1997 frames and the leaf-off ones of winter 1996 (x 257.5 - 272.5, y -146.5 - -156,
+# the eaves 48.6 m, the ridge about 51.8 m 해발), the ground 42.7 m south and east of it, 45 m north and west.  A
+# tiled house (blender/generic.py `house`: a hipped roof); at the very end
+_sh = shapely.geometry.polygon.orient(Polygon([(257.5, -156.0), (272.5, -156.0), (272.5, -146.5), (257.5, -146.5)]), 1.0)
+_shh = [ground_tn(x_, y_) for x_, y_ in _sh.exterior.coords]
+_shz = datum.up(265.0, -151.25, 48.6)
+buildings.append(dict(id=990043, name='', style='house', levels=2, fh=round((_shz - min(_shh)) / 2, 3),
+                      height=round(_shz - min(_shh), 2), base=round(min(_shh), 2), top_ground=round(max(_shh), 2),
+                      footprint=[[x_, y_] for x_, y_ in list(_sh.exterior.coords)[:-1]]))
+# the flat-roofed white hall north-west of the site of 행정동, by 치과대학 (reference/고증/3.1.2 「치과대학 동쪽의 흰
+# 평지붕 동」): its roof's corners read on its own plane in 27/17 and its roof's cells on a 2 m grid (55.2 m 해발 on
+# x 424 - 448, y -9 - -31), the ground 44.5 m on the yard south-west of it, 48 - 50 m west and east: a square block
+# 16.9 x 16.2 m turned 41.4 degrees, three storeys over the yard (two over the game's ground there, 3 m above the
+# yard's).  At the very end; the two trees the planting put
+# there step aside 2 m off its walls, in their places in the list
+_wa = math.radians(41.4)
+_wu, _wv = (math.cos(_wa), math.sin(_wa)), (-math.sin(_wa), math.cos(_wa))
+_wh = shapely.geometry.polygon.orient(Polygon([(435.6 + su_ * 8.45 * _wu[0] + sv_ * 8.1 * _wv[0],
+                                                -19.95 + su_ * 8.45 * _wu[1] + sv_ * 8.1 * _wv[1])
+                                               for su_, sv_ in ((-1, -1), (1, -1), (1, 1), (-1, 1))]), 1.0)
+_whh = [ground_tn(x_, y_) for x_, y_ in _wh.exterior.coords]
+_whz = datum.up(435.6, -19.95, 55.2 - 0.9)
+buildings.append(dict(id=990044, name='', style='white', levels=2, fh=round((_whz - min(_whh)) / 2, 3),
+                      height=round(_whz - min(_whh) + 1.2, 2), base=round(min(_whh), 2), top_ground=round(max(_whh), 2),
+                      footprint=[[round(x_, 2), round(y_, 2)] for x_, y_ in list(_wh.exterior.coords)[:-1]]))
+_whr = _wh.buffer(2.0).exterior
+_wh_moved = 0
+for t_ in out['trees']:
+    if _wh.buffer(1.0).contains(Point(t_[1], t_[2])):
+        q_ = _whr.interpolate(_whr.project(Point(t_[1], t_[2])))
+        if len(t_) < 6:
+            t_.append((t_[1], t_[2]))      # (later clearings ask where it first stood: rxy)
+        t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
+        _wh_moved += 1
+print('치과대학 동쪽의 흰 평지붕 동: trees aside', _wh_moved)
+print('의료원 박공지붕:', {b_['id']: (b_['levels'], b_['fh'], b_['hip']['pitch']) for b_ in buildings if b_['id'] in MED_GABLES or b_['id'] == 990042})
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
 # edges in their places in the list
