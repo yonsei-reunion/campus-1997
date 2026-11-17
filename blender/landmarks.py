@@ -6715,7 +6715,17 @@ def kwangbok():
         bar(mb, P, 0, za - 0.1, L, za - 0.1, 0.2, 0.0, 0.12, 'stone_trim', ends=True)
     q = [tuple(U(ax[0], ax[2])), tuple(U(ax[1], ax[2])), tuple(U(ax[1], ax[3])), tuple(U(ax[0], ax[3]))]
     mb.face([(p[0], p[1], za - 0.3) for p in q], 'roof_flat')
-    return [mb]
+    # the bank over the road west of the hall, behind the cars parked along its west edge: a deck over the grid's cells
+    # kept at the road's level under them (tools/kwangbok97.py bank_deck, reference/고증/3.9 「서쪽 찻길 위 둑」)
+    kd = CAMPUS.get('kb_bank', {}).get('deck')
+    if not kd:
+        return [mb]
+    dk = MeshBuilder('lm_kwangbok_bank')
+    for f in kd['f']:
+        q = [tuple(kd['v'][i]) for i in f]
+        dk.face(q, 'terrain_drape')
+        WALK_FACES.append(q)
+    return [mb, dk]
 
 
 # ============================================================================= 연세한글탑 (1992)

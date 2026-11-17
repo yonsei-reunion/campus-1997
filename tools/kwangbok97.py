@@ -302,6 +302,40 @@ def bank_nodes(X, Y):
     return shapely.contains_xy(BANK, X, Y) & (bank_z(X, Y) > 0.0)
 
 
+# The bank behind the cars parked along the road's west edge (고증 3.9 「서쪽 찻길 위 둑」): the grid cells under them stay
+# on the road's level, so that a car stands level (grade's `lot`), and with them the node 2 - 6 m behind each car's
+# back: the bank started a node (5 m) farther west there, a ledge at the road's level.  A deck (build_campus.py
+# dwb_deck, drawn by blender/landmarks.py kwangbok and walked on) carries the bank over those cells from its foot
+# (BANK_FOOT west of the middle line) on: the grid's surface with those nodes on BANK_GRID, eased from the road's level
+# over DECK_EASE m from the foot.  DECK_MIN: a node counts where BANK_GRID stands this much over the road's level
+DECK_EASE, DECK_MIN = 1.5, 0.5
+
+
+def bank_deck(Hn, X, Y, gx, step, ground):
+    """the cells the deck covers, its outline (the cells west of the bank's foot) and its surface hfun(x, y) (working
+    datum, as Hn).  ground(x, y): the ground as saved"""
+    Tn = datum.tilt(X, Y)
+    lifted = car_nodes(X, Y, step) & bank_nodes(X, Y) & (bank_z(X, Y) + Tn - Hn > DECK_MIN)
+    U = Hn.copy()
+    U[lifted] = (bank_z(X, Y) + Tn)[lifted]
+    n = len(gx) - 1
+    cells = {(j + a, i + b) for j, i in zip(*np.nonzero(lifted)) for a in (-1, 0) for b in (-1, 0)
+             if 0 <= j + a < n and 0 <= i + b < n}
+    ls = LineString([q[:2] for q in ROAD_KB_W])
+    west = ls.buffer(60.0, single_sided=True)            # (the line runs south -> north: its left side is west)
+    foot = west.difference(ls.buffer(BANK_FOOT))
+    area = unary_union([shapely.box(gx[i], gx[j], gx[i] + step, gx[j] + step) for j, i in cells]).intersection(foot)
+    area = unary_union([g for g in getattr(area, 'geoms', [area]) if g.geom_type == 'Polygon' and g.area > 0.05])
+
+    def hfun(x, y):
+        from scipy.ndimage import map_coordinates
+        u = float(map_coordinates(U, [[(y - gx[0]) / step], [(x - gx[0]) / step]], order=1, mode='nearest')[0])
+        g = ground(x, y)
+        w = min(1.0, max(0.0, (ls.distance(Point(x, y)) - BANK_FOOT) / DECK_EASE))
+        return max(g, g + w * (u - g))
+    return cells, area, hfun, int(lifted.sum())
+
+
 def bend_nodes(X, Y):
     """the nodes BEND lays (for tools/ridge97.py's flush, as bank_nodes: the photos' ground there agrees with the
     surveys', so the ridge's own comes right up to them)"""

@@ -10036,6 +10036,14 @@ print('제1공학관 안뜰: the hall\'s floor %.2f m, the deck behind the wall 
     buildings[-1]['base'], _e97_area.area, len(out['eng1_yard']['deck']['f']),
     sum(LineString([q_[:2] for q_ in r_[1]]).length for r_ in out['eng1_yard']['walls'])))
 assert not any(ENG1_HALL.buffer(0.3).contains(Point(c_[1], c_[2])) for c_ in cars), 'a car in ENG1_HALL'
+# 광복관 서쪽 찻길 둑의 발치 (tools/kwangbok97.py bank_deck, reference/고증/3.9 「서쪽 찻길 위 둑」; #189, we): behind the
+# cars parked along the road's west edge the cells under them kept the road's level and the bank started a node
+# farther west; a deck carries the bank from its foot over those cells (blender/landmarks.py kwangbok draws it)
+_kb_cells, _kb_area, _kb_h, _kb_n = kwangbok97.bank_deck(Hn, X, Y, gx, NEAR_STEP,
+                                                         lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
+out['kb_bank'] = dict(deck=dwb_deck(_kb_cells, _kb_area, _kb_h))
+print('광복관 서쪽 찻길 둑의 발치: %d nodes behind the cars, the deck %.0f m2 (%d triangles)' % (
+    _kb_n, _kb_area.area, len(out['kb_bank']['deck']['f'])))
 # 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
 _ga = Image.new('L', (SW, SH), 0)
 _YN[id(_ga)] = '_ga'

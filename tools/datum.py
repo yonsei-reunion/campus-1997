@@ -233,7 +233,7 @@ def heights(c):
             A(sf, 'zr', *xy(sf['s'], sf['d']))
             A(sf, 'zg', *xy(sf['s'] - (sf['n'] - 1) * sf['T'], sf['d']))
     for key, dk in (('stimson_front', 'deck'), ('appenzeller_front', 'deck'), ('daewoo_front', 'deck'), ('daewoo_back', 'deck'),
-                    ('daewoo_back', 'deck_nw')):
+                    ('daewoo_back', 'deck_nw'), ('kb_bank', 'deck')):
         d = c.get(key, {}).get(dk)
         if d:
             for v in d['v']:
