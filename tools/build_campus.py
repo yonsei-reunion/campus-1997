@@ -5877,16 +5877,18 @@ def banner_from_photo(tw, te, bw, be, hb):
 
 
 BANNERS = [
-    # the front one: a small line over the title, a dark band of small print along the bottom (일시 · 장소 · 주최; of it
-    # 「4월 30일 … 오후 2:00 ~ 6:30」 can be made out), 경 and 축 in red circles at the ends
+    # The cloths where photo A has them (a small line over the title, a dark band of small print along the bottom, 경 and
+    # 축 in red circles at the ends of the front one).  Photo A's own words are of spring 1999 (도시공학전공's 7th
+    # anniversary on 30 April 1999, the ASIC설계공동연구소's 10th: reference/고증/2.4-2.7 「찍은 때」), so the game hangs
+    # spring 1997's events on them instead: the 112th founding day (11 May; 1991 was the 106th, 서울신문 1991.5.13),
+    # the 4·19 marathon from 학생회관 (18 April, 연세춘추 1997.5.5) and the '97 대동제 (6 - 8 May, 서울신문 1997.5.9)
     (banner_from_photo((730, 1257), (1397, 1276), (731, 1303), (1397, 1321), 5.0),
-     dict(text='창립 7주년 기념 세미나 및 학부모 초빙 행사', sub='연세대학교 사회환경건축공학부 도시공학전공', marks=['경', '축'],
-          band='일시: 4월 30일 오후 2:00 ~ 6:30   ·   주최: 연세대학교 사회환경건축공학부 도시공학전공'), 'white'),
+     dict(text='창립 112주년 기념식', sub='연세대학교', marks=['경', '축'],
+          band='일시: 5월 11일   ·   주최: 연세대학교'), 'white'),
     (banner_from_photo((880, 957), (1191, 986), (880, 987), (1191, 1016), 5.0),
-     dict(text='기술고등고시 설명회', sub='분야: 기계, 전기, 화공, 환경, 토목, 건축, 전산, 통신기술'), 'white_yellow'),
-    # 「아식」: the ASIC설계공동연구소 of 공과대학 (연세대학교 ASIC 설계 공동 연구소, IT SoC Magazine)
+     dict(text='4·19 정신 계승 마라톤', sub='4월 18일 · 학생회관 앞 출발 · 약 10 km'), 'white_yellow'),
     (banner_from_photo((921, 803), (1182, 813), (922, 822), (1181, 832), 4.85),
-     dict(text='아식설계공동연구소 10주년 기념식 및 초청강연회'), 'white'),
+     dict(text='’97 문화대동제', band='5월 6일 ~ 8일'), 'white'),
     # 사진 속 먼 쪽 두 장(글자는 읽히지 않음)은 연고전 현수막이 걸리는 가을에는 겹치므로 뺀다. 맨 끝 장은 양끝에 붉은 원(경 · 축)
     (banner_from_photo((942, 701), (1114, 701), (942, 714), (1114, 714), 5.2),
      dict(text='’97 학술제 안내  —  학과별 발표회 및 초청강연', hide='autumn'), 'white'),
