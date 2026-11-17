@@ -21,10 +21,10 @@
 <table>
 <tr><th width="50%">사진</th><th width="50%">게임</th></tr>
 <tr>
-<td valign="top"><img src="docs/compare/baekyangro_photo.jpg" alt="백양로 1997년 항공 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/baekyangro_photo.jpg" alt="백양로 1999년 봄 항공 사진" width="100%"></td>
 <td valign="top"><img src="docs/compare/baekyangro_game.jpg" alt="게임의 백양로" width="100%"></td>
 </tr>
-<tr><td colspan="2" align="center"><b>백양로</b> · 1997년 항공 사진(게임은 같은 카메라)</td></tr>
+<tr><td colspan="2" align="center"><b>백양로</b> · 1999년 봄 항공 사진(게임은 같은 카메라)</td></tr>
 <tr>
 <td valign="top"><img src="docs/compare/campus_west_photo.jpg" alt="캠퍼스 서쪽 1995년 항공 사진" width="100%"></td>
 <td valign="top"><img src="docs/compare/campus_west_game.jpg" alt="게임의 캠퍼스 서쪽" width="100%"></td>
@@ -231,7 +231,7 @@
 
 - 계절 · 필름 · 자동 회전
 - 「거리 높이」: 눈높이로 내려가기
-- 「1997 사진 시점」: 1997년 항공 사진과 같은 카메라
+- 「백양로 사진 시점」: 백양로 항공 사진(1999년 봄)과 같은 카메라
 - 「전체 보기」 · 높이 · 확대
 
 ### 모바일

@@ -183,7 +183,7 @@ export class BirdsEye {
     } else if (what === 'overview') {    // the whole campus from high above: 정문 at the foot, 북문 and 무악학사 at the top
       Object.assign(g, { x: -20, y: 50, dist: 1000, pitch: 0.87, lift: 0 });
       this.fovGoal = this.baseFov;
-    } else if (what === 'photo') {       // the 1997 aerial photo (reference/1997_백양로_항공사진.jpg): taken ~19 m over the gate with a
+    } else if (what === 'photo') {       // the aerial photo of spring 1999 (reference/1997_백양로_항공사진.jpg; reference/고증/2.4-2.7 「찍은 때」): taken ~19 m over the gate with a
       this.stopAuto();                   // normal lens, up 백양로 to 언더우드관 and 대우관 (any other control returns to the orbit view).
       // Camera fitted by least squares to the unchanged halls and to 백양로's carriageway and the eagle where the 1997
       // vertical aerial photos have them (halls within 5 px, the ground within 7 px; issues #82, #83, #162:

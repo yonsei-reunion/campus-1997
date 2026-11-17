@@ -103,7 +103,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
   - 소스의 절대 높이는 제 자리의 해발로 적고 읽는 곳에서 올립니다(`datum.up(x, y, z)` · `up3` · `up_at` · `up_plane` · `up_uv`). `data/terrain_*.npy` · `campus.json` · GLB는 해발이고, `campus.json` 의 높이 필드 목록은 `datum.heights()` 에 있습니다(새 필드를 더하면 거기에도 한 줄).
   - 건물은 값 하나(`buildings[].tilt`)로 내려가 기울지 않고 발치 7.5 m의 땅이 함께 내려갑니다. 건물이 아닌데 수평이어야 하는 것은 `build_campus.py` 끝의 `_dz_zones` 에 더합니다.
   - `Y97_WORK_DUMP=<폴더>` 로 `build_campus.py` 를 돌리면 작업면의 `campus.json` · 지형이 그 폴더에 남습니다. 전의 것과 잎마다 같으면 심기가 흔들리지 않은 것입니다.
-- 날아가기의 「1997 사진 시점」은 그 역산한 카메라입니다.
+- 날아가기의 「백양로 사진 시점」은 그 역산한 카메라입니다.
 
 ### 건물
 
