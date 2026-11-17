@@ -354,6 +354,13 @@ def make_shrub(kind, seed=0):
                     batter=0.05, tuck=(0.07, 0.16), segs=(2, 2, 2))
         cards(mb, rnd, 96, 'leaf_boxwood', CARD_M['boxwood'], W=(0.75, 1.1), Hf=(0.5, 0.78), tilt=(10, 65),
               depth=0.035, weight=lambda p, n: 0.15 if p.z < 0.15 else 0.55 + 0.45 * max(0.0, n.z))
+    elif kind == 'hedge_tall':
+        # a block of the tall clipped hedge (무악학사 1학사 남쪽 굽은 길: its top 1.4 m over the road south of 1학사 and
+        # higher round the island in the 1997 scans, tools/north97.py HEDGE97): 2.0 x 1.1 x 1.45 m, upright faces
+        rounded_box(mb, 1.0, 0.55, 1.45, (0.14, 0.14, 0.15), 'hedge_boxwood', _ao_box(1.45, foot=0.25), taper=0.03,
+                    batter=0.04, tuck=(0.07, 0.16), segs=(2, 2, 3))
+        cards(mb, rnd, 120, 'leaf_boxwood', CARD_M['boxwood'], W=(0.75, 1.1), Hf=(0.5, 0.78), tilt=(10, 65),
+              depth=0.035, weight=lambda p, n: 0.15 if p.z < 0.2 else 0.55 + 0.45 * max(0.0, n.z))
     elif kind == 'topiary_round':
         # 둥근 회양목 · 주목 (reference/2003_봄_언더우드관정원_남쪽계단_벚나무.jpg): a dome wider than high, the clipped
         # face drawn in under its widest part to a narrow, shaded foot

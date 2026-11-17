@@ -158,7 +158,7 @@ if want('veg'):
 
 if want('veg') or want('shrubs'):       # (`shrubs` alone: the clipped shrubs without the trees, blender/shrubs.py)
     for k in ('topiary_round', 'topiary_cone', 'hedge_blob', 'bush', 'hedge_low', 'azalea_red', 'azalea_violet', 'pansy_bed',
-              'summer_bed', 'juniper_tiers', 'yew_tiers', 'pine_cloud', 'topiary_dome', 'topiary_egg'):
+              'summer_bed', 'juniper_tiers', 'yew_tiers', 'pine_cloud', 'topiary_dome', 'topiary_egg', 'hedge_tall'):
         reset_scene()
         ob = vegetation.make_shrub(k).build()
         stats[k] = tri_count([ob])

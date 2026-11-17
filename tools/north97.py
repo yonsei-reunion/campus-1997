@@ -48,11 +48,14 @@ to the working datum (해발 + tilt: tools/datum.py) where it is read, each at i
 - WEST97_*: the west road round 1학사 as the 1997 frames have it (its middle line, half width, surface and paving):
   muak.lanes97() lays its bed and draws it; the houses, the rows and the far forest's clear and woods keep OSM's line
   (muak.lanes()), so that no list moves.  HEDGE97: the hedge along its south side (shrubs at the list's end).
+- TREES97 · SHRUBS97 · NWOOD97: the 1997 trees and shrubs round the dormitories and the wood north of them, at the
+  trees' and the shrubs' very ends (trees97(), shrubs97()).
 - Nothing here draws from build_campus.py's `rng`.
 """
 import json
 import math
 import os
+import random
 
 import numpy as np
 import datum
@@ -197,7 +200,51 @@ HEDGE97 = [
     (173.9, 1134.8), (174.9, 1133.5), (175.9, 1131.9), (177.0, 1130.2), (178.1, 1128.5), (179.2, 1126.9),
     (180.3, 1125.2), (181.2, 1123.7), (182.1, 1122.2), (182.8, 1120.7), (183.5, 1119.2), (184.0, 1117.6),
     (184.5, 1115.9), (185.0, 1114.0)]
-HEDGE97_SC = 1.3                  # (hedge_blob: 2.6 x 1.8 x 1.2 m)
+# its top over the road: 1.4 m south of 1학사 (HEDGE97's first fifteen), 1.8 - 3 m round the island (from x 171), by
+# the lean between the three frames; drawn as tall clipped blocks (blender/shrubs.py hedge_tall, 1.45 m at scale 1:
+# 2.0 x 1.1 m), the scale its height over 1.45 m (2.2 m round the island).  Before: hedge_blob at 1.3, 1.24 m high
+HEDGE97_TOP = (1.45, 2.2, 15, 18)     # (south of 1학사, round the island, the island's from index .. to index)
+HEDGE97_KIND = 'hedge_tall'
+
+
+# 무악학사 둘레의 1997년 나무 · 관목 (reference/고증/3.21 「학사 둘레의 나무」): the leafless 1996 winter scan 26/14 (the only
+# 1996 frame over the dormitories: 26/13 of 1996 was not taken, 27/15 ends at y 1000) read for the dark round blobs at
+# 1.5 m over the ground (evergreens and trunks), each kept where the 1997 frames 26/13 and 27/15 are dark there too;
+# the island east of 2학사's yard as the 1997 frames show it (a row of clipped shrubs inside its west kerb), the island
+# south of 1학사's east wing a closed grove (all three 1997 frames, dark in December too: pines), the bed between the
+# road and 1학사's south end clipped evergreens in rows round a crown that all three 1997 frames have over it.
+# At the trees' and the shrubs' very ends (the web picks a tree's model by its place in the list)
+TREES97 = [  # (species, x, y, scale)
+    ('pine', 180.2, 1143.3, 0.8), ('pine', 181.1, 1140.8, 0.75), ('pine', 183.0, 1138.5, 0.85), ('pine', 184.6, 1135.4, 0.8),
+    ('pine', 184.1, 1144.3, 0.8), ('pine', 189.8, 1141.4, 0.75), ('pine', 190.5, 1143.8, 0.8), ('pine', 188.9, 1133.3, 0.75),
+    ('zelkova', 156.5, 1161.0, 0.75)]
+SHRUBS97 = (  # (kind, x, y, scale)
+    [('topiary_round', 115.3, 1135.0 + 2.4 * k, 1.1) for k in range(7)] + [('topiary_round', 114.4, 1151.6, 1.1), ('topiary_round', 115.4, 1154.2, 1.1)] +
+    [('bush', 118.7, 1149.5, 1.0), ('bush', 121.6, 1150.9, 1.0), ('bush', 119.9, 1147.1, 1.0)] +
+    [('topiary_round', x, y, 1.15) for x, y in ((144.4, 1168.9), (149.6, 1166.7), (154.2, 1167.0), (149.1, 1162.0), (152.8, 1165.1),
+                                                (152.5, 1160.8), (155.3, 1160.1), (155.5, 1162.8), (157.8, 1158.7), (159.3, 1161.6),
+                                                (160.4, 1163.9), (160.6, 1157.5), (162.4, 1161.8))])
+# the wood north of the wings (the 1997 frames 26/13 · 27/15: closed crowns from the wings' north ends to the houses on
+# 연희로 at y 1255, the path across it from the yard behind 1학사 kept clear; x 200 east is the patch's woods already)
+NWOOD97 = Polygon([(118.0, 1236.0), (127.0, 1228.0), (137.0, 1228.5), (147.0, 1230.0), (153.0, 1226.0), (160.0, 1215.0),
+                   (168.0, 1210.0), (183.0, 1208.0), (200.0, 1204.0), (200.0, 1255.0), (172.0, 1256.0), (165.0, 1250.0),
+                   (150.0, 1251.0), (132.0, 1249.0), (118.0, 1247.0)])
+NWOOD97_PATH = LineString([(154.0, 1203.0), (168.0, 1210.0), (184.0, 1217.0), (200.0, 1223.0)])
+
+
+def trees97(trees_, fill):
+    """the 1997 trees round the dormitories (TREES97) and the wood north of them (NWOOD97 off its path, fill:
+    tools/muak.py woods_fill with a stream of its own), for the trees' very end"""
+    rd = random.Random(15998)
+    out = [[sp, x, y, sc, round(rd.uniform(0, 6.28), 2)] for sp, x, y, sc in TREES97]
+    out += fill(NWOOD97.difference(NWOOD97_PATH.buffer(3.0)), trees_ + out, seed=15999, spacing=10.0)
+    return out
+
+
+def shrubs97():
+    """the 1997 shrubs round the dormitories (SHRUBS97), for the shrubs' very end"""
+    rd = random.Random(16000)
+    return [[k, x, y, sc, round(rd.uniform(0, 6.28), 2)] for k, x, y, sc in SHRUBS97]
 
 
 def grid_z(x, y):
@@ -244,9 +291,11 @@ def pocket_z(x, y):
 def hedge97():
     """the hedge along the west road's south side round 1학사 (HEDGE97): campus.json shrubs, at the list's end"""
     out = []
+    h0, h1, k0, k1 = HEDGE97_TOP
     for k, (x, y) in enumerate(HEDGE97):
         a, b = HEDGE97[max(k - 1, 0)], HEDGE97[min(k + 1, len(HEDGE97) - 1)]
-        out.append(['hedge_blob', x, y, HEDGE97_SC, round(math.atan2(b[1] - a[1], b[0] - a[0]), 3)])
+        h = h0 + (h1 - h0) * min(max((k - k0) / (k1 - k0), 0.0), 1.0)
+        out.append([HEDGE97_KIND, x, y, round(h / 1.45, 2), round(math.atan2(b[1] - a[1], b[0] - a[0]), 3)])
     return out
 
 

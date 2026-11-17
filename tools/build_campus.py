@@ -11584,10 +11584,16 @@ out['trees'] += MED_STRIP_TREES
 out['shrubs'] += MED_STRIP_SHRUBS
 print('성산로 북쪽 가 (의료원): street trees %d, shrubs %d' % (len(MED_STRIP_TREES), len(MED_STRIP_SHRUBS)))
 out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first planted, rxy: not written out)
+# 무악학사 둘레 (tools/north97.py TREES97 · NWOOD97): the 1997 trees round the dormitories (the leafless 1996 scan's blobs
+# where the 1997 frames are dark too) and the wood north of them, at the trees' very end
+DORM97_TREES = north97.trees97(out['trees'], muak.woods_fill)
+out['trees'] += DORM97_TREES
+print('무악학사 둘레: trees %d (and %d in the wood north of the wings)' % (len(north97.TREES97), len(DORM97_TREES) - len(north97.TREES97)))
 # 1학사 남쪽 굽은 길 (tools/north97.py HEDGE97): the hedge along the 1997 road's south side, at the shrubs' end
 out['shrubs'] += north97.hedge97()
 # 신촌 로터리 섬의 여름 화단 (tools/sinchon_rotary.py BED): the bed's plants past the 23 places its May bed had
 out['shrubs'] += ROT['shrubs_late']
+out['shrubs'] += north97.shrubs97()        # (무악학사 둘레: the clipped shrubs on the islands and the bed by 1학사)
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
 # the 1997 photos' block had (0.052 + 0.522 x/100 + 0.248 y/100 m): the levels the photos read as flat, the roads'
