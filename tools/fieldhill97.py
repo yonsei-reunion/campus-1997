@@ -31,7 +31,7 @@ reaches it) have: a wooded hill of two tops, an L open to the south-east.
 GRID: a minimum-curvature surface (2.5 m, a little tension) through the 2006 contours (1.25 m apart along them), the
 two editions' spot heights and the scans' 44 points, at the game's 5 m nodes, centimetres.  Contours rms 0.41 m, spots
 0.1 m, the scans' points 0.4 m.  Laid in HILL: drawn along where it meets the game's ground on the north, west and
-south-west (연희동's slope north of it stands 3 - 7 m over the survey and is not touched here), to the oval and to 서문's
+south-west (연희동's slope north of it: on the same survey, tools/yeonhui97.py, laid before this), to the oval and to 서문's
 road on the south and east; eased round it over RING m.  The trees and shrubs stand on whatever ground is under them.
 Nothing here draws from build_campus.py's `rng`.
 """

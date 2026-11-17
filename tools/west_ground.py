@@ -36,17 +36,22 @@ def _smooth(t):
 # its two banks); the survey's spot on it (-510.9, -243.3) 31.42 m.
 # NW_LINE runs from 20 m inside gate_town's road (which ssr_west puts on the same photos and datum) round
 # past the grid's west edge; the road's bed every 16 m: (s, the photos' height, three stations' mean), on them +
-# gate_town.SSR_W_DATUM.  Past the photos' last station (s 200, x -575: out of the ground map) the bed holds
-# that height on to x -640 and is eased back into the surface model's ground beyond, so that the road does not end in
-# a 7 m bank seen from the campus
+# gate_town.SSR_W_DATUM.  Past s 200 (x -575, out of the ground map) the scans go on seeing the road falling north-west
+# to its end at x -640 (2026-11-17: 1998-10 26/16 · 26/17 every 8 m, the 1997-07 and 1996-12 pairs where they hit it,
+# within 0.3 m of each other; four offsets across the road, 3 m windows): 30.2 m at s 208, 27.5 m at s 296.  It used
+# to hold the height of s 200 on to its end, 2.6 m over them at s 288, against the surface model's ground beside it;
+# that ground is the survey's now (tools/yeonhui97.py: 0.9 - 1.3 m under the scans' road there), which the bed's end
+# eases into
 NW_LINE = [(-440.6, -321.6), (-461.7, -297.6), (-516.0, -235.0), (-575.0, -170.0), (-640.0, -100.0)]
 NW_Z97 = datum.up_at([(0.0, 29.8), (32.0, 30.35), (48.0, 30.52), (64.0, 30.75), (80.0, 30.82), (96.0, 31.15), (112.0, 31.07),
-          (128.0, 31.1), (144.0, 31.12), (160.0, 30.75), (176.0, 30.28), (192.0, 30.2), (200.0, 30.17)],
+          (128.0, 31.1), (144.0, 31.12), (160.0, 30.75), (176.0, 30.28), (192.0, 30.2), (200.0, 30.17), (208.0, 30.16),
+          (224.0, 29.53), (240.0, 28.96), (256.0, 28.65), (272.0, 28.3), (288.0, 27.61), (296.0, 27.5)],
                      [(-440.6, -321.6), (-461.7, -297.6), (-472.2, -285.5), (-482.7, -273.4), (-493.2, -261.3), (-503.7, -249.2),
                       (-514.1, -237.1), (-524.9, -225.2), (-535.6, -213.4), (-546.4, -201.6), (-557.1, -189.7), (-567.9, -177.9),
-                      (-573.2, -171.9)])
+                      (-573.2, -171.9), (-578.7, -166.0), (-589.6, -154.3), (-600.4, -142.6), (-611.3, -130.9), (-622.2, -119.2),
+                      (-633.1, -107.4), (-638.5, -101.6)])
 NW_HALF, NW_EASE = 17.0, 14.0          # the road's bed either side of the line, then eased into the ground beside it
-NW_END = (290.0, 340.0)                # (s: eased out back into the surface model's ground)
+NW_END = (290.0, 340.0)                # (s: eased out back into the ground beside it, round its end)
 # 야구장 (OSM 421415364): the photos' 128 points on it lie on one level 31.04 m (rms 0.09), the 대운동장's 188 on 33.23 m
 # (rms 0.10), the same frame pair: the 야구장 2.21 m under the 대운동장, 31.22 m here (the survey's 2006 spot 31.22 m, 1.95
 # m under its 33.17 m).  The game had both pitches at the mean of the surface model under them (32.9 m).

@@ -29,6 +29,7 @@ import med97
 import music97
 import eng97
 import town97
+import yeonhui97
 import east97
 import walkguard97
 import kwangbok97
@@ -6544,9 +6545,17 @@ Hf = ndimage.gaussian_filter(Hf, 0.7).astype(np.float32)
 HF_RNG = Hf.copy()
 TOWN97_FAR = town97.far_ring(Hf, tf['half'], tf['step'], tf['n'])
 print('동네 땅 (먼 지형): nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m (16 - 84 %%: %(p16)+.2f .. %(p84)+.2f), %(low)+.1f .. %(high)+.1f' % TOWN97_FAR)
+# 연희동 땅 (tools/yeonhui97.py, reference/고증/4.12 「연희동 땅」; #189): west and north-west of the campus the same survey
+# (the base terrain stood 3 - 9 m over it across 연희동, 5 - 13 m under it on 서울외국인학교's hill); the far terrain's
+# nodes on the near grid's west and north edges there first, so that the town's and 연희동's ground meet them
+YH97_FAR = yeonhui97.far_edge(Hf, tf['half'], tf['step'])
+print('연희동 땅 (먼 지형의 가장자리): nodes %(nodes)d, median %(median)+.2f m, %(low)+.1f .. %(high)+.1f' % YH97_FAR)
 _far97 = (Hf, tf['half'], tf['step'])
 TOWN97_NEAR = town97.lay(Hn, X, Y, _far97, keep=FIXED)
 print('동네 땅: nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m (16 - 84 %%: %(p16)+.2f .. %(p84)+.2f), %(low)+.1f .. %(high)+.1f' % TOWN97_NEAR)
+print('   (연희동 땅: FIXED nodes in its region %d)' % int((FIXED & shapely.contains_xy(yeonhui97.REGION, X, Y)).sum()))
+_yh_took, YH97_NEAR = yeonhui97.lay(Hn, X, Y, _far97, FIXED, harmonic_fill)
+print('연희동 땅: nodes %(nodes)d (eased %(eased)d), median %(median)+.2f m (16 - 84 %%: %(p16)+.2f .. %(p84)+.2f), %(low)+.1f .. %(high)+.1f' % YH97_NEAR)
 TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h,
                            keep_nodes=near_buildings(1.5))
 TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h)
@@ -7437,6 +7446,9 @@ for b_ in buildings:
         if _rg_e:
             print('   %s: door %s -> (%.2f, %.2f)' % (b_['name'], b_.get('entry', {}).get('p'), _rg_e[1], _rg_e[2]))
             b_['entry'] = dict(p=[round(_rg_e[1], 2), round(_rg_e[2], 2)], n=[round(_rg_e[3], 4), round(_rg_e[4], 4)])
+# 연희동's houses (OSM's 'city' outlines in yeonhui97.REGION): their floors read the base terrain before 연희동 땅 above
+# laid the survey there and the blocks round it theirs; on the ground as it now is
+print('연희동 집:', yeonhui97.rebase(buildings, ground_h))
 # 무악학사 · 북문 (tools/muak.py NORTH): the patch north of the grid (x -60 .. 340, y 800 .. 1280), from the grid's last
 # change; the 1997 roads' beds on it and the courts' pads
 _mk_far = ndimage.gaussian_filter(np.array(tf['rows_south_to_north'], np.float64), 0.7)     # (the far ring as the web draws it)
