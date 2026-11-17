@@ -1418,5 +1418,15 @@
   "_doc": "옛 신촌역 역사의 이름판 「신촌역 · 新村驛 · Shinchon Station」 (tools/make_textures.py sign_station, 서울연구원 52245, 1996)",
   "image": "sign_station.png",
   "rough": 0.5
+ },
+ "wagon_brown": {
+  "_doc": "신촌역 구내 북쪽 옆선에 선 유개화차의 짙은 갈색 몸 (서울연구원 52044 · 52045, 1996)",
+  "color": [
+   0.16,
+   0.07,
+   0.05
+  ],
+  "rough": 0.6,
+  "metal": 0.3
  }
 }

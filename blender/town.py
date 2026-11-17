@@ -960,6 +960,16 @@ def yard():
                     if e:
                         q_ = [P(s_, oa, s_[11] - 0.1), P(s_, ob, s_[11] - 0.1), P(s_, ob, z_), P(s_, oa, z_)]
                         flat(mb, q_ if s_ is a else q_[::-1], B_PLAIN, P_CONC)
+    for x0, x1, o, top in (Y or {}).get('wagons', []):      # (the covered wagons on the north siding: 1997 scans, 52044)
+        a_, b_ = _at_x(S, x0), _at_x(S, x1)
+        ca, cb = (x0, a_[1] + a_[3] * o), (x1, b_[1] + b_[3] * o)
+        ang = math.atan2(cb[1] - ca[1], cb[0] - ca[0])
+        c = ((ca[0] + cb[0]) / 2, (ca[1] + cb[1]) / 2)
+        z0 = (a_[11] + b_[11]) / 2
+        L = math.hypot(cb[0] - ca[0], cb[1] - ca[1]) - 0.6
+        mb.box((c[0], c[1], z0 + 0.55), (L - 2.0, 2.2, 0.7), 'metal_dark', rotz=ang)
+        mb.box((c[0], c[1], z0 + (0.9 + top - 0.15) / 2), (L, 2.8, top - 0.15 - 0.9), 'wagon_brown', rotz=ang)
+        mb.box((c[0], c[1], z0 + top - 0.075), (L + 0.1, 2.9, 0.15), 'roof_metal', rotz=ang)
     W = R.get('wall97') or []
     for a, b in zip(W[:-1], W[1:]):
         _slab(mb, a[:2], b[:2], 0.3, (a[2] - 0.4, b[2] - 0.4), (a[3], b[3]), ends=(a is W[0] or b is W[-1]), bottom=False)

@@ -172,6 +172,12 @@ YARD_S = [(132.0, 0.0), (150.0, -22.0), (160.0, -25.0), (360.0, -25.0), (400.0, 
 YARD_TRACKS = [(250.0, 505.0, 11.0), (125.0, 500.0, 2.8), (150.0, 520.0, -11.6), (160.0, 375.0, -22.0)]
 YARD_PLATFORMS = [(125.0, 493.0, 0.9, -5.0), (158.0, 325.0, -13.4, -19.4)]
 PLATFORM_UP = 0.5
+# the wagons standing on the north siding (o +11) on 1997-07-28 (x0, x1 of each body): roofs 3.7 m over the bed (38.0 m,
+# 27/17 and 27/18 within 0.3 m on that plane), light grey but the two at x 437 - 464 darker; a covered wagon stands there
+# in 1996 too (서울연구원 52044 · 52045: dark brown, from the bridge in 이화여대).  The yard took goods till 2005 (무연탄
+# from 1971)
+YARD_WAGONS = [(378.0, 391.0), (392.0, 405.0), (406.0, 419.0), (437.0, 450.0), (451.0, 464.0), (465.0, 478.0), (479.0, 492.0)]
+WAGON_O, WAGON_TOP = 11.0, 3.7
 
 
 def is_flat(x, side, hw):
@@ -260,7 +266,8 @@ def rail_extras(secs, rail_bed):
             bench = float(rail_bed(q[0])) - WALL97_BENCH
             pts.append([round(q[0], 2), round(q[1], 2), round(bench, 2), datum.up(q[0], q[1], za + (zb - za) * f)])
     return dict(wall97=pts, yard=dict(tracks=[list(t) for t in YARD_TRACKS],
-                                      platforms=[list(p) + [PLATFORM_UP] for p in YARD_PLATFORMS]))
+                                      platforms=[list(p) + [PLATFORM_UP] for p in YARD_PLATFORMS],
+                                      wagons=[[a, b, WAGON_O, WAGON_TOP] for a, b in YARD_WAGONS]))
 
 
 def yard_poly(secs):
