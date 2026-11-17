@@ -164,7 +164,7 @@ def ow_halls():
     wt = h['ridge'] - W / 2 * pitch                               # (the walls' head: hip_roof's ridge is zt + W/2 pitch)
     fp = [ow_xy(s, w) for s, w in ((s0, w0), (s1, w0), (s1, w1), (s0, w1))]
     c = ow_xy((s0 + s1) / 2, (w0 + w1) / 2)
-    out = [dict(id=990090, name='', style='white', levels=2, fh=round((wt - h['floor']) / 2, 3), height=round(wt - h['floor'], 2),
+    out = [dict(id=990081, name='', style='white', levels=2, fh=round((wt - h['floor']) / 2, 3), height=round(wt - h['floor'], 2),
                 base=_d.up(*c, h['floor']), top_ground=_d.up(*c, h['floor']),
                 hip=dict(mat='roof_cement', pitch=round(pitch, 4), over=h['over'], gable=True),
                 footprint=[[round(x, 2), round(y, 2)] for x, y in fp])]
@@ -172,7 +172,7 @@ def ow_halls():
     fp = [ow_xy(s, w) for s, w in ((s0, w0), (s1, w0), (s1, w1), (s0, w1))]
     c = ow_xy((s0 + s1) / 2, (w0 + w1) / 2)
     fh = round(b['roof'] - b['coping'] - b['floor'], 3)
-    out.append(dict(id=990091, name='', style='white', levels=1, fh=fh, height=round(b['roof'] - b['floor'], 2), parapet=b['coping'],
+    out.append(dict(id=990082, name='', style='white', levels=1, fh=fh, height=round(b['roof'] - b['floor'], 2), parapet=b['coping'],
                     base=_d.up(*c, b['floor']), top_ground=_d.up(*c, b['floor']), footprint=[[round(x, 2), round(y, 2)] for x, y in fp]))
     return out
 
