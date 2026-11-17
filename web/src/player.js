@@ -235,6 +235,9 @@ export class Player {
     // a short scene that moves the walker itself (birthday.js): while true, update() leaves the walker, its clip and
     // its mixer to the scene and only runs the camera
     this.scripted = false;
+    // {x, z, r}: the walker walks up to three (x, z) by itself till within r of it, facing it (hoops.js: to a ball to
+    // pick up); the keys do nothing meanwhile and the view keeps its direction. `there` is set once arrived
+    this.goal = null;
     // {pos, look, k?}: the camera eases to this view instead of following behind (k = 1 sets it at once)
     this.camOverride = null;
     this.stick = new THREE.Vector2();
@@ -468,9 +471,22 @@ export class Player {
     return { fwd: clamp(fwd, -1, 1), turn: clamp(turn, -1, 1), run, tilt };
   }
 
+  // the input that takes the walker to this.goal: round to face it, and slowly up to it
+  goalInput(dt) {
+    const g = this.goal, dx = g.x - this.pos.x, dz = g.z - this.pos.z, d = Math.hypot(dx, dz);
+    const off = d < 0.2 ? 0 : wrapAngle(Math.atan2(dx, dz) - this.heading);     // (right over it: no way to face)
+    const k = off * Math.min(1, dt * 8);
+    this.heading += k;
+    this.cam.orbit = wrapAngle(this.cam.orbit - k);
+    const left = d - g.r;
+    g.there = left < 0.05 && Math.abs(off) < 0.25 && Math.abs(this.speed) < 0.2;
+    const fwd = left < 0.05 ? 0 : clamp(left / 0.6, 0.2, 0.6) * Math.max(0, Math.cos(off));
+    return { fwd, turn: 0, run: false, tilt: 0 };
+  }
+
   update(dt) {
     if (this.scripted) { this.speed = 0; this.vy = 0; this.updateCamera(dt); return; }
-    const inp = this.enabled ? this.input() : { fwd: 0, turn: 0, run: false };
+    const inp = this.goal ? this.goalInput(dt) : this.enabled ? this.input() : { fwd: 0, turn: 0, run: false };
     if (inp.tilt) {
       const c = this.cam;
       if (!this._tilt) this._tiltSide = Math.sign(Math.round(c.lift * 100));

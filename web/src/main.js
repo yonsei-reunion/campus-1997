@@ -1145,8 +1145,9 @@ async function main() {
         lastPlace = tAcc;
         const l = ui.nearestLandmark(player.x, player.y);
         ui.setPlace(ui.placeName(player.x, player.y, onRoad(player.x, player.y)));
-        const game = shootout?.on, bp = game ? ball.prompt() : ball?.prompt() || birthday?.prompt();
-        ui.setPrompt(bp ? bp : l && !game && !ui.memoryOpen ? `${l.name} · ${MOBILE ? '눌러서 ' : ''}그때의 추억 보기` : null);
+        const game = shootout?.on, busy = game || !!ball?.pick;      // (picking up the ball: no other prompt meanwhile)
+        const bp = busy ? ball.prompt() : ball?.prompt() || birthday?.prompt();
+        ui.setPrompt(bp ? bp : l && !busy && !ui.memoryOpen ? `${l.name} · ${MOBILE ? '눌러서 ' : ''}그때의 추억 보기` : null);
       }
       if (MOBILE) ui.clearWalker(player.screenBox(camera));     // the prompt button off the walker (phones)
     }

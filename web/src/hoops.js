@@ -1,4 +1,5 @@
-// 대강당 앞 농구장: basketballs to pick up (E) and shoot at the hoops. A shot is timed: hold E or Space (on a phone the
+// 대강당 앞 농구장: basketballs to pick up (E: the walker goes up to the ball, bends down for it and comes up with it at
+// the chest, as the 1-minute game's friend does) and shoot at the hoops. A shot is timed: hold E or Space (on a phone the
 // button) and let go at the top of the jump, when the meter's bar is in the green. The farther from the rim, the
 // narrower the green; let go early and the ball falls short, late and it goes long. The motions (the men's one-handed
 // shot, the women's two-handed set shot, catching) are in ballpose.js; the 1-minute game (shootout.js) adds balls,
@@ -7,7 +8,8 @@
 // where they are: court-local x = ±(L/2 - 1.575) is the rim, ±(L/2 - 1.2) the backboard, rim height 3.05 m.
 // Loaded when the walk or the view comes near the court, or for the game (main.js), not with the page.
 import * as THREE from 'three';
-import { R, G, SHOT, BallForm, makeBall, hopAt } from './ballpose.js';
+import { R, G, SHOT, PICK, BallForm, makeBall, hopAt } from './ballpose.js';
+import { wrapAngle } from './util.js';
 import './basket.css';
 
 const RIM_R = 0.235, RIM_H = 3.05;
@@ -78,6 +80,7 @@ export class Basketball {
     this.shots = 0; this.makes = 0;
     this.form = new BallForm(player.actor);
     this.mine = null;           // the ball in the walker's hands
+    this.pick = null;           // { b, t, at, wait } from E to the ball at the chest: t < 0 going up to it (wait: s so far)
     this.shot = null;           // { t, tr, hoop, d, win, q, ball, gone } from the press to the end of the follow-through
     this.armW = 0;              // how far the arms follow the ball instead of the walk / idle clip
     this.bodies = [];           // () => [{ x, z, y, top, r }]: people the balls bounce off (the game's friend)
@@ -129,6 +132,7 @@ export class Basketball {
   // text for the E prompt (null = nothing to offer)
   prompt() {
     const k = this.mobile ? '눌러서 ' : '';
+    if (this.pick) return null;
     if (this.shot) return this.shot.tr === null && this.shot.hoop ? '떼면 슛!' : null;
     if (this.mine && this.game && !this.game.canShoot()) return null;
     if (this.mine) return this.nearestHoop(REACH) ? `꾹 눌렀다 떼서 슛${this.mobile ? '' : ' (스페이스도)'}` : `${k}공 던지기 · 골대에 가까이 가 보세요`;
@@ -146,15 +150,72 @@ export class Basketball {
     return best;
   }
 
-  // E / a tap on the prompt with empty hands: pick up the ball (true when it did)
+  // E / a tap on the prompt with empty hands: go and pick up the ball (true when it did, or is doing so)
   action() {
+    if (this.pick) return true;
     if (this.shot || this.mine || this.game) return false;
     const b = this.near();
     if (!b) return false;
+    this.pick = { b, t: -1, at: b.pos.clone(), wait: 0, aim: new THREE.Vector3() };
+    this.player.enabled = false;
+    return true;
+  }
+
+  // how far before the walker's feet the hands reach a ball on the ground (ballpose K.ground), m
+  reach() {
+    const f = this.form, h = this.player.actor.holder;
+    return f.ok ? Math.max(0.3, f.K.ground.z * (h.scale.z || 1)) : 0.45;
+  }
+
+  // the pick-up, each frame after the walker has moved: up to the ball (player.goal), round to face it, then the
+  // friend's motion (ballpose 'pick'): bent down to it by PICK.DOWN, where the hands take it, and up with it at the
+  // chest by PICK.UP. A ball that rolls on is followed down; one the walker cannot get to in time is reached for
+  // from where they stand. First person: the view looks at the ball on the way and comes back up to level with it
+  picking(dt) {
+    const k = this.pick, pl = this.player, b = k.b;
+    pl.enabled = false;
+    if (k.t < PICK.DOWN) k.aim.copy(b.pos);
+    else {
+      const u = Math.min(1, (k.t - PICK.DOWN) / (PICK.UP - PICK.DOWN)), e = u * u * (3 - 2 * u);
+      k.aim.lerpVectors(b.pos, _n.set(pl.pos.x + Math.sin(pl.heading) * 6, pl.pos.y + pl.eyeH, pl.pos.z + Math.cos(pl.heading) * 6), e);
+    }
+    pl.cam.aim = k.aim;
+    if (k.t < 0) {
+      if (b.state !== 'ground' && b.state !== 'flying') { this.pick = null; pl.goal = null; pl.cam.aim = null; this.endPick(); return; }
+      k.at.copy(b.pos);
+      k.wait += dt;
+      const g = (pl.goal ||= { x: 0, z: 0, r: 0, there: false });
+      g.x = b.pos.x; g.z = b.pos.z; g.r = this.reach();
+      if (!g.there && k.wait < 2.5) return;
+      pl.goal = null;
+      k.t = 0;
+    }
+    k.t += dt;
+    if (k.t < PICK.DOWN) {
+      k.at.copy(b.pos);
+      // still round to it as the walker bends (the view keeps its direction)
+      const d = wrapAngle(Math.atan2(b.pos.x - pl.pos.x, b.pos.z - pl.pos.z) - pl.heading) * (1 - Math.exp(-dt * 9));
+      if (Math.hypot(b.pos.x - pl.pos.x, b.pos.z - pl.pos.z) > 0.2) {
+        pl.heading += d; pl.cam.orbit = wrapAngle(pl.cam.orbit - d);
+        pl.actor.holder.rotation.y = pl.heading;
+      }
+    } else if (b.state !== 'held') {
+      b.state = 'held'; b.vel.set(0, 0, 0); b.shot = null; b.pass = null;
+    }
+    if (k.t < PICK.UP) return;
+    this.pick = null;
+    pl.cam.aim = null;
     this.take(b);
+    this.armW = 1;
+    this.endPick();
     this.ui.toast(this.mobile ? '농구공을 주웠어요 · 골대 가까이에서 「슛」을 꾹 눌렀다가 막대가 초록 칸에 올 때 떼세요'
       : '농구공을 주웠어요 · 골대 가까이에서 E나 스페이스를 꾹 눌렀다가 막대가 초록 칸에 올 때 떼세요', 4500);
-    return true;
+  }
+
+  // the walker back to the keys (unless a card or the map came up meanwhile: closing it does that)
+  endPick() {
+    const open = this.ui.memoryOpen || this.ui.mapOpen || !document.getElementById('pause').hidden;
+    if (!open) this.player.enabled = true;
   }
 
   take(b) {
@@ -169,6 +230,7 @@ export class Basketball {
     const s = this.shot, pl = this.player;
     const left = [this.mine, s && !s.gone ? s.ball : null, ...this.balls.filter((b) => b.state === 'pass')];
     if (s) { this.shot = null; pl.cam.aim = null; pl.cam.hop = 0; }
+    if (this.pick) { if (this.pick.b.state === 'held') left.push(this.pick.b); this.pick = null; pl.goal = null; pl.cam.hop = 0; pl.cam.aim = null; }
     this.mine = null;
     for (const b of left) {
       if (!b) continue;
@@ -252,6 +314,8 @@ export class Basketball {
       s.t += dt;
       if (s.tr === null && s.t >= SHOT.LATE) this.letGo();               // held on too long: it goes, late
     }
+    if (this.pick) this.picking(dt);
+    const pk = this.pick;
     // the arms ease in when the ball is in hand (or about to be) and out again after the shot
     const inc = this.incoming(), catching = !!inc && inc.pass.T - inc.pass.t < 0.4;
     const want = this.mine || (s && !(s.gone && s.t > s.tr + SHOT.FLICK + SHOT.FOLLOW - 0.15)) || catching ? 1 : 0;
@@ -267,6 +331,16 @@ export class Basketball {
       if (f.ball) s.ball.pos.copy(f.ball);
       else if (!s.gone) { s.gone = true; this.launch(s, f.from); }
       if (s.tr !== null && s.t >= s.tr + SHOT.FLICK + SHOT.FOLLOW) this.endShot();
+    } else if (pk && pk.t >= 0) {
+      f.pose('pick', { t: pk.t, at: pk.at, w: 1 });
+      // first person: the eyes go down with the bend, and the ball comes up to where it is held before them
+      const dn = Math.min(1, pk.t / PICK.DOWN), up = Math.max(0, (pk.t - PICK.DOWN) / (PICK.UP - PICK.DOWN));
+      pl.cam.hop = -0.7 * Math.sin(Math.PI / 2 * dn) * (1 - up * up * (3 - 2 * up));
+      if (f.ball) {
+        if (fp > 0) f.ball.lerp(f.holdPoint(fp, eyeH, _to), fp * up * up * (3 - 2 * up));
+        pk.b.pos.copy(f.ball);
+        pk.b.mesh.rotation.y = pl.heading;
+      }
     } else if (this.mine) {
       f.pose('hold', { w: this.armW, fp, eyeH });
       if (f.ball) this.mine.pos.copy(f.ball);
