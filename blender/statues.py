@@ -1152,7 +1152,7 @@ def underwood_statue():
 # right edge), the 1997 aerial photo and 2009 (reference/활천대_2009_연세춘추.jpg, before 백양로 was rebuilt), with a
 # side silhouette (Flickr, 2000s) and the university's symbol page for the eagle's form.  The dark bronze eagle (gilded
 # only after 2015) raises its wings in a wide V with the broad feathered faces turned back, its primaries spread like
-# fingers, gripping a bronze rock on a tall white square column whose foot sweeps out concavely onto a low round
+# fingers, gripping a white stone rock on a tall white square column whose foot sweeps out concavely onto a low round
 # dais (the roadview of 2008 - 2011, below); on the dais, round the foot, four groups of white figures (the
 # "Yonseians").  (The wide round steps and granite wedges of the 2024 photo came with the rebuilt 백양로.)
 def _to_mb(ob, mb, mat):
@@ -1641,7 +1641,7 @@ def _eg_tail():
 
 
 def _eg_rock():
-    """The rough bronze rock under the talons (dark with the eagle in the 1971 and 2009 photos), overhanging the
+    """The rough rock under the talons (white stone in the school's 1996 - 1997 photos: eagle_rock_stone), overhanging the
     column's cap; its top at z = 0."""
     rnd = random.Random(70)
     sp = _Soup()
@@ -1887,8 +1887,61 @@ def eagle_sculpt(size=1024):
     print('eagle: light mesh %.0f s' % (time.time() - t0))
     sculpt.bake(parts, low, 'eagle', size=size, extrude=0.03, ray=0.07, ao_dist=0.5, look=EAGLE_LOOK)
     sculpt.save(low, 'eagle')
+    eagle_rock_stone()
     print('eagle: baked %.0f s' % (time.time() - t0))
     return low
+
+
+# the rock under the talons is white stone like the column in the school's photos of 1996 - 1997 (reference/학교홈페이지/
+# eagle.jpg, eagle.gif, from below: reference/고증/4.1.4), not bronze: its sides and foot, the light mesh's triangles
+# wholly under EG_ROCK_STONE (the top between the talons stays with the feet's chart; it hardly shows from the ground)
+EG_ROCK_STONE = 0.45
+EG_STONE = (0.60, 0.59, 0.56)                    # linear albedo, the column's white
+
+
+def eagle_rock_stone():
+    """Repaint the rock's texels of the baked eagle maps (eagle_col / eagle_orm) as white stone: the colour from
+    EG_STONE with the bronze's own mottle, not metal, rough.  Idempotent (the occlusion in orm's red is kept)."""
+    d = np.load(os.path.join(sculpt.MESH_DIR, 'eagle.npz'))
+    V, T, UV = d['verts'], d['tris'], d['uv'].reshape(-1, 3, 2)
+    sel = V[T][:, :, 2].max(1) < EG_ROCK_STONE
+    maps = {}
+    for key in ('col', 'orm'):
+        p = os.path.join(sculpt.TEX_DIR, 'eagle_%s.jpg' % key)
+        im = bpy.data.images.load(p, check_existing=False)
+        im.colorspace_settings.name = 'Non-Color'                        # (the raw values, written back raw)
+        w, h = im.size
+        a = np.empty(w * h * 4, np.float32)
+        im.pixels.foreach_get(a)
+        maps[key] = (p, a.reshape(h, w, 4)[..., :3].copy())
+        bpy.data.images.remove(im)
+    h, w = maps['col'][1].shape[:2]
+    mask = np.zeros((h, w), bool)
+    for tri in UV[sel]:
+        P = tri * (w, h) - 0.5
+        x0, y0 = np.floor(P.min(0)).astype(int)
+        x1, y1 = np.ceil(P.max(0)).astype(int)
+        xs, ys = np.meshgrid(np.arange(max(x0, 0), min(x1, w - 1) + 1), np.arange(max(y0, 0), min(y1, h - 1) + 1))
+        (ax, ay), (bx, by), (cx, cy) = P
+        den = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
+        if abs(den) < 1e-9:
+            continue
+        l1 = ((by - cy) * (xs - cx) + (cx - bx) * (ys - cy)) / den
+        l2 = ((cy - ay) * (xs - cx) + (ax - cx) * (ys - cy)) / den
+        inside = (l1 >= -0.02) & (l2 >= -0.02) & (1 - l1 - l2 >= -0.02)
+        mask[ys[inside], xs[inside]] = True
+    for _ in range(3):                                                   # into the bake's margins
+        mask = mask | np.roll(mask, 1, 0) | np.roll(mask, -1, 0) | np.roll(mask, 1, 1) | np.roll(mask, -1, 1)
+    col, orm = maps['col'][1], maps['orm'][1]
+    lum = col[..., :3].mean(-1)
+    var = np.clip(lum / max(float(lum[mask].mean()), 1e-6), 0.82, 1.18)
+    srgb = lambda c: np.where(c <= 0.0031308, c * 12.92, 1.055 * np.power(c, 1 / 2.4) - 0.055)
+    col[mask] = srgb(np.asarray(EG_STONE, np.float32)[None] * var[mask][:, None])
+    orm[mask, 1] = 0.85
+    orm[mask, 2] = 0.0
+    sculpt._save(col, maps['col'][0], False)
+    sculpt._save(orm, maps['orm'][0], False)
+    print('eagle: the rock in white stone, %d triangles, %d texels' % (int(sel.sum()), int(mask.sum())))
 
 
 # the eagle in 1997: dark bronze (ungilded until the avenue was rebuilt), a little verdigris in the feathers' hollows
