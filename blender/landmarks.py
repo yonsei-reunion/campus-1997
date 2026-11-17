@@ -6583,14 +6583,35 @@ def gongwon_site():
     if G.get('crane'):
         out.append(_tower_crane(*G['crane']))
     # the site's prefab offices east of it: white panel walls on a blue foot band, a low grey roof, a band of windows to
-    # each floor on the long sides (the photos give their plans and the long one's two storeys, not their faces)
+    # each floor on the long sides (the vertical photos give their plans and the long one's two storeys).  The long one
+    # as the 1996 photos from the south have it (서울연구원 51989 · 51996 · 52003, reference/고증/4.4 「조립식 사무실」):
+    # cream panel walls, along its south side an open gallery to the upper floor under the roof's overhang, a railing
+    # with the contractor's sign board on it, a straight stair up to it along the face
     for k, (u0, u1, v0, v1, z, h) in enumerate(G.get('sheds', [])):
         d = MeshBuilder('lm_gongwon_shed_%d' % k)
         d.xf = local_frame(G['o'][0], G['o'][1], G['rot'], z)
         cu, cv, L, W = (u0 + u1) / 2, (v0 + v1) / 2, u1 - u0, v1 - v0
-        d.box((cu, cv, 0.2), (L, W, 1.0), 'paint_blue', skip=('bottom', 'top'))
-        d.box((cu, cv, 0.7 + (h - 0.7) / 2), (L, W, h - 0.7), 'paint_white', skip=('bottom', 'top'))
-        d.box((cu, cv, h + 0.06), (L + 0.3, W + 0.3, 0.12), 'roof_metal')
+        if k == 0 and h > 4.0:
+            gw, zg = 1.3, 2.45                          # (the gallery's depth, its floor)
+            d.box((cu, cv, h / 2 - 0.1), (L, W, h + 0.2), 'plaster_cream', skip=('bottom', 'top'))
+            d.box((cu, cv - gw / 2, h + 0.06), (L + 0.3, W + gw + 0.3, 0.12), 'roof_metal')
+            d.box((cu, v0 - gw / 2, zg), (L, gw, 0.14), 'metal_dark')
+            for zr in (zg + 0.5, zg + 0.95):
+                d.box((cu, v0 - gw + 0.03, zr), (L, 0.05, 0.05), 'paint_white')
+            n = int(L / 2.6)
+            for i in range(n + 1):
+                d.box((u0 + L * i / n, v0 - gw + 0.05, h / 2), (0.08, 0.08, h), 'metal_dark')
+            d.box((u0 + L * 0.72, v0 - gw - 0.02, zg + 0.55), (L * 0.3, 0.04, 0.8), 'paint_white')
+            sa, sb = cu - 6.5, cu - 1.5                 # (the stair: up east along the gallery's outer edge, outside it)
+            ns = 14
+            for i in range(ns):
+                us = sa + (sb - sa) * (i + 0.5) / ns
+                d.box((us, v0 - gw - 0.55, zg * (i + 1) / ns - 0.04), ((sb - sa) / ns + 0.02, 1.0, 0.08), 'metal_dark')
+            rod(d, (sa, v0 - gw - 1.05, 0.9), (sb, v0 - gw - 1.05, zg + 0.9), 0.03, 'paint_white', seg=4)
+        else:
+            d.box((cu, cv, 0.2), (L, W, 1.0), 'paint_blue', skip=('bottom', 'top'))
+            d.box((cu, cv, 0.7 + (h - 0.7) / 2), (L, W, h - 0.7), 'paint_white', skip=('bottom', 'top'))
+            d.box((cu, cv, h + 0.06), (L + 0.3, W + 0.3, 0.12), 'roof_metal')
         long_u = L >= W
         n = max(1, int((L if long_u else W) / 3.0))
         for fl in range(max(1, int(round(h / 2.6)))):
