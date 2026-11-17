@@ -258,14 +258,18 @@ def valley(Hn, X, Y, FIXED, halls, half=800.0, step=5.0, sigma=6.0, prior=0.05):
 # (33.5 - 34.0 m, the 제2공학관 road: a wall between, 28.0 m at x -182, 33.8 m at x -191).  The game had a lawn
 # climbing from 28.6 m at the side road to 35 m at x -195, walks across it and trees.
 # YARD: the bare earth; LOT: the yard, the road and its two rows, the lane along the halls' west end (G rows), level
-# at LOT_Z (28.4 m); round it the ground is smoothed (fill) out to EAGLE_RING m, the halls' feet and the side road as they are
+# at LOT_Z (28.0 m); round it the ground is smoothed (fill) out to EAGLE_RING m, the halls' feet and the side road as they are
 YARD = Polygon([(-186.0, -160.0), (-182.0, -153.0), (-175.0, -147.0), (-163.0, -143.0), (-150.0, -140.5), (-140.0, -139.0),
                 (-128.0, -140.0), (-115.0, -144.0), (-104.0, -148.0), (-99.0, -152.0), (-97.5, -160.0), (-97.5, -185.8),
                 (-109.0, -182.0), (-119.9, -178.7), (-143.1, -172.0), (-171.1, -164.3), (-177.2, -163.5), (-186.0, -164.0)])
 EAGLE_ROAD = [(-188.0, -167.4), (-181.5, -167.2), (-177.2, -166.6), (-171.1, -167.4), (-143.1, -175.1), (-119.9, -181.8),
               (-109.0, -185.1), (-96.0, -189.2)]      # (the game's road, OSM's: where the scans have it)
 LANE_W = Polygon([(-189.0, -166.0), (-182.0, -166.0), (-181.0, -197.0), (-189.0, -197.0)])     # (the G2 row's lane)
-LOT_Z = datum.up(-134.94, -159.0, 28.45)               # (the photos' 28.2 m + 0.2, as the ground by 백양로 there reads, 0 .. +0.4)
+# (2026-11-17: the yard's bare ground off the cars and the hoops, pair by pair (reference/고증/4.5.2 「마당의 높이」): nine
+# pairs of 1997-07, 1996-12 and 1998-10 on 27.75 - 28.20 m, their median 27.99; the side road east of it reads 0.3 -
+# 0.5 m over the game's, so the yard stands 0.2 - 0.6 m under it as in the photos.  It was 28.45 m: the 63 points'
+# median 28.27 with the cars, hoops and people in it, + 0.2)
+LOT_Z = datum.up(-134.94, -159.0, 28.0)
 EAGLE_RING = 22.0
 EAGLE_EAST = -97.0          # (east of it, the side road and 백양로's west side: as they are)
 EAGLE_WEST = -189.5         # (west of it, the upper level: 제2공학관's road, the middle round's)

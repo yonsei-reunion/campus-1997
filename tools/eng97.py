@@ -126,8 +126,9 @@ WALL_RUNS = [(1.2, [(-38.85, 30.0), (-38.88, BAY[0] + BAY[1])]),
 # (제3공학관 남쪽: the wall along the yard's south edge over the bench, STEP_LINE below: added after it)
 WALL_UP = 8.0                               # (how far behind the wall a node may be pulled down)
 GAP_N = 72.0                                # (the wall's north end, its return: the deck behind it ends there)
-# the lane under it: from the court's north alley (v 30) to the yard (v 66; west_ground.LOT_Z there), 해발
-LANE_V, LANE_Z = (30.0, 66.0), (27.9, 28.7)
+# the lane under it: from the court's north alley (v 30) to the yard (v 66; west_ground.LOT_Z there), 해발 (the scans
+# have the lane, the alley and the yard on one level: 27.6 - 28.6 m)
+LANE_V, LANE_Z = (30.0, 66.0), (27.9, 28.0)
 # the north block's west wing in 1997 (its roof's edges on the roof's plane): the west face, the north ends
 NB_ID, NB_WEST_U, NB_NORTH_V, NB_MID_NORTH_V = 1451926793, -28.6, 60.0, 60.4
 # The three blocks in 1997 (#201, reference/고증/3.8.1): the 2006 survey's outline of the hall

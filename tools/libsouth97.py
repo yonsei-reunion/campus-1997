@@ -68,7 +68,7 @@ def grade(Hn, X, Y, FIXED, keep, fill):
 # (o −44 ~ −22)과 그 남쪽 나무 띠의 서쪽 끝은 1 ~ 2 m 높고, 옆길은 화단 남쪽 끝(31.0 m)에서 마당 동쪽 끝(28.4 m)까지 6 % 로 고르게
 # 내려간다(게임은 나무 띠 안에서 가파르게 내려가 0.6 ~ 1.2 m 낮았음). 점(해발)은 libsouth97_belt.json.
 # 높이: 화단과 같은 기준(grade 의 dz: 둘레 도서관 발치 · 바깥 길에 맞춘 것), 옆길은 남쪽으로 갈수록 마당의 기준(BELT_YARD_DZ:
-# west_ground.LOT_Z 가 사진의 28.2 m 위에 놓인 만큼)으로 옮겨 가며 사진의 단면을 따름. 둘레 BELT_RING m 는 매끈하게.
+# west_ground.LOT_Z 가 사진의 맨땅 위에 놓인 만큼, 2026-11-17 부터 0)으로 옮겨 가며 사진의 단면을 따름. 둘레 BELT_RING m 는 매끈하게.
 # 마당(west_ground.lot)과 독수리상의 둥근 마당(반지름 BELT_EAGLE_R m), 건물 발치는 건드리지 않는다
 BELT = [(-77.5, -51.0, -58.0, 50.0),       # 화단 남쪽 끝 길 ~ 마당 북쪽 가 · 독수리상 북쪽, 도서관 서쪽 길 ~ 백양로 쪽 바깥 길
         (-51.0, -12.0, -44.0, -22.0)]      # 서쪽 화단(도서관 서쪽 면의 줄 ~ 화단 구역 서쪽 끝)
@@ -79,7 +79,7 @@ BELT_EAGLE = (-67.95, -161.78)
 BELT_EAGLE_R = 12.5
 BELT_SIGMA = 3.0                         # 점의 가우스 무게(m)
 BELT_RING = 10.0
-BELT_YARD_DZ = 0.25                      # (게임 마당 28.45 m − 사진 28.2 m)
+BELT_YARD_DZ = 0.0                       # (게임 마당 28.0 m − 사진 맨땅 28.0 m: west_ground.LOT_Z, 2026-11-17)
 BELT_ROAD = (-62.0, -92.0, (2.0, 8.0, 24.0, 30.0))   # 옆길의 기준을 옮기는 s 구간(화단 기준 → 마당 기준), 그 o 구간(가장자리는 서서히)
 _BP = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'libsouth97_belt.json'), encoding='utf-8'))['pts']
 BELT_PTS = np.array(_BP, float)
