@@ -352,7 +352,7 @@ SHEDS = [(45.5, 49.75, 372.75, 379.5, 2.5)]
 STACKS = [(30.0, 33.5, 372.0, 380.0, 0.35), (34.0, 42.0, 377.5, 382.2, 0.35), (42.0, 46.5, 379.5, 382.2, 0.3)]
 # the stack of long piles west of 교육관 (their tops 55.6 - 56.3 m, the ground 55.3 - 55.6): ~12 m long members lying
 # north-north-west, (cx, cy, length, width, angle deg, height)
-PILE_STACK = (10.0, 332.0, 12.0, 6.0, -50.0, 0.6)
+PILE_STACK = (9.5, 330.5, 11.0, 5.5, -50.0, 0.6)
 # the rubble and spoil heaps on the yard's west half (56.2 - 57.5 m on the yard's 55.6): (x, y, rx, ry, height, angle
 # deg); the round pale one (sand) south-east of them
 HEAPS = [(-6.5, 369.0, 5.0, 3.5, 1.6, 20.0), (-8.0, 359.0, 5.0, 4.0, 1.9, -10.0), (-12.5, 348.5, 3.0, 5.0, 1.2, 0.0),
