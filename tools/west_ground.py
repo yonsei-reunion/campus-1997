@@ -160,11 +160,28 @@ VALLEY_NORTH_PTS = datum.up3([
     (-322, 196, 45.25), (-352, 190, 40.22), (-340, 190, 42.44), (-334, 190, 43.58), (-328, 190, 44.36), (-322, 190, 45.28),
     (-352, 184, 39.69), (-346, 184, 40.92), (-340, 184, 41.94), (-334, 184, 43.25), (-328, 184, 44.20), (-322, 184, 44.84),
     (-352, 178, 39.27), (-346, 178, 40.41), (-334, 178, 42.35), (-328, 178, 43.86), (-322, 178, 44.51), (-346, 172, 39.52),
-    (-340, 172, 40.77), (-334, 172, 41.25), (-346, 166, 38.70), (-334, 166, 42.11), (-358, 154, 45.73), (-346, 154, 42.54),
+    (-340, 172, 40.77), (-334, 172, 41.25), (-346, 166, 38.70), (-334, 166, 42.11), (-346, 154, 42.54),
     (-322, 154, 47.69), (-316, 154, 47.94), (-310, 154, 48.42), (-304, 154, 48.85),
     # (the track round the yard's north end, east side: 1996 · 1997 · 1998 within 0.8 m, their median)
     (-304, 181, 47.2), (-304, 193, 48.3), (-304, 199, 49.2), (-304, 205, 49.1), (-304, 211, 47.95), (-301, 187, 49.5),
     (-301, 199, 49.6), (-298, 184, 48.4), (-298, 193, 49.8), (-298, 196, 49.8),
+])
+# The valley's west bank between the yard and the town's ground (tools/yeonhui97.py lays the 1:5000 survey's surface
+# west of x -362): crowns in every year's scans (the points west of x -365 are the roofs and trees of the houses
+# below it); the 2006 and 2024 surveys' contours on it within 0 - 2.5 m of each other (the bank did not change):
+# VALLEY_BANK_PTS, their mean at the grid's nodes from x -365 to -350 (해발, as the survey), laid at those nodes after
+# the points' weighting (which would pull the town's ground at the bank's foot down with them).  The leaf-off scans' points on it
+# (x -358 .. -350, y 130 .. 155: 41.3 - 42.5 m) lie within 1.2 m of them.  (A 1996 point at (-358, 154), 45.7 m, 5 - 8 m
+# over both surveys, was a crown: left out.)  Without them the ground there was the base terrain's ridge eased into the
+# town's, a bank 9 m high in 10 m by x -365
+VALLEY_BANK_PTS = datum.up3([
+    (-365, 125, 39.15), (-365, 130, 38.35), (-365, 135, 37.60), (-365, 140, 36.95), (-365, 145, 36.30), (-365, 150, 35.60),
+    (-365, 155, 35.90), (-365, 160, 35.70), (-365, 165, 35.90),
+    (-360, 125, 41.55), (-355, 125, 43.55), (-350, 125, 45.45), (-360, 130, 41.10), (-355, 130, 42.90), (-350, 130, 44.75),
+    (-360, 135, 40.70), (-355, 135, 42.45), (-350, 135, 44.25), (-360, 140, 40.35), (-355, 140, 42.00), (-350, 140, 43.65),
+    (-360, 145, 39.80), (-355, 145, 41.45), (-350, 145, 43.00), (-360, 150, 38.70), (-355, 150, 40.90), (-350, 150, 42.35),
+    (-360, 155, 37.50), (-355, 155, 39.95), (-350, 155, 41.45), (-360, 160, 36.30), (-355, 160, 39.15), (-350, 160, 40.40),
+    (-360, 165, 37.05), (-355, 165, 38.15), (-350, 165, 39.30),
 ])
 # where the ground stays as it was round them (difference 0): west of the north floor (x -374, beyond the points), the
 # bank east of the track round the north end (x -288), and east of the bench by the pit (x -300, y 54 .. 78: the 1997
@@ -213,6 +230,13 @@ def valley(Hn, X, Y, FIXED, halls, half=800.0, step=5.0, sigma=6.0, prior=0.05):
     bench = shapely.contains_xy(VALLEY_BENCH, X, Y) & ~FIXED
     by, bz = zip(*VALLEY_BENCH_Z)
     Hn[bench] = np.interp(Y[bench], by, bz) + datum.tilt(X[bench], Y[bench])
+    # the west bank: its nodes on the surveys' ground (not in the weighting above: the town's foot of it stays)
+    bank = np.zeros(X.shape, bool)
+    for x, y, z in VALLEY_BANK_PTS:
+        i, j = int(round((x + half) / step)), int(round((y + half) / step))
+        if not FIXED[j, i]:
+            Hn[j, i] = z
+            bank[j, i] = True
     # the pit's floor at the yard's south end: its nodes on its level
     pit = np.zeros(X.shape, bool)
     for poly, z in VALLEY_PIT:
@@ -221,6 +245,7 @@ def valley(Hn, X, Y, FIXED, halls, half=800.0, step=5.0, sigma=6.0, prior=0.05):
         pit |= p
     moved = np.abs(Hn - H0)
     return dict(nodes=int((moved > 0.05).sum()), most=float(moved.max()), pts=len(VALLEY_PTS) + len(VALLEY_PIT_PTS) + len(VALLEY_NORTH_PTS),
+                bank=int(bank.sum()),
                 bench=int(bench.sum()), pit=int(pit.sum()))
 
 
