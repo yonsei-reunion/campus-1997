@@ -2522,7 +2522,8 @@ def _stone_ivy_spec(ivy, walls, w):
     고증.md 3.5): walls {key: cover, or dict(cover=, zmax=, ends=(a, b))}, key 0 the front, 1 / 3 the ends (1 the +x
     one), 2 the back, 'porch', 'bays', 'end_bay'; walls not named take the hall's ivy.  zmax: the strands climb only
     that high over the plinth's foot (their tips thinning as on a full wall), ends: they grow only within a m of the
-    wall's first corner and b m of its last, the edge wavering by ~0.5 m.  w: (key, the wall's length)."""
+    wall's first corner and b m of its last, the edge wavering by ~0.5 m; ends_z: (za, zb) how high each of those two
+    strips climbs (None: as the wall), as zmax does for the whole wall.  w: (key, the wall's length)."""
     if not ivy:
         return 0.0, None, None
     key, Le = w if w else (None, 0.0)
@@ -2530,11 +2531,14 @@ def _stone_ivy_spec(ivy, walls, w):
     if not isinstance(spec, dict):
         return spec, None, None
     ends = spec.get('ends')
+    ez = spec.get('ends_z') or (None, None)
     mask = None
     if ends:
         def mask(s, z):
             d = 0.35 * math.sin(z * 1.3 + s) + 0.2 * math.sin(z * 3.7)
-            return s < ends[0] + d or s > Le - ends[1] - d
+            dz = 0.3 * math.sin(s * 2.1) + 0.2 * math.sin(s * 5.3)
+            return ((s < ends[0] + d and (ez[0] is None or z < ez[0] + dz))
+                    or (s > Le - ends[1] - d and (ez[1] is None or z < ez[1] + dz)))
     return spec.get('cover', ivy), spec.get('zmax'), mask
 
 
@@ -3163,15 +3167,18 @@ def stimson():
     one = lambda g, f: (g - 0.5, g + 0.5, 1, f)                    # a single light, 1 m wide
     ends = {1: [one(2.6, 0), one(W / 2, 0), one(W - 2.6, 0), one(2.6, 1), one(W - 2.6, 1)],
             3: [one(g, f) for g in (2.5, W - 2.5) for f in (0, 1)]}
-    # the ivy (reference/고증.md 3.5): the porch a mat to its parapet (a 1996 - 2000 summer photo, the Dec. 2010
-    # roadview, 2016), the north end covered to its gable (2010); the south end bare stone but for low growth at its
-    # corners (April 2003 from 백양로's end, 2010, 2016), the back only up to the ground floor (the Aug. 2008 roadview)
-    ivy_walls = {'porch': 1.15, 1: 1.0, 3: dict(cover=0.6, zmax=3.3, ends=(1.2, 1.6)), 'end_bay': 0,
+    # the ivy (reference/고증/3.5 「담쟁이 범위」): the front and the porch a mat to the eaves and its parapet (the
+    # school's homepage photo grad6.jpg, before 1997-05, from the south-east; a 1996 - 2000 summer photo), the north
+    # end covered to its gable (2010); the south end in grad6.jpg: its bay and its east half covered to the coping, the
+    # gable's west half bare over a low growth at the west corner (that corner from 2003 - 2016: grad6.jpg has trees
+    # before it), the back only up to the ground floor (the Aug. 2008 roadview).  Wall 3 runs from the back (west)
+    # corner to the front (east) one
+    ivy_walls = {'porch': 1.15, 1: 1.0, 3: dict(cover=1.0, ends=(1.2, W / 2), ends_z=(3.3, None)), 'end_bay': 1.0,
                  2: dict(cover=0.6, zmax=4.3)}
     # (the front: the door's flight, the road on its terrace, the flight down the bank -- tools/build_campus.py ST_FRONT,
     # reference/고증/3.5.3; the floor stays where the level apron had it)
     sf = CAMPUS.get('stimson_front')
-    out = stone_hall('stimson', b, (1.0, -0.27), groups, ivy=0.8, ivy_walls=ivy_walls,
+    out = stone_hall('stimson', b, (1.0, -0.27), groups, ivy=1.15, ivy_walls=ivy_walls,
                      porch=dict(s0=L / 2 - pw / 2, s1=L / 2 + pw / 2, proj=0.9, parapet=0.8, win=(2.3, [0.45, 1.0, 0.45])),
                      chimney=dict(at=(-5.8 * k_, 0.0), h=3.0, sky=(-5.8 * k_, 2.3)), end_wins=ends,
                      attic={1: (W / 2, 0.7, 0.4, 1.75), 3: (W / 2, 0.75, 0.35, 1.2)},
@@ -3213,14 +3220,16 @@ def appenzeller():
     at = [(2.3 * k_, 6.6 * k_), (L - 6.6 * k_, L - 2.3 * k_)]
     end = [w for f in (0, 1) for w in ((W / 2 - 5.05, W / 2 - 2.95, 2, f), (W / 2 - 1.6, W / 2 + 1.6, 3, f),
                                         (W / 2 + 2.95, W / 2 + 5.05, 2, f))]
-    # the ivy (reference/고증.md 3.5): the front a mat round the door (a 1996 group photo) and the north end (2010,
-    # 2016) as before; the south end (1: the +x one) strands up the piers and a band under the upper lights (a 1996 -
-    # 2000 autumn photo, the telephone box at its corner); the back bare but near its north end (the Dec. 2010 roadview)
+    # the ivy (reference/고증/3.5 「담쟁이 범위」): the front a mat to the eaves and over the bays' parapets, the north
+    # end to its gable (the school's homepage photos before 1997-05: grad.jpg from the north-west, sin.jpg from the
+    # south-west; a 1996 group photo, 2010, 2016); the south end (1: the +x one) strands up the piers and a band under
+    # the upper lights (a 1996 - 2000 autumn photo, the telephone box at its corner; sin.jpg: its west half covered);
+    # the back bare but near its north end (the Dec. 2010 roadview)
     ivy_walls = {1: 1.0, 2: dict(cover=0.6, ends=(0.0, 3.5))}
     # (the front: the door's flight, the road on its terrace, the flight down the bank -- tools/build_campus.py TERR,
     # reference/고증/3.5.4; the floor 0.55 m higher than the level apron had it, from the eaves' height in the scans)
     af = CAMPUS.get('appenzeller_front')
-    out = stone_hall('appenzeller', b, (-1.0, 0.27), groups, ivy=1.1, door_group=2, ivy_walls=ivy_walls,
+    out = stone_hall('appenzeller', b, (-1.0, 0.27), groups, ivy=1.15, door_group=2, ivy_walls=ivy_walls,
                      bays=dict(at=at, front=3.0, proj=0.75),
                      back=[(c - gw / 2, c + gw / 2, 3) for c in (4.0, L - 4.0)], end_wins={1: end, 3: end},
                      attic={1: (W / 2, 0.9, 0.4, 2.0), 3: (W / 2, 0.9, 0.4, 2.0)},
