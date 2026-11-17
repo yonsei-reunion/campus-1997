@@ -663,7 +663,7 @@ async function main() {
   for (const id of HEROES) {
     const b = document.createElement('button');
     b.dataset.id = id;
-    b.title = `${HERO[id].college} · ${PEOPLE[id]}`;
+    b.title = HERO[id].college;
     b.innerHTML = `<img src="${pics[id]}" alt=""><span><b>${HERO[id].name}</b>${HERO[id].short}</span>`;
     b.addEventListener('click', () => pickHero(id));
     pickEl.appendChild(b);

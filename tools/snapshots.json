@@ -11,7 +11,7 @@
     "share/og 는 web/public/og.jpg(1200 × 630): 페이스북 · 카카오톡 등에 주소를 공유할 때 보이는 대표 이미지(index · news · people.html 의 og:image). out 의 title 은 위쪽 가운데에 제목 한 줄을 얹는다(색 #00205b = 연세 엠블럼 PANTONE 281 C. Noto Sans CJK 글꼴이 없으면 쓰지 않고 건너뜀)."
   ],
   "shots": [
-    {"name": "compare/baekyangro", "doc": "1999년 봄 백양로 항공 사진(birdseye.js 「백양로 사진 시점」과 같은 카메라). 문집의 「같은 시점에서 본 버드 아이뷰」도",
+    {"name": "compare/baekyangro", "doc": "1999년 봄 백양로 항공 사진(birdseye.js 「백양로 정면 시점」과 같은 카메라). 문집의 「같은 시점에서 본 버드 아이뷰」도",
      "cam": {"x": -106.87, "y": -396.83, "h": 44.69, "tx": 54.38, "ty": 181.1, "th": 2.17, "fov": 33.06}, "size": [1413, 900],
      "out": [{"path": "docs/compare/baekyangro_game.jpg", "width": 900}, {"path": "../yonsei-anthology/src/content/memory-campus1997-2.jpg", "width": 1173}]},
     {"name": "compare/campus_west", "doc": "1995년 남쪽에서 찍은 항공 사진(reference/1995_캠퍼스_항공사진_남쪽에서.jpg)",

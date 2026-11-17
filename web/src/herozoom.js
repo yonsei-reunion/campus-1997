@@ -4,7 +4,7 @@
 // shoulders, 「걷는 모습」 the walk. A renderer of its own, made when the window opens and let go when it shuts
 // (loaded with this file, on the first press).
 import * as THREE from 'three';
-import { PEOPLE, HERO, heroScale, play } from './characters.js';
+import { HERO, heroScale, play } from './characters.js';
 import './herozoom.css';
 import { tallOf } from './who.js';
 
@@ -71,7 +71,7 @@ export function openHeroZoom({ cast, ids, id, onPick }) {
     play(a, walk ? 'walk' : 'idle', { fade: 0 });
     const h = HERO[id];
     $('b').textContent = `${h.name} · ${h.college}`;
-    $('small').textContent = `${PEOPLE[id]}${h.height ? ` · ${Math.round(h.height * 100)} cm` : ''} · ${h.place} 앞에서 출발`;
+    $('small').textContent = `${h.place} 앞에서 출발`;
     $('.count').textContent = `${ids.indexOf(id) + 1} / ${ids.length}`;
   };
   const step = (d) => { const to = ids[(ids.indexOf(id) + d + ids.length) % ids.length]; show(to); onPick?.(to); };
