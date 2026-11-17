@@ -29,7 +29,7 @@ reference/ 사진 출처
 - 대우관_측면_2012.jpg: Wikimedia Commons "Yonsei university in Seoul, South korea 05.JPG" (2012-07-25, User:콩가루, CC BY-SA 4.0)
 - 대우관의 1997년 이름(reference/고증/3.6_대우관.md 「이름」)
   - 연세대학교 기록관 「제12대 송자 총장」 (https://archives.yonsei.ac.kr/Contents_PlanContents/view/437, 「1996 6 상경관 봉헌」)
-  - 1997년 학교 홈페이지 「캠퍼스 구경」 지도 범례 (http://web.archive.org/web/19980211120636/http://www.yonsei.ac.kr/Html/Tour/map28.html, 「31. 상대신관」; 그림은 저장하지 않음)
+  - 1997년 학교 홈페이지 「캠퍼스 구경」 지도 범례 (http://web.archive.org/web/19980211120636/http://www.yonsei.ac.kr/Html/Tour/map28.html, 「31. 상대신관」; 그림은 `학교홈페이지/map.gif`, 자료 R)
   - 연세춘추
     - 1998.3.9 독자 투고 (https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=31, 「신상경관」 · 「상본」)
     - 1998.9.28 (idxno=536, 「상대별관」)
