@@ -7709,6 +7709,10 @@ UTS_FP = Polygon(LATE_FOOTPRINT_1997[UTS])
 UTS_DOOR = tuple((np.array(LATE_FOOTPRINT_1997[UTS][1]) + np.array(LATE_FOOTPRINT_1997[UTS][2])) / 2)
 UTS_PORCH = dict(porch=3.0, porch_top='flat')
 ENTRY_AT[UTS] = (UTS_DOOR, UTS_PORCH)
+# (청경관 at the 1997 scans' place, LATE_FOOTPRINT_1997[990013]: its door, which the photos do not show, on the east face, where
+# the ground is the floor's level; on the pointed south end, the slope a metre over the floor, its flight went down into a
+# well.  Set here: the planting and the decals ran with the door of the map's outline, ENTRY_ZONES)
+ENTRY_AT[990013] = ((21.0, 306.0), {})
 # 빌링슬리관 as the 1997-07-28 scans have it (reference/고증/3.12 「평면과 지붕」; four frames from both flight lines,
 # each edge read where two frames from opposite sides agree): not OSM's 45 x 19 m box but two end pavilions 8.6 m
 # wide and 14.5 m deep, their fronts 2.3 m behind OSM's line, a middle block between them whose front stands 2.55 m
