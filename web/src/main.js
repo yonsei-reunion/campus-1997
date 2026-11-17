@@ -453,6 +453,10 @@ async function main() {
   // people on the benches (about half of them taken, one to three to a bench; a third of that on phones) and the
   // queue at 학생회관's phone booths: one on the phone in two of the three, two more waiting behind the middle one
   const seats = [], lines = [];
+  // the bench before 백주년기념관 seats 승민 and 서연 (the hero's own place goes to someone else, so no one sits twice)
+  const savedHero = safeGet('y97-hero');
+  const duo = ['p01', 'p11'].filter((id) => id !== savedHero);
+  for (const id of ['p09', 'p10', 'p12']) if (duo.length < 2) duo.push(id);
   {
     const rnd = mulberry(41);
     const SLOTS = [[], [[0], [-0.45], [0.45]], [[-0.42, 0.42], [-0.55, 0.02], [-0.02, 0.55]], [[-0.6, 0, 0.6]]];
@@ -465,7 +469,8 @@ async function main() {
       const slots = SLOTS[n][Math.floor(pick * SLOTS[n].length)], h = groundAt(x, y) + 0.43;
       const fx = Math.cos(rot), fy = Math.sin(rot);
       seats.push(slots.map((t, k) => ({ x: x - fy * t + fx * 0.03, y: y + fx * t + fy * 0.03, h,
-        heading: Math.atan2(fx, -fy) + (((jit * 7 + k * 0.37) % 1) - 0.5) * 0.22 })));
+        heading: Math.atan2(fx, -fy) + (((jit * 7 + k * 0.37) % 1) - 0.5) * 0.22,
+        ...(Math.hypot(x + 39.94, y + 182.8) < 1 && slots.length === 2 ? { id: duo[k] } : {}) })));
     }
     const booths = campus.props.filter((pr) => pr[0] === 'payphone');
     booths.forEach(([, x, y, rot], i) => {

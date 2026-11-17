@@ -347,7 +347,7 @@ const _YOU = { walking: false };
 const LOOK_MAX = 0.6, NECK_SHARE = 0.4;
 
 export class Crowd {
-  // extras: { seats: [[{x, y, h, heading}, ...], ...] people sitting together (h: the seat's top),
+  // extras: { seats: [[{x, y, h, heading, id?}, ...], ...] people sitting together (h: the seat's top; id: who),
   //           lines: [[{x, y, heading}, ...], ...] people standing in a row (the queue at the phone booths) }
   constructor(scene, cast, ids, paths, groups, count, rndSeed = 3, extras = {}) {
     this.scene = scene;
@@ -420,7 +420,8 @@ export class Crowd {
       const g = { people: [], next: 3 + rx() * 20, busyUntil: 0, greetAfter: 0, near: false };
       this.groups.push(g);
       for (const m of bench) {
-        const id = pickX(), n = 2000 + this.people.length;
+        // (m.id: a named seat; pickX is drawn all the same, so nobody else changes)
+        const drawn = pickX(), id = m.id || drawn, n = 2000 + this.people.length;
         // (nothing on the back against the bench's; a bag in the hand would hang through the seat)
         const a = cast.make(id, null, crowdLook(id, n));
         play(a, 'sit', { fade: 0 });
