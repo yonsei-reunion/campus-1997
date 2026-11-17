@@ -843,6 +843,11 @@ SILL_AT = {222843398: dict(sill=1.0, head=1.3)}
 # all round); 경영학교실단's wings: 3.95 m storeys (both roofs 56.3 m in the scans, the south wing a storey lower on
 # its falling ground: tools/build_campus.py BK_WINGS)
 FH_AT.update({245623193: 3.9, 256933753: 3.95, 990021: 3.95})
+# 경영학교실단's wings: their east ends over 백양로 blank panelled walls, no windows (the school's homepage photos of the
+# mid-1990s: the north wing's end with its name plate in the business department's b-bld05.jpg · b-bld07.jpg, the south
+# wing's in bus.jpg; reference/고증/3.15 「경영학교실단: 1990년대 학교 홈페이지 사진」): BLANK_EDGES, each wall by its
+# middle (within 1 m).  (wall_edge draws nothing from rnd: the halls after them keep their looks)
+BLANK_EDGES = {256933753: [(-15.67, 104.15)], 990021: [(-22.42, 39.42)]}
 WING_UP = {222843398: _science_wing}
 # 학생회관 별관 (1997 photo reference/1997_학생회관.jpg; tools/build_campus.py ANNEX_1997): two 3.1 m storeys of pale
 # grey concrete (the roof 6.7 m over the yard in the 1997-07-28 aerial photos' scans, reference/고증/4.5), each a band of broad lights between plain piers (the shops and the bank of the 2008 roadview below,
@@ -909,11 +914,14 @@ def build_generic(b, rnd):
     n_doors = len(DOORS)
     back = backs.back_plan(b, poly, st, fh, z0, zt, nf, door, shop, pitched=pitched, ups=ups,
                            tops=[zt - backs.EAVE * backs.PITCH[style] if pitched else zt + up * fh for up in ups])
+    blank = BLANK_EDGES.get(b['id'], ())
     for i in range(len(poly)):
         up = ups[i]
+        mid_ = ((poly[i][0] + poly[(i + 1) % len(poly)][0]) / 2, (poly[i][1] + poly[(i + 1) % len(poly)][1]) / 2)
         wall_edge(mb, poly[i], poly[(i + 1) % len(poly)], z0, (zt if pitched or hip else zt + par) + up * fh, nf + up, fh,
                   st, rnd, ground_floor_shop=shop, door=(door[1], style, b['entry']) if door and door[0] == i else None,
-                  back=back.edges[i].back if back.on else None)
+                  back=back.edges[i].back if back.on else None,
+                  skip_windows=any(math.dist(mid_, q_) < 1.0 for q_ in blank))
     if wing:
         for a_, b_ in wing[2]:          # the wing's storey over the lower roof
             wall_edge(mb, a_, b_, zt, zt + fh + 0.9, 1, fh, st, rnd, found=False)
