@@ -336,7 +336,8 @@ def sign_board():
 # the lodge's roof 8 .. 10 m; the 1996 photo's roof and the 2008 skyview say 10 m): 고증 4.8.1 「깊이」.
 # tools/build_campus.py GATE_PARTS keeps the shrubs off these footprints.
 GATE_FRONT = -0.3            # the pillars' and the lodge's south faces, from the gate's line
-GATE_MAIN = dict(u=5.1, w=1.4, d=4.8, fin=0.34, h=4.9, h_back=4.5, core=4.45)     # (10.2 m apart: the July 1997 scans' 10.25, 고증 4.8.1)
+GATE_MAIN = dict(u=5.1, w=1.46, d=4.8, fin=0.28, h=4.9, h_back=4.5, core=4.45)    # (10.2 m apart: the July 1997 scans' 10.25, 고증 4.8.1;
+#   front: slab 0.28 · rubble 0.90 · slab 0.28 m in the 1600 px copy of the August 1996 photo)
 # the walks' outer pillars stand symmetric, 11.5 m either side (the scans' tops; the lodge stays against the west one,
 # as in the 1996 photo: 고증 4.8.1 「바깥 기둥과 흰 담을 원본 스캔에서 함께」)
 GATE_SIDE = dict(u=-11.5, w=1.35, d=3.0, fin=0.34, h=3.75, h_back=3.45, core=3.4)
@@ -372,11 +373,12 @@ def _gate_grille(mb, p0, p1, z0, z1, step=0.13, rails=(0.06, 0.5)):
         mb.box((x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, z0 + h / 2), (t, t, h), 'trim_black', rotz=a, skip=('bottom',))
 
 
-def _gate_pillar(mb, gz, u, w, d, fin, h, h_back, core, lamp=0, vent=()):
+def _gate_pillar(mb, gz, u, w, d, fin, h, h_back, core, vent=()):
     """a dark rubble core between two granite slabs: the slabs stand over the core and run back the pillar's whole
-    depth, their tops falling to the north; the rubble shows at both ends.  lamp: the side of the core's face the
-    iron lantern hangs on (2011).  vent: the sides whose slab has the dark recess over the folded leaf (the 1995
-    photos: on the walk's side as on the carriageway's)."""
+    depth, their tops falling to the north; the rubble shows at both ends.  No lantern on the core's face: the 1600 px
+    copy of the August 1996 photo has bare rubble there top to bottom on both main pillars (the iron lanterns are the
+    2011 roadview's).  vent: the sides whose slab has the dark recess over the folded leaf (the 1995 photos: on the
+    walk's side as on the carriageway's)."""
     y0, y1 = GATE_FRONT, GATE_FRONT + d
     z = gz(u, (y0 + y1) / 2)
     zb = z - 0.6
@@ -390,16 +392,6 @@ def _gate_pillar(mb, gz, u, w, d, fin, h, h_back, core, lamp=0, vent=()):
     mb.box((u, (y0 + y1) / 2, (zb + z + core) / 2), (w - 2 * fin, d - 0.2, z + core - zb), 'gate_rubble', skip=('left', 'right', 'bottom'))
     for sd in vent or ():
         mb.box((u + sd * (w / 2 + 0.006), y0 + d * 0.54, z + 3.15), (0.012, 2.1, 0.6), 'void_black', skip=('bottom',))
-    if lamp:
-        lx, ly, lz = u + lamp * (w / 2 - fin - 0.22), y0 + 0.1, z + core - 1.15
-        mb.box((lx, ly - 0.09, lz + 0.5), (0.04, 0.2, 0.04), 'trim_black')              # the bracket and its hook
-        mb.box((lx, ly - 0.17, lz + 0.43), (0.03, 0.03, 0.12), 'trim_black')
-        mb.box((lx, ly - 0.17, lz + 0.36), (0.24, 0.24, 0.04), 'trim_black')            # the lantern: cap, glass, foot
-        mb.box((lx, ly - 0.17, lz + 0.2), (0.17, 0.17, 0.3), 'globe', skip=('top', 'bottom'))
-        mb.box((lx, ly - 0.17, lz + 0.04), (0.2, 0.2, 0.04), 'trim_black')
-        for sx in (-1, 1):
-            for sy in (-1, 1):
-                mb.box((lx + sx * 0.085, ly - 0.17 + sy * 0.085, lz + 0.2), (0.02, 0.02, 0.3), 'trim_black', skip=('top', 'bottom'))
 
 
 def _gate_pier(mb, gz, u0, u1, posts=(True, True), h=2.1, t=0.5):
@@ -429,10 +421,10 @@ def gate():
     gz = _gate_ground()
     M, S, L, T, W = GATE_MAIN, GATE_SIDE, GATE_LODGE, GATE_EAST, GATE_WALL
     f0 = GATE_FRONT
-    # ---- the two main pillars and the walks' outer ones; the lanterns on the west side of both cores (the 2011
-    # roadview's two), a dark recess high on either side over the folded leaves (the 1995 photos)
+    # ---- the two main pillars and the walks' outer ones; a dark recess high on either side over the folded leaves
+    # (the 1995 photos)
     for s in (-1, 1):
-        _gate_pillar(mb, gz, s * M['u'], M['w'], M['d'], M['fin'], M['h'], M['h_back'], M['core'], lamp=-1, vent=(-1, 1))
+        _gate_pillar(mb, gz, s * M['u'], M['w'], M['d'], M['fin'], M['h'], M['h_back'], M['core'], vent=(-1, 1))
         # the carriageway's leaves folded back along the slab (two a side) and the walk's one behind the other slab,
         # under the recesses
         z = gz(s * M['u'], 2.4)
@@ -448,7 +440,7 @@ def gate():
     for dx in (-0.36, 0.36):
         mb.box((M['u'] + 0.05 + dx, f0 - 0.42, z + 0.23), (0.05, 0.05, 0.46), 'paint_white', skip=('top', 'bottom'))
     # ---- the lodge: granite faced, its west part a blank wall on the gate's line, its east part set back under the
-    # roof's deep fascia with the door and the window band; the aerial's mast on the roof
+    # roof's deep fascia with the door and the window band; the aerial on the roof
     u0, u1, h = L['u0'], L['u1'], L['h']
     um = u0 + L['solid']
     z = min(gz(u0, 1.5), gz(u1, 1.5))
@@ -468,10 +460,14 @@ def gate():
     for zz in (1.2, 2.05):
         mb.box(((wa + wb) / 2, yr - 0.04, z + zz), (wb - wa + 0.05, 0.05, 0.05), 'trim_black', skip=('back',))
     mb.box(((wa + wb) / 2, yr - 0.12, z + 1.16), (wb - wa + 0.1, 0.26, 0.06), 'gate_granite')                             # the sill
+    # the aerial (the 1600 px copy of the August 1996 photo): a dark box on the roof, a thick black stand pipe out of
+    # it and a thin mast with one cross bar, a T; a blue crate west of it
     mx, my = u0 + 3.6, f0 + 1.9
-    rod(mb, (mx, my, z + h), (mx, my, z + h + 2.3), 0.025, 'metal_dark', seg=6)
-    for dz, half in ((2.25, 0.5), (2.0, 0.42), (1.75, 0.34)):
-        rod(mb, (mx - half, my, z + h + dz), (mx + half, my, z + h + dz), 0.012, 'metal_dark', seg=5)
+    mb.box((mx, my, z + h + 0.12), (0.9, 0.5, 0.24), 'trim_black', skip=('bottom',))
+    rod(mb, (mx, my, z + h + 0.24), (mx, my, z + h + 0.85), 0.07, 'metal_dark', seg=8)
+    rod(mb, (mx, my, z + h + 0.85), (mx, my, z + h + 2.0), 0.025, 'metal_dark', seg=6)
+    rod(mb, (mx - 0.55, my, z + h + 1.95), (mx + 0.55, my, z + h + 1.95), 0.015, 'metal_dark', seg=5)
+    mb.box((mx - 1.3, my - 0.3, z + h + 0.14), (0.45, 0.32, 0.28), 'sign_blue', skip=('bottom',))
     # ---- west of the lodge: the low wall, pier and fence by turns (a pier 1.7 m, a bay 3 m)
     _gate_pier(mb, gz, u0 - 1.5, u0, posts=(True, False))
     _gate_fence(mb, gz, u0 - 4.5, u0 - 1.5)
