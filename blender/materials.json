@@ -1060,5 +1060,8 @@
  "gate_rubble": {"_doc": "정문 기둥 속과 낮은 담의 검은 막돌 쌓기 (1996년 8월 사진, 2011년 로드뷰)", "weather": 0.3, "streak": 0.2, "tex": "old_stone_wall", "tile": 2.6, "tint": [0.66, 0.66, 0.7], "sat": 0.15, "rough": 0.9},
  "sign_mouth": {"_doc": "연세로 어귀의 금강제화 · 홍익문고 간판과 그랜드마트의 표 · 현수막 · 광고판 (tools/make_textures.py sign_mouth, 1995 · 1996년 사진, 고증 4.10.7): 투명한 곳은 잘라 냄", "image": "sign_mouth.png", "rough": 0.5, "emissiveMap": true, "cut": 0.5},
  "tile_grand": {"_doc": "그랜드백화점의 연회색 큰 타일 (52135 · 52119: 한 장 약 60 cm)", "weather": 0.35, "streak": 0.5, "tex": "white_square_tiles", "tile": 4.8, "tint": [0.9, 0.9, 0.92], "rough": 0.5},
- "hangeul_letters": {"_doc": "연세한글탑에 새긴 「연세한글탑」 글씨와 동쪽 다리의 네모 판 (tools/make_textures.py hangeul_tower, 고증 4.14): 새긴 홈만 남기고 잘라 냄", "image": "hangeul_tower.png", "rough": 0.8, "cut": 0.5}
+ "hangeul_letters": {"_doc": "연세한글탑에 새긴 「연세한글탑」 글씨와 동쪽 다리의 네모 판 (tools/make_textures.py hangeul_tower, 고증 4.14): 새긴 홈만 남기고 잘라 냄", "image": "hangeul_tower.png", "rough": 0.8, "cut": 0.5},
+ "plaster_station": {"_doc": "옛 신촌역 역사의 크림색 벽 (나무 벽에 시멘트를 뿜어 칠함: 김종헌 2007; 서울연구원 52232 · 52245 · 52250, 1996)", "weather": 0.4, "tex": "white_plaster_02", "tile": 3.0, "tint": [2.55, 2.4, 2.02], "rough": 0.85},
+ "roof_tile_teal": {"_doc": "옛 신촌역 역사의 짙은 청록 기와 (서울연구원 52232 · 52245 · 52250, 1996)", "tex": "grey_roof_tiles_02", "tile": 1.2, "tint": [0.15, 0.36, 0.34], "rough": 0.6},
+ "sign_station": {"_doc": "옛 신촌역 역사의 이름판 「신촌역 · 新村驛 · Shinchon Station」 (tools/make_textures.py sign_station, 서울연구원 52245, 1996)", "image": "sign_station.png", "rough": 0.5}
 }

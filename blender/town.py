@@ -1020,6 +1020,195 @@ def footbridges():
     return mb
 
 
+def station97():
+    """옛 신촌역 역사 (tools/ssr97.py ST_*, the 1997 scans; 고증 4.8.4 「옛 신촌역 역사」): the 1920 wooden station on the
+    yard's south edge.  The waiting hall under a steep gable to the forecourt, its tip folded back at both ends (a half
+    hip), white boards along the gable's edges, a door under a small hood between two tall windows, a band of three
+    windows and the name board above; the office west of it under a hipped roof ridged along the rails, a lean-to of
+    green sheet over its front, a gable bay to the platform; cream walls over a grey plinth, dark blue-green tiles, two
+    brick chimneys (서울연구원 52232 - 52250, 1996).  The outbuilding west of it on its own: a long low box of stores
+    under a green sheet roof, doors along its front.  Nothing here draws from a random stream."""
+    st = T.get('station97')
+    mb = MeshBuilder('town_station97')
+    if not st:
+        return mb
+    o, a, base = st['o'], math.radians(st['a']), st['base']
+    ca, sa = math.cos(a), math.sin(a)
+    P = lambda u, v, z: (o[0] + u * ca - v * sa, o[1] + u * sa + v * ca, base + z)
+    WALL, PLINTH, ROOF, TRIM, SHEET = 'plaster_station', 'plaster_grey', 'roof_tile_teal', 'frame_white', 'metal_green'
+    foot = -0.35                                          # (the walls down into the ground)
+
+    def walls(u0, u1, v0, v1, z1, skip=()):
+        """four walls of a box (counter-clockwise from the south-west corner), each with a plinth"""
+        c = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+        for i in range(4):
+            if i in skip:
+                continue
+            (pu, pv), (qu, qv) = c[i], c[(i + 1) % 4]
+            mb.face([P(pu, pv, 0.45), P(qu, qv, 0.45), P(qu, qv, z1), P(pu, pv, z1)], WALL)
+            mb.face([P(pu, pv, foot), P(qu, qv, foot), P(qu, qv, 0.45), P(pu, pv, 0.45)], PLINTH)
+
+    def opening(side, s0, s1, z0, z1, mat='glass', out=0.03):
+        """a window or door on a wall: side (fixed coordinate, 'u' or 'v', value, outward sign), s0 .. s1 along it"""
+        ax, val, sg = side
+        if ax == 'v':                                     # a wall facing south (sg -1) or north (+1)
+            pts = [P(s0, val + sg * out, z0), P(s1, val + sg * out, z0), P(s1, val + sg * out, z1), P(s0, val + sg * out, z1)]
+            if sg > 0:
+                pts = pts[::-1]
+        else:                                             # facing west (sg -1) or east (+1)
+            pts = [P(val + sg * out, s0, z0), P(val + sg * out, s1, z0), P(val + sg * out, s1, z1), P(val + sg * out, s0, z1)]
+            if sg < 0:
+                pts = pts[::-1]
+        if mat == 'glass':                                # (a white frame round the glass)
+            ax2 = 0.09
+            if ax == 'v':
+                fr = [P(s0 - ax2, val + sg * out * 0.5, z0 - ax2), P(s1 + ax2, val + sg * out * 0.5, z0 - ax2),
+                      P(s1 + ax2, val + sg * out * 0.5, z1 + ax2), P(s0 - ax2, val + sg * out * 0.5, z1 + ax2)]
+                if sg > 0:
+                    fr = fr[::-1]
+            else:
+                fr = [P(val + sg * out * 0.5, s0 - ax2, z0 - ax2), P(val + sg * out * 0.5, s1 + ax2, z0 - ax2),
+                      P(val + sg * out * 0.5, s1 + ax2, z1 + ax2), P(val + sg * out * 0.5, s0 - ax2, z1 + ax2)]
+                if sg < 0:
+                    fr = fr[::-1]
+            mb.face(fr, TRIM)
+        mb.face(pts, mat)
+
+    # ------------------------------------------------------------------ the waiting hall
+    h = st['hall']
+    (u0, u1), (v0, v1) = h['u'], h['v']
+    ze, za, fold, ov = h['eaves'], h['apex'], h['fold'], h['over']
+    hw = (u1 - u0) / 2
+    uc = (u0 + u1) / 2
+    s = (za - ze) / hw                                    # the roof's slope
+    og, dh = 0.6, 0.9                                     # the gable's overhang, how far back the folded tip runs
+    zf = za - fold
+    uf = fold / s
+    zo = ze - s * ov                                      # (the eaves' edge, out past the wall)
+    walls(u0, u1, v0, v1, ze)
+    for vg, sg in ((v0, -1), (v1, 1)):                    # the gable walls up to the fold
+        q = [P(u0, vg, ze), P(u1, vg, ze), P(uc + uf, vg, zf), P(uc - uf, vg, zf)]
+        mb.face(q if sg < 0 else q[::-1], WALL)
+    ga, gb = v0 - og, v1 + og
+    for sd in (-1, 1):                                    # the two slopes
+        ue = uc + sd * (hw + ov)
+        q = [P(ue, ga, zo), P(ue, gb, zo), P(uc + sd * uf, gb, zf), P(uc, gb - dh - og, za), P(uc, ga + dh + og, za),
+             P(uc + sd * uf, ga, zf)]
+        mb.face(q[::-1] if sd < 0 else q, ROOF)
+        mb.face(q if sd < 0 else q[::-1], ROOF)           # (from below)
+    for vg, vr, sg in ((ga, ga + dh + og, -1), (gb, gb - dh - og, 1)):     # the folded tips
+        q = [P(uc - uf, vg, zf), P(uc + uf, vg, zf), P(uc, vr, za)]
+        mb.face(q if sg < 0 else q[::-1], ROOF)
+        mb.face(q[::-1] if sg < 0 else q, ROOF)
+        for sd in (-1, 1):                                # the white boards along the gable's edges and the fold
+            _bar(mb, P(uc + sd * (hw + ov), vg - sg * 0.04, zo - 0.12), P(uc + sd * uf, vg - sg * 0.04, zf - 0.12), 0.22, TRIM)
+        _bar(mb, P(uc - uf, vg - sg * 0.04, zf - 0.12), P(uc + uf, vg - sg * 0.04, zf - 0.12), 0.22, TRIM)
+    _bar(mb, P(uc, ga + dh + og, za + 0.08), P(uc, gb - dh - og, za + 0.08), 0.3, ROOF)   # (the ridge's capping)
+    # the front (south): a door under a hood between two tall windows, three windows in a band, the name board
+    opening(('v', v0, -1), uc - 0.95, uc + 0.95, 0.12, 2.75, mat='glass')
+    opening(('v', v0, -1), uc - 0.95, uc + 0.95, 2.82, 3.3)
+    mb.box(P(uc, v0 - 0.45, 3.42), (2.6, 0.9, 0.14), TRIM, rotz=a)
+    for du in (-2.55, 2.55):
+        opening(('v', v0, -1), uc + du - 0.45, uc + du + 0.45, 0.95, 2.95)
+    opening(('v', v0, -1), uc - 1.85, uc - 0.7, 4.25, 4.95)
+    opening(('v', v0, -1), uc - 0.6, uc + 0.6, 4.25, 5.05)
+    opening(('v', v0, -1), uc + 0.7, uc + 1.85, 4.25, 4.95)
+    mb.box(P(uc, v0 - 0.06, 5.75), (2.4, 0.1, 1.05), TRIM, rotz=a)
+    mb.face([P(uc - 1.15, v0 - 0.12, 5.275), P(uc + 1.15, v0 - 0.12, 5.275), P(uc + 1.15, v0 - 0.12, 6.225),
+             P(uc - 1.15, v0 - 0.12, 6.225)], 'sign_station', uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])   # (tools/make_textures.py)
+    # the back (north, the platform): the same door, two windows
+    opening(('v', v1, 1), uc - 0.95, uc + 0.95, 0.12, 2.75, mat='glass')
+    for du in (-2.55, 2.55):
+        opening(('v', v1, 1), uc + du - 0.45, uc + du + 0.45, 0.95, 2.95)
+    for vv in (2.2, 6.8):                                 # the east side
+        opening(('u', u1, 1), vv - 0.5, vv + 0.5, 0.95, 2.95)
+    opening(('u', u0, -1), 0.9, 1.9, 0.95, 2.95)         # (the west side, in front of the office)
+    # ------------------------------------------------------------------ the office
+    f = st['office']
+    (fu0, fu1), (fv0, fv1) = f['u'], f['v']
+    fe, fr_, fo = f['eaves'], f['ridge'], f['over']
+    fhw = (fv1 - fv0) / 2
+    fvc = (fv0 + fv1) / 2
+    fs = (fr_ - fe) / fhw
+    fzo = fe - fs * fo
+    walls(fu0, fu1, fv0, fv1, fe, skip=(1,))
+    mb.face([P(fu1, fv1, 0.45), P(fu1, max(fv0, v1), 0.45), P(fu1, max(fv0, v1), fe), P(fu1, fv1, fe)][::-1], WALL)   # (east, past the hall)
+    uh = fu0 - fo + (fhw + fo)                            # where the hip meets the ridge
+    ux = uc - (za - fr_) / s                              # where the ridge runs into the hall's slope (the valley's top)
+    gb_ = v1                                              # (north of the hall the office's roof ends at its own wall)
+    zg = fr_ - fs * (gb_ - fvc)
+    ug = uh - (gb_ - fvc)                                 # (the hip's line at that v)
+    E0, E3 = P(fu0 - fo, fv0 - fo, fzo), P(fu0 - fo, fv1 + fo, fzo)
+    R0, Rx = P(uh, fvc, fr_), P(ux, fvc, fr_)
+    roof = [[E0, P(ux, fv0 - fo, fzo), Rx, R0],                                 # south, on into the hall's roof
+            [P(ug, gb_, zg), P(ux, gb_, zg), Rx, R0][::-1],                     # north, as far as the hall's back
+            [E3, P(ug, gb_, zg), P(fu1, gb_, zg), P(fu1, fv1 + fo, fzo)][::-1],  # north, past it
+            [E3, E0, R0]]                                                       # the hip
+    for q in roof:
+        mb.face(q, ROOF)
+        mb.face(q[::-1], ROOF)
+    mb.face([P(fu1, gb_, fe), P(fu1, fv1, fe), P(fu1, gb_, zg)], WALL)          # (its end past the hall, east)
+    _bar(mb, (R0[0], R0[1], R0[2] + 0.08), (Rx[0], Rx[1], Rx[2] + 0.08), 0.3, ROOF)
+    for uu in (-13.4, -10.9, -8.4):                       # the front's windows, under the lean-to
+        opening(('v', fv0, -1), uu - 0.6, uu + 0.6, 0.9, 2.35)
+    opening(('v', fv0, -1), -6.2, -5.1, 0.12, 2.35, mat='glass')
+    opening(('u', fu0, -1), fvc - 0.6, fvc + 0.6, 0.9, 2.35)
+    for uu in (-13.4, -11.4, -4.9):
+        opening(('v', fv1, 1), uu - 0.5, uu + 0.5, 0.9, 2.35)
+    # the gable bay to the platform
+    b = st['bay']
+    (bu0, bu1), (bv0, bv1), br = b['u'], b['v'], b['ridge']
+    bc, bhw = (bu0 + bu1) / 2, (bu1 - bu0) / 2
+    bs = (br - fe) / bhw
+    walls(bu0, bu1, bv0 - 0.3, bv1, fe, skip=(0,))
+    q = [P(bu0, bv1, fe), P(bu1, bv1, fe), P(bc, bv1, br)]
+    mb.face(q[::-1], WALL)
+    vb = fvc + (fr_ - br) / fs                            # (its ridge runs back into the office's roof)
+    for sd in (-1, 1):
+        ue = bc + sd * (bhw + 0.3)
+        q = [P(ue, vb, fe - bs * 0.3), P(ue, bv1 + 0.4, fe - bs * 0.3), P(bc, bv1 + 0.4, br), P(bc, vb, br)]
+        mb.face(q[::-1] if sd < 0 else q, ROOF)
+        mb.face(q if sd < 0 else q[::-1], ROOF)
+        _bar(mb, P(ue, bv1 + 0.36, fe - bs * 0.3 - 0.1), P(bc, bv1 + 0.36, br - 0.1), 0.2, TRIM)
+    opening(('v', bv1, 1), bc - 0.9, bc + 0.9, 0.9, 2.6)
+    # the lean-to over the office's front, on three posts
+    ln = st['lean']
+    (lu0, lu1), (lv0, lv1), (lz1, lz0) = ln['u'], ln['v'], ln['z']
+    q = [P(lu0, lv0, lz0), P(lu1, lv0, lz0), P(lu1, lv1, lz1), P(lu0, lv1, lz1)]
+    mb.face(q, SHEET)
+    mb.face(q[::-1], SHEET)
+    for uu in (lu0 + 0.15, (lu0 + lu1) / 2, lu1 - 0.15):
+        _bar(mb, P(uu, lv0 + 0.12, foot), P(uu, lv0 + 0.12, lz0), 0.1, 'metal_dark')
+    # the chimneys
+    for cu, cv, ct in st['chimneys']:
+        c = P(cu, cv, 0.0)
+        mb.box((c[0], c[1], base + (fe + ct) / 2), (0.62, 0.62, ct - fe), 'brick_red', rotz=a)
+    # ------------------------------------------------------------------ the outbuilding
+    n = st['annex']
+    (cx, cy), L, W, ne, nr = n['c'], n['L'], n['W'], n['eaves'], n['ridge']
+    Q = lambda u, v, z: (cx + u * ca - v * sa, cy + u * sa + v * ca, base + z)
+    c4 = [(-L / 2, -W / 2), (L / 2, -W / 2), (L / 2, W / 2), (-L / 2, W / 2)]
+    for i in range(4):
+        (pu, pv), (qu, qv) = c4[i], c4[(i + 1) % 4]
+        mb.face([Q(pu, pv, 0.45), Q(qu, qv, 0.45), Q(qu, qv, ne), Q(pu, pv, ne)], WALL)
+        mb.face([Q(pu, pv, foot), Q(qu, qv, foot), Q(qu, qv, 0.45), Q(pu, pv, 0.45)], PLINTH)
+    for sd in (-1, 1):                                    # the gable ends
+        q = [Q(sd * L / 2, -W / 2, ne), Q(sd * L / 2, W / 2, ne), Q(sd * L / 2, 0.0, nr)]
+        mb.face(q if sd > 0 else q[::-1], WALL)
+    ns = (nr - ne) / (W / 2)
+    for sd in (-1, 1):
+        q = [Q(-L / 2 - 0.3, sd * (W / 2 + 0.4), ne - ns * 0.4), Q(L / 2 + 0.3, sd * (W / 2 + 0.4), ne - ns * 0.4),
+             Q(L / 2 + 0.3, 0.0, nr), Q(-L / 2 - 0.3, 0.0, nr)]
+        mb.face(q if sd < 0 else q[::-1], SHEET)
+        mb.face(q[::-1] if sd < 0 else q, SHEET)
+    for k in range(7):                                    # doors along the front (the 1977 plan's rooms)
+        uu = -L / 2 + 1.6 + k * (L - 3.2) / 6
+        d = [Q(uu - 0.5, -W / 2 - 0.03, 0.1), Q(uu + 0.5, -W / 2 - 0.03, 0.1), Q(uu + 0.5, -W / 2 - 0.03, 2.2),
+             Q(uu - 0.5, -W / 2 - 0.03, 2.2)]
+        mb.face(d, 'wood_dark')
+    return mb
+
+
 def bridge():
     """The two decks over 연세로 (the 1995 photo: a concrete deck for each track on abutments faced with concrete, a row of
     piers in the middle of the road), and the abutments: the bank's own section as a wall each side of the opening.
@@ -1294,7 +1483,7 @@ def island():
 def build():
     if not T:
         return []
-    return houses() + [landmarks(), signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), yard(), footbridges(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner()]
+    return houses() + [landmarks(), signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), yard(), footbridges(), station97(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner()]
 
 
 # ----------------------------------------------------------------------------- the city bus

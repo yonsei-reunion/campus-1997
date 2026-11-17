@@ -391,6 +391,8 @@ def heights(c):
         for fb in T.get('footbridges', []):     # (육교: the deck's top at either end; tools/ssr97.py)
             A(fb['top'], 0, *fb['a'])
             A(fb['top'], 1, *fb['b'])
+        if T.get('station97'):                  # (옛 신촌역 역사: its floor; tools/ssr97.py station97)
+            A(T['station97'], 'base', *T['station97']['at'])
         bx = sum(T['bridge']['x']) / 2
         by = float(np.interp(bx, [p[0] for p in ra['sections']], [p[1] for p in ra['sections']]))
         A(ra, 'z', bx, by)

@@ -955,4 +955,9 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
     extra['ext']['blocks_cleared'] = ssr97.clear_blocks(
         blocks, len(rows) + 1, [ssr97.yard_poly(secs), extra['ext_poly']] + [ssr97.footbridge_polys(fb, 0.5) for fb in ssr97.FOOTBRIDGES])
     town['moved'] += extra['ext']['blocks_cleared']
+    # 옛 신촌역 역사 (tools/ssr97.py ST_*, the 1997 scans and the 1996 photos; 고증 4.8.4): the station, its outbuilding and
+    # the car park in front; the houses there go, the one east of the hall goes short
+    town['station97'] = ssr97.station97()
+    extra['ext']['station_blocks'] = ssr97.station_clear(blocks, len(rows) + 1)
+    town['moved'] += sum(extra['ext']['station_blocks'])
     return town, extra

@@ -6576,6 +6576,12 @@ print('동네 땅: nodes %(nodes)d (whole %(whole)d), median %(median)+.2f m (16
 print('   (연희동 땅: FIXED nodes in its region %d)' % int((FIXED & shapely.contains_xy(yeonhui97.REGION, X, Y)).sum()))
 _yh_took, YH97_NEAR = yeonhui97.lay(Hn, X, Y, _far97, FIXED, harmonic_fill)
 print('연희동 땅: nodes %(nodes)d (eased %(eased)d), median %(median)+.2f m (16 - 84 %%: %(p16)+.2f .. %(p84)+.2f), %(low)+.1f .. %(high)+.1f' % YH97_NEAR)
+# 옛 신촌역 역사의 앞마당 (tools/ssr97.py station_grade, reference/고증/4.8.4 「옛 신촌역 역사」; ss): the forecourt and the
+# car park on the 1997 scans' ground (the 2006 survey had them 1.5 - 2.5 m lower, dug for the new station); late (the
+# planting has read the ground as it was), before the rails' bank, whose south edge in the yard meets it there
+_st_took, STATION_GRADE = ssr97.station_grade(Hn, X, Y, FIXED, harmonic_fill)
+FIXED[_st_took] = True
+print('옛 신촌역 앞마당:', STATION_GRADE)
 TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h,
                            keep_nodes=near_buildings(1.5))
 TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h, y1997=True)

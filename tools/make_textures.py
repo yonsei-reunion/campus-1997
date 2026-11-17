@@ -1272,6 +1272,39 @@ def hangeul_tower_tex():
 
 hangeul_tower_tex()
 
+
+# ---------------------------------------------------------------- 옛 신촌역 역사의 이름판
+# The board on the waiting hall's gable (서울연구원 52234 · 52245 · 52250, 1996): white, a thin dark rim, 「신촌역」 big,
+# 「新村驛」 under it, 「Shinchon Station」 at the foot; 2.3 x 0.95 m (blender/town.py station97), drawn 1024 x 424 and
+# stretched to 1024 x 512
+def station_sign():
+    if ONLY and 'sign_station' not in ONLY:
+        return
+    fb = '/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc'
+    fs = '/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc'
+    fm = '/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc'
+
+    def fnt(path, size):
+        for i in (1, 0, 2, 3):
+            try:
+                return ImageFont.truetype(path, size, index=i)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+    W_, H_ = 1024, 424
+    img = Image.new('RGB', (W_, H_), (244, 244, 238))
+    d = ImageDraw.Draw(img)
+    d.rectangle([6, 6, W_ - 7, H_ - 7], outline=(40, 40, 40), width=10)
+    for txt, path, size, y in (('신촌역', fb, 190, 130), ('新村驛', fs, 84, 272), ('Shinchon Station', fm, 64, 362)):
+        f = fnt(path, size)
+        w = d.textlength(txt, font=f)
+        d.text((W_ / 2 - w / 2, y), txt, font=f, fill=(22, 22, 22), anchor='lm')
+    img.resize((1024, 512), Image.LANCZOS).save(os.path.join(OUT, 'sign_station.png'), optimize=True)
+    print('sign_station')
+
+
+station_sign()
+
 if ONLY:
     raise SystemExit(0)
 

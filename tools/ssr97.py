@@ -486,3 +486,117 @@ def wood_grade(Hn, X, Y, FIXED, halls_keep, fill):
     d = Hn - H0
     return inside, dict(set=int(inside.sum()), eased=int(ring.sum()),
                         lift=(round(float(d[inside].min()), 2), round(float(d[inside].max()), 2)) if inside.any() else None)
+
+
+# ----------------------------------------------------------------------------- 옛 신촌역 역사 (1997)
+# (고증 4.8.4 「옛 신촌역 역사」.)  The 1920 wooden station on the south edge of the yard, facing the forecourt: the
+# waiting hall (대합실) east under a steep gable to the south with its tip folded back (a half hip), the office (역무실)
+# west of it under a hipped roof ridged along the rails, a lean-to over the office's front, a gable bay on its north
+# side, and the outbuilding (부속건물: stores, the parcels office, toilets) west of it on its own.  Cream walls (cement
+# sprayed on the boards), a grey plinth, dark blue-green tiles (서울연구원 52232 - 52250, 1996; 김종헌 2007's 1977 plan
+# and 1982 photos).  Place and heights on the 1997-07-28 scans (27/17 x 27/18, 26/16 x 27/18, 26/16 x 27/17): the hall's
+# ridge at x 423 (42.0 m), the office's at y -494.6 (40.0 - 40.9 m), the lean-to 36.2 m, the outbuilding's roof 37.5 m
+# (x 385.5 - 406.7, y -490 .. -494.5), the forecourt 33.9 m at the door down to 33.2 m in the car park.  (In 2006 the
+# hall stayed about where it was and the office went to its east side: OSM's outline is the moved one.)
+# The station's frame: o the hall's front wall at its middle, u east (1 deg: the outbuilding's north edge on the
+# scans, the rails 2 deg), v north.
+ST_O, ST_A = (423.0, -501.5), 1.0
+ST_FLOOR = 33.9                      # 해발: the forecourt at the door, and the floors
+ST_HALL = dict(u=(-4.1, 4.1), v=(0.0, 9.3), eaves=4.0, apex=8.2, fold=1.1, over=0.5)
+ST_OFFICE = dict(u=(-15.0, -4.1), v=(2.8, 11.0), eaves=3.4, ridge=6.5, over=0.45)
+ST_BAY = dict(u=(-9.6, -5.6), v=(11.0, 12.4), ridge=6.0)
+ST_LEAN = dict(u=(-14.6, -4.1), v=(0.4, 2.8), z=(2.9, 2.5))
+ST_CHIMNEYS = [(-10.6, 6.9, 7.5), (-1.0, 7.8, 8.3)]          # (u, v, top over the floor)
+ST_ANNEX = dict(c=(396.1, -492.25), L=21.2, W=4.5, eaves=3.0, ridge=3.9)
+# the forecourt and the car park in front of it on the 1997 scans (x 383 - 432, y -484 .. -533), their ground by y
+# (three pairs within 0.4 m: 34.0 by the yard, 33.9 at the door, 33.5 at y -506, 33.3 at -515, 33.0 at -525); the
+# game's town ground (the 2006 survey, after the forecourt was dug for the new station) stood 1.5 - 2.5 m under it
+ST_YARD = [(383.0, -486.0), (431.0, -484.0), (433.0, -504.0), (428.0, -533.0), (396.0, -533.0), (395.0, -504.0),
+           (383.0, -499.0)]
+ST_YARD_Z = [(-536.0, 32.9), (-525.0, 33.05), (-515.0, 33.3), (-506.0, 33.5), (-500.0, 33.9), (-486.0, 34.0)]
+ST_RING = 8.0
+
+
+def st_xy(u, v):
+    a = math.radians(ST_A)
+    return (ST_O[0] + u * math.cos(a) - v * math.sin(a), ST_O[1] + u * math.sin(a) + v * math.cos(a))
+
+
+def _st_rect(u0, u1, v0, v1):
+    return [st_xy(u0, v0), st_xy(u1, v0), st_xy(u1, v1), st_xy(u0, v1)]
+
+
+def station_polys(pad=0.0):
+    """the station's and the outbuilding's outlines (with the eaves), and the car park in front: what the town's
+    houses give way to"""
+    h, o, b = ST_HALL, ST_OFFICE, ST_BAY
+    g = unary_union([Polygon(_st_rect(h['u'][0], h['u'][1], h['v'][0] - h['over'], h['v'][1] + h['over'])),
+                     Polygon(_st_rect(o['u'][0] - o['over'], o['u'][1], ST_LEAN['v'][0], o['v'][1] + o['over'])),
+                     Polygon(_st_rect(b['u'][0], b['u'][1], b['v'][0], b['v'][1]))])
+    a = math.radians(ST_A)
+    c, L, W = ST_ANNEX['c'], ST_ANNEX['L'], ST_ANNEX['W']
+    ann = Polygon([(c[0] + u * math.cos(a) - v * math.sin(a), c[1] + u * math.sin(a) + v * math.cos(a))
+                   for u, v in ((-L / 2, -W / 2), (L / 2, -W / 2), (L / 2, W / 2), (-L / 2, W / 2))])
+    park = Polygon([(398.0, -503.0), (426.0, -503.0), (426.0, -533.0), (398.0, -533.0)])
+    return unary_union([g.buffer(pad), ann.buffer(pad), park])
+
+
+def station_grade(Hn, X, Y, FIXED, fill):
+    """the forecourt and the car park on the 1997 scans' ground (ST_YARD, ST_YARD_Z by y), a ring of ST_RING m round
+    them eased (fill: build_campus.py harmonic_fill).  Late: the planting has read the ground as it was; before the
+    rails' bank is laid (its south edge in the yard meets this ground, no wall).  Returns (the nodes set, a summary)"""
+    poly = Polygon(ST_YARD)
+    inside = shapely.contains_xy(poly, X, Y) & ~FIXED
+    ys, zs = zip(*ST_YARD_Z)
+    H0 = Hn.copy()
+    z = np.interp(Y, ys, zs) + datum.tilt(X, Y)
+    Hn[inside] = z[inside]
+    d = shapely.distance(poly, shapely.points(X, Y))
+    ring = (d > 0) & (d <= ST_RING) & ~FIXED & ~inside
+    if ring.any():
+        fill(ring)
+    dd = Hn - H0
+    return inside, dict(set=int(inside.sum()), eased=int(ring.sum()),
+                        lift=(round(float(dd[inside].min()), 2), round(float(dd[inside].max()), 2)) if inside.any() else None)
+
+
+def station97():
+    """campus.json town.station97 (blender/town.py station97 draws it): the frame, the floor (on the working datum)
+    and the parts in the station's frame"""
+    return dict(o=list(ST_O), a=ST_A, at=list(st_xy(0.0, 4.6)), base=datum.up(*st_xy(0.0, 4.6), ST_FLOOR),
+                hall=ST_HALL, office=ST_OFFICE, bay=ST_BAY, lean=ST_LEAN, chimneys=[list(c) for c in ST_CHIMNEYS],
+                annex=dict(ST_ANNEX, c=list(ST_ANNEX['c'])))
+
+
+def station_clear(blocks, n_skip):
+    """the town's houses (after the first n_skip) on the station, the outbuilding or the car park: one the station
+    cuts across but leaves 3.5 m of goes short along its length on the far side (the low white house east of the hall
+    in 52250 · 52234), the rest b[6] < 0 (blender/town.py still draws their random looks).  Returns (gone, shortened)"""
+    from gate_town import _rect
+    g = station_polys(0.3)
+    shapely.prepare(g)
+    gone = cut = 0
+    for b in blocks[n_skip:]:
+        if b[6] <= 0:
+            continue
+        r = _rect(b)
+        if not shapely.intersects(g, r.buffer(-0.2)):
+            continue
+        cx, cy, L, W, ang = b[:5]
+        c, s_ = math.cos(ang), math.sin(ang)
+        ov = r.intersection(g)
+        us = [(x - cx) * c + (y - cy) * s_ for x, y in ov.exterior.coords] if ov.geom_type == 'Polygon' else []
+        keep = None
+        if us:
+            lo, hi = min(us), max(us)
+            a_, b_ = (-L / 2, lo) if lo + L / 2 > L / 2 - hi else (hi, L / 2)
+            if b_ - a_ >= 3.5 and ov.area < 0.6 * r.area:
+                keep = (a_, b_)
+        if keep is None:
+            b[6] = -b[6]
+            gone += 1
+            continue
+        m = (keep[0] + keep[1]) / 2
+        b[0], b[1], b[2] = round(cx + m * c, 2), round(cy + m * s_, 2), round(keep[1] - keep[0], 2)
+        cut += 1
+    return gone, cut
