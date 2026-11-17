@@ -471,9 +471,10 @@ def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True, 
             mb.box((x, y, zt + 0.6), (1.6, 1.0, 1.2), 'metal', rotz=ang, skip=('bottom',))
 
 
-def hip_roof(mb, cx, cy, L, W, ang, zt, mat, pitch=0.6, over=0.5, fascia='frame_white', gable=None):
+def hip_roof(mb, cx, cy, L, W, ang, zt, mat, pitch=0.6, over=0.5, fascia='frame_white', gable=None, off=0.0):
     """A hipped roof over the L x W rectangle at (cx, cy), its ridge along ang; gable: the end walls' material, for a
-    gabled roof instead (the ridge runs the whole length, the end walls go up to it, the roof sails `over` past them)"""
+    gabled roof instead (the ridge runs the whole length, the end walls go up to it, the roof sails `over` past them).
+    off: a gable's ridge that far to the left of the middle (the ridge's height kept: the two slopes' pitches differ)"""
     L2, W2 = L / 2 + over, W / 2 + over
     h = W2 * pitch
     c, s = math.cos(ang), math.sin(ang)
@@ -482,14 +483,16 @@ def hip_roof(mb, cx, cy, L, W, ang, zt, mat, pitch=0.6, over=0.5, fascia='frame_
         return (cx + x * c - y * s, cy + x * s + y * c, z)
     r = L2 if gable else max(0.0, L2 - W2)
     z0 = zt - over * pitch
-    A, B, C, D = P(-L2, -W2, z0), P(L2, -W2, z0), P(L2, W2, z0), P(-L2, W2, z0)
+    off = off if gable else 0.0
+    za, zb = (zt - over * W / 2 * pitch / (W / 2 + off), zt - over * W / 2 * pitch / (W / 2 - off)) if off else (z0, z0)
+    A, B, C, D = P(-L2, -W2, za), P(L2, -W2, za), P(L2, W2, zb), P(-L2, W2, zb)
     zr = z0 + h
-    R1, R2 = P(-r, 0, zr), P(r, 0, zr)
+    R1, R2 = P(-r, off, zr), P(r, off, zr)
     mb.face([A, B, R2, R1], mat)
     mb.face([C, D, R1, R2], mat)
     if gable:
         for x in (-L / 2, L / 2):                    # the gables
-            q = [P(x, -W / 2, zt), P(x, W / 2, zt), P(x, 0, zr)]
+            q = [P(x, -W / 2, zt), P(x, W / 2, zt), P(x, off, zr)]
             mb.face(q if x > 0 else q[::-1], gable)
         mb.face([R1, R2, B, A], 'plaster_white')      # the undersides (seen under the verges and the eaves)
         mb.face([R2, R1, D, C], 'plaster_white')
@@ -874,8 +877,13 @@ def build_generic(b, rnd):
                  pitch=0.55 if style == 'house' else 0.75)
     elif hip:
         cx, cy, L, W, ang = min_area_rect(poly)
+        if 'ridge' in hip:              # (the ridge along its own way, even on an outline deeper than long: 알렌관)
+            if abs(math.cos(ang) * hip['ridge'][0] + math.sin(ang) * hip['ridge'][1]) < 0.7071:
+                L, W, ang = W, L, ang + math.pi / 2
+            if math.cos(ang) * hip['ridge'][0] + math.sin(ang) * hip['ridge'][1] < 0:
+                ang += math.pi                          # (its left, where `off` puts the ridge, the ridge's own)
         hip_roof(mb, cx, cy, L, W, ang, zt, hip.get('mat', 'roof_slate'), pitch=hip.get('pitch', 0.45), over=hip.get('over', 0.5),
-                 gable=st['wall'] if hip.get('gable') else None)
+                 gable=st['wall'] if hip.get('gable') else None, off=hip.get('off', 0.0))
     elif style == 'gym':               # (rise: build_campus.py's own, 체육관 from the 1997 scans: tools/gymnorth97.py)
         barrel_roof(mb, cx, cy, L, W, ang, zt, rise=b.get('rise', 0.22))
     else:

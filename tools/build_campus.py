@@ -54,6 +54,7 @@ import gyoyuk97
 import annex97
 import bill97
 import cent97
+import allen97
 import datum
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -6860,6 +6861,14 @@ for b_ in buildings:                    # (the halls in the wood: their floors f
         b_['base'], b_['top_ground'] = round(min(_ea_hs), 2), round(max(_ea_hs), 2)
 print('청송대 숲 · 동쪽 언덕:', EAST97_GRADE)
 tr_tilt_of(TR_E, TR_EN, TR_EO, TR_EK0, 'east (east97)')
+# 알렌관 둘레 (tools/allen97.py, reference/고증/3.23 「알렌관 둘레」; #189, al): the hall's two levels of ground on the
+# 1996 · 1997 · 1999 scans (the court, the terrace between its ranges and the trench behind them, the west yard, the
+# strip south of it down from the car park's platform, the hill north of it and the works yard north of that), where
+# the surface model ran one slope 2 - 12 m under them; the walls between the levels (decks: ALLEN_DECKS below).
+# Late, here: the planting has read the ground as it was; the hall itself is put in at the halls' end (allen97.halls)
+_al_took, ALLEN_DECK_CELLS, ALLEN97_GRADE = allen97.grade(Hn, X, Y, FIXED, harmonic_fill)
+FIXED[_al_took] = True
+print('알렌관 둘레:', ALLEN97_GRADE)
 # ---------------------------------------------------------------------------
 # 1997년 땅 (#189 가운데: 인문관 · 대강당 · 한경길 · 용재관), after the planting and everything else that read the ground
 # as it was.  Each place: a zone of grid nodes to one level, the ring round it eased by harmonic_fill into the ground as
@@ -7964,6 +7973,7 @@ MED_STRIP_DECK = dwb_deck(MED_STRIP_CELLS, MED_STRIP_POLY, med97.strip_h)       
 NURSE_DECK = dwb_deck(NURSE_CELLS, NURSE_POLY, med97.nurse_h)                   # (간호대학 북쪽 주차장: med97.nurse_grade above)
 WD_CUT_DECK = dwb_deck(WD_CUT_CELLS, WD_CUT_POLY, widang97.high_h)         # (제2인문관 공사장의 흙막이: widang97.cut_grade above)
 WD_PIT_DECK = dwb_deck(WD_PIT_CELLS, WD_PIT_POLY, WD_PIT_TOP)              # (교육관 서쪽 구덩이: widang97.pit_grade above)
+ALLEN_DECKS = {k_: (dwb_deck(c_, p_, h_), p_, h_) for k_, (c_, p_, h_) in ALLEN_DECK_CELLS.items()}   # (알렌관 둘레: allen97.grade)
 FOOT_DECK = dwb_deck(FOOT_CELLS, FOOT_POLY, FOOT_H0)                             # (음악대학 동쪽 큰 주차장 서쪽 통로: med97.foot_grade)
 ISLE_WALL_DECK = dwb_deck(ISLE_WALL_CELLS, ISLE_WALL_POLY, ISLE_WALL_H)          # (대강당 북쪽 끝 너머 섬: audnorth97.isle_wall_grade)
 print('   its deck: %.1f m2, %d triangles' % (_nw_poly.area, len(DAEWOO_BACK['deck_nw']['f'])))
@@ -10176,6 +10186,12 @@ for g_ in _nl_asph + _nl_lawn:
     for l_, v_ in (('_yg', 255), ('_gp', 0), ('_yp', 0)):
         SPLAT_OPS.append(('poly', l_, list(g_.exterior.coords), v_))
 _ypaint(_nl_asph, _ga)
+_al_asph, _al_pave = allen97.paint()           # (알렌관 둘레: the west yard's asphalt, the court's and the terrace's paving; al)
+for g_ in _al_asph + _al_pave:
+    for l_, v_ in (('_yg', 255), ('_gd', 0), ('_yp', 0)):
+        SPLAT_OPS.append(('poly', l_, list(g_.exterior.coords), v_))
+_ypaint(_al_asph, _ga)
+_ypaint(_al_pave, _gp)
 for g_ in _md_bank:                            # (_yg is the 0.5 m map's by now: the fine one's strokes only)
     SPLAT_OPS.append(('poly', '_yg', list(g_.exterior.coords), 255))
     SPLAT_OPS.append(('poly', '_ga', list(g_.exterior.coords), 0))
@@ -10205,7 +10221,11 @@ for _nm, _dk, _dp, _dh, _dw in (('ssr_strip', MED_STRIP_DECK, MED_STRIP_POLY, me
                                 ('aud_isle', ISLE_WALL_DECK, ISLE_WALL_POLY, ISLE_WALL_H,
                                  lambda t_, f_: audnorth97.isle_walls(t_, f_, _isn)),
                                 ('widang_cut', WD_CUT_DECK, WD_CUT_POLY, widang97.high_h, widang97.cut_walls),
-                                ('widang_pit', WD_PIT_DECK, WD_PIT_POLY, WD_PIT_TOP, widang97.pit_walls)):
+                                ('widang_pit', WD_PIT_DECK, WD_PIT_POLY, WD_PIT_TOP, widang97.pit_walls),
+                                ('allen_terrace', ALLEN_DECKS['allen_terrace'][0], ALLEN_DECKS['allen_terrace'][1],
+                                 allen97.upper_h, allen97.terrace_walls),
+                                ('allen_hill', ALLEN_DECKS['allen_hill'][0], ALLEN_DECKS['allen_hill'][1], allen97.hill_h,
+                                 allen97.hill_walls)):
     _mv_n0 = len(_mv['top']['v'])
     _mv['top']['v'] += _dk['v']
     _mv['top']['f'] += [[i_ + _mv_n0 for i_ in f_] for f_ in _dk['f']]
@@ -10220,7 +10240,7 @@ for _nm, _dk, _dp, _dh, _dw in (('ssr_strip', MED_STRIP_DECK, MED_STRIP_POLY, me
             continue
         _pu, _pv = zip(*[medwest97.uv(x_, y_) for x_, y_ in g_.exterior.coords])
         # (its table: the two corners where the surface is a plane, every metre where it is the bank's as it was)
-        _st = 1.0 if _nm in ('music_east_foot', 'aud_isle') else None
+        _st = 1.0 if _nm in ('music_east_foot', 'aud_isle', 'allen_hill') else None
         _pus, _pvs = ([round(float(v_), 3) for v_ in np.arange(min(_pu) - 0.5, max(_pu) + 1.5, _st)],
                       [round(float(v_), 3) for v_ in np.arange(min(_pv) - 0.5, max(_pv) + 1.5, _st)]) if _st else \
             ([round(float(min(_pu)) - 0.5, 3), round(float(max(_pu)) + 0.5, 3)], [round(float(min(_pv)) - 0.5, 3), round(float(max(_pv)) + 0.5, 3)])
@@ -11718,6 +11738,13 @@ buildings += medwest97.wl_halls()
 buildings.append(ssr97.hut())                # (성산로 북쪽 가 육교 곁의 평지붕 오두막, tools/ssr97.py; ss: after them)
 # 외솔관2 서쪽 끝 바깥의 낮은 박공 건물과 그 서쪽 평지붕 동 (tools/jonghap97.py ow_halls; #189, jh): after them, at the very end
 buildings += jonghap97.ow_halls()
+# 알렌관 (tools/allen97.py, reference/고증/3.23 「알렌관의 생김새」; al): OSM's one flat block is the 1997 south block (its
+# record keeps its place: a flat roof draws blender/build.py's looks as before), the two gabled ranges over and north
+# of it, the low gabled bay at the west end and the round-ended bay at the middle range's west end at the very end
+for b_ in buildings:
+    if b_['id'] == allen97.ALLEN:
+        allen97.south_block(b_)
+buildings += allen97.halls()
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
 # edges in their places in the list
@@ -11730,6 +11757,10 @@ print('의료원의 남은 줄: trees, shrubs off the paving',
 # 간호대학 북쪽 주차장 (tools/med97.py nurse_aside; md): the trees the planting put on the platform, to its north edge in
 # their places in the list; its shrubs and props go
 print('간호대학 북쪽 주차장: trees off the platform', med97.nurse_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
+# 알렌관 둘레 (tools/allen97.py trees_aside; al): the trees, shrubs and props in the hall's new outlines, the court, the
+# terrace and the trench to their edges in their places in the lists
+_al_halls = [Polygon(b_['footprint']) for b_ in out['buildings'] if b_['name'] != '알렌관']
+print('알렌관 둘레: trees, shrubs, props aside', [len(allen97.trees_aside(out[k_], _al_halls)) for k_ in ('trees', 'shrubs', 'props')])
 _nl_n = (len(out['shrubs']), len(out['props']))
 out['shrubs'] = [s_ for s_ in out['shrubs'] if not med97.NL_LOT.contains(Point(s_[1], s_[2]))]
 out['props'] = [p_ for p_ in out['props'] if not med97.NL_LOT.contains(Point(p_[1], p_[2]))]
