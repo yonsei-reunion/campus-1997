@@ -6550,6 +6550,136 @@ def gongwon_site():
     return out
 
 
+def _heap(mb, rnd, x, y, z, rx, ry, h, a, mat, nr=4, ns=12):
+    """a low mound of spoil or rubble, rx x ry across and h high, its foot 0.3 m into the ground, the rings jittered"""
+    ca, sa = math.cos(a), math.sin(a)
+    rings = []
+    for i in range(1, nr + 1):
+        t = i / nr
+        ring = []
+        for k in range(ns):
+            th = 2 * math.pi * k / ns
+            j = 1.0 + rnd.uniform(-0.15, 0.15)
+            u, v = rx * t * math.cos(th) * j, ry * t * math.sin(th) * j
+            zz = z - 0.3 if i == nr else z + h * (1.0 - t * t) ** 0.8 * (1.0 + rnd.uniform(-0.15, 0.15))
+            ring.append((x + u * ca - v * sa, y + u * sa + v * ca, zz))
+        rings.append(ring)
+    top = (x, y, z + h)
+    for k in range(ns):
+        mb.face([top, rings[0][k], rings[0][(k + 1) % ns]], mat)
+    for r0, r1 in zip(rings, rings[1:]):
+        for k in range(ns):
+            j = (k + 1) % ns
+            mb.quad(r0[k], r1[k], r1[j], r0[j], mat)
+
+
+def _excavator(mb, x, y, z, a):
+    """a tracked excavator (the frames: a pale machine, its arm out to one side), its arm along a"""
+    ca, sa = math.cos(a), math.sin(a)
+    P = lambda u, v, w: (x + u * ca - v * sa, y + u * sa + v * ca, z + w)
+    for s in (-1.1, 1.1):                                   # the tracks
+        c = P(0.0, s, 0.4)
+        mb.box(c, (3.6, 0.6, 0.8), 'metal_dark', rotz=a)
+    c = P(-0.3, 0.0, 1.3)
+    mb.box(c, (2.8, 2.4, 1.0), 'paint_yellow', rotz=a)     # the body on its slewing ring
+    mb.box(P(-1.5, 0.0, 1.5), (0.6, 2.3, 1.0), 'paint_yellow', rotz=a)          # (the counterweight)
+    mb.box(P(0.55, 0.65, 2.45), (1.0, 0.95, 1.3), 'paint_yellow', rotz=a, mats={'sides': 'glass', 'top': 'paint_yellow'})
+    rod(mb, P(0.9, -0.3, 1.8), P(3.6, -0.3, 4.2), 0.25, 'paint_yellow', seg=4)  # the boom, the arm, the bucket
+    rod(mb, P(3.6, -0.3, 4.2), P(5.4, -0.3, 1.2), 0.18, 'paint_yellow', seg=4)
+    mb.box(P(5.5, -0.3, 0.75), (0.9, 1.0, 0.8), 'metal_dark', rotz=a)
+
+
+def _crawler_crane(mb, x, y, z, a):
+    """a crawler crane, its lattice boom raised along a (the frames: a pale body, the boom 17 m on to the east-north-east)"""
+    ca, sa = math.cos(a), math.sin(a)
+    P = lambda u, v, w: (x + u * ca - v * sa, y + u * sa + v * ca, z + w)
+    for s in (-1.6, 1.6):
+        mb.box(P(0.0, s, 0.5), (5.2, 0.8, 1.0), 'metal_dark', rotz=a)
+    mb.box(P(-0.6, 0.0, 1.9), (4.2, 3.0, 1.8), 'paint_yellow', rotz=a)
+    mb.box(P(1.0, 1.1, 2.9), (1.4, 0.9, 1.6), 'paint_yellow', rotz=a, mats={'sides': 'glass', 'top': 'paint_yellow'})
+    foot, el, L = P(1.3, -0.4, 2.2), math.radians(32.0), 18.0
+    tip = P(1.3 + L * math.cos(el), -0.4, 2.2 + L * math.sin(el))
+    for dv, dw in ((-0.45, -0.45), (0.45, -0.45), (-0.45, 0.45), (0.45, 0.45)):     # (the lattice's four chords)
+        rod(mb, (foot[0] - sa * dv, foot[1] + ca * dv, foot[2] + dw), (tip[0] - sa * dv * 0.4, tip[1] + ca * dv * 0.4, tip[2] + dw * 0.4),
+            0.06, 'paint_yellow', seg=4)
+    for k in range(1, 12):                                  # (and its zigzag)
+        t0, t1 = (k - 1) / 12, k / 12
+        q0 = [foot[i] + (tip[i] - foot[i]) * t0 for i in range(3)]
+        q1 = [foot[i] + (tip[i] - foot[i]) * t1 for i in range(3)]
+        rod(mb, (q0[0], q0[1], q0[2] - 0.4 * (1 - 0.6 * t0)), (q1[0], q1[1], q1[2] + 0.4 * (1 - 0.6 * t1)), 0.04, 'paint_yellow', seg=4)
+    rod(mb, tip, (tip[0], tip[1], z + 3.0), 0.02, 'metal_dark', seg=4)                # (the hook's rope)
+    mb.box((tip[0], tip[1], z + 2.7), (0.4, 0.3, 0.6), 'metal_dark', rotz=a)
+
+
+def jh_site():
+    """제2인문관 공사장 and 종합관's yard north of the slab as the 1997-07-28 scans have them (tools/widang97.py site,
+    campus.json `jh_site`; reference/고증/3.12 「마당 위의 것」, 3.1 「북쪽 마당의 잔해」): the prefab office (white panels on a
+    blue foot, as 공학원's), flat stacks of dark plates and formwork, a stack of long concrete piles, spoil heaps and a
+    heap of sand, an excavator and a crawler crane, the fence of white posts and a rail along 빌링슬리관's lawn, and on
+    종합관's yard the rubble of 1996 (low heaps with boards, sheets and broken furniture on them).  Its own stream."""
+    J = CAMPUS.get('jh_site')
+    if not J:
+        return []
+    rnd = random.Random(19970728)
+    mb = MeshBuilder('lm_jh_site')
+    extra = []
+    for k_, (cx, cy, z, L, W, ang, h) in enumerate(J['sheds']):
+        d = MeshBuilder('lm_jh_shed_%d' % k_)
+        d.xf = local_frame(cx, cy, ang, z)
+        d.box((0, 0, 0.2), (L, W, 1.0), 'paint_blue', skip=('bottom', 'top'))
+        d.box((0, 0, 0.7 + (h - 0.7) / 2), (L, W, h - 0.7), 'paint_white', skip=('bottom', 'top'))
+        d.box((0, 0, h + 0.06), (L + 0.3, W + 0.3, 0.12), 'roof_metal')
+        n = max(1, int(L / 3.0))
+        for i in range(n):
+            t = ((i + 0.5) / n - 0.5) * L
+            for sg in (-1, 1):
+                d.box((t, sg * (W / 2 + 0.02), 1.55), (1.5, 0.05, 0.9), 'glass')
+        d.box((L / 2 + 0.02, 0.0, 1.0), (0.05, 0.9, 2.0), 'door_frame')
+        extra.append(d)
+    for cx, cy, z, L, W, ang, h in J['stacks']:
+        for k in range(3):
+            dl, dw = rnd.uniform(-0.3, 0.3), rnd.uniform(-0.2, 0.2)
+            mb.box((cx + dl, cy + dw, z + h * (k + 0.5) / 3 - 0.05), (L - 0.4 * k, W - 0.3 * k, h / 3 + 0.1), 'metal_dark', rotz=ang + rnd.uniform(-0.03, 0.03),
+                   skip=('bottom',))
+    for cx, cy, z, L, W, ang, h in J['piles']:
+        ca, sa = math.cos(ang), math.sin(ang)
+        n = int(W / 0.45)
+        for layer in range(2):
+            for i in range(n - layer):
+                v = (i + 0.5 * layer - (n - 1) / 2) * 0.45
+                u = rnd.uniform(-0.6, 0.6)
+                c = (cx + u * ca - v * sa, cy + u * sa + v * ca, z + 0.17 + layer * 0.32)
+                mb.box(c, (L + rnd.uniform(-1.0, 0.5), 0.36, 0.32), 'concrete', rotz=ang + rnd.uniform(-0.02, 0.02), skip=('bottom',))
+    for x, y, z, rx, ry, h, a, mat in J['heaps']:
+        _heap(mb, rnd, x, y, z, rx, ry, h, a, mat)
+    for x, y, z, a, kind in J['machines']:
+        (_excavator if kind == 'excavator' else _crawler_crane)(mb, x, y, z, a)
+    posts = J['posts']
+    for (x, y, z) in posts:                                   # the fence: posts and a rail
+        mb.box((x, y, z + 0.6), (0.14, 0.14, 1.8), 'paint_white', skip=('bottom',))
+    for (xa, ya, za), (xb, yb, zb) in zip(posts, posts[1:]):
+        for hz in (1.3, 0.7):
+            rod(mb, (xa, ya, za + hz), (xb, yb, zb + hz), 0.03, 'metal', seg=4)
+    hd = J.get('hoard', [])                          # the hoarding along the yard's east side: sheet panels 2.4 m high on posts
+    for (xa, ya, za), (xb, yb, zb) in zip(hd, hd[1:]):
+        L = math.hypot(xb - xa, yb - ya) or 1.0
+        nx, ny = (yb - ya) / L * 0.03, -(xb - xa) / L * 0.03
+        for z0, z1, mat in ((-0.3, 0.6, 'paint_blue'), (0.6, 2.4, 'paint_white')):
+            for sg in (1, -1):
+                a0, a1 = (xa + sg * nx, ya + sg * ny, za + z0), (xa + sg * nx, ya + sg * ny, za + z1)
+                b0, b1 = (xb + sg * nx, yb + sg * ny, zb + z0), (xb + sg * nx, yb + sg * ny, zb + z1)
+                mb.face([a0, b0, b1, a1] if sg > 0 else [b0, a0, a1, b1], mat)
+        mb.box((xa, ya, za + 1.05), (0.1, 0.1, 2.7), 'metal_dark', rotz=math.atan2(yb - ya, xb - xa))
+    for x, y, z, rx, ry, h, a in J['rubble']:
+        _heap(mb, rnd, x, y, z, rx, ry, h * 0.7, a, 'concrete_dark', nr=3, ns=10)
+        for k in range(rnd.randint(2, 4)):                    # (boards, sheets, a cabinet's carcass on it)
+            u, v = rnd.uniform(-rx, rx) * 0.5, rnd.uniform(-ry, ry) * 0.5
+            c = (x + u * math.cos(a) - v * math.sin(a), y + u * math.sin(a) + v * math.cos(a), z + h * 0.55)
+            mat = rnd.choice(['wood_dark', 'metal', 'paint_white', 'wood_bench'])
+            mb.box(c, (rnd.uniform(0.6, 1.8), rnd.uniform(0.4, 1.0), rnd.uniform(0.1, 0.6)), mat, rotz=a + rnd.uniform(0, math.pi))
+    return [mb] + extra
+
+
 # ============================================================================= 광복관 (법과대학)
 # 1997's 광복관 was neither the red-brick block the generic builder made of it nor today's six-storey granite hall (its
 # 2000s rebuilding, reference/학교연혁_광복관.jpg).  The 1990 and 1995 campus maps (reference/1990_캠퍼스_지도.png and

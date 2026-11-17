@@ -361,6 +361,11 @@ def heights(c):
         gx = _fr(G['o'], (math.cos(G['rot']), math.sin(G['rot'])))
         for q in [G['pit'], G['slab']] + G['sheds']:
             A(q, 4, *gx((q[0] + q[1]) / 2, (q[2] + q[3]) / 2))
+    J = c.get('jh_site')                         # (제2인문관 공사장 · 종합관 북쪽 마당: tools/widang97.py site)
+    if J:
+        for k in ('sheds', 'stacks', 'piles', 'heaps', 'machines', 'posts', 'rubble', 'hoard'):
+            for q in J.get(k, []):
+                A(q, 2, q[0], q[1])
     T = c.get('town')
     if T:
         b = T['banner']

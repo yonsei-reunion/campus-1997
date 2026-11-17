@@ -7204,13 +7204,25 @@ _wd_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] 
 _wd_took, _wd_core, WIDANG97_GRADE = widang97.grade(Hn, X, Y, FIXED, _wd_halls, harmonic_fill)
 FIXED[_wd_took] = True
 print('제2인문관 공사장:', WIDANG97_GRADE)
+# (and the bank under 빌링슬리관's lawn on the scans' profile, widang97.bank_grade: 2026-11-17, jh)
+_wd_bank, WIDANG97_BANK = widang97.bank_grade(Hn, X, Y, _wd_core.copy(), _wd_halls, harmonic_fill)
+FIXED[_wd_bank] = True
+print('제2인문관 공사장 북쪽 둑:', WIDANG97_BANK)
 _jh_eased = {}
 _jh_took, JONGHAP97_GRADE = jonghap97.grade(
     Hn, X, Y, FIXED, _jh_halls,
-    ((_inm_u >= INM97['u'][0]) & (_inm_u <= INM97['u'][1]) & (_inm_v >= INM97['v'][0]) & (_inm_v <= INM97['v'][1])) | _wd_core,
+    ((_inm_u >= INM97['u'][0]) & (_inm_u <= INM97['u'][1]) & (_inm_v >= INM97['v'][0]) & (_inm_v <= INM97['v'][1])) | _wd_core | _wd_bank,
     harmonic_fill, eased=_jh_eased)
 FIXED[_jh_took] = True
 print('종합관 · 외솔관2 · 인문관 둘레:', JONGHAP97_GRADE)
+# 제2인문관 공사장의 흙막이 (widang97.cut_grade; 2026-11-17, jh): the soldier piles round the dig's south-west corner hold up
+# the road on 종합관's low block's north side and the shelf; the nodes either side on their own levels, after jonghap97's
+# roads (the deck over the cells the line crosses and the piles themselves: WD_CUT_DECK, med_west below)
+_wd_cut, WD_CUT_CELLS, WD_CUT_POLY, WIDANG97_CUT = widang97.cut_grade(
+    Hn, X, Y, FIXED, [Polygon(b_['footprint']).buffer(0) for b_ in buildings if b_['id'] not in GONE_1997
+                      and Polygon(b_['footprint']).distance(widang97.CUT) < 15.0] + [jonghap97.OUTLINE[jonghap97.PODIUM]])
+FIXED[_wd_cut] = True
+print('제2인문관 공사장 흙막이:', WIDANG97_CUT)
 # 교육관 북쪽 마당 · 연희관 서쪽 옆길 · 상뜰 서쪽 길 · 상뜰 남쪽 보도 (tools/gyoyuk97.py, reference/고증/3.5.1 「1997년 7월 원본
 # 스캔으로 다시 잰 띠의 서쪽」 · 「옆길 북쪽과 상뜰 남쪽 보도」, 3.18 「교육관」; #189): the yard north of 교육관 and east of
 # the works yard to the drive west of 연희관, that drive on beside the 상뜰 to 대우관's west wing, the footway along the
@@ -7257,6 +7269,17 @@ _bl_took, BILL97_GRADE = bill97.grade(Hn, X, Y, FIXED, [(bill97.HALL_E, 2.0)], _
 FIXED[_bl_took] = True
 print('빌링슬리관 동쪽 찻길:', BILL97_GRADE)
 DAEWOO['bank'] = bill97.bank_pts()           # (the 상뜰's boulder bank behind the 1997 east kerb, 6.8 m out of OSM's line)
+# 교육관 서쪽 찻길 (widang97.drive_grade; 2026-11-17, jh): the drive along its west side on the scans' level over its
+# FORECOURTS (the hall's feet stay)
+_wd_drive, WIDANG97_DRIVE = widang97.drive_grade(Hn, X, Y, FIXED, next(Polygon(b_['footprint']) for b_ in buildings if b_['id'] == 246156111),
+                                                 harmonic_fill)
+FIXED[_wd_drive] = True
+print('교육관 서쪽 찻길:', WIDANG97_DRIVE)
+# 교육관 서쪽 네모 구덩이 (widang97.pit_grade; jh): the nodes of its cells down to its floor, a deck over the rest of them
+_wd_pit, WD_PIT_CELLS, WD_PIT_POLY, WD_PIT_TOP, WIDANG97_PIT = widang97.pit_grade(
+    Hn, X, Y, lambda H_, x_, y_: sample(H_, NEAR_HALF, NEAR_STEP, x_, y_))
+FIXED[_wd_pit] = True
+print('교육관 서쪽 구덩이:', WIDANG97_PIT)
 # ---------------------------------------------------------------------------
 # Save
 # ---------------------------------------------------------------------------
@@ -7711,6 +7734,9 @@ for b in buildings:
         if b['id'] == jonghap97.OESOL2:
             b['hip'] = dict(jonghap97.OESOL2_ROOF)
             RND_GHOSTS.append({**_jh_old[b['id']], 'at': next(i_ for i_, b_ in enumerate(buildings) if b_ is b)})
+        # (외솔관2's two gabled roofs and the low roof between them, 종합관's and 인문관's penthouses, 인문관's canopy:
+        # blender/generic.py oesol2_roof · parapet_and_roof `pents` · canopy_band, none of them drawing from its stream)
+        b.update(jonghap97.roofs(b['id']))
 LATE_SITES.append(shapely.geometry.polygon.orient(jonghap97.OUTLINE[jonghap97.PODIUM], 1.0))
 # 경영학교실단 (reference/고증/3.15-3.17 「날개와 강당의 높이」; the 1997-07-28 scans, four frames from both flight
 # lines): both wings' roofs at the same height, 56.3 m (56.5 · 56.7 in the scans, which
@@ -7929,6 +7955,8 @@ _nw_h = lambda x_, y_: dwb_h(x_, y_) if x_ > gx[_ni] + 1e-6 and y_ > gx[_nj] + 1
 DAEWOO_BACK['deck_nw'] = dwb_deck(_nw_cells, _nw_poly, _nw_h)
 MED_STRIP_DECK = dwb_deck(MED_STRIP_CELLS, MED_STRIP_POLY, med97.strip_h)       # (성산로 북쪽 가: med97.strip_grade above)
 NURSE_DECK = dwb_deck(NURSE_CELLS, NURSE_POLY, med97.nurse_h)                   # (간호대학 북쪽 주차장: med97.nurse_grade above)
+WD_CUT_DECK = dwb_deck(WD_CUT_CELLS, WD_CUT_POLY, widang97.high_h)         # (제2인문관 공사장의 흙막이: widang97.cut_grade above)
+WD_PIT_DECK = dwb_deck(WD_PIT_CELLS, WD_PIT_POLY, WD_PIT_TOP)              # (교육관 서쪽 구덩이: widang97.pit_grade above)
 FOOT_DECK = dwb_deck(FOOT_CELLS, FOOT_POLY, FOOT_H0)                             # (음악대학 동쪽 큰 주차장 서쪽 통로: med97.foot_grade)
 ISLE_WALL_DECK = dwb_deck(ISLE_WALL_CELLS, ISLE_WALL_POLY, ISLE_WALL_H)          # (대강당 북쪽 끝 너머 섬: audnorth97.isle_wall_grade)
 print('   its deck: %.1f m2, %d triangles' % (_nw_poly.area, len(DAEWOO_BACK['deck_nw']['f'])))
@@ -10167,7 +10195,9 @@ for _nm, _dk, _dp, _dh, _dw in (('ssr_strip', MED_STRIP_DECK, MED_STRIP_POLY, me
                                 ('nurse_lot', NURSE_DECK, NURSE_POLY, med97.nurse_h, med97.nurse_walls),
                                 ('music_east_foot', FOOT_DECK, FOOT_POLY, FOOT_H0, med97.foot_walls),
                                 ('aud_isle', ISLE_WALL_DECK, ISLE_WALL_POLY, ISLE_WALL_H,
-                                 lambda t_, f_: audnorth97.isle_walls(t_, f_, _isn))):
+                                 lambda t_, f_: audnorth97.isle_walls(t_, f_, _isn)),
+                                ('widang_cut', WD_CUT_DECK, WD_CUT_POLY, widang97.high_h, widang97.cut_walls),
+                                ('widang_pit', WD_PIT_DECK, WD_PIT_POLY, WD_PIT_TOP, widang97.pit_walls)):
     _mv_n0 = len(_mv['top']['v'])
     _mv['top']['v'] += _dk['v']
     _mv['top']['f'] += [[i_ + _mv_n0 for i_ in f_] for f_ in _dk['f']]
@@ -11085,7 +11115,7 @@ for p_ in list(out['paths']):
 print('의료원: walks cut back at the 1997 halls', _nm[0], '- taken out', _nm[1])
 # 제2인문관 공사장 (tools/widang97.py): the walks and drives across the works yard go from the walks the game reads, and
 # the decals on its pavements
-_wd_zone = unary_union([widang97.WORKS, widang97.BANK]).buffer(1.0)
+_wd_zone = unary_union([widang97.WORKS0, widang97.BANK]).buffer(1.0)
 _wd_nd = len(out['decals'])
 out['decals'] = [d_ for d_ in out['decals'] if not _wd_zone.contains(Point(d_[1], d_[2]))]
 print('제2인문관 공사장: walks (cut, gone, pieces added)', widang97.cut_paths(out['paths']), 'decals -%d' % (_wd_nd - len(out['decals'])))
@@ -11655,6 +11685,9 @@ buildings += MUAK_HALLS_LATE                 # (무악학사 · 북문: after ev
 # halls' end (blender/build.py draws each hall's looks in its order)
 buildings += medwest97.halls()
 out['seomun'] = seomun.gate(ground_tn)
+# 제2인문관 공사장과 종합관 북쪽 마당에 있던 것 (tools/widang97.py site; 2026-11-17, jh): the prefab office, the stacks, the
+# heaps, the machines, the fence along 빌링슬리관's lawn, the rubble on 종합관's yard (blender/landmarks.py jh_site)
+out['jh_site'] = widang97.site(lambda x_, y_: WD_PIT_TOP(x_, y_) if WD_PIT_POLY.contains(Point(x_, y_)) else ground_tn(x_, y_))
 out['markers'].append(dict(name='서문', pos=[-362.0, -18.4], top=round(out['seomun']['z'] + 4.0, 1)))
 # 종합관's low east block (tools/jonghap97.py PODIUM: 1994's two storeys across the slab's east end), at the halls' end
 # (blender/build.py draws each hall's looks in its order); its door on the road east of it
@@ -11674,6 +11707,8 @@ buildings.append(_jhb)
 # draws each hall's looks in its order: none after them changes its looks)
 buildings += medwest97.wl_halls()
 buildings.append(ssr97.hut())                # (성산로 북쪽 가 육교 곁의 평지붕 오두막, tools/ssr97.py; ss: after them)
+# 외솔관2 서쪽 끝 바깥의 낮은 박공 건물과 그 서쪽 평지붕 동 (tools/jonghap97.py ow_halls; #189, jh): after them, at the very end
+buildings += jonghap97.ow_halls()
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
 # edges in their places in the list
@@ -11708,12 +11743,22 @@ print('의료원 들어오는 길 서쪽 주차장: trees moved', _wl_moved, 'pl
 # and where the low block stands, out to their edges in their places in the list
 print('종합관 북쪽 마당: trees out of the yard and the low block',
       jonghap97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
+# 외솔관2 서쪽 끝 바깥의 박공 건물 (jonghap97.ow_halls): the trees, shrubs and props on its two footprints out to their
+# edges, each in its place in its list
+print('외솔관2 서쪽 박공 건물: trees, shrubs, props off it', jonghap97.ow_aside(out['trees'], out['shrubs'], out['props'],
+                                                                     [Polygon(b_['footprint']) for b_ in out['buildings']]))
 # 서쪽 능선 꼭대기의 빈터 (tools/ridge97.py; #189): the trees the random planting put on the cleared top, out to its edge in
 # their places in the list
 print('서쪽 능선 꼭대기: trees off the cleared top', ridge97.trees_aside(out['trees']))
 # 제2인문관 공사장 (tools/widang97.py): the trees on the works yard and the shelf west of it, out to their edges in
 # their places in the list
 print('제2인문관 공사장: trees off the yard', widang97.trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']]))
+_wd_sc = widang97.site_clear()
+_wd_n = (len(out['shrubs']), len(out['props']))
+out['shrubs'] = [s_ for s_ in out['shrubs'] if not _wd_sc.contains(Point(s_[1], s_[2]))]
+out['props'] = [p_ for p_ in out['props'] if not _wd_sc.contains(Point(p_[1], p_[2]))]
+print('   under the site\'s things: shrubs -%d, props -%d, trees on them %d' % (
+    _wd_n[0] - len(out['shrubs']), _wd_n[1] - len(out['props']), sum(1 for t_ in out['trees'] if _wd_sc.contains(Point(t_[1], t_[2])))))
 # 새천년관 공사장 (tools/east97.py SITE97): the trees on the works yard, six into its two clumps, the rest out to its edge, in their places in the list
 print('새천년관 공사장: trees off the yard', len(east97.site_trees_aside(out['trees'], [Polygon(b_['footprint']) for b_ in out['buildings']])))
 # 무악학사 · 북문 (tools/muak.py): trees the planting left where the halls moved to the 1997 photos or added stand, each in

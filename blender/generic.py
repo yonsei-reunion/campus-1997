@@ -424,9 +424,21 @@ def entry_edge(poly, entry):
     return best and (best[1], best[2])
 
 
-def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True, at=None, par=0.9):
+def pent_boxes(mb, pents, zt, st):
+    """penthouses read off the 1997 scans (tools/jonghap97.py PENTS): [cx, cy, L, W, angle, height (, tanks)], each a
+    box of the hall's wall under a flat roof and a coping; tanks [x, y, r, h] stand on the first one's roof"""
+    for p in pents:
+        cx, cy, L, W, ang, h = p[:6]
+        mb.box((cx, cy, zt + h / 2), (L, W, h), st['wall'], rotz=ang, mats={'top': 'roof_flat'}, skip=('bottom',))
+        mb.box((cx, cy, zt + h + 0.1), (L + 0.2, W + 0.2, 0.2), 'concrete', rotz=ang, skip=('bottom',))
+        for x, y, r, th in (p[6] if len(p) > 6 else []):
+            mb.cylinder((x, y), r, zt + h + 0.2, zt + h + th, 'paint_white', seg=12, mat_cap='paint_white')
+
+
+def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True, at=None, par=0.9, pents=None):
     """at: (x, y, length, width, angle) of the stretch of roof the clutter goes on, instead of the outline's middle;
-    par: the parapet's height over the roof"""
+    par: the parapet's height over the roof; pents: the hall's own penthouses (pent_boxes) instead of the stair
+    penthouse in the outline's middle (the clutter still draws from rnd as before)"""
     inner = offset_poly(poly, -0.3)
     zp = zt + par
     # coping
@@ -447,8 +459,11 @@ def parapet_and_roof(mb, poly, zt, st, rnd, roof_mat='roof_flat', clutter=True, 
         _, _, L, W, ang = min_area_rect(poly)
         if at:
             cx, cy, L, W, ang = at
-        mb.box((cx, cy, zt + 1.6), (min(6, L * 0.3), min(4, W * 0.4), 3.2), st['wall'], rotz=ang,
-               mats={'top': 'roof_flat'})
+        if pents:
+            pent_boxes(mb, pents, zt, st)
+        else:
+            mb.box((cx, cy, zt + 1.6), (min(6, L * 0.3), min(4, W * 0.4), 3.2), st['wall'], rotz=ang,
+                   mats={'top': 'roof_flat'})
         for k in range(rnd.randint(1, 4)):
             ox, oy = rnd.uniform(-L * 0.3, L * 0.3), rnd.uniform(-W * 0.25, W * 0.25)
             x = cx + ox * math.cos(ang) - oy * math.sin(ang)
@@ -631,6 +646,73 @@ def billingsley_roof(mb, b, zt, st):
     mansard(mb, c.x, c.y, u1 - u0, v1 - v0, au, zt, st, *r['mansard'])
 
 
+def oesol2_roof(mb, b, zt, st):
+    """외솔관2's roofs (tools/jonghap97.py OESOL2_PLAN, reference/고증/3.1 「지붕 · 옥탑 · 캐노피」; the 1997-07-28 scans from both
+    flight lines): two low white gabled roofs on the eaves, their ridges along the hall, and between them a flat roof
+    1.25 m under the eaves, closed on the north by the north wall carried up to them, on the south by a strip of flat
+    roof at the eaves (the low roof on past it to the south wall); seven square roof lights on the ridges"""
+    r = b['roof']
+    o, t = Vector(r['o']), Vector(r['t'])
+    n = Vector((-t.y, t.x))
+    P2 = lambda u, v: o + t * u + n * v
+    P3 = lambda u, v, z: (*(o + t * u + n * v), z)
+    au = math.atan2(t.y, t.x)
+    v0, v1 = r['v']
+    W, pitch = v1 - v0, r['pitch']
+    zr = zt + W / 2 * pitch                         # (hip_roof's ridge)
+    for u0, u1 in (r['west'], r['east']):
+        c = P2((u0 + u1) / 2, (v0 + v1) / 2)
+        hip_roof(mb, c.x, c.y, u1 - u0, W, au, zt, r['mat'], pitch=pitch, over=r['over'], gable=st['wall'])
+    lu0, lu1, lv0, lv1 = r['low']
+    su0, su1, sv0, sv1 = r['strip']
+    zl = zt - r['drop']
+    mb.face([P3(su0, sv1, zl), P3(su1, sv1, zl), P3(su1, sv0, zl), P3(lu1, lv0, zl), P3(lu1, lv1, zl), P3(lu0, lv1, zl)], 'roof_flat')
+    mb.face([P3(su0, sv0, zt), P3(su1, sv0, zt), P3(su1, sv1, zt), P3(su0, sv1, zt)], 'plaster_white')     # (the strip)
+    pt = 0.25                                      # the north and south walls carried up round the low roof: inner face, coping
+    for (ua, ub), v, d in (((lu0, lu1), lv1, -pt), ((su1, lu1), lv0, pt)):
+        a, b_ = (ua, v + d), (ub, v + d)             # (the north wall's face looks south, the south wall's north)
+        if d > 0:
+            a, b_ = b_, a
+        mb.quad(P3(*a, zl), P3(*b_, zl), P3(*b_, zt), P3(*a, zt), st['wall'])
+        cap = [P3(ua, v, zt), P3(ub, v, zt), P3(ub, v + d, zt), P3(ua, v + d, zt)]
+        mb.face(cap if d > 0 else cap[::-1], 'concrete')
+    # the walls up from the low roof to the eaves under the two inner gables and round the strip (faces to the low roof)
+    for a, b_ in (((lu0, sv1), (lu0, lv1)), ((lu1, lv1), (lu1, lv0)), ((su1, sv1), (su0, sv1)), ((su1, sv0), (su1, sv1))):
+        mb.quad(P3(*a, zl), P3(*b_, zl), P3(*b_, zt), P3(*a, zt), st['wall'])
+    s, hl = r['light']
+    for u in r['lights']:
+        c = P2(u, (v0 + v1) / 2)
+        mb.box((c.x, c.y, zr + (hl - 0.3) / 2), (s, s, hl + 0.3), 'metal', rotz=au, mats={'top': 'glass'}, skip=('bottom',))
+
+
+def canopy_band(mb, b, st):
+    """인문관's canopy round its east half (tools/jonghap97.py CANOPY, reference/고증/3.1 「지붕 · 옥탑 · 캐노피」): a slab at the
+    second floor out of the east wall, the south face and the north blocks, its deep fascia (the frames' lit band) along
+    the outer edges from under the slab up past its top (heights over the floor)"""
+    c = b['canopy']
+    o, t = Vector(c['o']), Vector(c['t'])
+    n = Vector((-t.y, t.x))
+    P2 = lambda u, v: o + t * u + n * v
+    au = math.atan2(t.y, t.x)
+    z0 = b['base']
+    zd, zf, zr = z0 + c['deck'], z0 + c['fascia'], z0 + c['rim']
+    for u0, u1, v0, v1 in c['rects']:
+        q = P2((u0 + u1) / 2, (v0 + v1) / 2)
+        mb.box((q.x, q.y, zd - c['slab'] / 2), (u1 - u0, v1 - v0, c['slab']), 'concrete', rotz=au, mats={'top': 'roof_flat'})
+    ft = 0.3
+    for (ua, va), (ub, vb) in c['edges']:
+        L = math.hypot(ub - ua, vb - va)
+        du, dv = (ub - ua) / L, (vb - va) / L
+        # (inwards: towards the hall, i.e. the side of the band's middle)
+        mu, mv = (ua + ub) / 2, (va + vb) / 2
+        nu, nv = -dv, du
+        cu, cv = sum((r_[0] + r_[1]) / 2 for r_ in c['rects']) / len(c['rects']), sum((r_[2] + r_[3]) / 2 for r_ in c['rects']) / len(c['rects'])
+        if (cu - mu) * nu + (cv - mv) * nv < 0:
+            nu, nv = -nu, -nv
+        q = P2(mu + nu * ft / 2, mv + nv * ft / 2)
+        mb.box((q.x, q.y, (zf + zr) / 2), (L, ft, zr - zf), 'concrete', rotz=au + math.atan2(dv, du))
+
+
 def bk_vault(mb, b, zt, st):
     """경영학교실단's hall (tools/build_campus.py BK_VAULT, reference/고증/3.15-3.17 「둥근 지붕 강당」): in the middle of
     the one-storey front block's flat roof a box 33 by 22 m rising to the springing of three shallow white barrel
@@ -698,7 +780,7 @@ def clinic_roof(mb, b, zt, st):
         hip_roof(mb, cx, cy, u1 - u0, v1 - v0, r['ang'], zt, 'roof_cement', pitch=r['pitch'], over=r['over'])
 
 
-PLAN_ROOF = {245623193: billingsley_roof, 990030: clinic_roof}
+PLAN_ROOF = {245623193: billingsley_roof, 990030: clinic_roof, 246156114: oesol2_roof}
 # 과학관: cream square glazed tiles, about ten to a window bay (the 1996 album photos reference/과학관_계단_1996_*.jpg;
 # the 2008 roadview, 200 mm tiles); 음악관 신관: white square tiles with grey joints (기악과's 1996 album photo at its
 # door; reference/학교연혁_음악관.jpg still shows them); 구관: smooth white panels (the 2008 roadview, 2381382 - 2381391)
@@ -804,7 +886,7 @@ def build_generic(b, rnd):
             at = (r_['o'][0] + r_['t'][0] * r_['clutter'][0] - r_['t'][1] * r_['clutter'][1],
                   r_['o'][1] + r_['t'][1] * r_['clutter'][0] + r_['t'][0] * r_['clutter'][1],
                   60.0, 8.0, math.atan2(r_['t'][1], r_['t'][0]))
-        parapet_and_roof(mb, poly, zt, st, rnd, roof_mat=roof, clutter=style != 'city', at=at, par=par)
+        parapet_and_roof(mb, poly, zt, st, rnd, roof_mat=roof, clutter=style != 'city', at=at, par=par, pents=b.get('pents'))
         if b['id'] in ROOF_EXTRAS:
             b['fh_up'] = fh if wing else 0.0
             ROOF_EXTRAS[b['id']](mb, b, zt + (fh if wing else 0.0), st)
@@ -833,5 +915,7 @@ def build_generic(b, rnd):
                     zs0, zs1 = z0 + fh - 0.1, z0 + fh + 1.0
                     mb.face([(p0.x, p0.y, zs0), (p1.x, p1.y, zs0), (p1.x, p1.y, zs1), (p0.x, p0.y, zs1)], 'sign_shops',
                             uvs=[(u0, v0), (u0 + 0.5, v0), (u0 + 0.5, v0 + 0.125), (u0, v0 + 0.125)])
+    if b.get('canopy'):                # (인문관: tools/jonghap97.py CANOPY; nothing from rnd)
+        canopy_band(mb, b, st)
     backs.back_finish(mb, back, DOORS[n_doors:])
     return mb

@@ -88,12 +88,92 @@ FLOORS = {JONGHAP: dict(base=datum.up(-48.14, 299.15, 68.81), levels=5, fh=4.05)
           PODIUM: dict(base=datum.up(-48.14, 299.15, 56.732, 3), levels=3, fh=3.975),
           OESOL2: dict(base=datum.up(-75.35, 282.35, 60.94), levels=4, fh=4.0),
           INMUN: dict(base=datum.up(-92.78, 264.0, 58.18), levels=6, fh=4.0)}
+FLOOR_SEA = {INMUN: 58.18}                  # (인문관's floor, 해발: what its canopy's heights are taken over)
 OESOL2_ROOF = dict(mat='plaster_white', pitch=0.165, over=0.5, gable=True)      # (the ridge 1.15 m over the eaves)
 # doors (the place on the wall, generic.porch's options): 종합관 from the yard, on the first storey over the open one;
 # the low block from the east road; 외솔관2 at its west end (the storey the ground there reaches); 인문관 in its east
 # wall under the porch
 DOORS = {JONGHAP: (xy(16.0, 22.6), dict(floor=1)), PODIUM: (xy(64.6, 31.5), {}),
          OESOL2: (xy(-4.5, -11.8), {}), INMUN: (xy(38.4, -34.5), {})}
+
+# --- on the roofs and round the walls (3.1 「지붕 · 옥탑 · 캐노피」: the scans read on each thing's own plane, the plane where
+# frames from both flight lines agree; heights 해발, over the hall's floor where they go in) -----------------------------
+# 외솔관2: not one gabled roof but two, both on the eaves (76.9 - 77.0 m) with their ridges along the hall (78.0 m), the
+# west over u -4.5 .. 12.7 and the east over 20.75 .. 38.4 (their inner gables where the frames agree at 77.0 · 77.4 m);
+# between them a flat roof 1.25 m under the eaves (75.6 - 75.8 m), the north wall carried up to the eaves along it,
+# along the south wall a strip at the eaves' height out to u 17.15 (v -15.33 .. -18.25) and the low roof on beyond it;
+# on the two ridges seven square roof lights 1.3 m across, their tops 0.2 - 0.4 m over the ridge
+OESOL2_PLAN = dict(west=(-4.5, 12.7), east=(20.75, 38.4), low=(12.7, 20.75, -18.25, -5.3), strip=(12.7, 17.15, -18.25, -15.33),
+                   drop=1.25, lights=(2.0, 6.1, 10.1, 23.0, 27.0, 31.25, 35.6), light=(1.3, 0.3))
+# the penthouses (u0, u1, v0, v1, height over the roof's surface): 종합관's over the slab's north face at its east end
+# (93.0 m, a round thing 1.2 m across on it to 94.2 m), 인문관's two by its north blocks (85.7 m) and a low box west of
+# the east one (83.9 m)
+PENTS = {JONGHAP: [(38.25, 52.6, 14.2, 22.6, 3.9)], INMUN: [(-21.1, -12.7, -33.7, -27.4, 3.4), (12.1, 21.1, -34.0, -27.4, 3.4),
+                                                            (8.95, 12.1, -34.1, -29.75, 1.6)]}
+PENT_TANKS = {JONGHAP: [(47.7, 17.2, 0.6, 1.2)]}               # (u, v, radius, height over the penthouse's roof)
+# 인문관's east half: a deep canopy at the second floor wrapping it, 3.7 m out of the east wall (the porch: its top 63.3 -
+# 63.5 m, its edge 63.7 - 64.0 m in the three course-27 pairs), 2.4 m out of the south face from u 16.3 and 2.6 m out
+# of the north blocks from u 25.3 (the edge 64.0 - 64.2 m; its face lit from there down to 61.3 m in 26/16, shade under)
+CANOPY = dict(rects=[(38.4, 42.1, -45.2, -21.5), (16.3, 38.4, -45.2, -42.8), (25.3, 38.4, -24.1, -21.5)],
+              edges=[((16.3, -45.2), (42.1, -45.2)), ((42.1, -45.2), (42.1, -21.5)), ((42.1, -21.5), (25.3, -21.5)),
+                     ((16.3, -42.8), (16.3, -45.2)), ((25.3, -21.5), (25.3, -24.1))],
+              deck=63.3, rim=64.0, fascia=61.3, slab=0.4)
+# west of 외솔관2, where the road up the hill now runs: a low gabled hall of 1997 (its use not known), 19.6 x 7.7 m under its
+# roof with the ridge along it (eaves 77.6, ridge 78.2 m), turned 22.7 degrees off the halls, and against its west end a
+# flat-roofed block (75.0 m).  (s, w): from its south corner D along its long south-east side and across
+OW_O, OW_T = (-115.0, 293.07), (0.9894, 0.1449)
+OW_HALL = dict(sw=(0.5, 19.1, 0.5, 7.2), eaves=77.6, ridge=78.2, over=0.5, floor=70.6)
+OW_BLOCK = dict(sw=(-5.6, 0.5, 0.4, 4.3), roof=75.0, coping=0.3, floor=71.3)
+
+
+def ow_xy(s, w):
+    return (OW_O[0] + OW_T[0] * s - OW_T[1] * w, OW_O[1] + OW_T[1] * s + OW_T[0] * w)
+
+
+def uv_box(u0, u1, v0, v1):
+    """(cx, cy, L along u, W, angle) of a box in 종합관's frame"""
+    c = xy((u0 + u1) / 2, (v0 + v1) / 2)
+    return [round(c[0], 2), round(c[1], 2), round(u1 - u0, 2), round(v1 - v0, 2), round(float(np.arctan2(TU[1], TU[0])), 5)]
+
+
+def roofs(bid):
+    """what blender/generic.py draws on a hall's roof and round it: dict(roof=… 외솔관2's plan, pents=[…], canopy=…)"""
+    out = {}
+    if bid == OESOL2:
+        out['roof'] = dict(o=[float(c) for c in O], t=[float(c) for c in TU], v=(OESOL2_UV[2], OESOL2_UV[3]),
+                           pitch=OESOL2_ROOF['pitch'], over=OESOL2_ROOF['over'], mat=OESOL2_ROOF['mat'], **OESOL2_PLAN)
+    if bid in PENTS:
+        out['pents'] = [uv_box(u0, u1, v0, v1) + [h] for u0, u1, v0, v1, h in PENTS[bid]]
+        if bid in PENT_TANKS:
+            out['pents'][0].append([[*[round(c, 2) for c in xy(u, v)], r, h] for u, v, r, h in PENT_TANKS[bid]])
+    if bid == INMUN:
+        out['canopy'] = dict(o=[float(c) for c in O], t=[float(c) for c in TU], rects=CANOPY['rects'], edges=CANOPY['edges'],
+                             slab=CANOPY['slab'], **{k: round(CANOPY[k] - FLOOR_SEA[bid], 2) for k in ('deck', 'rim', 'fascia')})
+    return out
+
+
+def ow_halls():
+    """the gabled hall west of 외솔관2 and the block against it, for the halls' end (blender/generic.py: `hip` a gabled
+    roof, `parapet` the block's coping)"""
+    import datum as _d
+    h, b = OW_HALL, OW_BLOCK
+    s0, s1, w0, w1 = h['sw']
+    W = w1 - w0
+    pitch = (h['ridge'] - h['eaves']) / (W / 2 + h['over'])
+    wt = h['ridge'] - W / 2 * pitch                               # (the walls' head: hip_roof's ridge is zt + W/2 pitch)
+    fp = [ow_xy(s, w) for s, w in ((s0, w0), (s1, w0), (s1, w1), (s0, w1))]
+    c = ow_xy((s0 + s1) / 2, (w0 + w1) / 2)
+    out = [dict(id=990090, name='', style='white', levels=2, fh=round((wt - h['floor']) / 2, 3), height=round(wt - h['floor'], 2),
+                base=_d.up(*c, h['floor']), top_ground=_d.up(*c, h['floor']),
+                hip=dict(mat='roof_cement', pitch=round(pitch, 4), over=h['over'], gable=True),
+                footprint=[[round(x, 2), round(y, 2)] for x, y in fp])]
+    s0, s1, w0, w1 = b['sw']
+    fp = [ow_xy(s, w) for s, w in ((s0, w0), (s1, w0), (s1, w1), (s0, w1))]
+    c = ow_xy((s0 + s1) / 2, (w0 + w1) / 2)
+    fh = round(b['roof'] - b['coping'] - b['floor'], 3)
+    out.append(dict(id=990091, name='', style='white', levels=1, fh=fh, height=round(b['roof'] - b['floor'], 2), parapet=b['coping'],
+                    base=_d.up(*c, b['floor']), top_ground=_d.up(*c, b['floor']), footprint=[[round(x, 2), round(y, 2)] for x, y in fp]))
+    return out
 
 # --- heights of the ground (해발, each at its own place) -------------------------------------------------------------
 Z_EAST = datum.up(-4.0, 310.0, 60.45)         # the road east of 종합관, level
@@ -337,4 +417,29 @@ def trees_aside(trees, halls, pad=1.5):
         moved.append((t[0], t[1], t[2], round(q.x, 2), round(q.y, 2)))
         t[1], t[2] = round(q.x, 2), round(q.y, 2)
         spots = [s for s in spots if s.distance(q) > 3.5]
+    return moved
+
+
+def ow_aside(trees, shrubs, props, halls, pad=1.5):
+    """the trees the planting put where the gabled hall west of 외솔관2 and its block stand (ow_halls): each moved in its
+    place in the list to the nearest free point pad m outside them, clear of the other halls by 2.5 m and of the trees
+    there by 3 m; the shrubs and props on them likewise, each in its place in its list.  Returns the moves"""
+    fps = [Polygon(h['footprint']) for h in ow_halls()]
+    clear = unary_union(fps).buffer(0.8)
+    others = [h for h in halls if not any(h.equals_exact(f, 0.05) or h.buffer(0.1).contains(f) for f in fps)]
+    hb = unary_union([h.buffer(2.5) for h in others])
+    ring = clear.buffer(pad).exterior
+    spots = [ring.interpolate(d) for d in np.arange(0.0, ring.length, 0.5)]
+    spots = [q for q in spots if not hb.contains(q)]
+    inside = [t for t in trees if clear.contains(Point(t[1], t[2]))]
+    near = [Point(t[1], t[2]) for t in trees if not any(t is i for i in inside) and abs(t[1] + 106.0) < 50 and abs(t[2] - 298.0) < 50]
+    spots = [q for q in spots if all(q.distance(o) > 3.0 for o in near)]
+    moved = []
+    for t in inside + [s_ for s_ in shrubs + props if clear.contains(Point(s_[1], s_[2]))]:
+        if not spots:
+            break
+        q = min(spots, key=lambda q_: q_.distance(Point(t[1], t[2])))
+        moved.append((t[0], t[1], t[2], round(q.x, 2), round(q.y, 2)))
+        t[1], t[2] = round(q.x, 2), round(q.y, 2)
+        spots = [s for s in spots if s.distance(q) > 2.0]
     return moved
