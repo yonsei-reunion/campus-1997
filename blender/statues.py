@@ -2139,8 +2139,10 @@ def eagle_tower(site=EAGLE_SITE):
                 'pavers')
     mb.cylinder((0, 0), rd, zr - 0.05, zd, 'stone_step', seg=56, mat_cap=Wd, smooth=False)
     z0 = zd
-    # the flaring foot: each face curves out concavely onto the dais, then the shaft tapers to the cap
-    zf, z1 = z0 + 2.6, 9.3
+    # the flaring foot: each face curves out concavely onto the dais, then the shaft tapers to the cap.  Dais to the
+    # cap's top 8.5 m (the 탑신 of 1970 - 2011: 연세춘추 2012-02-29 「기존 8.5m에서 10m로」, the school's 「8.5 m의 사각
+    # 탑신」; 7.8 - 8.55 m in the roadview, the whole 12 m in 동아일보 1970-05-15; reference/고증/4.1.1)
+    zf, z1 = z0 + 2.6, z0 + 8.3
     prof = []
     for k in range(11):
         t = k / 10
