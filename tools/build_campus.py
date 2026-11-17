@@ -7315,6 +7315,7 @@ _bl_took, BILL97_GRADE = bill97.grade(Hn, X, Y, FIXED, [(bill97.HALL_E, 2.0)], _
 FIXED[_bl_took] = True
 print('빌링슬리관 동쪽 찻길:', BILL97_GRADE)
 DAEWOO['bank'] = bill97.bank_pts()           # (the 상뜰's boulder bank behind the 1997 east kerb, 6.8 m out of OSM's line)
+DAEWOO['bank_east'] = bill97.bank_east_pts()   # (and its course along the south bank east of the south flight)
 # 교육관 서쪽 찻길 (widang97.drive_grade; 2026-11-17, jh): the drive along its west side on the scans' level over its
 # FORECOURTS (the hall's feet stay)
 _wd_drive, WIDANG97_DRIVE = widang97.drive_grade(Hn, X, Y, FIXED, next(Polygon(b_['footprint']) for b_ in buildings if b_['id'] == 246156111),
@@ -10685,9 +10686,11 @@ for _bd_du in (-1.22, 1.22):
         _dw_bed('hedge_low', DW_UC + _bd_du, -21.5 + _bd_dv, 1.35, True)
 # (the garden pines: in the round lawn, by the ring where the upper walks leave it, before the podium's ends.  The round
 # lawn's was a young tree in 1997: in the scans only its top, about 1 m across, stands out of the dark round bed, at
-# 3 - 3.5 m over it (two frames leaning the other way, 26/16 and 27/17; reference/고증/3.6.1); 2.9 m, it was 5.2 m)
-for _bd_e, _bd_n, _bd_sc in ((0.0, 0.0, 0.65), (-8.5, 5.0, 1.0), (8.5, 5.0, 1.05), (-14.5, 10.5, 1.05), (14.5, 10.5, 1.0),
-                             (-20.5, 11.5, 1.3), (20.5, 11.5, 1.25)):
+# 3 - 3.5 m over it (two frames leaning the other way, 26/16 and 27/17; reference/고증/3.6.1); 2.9 m, it was 5.2 m.
+# The six others, 4.5 - 5.9 m as the 2009 and 2024 photos have them, were young in 1997 too: the scans' surface at each
+# of them 0.3 - 1.1 m over the lawn (reference/고증/3.6.1 「1996 ~ 1997년의 나무와 남쪽 둑」): 1.1 m tall)
+for _bd_e, _bd_n, _bd_sc in ((0.0, 0.0, 0.65), (-8.5, 5.0, 0.25), (8.5, 5.0, 0.25), (-14.5, 10.5, 0.25), (14.5, 10.5, 0.25),
+                             (-20.5, 11.5, 0.25), (20.5, 11.5, 0.25)):
     DW_BEDS.append(['pine_cloud', *(round(float(c_), 2) for c_ in SG(_bd_e, _bd_n)), _bd_sc, round(_bd_r.uniform(0, 6.28), 3)])
 shrubs += DW_BEDS
 print('대우관 테라스 · 석축: clipped shrubs', len(DW_BEDS), {k_: sum(1 for b_ in DW_BEDS if b_[0] == k_) for k_ in sorted({b_[0] for b_ in DW_BEDS})})
@@ -11926,6 +11929,24 @@ for p_ in out['paths']:
         p_['pts'] = [[round(x_, 1), round(y_, 1)] for x_, y_ in _bh_new]
         _bh_moved.append(('walk', len(p_['pts'])))
 print('백양관 가건물: off it', _bh_moved)
+# 상뜰과 그 남쪽 둑 (reference/고증/3.6.1 「1996 ~ 1997년의 나무와 남쪽 둑」): the 1997-07-28 scans have no crown over the
+# 상뜰's lawns, beds and banks (the surface within 1.6 m of the ground at every tree the random planting put there, low
+# round shrubs only; the school's homepage photo of 1996 the bank bare soil behind a course of boulders).  Those trees go,
+# each in its place in the list, to crowns of the 1997 scans in the wood north of 빌링슬리관 that no tree of the game
+# stands at (4 m from any; SANG_TREE_SPOTS, highest first), so that no other tree changes its model
+SANG_TREE_ZONE = shapely.geometry.box(76.0, 395.0, 146.0, 440.0)
+SANG_TREE_SPOTS = [(60.0, 474.0), (46.0, 496.0), (60.0, 466.0), (58.0, 440.0), (46.0, 440.0), (54.0, 464.0), (66.0, 462.0),
+                   (46.0, 436.0), (54.0, 472.0), (38.0, 494.0), (48.0, 452.0), (44.0, 450.0), (40.0, 438.0), (48.0, 444.0),
+                   (34.0, 458.0), (40.0, 484.0), (52.0, 454.0), (60.0, 492.0), (32.0, 472.0), (54.0, 498.0), (50.0, 498.0),
+                   (42.0, 476.0), (48.0, 482.0), (68.0, 486.0), (68.0, 490.0), (64.0, 486.0), (38.0, 478.0)]
+_st_spots = list(SANG_TREE_SPOTS)
+_st_moved = []
+for t_ in out['trees']:
+    if _st_spots and SANG_TREE_ZONE.contains(Point(t_[1], t_[2])):
+        q_ = _st_spots.pop(0)
+        _st_moved.append((t_[0], t_[1], t_[2]))
+        t_[1], t_[2] = q_
+print('상뜰 · 남쪽 둑: trees to the wood north of 빌링슬리관', len(_st_moved), _st_moved, '- spots left', len(_st_spots))
 print('외솔관2 서쪽 박공 건물: trees, shrubs, props off it', jonghap97.ow_aside(out['trees'], out['shrubs'], out['props'],
                                                                      [Polygon(b_['footprint']) for b_ in out['buildings']]))
 # 서쪽 능선 꼭대기의 빈터 (tools/ridge97.py; #189): the trees the random planting put on the cleared top, out to its edge in

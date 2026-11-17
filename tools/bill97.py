@@ -156,7 +156,32 @@ def bank_pts(out=6.8, edge=6.4):
         an = a0 + (((a1 - a0 + math.pi) % (2 * math.pi)) - math.pi) * k / 4
         p = o + r * np.array([math.cos(an), math.sin(an)])
         pts.append([*p, *(p + (p - o) / r * 0.4), 1.0])
-    for t in np.linspace(0.0, 4.0, 5):
+    # on along the footway to the 상뜰 south flight's west cheek, (100.8, 407.6) at its foot (campus.json daewoo_front
+    # stair): the 1997-07-28 scans have the course of boulders at the foot of the 상뜰's south bank all the way to it
+    # (reference/고증/3.6.1 「1996 ~ 1997년의 나무와 남쪽 둑」)
+    for t in np.linspace(0.0, FOOT_W, int(round(FOOT_W)) + 1):
         p = q + fd * (kt + t)
+        pts.append([*p, *(p - fn * 0.4), 1.0])
+    return [[round(float(v), 2) for v in p] for p in pts]
+
+
+FOOT_W = 25.2                 # (bank_pts: along the footway from the corner's end to 0.6 m short of the flight's cheek)
+FOOT_E = (27.1, 52.0)         # (bank_east_pts: from 0.6 m past the flight's east cheek to x 130, on the same line)
+
+
+def bank_east_pts(out=6.8):
+    """build_campus.py DAEWOO['bank_east'] (blender/landmarks.py sang_stone_bank): the course of boulders at the foot of
+    the 상뜰's south bank east of its south flight, on the line bank_pts runs along the footway (the 1997-07-28 scans)"""
+    import math
+    kd, ke = np.array([-0.2301, -0.9732]), np.array([0.9732, -0.2301])
+    fd, fn = np.array([0.9685, -0.2491]), np.array([0.2491, 0.9685])
+    c0 = np.array([71.8, 436.3])
+    f0 = np.array([66.6, 414.3]) + fn * 1.5
+    a = np.linalg.solve(np.array([kd, -fd]).T, f0 - (c0 + ke * out))
+    q = c0 + ke * out + kd * a[0]
+    kt = 2.4 * math.tan(math.acos(float(kd @ fd)) / 2)
+    pts = []
+    for t in np.linspace(FOOT_E[0], FOOT_E[1], int(round(FOOT_E[1] - FOOT_E[0])) + 1):
+        p = q + fd * (kt + 4.0 + t)
         pts.append([*p, *(p - fn * 0.4), 1.0])
     return [[round(float(v), 2) for v in p] for p in pts]

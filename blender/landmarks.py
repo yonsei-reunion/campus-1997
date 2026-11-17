@@ -2369,8 +2369,18 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
                     continue
                 wins.append((w0, w1, zw0, zw1))
                 mb.quad(P(w0, zw0, 0.02), P(w1, zw0, 0.02), P(w1, zw1, 0.02), P(w0, zw1, 0.02), 'glass')
-                for sm in (w0 + (w1 - w0) / 3, w0 + 2 * (w1 - w0) / 3):
+                nl_ = 4 if modern else 3        # (대우관: four lights, and a narrow light and a single one either side,
+                for k_ in range(1, nl_):         # as the 1995 - 96 winter photo of its front has them: reference/고증/3.6.5)
+                    sm = w0 + (w1 - w0) * k_ / nl_
                     bar(mb, P, sm, zw0, sm, zw1, 0.14, 0.02, 0.1, 'stone_trim')
+                if modern:
+                    for sg_ in (-1, 1):
+                        for c_, hw_ in ((1.67, 0.18), (3.45, 0.31)):
+                            a_, b_ = Le / 2 + sg_ * c_ - hw_, Le / 2 + sg_ * c_ + hw_
+                            mb.quad(P(a_, zw0, 0.02), P(b_, zw0, 0.02), P(b_, zw1, 0.02), P(a_, zw1, 0.02), 'glass')
+                            for (p_, q_, za_, zb_) in ((a_ - 0.12, a_, zw0 - 0.12, zw1 + 0.12), (b_, b_ + 0.12, zw0 - 0.12, zw1 + 0.12),
+                                                       (a_ - 0.12, b_ + 0.12, zw0 - 0.14, zw0), (a_ - 0.12, b_ + 0.12, zw1, zw1 + 0.14)):
+                                bar(mb, P, p_, (za_ + zb_) / 2, q_, (za_ + zb_) / 2, zb_ - za_, 0.0, 0.1, 'stone_trim', ends=True)
                 bar(mb, P, w0, zw0 + (zw1 - zw0) * 0.7, w1, zw0 + (zw1 - zw0) * 0.7, 0.1, 0.02, 0.08, 'stone_trim')
                 for (a_, b_, za_, zb_) in ((w0 - 0.18, w0, zw0 - 0.18, zw1 + 0.2), (w1, w1 + 0.18, zw0 - 0.18, zw1 + 0.2),
                                           (w0 - 0.18, w1 + 0.18, zw0 - 0.18, zw0), (w0 - 0.28, w1 + 0.28, zw1, zw1 + 0.22)):
@@ -4226,14 +4236,14 @@ def daewoo_front(mb, lv, z0):
         lamp_post(mb, uc + sg * 17.0, vs - 1.6, h=3.4, z=zP - 0.05)
 
 
-def sang_stone_bank(pts):
+def sang_stone_bank(pts, name='lm_sang_stone_bank', seed=8707):
     """The bank of natural boulders along the 상뜰's west drive (tools/build_campus.py DAEWOO['bank'], Kakao roadview of
     August 2008): grey boulders 0.6 - 1.1 m long right behind the granite kerb, one course where the bank is low and a
     second set back on it where it is higher, small clipped shrubs between them, and a grass berm behind at the top,
     walked on, falling back to the lawn.  pts: [x, y behind the kerb (the lawn on the left going along), x, y of the
     drive's edge there (the bank's height is over it), height]."""
-    rr = random.Random(8707)                     # (its own: the module's rnd keeps the other landmarks' draws)
-    mb = MeshBuilder('lm_sang_stone_bank')
+    rr = random.Random(seed)                     # (its own: the module's rnd keeps the other landmarks' draws)
+    mb = MeshBuilder(name)
     P = [Vector((q[0], q[1])) for q in pts]
     ref = [ground_top(q[2], q[3]) for q in pts]
     L = [0.0]
@@ -4778,6 +4788,8 @@ def daewoo():
         out.append(garden_flight(st, wall='stone_granite'))
     if lv.get('bank'):                                   # the boulder bank along the 상뜰's west drive (issue #87)
         out.append(sang_stone_bank(lv['bank']))
+    if lv.get('bank_east'):                              # (and along its south bank east of the flight: the 1997 scans)
+        out.append(sang_stone_bank(lv['bank_east'], name='lm_sang_stone_bank_e', seed=8708))
     return out
 
 
