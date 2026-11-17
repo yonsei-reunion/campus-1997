@@ -6949,6 +6949,40 @@ def eng_hall():
                 q = [(a[0], a[1], a[2] - 7.0), (b[0], b[1], b[2] - 7.0), tuple(b), tuple(a)]
                 wl.face(q, 'concrete')
                 wl.face(q[::-1], 'concrete')
+    # the bay in the wall at v 0: the planted strip's ground out to its coping (tools/eng97.py BAY)
+    bay = G.get('bay')
+    if bay:
+        cx, cy = sum(p[0] for p in bay) / len(bay), sum(p[1] for p in bay) / len(bay)
+        cz = sum(p[2] for p in bay) / len(bay)
+        for a, b in zip(bay, bay[1:] + bay[:1]):
+            q = [(cx, cy, cz + 0.03), (a[0], a[1], a[2] + 0.03), (b[0], b[1], b[2] + 0.03)]
+            if (q[1][0] - q[0][0]) * (q[2][1] - q[0][1]) - (q[1][1] - q[0][1]) * (q[2][0] - q[0][0]) < 0:
+                q = q[::-1]
+            wl.face(q, 'grass')
+            WALK_FACES.append(q)
+    # the terrace's long planter over the lot's wall south of 제3공학관 and the paved strip north of it (tools/eng97.py
+    # PLANTER): its soil PLANTER_TOP over the deck, a low rim round it on the deck, a rim across it
+    P = G.get('planter')
+    if P:
+        zt, zd = P['top'], P['deck']
+        box = [tuple(p) for p in P['box']]
+        if (box[1][0] - box[0][0]) * (box[2][1] - box[0][1]) - (box[1][1] - box[0][1]) * (box[2][0] - box[0][0]) < 0:
+            box = box[::-1]
+        q = [(x, y, zt) for x, y in box]
+        wl.face(q, 'soil')
+        WALK_FACES.append(q)
+        for a, b in zip(box, box[1:] + box[:1]):
+            wl.face([(a[0], a[1], zd - 6.0), (b[0], b[1], zd - 6.0), (b[0], b[1], zt + 0.08), (a[0], a[1], zt + 0.08)], 'stone_trim')
+            wl.face([(a[0], a[1], zt + 0.08), (b[0], b[1], zt + 0.08), (b[0], b[1], zd - 6.0), (a[0], a[1], zd - 6.0)], 'stone_trim')
+        (ax, ay), (bx, by) = P['cross']
+        wl.box(((ax + bx) / 2, (ay + by) / 2, zt + 0.04), (math.hypot(bx - ax, by - ay), 0.25, 0.08), 'stone_trim',
+               rotz=math.atan2(by - ay, bx - ax))
+        st = [tuple(p) for p in P['strip']]
+        if (st[1][0] - st[0][0]) * (st[2][1] - st[0][1]) - (st[1][1] - st[0][1]) * (st[2][0] - st[0][0]) < 0:
+            st = st[::-1]
+        q = [(x, y, zd + 0.03) for x, y in st]
+        wl.face(q, 'pavers')
+        WALK_FACES.append(q)
     out.append(wl)
     return out
 

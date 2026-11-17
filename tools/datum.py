@@ -290,6 +290,12 @@ def heights(c):
             for q in row:
                 A(q, 2, q[0], q[1])
                 A(q, 3, q[0], q[1])
+        for q in E.get('bay', []):                 # (the bay in the wall at v 0, the terrace's planter)
+            A(q, 2, q[0], q[1])
+        if 'planter' in E:
+            P_ = E['planter']
+            for k in ('top', 'deck'):
+                A(P_, k, *centroid(P_['box']))
     for b in c.get('rnd_ghosts', []):
         for k in ('base', 'top_ground'):
             A(b, k, *centroid(b['footprint']))

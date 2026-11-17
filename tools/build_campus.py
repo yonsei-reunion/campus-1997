@@ -10031,7 +10031,8 @@ buildings.append(dict(id=eng97.HALL_ID, name='제1공학관', style='lm:eng_hall
                       footprint=[[round(x_, 2), round(y_, 2)] for x_, y_ in list(ENG1_HALL.exterior.coords)[:-1]]))
 out['eng1_yard'] = dict(o=list(eng97.O), ang=round(eng97.ANG, 6), hall=list(eng97.HALL_UV), base=buildings[-1]['base'],
                         top=eng97.HALL_TOP, roof=eng97.HALL_ROOF, monitor=list(eng97.MONITOR_UV), porch=list(eng97.PORCH_UV),
-                        walls=eng97.walls(ground_h, _e97_up), deck=dwb_deck(_e97_cells, _e97_area, _e97_up))
+                        walls=eng97.walls(ground_h, _e97_up), deck=dwb_deck(_e97_cells, _e97_area, _e97_up),
+                        bay=eng97.bay_top(_e97_up), planter=eng97.planter(_e97_up))
 print('제1공학관 안뜰: the hall\'s floor %.2f m, the deck behind the wall %.0f m2 (%d triangles), the wall %.0f m' % (
     buildings[-1]['base'], _e97_area.area, len(out['eng1_yard']['deck']['f']),
     sum(LineString([q_[:2] for q_ in r_[1]]).length for r_ in out['eng1_yard']['walls'])))

@@ -80,16 +80,42 @@ MONITOR_UV = (-18.3, 29.5, -1.0, 4.3, 1.2)  # the raised strip along the roof: u
 PORCH_UV = (0.2, 5.0, 14.9, 19.6, 3.2)      # the porch on the north side: u0, u1, v0, v1, height
 # the retaining wall west of the lot (the coping's line; the upper ground west of it): two runs, (u, v) and the top
 # over the upper ground (the coping 1.2 m over it where the scans have it; none along 제3공학관's own wall)
-WALL_RUNS = [(1.2, [(-38.85, 30.0), (-38.9, -22.0)]),
+# The wall's details (reference/고증/3.8 「서쪽 옹벽의 세부」, 2026-11-17), on the coping's plane of the 1997 scans 26/16 ·
+# 27/17 and the leaf-off 1996 26/16 (33.2 m), and on the terrace's of 26/16 · 26/15 · 1998 26/16 (31.4 m):
+# - BAY: at v 0 the coping bows out east over v -2.1 .. 3.6, 1.55 - 2.0 m at its apex, the planted strip's ground inside
+#   it (no flight): its middle v, half its chord, how far it bows out
+# - PLANTER: south of 제3공학관's south face the wall over the lot is the east side of the terrace's long planter, its
+#   rims bright on the terrace's plane: u -43.2 .. -38.9 (two years within 0.2 m), v -62.2 .. -43.8, a cross rim at
+#   v -56; on the lot's line (u -38.9), not 2 m west of it on the deck's edge (u -40.9) as the game had it.  PLANTER_TOP:
+#   its soil over the tile deck's level (S3_DECK_Z); the strip between the hall's south-east corner and its north rim
+#   paved at the deck's level
+BAY = (0.75, 2.85, 1.75)
+PLANTER_UV, PLANTER_CROSS_V, PLANTER_TOP = (-43.2, -38.9, -62.2, -43.8), -56.0, 0.4
+
+
+def bay_line(n=10):
+    """the bay's coping line (u, v), north to south"""
+    vc, h, b = BAY
+    r = (h * h + b * b) / (2 * b)
+    cu = -38.88 + b - r
+    a = math.asin(h / r)
+    return [(round(cu + r * math.cos(t), 3), round(vc + r * math.sin(t), 3)) for t in np.linspace(a, -a, n + 1)]
+
+
+WALL_RUNS = [(1.2, [(-38.85, 30.0), (-38.88, BAY[0] + BAY[1])]),
+             (1.2, bay_line(), (0.8, 0.0), 'bay'),
+             (1.2, [(-38.88, BAY[0] - BAY[1]), (-38.9, -22.0)]),
              (0.05, [(-38.9, -22.0), (-40.6, -22.0), (-40.6, -41.3)]),
-             (1.2, [(-40.6, -41.3), (-40.9, -62.0)]),
+             # (the planter's east side and the paved strip north of it: their top over the deck's level)
+             (1.2, [(-40.6, -41.3), (-38.9, -41.3)], (0.0, 0.8), 'deck'),
+             (1.2, [(-38.9, -41.3), (PLANTER_UV[1], PLANTER_UV[2])], (0.8, 0.0), 'deck'),
              # (공학관 사이: the wall on north of the lot to the yard; its top in the scans is about level with the planted
              # strip behind it, the parapet is the game's, as the lot's; at its north end a return west along the deck's
              # edge, its low side north: (du, dv) of the low side)
              (1.2, [(-39.7, 72.0), (-39.7, 31.0), (-38.85, 30.0)]),
              (1.2, [(-52.0, 72.0), (-39.7, 72.0)], (0.0, 0.8)),
              # (and at the deck's south end, over the service road south of the wings: 제3공학관's terrace edge)
-             (1.2, [(-40.9, -62.0), (-52.0, -62.0)], (0.0, -0.8))]
+             (1.2, [(PLANTER_UV[1], PLANTER_UV[2]), (-52.0, PLANTER_UV[2])], (0.0, -0.8))]
 # (제3공학관 남쪽: the wall along the yard's south edge over the bench, STEP_LINE below: added after it)
 WALL_UP = 8.0                               # (how far behind the wall a node may be pulled down)
 GAP_N = 72.0                                # (the wall's north end, its return: the deck behind it ends there)
@@ -177,9 +203,12 @@ GARDEN_MORE = [(44.8, -36.2), (30.5, -47.5), (45.5, -45.5), (44.5, -50.0), (44.5
 # the north block's west court (between the west and the middle wing of NORTH_1997, open to the yard's south road): u0,
 # u1, v0, v1, its ground (해발: nine points)
 NB_COURT_UV, NB_COURT_Z = (-13.5, 6.45, 33.2, 60.0), 27.75
-# the strip along the north block's north face (the cars' row nosed in to it, the yard's south road): its ground at the
-# face (해발, the scans' v 62 - 66) and where it meets the yard west of the eagle as the game has it (west_ground)
-NB_STRIP_V, NB_STRIP_Z = (64.0, 72.0), 27.9
+# the strip along the north block's north face (the cars' row nosed in to it, the yard's south road): one level with
+# the yard west of the eagle (the scans of 1997-07, 1996-12 and 1998-10 each have the strip at v 58 - 68 and the yard's
+# south part at v 75 - 97 within 0.15 m of each other, no slope between; reference/고증/3.8 「북쪽 동」), so the yard's
+# level as the game has it (west_ground, at v NB_STRIP_V[1] + NB_STRIP_AT) carried south to the face, NB_STRIP_DZ under
+# it at the face (v NB_STRIP_V[0]) and eased back to it by v NB_STRIP_V[1]
+NB_STRIP_V, NB_STRIP_DZ, NB_STRIP_AT = (64.0, 72.0), 0.15, 4.0
 # 제3공학관 남쪽: the raised lawn west of the flight (its kerb 32.5 - 32.8 m in the scans, the game's ground there as it
 # is), the flight and the landing before the door (as it is), the hall's south face west and east of its porch, the
 # hall's floor at the landing (해발; 32.8 - 33.0 m at its south end) and its door (u, the porch's middle)
@@ -413,6 +442,7 @@ def walls(low, up):
     for run in WALL_RUNS:
         top, pts = run[:2]
         du, dv = run[2] if len(run) > 2 else (0.8, 0.0)
+        kind = run[3] if len(run) > 3 else None
         ls = LineString([xy(u, v) for u, v in pts])
         n = max(1, int(round(ls.length)))
         row = []
@@ -420,9 +450,30 @@ def walls(low, up):
             q = ls.interpolate(k / n, normalized=True)
             u_, v_ = uv(q.x, q.y)
             e, w = xy(float(u_) + du, float(v_) + dv), xy(float(u_) - du, float(v_) - dv)
+            if kind == 'bay':                       # (the upper ground at the straight line's back)
+                w = xy(-39.7, float(v_))
+            elif kind == 'deck':                    # (the tile deck's level on the deck behind the old edge)
+                w = xy(-41.8, max(min(float(v_) - 1.0, -42.0), -61.0))
             row.append([round(q.x, 2), round(q.y, 2), round(float(low(*e)) - 0.5, 2), round(float(up(*w)), 2)])
         out.append([top, row])
     return out
+
+
+def bay_top(up):
+    """the bay's ground (the planted strip's, at the straight line's back): its outline [x, y, z] (z working datum)"""
+    ring = bay_line() + [(-38.88, BAY[0] - BAY[1])]
+    return [[round(float(c), 2) for c in xy(u, v)] + [round(float(up(*xy(-39.7, v))), 3)] for u, v in ring]
+
+
+def planter(up):
+    """the terrace's planter and the paved strip north of it: [outline [x, y], top z], the cross rim's ends, the strip's
+    outline and z (z working datum; up(x, y): the deck's ground)"""
+    u0, u1, v0, v1 = PLANTER_UV
+    zd = float(up(*xy(-41.8, -52.0)))
+    box = [[round(float(c), 2) for c in xy(u, v)] for u, v in ((u0, v0), (u1, v0), (u1, v1), (u0, v1))]
+    strip = [[round(float(c), 2) for c in xy(u, v)] for u, v in ((-40.9, v1), (u1, v1), (u1, -41.3), (-40.9, -41.3))]
+    cross = [[round(float(c), 2) for c in xy(u, PLANTER_CROSS_V)] for u in (u0, u1)]
+    return dict(box=box, top=round(zd + PLANTER_TOP, 3), deck=round(zd, 3), cross=cross, strip=strip)
 
 
 def move_off_north(trees, shrubs, props):
@@ -537,8 +588,8 @@ def s3_grade(Hn, X, Y, FIXED, G, hall, fill, avoid):
 
 def nb_grade(Hn, X, Y, FIXED, nb):
     """the north block's west court at its 1997 ground (NB_COURT_Z: the game had a lawn climbing to 33 m in it), the
-    nodes under the wings within a cell of it with it; the strip along the block's north face down to the scans' ground
-    there, up to the yard west of the eagle as the game has it.  nb: the block's outline"""
+    nodes under the wings within a cell of it with it; the strip along the block's north face on the level of the yard
+    west of the eagle as the game has it (NB_STRIP_*).  nb: the block's outline"""
     H0 = Hn.copy()
     U, V = uv(X, Y)
     T = datum.tilt(X, Y)
@@ -548,9 +599,12 @@ def nb_grade(Hn, X, Y, FIXED, nb):
     court &= (U > NB_WEST_U + 6.0)                  # (the lane's, west of it: grade)
     Hn[court] = NB_COURT_Z + T[court]
     north = (V > v1) & (V <= NB_STRIP_V[1]) & (U > NB_WEST_U + 6.0) & (U < 21.0)
-    top = H0 - T                                    # (the yard's ground as the game has it, 해발)
-    zn = NB_STRIP_Z + (top - NB_STRIP_Z) * np.clip((V - NB_STRIP_V[0]) / (NB_STRIP_V[1] - NB_STRIP_V[0]), 0.0, 1.0)
-    north &= zn < top
+    from scipy.ndimage import map_coordinates
+    gx, gy = X[0, :], Y[:, 0]
+    st = gx[1] - gx[0]
+    yx, yy = xy(U, np.full(U.shape, NB_STRIP_V[1] + NB_STRIP_AT))
+    zy = map_coordinates(H0 - T, [(yy - gy[0]) / st, (yx - gx[0]) / st], order=1, mode='nearest')   # (the yard, 해발)
+    zn = zy - NB_STRIP_DZ * np.clip((NB_STRIP_V[1] - V) / (NB_STRIP_V[1] - NB_STRIP_V[0]), 0.0, 1.0)
     Hn[north] = (zn + T)[north]
     FIXED[court | north] = True
     d = Hn - H0
