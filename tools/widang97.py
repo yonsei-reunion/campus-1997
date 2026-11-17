@@ -181,30 +181,41 @@ def high_h(x, y):
 
 
 def cut_grade(Hn, X, Y, FIXED, halls, step=5.0, half=800.0):
-    """after jonghap97.grade: the nodes within CUT_SIDE m of the piles on the high side on its level (high_h), on the
-    low side on the yard's; the cells the line crosses get a deck over their high part (build_campus.py dwb_deck).
-    The halls' footprints (종합관's low block) are left.  Returns the nodes set, the deck's cells and outline, a summary"""
+    """after jonghap97.grade: the cells the piles cross keep all their nodes on the yard's level (so that the yard runs
+    flat to the piles' foot), the nodes beyond them within CUT_SIDE m on the high side take its level (high_h); every
+    cell with a node on the yard's level gets a deck over its high part (build_campus.py dwb_deck), as 간호대학 북쪽
+    주차장's walls (tools/med97.py nurse_grade).  The halls' footprints (종합관's low block) are left.  Returns the nodes
+    set, the deck's cells and outline, a summary"""
     import math
     H0 = Hn.copy()
     P = shapely.points(X, Y)
     near = shapely.distance(CUT, P) <= CUT_SIDE
     hb = unary_union([h.buffer(0.5) for h in halls])
     inh = shapely.contains_xy(hb, X, Y)
-    hi = near & shapely.contains_xy(HIGH, X, Y) & ~inh
-    lo = near & shapely.contains_xy(LOW, X, Y) & ~inh
-    Hn[hi] = high_h(X[hi], Y[hi])
-    Hn[lo] = YARD_Z
     x0, y0, x1, y1 = CUT.bounds
-    cells = set()
+    wall = set()
     for j in range(int(math.floor((y0 + half) / step)) - 1, int(math.ceil((y1 + half) / step)) + 1):
         for i in range(int(math.floor((x0 + half) / step)) - 1, int(math.ceil((x1 + half) / step)) + 1):
             bx = shapely.geometry.box(-half + i * step, -half + j * step, -half + (i + 1) * step, -half + (j + 1) * step)
             if bx.intersection(HIGH).area > 0.02 and bx.intersection(LOW).area > 0.02 and bx.intersects(CUT):
-                cells.add((j, i))
+                wall.add((j, i))
+    low = np.zeros(X.shape, bool)
+    for j, i in wall:
+        low[j:j + 2, i:i + 2] = True
+    lo = (low | (near & shapely.contains_xy(LOW, X, Y))) & ~inh
+    hi = near & shapely.contains_xy(HIGH, X, Y) & ~inh & ~lo
+    Hn[hi] = high_h(X[hi], Y[hi])
+    Hn[lo] = YARD_Z
+    # (every cell with a corner left low: those beside the wall's cells share their nodes and would dip to them)
+    jj, ii = np.nonzero(lo)
+    cells = {(j + a, i + b) for j, i in zip(jj, ii) for a in (-1, 0) for b in (-1, 0)}
     poly = unary_union([shapely.geometry.box(-half + i * step, -half + j * step, -half + (i + 1) * step, -half + (j + 1) * step)
                         for j, i in cells]).intersection(HIGH).difference(unary_union(list(halls)).buffer(0.05)) if cells else Polygon()
+    cells = {(j, i) for j, i in cells if shapely.geometry.box(-half + i * step, -half + j * step, -half + (i + 1) * step,
+                                                             -half + (j + 1) * step).intersection(poly).area > 0.02}
     dd = Hn - H0
-    return hi | lo, cells, poly, dict(high=int(hi.sum()), low=int(lo.sum()), cells=len(cells), deck_m2=round(poly.area, 1),
+    return hi | lo, cells, poly, dict(high=int(hi.sum()), low=int(lo.sum()), wall_cells=len(wall), cells=len(cells),
+                                     deck_m2=round(poly.area, 1),
                                      moved=(int((np.abs(dd) > 0.05).sum()), round(float(dd.min()), 1), round(float(dd.max()), 1)))
 
 
