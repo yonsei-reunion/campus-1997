@@ -8027,6 +8027,30 @@ print('daewoo back deck: %d vertices, %d triangles, rim %d' % (len(DAEWOO_BACK['
 _dwb_b = next(b_ for b_ in buildings if b_['id'] == 242897922)
 DW_FP_RNG = Polygon(_dwb_b['footprint'])
 _dwb_b['footprint'] = [[round(c_, 2) for c_ in dh_xy(*q_)] for q_ in DW_OUTLINE_UV]
+# 정문 안 갈림길, 1997 (reference/고증/2.4-2.7 「1997년 7월 · 1999년 5월 항공사진으로 본 갈림길」 · 「게임에 옮긴 갈림길」): photo A
+# is of spring 1999, and its forecourt, island, lanes and parking booth (GATE_APRON, ISL, ISL_ROAD, APRON_LINES,
+# parking_booth above) were built with 공학원 in 1998 - 1999.  The 1996-12 and 1997-07 scans have the west verge and
+# sidewalk on to s 94, the mouth's paving 6 - 12 m deep west to the car park before 공학원's site, a lane 5 m wide
+# running north-north-west from it past the prefab office to 제1공학관's south-east front, and dense crowns either side
+# of the mouth.  The planting read the forecourt as first laid (MOUTH, ISL_OLD, GATE_APRON_OLD), so those stay for the
+# draws; what is drawn and written is this, late (below: the ground, the shrubs, props and trees on it, the paths)
+MOUTH97 = (1, 94.4, 98.8, 0.6, 0.6, 2.7)            # (the sidewalk's ends 94.4 · 98.8, the north verge's round end 101.5)
+BUMP97 = round(s_at(-87.3, -323.3), 1)              # (the striped band across 백양로 just north of the mouth, 1996 · 1997 · 1999)
+_g97 = lambda s_: tuple(round(v_, 2) for v_ in along_raw(s_, ROAD_HALF + 1.0)[:2])
+GATE97_BAND = Polygon([_g97(MOUTH97[1] - 0.6), (-104.0, -330.4), (-107.5, -330.5), (-110.0, -328.6), (-116.0, -327.6),
+                       (-121.5, -329.2), (-121.5, -319.3), (-116.0, -322.0), (-112.5, -323.2), (-109.0, -322.0), (-104.0, -323.5),
+                       _g97(MOUTH97[2] + MOUTH97[5])])
+GATE97_LANE_PTS = [(-108.8, -321.2), (-110.4, -318.0), (-113.8, -312.1), (-118.0, -306.8), (-121.1, -300.3), (-124.4, -292.5),
+                   (-126.4, -287.0)]
+GATE97_LANE_W = 5.0
+GATE97_PAVE = unary_union([GATE97_BAND, LineString(GATE97_LANE_PTS).buffer(GATE97_LANE_W / 2, cap_style=2),
+                           mouth_poly(MOUTH97[1], MOUTH97[2] + MOUTH97[5], 0.6, 0.6)])
+GATE97_LAWN = unary_union([GATE_APRON, GATE_APRON_OLD, ISL.buffer(0.5), mouth_poly(_m0, _m1, MOUTH[3], MOUTH[4]),
+                           mouth_poly(66.0, 86.5, 3.0, 2.0)]).difference(GATE97_PAVE).difference(bline.buffer(ROAD_HALF)) \
+    .difference(unary_union([GONGWON_SITE.buffer(0.5), GW_LOT, GW_ROW, GW_YARD] + GW_SHED_POLYS))
+print('정문 안 갈림길 1997: mouth s %.1f - %.1f (verge to %.1f), bump s %.1f, paving %.0f m2, lawn %.0f m2' % (
+    MOUTH97[1], MOUTH97[2], MOUTH97[2] + MOUTH97[5], BUMP97, GATE97_PAVE.area, GATE97_LAWN.area))
+
 out = dict(
     origin=[LAT0, LON0],
     terrain=dict(near=dict(half=NEAR_HALF, step=NEAR_STEP, n=n_near, file='data/terrain_near.bin'),
@@ -8035,8 +8059,8 @@ out = dict(
     splat=SPLAT,
     tsplat=sinchon_rotary.TSPLAT,
     baekyangro=dict(pts=[[round(x, 2), round(y, 2)] for x, y in bys], profile_s=[round(v, 1) for v in ss[::2]],
-                    profile_h=[round(float(v), 3) for v in prof[::2]], crossings=CROSS_PAINT, cross_len=CROSS_LEN, bump=BUMP_S,
-                    gaps=[list(g) for g in GAPS], mouths=[list(MOUTH)], apron_paint=APRON_PAINT, **ROAD),
+                    profile_h=[round(float(v), 3) for v in prof[::2]], crossings=CROSS_PAINT, cross_len=CROSS_LEN, bump=BUMP97,
+                    gaps=[list(g) for g in GAPS], mouths=[list(MOUTH97)], apron_paint=[], **ROAD),   # (1997: no lane paint, GATE97)
     amphitheater={k: (round(v, 3) if isinstance(v, float) else v) for k, v in AMPH.items()},
     buildings=buildings, trees=trees, shrubs=shrubs, props=props, cars=cars, banners=banners,
     paths=_ui_paths(), landmarks=LANDMARKS, statues=STATUES, spawn=SPAWN, markers=markers, daewoo_front=DAEWOO, daewoo_back=DAEWOO_BACK, stimson_front=ST_FRONT, appenzeller_front=AP_FRONT,
@@ -9902,6 +9926,61 @@ trees += DW_NEW_TREES                       # (대우관 뒤: the same)
 trees += FIELD_NEW_TREES                    # (대운동장 둘레 숲: the same)
 trees += LIB97_NEW_TREES                    # (중앙도서관 앞: the same)
 trees += UTS_NEW_TREES                      # (연합신학대학원: where OSM's later outline stood)
+# 정문 안 갈림길, 1997 (GATE97 above; reference/고증/2.4-2.7 「게임에 옮긴 갈림길」): photo A's island (its hedge, azaleas, lamp,
+# stone, sign) and the forecourt's planters and parking booth go; a tree on the 1997 paving steps off it in its place in
+# the list; the verge and the strip are planted on from the crossing to the mouth as on either side (their own random
+# numbers); the crowns the 1997 scans have and the game had not go on at the list's end: the one south of the mouth
+# and, behind the gate's east wall (reference/고증/4.8.1 「담 뒤」), four where the game had bare lawn (pines where the
+# 1996 winter frames keep them dark)
+_g97r = random.Random(1997 + 183)
+_g97_isl = ISL.buffer(0.6)
+_n0 = (len(out['shrubs']), len(out['props']), len(out['decals']))
+out['shrubs'][:] = [s_ for s_ in out['shrubs'] if not ((s_[0] in ('hedge_low', 'azalea_red') and _g97_isl.contains(Point(s_[1], s_[2])))
+                                      or GATE97_PAVE.buffer(0.3).contains(Point(s_[1], s_[2])))]
+_g97_zone = unary_union([GATE_APRON, ISL, GATE97_LAWN]).buffer(2.5)
+out['props'][:] = [p_ for p_ in out['props'] if not (p_[0] in ('lamp_double', 'stone_marker', 'sign_board', 'planter', 'parking_booth')
+                                    and _g97_zone.contains(Point(p_[1], p_[2])))]
+out['decals'] = [d_ for d_ in out['decals'] if not GATE97_LAWN.contains(Point(d_[1], d_[2]))]
+_g97_moved = []
+_g97_off = GATE97_PAVE.buffer(1.0)
+_g97_ring = GATE97_PAVE.buffer(1.6).exterior
+for t_ in trees:
+    if _g97_off.contains(Point(t_[1], t_[2])):
+        q_ = _g97_ring.interpolate(_g97_ring.project(Point(t_[1], t_[2])))
+        _g97_moved.append((t_[0], t_[1], t_[2]))
+        t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
+_g97_sh = [(s_[1], s_[2]) for s_ in out['shrubs']]
+_g97_free = lambda x_, y_: all((x_ - u_) ** 2 + (y_ - v_) ** 2 > 1.0 for u_, v_ in _g97_sh)
+for k_ in range(17, 40):                    # (the verge's steps as everywhere: from s 14 every 2.6 m, two kinds by turns)
+    s_ = 14.0 + 2.6 * k_
+    if s_ >= MOUTH97[1] - 0.8:
+        break
+    x, y, _ = along_raw(s_, E_CURB + ROAD['verge'] * 0.5)
+    if any(abs(s_ - c_) < 3.8 for c_ in CROSS) or not _g97_free(x, y):
+        continue
+    sc_ = round(_g97r.uniform(0.95, 1.1), 2)
+    out['shrubs'].append(['juniper_tiers', round(x, 2), round(y, 2), sc_, round((k_ * 2.39996) % 6.2832, 3)] if k_ % 2 == 0
+                  else ['topiary_round', round(x, 2), round(y, 2), sc_, 0])
+for k_ in range(0, 40):                     # (the strip's low hedge, every 1.5 m on the steps either side of it)
+    s_ = 43.5 + 1.5 * k_
+    if s_ >= MOUTH97[1] - 0.6:
+        break
+    x, y, a_ = along_raw(s_, E_WALK + ROAD['strip'] * 0.5)
+    if any(abs(s_ - c_) < 3.6 for c_ in CROSS) or not _g97_free(x, y):
+        continue
+    out['shrubs'].append(['hedge_low', round(x, 2), round(y, 2), round(_g97r.uniform(0.95, 1.05), 2), round(a_, 3)])
+GATE97_NEW_TREES = [['zelkova', -111.2, -336.0, 1.0], ['pine', -76.8, -392.8, 0.8], ['pine', -76.8, -398.2, 0.75],
+                    ['zelkova', -81.6, -394.8, 0.85], ['pine', -81.5, -386.5, 0.7]]
+for t_ in GATE97_NEW_TREES:
+    t_.append(round(_g97r.uniform(0, 6.28), 2))
+# (the side road's walk line through the 1999 forecourt: along the 1997 paving to the car park instead, and the lane)
+_g97_old = unary_union([GATE_APRON, GATE_APRON_OLD, ISL]).buffer(2.0)
+_np0 = len(out['paths'])
+out['paths'] = [p_ for p_ in out['paths'] if not (p_['kind'] == 'service' and all(_g97_old.contains(Point(*q_[:2])) for q_ in p_['pts']))]
+out['paths'] += [dict(kind='service', w=7, pts=[[-96.0, -332.4], [-104.0, -327.0], [-112.0, -325.6], [-118.0, -325.2], [-123.3, -324.7]]),
+                 dict(kind='service', w=GATE97_LANE_W, pts=[list(q_) for q_ in GATE97_LANE_PTS])]
+print('정문 안 갈림길 1997: shrubs %+d, props %+d, decals %+d, trees moved off the paving %s, new trees %d' % (
+    len(out['shrubs']) - _n0[0], len(out['props']) - _n0[1], len(out['decals']) - _n0[2], _g97_moved, len(GATE97_NEW_TREES)))
 markers += ROT['markers']
 out['colliders'] += ROT['colliders']
 out.setdefault('walk_open', []).extend(ROT['walk_open'])     # (where the web may set a walker down past town.limit,
@@ -9973,6 +10052,7 @@ _ypaint([chapel97.front_lawn()], _yg)        # (루스채플 남쪽 면 앞: law
 if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
 _ypaint(union97.west_paint(), _yp)         # (학생회관 남쪽 앞마당으로 드는 길: paving, as the forecourt's; tools/union97.py)
+_ypaint([GATE97_LAWN], _yg)                 # (정문 안 갈림길: the 1999 forecourt and island out, lawn under the 1997 crowns; GATE97)
 # 찻길, the east road on the 1997 photos' line (TR_E, RD97 above), after the planting has read the ground as it was:
 #  - OSM's asphalt along the old line (TR_E_OSM) is taken up (lawn; the woods' floor again in the woods, _gf below),
 #    but for the roads and walks that met it, which keep their ends and run on to the new road (_rd_join: _ga, _gp);
@@ -10208,6 +10288,7 @@ _ypaint([g_ for g_ in getattr(ISLE_ROAD, 'geoms', [ISLE_ROAD]) if g_.geom_type =
 # 루스채플 남쪽 마당 (chapel97.yard): asphalt from the round lawns' kerbs to the trees, where the 1997 scans have the cars
 _ypaint([chapel97.yard()], _ga)
 _ypaint(union97.paint(), _ga)                 # (학생회관 남쪽 북동 찻길: union97.road)
+_ypaint([GATE97_PAVE.difference(bline.buffer(E_CURB0))], _ga)   # (정문 안 갈림길: the 1997 mouth, its paving to the car park and the lane)
 # 백양로 끝 계단 발치 (reference/고증/2.8 「삼거리의 땅」): the road's asphalt on to the foot of the end steps (a strip of
 # lawn lay between them; in the spring 2003 photo the flights rise straight off the road)
 _ypaint([Polygon([st_xy(-5.4, -2.2), st_xy(5.4, -2.2), st_xy(5.4, 0.05), st_xy(-5.4, 0.05)])]
@@ -11985,6 +12066,7 @@ out['trees'][:] = [t_[:5] for t_ in out['trees']]      # (the places as first pl
 # where the 1997 frames are dark too) and the wood north of them, at the trees' very end
 DORM97_TREES = north97.trees97(out['trees'], muak.woods_fill)
 out['trees'] += DORM97_TREES
+out['trees'] += GATE97_NEW_TREES             # (정문 안 갈림길 · 정문 동쪽 담 뒤, 1997: at the trees' very end, GATE97 above)
 print('무악학사 둘레: trees %d (and %d in the wood north of the wings)' % (len(north97.TREES97), len(DORM97_TREES) - len(north97.TREES97)))
 # 1학사 남쪽 굽은 길 (tools/north97.py HEDGE97): the hedge along the 1997 road's south side, at the shrubs' end
 out['shrubs'] += north97.hedge97()
