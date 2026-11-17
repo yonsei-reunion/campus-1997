@@ -13,6 +13,7 @@ import json, math, os, random, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from scipy import ndimage
+from webp_textures import to_webp
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 OUT = os.path.join(ROOT, 'web/public/assets/textures')
@@ -404,6 +405,7 @@ def atlas(name, kind, palette, flowers=None, seed=0):
     for i in range(4):
         out.paste(cluster_cell(kind, palette, rnd, flowers), ((i % 2) * CELL, (i // 2) * CELL))
     out.save(os.path.join(OUT, f'leaf_{name}.png'), optimize=True)
+    to_webp(os.path.join(OUT, f'leaf_{name}.png'))      # the copy the game downloads (tools/webp_textures.py)
     print('leaf', name)
 
 
@@ -574,6 +576,7 @@ def litter(name, kind, palette, n, size, seed=0, r0=0.14):
         r = np.array(rank).reshape(S // SS, SS, S // SS, SS).max((1, 3))
         out = Image.fromarray(np.concatenate([np.array(out)[..., :3], r[..., None]], -1), 'RGBA')
     out.save(os.path.join(OUT, f'{name}.png'), optimize=True)
+    to_webp(os.path.join(OUT, f'{name}.png'))
     al = np.array(out)[..., 3] / 255
     print('litter', name, 'cover above rank 0.02 / 0.14 / 0.5 / 0.8: %.3f %.3f %.3f %.3f'
           % ((al > 0.02).mean(), (al > 0.14).mean(), (al > 0.5).mean(), (al > 0.8).mean()))

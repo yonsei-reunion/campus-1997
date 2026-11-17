@@ -3,9 +3,26 @@ import * as THREE from 'three';
 
 export const $ = (s) => document.querySelector(s);
 
-// every asset URL carries the build number (vite.config.js), so a new deploy never mixes with cached old files
+// every asset URL carries its file's content hash (vite.config.js assetHashes), so a new deploy never mixes with cached
+// old files and a file that did not change keeps its URL (and its place in the browser's cache and public/sw.js's). A
+// file the build did not hash carries the build number. A PNG with a WebP copy (tools/webp_textures.py) comes as that.
 export const BUILD = __BUILD__;
-export const versioned = (url) => (BUILD === 'dev' ? url : `${url}${url.includes('?') ? '&' : '?'}v=${BUILD}`);
+const ASSETS = __ASSETS__;
+export function versioned(url) {
+  if (BUILD === 'dev') return url;
+  const q = url.indexOf('?');
+  let path = q < 0 ? url : url.slice(0, q);
+  const h = ASSETS[path.replace(/^\.\//, '')];
+  if (h?.endsWith(':webp')) path = path.slice(0, -4) + '.webp';
+  const rest = q < 0 ? '' : url.slice(q + 1) + '&';
+  return `${path}?${rest}v=${h ? h.split(':')[0] : BUILD}`;
+}
+
+// The service worker (public/sw.js) keeps the versioned files, so a return visit takes from the disk what this deploy
+// did not change. Not under vite's dev server, whose files carry no version.
+if (BUILD !== 'dev' && 'serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('./sw.js').catch(() => { /* (private windows, blocked storage) */ });
+}
 
 // Phones / tablets: no shadow maps, smaller textures, fewer people, touch controls and touch help texts.
 // ?touch in the URL forces it (testing the phone layout on a desktop browser).

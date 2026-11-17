@@ -13,8 +13,8 @@ import { $, MOBILE, versioned } from './util.js';
 // extremes, so fixing the share never takes it back.
 const WORK_S = MOBILE ? 22 : 9;   // seconds of work once everything is down (measured: TECH_NOTE.md 「로딩 화면」)
 const SHARE = [0.08, 0.88];       // the download's share: no less, no more
-const TEX_EXPECT = 100;           // textures a load asks for (fewer are known at first: the share is of this many)
-const TEX_BYTES = 280e3;          // their mean size (29 MB over 105 on a desktop)
+const TEX_EXPECT = 125;           // textures a load asks for (fewer are known at first: the share is of this many)
+const TEX_BYTES = 320e3;          // their mean size (41 MB over 126 on a desktop, the leaves as WebP)
 const GUESS = 150e3;              // a file whose size is not known yet counts as this many bytes
 const MEASURE_MS = 2000;
 

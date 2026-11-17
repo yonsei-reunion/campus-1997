@@ -28,6 +28,7 @@ import math, os, random, sys, zlib
 import numpy as np
 from PIL import Image
 from scipy import ndimage
+from webp_textures import to_webp
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 OUT = os.path.join(ROOT, 'web/public/assets/textures')
@@ -263,6 +264,7 @@ def save_atlas(name, cells):
     for i, c in enumerate(cells):
         out.paste(finish_cell(c), ((i % 2) * CELL, (i // 2) * CELL))
     out.save(os.path.join(OUT, f'leaf_{name}.png'), optimize=True)
+    to_webp(os.path.join(OUT, f'leaf_{name}.png'))      # the copy the game downloads (tools/webp_textures.py)
     print('atlas', name)
 
 

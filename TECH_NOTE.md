@@ -270,7 +270,10 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 ### 로딩 화면
 
 - `loading.js` 가 진행률을 두 가지로 잽니다.
-  - 받기: 모델 · 데이터는 `fetchCounted` 가 스트림을 읽으며 바이트를 세고(`world.js` `prefetch`, `main.js` `json` · `bin`), 텍스처는 `<img>` 로 받으므로 개수 × 평균 크기(`materials.js` `texCount`)로 셉니다. 데스크톱 기준 모델 · 데이터 25 MB, 텍스처 29 MB.
+  - 받기: 모델 · 데이터는 `fetchCounted` 가 스트림을 읽으며 바이트를 세고(`world.js` `prefetch`, `main.js` `json` · `bin`), 텍스처는 `<img>` 로 받으므로 개수 × 평균 크기(`materials.js` `texCount`)로 셉니다. 데스크톱 기준 모델 · 데이터 약 40 MB, 텍스처 약 41 MB.
+- 자산 URL 은 파일마다 내용 해시를 붙입니다(`util.js` `versioned()`, `vite.config.js` `assetHashes`). 배포해도 바뀐 파일만 URL 이 바뀝니다. 해시가 없는 파일은 빌드 번호를 붙입니다.
+  - 서비스 워커(`public/sw.js`)가 `?v=` 가 붙은 파일을 디스크에 두고 망에 묻지 않고 답합니다. 새 버전을 받으면 그 파일의 옛 버전을 지웁니다. vite 개발 서버에서는 등록하지 않습니다.
+  - 잎 · 낙엽 아틀라스(`leaf_*.png`, `litter_*.png`)는 곁의 `.webp`(색 q90, 알파 무손실)로 받습니다. PNG 는 원본으로 남습니다(Blender 가 읽음). `tools/webp_textures.py` 가 WebP 를 만들고 PNG 의 sha1 을 `tools/webp_sources.json` 에 적습니다. 빌드는 sha1 이 맞을 때만 WebP 로 바꾸므로, WebP 없이 고친 PNG 는 PNG 로 나갑니다. 땅 · 그림자 같은 데이터 지도는 값이 바뀌므로 넣지 않습니다.
   - 처리: `main.js` 의 `progress(label, weight)`. 가중치는 그 단계가 데스크톱에서 걸리는 시간(1 = 0.01초)이고 합이 `STEPS` 입니다.
 - 받기의 몫은 망 속도로 정합니다. 처음 2초(또는 받기가 그 전에 끝나면 전체)의 속도로 받는 시간을 어림해 `받는 시간 / (받는 시간 + WORK_S)` 로 둡니다. 캐시된 방문은 거의 처리, 느린 망은 거의 받기입니다.
 - 마지막 「첫 장면을 그리는 중」(약 2초)은 셰이더 · 그림자를 한꺼번에 올리느라 페이지가 멈춥니다. 막대는 `transform` 전환으로만 움직여(`loading.coast`) 그동안에도 흘러갑니다.
