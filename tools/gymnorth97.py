@@ -360,7 +360,7 @@ def west_half(Hn, X, Y, FIXED, fill):
 # point within MOUND_ONE their weighted mean; one inside the top without, MOUND_Z; one on a bank within MOUND_BANK m
 # of the top, the height between its foot (the ground just out of the feet) and MOUND_Z by its distances to the two
 # lines; the others and MOUND_RING m round all smoothly.  The strip, the lane, the yard east of 체육관 (around), the
-# road band north of 제2공학관 (eng97.north_zone) and the halls' feet stay.  Nothing here draws from build_campus.py's `rng`
+# road band north of 제2공학관 (eng97.north_zone), the cells under the car in 별동연구동's alley and the halls' feet stay.  Nothing here draws from build_campus.py's `rng`
 MOUND_FOOT = Polygon([(-266.0, -111.0), (-241.5, -112.5), (-237.23, -115.31), (-207.29, -123.38), (-203.0, -126.5), (-199.5, -131.5),
                       (-198.3, -135.0), (-198.0, -141.5), (-199.0, -148.5), (-202.0, -161.0), (-206.23, -161.47), (-218.76, -158.02),
                       (-233.22, -154.04), (-245.28, -150.72), (-240.2, -147.5), (-241.6, -140.6), (-265.0, -133.5), (-266.0, -133.5)])
@@ -423,6 +423,10 @@ def mound(Hn, X, Y, FIXED, fill, keep):
     H0 = Hn.copy()
     T = datum.tilt(X, Y)
     keep = keep | shapely.contains_xy(unary_union([LANE2, STRIP2, SE_EAST, GYM_POLY.buffer(1.0), GYMED_POLY.buffer(1.0)]), X, Y)
+    # (the cells under the 1997 car in the alley along 별동연구동's east wall stay as they were, so that it stands level:
+    # eng97.north_paved's alley and a cell round it)
+    import eng97
+    keep = keep | shapely.contains_xy(shapely.box(*eng97.north_paved()[3].bounds).buffer(4.99, join_style='mitre'), X, Y)
     inn = shapely.contains_xy(MOUND_FOOT, X, Y) & ~keep
     top = shapely.contains_xy(MOUND_TOP, X, Y)
     P = np.array(MOUND_PTS)
