@@ -205,7 +205,7 @@ ROT_WEDGES = {
     'ne': dict(kerb=[(-91.5, -930.56), (-70.0, -944.19), (-66.5, -946.4), (-63.0, -948.1), (-59.5, -949.1),
                      (-56.0, -949.45), (-50.0, -949.3), (-45.0, -949.05)],
                fill=[(-45.0, -958.0), (-96.0, -962.0), (-96.0, -930.56)], walk=8.0, back=6.0),
-    'sw': dict(kerb=[(-143.6, -1008.6), (-142.6, -1007.5), (-142.3, -1004.0), (-143.3, -1001.0), (-144.6, -999.2),
+    'sw': dict(kerb=[(-143.96, -1005.81), (-142.3, -1004.0), (-143.3, -1001.0), (-144.6, -999.2),
                      (-146.6, -995.5), (-147.1, -991.5), (-146.9, -987.6), (-146.2, -986.6), (-146.2, -981.0), (-146.6, -978.0),
                      (-147.6, -975.8), (-149.2, -973.9), (-151.0, -973.14)],
                fill=[(-150.0, -968.0), (-125.0, -975.0), (-112.0, -990.0), (-130.0, -1012.0)], walk=6.0, back=0.0),
@@ -494,6 +494,7 @@ class Arm(gt.Line):
         super().__init__(gt._resample(gt._chaikin(d['pts'], 2), 2.0))
         self.name = name
         self.half, self.walk, self.lanes = d['half'], d['walk'], d['lanes']
+        self.walk_l = d.get('walk_l', d['walk'])           # (the walk on the +n side where it differs: 1997년 신촌로)
 
     def at(self, s):
         k = int(np.clip(np.searchsorted(self.cum, s), 1, len(self.cum) - 1))
@@ -528,12 +529,47 @@ def _bb_arm():
 
 
 ARMS['baekbeom'] = _bb_arm()
+# 1997년 신촌로 (남서) as the 1996 photos 52110 · 52111 · 52139 have its kerbs (2026-11-17, 고증 4.10.4 「1997년 신촌로(남서)의
+# 두 연석」): their cameras solved on the paint of the 1997 scans (the crossing's bars and edges, the yellow middle, the
+# lane lines; 52111's and 52139's apart came out at one place 0.6 m apart), the kerbs read off them to the road's own
+# heights: the north-west one 12.4 m north-west of OSM's line (the arm's till then) from the crossing to s 75 (12.6 to
+# s 92), the south-east one 4.5 - 5.2 m south-east of it (s 48 - 115): 17 - 17.8 m of carriageway, where the game had
+# 20 m round the line.  The scans' painted middle runs 3.6 - 5.3 m north-west of the line (SG_MID, off the new one), the
+# lane lines either side of it (SG_LINES): three lanes in (south-east), two out.  SEOGANG_RNG: the arm as it was, for
+# what the random streams decide (the rule's mouths, the lamps' stations, the entrances' first places).  Its walks
+# reach where the old ones did (north-west 2.05 m, south-east 9.9 m: the houses behind stay); nearer the junction than
+# the crossing (SG_CORNER_S) the old asphalt south-east of the line stays (the scans' lanes in and turning lane there)
+SEOGANG_RNG = dict(ARMS['seogang'])
+SG_KERB_NW, SG_KERB_SE = 12.45, 4.6           # m off the old line
+SG_CORNER_S = 45.8                            # (the south-east kerb's corner at the crossing's near edge: 52110)
+SG_MID = [(0.0, 0.33), (57.0, 0.33), (63.0, 0.22), (69.0, 0.18), (75.0, 0.08), (81.0, 0.03), (87.0, -0.18), (93.0, -0.28),
+          (99.0, -0.43), (105.0, -0.53), (111.0, -0.63), (117.0, -0.78), (123.0, -0.88), (129.0, -0.98), (135.0, -1.18),
+          (141.0, -1.38), (1000.0, -1.38)]
+# [(s, m off the painted middle), kind]: the scans' cross profiles (27/18 · 27/19, every 6 m from s 54 to 144)
+SG_LINES = [([(0.0, 3.05), (54.0, 3.05), (102.0, 3.2), (1000.0, 3.2)], 'white_dash'),
+            ([(0.0, 6.15), (46.0, 6.15), (54.0, 5.25), (99.0, 6.25), (141.0, 6.45), (1000.0, 6.45)], 'white_dash'),
+            ([(0.0, -3.4), (57.0, -3.4), (99.0, -3.25), (141.0, -3.1), (1000.0, -3.1)], 'white_dash')]
+
+
+def _sg_arm():
+    """1997년 신촌로's arm on the photos' kerbs: the old line moved by the carriageway's middle"""
+    c = Arm('c', dict(half=1, walk=1, lanes=1, pts=SEOGANG_RNG['pts']))
+    o = (SG_KERB_SE - SG_KERB_NW) / 2
+    pts = []
+    for q in SEOGANG_RNG['pts']:
+        p_, t_, n_ = c.at(float(c.ls.project(Point(*q))))
+        pts.append((round(float(q[0] + n_[0] * o), 2), round(float(q[1] + n_[1] * o), 2)))
+    half = (SG_KERB_SE + SG_KERB_NW) / 2
+    return dict(half=half, walk=14.5 - SG_KERB_NW, walk_l=14.5 - SG_KERB_SE, lanes=2, pts=pts)
+
+
+ARMS['seogang'] = _sg_arm()
 
 
 def mid_of(k, s):
     """where arm k's painted middle line is, m off its line (+: its left of the outward way), s m out"""
-    if k == 'sinchon_e':
-        t = np.array(SINCHON_E_MID)
+    if k in ('sinchon_e', 'seogang'):
+        t = np.array(SINCHON_E_MID if k == 'sinchon_e' else SG_MID)
         return float(np.interp(s, t[:, 0], t[:, 1]))
     return float(ARMS[k].get('mid', 0.0))
 
@@ -577,6 +613,7 @@ def streets(pl):
     A0 = arms()
     A0['yonsei'] = Arm('yonsei', {**ARMS['yonsei'], 'pts': YONSEI_RNG_PTS, 'half': 7.0, 'walk': YRO_WALK})
     A0['baekbeom'] = Arm('baekbeom', BAEKBEOM_RNG)
+    A0['seogang'] = Arm('seogang', SEOGANG_RNG)
     geo['rng'] = _streets(pl, A0, gt.YONSEI_X_RNG, old=True)
     return geo
 
@@ -602,7 +639,7 @@ def _streets(pl, A, yx=None, old=False):
     cw, walks = {}, {}
     for k, a in A.items():
         cw[k] = a.poly(-a.half, a.half, 0.0, s_top if k == 'yonsei' else a.cum[-1])
-        walks[k] = yro_walk_poly(a, s_kerb, yx, old) if k == 'yonsei' else a.poly(-a.half - a.walk, a.half + a.walk, 0.0, a.cum[-1])
+        walks[k] = yro_walk_poly(a, s_kerb, yx, old) if k == 'yonsei' else a.poly(-a.half - a.walk, a.half + a.walk_l, 0.0, a.cum[-1])
     road = unary_union(list(cw.values()))
     road = road.buffer(CORNER_R, join_style=1).buffer(-CORNER_R, join_style=1).union(road)
     # (the corners rounded: closing the union fills the wedges between the arms)
@@ -616,6 +653,8 @@ def _streets(pl, A, yx=None, old=False):
         ks = LineString(ROT_S_KERB)
         road = road.union(Polygon(ROT_S_KERB + ROT_S_FILL)).difference(Polygon(ROT_S_KERB[::-1] + ROT_S_CUT).buffer(0))
         walks['s_corner'] = ks.buffer(ROT_S_WALK, single_sided=True).difference(road)
+        # 1997년 신촌로 short of its crossing: the old asphalt south-east of its line (the lanes in, the turning lane)
+        road = road.union(Arm('seogang', SEOGANG_RNG).poly(0.0, SEOGANG_RNG['half'], 0.0, SG_CORNER_S))
         # the three corners that were road in 1997 (ROT_WEDGES): asphalt out to their kerbs, a sidewalk behind each
         wedges = unary_union([Polygon(w['kerb'] + w['fill']).buffer(0) for w in ROT_WEDGES.values()])
         road = road.union(wedges)
@@ -1072,8 +1111,8 @@ def layout(geo, town, extras, ground, taken_z):
         return out
     # (the rule's places with 서강로 on its old line: the ginkgos are still decided round them, so that the streams'
     # draws stay; A_dec: the arms as they were for those decisions)
-    A_dec = {**A, 'baekbeom': geo['rng']['arms']['baekbeom']}
-    xs_rng = mouths(A_dec, {**geo['cw'], 'baekbeom': geo['rng']['cw']['baekbeom']})
+    A_dec = {**A, 'baekbeom': geo['rng']['arms']['baekbeom'], 'seogang': geo['rng']['arms']['seogang']}
+    xs_rng = mouths(A_dec, {**geo['cw'], 'baekbeom': geo['rng']['cw']['baekbeom'], 'seogang': geo['rng']['cw']['seogang']})
     xs = dict(xs_rng)                               # (the other arms' mouths stay where the rule put them)
     # 서강로's and 1997년 신촌로's crossings where the 1997 frames have them (ROT_S_CROSS, ROT_SW_CROSS), their stop lines
     # (ROT_STOP_AT; the others' behind their mouths), signals and paint following them
@@ -1102,6 +1141,8 @@ def layout(geo, town, extras, ground, taken_z):
         # the crossing: 4.5 m wide, white bars 0.45 m across the walk's direction (the 1990s' plain bars); none
         # across three of the mouths (ROT_NO_ZEBRA); 서강로's two rows from kerb to kerb, 1997년 신촌로's 6.8 m deep
         o0, o1 = -a.half + 0.5, a.half - 0.4
+        if k == 'seogang':                             # (1997: bars from 1.4 m short of the north-west kerb to the other)
+            o0 = -a.half + 2.55
         rows = [(s_x, s_x + dep)]
         if k == 'baekbeom':
             p_, _, n_ = a.at(s_x + dep / 2)
@@ -1139,6 +1180,16 @@ def layout(geo, town, extras, ground, taken_z):
         if len(ss) < 2:
             continue
         cut = [(s_x - 0.3, s_x + dep + 0.3)] if s_stop < s_x else []
+        if k == 'seogang':
+            # 1997년 신촌로 as the scans have it (SG_LINES off the painted middle, SG_MID): the double yellow middle and
+            # three lines, two in and one out, from the stop line out, broken at the crossing
+            for run in runs(ss, cut):
+                for o, kind in [(0.16, 'yellow'), (-0.16, 'yellow')]:
+                    paint.append(dict(kind=kind, w=0.12, pts=R2([AT(a, k, s, o) for s in run])))
+                for tab, kind in SG_LINES:
+                    t_ = np.array(tab)
+                    paint.append(dict(kind=kind, w=0.12, pts=R2([AT(a, k, s, float(np.interp(s, t_[:, 0], t_[:, 1]))) for s in run])))
+            continue
         for sgn in (1, -1):
             for run in runs(ss, cut):
                 paint.append(dict(kind='yellow', w=0.12, pts=R2([AT(a, k, s, sgn * 0.16) for s in run])))
@@ -1312,7 +1363,7 @@ def layout(geo, town, extras, ground, taken_z):
     # the kerb lanes turning off through the wedges (ROT_TURNS: the 1997 lanes' middles): 양화로 into 1997년 신촌로
     # between the almond and the V, 신촌로 into 연세로 north of the north-east triangle
     T_ = ROT_TURNS
-    lanes.append(route_via('sinchon_w', 0.3 + LANE_W * 3.5, T_['w_sw'][0], T_['w_sw'][1], 'seogang', -(0.3 + LANE_W * 2.5),
+    lanes.append(route_via('sinchon_w', 0.3 + LANE_W * 3.5, T_['w_sw'][0], T_['w_sw'][1], 'seogang', -(0.3 + LANE_W * 1.5),
                            T_['w_sw'][2], 1))
     lanes.append(route_via('sinchon_e', 0.3 + LANE_W * 3.5, T_['e_n'][0], T_['e_n'][1], 'yonsei', -Y2, T_['e_n'][2], 1,
                            s_far_out=s_bridge2))
@@ -1449,7 +1500,7 @@ def layout(geo, town, extras, ground, taken_z):
             o0, o1 = (ROT_S_CROSS['x'][0] - p_[0]) / n_[0], (ROT_S_CROSS['x'][1] - p_[0]) / n_[0]
             W_parts.append(a.poly(-a.half - a.walk, o1 + ROT_APRON_WALK + 0.5, s_x - 0.25, s_x + ROT_S_CROSS['depth'] + 0.25).intersection(street))
         else:
-            W_parts.append(a.poly(-a.half - a.walk, a.half + a.walk, s_x - 0.25, s_x + deps[k] + 0.25).intersection(street))
+            W_parts.append(a.poly(-a.half - a.walk, a.half + a.walk_l, s_x - 0.25, s_x + deps[k] + 0.25).intersection(street))
     for s_z, dep_ in ((s_mid, mid_dep), (s_c2, 4.5)):
         W_parts.append(ya.poly(-ya.half - 5.0, ya.half + 5.0, s_z - 0.25, s_z + dep_ + 0.25).intersection(street))
     for y0_, y1_ in (gt.YZEBRA2, gt.YZEBRA):          # (gate_town's: south of the bridge, and over 연세로's mouth)
