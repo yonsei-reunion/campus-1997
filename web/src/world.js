@@ -86,7 +86,7 @@ function edgeU16(a, count) {
   return new THREE.BufferAttribute(out, 4, true);
 }
 
-// Merge every mesh under root into one mesh per (material, chunk).
+// Merge every mesh under root into one mesh per (material, chunk); chunk 0: one per material.
 export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShadow = true, name = 'static' } = {}) {
   root.updateMatrixWorld(true);
   const buckets = new Map();
@@ -117,7 +117,7 @@ export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShado
     box.setFromBufferAttribute(g.attributes.position);
     box.getCenter(c);
     // (by material object: a building's own weathering makes a second copy of a library material, same name)
-    const key = o.material.name + '#' + o.material.id + '|' + Math.floor(c.x / chunk) + '|' + Math.floor(c.z / chunk);
+    const key = o.material.name + '#' + o.material.id + (chunk ? '|' + Math.floor(c.x / chunk) + '|' + Math.floor(c.z / chunk) : '');
     if (!buckets.has(key)) buckets.set(key, { mat: o.material, geos: [] });
     buckets.get(key).geos.push(g);
   });

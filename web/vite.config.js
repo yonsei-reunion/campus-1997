@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, rmSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 // Build number appended to every data / model / texture / photo URL (src/util.js versioned()): GitHub Pages serves
@@ -11,6 +11,14 @@ function buildId() {
   try { return execSync('git rev-parse --short=8 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { /* not a git checkout */ }
   return Date.now().toString(36);
 }
+
+// The halls and landmarks in 160 m cells (tools/split_glb.mjs; gitignored): made again here when they are older than
+// the two whole GLBs (a fresh checkout, GitHub Actions, a rebuild while no Blender export ran the split). The whole
+// files stay in public/ for the tools that read them, but are not deployed (no page asks for them).
+const { splitAll, stale } = await import('../tools/split_glb.mjs');
+if (stale()) splitAll();
+const WHOLE = ['assets/models/campus_buildings.glb', 'assets/models/campus_landmarks.glb'];
+let outDir = '';
 
 // A content hash per file of public/data and public/assets (but the news pages' pictures), so a deploy changes the URL
 // (src/util.js versioned()) only of the files that changed, and the browser and the service worker (public/sw.js) keep
@@ -27,6 +35,7 @@ function assetHashes() {
       const p = join(dir, e.name);
       const key = relative(pub, p).split(sep).join('/');
       if (e.isDirectory()) { if (key !== 'assets/news') walk(p); continue; }
+      if (WHOLE.includes(key)) continue;
       if (key.endsWith('.webp') && existsSync(p.slice(0, -5) + '.png')) continue;      // (under its PNG's name)
       let file = p, body = readFileSync(p);
       if (key.endsWith('.png') && made[key] && existsSync(p.slice(0, -4) + '.webp') && made[key] === sha1(body)) {
@@ -57,6 +66,12 @@ function phoneCopies() {
 
 export default defineConfig(({ command }) => ({
   base: './',
+  plugins: [{
+    name: 'drop-whole-halls',
+    apply: 'build',
+    writeBundle(out) { outDir = out.dir; },
+    closeBundle() { for (const f of WHOLE) rmSync(join(outDir, f), { force: true }); },
+  }],
   server: { port: 5197 },
   build: {
     chunkSizeWarningLimit: 2000,

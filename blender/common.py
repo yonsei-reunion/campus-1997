@@ -616,6 +616,9 @@ def export_glb(objs, path, draco=True, colors=False):
     if draco:
         subprocess.run(['node', os.path.join(ROOT, 'tools', 'draco_glb.mjs'), path], check=True)
     print('exported', path, os.path.getsize(path) // 1024, 'KB')
+    # the halls and landmarks: also in 160 m cells, as the game takes them in (tools/split_glb.mjs)
+    if os.path.basename(path) in ('campus_buildings.glb', 'campus_landmarks.glb'):
+        subprocess.run(['node', os.path.join(ROOT, 'tools', 'split_glb.mjs')], check=True)
 
 
 def tri_count(objs):

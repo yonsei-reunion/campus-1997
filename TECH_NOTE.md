@@ -276,6 +276,11 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
   - 잎 · 낙엽 아틀라스(`leaf_*.png`, `litter_*.png`)는 곁의 `.webp`(색 q90, 알파 무손실)로 받습니다. PNG 는 원본으로 남습니다(Blender 가 읽음). `tools/webp_textures.py` 가 WebP 를 만들고 PNG 의 sha1 을 `tools/webp_sources.json` 에 적습니다. 빌드는 sha1 이 맞을 때만 WebP 로 바꾸므로, WebP 없이 고친 PNG 는 PNG 로 나갑니다. 땅 · 그림자 같은 데이터 지도는 값이 바뀌므로 넣지 않습니다.
   - 처리: `main.js` 의 `progress(label, weight)`. 가중치는 그 단계가 데스크톱에서 걸리는 시간(1 = 0.01초)이고 합이 `STEPS` 입니다.
 - 받기의 몫은 망 속도로 정합니다. 처음 2초(또는 받기가 그 전에 끝나면 전체)의 속도로 받는 시간을 어림해 `받는 시간 / (받는 시간 + WORK_S)` 로 둡니다. 캐시된 방문은 거의 처리, 느린 망은 거의 받기입니다.
+- 건물 · 랜드마크는 칸으로 받습니다(`chunks.js`). 칸은 노드(건물 하나)의 가운데가 든 160 m 칸이고, 칸마다 재질 하나에 한 메시로 합칩니다.
+  - 로딩 화면은 `base` 파일과 정문에서 250 m(`NEAR_R`) 안의 칸만 기다립니다. `base` 에는 어디서 출발하든 있어야 할 것이 듭니다: 계단 · 객석의 걷는 면(나무 · 관목 · 소품 · 차를 그 위에 세움), 땅 재질의 둑 · 데크(`terrain_drape`: 풀잎과 연석이 그 위에 섬), 200 m 보다 넓은 것(노면 표시, 주차선, 의료원 서쪽).
+  - 나머지는 로딩 화면이 끝난 뒤 시점(시작 화면의 카메라 · 하늘 시점의 초점)에 가까운 칸부터 셋씩 받습니다. 칸 하나는 텍스처가 다 오고 셰이더를 컴파일한 뒤에 넣고, 그때 걷는 사람의 벽 · 해 그림자 캐시 · 폰의 구운 그림자 · 대기가 그 칸을 받습니다.
+  - 정문이 아닌 곳에서 출발하거나 지도에서 옮겨 갈 때는 그곳의 칸이 다 올 때까지 기다립니다(`chunks.ensure`).
+  - 화면을 찍거나 굽는 도구는 모든 칸을 기다립니다(`__y97.campusLoaded`).
 - 마지막 「첫 장면을 그리는 중」(약 2초)은 셰이더 · 그림자를 한꺼번에 올리느라 페이지가 멈춥니다. 막대는 `transform` 전환으로만 움직여(`loading.coast`) 그동안에도 흘러갑니다.
 - 모델을 더하거나 단계가 바뀌면 `window.__y97.loading.state.marks`(단계마다의 시각)로 가중치와 `STEPS`, `WORK_S` 를 다시 맞춥니다.
 - 대기 카드(`#waitbox`)는 삐삐 퀴즈입니다. 뜻을 보이면 삐삐 화면(`<input inputmode="numeric">`)에 번호를 누르고, 자릿수가 차면 맞는지 봅니다(폰 숫자 자판에는 Enter 가 없음). 맞혀야 다음 문제로 가고, 두 번 틀릴 때마다 답의 숫자 하나를 화면에 흐리게 보입니다. 문제는 `loading.js` 의 `CODES` 입니다.
@@ -319,7 +324,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
   - 데스크톱 HQ 는 PCSS(해의 시직경에 따른 부드러운 반영).
 - 대기: 높이 안개와 구름 그림자를 모든 재질에 셰이더 패치로 넣습니다(`materials.js` `ATMOS`).
 - 후처리(`post.js`): N8AO → TAA(서브픽셀 지터 · 깊이 재투영) 또는 SMAA → 두 단계 블룸 → 1997 필름 → AgX 톤매핑. 폰은 `RenderPass` + 4x MSAA 만.
-- 건물 · 랜드마크는 재질 · 160 m 칸마다 한 메시로 합칩니다(`world.js` `mergeStatic`). 작은 불투명 재질을 640 m 칸으로 더 합쳐 그리는 메시를 줄여 보았으나(정문 1,136 → 833개), 실제 폰에서 출발 자리 · 정문이 느려져(약 30 → 22 fps) 되돌림(2026-11-15).
+- 건물 · 랜드마크는 재질 · 160 m 칸마다 한 메시로 합칩니다(`world.js` `mergeStatic`, 칸은 파일의 칸: `chunks.js`). 작은 불투명 재질을 640 m 칸으로 더 합쳐 그리는 메시를 줄여 보았으나(정문 1,136 → 833개), 실제 폰에서 출발 자리 · 정문이 느려져(약 30 → 22 fps) 되돌림(2026-11-15).
 - 셰이더 패치는 `materials.js` `patchShader` 로 쌓습니다. 캐시 키를 함께 관리해 같은 프로그램이 여러 번 컴파일되지 않게 합니다.
 - 폰은 텍스처를 1024 이하로 줄여 올립니다(2K 세트는 밉맵 포함 약 1 GB).
   - 큰 텍스처(PBR 2K 세트, 8K 하늘)는 폰용 사본(`<이름>_1k.jpg`, `sky_8k_4k.jpg`)을 받습니다(`util.js` `phoneCopy`). `tools/mobile_textures.py` 가 만들고 원본의 sha1 을 `tools/mobile_sources.json` 에 적습니다. 원본이 바뀌었는데 사본을 다시 만들지 않으면 폰도 원본을 받아 줄입니다.
@@ -383,6 +388,7 @@ blender -b --factory-startup --python blender/build.py -- statues   # 청동 조
 - 순서가 있습니다: 일반 건물과 랜드마크는 서로의 그림자를 상대의 마지막 GLB 에서 읽어 굽습니다. 한쪽을 크게 바꿨으면 `landmarks` → `buildings` → `landmarks` 로 돕니다. 그림자를 지거나 걷는 면이 바뀌면 마지막에 `bake_sun_shadows.mjs`.
 - `bake_sun_shadows.mjs` 는 Playwright 의 Chromium 이 필요합니다(`npx playwright install chromium`).
 - GLB 의 Draco 압축은 Blender 가 아니라 `tools/draco_glb.mjs`(glTF-Transform)가 합니다. `blender/common.py` 의 `export_glb` 가 압축 없이 쓰고 이 도구를 부르니, 빌드 전에 `cd web && npm install` 이 필요합니다. 같은 양자화에서 gzip 뒤 크기가 Blender 의 것보다 약 5분의 1 작고, 양자화 비트와 그 까닭은 도구 머리말에 있습니다.
+- `campus_buildings.glb` · `campus_landmarks.glb` 는 `export_glb` 가 쓴 뒤 `tools/split_glb.mjs` 가 160 m 칸 파일로 나눕니다(`web/public/assets/models/campus/`, git 밖). Draco 바이트를 그대로 옮겨 1초도 안 걸립니다. vite 도 띄울 때 칸이 두 GLB · `campus.json` 보다 오래되었으면 다시 나누니(GitHub Actions 도 이 길), 손으로 돌릴 일은 없습니다. 통 GLB 는 Blender 의 굽기 · 도구가 읽으려고 그대로 두되 배포하지 않습니다(`vite.config.js`).
 
 ## 소개 영상
 

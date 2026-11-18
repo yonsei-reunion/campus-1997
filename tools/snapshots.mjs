@@ -48,7 +48,7 @@ async function openPage(mode) {
   page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text().replace(/\0/g, '').slice(0, 300)); });
   page.on('pageerror', (e) => errs.push('PAGEERR ' + e.message));
   await page.goto(`http://localhost:${port}/${query}`);
-  await page.waitForFunction(() => window.__y97 && window.__y97.bird && !document.querySelector('#start')?.disabled && window.__y97.townLoaded !== false, null, { timeout: 300000 });
+  await page.waitForFunction(() => window.__y97 && window.__y97.bird && !document.querySelector('#start')?.disabled && window.__y97.townLoaded !== false && window.__y97.campusLoaded !== false, null, { timeout: 300000 });
   await page.waitForTimeout(5000);
   await page.evaluate((mode) => {
     const y = window.__y97;

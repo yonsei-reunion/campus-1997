@@ -12,3 +12,4 @@ trailer/*.mp4
 data/raw/copernicus/
 tools/photofit/.cache/
 .envrc
+web/public/assets/models/campus/

@@ -7,8 +7,9 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { MaterialLibrary, SEASONS, texturesReady, texCount, updatePcss, uploadEarly } from './materials.js';
 import { loading, fetchCounted } from './loading.js';
 import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materials.js';
-import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeTerrain, drapeHeight } from './terrain.js';
-import { loadGLB, prefetch, glbMaterials, bindMaterials, mergeStatic, InstancedKit, KitCuller, Forest } from './world.js';
+import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeHeight } from './terrain.js';
+import { loadGLB, prefetch, glbMaterials, bindMaterials, InstancedKit, KitCuller, Forest } from './world.js';
+import { chunkIndex, nearUrls, CampusChunks } from './chunks.js';
 import { Grass } from './grass.js';
 import { Fall } from './fall.js';
 import { Player, Colliders, pointInPoly } from './player.js';
@@ -79,18 +80,21 @@ async function main() {
   loading.expect(STEPS);
   texCount.onChange = () => loading.textures(texCount.asked, texCount.done);
   // every model of the loading screen asked for at once (world.js prefetch), the vegetation once campus.json names it;
-  // the halls first, the rest at low priority. The environment map comes down with the data.
-  const halls = ['campus_buildings.glb', 'campus_landmarks.glb', 'baekyangro.glb', 'campus_town_ground.glb'].map((f) => MODELS + f);
+  // the halls first (the cells of them round the gate, src/chunks.js), the rest at low priority. The environment map
+  // comes down with the data.
+  const halls = ['baekyangro.glb', 'campus_town_ground.glb'].map((f) => MODELS + f);
   prefetch(halls);
   prefetch([...PROPS.map((n) => `${MODELS}props/${n}.glb`), ...castFiles(Object.keys(PEOPLE))], 'low');
   const envHdr = new RGBELoader().loadAsync(versioned('assets/hdri/env_1k_nosun.hdr'));
-  const [campus, matDefs, skyMeta, nearData, farData, entrances, southData, northData] = await Promise.all([
+  const [campus, matDefs, skyMeta, nearData, farData, entrances, southData, northData, cells] = await Promise.all([
     json('data/campus.json').then((c) => { prefetch(vegFiles(c).map((f) => MODELS + f), 'low'); return c; }),
     json('data/materials.json'), json('data/sky.json'),
     bin('data/terrain_near.bin'), bin('data/terrain_far.bin'),
     json('data/entrances.json').catch(() => ({ entrances: [] })),
     bin('data/terrain_south.bin').catch(() => null),        // 신촌 로터리: the patch south of the grid
     bin('data/terrain_north.bin').catch(() => null),        // 무악학사 · 북문: the patch north of it
+    // (the cells round the gate asked for as soon as the list is in: it names the gate too)
+    chunkIndex(MODELS, json).then((ix) => { if (ix.spawn) prefetch(nearUrls(ix, ix.spawn)); return ix; }),
   ]);
   progress('지형 데이터를 펼치는 중…', 60);
 
@@ -116,6 +120,9 @@ async function main() {
   lib.setSeason(season);
   // the halls' textures asked for as soon as their files are in, not once they are parsed and merged
   for (const u of halls) glbMaterials(u).then((names) => { for (const n of names) if (lib.defs[n]) lib.get(n); });
+  const chunks = new CampusChunks(cells, { lib, scene });
+  const nearCells = chunks.near([campus.spawn.pos]);
+  chunks.ask(nearCells);
 
   // Environment lighting from the CC0 Poly Haven HDRI (same sky as the backdrop) with its sun's disc taken out
   // (blender/sky_bake.py): left in, the disc was ~70 % of the light an upward face got from the environment, and as
@@ -209,17 +216,18 @@ async function main() {
 
   // ---------------------------------------------------------------- GLB assets
   const load = async (u, label, weight) => { const g = await loadGLB(MODELS + u); progress(label, weight); return g; };
-  const [bld, lms, road, townG] = await Promise.all([
-    load('campus_buildings.glb', '건물을 세우는 중…', 115),
-    load('campus_landmarks.glb', '언더우드관에 담쟁이를 심는 중…', 115),
+  // the halls and landmarks round the gate (src/chunks.js; the rest come after the loading screen)
+  chunks.terrainMat = terrain.material;
+  const cellW = 230 / nearCells.reduce((a, f) => a + f.bytes, 0);
+  const cellsIn = Promise.all(nearCells.map((f) => chunks.load(f).then(() => progress(f.kind === 'buildings' ? '건물을 세우는 중…' : '언더우드관에 담쟁이를 심는 중…', f.bytes * cellW))));
+  const [road, townG] = await Promise.all([
     load('baekyangro.glb', '백양로에 차선을 긋는 중…', 115),
     // 정문 밖 (src/town.js): here only the banks the walker and the trees stand on; the town's houses, landmarks and
     // signs (campus_town.glb) come after the loading screen (the end of main)
     load('campus_town_ground.glb', '굴다리 너머 신촌에 불을 켜는 중…', 20).catch(() => null),
   ]);
-  bindMaterials(bld.scene, lib, false, true);
-  bindMaterials(lms.scene, lib, false, true);
-  const drapes = drapeTerrain(lms.scene, terrain.material);   // 대강당 앞 둑: the ground's own material (src/terrain.js)
+  await cellsIn;
+  const drapes = chunks.drapes;          // 대강당 앞 둑: the ground's own material (src/terrain.js drapeTerrain)
   bindMaterials(road.scene, lib);
   const verge = new Verge(road.scene, campus);        // 백양로's verge and planting strip: lawn (src/verge.js)
   // 정문 밖: 성산로, the railway's bank and the town beyond; the banks' trees stand on the banks' own meshes
@@ -228,16 +236,10 @@ async function main() {
 
   // walkable surfaces: terrain + road + amphitheater terraces
   const walkables = [terrain];
-  const amph = [];
-  lms.scene.traverse((o) => { if (o.isMesh && /amphitheater/.test((o.parent && o.parent.name) + o.name)) amph.push(o); });
-  // the smoothed surface of every entrance flight (blender/landmarks.py walk_mesh): invisible, only walked on
-  const stairWalk = [];
-  lms.scene.updateMatrixWorld(true);
-  bld.scene.updateMatrixWorld(true);
-  for (const sc of [lms.scene, bld.scene]) {     // (the procedural halls' front steps are in the buildings file)
-    sc.traverse((o) => { if (o.isMesh && /walk_stairs/.test(o.name + ((o.parent && o.parent.name) || ''))) stairWalk.push(o); });
-  }
-  for (const o of stairWalk) { o.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }); o.removeFromParent(); }
+  const amph = chunks.amph;
+  // the smoothed surface of every entrance flight (blender/landmarks.py walk_mesh; the procedural halls' front steps
+  // are in the buildings' base file): invisible, only walked on
+  const stairWalk = chunks.stairWalk;
   const roadMeshes = [];
   road.scene.traverse((o) => { if (o.isMesh) { o.receiveShadow = true; roadMeshes.push(o); } });
   scene.add(road.scene);
@@ -248,16 +250,8 @@ async function main() {
   for (const m of walkables) m.geometry.computeBoundsTree();
 
   const amphGroup = new THREE.Group();
-  for (const m of amph) {
-    const w = m.matrixWorld.clone();
-    m.parent.remove(m);
-    m.matrix.copy(w); m.matrix.decompose(m.position, m.quaternion, m.scale);
-    m.castShadow = m.receiveShadow = true;
-    amphGroup.add(m);
-  }
+  for (const m of amph) amphGroup.add(m);
   scene.add(amphGroup);
-  scene.add(mergeStatic(bld.scene, { name: 'buildings' }));
-  scene.add(mergeStatic(lms.scene, { name: 'landmarks' }));
   // 활천 water: Ultra Water FFT ripples, caustics and the jet's rings (src/water/fountain.js)
   const fountainWater = campus.statues.fountain ? new FountainWater(renderer, scene, campus.statues.fountain, lib, sun, sunDir, { mobile: MOBILE }) : null;
   progress('건물을 정리하는 중…', 70);
@@ -641,8 +635,10 @@ async function main() {
   };
   const post = new Post(renderer, scene, camera);
   const ui = new UI(campus, {
-    onTeleport: (x, y, facing = null) => {         // (facing: a place of the map's inset, its walker's yaw)
+    onTeleport: async (x, y, facing = null) => {         // (facing: a place of the map's inset, its walker's yaw)
       if (bird.active) leaveBird();
+      const wait = chunks.ensure(x, y);          // (the halls there in first: the walls, the roofs over the walk)
+      if (wait) { ui.toast('그쪽 건물을 세우는 중이에요…', 60000); await wait; ui.toast('', 1); }
       const [lx, ly, yaw] = landAt(x, y);
       player.teleport(lx, ly, yaw ?? facing);
       forest.update(camera.position, true);
@@ -770,8 +766,20 @@ async function main() {
     const how = MOBILE ? '화면 왼쪽을 누른 채 밀어서 걸어요' : '↑↓(W·S)로 걷고 ←→(A·D)로 방향을 바꿔요';
     ui.toast(msg || `${how} · ${where ? `${where}에서 출발해요` : '정문에서 백양로를 따라 걸어 보세요'}`, 5000);
   };
-  $('#start').addEventListener('click', () => {
+  let arriving = false;
+  $('#start').addEventListener('click', async () => {
+    if (arriving) return;
     const p = places[placeEl.value];         // '' → 정문 (the walker stands at the spawn: at first, and after toTitle)
+    // (the halls round a place far from the gate may not be in yet: src/chunks.js)
+    const wait = chunks.ensure(...(p ? [p.x, p.y] : campus.spawn.pos));
+    if (wait) {
+      arriving = true;
+      $('#start').disabled = true;
+      ui.toast('그쪽 건물을 세우는 중이에요…', 60000);
+      await wait;
+      $('#start').disabled = false;
+      arriving = false;
+    }
     if (p) { player.teleport(...walkOut(p.x, p.y), p.yaw); forest.update(camera.position, true); }
     startWalk(p ? (p.front ? `${p.name} 앞` : p.name) : null);
   });
@@ -1211,7 +1219,9 @@ async function main() {
         kitCull.enabled = true;
       }
     },
-    kitCull };
+    kitCull, chunks,
+    // every cell of the halls and landmarks in (src/chunks.js): the tools that shoot or bake wait for it
+    get campusLoaded() { return chunks.loaded; } };
   window.__y97.atmos = ATMOS;
   window.__y97.loading = loading;
 
@@ -1222,6 +1232,23 @@ async function main() {
   $('#start').disabled = false;
   $('#tour-start').disabled = false;
   $('#shoot-start').disabled = false;
+  // the rest of the halls and landmarks, the nearest to the view first (src/chunks.js); each set in once its
+  // textures are in and its shaders compiled: then the walker's walls, the sun's shadows and the atmosphere take it
+  chunks.renderer = renderer;
+  chunks.camera = camera;
+  chunks.late = true;
+  chunks.onPrepare = (g) => {
+    g.traverse((o) => { for (const m of [].concat(o.material || [])) globalPatch(m); });
+    sunMap.patchScene(g, farScenery);
+  };
+  chunks.onAdd = (meshes) => {
+    for (const o of meshes) {
+      o.geometry.computeBoundsTree();
+      player.walls.push(o);
+    }
+    shadows.invalidate();
+  };
+  chunks.stream(() => { const f = bird.active ? bird.focus : camera.position; return [f.x, -f.z]; });
   // the town beyond the gate: its houses, 신촌 로터리's landmarks and signs, the bridge (campus_town.glb, 1.3 MB), down
   // while the title card is up rather than on the loading screen (2026-11-16). __y97.townLoaded: for the tools that
   // shoot or bake (tools/snapshots.mjs, tools/bake_sun_shadows.mjs)
