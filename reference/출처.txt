@@ -767,6 +767,10 @@ reference/ 사진 출처
 - 백주년기념관 원통 서쪽 발치의 낮은 몸체(#164, 사진은 저장하지 않고 보며 잼, reference/고증/3.4_백주년기념관.md 「낮은 몸체의 윤곽」)
   - 1997년 7월 28일 항공사진 26/16 · 26/15 · 27/17(지붕 끝의 자리와 높이, tools/aerial97_cent.py)
   - 카카오맵 스카이뷰 과거 항공사진 2008 · 2010년(0.125 m/px, 낮은 지붕의 서쪽 끝과 원통 둘레의 호)
+  - 1996 · 1998 · 1999년 항공사진의 남쪽 장(앞면의 자리 · 높이, #111, tools/aerial97_cent.py line)
+- 백주년기념관 설계 도면 · 준공 무렵 사진(#111, 저장소에 넣지 않음: 저작권 표시만 있음. 보며 잼, reference/고증/3.4_백주년기념관.md 「1986년 설계 도면과 곡면 유리 벽 사진」)
+  - 건축신문 「연세대학교 100주년 기념관, 1985」(박정현, 2017-12-28) https://architecture-newspaper.com/bk-kj-17/ : 도판 21(남측 입면도 1/200, 1986-02-07), 23(배치도 1/400), 24 ~ 27(층 평면도 1/200), 18(단면), 30(출입구 사진)
+  - 건축도시공간연구소 건축물 자료 https://www.aurum.re.kr/Bits/BuildingDoc.aspx?num=243&tb=S&page=1 (도면 열세 장 「출처 : 건축문화(A&C출판)」, 월간 건축문화 1988년 4월 · 1989년 9월. 그림 주소는 바로 받으면 HTML 이 옴)
 - 사람의 움직임(모션 캡처, 저장소에 원본을 넣지 않음: tools/fetch_mocap.py 가 assets_src/mocap/ 에 받고 blender/mocap.py 가 리그에 옮김. 옮긴 클립은 web/public/assets/models/people/rig-umc.glb · rig-women.glb 에 들어 있음)
   - 100STYLE dataset, Ian Mason · Sebastian Starke · Taku Komura (2022), CC BY 4.0, https://www.ianxmason.com/100style/ (Zenodo 8127870): Neutral_FW, Neutral_ID, ArmsFolded_ID, OnPhoneRight_ID
   - Open Motion Project by ACCAD/The Ohio State University, CC BY 3.0 Unported, https://accad.osu.edu/research/motion-lab/mocap-system-and-data : Female 1 의 B03_Walk1 · A01_Stand · A02_Sway · A04_Look · D3_ConversationGestures, Male 2 의 A2_Sway · A4_LookAround
