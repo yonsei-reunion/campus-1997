@@ -5,7 +5,7 @@ names and metric box-projected UVs, then emits a single bpy object.  All exporte
 GLBs carry geometry + UVs + material *names*; the web app binds the real PBR
 materials from blender/materials.json, so textures are shared across every model.
 """
-import bpy, bmesh, json, math, os, random, sys
+import bpy, bmesh, json, math, os, random, subprocess, sys
 import numpy as np
 from mathutils import Vector, Matrix
 
@@ -591,6 +591,8 @@ def local_frame(cx, cy, ang, z=0.0):
 
 # ----------------------------------------------------------------------------- export
 def export_glb(objs, path, draco=True, colors=False):
+    """Draco: written uncompressed, then compressed by tools/draco_glb.mjs (glTF-Transform's encoder, about a fifth
+    smaller after gzip than the exporter's own at the same bits; the bits are listed there)."""
     bpy.ops.object.select_all(action='DESELECT')
     for o in objs:
         o.select_set(True)
@@ -598,21 +600,21 @@ def export_glb(objs, path, draco=True, colors=False):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     kw = dict(filepath=path, export_format='GLB', use_selection=True, export_apply=True,
               export_image_format='NONE', export_yup=True, export_materials='EXPORT',
-              export_draco_mesh_compression_enable=draco, export_draco_mesh_compression_level=6,
-              export_draco_position_quantization=16, export_draco_texcoord_quantization=14,
-              export_extras=True)
+              export_draco_mesh_compression_enable=False, export_extras=True)
     try:
         kw['export_vertex_color'] = 'ACTIVE' if colors else 'NONE'
     except Exception:
         pass
     if colors:      # the halls' `_edge` (blender/bake.py): Draco keeps 16 bits of it, 2 mm over EDGE_RANGE
-        kw.update(export_attributes=True, export_draco_generic_quantization=16)
+        kw.update(export_attributes=True)
     try:
         bpy.ops.export_scene.gltf(**kw)
     except TypeError:
-        for k in ('export_vertex_color', 'export_attributes', 'export_draco_generic_quantization'):
+        for k in ('export_vertex_color', 'export_attributes'):
             kw.pop(k, None)
         bpy.ops.export_scene.gltf(**kw)
+    if draco:
+        subprocess.run(['node', os.path.join(ROOT, 'tools', 'draco_glb.mjs'), path], check=True)
     print('exported', path, os.path.getsize(path) // 1024, 'KB')
 
 

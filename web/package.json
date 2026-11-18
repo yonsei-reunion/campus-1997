@@ -17,6 +17,9 @@
     "three-mesh-bvh": "^0.8.3"
   },
   "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "draco3dgltf": "^1.5.7",
     "vite": "^6.0.7"
   }
 }

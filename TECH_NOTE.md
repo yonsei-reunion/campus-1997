@@ -380,6 +380,7 @@ blender -b --factory-startup --python blender/build.py -- statues   # 청동 조
 - `blender/build.py` 에 `buildings statues landmarks road town veg shrubs props cars polyhaven` 을 인자로 주면 그 부분만 다시 빌드합니다(`statues`: 청동 조각상의 원형을 빚어 메시와 텍스처로 구움, 하나에 2 ~ 3분. `landmarks` 는 구운 메시를 읽기만 하니 원형을 고쳤으면 `statues` → `landmarks`, `town`: 정문 밖 `campus_town_ground.glb`(걷는 둑 · 섬) · `campus_town.glb`(집 · 큰 건물 · 간판 · 굴다리)와 시내버스 `props/bus.glb`, `shrubs`: 나무를 빼고 관목만, `cars`: 다른 소품을 빼고 차만). `noao` 를 더하면 베이크를 건너뜁니다.
 - 순서가 있습니다: 일반 건물과 랜드마크는 서로의 그림자를 상대의 마지막 GLB 에서 읽어 굽습니다. 한쪽을 크게 바꿨으면 `landmarks` → `buildings` → `landmarks` 로 돕니다. 그림자를 지거나 걷는 면이 바뀌면 마지막에 `bake_sun_shadows.mjs`.
 - `bake_sun_shadows.mjs` 는 Playwright 의 Chromium 이 필요합니다(`npx playwright install chromium`).
+- GLB 의 Draco 압축은 Blender 가 아니라 `tools/draco_glb.mjs`(glTF-Transform)가 합니다. `blender/common.py` 의 `export_glb` 가 압축 없이 쓰고 이 도구를 부르니, 빌드 전에 `cd web && npm install` 이 필요합니다. 같은 양자화에서 gzip 뒤 크기가 Blender 의 것보다 약 5분의 1 작고, 양자화 비트와 그 까닭은 도구 머리말에 있습니다.
 
 ## 소개 영상
 
