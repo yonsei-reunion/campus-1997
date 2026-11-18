@@ -1162,8 +1162,12 @@ _c0_rv = _csw + _nw * 1.0 + _tw * 1.1                              # (the corner
 # OSM outline's face, which #162 moved east with the upper hall, was this low wall's) for about 11 m; north of it a
 # wall 1.7 m further in, tangent to an arc of 19.1 m round the drum's centre (2.1 m outside the drum) that runs on
 # to the hall's face 48 m south of its north-west corner: the curved glass wall of the 1996 side photo.
-_c0 = _c0_rv - _ts * 3.5
-_CBF, _CBS, _CBH = 25.0, 11.0, 6.6                                 # front, side, height (its coping 0.4 over)
+# Its front (south) face, read in the 1996 - 1999 frames from the south where the drum no longer hides it (fourteen
+# frames of four flights, the edge's place and height solved together): 1.15 m north of the line first read, as the
+# 2008 · 2010 skyview had it.  The side is shortened by as much, so the step 11 m up the side stays where it was read.
+_CBN = 1.15
+_c0 = _c0_rv - _ts * 3.5 + _tw * _CBN
+_CBF, _CBS, _CBH = 25.0, 11.0 - _CBN, 6.6                          # front, side, height (its coping 0.4 over)
 _cdr = np.array([-8.6, -241.8]) + BLD_MOVE[324328422]              # the drum's centre (blender/landmarks.py CENT_DRUM)
 _CTR = 19.1                                                        # the low curved wall's radius about it
 _ctT = _cdr + _nw * _CTR                                           # where the arc turns into the straight wall

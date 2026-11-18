@@ -12,6 +12,12 @@
   .venv/bin/python tools/aerial97_cent.py edge <z>
       그 높이에서 서쪽 지붕 끝의 u 를 v 3 m 창마다, 호 부분은 원통 가운데에서의 반지름으로(26/16 · 26/15)
 
+  .venv/bin/python tools/aerial97_cent.py line front|west <a0,a1> [a0,a1 ...]
+      한 끝(front: 앞면, u 창 / west: 서쪽 면, v 창)을 1996 · 1997 · 1998 · 1999년 사진 열다섯 장에서 함께 풂. 평면 z0 에서
+      읽은 자리는 장마다 「참 자리 + k × (끝의 높이 − z0)」(k 는 그 장의 카메라가 그 끝을 미는 비율)이라, 장들의 (k, 자리)에
+      곧은 선을 맞추면 절편이 참 자리, 기울기가 높이. 남쪽에서 찍은 장(1996년 26/17 · 27/18 등)은 원통 지붕에 가리지 않아
+      앞면을 봄. 다른 비행의 카메라는 tools/aerial_more.py
+
 이 사진에서 원통의 서쪽 벽은 그늘이고 낮은 지붕의 바깥쪽 1 ~ 2 m 가 밝은 띠로 보임. 그 띠의 서쪽 끝이 지붕 끝.
 """
 import json
@@ -134,6 +140,50 @@ def cmd_edge(z):
         print('  %3.0f ~ %3.0f°  %5.2f   %5.2f' % (t0, t0 + 10, *row))
 
 
+LINE_FRAMES = [(26, 16), (26, 15), (27, 17), (1996, 2615), (1996, 2616), (1996, 2617), (1996, 2716), (1996, 2717),
+               (1996, 2718), (1998, 2616), (1998, 2617), (1999, 2616), (1999, 2617), (1999, 2716), (1999, 2717)]
+
+
+def _push(fr, t, u, v, h=36.0):
+    """평면 위 끝이 높이 1 m 마다 t 방향으로 밀려 보이는 거리(그 장의 카메라 자리에서)"""
+    c = np.array(A.FRAMES[fr]['cam'][:3], float)
+    x, y = xy(u, v)
+    return -float((c[:2] - np.array([x, y])) @ t) / (c[2] - float(A.block_dz(c[0], c[1])) - h)
+
+
+def cmd_line(kind, wins, z0=35.4):
+    """front: 앞면(남쪽) 지붕 끝, u 창마다 v 를 따라 남쪽으로 밝아지는 곳 / west: 서쪽 지붕 끝, v 창마다 u 를 따라 동쪽으로"""
+    from scipy.ndimage import gaussian_filter1d
+    import aerial_more
+    aerial_more.register()
+    for a0, a1 in wins:
+        a, b = np.arange(a0, a1, 0.05), (np.arange(-3, 6, 0.05) if kind == 'front' else np.arange(-9, 1.5, 0.05))
+        if kind == 'front':
+            U, V = np.meshgrid(a, b)            # (줄마다 b: 끝을 가로지르는 쪽)
+        else:
+            V, U = np.meshgrid(a, b)
+        pts = []
+        for fr in LINE_FRAMES:
+            p = A.to_px(fr, *xy(U, V), np.full(U.shape, z0))
+            try:
+                G = A.sample(fr, p[..., 0], p[..., 1])
+            except Exception:
+                continue
+            g = np.gradient(gaussian_filter1d(np.median(G, 1), 2)) * (-1 if kind == 'front' else 1)
+            k = int(np.argmax(g[5:-5])) + 5
+            ref = ((a0 + a1) / 2, 1.0) if kind == 'front' else (-3.8, (a0 + a1) / 2)
+            pts.append((_push(fr, TS if kind == 'front' else TF, *ref), b[k], fr))
+        P = np.array([q[:2] for q in pts])
+        w = np.ones(len(P))
+        for _ in range(5):                       # (한두 장이 딴 끝을 잡으면 빼고 다시)
+            sol = np.linalg.lstsq(np.c_[np.ones(len(P)), P[:, 0]] * w[:, None], P[:, 1] * w, rcond=None)[0]
+            res = P[:, 1] - sol[0] - sol[1] * P[:, 0]
+            w = (np.abs(res) < 2.5 * (1.4826 * np.median(np.abs(res)) + 0.05)).astype(float)
+        print('%s %g ~ %g: 참 자리 %s %.2f, 높이(해발) %.2f, %d / %d 장, rms %.2f m' % (
+            'u' if kind == 'front' else 'v', a0, a1, 'v' if kind == 'front' else 'u', sol[0], z0 + sol[1], w.sum(), len(P),
+            math.sqrt(float(np.mean(res[w > 0] ** 2)))))
+
+
 if __name__ == '__main__':
     a = sys.argv[1:]
     if a[:1] == ['view']:
@@ -142,5 +192,7 @@ if __name__ == '__main__':
         cmd_west([tuple(float(v) for v in w.split(',')) for w in a[1:]] or [(2.5, 6.5), (6.0, 10.0)])
     elif a[:1] == ['edge']:
         cmd_edge(float(a[1]))
+    elif a[:1] == ['line']:
+        cmd_line(a[1], [tuple(float(v) for v in w.split(',')) for w in a[2:]])
     else:
         print(__doc__)
