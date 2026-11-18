@@ -366,9 +366,17 @@ export class Player {
     const R = RADIUS + 0.05, o = this._wo, d = this._wd, n = this._wn, ray = this.wray;
     const rays = this.fpv ? this.wallRaysFp : this.wallRays;
     ray.far = R;
-    // only the meshes within reach (their world bounding spheres are cached on first use) ...
-    if (!this._wsph) {
-      this._wsph = this.walls.map((m) => { m.updateWorldMatrix(true, false); if (!m.geometry.boundingSphere) m.geometry.computeBoundingSphere(); return m.geometry.boundingSphere.clone().applyMatrix4(m.matrixWorld); });
+    // only the meshes within reach (their world bounding spheres are cached on first use, and for the halls' cells
+    // set in later as they come: src/chunks.js onAdd) ...
+    const sph = this._wsph || (this._wsph = []);
+    if (sph.length < this.walls.length) {
+      for (let i = sph.length; i < this.walls.length; i++) {
+        const m = this.walls[i];
+        m.updateWorldMatrix(true, false);
+        if (!m.geometry.boundingSphere) m.geometry.computeBoundingSphere();
+        sph.push(m.geometry.boundingSphere.clone().applyMatrix4(m.matrixWorld));
+      }
+      if (this._wbox) this._wbox.x = 1e9;          // (the walls round the walker found again, the new ones with them)
     }
     const x0 = x, z0 = z;
     const reach = (i) => {
