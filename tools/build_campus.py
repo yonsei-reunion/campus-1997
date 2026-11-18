@@ -1167,7 +1167,11 @@ _c0_rv = _csw + _nw * 1.0 + _tw * 1.1                              # (the corner
 # 2008 · 2010 skyview had it.  The side is shortened by as much, so the step 11 m up the side stays where it was read.
 _CBN = 1.15
 _c0 = _c0_rv - _ts * 3.5 + _tw * _CBN
-_CBF, _CBS, _CBH = 25.0, 11.0 - _CBN, 6.6                          # front, side, height (its coping 0.4 over)
+_CBF, _CBS, _CBH = 25.0, 11.0 - _CBN, 6.9                          # front, side, height (its coping 0.4 over)
+# The as-built drawings (월간 건축문화 1988년 4월, AURUM: the 백양로 and south elevations) and the 1996 - 1999 frames: the
+# coping 7.3 m over the hall's floor (35.2 m), and along the front a taller part, 10.8 m (38.6 m) and 3.75 m deep (the
+# 백양로 elevation), its west end 2 m in from the west side (the frames: the side's edge stays at the coping's height)
+_CB_TALL = [1.5, 3.75, 10.8]                                       # from the corner along the front, depth, top
 _cdr = np.array([-8.6, -241.8]) + BLD_MOVE[324328422]              # the drum's centre (blender/landmarks.py CENT_DRUM)
 _CTR = 19.1                                                        # the low curved wall's radius about it
 _ctT = _cdr + _nw * _CTR                                           # where the arc turns into the straight wall
@@ -1177,7 +1181,7 @@ _ctJ = _cnw - _tw * _sj                                            # the arc's n
 _aJ, _aT = (math.atan2(q_[1] - _cdr[1], q_[0] - _cdr[0]) for q_ in (_ctJ, _ctT))
 CENT_BLOCK = dict(corner=[round(float(v), 2) for v in _c0], t_front=[round(float(v), 4) for v in _ts],
                   t_side=[round(float(v), 4) for v in _tw], front=_CBF, side=_CBS, h=_CBH,
-                  entrance=[0.7, 9.7, 2.7], door=None, parapet=[],
+                  entrance=[0.7, 9.7, 2.7], door=None, parapet=[], tall=_CB_TALL,
                   tier=dict(c=[round(float(v), 2) for v in _cdr], r=_CTR, south=[round(float(v), 2) for v in _ctW],
                             face_s=round(_sj, 2)))
 CENT_BLOCK['poly'] = [[round(float(v), 2) for v in q] for q in

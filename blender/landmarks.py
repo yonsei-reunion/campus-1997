@@ -713,7 +713,7 @@ def planter(mb, poly, z0):
         gx += 0.8
 
 
-def nw_lobby(mb, pts, nrm, z0, HP, pockets=()):
+def nw_lobby(mb, pts, nrm, z0, HP, pockets=(), top=None):
     """백주년기념관's low curved wall of glass round the drum's west foot (issues #32, #164), south of the museum's
     entrance in the 백양로 porch, along the line `pts` with outward normals `nrm` (an arc about the drum's centre running
     into a straight wall): the 1996 side photo of the entrance shows the big curved wall going down past the low wall
@@ -724,10 +724,13 @@ def nw_lobby(mb, pts, nrm, z0, HP, pockets=()):
     n = len(pts)
     off = lambda k, d: (pts[k].x + nrm[k].x * d, pts[k].y + nrm[k].y * d)
     gmax = max(ground_top(*off(k, 0.6)) for k in range(n))
-    zs = max(0.6, gmax - z0 + 0.2)                  # the glass's sill over the ground where nothing stands before it
-    zh = HP - 1.6                                   # its head: two storeys of the lobby
+    # the as-built 백양로 elevation (월간 건축문화 1988년 4월): the glass stands on the lobby floor (2.6 m over the hall's
+    # datum) on a granite base, its head 0.9 m under the coping (reference/고증/3.4 「1988년 준공 도면」)
+    zs = max(2.9, gmax - z0 + 0.2)                  # the glass's sill
+    top = HP + 0.9 if top is None else top          # the white band's top (the coping)
+    zh = top - 0.9                                  # its head
     ztr = zs + (zh - zs) * 0.62                     # the transom: tall lights below, short ones above
-    zg0, zg1 = zh + 0.75, zh + 1.1                  # the rough granite course in the white band
+    zg0, zg1 = top - 0.5, top - 0.2                 # the rough granite course in the white band
     dg, df = -0.25, 0.05                            # the glass set back under the band
     W = 'stone_panel_white'
     for k in range(n - 1):
@@ -736,9 +739,9 @@ def nw_lobby(mb, pts, nrm, z0, HP, pockets=()):
         # (faces wound outward for the line running anticlockwise round the drum)
         mb.quad((*A0, z0 + zs), (*B0, z0 + zs), (*B0, z0 + zh), (*A0, z0 + zh), 'glass', panes=(1, 1, True))
         Af, Bf = off(k, df), off(k + 1, df)
-        mb.quad((*Af, z0 + zh), (*Bf, z0 + zh), (*Bf, z0 + HP + 0.9), (*Af, z0 + HP + 0.9), W)
+        mb.quad((*Af, z0 + zh), (*Bf, z0 + zh), (*Bf, z0 + top), (*Af, z0 + top), W)
         mb.quad((*A0, z0 + zh), (*B0, z0 + zh), (*Bf, z0 + zh), (*Af, z0 + zh), W)               # the soffit
-        mb.quad((*Af, z0 + HP + 0.9), (*Bf, z0 + HP + 0.9), (*off(k + 1, -0.1), z0 + HP + 0.9), (*off(k, -0.1), z0 + HP + 0.9), W)
+        mb.quad((*Af, z0 + top), (*Bf, z0 + top), (*off(k + 1, -0.1), z0 + top), (*off(k, -0.1), z0 + top), W)
         Ag, Bg = off(k, df + 0.07), off(k + 1, df + 0.07)
         mb.quad((*Ag, z0 + zg0), (*Bg, z0 + zg0), (*Bg, z0 + zg1), (*Ag, z0 + zg1), 'stone_granite')
         mb.quad((*Af, z0 + zg0), (*Bf, z0 + zg0), (*Bg, z0 + zg0), (*Ag, z0 + zg0), 'stone_granite')
@@ -758,7 +761,7 @@ def nw_lobby(mb, pts, nrm, z0, HP, pockets=()):
             e0, e1 = Vector(off(k, dg)), Vector(off(k, df + 0.07))
             if k:
                 e0, e1 = e1, e0
-            mb.quad((*e0, z0 + zs), (*e1, z0 + zs), (*e1, z0 + HP + 0.9), (*e0, z0 + HP + 0.9), W)
+            mb.quad((*e0, z0 + zs), (*e1, z0 + zs), (*e1, z0 + top), (*e0, z0 + top), W)
             continue
         mb.box((p.x, p.y, z0 + (zs + zh) / 2), (0.1, 0.16, zh - zs), 'frame_dark', rotz=math.atan2(tg.y, tg.x))
     for poly in pockets:
@@ -888,6 +891,7 @@ def centennial():
     # to the face down to the corner block; glass at its foot (nw_lobby), its flat roof at the band's top running in to
     # the drum
     K = CAMPUS.get('centennial_block')
+    LT = K['h'] + 0.4 if K else HP + 0.9                                      # the low volume's coping (7.3 m)
     ring = lambda r, a: Vector((c[0] + r * math.cos(a), c[1] + r * math.sin(a)))
     a_w = a_k = None
     if K:
@@ -906,8 +910,8 @@ def centennial():
         for k in range(1, ns_ + 1):
             lp.append(lp[narc] + (Ws - lp[narc]) * (k / ns_))
             ln.append(-nw)
-        nw_lobby(mb, lp, ln, z0, HP)
-        zt = z0 + HP + 0.9
+        nw_lobby(mb, lp, ln, z0, HP, top=LT)
+        zt = z0 + LT
         for k in range(len(lp) - 1):                                          # its roof, in under the drum's wall
             p0, p1 = lp[k] - ln[k] * 0.1, lp[k + 1] - ln[k + 1] * 0.1
             q0, q1 = lp[k] - ln[k] * 4.0, lp[k + 1] - ln[k + 1] * 4.0
@@ -922,8 +926,8 @@ def centennial():
     z = z0 - 3.0
     tag = 'drum'
     for zj in joints + [HD - 1.2]:
-        drum_band(mb, o0, f0, z, z0 + zj, 'stone_ashlar', zflat=z0 + HP + 0.9, tag=tag)
-        drum_band(mb, oj, fj, z0 + zj, z0 + zj + 0.12, 'concrete_dark', zflat=z0 + HP + 0.9, tag=tag + 'j')
+        drum_band(mb, o0, f0, z, z0 + zj, 'stone_ashlar', zflat=z0 + LT, tag=tag)
+        drum_band(mb, oj, fj, z0 + zj, z0 + zj + 0.12, 'concrete_dark', zflat=z0 + LT, tag=tag + 'j')
         z = z0 + zj + 0.12
     oc, fc = drum_outline(c, R + 0.3)
     drum_band(mb, oc, fc, z0 + HD - 1.2, z0 + HD, 'stone_ashlar', tag=tag + 'c')
@@ -1016,6 +1020,21 @@ def centennial():
                    (math.hypot(Q(a1, b1, 0)[0] - Q(a0, b0, 0)[0], Q(a1, b1, 0)[1] - Q(a0, b0, 0)[1]) + 0.3, 0.45, 0.4),
                    'stone_ashlar', rotz=math.atan2(Q(a1, b1, 0)[1] - Q(a0, b0, 0)[1], Q(a1, b1, 0)[0] - Q(a0, b0, 0)[0]))
         bk.quad(Q(e1, 0, 2.9, 0.04), Q(F, 0, 2.9, 0.04), Q(F, 0, 3.02, 0.04), Q(e1, 0, 3.02, 0.04), 'concrete_dark')
+        # the taller part along the front (as-built 백양로 and south elevations, the 1996 - 1999 frames): its front face
+        # flush with the block's, its own coping
+        if K.get('tall'):
+            t0, td, tt = K['tall']
+            Ht = tt - 0.4
+            bk.quad(Q(t0, 0, Hb), Q(F, 0, Hb), Q(F, 0, Ht), Q(t0, 0, Ht), 'stone_ashlar')
+            bk.quad(Q(F, td, Hb), Q(t0, td, Hb), Q(t0, td, Ht), Q(F, td, Ht), 'stone_ashlar')
+            bk.quad(Q(t0, td, Hb), Q(t0, 0, Hb), Q(t0, 0, Ht), Q(t0, td, Ht), 'stone_ashlar')
+            bk.quad(Q(F, 0, Hb), Q(F, td, Hb), Q(F, td, Ht), Q(F, 0, Ht), 'stone_ashlar')
+            bk.face([Q(t0, 0, Ht), Q(F, 0, Ht), Q(F, td, Ht), Q(t0, td, Ht)], 'roof_flat')
+            for (a0, a1, b0, b1) in ((t0, F, 0, 0), (t0, F, td, td), (t0, t0, 0, td)):
+                pa_, pb_ = Q(a0, b0, 0), Q(a1, b1, 0)
+                bk.box(((pa_[0] + pb_[0]) / 2, (pa_[1] + pb_[1]) / 2, z0 + Ht + 0.2),
+                       (math.hypot(pb_[0] - pa_[0], pb_[1] - pa_[1]) + 0.3, 0.45, 0.4), 'stone_ashlar',
+                       rotz=math.atan2(pb_[1] - pa_[1], pb_[0] - pa_[0]))
         # the light wall stepping up from the block's west side towards the porch (photo x 1500 - 1562)
         for (a0, a1, top) in K['parapet']:
             pa_, pb_ = Q(0, a0, 0), Q(0, a1, 0)
