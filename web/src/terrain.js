@@ -2,8 +2,8 @@
 // and the sky dome.  World frame: X = east, Y = up, Z = -north.
 import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
-import { loadTex, imageTexture, pcss, upload, packTextures } from './materials.js';
-import { MOBILE, mulberry, phoneCopy, placeMatrix, versioned } from './util.js';
+import { loadTex, imageTexture, pcss, upload, packTextures, firstUrl, laterFull } from './materials.js';
+import { MOBILE, mulberry, placeMatrix, versioned } from './util.js';
 import { ATMOS, ATMOS_GLSL, SKY_DRIFT } from './materials.js';
 import { LITTER_GLSL, litterMagnolias } from './litter.js';
 
@@ -638,9 +638,10 @@ export function makeCity(hf, nearHalf, count = 1600, south = null, hfRng = hf) {
 // 30 deg band the cloud beside the sun was torn; two lookups mixed instead of one bent showed every cloud twice.)
 const SKY_FIX = [Math.cos(60 * Math.PI / 180), Math.cos(2 * Math.PI / 180)];
 export function makeSky(skyMeta) {
-  // (8K sky: 90 MB on the GPU -> 4K on phones)
-  const tex = imageTexture(versioned(phoneCopy('assets/hdri/sky_8k.jpg', 4096)), { flipY: true, max: MOBILE ? 4096 : Infinity },
-    upload);
+  // (8K sky: 90 MB on the GPU -> 4K on phones; desktops show the 4K one until the 8K one is in: materials.js laterFull)
+  const sky = firstUrl('assets/hdri/sky_8k.jpg', 4096);
+  const tex = imageTexture(versioned(sky.first), { flipY: true, max: MOBILE ? 4096 : Infinity }, upload);
+  if (sky.full) laterFull(tex, versioned(sky.full), { flipY: true });
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.wrapS = THREE.RepeatWrapping;
   tex.anisotropy = 4;

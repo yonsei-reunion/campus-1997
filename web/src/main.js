@@ -4,7 +4,7 @@ import '@fontsource/jua/400.css';
 import '@fontsource/do-hyeon/400.css';
 import * as THREE from 'three';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
-import { MaterialLibrary, SEASONS, texturesReady, texCount, updatePcss, uploadEarly } from './materials.js';
+import { MaterialLibrary, SEASONS, texturesReady, texCount, updatePcss, uploadEarly, upgradeTextures, texturesFull } from './materials.js';
 import { loading, fetchCounted } from './loading.js';
 import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materials.js';
 import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeHeight } from './terrain.js';
@@ -1229,8 +1229,9 @@ async function main() {
       }
     },
     kitCull, chunks,
-    // every cell of the halls and landmarks in (src/chunks.js): the tools that shoot or bake wait for it
-    get campusLoaded() { return chunks.loaded; } };
+    // every cell of the halls and landmarks in (src/chunks.js), and the textures at full size (materials.js
+    // laterFull): the tools that shoot or bake wait for it
+    get campusLoaded() { return chunks.loaded && texturesFull(); } };
   window.__y97.atmos = ATMOS;
   window.__y97.loading = loading;
 
@@ -1258,6 +1259,8 @@ async function main() {
     shadows.invalidate();
   };
   chunks.stream(() => { const f = bird.active ? bird.focus : camera.position; return [f.x, -f.z]; });
+  // then the big textures at full size, where the loading screen had their smaller copies (materials.js laterFull)
+  chunks.allIn.then(() => upgradeTextures());
   // the town beyond the gate: its houses, 신촌 로터리's landmarks and signs, the bridge (campus_town.glb, 1.3 MB), down
   // while the title card is up rather than on the loading screen (2026-11-16). __y97.townLoaded: for the tools that
   // shoot or bake (tools/snapshots.mjs, tools/bake_sun_shadows.mjs)

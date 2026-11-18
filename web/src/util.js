@@ -50,6 +50,10 @@ export function phoneCopy(url, max) {
   const c = MOBILE && PHONE[url.replace(/^\.\//, '')];
   return c && c[1] <= max ? c[0] : url;
 }
+// the same copy on any device (null when there is none): what a desktop shows first while the full image still comes
+export function smallCopy(url) {
+  return PHONE[url.replace(/^\.\//, '')]?.[0] ?? null;
+}
 document.documentElement.classList.toggle('touch', MOBILE);
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));

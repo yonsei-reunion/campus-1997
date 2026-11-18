@@ -1,6 +1,6 @@
 // Shared PBR material library, built from data/materials.json (same file Blender uses).
 import * as THREE from 'three';
-import { MOBILE, versioned, mulberry, phoneCopy } from './util.js';
+import { MOBILE, versioned, mulberry, phoneCopy, smallCopy } from './util.js';
 import { LITTER_MATS, litterUniforms, litterEdit, litterSeason } from './litter.js';
 import { wallTone, edgeWear } from './walltone.js';
 import { shrubTexture, hedgeMaps, hedgeEdit, HEDGE_KEY, SHRUB_LEAVES, cardEdit, CARD_KEY } from './hedges.js';
@@ -23,6 +23,48 @@ const gpuReady = new Promise((r) => (gpuIn = r));
 export function uploadEarly(renderer) { gpu = renderer; gpuIn(renderer); }
 export function upload(t) { gpu?.initTexture(t); }
 
+// Desktops: the big textures that have a phone's copy (tools/mobile_textures.py: the close ground and walls, the sky)
+// come as that copy first, so the loading screen waits for 6 MB of them instead of 17 MB, and the full images come
+// after it, once every cell of the halls is in (main.js upgradeTextures): each texture's image is swapped in place,
+// its tiled copies (tiled) and the packs drawn from it (packTextures) with it.
+const later = [];                       // { t, url (versioned), srgb, flipY }
+const copiesOf = new WeakMap();         // texture -> its tiled copies
+const packsOf = new WeakMap();          // texture -> the packs to draw again when its full image is in
+export function laterFull(t, url, { srgb = true, flipY = false } = {}) { later.push({ t, url, srgb, flipY }); }
+export function firstUrl(url, mobileMax) {
+  if (MOBILE) return { first: phoneCopy(url, mobileMax), full: null };
+  const c = smallCopy(url);
+  return { first: c ?? url, full: c ? url : null };
+}
+let upgraded = null, allFull = false;
+export const texturesFull = () => !later.length || allFull;
+// the full images, one at a time and a frame or two apart (each upload is ~10 to 40 ms on the main thread, the 8K sky
+// more): a promise of all of them in
+export function upgradeTextures() {
+  if (upgraded) return upgraded;
+  upgraded = (async () => {
+    const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    for (const { t, url, srgb, flipY } of later) {
+      const img = await new Promise((r) => imageTexture(url, { srgb, flipY }, (nt) => r(nt.image), () => r(null)));
+      if (!img) continue;
+      const old = t.image;
+      // (let go on the GPU first: three keeps a texture's storage at the size it was made, and writes a new image of
+      // another size into it, which WebGL refuses)
+      t.dispose();
+      for (const c of copiesOf.get(t) || []) c.dispose();
+      t.image = img;
+      t.needsUpdate = true;
+      for (const c of copiesOf.get(t) || []) c.needsUpdate = true;
+      for (const draw of packsOf.get(t) || []) draw();      // (it lets its sources go on the GPU: uploaded after)
+      upload(t);
+      old?.close?.();
+      await frame();
+    }
+    allFull = true;
+  })();
+  return upgraded;
+}
+
 // One texture from the channels of several, drawn on the GPU once they are in (mipmapped, tiled). For a shader that
 // would read more textures than a device has units: WebGL2 promises 16, and many Android phones and the browsers on
 // Windows and macOS give no more. srcs: textures (loadTex); glsl: the body of `vec4 pack(vec2 uv)`, reading source i
@@ -36,7 +78,7 @@ export function packTextures(srcs, glsl, { srgb = false, scale = 1 } = {}) {
     wrapS: THREE.RepeatWrapping, wrapT: THREE.RepeatWrapping, anisotropy: 8,
     colorSpace: srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace,
   });
-  const pr = Promise.all([gpuReady, ...srcs.map((s) => loading.get(s))]).then(([renderer]) => {
+  const draw = (renderer) => {
     const w = Math.max(1, Math.round(Math.max(...srcs.map((s) => s.image?.width || 1)) * scale));
     const h = Math.max(1, Math.round(Math.max(...srcs.map((s) => s.image?.height || 1)) * scale));
     rt.setSize(w, h);
@@ -62,7 +104,11 @@ export function packTextures(srcs, glsl, { srgb = false, scale = 1 } = {}) {
     quad.geometry.dispose();
     mat.dispose();
     for (const s of srcs) s.dispose();
+  };
+  const pr = Promise.all([gpuReady, ...srcs.map((s) => loading.get(s))]).then(([renderer]) => {
+    draw(renderer);
     pending.delete(pr);
+    for (const s of srcs) { if (!packsOf.has(s)) packsOf.set(s, []); packsOf.get(s).push(() => draw(renderer)); }
   });
   pending.add(pr);
   loading.set(rt.texture, pr);
@@ -148,7 +194,8 @@ export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobile
     const pr = new Promise((r) => (done = r));
     pending.add(pr);
     texCount.asked++;
-    const t = imageTexture(versioned(phoneCopy(url, mobileMax)), { srgb, flipY, max: MOBILE ? mobileMax : Infinity }, (tx) => {
+    const { first, full } = firstUrl(url, mobileMax);
+    const t = imageTexture(versioned(first), { srgb, flipY, max: MOBILE ? mobileMax : Infinity }, (tx) => {
       // clones share the image Source but keep their own version -> bump them once data exists
       for (const c of waiting.get(tx) || []) c.needsUpdate = true;
       waiting.delete(tx);
@@ -157,6 +204,7 @@ export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobile
     }, () => { pending.delete(pr); done(); texIn(); });
     waiting.set(t, []);
     loading.set(t, pr);
+    if (full) laterFull(t, versioned(full), { srgb, flipY });
     t.flipY = BITMAPS ? false : flipY;        // (a bitmap comes flipped already)
     t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
     if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -174,6 +222,8 @@ function tiled(url, tile, srgb) {
   loading.set(t, loading.get(base));
   t.repeat.set(1 / tile, 1 / tile);
   waiting.get(base)?.push(t);                     // (until its image is in)
+  if (!copiesOf.has(base)) copiesOf.set(base, []);
+  copiesOf.get(base).push(t);                     // (and again when its full image comes: laterFull)
   return t;
 }
 
