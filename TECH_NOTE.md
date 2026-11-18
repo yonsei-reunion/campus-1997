@@ -323,6 +323,8 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 셰이더 패치는 `materials.js` `patchShader` 로 쌓습니다. 캐시 키를 함께 관리해 같은 프로그램이 여러 번 컴파일되지 않게 합니다.
 - 폰은 텍스처를 1024 이하로 줄여 올립니다(2K 세트는 밉맵 포함 약 1 GB).
   - 큰 텍스처(PBR 2K 세트, 8K 하늘)는 폰용 사본(`<이름>_1k.jpg`, `sky_8k_4k.jpg`)을 받습니다(`util.js` `phoneCopy`). `tools/mobile_textures.py` 가 만들고 원본의 sha1 을 `tools/mobile_sources.json` 에 적습니다. 원본이 바뀌었는데 사본을 다시 만들지 않으면 폰도 원본을 받아 줄입니다.
+- 텍스처 이미지는 `createImageBitmap` 으로 메인 스레드 밖에서 풉니다(`materials.js` `imageTexture`). `<img>` 는 WebGL 이 처음 올릴 때 메인 스레드에서 풀려, 첫 장면 전에 2.2 ~ 2.8 s 를 붙잡았습니다(이제 0.7 ~ 0.9 s). 폰의 줄이기도 `createImageBitmap` 의 `resize` 로 합니다. 비트맵은 WebGL 의 unpack 플래그를 받지 않아 뒤집기(`imageOrientation`) · 색 변환을 그 자리에서 정하고, 텍스처의 `flipY` 는 끕니다. Safari 17 · Firefox 98 전은 `TextureLoader` 그대로.
+  - KTX2(Basis)는 재 보고 넣지 않았습니다(2026-11-19, PBR 24세트). ETC1S 는 최고 품질에서도 잔디 · 아스팔트 · 회반죽의 diff 가 PSNR 26 ~ 29 dB 로 뭉개지고 노멀은 JPG 의 1.7배, UASTC 는 JPG 의 2 ~ 3배라 받는 양이 늘어납니다.
 
 ### 성능: 정문 밖 · 신촌 로터리
 

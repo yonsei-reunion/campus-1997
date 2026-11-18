@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { loadGLB } from './world.js';
-import { pcss, windTime } from './materials.js';
+import { pcss, windTime, imageTexture } from './materials.js';
 import { HERO_BAGS, baggedGeometry } from './bags.js';
 import { MOBILE, mulberry, versioned } from './util.js';
 import { tallOf } from './who.js';
@@ -114,12 +114,12 @@ const BLINKS = 16;
 // top): the middle of an eye from the nose, its half width and height, as fractions of the cell
 const EYE_U = 0.036 / 0.15, EYE_V = 0.042 / 0.15, EYE_A = 0.021 / 0.15, EYE_B = 0.013 / 0.15;
 function loadTexture(file, srgb) {
-  return new Promise((res, rej) => new THREE.TextureLoader().load(versioned(PEOPLE_DIR + file), (t) => {
+  return new Promise((res, rej) => imageTexture(versioned(PEOPLE_DIR + file), { srgb }, (t) => {
     if (srgb) t.colorSpace = THREE.SRGBColorSpace;
     t.flipY = false;               // (glTF texture coordinates: v from the top)
     t.anisotropy = 4;
     res(t);
-  }, undefined, rej));
+  }, rej));
 }
 async function loadFaces() {
   // (without the drawn glasses the far ones are only left out: no reason to hold the people up)

@@ -98,6 +98,48 @@ export function shrinkImage(img, max) {
   return c;
 }
 
+// Images decoded off the main thread: an <img> is decoded where WebGL first uploads it, on the main thread (the ~80
+// uploads of 「건물을 세우는 중」 held the page for ~2 s), an ImageBitmap before it comes. Not in Safari before 17
+// nor Firefox before 98 (no createImageBitmap options there: the same test as three's GLTFLoader).
+const BITMAPS = (() => {
+  if (typeof createImageBitmap === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const safari = /^((?!chrome|android).)*safari/i.test(ua) && +(ua.match(/Version\/(\d+)/)?.[1] ?? 0);
+  const firefox = ua.includes('Firefox') && +(ua.match(/Firefox\/(\d+)/)?.[1] ?? 0);
+  return !(safari && safari < 17) && !(firefox && firefox < 98);
+})();
+
+// A texture whose image comes from url (already versioned), at most `max` on its longest side (else full size).
+// An ImageBitmap carries its own orientation and colour handling (WebGL's unpack flags do not apply to it): flipped
+// and colour-managed here as three would have the <img> uploaded, the alpha never premultiplied.
+export function imageTexture(url, { srgb = true, flipY = false, max = Infinity } = {}, onLoad, onError) {
+  if (!BITMAPS) {
+    return texLoader.load(url, (t) => {
+      if (max < Infinity) { t.image = shrinkImage(t.image, max); t.needsUpdate = true; }
+      onLoad?.(t);
+    }, undefined, onError);
+  }
+  const t = new THREE.Texture();
+  t.flipY = false;
+  const opts = { imageOrientation: flipY ? 'flipY' : 'none', premultiplyAlpha: 'none',
+    colorSpaceConversion: srgb ? 'default' : 'none' };
+  fetch(url).then((r) => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.blob(); })
+    .then((b) => createImageBitmap(b, opts))
+    .then(async (img) => {
+      if (Math.max(img.width, img.height) > max) {          // (shrunk off the main thread too)
+        const s = max / Math.max(img.width, img.height);
+        const small = await createImageBitmap(img, { resizeWidth: Math.max(1, Math.round(img.width * s)),
+          resizeHeight: Math.max(1, Math.round(img.height * s)), resizeQuality: 'high' });
+        img.close();
+        img = small;
+      }
+      t.image = img;
+      t.needsUpdate = true;
+      onLoad?.(t);
+    }).catch((e) => { console.warn('texture not loaded:', e?.message ?? e); onError?.(e); });
+  return t;
+}
+
 // NOTE: flipY=false everywhere -> matches glTF UV convention (v=0 at the top of the image)
 export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobileMax = MOBILE_MAX_TEX } = {}) {
   const key = url + srgb + flipY;
@@ -106,17 +148,16 @@ export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobile
     const pr = new Promise((r) => (done = r));
     pending.add(pr);
     texCount.asked++;
-    const t = texLoader.load(versioned(phoneCopy(url, mobileMax)), (tx) => {
-      if (MOBILE) { tx.image = shrinkImage(tx.image, mobileMax); tx.needsUpdate = true; }
+    const t = imageTexture(versioned(phoneCopy(url, mobileMax)), { srgb, flipY, max: MOBILE ? mobileMax : Infinity }, (tx) => {
       // clones share the image Source but keep their own version -> bump them once data exists
       for (const c of waiting.get(tx) || []) c.needsUpdate = true;
       waiting.delete(tx);
       upload(tx);
       pending.delete(pr); done(); texIn();
-    }, undefined, () => { pending.delete(pr); done(); texIn(); });
+    }, () => { pending.delete(pr); done(); texIn(); });
     waiting.set(t, []);
     loading.set(t, pr);
-    t.flipY = flipY;
+    t.flipY = BITMAPS ? false : flipY;        // (a bitmap comes flipped already)
     t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
     if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.anisotropy = 8;

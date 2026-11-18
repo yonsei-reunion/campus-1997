@@ -13,7 +13,7 @@
 // attribute blender/bake.py writes): on phones that is their shadow there (SUN_WALL); the desktop has its map.
 import * as THREE from 'three';
 import { versioned } from './util.js';
-import { patchShaderOwn, upload } from './materials.js';
+import { patchShaderOwn, upload, imageTexture } from './materials.js';
 
 // the baked rectangle (campus x = east, y = north, metres; every building and tree, and their shadows to the
 // north-west) and its size in texels: 31 cm texels
@@ -208,8 +208,8 @@ export class SunMap {
   }
 
   load() {
-    const loader = new THREE.TextureLoader();
-    loader.load(versioned(URL), (t) => {
+    const opts = { srgb: false };                     // (data: flipY stays off, rectTexture)
+    imageTexture(versioned(URL), opts, (t) => {
       if (t.image.width !== MAP_SIZE[0] || t.image.height !== MAP_SIZE[1]) {     // (an old map: its shadows would be misplaced)
         console.warn(`no baked sun shadows: ${URL} is ${t.image.width} x ${t.image.height}, not ${MAP_SIZE.join(' x ')} (tools/bake_sun_shadows.mjs)`);
         return;
@@ -218,13 +218,13 @@ export class SunMap {
       upload(t);
       this.texture = t;
       if (this._on) this.uniforms.uSunMap.value = t;
-    }, undefined, () => console.warn('no baked sun shadows:', URL));
-    loader.load(versioned(GROUND_URL), (t) => {
+    }, () => console.warn('no baked sun shadows:', URL));
+    imageTexture(versioned(GROUND_URL), opts, (t) => {
       rectTexture(t).generateMipmaps = false;  // heights: never averaged across a terrace's edge in the distance
       t.minFilter = THREE.LinearFilter;
       upload(t);
       this.uniforms.uSunLift.value = t;
-    }, undefined, () => console.warn('no baked walked surface (the shadows on the bare terrain):', GROUND_URL));
+    }, () => console.warn('no baked walked surface (the shadows on the bare terrain):', GROUND_URL));
     return this;
   }
 
