@@ -179,10 +179,32 @@ function fitOf(id, mesh) {
   }
   // where the ray from o (inside the body) along d leaves it within `far`: the last surface it crosses, and the bone
   // weights of the skin there. arms: with the upper arms; standing: the body as it stands, not the bind pose
+  // (each triangle's box, for each list and pose: one far from the ray's segment is passed over, in the same order)
+  const boxes = new Map();
+  const boxOf = (tris, X) => {
+    const key = (tris === armed ? 1 : 0) + (X === stood ? 2 : 0);
+    if (boxes.has(key)) return boxes.get(key);
+    const B = new Float32Array(tris.length * 2);            // per triangle: min x y z, max x y z
+    for (let k = 0; k < tris.length; k += 3) {
+      for (let c = 0; c < 3; c++) {
+        const a = X[tris[k] * 3 + c], b = X[tris[k + 1] * 3 + c], e = X[tris[k + 2] * 3 + c];
+        B[k * 2 + c] = Math.min(a, b, e);
+        B[k * 2 + 3 + c] = Math.max(a, b, e);
+      }
+    }
+    boxes.set(key, B);
+    return B;
+  };
   const ray = (o, d, { arms = false, standing = false, far = 0.3 } = {}) => {
-    const tris = arms ? armed : trunk, X = standing ? stood : bind;
+    const tris = arms ? armed : trunk, X = standing ? stood : bind, B = boxOf(tris, X);
+    const E = 1e-5;
+    const x0 = Math.min(o.x, o.x + d.x * far) - E, x1 = Math.max(o.x, o.x + d.x * far) + E;
+    const y0 = Math.min(o.y, o.y + d.y * far) - E, y1 = Math.max(o.y, o.y + d.y * far) + E;
+    const z0 = Math.min(o.z, o.z + d.z * far) - E, z1 = Math.max(o.z, o.z + d.z * far) + E;
     let bt = 0, bk = -1, bu = 0, bv = 0;
     for (let k = 0; k < tris.length; k += 3) {
+      const q = k * 2;
+      if (B[q + 4] < y0 || B[q + 1] > y1 || B[q + 3] < x0 || B[q] > x1 || B[q + 5] < z0 || B[q + 2] > z1) continue;
       const a = tris[k] * 3, b = tris[k + 1] * 3, c = tris[k + 2] * 3;
       const ax = X[a], ay = X[a + 1], az = X[a + 2];
       const e1x = X[b] - ax, e1y = X[b + 1] - ay, e1z = X[b + 2] - az;
@@ -305,6 +327,7 @@ class Kit {
       w.forEach(([b, v], k) => { si[i * 4 + k] = b; sw[i * 4 + k] = v / sum; });
     }
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.userData.tone = color === TONE.col ? 'col' : color === TONE.trim ? 'trim' : null;     // (baggedGeometry)
     g.setAttribute('part', new THREE.Float32BufferAttribute(part, 3));
     g.setAttribute('leg', new THREE.Uint8BufferAttribute(new Uint8Array(n * 4), 4, true));     // (not trousers)
     // (the people's material draws the faces from an atlas: a bag lies on its blank cell, characters.js BLANK_UV)
@@ -533,35 +556,54 @@ function carried(kit, f, col, trim, s, brief, woman) {
 
 // ---------------------------------------------------------------------------------------------------------------
 const cache = new Map();
+// the bag laid on the person once for each shape (who, which bag, which side, how big), whatever its colour: the
+// fit was ~0.7 s of the loading screen's crowd, nearly every bag of it a colour of its own. Its parts drawn in the
+// stand-in colours TONE, painted afresh for each colour
+const layouts = new Map();
+const TONE = { col: new THREE.Color(), trim: new THREE.Color() };
 
 // the geometry of person `id` (its template SkinnedMesh) carrying `bag`: the body's own merged with the bag's,
 // shared by everyone of that look
 export function baggedGeometry(mesh, id, bag, stand) {
   const key = `${id}|${bag.type}|${bag.color}|${bag.side ?? 0}|${bag.size ?? 1}`;
   if (cache.has(key)) return cache.get(key);
-  // (stand: puts the bones as the person stands, and gives back what undoes it; the fit reads the pose once)
-  const undo = fits.has(id) ? null : stand?.();
-  const f = fitOf(id, mesh);
-  undo?.();
-  const woman = isWoman(id);
+  const lkey = `${id}|${bag.type}|${bag.side ?? 0}|${bag.size ?? 1}`;
+  let lay = layouts.get(lkey);
+  if (!lay) {
+    // (stand: puts the bones as the person stands, and gives back what undoes it; the fit reads the pose once)
+    const undo = fits.has(id) ? null : stand?.();
+    const f = fitOf(id, mesh);
+    undo?.();
+    const woman = isWoman(id);
+    const { col, trim } = TONE;
+    const s = bag.size ?? 1, side = bag.side ?? -1;
+    const kit = new Kit();
+    switch (bag.type) {
+      case 'backpack': backpack(kit, f, col, trim, s, woman); break;
+      case 'mini': backpack(kit, f, col, trim, s, woman, { mini: true }); break;
+      case 'sling': backpack(kit, f, col, trim, s, woman, { sling: true, side }); break;
+      case 'cross': crossBag(kit, f, col, trim, s, woman, side); break;
+      case 'shoulder': shoulderBag(kit, f, col, trim, s, side); break;
+      case 'brief': carried(kit, f, col, trim, s, true, woman); break;
+      case 'hand': carried(kit, f, col, trim, s, false, woman); break;
+      default: return mesh.geometry;
+    }
+    layouts.set(lkey, lay = kit.geos);
+  }
   const col = new THREE.Color(bag.color);
   const hsl = col.getHSL({});
   // straps and trim: a shade darker; on a light leather bag the same leather a little darker
   const trim = col.clone().offsetHSL(0, 0, -Math.min(0.06, hsl.l * 0.35));
-  const s = bag.size ?? 1, side = bag.side ?? -1;
-  const kit = new Kit();
-  switch (bag.type) {
-    case 'backpack': backpack(kit, f, col, trim, s, woman); break;
-    case 'mini': backpack(kit, f, col, trim, s, woman, { mini: true }); break;
-    case 'sling': backpack(kit, f, col, trim, s, woman, { sling: true, side }); break;
-    case 'cross': crossBag(kit, f, col, trim, s, woman, side); break;
-    case 'shoulder': shoulderBag(kit, f, col, trim, s, side); break;
-    case 'brief': carried(kit, f, col, trim, s, true, woman); break;
-    case 'hand': carried(kit, f, col, trim, s, false, woman); break;
-    default: return mesh.geometry;
-  }
-  const merged = mergeGeometries([mesh.geometry, ...kit.geos], false);
-  for (const g of kit.geos) g.dispose();
+  const geos = lay.map((g) => {
+    const c = g.clone(), tone = g.userData.tone === 'col' ? col : g.userData.tone === 'trim' ? trim : null;
+    if (tone) {
+      const a = c.attributes.color;
+      for (let i = 0; i < a.count; i++) a.setXYZ(i, tone.r, tone.g, tone.b);
+    }
+    return c;
+  });
+  const merged = mergeGeometries([mesh.geometry, ...geos], false);
+  for (const g of geos) g.dispose();
   const out = merged || mesh.geometry;
   cache.set(key, out);
   return out;

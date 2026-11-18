@@ -259,9 +259,18 @@ async function main() {
   const ray = new THREE.Raycaster();
   ray.firstHitOnly = true;
   const DOWN = new THREE.Vector3(0, -1, 0), from = new THREE.Vector3();
+  // (only the surfaces whose box is over the point: the trees, shrubs, props, cars and every walker's and car's path
+  // ask this tens of thousands of times while the page loads)
+  const walkBox = new Map(), under = [];
   const groundAt = (x, y) => {
     ray.set(from.set(x, 600, -y), DOWN);
-    const h = ray.intersectObjects(walkables, false);
+    under.length = 0;
+    for (const m of walkables) {
+      let b = walkBox.get(m);
+      if (!b) walkBox.set(m, b = new THREE.Box3().setFromObject(m));
+      if (x >= b.min.x && x <= b.max.x && -y >= b.min.z && -y <= b.max.z) under.push(m);
+    }
+    const h = ray.intersectObjects(under, false);
     return h.length ? h[0].point.y : hfNear.height(x, y);
   };
 
