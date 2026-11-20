@@ -1043,8 +1043,9 @@ def centennial():
                               (tf.x * (-1 if e_a == c0_ else 1), tf.y * (-1 if e_a == c0_ else 1), 0.0))
                     oface(bk, [Q(c0_, 0, za, oa), Q(c1_, 0, za, oa), Q(c1_, 0, zb, ob), Q(c0_, 0, zb, ob)], 'stone_trim', (0, 0, 1))
                     oface(bk, [Q(c0_, 0, -0.6, oa), Q(c1_, 0, -0.6, oa), Q(c1_, 0, za, oa), Q(c0_, 0, za, oa)], 'stone_granite', (-tsd.x, -tsd.y, 0.0))
-            WALK_FACES.append([Q(s0_, 0, 0.0, L_ + t_), Q(s1_, 0, 0.0, L_ + t_), Q(s1_, 0, fl, 0.0), Q(s0_, 0, fl, 0.0)])
-            WALK_FACES.append([Q(s0_, 0, fl, 0.0), Q(s1_, 0, fl, 0.0), Q(s1_, dp, fl), Q(s0_, dp, fl)])
+            # (through the nosings: a tread before the first riser to the top riser's nosing, then the top tread flat)
+            WALK_FACES.append([Q(s0_, 0, 0.0, L_ + t_), Q(s1_, 0, 0.0, L_ + t_), Q(s1_, 0, fl, t_), Q(s0_, 0, fl, t_)])
+            WALK_FACES.append([Q(s0_, 0, fl, t_ + 0.05), Q(s1_, 0, fl, t_ + 0.05), Q(s1_, dp, fl), Q(s0_, dp, fl)])
             hc_ = Vector(Q((s0_ + s1_) / 2, 0, 0)[:2])
             ENTRANCES.append(dict(o=[round(hc_.x, 2), round(hc_.y, 2)], u=[round(tf.x, 4), round(tf.y, 4)], v=[round(-tsd.x, 4), round(-tsd.y, 4)],
                                   hw=round((s1_ - s0_) / 2 + 0.6, 2), len=round(L_ + 0.8, 2)))
@@ -1316,10 +1317,12 @@ def centennial_sw(z0):
             oface(mb, q, STEP, (0, 0, 1))
             lo = ground_top(*P(sk, w1 / 2, 0)[:2]) - 0.4
             oface(mb, [P(sk, 0.0, lo), P(sk, w1, lo), P(sk, w1, zk), P(sk, 0.0, zk)], STEP, tuple(-u))
-        # walked as one ramp through the nosings
+        # walked as one ramp through the nosings (a tread before the first riser to the top riser's nosing), then
+        # its top tread flat
         w1 = min(sw_(a), sw_(b + t))
-        WALK_FACES.append([P(a - t, 0.0, z0 + f['z0']), P(b + t, 0.0, z0 + f['z0'] + f['n'] * f['rise']),
-                           P(b + t, w1, z0 + f['z0'] + f['n'] * f['rise']), P(a - t, w1, z0 + f['z0'])])
+        zt_ = z0 + f['z0'] + f['n'] * f['rise']
+        WALK_FACES.append([P(a - t, 0.0, z0 + f['z0']), P(b, 0.0, zt_), P(b, w1, zt_), P(a - t, w1, z0 + f['z0'])])
+        WALK_FACES.append([P(b - 0.05, 0.0, zt_), P(b + t + 0.1, 0.0, zt_), P(b + t + 0.1, w1, zt_), P(b - 0.05, w1, zt_)])
     # the landings (and the head beyond the last flight, then down to the ground the game has there)
     lands = [(F[k]['s0'] + F[k]['n'] * t, F[k + 1]['s0']) for k in range(len(F) - 1)] + [(F[-1]['s0'] + F[-1]['n'] * t, end)]
     for a, b in lands:

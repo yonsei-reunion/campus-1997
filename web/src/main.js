@@ -323,7 +323,7 @@ async function main() {
   // ---------------------------------------------------------------- props
   progress('가로등과 벤치를 놓는 중…', 16);
   const colliders = new Colliders();
-  for (const b of campus.buildings) colliders.addPolygon(b.style === 'lm:hanok' ? hanokWalls(b.footprint) : RECT_HALLS.has(b.style) ? minAreaRect(b.footprint) : b.footprint);
+  for (const b of campus.buildings) colliders.addPolygon(b.collider ? b.collider : b.style === 'lm:hanok' ? hanokWalls(b.footprint) : RECT_HALLS.has(b.style) ? minAreaRect(b.footprint) : b.footprint);     // (collider: a hall's walker wall where its outline is not, build_campus.py)
   for (const poly of campus.colliders || []) colliders.addPolygon(poly);     // parts outside the OSM outlines (백주년기념관's front block)
   const carSets = [];                // the parked cars' culling sets (KitCuller.add): their reach on phones
   {

@@ -12454,6 +12454,15 @@ for t_ in out['trees']:
         t_[1], t_[2] = -43.5, -233.5
 out['shrubs'] += centsw97.shrubs(CENT_SW97_TIERS)
 out['colliders'].append([[round(x_, 2), round(y_, 2)] for x_, y_ in list(_csw_beds.exterior.coords)[:-1]])
+# (the hall's OSM outline runs on 2.3 m south of the corner block's front, which the 1996 - 1999 frames put further
+# north: as the walker's wall it shut the portal's top risers off.  Its collider leaves out the band before the front;
+# the block itself is CENT_BLOCK's own collider)
+_hb = next(b_ for b_ in out['buildings'] if b_['id'] == 324328422)
+_hcol = Polygon([tuple(p_[:2]) for p_ in _hb['footprint']]).buffer(0).difference(
+    Polygon([tuple(np.array(CENT_BLOCK['corner']) + np.array(CENT_BLOCK['t_front']) * e_ - np.array(CENT_BLOCK['t_side']) * o_)
+             for e_, o_ in ((-1.0, 0.0), (CENT_BLOCK['front'], 0.0), (CENT_BLOCK['front'], 6.0), (-1.0, 6.0))]))
+_hcol = max(getattr(_hcol, 'geoms', [_hcol]), key=lambda g_: g_.area)
+_hb['collider'] = [[round(x_, 2), round(y_, 2)] for x_, y_ in list(_hcol.exterior.coords)[:-1]]
 print('백주년기념관 남서쪽 로비 앞: beds %d, shrubs %d' % (len(CENT_SW97_TIERS), len(centsw97.shrubs(CENT_SW97_TIERS))))
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
