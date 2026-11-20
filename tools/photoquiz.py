@@ -11,7 +11,8 @@
     연세로 · 신촌 로터리 옥상, 정문(철둑 비탈, 걸어서 못 감), 교육관 둘(땅 위 5.6 ~ 6.8 m)
   - 라이선스가 분명하지 않은 것: 개인 블로그(학생회관 · 대강당 · 대우관), 사용자 제공 용재관
   - 중앙도서관(걷는 사람들의 뒷모습) · 옛 노천극장(멀리 작은 사람)은 그대로 씀
-  - 과학관 앞 계단(단체사진에서 자른 것, 사람은 없으나 카메라가 걷는 면 위 5.1 m)
+  - 2022 재상봉 단체사진에서 자른 건물 띠(박물관 입구 · 광복관 · 음악관 · 빌링슬리관 현관, 과학관 앞 계단):
+    건물 일부만 보여 너무 어려움(사용자, 2026-11-21)
   - 같은 사진의 옛 카메라: compare/cherry_1(핀슨관길 사진은 고증 3.18 의 풀이 compare/haetae_1 로),
     compare/cherry_2(앞길 사진은 compare/uw_steps_2 로), compare/uw_steps_1(정원 남쪽 계단 사진의 풀이
     (12.5, 109.7)는 게임에서 생울타리 · 차에 가려 사진과 닮지 않음)
@@ -33,7 +34,6 @@ TUNG = 'Tungdangthanh · Wikimedia Commons, CC BY-SA 4.0'
 OWN = '제작자 사진'
 # (id, compare shot, reference photo, title shown after the answer, when, credit)
 ANTH97 = '2026 재상봉 25주년 기념문집 「응답하라 1997!」'
-ANTH96 = '2022 재상봉 25주년 기념문집 단체사진(건물 부분)'
 # CROP: 위에서부터 남길 높이의 비. 아펜젤러관 정면은 아래 1/6 쯤이 빈 회색 띠
 CROP = {'appenzeller': 1050 / 1280}
 QUIZ = [
@@ -51,13 +51,8 @@ QUIZ = [
      '2003년 봄', OWN),
     ('kiosk', 'compare/haetae_2', '2003_가을_연희관_정면.jpg', '연희관 앞 남서쪽', '2003년 가을', OWN),
     ('library', 'compare/library', '1997_중앙도서관.jpg', '중앙도서관 북동쪽 비스듬한 길 머리', '1997년', ANTH97),
-    ('museum', 'compare/museum', '백주년기념관_박물관입구_1996_정면.jpg', '백주년기념관 박물관 입구 앞마당',
-     '1996년', ANTH96),
-    ('kwangbok', 'compare/kwangbok', '광복관_현관_1996_1.jpg', '광복관 현관 앞', '1996년', ANTH96),
-    ('music', 'compare/music', '음악관_현관_1996.jpg', '음악관 신관 정문 앞', '1996년', ANTH96),
     ('amphitheater', 'compare/amphitheater', '1997_구노천극장_마지막모습.jpg', '옛 노천극장 객석 동쪽 끝 너머 비탈',
      '1997년', ANTH97),
-    ('billingsley', 'compare/billingsley', '빌링슬리관_현관_1996.jpg', '빌링슬리관 가운데 현관 앞', '1996년', ANTH96),
 ]
 
 
