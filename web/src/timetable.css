@@ -101,11 +101,13 @@ body.classing:not(.class-easy) #minimap, body.classing:not(.class-easy) #blabels
 #classresult .other { background: var(--yellow, #ffe76a); color: var(--ink, #16202e); }
 #classresult .quit { margin-top: 8px; width: 100%; background: #fff; color: var(--ink, #16202e); border: 2px solid var(--ink, #16202e); }
 @media (max-width: 640px) {
-  #classhud { top: calc(8px + var(--st, 0px)); gap: 5px; left: auto; right: 8px; transform: none; }
+  #classhud { top: calc(8px + var(--st, 0px)); gap: 5px; left: 8px; right: 8px; transform: none; justify-content: flex-end; }
+  body.classing #minimap, body.classing #place { display: none !important; }
   #classhud b { font-size: 20px; }
   #classhud > div, #classhud > button { min-width: 56px; padding: 4px 7px 5px; }
   #classhud .peek { font-size: 15px; min-width: 56px; }
   #classtable { left: 8px; top: calc(8px + var(--st, 0px)); padding: 6px 8px; font-size: 11px; }
+  body.class-easy #classtable { top: calc(78px + var(--st, 0px)); }
   #classtable .s, #classtable .t { display: none; }
   #classtable li { grid-template-columns: auto 1fr; }
 }

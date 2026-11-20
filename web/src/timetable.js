@@ -126,13 +126,13 @@ function ringTexture() {
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
-function nameTexture(text) {
+function nameTexture(text, bg = '#c0392b') {
   const c = document.createElement('canvas');
   c.width = 512; c.height = 128;
   const g = c.getContext('2d');
   g.font = '700 64px "Noto Sans KR", sans-serif';
   const w = Math.min(500, g.measureText(text).width + 56);
-  g.fillStyle = '#c0392b';
+  g.fillStyle = bg;
   g.beginPath(); g.roundRect((512 - w) / 2, 14, w, 100, 22); g.fill();
   g.lineWidth = 6; g.strokeStyle = '#fff'; g.stroke();
   g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -236,9 +236,10 @@ export class Timetable {
     document.body.classList.toggle('class-easy', this.easy);
     const s0 = stops[0], s1 = stops[1];
     this.onBegin?.(`${set.name} · 1교시 ${set.classes[0][0]} 끝! 2교시는 ${s1.name}에서 · ${this.coarse ? '화면 왼쪽을 밀어 달려요' : '↑(W)로 달려요'}`);
-    // out of the first hall's door, turned round to the campus
-    const pl = this.player;
-    pl.teleport(s0.x, s0.y, s0.yaw + Math.PI);
+    // out of the first hall's door, 6 m on and turned round to the campus (the camera behind the walker: off the steps)
+    const pl = this.player, ox = Math.sin(s0.yaw), oy = -Math.cos(s0.yaw);
+    const [sx, sy] = pl.col.resolve(s0.x + ox * 6, s0.y + oy * 6, 0.6);
+    pl.teleport(sx, sy, s0.yaw + Math.PI);
     pl.cam.ready = false;
     pl.autoRun = true;
     pl.enabled = false;
@@ -297,8 +298,11 @@ export class Timetable {
     const me = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 60, 12, 1, true), new THREE.MeshBasicMaterial({
       map: this.ringTex, color: 0x6fb7ff, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false, blending: THREE.AdditiveBlending }));
     me.position.y = 30;
+    const meTag = new THREE.Sprite(new THREE.SpriteMaterial({ map: nameTexture('나', '#1f5fbf'), depthTest: false, depthWrite: false, fog: false, toneMapped: false }));
+    meTag.renderOrder = 7;
     this.me = new THREE.Group();
-    this.me.add(me);
+    this.me.add(me, meTag);
+    this.meTag = meTag;
     this.group.add(this.door, this.me);
   }
   placeDoor() {
@@ -409,13 +413,15 @@ export class Timetable {
     this.peeking = true;
     const pl = this.player, s = this.stops[this.next], cam = this.camera;
     const dx = s.x - pl.x, dy = s.y - pl.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
-    const mx = (pl.x + s.x) / 2, my = (pl.y + s.y) / 2, gh = (pl.pos.y + s.h) / 2;
-    const h = Math.max(90, d * 0.85 + 50);
-    cam.position.set(mx - ux * h * 0.45, gh + h, -(my - uy * h * 0.45));
+    const mx = pl.x + dx * 0.42, my = pl.y + dy * 0.42, gh = (pl.pos.y + s.h) / 2;
+    const h = Math.max(90, d * 0.9 + 50);
+    cam.position.set(mx - ux * h * 0.32, gh + h, -(my - uy * h * 0.32));
     cam.lookAt(mx, gh, -my);
     const { tag } = this.doorParts;
     tag.position.y = 12 + h * 0.06;
     tag.scale.set(h * 0.22, h * 0.055, 1);
+    this.meTag.position.y = tag.position.y;
+    this.meTag.scale.copy(tag.scale);
   }
 
   // ---------------------------------------------------------------- HUD
@@ -470,7 +476,7 @@ export class Timetable {
     const k = Math.min(this.next, this.stops.length - 1), lim = this.limits[k - 1];
     const u = this.state === 'count' ? 0 : this.state === 'done' ? 1 : this.leg / lim;
     const set = (el, t) => { if (el.textContent !== t) el.textContent = t; };
-    set(h.clock, this.state === 'done' ? hourOf(k) : clockAt(k - 1, u));
+    set(h.clock, this.state === 'done' ? hourOf(k) : clockAt(k, u));
     const left = lim - (this.state === 'count' ? 0 : this.leg);
     set(h.left, this.state === 'done' ? '수업 끝' : left >= 0 ? `남은 ${fmtS(left)}` : `${fmtS(-left)} 늦음`);
     h.el.classList.toggle('late', this.state === 'play' && left < 0);
