@@ -974,6 +974,41 @@ async function main() {
   $('#run-start').addEventListener('click', openRace);
   $('#run-go').addEventListener('click', openRace);
   $('#run-quit').addEventListener('click', (e) => { e.stopPropagation(); race?.stop(); });
+  // 이곳은 어디? (src/photoquiz.js): a photo's spot to walk to and look from, five a round (./?game=photo)
+  let quiz = null, quizLoad = null;
+  const quizEntry = { on: () => !!quiz?.on, busy: () => !!quiz?.busy, stop: () => quiz?.stop(),
+    update: (dt, t, p) => quiz?.update(dt, t, p),
+    pauseButtons: (game) => { $('#photo-go').hidden = game; $('#photo-quit').hidden = !quiz?.on; } };
+  games.push(quizEntry);
+  // (its css, with the title card's button, comes on its own after the page; ./?game=photo makes the button stand out)
+  import('./photoquiz.css');
+  if (new URLSearchParams(location.search).get('game') === 'photo') document.body.classList.add('game-photo');
+  const loadQuiz = () => (quizLoad ||= import('./photoquiz.js').then(({ PhotoQuiz }) => (quiz = new PhotoQuiz({
+    scene, camera, player, sound, places, groundAt, mobile: MOBILE,
+    go: async (x, y, yaw, still) => {      // (still(): not let go of while the halls came in)
+      const wait = chunks.ensure(x, y);
+      if (wait) { ui.toast('그쪽 건물을 세우는 중이에요…', 60000); await wait; ui.toast('', 1); }
+      if (still && !still()) return;
+      const [lx, ly] = landAt(x, y);
+      player.teleport(lx, ly, yaw);
+      forest.update(camera.position, true);
+    },
+    onBegin: (msg) => {
+      if (bird.active) leaveBird();
+      shootout?.stop(); race?.stop(); race?.closePicker(); stopGames(quizEntry);
+      if (ui.memoryOpen) ui.closeMemory();
+      if (ui.mapOpen) ui.toggleMap(false);
+      ball?.drop();
+      document.body.classList.add('photoquiz');
+      if (!started) startWalk(null, msg); else { paused = false; $('#pause').hidden = true; ui.toast(msg, 5000); }
+      ui.setPrompt(null);
+    },
+    onQuit: () => { document.body.classList.remove('photoquiz'); resume(); ui.toast('사진 찾기를 마치고 산책을 이어 가요'); },
+  })))).then((q) => { if (window.__y97) window.__y97.quiz = q; return q; });
+  const startQuiz = async (e) => { e?.stopPropagation(); e?.currentTarget?.blur(); (await loadQuiz()).start(); };
+  $('#photo-start').addEventListener('click', (e) => { sound.start(); startQuiz(e); });
+  $('#photo-go').addEventListener('click', startQuiz);
+  $('#photo-quit').addEventListener('click', (e) => { e.stopPropagation(); quiz?.stop(); });
   if (birthday) birthday.onSplash = (p) => sound.splash(p);
   $('#opt-sound').checked = sound.on;
   $('#opt-sound').addEventListener('change', (e) => sound.setOn(e.target.checked));
@@ -1293,6 +1328,7 @@ async function main() {
   $('#tour-start').disabled = false;
   $('#shoot-start').disabled = false;
   $('#run-start').disabled = false;
+  $('#photo-start').disabled = false;
   // the rest of the halls and landmarks, the nearest to the view first (src/chunks.js); each set in once its
   // textures are in and its shaders compiled: then the walker's walls, the sun's shadows and the atmosphere take it
   chunks.renderer = renderer;
