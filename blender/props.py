@@ -678,7 +678,7 @@ def glass_board():
         mb.box((k * (wi - 2 * b) / 6, -D / 2 + 0.025, (z0 + z1) / 2), (mu, 0.05, z1 - z0 - 2 * b), m)   # the mullions
     x0, x1, za, zb = -wi / 2 + b, wi / 2 - b, z0 + b, z1 - b
     mb.face([(x0, D / 2 - 0.06, za), (x1, D / 2 - 0.06, za), (x1, D / 2 - 0.06, zb), (x0, D / 2 - 0.06, zb)],
-            'notice_posters', uvs=[(0, 0), (1.7, 0), (1.7, 0.78), (0, 0.78)])
+            'notice_posters', uvs=[(0, 0), (2, 0), (2, 1), (0, 1)])
     mb.face([(x0, -D / 2 + 0.03, za), (x1, -D / 2 + 0.03, za), (x1, -D / 2 + 0.03, zb), (x0, -D / 2 + 0.03, zb)], 'glass_door')
     mb.box((0, 0, top - 0.04), (W + 0.12, 0.36, 0.08), m)                                        # the flat cap
     return mb
