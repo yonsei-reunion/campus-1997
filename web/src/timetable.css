@@ -1,0 +1,107 @@
+/* 강의실 찾기 (timetable.js): loaded with it. The plain round hides whatever names or shows the way (the map, the halls'
+   name tags, 지금 여기); the easy round keeps the little map and the name tags */
+body.classing #stamps, body.classing #birdbtn, body.classing #mapbtn, body.classing #prompt { display: none !important; }
+body.classing:not(.class-easy) #minimap, body.classing:not(.class-easy) #blabels, body.classing:not(.class-easy) #place { display: none !important; }
+
+#classhud { position: fixed; top: calc(14px + var(--st, 0px)); left: 50%; transform: translateX(-50%); z-index: 11; display: flex; gap: 8px;
+  pointer-events: none; color: var(--hud-ink, #f4f1e8); font-family: var(--title, sans-serif); }
+#classhud[hidden] { display: none; }
+#classhud > div, #classhud > button { background: var(--hud-bg, rgba(14, 22, 34, .62)); border-radius: 12px; padding: 6px 14px 8px; text-align: center; min-width: 90px;
+  backdrop-filter: blur(6px); }
+#classhud small { display: block; font: 700 11px var(--font, sans-serif); opacity: .75; }
+#classhud b { font-weight: 400; font-size: 30px; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#classhud .clock b { color: var(--yellow, #ffe76a); min-width: 3em; display: inline-block; }
+#classhud span { display: block; font: 600 11px var(--font, sans-serif); opacity: .85; }
+#classhud .clock span { font-size: 13px; font-weight: 700; opacity: 1; }
+#classhud.hurry .clock span { color: #ffd27a; }
+#classhud.late .clock b, #classhud.late .clock span { color: #ff8e7e; }
+#classhud .way { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 64px; }
+#classhud .way[hidden] { display: none; }
+#classhud .way i { display: block; width: 0; height: 0; border-left: 13px solid transparent; border-right: 13px solid transparent;
+  border-bottom: 26px solid #ff6b5a; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .35)); transform-origin: 50% 60%; }
+#classhud .way span { margin-top: 4px; font: 700 12px var(--font, sans-serif); }
+#classhud .peek { pointer-events: auto; border: 0; color: inherit; cursor: pointer; font: 400 20px var(--title, sans-serif); min-width: 70px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+#classhud .peek[hidden] { display: none; }
+#classhud .peek:disabled { opacity: .45; cursor: default; }
+#classhud .peek kbd { font: 700 10px var(--font, sans-serif); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; opacity: .8; }
+#classhud .peek span::before { content: '남은 '; }
+#classhud .peek span::after { content: '번'; }
+
+#classtable { position: fixed; left: 14px; top: calc(14px + var(--st, 0px)); z-index: 11; margin: 0; padding: 8px 12px; list-style: none; pointer-events: none;
+  background: rgba(255, 253, 246, .92); color: var(--ink, #16202e); border-radius: 6px; box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+  font: 13px var(--font, sans-serif); transform: rotate(-1deg); }
+#classtable[hidden] { display: none; }
+#classtable::before { content: '시간표'; display: block; font: 400 16px var(--title, sans-serif); color: var(--mint-ink, #0e6f6b); margin-bottom: 4px; }
+#classtable li { display: grid; grid-template-columns: auto auto 1fr; column-gap: 8px; padding: 3px 0; border-top: 1px dashed #d8d0bb; }
+#classtable .k { font-weight: 700; }
+#classtable .t { color: #5c6572; font-variant-numeric: tabular-nums; }
+#classtable b { font-weight: 700; }
+#classtable .s { grid-column: 3; font-size: 11px; color: #5c6572; }
+#classtable li.done { opacity: .5; }
+#classtable li.done b { text-decoration: line-through; }
+#classtable li.late b { color: #c0392b; text-decoration: none; }
+#classtable li.late b::after { content: ' 지각'; font-size: 11px; }
+#classtable li.now { background: #fff3b0; margin: 0 -12px; padding: 3px 12px; }
+
+#classbig { position: fixed; left: 50%; top: 34%; transform: translate(-50%, -50%); z-index: 12; pointer-events: none; white-space: nowrap;
+  font: 400 clamp(64px, 14vw, 120px) var(--title, sans-serif); color: #fff; text-shadow: 0 5px 0 rgba(14, 22, 34, .5), 0 0 24px rgba(14, 22, 34, .45); }
+#classbig.small { font-size: clamp(32px, 7vw, 56px); }
+#classbig.pop { animation: classpop .55s ease-out; }
+#classsplit { position: fixed; left: 50%; top: 45%; transform: translateX(-50%); z-index: 11; pointer-events: none; opacity: 0; white-space: nowrap;
+  font: 400 26px var(--title, sans-serif); color: #fff; text-shadow: 0 3px 0 rgba(14, 22, 34, .5); }
+#classsplit.ahead { color: #a8ef9a; }
+#classsplit.behind { color: #ff9b8a; }
+#classsplit.pop { animation: classsplit 2.2s ease-out; }
+@keyframes classpop { 0% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); } }
+@keyframes classsplit { 0% { opacity: 0; transform: translateX(-50%) scale(1.3); } 10% { opacity: 1; transform: translateX(-50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #classbig.pop { animation: none; } }
+
+#classpick, #classresult { position: fixed; inset: 0; z-index: 26; display: grid; place-items: center; background: rgba(10, 18, 28, .45); padding: 16px; }
+#classpick { z-index: 35; }                 /* (over the title card) */
+#classpick[hidden], #classresult[hidden] { display: none; }
+#classpick > div, #classresult > div { background: var(--paper, #fffdf6); color: var(--ink, #16202e); padding: 22px 24px; border-radius: 8px; width: min(480px, 100%);
+  max-height: calc(100vh - 32px); overflow: auto; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); text-align: center; transform: rotate(-0.6deg); }
+#classpick h2, #classresult h2 { font: 400 24px var(--title, sans-serif); margin: 0 0 4px; color: var(--mint-ink, #0e6f6b); }
+#classpick .lead, #classpick .how, #classpick .modehow { margin: 0 0 10px; font-size: 13px; color: #5c6572; line-height: 1.6; }
+#classpick .how { margin: 10px 0; }
+#classpick .mode { display: inline-grid; grid-template-columns: 1fr 1fr; border: 2px solid var(--ink, #16202e); border-radius: 10px; overflow: hidden; margin-bottom: 6px; }
+#classpick .mode button { border: 0; background: #fff; padding: 7px 16px; font: 700 14px var(--font, sans-serif); cursor: pointer; color: var(--ink, #16202e); }
+#classpick .mode button.on { background: var(--ink, #16202e); color: #fff; }
+#classpick .sets { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+#classpick .sets button { width: 100%; text-align: left; border: 2px solid var(--ink, #16202e); border-radius: 10px; background: #fff; padding: 9px 12px; cursor: pointer;
+  color: var(--ink, #16202e); font-family: var(--font, sans-serif); }
+#classpick .sets button:hover, #classpick .sets button:focus-visible { background: var(--yellow, #ffe76a); }
+#classpick .sets b { display: block; font: 400 18px var(--title, sans-serif); }
+#classpick .sets .desc { display: block; font-size: 13px; color: #34404f; margin-top: 2px; }
+#classpick .sets .meta { display: block; font-size: 12px; font-weight: 700; color: var(--mint-ink, #0e6f6b); margin-top: 3px; }
+#classpick .close { border: 0; background: none; font: 700 14px var(--font, sans-serif); color: #5c6572; text-decoration: underline; cursor: pointer; }
+
+#classresult .big { margin: 4px 0 6px; font: 400 40px/1.1 var(--title, sans-serif); color: var(--blue, #143c8c); }
+#classresult .big.late { color: #c0392b; }
+#classresult .best { margin: 0 0 10px; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+#classresult .best.new { color: #c0392b; }
+#classresult .legs { width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: 13px; text-align: left; }
+#classresult .legs td { padding: 4px 4px; border-bottom: 1px dashed #d8d0bb; }
+#classresult .legs .k { font-weight: 700; white-space: nowrap; }
+#classresult .legs .t { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+#classresult .legs .r { font-weight: 700; color: var(--mint-ink, #0e6f6b); white-space: nowrap; text-align: right; }
+#classresult .legs tr.late .r { color: #c0392b; }
+#classresult .ranks { list-style: none; margin: 0 0 14px; padding: 0; font-size: 14px; }
+#classresult .ranks li { display: grid; grid-template-columns: 2em 1fr auto; gap: 8px; padding: 4px 8px; border-bottom: 1px dashed #d8d0bb; text-align: left; }
+#classresult .ranks li.me { background: #fff3b0; font-weight: 700; }
+#classresult .ranks .t { font-variant-numeric: tabular-nums; }
+#classresult .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#classresult button { border: 0; border-radius: 8px; padding: 12px 8px; font: 700 15px var(--font, sans-serif); cursor: pointer; }
+#classresult .again { background: var(--blue, #143c8c); color: #fff; }
+#classresult .other { background: var(--yellow, #ffe76a); color: var(--ink, #16202e); }
+#classresult .quit { margin-top: 8px; width: 100%; background: #fff; color: var(--ink, #16202e); border: 2px solid var(--ink, #16202e); }
+@media (max-width: 640px) {
+  #classhud { top: calc(8px + var(--st, 0px)); gap: 5px; left: auto; right: 8px; transform: none; }
+  #classhud b { font-size: 20px; }
+  #classhud > div, #classhud > button { min-width: 56px; padding: 4px 7px 5px; }
+  #classhud .peek { font-size: 15px; min-width: 56px; }
+  #classtable { left: 8px; top: calc(8px + var(--st, 0px)); padding: 6px 8px; font-size: 11px; }
+  #classtable .s, #classtable .t { display: none; }
+  #classtable li { grid-template-columns: auto 1fr; }
+}

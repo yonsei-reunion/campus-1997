@@ -1079,6 +1079,42 @@ async function main() {
   $('#cheer-start').addEventListener('click', (e) => { sound.start(); openCheer(e); });
   $('#cheer-go').addEventListener('click', openCheer);
   $('#cheer-quit').addEventListener('click', (e) => { e.stopPropagation(); cheer?.stop(); });
+  // 강의실 찾기 (src/timetable.js): a timetable picked from the title card or the settings card, its halls' doors in turn
+  let lecture = null, lectureLoad = null;
+  const lectureGame = {
+    on: () => !!lecture?.on,
+    busy: () => !!(lecture?.pickOpen || lecture?.resultsOpen),
+    stop: () => { lecture?.stop(); lecture?.closePicker(); },
+    update: (dt, t, p) => lecture?.update(dt, t, p),
+    pauseButtons: (game) => { $('#class-go').hidden = game; $('#class-quit').hidden = !lecture?.on; },
+  };
+  games.push(lectureGame);
+  const loadLecture = () => (lectureLoad ||= import('./timetable.js').then(({ Timetable }) => (lecture = new Timetable({
+    scene, camera, player, sound, groundAt, places, mobile: MOBILE, ensure: (x, y) => chunks.ensure(x, y),
+    onBegin: (msg) => {
+      if (bird.active) leaveBird();
+      shootout?.stop();
+      race?.stop();
+      race?.closePicker();
+      stopGames(lectureGame);
+      if (ui.memoryOpen) ui.closeMemory();
+      if (ui.mapOpen) ui.toggleMap(false);
+      ball?.drop();
+      document.body.classList.add('classing');
+      if (!started) startWalk(null, msg); else { paused = false; $('#pause').hidden = true; ui.toast(msg, 5000); }
+      ui.setPrompt(null);
+      forest.update(camera.position, true);
+    },
+    onQuit: () => { document.body.classList.remove('classing'); resume(); ui.toast('강의실 찾기를 마치고 산책을 이어 가요'); },
+  }))));
+  const openLecture = async (e) => {
+    e?.stopPropagation(); e?.currentTarget?.blur();
+    sound.start();
+    (await loadLecture()).openPicker();
+  };
+  $('#class-start').addEventListener('click', openLecture);
+  $('#class-go').addEventListener('click', openLecture);
+  $('#class-quit').addEventListener('click', (e) => { e.stopPropagation(); lecture?.stop(); });
   if (birthday) birthday.onSplash = (p) => sound.splash(p);
   $('#opt-sound').checked = sound.on;
   $('#opt-sound').addEventListener('change', (e) => sound.setOn(e.target.checked));
@@ -1371,7 +1407,7 @@ async function main() {
   };
   window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, townCrowd, cast, traffic, street, bird, toggleBird, shadows, fountainWater,
     startWalk, enterBird, leaveBird, toTitle, record, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds, landAt, places,
-    get ball() { return ball; }, loadBall, startShoot, get shootout() { return shootout; }, loadRace, get race() { return race; },
+    get ball() { return ball; }, loadBall, startShoot, get shootout() { return shootout; }, loadRace, get race() { return race; }, loadLecture, get lecture() { return lecture; },
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
     // (the kits whole for it: it draws them from above, tile by tile)
     bakeSunMap: async () => {
@@ -1401,6 +1437,7 @@ async function main() {
   $('#photo-start').disabled = false;
   $('#pager-start').disabled = false;
   $('#cheer-start').disabled = false;
+  $('#class-start').disabled = false;
   // the rest of the halls and landmarks, the nearest to the view first (src/chunks.js); each set in once its
   // textures are in and its shaders compiled: then the walker's walls, the sun's shadows and the atmosphere take it
   chunks.renderer = renderer;
