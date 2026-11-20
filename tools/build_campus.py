@@ -40,6 +40,7 @@ import jonghap97
 import libsouth97
 import libwest97
 import libnorth97
+import centsw97
 import yongjae97
 import ridge97
 import fieldhill97
@@ -12405,6 +12406,23 @@ out['shrubs'] += north97.hedge97()
 # 신촌 로터리 섬의 여름 화단 (tools/sinchon_rotary.py BED): the bed's plants past the 23 places its May bed had
 out['shrubs'] += ROT['shrubs_late']
 out['shrubs'] += north97.shrubs97()        # (무악학사 둘레: the clipped shrubs on the islands and the bed by 1학사)
+# 백주년기념관 남서쪽 로비 앞 (tools/centsw97.py; i221, reference/고증/3.4 「남서쪽 로비 앞의 계단식 화단과 두 계단」):
+# before the curved glass four granite beds stepping up from the round forecourt (자료 R 100-1.jpg, the 1997 scans,
+# the 2008 · 2010 skyview), the walk north-west of them climbing in four short flights, and the corner block's front
+# door a stone-lined portal up ten risers (CENT_BLOCK portal; blender/landmarks.py centennial_sw, centennial).  Late
+# and nothing drawn: what the planting put on the beds goes (shrubs) or steps aside in its place in the list (the
+# young zelkova, to the lawn north-west of the walk, dark with crowns in the scans); the beds' plants at the end
+CENT_SW97_TIERS, _csw_beds = centsw97.tiers(ct_xy, ct_sd, CENT_SW_C, _cdr, _CTR)
+out['centennial_sw'] = dict(tiers=CENT_SW97_TIERS, strip=centsw97.strip(_csw_beds))
+CENT_BLOCK['portal'] = centsw97.PORTAL
+_csw_b = _csw_beds.buffer(0.3)
+out['shrubs'] = [s_ for s_ in out['shrubs'] if not _csw_b.contains(Point(s_[1], s_[2]))]
+for t_ in out['trees']:
+    if t_[0] == 'zelkova_young' and _csw_b.contains(Point(t_[1], t_[2])):
+        t_[1], t_[2] = -43.5, -233.5
+out['shrubs'] += centsw97.shrubs(CENT_SW97_TIERS)
+out['colliders'].append([[round(x_, 2), round(y_, 2)] for x_, y_ in list(_csw_beds.exterior.coords)[:-1]])
+print('백주년기념관 남서쪽 로비 앞: beds %d, shrubs %d' % (len(CENT_SW97_TIERS), len(centsw97.shrubs(CENT_SW97_TIERS))))
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
 # the 1997 photos' block had (0.052 + 0.522 x/100 + 0.248 y/100 m): the levels the photos read as flat, the roads'

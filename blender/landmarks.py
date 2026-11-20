@@ -978,7 +978,7 @@ def centennial():
     sx.box((0, 0, (HB + S7['shaft']['top'] - sea0) / 2), (w_, w_, S7['shaft']['top'] - sea0 - HB), 'concrete',
            mats={'top': 'roof_flat'}, skip=('bottom',))
     out = [mb, sh, sx, museum_porch(tuple(X_n), tuple(X_s), z0, HR, PD),
-           north_box(fp[0], fp[1], fp[2], z0, HB, rows=tuple(z - sea0 for z in CENT_SEA['rows']))] + centennial_terrace()
+           north_box(fp[0], fp[1], fp[2], z0, HB, rows=tuple(z - sea0 for z in CENT_SEA['rows']))] + centennial_terrace() + centennial_sw(z0)
     # the low front block before the podium's south-west corner (tools/build_campus.py CENT_BLOCK, issue #9)
     if K:
         bk = MeshBuilder('lm_centennial_block')
@@ -991,17 +991,75 @@ def centennial():
         F, S = K['front'], K['side']
         e0, e1, he = K['entrance']
         d0, d1, hd = K['door'] or (S, S, 0.0)       # (no side door: the wall whole)
-        # front face (south) with the wide dark entrance, recessed 2.5 m
-        bk.quad(Q(0, 0, -3), Q(e0, 0, -3), Q(e0, 0, Hb), Q(0, 0, Hb), 'stone_ashlar')
-        bk.quad(Q(e1, 0, -3), Q(F, 0, -3), Q(F, 0, Hb), Q(e1, 0, Hb), 'stone_ashlar')
-        bk.quad(Q(e0, 0, he), Q(e1, 0, he), Q(e1, 0, Hb), Q(e0, 0, Hb), 'stone_ashlar')
-        bk.quad(Q(e0, 2.5, 0), Q(e1, 2.5, 0), Q(e1, 2.5, he), Q(e0, 2.5, he), 'void_black')        # its dark back
-        bk.quad(Q(e1, 0, 0), Q(e1, 2.5, 0), Q(e1, 2.5, he), Q(e1, 0, he), 'void_black')
-        bk.quad(Q(e0, 2.5, 0), Q(e0, 0, 0), Q(e0, 0, he), Q(e0, 2.5, he), 'void_black')
-        bk.quad(Q(e0, 0, he), Q(e0, 2.5, he), Q(e1, 2.5, he), Q(e1, 0, he), 'void_black')          # its soffit
-        bk.quad(Q(e0, 0, 0.02), Q(e1, 0, 0.02), Q(e1, 2.5, 0.02), Q(e0, 2.5, 0.02), 'stone_granite')
-        bk.quad(Q(e0 + 0.4, 2.45, 0.05), Q(e1 - 0.4, 2.45, 0.05), Q(e1 - 0.4, 2.45, he - 0.3), Q(e0 + 0.4, 2.45, he - 0.3), 'glass',
-                panes=(1, 1, True))
+        PT = K.get('portal')
+        if PT:
+            # front face (south): the portal (2010-12 roadview 1016763194, 자료 R 100-1.jpg; tools/centsw97.py PORTAL):
+            # a tall shallow opening up ten granite risers, lined with stone; at its west end the doors (a glass door
+            # between wooden leaves, a transom) under a window band, at its east end two square piers
+            dp, fl, ht = PT['depth'], PT['risers'] * PT['rise'], PT['top']
+            zo = fl + ht
+            bk.quad(Q(0, 0, -3), Q(e0, 0, -3), Q(e0, 0, Hb), Q(0, 0, Hb), 'stone_ashlar')
+            bk.quad(Q(e1, 0, -3), Q(F, 0, -3), Q(F, 0, Hb), Q(e1, 0, Hb), 'stone_ashlar')
+            bk.quad(Q(e0, 0, zo), Q(e1, 0, zo), Q(e1, 0, Hb), Q(e0, 0, Hb), 'stone_ashlar')
+            bk.quad(Q(e0, 0, -3), Q(e1, 0, -3), Q(e1, 0, fl), Q(e0, 0, fl), 'stone_ashlar')
+            bk.quad(Q(e0, dp, fl), Q(e1, dp, fl), Q(e1, dp, zo), Q(e0, dp, zo), 'stone_ashlar')        # its back
+            bk.quad(Q(e1, 0, fl), Q(e1, dp, fl), Q(e1, dp, zo), Q(e1, 0, zo), 'stone_ashlar')
+            bk.quad(Q(e0, dp, fl), Q(e0, 0, fl), Q(e0, 0, zo), Q(e0, dp, zo), 'stone_ashlar')
+            bk.quad(Q(e0, 0, zo), Q(e0, dp, zo), Q(e1, dp, zo), Q(e1, 0, zo), 'stone_ashlar')          # its soffit
+            bk.quad(Q(e0, 0, fl), Q(e1, 0, fl), Q(e1, dp, fl), Q(e0, dp, fl), 'stone_step')            # its floor
+            d0_, d1_ = PT['doors']
+            wd = (d1_ - d0_) / 3
+            fb = dp - 0.04
+            bk.quad(Q(d0_, fb, fl), Q(d0_ + wd, fb, fl), Q(d0_ + wd, fb, fl + PT['door_h']), Q(d0_, fb, fl + PT['door_h']), 'wood_dark')
+            bk.quad(Q(d1_ - wd, fb, fl), Q(d1_, fb, fl), Q(d1_, fb, fl + PT['door_h']), Q(d1_ - wd, fb, fl + PT['door_h']), 'wood_dark')
+            bk.quad(Q(d0_ + wd, fb, fl), Q(d1_ - wd, fb, fl), Q(d1_ - wd, fb, fl + PT['door_h']), Q(d0_ + wd, fb, fl + PT['door_h']), 'glass_door')
+            bk.quad(Q(d0_, fb, fl + PT['door_h'] + 0.06), Q(d1_, fb, fl + PT['door_h'] + 0.06), Q(d1_, fb, fl + PT['transom']),
+                    Q(d0_, fb, fl + PT['transom']), 'glass', panes=(3, 1, True))
+            w0_, w1_ = PT['window']
+            bk.quad(Q(d0_, fb, fl + w0_), Q(d1_, fb, fl + w0_), Q(d1_, fb, fl + w1_ - 0.05), Q(d0_, fb, fl + w1_ - 0.05), 'glass',
+                    panes=(3, 1, True))
+            for u0_, u1_ in ((d0_ - 0.08, d0_), (d1_, d1_ + 0.08), (d0_ + wd - 0.04, d0_ + wd + 0.04), (d1_ - wd - 0.04, d1_ - wd + 0.04)):
+                bk.quad(Q(u0_, fb - 0.02, fl), Q(u1_, fb - 0.02, fl), Q(u1_, fb - 0.02, fl + PT['transom']),
+                        Q(u0_, fb - 0.02, fl + PT['transom']), 'door_frame')
+            for p0_, p1_ in PT['piers']:                                                  # the square piers
+                pa_, pb_ = Q(p0_, dp - PT['pier_d'], 0), Q(p1_, dp, 0)          # (standing out of the back wall)
+                bk.box(((pa_[0] + pb_[0]) / 2, (pa_[1] + pb_[1]) / 2, z0 + fl + ht / 2),
+                       ((Vector(Q(p1_, 0, 0)[:2]) - Vector(Q(p0_, 0, 0)[:2])).length, PT['pier_d'], ht), 'stone_ashlar',
+                       rotz=math.atan2(tf.y, tf.x), skip=('bottom',))
+            # the flight: each tread a granite block, coped cheeks at its ends, walked as one ramp
+            n_, r_, t_ = PT['risers'], PT['rise'], PT['tread']
+            s0_, s1_ = PT['stairs']
+            for k in range(1, n_ + 1):
+                o1, o0 = (n_ - k + 1) * t_, (n_ - k) * t_ - (0.03 if k < n_ else 0.0)
+                q_ = [Q(s0_, 0, k * r_, o1), Q(s1_, 0, k * r_, o1), Q(s1_, 0, k * r_, o0), Q(s0_, 0, k * r_, o0)]
+                oface(bk, q_, 'stone_step', (0, 0, 1))
+                oface(bk, [Q(s0_, 0, -0.6, o1), Q(s1_, 0, -0.6, o1), Q(s1_, 0, k * r_, o1), Q(s0_, 0, k * r_, o1)], 'stone_step',
+                      (-tsd.x, -tsd.y, 0.0))
+            L_ = n_ * t_
+            for c0_, c1_ in ((s0_ - 0.3, s0_), (s1_, s1_ + 0.3)):
+                for (oa, za), (ob, zb) in (((L_ + 0.1, 0.35), (0.0, fl + 0.35)),):
+                    for e_a, e_b in ((c0_, c0_), (c1_, c1_)):
+                        oface(bk, [Q(e_a, 0, -0.6, oa), Q(e_b, 0, -0.6, ob), Q(e_b, 0, zb, ob), Q(e_a, 0, za, oa)], 'stone_granite',
+                              (tf.x * (-1 if e_a == c0_ else 1), tf.y * (-1 if e_a == c0_ else 1), 0.0))
+                    oface(bk, [Q(c0_, 0, za, oa), Q(c1_, 0, za, oa), Q(c1_, 0, zb, ob), Q(c0_, 0, zb, ob)], 'stone_trim', (0, 0, 1))
+                    oface(bk, [Q(c0_, 0, -0.6, oa), Q(c1_, 0, -0.6, oa), Q(c1_, 0, za, oa), Q(c0_, 0, za, oa)], 'stone_granite', (-tsd.x, -tsd.y, 0.0))
+            WALK_FACES.append([Q(s0_, 0, 0.0, L_ + t_), Q(s1_, 0, 0.0, L_ + t_), Q(s1_, 0, fl, 0.0), Q(s0_, 0, fl, 0.0)])
+            WALK_FACES.append([Q(s0_, 0, fl, 0.0), Q(s1_, 0, fl, 0.0), Q(s1_, dp, fl), Q(s0_, dp, fl)])
+            hc_ = Vector(Q((s0_ + s1_) / 2, 0, 0)[:2])
+            ENTRANCES.append(dict(o=[round(hc_.x, 2), round(hc_.y, 2)], u=[round(tf.x, 4), round(tf.y, 4)], v=[round(-tsd.x, 4), round(-tsd.y, 4)],
+                                  hw=round((s1_ - s0_) / 2 + 0.6, 2), len=round(L_ + 0.8, 2)))
+        else:
+            # front face (south) with the wide dark entrance, recessed 2.5 m
+            bk.quad(Q(0, 0, -3), Q(e0, 0, -3), Q(e0, 0, Hb), Q(0, 0, Hb), 'stone_ashlar')
+            bk.quad(Q(e1, 0, -3), Q(F, 0, -3), Q(F, 0, Hb), Q(e1, 0, Hb), 'stone_ashlar')
+            bk.quad(Q(e0, 0, he), Q(e1, 0, he), Q(e1, 0, Hb), Q(e0, 0, Hb), 'stone_ashlar')
+            bk.quad(Q(e0, 2.5, 0), Q(e1, 2.5, 0), Q(e1, 2.5, he), Q(e0, 2.5, he), 'void_black')        # its dark back
+            bk.quad(Q(e1, 0, 0), Q(e1, 2.5, 0), Q(e1, 2.5, he), Q(e1, 0, he), 'void_black')
+            bk.quad(Q(e0, 2.5, 0), Q(e0, 0, 0), Q(e0, 0, he), Q(e0, 2.5, he), 'void_black')
+            bk.quad(Q(e0, 0, he), Q(e0, 2.5, he), Q(e1, 2.5, he), Q(e1, 0, he), 'void_black')          # its soffit
+            bk.quad(Q(e0, 0, 0.02), Q(e1, 0, 0.02), Q(e1, 2.5, 0.02), Q(e0, 2.5, 0.02), 'stone_granite')
+            bk.quad(Q(e0 + 0.4, 2.45, 0.05), Q(e1 - 0.4, 2.45, 0.05), Q(e1 - 0.4, 2.45, he - 0.3), Q(e0 + 0.4, 2.45, he - 0.3), 'glass',
+                    panes=(1, 1, True))
         # west side with its dark door
         bk.quad(Q(0, d0, -3), Q(0, 0, -3), Q(0, 0, Hb), Q(0, d0, Hb), 'stone_ashlar')
         if K['door']:
@@ -1190,6 +1248,116 @@ def museum_porch(A, B, z0, HR, PD):
                      gfn=local_ground(mb), mat='stone_step', maxrise=0.16)
         mb.xf = Matrix.Identity(4)
     return mb
+
+
+def centennial_sw(z0):
+    """The stepped beds before 백주년기념관's curved lobby glass and the walk climbing beside them (tools/build_campus.py
+    centennial_sw, tools/centsw97.py; 자료 R 100-1.jpg, the 1997 scans, reference/고증/3.4): four granite beds, each a
+    solid block with a coping, its soil on top (the shrubs stand on it); the walk north-west of them a paved deck in the
+    ground's own material with four short granite flights, a coped side wall towards the lawn and a coped kerb along the
+    beds.  Heights over the hall's floor z0."""
+    C = CAMPUS.get('centennial_sw')
+    if not C:
+        return []
+    mb = MeshBuilder('lm_centennial_sw')
+    G, TRIM, STEP = 'stone_granite', 'stone_trim', 'stone_step'
+
+    def prism(poly, zt, zb, top, side, walk=False):
+        pts = [Vector((x, y, 0.0)) for x, y in poly]
+        if _area2(pts) < 0:
+            pts = pts[::-1]
+        q = [(p.x, p.y, zt) for p in pts]
+        if top:
+            oface(mb, q, top, (0, 0, 1))
+            if walk:
+                WALK_FACES.append(q)
+        for a, b in zip(pts, pts[1:] + pts[:1]):
+            za = min(zb, ground_top(a.x, a.y) - 0.3)
+            zb_ = min(zb, ground_top(b.x, b.y) - 0.3)
+            oface(mb, [(a.x, a.y, za), (b.x, b.y, zb_), (b.x, b.y, zt), (a.x, a.y, zt)], side, (b.y - a.y, a.x - b.x, 0))
+    # the beds: a granite block to the coping's foot, the coping round its edge, the soil inset (walked: the shrubs)
+    for t in C['tiers']:
+        zt = z0 + t['top']
+        prism(t['poly'], zt + 0.1, zt - 1.0, None, G)
+        rim = offset_poly([tuple(p) for p in t['poly']], 0.04)
+        prism(rim, zt + 0.16, zt + 0.02, 'stone_trim', TRIM)
+        soil = offset_poly([tuple(p) for p in t['poly']], -0.25)
+        prism(soil, zt + 0.17, zt + 0.0, 'dirt', 'dirt', walk=True)
+    # the walk: strip frame (s along it north-east, w across towards the beds)
+    S = C['strip']
+    p0, u = Vector((*S['p0'], 0.0)), Vector((*S['u'], 0.0))
+    n = Vector((u.y, -u.x, 0.0))
+    P = lambda s, w, z: tuple(p0 + u * s + n * w + Vector((0.0, 0.0, z)))
+    t, end, ramp = S['tread'], S['end'], S['ramp']
+    F = S['flights']
+
+    def walk_z(s):
+        z = S['plaza']
+        for f in F:
+            if s < f['s0']:
+                return z
+            k = min(f['n'], int((s - f['s0']) / t) + 1)
+            if k < f['n']:
+                return z + k * f['rise']
+            z += f['n'] * f['rise']
+        return z
+    se = S['se']
+    sw_ = lambda s: min(se, key=lambda q: abs(q[0] - s))[1]
+    zl = walk_z(end)
+    # landings: flat plates between the flights, in the ground's own material (the splat paints the walk)
+    for f in F:
+        a, b = f['s0'], f['s0'] + (f['n'] - 1) * t
+        for k in range(1, f['n'] + 1):                                       # each tread a block down into the ground
+            sk = f['s0'] + (k - 1) * t
+            dd = t
+            zk = z0 + f['z0'] + k * f['rise']
+            w1 = min(sw_(sk), sw_(sk + dd))
+            q = [P(sk, 0.0, zk), P(sk + dd, 0.0, zk), P(sk + dd, w1, zk), P(sk, w1, zk)]
+            oface(mb, q, STEP, (0, 0, 1))
+            lo = ground_top(*P(sk, w1 / 2, 0)[:2]) - 0.4
+            oface(mb, [P(sk, 0.0, lo), P(sk, w1, lo), P(sk, w1, zk), P(sk, 0.0, zk)], STEP, tuple(-u))
+        # walked as one ramp through the nosings
+        w1 = min(sw_(a), sw_(b + t))
+        WALK_FACES.append([P(a - t, 0.0, z0 + f['z0']), P(b + t, 0.0, z0 + f['z0'] + f['n'] * f['rise']),
+                           P(b + t, w1, z0 + f['z0'] + f['n'] * f['rise']), P(a - t, w1, z0 + f['z0'])])
+    # the landings (and the head beyond the last flight, then down to the ground the game has there)
+    lands = [(F[k]['s0'] + F[k]['n'] * t, F[k + 1]['s0']) for k in range(len(F) - 1)] + [(F[-1]['s0'] + F[-1]['n'] * t, end)]
+    for a, b in lands:
+        zz = z0 + walk_z(a + 0.01)
+        ss = [a] + [q[0] for q in se if a < q[0] < b] + [b]
+        for sa, sb in zip(ss[:-1], ss[1:]):
+            wa, wb = sw_(sa), sw_(sb)
+            q = [P(sa, 0.0, zz), P(sb, 0.0, zz), P(sb, wb, zz), P(sa, wa, zz)]
+            oface(mb, q, 'terrain_drape', (0, 0, 1))
+            WALK_FACES.append(q)
+    ss = [end + ramp * k / 6 for k in range(7)]
+    for sa, sb in zip(ss[:-1], ss[1:]):
+        za = z0 + zl + (ground_top(*P(end + ramp, 2.5, 0)[:2]) - z0 - zl) * (sa - end) / ramp
+        zb = z0 + zl + (ground_top(*P(end + ramp, 2.5, 0)[:2]) - z0 - zl) * (sb - end) / ramp
+        q = [P(sa, 0.0, za), P(sb, 0.0, zb), P(sb, sw_(sb), zb), P(sa, sw_(sa), za)]
+        oface(mb, q, 'terrain_drape', (0, 0, 1))
+        WALK_FACES.append(q)
+    # the side wall towards the lawn (w 0) and the kerb along the beds: coped, 0.25 m over the walk, stepping with it
+    ss = [F[0]['s0'] - 0.3] + [F[0]['s0'] + 0.25 * k for k in range(int((end + ramp - F[0]['s0']) / 0.25) + 1)]
+    for side in (0, 1):
+        for sa, sb in zip(ss[:-1], ss[1:]):
+            za_, zb_ = walk_z(sa), walk_z(sb)
+            if sa >= end:
+                frac = lambda s_: min(1.0, (s_ - end) / ramp)
+                gz = ground_top(*P(end + ramp, 2.5, 0)[:2]) - z0
+                za_, zb_ = zl + (gz - zl) * frac(sa), zl + (gz - zl) * frac(sb)
+            wa, wb = (0.0, 0.0) if side == 0 else (sw_(sa), sw_(sb))
+            o = -0.3 if side == 0 else 0.2
+            qa, qb = P(sa, wa + o, 0), P(sb, wb + o, 0)
+            ra, rb = P(sa, wa, 0), P(sb, wb, 0)
+            zt_a, zt_b = z0 + za_ + 0.25, z0 + zb_ + 0.25
+            lo = min(ground_top(*qa[:2]), ground_top(*qb[:2])) - 0.4
+            for (x0, y0), (x1, y1) in (((ra[0], ra[1]), (rb[0], rb[1])), ((qa[0], qa[1]), (qb[0], qb[1]))):
+                mb.quad((x0, y0, lo), (x1, y1, lo), (x1, y1, zt_b), (x0, y0, zt_a), G)
+                mb.quad((x1, y1, lo), (x0, y0, lo), (x0, y0, zt_a), (x1, y1, zt_b), G)
+            mb.quad((ra[0], ra[1], zt_a + 0.06), (rb[0], rb[1], zt_b + 0.06), (qb[0], qb[1], zt_b + 0.06), (qa[0], qa[1], zt_a + 0.06), TRIM)
+            mb.quad((qa[0], qa[1], zt_a + 0.06), (qb[0], qb[1], zt_b + 0.06), (rb[0], rb[1], zt_b + 0.06), (ra[0], ra[1], zt_a + 0.06), TRIM)
+    return [mb]
 
 
 def centennial_terrace():
