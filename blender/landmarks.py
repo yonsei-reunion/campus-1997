@@ -6519,6 +6519,108 @@ def seomun():
             _wall_run(mb, w['pts'], 0.5, 0.9, 'stone_granite', 'stone_trim', cap_t=0.12)
         else:
             _wall_run(mb, w['pts'], 0.24, 1.8, 'plaster_cream', 'stone_trim', base=(0.35, 'stone_rubble_gray'))
+    return [mb] + seomun_shop(G.get('shop'))
+
+
+def seomun_shop(S):
+    """서문분식 (tools/seomun.py SHOP, reference/고증/3.22 「서문 앞 가게」) on the ground floor of 83 by the gate: its front
+    laid on the house's lane face over the storey that meets the lane there (the house stands on the lane's lowest
+    corner, so at the gate its second storey is the shop's), as the shop in that place in the 2011 roadview: light
+    granite piers and fascia, a tall glass bay with the door, a glass bay on a granite plinth west of it where the lane
+    falls away, a small barred window in the granite east of them, the board over the door bay (white, green letters,
+    sign_seomun) between two globe lamps, the granite pavement before it down the lane, a stoop at the door."""
+    if not S:
+        return []
+    b = next((b for b in CAMPUS['buildings'] if b['id'] == S['house']), None)
+    if b is None:
+        return []
+    ax, ay = S['a']
+    L = math.dist(S['a'], S['b'])
+    tx, ty = (S['b'][0] - ax) / L, (S['b'][1] - ay) / L
+    nx, ny = -ty, tx                                   # (out of the house, towards the lane: the face runs east -> west)
+    ang = math.atan2(ty, tx)
+    P = lambda u, v: (ax + tx * u + nx * v, ay + ty * u + ny * v)
+    fh = 3.0                                           # (blender/generic.py FH['city'])
+    g = lambda u, v=0.8: ground(*P(u, v))
+    zt = b['base'] + 2 * fh - 0.02                     # the fascia's top: the house's third floor line
+    zh = zt - 0.95                                     # the bays' heads, the fascia's foot
+    d0, d1 = S['door']
+    floor = max(g(u) for u in (d0, (d0 + d1) / 2, d1)) + 0.08
+    floor = max(floor, b['base'] + fh)
+    sill = floor + 0.4                                 # (the window bay's: one line, the plinth under it down to the lane)
+    u_end = S['piers'][-1][1]
+    mb = MeshBuilder('lm_seomun_shop')
+
+    def box(u0, u1, v0, v1, z0, z1, mat, skip=('bottom',)):
+        if z1 - z0 > 0.005:
+            mb.box((*P((u0 + u1) / 2, (v0 + v1) / 2), (z0 + z1) / 2), (u1 - u0, v1 - v0, z1 - z0), mat, rotz=ang, skip=skip)
+
+    def foot(u0, u1):
+        return min(g(u0), g(u1), g((u0 + u1) / 2)) - 0.3
+    D = 0.18                                           # the glass's plane off the house's wall (clear of its sills)
+    # the granite: the wall east of the bays, the piers, the fascia over all
+    w0, w1 = S['wall']
+    box(w0, w1, 0.0, D + 0.06, foot(w0, w1), zh, 'granite_light')
+    for p0, p1 in S['piers']:
+        box(p0, p1, 0.0, D + 0.12, foot(p0, p1), zh, 'granite_light')
+    box(0.0, u_end, 0.0, D + 0.12, zh, zt, 'granite_light', skip=())
+    # the small window in the granite wall: dark glass, a silver frame, five bars
+    q0, q1 = w0 + 0.35, w1 - 0.3
+    zw0, zw1 = floor + 1.15, floor + 2.0
+    box(q0, q1, D + 0.04, D + 0.07, zw0, zw1, 'glass_green', skip=())
+    for zz in (zw0, zw1):
+        box(q0 - 0.04, q1 + 0.04, D + 0.04, D + 0.09, zz - 0.03, zz + 0.03, 'frame_silver', skip=())
+    for k in range(6):
+        uu = q0 + (q1 - q0) * k / 5
+        box(uu - 0.012, uu + 0.012, D + 0.1, D + 0.125, zw0 - 0.03, zw1 + 0.03, 'metal_dark', skip=())
+
+    def glass(u0, u1, z0, z1, mull=()):
+        if u1 - u0 < 0.08:
+            return
+        box(u0, u1, D, D + 0.04, z0, z1, 'glass_green', skip=())
+        for uu in (u0, u1) + tuple(mull):           # (silver mullions and the head and foot rails)
+            box(uu - 0.03, uu + 0.03, D, D + 0.08, z0, z1, 'frame_silver', skip=())
+        for zz in (z0, z1):
+            box(u0, u1, D, D + 0.08, zz - 0.03, zz + 0.03, 'frame_silver', skip=())
+    # the door bay: a granite step under it at the floor, the glass door and a transom, the fixed glass east of it
+    e0, e1 = S['door_bay']
+    box(e0, e1, 0.0, D + 0.14, foot(e0, e1), floor, 'granite_light')
+    glass(d0, d1, floor, floor + 2.15)
+    box((d0 + d1) / 2 - 0.01, (d0 + d1) / 2 + 0.01, D + 0.08, D + 0.11, floor + 0.85, floor + 1.25, 'metal', skip=())   # (the pull)
+    glass(d0, d1, floor + 2.15, zh)
+    glass(e0, d0, floor, zh)
+    glass(d1, e1, floor + 0.1, zh, mull=((d1 + e1) / 2,))
+    # the window bay on its plinth
+    f0, f1 = S['window_bay']
+    box(f0, f1, 0.0, D + 0.14, foot(f0, f1), sill, 'granite_light', skip=())
+    glass(f0, f1, sill, zh, mull=((f0 + f1) / 2,))
+    # the board on the fascia, white box sides, the sign on its face; two globes on short arms at its ends
+    bc, bw = S['board']
+    bh = bw / 4
+    zc = (zh + zt) / 2
+    box(bc - bw / 2, bc + bw / 2, D + 0.12, D + 0.28, zc - bh / 2, zc + bh / 2, 'frame_white', skip=())
+    tx_, ty_ = -ny, nx                                 # (the face's left -> right seen from the lane: east)
+    cx, cy = P(bc, D + 0.285)
+    A = (cx - tx_ * bw / 2, cy - ty_ * bw / 2)
+    B = (cx + tx_ * bw / 2, cy + ty_ * bw / 2)
+    mb.face([(A[0], A[1], zc - bh / 2), (B[0], B[1], zc - bh / 2), (B[0], B[1], zc + bh / 2), (A[0], A[1], zc + bh / 2)], 'sign_seomun',
+            uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
+    for uu in (bc - bw / 2 - 0.25, bc + bw / 2 + 0.25):
+        box(uu - 0.02, uu + 0.02, D + 0.12, D + 0.5, zc + bh / 2 - 0.05, zc + bh / 2 - 0.01, 'metal_dark', skip=())
+        x_, y_ = P(uu, D + 0.5)
+        mb.sphere((x_, y_, zc + bh / 2 - 0.2), 0.17, 'globe', seg=10, rings=7)
+    # the pavement before it, short of the lane's kerb: granite slabs laid 0.1 m over the ground as it falls down the
+    # lane (a skirt at the edges, low enough to walk over), a stoop at the shop's floor before the door
+    VD = S.get('pave', 1.3)                            # (tools/seomun.py SHOP_PAVE: on the ground map too)
+    us = [k * 0.5 for k in range(int(u_end / 0.5) + 1)] + ([u_end] if u_end % 0.5 else [])
+    zp = lambda u, v: g(u, max(v, 0.3)) + 0.1
+    for u0, u1 in zip(us, us[1:]):
+        mb.face([(*P(u0, 0.0), zp(u0, 0.0)), (*P(u1, 0.0), zp(u1, 0.0)), (*P(u1, VD), zp(u1, VD)), (*P(u0, VD), zp(u0, VD))], 'stone_step')
+        mb.face([(*P(u0, VD), g(u0, VD) - 0.3), (*P(u1, VD), g(u1, VD) - 0.3), (*P(u1, VD), zp(u1, VD)), (*P(u0, VD), zp(u0, VD))][::-1], 'stone_step')
+    for u_, sg in ((0.0, 1), (u_end, -1)):
+        q = [(*P(u_, 0.0), g(u_, 0.3) - 0.3), (*P(u_, VD), g(u_, VD) - 0.3), (*P(u_, VD), zp(u_, VD)), (*P(u_, 0.0), zp(u_, 0.0))]
+        mb.face(q[::-1] if sg > 0 else q, 'stone_step')
+    box(d0 - 0.15, d1 + 0.15, 0.0, D + 0.6, min(zp(d0, 0.6), zp(d1, 0.6)) - 0.05, max(floor, zp(d0, 0.6) + 0.02), 'stone_step')
     return [mb]
 
 

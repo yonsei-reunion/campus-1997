@@ -4,7 +4,7 @@
     seomun.takeup(paths_out)          # OSM 의 선 가운데 1997년 길과 다른 토막(대운동장 북동쪽 길 끝)이 깔던 아스팔트
     asph, dirt = seomun.paint()       # 남남동 찻길 · 서문 안 갈림목 · 문 밖 골목(집 앞까지 아스팔트), 작은 건물 둘레 마당 · 트럭 곁 길가
     seomun.houses(ground)             # 골목 둘레 연희동 집(OSM 외곽선, 1997년 사진에도 있는 것) · 갈림목 남쪽 작은 건물
-    seomun.gate(ground)               # 서문의 기둥 · 문짝 · 담(campus.json seomun, blender/landmarks.py seomun)
+    seomun.gate(ground)               # 서문의 기둥 · 문짝 · 담, 83번지 1층 서문분식(campus.json seomun, blender/landmarks.py seomun)
 
 Frame: campus metres, x east, y north.  51 서문 on the 1990 and 1995 maps (57 on the 1994 map), 연희로10길's east end
 where it meets the campus road west of 과학관 (OSM 2026 way 242897924 「연세대학교 서문」, -360.8, -18.4).
@@ -106,6 +106,15 @@ HOUSES = [
 ]
 HOUSE_ID0 = 993000
 SHED_ID = 993100
+# 서문분식 (reference/고증/3.22 「서문 앞 가게」): the ground floor of 83 (HOUSES[0]) on the lane, at its east end by the
+# gate; the place and the board (white, green letters) as an alumna/alumnus remembers them (2026-11-21), the front
+# after the shop in that place in the 2011 roadview (1017248898: granite piers and fascia, two tall glass bays, the
+# door in the east one, the board over it, a small window in the granite east of it).  Along the house's lane face
+# from its east corner (u, metres): the granite wall with the small window, piers, the door bay, the window bay
+SHOP = dict(house=HOUSE_ID0, a=(-363.4, -13.0), b=(-386.1, -10.6),
+            wall=(0.0, 1.6), piers=((1.6, 2.0), (5.0, 5.5), (8.3, 8.7)), door_bay=(2.0, 5.0), door=(2.05, 3.05),
+            window_bay=(5.5, 8.3), board=(3.5, 4.4))           # (board: its middle and width)
+SHOP_PAVE = 1.3                                 # the pavement before it, out from the face (short of the lane's kerb)
 # ground points on the 1997-07-28 scans (26/15 · 26/16, 3 m grid, corr >= 0.85, off the roofs of OSM's houses and the
 # halls, off the 대운동장's patch, outliers against their neighbours out): (x, y, the photos' height + 0.3 m)
 ZPTS = datum.up3([
@@ -280,7 +289,7 @@ def takeup(paths_out):
 
 
 def paint():
-    """(asphalt, bare yard) polygons for the ground map"""
+    """(asphalt, bare yard) polygons for the ground map (bare: also under 서문분식's pavement)"""
     C = corridors()
     road = C[0][1]['ls'].buffer(ROAD_HALF, cap_style='flat')
     houses = unary_union([Polygon(h[4]).buffer(0) for h in HOUSES])
@@ -288,9 +297,22 @@ def paint():
     arc = C[2][1]['ls'].buffer(ARC_HALF, cap_style='flat')
     alley = C[3][1]['ls'].buffer(ALLEY_HALF, cap_style='flat')
     asph = unary_union([road, lane, arc, alley, Polygon(APRON).buffer(0)])
-    yard = unary_union([Polygon(YARD).buffer(0), Polygon(ROADSIDE)]).difference(asph)
+    yard = unary_union([Polygon(YARD).buffer(0), Polygon(ROADSIDE), shop_pavement()]).difference(asph)
     yard = yard.difference(Polygon(SHED).buffer(0.2))
     return asph, yard
+
+
+def shop_pavement():
+    """the granite pavement before 서문분식 (blender/landmarks.py seomun_shop lays it 0.1 m over the ground): on the
+    ground map as bare earth, so no lawn grows up through it (bare, not paved: the paved map's edges, whose chains
+    the kerbs are traced along, stay as they were)"""
+    ax, ay = SHOP['a']
+    L = math.dist(SHOP['a'], SHOP['b'])
+    tx, ty = (SHOP['b'][0] - ax) / L, (SHOP['b'][1] - ay) / L
+    nx, ny = -ty, tx
+    u1, v1 = SHOP['piers'][-1][1], SHOP_PAVE
+    return Polygon([(ax, ay), (ax + tx * u1, ay + ty * u1), (ax + tx * u1 + nx * v1, ay + ty * u1 + ny * v1),
+                    (ax + nx * v1, ay + ny * v1)])
 
 
 def houses(ground):
@@ -337,7 +359,19 @@ def gate(ground):
     return dict(posts=[[round(float(p[0]), 2), round(float(p[1]), 2), round(ground(*p), 2)] for p in posts],
                 t=[round(float(t[0]), 4), round(float(t[1]), 4)], n=[round(float(n[0]), 4), round(float(n[1]), 4)],
                 z=round(ground(*(a + b) / 2), 2), width=round(float(np.linalg.norm(b - a)), 2),
-                walls=[run(WALL_N, 'granite'), run(WALL_S, 'block')])
+                walls=[run(WALL_N, 'granite'), run(WALL_S, 'block')], shop=shop())
+
+
+def shop():
+    """campus.json 「seomun」.shop: 서문분식's front on 83's lane face (blender/landmarks.py seomun_shop draws it on
+    the house's storeys): the face's east and west corners, the parts' spans along it from the east corner"""
+    S = dict(SHOP)
+    S['a'], S['b'] = list(SHOP['a']), list(SHOP['b'])
+    S['pave'] = SHOP_PAVE
+    S['piers'] = [list(p) for p in SHOP['piers']]
+    for k in ('wall', 'door_bay', 'door', 'window_bay', 'board'):
+        S[k] = list(SHOP[k])
+    return S
 
 
 def move_off(trees, shrubs, props, taken):
