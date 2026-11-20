@@ -12647,7 +12647,7 @@ _n_old = len(out['shrubs'])
 out['shrubs'] = [s_ for s_ in out['shrubs'] if not (s_[0] == 'azalea_red' and _e97c.distance(Point(s_[1], s_[2])) < EAGLE_BEDS_R + 0.2)]
 _n_old -= len(out['shrubs'])
 rng220 = random.Random(220)
-_wedges = unary_union([LineString([eagle_xy(0, 0), eagle_xy(6.5 * su_, 6.5 * sv_)]).buffer(0.55)
+_wedges = unary_union([LineString([eagle_xy(0, 0), eagle_xy(6.5 * su_, 6.5 * sv_)]).buffer(0.85)
                        for su_ in (-1, 1) for sv_ in (-1, 1)])
 EAGLE97_SHRUBS = unary_union([EAGLE97_BEDS_IN, EAGLE97_BEDS_OUT]).buffer(-0.35).difference(_wedges)
 _e97_in = EAGLE97_BEDS_OUT.buffer(-1.2)
