@@ -126,6 +126,76 @@
    "credit": "제작자 사진",
    "from": "reference/2003_가을_연희관_정면.jpg",
    "shot": "compare/haetae_2"
+  },
+  {
+   "id": "library",
+   "x": -16.84,
+   "y": 4.96,
+   "bearing": 246.7,
+   "photo": "assets/photoquiz/library.jpg",
+   "w": 960,
+   "h": 472,
+   "title": "중앙도서관 북동쪽 비스듬한 길 머리",
+   "when": "1997년",
+   "credit": "2026 재상봉 25주년 기념문집 「응답하라 1997!」",
+   "from": "reference/1997_중앙도서관.jpg",
+   "shot": "compare/library"
+  },
+  {
+   "id": "museum",
+   "x": -41.4,
+   "y": -196.6,
+   "bearing": 103.3,
+   "photo": "assets/photoquiz/museum.jpg",
+   "w": 947,
+   "h": 255,
+   "title": "백주년기념관 박물관 입구 앞마당",
+   "when": "1996년",
+   "credit": "2022 재상봉 25주년 기념문집 단체사진(건물 부분)",
+   "from": "reference/백주년기념관_박물관입구_1996_정면.jpg",
+   "shot": "compare/museum"
+  },
+  {
+   "id": "kwangbok",
+   "x": -130.35,
+   "y": 67.13,
+   "bearing": 14.7,
+   "photo": "assets/photoquiz/kwangbok.jpg",
+   "w": 952,
+   "h": 212,
+   "title": "광복관 현관 앞",
+   "when": "1996년",
+   "credit": "2022 재상봉 25주년 기념문집 단체사진(건물 부분)",
+   "from": "reference/광복관_현관_1996_1.jpg",
+   "shot": "compare/kwangbok"
+  },
+  {
+   "id": "music",
+   "x": 235.19,
+   "y": -35.79,
+   "bearing": 14.7,
+   "photo": "assets/photoquiz/music.jpg",
+   "w": 952,
+   "h": 126,
+   "title": "음악관 신관 정문 앞",
+   "when": "1996년",
+   "credit": "2022 재상봉 25주년 기념문집 단체사진(건물 부분)",
+   "from": "reference/음악관_현관_1996.jpg",
+   "shot": "compare/music"
+  },
+  {
+   "id": "billingsley",
+   "x": 31.69,
+   "y": 403.75,
+   "bearing": 14.9,
+   "photo": "assets/photoquiz/billingsley.jpg",
+   "w": 951,
+   "h": 166,
+   "title": "빌링슬리관 가운데 현관 앞",
+   "when": "1996년",
+   "credit": "2022 재상봉 25주년 기념문집 단체사진(건물 부분)",
+   "from": "reference/빌링슬리관_현관_1996.jpg",
+   "shot": "compare/billingsley"
   }
  ]
 }
