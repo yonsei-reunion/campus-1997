@@ -60,3 +60,8 @@ body.racing #minimap, body.racing #stamps, body.racing #birdbtn, body.racing #ma
   #racehud b { font-size: 22px; }
   #racehud > div { min-width: 64px; padding: 5px 8px 6px; }
 }
+#racehint { position: fixed; top: calc(84px + var(--st, 0px)); left: 50%; transform: translateX(-50%); z-index: 11; pointer-events: none;
+  background: var(--hud-bg, rgba(14, 22, 34, .62)); color: var(--hud-ink, #f4f1e8); border-radius: 10px; padding: 6px 12px;
+  font: 700 13px var(--font, sans-serif); white-space: nowrap; backdrop-filter: blur(6px); }
+#racehint[hidden] { display: none; }
+@media (max-width: 640px) { #racehint { top: calc(70px + var(--st, 0px)); font-size: 12px; white-space: normal; width: max-content; max-width: 92vw; text-align: center; } }
