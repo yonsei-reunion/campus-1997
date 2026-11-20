@@ -233,10 +233,11 @@ a.newsbtn { display: inline-block; text-decoration: none; }
 #hudbtns button { pointer-events: auto; border: 0; border-radius: 10px; padding: 8px 6px; white-space: nowrap;
   background: var(--paper); color: var(--ink); font-family: var(--title); font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; }
 #hudbtns #birdbtn { grid-column: 1 / -1; font-size: 17px; }
+#hudbtns #homebtn { grid-column: 1 / -1; font-size: 15px; padding: 6px; background: rgba(255,253,246,.82); }
 #hudbtns kbd { display: inline-block; background: var(--ink); color: #fff; border-radius: 5px; padding: 0 5px; font-family: inherit; font-size: 12px; margin-left: 3px; }
 html.touch #hudbtns kbd { display: none; }
 body.birds #birdbtn { background: var(--yellow); }
-body.birds #mapbtn, body.birds #menubtn, body.birds #viewbtn, body.birds #memobtn { display: none; }
+body.birds #mapbtn, body.birds #menubtn, body.birds #viewbtn, body.birds #memobtn, body.birds #homebtn { display: none; }
 body.birds #prompt { display: none; }
 #tourbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); display: grid; gap: 6px; justify-items: center; pointer-events: none; }
 #tourbar .tour-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; background: rgba(14, 22, 34, .85); color: #fff; border-radius: 12px; padding: 7px 12px; pointer-events: auto; }
@@ -252,7 +253,7 @@ html.touch #tourbar .tour-touch { display: block; }
 body.birds #view { cursor: grab; touch-action: none; }
 body.birds #view.grabbing { cursor: grabbing; }
 body.birds #stamps { display: none; }
-#tour-start { margin-top: 8px; width: 100%; border: 2px solid var(--ink); background: #fff; color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); cursor: pointer; }
+#tour-start, #memo-title { margin-top: 8px; width: 100%; border: 2px solid var(--ink); background: #fff; color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); cursor: pointer; }
 #tour-start:disabled { opacity: .45; cursor: progress; }
 /* the 1-minute basketball game (src/shootout.js) and its view; ./?game=shoot makes it the card's own (body.game-shoot) */
 #minigame { margin-top: 12px; padding-top: 10px; border-top: 1.5px dashed #d8d0bb; }
@@ -284,7 +285,7 @@ body.game-photo #photo-start { grid-column: 1 / -1; padding: 14px; font-size: 18
   -webkit-user-select: all; user-select: all; }
 .newsbtn.done { background: var(--mint-ink); color: #fff; }
 body:not(.game-shoot) .game-only, body.game-shoot .walk-only { display: none !important; }
-body.game-shoot #start, body.game-shoot #tour-start, body.game-shoot label[for="place-pick"], body.game-shoot #place-pick { display: none; }
+body.game-shoot #start, body.game-shoot #tour-start, body.game-shoot #memo-title, body.game-shoot label[for="place-pick"], body.game-shoot #place-pick { display: none; }
 body.game-shoot #minigame { margin-top: 0; padding-top: 0; border-top: 0; }
 body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: 0 4px 0 #0b2659; }
 /* the settings card's ways out of the walk: into the 1-minute game (or out of it) and back to the title card */

@@ -76,6 +76,10 @@ function seasonButtons(v) {
 }
 seasonButtons(season);
 setupNews();
+// 캠퍼스 쪽지 (src/memos.js): the list from the title card at once, the notes in the scene once the walker is in
+const memos = new Memos();
+memos.load();
+$('#memo-title').addEventListener('click', (e) => { e.currentTarget.blur(); memos.openList(); });
 
 async function main() {
   loading.expect(STEPS);
@@ -842,6 +846,7 @@ async function main() {
     forest.update(camera.position, true);
   };
   $('#to-title').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); toTitle(); });
+  $('#homebtn').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); toTitle(); });     // (the HUD's)
   // the games' results cards: 「처음 화면으로」 next to 「그만하고 산책하기」 (data-to-title, made by each game)
   document.addEventListener('click', (e) => { if (e.target.closest?.('[data-to-title]')) { e.stopPropagation(); e.target.blur(); toTitle(); } });
   $('#resume').addEventListener('click', resume);
@@ -1250,7 +1255,7 @@ async function main() {
   // N or the HUD's 「쪽지」: a note where the walker stands; E (or a tap on it) reads one; the title and settings cards'
   // 「캠퍼스 쪽지」: the list, and from it a note's place. Its cards stop the walker; the settings card stays under them
   const memoFree = () => started && !paused && !bird.active && !inGame() && !gameBusy() && !ui.memoryOpen && !ui.mapOpen;
-  const memos = new Memos({
+  memos.attach({
     scene, camera, player, canvas, walls: player.walls, patch: globalPatch,
     placeAt: (x, y) => ui.placeName(x, y, onRoad(x, y)),
     toast: (t, ms) => ui.toast(t, ms),
@@ -1279,10 +1284,8 @@ async function main() {
     },
   });
   ui.memos = memos;
-  memos.load();
   const writeMemo = () => { if (memoFree()) memos.openWrite(); };
   $('#memobtn').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); writeMemo(); });
-  $('#memo-title').addEventListener('click', (e) => { e.currentTarget.blur(); memos.openList(); });
   $('#memo-pause').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); memos.openList(); });
   // (others' notes: the list again now and then while walking; the ones gone blow away)
   setInterval(() => { if (started && !document.hidden && !memos.open) memos.load(); }, 90_000);
@@ -1521,7 +1524,6 @@ async function main() {
   $('#cheer-start').disabled = false;
   $('#class-start').disabled = false;
   $('#bday-start').disabled = false;
-  $('#memo-title').disabled = false;
   // the rest of the halls and landmarks, the nearest to the view first (src/chunks.js); each set in once its
   // textures are in and its shaders compiled: then the walker's walls, the sun's shadows and the atmosphere take it
   chunks.renderer = renderer;

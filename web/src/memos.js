@@ -16,7 +16,7 @@ const MAX_TEXT = 100, MAX_NAME = 12, SHOW = 300;
 const SIZE = 0.4;                  // m: the paper's side (a real one is 7.6 cm: unseen past a few steps)
 const STAKE = 1.3;                 // m: the paper's top edge over the ground on a stake
 const REACH = 3;                   // m: how far ahead a wall takes the note
-const NEAR = 2.6;                  // m: the prompt to read it
+const NEAR = 3.2;                  // m: the prompt to read it (main.js onGo sets the walker down 2.7 m off)
 const SEEN = 160, TEXTURED = 45;   // m: drawn within, its writing drawn within
 export const COLORS = { yellow: '#ffef7a', pink: '#ffbdd3', mint: '#bdf0d9', blue: '#bfdcff', orange: '#ffd08f' };
 const COLOR_NAMES = { yellow: '노랑', pink: '분홍', mint: '민트', blue: '하늘', orange: '주황' };
@@ -90,13 +90,27 @@ function wrap(x, text, maxW) {
 }
 
 export class Memos {
-  // walls: the meshes a note sticks to (player.walls); placeAt(x, y): the place name; onGo(note): walk to it;
-  // onOpen() / onClose(): a card of ours opened / closed (main.js stops / lets go of the walker); patch: the scene's
-  // atmosphere for our materials; toast(text)
-  constructor({ scene, camera, player, canvas, walls, placeAt, onGo, onOpen, onClose, patch = (m) => m, toast = () => {}, canPick = () => true }) {
-    Object.assign(this, { scene, camera, player, walls, placeAt, onGo, onOpen, onClose, patch, toast, canPick });
-    this.notes = new Map();          // id → { n, root, hinge, paper, tex, ph }
-    this.flying = [];                // blowing away: { root, v, spin, t }
+  // Two stages: the cards and the list come with the page (the title card's list works while the campus loads), the
+  // notes in the scene once the walker is in (attach). toast(text, ms)
+  constructor({ toast = () => {} } = {}) {
+    this.toast = toast;
+    this.notes = new Map();          // id → { n, pending } and, once attached, { root, hinge, paper, tex, ph }
+    this.flying = [];                // blowing away: { o, v, spin, t }
+    this.onOpen = this.onClose = () => {};
+    this.font = '"Jua", "Noto Sans KR", sans-serif';
+    this.fontReady = document.fonts?.load?.(`40px ${this.font}`).catch(() => {}) ?? Promise.resolve();
+    this.loaded = false;
+    this.listeners = new Set();
+    this._t = 0; this._near = 0;
+    this._buildCards();
+  }
+
+  // the scene's part: walls, the meshes a note sticks to (player.walls); placeAt(x, y): the place name; onGo(note):
+  // walk to it; onOpen() / onClose(): a card of ours opened / closed (main.js stops / lets go of the walker); patch:
+  // the scene's atmosphere for our materials; canPick(): a tap on a note may read it now
+  attach({ scene, camera, player, canvas, walls, placeAt, onGo, onOpen, onClose, patch = (m) => m, canPick = () => true, toast }) {
+    Object.assign(this, { scene, camera, player, walls, placeAt, onGo, onOpen, onClose, patch, canPick });
+    if (toast) this.toast = toast;
     this.group = new THREE.Group();
     this.group.name = 'memos';
     scene.add(this.group);
@@ -105,16 +119,13 @@ export class Memos {
     this.stakeMat = patch(new THREE.MeshStandardMaterial({ color: 0x8a6a46, roughness: 0.9 }));
     this.plain = {};                 // colour → the material of a far note (no writing)
     for (const [k, c] of Object.entries(COLORS)) this.plain[k] = patch(new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, side: THREE.DoubleSide }));
-    this.font = '"Jua", "Noto Sans KR", sans-serif';
-    this.fontReady = document.fonts?.load?.(`40px ${this.font}`).catch(() => {}) ?? Promise.resolve();
     this.ray = new THREE.Raycaster();
     this.ray.firstHitOnly = true;
-    this.loaded = false;
-    this.listeners = new Set();
-    this._t = 0; this._near = 0;
     this._bindPick(canvas);
-    this._buildCards();
+    for (const o of this.notes.values()) this._mesh(o);
+    this._changed();                 // (the list's 「가기」 come on)
   }
+  get attached() { return !!this.scene; }
 
   // ---------------------------------------------------------------- data
   async load() {
@@ -156,7 +167,13 @@ export class Memos {
 
   // ---------------------------------------------------------------- the notes in the scene
   _put(n, pending = false) {
-    const root = new THREE.Group(), hinge = new THREE.Group();
+    const o = { n, pending };
+    this.notes.set(n.id, o);
+    if (this.attached) this._mesh(o);
+    return o;
+  }
+  _mesh(o) {
+    const n = o.n, root = new THREE.Group(), hinge = new THREE.Group();
     root.position.set(n.x, n.z, -n.y);
     root.rotation.y = Math.PI - n.yaw;                // (the paper's front, local +z, the way it faces)
     root.add(hinge);
@@ -166,9 +183,7 @@ export class Memos {
     hinge.add(paper);
     root.userData.memo = n.id;
     this.group.add(root);
-    const o = { n, root, hinge, paper, tex: null, ph: Math.random() * 100, pending };
-    this.notes.set(n.id, o);
-    return o;
+    Object.assign(o, { root, hinge, paper, tex: null, ph: Math.random() * 100 });
   }
   _texture(o, on) {
     if (on === !!o.tex) return;
@@ -192,13 +207,14 @@ export class Memos {
     const o = this.notes.get(id);
     if (!o) return;
     this.notes.delete(id);
+    this._changed();
+    if (!o.root) return;
     o.root.userData.memo = null;
     o.paper.userData.memo = null;
     const v = WIND.clone().multiplyScalar(2.2 + Math.random() * 1.5);
     v.y = 1.2 + Math.random() * 0.8;
     // (a stake stays where it was a moment, then goes with the paper)
     this.flying.push({ o, v, spin: new THREE.Vector3((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6), t: 0 });
-    this._changed();
   }
   _drop(f) {
     this.group.remove(f.o.root);
@@ -206,6 +222,7 @@ export class Memos {
   }
 
   update(dt, t) {
+    if (!this.attached) return;
     this._t = t;
     // the flutter: a breeze lifting the paper's foot off the wall (more on a stake)
     const cam = this.camera.position;
@@ -473,7 +490,9 @@ export class Memos {
     c.querySelector('.text').textContent = n.text;
     c.querySelector('.sign').textContent = n.name ? `— ${n.name}` : '';
     c.querySelector('.memo-meta').textContent = [n.place, ago(n.created_at)].filter(Boolean).join(' · ');
-    c.querySelector('.go').hidden = !fromList;
+    c.querySelector('.go').hidden = !this._fromList;
+    c.querySelector('.go').disabled = !this.attached;
+    c.querySelector('.go').textContent = this.attached ? '그곳으로 가기' : '캠퍼스를 불러오는 중…';
     const del = c.querySelector('.del');
     del.textContent = '떼어 내기'; del.classList.remove('armed'); del.disabled = n.id.startsWith('tmp-');
     clearTimeout(this._arm);
@@ -537,7 +556,8 @@ export class Memos {
       b.addEventListener('click', () => this.read(n, true));
       const go = el('button', 'go', '가기');
       go.type = 'button';
-      go.title = '쪽지가 붙은 곳으로 가기';
+      go.title = this.attached ? '쪽지가 붙은 곳으로 가기' : '캠퍼스를 다 불러오면 갈 수 있어요';
+      go.disabled = !this.attached;
       go.addEventListener('click', () => { this.closeAll(); this.onGo(n); });
       li.append(b, go);
       ul.appendChild(li);

@@ -348,6 +348,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 ### 캠퍼스 쪽지
 
 - 쪽지(`memos.js` · `memos.css`)는 공개 DoltHub DB `benelog/yonsei-1997` 의 표 `notes`(`id, text, name, color, x, y, z, yaw, kind, place, created_at`)에 있습니다. `x · y` 는 캠퍼스 좌표, `z` 는 종이 윗변의 높이(해발 = 게임 높이), `yaw` 는 쪽지가 보는 쪽(캠퍼스 `(sin, cos)`, 0 = 북), `kind` 는 `wall` · `stake`, `created_at` 은 UTC.
+- 두 단계: 쓰기 · 읽기 · 목록 창과 데이터는 페이지와 함께(`new Memos()`, 처음 화면의 목록은 불러오는 동안에도 열림), 장면의 쪽지는 걷는 사람이 생긴 뒤 `attach()` 로. 그 전에는 목록의 「가기」가 꺼져 있습니다.
 - 읽기: 브라우저가 DoltHub SQL API(`/api/v1alpha1/benelog/yonsei-1997/main?q=`)에서 토큰 없이 바로 읽습니다(최근 300장). 처음, 목록을 열 때, 걷는 동안 90 s 마다. 다시 읽어 없어진 쪽지는 바람에 날려 보냅니다.
 - 쓰기: DoltHub 는 브라우저가 `authorization` 헤더를 붙인 요청을 CORS 로 막습니다(preflight 가 GET 만 허용). 그래서 Cloudflare Worker `notes-worker/`(`y97-notes`)가 토큰(secret `DOLT_TOKEN`)을 들고 대신 씁니다. 받는 것은 `POST /`(쪽지 하나 더하기)와 `DELETE /<id>` 뿐이고, SQL 은 Worker 가 만듭니다(글자 수 · 색 · 자리 검사, IP 마다 1분 8번). DoltHub 쓰기는 한 번에 커밋 하나, 1 ~ 2 s.
   - 배포: `cd notes-worker && npx wrangler deploy`. 토큰을 바꾸면 `npx wrangler secret put DOLT_TOKEN`. 로컬 시험은 `.dev.vars` 에 `DOLT_TOKEN=…` 을 두고 `npx wrangler dev --port 8788`, 게임 주소에 `?notesapi=http://127.0.0.1:8788`.
