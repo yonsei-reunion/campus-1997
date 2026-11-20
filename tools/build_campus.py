@@ -11368,6 +11368,26 @@ for _ly in ('pavers', 'dirt'):
 SPLAT_OPS.append(('poly', '_ga', list(UW_HEAD_ROAD97.exterior.coords), 255))    # (over 용재관's bank, which _yg takes up)
 draw_poly('pavers', UW_EAST_WALK97.difference(UW_HEAD_ROAD97), 0)
 draw_poly('dirt', UW_EAST_WALK97.difference(UW_HEAD_ROAD97))
+# 언더우드관 앞길 (reference/고증/4.2_언더우드_동상.md 「정원 북쪽 끝의 둑과 앞길」, UWG): in the four frames of July 1997
+# the road before 언더우드관 runs v 48.3 - 52.7 (its north kerb within 0.1 m in all four, the road's surface 44.55 m),
+# a lawn from there to the hall; south of it a bank 1.0 m high from the garden's gravel (v 43.4) to the road, planted
+# with a row of round clipped crowns either side of a flight on the tower's axis (u -2.6 .. 2.0); past the bank's ends
+# (u -21, 20) the road's surface runs down to the gravel and into the side halls' roads.  The game had the road 3 m
+# north (v 51.6 - 55.7) and block paving where the bank is.  On the game's map only (the planting, the decals and the
+# leaf map read the paving as it was); the bank's height and its flight are not modelled (4.2 「남은 한계」)
+UW_FRONT97 = dict(road=(48.3, 52.7), foot=43.4, bank=(-21.0, 20.0), flight=(-2.6, 2.0), ends=(-29.5, 26.5))
+_uf = UW_FRONT97
+UW_FRONT97_OLD = _UG([(_uf['ends'][0], _uf['foot']), (33.0, _uf['foot']), (33.0, 56.2), (_uf['ends'][0], 56.2)])
+UW_FRONT97_ROAD = _UG([(_uf['ends'][0], _uf['road'][0]), (_uf['ends'][1], _uf['road'][0]), (_uf['ends'][1], _uf['road'][1]),
+                       (_uf['ends'][0], _uf['road'][1])]).union(
+    _UG([(_uf['ends'][0], _uf['foot']), (_uf['bank'][0], _uf['foot']), (_uf['bank'][0], 49.0), (_uf['ends'][0], 49.0)])).union(
+    _UG([(_uf['bank'][1], _uf['foot']), (_uf['ends'][1], _uf['foot']), (_uf['ends'][1], 49.0), (_uf['bank'][1], 49.0)]))
+UW_FRONT97_FLIGHT = _UG([(_uf['flight'][0], _uf['foot']), (_uf['flight'][1], _uf['foot']), (_uf['flight'][1], _uf['road'][0]),
+                         (_uf['flight'][0], _uf['road'][0])])
+for _ly in ('asphalt', 'pavers', 'dirt'):
+    draw_poly(_ly, UW_FRONT97_OLD, 0)
+draw_poly('asphalt', UW_FRONT97_ROAD)
+draw_poly('pavers', UW_FRONT97_FLIGHT)
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -12456,6 +12476,24 @@ out['shrubs'] = [s_ for s_ in out['shrubs'] if not any(s_[0].startswith('azalea'
                                             for x_, y_ in _YJ_ON_ROAD)]
 # (and those of its north tip on the drive at the head of 백양로's end steps, UW_HEAD_ROAD97: open in 1997)
 out['shrubs'] = [s_ for s_ in out['shrubs'] if not (s_[0].startswith('azalea') and UW_HEAD_ROAD97.buffer(0.3).contains(Point(s_[1], s_[2])))]
+# 언더우드관 앞길 (UW_FRONT97): the bank's eight round crowns (centres u in four frames, 4.3 - 4.7 m apart and about
+# 4.5 m across): the clipped pine the game had at the bank's west foot moved onto it in its place in the list, the
+# other seven at the trees' very end.  The bollards across the road (the 2003 photo) moved onto its 1997 place
+UW_FRONT97_PINES = [-19.1, -14.4, -9.6, -4.7, 4.3, 8.5, 13.2, 17.7]
+_ufp = [uwg_xy(u_, 46.0) for u_ in UW_FRONT97_PINES]
+_uf_old = uwg_xy(-18.8, 43.3)
+_uf_k = next(i_ for i_, t_ in enumerate(out['trees']) if t_[0] == 'pine' and math.hypot(t_[1] - _uf_old[0], t_[2] - _uf_old[1]) < 0.05)
+out['trees'][_uf_k][1:3] = [round(_ufp[0][0], 2), round(_ufp[0][1], 2)]
+for k_, (x_, y_) in enumerate(_ufp[1:]):
+    out['trees'].append(['pine', round(x_, 2), round(y_, 2), 0.4, round(1.3 + 0.9 * k_, 2)])
+_uf_inv = lambda x_, y_: (float(np.dot([x_ - UW_STATUE[0], y_ - UW_STATUE[1]], _wuu)), float(np.dot([x_ - UW_STATUE[0], y_ - UW_STATUE[1]], _wuv)))
+for u_row in (-13.8, 23.4):
+    _bk = [i_ for i_, p_ in enumerate(out['props']) if p_[0] == 'bollard' and abs(_uf_inv(p_[1], p_[2])[0] - u_row) < 0.5
+           and 45.0 < _uf_inv(p_[1], p_[2])[1] < 56.0]
+    for j_, i_ in enumerate(sorted(_bk, key=lambda i_: _uf_inv(out['props'][i_][1], out['props'][i_][2])[1])):
+        v_ = UW_FRONT97['road'][0] + 0.45 + (UW_FRONT97['road'][1] - UW_FRONT97['road'][0] - 0.9) * j_ / max(1, len(_bk) - 1)
+        out['props'][i_][1:3] = [round(c_, 2) for c_ in uwg_xy(u_row, v_)]
+print('언더우드관 앞길: pine moved', _uf_k, '- crowns added', len(_ufp) - 1)
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
