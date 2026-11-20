@@ -1089,6 +1089,7 @@ async function main() {
     pauseButtons: (game) => { $('#class-go').hidden = game; $('#class-quit').hidden = !lecture?.on; },
   };
   games.push(lectureGame);
+  import('./timetable.css');      // (with the title card's button: it comes on its own after the page)
   const loadLecture = () => (lectureLoad ||= import('./timetable.js').then(({ Timetable }) => (lecture = new Timetable({
     scene, camera, player, sound, groundAt, places, mobile: MOBILE, ensure: (x, y) => chunks.ensure(x, y),
     onBegin: (msg) => {
