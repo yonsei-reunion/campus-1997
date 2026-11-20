@@ -189,7 +189,8 @@ def guard_booth():
     w, d = 1.5, 3.0
     zp, zw, zh, zr = 1.05, 2.15, 2.36, 2.48
     mb.box((0, 0, (kh + zp) / 2), (w, d, zp - kh), 'paint_yellow', skip=('bottom',))
-    mb.box((0, 0, (zp + zw) / 2), (w - 0.06, d - 0.06, zw - zp), 'glass', skip=('bottom', 'top'))
+    mb.box((0, 0, (zp + zw) / 2), (w - 0.06, d - 0.06, zw - zp), 'glass_car', skip=('bottom', 'top'))
+    mb.box((0, 0, (zp + zw) / 2), (w - 0.3, d - 0.3, zw - zp), 'trim_black', skip=('bottom', 'top'))     # (the dark inside)
     for sx in (-1, 1):
         for sy in (-1, 1):
             mb.box((sx * (w / 2 - 0.06), sy * (d / 2 - 0.06), (zp + zw) / 2), (0.13, 0.13, zw - zp), 'paint_yellow', skip=('bottom', 'top'))

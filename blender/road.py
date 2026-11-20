@@ -430,6 +430,12 @@ def build():
     def at(s):
         return min(frames, key=lambda f: abs(f[0] - s))
 
+    def hat(s):
+        # the road's height at s, between the frames (2 m apart)
+        k = min(range(len(frames) - 1), key=lambda i: abs(frames[i][0] - s) + abs(frames[i + 1][0] - s))
+        (sa, *_, ha), (sb, *_, hb) = frames[k], frames[k + 1]
+        return ha + (hb - ha) * (s - sa) / (sb - sa) if sb != sa else ha
+
     def blank(s, pad):
         return in_cross(s, pad) or (bump is not None and abs(s - bump) < 2.5 + pad)
     # white dashed centre line, solid yellow edge lines along both curbs
@@ -497,7 +503,7 @@ def build():
     def hump(f, o0, o1, mat, half=0.9, flat=0.5, rise=0.09):
         # a real raised bump: flat top with sloping sides (a 9 cm rise over 1.8 m), stripes painted on it
         s, p, t, n, h = f
-        P = lambda o, d, z: (lambda q: (q.x, q.y, h + z))(p + n * o + t * d)
+        P = lambda o, d, z: (lambda q: (q.x, q.y, hat(s + d) + z))(p + n * o + t * d)      # (on the road's slope)
         prof = [(-half, 0.012), (-flat, rise), (flat, rise), (half, 0.012)]
         for (d0, z0), (d1, z1) in zip(prof, prof[1:]):
             marks.face([P(o0, d0, z0), P(o0, d1, z1), P(o1, d1, z1), P(o1, d0, z0)], mat)
@@ -527,9 +533,11 @@ def build():
         dia = [c0 - t0 * dl, c0 + n0 * dw, c0 + t0 * dl, c0 - n0 * dw]
         k_ = 0.25 / dw                                  # (a line 0.15 m wide or so)
         inner = [c0 - t0 * dl * (1 - k_), c0 + n0 * dw * (1 - k_), c0 + t0 * dl * (1 - k_), c0 - n0 * dw * (1 - k_)]
+        # (each corner on the road's own height there: a 3.2 m mark on a rising road would sink at its far end)
+        hz = lambda v: hat(ds + (v - p0).dot(t0)) + 0.012
         for i in range(4):
             a0, a1, b1, b0 = dia[i], dia[(i + 1) % 4], inner[(i + 1) % 4], inner[i]
-            marks.face([(v.x, v.y, h0 + 0.012) for v in (b0, b1, a1, a0)], 'paint_white')
+            marks.face([(v.x, v.y, hz(v)) for v in (b0, b1, a1, a0)], 'paint_white')
     for s_t, s_h, ao in BO.get('arrows', []):
         # a straight lane arrow: a shaft 0.15 m wide and a head 0.6 m across, 1.2 m long, pointing from s_t to s_h
         sg = 1.0 if s_h > s_t else -1.0
@@ -537,7 +545,7 @@ def build():
         strip_(min(s_t, sh0), max(s_t, sh0), ao, 0.15, 'paint_white')
         fb, ft = at(sh0), at(s_h)
         pb, pt_ = fb[1] + fb[3] * ao, ft[1] + ft[3] * ao
-        marks.face([(v.x, v.y, h + 0.012) for v, h in ((pb - fb[3] * 0.3, fb[4]), (pt_, ft[4]), (pb + fb[3] * 0.3, fb[4]))][::int(sg)],
+        marks.face([(v.x, v.y, h + 0.012) for v, h in ((pb - fb[3] * 0.3, hat(sh0)), (pt_, hat(s_h)), (pb + fb[3] * 0.3, hat(sh0)))][::int(sg)],
                    'paint_white')
     # lane paint on the asphalt apron the side road opens into (draped on the terrain heights from build_campus)
     for ln in R.get('apron_paint', []):
