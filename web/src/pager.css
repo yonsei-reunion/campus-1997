@@ -17,7 +17,7 @@ body.paging #stamps, body.paging #birdbtn, body.paging #mapbtn, body.paging #bla
 #pagerhud .way span { margin-top: 4px; font: 700 12px var(--font, sans-serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 @keyframes pagerlow { to { opacity: .55; } }
 
-#pagerflash { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); z-index: 12; pointer-events: none; opacity: 0; white-space: nowrap;
+#pagerflash { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); z-index: 12; pointer-events: none; opacity: 0; white-space: nowrap;
   font: 400 clamp(30px, 6vw, 48px) var(--title, sans-serif); color: #fff; text-shadow: 0 4px 0 rgba(14, 22, 34, .5), 0 0 20px rgba(14, 22, 34, .45); }
 #pagerflash.pop { animation: pagerflash 1.8s ease-out; }
 @keyframes pagerflash { 0% { opacity: 0; transform: translateX(-50%) scale(1.4); } 12% { opacity: 1; transform: translateX(-50%) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
@@ -55,7 +55,7 @@ html.touch #pagerbtn { bottom: calc(200px + var(--sb, 0px)); padding: 14px 24px;
   #pagerhud b { font-size: 22px; }
   #pagerhud > div { min-width: 60px; padding: 5px 8px 6px; }
   #pagerhud .way { max-width: 120px; }
-  #pagerdev { bottom: auto; top: calc(78px + var(--st, 0px)); right: calc(10px + var(--sr, 0px)); transform-origin: 100% 0; transform: scale(.72); }
+  #pagerdev { bottom: calc(12px + var(--sb, 0px)); right: calc(10px + var(--sr, 0px)); transform-origin: 100% 100%; transform: scale(.72); }
 }
 
 /* the phone's card */
@@ -113,3 +113,4 @@ html.touch #pagerbtn { bottom: calc(200px + var(--sb, 0px)); padding: 14px 24px;
 #pagerresult button { width: 100%; border: 0; border-radius: 8px; padding: 12px 8px; font: 700 15px var(--font, sans-serif); cursor: pointer; }
 #pagerresult .again { background: var(--blue, #143c8c); color: #fff; }
 #pagerresult .quit { margin-top: 8px; background: #fff; color: var(--ink, #16202e); border: 2px solid var(--ink, #16202e); }
+@media (max-height: 500px) { html.touch #pagerbtn { bottom: calc(13% + var(--sb, 0px)); } }   /* (as the walk's prompt: clear of the stick) */

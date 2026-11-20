@@ -52,6 +52,13 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const round5 = (s) => Math.ceil(s / 5) * 5;
 const dash = (n) => `${n.slice(0, 3)}-${n.slice(3)}`;
+// 로 or 으로 after a word (a final consonant other than ㄹ takes 으로; digits by their reading)
+const ro = (w) => {
+  const c = w.trim().slice(-1), d = '0123456789'.indexOf(c);
+  if (d >= 0) return w + ([0, 3, 6].includes(d) ? '으로' : '로');
+  const k = c.charCodeAt(0) - 0xac00;
+  return w + (k >= 0 && k < 11172 && k % 28 && k % 28 !== 8 ? '으로' : '로');
+};
 // what the pager's screen shows: the number, a dash, the code
 const screenText = (pg) => `${dash(pg.num)}-${pg.code.code}`;
 
@@ -107,6 +114,7 @@ export class Pager {
     if (!this.booths.length) return;
     this.results(false);
     this.dial(false);
+    if (this.crowd?.hidden) this.crowd.hidden = false;      // (the race takes the crowd away while it runs)
     // the crowd's callers: whoever stands on the phone at a booth's spot
     for (const b of this.booths) b.crowd = this.crowd?.people.find((p) => p.phone && Math.hypot(p.x - b.sx, p.y - b.sy) < 0.6) || null;
     for (const b of this.booths) this.freeGuest(b, true);
@@ -317,7 +325,7 @@ export class Pager {
     this.group.position.set(m.x, h, -m.y);
     if (!this.group.parent) this.scene.add(this.group);
     this.group.visible = true;
-    this.flash(`${m.name}(으)로!`);
+    this.flash(`${ro(m.name)}!`);
     this.ensure?.(m.x, m.y);
   }
 
@@ -361,7 +369,7 @@ export class Pager {
     const calls = this.legs.filter((l) => l.what === 'call').length;
     const rec = { id: Date.now(), at: Date.now(), score: this.score, calls, right: this.right, hero: pl.actor.id };
     const prev = records()[0] || null;
-    const { rank, total } = addRecord(rec);
+    const { rank, total } = this.score ? addRecord(rec) : { rank: 0, total: records().length };     // (nothing to keep of an empty game)
     setTimeout(() => { if (this.state === 'done') this.results(true, { rec, rank, total, prev, all }); }, all ? 600 : 1400);
   }
 
@@ -439,7 +447,7 @@ export class Pager {
     }
     this.dl = { stage: 'dial', typed: '', el };
     el.querySelector('.mini').textContent = screenText(this.page);
-    el.querySelector('.lead').textContent = `삐삐에 찍힌 번호 ${dash(this.page.num)}(으)로 걸어요`;
+    el.querySelector('.lead').textContent = `삐삐에 찍힌 번호 ${ro(dash(this.page.num))} 걸어요`;
     el.querySelector('.keys').hidden = false;
     el.querySelector('.quiz').hidden = true;
     el.querySelector('.talk').hidden = true;
@@ -608,6 +616,7 @@ export class Pager {
     const el = this.pgEl;
     if (!el) return;
     el.querySelector('.txt').textContent = text;
+    el.querySelector('.ghost').textContent = text ? text.replace(/[0-9]/g, '8') : '888-8888-888';
     el.querySelector('small').textContent = small;
     el.classList.toggle('lit', !!text);
     el.querySelector('.txt').classList.toggle('long', text.length > 13);
@@ -630,7 +639,8 @@ export class Pager {
     el.querySelector('.big').textContent = `${rec.score}점`;
     el.querySelector('.sub').textContent = `${all ? `${PAGES}통 모두 걸었어요` : `${rec.calls}통 걸고 시간이 다 됐어요`} · 숫자 암호 ${rec.right}개 맞힘`;
     const be = el.querySelector('.best'), top = rank === 1;
-    be.textContent = top ? (prev ? `새 기록! 전 최고 ${prev.score}점` : '첫 기록!') : `이 브라우저 ${rank}위 (${total}판 가운데) · 최고 ${prev.score}점`;
+    be.textContent = !rank ? '다음엔 한 통이라도 걸어 봐요' : top ? (prev ? `새 기록! 전 최고 ${prev.score}점` : '첫 기록!')
+      : `이 브라우저 ${rank}위 (${total}판 가운데) · 최고 ${prev.score}점`;
     be.classList.toggle('new', top);
     el.querySelector('.ranks').replaceChildren(...records().slice(0, 5).map((r, i) => {
       const li = document.createElement('li');
