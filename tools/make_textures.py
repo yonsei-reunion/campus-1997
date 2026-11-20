@@ -1369,6 +1369,42 @@ def station_sign():
 
 station_sign()
 
+
+# ---------------------------------------------------------------- 서문분식 간판
+# The board over 서문분식 at 83번지's ground floor by 서문 (tools/seomun.py SHOP, reference/고증/3.22 「서문 앞 가게」):
+# white with green letters (the place and the colours as an alumna/alumnus remembers them; the frame and the size like
+# the shop board in that place in the 2011 roadview), drawn as 연세로's shop signs are, 512 x 128 (4 : 1)
+def seomun_sign():
+    if ONLY and 'sign_seomun' not in ONLY:
+        return
+    fb = '/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc'
+
+    def fnt(size):
+        for i in (1, 0, 2, 3):
+            try:
+                return ImageFont.truetype(fb, size, index=i)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+    bg, fg = (250, 250, 246), (22, 128, 62)
+    img = Image.new('RGB', (512, 128), bg)
+    d = ImageDraw.Draw(img)
+    d.rectangle([6, 6, 505, 121], outline=tuple(int(c * 0.75) for c in fg), width=4)
+    txt = '서문분식'
+    size = 96
+    while True:
+        f = fnt(size)
+        w = d.textlength(txt, font=f)
+        if w < 420 or size < 30:
+            break
+        size -= 4
+    d.text((256 - w / 2, 64), txt, font=f, fill=fg, anchor='lm')
+    img.save(os.path.join(OUT, 'sign_seomun.png'), optimize=True)
+    print('sign_seomun')
+
+
+seomun_sign()
+
 if ONLY:
     raise SystemExit(0)
 

@@ -1066,5 +1066,6 @@
  "plaster_station": {"_doc": "옛 신촌역 역사의 크림색 벽 (나무 벽에 시멘트를 뿜어 칠함: 김종헌 2007; 서울연구원 52232 · 52245 · 52250, 1996)", "weather": 0.4, "tex": "white_plaster_02", "tile": 3.0, "tint": [2.55, 2.4, 2.02], "rough": 0.85},
  "roof_tile_teal": {"_doc": "옛 신촌역 역사의 짙은 청록 기와 (서울연구원 52232 · 52245 · 52250, 1996)", "tex": "grey_roof_tiles_02", "tile": 1.2, "tint": [0.15, 0.36, 0.34], "rough": 0.6},
  "sign_station": {"_doc": "옛 신촌역 역사의 이름판 「신촌역 · 新村驛 · Shinchon Station」 (tools/make_textures.py sign_station, 서울연구원 52245, 1996)", "image": "sign_station.png", "rough": 0.5},
+ "sign_seomun": {"_doc": "서문분식 간판: 흰 바탕 초록 글씨 (tools/make_textures.py sign_seomun, tools/seomun.py SHOP, reference/고증/3.22 「서문 앞 가게」)", "image": "sign_seomun.png", "rough": 0.5, "emissiveMap": true},
  "wagon_brown": {"_doc": "신촌역 구내 북쪽 옆선에 선 유개화차의 짙은 갈색 몸 (서울연구원 52044 · 52045, 1996)", "color": [0.16, 0.07, 0.05], "rough": 0.6, "metal": 0.3}
 }

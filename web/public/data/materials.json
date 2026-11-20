@@ -1435,6 +1435,12 @@
   "image": "sign_station.png",
   "rough": 0.5
  },
+ "sign_seomun": {
+  "_doc": "서문분식 간판: 흰 바탕 초록 글씨 (tools/make_textures.py sign_seomun, tools/seomun.py SHOP, reference/고증/3.22 「서문 앞 가게」)",
+  "image": "sign_seomun.png",
+  "rough": 0.5,
+  "emissiveMap": true
+ },
  "wagon_brown": {
   "_doc": "신촌역 구내 북쪽 옆선에 선 유개화차의 짙은 갈색 몸 (서울연구원 52044 · 52045, 1996)",
   "color": [
