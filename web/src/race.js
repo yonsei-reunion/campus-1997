@@ -5,7 +5,7 @@
 // gate, so the next run shows how far ahead of (or behind) the best one it is.
 // Loaded only when the course picker opens (main.js).
 import * as THREE from 'three';
-import { HERO } from './characters.js';
+import { HERO, STUDENTS, crowdLook, locomotion } from './characters.js';
 import { safeGet, safeSet, wrapAngle } from './util.js';
 import './race.css';
 
@@ -37,6 +37,9 @@ const COUNT = 3;
 const ARROW_GAP = 4.5, ARROW_CLEAR = 4.5;   // the ground's arrows: one every ARROW_GAP m, none within ARROW_CLEAR of a gate
 const GATE_R = 4.5, GATE_H = 2.6;      // a gate is passed within GATE_R of its middle (and 5 m in height)
 const KEY = 'y97-run-records', MAX = 50;
+// the other runners (nobody else is about meanwhile: main.js hides the crowd and the cars): jogging along the course,
+// some the other way; one farther than RUN_FAR from the walker comes back RUN_AHEAD m ahead of them along the course
+const RUNNERS = matchMedia('(pointer: coarse)').matches ? 4 : 6, RUN_FAR = 90, RUN_AHEAD = [45, 85];
 
 // ---------------------------------------------------------------- records (this browser only)
 export function loadAll() {
@@ -117,8 +120,9 @@ const GOLD = new THREE.Color(0xffc83a), PALE = new THREE.Color(1, 1, 0.9);
 export class Race {
   // groundAt(x, y): the walk's height there; ensure(x, y): chunks.ensure (a promise while the halls there come in);
   // onBegin(msg): main.js takes the walk on (title card off, settings card shut); onQuit: back to the walk
-  constructor({ scene, camera, player, sound, groundAt, ensure, onBegin, onQuit }) {
-    Object.assign(this, { scene, camera, player, sound, groundAt, ensure, onBegin, onQuit });
+  constructor({ scene, camera, player, sound, groundAt, ensure, onBegin, onQuit, cast, shadows, blobs }) {
+    Object.assign(this, { scene, camera, player, sound, groundAt, ensure, onBegin, onQuit, cast, shadows, blobs });
+    this.runners = [];
     this.state = 'off';                 // off | count | play | done
     this.group = new THREE.Group();
     this.group.name = 'race_gates';
@@ -201,6 +205,7 @@ export class Race {
     this.state = 'count';
     this.clock = COUNT;
     this.shown = 0;
+    this.placeRunners(c);
     this.hudEl().hidden = false;
     this.hint(true);
     this.flash('');
@@ -214,6 +219,7 @@ export class Race {
     this.player.autoRun = false;
     this.player.enabled = true;
     if (this.group.parent) this.scene.remove(this.group);
+    for (const r of this.runners) if (r.a.holder.parent) this.scene.remove(r.a.holder);
     if (this.hud) this.hud.el.hidden = true;
     this.hint(false);
     this.big('');
@@ -335,7 +341,7 @@ export class Race {
     if (!this.on) return;
     for (const g of this.gates) if (g.visible) g.userData.ring.rotation.y = t * 0.6;
     this.flowArrows(t);
-    if (!paused) this.tick(dt);
+    if (!paused) { this.tick(dt); this.moveRunners(dt); }
     this.drawHud();
   }
 
@@ -390,6 +396,90 @@ export class Race {
     const prev = this.best;
     const { rank, total } = addRecord(this.course.id, rec);
     setTimeout(() => { if (this.state === 'done') this.results(true, { rec, rank, total, prev }); }, 1200);
+  }
+
+  // ---------------------------------------------------------------- the other runners
+  // the course as one line (gates and the turns between) with the distance along it at each point
+  lineAlong(c) {
+    const pts = lineOf(c), at = [0];
+    for (let i = 1; i < pts.length; i++) at.push(at[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const [fx, fy] = pts[0], [lx, ly] = pts[pts.length - 1];
+    return { pts, at, len: at[at.length - 1], loop: Math.hypot(lx - fx, ly - fy) < 12 };
+  }
+  // the point s m along the line, and the way it goes there
+  pointAt(s) {
+    const { pts, at } = this.line;
+    let i = 1;
+    while (i < at.length - 1 && at[i] < s) i++;
+    const [ax, ay] = pts[i - 1], [bx, by] = pts[i], d = at[i] - at[i - 1] || 1, u = Math.min(1, Math.max(0, (s - at[i - 1]) / d));
+    return { x: ax + (bx - ax) * u, y: ay + (by - ay) * u, dx: (bx - ax) / d, dy: (by - ay) / d };
+  }
+  // how far along the line the walker is (the nearest point of it)
+  progress(x, y) {
+    const { pts, at } = this.line;
+    let best = Infinity, s = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, ay] = pts[i - 1], [bx, by] = pts[i], dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
+      const u = Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / l2)), qx = ax + dx * u - x, qy = ay + dy * u - y, d = qx * qx + qy * qy;
+      if (d < best) { best = d; s = at[i - 1] + u * Math.sqrt(l2); }
+    }
+    return s;
+  }
+
+  placeRunners(c) {
+    this.line = this.lineAlong(c);
+    if (!this.cast) return;
+    const mine = this.player.actor?.id, ids = STUDENTS.filter((id) => id !== mine);
+    while (this.runners.length < RUNNERS) {
+      const n = this.runners.length, id = ids[(n * 5 + 3) % ids.length];
+      const a = this.cast.make(id, null, crowdLook(id, 5200 + n * 11));
+      this.shadows?.addDynamic(a.holder);
+      this.blobs?.addPerson(a);
+      this.runners.push({ a, n });
+    }
+    // spread from just ahead of the start: the first few the way the course goes, every third one coming back
+    this.runners.forEach((r, i) => {
+      r.dir = i % 3 === 2 ? -1 : 1;
+      r.speed = 3.4 + ((i * 7) % 6) * 0.25;
+      r.side = ((i * 5) % 7) / 7 * 1.6 - 0.8;
+      this.respawn(r, 12 + i * (Math.min(this.line.len, 2 * RUN_FAR) - 12) / RUNNERS);
+      if (!r.a.holder.parent) this.scene.add(r.a.holder);
+    });
+  }
+  respawn(r, s) {
+    const L = this.line.len;
+    r.s = this.line.loop ? ((s % L) + L) % L : Math.min(L - 1, Math.max(1, s));
+    r.x = r.y = null;
+  }
+
+  moveRunners(dt) {
+    if (!this.runners.length || !this.line) return;
+    const pl = this.player, L = this.line.len, col = pl.col;
+    this.progT = (this.progT ?? 0) - dt;
+    if (this.progT <= 0) { this.progT = 0.5; this.prog = this.progress(pl.x, pl.y); }
+    for (const r of this.runners) {
+      r.s += r.dir * r.speed * dt;
+      if (this.line.loop) r.s = ((r.s % L) + L) % L;
+      else if (r.s > L - 1 || r.s < 1) { r.dir = -r.dir; r.s = Math.min(L - 1, Math.max(1, r.s)); }
+      let p = this.pointAt(r.s);
+      let x = p.x - p.dy * r.side, y = p.y + p.dx * r.side;
+      // far from the walker: back on the course ahead of them (out of sight behind them now)
+      if (Math.hypot(x - pl.x, y - pl.y) > RUN_FAR) {
+        this.respawn(r, (this.prog ?? 0) + RUN_AHEAD[0] + Math.random() * (RUN_AHEAD[1] - RUN_AHEAD[0]));
+        p = this.pointAt(r.s);
+        x = p.x - p.dy * r.side; y = p.y + p.dx * r.side;
+      }
+      // out of the walls and round the walker (nobody runs through anybody)
+      [x, y] = col.resolve(x, y, 0.3);
+      const ox = x - pl.x, oy = y - pl.y, od = Math.hypot(ox, oy);
+      if (od < 0.9 && od > 1e-3) { x = pl.x + ox / od * 0.9; y = pl.y + oy / od * 0.9; }
+      const h = r.a.holder;
+      h.position.set(x, this.groundAt(x, y), -y);
+      h.rotation.y = Math.atan2(p.dx * r.dir, -p.dy * r.dir);
+      r.x = x; r.y = y;
+      locomotion(r.a, r.speed, 3.0);
+      r.a.mixer.update(dt);
+    }
   }
 
   // ---------------------------------------------------------------- HUD

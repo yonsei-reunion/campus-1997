@@ -87,6 +87,7 @@ const KINDS = ['sedan', 'sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'taxi', 'van
 const AHEAD = 16;          // metres a car looks ahead
 export class Street {
   constructor(scene, T, P, groundAt, { shadows = null } = {}) {
+    this.scene = scene;
     const rnd = mulberry(31);
     // (dressed as the library's materials are: the soft shadows and the air, materials.js)
     const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.42, metalness: 0.15 });
@@ -175,7 +176,18 @@ export class Street {
     return left < 6 ? 3 : 2;
   }
   // camPos: the view (three coords); walker: {x, y} in the campus frame (cars stop short of them)
+  // hidden: no car about (the running game, race.js): all out of the scene, standing still where they were
+  set hidden(on) {
+    this._hidden = on;
+    for (const c of this.cars) {
+      if (on && c.root.parent) this.scene.remove(c.root);
+      else if (!on && !c.root.parent) this.scene.add(c.root);
+    }
+  }
+  get hidden() { return !!this._hidden; }
+
   update(dt, camPos, walker = null) {
+    if (this._hidden) return;
     const p = this.p, d = this.d;
     for (const g of this.groups) g.t += dt;
     // Only the cars within WAKE of the view move, and only they look out for one another: on the campus, north of the

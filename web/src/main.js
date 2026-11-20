@@ -935,8 +935,10 @@ async function main() {
   // 캠퍼스 달리기 (src/race.js): a course picked from the title card or the settings card, a run through its gates
   let race = null, raceLoad = null;
   const loadRace = () => (raceLoad ||= import('./race.js').then(({ Race }) => (race = new Race({
-    scene, camera, player, sound, groundAt, ensure: (x, y) => chunks.ensure(x, y),
+    scene, camera, player, sound, groundAt, ensure: (x, y) => chunks.ensure(x, y), cast, shadows, blobs,
     onBegin: (msg) => {
+      // nobody walking about and no car on the roads while racing: only the runners of race.js
+      for (const o of [crowd, townCrowd, traffic, street]) if (o) o.hidden = true;
       if (bird.active) leaveBird();
       shootout?.stop();
       if (ui.memoryOpen) ui.closeMemory();
@@ -947,7 +949,9 @@ async function main() {
       ui.setPrompt(null);
       forest.update(camera.position, true);
     },
-    onQuit: () => { document.body.classList.remove('racing'); resume(); ui.toast('달리기를 마치고 산책을 이어 가요'); },
+    onQuit: () => {
+      for (const o of [crowd, townCrowd, traffic, street]) if (o) o.hidden = false;
+      document.body.classList.remove('racing'); resume(); ui.toast('달리기를 마치고 산책을 이어 가요'); },
   }))));
   const openRace = async (e) => {
     e?.stopPropagation(); e?.currentTarget?.blur();

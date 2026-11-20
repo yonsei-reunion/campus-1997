@@ -457,8 +457,16 @@ export class Crowd {
     this._near = [];
   }
   // circles the player collides with (one reused circle per person: this runs every frame)
+  // hidden: nobody about (the running game, race.js): all out of the scene, standing still; back where they were
+  set hidden(on) {
+    this._hidden = on;
+    if (on) for (const p of this.people) if (p.a.holder.parent) this.scene.remove(p.a.holder);
+  }
+  get hidden() { return !!this._hidden; }
+
   movers(px, py, out = []) {
     out.length = 0;
+    if (this._hidden) return out;
     for (const p of this.people) {
       const x = p.a.holder.position.x, y = -p.a.holder.position.z;
       if (Math.abs(x - px) < 6 && Math.abs(y - py) < 6) {
@@ -493,6 +501,7 @@ export class Crowd {
     p.slow = slow;
   }
   update(dt, t, player, camPos) {
+    if (this._hidden) return;
     this.frame++;
     const v = this.v, d = this.d;
     for (const p of this.people) {
@@ -769,6 +778,7 @@ function reachFor([upper, lower, wrist], target, pole) {
 export class Traffic {
   // single: the first `single` lanes take one car each (a stall a car cannot pass by: main.js)
   constructor(scene, carGltfs, lanes, n = 12, cast = null, driverIds = [], rndSeed = 9, single = 0) {
+    this.scene = scene;
     this.cars = [];
     const rnd = mulberry(rndSeed);
     const bag = Object.entries(WEIGHTS).filter(([k]) => carGltfs[k]).flatMap(([k, w]) => Array(w).fill(k));
@@ -870,7 +880,18 @@ export class Traffic {
   // camPos: the view's centre (three coords); drivers of cars farther than the crowd's reach leave the car.
   // walkers: the crowd's people who walk (life.js Crowd, {x, y}): a car waits for one crossing just ahead of it
   // (the west sidewalk crosses the drive's mouth at the 삼거리, walks cross the drives), a few seconds at most
+  // hidden: no car about (the running game, race.js): all out of the scene, standing still where they were
+  set hidden(on) {
+    this._hidden = on;
+    for (const c of this.cars) {
+      if (on && c.root.parent) this.scene.remove(c.root);
+      else if (!on && !c.root.parent) this.scene.add(c.root);
+    }
+  }
+  get hidden() { return !!this._hidden; }
+
   update(dt, player, camPos = null, walkers = null) {
+    if (this._hidden) return;
     const p = this.p ||= new THREE.Vector2(), d = this.d ||= new THREE.Vector2(), q = this.q ||= new THREE.Vector2();
     for (const c of this.cars) {
       const L = c.lane;
@@ -1022,6 +1043,7 @@ export class Traffic {
   }
   // circles along each car near the player, appended to out (reused circles per car: this runs every frame)
   movers(px, py, out) {
+    if (this._hidden) return;
     for (const c of this.cars) {
       const x = c.root.position.x, y = -c.root.position.z;
       if (Math.abs(x - px) > 12 || Math.abs(y - py) > 12 || c.away > 0) continue;
