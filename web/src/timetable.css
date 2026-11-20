@@ -1,9 +1,6 @@
-/* 강의실 찾기 (timetable.js): loaded after the page (main.js), with the title card's button. The plain round hides
+/* 강의실 찾기 (timetable.js): loaded with it (the title card's button: style.css .mg-grid). The plain round hides
    whatever names or shows the way (the map, the halls' name tags, 지금 여기); the easy round keeps the little map
    and the name tags */
-#class-start { margin-top: 8px; width: 100%; border: 2px solid var(--ink); background: #d6e6ff; color: var(--ink); border-radius: 10px; padding: 10px;
-  font-size: 16px; font-family: var(--title); cursor: pointer; }
-#class-start:disabled { opacity: .45; cursor: progress; }
 body.classing #stamps, body.classing #birdbtn, body.classing #mapbtn, body.classing #prompt { display: none !important; }
 body.classing:not(.class-easy) #minimap, body.classing:not(.class-easy) #blabels, body.classing:not(.class-easy) #place { display: none !important; }
 

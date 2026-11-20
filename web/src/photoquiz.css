@@ -1,9 +1,5 @@
-/* 이곳은 어디? (photoquiz.js): main.js loads it after the page (the title card's button is here) */
-#photo-start { margin-top: 8px; width: 100%; border: 2px solid var(--ink); background: #ffe2a8; color: var(--ink); border-radius: 10px; padding: 10px;
-  font-size: 16px; font-family: var(--title); cursor: pointer; }
-#photo-start:disabled { opacity: .45; cursor: progress; }
+/* 이곳은 어디? (photoquiz.js): loaded with it (the title card's button: style.css .mg-grid) */
 body.photoquiz #stamps, body.photoquiz #birdbtn, body.photoquiz #mapbtn, body.photoquiz #prompt { display: none !important; }
-body.game-photo #photo-start { padding: 14px; font-size: 18px; background: var(--blue, #143c8c); color: #fff; border-color: var(--blue, #143c8c); }
 
 #pqhud { position: fixed; top: calc(14px + var(--st, 0px)); left: 50%; transform: translateX(-50%); z-index: 11; display: flex; flex-wrap: wrap; justify-content: center;
   gap: 8px; width: max-content; max-width: calc(100vw - 32px); pointer-events: none; color: var(--hud-ink, #f4f1e8); font-family: var(--title, sans-serif); }

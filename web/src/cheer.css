@@ -1,7 +1,4 @@
-/* 연고전 응원 연습 (cheer.js): loaded with it, and after the page for the title card's button (main.js) */
-#cheer-start { margin-top: 8px; width: 100%; border: 2px solid var(--ink); background: var(--yellow, #ffe76a); color: var(--ink); border-radius: 10px;
-  padding: 10px; font-size: 16px; font-family: var(--title); cursor: pointer; }
-#cheer-start:disabled { opacity: .45; cursor: progress; }
+/* 연고전 응원 연습 (cheer.js): loaded with it (the title card's button: style.css .mg-grid) */
 body.cheering #minimap, body.cheering #stamps, body.cheering #birdbtn, body.cheering #mapbtn, body.cheering #blabels, body.cheering #prompt,
 body.cheering #touch, body.cheering #viewbtn { display: none !important; }
 

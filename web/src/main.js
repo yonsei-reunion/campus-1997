@@ -982,8 +982,7 @@ async function main() {
     update: (dt, t, p) => quiz?.update(dt, t, p),
     pauseButtons: (game) => { $('#photo-go').hidden = game; $('#photo-quit').hidden = !quiz?.on; } };
   games.push(quizEntry);
-  // (its css, with the title card's button, comes on its own after the page; ./?game=photo makes the button stand out)
-  import('./photoquiz.css');
+  // (./?game=photo makes the title card's button stand out)
   if (new URLSearchParams(location.search).get('game') === 'photo') document.body.classList.add('game-photo');
   const loadQuiz = () => (quizLoad ||= import('./photoquiz.js').then(({ PhotoQuiz }) => (quiz = new PhotoQuiz({
     scene, camera, player, sound, places, groundAt, mobile: MOBILE,
@@ -1052,7 +1051,6 @@ async function main() {
     stop: () => { cheer?.stop(); cheer?.closePicker(); }, update: (dt, t, p) => cheer?.update(dt, t, p),
     pauseButtons: (game) => { $('#cheer-go').hidden = game; $('#cheer-quit').hidden = !cheer?.on; } };
   games.push(cheerGame);
-  import('./cheer.css');     // (with the title card's button)
   const loadCheer = () => (cheerLoad ||= import('./cheer.js').then(({ Cheer }) => (cheer = new Cheer({
     scene, cast, player, sound, groundAt, crowd, shadows, blobs, bubbles: crowd.bubbles, mobile: MOBILE,
     ensure: (x, y) => chunks.ensure(x, y), season: () => season, setSeason,
@@ -1089,7 +1087,6 @@ async function main() {
     pauseButtons: (game) => { $('#class-go').hidden = game; $('#class-quit').hidden = !lecture?.on; },
   };
   games.push(lectureGame);
-  import('./timetable.css');      // (with the title card's button: it comes on its own after the page)
   const loadLecture = () => (lectureLoad ||= import('./timetable.js').then(({ Timetable }) => (lecture = new Timetable({
     scene, camera, player, sound, groundAt, places, mobile: MOBILE, ensure: (x, y) => chunks.ensure(x, y),
     onBegin: (msg) => {

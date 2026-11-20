@@ -262,8 +262,19 @@ body.birds #stamps { display: none; }
 .mg-row { display: flex; gap: 8px; align-items: stretch; }
 #shoot-start { flex: 1; border: 2px solid var(--ink); background: var(--yellow); color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); }
 #shoot-start:disabled { opacity: .45; cursor: progress; }
-#run-start { margin-top: 8px; width: 100%; border: 2px solid var(--ink); background: var(--mint, #bfe8d9); color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); cursor: pointer; }
-#run-start:disabled { opacity: .45; cursor: progress; }
+/* the other mini games, two to a row (each game's own css comes with it when it starts) */
+.mg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.mg-grid button { border: 2px solid var(--ink); color: var(--ink); border-radius: 10px; padding: 10px 6px; font-size: 15px; font-family: var(--title);
+  cursor: pointer; background: #fff; line-height: 1.25; word-break: keep-all; }
+.mg-grid button:disabled { opacity: .45; cursor: progress; }
+.mg-grid button[hidden] { display: none; }
+#run-start { background: var(--mint, #bfe8d9); }
+#photo-start { background: #ffe2a8; }
+#pager-start { background: #c9ecc0; }
+#cheer-start { background: #ffd0c8; }
+#class-start { background: #d6e6ff; }
+#bday-start { background: #f2d4f0; }
+body.game-photo #photo-start { grid-column: 1 / -1; padding: 14px; font-size: 18px; background: var(--blue, #143c8c); color: #fff; border-color: var(--blue, #143c8c); }
 .view-pick { display: flex; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: #fff; }
 .view-pick button { border: 0; background: none; padding: 0 12px; font: 700 14px var(--font); color: var(--ink); }
 .view-pick button + button { border-left: 2px solid var(--ink); }
