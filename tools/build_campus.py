@@ -12588,6 +12588,20 @@ out['trees'].append(['cherry', *YJ_FRONT97_CHERRIES[1], 2.4])
 for x_, y_ in YJ_FRONT97_BOARDS:
     out['props'].append(['glass_board', x_, y_, round(YJ_FRONT97_FACE, 3)])
 print('용재관 앞 둑: ginkgo', _yf_k, 'to a cherry, one cherry and two boards added')
+# 장기원 기념관 남서쪽 (i222; reference/고증/3.15-3.17 「장기원 기념관 남서쪽의 땅」): the 1997 July and 1996 winter scans
+# (2 m grid, each flight on its own) put the round platform at the terrace's south-west foot 3 m under the terrace the
+# game ran out over it (41.2 m, 해발), and the yard between it and 과학관's east yard 2 - 2.5 m over the game's slope
+# (a plane, 43.7 m).  Eased into the ground over 4 m; after everything that read the ground, so nothing moves
+JK_SW97 = [(Polygon([(-182.0, -47.0), (-169.0, -47.0), (-169.0, -35.0), (-175.0, -33.0), (-182.0, -36.0)]),
+            lambda x_, y_: np.full(np.shape(x_), 41.25)),
+           (Polygon([(-204.0, -44.0), (-186.0, -44.0), (-185.0, -21.0), (-204.0, -21.0)]),
+            lambda x_, y_: 43.7 + 0.03 * (y_ + 32.0))]
+_jm = (np.abs(X + 190) < 30) & (np.abs(Y + 32) < 30)
+for poly_, zf_ in JK_SW97:
+    _jw = np.zeros(X.shape)
+    _jw[_jm] = np.clip(1.0 - shapely.distance(poly_, shapely.points(X[_jm], Y[_jm])) / 4.0, 0, 1)
+    Hn[:] = Hn * (1 - _jw) + (zf_(X, Y) + datum.tilt(X, Y)) * _jw
+print('장기원 기념관 남서쪽: nodes', int(_jm.sum()))
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
