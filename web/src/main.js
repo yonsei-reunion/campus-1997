@@ -1127,6 +1127,7 @@ async function main() {
       race?.stop();
       race?.closePicker();
       stopGames(bdayGame);
+      for (const o of [crowd, townCrowd, traffic, street]) if (o?.hidden) o.hidden = false;   // (the friends are among the crowd)
       if (ui.memoryOpen) ui.closeMemory();
       if (ui.mapOpen) ui.toggleMap(false);
       ball?.drop();

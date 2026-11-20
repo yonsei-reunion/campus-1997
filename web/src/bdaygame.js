@@ -16,7 +16,7 @@ import './bdaygame.css';
 
 const N = 4;                      // friends to bring
 const LIMIT = 300;                // s
-const NEAR = 3.2;                 // a friend within this (m) can be asked along
+const NEAR = 4.0;                 // a friend within this (m) can be asked along
 const CALL = 14;                  // a friend waves and calls out once you are this close
 const BDAY_NEAR = 4.4;            // the birthday student (birthday.js OFFER_NEAR 4.6)
 const GAP0 = 1.1, GAP = 0.95;     // along the trail: the first follower behind the walker, then each to the next
