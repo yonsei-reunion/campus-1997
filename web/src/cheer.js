@@ -67,7 +67,7 @@ const F0 = [55.47, 44.71], AU = [0.255, 0.967], AN = [-0.967, 0.255];
 const at = (d, s) => [F0[0] + AN[0] * d + AU[0] * s, F0[1] + AN[1] * d + AU[1] * s];
 const S0 = -7;                       // the block's middle and the leader's (s)
 const ROW_D = [12.2, 13.6, 15.0], COL = 0.78;       // rows (d) and the spacing in a row: shoulder to shoulder
-const LEADER_D = 3.8;
+const LEADER_D = 4.6;                 // (the porch's railing runs at 5.5)
 const FACE_HALL = Math.atan2(-AN[0], AN[1]), FACE_OUT = Math.atan2(AN[0], -AN[1]);   // three's heading (forward = sin h, cos h)
 const CLEAR_R = 15;                  // the walk's crowd is kept out of sight this close to the block's middle
 
@@ -204,7 +204,7 @@ class Performer {
     else if (sj >= 0.08 && sj < 0.52) { const u = (sj - 0.08) / 0.44; hop = 0.3 * amp * 4 * u * (1 - u); drop = 0; }
     else if (sj >= 0.52 && sj < 0.74) drop += 0.08 * (1 - smooth((sj - 0.52) / 0.22));
     hd.position.y = this.baseY + hop;
-    this.stance.apply({ drop, side: 0.15 * lean, sway: 0.035 * lean });
+    this.stance.apply({ drop, side: 0.22 * lean, sway: 0.06 * lean });
     const W = Math.min(1, wc + wu + ws + wj);
     if (W > 0.01 && this.pose.ok) {
       hd.updateMatrixWorld(true);
@@ -215,7 +215,7 @@ class Performer {
         const T = this.T[i].set(0, 0, 0), H = this.H[i].set(0, 0, 0);
         const add = (w, x, y, z, hx, hy, hz) => { if (w > 0) { T.x += w * x; T.y += w * y; T.z += w * z; H.x += w * hx; H.y += w * hy; H.z += w * hz; } };
         add(wu, sh.x + sg * 0.07, sh.y + 0.46, sh.z + 0.05, sg, 0, -0.2);
-        add(wc, sg * 0.035, sh.y - 0.08, sh.z + 0.3, sg, -0.5, 0);
+        add(wc, sg * 0.035, sh.y + 0.02, sh.z + 0.28, sg, -0.5, 0);
         add(ws, sh.x + sg * 0.42, sh.y + 0.03, sh.z - 0.05, 0, -1, -0.3);
         add(wj, sh.x + sg * 0.12, sh.y + 0.4, sh.z + 0.1, sg, 0, 0);
         const sum = wu + wc + ws + wj;
@@ -346,6 +346,7 @@ export class Cheer {
     this.best = records(c.id)[0] || null;
     if (this.season?.() !== 'autumn') this.setSeason?.('autumn');     // (연고전 is in October: the leaves turn)
     this.onBegin?.(`${c.name} · ${this.touchy() ? '동작이 줄에 닿을 때 아래 버튼을' : '동작이 줄에 닿을 때 ← ↑ → 스페이스를'} 눌러요`);
+    if (this.crowd?.hidden) this.crowd.hidden = false;      // (the running game hides it: back to the walk's)
     const pl = this.player, B = this.block;
     // you, in the middle of the front row
     const [hx, hy] = at(ROW_D[0], S0);
@@ -418,8 +419,8 @@ export class Cheer {
     const P = (d, s, h) => new THREE.Vector3(at(d, s)[0], g + h, -at(d, s)[1]);
     const low = this.touchy() ? 1.0 : 0;        // (the pads below take the lower half of a phone: you higher up)
     const o = this.view === 'front'
-      ? { pos: P(6.4, S0 + 3.6, 3.3), look: P(ROW_D[1], S0 - 0.8, 0.9 - low) }
-      : { pos: P(ROW_D[2] + 4.2, S0 + 1.6, 3.4), look: P(LEADER_D, S0 - 0.4, 1.6 - low) };
+      ? { pos: P(7.4, S0 + 1.4, 2.5), look: P(ROW_D[1], S0 + (low ? -0.3 : 1.0), 0.95 - low) }
+      : { pos: P(ROW_D[2] + 2.8, S0 + 1.2, 2.9), look: P(LEADER_D + 2, S0 - 0.3, 1.5 - low) };
     this.player.camOverride = snap ? { ...o, k: 1 } : o;
   }
   toggleView() { this.view = this.view === 'front' ? 'back' : 'front'; this.camera(); }
