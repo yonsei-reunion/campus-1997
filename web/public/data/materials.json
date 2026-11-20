@@ -1297,6 +1297,16 @@
   "rough": 0.45,
   "metal": 0.1
  },
+ "frame_paleblue": {
+  "_doc": "유리 게시판의 연한 청회색 틀 · 기둥 · 덮개 (props.glass_board, reference/학교홈페이지/edu2.jpg)",
+  "color": [
+   0.28,
+   0.37,
+   0.48
+  ],
+  "rough": 0.5,
+  "metal": 0.3
+ },
  "town_far": {
   "_doc": "정문 밖의 동네 집 · 철둑 위 · 굴다리 (blender/town.py): one atlas, each band a storey of wall tiling along it (tools/make_textures.py town_atlas)",
   "image": "town_atlas.jpg",

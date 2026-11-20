@@ -659,6 +659,31 @@ def notice_board():
     return mb
 
 
+def glass_board():
+    """유리 게시판 (reference/학교홈페이지/edu2.jpg, spring before 1997: two side by side at the foot of the bank before
+    용재관's south block, left of the steps; reference/고증/3.13 「앞 둑의 게시판 둘과 벚나무 둘」): a glass-fronted case
+    3.8 m long on two square posts, its frame and flat cap a pale blue-grey, three panes over the posters, the case
+    0.62 - 2.18 m up and the cap's top 2.3 m (the 1997 scans put the cap 2.3 m over the road).  The panes face -Y; the
+    origin is the middle of its footprint on the ground."""
+    mb = MeshBuilder('glass_board')
+    W, D, z0, z1, top, m = 3.8, 0.2, 0.62, 2.18, 2.3, 'frame_paleblue'
+    wi, b, mu = W - 0.2, 0.07, 0.05                          # the case between the posts, its border, the mullions
+    for sx in (-1, 1):
+        mb.box((sx * (W / 2 - 0.05), 0, (top - 0.08) / 2), (0.1, 0.12, top - 0.08), m)          # the posts
+        mb.box((sx * (wi / 2 - b / 2), 0, (z0 + z1) / 2), (b, D, z1 - z0), m)                    # the case's ends
+    for z in (z0 + b / 2, z1 - b / 2):
+        mb.box((0, 0, z), (wi, D, b), m)                                                         # its head and sill
+    mb.box((0, D / 2 - 0.03, (z0 + z1) / 2), (wi - 2 * b, 0.06, z1 - z0 - 2 * b), m, skip=('front',))   # the back
+    for k in (-1, 1):
+        mb.box((k * (wi - 2 * b) / 6, -D / 2 + 0.025, (z0 + z1) / 2), (mu, 0.05, z1 - z0 - 2 * b), m)   # the mullions
+    x0, x1, za, zb = -wi / 2 + b, wi / 2 - b, z0 + b, z1 - b
+    mb.face([(x0, D / 2 - 0.06, za), (x1, D / 2 - 0.06, za), (x1, D / 2 - 0.06, zb), (x0, D / 2 - 0.06, zb)],
+            'notice_posters', uvs=[(0, 0), (1.7, 0), (1.7, 0.78), (0, 0.78)])
+    mb.face([(x0, -D / 2 + 0.03, za), (x1, -D / 2 + 0.03, za), (x1, -D / 2 + 0.03, zb), (x0, -D / 2 + 0.03, zb)], 'glass_door')
+    mb.box((0, 0, top - 0.04), (W + 0.12, 0.36, 0.08), m)                                        # the flat cap
+    return mb
+
+
 def _obox(mb, c, a, b, ha, hb, hn, mat, uofs=0.0):
     """box centred at c with unit axes a (length), b (width) and n = a x b, half sizes ha, hb, hn; uvs in metres with the
     grain (v) along a, the broad faces offset by uofs across (so that a plank shows one board of a plank texture)"""

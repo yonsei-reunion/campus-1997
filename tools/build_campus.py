@@ -12574,6 +12574,20 @@ out['baekyangro']['booth'] = _i219_b
 out['baekyangro']['bump'] = 107.2
 out['colliders'].append(_dz_box(_i219[:2], _i219[2], 1.6, 0.85))
 print('정산소 1997: s %.1f (photo A %.1f), %.2f m east, bump s %.1f' % (I219_BOOTH_S, BOOTH['s'], -I219_BOOTH_OFF, 107.2))
+# 용재관 앞 둑 (i222; reference/고증/3.13 「앞 둑의 게시판 둘과 벚나무 둘」, edu2.jpg of the school site): the two cherries
+# on the level ground's south edge, whose crowns the 1997 scans give (top 54.4 - 55 m), the random ginkgo the game had
+# under the east one turned into it in its place in the list and the west one at the trees' end; the two glass
+# boards side by side at the bank's foot, the east one's cap read off four 1997 frames (2.3 m over the road), the west
+# one beside it by the photo (under a crown in the scans), both facing the photo's camera on the court
+YJ_FRONT97_CHERRIES = [(86.5, 81.8, 1.2), (79.5, 87.5, 1.2)]
+YJ_FRONT97_BOARDS = [(62.0, 83.3), (58.41, 85.07)]
+YJ_FRONT97_FACE = math.atan2(-0.897, -0.443)          # (the boards' line runs 116.6 deg, east-south-east)
+_yf_k = next(i_ for i_, t_ in enumerate(out['trees']) if t_[0] == 'ginkgo' and math.hypot(t_[1] - 84.01, t_[2] - 81.92) < 0.05)
+out['trees'][_yf_k][:4] = ['cherry', *YJ_FRONT97_CHERRIES[0]]
+out['trees'].append(['cherry', *YJ_FRONT97_CHERRIES[1], 2.4])
+for x_, y_ in YJ_FRONT97_BOARDS:
+    out['props'].append(['glass_board', x_, y_, round(YJ_FRONT97_FACE, 3)])
+print('용재관 앞 둑: ginkgo', _yf_k, 'to a cherry, one cherry and two boards added')
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))

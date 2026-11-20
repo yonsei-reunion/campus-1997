@@ -58,7 +58,7 @@ const MODELS = 'assets/models/';
 const CARS = ['sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'van'];
 const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'scooter',
   ...CARS.flatMap((k) => [`car_${k}`, `car_${k}_far`]), 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard', 'bollard_stone',
-  'tent_kiosk', 'notice_board', 'haetae', 'parking_booth', 'bus'];
+  'tent_kiosk', 'notice_board', 'haetae', 'parking_booth', 'bus', 'glass_board'];
 const CAR_FAR = 20;     // parked cars farther than this from the camera: their lighter models (a fifth of the triangles)
 // phones: no parked car drawn farther than this (the 1997 aerial scans put 506 on the campus; from the gate some 460
 // were in view, 1.6 M triangles of the lighter models, most of them behind 백양로's trees)
@@ -344,6 +344,8 @@ async function main() {
         kit.add(placeMatrix(m4, x, groundAt(x, y), y, rot + (kind === 'motorbike' ? 0 : Math.PI / 2)), col);
         // a bench (1.8 m by 0.62, facing rot): three circles along its length
         if (kind === 'bench') for (const t of [-0.55, 0, 0.55]) colliders.addCircle(x - Math.sin(rot) * t, y + Math.cos(rot) * t, 0.38);
+        // a glass notice board (3.8 m by 0.36): five along its length
+        else if (kind === 'glass_board') for (const t of [-1.6, -0.8, 0, 0.8, 1.6]) colliders.addCircle(x - Math.sin(rot) * t, y + Math.cos(rot) * t, 0.25);
         else if (kind !== 'motorbike') colliders.addCircle(x, y, COLLIDE[kind] ?? 0.55);
       }
       kit.commit();
