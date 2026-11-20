@@ -134,7 +134,7 @@
    "bearing": 246.7,
    "photo": "assets/photoquiz/library.jpg",
    "w": 960,
-   "h": 472,
+   "h": 647,
    "title": "중앙도서관 북동쪽 비스듬한 길 머리",
    "when": "1997년",
    "credit": "2026 재상봉 25주년 기념문집 「응답하라 1997!」",
@@ -182,6 +182,20 @@
    "credit": "2022 재상봉 25주년 기념문집 단체사진(건물 부분)",
    "from": "reference/음악관_현관_1996.jpg",
    "shot": "compare/music"
+  },
+  {
+   "id": "amphitheater",
+   "x": 211.6,
+   "y": 152.4,
+   "bearing": 280.2,
+   "photo": "assets/photoquiz/amphitheater.jpg",
+   "w": 960,
+   "h": 757,
+   "title": "옛 노천극장 객석 동쪽 끝 너머 비탈",
+   "when": "1997년",
+   "credit": "2026 재상봉 25주년 기념문집 「응답하라 1997!」",
+   "from": "reference/1997_구노천극장_마지막모습.jpg",
+   "shot": "compare/amphitheater"
   },
   {
    "id": "billingsley",
