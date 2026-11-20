@@ -2,6 +2,7 @@
 
     appen97.WALK_OUT                      # 심기가 끝난 뒤 잔디로 칠함(OSM 의 보도를 걷어 냄)
     appen97.bollards()                    # ['bollard_stone', x, y, rot] 목록: props 끝에
+    appen97.payphone()                    # ['payphone', x, y, rot] 하나: 남쪽 박공벽 동쪽 모서리 곁 공중전화 부스
 
 Frame: campus metres, x east, y north; along the east road the survey's middle line (tools/roadview/roads/adopt.py
 `at('E', s, o)`: s from the 삼거리, o to the left = west, m).  The road's west kerb is at o +3.0 there.
@@ -43,3 +44,21 @@ def bollards():
         (xa, ya), (xb, yb) = adopt.at('E', s - 0.5, POST_O), adopt.at('E', s + 0.5, POST_O)
         out.append(['bollard_stone', round(x, 2), round(y, 2), round(math.atan2(float(yb - ya), float(xb - xa)), 3)])
     return out
+
+
+# 공중전화 부스 by the south gable's east corner (reference/고증/3.5_옛_석조관.md 「아펜젤러관 남쪽 공중전화 부스」): the
+# 1996 - 2000 autumn photo has a booth just past that corner, the 2010 roadview one in the same place. Out from the
+# corner along the gable's line (GABLE: its west and east corners, campus.json) and a little south of it, on the
+# paved band along the back wall, its open front to the south
+GABLE = ((79.65, 194.79), (93.63, 190.99))
+PHONE_ALONG, PHONE_OUT = 1.8, 1.2         # m past the east corner along the gable, m south of its line
+
+
+def payphone():
+    """props ['payphone', x, y, rot] (rot: the campus heading its open front faces)"""
+    (xa, ya), (xb, yb) = GABLE
+    ln = math.hypot(xb - xa, yb - ya)
+    ux, uy = (xb - xa) / ln, (yb - ya) / ln
+    nx, ny = uy, -ux                       # (the gable's outward normal: south)
+    x, y = xb + ux * PHONE_ALONG + nx * PHONE_OUT, yb + uy * PHONE_ALONG + ny * PHONE_OUT
+    return [['payphone', round(x, 2), round(y, 2), round(math.atan2(ny, nx), 3)]]

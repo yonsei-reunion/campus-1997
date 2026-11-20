@@ -10714,6 +10714,7 @@ props[:] = [p_ for p_ in props if not _troad.contains(Point(p_[1], p_[2]))]
 # (아펜젤러관 뒤 찻길 서쪽 가: the concrete posts of the 1996 winter scans, 0.45 m behind the kerb, past the cars' wheels;
 # tools/appen97.py)
 props += appen97.bollards()
+props += appen97.payphone()             # (the booth by the south gable's east corner: the 1996 - 2000 autumn photo)
 _tmoved = []
 for t_ in trees:
     q_ = Point(t_[1], t_[2])
