@@ -243,6 +243,10 @@ export function makeNearTerrain(hf, campus, lib) {
     uNRect: { value: campus.tsplat?.north ? new THREE.Vector4(...campus.tsplat.north) : new THREE.Vector4(0, 0, -1, -1) },
     uTAtlas: { value: new THREE.Vector4(...(campus.tsplat?.atlas?.slice(0, 2) ?? [1, 1]), ...(campus.tsplat?.atlas?.slice(2, 4) ?? [0, 1])) },
     uNAtlasH: { value: campus.tsplat?.atlas?.[4] ?? 1 },
+    // 동문 둘레's map (tools/dongmun.py pack): beside the north map in the same texture; uEAtlas: its left edge, width
+    // and height in it (fractions)
+    uERect: { value: campus.tsplat?.east ? new THREE.Vector4(...campus.tsplat.east) : new THREE.Vector4(0, 0, -1, -1) },
+    uEAtlas: { value: new THREE.Vector3(...(campus.tsplat?.atlas?.slice(5, 8) ?? [0, 1, 1])) },
     // the rotary's round island (campus.json town.island, tools/sinchon_rotary.py BED): its middle, and the radii
     // its bed's dark band and white flowers lie between (inner dark, dark | white, outer white)
     uIsland: { value: new THREE.Vector2(...(campus.town?.island?.c ?? [0, 0])) },
@@ -269,7 +273,7 @@ export function makeNearTerrain(hf, campus, lib) {
       .replace('#include <common>', `#include <common>
         varying vec3 vWPos; varying vec3 vWNrm;
         uniform sampler2D uSplat, uDry, aD, pD, dD, gdN, apN, gfD, uTSplat;
-        uniform vec4 uRect, uTRect, uNRect, uTAtlas; uniform float uNAtlasH; uniform vec3 uGrass; uniform vec2 uPaveAng;
+        uniform vec4 uRect, uTRect, uNRect, uERect, uTAtlas; uniform float uNAtlasH; uniform vec3 uEAtlas; uniform vec3 uGrass; uniform vec2 uPaveAng;
         uniform vec2 uIsland; uniform vec3 uBed;
         vec3 gTN; float gRough;
         float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
@@ -290,6 +294,10 @@ export function makeNearTerrain(hf, campus, lib) {
         float insideN = (1.0 - inside) * step(0.0, nuv.x) * step(nuv.x, 1.0) * step(0.0, nuv.y) * step(nuv.y, 1.0);
         vec3 nsp = texture2D(uTSplat, vec2(uTAtlas.z + nuv.x * uTAtlas.w, nuv.y * uNAtlasH)).rgb;
         sp = mix(sp, nsp, insideN);
+        vec2 euv = vec2((wp.x - uERect.x) / (uERect.z - uERect.x), (uERect.w - wp.y) / (uERect.w - uERect.y));
+        float insideE = (1.0 - inside) * step(0.0, euv.x) * step(euv.x, 1.0) * step(0.0, euv.y) * step(euv.y, 1.0);
+        vec3 esp = texture2D(uTSplat, vec2(uEAtlas.x + euv.x * uEAtlas.y, euv.y * uEAtlas.z)).rgb;
+        sp = mix(sp, esp, insideE);
         // the paving's edge: the map holds how much of each texel the asphalt and the paving cover (anti-aliased,
         // tools/build_campus.py splat_aa), so the edge is where that crosses one half: cut there as sharp as the
         // screen allows instead of blending grass into paving over a metre (the kerbs of curbs.js stand on it), and
@@ -350,7 +358,7 @@ export function makeNearTerrain(hf, campus, lib) {
         vec2 outD = max(max(uRect.xy - wp, wp - uRect.zw), vec2(0.0));
         float town = max(smoothstep(0.0, 1.0, (max(outD.x, wp.y - uRect.w) + (macro - 0.5) * 30.0) / 40.0), step(wp.y, uRect.y))
           * (1.0 - smoothstep(53.0, 83.0, vWPos.y + 0.052 + 0.00522 * wp.x + 0.00248 * wp.y + (macro - 0.5) * 30.0));   // (oldTilt)
-        albedo = mix(albedo, vec3(0.25, 0.245, 0.24) * mix(0.92, 1.1, n2), town * (1.0 - insideT - insideN));
+        albedo = mix(albedo, vec3(0.25, 0.245, 0.24) * mix(0.92, 1.1, n2), town * (1.0 - insideT - insideN - insideE));
         albedo *= 1.0 - 0.96 * smoothstep(0.3, 0.7, pit);      // (the stairwell's dark)
         // the island bed's dark band and white flowers (52158, May 1996; the pansies' yellow band is shrubs): rings
         // round its middle, their edges a touch uneven; dark leaves, then cream flowers over their leaves, speckled.

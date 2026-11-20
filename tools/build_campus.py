@@ -25,6 +25,7 @@ import muak
 import north97
 import cars97
 import seomun
+import dongmun
 import west_ground
 import med97
 import music97
@@ -7445,6 +7446,14 @@ _sm_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if Polygon(b
 _sm_took, SEOMUN_GRADE = seomun.grade(Hn, X, Y, FIXED, _sm_halls, FIELD_PATCH, harmonic_fill)
 FIXED[_sm_took] = True
 print('서문 길: %(nodes)d nodes moved (most %(most).1f m), %(road)d on the roads, the field\'s bank %(bank)d' % SEOMUN_GRADE)
+# 동문 둘레 (tools/dongmun.py, reference/고증/3.26_동문.md), late: the planting has read the ground as it was.  The knoll
+# north of 청송길 (the game 17 m under the survey's top), the road to the gate and out to 연대동문길 on the 1997 photos'
+# and the 1:5000 survey's heights; the feet of the halls already there (제중학사: added to the list below) stay
+_dm_halls = [Polygon(b_['footprint']).buffer(0) for b_ in buildings if Polygon(b_['footprint']).intersects(dongmun.REGION.buffer(12.0))]
+_dm_halls.append(Polygon([(558.2, 186.6), (564.2, 194.6), (600.4, 161.0), (592.0, 154.4)]))      # (제중학사, 3.1.2.1)
+_dm_took, DONGMUN_GRADE = dongmun.grade(Hn, X, Y, FIXED, _dm_halls)
+FIXED[_dm_took] = True
+print('동문 둘레:', DONGMUN_GRADE)
 # 대운동장 북쪽 언덕 (tools/fieldhill97.py, reference/고증/4.12 「북쪽 언덕」; #189), late: the planting has read the
 # ground as it was.  The wooded hill of two tops between the oval and 연희동 on the 2006 survey's contours and spot
 # heights and the 1997 scans' open ground (the game had one slope 7.5 - 10 m under its tops), after 서문's road
@@ -11036,6 +11045,9 @@ _ypaint([g_ for g_ in (_mk_floor.geoms if hasattr(_mk_floor, 'geoms') else [_mk_
 FIELDHILL_WOODS = fieldhill97.woods(FIELD_POLY, _fh_halls)      # (대운동장 북쪽 언덕: the woods' floor; its track and paths bare)
 _ypaint(FIELDHILL_WOODS, _gf)
 _ypaint(fieldhill97.bare(), _gd)
+DONGMUN_WOODS, DONGMUN_WALK = dongmun.splat_paint()       # (동문 둘레, x < 641: the knoll's woods, the walk south of 청송길)
+_ypaint([g_ for g_ in getattr(DONGMUN_WOODS, 'geoms', [DONGMUN_WOODS]) if g_.geom_type == 'Polygon'], _gf)
+_ypaint([DONGMUN_WALK], _gp)
 _ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 길: SCI_DRIVE97)
 _ypaint([KB97_ASPH], _ga)                    # (광복관 안마당 · 서쪽 길 · 북쪽 길, 핀슨관 서쪽 길 · 북쪽 주차장: kwangbok97)
 _ypaint([KB97_FORE], _gd)                    # (광복관 앞마당: the gravel at the foot of the front flight)
@@ -11916,6 +11928,8 @@ for p_ in out['paths']:
         p_['pts'] = [q_ for q_ in p_['pts'] if q_[1] < -147.0] + [list(seomun.ROAD[-1][:2])]
 out['paths'] += seomun.paths()
 print('서문 길: shrubs taken out %d, props %d, trees moved aside %d' % _sm_n)
+# 동문 둘레 (tools/dongmun.py): the same on 청송길's 1997 width, its walk and 법현학사 · the lodge
+print('동문 둘레: shrubs taken out %d, props %d, trees moved aside %d' % dongmun.move_off(trees, shrubs, props, dongmun.taken()))
 # 독수리상 서쪽 마당 (west_ground.YARD): bare in 1997, so what the planting put on it steps aside (a tree in its place in
 # the list, to the yard's edge away from the road) or goes (shrubs, props)
 _wg_n = west_ground.move_off(trees, shrubs, props)
@@ -12298,6 +12312,22 @@ for t_ in out['trees']:
         t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
         _wh_moved += 1
 print('치과대학 동쪽의 흰 평지붕 동: trees aside', _wh_moved)
+# 동문 (tools/dongmun.py, reference/고증/3.26_동문.md): 법현학사's two blocks, the lodge and the town's houses outside the
+# gate at the halls' very end (blender/build.py draws each hall's looks in its order); the piers, the toll island and
+# the wall along the road (blender/landmarks.py dongmun); the east patch's ground map packed beside the town's; the
+# road's middle line and the hump, the walk's lamps, the island's shrubs; the walker's walls round the piers and booth
+DONGMUN_HALLS = dongmun.houses(ground_tn)
+buildings += DONGMUN_HALLS
+out['dongmun'] = dongmun.gate()
+out['tsplat'] = dongmun.pack(os.path.join(ROOT, 'web/public/assets/textures/ground_splat_town.png'), dongmun.draw_map(), out['tsplat'])
+_dm_lines, _dm_humps = dongmun.paint()
+out['road_paint']['lines'] += _dm_lines
+out['road_paint']['humps'] += _dm_humps
+out['props'] += dongmun.props()
+out['colliders'] += dongmun.colliders()
+out['markers'].append(dict(name='동문', pos=list(dongmun.MARKER), top=round(ground_tn(*dongmun.MARKER) + 5.0, 1)))
+out['markers'].append(dict(name='법현학사', pos=[672.0, 193.0], top=round(max(b_['base'] + b_['height'] for b_ in DONGMUN_HALLS[:2]) + 1.0, 1)))
+print('동문: halls %d (houses %d), the map %s' % (len(DONGMUN_HALLS), len(dongmun.HOUSES), out['tsplat']['east']))
 print('의료원 박공지붕:', {b_['id']: (b_['levels'], b_['fh'], b_['hip']['pitch']) for b_ in buildings if b_['id'] in MED_GABLES or b_['id'] == 990042})
 out['curbs'], out['curb_lawn'] = curb_runs(spl_aa)
 # 의료원 주차장 셋 (tools/med97.py; #189, te): the trees the random planting put on the paved yards, out to their
@@ -12464,6 +12494,12 @@ _hcol = Polygon([tuple(p_[:2]) for p_ in _hb['footprint']]).buffer(0).difference
 _hcol = max(getattr(_hcol, 'geoms', [_hcol]), key=lambda g_: g_.area)
 _hb['collider'] = [[round(x_, 2), round(y_, 2)] for x_, y_ in list(_hcol.exterior.coords)[:-1]]
 print('백주년기념관 남서쪽 로비 앞: beds %d, shrubs %d' % (len(CENT_SW97_TIERS), len(centsw97.shrubs(CENT_SW97_TIERS))))
+# 동문 둘레의 숲 (tools/dongmun.py trees): the knoll's and the slope's crowns of the 1997 scans and the island's pines, at
+# the trees' very end (the web picks each tree's model by its place in the list)
+DONGMUN_TREES = dongmun.trees(out['trees'], [b_['footprint'] for b_ in out['buildings']], muak.woods_fill)
+out['trees'] += DONGMUN_TREES
+out['shrubs'] += dongmun.shrubs()             # (and the island's clipped shrubs, at the shrubs' end)
+print('동문 둘레: trees', len(DONGMUN_TREES))
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
 # the 1997 photos' block had (0.052 + 0.522 x/100 + 0.248 y/100 m): the levels the photos read as flat, the roads'

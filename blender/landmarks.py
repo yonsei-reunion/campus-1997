@@ -6624,6 +6624,78 @@ def seomun_shop(S):
     return [mb]
 
 
+def dongmun():
+    """동문 (55 on the 1990 · 1995 maps; tools/dongmun.py, reference/고증/3.26): two white concrete piers either side of
+    청송길, each a ㄇ in plan open to the road with its dark iron leaf folded inside and a globe lamp on top (Kakao
+    roadview 2010-12 1016786208; the 1997 scans: white tops 2.7 - 2.9 m over the road where the three frames agree);
+    the toll island 30 m inside with the booth on it and a lowered bar across each lane at its ends (the 1997 scans:
+    the island's hatched ends and the booth's white roof; the booth's look after 백양로's of autumn 1997, as 북문's);
+    the granite-block wall at the foot of the knoll along the road's north edge (2010)."""
+    G = CAMPUS.get('dongmun')
+    if not G:
+        return []
+    mb = MeshBuilder('lm_dongmun')
+    L, W, H = G['L'], G['W'], G['H']
+    for p in G['piers']:
+        (cx, cy), (tx, ty), (nx, ny) = p['c'], p['t'], p['n']
+        Wp = lambda u, v: (cx + tx * u + nx * v, cy + ty * u + ny * v)
+        g = min(ground(*Wp(u, v)) for u in (-L / 2, L / 2) for v in (-W / 2, W / 2))
+        z0, top = g - 0.3, g + H
+        ang = math.atan2(ty, tx)
+        box = lambda ua, ub, va, vb, za, zb, mat: mb.box((*Wp((ua + ub) / 2, (va + vb) / 2), (za + zb) / 2),
+                                                         (ub - ua, vb - va, zb - za), mat, rotz=ang, skip=('bottom',))
+        T = 0.35
+        box(-L / 2, -L / 2 + T, -W / 2, W / 2 - 0.05, z0, top, 'plaster_white')         # (the end walls)
+        box(L / 2 - T, L / 2, -W / 2, W / 2 - 0.05, z0, top, 'plaster_white')
+        box(-L / 2 + T, L / 2 - T, -W / 2, -W / 2 + T, z0, top, 'plaster_white')        # (the back wall, away from the road)
+        box(-L / 2 + T, L / 2 - T, -W / 2 + T, W / 2 - 0.05, top - 0.45, top, 'plaster_white')    # (the lintel over the leaf)
+        box(-L / 2 - 0.05, L / 2 + 0.05, -W / 2 - 0.05, W / 2 + 0.05, top, top + 0.12, 'stone_trim')
+        # the leaf folded in panels inside the open side: rails and close bars
+        zg, hl, va = g + 0.03, H - 0.55, W / 2 - 0.35
+        for zz in (zg + 0.1, zg + hl / 2, zg + hl - 0.06):
+            box(-L / 2 + T, L / 2 - T, va - 0.03, va + 0.03, zz - 0.04, zz + 0.04, 'metal_green')
+        n = int((L - 2 * T) / 0.13)
+        for k in range(n + 1):
+            u = -L / 2 + T + 0.02 + k * (L - 2 * T - 0.04) / n
+            box(u - 0.015, u + 0.015, va - 0.015, va + 0.015, zg, zg + hl, 'metal_green')
+        # the globe lamp on top, at the end towards the town
+        lx, ly = Wp(L / 2 - 0.45, 0.0)
+        mb.cylinder((lx, ly), 0.07, top + 0.12, top + 0.4, 'metal_dark', seg=8)
+        mb.sphere((lx, ly, top + 0.62), 0.26, 'plaster_white', seg=12, rings=8)
+    T = G['toll']
+    x, y = T['pos']
+    c, s = math.cos(T['rot']), math.sin(T['rot'])
+    Wt = lambda u, v: (x + u * c - v * s, y + u * s + v * c)
+    IL, IW = T['island']
+    gi = min(ground(*Wt(u, v)) for u in (-IL / 2, IL / 2) for v in (-IW / 2, IW / 2))
+    zi = max(ground(*Wt(u, v)) for u in (-IL / 2, IL / 2) for v in (-IW / 2, IW / 2)) + 0.15
+    bx = lambda u, v, z, su, sv, sz, mat, **kw: mb.box((*Wt(u, v), z), (su, sv, sz), mat, rotz=T['rot'], **kw)
+    bx(0, 0, (gi - 0.3 + zi) / 2, IL - 4.0, IW, zi - gi + 0.3, 'concrete', skip=('bottom',))       # (the kerbed middle)
+    for sg in (-1, 1):                                                  # (the tapered noses)
+        bx(sg * (IL / 2 - 1.3), 0, (gi - 0.3 + zi - 0.05) / 2, 1.4, IW * 0.6, zi - gi + 0.25, 'concrete', skip=('bottom',))
+    BL, BW = T['size']
+    zt = zi + T['height']
+    bx(0, 0, zi + 0.45, BL, BW, 0.9, 'paint_yellow', skip=('bottom', 'top'))
+    for sg in (-1, 1):
+        bx(0, sg * (BW / 2 - 0.02), zi + 1.45, BL - 0.3, 0.04, 1.1, 'glass')
+        bx(sg * (BL / 2 - 0.02), 0, zi + 1.45, 0.04, BW - 0.3, 1.1, 'glass')
+        for k in (-1, 1):
+            bx(sg * (BL / 2 - 0.08), k * (BW / 2 - 0.08), zi + 1.45, 0.16, 0.16, 1.1, 'paint_yellow', skip=('bottom', 'top'))
+    bx(0, 0, (zi + 2.0 + zt) / 2, BL, BW, zt - zi - 2.0, 'paint_yellow', skip=('bottom',))
+    bx(0, 0, zt + 0.08, BL + 0.3, BW + 0.3, 0.16, 'paint_white')
+    # the bars: one across each lane, at the island's two ends (the lane on its left at the far end, its right at the near)
+    for u, sg in ((BL / 2 + 0.6, 1), (-BL / 2 - 0.6, -1)):
+        bx(u, sg * (IW / 2 - 0.25), zi + 0.45, 0.3, 0.3, 0.9, 'paint_yellow', skip=('bottom',))
+        for k in range(6):
+            v0 = sg * (IW / 2 + k * T['bar'] / 6 + T['bar'] / 12)
+            bx(u, v0, zi + 0.85, 0.07, T['bar'] / 6, 0.07, 'paint_white' if k % 2 == 0 else 'light_red')
+    pts = []
+    for qx, qy in G['wall']:
+        pts.append([qx, qy, ground(qx, qy) - 0.4, ground(qx, qy)])
+    _wall_run(mb, pts, 0.45, 0.85, 'stone_granite', 'stone_trim', cap_t=0.1)
+    return [mb]
+
+
 def north_gate_frame(bid):
     """북문 (tools/muak.py GATE_FRAMES, reference/고증/3.21 「북문 · 갈림길 · 서쪽 학사길」): one of the two concrete frames
     either side of the loop road, a ㄇ in plan open to the road: its two end walls and the back wall 3.3 m over the road

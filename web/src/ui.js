@@ -55,6 +55,7 @@ export class UI {
     const TS = this.c.tsplat, S = { ...this.c.splat };
     if (TS) S.y0 = Math.min(S.y0, -1060);
     if (TS?.north) S.y1 = Math.max(S.y1, TS.north[3]);
+    if (TS?.east) S.x1 = Math.max(S.x1, TS.east[2]);       // (동문 둘레: tools/dongmun.py)
     this.mapRect = S;
     const k = 1 / 0.6;
     const W = Math.round((S.x1 - S.x0) * k), H = Math.round((S.y1 - S.y0) * k);
@@ -83,13 +84,14 @@ export class UI {
     // the north patch: R asphalt, G paving, B earth (255) or the woods' floor (170), the rest lawn. It lies beside the
     // town's map in the one texture (campus.json tsplat.atlas: its left edge, width and height, as fractions), its
     // top row the north edge
-    if (north && TS?.north) {
-      const [nx0, ny0, nx1, ny1] = TS.north, A = TS.atlas;
+    // (and 동문 둘레's map beside it, tools/dongmun.py: tsplat.east, its fractions atlas[5 .. 7])
+    const patches = north && TS ? [[TS.north, TS.atlas?.slice(2, 5)], [TS.east, TS.atlas?.slice(5, 8)]].filter(([r, a]) => r && a?.length === 3) : [];
+    for (const [[nx0, ny0, nx1, ny1], A] of patches) {
       const w = Math.round((nx1 - nx0) * k), h = Math.round((ny1 - ny0) * k);
       const cv2 = document.createElement('canvas');
       cv2.width = w; cv2.height = h;
       const g = cv2.getContext('2d');
-      g.drawImage(north, A[2] * north.width, 0, A[3] * north.width, A[4] * north.height, 0, 0, w, h);
+      g.drawImage(north, A[0] * north.width, 0, A[1] * north.width, A[2] * north.height, 0, 0, w, h);
       const im = g.getImageData(0, 0, w, h), d = im.data;
       const put = (i, r, gg, b) => { d[i] = r; d[i + 1] = gg; d[i + 2] = b; d[i + 3] = 255; };
       for (let i = 0; i < d.length; i += 4) {
