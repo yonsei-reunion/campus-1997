@@ -11426,6 +11426,27 @@ AMPH_RIM97 = Polygon([amph_xy((AMPH['arena_rx'] + AMPH_DEPTH + dd) * math.cos(a)
 draw_poly('pavers', YH_RIM97)
 draw_poly('pavers', HW_DIAG97)
 draw_poly('dirt', AMPH_RIM97)
+# 독수리상 안쪽 (reference/고증/4.1.5): the precinct as the 1996 winter and July 1997 scans have it, in the statue's
+# frame round the column: a low square platform (half side `half`, `plat` m high, blender/statues.py), a round bed of
+# clipped shrubs round it to a kerb at `kerb` (paved in front, to the south, between the two front groups' wedges), a
+# paved ring walk out to `ring`, four quadrant beds out to `beds` between the four walks (3 m) that run on to the ring
+# of paving round it all (EAGLE_RING97).  On the game's map only (the planting reads the precinct as first laid; the
+# beds' azaleas are planted again at the end, EAGLE97_SHRUBS)
+EAGLE97 = dict(half=3.22, plat=0.25, kerb=5.93, ring=8.0, beds=12.0)
+EAGLE97_GROUPS = ((239, 4.5), (329, 4.55), (148, 4.95), (61, 4.5))     # the four groups' figures (compass deg, m)
+_e97c = Point(*EAGLE['pos'])
+_e97uv = lambda pts_: Polygon([eagle_xy(u_, v_) for u_, v_ in pts_])
+EAGLE97_SQUARE = _e97uv([(-EAGLE97['half'], -EAGLE97['half']), (EAGLE97['half'], -EAGLE97['half']),
+                         (EAGLE97['half'], EAGLE97['half']), (-EAGLE97['half'], EAGLE97['half'])])
+EAGLE97_FRONT = _e97c.buffer(EAGLE97['kerb'], 96).intersection(_e97uv([(-7, -7), (7, -7), (7, -EAGLE97['half']), (-7, -EAGLE97['half'])]))
+EAGLE97_WALKS = unary_union([LineString([eagle_xy(0, 0), eagle_xy(12.75 * su_, 12.75 * sv_)]).buffer(EAGLE_WALK_W / 2, cap_style=2)
+                             for su_, sv_ in ((1, 0), (-1, 0), (0, 1), (0, -1))]).difference(_e97c.buffer(EAGLE97['kerb'] - 0.05, 96))
+EAGLE97_BEDS_IN = _e97c.buffer(EAGLE97['kerb'], 96).difference(EAGLE97_SQUARE).difference(EAGLE97_FRONT)
+EAGLE97_BEDS_OUT = _e97c.buffer(EAGLE97['beds'], 96).difference(_e97c.buffer(EAGLE97['ring'], 96)) \
+    .difference(EAGLE97_WALKS).difference(bline.buffer(E_WALK + 0.2))
+draw_poly('pavers', unary_union([_e97c.buffer(EAGLE97['ring'], 96).difference(_e97c.buffer(EAGLE97['kerb'], 96)),
+                                 EAGLE97_FRONT, EAGLE97_WALKS]).difference(bline.buffer(E_WALK)), pre=False)
+draw_poly('pavers', unary_union([EAGLE97_BEDS_IN, EAGLE97_BEDS_OUT, EAGLE97_SQUARE]), 0, pre=False)   # (no kerb round the platform)
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -12620,6 +12641,33 @@ for poly_, zf_ in JK_SW97:
     _jw[_jm] = np.clip(1.0 - shapely.distance(poly_, shapely.points(X[_jm], Y[_jm])) / 4.0, 0, 1)
     Hn[:] = Hn * (1 - _jw) + (zf_(X, Y) + datum.tilt(X, Y)) * _jw
 print('장기원 기념관 남서쪽: nodes', int(_jm.sum()))
+# (독수리상 안쪽, EAGLE97 above: the azaleas of the round beds as first laid out, r 9.5, go; the beds of 1997 are planted
+# on the same 1.1 m staggered grid with their own draws, clear of the trunks and of the groups' wedges on the diagonals)
+_n_old = len(out['shrubs'])
+out['shrubs'] = [s_ for s_ in out['shrubs'] if not (s_[0] == 'azalea_red' and _e97c.distance(Point(s_[1], s_[2])) < EAGLE_BEDS_R + 0.2)]
+_n_old -= len(out['shrubs'])
+rng220 = random.Random(220)
+_wedges = unary_union([LineString([eagle_xy(0, 0), eagle_xy(6.5 * su_, 6.5 * sv_)]).buffer(0.55)
+                       for su_ in (-1, 1) for sv_ in (-1, 1)])
+EAGLE97_SHRUBS = unary_union([EAGLE97_BEDS_IN, EAGLE97_BEDS_OUT]).buffer(-0.35).difference(_wedges)
+_e97_in = EAGLE97_BEDS_OUT.buffer(-1.2)
+_trunks = [Point(t_[1], t_[2]) for t_ in out['trees'] if _e97c.distance(Point(t_[1], t_[2])) < EAGLE97['beds'] + 1]
+_n_bed = 0
+for j_, v_ in enumerate(np.arange(-EAGLE97['beds'], EAGLE97['beds'] + 0.01, 0.95)):
+    for u_ in np.arange(-EAGLE97['beds'] + (j_ % 2) * 0.55, EAGLE97['beds'] + 0.01, 1.1):
+        x_, y_ = eagle_xy(u_ + rng220.uniform(-0.12, 0.12), v_ + rng220.uniform(-0.12, 0.12))
+        sc_, rot_ = rng220.uniform(0.98, 1.14), rng220.uniform(0, 6.28)
+        p_ = Point(x_, y_)
+        if not EAGLE97_SHRUBS.contains(p_) or any(p_.distance(q_) < 0.9 for q_ in _trunks):
+            continue
+        out['shrubs'].append(['azalea_red', round(x_, 2), round(y_, 2), round(sc_ * (1.0 if _e97_in.contains(p_) else 0.86), 2),
+                              round(rot_, 2)])
+        _n_bed += 1
+_s = out['statues']['eagle']
+_s.pop('ring', None)
+_s.update(r=round(EAGLE97['half'] + 0.1, 2), square=[EAGLE97['half'], EAGLE97['plat']], kerb=EAGLE97['kerb'],
+          beds=EAGLE97['beds'], groups=[list(g_) for g_ in EAGLE97_GROUPS])
+print('독수리상 안쪽: azaleas %d -> %d' % (_n_old, _n_bed))
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))

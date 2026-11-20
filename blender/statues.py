@@ -2186,13 +2186,22 @@ def eagle_tower(site=EAGLE_SITE):
     shaft and its cap."""
     mb = MeshBuilder('eagle_tower')
     W, Wd = 'stone_white', 'granite_light'
-    (rd, zd), (rr, zr) = site['dais'], site['ring']
-    mb.cylinder((0, 0), rr, -0.8, zr, 'curb', seg=64, cap_top=False, smooth=False)     # (runs into the ground)
-    for k in range(64):                 # the ring's top as an annulus (a disc would take its baked light from under the dais)
-        a0, a1 = 2 * math.pi * k / 64, 2 * math.pi * (k + 1) / 64
-        mb.face([(r_ * math.cos(a_), r_ * math.sin(a_), zr) for r_, a_ in ((rd - 0.05, a0), (rr, a0), (rr, a1), (rd - 0.05, a1))],
-                'pavers')
-    mb.cylinder((0, 0), rd, zr - 0.05, zd, 'stone_step', seg=56, mat_cap=Wd, smooth=False)
+    if 'square' in site:
+        # 1996 - 1997 (the winter and July scans, reference/고증/4.1.5): a low square platform, straight white walls and a
+        # white rim round a top of darker slabs, the groups at its corners (the 1970 unveiling photo's 「곧은 벽의 낮은 단」)
+        a, zd = site['square']
+        rim = 0.3
+        for sx, sy, w_, d_ in ((0, -1, 2 * a, rim), (0, 1, 2 * a, rim), (-1, 0, rim, 2 * a - 2 * rim), (1, 0, rim, 2 * a - 2 * rim)):
+            mb.box(((a - rim / 2) * sx, (a - rim / 2) * sy, (zd - 0.3) / 2), (w_, d_, zd + 0.3), W, skip=('bottom',))
+        mb.box((0, 0, (zd - 0.03 - 0.3) / 2), (2 * a - 2 * rim, 2 * a - 2 * rim, zd - 0.03 + 0.3), Wd, skip=('bottom',))
+    else:
+        (rd, zd), (rr, zr) = site['dais'], site['ring']
+        mb.cylinder((0, 0), rr, -0.8, zr, 'curb', seg=64, cap_top=False, smooth=False)     # (runs into the ground)
+        for k in range(64):                 # the ring's top as an annulus (a disc would take its baked light from under the dais)
+            a0, a1 = 2 * math.pi * k / 64, 2 * math.pi * (k + 1) / 64
+            mb.face([(r_ * math.cos(a_), r_ * math.sin(a_), zr) for r_, a_ in ((rd - 0.05, a0), (rr, a0), (rr, a1), (rd - 0.05, a1))],
+                    'pavers')
+        mb.cylinder((0, 0), rd, zr - 0.05, zd, 'stone_step', seg=56, mat_cap=Wd, smooth=False)
     z0 = zd
     # the flaring foot: each face curves out concavely onto the dais, then the shaft tapers to the cap.  Dais to the
     # cap's top 8.5 m (the 탑신 of 1970 - 2011: 연세춘추 2012-02-29 「기존 8.5m에서 10m로」, the school's 「8.5 m의 사각
@@ -2211,14 +2220,15 @@ def eagle_tower(site=EAGLE_SITE):
     # the cap: a thin lip a little wider than the shaft
     mb.box((0, 0, z1 + 0.06), (0.8, 0.8, 0.12), W)
     mb.box((0, 0, z1 + 0.16), (0.72, 0.72, 0.08), W)
-    # a dark tablet leaning on a low block before the foot's front (the 2010 roadview from the south)
-    yb = -1.6
-    blk = [(-0.55, yb - 0.3), (0.55, yb - 0.3), (0.55, yb + 0.3), (-0.55, yb + 0.3)]
+    # a dark tablet leaning on a low block before the foot's front (the 2010 roadview from the south; where the 1996 -
+    # 1997 scans show its block on the square platform)
+    xb, yb = (0.35, -2.2) if 'square' in site else (0.0, -1.6)
+    blk = [(xb - 0.55, yb - 0.3), (xb + 0.55, yb - 0.3), (xb + 0.55, yb + 0.3), (xb - 0.55, yb + 0.3)]
     zt = [z0 + 0.08, z0 + 0.08, z0 + 0.42, z0 + 0.42]
     for i in range(4):
         j = (i + 1) % 4
         mb.face([(*blk[i], z0 - 0.02), (*blk[j], z0 - 0.02), (*blk[j], zt[j]), (*blk[i], zt[i])], Wd)
-    mb.face([(*p, z + 0.012) for p, z in zip([(-0.5, yb - 0.26), (0.5, yb - 0.26), (0.5, yb + 0.26), (-0.5, yb + 0.26)],
+    mb.face([(*p, z + 0.012) for p, z in zip([(xb - 0.5, yb - 0.26), (xb + 0.5, yb - 0.26), (xb + 0.5, yb + 0.26), (xb - 0.5, yb + 0.26)],
                                             [z0 + 0.1, z0 + 0.1, z0 + 0.41, z0 + 0.41])], 'bronze_patina')
     mb.face([(*p, z) for p, z in zip(blk, zt)], Wd)
     return mb, z1 + 0.2
@@ -2270,12 +2280,13 @@ def eagle_statue(site=None):
     tower, top = eagle_tower(site)
     eagle = sculpt.load('eagle')                 # the eagle on its rock (eagle_sculpt), the rock's foot on the cap
     eagle.data.transform(Matrix.Translation((0, 0, top - 0.04)))
-    out = [tower.build(), eagle, eagle_kerbs(site).build()]
+    # (the 1997 layout's kerbs are the campus curbs along its painted walks: tools/build_campus.py EAGLE97)
+    out = [tower.build(), eagle] + ([] if 'square' in site else [eagle_kerbs(site).build()])
     # the four groups at the diagonals, facing out: A south-west, B north-west, C south-east, D north-east (the statue
     # faces -y, south-south-west; +x is east-south-east, towards 백양로)
     # Each at its measured bearing and distance (site['groups'], tools/build_campus.py EAGLE_GROUPS: 4.3 - 4.9 m, on
     # the dais' edge, the wedge's outer end down on the brick ring); without them the diagonals at 4.6 m
-    zd = site['dais'][1]
+    zd = site['square'][1] if 'square' in site else site['dais'][1]
     rot = site.get('rot', math.radians(-14))
     groups = site.get('groups') or [(math.degrees(math.pi / 2 - rot) - d, 4.6) for d in (-135, 135, -45, 45)]
     for k, (brg, r) in enumerate(groups):
@@ -2285,6 +2296,21 @@ def eagle_statue(site=None):
             Matrix.Rotation(a + math.pi / 2, 4, 'Z')
         bpy.context.view_layer.update()
         out.append(g)
+        if 'kerb' in site:
+            # the wedge runs on out along the diagonal, low over the round bed, to the kerb (the white bars from the
+            # platform's corners to the kerb in the 1996 - 1997 scans): 0.9 m wide, falling from the wedge to the ring
+            mw = MeshBuilder(f'yonseian_foot_{k}')
+            c_, s_ = math.cos(a), math.sin(a)
+            r0, r1, hw = r - 0.2, site['kerb'] - 0.12, 0.45
+            P = lambda rr_, w_, z_: (rr_ * c_ - w_ * s_, rr_ * s_ + w_ * c_, z_)
+            zt0, zt1 = zd + 0.1, 0.12
+            ring_ = [(r0, -hw, zt0), (r1, -hw, zt1), (r1, hw, zt1), (r0, hw, zt0)]
+            for i in range(4):
+                j = (i + 1) % 4
+                mw.face([P(ring_[i][0], ring_[i][1], -0.3), P(ring_[j][0], ring_[j][1], -0.3),
+                         P(*ring_[j]), P(*ring_[i])], 'stone_panel')
+            mw.face([P(*q) for q in ring_], 'stone_panel')
+            out.append(mw.build())
     return out
 
 
