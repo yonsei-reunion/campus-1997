@@ -48,6 +48,9 @@ export const SETS = [
 const SUBJECTS = ['대학영어', '기독교의 이해', '철학개론', '글쓰기', '통계학', '한국사', '심리학개론', '일반생물학', '경제학입문', '교양체육', '서양사', '컴퓨터 입문'];
 
 // 오늘의 시간표: four halls drawn from the day's date (the same for everyone that day), each break 120 – 480 m
+// (상대신관's door is up the horseshoe flights over 상뜰, which a walker coming from 백양로 finds late: a first class
+// only)
+const START_ONLY = ['상대신관'];
 const dayKey = (d = new Date()) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
 function todaySet(key = dayKey()) {
   let s = +key >>> 0;
@@ -57,7 +60,7 @@ function todaySet(key = dayKey()) {
     const halls = [pick(HALLS)];
     while (halls.length < 4) {
       const last = halls[halls.length - 1];
-      const ok = HALLS.filter((h) => !halls.includes(h) && wayOf(last, h) >= 120 && wayOf(last, h) <= 480);
+      const ok = HALLS.filter((h) => !halls.includes(h) && !START_ONLY.includes(h) && wayOf(last, h) >= 120 && wayOf(last, h) <= 480);
       if (!ok.length) break;
       halls.push(pick(ok));
     }
