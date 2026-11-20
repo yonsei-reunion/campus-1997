@@ -475,7 +475,9 @@ async function main() {
         heading: Math.atan2(fx, -fy) + (((jit * 7 + k * 0.37) % 1) - 0.5) * 0.22,
         ...(Math.hypot(x + 39.94, y + 182.8) < 1 && slots.length === 2 ? { id: duo[k] } : {}) })));
     }
-    const booths = campus.props.filter((pr) => pr[0] === 'payphone');
+    // (the bank by 학생회관: the first booths in the list; a booth elsewhere is left free, so nobody here changes)
+    const phones = campus.props.filter((pr) => pr[0] === 'payphone');
+    const booths = phones.filter((pr) => Math.hypot(pr[1] - phones[0][1], pr[2] - phones[0][2]) < 4);
     booths.forEach(([, x, y, rot], i) => {
       if (booths.length > 1 && i === booths.length - 1) return;        // (one booth free)
       const fx = Math.cos(rot), fy = Math.sin(rot), heading = Math.atan2(-fx, fy);
@@ -1009,6 +1011,40 @@ async function main() {
   $('#photo-start').addEventListener('click', (e) => { sound.start(); startQuiz(e); });
   $('#photo-go').addEventListener('click', startQuiz);
   $('#photo-quit').addEventListener('click', (e) => { e.stopPropagation(); quiz?.stop(); });
+  // 삐삐 호출 (src/pager.js): from the title card or the settings card; the pager goes off, a run to a phone booth
+  // (campus.json's payphones), the number dialled, a run to where the friend on the line said
+  let pager = null, pagerLoad = null;
+  const pagerGame = { on: () => !!pager?.on, busy: () => !!pager?.busy, stop: () => pager?.stop(), update: (dt, t, p) => pager?.update(dt, t, p),
+    pauseButtons: (game) => { $('#pager-go').hidden = game; $('#pager-quit').hidden = !pager?.on; } };
+  games.push(pagerGame);
+  const loadPager = () => (pagerLoad ||= import('./pager.js').then(({ Pager }) => (pager = new Pager({
+    scene, camera, player, cast, crowd, sound, groundAt, ensure: (x, y) => chunks.ensure(x, y), shadows, blobs, mobile: MOBILE,
+    booths: campus.props.filter((pr) => pr[0] === 'payphone'), buildings: campus.buildings, places: places.filter((p) => !NORTH.includes(p.name)),
+    onBegin: (msg) => {
+      if (bird.active) leaveBird();
+      shootout?.stop();
+      race?.stop();
+      race?.closePicker();
+      stopGames(pagerGame);
+      if (ui.memoryOpen) ui.closeMemory();
+      if (ui.mapOpen) ui.toggleMap(false);
+      ball?.drop();
+      document.body.classList.add('paging');
+      if (!started) startWalk(null, msg); else { paused = false; $('#pause').hidden = true; ui.toast(msg, 5000); }
+      ui.setPrompt(null);
+    },
+    onQuit: () => { document.body.classList.remove('paging'); resume(); ui.toast('삐삐를 끄고 산책을 이어 가요'); },
+  }))));
+  const startPager = async (e) => {
+    e?.stopPropagation(); e?.currentTarget?.blur();
+    sound.start();
+    await loadPager();
+    if (window.__y97) window.__y97.pager = pager;       // (headless checks)
+    pager.start();
+  };
+  $('#pager-start').addEventListener('click', startPager);
+  $('#pager-go').addEventListener('click', startPager);
+  $('#pager-quit').addEventListener('click', (e) => { e.stopPropagation(); pager?.stop(); });
   if (birthday) birthday.onSplash = (p) => sound.splash(p);
   $('#opt-sound').checked = sound.on;
   $('#opt-sound').addEventListener('change', (e) => sound.setOn(e.target.checked));
@@ -1329,6 +1365,7 @@ async function main() {
   $('#shoot-start').disabled = false;
   $('#run-start').disabled = false;
   $('#photo-start').disabled = false;
+  $('#pager-start').disabled = false;
   // the rest of the halls and landmarks, the nearest to the view first (src/chunks.js); each set in once its
   // textures are in and its shaders compiled: then the walker's walls, the sun's shadows and the atmosphere take it
   chunks.renderer = renderer;
