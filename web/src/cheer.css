@@ -1,0 +1,108 @@
+/* 연고전 응원 연습 (cheer.js): loaded with it */
+body.cheering #minimap, body.cheering #stamps, body.cheering #birdbtn, body.cheering #mapbtn, body.cheering #blabels, body.cheering #prompt,
+body.cheering #touch, body.cheering #viewbtn { display: none !important; }
+
+#cheerhud { position: fixed; inset: 0; z-index: 11; pointer-events: none; color: var(--hud-ink, #f4f1e8); font-family: var(--title, sans-serif); }
+#cheerhud[hidden] { display: none; }
+#cheerhud .top { position: absolute; top: calc(14px + var(--st, 0px)); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: stretch; }
+#cheerhud .top > div { background: var(--hud-bg, rgba(14, 22, 34, .62)); border-radius: 12px; padding: 6px 14px 8px; text-align: center; min-width: 80px;
+  backdrop-filter: blur(6px); }
+#cheerhud small { display: block; font: 700 11px var(--font, sans-serif); opacity: .75; }
+#cheerhud .top b { font-weight: 400; font-size: 30px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+#cheerhud .score b { color: var(--yellow, #ffe76a); min-width: 4.2em; display: inline-block; }
+#cheerhud .score span { display: block; font: 600 11px var(--font, sans-serif); opacity: .8; }
+#cheerhud .view { pointer-events: auto; border: 0; border-radius: 12px; padding: 0 12px; background: var(--hud-bg, rgba(14, 22, 34, .62)); color: inherit;
+  font: 700 13px var(--font, sans-serif); cursor: pointer; backdrop-filter: blur(6px); }
+#cheerhud .bar { position: absolute; top: calc(78px + var(--st, 0px)); left: 50%; width: 240px; margin-left: -120px; height: 4px; border-radius: 2px;
+  background: rgba(14, 22, 34, .45); overflow: hidden; }
+#cheerhud .bar i { display: block; height: 100%; background: var(--yellow, #ffe76a); transform-origin: 0 50%; transform: scaleX(0); }
+
+/* the lanes: the signs come down to the line over the pads */
+#cheerhud .track { --lw: 66px; position: absolute; right: 24px; bottom: 24px; width: calc(4 * var(--lw)); display: flex; flex-direction: column;
+  background: rgba(14, 22, 34, .38); border-radius: 14px; overflow: hidden; backdrop-filter: blur(3px); }
+#cheerhud .lanes { position: relative; height: min(52vh, 440px); display: flex; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%); mask-image: linear-gradient(to bottom, transparent, #000 18%); }
+#cheerhud .lane { position: relative; flex: 1; border-right: 1px solid rgba(255, 255, 255, .08); }
+#cheerhud .lane:last-child { border-right: 0; }
+#cheerhud .line { position: absolute; left: 0; right: 0; bottom: 22px; height: 4px; background: #fff; box-shadow: 0 0 10px rgba(255, 255, 255, .8); z-index: 1; }
+#cheerhud .note { position: absolute; left: 5px; right: 5px; top: -17px; height: 34px; border-radius: 9px; background: var(--c); color: #16202e;
+  display: grid; place-items: center; font: 700 12px var(--font, sans-serif); white-space: nowrap; letter-spacing: -.03em;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .3), inset 0 0 0 2px rgba(255, 255, 255, .55); will-change: transform; }
+#cheerhud .note.hit { opacity: 0; transition: opacity .15s; filter: brightness(1.6); }
+#cheerhud .note.gone { opacity: .35; filter: grayscale(1); }
+#cheerhud .pads { display: flex; }
+#cheerhud .pads button { pointer-events: auto; flex: 1; height: 58px; border: 0; margin: 0; padding: 4px 0 0; background: rgba(14, 22, 34, .55);
+  border-top: 4px solid var(--c); color: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  touch-action: none; -webkit-user-select: none; user-select: none; }
+#cheerhud .pads b { font: 700 13px var(--font, sans-serif); color: var(--c); }
+#cheerhud .pads kbd { font: 700 11px var(--font, sans-serif); opacity: .75; }
+#cheerhud .pads button.down { animation: cheerpad .18s ease-out; }
+@keyframes cheerpad { 0% { background: var(--c); } 100% { background: rgba(14, 22, 34, .55); } }
+
+#cheerhud .word { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); text-align: center; opacity: 0;
+  text-shadow: 0 3px 0 rgba(14, 22, 34, .5), 0 0 18px rgba(14, 22, 34, .45); }
+#cheerhud .word b { display: block; font-weight: 400; font-size: 44px; line-height: 1; color: #fff; }
+#cheerhud .word span { display: block; font: 700 14px var(--font, sans-serif); margin-top: 4px; }
+#cheerhud .word.perfect b { color: var(--yellow, #ffe76a); }
+#cheerhud .word.great b { color: #a8ef9a; }
+#cheerhud .word.good b { color: #9fd8ff; }
+#cheerhud .word.miss b { color: #ff9b8a; }
+#cheerhud .word.pop { animation: cheerword .6s ease-out; }
+@keyframes cheerword { 0% { opacity: 0; transform: translateX(-50%) scale(1.35); } 15% { opacity: 1; transform: translateX(-50%) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; } }
+#cheerhud .big { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); font: 400 clamp(54px, 11vw, 100px) var(--title, sans-serif); color: #fff;
+  text-shadow: 0 5px 0 rgba(14, 22, 34, .5), 0 0 24px rgba(14, 22, 34, .45); }
+#cheerhud .big.pop { animation: cheerbig .5s ease-out; }
+@keyframes cheerbig { 0% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { #cheerhud .big.pop, #cheerhud .word.pop { animation-duration: .01s; } #cheerhud .word { opacity: 1; } }
+
+/* phones: the lanes across the bottom, wide pads to tap */
+@media (max-width: 760px), (pointer: coarse) {
+  #cheerhud .track { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); width: auto; }
+  #cheerhud .lanes { height: 34vh; }
+  #cheerhud .pads button { height: 76px; }
+  #cheerhud .pads b { font-size: 15px; }
+  #cheerhud .pads kbd { display: none; }
+  #cheerhud .top b { font-size: 22px; }
+  #cheerhud .top > div { min-width: 60px; padding: 5px 8px 6px; }
+  #cheerhud .bar { top: calc(64px + var(--st, 0px)); width: 180px; margin-left: -90px; }
+  #cheerhud .word { top: 24%; }
+  #cheerhud .word b { font-size: 34px; }
+}
+
+/* the picker and the results card (as the race's) */
+#cheerpick, #cheerresult { position: fixed; inset: 0; z-index: 26; display: grid; place-items: center; background: rgba(10, 18, 28, .45); padding: 16px; }
+#cheerpick { z-index: 35; }
+#cheerpick[hidden], #cheerresult[hidden] { display: none; }
+#cheerpick > div, #cheerresult > div { background: var(--paper, #fffdf6); color: var(--ink, #16202e); padding: 22px 24px; border-radius: 8px; width: min(460px, 100%);
+  max-height: calc(100vh - 32px); overflow: auto; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); text-align: center; transform: rotate(0.5deg); }
+#cheerpick h2, #cheerresult h2 { font: 400 24px var(--title, sans-serif); margin: 0 0 4px; color: var(--blue, #143c8c); }
+#cheerpick .lead, #cheerpick .how { margin: 0 0 12px; font-size: 13px; color: #5c6572; line-height: 1.6; }
+#cheerpick .how { margin: 10px 0; }
+#cheerpick .charts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+#cheerpick .charts button { width: 100%; text-align: left; border: 2px solid var(--ink, #16202e); border-radius: 10px; background: #fff; padding: 10px 12px; cursor: pointer;
+  color: var(--ink, #16202e); font-family: var(--font, sans-serif); }
+#cheerpick .charts button:hover, #cheerpick .charts button:focus-visible { background: var(--yellow, #ffe76a); }
+#cheerpick .charts b { display: block; font: 400 18px var(--title, sans-serif); }
+#cheerpick .charts .desc { display: block; font-size: 13px; color: #34404f; margin-top: 2px; }
+#cheerpick .charts .meta { display: block; font-size: 12px; font-weight: 700; color: var(--blue, #143c8c); margin-top: 4px; }
+#cheerpick .close { border: 0; background: none; font: 700 14px var(--font, sans-serif); color: #5c6572; text-decoration: underline; cursor: pointer; }
+
+#cheerresult .verdict { margin: 2px 0 0; font-weight: 700; font-size: 15px; color: #34404f; }
+#cheerresult .big { margin: 4px 0 6px; font: 400 54px/1 var(--title, sans-serif); color: var(--blue, #143c8c); font-variant-numeric: tabular-nums; }
+#cheerresult .best { margin: 0 0 10px; font-weight: 700; font-size: 15px; }
+#cheerresult .best.new { color: #c0392b; }
+#cheerresult .counts { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+#cheerresult .counts li { background: #f3eedf; border-radius: 6px; padding: 4px 2px; }
+#cheerresult .counts small { display: block; font-size: 11px; color: #5c6572; font-weight: 700; }
+#cheerresult .counts b { font: 400 20px var(--title, sans-serif); font-variant-numeric: tabular-nums; }
+#cheerresult .counts .perfect b { color: #b8860b; }
+#cheerresult .counts .miss b { color: #c0392b; }
+#cheerresult .ranks { list-style: none; margin: 0 0 14px; padding: 0; font-size: 14px; }
+#cheerresult .ranks li { display: grid; grid-template-columns: 2em 1fr auto; gap: 8px; padding: 4px 8px; border-bottom: 1px dashed #d8d0bb; text-align: left; }
+#cheerresult .ranks li.me { background: #fff3b0; font-weight: 700; }
+#cheerresult .ranks .t { font-variant-numeric: tabular-nums; }
+#cheerresult .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#cheerresult button { border: 0; border-radius: 8px; padding: 12px 8px; font: 700 15px var(--font, sans-serif); cursor: pointer; }
+#cheerresult .again { background: var(--blue, #143c8c); color: #fff; }
+#cheerresult .other { background: var(--yellow, #ffe76a); color: var(--ink, #16202e); }
+#cheerresult .quit { margin-top: 8px; width: 100%; background: #fff; color: var(--ink, #16202e); border: 2px solid var(--ink, #16202e); }

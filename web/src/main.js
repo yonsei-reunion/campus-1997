@@ -1045,6 +1045,39 @@ async function main() {
   $('#pager-start').addEventListener('click', startPager);
   $('#pager-go').addEventListener('click', startPager);
   $('#pager-quit').addEventListener('click', (e) => { e.stopPropagation(); pager?.stop(); });
+  // 연고전 응원 연습 (src/cheer.js): a beat picked from the title card or the settings card, the moves on the beat
+  // with a block of students on 대강당's forecourt
+  let cheer = null, cheerLoad = null;
+  const cheerGame = { on: () => !!cheer?.on, busy: () => !!(cheer?.pickOpen || cheer?.resultsOpen),
+    stop: () => { cheer?.stop(); cheer?.closePicker(); }, update: (dt, t, p) => cheer?.update(dt, t, p),
+    pauseButtons: (game) => { $('#cheer-go').hidden = game; $('#cheer-quit').hidden = !cheer?.on; } };
+  games.push(cheerGame);
+  const loadCheer = () => (cheerLoad ||= import('./cheer.js').then(({ Cheer }) => (cheer = new Cheer({
+    scene, cast, player, sound, groundAt, crowd, shadows, blobs, bubbles: crowd.bubbles, mobile: MOBILE,
+    ensure: (x, y) => chunks.ensure(x, y), season: () => season, setSeason,
+    onBegin: (msg) => {
+      if (bird.active) leaveBird();
+      shootout?.stop();
+      race?.stop();
+      race?.closePicker();
+      stopGames(cheerGame);
+      if (ui.memoryOpen) ui.closeMemory();
+      if (ui.mapOpen) ui.toggleMap(false);
+      ball?.drop();
+      document.body.classList.add('cheering');
+      if (!started) startWalk(null, msg); else { paused = false; $('#pause').hidden = true; ui.toast(msg, 5000); }
+      ui.setPrompt(null);
+      forest.update(camera.position, true);
+    },
+    onQuit: () => { document.body.classList.remove('cheering'); resume(); ui.toast('응원 연습을 마치고 산책을 이어 가요'); },
+  }))));
+  const openCheer = async (e) => {
+    e?.stopPropagation(); e?.currentTarget?.blur();
+    (await loadCheer()).openPicker();
+  };
+  $('#cheer-start').addEventListener('click', (e) => { sound.start(); openCheer(e); });
+  $('#cheer-go').addEventListener('click', openCheer);
+  $('#cheer-quit').addEventListener('click', (e) => { e.stopPropagation(); cheer?.stop(); });
   if (birthday) birthday.onSplash = (p) => sound.splash(p);
   $('#opt-sound').checked = sound.on;
   $('#opt-sound').addEventListener('change', (e) => sound.setOn(e.target.checked));
@@ -1366,6 +1399,7 @@ async function main() {
   $('#run-start').disabled = false;
   $('#photo-start').disabled = false;
   $('#pager-start').disabled = false;
+  $('#cheer-start').disabled = false;
   // the rest of the halls and landmarks, the nearest to the view first (src/chunks.js); each set in once its
   // textures are in and its shaders compiled: then the walker's walls, the sun's shadows and the atmosphere take it
   chunks.renderer = renderer;
