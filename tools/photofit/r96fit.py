@@ -3,7 +3,8 @@
 # points are game 3D (해발) <-> photo pixels; the 3D side is a footprint corner (campus.json), a statue / prop position or
 # a ray cast into the running game at the same feature. Besides fit.py's point / vedge / line: "circles" (a round kerb:
 # centre, radius, level), "eye" (a standing photographer: camera 1.6 m over the ground, sigma in m). Prints the camera, the residual table, the 1-sigma of the position from the fit and the
-# leave-one-out spread; --save writes them back into the json under "result" (with the snapshot-style camera "cam").
+# leave-one-out spread (and with "along": [lo, hi] the span on the line of sight where the rms stays within 10 %);
+# --save writes them back into the json under "result" (with the snapshot-style camera "cam").
 import json, math, os, sys
 import numpy as np
 from scipy.optimize import least_squares
@@ -79,6 +80,27 @@ def solve(ph, idx=None, p0=None, starts=6):
     return p, C, math.sqrt(s2)
 
 
+def along(ph, p, lo, hi, step=1.0):
+    """the fit with the camera held at points on its horizontal line of sight (m, + = forward) between lo and hi:
+    the span where the rms stays within 10 % of the best. For photos whose points sit on one face (distance and focal
+    length trade off), with the range cut to where the photo's view is not blocked (spec "along": [lo, hi], reason in
+    its "what")"""
+    a = math.radians(p[3])
+    d = np.array([math.sin(a), math.cos(a)])
+    fix0 = dict(ph.fix)
+    prof = []
+    for k in np.arange(lo, hi + 1e-9, step):
+        ph.fix = dict(fix0, **{'0': float(p[0] + d[0] * k), '1': float(p[1] + d[1] * k)})
+        q0 = np.array(p, float)
+        q0[:2] = [ph.fix['0'], ph.fix['1']]
+        _, _, s = solve(ph, p0=q0, starts=1)
+        prof.append((float(k), s))
+    ph.fix = fix0
+    best = min(s for _, s in prof)
+    ok = [k for k, s in prof if s <= best * 1.1]
+    return prof, (min(ok), max(ok))
+
+
 def snapcam(p, W, H):
     """snapshots.json-style camera: position, a target 30 m ahead, vertical fov"""
     C = np.array(p[:3])
@@ -113,12 +135,19 @@ def main():
     n = len(loo)
     jk = math.sqrt((n - 1) / n * float(np.sum((loo[:, :2] - loo[:, :2].mean(0)) ** 2)))
     unc = max(lmax, 2 * math.hypot(sig[0], sig[1]), 2 * jk)
+    span = None
+    if 'along' in spec:
+        _, span = along(ph, p, *spec['along'])
+        unc = max(unc, -span[0], span[1])
+        print('along the line of sight (rms within 10 %%): %+.0f ~ %+.0f m' % span)
     print('leave-one-out: max horizontal shift %.2f m, jackknife s.e. %.2f m  -> uncertainty ~%.1f m' % (lmax, jk, unc))
     if '--save' in sys.argv:
         W, H = spec['size']
         spec['result'] = dict(p=[round(float(v), 3) for v in p], rms_px=round(s, 2),
                               sigma=[round(float(v), 3) for v in sig], loo_max_m=round(lmax, 2), jackknife_m=round(jk, 2),
                               uncertainty_m=round(unc, 1), cam=snapcam(p, W, H))
+        if span is not None:
+            spec['result']['along_m'] = [round(span[0], 1), round(span[1], 1)]
         txt = json.dumps(spec, ensure_ascii=False, indent=1)
         open(path, 'w').write(txt + '\n')
         print('saved', path)

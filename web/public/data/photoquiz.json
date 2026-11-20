@@ -168,6 +168,48 @@
    "credit": "연세대 생물학과 홈페이지(1998년 웨이백 저장본)",
    "from": "reference/학교홈페이지/bakyang.jpg",
    "shot": "r96/bakyang"
+  },
+  {
+   "id": "gym96",
+   "x": -91.0,
+   "y": -71.68,
+   "bearing": 250.7,
+   "photo": "assets/photoquiz/gym96.jpg",
+   "w": 400,
+   "h": 343,
+   "title": "중앙도서관 남쪽 포장에서 본 체육관",
+   "when": "1996년 무렵 봄",
+   "credit": "학교 홈페이지(1996 ~ 97년 웨이백 저장본)",
+   "from": "reference/학교홈페이지/gym.jpg",
+   "shot": "r96/gym"
+  },
+  {
+   "id": "yongjae96",
+   "x": 34.0,
+   "y": 65.18,
+   "bearing": 53.4,
+   "photo": "assets/photoquiz/yongjae96.jpg",
+   "w": 350,
+   "h": 290,
+   "title": "대강당 앞 농구장에서 본 용재관",
+   "when": "1996년 무렵 4월",
+   "credit": "학교 홈페이지(1996 ~ 97년 웨이백 저장본)",
+   "from": "reference/학교홈페이지/edu2.jpg",
+   "shot": "r96/edu2"
+  },
+  {
+   "id": "eagle96",
+   "x": -51.06,
+   "y": -145.64,
+   "bearing": 232.1,
+   "photo": "assets/photoquiz/eagle96.jpg",
+   "w": 400,
+   "h": 290,
+   "title": "독수리상 북동쪽 백양로 가",
+   "when": "1996년 무렵 겨울",
+   "credit": "학교 홈페이지(1996 ~ 97년 웨이백 저장본)",
+   "from": "reference/학교홈페이지/eng3.jpg",
+   "shot": "r96/eng3"
   }
  ]
 }
