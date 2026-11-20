@@ -11388,6 +11388,25 @@ for _ly in ('asphalt', 'pavers', 'dirt'):
     draw_poly(_ly, UW_FRONT97_OLD, 0)
 draw_poly('asphalt', UW_FRONT97_ROAD)
 draw_poly('pavers', UW_FRONT97_FLIGHT)
+# 「이곳은 어디?」 사진 자리의 땅, 1997년 7월 원본 스캔 (reference/고증/3.2 · 2.3.4 · 4.1).  On the game's map only, after
+# every planting (the planting, decals and leaf map read the paving as it was).
+# - 중앙도서관 앞 비스듬한 길 둘 (LIB97_SLANT): grey asphalt in the 1997 photo (reference/1997_중앙도서관.jpg, no joints),
+#   and as bright as the asphalt lane along the shrub band in all four frames
+# - 도서관 남쪽 길 (the band between the hall's planters and the lawn south of it): one pale surface out to s -17.35 (+- 0.33,
+#   23 profiles from o -59 to 13, four frames); the game's paving ended at s -14.4
+# - 독수리상 둘레: a ring of paving between the beds (r 8 - 12) and the outer shrubs, r 12.25 - 15.75 (the winter scans of
+#   1996 all round, July 1997 where no crown hides it; the brick walk of the 1997 autumn photo dogsang.jpg), cut short of
+#   백양로's verge row
+LIB_SLANT_ASPH97 = LIB97_SLANT
+LIB_S_BAND97 = lf_rect(-17.3, -14.0, -62.0, 13.0)
+EAGLE_RING97 = (Point(*EAGLE['pos']).buffer(15.75).difference(Point(*EAGLE['pos']).buffer(12.25))
+                .intersection(Polygon([(-100.0, -200.0), (-60.0, -200.0), (-60.0, -120.0), (-100.0, -120.0)])))
+draw_poly('asphalt', LIB_SLANT_ASPH97)
+for g_ in (LIB_SLANT_ASPH97.geoms if hasattr(LIB_SLANT_ASPH97, 'geoms') else [LIB_SLANT_ASPH97]):
+    SPLAT_OPS.append(('poly', '_gp', list(g_.exterior.coords), 0))      # (the slant walks were in the late pavers)
+    SPLAT_OPS.append(('poly', '_ga', list(g_.exterior.coords), 255))
+draw_poly('pavers', LIB_S_BAND97)
+draw_poly('pavers', EAGLE_RING97)
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -12492,6 +12511,13 @@ for u_row in (-13.8, 23.4):
         v_ = UW_FRONT97['road'][0] + 0.45 + (UW_FRONT97['road'][1] - UW_FRONT97['road'][0] - 0.9) * j_ / max(1, len(_bk) - 1)
         out['props'][i_][1:3] = [round(c_, 2) for c_ in uwg_xy(u_row, v_)]
 print('언더우드관 앞길: crowns on the bank', len(UW_FRONT97_CROWNS))
+# (and a tree standing on the eagle's ring of paving, EAGLE_RING97, goes in towards the eagle into the beds' ring, in its
+# place in the list)
+_er = EAGLE_RING97.buffer(0.8)
+for t_ in out['trees']:
+    if _er.contains(Point(t_[1], t_[2])):
+        _ed = math.hypot(t_[1] - EAGLE['pos'][0], t_[2] - EAGLE['pos'][1])
+        t_[1], t_[2] = (round(EAGLE['pos'][k_] + (t_[1 + k_] - EAGLE['pos'][k_]) * 11.0 / _ed, 2) for k_ in (0, 1))
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
