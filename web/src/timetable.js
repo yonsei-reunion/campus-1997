@@ -14,23 +14,28 @@ import './timetable.css';
 // way between their doors in metres: the walker's colliders, A* over a 1 m grid from door to door (places.js: where
 // the walker stands 4 m past the foot of the widest flight), measured headless on the campus of 2026-11-21.
 // HALLS[i]'s ways to HALLS[0 .. i - 1] are WAY[i]
-const HALLS = ['인문관', '종합관', '연희관', '성암관', '교육관', '가정관', '광복관', '용재관', '상대신관', '상대별관', '경영학교실단',
-  '과학관', '제1공학관', '제2공학관', '아펜젤러관', '음악대학', '체육교육관', '대강당', '연합신학대학원'];
-const WAY = [[], [127], [178, 164], [190, 205, 46], [135, 143, 44, 76], [200, 132, 93, 137, 89], [253, 329, 396, 383, 353, 430],
-  [188, 289, 243, 197, 225, 313, 243], [285, 238, 159, 165, 162, 109, 515, 361], [286, 245, 119, 125, 162, 117, 508, 321, 51],
-  [193, 296, 302, 274, 259, 340, 188, 86, 421, 397], [355, 431, 514, 513, 471, 548, 145, 396, 633, 631, 312],
-  [564, 659, 689, 655, 646, 727, 342, 462, 808, 779, 387, 320], [531, 610, 673, 660, 631, 707, 298, 477, 792, 786, 395, 246, 188],
-  [152, 202, 154, 108, 139, 226, 299, 90, 272, 232, 166, 453, 548, 563], [471, 565, 483, 437, 482, 572, 433, 309, 584, 534, 302, 545, 443, 529, 363],
-  [455, 525, 598, 585, 555, 632, 222, 440, 717, 710, 356, 155, 227, 109, 501, 544],
-  [249, 353, 339, 293, 299, 387, 221, 99, 457, 416, 70, 345, 364, 382, 185, 243, 377],
-  [85, 186, 265, 263, 222, 285, 168, 199, 371, 371, 178, 270, 488, 449, 189, 462, 365, 239]];
+const HALLS = ['인문관', '종합관', '연희관', '성암관', '교육관', '가정관', '광복관', '용재관', '상대신관', '상대별관', '경영학교실단', '과학관', '제1공학관',
+  '아펜젤러관', '음악대학', '체육교육관', '대강당', '연합신학대학원'];
+const WAY = [[], [127], [178, 164], [190, 205, 46], [135, 143, 44, 76], [200, 132, 93, 137, 89],
+  [253, 329, 396, 383, 353, 430], [188, 289, 243, 197, 225, 313, 243],
+  [285, 238, 159, 165, 162, 109, 515, 361], [286, 245, 119, 125, 162, 117, 508, 321, 51],
+  [193, 296, 302, 274, 259, 340, 188, 86, 421, 397],
+  [355, 431, 514, 513, 471, 548, 145, 396, 633, 631, 312],
+  [564, 659, 689, 655, 646, 727, 342, 462, 808, 779, 387, 320],
+  [152, 202, 154, 108, 139, 226, 299, 90, 272, 232, 166, 453, 548],
+  [471, 565, 483, 437, 482, 572, 433, 309, 584, 534, 302, 545, 443, 363],
+  [455, 525, 598, 585, 555, 632, 222, 440, 717, 710, 356, 155, 227, 501, 544],
+  [249, 353, 339, 293, 299, 387, 221, 99, 457, 416, 70, 345, 364, 185, 243, 377],
+  [85, 186, 265, 263, 222, 285, 168, 199, 371, 371, 178, 270, 488, 189, 462, 365, 239]];
 export const wayOf = (a, b) => {
   const i = HALLS.indexOf(a), j = HALLS.indexOf(b);
   return i < 0 || j < 0 || i === j ? 0 : i > j ? WAY[i][j] : WAY[j][i];
 };
-// the break: the way at running pace, a third more for the turns and the doubt, and 15 s to get going (checked
-// headless: a walker running the A* way makes every break of every timetable with 25 s or more to spare)
-export const breakOf = (m) => Math.ceil((m / RUN * 1.35 + 15) / 5) * 5;
+// the break: the way at running pace, two fifths more for the turns and the doubt, and 20 s to get going (checked
+// headless: a walker running the A* way, held up where steps and low walls are, makes every break of every timetable).
+// (제2공학관 is not in: its door is on the court between it and 제3공학관, up flights a walker coming at it from
+// below finds only by going round)
+export const breakOf = (m) => Math.ceil((m / RUN * 1.4 + 20) / 5) * 5;
 
 // the timetables: [class, hall] for 1 – 4교시 (a class every hour on the hour). The subjects are a game's: names
 // any college had, not a record of 1997's courses; 채플 was in 대강당
@@ -38,7 +43,7 @@ export const SETS = [
   { id: 'liberal', name: '문과대학', classes: [['국어학개론', '인문관'], ['대학영어', '종합관'], ['사회학개론', '연희관'], ['채플', '대강당']] },
   { id: 'science', name: '이과대학', classes: [['일반물리학', '과학관'], ['교양체육', '체육교육관'], ['채플', '대강당'], ['기독교의 이해', '종합관']] },
   { id: 'commerce', name: '상경대학', classes: [['경제원론', '상대신관'], ['대학영어', '종합관'], ['채플', '대강당'], ['회계원리', '상대별관']] },
-  { id: 'eng', name: '공과대학', classes: [['공업수학', '제1공학관'], ['일반화학실험', '제2공학관'], ['미적분학', '과학관'], ['채플', '대강당']] },
+  { id: 'eng', name: '공과대학', classes: [['공업수학', '제1공학관'], ['미적분학', '과학관'], ['채플', '대강당'], ['대학영어', '종합관']] },
 ];
 const SUBJECTS = ['대학영어', '기독교의 이해', '철학개론', '글쓰기', '통계학', '한국사', '심리학개론', '일반생물학', '경제학입문', '교양체육', '서양사', '컴퓨터 입문'];
 
