@@ -658,6 +658,16 @@ async function main() {
   // 대강당 앞 농구장 (src/hoops.js): loaded when the walk or the view comes near the court, or for the 1-minute game
   // (src/shootout.js, loaded when it starts); neither comes with the page (loadBall, startShoot below)
   let ball = null, ballLoad = null, shootout = null;
+  // 미니 게임 등록부: every mini game other than the 1-minute shootout and the race (which predate it) pushes one entry
+  //   { on: () => bool,            under way (the walk's map, bird view, memory cards and prompts are its own then)
+  //     busy?: () => bool,         a card of its own open (results, picker): main.js leaves the keys to it
+  //     stop: () => void,          let it go (toTitle, another game starting)
+  //     update?: (dt, t, paused) => void, pauseButtons?: (inGame) => void }
+  // and the checks below ask inGame() / gameBusy() instead of naming each game
+  const games = [];
+  const inGame = () => !!(shootout?.on || race?.on || games.some((g) => g.on()));
+  const gameBusy = () => games.some((g) => g.busy?.());
+  const stopGames = (except = null) => { for (const g of games) if (g !== except) g.stop(); };
   // hero picker on the title card (portraits rendered from the real models)
   const pics = portraits(cast, HEROES);
   const pickEl = $('#hero-pick');
@@ -760,9 +770,10 @@ async function main() {
     player.enabled = false;
     // (in the game: the way out of it; else the way into it)
     $('#shoot-quit').hidden = !shootout?.on;
-    $('#shoot-go').hidden = !!shootout?.on || !!race?.on || !S.court;
+    $('#shoot-go').hidden = inGame() || !S.court;
     $('#run-quit').hidden = !race?.on;
-    $('#run-go').hidden = !!shootout?.on || !!race?.on;
+    $('#run-go').hidden = inGame();
+    for (const g of games) g.pauseButtons?.(inGame());
     shootBest();
     $('#pause').hidden = false;
     $('#resume').focus({ preventScroll: true });        // (keys: Enter goes on, Shift+Tab to the buttons above it)
@@ -802,6 +813,7 @@ async function main() {
     shootout?.stop();                        // (its onQuit goes on with the walk: stopped below)
     race?.stop();
     race?.closePicker();
+    stopGames();
     started = false;
     paused = false;
     if (ui.memoryOpen) ui.closeMemory();
@@ -847,14 +859,14 @@ async function main() {
   });
   const openNearby = () => {
     if (ui.memoryOpen) { ui.closeMemory(); return; }
-    if (shootout?.on || race?.on) return;     // (the game: the key is the shot, shotDown)
+    if (inGame()) return;     // (the game: the key is the shot, shotDown)
     if (ball && !bird.active && ball.action()) { ui.setPrompt(ball.prompt()); return; }
     if (birthday && !bird.active && birthday.action()) { ui.setPrompt(null); return; }
     const l = ui.nearestLandmark(player.x, player.y);
     if (l) { player.enabled = false; ui.openMemory(l); }
   };
   const toggleMap = () => {
-    if (!started || shootout?.on || race?.on) return;
+    if (!started || inGame()) return;
     if (ui.mapOpen) { ui.toggleMap(false); return; }
     player.enabled = false;
     ui.toggleMap(true, player.x, player.y);
@@ -906,6 +918,7 @@ async function main() {
     } finally { shootLoading = btn.disabled = go.disabled = false; }
     if (bird.active) leaveBird();
     race?.stop();
+    stopGames();
     const how = MOBILE ? '공을 받으면 「슛」을 꾹 눌렀다가' : '공을 받으면 E나 스페이스를 꾹 눌렀다가';
     const msg = `1분 동안 몇 골? ${how} 막대가 초록 칸에 올 때 떼세요`;
     document.body.classList.add('shootout');
@@ -941,6 +954,7 @@ async function main() {
       for (const o of [crowd, townCrowd, traffic, street]) if (o) o.hidden = true;
       if (bird.active) leaveBird();
       shootout?.stop();
+      stopGames();
       if (ui.memoryOpen) ui.closeMemory();
       if (ui.mapOpen) ui.toggleMap(false);
       ball?.drop();
@@ -1011,7 +1025,7 @@ async function main() {
     },
   });
   const enterBird = () => {
-    if (bird.active || shootout?.on || race?.on) return;
+    if (bird.active || inGame()) return;
     if (ui.memoryOpen) ui.closeMemory();
     if (ui.mapOpen) ui.toggleMap(false);
     paused = false;
@@ -1063,7 +1077,7 @@ async function main() {
     }
     if (!started) return;
     if (shootout?.resultsOpen) { if (e.code === 'Escape') shootout.stop(); return; }
-    if (race?.resultsOpen || race?.pickOpen) return;           // (their Escape: race.js)
+    if (race?.resultsOpen || race?.pickOpen || gameBusy()) return;           // (their Escape: race.js and the games' own)
     // (the settings card is open: Enter is its focused button's, and no card opens behind it)
     if (paused && (e.code === 'Enter' || e.code === 'KeyE' || e.code === 'KeyM')) return;
     if (e.code === 'KeyB' && !ui.memoryOpen) { enterBird(); return; }
@@ -1180,6 +1194,7 @@ async function main() {
     ball?.update(dt, tAcc, started && !bird.active);
     shootout?.update(dt, tAcc, paused || ui.memoryOpen || ui.mapOpen);
     race?.update(dt, tAcc, paused || ui.memoryOpen || ui.mapOpen);
+    for (const g of games) g.update?.(dt, tAcc, paused || ui.memoryOpen || ui.mapOpen);
     blobs?.update(camera.position);
     sound.update(dt, tAcc, { player, walking: started && !bird.active, crowd, traffic: heard, birds, season });
     decals.update(camera.position);
@@ -1202,8 +1217,8 @@ async function main() {
         lastPlace = tAcc;
         const l = ui.nearestLandmark(player.x, player.y);
         ui.setPlace(ui.placeName(player.x, player.y, onRoad(player.x, player.y)));
-        const game = shootout?.on || race?.on, busy = game || !!ball?.pick;      // (picking up the ball: no other prompt meanwhile)
-        const bp = race?.on ? null : busy ? ball.prompt() : ball?.prompt() || birthday?.prompt();
+        const game = inGame(), busy = game || !!ball?.pick;      // (picking up the ball: no other prompt meanwhile)
+        const bp = game && !shootout?.on ? null : busy ? ball.prompt() : ball?.prompt() || birthday?.prompt();
         ui.setPrompt(bp ? bp : l && !busy && !ui.memoryOpen ? `${l.name} · ${MOBILE ? '눌러서 ' : ''}그때의 추억 보기` : null);
       }
       if (MOBILE) ui.clearWalker(player.screenBox(camera));     // the prompt button off the walker (phones)
