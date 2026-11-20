@@ -12323,7 +12323,6 @@ out['tsplat'] = dongmun.pack(os.path.join(ROOT, 'web/public/assets/textures/grou
 _dm_lines, _dm_humps = dongmun.paint()
 out['road_paint']['lines'] += _dm_lines
 out['road_paint']['humps'] += _dm_humps
-out['props'] += dongmun.props()
 out['colliders'] += dongmun.colliders() + [dongmun.fly_collider()]
 out['markers'].append(dict(name='동문', pos=list(dongmun.MARKER), top=round(ground_tn(*dongmun.MARKER) + 5.0, 1)))
 out['markers'].append(dict(name='법현학사', pos=[672.0, 193.0], top=round(max(b_['base'] + b_['height'] for b_ in DONGMUN_HALLS[:2]) + 1.0, 1)))
@@ -12494,12 +12493,6 @@ _hcol = Polygon([tuple(p_[:2]) for p_ in _hb['footprint']]).buffer(0).difference
 _hcol = max(getattr(_hcol, 'geoms', [_hcol]), key=lambda g_: g_.area)
 _hb['collider'] = [[round(x_, 2), round(y_, 2)] for x_, y_ in list(_hcol.exterior.coords)[:-1]]
 print('백주년기념관 남서쪽 로비 앞: beds %d, shrubs %d' % (len(CENT_SW97_TIERS), len(centsw97.shrubs(CENT_SW97_TIERS))))
-# 동문 둘레의 숲 (tools/dongmun.py trees): the knoll's and the slope's crowns of the 1997 scans and the island's pines, at
-# the trees' very end (the web picks each tree's model by its place in the list)
-DONGMUN_TREES = dongmun.trees(out['trees'], [b_['footprint'] for b_ in out['buildings']], muak.woods_fill)
-out['trees'] += DONGMUN_TREES
-out['shrubs'] += dongmun.shrubs()             # (and the island's clipped shrubs, at the shrubs' end)
-print('동문 둘레: trees', len(DONGMUN_TREES))
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
 # the 1997 photos' block had (0.052 + 0.522 x/100 + 0.248 y/100 m): the levels the photos read as flat, the roads'
@@ -12731,6 +12724,14 @@ for (a_, b_, _), (k_, w_, c_) in zip(YJ_FLIGHT97_OLD, YJ_FLIGHT97):
                and math.hypot(p_['pts'][1][0] - b_[0], p_['pts'][1][1] - b_[1]) < 0.2)
     out['paths'][_yk] = dict(kind=k_, w=w_, pts=[list(q_) for q_ in c_])
 out['shrubs'] = [s_ for s_ in out['shrubs'] if not _yf_new.buffer(0.4).contains(Point(s_[1], s_[2]))]
+# 동문 둘레의 숲 (tools/dongmun.py trees): the knoll's and the slope's crowns of the 1997 scans and the island's pines, at
+# the trees' very end (the web picks each tree's model by its place in the list)
+DONGMUN_TREES = dongmun.trees(out['trees'], [b_['footprint'] for b_ in out['buildings']], muak.woods_fill)
+out['trees'] += DONGMUN_TREES
+print('동문 둘레: trees', len(DONGMUN_TREES))
+# 동문의 섬 관목 · 가로등 (tools/dongmun.py shrubs · props): at the lists' very end, after every other append
+out['shrubs'] += dongmun.shrubs()
+out['props'] += dongmun.props()
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
