@@ -141,11 +141,6 @@
 </tr>
 <tr><td colspan="2" align="center"><b>교육관</b> · 연희관 앞 정원 · 2003년 가을</td></tr>
 <tr>
-<td valign="top"><img src="docs/compare/cherry_photo.jpg" alt="백양로 끝 벚나무 2003년 봄 사진" width="100%"></td>
-<td valign="top"><img src="docs/compare/cherry_game.jpg" alt="게임의 벚나무" width="100%"></td>
-</tr>
-<tr><td colspan="2" align="center"><b>벚나무</b> · 백양로 끝 · 언더우드관 앞길 · 2003년 봄</td></tr>
-<tr>
 <td valign="top"><img src="docs/compare/uw_steps_photo.jpg" alt="백양로 끝 계단 2003년 봄 사진" width="100%"></td>
 <td valign="top"><img src="docs/compare/uw_steps_game.jpg" alt="게임의 백양로 끝 계단" width="100%"></td>
 </tr>
