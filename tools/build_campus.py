@@ -11353,6 +11353,21 @@ for k_ in sorted(_kept, reverse=True):
         out['paths'][k_]['pts'] = [[round(x, 1), round(y, 1)] for x, y in _kept[k_].coords]
 print('섬처럼 놓인 포장: walk stubs cut', len(PRUNED) - len(WALK_SCRAP), 'walks taken out', len(WALK_SCRAP),
       '%.0f m²' % unary_union(PRUNED).area if PRUNED else '')
+# 백양로 끝 계단 윗머리 앞 찻길 (reference/고증/3.18 「계단 윗머리 앞 길의 포장」): the four frames of July 1997 have one
+# surface of the drive's tone from the row of benches at the head (UW_STEPS) to a kerb at y 159.4 - 161.0, 7.5 m wide
+# at x 38 and 10.4 m at x 50 (the 2003 spring photo from the north-east: asphalt about 11 m wide, a yellow kerb), and
+# a pale walk (the garden's gravel) from its east end north along x 57 - 61.5.  The game had block paving along the
+# head and north of a narrower asphalt, lawn where the walk was.  Painted here, on the game's map only (the planting,
+# decals and leaf map read the paving as it was)
+UW_HEAD_ROAD97 = Polygon([st_xy(-3.0, _US['v_head'] + 1.0), st_xy(27.0, _US['v_head'] + 1.0), (66.5, 150.0), (67.0, 157.5),
+                          (62.0, 157.5), (58.5, 158.6), (56.0, 160.3), (52.0, 160.4), (48.0, 159.6), (40.0, 159.6), (36.0, 161.0),
+                          (34.0, 161.5)])
+UW_EAST_WALK97 = Polygon([(57.0, 160.2), (58.5, 158.6), (61.5, 158.0), (62.0, 167.0), (62.8, 172.5), (57.0, 172.5)])
+for _ly in ('pavers', 'dirt'):
+    draw_poly(_ly, UW_HEAD_ROAD97, 0)
+SPLAT_OPS.append(('poly', '_ga', list(UW_HEAD_ROAD97.exterior.coords), 255))    # (over 용재관's bank, which _yg takes up)
+draw_poly('pavers', UW_EAST_WALK97.difference(UW_HEAD_ROAD97), 0)
+draw_poly('dirt', UW_EAST_WALK97.difference(UW_HEAD_ROAD97))
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -12439,6 +12454,8 @@ if len(_fj):
 _YJ_ON_ROAD = [(60.38, 127.19), (63.11, 126.8), (59.95, 124.68)]
 out['shrubs'] = [s_ for s_ in out['shrubs'] if not any(s_[0].startswith('azalea') and math.hypot(s_[1] - x_, s_[2] - y_) < 0.3
                                             for x_, y_ in _YJ_ON_ROAD)]
+# (and those of its north tip on the drive at the head of 백양로's end steps, UW_HEAD_ROAD97: open in 1997)
+out['shrubs'] = [s_ for s_ in out['shrubs'] if not (s_[0].startswith('azalea') and UW_HEAD_ROAD97.buffer(0.3).contains(Point(s_[1], s_[2])))]
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
