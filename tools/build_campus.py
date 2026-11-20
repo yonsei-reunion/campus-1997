@@ -11407,6 +11407,24 @@ for g_ in (LIB_SLANT_ASPH97.geoms if hasattr(LIB_SLANT_ASPH97, 'geoms') else [LI
     SPLAT_OPS.append(('poly', '_ga', list(g_.exterior.coords), 255))
 draw_poly('pavers', LIB_S_BAND97)
 draw_poly('pavers', EAGLE_RING97)
+# The ground at three places of the 「이곳은 어디?」 photos as the July 1997 frames have it, on the game's map only
+# like the blocks above (the planting, decals and leaf map read the ground as it was):
+# - 연희관 앞 정원 (reference/고증/3.5.1 「1997년 7월 원본 스캔으로 본 둘레 길」): a walk 1.5 m wide round the north
+#   half, west and east of the cross walk's ends and along the foot of the north bank (26/15 · 27/16 · 26/14 within
+#   0.2 - 0.5 m), where the game had lawn.  Read in the garden's own frame and set against the game's walks, which
+#   lie 1.65 m west and 0.3 m north of the photos' (the garden's absolute place is left as it is)
+# - 활천대 (reference/고증/4.3 「분수 둘레의 땅」): a walk 2.7 m wide from the drive north of the fountain south-west to
+#   the walk on its west (the tennis courts' side), on 26/16 · 27/17 · 26/15 within 0.2 m and the winter 1996 frame 27/17
+# - 옛 노천극장 (reference/고증/3.14.1 「객석 둑 위의 흙길」): the bare path round the top of the bank 5 m wide, not
+#   1.8 m (5 - 7 m in July 1997; the April photo has bare earth all across its foot)
+YH_RIM97 = unary_union([Polygon([YH_G(e0, n0), YH_G(e1, n0), YH_G(e1, n1), YH_G(e0, n1)])
+                        for e0, e1, n0, n1 in ((-28.7, -27.2, 1.0, 17.45), (-28.7, 28.0, 15.95, 17.45), (26.5, 28.0, 1.0, 17.45))])
+HW_DIAG97 = LineString([(-73.2, -188.6), (-73.59, -189.22), (-90.39, -197.62), (-93.6, -198.9)]).buffer(1.35, cap_style='flat')
+AMPH_RIM97 = Polygon([amph_xy((AMPH['arena_rx'] + AMPH_DEPTH + dd) * math.cos(a), (AMPH['arena_ry'] + AMPH_DEPTH + dd) * math.sin(a))
+                      for dd, aa in ((0.4, 1), (5.4, -1)) for a in np.radians(np.linspace(-AMPH['seat_end'], AMPH['seat_end'], 80))[::aa]])
+draw_poly('pavers', YH_RIM97)
+draw_poly('pavers', HW_DIAG97)
+draw_poly('dirt', AMPH_RIM97)
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -12518,6 +12536,8 @@ for t_ in out['trees']:
     if _er.contains(Point(t_[1], t_[2])):
         _ed = math.hypot(t_[1] - EAGLE['pos'][0], t_[2] - EAGLE['pos'][1])
         t_[1], t_[2] = (round(EAGLE['pos'][k_] + (t_[1 + k_] - EAGLE['pos'][k_]) * 11.0 / _ed, 2) for k_ in (0, 1))
+# (and the shrubs on the walks of 1997 painted above: 활천대's diagonal walk, round 연희관 앞 정원)
+out['shrubs'] = [s_ for s_ in out['shrubs'] if not unary_union([HW_DIAG97, YH_RIM97]).buffer(0.2).contains(Point(s_[1], s_[2]))]
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
