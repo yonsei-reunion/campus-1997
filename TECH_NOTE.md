@@ -324,6 +324,12 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
   - 건물 · 땅을 고친 뒤에는 `node tools/race_route.mjs --port <포트> --check` 로 코스를 모두 결승까지 돌려 봅니다(바닥 화살표의 선을 따라 게임 그대로 `Race.update`).
   - 경유점은 현관 앞(계단 · 테라스)을 피해 보도 위에 둡니다. 중앙 광장 코스의 11번 문은 경영학교실단 앞 높은 마당 끝을 피해, 상대신관 두 코스의 언더우드관 북서쪽 문(교육관 앞)은 화단 턱을 피해 손으로 옮겼습니다. 상대신관 코스는 상뜰 남쪽 계단으로 올라 상뜰 위가 결승입니다.
 
+### 이곳은 어디?
+
+- 사진 찾기(`photoquiz.js` · `photoquiz.css`, 주소 `?game=photo`): 사진 한 장을 화면 왼쪽 위에 띄우고(누르면 크게), 정답에서 60 ~ 170 m 떨어진 출발할 곳(`places`)에 세웁니다. 그 사진을 찍은 자리에 가서 같은 쪽을 보고 E · 스페이스(폰은 「여기서 찍기」)를 누르면 수평 거리(700점: 2 m 안 만점, 42 m 넘으면 0)와 카메라가 보는 방위의 차이(300점: 10° 안 만점, 70° 넘으면 0)로 점수를 매깁니다. 한 판 다섯 장, 한 장에 100 s. 게임 중에는 1인칭으로 바꿉니다(V 로 되돌릴 수 있음, 그만두면 전 시점).
+- 문제: `data/photoquiz.json` 과 `assets/photoquiz/*.jpg` 는 `python tools/photoquiz.py` 가 만듭니다. README 「사진과 비교」의 짝 카메라(`tools/snapshots.json` 의 `compare/*`)가 정답이라, 그 카메라를 고치면 다시 돌립니다. 뺀 사진과 그 까닭은 그 도구의 머리말에.
+- 기록은 `localStorage` 의 `y97-photo-records`(점수 순 50번까지, 사진마다 거리 · 방향 차이 · 점수와 함께).
+
 ### 렌더링
 
 - three.js PBR, HDRI 하늘과 환경광. 환경 이미지의 해 원반은 지우고 그 빛은 그림자가 드는 `DirectionalLight` 로 옮겼습니다(`blender/sky_bake.py`, `main.js`).

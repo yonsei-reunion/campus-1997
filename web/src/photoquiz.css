@@ -83,10 +83,18 @@ body.game-photo #photo-start { padding: 14px; font-size: 18px; background: var(-
 #pqresult .quit { background: #fff; color: var(--ink, #16202e); border: 2px solid var(--ink, #16202e) !important; }
 
 @media (max-width: 640px) {
-  #pqhud b { font-size: 20px; }
-  #pqhud > div { min-width: 56px; padding: 4px 8px 5px; }
-  #pqphoto { top: calc(64px + var(--st, 0px)); width: 38vw; }
-  #pqphoto.tall { width: 26vw; }
+  /* (a narrow screen: the HUD under 「지금 여기」, left of the map, and the photo under it) */
+  #pqhud { top: calc(62px + var(--st, 0px)); left: calc(12px + var(--sl, 0px)); transform: none; justify-content: flex-start; gap: 5px; max-width: calc(100vw - 170px); }
+  #pqhud b { font-size: 19px; }
+  #pqhud > div { min-width: 50px; padding: 3px 7px 4px; }
+  #pqhud .hint { margin: 0; font-size: 12px; }
+  #pqphoto { top: calc(142px + var(--st, 0px)); left: calc(12px + var(--sl, 0px)); width: 40vw; }
+  #pqphoto.tall { width: 27vw; }
+  #pqreveal dl { display: flex; justify-content: center; gap: 28px; text-align: center; }
   #pqgo { padding: 12px 18px; font-size: 16px; bottom: calc(30px + var(--sb, 0px)); }
   #pqreveal .pair { grid-template-columns: 1fr; }
+}
+@media (max-height: 500px) and (min-width: 641px) {
+  #pqphoto { top: calc(70px + var(--st, 0px)); width: 24vw; }
+  #pqphoto.tall { width: 15vw; }
 }
