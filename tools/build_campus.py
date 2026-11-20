@@ -11447,6 +11447,17 @@ EAGLE97_BEDS_OUT = _e97c.buffer(EAGLE97['beds'], 96).difference(_e97c.buffer(EAG
 draw_poly('pavers', unary_union([_e97c.buffer(EAGLE97['ring'], 96).difference(_e97c.buffer(EAGLE97['kerb'], 96)),
                                  EAGLE97_FRONT, EAGLE97_WALKS]).difference(bline.buffer(E_WALK)), pre=False)
 draw_poly('pavers', unary_union([EAGLE97_BEDS_IN, EAGLE97_BEDS_OUT, EAGLE97_SQUARE]), 0, pre=False)   # (no kerb round the platform)
+# 용재관 앞 둑의 계단 길 (i222; reference/고증/3.13 「앞 둑의 게시판 둘과 벚나무 둘」): OSM's flight up the bank (paths
+# 512 · 513) runs where the east glass board stood in 1997; edu2.jpg has the flight just right of that board, going up
+# to the right, and the 1996 winter scans a pale strip on from it north along x 69 - 71 to the level ground.  Painted
+# here, on the game's map only (the planting, decals and leaf map read OSM's walk as it was); out['paths'] at the end
+YJ_FLIGHT97_OLD = [((61.1, 79.6), (62.1, 82.5), 2.6), ((62.1, 82.5), (63.2, 87.1), 3.0)]
+YJ_FLIGHT97 = [('footway', 2.6, [(64.6, 78.9), (64.6, 81.8)]),
+               ('steps', 3.0, [(64.6, 81.8), (70.5, 84.8), (70.6, 92.0), (70.6, 95.5)])]
+_yf_new = unary_union([LineString(c_).buffer(w_ / 2) for _, w_, c_ in YJ_FLIGHT97])
+draw_poly('pavers', unary_union([LineString([a_, b_]).buffer(w_ / 2 + 0.2) for a_, b_, w_ in YJ_FLIGHT97_OLD]).difference(
+    _yf_new).difference(LineString([(50.3, 82.7), (61.1, 79.6), (87.7, 72.6)]).buffer(1.5)), 0, pre=False)
+draw_poly('pavers', _yf_new, pre=False)
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -12668,6 +12679,13 @@ _s.pop('ring', None)
 _s.update(r=round(EAGLE97['half'] + 0.1, 2), square=[EAGLE97['half'], EAGLE97['plat']], kerb=EAGLE97['kerb'],
           beds=EAGLE97['beds'], groups=[list(g_) for g_ in EAGLE97_GROUPS])
 print('독수리상 안쪽: azaleas %d -> %d' % (_n_old, _n_bed))
+# (the flight up 용재관's bank moved above, YJ_FLIGHT97: OSM's two pieces take its place in the list, and the azaleas on
+# it go)
+for (a_, b_, _), (k_, w_, c_) in zip(YJ_FLIGHT97_OLD, YJ_FLIGHT97):
+    _yk = next(i_ for i_, p_ in enumerate(out['paths']) if len(p_['pts']) == 2 and math.hypot(p_['pts'][0][0] - a_[0], p_['pts'][0][1] - a_[1]) < 0.2
+               and math.hypot(p_['pts'][1][0] - b_[0], p_['pts'][1][1] - b_[1]) < 0.2)
+    out['paths'][_yk] = dict(kind=k_, w=w_, pts=[list(q_) for q_ in c_])
+out['shrubs'] = [s_ for s_ in out['shrubs'] if not _yf_new.buffer(0.4).contains(Point(s_[1], s_[2]))]
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
