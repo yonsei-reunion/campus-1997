@@ -6851,7 +6851,9 @@ def jh_site():
 # side with a head out into the yard at its north end, all under hipped roofs on one eaves line three storeys over the
 # yard, and where the wings meet a flat-roofed block a storey higher; in the yard, against the south wing, a low
 # flat-roofed annex.  The yard stands at the main floor, the forecourt before the south front a flight below it.
-KB = dict(fh=3.7, bay=4.25)
+KB = dict(fh=3.7, bay=4.25,
+          # the north wing's east wall in law.jpg (camera fitted, tools/photofit/r96/law.json): ten bays of three lights
+          grid_bay=3.85, grid=dict(pier=0.9, ww=0.62, sill=1.15, head=0.7))
 
 
 def kwangbok():
@@ -6878,11 +6880,12 @@ def kwangbok():
         k = Vector(P(s, z + 0.12, 0.3))
         mb.box((k.x, k.y, z + 0.12), (0.05, 0.3, 0.05), 'metal_dark', rotz=ang)
 
-    def facade(a, b_, ztop, z_from=None, door=None, bars=False):
-        """one wall a -> b (the hall on its left); door: the door's middle along it"""
+    def facade(a, b_, ztop, z_from=None, door=None, bars=False, grid=False, blank=False):
+        """one wall a -> b (the hall on its left); door: the door's middle along it.  grid: the concrete frame of the
+        north wing's east wall, blank: its north end (law.jpg of the school's 1996 site, reference/고증/3.9 「긴 면」)"""
         P, L, t, n = edge_P(a, b_)
         ang = math.atan2(t.y, t.x)
-        nb = max(1, int(round(L / KB['bay'])))
+        nb = max(1, int(round(L / (KB['grid_bay'] if grid else KB['bay']))))
         bw = L / nb
         z_lo = zm if z_from is None else z_from
         k0 = max(0, min(nb - 3, int(round(door / bw - 1.5)))) if door is not None else -9
@@ -6913,8 +6916,40 @@ def kwangbok():
                     for z in (za, (za + zb) / 2, zb):
                         bar(mb, P, s0_, z, s1_, z, 0.06, 0.0, 0.05, 'stone_trim')
         nfl = int(round((ztop - z_lo) / F - 0.2))
-        if ztop - (z_lo + nfl * F) > 0.6:                 # (the flat-roofed block's parapet over its top storey)
-            flat_wall(mb, P, 0, L, z_lo + nfl * F, ztop, WALL)
+        if blank:
+            # a plain rendered end wall, no window in it
+            flat_wall(mb, P, 0, L, z_lo, ztop, 'concrete')
+            bar(mb, P, 0, ztop - 0.22, L, ztop - 0.22, 0.44, 0.0, 0.34, 'stone_trim', ends=True)
+            return
+        if grid:
+            # a concrete frame: per bay three narrow lights between a broad pier at each bay line, slender fins between
+            # the lights running on through the panelled band under them, ledges at the sills, heads and mid-band, a
+            # downpipe at every other pier (the photo shows one at the corner)
+            G = KB['grid']
+            pier = G['pier']
+            for f in range(nfl):
+                zf = z_lo + f * F
+                for k in range(nb):
+                    s0, s1 = k * bw, (k + 1) * bw
+                    sa, sb = s0 + pier / 2, s1 - pier / 2
+                    flat_wall(mb, P, s0, sa, zf, zf + F, 'concrete_warm')
+                    flat_wall(mb, P, sb, s1, zf, zf + F, 'concrete_warm')
+                    window_grid(mb, P, L, zf, 1, F, (sb - sa) / 3, 'concrete_warm', ww=G['ww'], sill=G['sill'],
+                                head=G['head'], depth=0.2, frame='frame_dark', mull=0, s_start=sa, s_end=sb)
+                    for j in (1, 2):
+                        s = sa + (sb - sa) * j / 3
+                        bar(mb, P, s, zf, s, zf + F, 0.14, 0.0, 0.07, 'stone_trim')
+                for z in (zf + G['sill'], zf + F - G['head'], zf + (G['sill'] - G['head']) / 2):
+                    if z > z_lo + 0.3:
+                        bar(mb, P, 0, z, L, z, 0.12, 0.0, 0.09, 'stone_trim')
+            for k in range(nb + 1):
+                s = min(max(k * bw, 0.2), L - 0.2)
+                bar(mb, P, s, z_lo, s, ztop - 0.3, 0.4, 0.0, 0.14, 'stone_trim', ends=True)
+                if k % 2 == 0:
+                    sp = min(max(k * bw, 0.35), L - 0.35)
+                    bar(mb, P, sp, z_lo, sp, ztop - 0.3, 0.1, 0.16, 0.26, 'metal_dark', ends=True)
+            bar(mb, P, 0, ztop - 0.22, L, ztop - 0.22, 0.44, 0.0, 0.34, 'stone_trim', ends=True)
+            return
         for f in range(nfl):
             zf = z_lo + f * F
             for k in range(nb):
@@ -6965,8 +7000,9 @@ def kwangbok():
     facade(U(so[1], tw[2]), U(tw[1], tw[2]), zT)                                           # the corner block, from the ground
     facade(U(tw[1], tw[2]), U(tw[1], tw[3]), zT)
     facade(U(tw[1], tw[3]), U(no[1], tw[3]), zT)
-    facade(U(no[1], tw[3]), U(no[1], no[3]), zS)                                           # the north wing's east wall
-    facade(U(no[1], no[3]), U(hn[0], hn[3]), zS)                                           # its north end and the head's
+    facade(U(no[1], tw[3]), U(no[1], no[3]), zS, grid=True)                                # the north wing's east wall
+    facade(U(no[1], no[3]), U(no[0], no[3]), zS, blank=True)                               # its north end
+    facade(U(no[0], no[3]), U(hn[0], hn[3]), zS)                                           # the north head's
     facade(U(hn[0], hn[3]), U(hn[0], hn[2]), zS)
     facade(U(hn[0], hn[2]), U(no[0], hn[2]), zS)
     facade(U(no[0], hn[2]), U(no[0], so[3]), zS)                                           # the yard's east side
