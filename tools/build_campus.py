@@ -12477,15 +12477,13 @@ out['shrubs'] = [s_ for s_ in out['shrubs'] if not any(s_[0].startswith('azalea'
 # (and those of its north tip on the drive at the head of 백양로's end steps, UW_HEAD_ROAD97: open in 1997)
 out['shrubs'] = [s_ for s_ in out['shrubs'] if not (s_[0].startswith('azalea') and UW_HEAD_ROAD97.buffer(0.3).contains(Point(s_[1], s_[2])))]
 # 언더우드관 앞길 (UW_FRONT97): the bank's eight round crowns (centres u in four frames, 4.3 - 4.7 m apart and about
-# 4.5 m across): the clipped pine the game had at the bank's west foot moved onto it in its place in the list, the
-# other seven at the trees' very end.  The bollards across the road (the 2003 photo) moved onto its 1997 place
-UW_FRONT97_PINES = [-19.1, -14.4, -9.6, -4.7, 4.3, 8.5, 13.2, 17.7]
-_ufp = [uwg_xy(u_, 46.0) for u_ in UW_FRONT97_PINES]
-_uf_old = uwg_xy(-18.8, 43.3)
-_uf_k = next(i_ for i_, t_ in enumerate(out['trees']) if t_[0] == 'pine' and math.hypot(t_[1] - _uf_old[0], t_[2] - _uf_old[1]) < 0.05)
-out['trees'][_uf_k][1:3] = [round(_ufp[0][0], 2), round(_ufp[0][1], 2)]
-for k_, (x_, y_) in enumerate(_ufp[1:]):
-    out['trees'].append(['pine', round(x_, 2), round(y_, 2), 0.4, round(1.3 + 0.9 * k_, 2)])
+# 4.5 m across; the 2003 photo: low domes of clipped evergreen, about 2 m high, no trunk showing), flat clipped domes
+# at the shrubs' very end (the trees' list as it was).  The bollards across the road (the 2003 photo) moved onto its
+# 1997 place
+UW_FRONT97_CROWNS = [-19.1, -14.4, -9.6, -4.7, 4.3, 8.5, 13.2, 17.7]
+for k_, u_ in enumerate(UW_FRONT97_CROWNS):
+    out['shrubs'].append(['topiary_dome', *(round(c_, 2) for c_ in uwg_xy(u_, 46.0)), round(1.95 + 0.05 * (k_ % 3 - 1), 2),
+                          round(0.7 + 0.9 * k_, 2)])
 _uf_inv = lambda x_, y_: (float(np.dot([x_ - UW_STATUE[0], y_ - UW_STATUE[1]], _wuu)), float(np.dot([x_ - UW_STATUE[0], y_ - UW_STATUE[1]], _wuv)))
 for u_row in (-13.8, 23.4):
     _bk = [i_ for i_, p_ in enumerate(out['props']) if p_[0] == 'bollard' and abs(_uf_inv(p_[1], p_[2])[0] - u_row) < 0.5
@@ -12493,7 +12491,7 @@ for u_row in (-13.8, 23.4):
     for j_, i_ in enumerate(sorted(_bk, key=lambda i_: _uf_inv(out['props'][i_][1], out['props'][i_][2])[1])):
         v_ = UW_FRONT97['road'][0] + 0.45 + (UW_FRONT97['road'][1] - UW_FRONT97['road'][0] - 0.9) * j_ / max(1, len(_bk) - 1)
         out['props'][i_][1:3] = [round(c_, 2) for c_ in uwg_xy(u_row, v_)]
-print('언더우드관 앞길: pine moved', _uf_k, '- crowns added', len(_ufp) - 1)
+print('언더우드관 앞길: crowns on the bank', len(UW_FRONT97_CROWNS))
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
