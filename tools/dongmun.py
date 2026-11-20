@@ -152,7 +152,7 @@ CAMPUS_SIDE = Polygon([(600.0, 166.0), (640.0, 166.0), (652.0, 176.0), (672.0, 1
 # rock, dry grass and a granite-block wall at the foot): s and offsets left of travel
 BARE = (40.0, 117.0, ROAD_HALF, ROAD_HALF + 6.0)
 WALL_S = (44.0, 116.5)          # (the granite-block wall at the foot of the slope, along the road's north edge)
-WALL_OFF = ROAD_HALF + 0.3
+WALL_OFF = ROAD_HALF + 0.1
 # 법현학사 (1975, raised to three storeys in 1979, gone in 2015): the 2006 survey's outline (the same building as the
 # 1997 roofs, within 0.8 m), split where the two roofs meet; roofs 54.8 m (west) and 56.3 m (east) on the 1997 scans,
 # the stair tower between them and the bright box on the east roof 59.35 m; the ground by the road on the north 55.2 -
@@ -178,6 +178,14 @@ PIER_L, PIER_W, PIER_H = 3.2, 1.5, 2.85
 TOLL = dict(pos=[673.3, 218.0], rot=round(math.atan2(13.6, 19.8), 4), size=[3.2, 1.5], height=2.4, island=[14.0, 1.8], bar=3.0)
 # the white hump just outside the gate (the 1997 scans: a band across the road, 2.5 - 3 m deep, 8.5 m across)
 HUMP = dict(xy=[700.0, 245.6], t=[0.31, 0.951], half=4.2, len=2.6)
+# 봉원고가차도 (in the 1996-09 photo 52276 and on the 1997 scans): 성산로's two middle carriageways climbing over the
+# 봉원동 junction, between the at-grade links either side.  The deck's surface on the 1997 pairs along OSM's north-east
+# carriageway (median within 4 m, 3 - 10 points every 5 m): 47.8 m at (701, 133) rising evenly 6.15 % to 59.15 m at
+# (793, 294) (the survey's spots on it: 55.17 m 2006, 53.92 m 2024, within 0.2 m); the line midway between OSM's two
+# carriageways, 16 m wide, from s 54 (south of it the road is at grade: 1.4 - 2.7 m over the ground beside, the ramp's foot).
+# Drawn where it stands 0.6 m and more over the ground: walled up to it, on piers over the
+# junction where it stands 5.2 m and more over it (blender/landmarks.py dongmun)
+FLY = dict(pts=[(698.0, 133.5), (761.5, 245.9), (811.5, 334.8)], z0=47.77, k=0.0615, w=16.0, s0=54.0)
 # 문 밖 동네의 집 (OSM 2026 outlines, simplified 0.25 m): (OSM id, name, the roof's height on the 1997 scans or None)
 # -- kept where a 1997 roof stands in the outline (three frames, 1.5 m windows) or, where the scans could not tell
 # (the houses down by 성산로), the 2006 survey has the same house
@@ -439,8 +447,11 @@ def gate():
     island and its booth, the granite-block wall along the road's north edge (every metre)"""
     L = road()
     wall = [[round(c, 2) for c in at(L, s, WALL_OFF)[0]] for s in np.arange(WALL_S[0], WALL_S[1] + 1e-6, 1.0)]
+    F = _line(FLY['pts'])
+    deck = [[round(float(x), 2), round(float(y), 2), datum.up(float(x), float(y), FLY['z0'] + FLY['k'] * float(s))]
+            for s, (x, y) in zip(F['s'][::2], F['p'][::2]) if s >= FLY['s0']]
     return dict(piers=[dict(c=list(p['c']), t=list(p['t']), n=list(p['n'])) for p in PIERS], L=PIER_L, W=PIER_W, H=PIER_H,
-                toll=TOLL, wall=wall)
+                toll=TOLL, wall=wall, deck=deck, deck_w=FLY['w'])
 
 
 def paint():
@@ -523,3 +534,10 @@ def colliders():
     hl, hw = TOLL['size'][0] / 2 + 0.3, TOLL['size'][1] / 2 + 0.3
     out.append([[round(x + u * c - v * s, 2), round(y + u * s + v * c, 2)] for u, v in ((-hl, -hw), (hl, -hw), (hl, hw), (-hl, hw))])
     return out
+
+
+def fly_collider(s0=60.0, s1=180.0):
+    """the flyover's walled ramp as the walker's wall (where it stands 2 - 5 m over the ground): its outline"""
+    F = _line(FLY['pts'])
+    P = LineString(F['p'][int(s0):int(s1) + 1]).buffer(FLY['w'] / 2, cap_style='flat')
+    return [[round(x, 2), round(y, 2)] for x, y in list(P.exterior.coords)[:-1]]

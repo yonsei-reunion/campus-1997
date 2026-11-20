@@ -6689,10 +6689,51 @@ def dongmun():
         for k in range(6):
             v0 = sg * (IW / 2 + k * T['bar'] / 6 + T['bar'] / 12)
             bx(u, v0, zi + 0.85, 0.07, T['bar'] / 6, 0.07, 'paint_white' if k % 2 == 0 else 'light_red')
+    # 봉원고가차도 (tools/dongmun.py FLY): the deck where it stands 0.6 m over the ground, a parapet each side; walled
+    # down to the ground on the ramp, a 1.2 m slab on pairs of piers where it stands 5.2 m and more over the junction
+    D = G.get('deck', [])
+    hw = G.get('deck_w', 16.0) / 2
+
+    def tan(k):
+        a, b = D[max(k - 1, 0)], D[min(k + 1, len(D) - 1)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        n = math.hypot(dx, dy) or 1.0
+        return dx / n, dy / n
+
+    def side(P0, P1, lo0, lo1, hi0, hi1, plus, mat):
+        f = [(*P0, lo0), (*P1, lo1), (*P1, hi1), (*P0, hi0)]
+        mb.face(f[::-1] if plus else f, mat)
+    for k in range(len(D) - 1):
+        p0, p1 = D[k], D[k + 1]
+        g0, g1 = ground(p0[0], p0[1]), ground(p1[0], p1[1])
+        r0, r1 = p0[2] - g0, p1[2] - g1
+        if min(r0, r1) < 0.6:
+            continue
+        (ax, ay), (bx_, by_) = tan(k), tan(k + 1)
+        E = {}
+        for sg in (1, -1):
+            for o, key in ((hw, 'e'), (hw - 0.3, 'i')):
+                E[(sg, key)] = ((p0[0] - ay * o * sg, p0[1] + ax * o * sg), (p1[0] - by_ * o * sg, p1[1] + bx_ * o * sg))
+        (A0, A1), (D0, D1) = E[(1, 'e')], E[(-1, 'e')]
+        mb.face([(*A0, p0[2]), (*A1, p1[2]), (*D1, p1[2]), (*D0, p0[2])][::-1], 'asphalt')
+        bridge = min(r0, r1) >= 5.2
+        for sg in (1, -1):
+            (e0, e1), (i0, i1) = E[(sg, 'e')], E[(sg, 'i')]
+            side(e0, e1, p0[2] - (1.2 if bridge else r0 + 0.3), p1[2] - (1.2 if bridge else r1 + 0.3), p0[2] + 1.0, p1[2] + 1.0,
+                 sg > 0, 'concrete')
+            side(i0, i1, p0[2], p1[2], p0[2] + 1.0, p1[2] + 1.0, sg < 0, 'concrete')
+            mb.face([(*e0, p0[2] + 1.0), (*e1, p1[2] + 1.0), (*i1, p1[2] + 1.0), (*i0, p0[2] + 1.0)][::-1 if sg > 0 else 1], 'concrete')
+        if bridge:
+            mb.face([(*A0, p0[2] - 1.2), (*A1, p1[2] - 1.2), (*D1, p1[2] - 1.2), (*D0, p0[2] - 1.2)], 'concrete_dark')
+            if k % 10 == 5:
+                for o in (-hw / 2, hw / 2):
+                    cx, cy = p0[0] - ay * o, p0[1] + ax * o
+                    mb.box((cx, cy, (g0 - 0.3 + p0[2] - 1.2) / 2), (1.4, 1.4, p0[2] - 1.2 - g0 + 0.3), 'concrete',
+                           rotz=math.atan2(ay, ax), skip=('bottom', 'top'))
     pts = []
     for qx, qy in G['wall']:
         pts.append([qx, qy, ground(qx, qy) - 0.4, ground(qx, qy)])
-    _wall_run(mb, pts, 0.45, 0.85, 'stone_granite', 'stone_trim', cap_t=0.1)
+    _wall_run(mb, pts, 0.45, 0.45, 'stone_rubble_gray', 'stone_trim', cap_t=0.1)      # (granite blocks, weathered grey)
     return [mb]
 
 

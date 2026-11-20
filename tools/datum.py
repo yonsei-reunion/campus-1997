@@ -360,6 +360,8 @@ def heights(c):
                 A(p, 2, p[0], p[1])
                 A(p, 3, p[0], p[1])
         A(s, 'z', sum(p[0] for p in s['posts']) / len(s['posts']), sum(p[1] for p in s['posts']) / len(s['posts']))
+    for p in c.get('dongmun', {}).get('deck', []):      # (봉원고가차도's surface: tools/dongmun.py FLY)
+        A(p, 2, p[0], p[1])
     S = c['statues']
     for k, v in S.items():
         if isinstance(v, dict) and 'h' in v and 'pos' in v:

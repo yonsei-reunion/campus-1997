@@ -12324,7 +12324,7 @@ _dm_lines, _dm_humps = dongmun.paint()
 out['road_paint']['lines'] += _dm_lines
 out['road_paint']['humps'] += _dm_humps
 out['props'] += dongmun.props()
-out['colliders'] += dongmun.colliders()
+out['colliders'] += dongmun.colliders() + [dongmun.fly_collider()]
 out['markers'].append(dict(name='동문', pos=list(dongmun.MARKER), top=round(ground_tn(*dongmun.MARKER) + 5.0, 1)))
 out['markers'].append(dict(name='법현학사', pos=[672.0, 193.0], top=round(max(b_['base'] + b_['height'] for b_ in DONGMUN_HALLS[:2]) + 1.0, 1)))
 print('동문: halls %d (houses %d), the map %s' % (len(DONGMUN_HALLS), len(dongmun.HOUSES), out['tsplat']['east']))
