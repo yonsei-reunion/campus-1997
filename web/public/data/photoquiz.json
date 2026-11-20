@@ -154,6 +154,20 @@
    "credit": "2026 재상봉 25주년 기념문집 「응답하라 1997!」",
    "from": "reference/1997_구노천극장_마지막모습.jpg",
    "shot": "compare/amphitheater"
+  },
+  {
+   "id": "bakyang97",
+   "x": -79.54,
+   "y": -314.86,
+   "bearing": 5.8,
+   "photo": "assets/photoquiz/bakyang97.jpg",
+   "w": 236,
+   "h": 164,
+   "title": "백양로 주차 정산소 앞 차로",
+   "when": "1997년 가을 무렵",
+   "credit": "연세대 생물학과 홈페이지(1998년 웨이백 저장본)",
+   "from": "reference/학교홈페이지/bakyang.jpg",
+   "shot": "r96/bakyang"
   }
  ]
 }

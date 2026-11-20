@@ -16,6 +16,23 @@
   - 같은 사진의 옛 카메라: compare/cherry_1(핀슨관길 사진은 고증 3.18 의 풀이 compare/haetae_1 로),
     compare/cherry_2(앞길 사진은 compare/uw_steps_2 로), compare/uw_steps_1(정원 남쪽 계단 사진의 풀이
     (12.5, 109.7)는 게임에서 생울타리 · 차에 가려 사진과 닮지 않음)
+- 학교 홈페이지 사진(reference/학교홈페이지/, 고증 1.1.2 자료 R): 카메라를 tools/photofit/r96fit.py 로 풀어
+  tools/photofit/r96/<이름>.json 의 result 에 둔 것 가운데 위치 불확실성이 대략 5 m 안이고 걸어서 설 수 있는
+  자리인 것(R96). 사진이 작아(대개 400 × 290 px) 키우지 않고 그대로 씀
+  - 뺀 것(photo2b 몫)
+    - 불확실성이 큼(정면 한 벽만 보여 깊이가 안 풀림): grad(아펜젤러관 북서쪽, ±12 m), grad6(스팀슨관 남동쪽, ±12 m),
+      socio(연희관 남서쪽, 탑 모양이 게임과 달라 기준점이 어긋남), dogsang(독수리상, ±30 m), p25underwood(2001년)
+    - 게임 건물이 일반 상자 모델이라 창 · 모서리를 맞출 수 없음: homeco(가정관), music(음악관), liter1(인문관 · 종합관),
+      dong1(동문회관), dent · med · nurse · sevr · ysev(의료원 쪽), b-bld04 · b-bld05 · b-bld07 · bld-old(경영학교실단),
+      Info_Sub_1 · Info_Sub_2(무악학사 · 국제학사), p70allen(알렌관)
+    - 건물 일부만 좁게 보이거나 가까이 찍은 것: yun(윤동주 시비), Eng_lndscape_3 · Eng_lndscape_5(석조관 벽 한 면),
+      eagle · eagle.gif · junginbo(조형물 근접), hyungwan(과학관 현관)
+    - 높은 데서 내려다봤거나 군중 사진: liter(눈 덮인 주차장), Eng_lndscape_1(밤), Eng_lndscape_4(정원),
+      Eng_schlife_16 · place1(졸업식 군중)
+    - 게임 모델과 모양이 달라 기준점이 모자람: edu(용재관, 사진은 붉은 기와 박공 지붕), bld-new(공사 중 대우관, 앞 맨흙 · 자재)
+    - 1997년 모습과 다른 것: b-bld01 · b-bld02 · b-bld03 · b-bld06(공사 중 · 모형), engcenter · scicenter(계획 그림),
+      71상남경영관(1997년 뒤), History_*(1920 ~ 1985년), biology_way · biology_alumni_way(어느 길인지 확실하지 않음 · 흐림),
+      chung(청송대 숲), stone(어느 계단인지 모름), sin(어느 석조관 면인지 확실하지 않음), p11eng1(2001년 저장, 눈)
 - 사진은 긴 변 960 px JPEG 로 줄여 web/public/assets/photoquiz/ 에, 목록은 web/public/data/photoquiz.json 에.
 """
 import json
@@ -55,6 +72,12 @@ QUIZ = [
      '1997년', ANTH97),
 ]
 
+# 학교 홈페이지 사진: (id, tools/photofit/r96/<이름>.json, 정답 뒤 보이는 제목, 찍은 때, 출처)
+BIO98 = '연세대 생물학과 홈페이지(1998년 웨이백 저장본)'
+R96 = [
+    ('bakyang97', 'bakyang', '백양로 주차 정산소 앞 차로', '1997년 가을 무렵', BIO98),
+]
+
 
 def shot(name):
     return next(s for s in SNAP['shots'] if s['name'] == name)
@@ -77,6 +100,15 @@ def main():
         items.append({'id': qid, 'x': c['x'], 'y': c['y'], 'bearing': round(bearing, 1),
                       'photo': f'assets/photoquiz/{qid}.jpg', 'w': im.width, 'h': im.height,
                       'title': title, 'when': when, 'credit': credit, 'from': f'reference/{photo}', 'shot': name})
+    for qid, name, title, when, credit in R96:
+        spec = json.loads((ROOT / 'tools/photofit/r96' / f'{name}.json').read_text())
+        c = spec['result']['cam']
+        bearing = math.degrees(math.atan2(c['tx'] - c['x'], c['ty'] - c['y'])) % 360
+        im = Image.open(ROOT / spec['photo']).convert('RGB')
+        im.save(OUT_IMG / f'{qid}.jpg', quality=88, optimize=True, progressive=True)
+        items.append({'id': qid, 'x': c['x'], 'y': c['y'], 'bearing': round(bearing, 1),
+                      'photo': f'assets/photoquiz/{qid}.jpg', 'w': im.width, 'h': im.height,
+                      'title': title, 'when': when, 'credit': credit, 'from': spec['photo'], 'shot': f'r96/{name}'})
     doc = {'_doc': 'tools/photoquiz.py 가 만든다(손으로 고치지 않음). x, y: 정답 자리(캠퍼스 m), '
                    'bearing: 바라보는 방위(북에서 시계 방향, 도)', 'items': items}
     OUT_JSON.write_text(json.dumps(doc, ensure_ascii=False, indent=1) + '\n')

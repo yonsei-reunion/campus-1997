@@ -264,6 +264,7 @@ export class PhotoQuiz {
     this.zoomEl.querySelector('figcaption').textContent = `${q.when} · 사진 ${q.credit}`;
     this.photoEl.classList.toggle('tall', q.h > q.w);
     this.photoEl.classList.toggle('wide', q.w > 3 * q.h);       // (the strips cut from group photos)
+    this.zoomEl.querySelector('img').classList.toggle('small', Math.max(q.w, q.h) < 500);
   }
   zoom(on) { if (this.zoomEl) this.zoomEl.hidden = !on; }
 

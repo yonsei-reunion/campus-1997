@@ -33,6 +33,8 @@ body.photoquiz #stamps, body.photoquiz #birdbtn, body.photoquiz #mapbtn, body.ph
 #pqzoom[hidden] { display: none; }
 #pqzoom figure { margin: 0; text-align: center; }
 #pqzoom img { display: block; max-width: calc(100vw - 24px); max-height: calc(100vh - 80px); width: auto; height: auto; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+/* (the small 1990s school-site photos, 236 - 400 px: blown up to a readable size, the shape kept) */
+#pqzoom img.small { min-width: min(640px, calc(100vw - 24px)); object-fit: contain; }
 #pqzoom figcaption, #pqzoom p { color: #f4f1e8; font: 600 13px var(--font, sans-serif); margin: 6px 0 0; }
 #pqzoom p { position: fixed; bottom: calc(10px + var(--sb, 0px)); left: 0; right: 0; text-align: center; opacity: .75; }
 
