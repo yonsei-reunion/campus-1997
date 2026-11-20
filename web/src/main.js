@@ -1052,6 +1052,7 @@ async function main() {
     stop: () => { cheer?.stop(); cheer?.closePicker(); }, update: (dt, t, p) => cheer?.update(dt, t, p),
     pauseButtons: (game) => { $('#cheer-go').hidden = game; $('#cheer-quit').hidden = !cheer?.on; } };
   games.push(cheerGame);
+  import('./cheer.css');     // (with the title card's button)
   const loadCheer = () => (cheerLoad ||= import('./cheer.js').then(({ Cheer }) => (cheer = new Cheer({
     scene, cast, player, sound, groundAt, crowd, shadows, blobs, bubbles: crowd.bubbles, mobile: MOBILE,
     ensure: (x, y) => chunks.ensure(x, y), season: () => season, setSeason,

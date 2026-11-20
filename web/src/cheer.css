@@ -1,4 +1,7 @@
-/* 연고전 응원 연습 (cheer.js): loaded with it */
+/* 연고전 응원 연습 (cheer.js): loaded with it, and after the page for the title card's button (main.js) */
+#cheer-start { margin-top: 8px; width: 100%; border: 2px solid var(--ink); background: var(--yellow, #ffe76a); color: var(--ink); border-radius: 10px;
+  padding: 10px; font-size: 16px; font-family: var(--title); cursor: pointer; }
+#cheer-start:disabled { opacity: .45; cursor: progress; }
 body.cheering #minimap, body.cheering #stamps, body.cheering #birdbtn, body.cheering #mapbtn, body.cheering #blabels, body.cheering #prompt,
 body.cheering #touch, body.cheering #viewbtn { display: none !important; }
 
@@ -12,8 +15,8 @@ body.cheering #touch, body.cheering #viewbtn { display: none !important; }
 #cheerhud .score b { color: var(--yellow, #ffe76a); min-width: 4.2em; display: inline-block; }
 #cheerhud .score span { display: block; font: 600 11px var(--font, sans-serif); opacity: .8; }
 #cheerhud .view { pointer-events: auto; border: 0; border-radius: 12px; padding: 0 12px; background: var(--hud-bg, rgba(14, 22, 34, .62)); color: inherit;
-  font: 700 13px var(--font, sans-serif); cursor: pointer; backdrop-filter: blur(6px); }
-#cheerhud .bar { position: absolute; top: calc(84px + var(--st, 0px)); left: 50%; width: 240px; margin-left: -120px; height: 4px; border-radius: 2px;
+  font: 700 13px var(--font, sans-serif); cursor: pointer; backdrop-filter: blur(6px); white-space: nowrap; }
+#cheerhud .bar { position: absolute; top: calc(98px + var(--st, 0px)); left: 50%; width: 240px; margin-left: -120px; height: 4px; border-radius: 2px;
   background: rgba(14, 22, 34, .45); overflow: hidden; }
 #cheerhud .bar i { display: block; height: 100%; background: var(--yellow, #ffe76a); transform-origin: 0 50%; transform: scaleX(0); }
 
@@ -64,7 +67,7 @@ body.cheering #touch, body.cheering #viewbtn { display: none !important; }
   #cheerhud .pads kbd { display: none; }
   #cheerhud .top b { font-size: 22px; }
   #cheerhud .top > div { min-width: 60px; padding: 5px 8px 6px; }
-  #cheerhud .bar { top: calc(70px + var(--st, 0px)); width: 180px; margin-left: -90px; }
+  #cheerhud .bar { top: calc(86px + var(--st, 0px)); width: 180px; margin-left: -90px; }
   #cheerhud .word { top: 24%; }
   #cheerhud .word b { font-size: 34px; }
 }
