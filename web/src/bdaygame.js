@@ -227,6 +227,7 @@ export class BdayGame {
       this.counted = 0;
       this.sound?.cue('go');
       this.slots();
+      if (this.hud) this.hud.el.hidden = true;        // (the scene's own view, without the hints)
     }
     this.setAct(null);
   }
@@ -235,7 +236,7 @@ export class BdayGame {
   // far ones on the lawn behind, clear of the scene's camera (birthday.js action: out on the lawn, side on)
   slots() {
     const bd = this.birthday;
-    const at = [[-2.4, 0.5], [2.5, 0.5], [-2.9, 1.6], [3.0, 1.6], [-1.6, 2.2], [1.8, 2.3]];
+    const at = [[-2.0, 0.3], [2.1, 0.4], [-2.4, 1.3], [2.5, 1.3], [-1.5, 2.0], [1.7, 2.1]];
     this.friends.forEach((f, i) => {
       const [u, r] = at[i % at.length];
       f.slot = bd.mid.clone().addScaledVector(bd.tan, u).addScaledVector(bd.rad, r);
