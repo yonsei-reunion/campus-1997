@@ -85,6 +85,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `people.js` | 캠퍼스 사람들 페이지(`people.html`): 사람 17명만 그리는 구경 화면 |
 | `herozoom.js` | 제목 화면의 「크게 보기」: 고른 주인공 한 명을 창에 크게(누를 때 불러오고, 닫으면 렌더러를 버림) |
 | `loading.js` | 첫 화면의 불러오기: 퍼센트 막대, 기다리는 동안의 삐삐 암호 · 캠퍼스 이야기 카드 |
+| `memos.js` · `memos.css` | 캠퍼스 쪽지: 벽 · 말뚝의 포스트잇, 쓰기 · 읽기 · 목록 창, DoltHub 읽기와 Worker 쓰기 |
 
 ## 구현 방식
 
@@ -343,6 +344,15 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 따라오는 친구는 걷는 사람이 지나간 자리(0.2 m 마다의 점, `Trail`)를 그대로 걷습니다. 계단 · 좁은 길 · 담을 걷는 사람이 지나간 대로 지나니 막히지 않고, 줄에서 14 m 넘게 처지면 그 선 위로 옮깁니다. 한 번에 6 m 넘게 옮겨지면 선을 새로 시작합니다.
 - 던지는 장면에서는 장면의 카메라 안, 나르는 둘의 양옆에 둘러서서(연못을 가로지르지 않게 둘레의 한 점을 거쳐) 「하나, 둘, 셋」을 함께 세고 축하합니다(`birthday.state` · `counted` 를 봄).
 - 기록은 `localStorage` 의 `y97-bday-records`(시작에서 던지기까지의 시간 순 50번까지).
+
+### 캠퍼스 쪽지
+
+- 쪽지(`memos.js` · `memos.css`)는 공개 DoltHub DB `benelog/yonsei-1997` 의 표 `notes`(`id, text, name, color, x, y, z, yaw, kind, place, created_at`)에 있습니다. `x · y` 는 캠퍼스 좌표, `z` 는 종이 윗변의 높이(해발 = 게임 높이), `yaw` 는 쪽지가 보는 쪽(캠퍼스 `(sin, cos)`, 0 = 북), `kind` 는 `wall` · `stake`, `created_at` 은 UTC.
+- 읽기: 브라우저가 DoltHub SQL API(`/api/v1alpha1/benelog/yonsei-1997/main?q=`)에서 토큰 없이 바로 읽습니다(최근 300장). 처음, 목록을 열 때, 걷는 동안 90 s 마다. 다시 읽어 없어진 쪽지는 바람에 날려 보냅니다.
+- 쓰기: DoltHub 는 브라우저가 `authorization` 헤더를 붙인 요청을 CORS 로 막습니다(preflight 가 GET 만 허용). 그래서 Cloudflare Worker `notes-worker/`(`y97-notes`)가 토큰(secret `DOLT_TOKEN`)을 들고 대신 씁니다. 받는 것은 `POST /`(쪽지 하나 더하기)와 `DELETE /<id>` 뿐이고, SQL 은 Worker 가 만듭니다(글자 수 · 색 · 자리 검사, IP 마다 1분 8번). DoltHub 쓰기는 한 번에 커밋 하나, 1 ~ 2 s.
+  - 배포: `cd notes-worker && npx wrangler deploy`. 토큰을 바꾸면 `npx wrangler secret put DOLT_TOKEN`. 로컬 시험은 `.dev.vars` 에 `DOLT_TOKEN=…` 을 두고 `npx wrangler dev --port 8788`, 게임 주소에 `?notesapi=http://127.0.0.1:8788`.
+- 자리(`Memos.spot`): 가슴 높이(발 + 1.35 m)에서 보는 쪽과 좌우 17° · 34° 로 `player.walls`(건물 · 랜드마크 메시)에 광선을 쏴, 3 m 안의 가장 가까운 거의 수직인 면에 붙입니다. 없으면 1.2 m 앞에 말뚝(종이 윗변이 땅에서 1.3 m)을 세웁니다.
+- 그림: 종이(0.4 m)는 윗변을 경첩으로 매달려 아랫단이 바람에 들썩입니다. 45 m 안에서만 글씨 텍스처(256 px 캔버스, Jua)를 만들고, 그 밖은 색만, 160 m 밖은 그리지 않습니다.
 
 ### 렌더링
 

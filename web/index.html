@@ -29,7 +29,7 @@
   <section id="intro">
     <div class="intro-bg"></div>
     <div class="intro-card">
-      <p class="eyebrow">설레던 백양로, 첫 시작의 기억 <button class="newsbtn" type="button">새 소식<i hidden></i></button><a class="newsbtn" href="people.html" target="_blank" rel="noopener">캠퍼스 사람들</a></p>
+      <p class="eyebrow">설레던 백양로, 첫 시작의 기억 <button class="newsbtn" type="button">새 소식<i hidden></i></button><a class="newsbtn" href="people.html" target="_blank" rel="noopener">캠퍼스 사람들</a><button class="newsbtn" type="button" id="memo-title" disabled title="캠퍼스 곳곳에 붙은 쪽지를 보고, 쪽지가 붙은 곳으로 갑니다">캠퍼스 쪽지</button></p>
       <h1>신촌 캠퍼스 1997<br /><span>그 시절 우리 학교는</span></h1>
       <p class="lead walk-only">1997년 봄과 가을, 신촌 연세대학교 캠퍼스. 정문에서 백양로를 따라 걸으며 그때의 중앙도서관, 학생회관, 옛 노천극장과 언더우드관을 다시 만나 보세요.</p>
       <p class="lead game-only"><b>농구 1분 슛 게임</b> · 대강당 앞 농구장에서 1분 동안 몇 골이나 넣을 수 있을까요? 옆에서 친구가 계속 공을 패스해 줘요. 버튼을 꾹 눌렀다가 점프가 가장 높을 때 떼면 들어가요. 골대에서 멀수록 타이밍이 어려워요.</p>
@@ -85,6 +85,7 @@
         <div><dt>E · Enter</dt><dd>추억 보기</dd></div>
         <div><dt>Space 꾹·떼기</dt><dd>농구공 슛</dd></div>
         <div><dt>M</dt><dd>캠퍼스 지도</dd></div>
+        <div><dt>N</dt><dd>쪽지 남기기</dd></div>
         <div><dt>B</dt><dd>캠퍼스 위로 날아가기</dd></div>
         <div><dt>F · 1 2 3</dt><dd>필름 · 계절</dd></div>
         <div><dt>C</dt><dd>구름 그림자 끄기</dd></div>
@@ -95,6 +96,7 @@
         <li><b>화면 오른쪽</b>을 끌면 둘러보고(위로 끌면 하늘까지 올려다봐요), 두 손가락으로 벌리면 가까이</li>
         <li>추억 장소에 가면 나오는 <b>「추억 보기」</b>를 누르세요</li>
         <li>오른쪽 위 <b>지도</b>를 누르면 원하는 곳으로 바로 이동, <b>1인칭</b>을 누르면 내 눈높이로 봐요</li>
+        <li>오른쪽 위 <b>쪽지</b>를 누르면 그 자리에 쪽지를 붙이고, 붙은 쪽지를 누르면 읽어요</li>
         <li>농구공을 들면 <b>「슛」</b>을 꾹 눌렀다가 막대가 초록 칸에 올 때 떼세요</li>
       </ul>
     </div>
@@ -115,6 +117,7 @@
       <button id="mapbtn" title="캠퍼스 지도 · 장소를 누르면 이동 (M)">지도 <kbd>M</kbd></button>
       <button id="menubtn" title="계절 · 필름 · 화질 설정 (Esc)">설정 <kbd>Esc</kbd></button>
       <button id="viewbtn" title="1인칭 · 3인칭 시점 바꾸기 (V)"><span>1인칭</span> <kbd>V</kbd></button>
+      <button id="memobtn" title="여기에 쪽지 남기기 (N)">쪽지 <kbd>N</kbd></button>
     </div>
   </div>
 
@@ -183,6 +186,7 @@
       <label class="toggle"><input type="checkbox" id="opt-film" /> 1997 필름 감성</label>
       <label class="toggle"><input type="checkbox" id="opt-sound" checked /> 소리 (바람 · 새 · 분수 · 발소리)</label>
       <button class="newsbtn" type="button">새 소식 · 업데이트 내역<i hidden></i></button>
+      <button class="newsbtn" type="button" id="memo-pause">캠퍼스 쪽지 목록</button>
       <a class="newsbtn" href="people.html" target="_blank" rel="noopener">캠퍼스 사람들 · 캐릭터 구경</a>
       <button class="newsbtn" id="rank-pause" type="button" hidden>1분 슛 게임 순위</button>
       <label class="toggle pc-only"><input type="checkbox" id="opt-hq" checked /> 고품질 그림자 · 앰비언트 오클루전</label>

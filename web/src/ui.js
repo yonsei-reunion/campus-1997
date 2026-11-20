@@ -240,6 +240,14 @@ export class UI {
       if (X < 0 || Y < 0 || X > W || Y > W) continue;
       x.strokeText(m.name, X, Y + 4); x.fillText(m.name, X, Y + 4);
     }
+    // 캠퍼스 쪽지 (memos.js): small sticky notes where they hang
+    for (const n of this.memos?.dots() || []) {
+      const [a, b] = this.toMap(n.x, n.y);
+      const X = ox + a * s, Y = oy + b * s;
+      if (X < 0 || Y < 0 || X > W || Y > W) continue;
+      x.fillStyle = n.color; x.strokeStyle = 'rgba(40,40,40,.55)'; x.lineWidth = 1;
+      x.fillRect(X - 4, Y - 4, 8, 8); x.strokeRect(X - 4, Y - 4, 8, 8);
+    }
     x.font = 'bold 15px "Noto Sans KR", sans-serif';
     for (const l of this.spots) {
       const [a, b] = this.toMap(l.pos[0], l.pos[1]);

@@ -1,0 +1,12 @@
+{
+  // 캠퍼스 쪽지의 쓰기 다리(src/index.js). 배포: npx wrangler deploy (이 폴더에서)
+  // 토큰은 secret: npx wrangler secret put DOLT_TOKEN. 로컬 시험은 .dev.vars 에 DOLT_TOKEN=... (커밋하지 않음)
+  "name": "y97-notes",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "DOLT_DB": "benelog/yonsei-1997"
+  }
+}

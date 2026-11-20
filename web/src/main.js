@@ -22,6 +22,7 @@ import { BirdsEye } from './birdseye.js';
 import { SunShadows } from './shadows.js';
 import { TouchControls } from './touch.js';
 import { setupNews } from './news.js';
+import { Memos } from './memos.js';
 import { WalkLabels } from './labels.js';
 import { Bubbles } from './talk.js';
 import { FountainWater } from './water/fountain.js';
@@ -820,6 +821,7 @@ async function main() {
     paused = false;
     if (ui.memoryOpen) ui.closeMemory();
     if (ui.mapOpen) ui.toggleMap(false);
+    memos.closeAll();
     if (bird.active) leaveBird();            // (not started: it leaves for the title card)
     if (player.scripted) birthday?.abort();
     ball?.drop();
@@ -866,6 +868,8 @@ async function main() {
     if (inGame()) return;     // (the game: the key is the shot, shotDown)
     if (ball && !bird.active && ball.action()) { ui.setPrompt(ball.prompt()); return; }
     if (birthday && !bird.active && birthday.action()) { ui.setPrompt(null); return; }
+    const m = !bird.active && memos.nearest(player.x, player.y, player.pos.y);      // (a note within reach first)
+    if (m) { memos.read(m); return; }
     const l = ui.nearestLandmark(player.x, player.y);
     if (l) { player.enabled = false; ui.openMemory(l); }
   };
@@ -1242,6 +1246,47 @@ async function main() {
   $('#birdbtn').addEventListener('click', (e) => { e.stopPropagation(); toggleBird(); e.currentTarget.blur(); });
   $('#tour-start').addEventListener('click', enterBird);
 
+  // ---------------------------------------------------------------- 캠퍼스 쪽지 (src/memos.js)
+  // N or the HUD's 「쪽지」: a note where the walker stands; E (or a tap on it) reads one; the title and settings cards'
+  // 「캠퍼스 쪽지」: the list, and from it a note's place. Its cards stop the walker; the settings card stays under them
+  const memoFree = () => started && !paused && !bird.active && !inGame() && !gameBusy() && !ui.memoryOpen && !ui.mapOpen;
+  const memos = new Memos({
+    scene, camera, player, canvas, walls: player.walls, patch: globalPatch,
+    placeAt: (x, y) => ui.placeName(x, y, onRoad(x, y)),
+    toast: (t, ms) => ui.toast(t, ms),
+    canPick: memoFree,
+    onOpen: () => { player.enabled = false; },
+    onClose: () => { if (!paused) resume(); },
+    // walk to a note: 2.6 m before it and a little to its right (the walker's head off it in the third person),
+    // facing it
+    onGo: async (n) => {
+      if (inGame()) { ui.toast('미니 게임 중에는 쪽지로 갈 수 없어요'); return; }
+      if (ui.memoryOpen) ui.closeMemory();
+      if (ui.mapOpen) ui.toggleMap(false);
+      if (bird.active) leaveBird();
+      const fx = Math.sin(n.yaw), fy = Math.cos(n.yaw), side = player.fpv ? 0 : 0.8;
+      const x = n.x + fx * 2.6 - fy * side, y = n.y + fy * 2.6 + fx * side;
+      const wait = chunks.ensure(x, y);
+      if (wait) { ui.toast('그쪽 건물을 세우는 중이에요…', 60000); await wait; ui.toast('', 1); }
+      const [lx, ly] = landAt(x, y);
+      const yaw = Math.atan2(-(n.x - lx), n.y - ly);
+      if (!started) startWalk(null, '쪽지가 붙은 곳으로 왔어요 · E 키나 쪽지를 눌러 읽어요');
+      else { paused = false; $('#pause').hidden = true; ui.toast('쪽지가 붙은 곳으로 왔어요'); }
+      player.teleport(lx, ly, yaw);
+      player.cam.lift = 0;
+      forest.update(camera.position, true);
+      resume();
+    },
+  });
+  ui.memos = memos;
+  memos.load();
+  const writeMemo = () => { if (memoFree()) memos.openWrite(); };
+  $('#memobtn').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); writeMemo(); });
+  $('#memo-title').addEventListener('click', (e) => { e.currentTarget.blur(); memos.openList(); });
+  $('#memo-pause').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); memos.openList(); });
+  // (others' notes: the list again now and then while walking; the ones gone blow away)
+  setInterval(() => { if (started && !document.hidden && !memos.open) memos.load(); }, 90_000);
+
   addEventListener('keydown', (e) => {
     if (bird.active) {
       // the tour's own keys live in birdseye.js; here only leaving it and the game-wide season keys
@@ -1250,7 +1295,7 @@ async function main() {
       else if (SEASON_KEYS[e.code]) setSeason(SEASON_KEYS[e.code]);
       return;
     }
-    if (!started) return;
+    if (!started || memos.open || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
     if (shootout?.resultsOpen) { if (e.code === 'Escape') shootout.stop(); return; }
     if (race?.resultsOpen || race?.pickOpen || gameBusy()) return;           // (their Escape: race.js and the games' own)
     // (the settings card is open: Enter is its focused button's, and no card opens behind it)
@@ -1259,6 +1304,7 @@ async function main() {
     if ((e.code === 'KeyE' || e.code === 'Space') && !e.repeat && shotDown(e.code)) return;
     if (e.code === 'KeyE' || e.code === 'Enter') openNearby();
     else if (e.code === 'KeyM') toggleMap();
+    else if (e.code === 'KeyN' && !e.repeat) { e.preventDefault(); writeMemo(); }
     else if (e.code === 'KeyF') toggleFilm();
     else if (e.code === 'KeyV' && !e.repeat) player.setFpv(!player.fpv);
     else if (SEASON_KEYS[e.code]) setSeason(SEASON_KEYS[e.code]);
@@ -1371,6 +1417,7 @@ async function main() {
     race?.update(dt, tAcc, paused || ui.memoryOpen || ui.mapOpen);
     for (const g of games) g.update?.(dt, tAcc, paused || ui.memoryOpen || ui.mapOpen);
     blobs?.update(camera.position);
+    memos.update(dt, tAcc);
     sound.update(dt, tAcc, { player, walking: started && !bird.active, crowd, traffic: heard, birds, season });
     decals.update(camera.position);
     curbs.update(camera.position);
@@ -1394,7 +1441,8 @@ async function main() {
         ui.setPlace(ui.placeName(player.x, player.y, onRoad(player.x, player.y)));
         const game = inGame(), busy = game || !!ball?.pick;      // (picking up the ball: no other prompt meanwhile)
         const bp = game && !shootout?.on ? null : busy ? ball.prompt() : ball?.prompt() || birthday?.prompt();
-        ui.setPrompt(bp ? bp : l && !busy && !ui.memoryOpen ? `${l.name} · ${MOBILE ? '눌러서 ' : ''}그때의 추억 보기` : null);
+        const m = !game && !busy && !memos.open && memos.nearest(player.x, player.y, player.pos.y);
+        ui.setPrompt(bp ? bp : m ? `쪽지 · ${MOBILE ? '눌러서 ' : ''}읽기` : l && !busy && !ui.memoryOpen ? `${l.name} · ${MOBILE ? '눌러서 ' : ''}그때의 추억 보기` : null);
       }
       if (MOBILE) ui.clearWalker(player.screenBox(camera));     // the prompt button off the walker (phones)
     }
@@ -1453,7 +1501,7 @@ async function main() {
         kitCull.enabled = true;
       }
     },
-    kitCull, chunks,
+    kitCull, chunks, memos,
     // every cell of the halls and landmarks in (src/chunks.js), and the textures at full size (materials.js
     // laterFull): the tools that shoot or bake wait for it
     get campusLoaded() { return chunks.loaded && texturesFull(); } };
@@ -1473,6 +1521,7 @@ async function main() {
   $('#cheer-start').disabled = false;
   $('#class-start').disabled = false;
   $('#bday-start').disabled = false;
+  $('#memo-title').disabled = false;
   // the rest of the halls and landmarks, the nearest to the view first (src/chunks.js); each set in once its
   // textures are in and its shaders compiled: then the walker's walls, the sun's shadows and the atmosphere take it
   chunks.renderer = renderer;

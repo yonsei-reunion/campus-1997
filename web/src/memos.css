@@ -1,0 +1,81 @@
+/* 캠퍼스 쪽지 (memos.js): the write, read and list cards */
+.memo-modal { position: fixed; inset: 0; z-index: 42; display: grid; place-items: center; background: rgba(10,18,28,.5); padding: 16px; }
+.memo-modal[hidden] { display: none; }
+.memo-card { position: relative; background: var(--paper); border-radius: 10px; width: min(440px, 100%); max-height: calc(100vh - 32px); overflow: auto;
+  padding: 20px 22px 18px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+.memo-card h2 { font-family: var(--title); font-weight: 400; color: var(--mint-ink); margin: 0 0 12px; font-size: 24px; }
+.memo-card h2 small { display: block; font-family: var(--font); font-size: 13px; color: #5c6572; margin-top: 2px; }
+.memo-wind { font-size: 13px; line-height: 1.55; color: #4f5a68; margin: 10px 0 0; }
+.memo-wind.small { font-size: 12.5px; text-align: center; margin-top: 6px; }
+.memo-row { display: flex; gap: 8px; margin-top: 14px; }
+.memo-row button { flex: 1; border: 2px solid var(--ink); border-radius: 10px; padding: 10px 8px; font-size: 16px; font-family: var(--title);
+  background: var(--yellow); color: var(--ink); }
+.memo-row button.ghost { background: #fff; }
+.memo-row button:disabled { opacity: .5; cursor: default; }
+.memo-row button[hidden] { display: none; }
+.memo-row button.del.armed { background: #e63946; border-color: #e63946; color: #fff; }
+
+/* the paper: a square sticky note with its sticky strip darker, a little crooked */
+.memo-paper { position: relative; background: #ffef7a; padding: 22px 18px 16px; transform: rotate(var(--tilt, -1deg));
+  box-shadow: 0 1px 0 rgba(0,0,0,.06), 0 12px 18px -10px rgba(0,0,0,.45);
+  background-image: linear-gradient(180deg, rgba(0,0,0,.09), rgba(0,0,0,.02) 16%, transparent 16.5%, transparent 88%, rgba(0,0,0,.06)); }
+.memo-paper textarea { display: block; width: 100%; border: 0; background: transparent; resize: none; outline: none;
+  font-family: var(--title); font-size: 20px; line-height: 1.4; color: #26324a; min-height: 150px; }
+.memo-paper textarea::placeholder, .memo-paper input::placeholder { color: rgba(38,50,74,.45); }
+.memo-paper input.memo-name { display: block; width: 60%; margin: 6px 0 0 auto; border: 0; border-bottom: 1px dashed rgba(38,50,74,.35); background: transparent;
+  outline: none; font-family: var(--title); font-size: 16px; text-align: right; color: #26324a; padding: 2px 0; }
+.memo-paper .count { position: absolute; left: 18px; bottom: 14px; font-size: 11.5px; color: rgba(38,50,74,.55); }
+.memo-colors { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+.memo-colors button { width: 30px; height: 30px; border-radius: 4px; border: 2px solid rgba(0,0,0,.15); box-shadow: 0 2px 4px rgba(0,0,0,.15); padding: 0; }
+.memo-colors button.on { border-color: var(--ink); transform: translateY(-2px) rotate(-4deg); }
+
+.memo-readcard { width: min(420px, 100%); background: rgba(16,24,36,.78); padding: 26px 22px 18px; overflow: auto; }
+.memo-paper.big { min-height: 300px; padding: 34px 26px 22px; display: flex; flex-direction: column; }
+.memo-paper.big .text { flex: 1; margin: 0; font-family: var(--title); font-size: 24px; line-height: 1.45; color: #26324a; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; }
+.memo-paper.big .sign { margin: 14px 0 0; text-align: right; font-family: var(--title); font-size: 18px; color: #26324a; }
+.memo-readcard .memo-meta { margin: 18px 0 0; text-align: center; font-size: 14px; color: #fff; }
+.memo-readcard .memo-wind { color: #d5dce6; }
+.memo-readcard .memo-row button { box-shadow: 0 4px 12px rgba(0,0,0,.25); }
+
+.memo-listcard { width: min(560px, 100%); padding-bottom: 14px; }
+.memo-listcard h2, .memo-listcard > .memo-wind { padding-right: 64px; }
+.memo-listcard > .close { position: absolute; top: 16px; right: 16px; border: 0; background: var(--ink); color: #fff; border-radius: 8px; padding: 7px 12px; font-weight: 700; }
+.memo-items { list-style: none; margin: 12px 0 0; padding: 0; }
+.memo-items li { display: flex; align-items: stretch; gap: 6px; border-top: 1px dashed #d9d3c3; padding: 8px 0; }
+.memo-items li.empty { display: block; font-size: 14px; color: #5c6572; padding: 16px 0 6px; }
+.memo-items .item { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: flex-start; text-align: left; border: 0; background: transparent; padding: 4px 2px; color: var(--ink); }
+.memo-items .item:hover .text { text-decoration: underline; }
+.memo-items .item i { flex: none; width: 22px; height: 22px; margin-top: 2px; border-radius: 2px; box-shadow: 0 2px 3px rgba(0,0,0,.2); transform: rotate(-4deg); }
+.memo-items .body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.memo-items .text { font-family: var(--title); font-size: 16.5px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.memo-items .meta { font-size: 12px; color: #6a7380; }
+.memo-items .go { flex: none; align-self: center; border: 1.5px solid var(--mint-ink); background: #fff; color: var(--mint-ink); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; }
+.memo-items .go:hover { background: var(--mint-ink); color: #fff; }
+
+@media (max-width: 640px) {
+  .memo-paper textarea { font-size: 18px; min-height: 120px; }
+  .memo-paper.big { min-height: 240px; }
+  .memo-paper.big .text { font-size: 21px; }
+}
+/* phones held sideways: the whole write card on the screen */
+@media (max-height: 500px) {
+  .memo-modal { padding: 8px; }
+  .memo-card { padding: 12px 16px; max-height: calc(100vh - 16px); }
+  .memo-card h2 { font-size: 19px; margin-bottom: 6px; }
+  .memo-card h2 small { display: inline; margin: 0 0 0 6px; }
+  .memo-paper { padding: 12px 14px 10px; }
+  .memo-paper textarea { height: 62px; min-height: 0; font-size: 17px; }
+  .memo-paper input.memo-name { margin-top: 2px; }
+  .memo-paper .count { bottom: 10px; left: 14px; }
+  .memo-colors { margin-top: 8px; }
+  .memo-colors button { width: 26px; height: 26px; }
+  .memo-wind { margin-top: 6px; font-size: 12px; line-height: 1.45; }
+  .memo-row { margin-top: 8px; }
+  .memo-row button { padding: 7px 8px; font-size: 15px; }
+  .memo-paper.big { min-height: 130px; padding: 20px 20px 14px; }
+  .memo-paper.big .text { font-size: 19px; }
+  .memo-readcard .memo-meta { margin-top: 10px; }
+}
+/* (the mini games keep the HUD to themselves) */
+body.shootout #memobtn, body.racing #memobtn, body.photoquiz #memobtn, body.paging #memobtn, body.cheering #memobtn, body.classing #memobtn,
+body.bdaygame #memobtn { display: none !important; }
