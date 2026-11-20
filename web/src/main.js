@@ -840,6 +840,8 @@ async function main() {
     forest.update(camera.position, true);
   };
   $('#to-title').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); toTitle(); });
+  // the games' results cards: 「처음 화면으로」 next to 「그만하고 산책하기」 (data-to-title, made by each game)
+  document.addEventListener('click', (e) => { if (e.target.closest?.('[data-to-title]')) { e.stopPropagation(); e.target.blur(); toTitle(); } });
   $('#resume').addEventListener('click', resume);
   const setFilm = (v) => { $('#opt-film').checked = v; post.setFilm(v); document.body.classList.toggle('film', v); bird.labels({ filmOn: v }); };
   const toggleFilm = () => setFilm(!$('#opt-film').checked);

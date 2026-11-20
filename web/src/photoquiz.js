@@ -348,7 +348,7 @@ export class PhotoQuiz {
       r.id = 'pqresult';
       r.innerHTML = '<div><h2>이곳은 어디?</h2><p class="big"></p><p class="best"></p><ol class="each"></ol><h3>이 브라우저의 기록</h3><ol class="ranks"></ol>'
         + '<p class="url">게임 주소 <code></code> <button type="button" class="copy">주소 복사</button></p>'
-        + '<div class="btns"><button type="button" class="again">다시 하기</button><button type="button" class="quit">그만하고 산책하기</button></div></div>';
+        + '<div class="btns"><button type="button" class="again">다시 하기</button><button type="button" class="quit">그만하고 산책하기</button><button type="button" class="quit totitle" data-to-title>처음 화면으로</button></div></div>';
       document.body.appendChild(r);
       r.querySelector('.again').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); this.start(); });
       r.querySelector('.quit').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); this.stop(); });

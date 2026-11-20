@@ -737,7 +737,7 @@ export class Cheer {
       el.id = 'cheerresult';
       el.innerHTML = '<div><h2></h2><p class="verdict"></p><p class="big"></p><p class="best"></p><ul class="counts"></ul><ol class="ranks"></ol>'
         + '<div class="btns"><button type="button" class="again">다시 하기</button><button type="button" class="other">다른 박자</button></div>'
-        + '<button type="button" class="quit">그만하고 산책하기</button></div>';
+        + '<button type="button" class="quit">그만하고 산책하기</button><button type="button" class="quit totitle" data-to-title>처음 화면으로</button></div>';
       document.body.appendChild(el);
       el.querySelector('.again').addEventListener('click', (e) => { e.currentTarget.blur(); this.start(); });
       el.querySelector('.other').addEventListener('click', (e) => { e.currentTarget.blur(); this.results(false); this.openPicker(); });

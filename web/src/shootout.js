@@ -362,7 +362,7 @@ export class Shootout {
       el.innerHTML = '<div><h2>1분 슛 게임</h2><p class="big"></p><p class="detail"></p><p class="best"></p>'
         + '<label class="name">이름 <input type="text" maxlength="12" enterkeyhint="done" autocomplete="off" spellcheck="false" /></label>'
         + '<div class="ranks"></div>'
-        + '<div class="btns"><button type="button" class="again">다시 하기</button><button type="button" class="quit">그만하고 산책하기</button></div>'
+        + '<div class="btns"><button type="button" class="again">다시 하기</button><button type="button" class="quit">그만하고 산책하기</button><button type="button" class="quit totitle" data-to-title>처음 화면으로</button></div>'
         + '<p class="link"><button type="button" class="all">순위 전체 보기</button><button type="button" class="copy">게임 주소 복사</button>'
         + '<br>이 주소로 친구와 겨뤄 보세요 <code></code></p></div>';
       document.body.appendChild(el);

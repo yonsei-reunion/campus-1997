@@ -630,7 +630,7 @@ export class Pager {
       el = this.resEl = document.createElement('div');
       el.id = 'pagerresult';
       el.innerHTML = '<div><h2>삐삐 호출</h2><p class="big"></p><p class="sub"></p><p class="best"></p><ol class="ranks"></ol>'
-        + '<button type="button" class="again">다시 하기</button><button type="button" class="quit">그만하고 산책하기</button></div>';
+        + '<button type="button" class="again">다시 하기</button><button type="button" class="quit">그만하고 산책하기</button><button type="button" class="quit totitle" data-to-title>처음 화면으로</button></div>';
       document.body.appendChild(el);
       el.querySelector('.again').addEventListener('click', (e) => { e.currentTarget.blur(); this.start(); });
       el.querySelector('.quit').addEventListener('click', (e) => { e.currentTarget.blur(); this.stop(); });

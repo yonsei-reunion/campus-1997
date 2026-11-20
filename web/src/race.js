@@ -570,7 +570,7 @@ export class Race {
       el.id = 'raceresult';
       el.innerHTML = '<div><h2></h2><p class="big"></p><p class="best"></p><ol class="ranks"></ol>'
         + '<div class="btns"><button type="button" class="again">다시 달리기</button><button type="button" class="other">다른 코스</button></div>'
-        + '<button type="button" class="quit">그만하고 산책하기</button></div>';
+        + '<button type="button" class="quit">그만하고 산책하기</button><button type="button" class="quit totitle" data-to-title>처음 화면으로</button></div>';
       document.body.appendChild(el);
       el.querySelector('.again').addEventListener('click', (e) => { e.currentTarget.blur(); this.start(); });
       el.querySelector('.other').addEventListener('click', (e) => { e.currentTarget.blur(); this.results(false); this.openPicker(); });
