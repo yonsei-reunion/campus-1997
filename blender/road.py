@@ -509,15 +509,36 @@ def build():
             hump(f, o, min(e_lane, o + 0.9), 'paint_yellow' if k % 2 else 'paint_white')
             o += 0.9
             k += 1
-        # ◇ "crossing ahead" diamonds and lane arrows beyond the bump
-        for side in (-1, 1):
-            s0, p0, t0, n0, h0 = at(bump + (26 if side > 0 else 40))
-            c0 = p0 + n0 * (-side * lane * 0.5)
-            dia = [c0 - t0 * 1.6, c0 + n0 * 0.9, c0 + t0 * 1.6, c0 - n0 * 0.9]
-            inner = [c0 - t0 * 1.3, c0 + n0 * 0.65, c0 + t0 * 1.3, c0 - n0 * 0.65]
-            for i in range(4):
-                a0, a1, b1, b0 = dia[i], dia[(i + 1) % 4], inner[(i + 1) % 4], inner[i]
-                marks.face([(v.x, v.y, h0 + 0.012) for v in (b0, b1, a1, a0)], 'paint_white')
+    # the toll booth's paint (campus.json baekyangro.booth, the 1996 - 1999 scans: tools/build_campus.py I219_*): a
+    # striped hump across each lane before the booth (1.5 m deep, yellow and white blocks 0.5 m across as in the autumn
+    # 1997 photo), a ◇ and a lane arrow; without them the ◇ s were put by the gate's bump as before
+    BO = R.get('booth') or {}
+    for hs, o0, o1 in BO.get('humps', []):
+        f = at(hs)
+        n_ = max(1, round((o1 - o0) / 0.5))
+        for k in range(n_):
+            hump(f, o0 + (o1 - o0) * k / n_, o0 + (o1 - o0) * (k + 1) / n_, 'paint_yellow' if k % 2 else 'paint_white',
+                 half=0.75, flat=0.35)
+    dias = [(ds, do, 1.6, 0.6) for ds, do in BO.get('diamonds', [])] if 'diamonds' in BO else \
+        ([(bump + (26 if side > 0 else 40), -side * lane * 0.5, 1.6, 0.9) for side in (-1, 1)] if bump is not None else [])
+    for ds, do, dl, dw in dias:
+        s0, p0, t0, n0, h0 = at(ds)
+        c0 = p0 + n0 * do
+        dia = [c0 - t0 * dl, c0 + n0 * dw, c0 + t0 * dl, c0 - n0 * dw]
+        k_ = 0.25 / dw                                  # (a line 0.15 m wide or so)
+        inner = [c0 - t0 * dl * (1 - k_), c0 + n0 * dw * (1 - k_), c0 + t0 * dl * (1 - k_), c0 - n0 * dw * (1 - k_)]
+        for i in range(4):
+            a0, a1, b1, b0 = dia[i], dia[(i + 1) % 4], inner[(i + 1) % 4], inner[i]
+            marks.face([(v.x, v.y, h0 + 0.012) for v in (b0, b1, a1, a0)], 'paint_white')
+    for s_t, s_h, ao in BO.get('arrows', []):
+        # a straight lane arrow: a shaft 0.15 m wide and a head 0.6 m across, 1.2 m long, pointing from s_t to s_h
+        sg = 1.0 if s_h > s_t else -1.0
+        sh0 = s_h - sg * 1.2
+        strip_(min(s_t, sh0), max(s_t, sh0), ao, 0.15, 'paint_white')
+        fb, ft = at(sh0), at(s_h)
+        pb, pt_ = fb[1] + fb[3] * ao, ft[1] + ft[3] * ao
+        marks.face([(v.x, v.y, h + 0.012) for v, h in ((pb - fb[3] * 0.3, fb[4]), (pt_, ft[4]), (pb + fb[3] * 0.3, fb[4]))][::int(sg)],
+                   'paint_white')
     # lane paint on the asphalt apron the side road opens into (draped on the terrain heights from build_campus)
     for ln in R.get('apron_paint', []):
         pts = [Vector(p) for p in ln['pts']]

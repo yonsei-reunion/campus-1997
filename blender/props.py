@@ -148,36 +148,35 @@ def stone_marker():
     return mb
 
 
-# ----------------------------------------------------------------------------- 백양로 가운데 초소 (1997 aerial photo)
-# Measured in reference/1997_백양로_항공사진.jpg (x 1020 - 1049, y 841 - 906) with the photo's fitted camera, the foot
-# on the road profile: the booth stands on the centre line ~132 m in from the gate, 1.4 m across, its yellow lower
-# half with black stripes up to 1.46 m, a band of dark windows to 2.68 m, a white cap to 3.16 m and a slim pole with a
-# lamp to ~3.6 m.  A red-and-white barrier arm runs west across the outgoing lane from beside it (s ~134) and another
-# east across the incoming lane a few metres further on (s ~138); an orange cone stands at the island's nose.
+# ----------------------------------------------------------------------------- 백양로 주차 요금정산소 (1996 - 1999)
+# The campus's parking toll booth on 백양로's centre line (reference/고증/2.3.2 「정산소와 방지턱」): the 1996 - 1999 scans
+# give its place (s 154.6, tools/build_campus.py I219_*), a flat roof 3.0 x 1.5 m some 2.5 m over the road and the arms
+# lowered at its north-east and south-west corners; the autumn 1997 school-site photo (reference/학교홈페이지/bakyang.jpg)
+# its make: yellow walls, a big dark window over a yellow lower panel, a flat roof with a white sign board on a post, a
+# yellow ticket post at its south-east corner for the northbound lane and the southbound arm's post at the south-west
+# corner on a yellow frame.  On a low island with a kerb in yellow and black blocks.
 # Frame: origin at the booth's centre on the road, local -Y up the road (north, +s), +X west.  BOOTH_ARMS are the arm
 # pivots (x, y, z) in that frame and the side each arm points to; tools/build_campus.py places them the same way.
-BOOTH_ISLAND = (-0.85, 0.85, -6.0, 1.6)                  # x0, x1, y0 (north end), y1 (south nose)
-BOOTH_ARMS = ((0.82, -1.5, 1.0, 1), (-0.82, -5.5, 1.0, -1))
+BOOTH_ISLAND = (-0.95, 0.95, -2.75, 2.55)                # x0, x1, y0 (north end), y1 (south nose)
+BOOTH_ARMS = ((0.82, 2.2, 1.0, 1), (-0.82, -2.45, 1.0, -1))
 ARM_LEN = 2.6
 
 
 def guard_booth():
     mb = MeshBuilder('guard_booth')
     x0, x1, y0, y1 = BOOTH_ISLAND
-    kh = 0.18
+    kh = 0.15
 
-    def side(ax, ay, bx, by, za, zb, mat, o=0.0, s0=0.0, s1=None):
+    def side(ax, ay, bx, by, za, zb, mat, o=0.0):
         """an upright quad on the edge a -> b (corners counter-clockwise seen from above: outward is to the right)"""
         Le = math.hypot(bx - ax, by - ay)
         tx, ty = (bx - ax) / Le, (by - ay) / Le
-        s1 = Le if s1 is None else s1
-        P = lambda s_, z_: (ax + tx * s_ + ty * o, ay + ty * s_ - tx * o, z_)
-        mb.quad(P(s0, za), P(s1, za), P(s1, zb), P(s0, zb), mat)
-        return P, Le, math.atan2(ty, tx)
+        mb.quad((ax + ty * o, ay - tx * o, za), (bx + ty * o, by - tx * o, za), (bx + ty * o, by - tx * o, zb),
+                (ax + ty * o, ay - tx * o, zb), mat)
 
     mb.box(((x0 + x1) / 2, (y0 + y1) / 2, kh / 2), (x1 - x0, y1 - y0, kh), 'concrete', skip=('bottom',))
     # the island kerb painted in yellow and black blocks
-    n = int((y1 - y0) / 0.5)
+    n = int(round((y1 - y0) / 0.5))
     for k in range(n):
         ya, yb = y0 + k * (y1 - y0) / n, y0 + (k + 1) * (y1 - y0) / n
         m = 'paint_yellow' if k % 2 else 'trim_black'
@@ -185,57 +184,39 @@ def guard_booth():
         side(x0, yb, x0, ya, 0.0, kh, m, o=0.01)                       # east side
     side(x1, y1, x0, y1, 0.0, kh, 'paint_yellow', o=0.01)              # south nose
     side(x0, y0, x1, y0, 0.0, kh, 'paint_yellow', o=0.01)              # north end
-    # the booth, 1.4 x 2.0 m: yellow lower panels with black diagonal stripes, dark windows, a white cap
-    w, d = 1.4, 2.0
-    z0, zw, zc, zr = kh, 1.46, 2.68, 3.16
-    mb.box((0, 0, (z0 + zw) / 2), (w, d, zw - z0), 'paint_yellow')
-    corners = [(-w / 2, -d / 2), (w / 2, -d / 2), (w / 2, d / 2), (-w / 2, d / 2)]
-    for i in range(4):
-        (ax, ay), (bx, by) = corners[i], corners[(i + 1) % 4]
-        P, Le, rz = side(ax, ay, bx, by, zw, zc, 'glass', o=-0.04, s0=0.06, s1=None)
-        Lx = lambda s_, z_, o_, ax=ax, ay=ay, bx=bx, by=by, Le=Le: (
-            ax + (bx - ax) / Le * s_ + (by - ay) / Le * o_, ay + (by - ay) / Le * s_ - (bx - ax) / Le * o_, z_)
-        h = zw - z0
-        k = -3
-        while k * 0.55 < Le:                         # bands rising to the right, clipped to the panel
-            sa = k * 0.55
-            quad = [(sa, z0), (sa + 0.22, z0), (sa + 0.22 + h, zw), (sa + h, zw)]
-            for edge, keep in ((0.0, lambda s_: s_ >= 0.0), (Le, lambda s_: s_ <= Le)):
-                out = []
-                for j in range(len(quad)):
-                    pa, pb = quad[j], quad[(j + 1) % len(quad)]
-                    if keep(pa[0]):
-                        out.append(pa)
-                    if keep(pa[0]) != keep(pb[0]):
-                        t = (edge - pa[0]) / (pb[0] - pa[0])
-                        out.append((edge, pa[1] + (pb[1] - pa[1]) * t))
-                quad = out
-                if not quad:
-                    break
-            if len(quad) >= 3:
-                mb.face([Lx(s_, z_, 0.012) for s_, z_ in quad], 'trim_black')
-            k += 1
-        for s_ in (0.0, Le / 2, Le):                 # white posts and middle mullion
-            mb.box(Lx(s_, (zw + zc) / 2, 0.0), (0.1, 0.1, zc - zw), 'paint_white', rotz=rz)
-        mb.box(Lx(Le / 2, zw + 0.03, 0.03), (Le + 0.08, 0.1, 0.06), 'paint_white', rotz=rz)      # sill
-    mb.box((0, 0, zc - 0.02), (w, d, 0.04), 'paint_white')
-    mb.box((0, 0, (zc + zr) / 2), (w + 0.24, d + 0.24, zr - zc), 'paint_white')                 # the white cap
-    mb.box((0, 0, zr + 0.02), (w + 0.1, d + 0.1, 0.04), 'roof_flat', skip=('bottom',))
-    mb.cylinder((0.2, 0.3), 0.025, zr, zr + 0.38, 'metal_dark', seg=6)                          # lamp on a pole
-    mb.cylinder((0.2, 0.3), 0.09, zr + 0.38, zr + 0.5, 'light_amber', seg=10)
-    # a signal box with a red lamp on the south face, as in the photo
-    mb.box((0, d / 2 + 0.06, 1.0), (0.36, 0.1, 0.36), 'trim_black')
-    side(0.11, d / 2 + 0.115, -0.11, d / 2 + 0.115, 0.89, 1.11, 'light_red')
-    # barrier posts: yellow boxes with a black band; the arms (barrier_arm) pivot on their sides
+    # the booth, 1.5 x 3.0 m and 2.5 m over the road: a yellow lower panel, dark glass all round between yellow
+    # corner posts and mullions, a yellow head band and a flat roof slab
+    w, d = 1.5, 3.0
+    zp, zw, zh, zr = 1.05, 2.15, 2.36, 2.48
+    mb.box((0, 0, (kh + zp) / 2), (w, d, zp - kh), 'paint_yellow', skip=('bottom',))
+    mb.box((0, 0, (zp + zw) / 2), (w - 0.06, d - 0.06, zw - zp), 'glass', skip=('bottom', 'top'))
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            mb.box((sx * (w / 2 - 0.06), sy * (d / 2 - 0.06), (zp + zw) / 2), (0.13, 0.13, zw - zp), 'paint_yellow', skip=('bottom', 'top'))
+        mb.box((sx * (w / 2 - 0.04), 0, (zp + zw) / 2), (0.09, 0.1, zw - zp), 'paint_yellow', skip=('bottom', 'top'))
+    mb.box((0, 0, zp + 0.025), (w + 0.04, d + 0.04, 0.05), 'paint_yellow')                     # sill
+    mb.box((0, 0, (zw + zh) / 2), (w, d, zh - zw), 'paint_yellow', skip=('bottom', 'top'))
+    mb.box((0, 0, (zh + zr) / 2), (w + 0.16, d + 0.16, zr - zh), 'paint_yellow')                # the roof slab
+    mb.box((0, 0, zr + 0.01), (w + 0.12, d + 0.12, 0.02), 'roof_metal', skip=('bottom',))
+    # on the roof: a white sign board on a post over the south-west corner, a slim white pole at the east
+    mb.cylinder((0.45, 1.2), 0.03, zr, zr + 0.45, 'paint_white', seg=6)
+    mb.box((0.45, 1.25, zr + 0.62), (0.55, 0.06, 0.4), 'paint_white')
+    mb.cylinder((-0.5, 0.9), 0.025, zr, zr + 0.75, 'paint_white', seg=6)
+    # the ticket post before the booth's south-east corner, its blue plate towards the northbound lane (east, -X)
+    tx_, ty_ = -0.62, 1.95
+    mb.box((tx_, ty_, kh + 0.62), (0.4, 0.36, 1.24), 'paint_yellow', skip=('bottom',))
+    mb.box((tx_ - 0.205, ty_, kh + 1.0), (0.02, 0.26, 0.12), 'sign_blue')
+    mb.box((tx_ - 0.205, ty_, kh + 0.75), (0.02, 0.16, 0.1), 'trim_black')
+    # barrier posts: yellow boxes with a black band; the arms (barrier_arm) pivot on their sides.  The southbound one
+    # stands on a low yellow frame of tubes (the photo)
     for ax, ay, az, sd in BOOTH_ARMS:
         px = ax - sd * 0.17
         mb.box((px, ay, (kh + az + 0.12) / 2), (0.3, 0.3, az + 0.12 - kh), 'paint_yellow', skip=('bottom',))
         mb.box((px, ay, az - 0.3), (0.31, 0.31, 0.12), 'trim_black')
-    # the cone at the nose
-    cx, cy = -0.15, y1 + 0.35
-    mb.box((cx, cy, 0.02), (0.38, 0.38, 0.04), 'trim_black')
-    mb.cylinder((cx, cy), 0.15, 0.04, 0.7, 'banner_orange', seg=10, r1=0.03)
-    mb.cylinder((cx, cy), 0.105, 0.33, 0.45, 'paint_white', seg=10, r1=0.083, cap_top=False)
+        if sd > 0:
+            for dy in (-0.22, 0.22):
+                mb.box((px - 0.1, ay + dy, kh + 0.06), (0.7, 0.06, 0.06), 'paint_yellow')
+            mb.box((px - 0.42, ay, kh + 0.06), (0.06, 0.5, 0.06), 'paint_yellow')
     return mb
 
 

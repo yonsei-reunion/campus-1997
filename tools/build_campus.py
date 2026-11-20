@@ -12546,6 +12546,34 @@ for t_ in out['trees']:
         t_[1], t_[2] = (round(EAGLE['pos'][k_] + (t_[1 + k_] - EAGLE['pos'][k_]) * 11.0 / _ed, 2) for k_ in (0, 1))
 # (and the shrubs on the walks of 1997 painted above: 활천대's diagonal walk, round 연희관 앞 정원)
 out['shrubs'] = [s_ for s_ in out['shrubs'] if not unary_union([HW_DIAG97, YH_RIM97]).buffer(0.2).contains(Point(s_[1], s_[2]))]
+# 백양로 주차 요금정산소, 1996 - 1999 (reference/고증/2.3.2 「정산소와 방지턱」): the booth photo A put at s 134 (its pixel
+# reprojected along a long line of sight) is not there in any scan of 1996-12, 1997-07, 1998-10 or 1999-05; they all
+# have a bright flat roof 3.0 x 1.5 m on the centre line at s 154.6, 0.3 m east (the 1997 and 1999 pairs agree on it
+# at 2.1 and 2.9 m over the road), the lowered arms at its north-east (s 157.1, over the northbound lane) and
+# south-west (s 152.4, over the southbound) corners, a striped hump across each lane before the booth (s 150.5 east,
+# 160.1 west), a ◇ and a lane arrow beside them.  The autumn 1997 school-site photo (자료 R bakyang.jpg, its camera
+# solved on these) shows the make: blender/props.py guard_booth.  The gate's band across the road: s 107.2 in the scans.
+# Late, nothing drawn on the ground and no list changed: BOOTH above still decides the manholes; the prop moves in its
+# place in the list
+I219_BOOTH_S, I219_BOOTH_OFF = 154.6, -0.3          # (off: + west, as along_raw)
+I219_ARMS = ((0.82, 2.2, 1.0, 1), (-0.82, -2.45, 1.0, -1))      # (blender/props.py BOOTH_ARMS: x west, y south of the middle)
+_i219 = along_raw(I219_BOOTH_S, I219_BOOTH_OFF)
+_i219_k = next(i_ for i_, p_ in enumerate(out['props']) if p_[0] == 'guard_booth')
+out['props'][_i219_k][1:4] = [round(_i219[0], 2), round(_i219[1], 2), round(_i219[2], 3)]
+_i219_b = dict(s=I219_BOOTH_S, off=I219_BOOTH_OFF, island=[-0.95, 0.95, -2.75, 2.55], arms=[],
+               # humps: [s, east edge, west edge] (offsets + west), 1.5 m deep; marks: ◇ [s, off], arrows [s_tail, s_head, off]
+               humps=[[150.5, -(ROAD['median'] + ROAD['lane']), round(I219_BOOTH_OFF - 0.95, 2)],
+                      [160.1, round(I219_BOOTH_OFF + 0.95, 2), ROAD['median'] + ROAD['lane']]],
+               diamonds=[[158.6, -2.4], [150.6, 2.0]], arrows=[[145.5, 149.4, -1.95], [164.5, 161.2, 2.1]])
+for _ax, _ay, _az, _sd in I219_ARMS:
+    _px = _i219[0] + _ax * math.cos(_i219[2] + math.pi / 2) + _ay * math.cos(_i219[2] + math.pi)
+    _py = _i219[1] + _ax * math.sin(_i219[2] + math.pi / 2) + _ay * math.sin(_i219[2] + math.pi)
+    _i219_b['arms'].append(dict(x=round(_px, 2), y=round(_py, 2), z=_az, dir=round(_i219[2] + _sd * math.pi / 2, 3),
+                                s=round(I219_BOOTH_S - _ay, 2), side=_sd))
+out['baekyangro']['booth'] = _i219_b
+out['baekyangro']['bump'] = 107.2
+out['colliders'].append(_dz_box(_i219[:2], _i219[2], 1.6, 0.85))
+print('정산소 1997: s %.1f (photo A %.1f), %.2f m east, bump s %.1f' % (I219_BOOTH_S, BOOTH['s'], -I219_BOOTH_OFF, 107.2))
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
