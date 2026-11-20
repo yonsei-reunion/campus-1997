@@ -469,12 +469,13 @@ export class Player {
     if (k.has('ArrowDown') || k.has('KeyS')) fwd -= 1;
     if (k.has('ArrowLeft') || k.has('KeyA')) turn += 1;
     if (k.has('ArrowRight') || k.has('KeyD')) turn -= 1;
-    const run = k.has('ShiftLeft') || k.has('ShiftRight');
+    // (the running game, race.js: running without Shift, and Shift walks)
+    const run = (k.has('ShiftLeft') || k.has('ShiftRight')) !== !!this.autoRun;
     const tilt = (k.has('PageDown') ? 1 : 0) - (k.has('PageUp') ? 1 : 0);     // + = down, as a downward drag
     const m = this.stick.length();
     if (!fwd && !turn && m > 0.15) {
       // stick: the screen direction pushed (0 = straight ahead, + = left), relative to where the camera looks
-      return { fwd: 0, turn: 0, run: m > 0.9, tilt, stick: { rel: Math.atan2(-this.stick.x, -this.stick.y), m: Math.min(1, (m - 0.15) / 0.75) } };
+      return { fwd: 0, turn: 0, run: this.autoRun || m > 0.9, tilt, stick: { rel: Math.atan2(-this.stick.x, -this.stick.y), m: Math.min(1, (m - 0.15) / 0.75) } };
     }
     return { fwd: clamp(fwd, -1, 1), turn: clamp(turn, -1, 1), run, tilt };
   }

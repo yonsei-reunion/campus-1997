@@ -1,0 +1,62 @@
+/* 캠퍼스 달리기 (race.js): loaded with it */
+body.racing #minimap, body.racing #stamps, body.racing #birdbtn, body.racing #mapbtn, body.racing #blabels, body.racing #prompt { display: none !important; }
+
+#racehud { position: fixed; top: calc(14px + var(--st, 0px)); left: 50%; transform: translateX(-50%); z-index: 11; display: flex; gap: 8px;
+  pointer-events: none; color: var(--hud-ink, #f4f1e8); font-family: var(--title, sans-serif); }
+#racehud > div { background: var(--hud-bg, rgba(14, 22, 34, .62)); border-radius: 12px; padding: 6px 14px 8px; text-align: center; min-width: 90px;
+  backdrop-filter: blur(6px); }
+#racehud small { display: block; font: 700 11px var(--font, sans-serif); opacity: .75; }
+#racehud b { font-weight: 400; font-size: 30px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+#racehud .time b { color: var(--yellow, #ffe76a); min-width: 4.6em; display: inline-block; }
+#racehud .gate span { display: block; font: 600 11px var(--font, sans-serif); opacity: .8; }
+#racehud .way { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 64px; }
+#racehud .way i { display: block; width: 0; height: 0; border-left: 13px solid transparent; border-right: 13px solid transparent;
+  border-bottom: 26px solid #ffc83a; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .35)); transform-origin: 50% 60%; }
+#racehud .way span { margin-top: 4px; font: 700 12px var(--font, sans-serif); }
+
+#racebig { position: fixed; left: 50%; top: 34%; transform: translate(-50%, -50%); z-index: 12; pointer-events: none;
+  font: 400 clamp(64px, 14vw, 120px) var(--title, sans-serif); color: #fff; text-shadow: 0 5px 0 rgba(14, 22, 34, .5), 0 0 24px rgba(14, 22, 34, .45); }
+#racebig.small { font-size: clamp(36px, 8vw, 60px); }
+#racebig.pop { animation: racepop .55s ease-out; }
+#racesplit { position: fixed; left: 50%; top: 45%; transform: translateX(-50%); z-index: 11; pointer-events: none; opacity: 0;
+  font: 400 28px var(--title, sans-serif); color: #fff; text-shadow: 0 3px 0 rgba(14, 22, 34, .5); font-variant-numeric: tabular-nums; }
+#racesplit.ahead { color: #a8ef9a; }
+#racesplit.behind { color: #ff9b8a; }
+#racesplit.pop { animation: racesplit 1.8s ease-out; }
+@keyframes racepop { 0% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); } }
+@keyframes racesplit { 0% { opacity: 0; transform: translateX(-50%) scale(1.3); } 12% { opacity: 1; transform: translateX(-50%) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #racebig.pop { animation: none; } }
+
+#racepick, #raceresult { position: fixed; inset: 0; z-index: 26; display: grid; place-items: center; background: rgba(10, 18, 28, .45); padding: 16px; }
+#racepick { z-index: 35; }                 /* (over the title card) */
+#racepick[hidden], #raceresult[hidden] { display: none; }
+#racepick > div, #raceresult > div { background: var(--paper, #fffdf6); color: var(--ink, #16202e); padding: 22px 24px; border-radius: 8px; width: min(460px, 100%);
+  max-height: calc(100vh - 32px); overflow: auto; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); text-align: center; transform: rotate(-0.6deg); }
+#racepick h2, #raceresult h2 { font: 400 24px var(--title, sans-serif); margin: 0 0 4px; color: var(--mint-ink, #0e6f6b); }
+#racepick .lead, #racepick .how { margin: 0 0 12px; font-size: 13px; color: #5c6572; line-height: 1.6; }
+#racepick .how { margin: 10px 0; }
+#racepick .courses { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+#racepick .courses button { width: 100%; text-align: left; border: 2px solid var(--ink, #16202e); border-radius: 10px; background: #fff; padding: 10px 12px; cursor: pointer;
+  color: var(--ink, #16202e); font-family: var(--font, sans-serif); }
+#racepick .courses button:hover, #racepick .courses button:focus-visible { background: var(--yellow, #ffe76a); }
+#racepick .courses b { display: block; font: 400 18px var(--title, sans-serif); }
+#racepick .courses .desc { display: block; font-size: 13px; color: #34404f; margin-top: 2px; }
+#racepick .courses .meta { display: block; font-size: 12px; font-weight: 700; color: var(--mint-ink, #0e6f6b); margin-top: 4px; }
+#racepick .close { border: 0; background: none; font: 700 14px var(--font, sans-serif); color: #5c6572; text-decoration: underline; cursor: pointer; }
+
+#raceresult .big { margin: 4px 0 8px; font: 400 58px/1 var(--title, sans-serif); color: var(--blue, #143c8c); font-variant-numeric: tabular-nums; }
+#raceresult .best { margin: 0 0 10px; font-weight: 700; font-size: 15px; }
+#raceresult .best.new { color: #c0392b; }
+#raceresult .ranks { list-style: none; margin: 0 0 14px; padding: 0; font-size: 14px; }
+#raceresult .ranks li { display: grid; grid-template-columns: 2em 1fr auto; gap: 8px; padding: 4px 8px; border-bottom: 1px dashed #d8d0bb; text-align: left; }
+#raceresult .ranks li.me { background: #fff3b0; font-weight: 700; }
+#raceresult .ranks .t { font-variant-numeric: tabular-nums; }
+#raceresult .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#raceresult button { border: 0; border-radius: 8px; padding: 12px 8px; font: 700 15px var(--font, sans-serif); cursor: pointer; }
+#raceresult .again { background: var(--blue, #143c8c); color: #fff; }
+#raceresult .other { background: var(--yellow, #ffe76a); color: var(--ink, #16202e); }
+#raceresult .quit { margin-top: 8px; width: 100%; background: #fff; color: var(--ink, #16202e); border: 2px solid var(--ink, #16202e); }
+@media (max-width: 640px) {
+  #racehud b { font-size: 22px; }
+  #racehud > div { min-width: 64px; padding: 5px 8px 6px; }
+}

@@ -760,7 +760,9 @@ async function main() {
     player.enabled = false;
     // (in the game: the way out of it; else the way into it)
     $('#shoot-quit').hidden = !shootout?.on;
-    $('#shoot-go').hidden = !!shootout?.on || !S.court;
+    $('#shoot-go').hidden = !!shootout?.on || !!race?.on || !S.court;
+    $('#run-quit').hidden = !race?.on;
+    $('#run-go').hidden = !!shootout?.on || !!race?.on;
     shootBest();
     $('#pause').hidden = false;
     $('#resume').focus({ preventScroll: true });        // (keys: Enter goes on, Shift+Tab to the buttons above it)
@@ -798,6 +800,8 @@ async function main() {
   const toTitle = () => {
     if (!started && !bird.active) return;
     shootout?.stop();                        // (its onQuit goes on with the walk: stopped below)
+    race?.stop();
+    race?.closePicker();
     started = false;
     paused = false;
     if (ui.memoryOpen) ui.closeMemory();
@@ -843,14 +847,14 @@ async function main() {
   });
   const openNearby = () => {
     if (ui.memoryOpen) { ui.closeMemory(); return; }
-    if (shootout?.on) return;                 // (the game: the key is the shot, shotDown)
+    if (shootout?.on || race?.on) return;     // (the game: the key is the shot, shotDown)
     if (ball && !bird.active && ball.action()) { ui.setPrompt(ball.prompt()); return; }
     if (birthday && !bird.active && birthday.action()) { ui.setPrompt(null); return; }
     const l = ui.nearestLandmark(player.x, player.y);
     if (l) { player.enabled = false; ui.openMemory(l); }
   };
   const toggleMap = () => {
-    if (!started || shootout?.on) return;
+    if (!started || shootout?.on || race?.on) return;
     if (ui.mapOpen) { ui.toggleMap(false); return; }
     player.enabled = false;
     ui.toggleMap(true, player.x, player.y);
@@ -901,6 +905,7 @@ async function main() {
         onQuit: () => { document.body.classList.remove('shootout'); resume(); ui.toast('농구장에서 산책을 이어 가요'); } });
     } finally { shootLoading = btn.disabled = go.disabled = false; }
     if (bird.active) leaveBird();
+    race?.stop();
     const how = MOBILE ? '공을 받으면 「슛」을 꾹 눌렀다가' : '공을 받으면 E나 스페이스를 꾹 눌렀다가';
     const msg = `1분 동안 몇 골? ${how} 막대가 초록 칸에 올 때 떼세요`;
     document.body.classList.add('shootout');
@@ -927,10 +932,34 @@ async function main() {
   $('#shoot-url').textContent = gameUrl();
   copyButton($('#shoot-copy'), gameUrl);
   $('#rank-pause').addEventListener('click', openRanking);
+  // 캠퍼스 달리기 (src/race.js): a course picked from the title card or the settings card, a run through its gates
+  let race = null, raceLoad = null;
+  const loadRace = () => (raceLoad ||= import('./race.js').then(({ Race }) => (race = new Race({
+    scene, camera, player, sound, groundAt, ensure: (x, y) => chunks.ensure(x, y),
+    onBegin: (msg) => {
+      if (bird.active) leaveBird();
+      shootout?.stop();
+      if (ui.memoryOpen) ui.closeMemory();
+      if (ui.mapOpen) ui.toggleMap(false);
+      ball?.drop();
+      document.body.classList.add('racing');
+      if (!started) startWalk(null, msg); else { paused = false; $('#pause').hidden = true; ui.toast(msg, 5000); }
+      ui.setPrompt(null);
+      forest.update(camera.position, true);
+    },
+    onQuit: () => { document.body.classList.remove('racing'); resume(); ui.toast('달리기를 마치고 산책을 이어 가요'); },
+  }))));
+  const openRace = async (e) => {
+    e?.stopPropagation(); e?.currentTarget?.blur();
+    (await loadRace()).openPicker();
+  };
+  $('#run-start').addEventListener('click', openRace);
+  $('#run-go').addEventListener('click', openRace);
+  $('#run-quit').addEventListener('click', (e) => { e.stopPropagation(); race?.stop(); });
   if (birthday) birthday.onSplash = (p) => sound.splash(p);
   $('#opt-sound').checked = sound.on;
   $('#opt-sound').addEventListener('change', (e) => sound.setOn(e.target.checked));
-  for (const id of ['#start', '#tour-start', '#shoot-start']) $(id).addEventListener('click', () => sound.start());
+  for (const id of ['#start', '#tour-start', '#shoot-start', '#run-start']) $(id).addEventListener('click', () => sound.start());
   const SEASON_ORDER = ['spring', 'summer', 'autumn'];
   const SEASON_KEYS = { Digit1: 'spring', Digit2: 'summer', Digit3: 'autumn' };
   // the tour may go over all the detailed ground: the near grid and the patches beside it (terrain.south: 신촌 로터리)
@@ -978,7 +1007,7 @@ async function main() {
     },
   });
   const enterBird = () => {
-    if (bird.active || shootout?.on) return;
+    if (bird.active || shootout?.on || race?.on) return;
     if (ui.memoryOpen) ui.closeMemory();
     if (ui.mapOpen) ui.toggleMap(false);
     paused = false;
@@ -1030,6 +1059,7 @@ async function main() {
     }
     if (!started) return;
     if (shootout?.resultsOpen) { if (e.code === 'Escape') shootout.stop(); return; }
+    if (race?.resultsOpen || race?.pickOpen) return;           // (their Escape: race.js)
     // (the settings card is open: Enter is its focused button's, and no card opens behind it)
     if (paused && (e.code === 'Enter' || e.code === 'KeyE' || e.code === 'KeyM')) return;
     if (e.code === 'KeyB' && !ui.memoryOpen) { enterBird(); return; }
@@ -1145,6 +1175,7 @@ async function main() {
     if (!ballLoad && S.court && (focus.x - S.court.pos[0]) ** 2 + (focus.z + S.court.pos[1]) ** 2 < 150 * 150) loadBall();
     ball?.update(dt, tAcc, started && !bird.active);
     shootout?.update(dt, tAcc, paused || ui.memoryOpen || ui.mapOpen);
+    race?.update(dt, tAcc, paused || ui.memoryOpen || ui.mapOpen);
     blobs?.update(camera.position);
     sound.update(dt, tAcc, { player, walking: started && !bird.active, crowd, traffic: heard, birds, season });
     decals.update(camera.position);
@@ -1167,8 +1198,8 @@ async function main() {
         lastPlace = tAcc;
         const l = ui.nearestLandmark(player.x, player.y);
         ui.setPlace(ui.placeName(player.x, player.y, onRoad(player.x, player.y)));
-        const game = shootout?.on, busy = game || !!ball?.pick;      // (picking up the ball: no other prompt meanwhile)
-        const bp = busy ? ball.prompt() : ball?.prompt() || birthday?.prompt();
+        const game = shootout?.on || race?.on, busy = game || !!ball?.pick;      // (picking up the ball: no other prompt meanwhile)
+        const bp = race?.on ? null : busy ? ball.prompt() : ball?.prompt() || birthday?.prompt();
         ui.setPrompt(bp ? bp : l && !busy && !ui.memoryOpen ? `${l.name} · ${MOBILE ? '눌러서 ' : ''}그때의 추억 보기` : null);
       }
       if (MOBILE) ui.clearWalker(player.screenBox(camera));     // the prompt button off the walker (phones)
@@ -1216,7 +1247,7 @@ async function main() {
   };
   window.__y97 = { scene, camera, player, renderer, forest, ui, lib, setSeason, crowd, townCrowd, cast, traffic, street, bird, toggleBird, shadows, fountainWater,
     startWalk, enterBird, leaveBird, toTitle, record, birthday, post, grass, sunMap, blobs, curbs, verge, sound, birds, landAt, places,
-    get ball() { return ball; }, loadBall, startShoot, get shootout() { return shootout; },
+    get ball() { return ball; }, loadBall, startShoot, get shootout() { return shootout; }, loadRace, get race() { return race; },
     // tools/bake_sun_shadows.mjs (desktop path: it draws with the shadow map; the page needs reloading afterwards)
     // (the kits whole for it: it draws them from above, tile by tile)
     bakeSunMap: async () => {
@@ -1242,6 +1273,7 @@ async function main() {
   $('#start').disabled = false;
   $('#tour-start').disabled = false;
   $('#shoot-start').disabled = false;
+  $('#run-start').disabled = false;
   // the rest of the halls and landmarks, the nearest to the view first (src/chunks.js); each set in once its
   // textures are in and its shaders compiled: then the walker's walls, the sun's shadows and the atmosphere take it
   chunks.renderer = renderer;

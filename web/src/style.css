@@ -262,6 +262,8 @@ body.birds #stamps { display: none; }
 .mg-row { display: flex; gap: 8px; align-items: stretch; }
 #shoot-start { flex: 1; border: 2px solid var(--ink); background: var(--yellow); color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); }
 #shoot-start:disabled { opacity: .45; cursor: progress; }
+#run-start { margin-top: 8px; width: 100%; border: 2px solid var(--ink); background: var(--mint, #bfe8d9); color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); cursor: pointer; }
+#run-start:disabled { opacity: .45; cursor: progress; }
 .view-pick { display: flex; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: #fff; }
 .view-pick button { border: 0; background: none; padding: 0 12px; font: 700 14px var(--font); color: var(--ink); }
 .view-pick button + button { border-left: 2px solid var(--ink); }

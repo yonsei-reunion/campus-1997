@@ -77,6 +77,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | `characters.js` · `armpose.js` · `life.js` · `talk.js` | 사람 모델과 애니메이션, 팔 IK, 군중 · 차 · 현수막 · 초소, 말풍선 대사 |
 | `town.js` | 정문 밖: 성산로 · 철둑 · 창천동 · 신촌 로터리 모델을 장면에 넣음, 성산로 · 연세로 · 로터리의 차와 시내버스, 신호등 |
 | `hoops.js` · `ballpose.js` · `shootout.js` | 농구공 물리와 타이밍 슛, 농구 동작(슛 · 받기 · 줍기 · 패스), 1분 슛 게임. 처음 화면에서는 받지 않음 |
+| `race.js` | 캠퍼스 달리기: 코스 셋, 문 · 화살표 · 기록. 코스를 고를 때 받음 |
 | `audio.js` | 소리: Web Audio 합성(바람 · 나뭇잎 · 새 · 분수 · 차 · 발소리 · 농구공 · 물보라), 카메라가 듣는 자리 |
 | `birthday.js` | 활천대 앞 생일 축하(두 학생, 들어 올려 분수로) |
 | `water/fountain.js` | 활천대 분수 물(Ultra Water) |
@@ -310,6 +311,16 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
   - 판마다의 기록은 `localStorage` 의 `y97-shoot-records`(`shootrecords.js`: 골 → 성공률 → 먼저 한 판 순, 100판까지). 결과 창이 순위 · 이름 칸 · 상위 다섯을, 첫 화면 · 잠시 멈춤 창의 「순위 보기」가 상위 스물을 보입니다(누를 때 `import()`). 예전 `y97-shoot-best` 는 이름 없는 「이전 기록」 한 판으로 읽습니다.
   - `?game=shoot` 은 첫 화면을 게임 카드로(`body.game-shoot`), `&view=first|third` 는 시점을 정합니다. 「주소 복사」는 `util.js` `copyButton`(Clipboard API, 안 되면 숨은 칸 선택).
 - `people.html` 의 「슛」 · 「패스」가 같은 `BallForm` 을 씁니다. `window.__people.ballAt = t` 로 그 순간에 멈춰 자세를 봅니다.
+
+### 달리기
+
+- 캠퍼스 달리기(`race.js`): 코스 셋 가운데 하나를 골라 문(땅에 선 빛의 고리)을 차례로 지나 결승까지의 시간을 잽니다. 첫 화면 「캠퍼스 달리기」나 설정 창에서 코스 카드를 열 때 `import()` 합니다(`window.__y97.loadRace()`).
+- 달리는 동안 `player.autoRun` 이 켜져 ↑(W)만으로 뛰고 Shift 를 누르면 걷습니다. 폰은 막대를 조금만 밀어도 뜁니다. 지도 · 날아가기 · 추억 카드 · 공 줍기는 막습니다(`body.racing`).
+- 길은 정하지 않습니다. 다음 문과 그다음 문만 보이고, HUD 의 화살표가 카메라가 보는 쪽에서 다음 문의 방향을 가리킵니다. 문 반지름 4.5 m 안, 높이 −2 ~ +5 m 에 들어오면 지난 것입니다.
+- 기록은 `localStorage` 의 `y97-run-records`(코스마다 시간 순 50번까지, 문마다의 시간 `splits` 와 함께). 문을 지날 때 그 코스 최고 기록의 같은 문과의 차이를 보입니다.
+- 문 자리: `tools/race_route.mjs` 가 경유점 사이를 걷는 사람의 충돌(`Colliders`) 위 1 m 격자 A* 로 잇고, 그 길을 `Player.update` 로 실제로 달려 봅니다. 계단 · 테라스 턱 · 화단 턱은 충돌 목록에 없고 걷기의 광선에만 있어서, 2 s 동안 2 m 를 못 가면 그 자리를 막고 다시 찾습니다. 그 길을 따라 약 55 m 마다 문을 놓습니다.
+  - 건물 · 땅을 고친 뒤에는 `node tools/race_route.mjs --port <포트> --check` 로 세 코스를 결승까지 돌려 봅니다(문 사이를 A* 로 잇고 게임 그대로 `Race.update`).
+  - 경유점은 현관 앞(계단 · 테라스)을 피해 보도 위에 둡니다. 중앙 광장 코스의 11번 문은 경영학교실단 앞 높은 마당 끝을 피해 손으로 옮겼습니다.
 
 ### 렌더링
 
