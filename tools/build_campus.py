@@ -12476,6 +12476,14 @@ out['colliders'].append(_dz_box(OESOL_BUST['pos'], OESOL_BUST['rot'], 0.36, 0.31
 NORTH_TOLL = dict(pos=[37.4, 947.0], rot=round(math.radians(-111.0), 4), size=[3.2, 1.5], height=2.4, bars_u=[-1.8, 1.8], bar=3.4)
 out['north_toll'] = NORTH_TOLL
 out['colliders'].append(_dz_box(NORTH_TOLL['pos'], NORTH_TOLL['rot'], 1.9, 1.05))
+# 광복관 북쪽 날개 북동 모서리 동쪽 (자료 R law.jpg, 1996년 겨울 전; camera fitted, tools/photofit/r96/law.json; reference/고증/3.9
+# 「긴 면」): a row of six yellow bollards on the bench east of the wing, on the line of its north end (v 63.1 of the
+# hall's frame), 1.42 m apart from 5.3 m east of the wall (feet on the bench's level).  Late and appended: nothing else moves
+KB_BOLLARDS = [(52.2 + 1.42 * k_, 63.1) for k_ in range(6)]
+_kb_t = math.radians(kwangbok97.KB_ANG)
+for u_, v_ in KB_BOLLARDS:
+    out['props'].append(['bollard', round(kwangbok97.KB_O[0] + u_ * math.cos(_kb_t) - v_ * math.sin(_kb_t), 2),
+                         round(kwangbok97.KB_O[1] + u_ * math.sin(_kb_t) + v_ * math.cos(_kb_t), 2), 0.0])
 if os.environ.get('Y97_WORK_DUMP'):          # (the working datum's own result, to compare two builds on it)
     os.makedirs(os.environ['Y97_WORK_DUMP'], exist_ok=True)
     json.dump(out, open(os.path.join(os.environ['Y97_WORK_DUMP'], 'campus.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
