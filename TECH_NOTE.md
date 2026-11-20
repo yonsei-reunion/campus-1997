@@ -141,6 +141,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 무작위: `random.Random(4802)` 하나. 4.8의 집 가운데 새 길에 걸리는 것은 `b[6] = −층수` 로 남겨 Blender 가 모양을 그대로 뽑고 그리지는 않음. 새 나무는 `trees` 끝에.
 - 연세로 가게 줄(`yro_rows`, `random.Random(4805)`): 1996년 사진에서 읽은 집(`YRO_FIXED`)과 사진의 층수 섞임(`YRO_MIX`). 전 줄은 같은 흐름으로 뽑아 `b[6] < 0` 으로 두고, 새 줄은 `blocks` 끝에 더해 다른 집 · OSM 상자 · 채운 집과 Blender 의 집 모양 흐름이 그대로.
 - 세로 간판(`town.vsigns`, `yro_wall_signs`)과 축제 현수막(`town.banner`)은 `blender/town.py` `yro_signs` · `yro_banner`, 아틀라스 `sign_yonseiro.png`(`make_textures.py sign_yonseiro`: 128 × 468 px 칸 16개 밑에 현수막 띠).
+- 연세로 지붕 · 벽의 것(`blender/town.py` `yro_roofs`, 메시 `town_yro_roofs`): 위성 안테나 · 에어컨 실외기 · 지붕 위 틀 간판(아틀라스 `sign_roof.png`, `make_textures.py sign_roof`). 자리는 `campus.json` 에 없고 집마다 `random.Random(19970000 + 번호)` 로 Blender 가 뽑아 `houses()` 의 흐름과 다른 집은 그대로.
 - 걷기: 성산로 북쪽 연석의 충돌 띠(`gate_town.py`)를 건널목 자리까지 이어서 연세로 · 로터리로는 건너가지 못합니다. 그 띠의 북쪽 가장자리(`campus.json` `town.limit`)보다 남쪽으로는 하늘 시점 · 지도 · 출발 목록에서도 내려서지 않고 정문에 섭니다(`main.js` `beyondGate`).
 - 차: `town.lanes` 의 `stops` 가 [s, 신호 묶음, 단계]. 차마다 앞 16 m 안의 다른 길 차와 걷는 사람을 봄(성산로끼리는 전처럼 같은 길만). 신호 주기는 `town.signals`, 신호등은 `town.heads`.
 - 연세로 보도의 사람은 `town.walks` 위의 두 번째 `Crowd`(`main.js` `townCrowd`, 씨앗 11, 폰 6명). 시점이 연세로에서 200 m 안일 때만 갱신합니다.

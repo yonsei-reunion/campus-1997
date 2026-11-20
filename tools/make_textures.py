@@ -828,6 +828,50 @@ def sinchon2_signs():
 sinchon2_signs()
 
 
+# sign_roof.png: 연세로's rooftop boards (blender/town.py yro_roofs; the 1996 photos 51979 · 52106: hospitals, insurers,
+# 학원 on frames over the shops' roofs). The kinds of business, not real names: 2 x 8 cells, 512 x 128 each
+def roof_signs():
+    if ONLY and 'sign_roof' not in ONLY:
+        return
+    fb = '/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc'
+
+    def fnt(size):
+        for i in (1, 0, 2, 3):
+            try:
+                return ImageFont.truetype(fb, size, index=i)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+    W_, RED, BLUE, GRN, NAVY = (250, 250, 246), (200, 30, 36), (24, 64, 156), (24, 120, 64), (26, 34, 70)
+    signs = [('외 과 의 원', W_, RED), ('산 부 인 과', W_, BLUE), ('영 어 학 원', BLUE, W_), ('컴퓨터 학원', W_, GRN),
+             ('예 식 장', (180, 24, 40), (255, 236, 150)), ('한 의 원', W_, (120, 50, 30)), ('치 과 의 원', W_, GRN),
+             ('화 재 보 험', NAVY, W_), ('생 명 보 험', W_, NAVY), ('사 우 나', (30, 90, 160), W_),
+             ('독 서 실', W_, (40, 40, 44)), ('당 구 장', (20, 20, 24), (255, 200, 60)), ('입 시 학 원', W_, RED),
+             ('안 과 의 원', W_, BLUE), ('기 원', (250, 244, 220), (30, 30, 30)), ('부 동 산', (250, 220, 40), (30, 30, 34))]
+    img = Image.new('RGB', (1024, 1024), (200, 200, 200))
+    d = ImageDraw.Draw(img)
+    for i, (txt, bg, fg) in enumerate(signs):
+        x0, y0 = (i % 2) * 512, (i // 2) * 128
+        d.rectangle([x0, y0, x0 + 511, y0 + 127], fill=bg)
+        # (a dirty bottom edge: the boards stood out in the weather)
+        for k in range(10):
+            g = 1 - 0.022 * (10 - k)
+            d.line([x0, y0 + 117 + k, x0 + 511, y0 + 117 + k], fill=tuple(int(c * g) for c in bg))
+        size = 100
+        while True:
+            f = fnt(size)
+            w = d.textlength(txt, font=f)
+            if w < 470 or size < 30:
+                break
+            size -= 4
+        d.text((x0 + 256 - w / 2, y0 + 62), txt, font=f, fill=fg, anchor='lm')
+    img.save(os.path.join(OUT, 'sign_roof.png'), optimize=True)
+    print('sign_roof')
+
+
+roof_signs()
+
+
 # sign_yonseiro.png: the signs that stand out from the walls of 연세로's shops (tools/sinchon_rotary.py yro_wall_signs,
 # blender/town.py yro_signs), 8 x 2 cells of 128 x 468 px, the words stacked down; the kinds and some names the 1996
 # photos 51979 · 52106 · 52006 show (당구장, 비디오방, M 비디오, 서영외과, 허리우드 비디오, 여인숙, PISA, …).  Under them,

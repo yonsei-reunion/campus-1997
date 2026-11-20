@@ -1315,6 +1315,12 @@
   "rough": 0.5,
   "emissiveMap": true
  },
+ "sign_roof": {
+  "_doc": "연세로 가게 지붕 위 틀에 세운 간판 (tools/make_textures.py sign_roof, blender/town.py yro_roofs; 1996년 사진 51979 · 52106의 병원 · 보험 · 학원 간판, 가게 이름은 지어냄): 2 x 8 atlas",
+  "image": "sign_roof.png",
+  "rough": 0.55,
+  "emissiveMap": true
+ },
  "sign_yonseiro": {
   "_doc": "연세로 가게 벽에서 튀어나온 세로 간판 (tools/make_textures.py sign_yonseiro, tools/sinchon_rotary.py yro_wall_signs): 8 x 2 cells over the banner's strip",
   "image": "sign_yonseiro.png",

@@ -760,6 +760,148 @@ def yro_signs():
     return mb
 
 
+# 연세로's roofs and walls as the 1996 photos have them (51979 · 52106, reference/고증/4.10.2 「연세로 지붕 · 벽의 것」): white
+# satellite dishes on many roofs (무궁화위성, up from 1995: aimed south-south-west, azimuth about 198°, 45° up from
+# 신촌), the outdoor boxes of air conditioners hung on the walls by the windows, and boards on steel frames over the
+# shops' roofs.  Their own random stream per block (nothing drawn from houses()' stream, so no house changes).
+YRO_BOX = (-175.0, -1000.0, -20.0, -470.0)        # x0, y0, x1, y1: 연세로 and the first houses behind its rows
+DISH_AZ, DISH_EL = math.radians(198.0), math.radians(45.0)
+
+
+def _dish(mb, x, y, z, r, rnd):
+    """a dish of radius r on a short pole whose foot is at (x, y, z), aimed at the satellite"""
+    az = DISH_AZ + math.radians(rnd.uniform(-6, 6))
+    f = Vector((math.sin(az) * math.cos(DISH_EL), math.cos(az) * math.cos(DISH_EL), math.sin(DISH_EL)))   # its axis
+    a = f.cross(Vector((0, 0, 1))).normalized()
+    b = f.cross(a).normalized()
+    c = Vector((x, y, z + 0.55 + r * 0.75))
+    n = 10
+    rim = [c + (a * math.cos(2 * math.pi * i / n) + b * math.sin(2 * math.pi * i / n)) * r + f * (r * 0.28) for i in range(n)]
+    mid = [c + (a * math.cos(2 * math.pi * i / n) + b * math.sin(2 * math.pi * i / n)) * (r * 0.55) + f * (r * 0.08) for i in range(n)]
+    for i in range(n):
+        j = (i + 1) % n
+        for quad in ([mid[i], mid[j], rim[j], rim[i]], [rim[i], rim[j], mid[j], mid[i]]):     # (both faces)
+            mb.face([tuple(p) for p in quad], 'paint_white')
+        mb.face([tuple(c), tuple(mid[j]), tuple(mid[i])], 'paint_white')
+        mb.face([tuple(c), tuple(mid[i]), tuple(mid[j])], 'plastic_grey')
+    # the feed on its arm, the pole and its foot
+    tip = c + f * (r * 1.05)
+    _rod(mb, rim[n * 3 // 4] - f * 0.02, tip, 0.025, 'metal')
+    mb.box(tuple(tip), (0.09, 0.09, 0.14), 'plastic_grey')
+    _rod(mb, Vector((x, y, z)), c - f * 0.05, 0.035, 'metal')
+    mb.box((x, y, z + 0.03), (0.4, 0.4, 0.06), 'plastic_grey')
+
+
+def _rod(mb, p, q, t, mat):
+    """a thin square rod from p to q"""
+    d = (q - p)
+    if d.length < 1e-6:
+        return
+    d.normalize()
+    a = d.cross(Vector((0, 0, 1)) if abs(d.z) < 0.9 else Vector((1, 0, 0))).normalized() * t
+    b = d.cross(a).normalized() * t
+    cs = [a + b, -a + b, -a - b, a - b]
+    for i in range(4):
+        e, g = cs[i], cs[(i + 1) % 4]
+        mb.face([tuple(p + e), tuple(p + g), tuple(q + g), tuple(q + e)], mat)
+
+
+def _aircon(mb, p, n, z, rnd):
+    """an air conditioner's outdoor box hung on a wall at p (2D) facing n, its bottom at z: a pale casing, a dark fan
+    grille on its face, the bracket under it"""
+    w, h, d = rnd.uniform(0.75, 0.9), rnd.uniform(0.55, 0.65), 0.3
+    t = Vector((-n[1], n[0], 0.0))
+    N = Vector((n[0], n[1], 0.0))
+    o = Vector((p[0], p[1], z)) + N * (0.08 + d / 2)
+    yaw = math.atan2(n[1], n[0])
+    mb.box(tuple(o + Vector((0, 0, h / 2))), (d, w, h), 'plastic_grey', rotz=yaw)
+    # the grille: a dark disc a little off the front, to one side
+    gc = o + N * (d / 2 + 0.01) + t * (w * 0.12) + Vector((0, 0, h / 2))
+    rr = h * 0.38
+    ring = [gc + (t * math.cos(2 * math.pi * i / 8) + Vector((0, 0, 1)) * math.sin(2 * math.pi * i / 8)) * rr for i in range(8)]
+    for i in range(8):
+        mb.face([tuple(gc), tuple(ring[i]), tuple(ring[(i + 1) % 8])], 'paint_black')
+    for s in (-1, 1):                                      # the bracket's two arms
+        a0 = Vector((p[0], p[1], z - 0.02)) + t * (s * w * 0.35)
+        _rod(mb, a0, a0 + N * (d + 0.1), 0.02, 'metal_dark')
+
+
+def _roof_board(mb, P, L, W, zt, rnd):
+    """a board on a steel frame over the street edge of a roof (the 1996 photos' hospital and 학원 boards)"""
+    bw = min(W - 1.0, rnd.uniform(5.0, 8.5))
+    if bw < 3.5:
+        return
+    bh = min(2.4, max(1.3, bw / 4.0))
+    lift = rnd.uniform(0.5, 1.2)
+    cell = rnd.randrange(16)
+    u = -L / 2 + 0.6
+    v0 = rnd.uniform(-(W - bw) / 2 + 0.3, (W - bw) / 2 - 0.3) if W - bw > 0.6 else 0.0
+    a, b = P(u, v0 + bw / 2), P(u, v0 - bw / 2)             # (seen from the street, a on the right)
+    z0, z1 = zt + lift, zt + lift + bh
+    uu, vv = (cell % 2) / 2, 1 - (cell // 2 + 1) / 8
+    mb.face([(a[0], a[1], z0), (b[0], b[1], z0), (b[0], b[1], z1), (a[0], a[1], z1)], 'sign_roof',
+            uvs=[(uu, vv), (uu + 0.5, vv), (uu + 0.5, vv + 0.125), (uu, vv + 0.125)])
+    ab, bb = P(u + 0.12, v0 + bw / 2), P(u + 0.12, v0 - bw / 2)
+    mb.face([(b[0], b[1], z0), (a[0], a[1], z0), (a[0], a[1], z1), (b[0], b[1], z1)], 'metal_dark')      # (its back)
+    mb.face([(a[0], a[1], z1), (b[0], b[1], z1), (bb[0], bb[1], z1), (ab[0], ab[1], z1)], 'metal_dark')
+    # the frame: posts from the roof, struts back to it
+    for k in range(3 if bw > 6 else 2):
+        v = v0 - bw / 2 + 0.3 + (bw - 0.6) * k / (2 if bw > 6 else 1)
+        f0, f1 = P(u + 0.1, v), P(u + 1.4, v)
+        _rod(mb, Vector((f0[0], f0[1], zt)), Vector((f0[0], f0[1], z1 - 0.1)), 0.04, 'metal_dark')
+        _rod(mb, Vector((f1[0], f1[1], zt)), Vector((f0[0], f0[1], z0 + bh * 0.6)), 0.03, 'metal_dark')
+
+
+def yro_roofs():
+    mb = MeshBuilder('town_yro_roofs')
+    lm = {d['block'] for d in T.get('landmarks', [])}
+    vs = [(q[0], q[1]) for q in T.get('vsigns', [])]
+    x0, y0, x1, y1 = YRO_BOX
+    nd = na = nb = 0
+    for i, b in enumerate(T['blocks']):
+        cx, cy, L, W, ang, base, lv, wk, roof, hip, kind, tank = b[:12]
+        if i in lm or lv < 2 or hip != 0 or not (x0 < cx < x1 and y0 < cy < y1):
+            continue
+        rnd = random.Random(19970000 + i)
+        sh = b[12] if len(b) > 12 else STOREY
+        zt = base + 0.3 + sh * lv
+        c, s = math.cos(ang), math.sin(ang)
+        P = lambda u, v: (cx + u * c - v * s, cy + u * s + v * c)
+        shop = kind in (1, 2)
+        # dishes: near the roof's back and side edges, clear of the tank and stair head in its middle
+        if rnd.random() < 0.42 and min(L, W) >= 4.0:
+            eu = rnd.choice([1, 1, 0])
+            u = (L / 2 - 0.8) if eu else rnd.uniform(-L / 2 + 1.2, L / 2 - 0.8)
+            v = rnd.uniform(-W / 2 + 0.8, W / 2 - 0.8) if eu else rnd.choice([-1, 1]) * (W / 2 - 0.8)
+            q = P(u, v)
+            _dish(mb, q[0], q[1], zt, rnd.uniform(0.5, 0.7), rnd)
+            nd += 1
+        # air conditioners: on the street face of the shops (away from the upright signs), on any face of the houses
+        n_ac = (rnd.choice([0, 1, 1, 2]) if shop else rnd.choice([0, 0, 1])) if lv >= 2 else 0
+        for _ in range(n_ac):
+            side = 0 if shop else rnd.randrange(4)
+            fl = rnd.randrange(1, lv)
+            z = base + 0.3 + sh * fl + rnd.uniform(0.15, 0.6)
+            if side in (0, 2):
+                sg = -1 if side == 0 else 1
+                v = rnd.uniform(-W / 2 + 0.7, W / 2 - 0.7)
+                q, nrm = P(sg * L / 2, v), (sg * c, sg * s)
+            else:
+                sg = -1 if side == 1 else 1
+                u = rnd.uniform(-L / 2 + 0.7, L / 2 - 0.7)
+                q, nrm = P(u, sg * W / 2), (-sg * s, sg * c)
+            if any(math.hypot(q[0] - x, q[1] - y) < 1.4 for x, y in vs):
+                continue
+            _aircon(mb, q, nrm, z, rnd)
+            na += 1
+        # a board over the roof's street edge
+        if shop and lv >= 4 and rnd.random() < 0.3:
+            _roof_board(mb, P, L, W, zt, rnd)
+            nb += 1
+    print('연세로 roofs: %d dishes, %d air conditioners, %d boards' % (nd, na, nb))
+    return mb
+
+
 def yro_banner():
     """제5회 신촌문화축제's banner over 연세로 (1996.5): white cloth between two slim poles behind the kerbs, both faces
     reading right (banner_yonseiro: sign_yonseiro.png's bottom strip).  [x0, y0, x1, y1, z road, bottom, height]"""
@@ -1502,7 +1644,7 @@ def island():
 def build():
     if not T:
         return []
-    return houses() + [landmarks(), signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), yard(), footbridges(), station97(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner()]
+    return houses() + [landmarks(), signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), yard(), footbridges(), station97(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner(), yro_roofs()]
 
 
 # ----------------------------------------------------------------------------- the city bus
