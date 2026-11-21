@@ -210,6 +210,62 @@
    "credit": "학교 홈페이지(1996 ~ 97년 웨이백 저장본)",
    "from": "reference/학교홈페이지/eng3.jpg",
    "shot": "r96/eng3"
+  },
+  {
+   "id": "library96",
+   "x": -172.79,
+   "y": -79.81,
+   "bearing": 58.8,
+   "photo": "assets/photoquiz/library96.jpg",
+   "w": 300,
+   "h": 250,
+   "title": "체육관 앞 마당에서 본 중앙도서관",
+   "when": "1996년 무렵 여름",
+   "credit": "학교 홈페이지(1996 ~ 97년 웨이백 저장본)",
+   "from": "reference/학교홈페이지/center4.jpg",
+   "shot": "r96/center4"
+  },
+  {
+   "id": "chapel96",
+   "x": 42.47,
+   "y": -102.51,
+   "bearing": 56.3,
+   "photo": "assets/photoquiz/chapel96.jpg",
+   "w": 400,
+   "h": 258,
+   "title": "학생회관 동쪽 보도에서 본 루스채플",
+   "when": "1996년 무렵 가을",
+   "credit": "학교 홈페이지(1996 ~ 97년 웨이백 저장본)",
+   "from": "reference/학교홈페이지/chapel.jpg",
+   "shot": "r96/chapel"
+  },
+  {
+   "id": "union96",
+   "x": -0.12,
+   "y": 1.38,
+   "bearing": 157.3,
+   "photo": "assets/photoquiz/union96.jpg",
+   "w": 399,
+   "h": 339,
+   "title": "백양로에서 본 학생회관 서쪽 면",
+   "when": "1996년 무렵 여름",
+   "credit": "학교 홈페이지(1996 ~ 97년 웨이백 저장본)",
+   "from": "reference/학교홈페이지/stud2.jpg",
+   "shot": "r96/stud2"
+  },
+  {
+   "id": "daewoo96",
+   "x": 129.45,
+   "y": 397.2,
+   "bearing": 353.8,
+   "photo": "assets/photoquiz/daewoo96.jpg",
+   "w": 217,
+   "h": 215,
+   "title": "상뜰 남쪽 보도에서 본 상대신관",
+   "when": "1996년 봄",
+   "credit": "학교 홈페이지(1996 ~ 97년 웨이백 저장본)",
+   "from": "reference/학교홈페이지/newbus.jpg",
+   "shot": "r96/newbus"
   }
  ]
 }
