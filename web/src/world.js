@@ -253,7 +253,8 @@ export class InstancedKit {
 // their buffers: those whose bounding sphere meets a frustum TURN wider than the camera's on every side and PAD metres
 // out, worked out again once the camera has turned or moved past those margins (and the buffers sent again only when
 // that changed what is in view). A part with none in view is hidden (three draws an InstancedMesh of count 0 too).
-// A kit may have a lighter model for the instances farther than some distance (the parked cars).
+// A kit may have a lighter model for the instances farther than some distance, and a lighter one still for those
+// farther than a second distance (the parked cars).
 // shadowPass(on): the full sets, from buffers of their own, for the static shadow cache (shadows.js). That pass runs
 // inside the frame's render, after three has sent the culled buffers up and before it draws them, and three sends an
 // InstancedMesh's buffer at most once a render: refilling the culled buffers there (and culling again after) left the
@@ -293,9 +294,10 @@ export class KitCuller {
   // parts: InstancedMeshes sharing one transform list (an InstancedKit's parts, or an impostor's mesh), the first
   // parts[0].count of it in place; bounds: their joint bounding sphere in the model frame (or the parts' boxes');
   // far: the parts of a lighter model placed alike, drawn for the instances farther than dist from the camera;
-  // max: none drawn farther than this (0: no limit; the phones' parked cars).
+  // far2, dist2: those of a lighter one still, farther than dist2; max: none drawn farther than this (0: no limit;
+  // the phones' parked cars).
   // Returns the set, for refill() when the list changes (the forest's as you walk)
-  add(parts, { bounds = null, far = null, dist = 0, max = 0 } = {}) {
+  add(parts, { bounds = null, far = null, dist = 0, far2 = null, dist2 = 0, max = 0 } = {}) {
     let ks = bounds;
     if (!ks) {
       const box = new THREE.Box3();
@@ -303,7 +305,8 @@ export class KitCuller {
       ks = box.getBoundingSphere(new THREE.Sphere());
     }
     const cap = parts[0].instanceMatrix.count;
-    const s = { near: packed(parts), far: far && packed(far), d2: dist * dist, m2: max * max, n: 0, ks, sph: new Float32Array(cap * 4),
+    const s = { near: packed(parts), far: far && packed(far), far2: far2 && packed(far2), d2: dist * dist, d22: far2 ? dist2 * dist2 : Infinity,
+      m2: max * max, n: 0, ks, sph: new Float32Array(cap * 4),
       valid: false, dirty: false };
     this.sets.push(s);
     this.refill(s);
@@ -314,7 +317,7 @@ export class KitCuller {
   // until the next update() culls it
   refill(s) {
     const n = s.n = s.near.parts[0].count, { sph, ks } = s;
-    for (const d of [s.near, s.far]) {
+    for (const d of [s.near, s.far, s.far2]) {
       if (!d) continue;
       d.all.set(d.M.array.subarray(0, n * 16));
       for (const [attr, src] of d.colors) src.set(attr.array.subarray(0, n * 3));
@@ -333,6 +336,7 @@ export class KitCuller {
     for (const [attr, , allC] of d.colors) { this._send(attr, n * 3); this._send(allC, n * 3); }
     d.shown = n;
     this._hide(s.far);
+    this._hide(s.far2);
     s.valid = false;
     s.dirty = true;
   }
@@ -376,7 +380,7 @@ export class KitCuller {
         p.visible = p.count > 0;
       }
       for (const [attr, , allC, p] of d.colors) p.instanceColor = on ? allC : attr;
-      if (s.far) for (const p of s.far.parts) p.visible = !on && s.far.shown > 0;
+      for (const f of [s.far, s.far2]) if (f) for (const p of f.parts) p.visible = !on && f.shown > 0;
     }
   }
 
@@ -386,6 +390,7 @@ export class KitCuller {
       const d = s.near, n = s.n;
       for (const p of d.parts) p.visible = true;
       this._hide(s.far);
+      this._hide(s.far2);
       if (d.shown === n && !s.valid) continue;
       d.M.array.set(d.all.subarray(0, n * 16));
       for (const [attr, src] of d.colors) { attr.array.set(src.subarray(0, n * 3)); this._send(attr, n * 3); }
@@ -398,10 +403,10 @@ export class KitCuller {
   }
 
   _cull(s) {
-    const planes = this.frustum.planes, { sph, n, near, far, d2, m2 } = s;
-    const ni = near.idx, fi = far?.idx, { x: cx, y: cy, z: cz } = this.at;
+    const planes = this.frustum.planes, { sph, n, near, far, far2, d2, d22, m2 } = s;
+    const ni = near.idx, fi = far?.idx, gi = far2?.idx, { x: cx, y: cy, z: cz } = this.at;
     s.dirty = false;
-    let k = 0, f = 0, same = s.valid;
+    let k = 0, f = 0, g = 0, same = s.valid;
     for (let i = 0; i < n; i++) {
       const x = sph[i * 4], y = sph[i * 4 + 1], z = sph[i * 4 + 2], r = -(sph[i * 4 + 3] + PAD);
       let inside = true;
@@ -412,7 +417,10 @@ export class KitCuller {
       if (!inside) continue;
       const dd = (x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2;
       if (m2 && dd > m2) continue;
-      if (far && dd > d2) {
+      if (far2 && dd > d22) {
+        if (gi[g] !== i) { gi[g] = i; same = false; }
+        g++;
+      } else if (far && dd > d2) {
         if (fi[f] !== i) { fi[f] = i; same = false; }
         f++;
       } else {
@@ -420,9 +428,10 @@ export class KitCuller {
         k++;
       }
     }
-    if (same && k === near.shown && (!far || f === far.shown)) return;
+    if (same && k === near.shown && (!far || f === far.shown) && (!far2 || g === far2.shown)) return;
     this._pack(near, k);
     if (far) this._pack(far, f);
+    if (far2) this._pack(far2, g);
     s.valid = true;
   }
 

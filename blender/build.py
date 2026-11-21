@@ -225,6 +225,8 @@ if want('props') or want('cars'):     # (`cars` alone: the cars without the othe
                 c.ratio = 0.4
                 c.use_collapse_triangulate = True
         export_glb(objs, os.path.join(OUT, 'props', f'car_{k}_far.glb'))
+        # and farther than 60 m (the bird's-eye views see the whole campus's lots, some 1,200 cars): a ninth of that
+        export_glb([cars.far2(objs)], os.path.join(OUT, 'props', f'car_{k}_far2.glb'))
 
 if want('props') or want('cars'):     # the scooter (blender/bikes.py): the ridden ones and the parked ones are this one model
     import bikes

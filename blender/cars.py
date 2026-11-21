@@ -706,3 +706,96 @@ def make_wheel(name, c, r, w, side, style='steel'):
     mb.face(pts if side < 0 else pts[::-1], 'trim_black')
     mb.wheel_pos = tuple(v * CAR_SCALE for v in c)
     return mb
+
+
+# the details far2 leaves out: too small to see from 60 m (and the plate's texture needs uv the shell has not got)
+FAR2_SKIP = ('plate', 'lens_clear', 'light_white', 'light_amber', 'light_red', 'car_interior')
+# (car_interior comes back under the glass: far2)
+
+
+def far2(objs, voxel=0.08, tris=420):
+    """The parked cars farther than 60 m (web/src/main.js CAR_FAR2), where a car is some 30 px long on a phone: one
+    closed shell round the whole car (body and wheels, as built: objs with their modifiers), the voxel remesh of
+    `voxel` m decimated to about `tris` triangles, each face given the material of the car's face seen first looking in
+    at it (or the nearest; but the small details, FAR2_SKIP). Collapsing the lofted panels themselves that far tore the body apart."""
+    import bpy
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    bm, mats = bmesh.new(), []
+    for o in objs:
+        me = o.evaluated_get(dg).to_mesh()
+        me.transform(o.matrix_world)
+        remap = []
+        for m in me.materials:
+            if m not in mats:
+                mats.append(m)
+            remap.append(mats.index(m))
+        n0 = len(bm.faces)
+        bm.from_mesh(me)
+        bm.faces.ensure_lookup_table()
+        for f in bm.faces[n0:]:
+            f.material_index = remap[f.material_index]
+        o.evaluated_get(dg).to_mesh_clear()
+    src = bpy.data.meshes.new('car_far2_src')
+    bm.to_mesh(src)
+    keep = bmesh.new()
+    keep.from_mesh(src)
+    bmesh.ops.delete(keep, geom=[f for f in keep.faces if mats[f.material_index].name in FAR2_SKIP], context='FACES')
+    tree = BVHTree.FromBMesh(keep)
+    keep.faces.ensure_lookup_table()
+    fmat = [f.material_index for f in keep.faces]
+    bm.free()
+    ob = bpy.data.objects.new('body', src)
+    bpy.context.scene.collection.objects.link(ob)
+    r = ob.modifiers.new('shell', 'REMESH')
+    r.mode = 'VOXEL'
+    r.voxel_size = voxel
+    r.adaptivity = 0.0
+    ob.data = bpy.data.meshes.new_from_object(ob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    ob.modifiers.clear()
+    me = ob.data
+    me.materials.clear()
+    for m in mats:
+        me.materials.append(m)
+    # (on the dense shell, before it is decimated: the collapse keeps the borders between materials)
+    for p in me.polygons:
+        # (looking in at the face from outside it: the window glass and the trims stand off the panels by millimetres,
+        # so the nearest face alone mostly picked the paint under them)
+        hit = tree.ray_cast(p.center + p.normal * 2 * voxel, -p.normal, 4 * voxel)
+        if hit[2] is None:
+            hit = tree.find_nearest(p.center)
+        p.material_index = fmat[hit[2]] if hit[2] is not None else 0
+    n = sum(len(p.vertices) - 2 for p in me.polygons)
+    d = ob.modifiers.new('far2', 'DECIMATE')
+    d.decimate_type = 'COLLAPSE'
+    d.ratio = min(1.0, tris / max(n, 1))
+    d.use_collapse_triangulate = True
+    ob.data = bpy.data.meshes.new_from_object(ob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    ob.modifiers.clear()
+    me = ob.data
+    # the glass lets the shell's inside show (nothing: the ground behind the car): the interior's colour 3 cm in
+    if 'glass_car' in [m.name for m in mats] and 'car_interior' in [m.name for m in mats]:
+        gi, ii = [m.name for m in mats].index('glass_car'), [m.name for m in mats].index('car_interior')
+        g = bmesh.new()
+        g.from_mesh(me)
+        glass = [f for f in g.faces if f.material_index == gi]
+        new = bmesh.ops.duplicate(g, geom=glass)['geom']
+        nf = [e for e in new if isinstance(e, bmesh.types.BMFace)]
+        nv = [e for e in new if isinstance(e, bmesh.types.BMVert)]
+        g.normal_update()
+        for v in nv:
+            v.co -= v.normal * 0.03
+        for f in nf:
+            f.material_index = ii
+        g.to_mesh(me)
+        g.free()
+    for p in me.polygons:
+        p.use_smooth = True
+    try:
+        me.set_sharp_from_angle(angle=math.radians(35))
+    except Exception:
+        pass
+    keep.free()
+    return ob

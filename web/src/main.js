@@ -65,9 +65,12 @@ const json = (u) => fetchCounted(u).then((b) => JSON.parse(new TextDecoder().dec
 const MODELS = 'assets/models/';
 const CARS = ['sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'van'];
 const PROPS = ['lamp_double', 'lamp_quad', 'lamp_arm', 'flag_white', 'planter', 'stone_marker', 'sign_board', 'scooter',
-  ...CARS.flatMap((k) => [`car_${k}`, `car_${k}_far`]), 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard', 'bollard_stone',
+  ...CARS.flatMap((k) => [`car_${k}`, `car_${k}_far`, `car_${k}_far2`]), 'payphone', 'bench', 'recycle_bin', 'guard_booth', 'barrier_arm', 'bollard', 'bollard_stone',
   'tent_kiosk', 'notice_board', 'haetae', 'parking_booth', 'bus', 'glass_board'];
 const CAR_FAR = 20;     // parked cars farther than this from the camera: their lighter models (a fifth of the triangles)
+// ... and farther than this, their lightest (440 triangles a car against 3,950): from the bird's-eye view over the gate
+// some 1,170 cars were in view, 4.5 M triangles of the lighter models (#226)
+const CAR_FAR2 = 60;
 // phones: no parked car drawn farther than this (the 1997 aerial scans put 506 on the campus; from the gate some 460
 // were in view, 1.6 M triangles of the lighter models, most of them behind 백양로's trees)
 const CAR_MAX_MOBILE = 250;
@@ -395,11 +398,12 @@ async function main() {
     const PARKED_COLORS = [...CAR_COLORS, '#8c8f94'];
     // (campus.json names each car's model and its colour in PARKED_COLORS: tools/build_campus.py, the cars' last pass)
     const carCount = countBy(campus.cars, (c) => c[0]);
-    // (and their lighter models, blender/build.py car_*_far: farther than CAR_FAR from the camera)
-    const farKits = {};
+    // (and their lighter models, blender/build.py car_*_far and car_*_far2: farther than CAR_FAR, CAR_FAR2 from the camera)
+    const farKits = {}, far2Kits = {};
     for (const [k, n] of Object.entries(carCount)) {
       carKits[k] = new InstancedKit(P['car_' + k].scene, lib, n, { colors: true });
       farKits[k] = new InstancedKit(P[`car_${k}_far`].scene, lib, n, { colors: true });
+      far2Kits[k] = new InstancedKit(P[`car_${k}_far2`].scene, lib, n, { colors: true });
     }
     // each car stands on its four tyres: where they meet the ground (model frame, +X forward, three -Z left) ...
     const tyres = {};
@@ -428,12 +432,14 @@ async function main() {
       parkedMatrix(k, x, y, ang);
       carKits[k].add(m4, col);
       farKits[k].add(m4, col);
+      far2Kits[k].add(m4, col);
       colliders.addCircle(x + Math.cos(ang) * 1.2, y + Math.sin(ang) * 1.2, 1.0);
       colliders.addCircle(x - Math.cos(ang) * 1.2, y - Math.sin(ang) * 1.2, 1.0);
     });
     for (const k in carKits) {
-      for (const kit of [carKits[k], farKits[k]]) { kit.commit(); kit.addTo(scene); }
-      carSets.push(kitCull.add(carKits[k].parts, { far: farKits[k].parts, dist: CAR_FAR, max: MOBILE ? CAR_MAX_MOBILE : 0 }));
+      for (const kit of [carKits[k], farKits[k], far2Kits[k]]) { kit.commit(); kit.addTo(scene); }
+      carSets.push(kitCull.add(carKits[k].parts, { far: farKits[k].parts, dist: CAR_FAR, far2: far2Kits[k].parts, dist2: CAR_FAR2,
+        max: MOBILE ? CAR_MAX_MOBILE : 0 }));
     }
   }
   for (const t of campus.trees) colliders.addCircle(t[1], t[2], 0.35 * t[3]);
