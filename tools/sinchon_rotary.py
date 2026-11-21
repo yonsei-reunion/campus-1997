@@ -269,7 +269,10 @@ ROT_S_WALK = 4.5
 #     line at its foot, read across the kerb every 6 m; both scans within 0.1 m along the north-west corner's middle
 #     18 m, the north-east one's east half and the stop in front of 그랜드, 1998's 26/17 within 0.4 m, the 1995 roof
 #     photos 52142 · 52145 laid on the ground within 1 m), from one arm's kerb to the next arm's, the sidewalk on its
-#     LEFT.  Under the trees south of 그랜드's stop (y -992 .. -1000) only its two ends are read
+#     LEFT.  Under the trees south of 그랜드's stop (y -988 .. -999) the scans read only its two ends; there it is
+#     52122's (1996.6, its camera solved 2026-11-22: 고증 4.10.4.1 「52122의 카메라」): the kerb face's foot every 20 px
+#     on the road, less what the same reading gives where the scans read it (y -985 .. -988): 0.9 - 1.5 m east of the
+#     line drawn before between the two ends
 #   fill: closes the asphalt the wedge adds, through the road
 #   walk: the sidewalk behind the kerb, m (the stops' roofs of the scans are 5 - 6 m deep on it)
 #   back: m the kerb's first run is carried on backwards, so that the sidewalk's back edge meets the arm's
@@ -280,7 +283,7 @@ ROT_WEDGES = {
                      (-56.0, -949.45), (-50.0, -949.3), (-45.0, -949.05)],
                fill=[(-45.0, -958.0), (-96.0, -962.0), (-96.0, -930.56)], walk=8.0, back=6.0),
     'sw': dict(kerb=[(-143.96, -1005.81), (-142.3, -1004.0), (-143.3, -1001.0), (-144.6, -999.2),
-                     (-146.6, -995.5), (-147.1, -991.5), (-146.9, -987.6), (-146.2, -986.6), (-146.2, -981.0), (-146.6, -978.0),
+                     (-145.2, -995.6), (-145.9, -993.3), (-145.95, -991.0), (-146.35, -988.2), (-146.2, -986.6), (-146.2, -981.0), (-146.6, -978.0),
                      (-147.6, -975.8), (-149.2, -973.9), (-151.0, -973.14)],
                fill=[(-150.0, -968.0), (-125.0, -975.0), (-112.0, -990.0), (-130.0, -1012.0)], walk=6.0, back=0.0),
 }
@@ -343,6 +346,11 @@ ROT_WEDGE_PAINT += [('white', 0.45, [(-114.8, -984.3), (-115.8, -969.8)]),      
                     ('white', 0.45, [(-83.6, -970.0), (-81.6, -974.6)]),            # 신촌로's, south of the chevrons
                     # (and the line between 신촌로's two lanes in beside the band: 1.6 m north of the arm's line in both scans)
                     ('white_dash', 0.12, [(-76.0, -970.0), (-73.4, -969.65), (-67.76, -968.87), (-60.1, -967.1), (-56.5, -966.0)])]
+# (2026-11-22, 고증 4.10.4.1 「52122의 카메라」) the yellow double triangle at 1997년 신촌로's mouth, north-east of its
+# north-west kerb's corner: 52122 (1996.6) has it, both scans the same outline (west and north corners and the inner
+# one's within 0.2 m; the south-east corner under a parked bus in both, where the two sides' lines meet)
+ROT_WEDGE_PAINT += [('yellow', 0.4, _T((-122.8, -1014.8), (-115.5, -1010.2), (-111.8, -1018.0))),
+                    ('yellow', 0.3, _T((-116.95, -1012.8), (-119.7, -1014.4), (-115.45, -1015.66)))]
 # (arm, side): the rule's lane lines begin this far out (신촌로's north half: the taxis' stand and the chevrons' band)
 ROT_LANE_FROM = {('sinchon_e', 1): 47.0}
 # 신촌로's three lanes in at their heads: [m off the painted middle, s of the lane's end]: two south of the band, the
