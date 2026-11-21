@@ -12,10 +12,12 @@ over the crest (y 760) and down round the hairpin (y 892) to the fork before 북
 - The line: the 2008 skyview survey's middle line (tools/roadview/muak/proposal_roads.json, +-1 m), moved left by what
   the photos show (OFF97): the white middle line of the leafless winter scans of 1996 (27/15, course 27 of 1996-11-28)
   every metre from s 10 to 283, which lies within 0.15 m of the 1997-07-28 frames' (27/15, 27/16) wherever those see
-  it; at s 515 - 610 the line where 1996 26/14 and 1997 27/15 · 27/16 agree.  Below the hairpin (s 355 - 500) the thin
-  white line where four or more frames of 1996, 1997 and 1999 (both courses) put it within 0.2 m on Z97's surface.
-  The hairpin's apex (s 300 - 350) as the 1997 frames had it.  OSM's line is 2 - 3 m east of the survey's.
-- Its width: 6.0 m between the kerbs (the photos' east kerb and west edge at s 30 - 160), the walk on the west 2.5 m.
+  it; at s 515 - 610 the line where 1996 26/14 and 1997 27/15 · 27/16 agree.  The hairpin (s 330 - 480): the bright
+  middle line of the four 1996 winter frames, in the middle of the paving, 2.3 - 5.5 m out of the line before
+  (HAIRPIN97); s 480 - 500 the thin white line where four or more frames of 1996, 1997 and 1999 (both courses) put it
+  within 0.2 m on Z97's surface.  OSM's line is 2 - 3 m east of the survey's.
+- Its width: 6.0 m between the kerbs (the photos' east kerb and west edge at s 30 - 160), 7.0 m below the hairpin
+  (WIDE97), the walk on the west 2.5 m.
 - Its height (Z97): the road surface measured on the photos (corr >= 0.7), the bend as the road there has it.
 Nothing here draws from build_campus.py's `rng`: random.Random(15991) for the trees.  The rows and the woods are still
 decided on the line as it was before the 1996 scans (OFF97_RNG: road_rng()) and placed on the new one at the same
@@ -37,8 +39,9 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 _P = json.load(open(os.path.join(ROOT, 'tools/roadview/muak/proposal_roads.json')))
 # the middle line left of the survey's (the survey's s, m): s 0 - 295 the 1996 winter scan 27/15's white middle line
 # (with the heights below: 333 points within 0.15 m (90 %) of this line), the hairpin's apex s 300 - 350 as the 1997
-# frames had it (0.5 m at s 282 - 298), s 360 - 500 the thin white middle line every 4 m (a ridge brighter than both sides,
-# so not a kerb's edge) where three or more frames agree within 0.2 m on Z97's surface: 1997 26/13 · 26/14 · 27/15 ·
+# frames had it (0.5 m at s 282 - 298), s 360 - 500 a thin white line every 4 m (a ridge brighter than both sides: below
+# the hairpin the inner kerb, which HAIRPIN97 moves the line off) where three or more frames agree within 0.2 m on Z97's
+# surface: 1997 26/13 · 26/14 · 27/15 ·
 # 27/16 and 1999 27/15 · 26/15 from both courses at s 362 - 370, 414 - 422 and 478 - 490, the two 1996 frames between
 # (their split, 26/14 and 27/15 0.3 m apart, is 27/15's: the 1997 frames agree with 26/14 at s 362 - 370); the knots
 # below give a line within 0.27 m of every reading (reference/고증/3.21.1 「자리」), s 505 - 630 where 1996 26/14
@@ -60,8 +63,29 @@ OFF97 = [(0, 2.00), (5, 2.01), (10, 2.06), (15, 2.11), (20, 2.22), (25, 2.36), (
 # decided on it, road_rng(), and placed on OFF97's at the same s and offset: no tree list changes its length)
 OFF97_RNG = [(0, 2.0), (50, 2.0), (60, 1.2), (100, 1.2), (125, 2.7), (170, 2.7), (190, 0.8), (200, 0.8), (290, 0.5),
              (420, 0.5), (500, 1.5), (600, 1.5), (630, 0.0)]
+# the hairpin as the leafless 1996 winter scans have it (27/14 · 27/15 · 26/13 · 26/14 on Z97's surface, reference/고증/
+# 3.21.1 「헤어핀」): the middle line left of OFF97's smoothed line (m), added after its smoothing.  Below the apex the
+# bright middle line lies in the middle of the paving (dark kerb shade at 0 .. +0.5, paving to -7.5, a pale strip +1 ..
+# +3.5 beside it), followed in plan from both ends to the apex, where the two follows meet within 0.3 m (s 344 - 352);
+# s 440 - 476 has no line (the wide paving at the car park's mouth): eased back to OFF97's by s 480, where the 1996
+# frames read it again on the line
+HAIRPIN97 = [(320, 0.0), (330, 0.15), (336, -1.0), (340, -2.8), (344, -4.6), (348, -5.3), (352, -5.5), (356, -4.8),
+             (360, -4.2), (364, -3.6), (368, -3.55), (380, -3.55), (396, -3.5), (400, -3.2), (412, -3.1), (420, -3.05),
+             (424, -2.6), (428, -2.3), (436, -2.4), (448, -1.6), (460, -0.7), (472, -0.15), (480, 0.0)]
 HALF = 3.0                      # half the carriageway
+# below the hairpin 7 m between the kerbs (the 1996 paving 7.8 m with the kerbs' shade, 2008's crossing at s 424 7.2 m):
+# (s from, to of the easing in), (from, to of the easing out), the half width added
+WIDE97 = ((330.0, 345.0), (440.0, 470.0), 0.5)
 WALK = (3.25, 5.75)             # the west walk, left of the middle line (s 8 on: past the corner's mouth)
+
+
+def half(s):
+    """half the carriageway at s (array or float): HALF, WIDE97 below the hairpin"""
+    (a0, a1), (b0, b1), dw = WIDE97
+    s = np.asarray(s, float)
+    u = np.clip((s - a0) / (a1 - a0), 0, 1) * np.clip((b1 - s) / (b1 - b0), 0, 1)
+    h = HALF + dw * u * u * (3 - 2 * u)
+    return float(h) if h.ndim == 0 else h
 # the road's surface (the survey's s, m; 해발 at that s of the line, road()): the bend north-east of 대우관 as the east
 # road has it (reference/고증/3.6.2); s 10 - 112 the same-day pairs of the 1996 winter scans (27/15 x 27/16, 26/14 x
 # 26/15: the shadows of the bare branches on the road, corr >= 0.8), with the 1997 pair 27/15 x 27/16 where it sees the
@@ -114,6 +138,8 @@ def road(key='main_corner_to_junction', off=OFF97, s0=-14.0):
     N = np.stack([-T[:, 1], T[:, 0]], 1)
     from scipy import ndimage
     o = ndimage.gaussian_filter1d(np.interp(ss, *zip(*off)), 6.0, mode='nearest')
+    if off is OFF97:                                     # (the hairpin of the 1996 scans, on the smoothed line)
+        o = o + _pchip(*zip(*HAIRPIN97), np.clip(ss, HAIRPIN97[0][0], HAIRPIN97[-1][0]))
     P = P + N * o[:, None]
     for _ in range(4):
         P[1:-1] = (P[:-2] + 2 * P[1:-1] + P[2:]) / 4
@@ -140,9 +166,10 @@ def at(line, s, off=0.0):
 
 
 def strip(line, s0, s1, o0, o1, step=1.0):
-    """the polygon between offsets o0 .. o1 (left +) from s0 to s1"""
+    """the polygon between offsets o0 .. o1 (left +; numbers or functions of s) from s0 to s1"""
     ss = list(np.arange(s0, s1, step)) + [s1]
-    return Polygon([tuple(at(line, s, o0)) for s in ss] + [tuple(at(line, s, o1)) for s in ss[::-1]]).buffer(0)
+    f0, f1 = (o if callable(o) else (lambda s, o=o: o) for o in (o0, o1))
+    return Polygon([tuple(at(line, s, f0(s))) for s in ss] + [tuple(at(line, s, f1(s))) for s in ss[::-1]]).buffer(0)
 
 
 def project(line, x, y):
@@ -201,7 +228,7 @@ def takeup(paths_out):
 
 def paint(line, s1):
     """the carriageway (from 6 m back into the corner's asphalt) and the west walk (past the corner's mouth)"""
-    return strip(line, -6.0, s1, -HALF, HALF), strip(line, 8.0, s1, WALK[0], WALK[1])
+    return strip(line, -6.0, s1, lambda s: -half(s), half), strip(line, 8.0, s1, WALK[0], WALK[1])
 
 
 # the paint the 1996 and 1997 scans show on it (campus.json road_paint: blender/landmarks.py road_paint): the middle line
@@ -301,15 +328,16 @@ def trees(line, trees_, halls, s0=14.0, s1=S_GRID, seed=15991, place=None, dec=N
 
 
 def aside(trees_, line, s0=0.0, s1=S_GRID + 6.0, lo=-HALF - 1.5, hi=WALK[1] + 1.0):
-    """trees standing in the road's band (lo .. hi of line, s0 .. s1: the woods' clearing, woods_strip) moved, in
-    their places in the list, to its nearer edge: the woods decided on the old line (road_rng) beside the new one.
-    Returns how many"""
+    """trees standing in the road's band (lo .. hi of line, numbers or functions of s; s0 .. s1: the woods' clearing,
+    woods_strip) moved, in their places in the list, to its nearer edge: the woods decided on the old line (road_rng)
+    beside the new one.  Returns how many"""
     n = 0
     for t in trees_:
         s, o = project(line, np.array([t[1]]), np.array([t[2]]))
         s, o = float(s[0]), float(o[0])
-        if s0 <= s <= s1 and lo < o < hi:
-            q = at(line, s, lo if o - lo < hi - o else hi)
+        a, b = (lo(s) if callable(lo) else lo), (hi(s) if callable(hi) else hi)
+        if s0 <= s <= s1 and a < o < b:
+            q = at(line, s, a if o - a < b - o else b)
             t[1], t[2] = round(float(q[0]), 2), round(float(q[1]), 2)
             n += 1
     return n
@@ -473,7 +501,7 @@ def level(Hs, line, roads):
     fixed[0] = True
     H0 = Hs.copy()
     out = {}
-    todo = [('main', line, HALF, WALK, line['z'])]
+    todo = [('main', line, half(line['s']), WALK, line['z'])]
     for nm, ln, hw, wk in roads:
         z = ndimage.gaussian_filter1d(np.array([sample_n(H0, *p) for p in ln['p']]), LANE_SMOOTH, mode='nearest')
         if line['ls'].distance(Point(*ln['p'][0])) < 8.0:
@@ -787,7 +815,7 @@ def houses(ground, taken, rd, osm_=None):
 def ground_map(line, roads, hall_polys):
     """the patch's ground map: {asphalt, pavers, dirt, woods} polygons"""
     O = osm()
-    rd = [strip(line, S_GRID - 6.0, line['s'][-1] - 0.5, -HALF, HALF), strip(line, S_GRID - 6.0, 300.0, WALK[0], WALK[1])]
+    rd = [strip(line, S_GRID - 6.0, line['s'][-1] - 0.5, lambda s: -half(s), half), strip(line, S_GRID - 6.0, 300.0, WALK[0], WALK[1])]
     asph = [rd[0], APRON] + [ln['poly'] if 'poly' in ln else ln['ls'].buffer(hw, cap_style='flat') for _, ln, hw, _ in roads]
     asph += LOTS
     asph += [LineString(g).buffer(2.5) for t, g in O.values() if t.get('highway') == 'residential' and any(in_patch(*q) for q in g)]

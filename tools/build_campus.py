@@ -12087,7 +12087,8 @@ MUAK_N_TREES = muak.trees_n(MUAK_RNG, MUAK_ROADS, _mk_taken.difference(MUAK_RNG[
         unary_union(_mk_gm['courts']).buffer(1.5)),
     _mk_rng, place=MUAK, dec=_mk_dec)
 # (the east road's first metasequoias stood on the main road where it leaves at s 300: to its nearer edge, in their places)
-_mk_n_aside = muak.aside(MUAK_N_TREES, MUAK, s0=muak.S_GRID, s1=float(MUAK['s'][-1]), lo=-muak.HALF - 1.0, hi=muak.HALF + 1.0)
+_mk_n_aside = muak.aside(MUAK_N_TREES, MUAK, s0=muak.S_GRID, s1=float(MUAK['s'][-1]), lo=lambda s_: -muak.half(s_) - 1.0,
+                         hi=lambda s_: muak.half(s_) + 1.0)
 trees += MUAK_N_TREES
 _mk_moved97 = muak.moved_polys(MUAK_HALLS + MUAK_HALLS_LATE + MUAK_HOUSES97)     # (the outlines moved to the 1997 photos)
 for h_ in MUAK_HOUSES:
