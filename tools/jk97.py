@@ -60,6 +60,7 @@ LANE_DOWN_U = (-29.0, 24.0)                 # 길의 판 밑 마디를 내리는
 # 상록 관목 줄이 끊긴 곳 s 36.5 ~ 40.5, 1999년 장의 같은 무늬): 연석(CURB_V)에서 동쪽으로 내려감. u 남쪽 · 북쪽 가
 BANK_FLIGHT_U = (8.3, 13.1)
 BANK_CHEEK = 0.2                            # 양쪽 가의 낮은 벽 두께
+BANK_LAND = 0.3                             # 연석 너머 길 높이의 층계참
 SET_U = (-36.0, 28.0)                       # 그 밖에서 마디를 길 · 띠 · 북쪽 땅의 높이로 놓는 끝
 NORTH_Z = (40.0, 0.1)                       # 몸체 북쪽 끝 너머 서쪽 땅: v 1.5 에서 40.0 m, 서쪽으로 1 m 에 0.1 m(1996년 겨울 39.4 ~ 41.5 m)
 WALK_W = 2.0                                # 동쪽 면을 따라 띠 위의 포장 길(연세춘추 2007년 사진: 계단 위에서 동쪽 면을 따라 북쪽으로)
@@ -382,20 +383,26 @@ def _bank_flight(foot, quads, guards, walk, R):
     um = (ua + ub) / 2
     zt = foot(*xy(um, CURB_V - 0.3))                                        # (the lane's deck at the kerb)
     zg = foot(*xy(um, CURB_V + 6.0))                                        # (도서관 서쪽 길)
-    n = flight_n(zt, zg)
+    n = flight_n(zt, zg) + 1                                                # (a lower rise: the lane's deck is not level across the top)
     rise = (zt - zg) / n
     zb = zg - 0.6
+    v0 = CURB_V + BANK_LAND                                                 # (a landing at the lane's level over the kerb first)
+    quads.append(['stone_step', [R(xy(ua, CURB_V - 0.25), zt + 0.01), R(xy(ub, CURB_V - 0.25), zt + 0.01), R(xy(ub, v0), zt + 0.01),
+                                 R(xy(ua, v0), zt + 0.01)][::-1]])
     for k in range(n):
-        v_ = CURB_V + k * TREAD
+        v_ = v0 + k * TREAD
         za, zc = zt - k * rise, zt - (k + 1) * rise
         quads.append(['stone_step', [R(xy(ua, v_), zb), R(xy(ub, v_), zb), R(xy(ub, v_), za), R(xy(ua, v_), za)][::-1]])   # (riser down)
         q = [R(xy(ua, v_), zc), R(xy(ub, v_), zc), R(xy(ub, v_ + TREAD), zc), R(xy(ua, v_ + TREAD), zc)]
         quads.append(['stone_step', q[::-1]])
-    vf = CURB_V + n * TREAD
-    walk.append([R(xy(ua, vf + 0.3), zg + 0.02), R(xy(ub, vf + 0.3), zg + 0.02), R(xy(ub, CURB_V - 0.3), zt + 0.02), R(xy(ua, CURB_V - 0.3), zt + 0.02)])   # (facing up)
+    vf = v0 + n * TREAD
+    # (the walked face on the nosings' line: below it the walker would meet each riser higher than a step; facing up)
+    walk.append([R(xy(ua, vf), zg + 0.02), R(xy(ub, vf), zg + 0.02), R(xy(ub, v0), zt + 0.02), R(xy(ua, v0), zt + 0.02)])
+    walk.append([R(xy(ua, v0), zt + 0.02), R(xy(ub, v0), zt + 0.02), R(xy(ub, CURB_V - 0.25), zt + 0.02), R(xy(ua, CURB_V - 0.25), zt + 0.02)])
+    walk.append([R(xy(ua, vf + 0.3), zg + 0.02), R(xy(ub, vf + 0.3), zg + 0.02), R(xy(ub, vf), zg + 0.02), R(xy(ua, vf), zg + 0.02)])
     # the cheeks: low white walls on both sides, 0.3 m over the treads' nosing line
     for u0, u1, flip in ((ua - BANK_CHEEK, ua, False), (ub, ub + BANK_CHEEK, True)):
-        a, b = (CURB_V, zt + 0.3), (vf, zg + 0.3)
+        a, b = (v0, zt + 0.3), (vf, zg + 0.3)
         for uu, fl in ((u0, flip), (u1, not flip)):
             q = [R(xy(uu, a[0]), zb), R(xy(uu, b[0]), zb), R(xy(uu, b[0]), b[1]), R(xy(uu, a[0]), a[1])]
             quads.append(['stone_white', q if fl else q[::-1]])
@@ -405,7 +412,7 @@ def _bank_flight(foot, quads, guards, walk, R):
             q = [R(xy(u0, v_), zb), R(xy(u1, v_), zb), R(xy(u1, v_), zz), R(xy(u0, v_), zz)]
             quads.append(['stone_white', q if fl else q[::-1]])
         guards.append([[round(c, 3) for c in p] for p in (xy(u0, CURB_V), xy(u0, vf), xy(u1, vf), xy(u1, CURB_V))])
-    _BF[0] = dict(risers=n, top=round(float(zt), 2), foot=round(float(zg), 2), run=round(n * TREAD, 2))
+    _BF[0] = dict(risers=n, top=round(float(zt), 2), foot=round(float(zg), 2), run=round(BANK_LAND + n * TREAD, 2))
 
 
 _BF = [None]
@@ -414,7 +421,7 @@ _BF = [None]
 def bank_flight_poly():
     """돌계단과 양쪽 벽의 자리(연석 · 둑 가의 턱을 두지 않는 곳)"""
     ua, ub = BANK_FLIGHT_U
-    return _box(ua - BANK_CHEEK, ub + BANK_CHEEK, CURB_V - 0.6, CURB_V + 5.4)
+    return _box(ua - BANK_CHEEK, ub + BANK_CHEEK, CURB_V - 0.6, CURB_V + 6.0)
 
 
 def bank_clear(items):
@@ -423,7 +430,7 @@ def bank_clear(items):
     n = 0
     for t in items:
         u, v = uv(t[1], t[2])
-        if ua - 0.5 <= u <= ub + 0.5 and CURB_V - 0.5 <= v <= CURB_V + 5.5:
+        if ua - 0.5 <= u <= ub + 0.5 and CURB_V - 0.5 <= v <= CURB_V + 6.0:
             u2 = ua - 0.8 if u < (ua + ub) / 2 else ub + 0.8
             t[1], t[2] = (round(c, 2) for c in xy(u2, v))
             n += 1
