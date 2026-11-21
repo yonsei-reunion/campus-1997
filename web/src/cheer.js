@@ -2,8 +2,9 @@
 // October. You stand in the front row of a block of students facing the porch, where a cheerleader leads; signs come
 // down four lanes (박수, 만세, 어깨동무 and 뛰기) and are pressed on the beat. The block and the leader do every sign on
 // the beat themselves, so the one standing still is you.
-//  - the music is a drum pattern made here (audio.js's building blocks): the big drum, the snare, a tick on the
-//    off-beats, and the crowd's claps, shouts and landings on the signs. No cheering song, words or recording
+//  - the music is Yonsei's 「응원가」 (its tune from the school's score, cheersong.js) played by a band made here of
+//    audio.js's building blocks: guitar, bass, keyboard and drums; and the crowd's claps, shouts and landings on the
+//    signs. No words and no recording
 //  - the signs are timed by the game's clock (the loop's dt), not the wall's: a key's moment is placed between the
 //    frame before it and the one after by its event time, so a slow frame takes nothing from the player
 //  - the moves are built over 'idle' (no clip in the rig claps or jumps): the hands by two-bone IK (armpose.js
@@ -18,6 +19,7 @@ import { safeGet, safeSet, mulberry } from './util.js';
 import { tallOf } from './who.js';
 import './cheer.css';
 import { CHARTS, chartOf, lengthOf, JUDGE, LATE, notesOf } from './cheercharts.js';
+import { bandOf } from './cheersong.js';
 import { Run, RankBox } from './rank.js';
 import { cheerBoard } from './rankrules.js';
 export { CHARTS, chartOf };
@@ -72,20 +74,10 @@ const num = (n) => n.toLocaleString('ko-KR');
 
 // the signs of a chart: { t: s from the first bar, lane, dir (어깨동무: -1 / 1 by turns) }
 
-// the drums under it, and the crowd's sounds on the signs: { t, kind }
+// the band under it (cheersong.js), and the crowd's sounds on the signs: { t, kind, ... }
 function drumsOf(c, notes) {
-  const b = 60 / c.bpm, ev = [], n = c.bars.length;
-  for (let k = 0; k < 4; k++) ev.push({ t: (k - 4) * b, kind: k === 3 ? 'rim2' : 'rim' });
-  for (let m = 0; m < n; m++) {
-    const t0 = m * 4 * b;
-    for (let k = 0; k < 4; k++) {
-      ev.push({ t: t0 + k * b, kind: k % 2 ? 'snare' : 'kick' });
-      ev.push({ t: t0 + (k + 0.5) * b, kind: 'tick' });
-    }
-    if (m % 4 === 0) ev.push({ t: t0, kind: 'cymbal' });
-    if (m % 4 === 3) for (let k = 1; k < 4; k++) ev.push({ t: t0 + (3 + k / 4) * b, kind: 'snare2' });     // a fill into the next four
-  }
-  ev.push({ t: n * 4 * b, kind: 'kick' }, { t: n * 4 * b, kind: 'cymbal' }, { t: n * 4 * b + 0.05, kind: 'roar' });
+  const ev = bandOf(c.bpm, c.bars.length);
+  ev.push({ t: c.bars.length * 240 / c.bpm + 0.05, kind: 'roar' });
   for (const x of notes) {
     const id = MOVES[x.lane];
     if (id === 'clap') ev.push({ t: x.t, kind: 'clap' });
@@ -351,6 +343,7 @@ export class Cheer {
     // the game
     this.notes = notesOf(c);
     this.drums = drumsOf(c, this.notes);
+    this.hush(false);
     this.beat = 60 / c.bpm;
     this.song = -4 * this.beat - 0.6;      // (a breath before the count)
     run.add('st', pl.x, pl.y, this.song);
@@ -406,6 +399,7 @@ export class Cheer {
 
   // everybody back as they were (the block goes, you walk)
   halt() {
+    this.hush(true);
     for (const hd of this.hidden) hd.visible = true;
     this.hidden.clear();
     if (this.block) {
@@ -452,6 +446,7 @@ export class Cheer {
     this.paused = paused;
     if (this.auto) this.run?.fail('자동 연주');
     if (this.state === 'count' || this.state === 'play') this.run?.frame(dt, paused);
+    this.hush(paused);
     if (paused) { this.presses.length = 0; return; }
     const s0 = this.song, s1 = s0 + dt;
     this.song = s1;
@@ -564,27 +559,83 @@ export class Cheer {
     const LOOK = 0.12;
     while (this.di < this.drums.length && this.drums[this.di].t < s + LOOK) {
       const e = this.drums[this.di++];
-      if (e.t > s - 0.05) this.voice(e.kind, Math.max(0, e.t - s));
+      if (e.t > s - 0.05) this.voice(e.kind, Math.max(0, e.t - s), e.k ?? 1, e);
     }
   }
 
-  voice(kind, dt = 0, k = 1) {
+  // the bus, and each instrument's own chain into it: the guitar through a drive and a speaker's roll-off
+  ensureBus() {
+    const S = this.sound, ctx = S.ctx;
+    if (this.bus && this.bus.context === ctx) return this.bus;
+    const bus = this.bus = ctx.createGain();
+    bus.gain.value = 0.85;
+    bus.connect(S.master);
+    const drive = ctx.createWaveShaper(), curve = new Float32Array(1024);
+    for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(5 * (i / (curve.length - 1) * 2 - 1));
+    drive.curve = curve;
+    drive.oversample = '2x';
+    const chain = (...n) => { S._chain(...n, bus); return n[0]; };
+    this.inst = {
+      gtr: chain(S._gain(0.6), drive, S._filter('lowpass', 2600, 0.9), S._filter('highpass', 90, 0.7), S._gain(0.16)),
+      bass: chain(S._gain(1), S._filter('lowpass', 750, 1.1), S._gain(0.14)),
+      lead: chain(S._gain(1), S._filter('lowpass', 3400, 0.8), S._gain(0.42)),
+      keys: chain(S._gain(1), S._filter('lowpass', 1800, 0.7), S._gain(0.25)),
+    };
+    return bus;
+  }
+
+  // the band and the crowd quiet while the game waits (a held chord would ring on) or is left
+  hush(on) {
+    const ctx = this.sound?.ctx;
+    if (!this.bus || !ctx || this.hushed === on) return;
+    this.hushed = on;
+    this.bus.gain.setTargetAtTime(on ? 0 : 0.85, ctx.currentTime, on ? 0.03 : 0.01);
+  }
+
+  voice(kind, dt = 0, k = 1, e = null) {
     const S = this.sound, ctx = S?.ctx;
     if (!ctx || ctx.state !== 'running') return;
-    if (!this.bus || this.bus.context !== ctx) { this.bus = ctx.createGain(); this.bus.gain.value = 0.85; this.bus.connect(S.master); }
-    const out = this.bus, at = ctx.currentTime + dt + 0.01;
+    const out = this.ensureBus(), at = ctx.currentTime + dt + 0.01;
     const tone = (o) => S._tone(out, { at, ...o }), burst = (o) => S._burst(out, { at, ...o });
+    const hz = (m) => 440 * 2 ** ((m - 69) / 12), I = this.inst;
     switch (kind) {
+      case 'gtr': {      // 기타: a power chord (root, fifth, octave), muted short or let ring
+        const f = hz(e.m), d = e.d, g = 0.5 * k;
+        for (const [r, dt2] of [[1, 0], [1.4983, 0.004], [2, 0.008], [1.003, 0.002]]) {
+          S._tone(I.gtr, { at: at + dt2, type: 'sawtooth', f: f * r, gain: g, attack: 0.003, hold: e.open ? d * 0.4 : d * 0.25, decay: e.open ? d * 0.6 + 0.3 : 0.07 });
+        }
+        if (!e.open) S._burst(I.gtr, { at, type: 'bandpass', f: 1600, q: 1.2, gain: 0.25 * k, decay: 0.02 });     // the pick
+        break;
+      }
+      case 'bass': {     // 베이스: a plucked string, its round low and the attack's bite
+        const f = hz(e.m);
+        S._tone(I.bass, { at, type: 'sawtooth', f, gain: 0.5, attack: 0.004, hold: e.d * 0.6, decay: e.d * 0.4 + 0.05 });
+        S._tone(I.bass, { at, type: 'sine', f, gain: 0.6, attack: 0.004, hold: e.d * 0.7, decay: e.d * 0.3 + 0.05 });
+        break;
+      }
+      case 'lead': {     // 키보드 오른손: the tune on two square waves a hair apart, an octave above it soft
+        const f = hz(e.m), hold = Math.max(0.02, e.d - 0.08);
+        S._tone(I.lead, { at, type: 'square', f, gain: 0.22, attack: 0.008, hold, decay: 0.12 });
+        S._tone(I.lead, { at, type: 'square', f: f * 1.005, gain: 0.16, attack: 0.008, hold, decay: 0.12 });
+        S._tone(I.lead, { at, type: 'sawtooth', f: f * 2, gain: 0.05, attack: 0.01, hold, decay: 0.1 });
+        break;
+      }
+      case 'keys':       // 키보드 왼손: the chord held, an organ's drawbars
+        for (const m of e.m) {
+          S._tone(I.keys, { at, type: 'triangle', f: hz(m), gain: 0.16, attack: 0.02, hold: Math.max(0.02, e.d - 0.15), decay: 0.18 });
+          S._tone(I.keys, { at, type: 'sine', f: hz(m) * 2, gain: 0.06, attack: 0.02, hold: Math.max(0.02, e.d - 0.15), decay: 0.18 });
+        }
+        break;
       case 'kick':       // 큰북: a low thump falling in pitch, and the skin's slap
-        tone({ type: 'sine', f: 118, f1: 46, gain: 0.6, attack: 0.003, decay: 0.42 });
-        burst({ type: 'lowpass', f: 380, q: 0.7, gain: 0.18, decay: 0.06 });
+        tone({ type: 'sine', f: 118, f1: 46, gain: 0.6 * k, attack: 0.003, decay: 0.42 });
+        burst({ type: 'lowpass', f: 380, q: 0.7, gain: 0.18 * k, decay: 0.06 });
         break;
       case 'snare': case 'snare2':
-        burst({ type: 'bandpass', f: 1900, q: 0.7, gain: kind === 'snare' ? 0.2 : 0.11, decay: 0.15 });
-        tone({ type: 'triangle', f: 230, f1: 180, gain: kind === 'snare' ? 0.12 : 0.06, decay: 0.08 });
+        burst({ type: 'bandpass', f: 1900, q: 0.7, gain: (kind === 'snare' ? 0.2 : 0.11) * k, decay: 0.15 });
+        tone({ type: 'triangle', f: 230, f1: 180, gain: (kind === 'snare' ? 0.12 : 0.06) * k, decay: 0.08 });
         break;
       case 'tick':
-        burst({ type: 'highpass', f: 6500, q: 0.7, gain: 0.045, decay: 0.035 });
+        burst({ type: 'highpass', f: 6500, q: 0.7, gain: 0.045 * k, decay: 0.035 });
         break;
       case 'rim': case 'rim2':     // the sticks counting in
         tone({ type: 'square', f: kind === 'rim2' ? 1250 : 940, f1: 700, gain: 0.05, decay: 0.05 });
