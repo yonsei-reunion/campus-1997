@@ -35,6 +35,7 @@ import yeonhui97
 import east97
 import walkguard97
 import kwangbok97
+import hangjeong97
 import westisle97
 import medwest97
 import jonghap97
@@ -305,7 +306,7 @@ GONE_LAWN = {472512292}
 GONE_NEW = {472512292}              # (left out since the planting was laid: the trees by them go at the list's end)
 # 영빈관 · 행정동 (OSM 472534641 「영빈관」, 722550503 「행정동」 building=hospital): not in the 1997-07-28 scans (27/16 ·
 # 27/15 · 27/17: inside 영빈관's outline trees and the garden at the ground's height, a gabled single storey on its north
-# corner, GUEST97 below; small houses on 행정동's; reference/고증/3.1 「3.1.1」 「그 밖의 건물의 1997년」).  They go after
+# corner, GUEST97 below; small houses on 행정동's, tools/hangjeong97.py; reference/고증/3.1 「3.1.1」 「그 밖의 건물의 1997년」).  They go after
 # the planting with every list as it was (GONE_KEEP: nothing round them is cleared), their sites lawn
 GONE_KEEP = {472534641, 722550503}
 GONE_1997.update({k_: None for k_ in GONE_KEEP})
@@ -12195,7 +12196,7 @@ buildings.append(dict(id=BK_HUT['id'], name='', style='white', levels=2, fh=_bh_
 # 영빈관 자리의 1997년 단층 박공집 (GONE_KEEP above; reference/고증/3.1 「3.1.1」 「그 밖의 건물의 1997년」; we): the
 # 1997-07-28 scans (27/16 · 27/15 · 27/17 on the 78 m plane) have its roof on the north corner of OSM's 영빈관, its
 # ridge along that outline's north-east side (143 deg), about 15 x 7 m, the eaves 3 m and the ridge 4.5 m over the
-# garden (해발 74.6 m); a low wing on its south-west side left out.  At the very end (blender/build.py: no hall after
+# garden (해발 74.6 m); its flat-roofed wing on the south-west side: hangjeong97.ANNEX.  At the very end (blender/build.py: no hall after
 # it changes its looks); nothing of the lists stands on it
 GUEST97 = dict(c=(442.0, 343.0), t=(0.602, -0.799), L=15.0, W=7.0, floor=74.6, eaves=77.6, ridge=79.1, over=0.4)
 _g7c, _g7t = np.array(GUEST97['c']), np.array(GUEST97['t'])
@@ -12525,6 +12526,52 @@ for k_ in ('trees', 'shrubs'):
             _jd_moved += 1
 print('장기원 기념관 남서쪽 원통 건물: base %.2f, aside %d' % (buildings[-1]['base'], _jd_moved))
 JK_DRUM_B = buildings[-1]
+# 행정동 자리의 1997년 집들과 영빈관 자리 단층집의 곁채 (tools/hangjeong97.py; reference/고증/3.1 「3.1.1」 「그 밖의
+# 건물의 1997년」): the houses read off the July 1997 scans on 행정동's site and the lawn north-west of it (GONE_KEEP
+# above), each on the game's ground at its lowest corner with its walls as high as its eaves stood over the photos'
+# ground there (the game's ground is 1.5 - 3 m over the photos' here); the annex on GUEST97's south-west wall.  At the
+# halls' very end (blender/build.py draws each hall's looks in its order); what stands within a metre of a wall
+# steps aside 1.5 m off it, in its place in the list
+_hj_new = []
+for k_, (n_, roof_, uv_, eaves_, ridge_, g_) in enumerate(hangjeong97.HOUSES):
+    _p = shapely.geometry.polygon.orient(Polygon([hangjeong97.xy(u_, v_) for u_, v_ in uv_]), 1.0)
+    _hs = [float(ground_tn(x_, y_)) for x_, y_ in _p.exterior.coords]
+    _rel = max(eaves_ - g_, hangjeong97.WALL_MIN)
+    _lv = max(1, min(2, int(_rel / 2.7)))
+    _b = dict(id=hangjeong97.ID0 + k_, name='', style='white' if roof_ == 'flat' else 'house', levels=_lv,
+              fh=round(_rel / _lv, 3), height=round(_rel + (0.4 if roof_ == 'flat' else 0.0), 2), base=round(min(_hs), 2),
+              top_ground=round(max(_hs), 2), footprint=[[x_, y_] for x_, y_ in list(_p.exterior.coords)[:-1]])
+    if roof_ == 'flat':
+        _b['parapet'] = 0.4
+    else:
+        _b['style'] = 'brick'
+        _b['hip'] = dict(mat='roof_slate' if n_ in hangjeong97.DARK else 'roof_cement',
+                         pitch=hangjeong97.pitch(eaves_, ridge_), over=0.4, gable=roof_ == 'gable')
+    buildings.append(_b)
+    _hj_new.append(_p)
+_ga = hangjeong97.ANNEX
+_g7a = [tuple(round(float(q_), 2) for q_ in _g7c + _g7t * s_ + _g7n * w_)
+        for s_, w_ in ((_ga['s'][0], _ga['w'][0]), (_ga['s'][1], _ga['w'][0]), (_ga['s'][1], _ga['w'][1]), (_ga['s'][0], _ga['w'][1]))]
+_g7a = shapely.geometry.polygon.orient(Polygon(_g7a), 1.0)
+buildings.append(dict(id=_ga['id'], name='', style='white', levels=1, fh=round(_ga['roof'] - _ga['floor'], 2),
+                      height=round(_ga['roof'] - _ga['floor'] + _ga['parapet'], 2), parapet=_ga['parapet'],
+                      base=datum.up(*_g7a.centroid.coords[0], _ga['floor']), top_ground=datum.up(*_g7a.centroid.coords[0], _ga['floor']),
+                      footprint=[[x_, y_] for x_, y_ in list(_g7a.exterior.coords)[:-1]]))
+_hj_new.append(_g7a)
+_hj_all = unary_union(_hj_new)
+_hj_moved = 0
+for k_ in ('trees', 'shrubs'):
+    for t_ in out[k_]:
+        if _hj_all.buffer(1.0).contains(Point(t_[1], t_[2])):
+            _r = min(_hj_new, key=lambda p_: p_.distance(Point(t_[1], t_[2]))).buffer(1.5).exterior
+            q_ = _r.interpolate(_r.project(Point(t_[1], t_[2])))
+            if _hj_all.buffer(1.0).contains(q_):
+                q_ = nearest_points(_hj_all.buffer(1.5).boundary, Point(t_[1], t_[2]))[0]
+            if k_ == 'trees' and len(t_) < 6:
+                t_.append((t_[1], t_[2]))      # (later clearings ask where it first stood: rxy)
+            t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
+            _hj_moved += 1
+print('행정동 자리의 집들: %d, 영빈관 자리 곁채, aside %d' % (len(hangjeong97.HOUSES), _hj_moved))
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
 # the 1997 photos' block had (0.052 + 0.522 x/100 + 0.248 y/100 m): the levels the photos read as flat, the roads'
