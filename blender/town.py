@@ -1278,6 +1278,26 @@ def yard():
         mb.box((c[0], c[1], z0 + 0.55), (L - 2.0, 2.2, 0.7), 'metal_dark', rotz=ang)
         mb.box((c[0], c[1], z0 + (0.9 + top - 0.15) / 2), (L, 2.8, top - 0.15 - 0.9), 'wagon_brown', rotz=ang)
         mb.box((c[0], c[1], z0 + top - 0.075), (L + 0.1, 2.9, 0.15), 'roof_metal', rotz=ang)
+    for kind, cx, cy, L, Wd, ang, base, h in (Y or {}).get('things', []):   # (1997 scans; 고증 4.8.4 「신촌역 구내」)
+        if kind == 'shed':                                   # a low shed under a metal roof
+            mb.box((cx, cy, base + h / 2 - 0.15), (L, Wd, h + 0.3), 'concrete', rotz=ang, mats={'top': 'roof_metal'},
+                   skip=('bottom',))
+        elif kind == 'heap':                                 # a covered heap, tyres weighing the cover down
+            mb.box((cx, cy, base + h / 2 - 0.15), (L, Wd, h + 0.3), 'tarp_orange', rotz=ang, skip=('bottom',))
+            rnd = random.Random(19970728)
+            ca, sa = math.cos(ang), math.sin(ang)
+            for _ in range(int(L * Wd / 6)):
+                u, v = rnd.uniform(-L / 2 + 0.6, L / 2 - 0.6), rnd.uniform(-Wd / 2 + 0.6, Wd / 2 - 0.6)
+                mb.box((cx + u * ca - v * sa, cy + u * sa + v * ca, base + h + 0.1), (0.75, 0.75, 0.2), 'rubber',
+                       rotz=rnd.uniform(0, math.pi), skip=('bottom',))
+        elif kind == 'shelter':                              # a small flat roof on four posts over the platform
+            ca, sa = math.cos(ang), math.sin(ang)
+            for su in (-1, 1):
+                for sv in (-1, 1):
+                    u, v = su * (L / 2 - 0.3), sv * (Wd / 2 - 0.4)
+                    mb.box((cx + u * ca - v * sa, cy + u * sa + v * ca, base + (h - 0.12) / 2), (0.1, 0.1, h - 0.12),
+                           'metal', skip=('bottom', 'top'))
+            mb.box((cx, cy, base + h - 0.06), (L, Wd, 0.12), 'paint_white', rotz=ang)
     _wall97(mb, R.get('wall97') or [])
     return mb
 
@@ -1289,7 +1309,7 @@ W97_END_UP = 0.3             # the end post at the bridge over the panels' top (
 
 
 def _wall97(mb, W):
-    """the noise wall on the bank's edge west of the bridge (tools/ssr97.py WALL97; 고증 4.8.4 「철둑 남쪽 벽의 생김새」):
+    """the noise wall on the bank's edge west of the bridge (tools/ssr97.py WALL97; 고증 4.8.4 「로드뷰 지난 화면의 벽」):
     a concrete plinth from the bank's surface, over it light grey metal panels ribbed across, dark posts every
     W97_POST from the end at the bridge, which stops on the bridge's abutment with a taller post"""
     if len(W) < 2:

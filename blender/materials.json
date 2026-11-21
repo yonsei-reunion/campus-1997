@@ -1071,5 +1071,6 @@
  "sign_station": {"_doc": "옛 신촌역 역사의 이름판 「신촌역 · 新村驛 · Shinchon Station」 (tools/make_textures.py sign_station, 서울연구원 52245, 1996)", "image": "sign_station.png", "rough": 0.5},
  "sign_seomun": {"_doc": "서문분식 간판: 흰 바탕 초록 글씨 (tools/make_textures.py sign_seomun, tools/seomun.py SHOP, reference/고증/3.22 「서문 앞 가게」)", "image": "sign_seomun.png", "rough": 0.5, "emissiveMap": true},
  "wagon_brown": {"_doc": "신촌역 구내 북쪽 옆선에 선 유개화차의 짙은 갈색 몸 (서울연구원 52044 · 52045, 1996)", "color": [0.16, 0.07, 0.05], "rough": 0.6, "metal": 0.3},
- "wood_soffit": {"_doc": "루스채플 처마 밑 경사면의 짙은 갈색 판 (학교 홈페이지 chapel.jpg, 학교연혁_루스채플.jpg, reference/고증/3.25)", "tex": "wood_planks_dirt", "tile": 3.0, "tint": [0.3, 0.21, 0.15], "rough": 0.75}
+ "wood_soffit": {"_doc": "루스채플 처마 밑 경사면의 짙은 갈색 판 (학교 홈페이지 chapel.jpg, 학교연혁_루스채플.jpg, reference/고증/3.25)", "tex": "wood_planks_dirt", "tile": 3.0, "tint": [0.3, 0.21, 0.15], "rough": 0.75},
+ "tarp_orange": {"_doc": "신촌역 구내 북쪽 마당의 덮개를 씌운 더미 (서울연구원 52044 · 52045 · 52074 · 52090, 1996; 1997년 7월 원본 스캔의 흰 윗면과 타이어: 고증 4.8.4)", "color": [0.78, 0.36, 0.12], "rough": 0.85}
 }

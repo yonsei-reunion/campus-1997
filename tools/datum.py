@@ -404,6 +404,8 @@ def heights(c):
         for p in ra.get('wall97', []):          # (철둑 남쪽 옹벽 위 벽: the bank's surface, the wall's top; tools/ssr97.py)
             A(p, 2, p[0], p[1])
             A(p, 3, p[0], p[1])
+        for q in ra.get('yard', {}).get('things', []):   # (신촌역 구내의 창고 · 더미 · 승강장 지붕: their base; ssr97._yard_things)
+            A(q, 6, q[1], q[2])
         for fb in T.get('footbridges', []):     # (육교: the deck's top at either end; tools/ssr97.py)
             A(fb['top'], 0, *fb['a'])
             A(fb['top'], 1, *fb['b'])

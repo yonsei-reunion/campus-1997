@@ -178,6 +178,36 @@ PLATFORM_UP = 0.5
 # from 1971)
 YARD_WAGONS = [(378.0, 391.0), (392.0, 405.0), (406.0, 419.0), (437.0, 450.0), (451.0, 464.0), (465.0, 478.0), (479.0, 492.0)]
 WAGON_O, WAGON_TOP = 11.0, 3.7
+# the rest of the yard on 1997-07-28 (고증 4.8.4 「신촌역 구내」): (x0, x1, y0, y1) at the height of its top, where 27/17,
+# 27/18 and 26/16 lie on each other, and its top (해발; drawn from the game's yard surface or platform top up to it)
+# - a low shed north of the siding: a gridded roof 38.0 m (37.6 - 38.2, three points, 27/17 x 27/18 x 27/19 at 0.77 - 0.87),
+#   the yard 34.3 m at its east foot
+# - a flat-topped heap north-west of it: a white top at 38.2 - 38.9 m (six points, 0.6 - 0.93) strewn with black rings
+#   (tyres weighing a cover down, as on the covered heaps of the 1996 photos 52044 · 52045 · 52074 · 52090), the yard
+#   35.0 m west of it
+# - four small white roofs on the island platform (37.0 - 37.2 m, 0.80 - 0.92): 2.65 m over the platform's top (34.45 m)
+YARD_SHED = (417.0, 430.0, -450.0, -436.5, 38.0)
+YARD_HEAP = (367.0, 402.0, -451.5, -441.5, 38.6)
+YARD_SHELTERS = [(375.5, 380.5), (382.5, 387.5), (390.0, 395.0), (397.0, 402.5)]
+SHELTER_Y, SHELTER_TOP = (-470.0, -466.3), 37.1
+
+
+def _yard_things(secs):
+    """[kind, cx, cy, L, W, ang, base, h]: base = the yard's surface (the section's top less 0.05) or the platform's top
+    (the top + PLATFORM_UP) at the section nearest cx, working datum like the sections; h from it to the measured top"""
+    out = []
+
+    def one(kind, x0, x1, y0, y1, top, up):
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        r = min(secs, key=lambda s: abs(s[0] - cx))
+        ang = math.atan2(-r[2], r[3])
+        out.append([kind, round(cx, 2), round(cy, 2), round(x1 - x0, 2), round(y1 - y0, 2), round(ang, 4),
+                    round(r[11] + up, 2), round(datum.up(cx, cy, top) - (r[11] + up), 2)])
+    one('shed', *YARD_SHED, -0.05)
+    one('heap', *YARD_HEAP, -0.05)
+    for x0, x1 in YARD_SHELTERS:
+        one('shelter', x0, x1, *SHELTER_Y, SHELTER_TOP, PLATFORM_UP)
+    return out
 
 
 def is_flat(x, side, hw):
@@ -267,7 +297,8 @@ def rail_extras(secs, rail_bed):
             pts.append([round(q[0], 2), round(q[1], 2), round(bench, 2), datum.up(q[0], q[1], za + (zb - za) * f)])
     return dict(wall97=pts, yard=dict(tracks=[list(t) for t in YARD_TRACKS],
                                       platforms=[list(p) + [PLATFORM_UP] for p in YARD_PLATFORMS],
-                                      wagons=[[a, b, WAGON_O, WAGON_TOP] for a, b in YARD_WAGONS]))
+                                      wagons=[[a, b, WAGON_O, WAGON_TOP] for a, b in YARD_WAGONS],
+                                      things=_yard_things(secs)))
 
 
 def yard_poly(secs):
