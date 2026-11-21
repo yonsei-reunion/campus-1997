@@ -86,8 +86,40 @@ function edgeU16(a, count) {
   return new THREE.BufferAttribute(out, 4, true);
 }
 
-// Merge every mesh under root into one mesh per (material, chunk); chunk 0: one per material.
-export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShadow = true, name = 'static' } = {}) {
+// an indexed geometry's triangles by the chunk their centroid falls in (x, z), each piece with only its own corners
+function splitByChunk(g, chunk) {
+  const idx = g.index.array, pos = g.attributes.position.array, tris = new Map();
+  for (let t = 0; t < idx.length; t += 3) {
+    let x = 0, z = 0;
+    for (let k = 0; k < 3; k++) { x += pos[idx[t + k] * 3]; z += pos[idx[t + k] * 3 + 2]; }
+    const key = Math.floor(x / 3 / chunk) + '|' + Math.floor(z / 3 / chunk);
+    if (!tris.has(key)) tris.set(key, []);
+    tris.get(key).push(t);
+  }
+  const out = [];
+  for (const [key, ts] of tris) {
+    const map = new Map(), from = [], index = new Uint32Array(ts.length * 3);
+    ts.forEach((t, i) => { for (let k = 0; k < 3; k++) {
+      const v = idx[t + k];
+      if (!map.has(v)) { map.set(v, from.length); from.push(v); }
+      index[i * 3 + k] = map.get(v);
+    } });
+    const p = new THREE.BufferGeometry();
+    for (const [n, a] of Object.entries(g.attributes)) {
+      const s = a.itemSize, arr = new a.array.constructor(from.length * s);
+      from.forEach((v, i) => { for (let c = 0; c < s; c++) arr[i * s + c] = a.array[v * s + c]; });
+      p.setAttribute(n, new THREE.BufferAttribute(arr, s, a.normalized));
+    }
+    p.setIndex(new THREE.BufferAttribute(index, 1));
+    out.push([key, p]);
+  }
+  return out;
+}
+
+// Merge every mesh under root into one mesh per (material, chunk); chunk 0: one per material. A mesh goes to the chunk
+// of its middle; split: a mesh wider than two chunks is cut by triangle first (the town's kerbs and road paint are one
+// mesh each from the rotary to the campus: unsplit, they were drawn wherever one stood on the campus)
+export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShadow = true, name = 'static', split = false } = {}) {
   root.updateMatrixWorld(true);
   const buckets = new Map();
   const box = new THREE.Box3(), c = new THREE.Vector3();
@@ -117,9 +149,15 @@ export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShado
     box.setFromBufferAttribute(g.attributes.position);
     box.getCenter(c);
     // (by material object: a building's own weathering makes a second copy of a library material, same name)
-    const key = o.material.name + '#' + o.material.id + (chunk ? '|' + Math.floor(c.x / chunk) + '|' + Math.floor(c.z / chunk) : '');
-    if (!buckets.has(key)) buckets.set(key, { mat: o.material, geos: [] });
-    buckets.get(key).geos.push(g);
+    const mk = o.material.name + '#' + o.material.id;
+    const pieces = !chunk ? [['', g]]
+      : split && Math.max(box.max.x - box.min.x, box.max.z - box.min.z) > 2 * chunk ? splitByChunk(g, chunk).map(([k, p]) => ['|' + k, p])
+      : [['|' + Math.floor(c.x / chunk) + '|' + Math.floor(c.z / chunk), g]];
+    for (const [ck, p] of pieces) {
+      const key = mk + ck;
+      if (!buckets.has(key)) buckets.set(key, { mat: o.material, geos: [] });
+      buckets.get(key).geos.push(p);
+    }
   });
   const group = new THREE.Group();
   group.name = name;

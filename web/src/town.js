@@ -32,7 +32,7 @@ export function addTown(scene, gltf, lib, terrainMat) {
   }
   scene.add(group);
   group.updateMatrixWorld(true);
-  scene.add(mergeStatic(root, { name: 'town', chunk: 320 }));
+  scene.add(mergeStatic(root, { name: 'town', chunk: 320, split: true }));
   return banks;
 }
 
@@ -291,6 +291,14 @@ function figureTex(walking) {
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
+// the lamps stand still: one sphere round the red ones (every head has one; the unused arrow lamps are scaled to
+// nothing at the origin) culls each set with the view, so that they are not drawn behind it
+function cullAsOne(meshes) {
+  meshes.r.computeBoundingSphere();
+  const s = meshes.r.boundingSphere;
+  s.radius += 1;
+  for (const k in meshes) meshes[k].boundingSphere = s.clone();
+}
 class PedHeads {
   constructor(scene, peds, groundAt) {
     const grey = new THREE.MeshStandardMaterial({ color: 0x8a8e92, roughness: 0.55, metalness: 0.35 });
@@ -304,7 +312,6 @@ class PedHeads {
       const mat = new THREE.MeshBasicMaterial({ map: figureTex(k === 'g') });
       this.meshes[k] = new THREE.InstancedMesh(lampGeo, mat, peds.length);
       this.meshes[k].instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(peds.length * 3), 3);
-      this.meshes[k].frustumCulled = false;
     }
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), v = new THREE.Vector3();
     peds.forEach(([x, y, face], i) => {
@@ -330,6 +337,7 @@ class PedHeads {
         this.meshes[k].setMatrixAt(i, m4);
       });
     });
+    cullAsOne(this.meshes);
     const strip = (g) => { g.deleteAttribute('uv'); return g; };
     const pm = new THREE.Mesh(mergeGeometries(poles.map(strip), false), grey);
     const bm = new THREE.Mesh(mergeGeometries(boxes.map(strip), false), black);
@@ -387,7 +395,6 @@ class SignalHeads {
       this.mats[k] = new THREE.MeshBasicMaterial({ color: 0xffffff });
       this.meshes[k] = new THREE.InstancedMesh(lampGeo, this.mats[k], heads.length);
       this.meshes[k].instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(heads.length * 3), 3);
-      this.meshes[k].frustumCulled = false;
     }
     const q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(1, 1, 1), v = new THREE.Vector3();
     const none = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -415,6 +422,7 @@ class SignalHeads {
       if (!four) this.meshes.l.setMatrixAt(i, none);
       this.meshes.l.setColorAt(i, dark);
     });
+    cullAsOne(this.meshes);
     const g = mergeGeometries(geos.map((x) => { x.deleteAttribute('uv'); return x; }), false);
     const frame = new THREE.Mesh(g, grey);
     frame.castShadow = frame.receiveShadow = true;
