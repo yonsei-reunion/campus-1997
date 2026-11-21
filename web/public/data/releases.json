@@ -81,6 +81,13 @@
               "처마 밑: 바닥 높이의 화강석 단"
             ]
           },
+          {
+            "text": "장기원 기념관 남서쪽: 둥근 마당 → 한 층 원통 건물 (1996 ~ 1999년 항공 사진, 1990년대 학교 홈페이지 사진)",
+            "items": [
+              "건물: 흰 원통, 지름 9.6 m, 지붕 해발 41.3 m, 가로 창",
+              "둘레 땅: 41.25 m → 북쪽 39.5 m에서 남쪽 37.2 m로 기우는 낮은 마당"
+            ]
+          },
           "이름표 「동문」 · 「법현학사」"
         ],
         "images": [
@@ -93,7 +100,8 @@
           { "src": "assets/news/501_chapel_soffit.jpg", "alt": "루스채플: 1996년 사진, 전, 후" },
           { "src": "assets/news/502_yonseiro_rows.jpg", "alt": "연세로 서쪽 가게 줄(연희식당 · 쟈뎅 · 상아탑분식): 전, 후" },
           { "src": "assets/news/504_yonseiro_rows_top.jpg", "alt": "굴다리 남쪽 연세로를 위에서: 전, 후" },
-          { "src": "assets/news/503_eagle_building_pit.jpg", "alt": "독수리다방 자리의 터파기 공사장: 전, 후" }
+          { "src": "assets/news/503_eagle_building_pit.jpg", "alt": "독수리다방 자리의 터파기 공사장: 전, 후" },
+          { "src": "assets/news/506_jk_drum.jpg", "alt": "장기원 기념관 남서쪽 원통 건물: 1990년대 사진, 전, 후" }
         ]
       },
       {
