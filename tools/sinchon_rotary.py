@@ -86,7 +86,7 @@ SINCHON_E_MID = [(0.0, -3.0), (26.0, -3.0), (38.0, -2.7), (50.0, -2.35), (65.0, 
                  (119.0, -1.5), (143.0, -1.2), (167.0, -0.85), (197.0, -0.7), (221.0, -0.5), (263.0, -0.5), (275.0, -0.7),
                  (287.0, -1.1), (299.0, -1.4), (311.0, -1.65), (329.0, -2.0), (353.0, -1.7), (371.0, -1.45), (383.0, -1.15),
                  (401.0, -0.65), (425.0, -0.5), (443.0, -0.55), (467.0, -1.1), (1000.0, -1.1)]
-# (2026-11-21, 고증 4.10.4 「신촌로(동)의 남쪽 연석」: past s 80 the band's brighter north line every 6 m in both scans,
+# (2026-11-21, 고증 4.10.4.3 「신촌로(동)의 남쪽 연석」: past s 80 the band's brighter north line every 6 m in both scans,
 # 0.4 m north of the band's middle where both are read: the middle wanders 1.5 m about OSM's line out to the arm's end)
 # Its south lanes as the scans paint them, from the junction to the crossing at s 278 [(s, m off the arm's line), kind]
 # (both scans' dashes within 0.1 - 0.3 m): two dashed lines; the third dashed to the side street, then the bus lane's
@@ -99,7 +99,7 @@ SE_LINES = [([(45.0, -5.13), (55.0, -4.67), (64.0, -4.55), (72.0, -4.48), (88.0,
             ([(53.0, -10.67), (64.0, -10.51), (80.0, -10.51), (98.0, -10.6)], 'white_dash'),
             ([(100.0, -10.4), (112.0, -10.0), (130.0, -9.85), (148.0, -9.6), (160.0, -9.4), (195.0, -9.1), (276.0, -9.2)], 'blue'),
             ([(98.0, -15.6), (125.0, -15.6)], 'white_dash')]
-# Its south kerb near the junction (2026-11-21, 고증 4.10.4 「신촌로(동)의 남쪽 연석」): 16.3 m south of the arm's line, not
+# Its south kerb near the junction (2026-11-21, 고증 4.10.4.3 「신촌로(동)의 남쪽 연석」): 16.3 m south of the arm's line, not
 # 14, from the island's turning lane to the bus stop in front of 한일은행 (s 125).  52204 (1996.6, from 외환은행's roof)
 # across one row through the stop: the yellow middle, the two dashed lines, the blue bus lane's line and the dark
 # pavement behind the kerb (the scans' -1.7, -4.2, -6.9, -10.0 and -16.8) put the kerb's brown line at -16.26 and the
@@ -219,7 +219,7 @@ ROT_S_KERB = [(-98.15, -1047.0), (-98.6, -1045.0), (-99.1, -1043.2), (-100.5, -1
 ROT_S_FILL = [(-128.0, -1015.0), (-110.0, -1005.0), (-92.0, -1030.0), (-92.0, -1047.0)]
 ROT_S_CUT = [(-98.7, -1049.0), (-131.0, -1046.0), (-131.0, -1026.0)]
 ROT_S_WALK = 4.5
-# ---- The three corners that were road in 1997 (2026-11-15, 고증 4.10.4 「쐐기의 연석」).  The game had rounded every
+# ---- The three corners that were road in 1997 (2026-11-15, 고증 4.10.4.1 「쐐기의 연석」).  The game had rounded every
 # corner's kerb (CORNER_R); the scans of 27/18 and 27/19 have the kerbs of the north-west (금강제화), north-east (the
 # corner lot) and south-west (그랜드백화점) corners cut back straight behind a wedge of asphalt: lanes turning right
 # round the corner, a hatched triangle between them and the through lanes, the bus stops' flat roofs along the kerb.
@@ -561,7 +561,7 @@ def _bb_arm():
 
 
 ARMS['baekbeom'] = _bb_arm()
-# 1997년 신촌로 (남서) as the 1996 photos 52110 · 52111 · 52139 have its kerbs (2026-11-17, 고증 4.10.4 「1997년 신촌로(남서)의
+# 1997년 신촌로 (남서) as the 1996 photos 52110 · 52111 · 52139 have its kerbs (2026-11-17, 고증 4.10.4.3 「1997년 신촌로(남서)의
 # 두 연석」): their cameras solved on the paint of the 1997 scans (the crossing's bars and edges, the yellow middle, the
 # lane lines; 52111's and 52139's apart came out at one place 0.6 m apart), the kerbs read off them to the road's own
 # heights: the north-west one 12.4 m north-west of OSM's line (the arm's till then) from the crossing to s 75 (12.6 to
