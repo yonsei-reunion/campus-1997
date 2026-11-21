@@ -8,7 +8,9 @@
 
 동쪽 발치(「장기원 기념관 동쪽 발치의 띠와 도서관 뒤 길」, 1996년 겨울 · 1997년 7월 · 1998 · 1999년 원본 스캔):
 - 동쪽 띠(화단 단): 동쪽 면에서 옹벽의 면(v 12.16, 도서관 틀 o −68.3)까지 7.4 m, 37.1 ~ 37.8 m(북쪽으로 오름, 1996년 96점의
-  면). 남쪽 옹벽이 동쪽으로 이어져 옹벽의 면에서 북쪽으로 꺾임. 1997년 7월에는 큰 나무의 수관에 덮임. 동쪽 면을 따라 포장 길
+  면). 남쪽 가는 s 4.8(u −22.7): 화단의 옹벽은 남동 모서리에서 북쪽으로 꺾여 거기까지, 띠의 남쪽 가 · 동쪽 가를 따라
+  옹벽(1996년 겨울 네 장). 띠 위에 큰 나무 둘(1997년 7월 수관, 줄기는 1996년 겨울 네 장). 동쪽 면을 따라 포장 길.
+  동쪽 문 맞은편 옹벽 발치의 7.5 × 2 m 덩이는 1997년 7월에만 있어(1996년 11 · 12월, 1998년 10월, 1999년 5월에 없음) 계단으로 넣지 않음
 - 그 동쪽 길: 옹벽 발치에서 동쪽 연석(v 20.46, o −60)까지 8.3 m, 35.85 m 로 평평(113점, rms 0.12 m). 1996년 겨울 · 1999년
   봄에는 양쪽 가에 길 따라 선 차, 1997년 7월 28일에는 빈 길. 남쪽 끝이 옹벽 아래 마당으로 이어짐
 - 연석 동쪽: 상록 관목 줄과 둑(v 22.96, o −57.5)이 도서관 서쪽 길(33.2 m)로 내려감
@@ -47,6 +49,7 @@ WALL_T, WALL_H, COPE_T, COPE_O = 0.3, 0.10, 0.08, 0.04   # 옹벽 두께, 화단
 YARD_Z = 36.3                               # 옹벽 아래 마당(해발, 1996년 겨울 (−166 ~ −158, −50) 36.0 ~ 36.6 m)
 # 동쪽 발치
 EAST_V = 12.16                              # 동쪽 띠의 가 = 동쪽 옹벽의 면(턱의 가운데 o −68.4 · −67.4, 남쪽 반을 씀)
+BAND_S_U = -22.7                            # 동쪽 띠의 남쪽 가(s 4.8): 화단의 옹벽은 남동 모서리(WALL_V[1])에서 북쪽으로 꺾여 여기까지
 CURB_V = 20.46                              # 길의 동쪽 연석(1997년 7월 26/15 · 26/16 의 곧은 검은 줄)
 BANK_V = 22.96                              # 연석 동쪽 둑의 발치(도서관 서쪽 길의 높이: tools/libwest97.py)
 WALL_N = 26.0                               # 동쪽 옹벽을 그리는 북쪽 끝(띠와 길의 차가 0.12 m 밑인 곳은 그리지 않음)
@@ -55,11 +58,10 @@ LANE_DOWN_U = (-29.0, 24.0)                 # 길의 판 밑 마디를 내리는
 SET_U = (-36.0, 28.0)                       # 그 밖에서 마디를 길 · 띠 · 북쪽 땅의 높이로 놓는 끝
 NORTH_Z = (40.0, 0.1)                       # 몸체 북쪽 끝 너머 서쪽 땅: v 1.5 에서 40.0 m, 서쪽으로 1 m 에 0.1 m(1996년 겨울 39.4 ~ 41.5 m)
 WALK_W = 2.0                                # 동쪽 면을 따라 띠 위의 포장 길(연세춘추 2007년 사진: 계단 위에서 동쪽 면을 따라 북쪽으로)
-# 동쪽 문 맞은편 옹벽 발치의 계단(1997년 7월 27/16 · 27/17: 옹벽에 붙은 7.5 × 2 m 덩이, 가운데가 동쪽 문의 축과 0.15 m 안):
-# 가운데 층계참(옹벽을 트고 띠와 같은 높이)에서 양쪽으로 길까지 내려가는 두 갈래
-EF_U = -3.09                                # 동쪽 문(build_campus ENTRY: (−152.45, −28.21))의 u
-EF_LAND, EF_W = 1.35, 2.0                   # 층계참의 반 길이, 계단의 폭(옹벽에서)
-EF_CHEEK = 0.25                             # 바깥 가의 벽돌 난간벽 두께
+# 띠 위 큰 나무 둘(1997년 7월 수관 o −79 ~ −66, s 5 ~ 32): 1996년 겨울 네 장(26/15 · 26/16 = 12월 23일, 27/16 · 27/17 =
+# 11월 28일)의 줄기 · 줄기 그림자를 띠의 면에 맞대어 읽은 밑동(다섯 줄의 최소제곱, rms 0.3 m, 두 코스 사이 0.3 ~ 0.8 m).
+# 수종은 못 가려 느티나무로, 크기는 1997년 수관(반지름 6.5 ~ 7 m)에 맞춤: (u, v, 크기, 돌림)
+EAST_TREES = ((-14.85, 8.8, 1.15, 1.9), (-1.4, 8.45, 1.15, 4.4))
 
 
 def _uv(x, y):
@@ -96,7 +98,7 @@ def low_h(x, y, foot):
     길 쪽으로 이음"""
     u, v = _uv(x, y)
     z = lane_h(x, y)
-    z = np.where(u < WALL_U, z + (YARD_Z - z) * np.clip((EAST_V - v) / (EAST_V - WALL_V[1]), 0, 1), z)
+    z = np.where(u < BAND_S_U, z + (YARD_Z - z) * np.clip((EAST_V - v) / (EAST_V - WALL_V[1]), 0, 1), z)
     return np.where(v > CURB_V, z + (foot(u) - z) * np.clip((v - CURB_V) / (BANK_V - CURB_V), 0, 1), z)
 
 
@@ -161,8 +163,9 @@ def wall_line():
 
 
 def east_line():
-    """옹벽의 면(지금): 서쪽 끝 -> 남쪽 옹벽이 동쪽 띠의 가까지 -> 북쪽으로 꺾여 띠의 가(옹벽 위가 왼쪽)"""
-    return [(WALL_U, WALL_V[0]), (WALL_U, EAST_V), (WALL_N, EAST_V)]
+    """옹벽의 면(지금): 서쪽 끝 -> 화단의 남동 모서리 -> 북쪽으로 띠의 남쪽 가 -> 동쪽으로 띠의 가까지 -> 북쪽으로 꺾여 띠의
+    가(옹벽 위가 왼쪽)"""
+    return [(WALL_U, WALL_V[0]), (WALL_U, WALL_V[1]), (BAND_S_U, WALL_V[1]), (BAND_S_U, EAST_V), (WALL_N, EAST_V)]
 
 
 def _box(u0, u1, v0, v1):
@@ -171,7 +174,7 @@ def _box(u0, u1, v0, v1):
 
 def raised_region():
     """옹벽 위: 화단(처음의 _raised)과 동쪽 띠, 몸체 북쪽 끝 너머(판 칸이 닿는 곳까지)"""
-    return unary_union([_raised(), _box(WALL_U, 40.0, -12.0, EAST_V)])
+    return unary_union([_raised(), _box(BAND_S_U, 40.0, -12.0, EAST_V)])
 
 
 def low_region():
@@ -227,7 +230,7 @@ def grade(Hn, X, Y, halls, step=5.0, half_=800.0):
     Du, Dv = d_ @ U, d_ @ V
     tl = datum.tilt(X, Y)
     inh = shapely.contains_xy(hb, X, Y)
-    band = (Du >= WALL_U) & (Du <= BAND_DOWN_U) & (Dv >= WALL_V[1]) & (Dv < EAST_V) & ~inh & ~down
+    band = (Du >= BAND_S_U) & (Du <= BAND_DOWN_U) & (Dv >= WALL_V[1]) & (Dv < EAST_V) & ~inh & ~down
     Hn[band] = lane_h(X[band], Y[band]) - 0.1 + tl[band]
     clamp = inh & (Du > BLOCK[0]) & (Du < BLOCK[1]) & (Dv > 0.0)
     Hn[clamp] = np.minimum(Hn[clamp], raised_h(X[clamp], Y[clamp]) - 0.3 + tl[clamp])
@@ -238,7 +241,7 @@ def grade(Hn, X, Y, halls, step=5.0, half_=800.0):
     # (beyond the decks, the ground itself on the surfaces: the yard east of the bed, the lane, the band and the ground west
     # of it past the block's north end)
     near = (Du >= SET_U[0]) & (Du <= SET_U[1]) & ~inh & ~down & ~band & ~lane
-    yd = near & (Du < WALL_U) & (Dv >= WALL_V[1]) & (Dv < EAST_V)
+    yd = near & (Du < BAND_S_U) & (Dv >= WALL_V[1]) & (Dv < EAST_V)
     ln_ = near & (Dv >= EAST_V) & (Dv <= CURB_V)
     nb = near & (Du > BAND_DOWN_U) & (Dv >= -9.0) & (Dv < EAST_V)
     Hn[yd] = low_h(X[yd], Y[yd], foot0) + tl[yd]
@@ -266,6 +269,16 @@ def grade(Hn, X, Y, halls, step=5.0, half_=800.0):
     return took, deck_cells, dict(raised=poly, low=lpoly), dict(raised=hw, low=hl), info
 
 
+_CORNERS = ((WALL_U, WALL_V[1]), (BAND_S_U, WALL_V[1]), (BAND_S_U, EAST_V))
+
+
+def _inside(u, v):
+    """옹벽 위 판 안쪽으로 조금 들인 자리(모서리에서 판의 가에 걸리지 않게): 화단(띠의 남쪽 가 남쪽)은 v WALL_V[1] 안, 띠는 EAST_V 안"""
+    u = max(u, WALL_U + 0.06)
+    v = min(v, EAST_V - 0.06)
+    return (u, min(v, WALL_V[1] - 0.06)) if u < BAND_S_U + 0.04 else (u, v)
+
+
 def walls(top, foot, step=0.5):
     """붉은 벽돌 옹벽(흰 갓), 계단 양쪽 벽돌 기둥, 돌계단: [재질, 네 점], 막을 곳(다각형), 걷는 면(계단의 비탈).
     top(x, y): 화단의 윗면(판 밖은 땅), foot(x, y): 땅(작업면)"""
@@ -274,24 +287,19 @@ def walls(top, foot, step=0.5):
     n = _N[0]
     f0, f1 = FLIGHT_V
     runs = [[(WALL_U, WALL_V[0]), (WALL_U, f0 - PIER)],                       # 서쪽 끝 -> 서쪽 기둥
-            [(WALL_U, f1 + PIER), (WALL_U, EAST_V)],                          # 동쪽 기둥 -> 동쪽 띠의 남동 모서리
-            [(WALL_U, EAST_V), (WALL_N, EAST_V)]]                             # -> 띠의 동쪽 가를 따라 북쪽으로
+            [(WALL_U, WALL_V[1]), (BAND_S_U, WALL_V[1])],                     # 동쪽 기둥(화단의 남동 모서리) -> 북쪽으로 띠의 남쪽 가
+            [(BAND_S_U, WALL_V[1]), (BAND_S_U, EAST_V)],                      # -> 띠의 남쪽 가를 따라 동쪽으로
+            [(BAND_S_U, EAST_V), (WALL_N, EAST_V)]]                           # -> 띠의 동쪽 가를 따라 북쪽으로
     for run in runs:
         (ua, va), (ub, vb) = run
         L = math.hypot(ub - ua, vb - va)
         k_n = max(1, int(math.ceil(L / step)))
         tu, tv = (ub - ua) / L, (vb - va) / L
         nu, nv = tv, -tu                              # (towards the bed: (u north, v east), left of the run)
-        if (ua, va) == (WALL_U, EAST_V):      # (the east run: open at the flight's landing)
-            S = [(u_, EAST_V) for u_ in np.arange(WALL_U, EF_U - EF_LAND + 1e-6, step).tolist() + [EF_U - EF_LAND]]
-            runs.append([(EF_U + EF_LAND, EAST_V), (WALL_N, EAST_V)])
-        elif (ua, va) == (EF_U + EF_LAND, EAST_V):
-            S = [(EF_U + EF_LAND, EAST_V)] + [(u_, EAST_V) for u_ in np.arange(math.ceil((EF_U + EF_LAND) / step) * step, WALL_N + 1e-6, step)]
-        else:
-            S = [(ua + (ub - ua) * k / k_n, va + (vb - va) * k / k_n) for k in range(k_n + 1)]
+        S = [(ua + (ub - ua) * k / k_n, va + (vb - va) * k / k_n) for k in range(k_n + 1)]
         k_n = len(S) - 1
         # (the top sampled just inside the raised side: at the corner the point on the run lies on the deck's edge)
-        zt = [top(*xy(max(u + nu * 0.05, WALL_U + 0.06), min(v + nv * 0.05, EAST_V - 0.06))) for u, v in S]
+        zt = [top(*xy(*_inside(u + nu * 0.05, v + nv * 0.05))) for u, v in S]
         zb = [foot(*xy(u - nu * 0.1, v - nv * 0.1)) - 0.05 for u, v in S]
         on = [max(zt[k] - zb[k], zt[k + 1] - zb[k + 1]) >= 0.12 for k in range(k_n)]
         for k in range(k_n):
@@ -299,7 +307,7 @@ def walls(top, foot, step=0.5):
                 continue
             for e, last in ((0, k == 0 or not on[k - 1]), (1, k == k_n - 1 or not on[k + 1])):
                 (ue, ve) = S[k + e]
-                if not last or zt[k + e] - zb[k + e] < 0.3 or (ue, ve) in ((WALL_U, EAST_V), (WALL_U, f0 - PIER), (WALL_U, f1 + PIER)):
+                if not last or zt[k + e] - zb[k + e] < 0.3 or (ue, ve) in _CORNERS + ((WALL_U, f0 - PIER), (WALL_U, f1 + PIER)):
                     continue
                 # (a wall that stops at full height: its end closed, the brick and the coping's end, both ways round)
                 a_, b_ = xy(ue - nu * COPE_O, ve - nv * COPE_O), xy(ue + nu * (WALL_T + COPE_O), ve + nv * (WALL_T + COPE_O))
@@ -358,58 +366,9 @@ def walls(top, foot, step=0.5):
             quads.append(['stone_white', [R(a, zp), R(b, zp), R(b, zp + COPE_T), R(a, zp + COPE_T)]])
         quads.append(['stone_white', [R(c, zp + COPE_T) for c in co]])
         guards.append([[round(c, 3) for c in p] for p in cs])
-    _east_flight(top, foot, quads, guards, walk, R)
     return quads, guards, walk
 
 
-def _east_flight(top, foot, quads, guards, walk, R):
-    """동쪽 문 맞은편: 옹벽의 트인 곳 앞 층계참(띠 높이)과 남북 두 갈래 돌계단, 바깥 가의 벽돌 난간벽(흰 갓)"""
-    v0, v1 = EAST_V, EAST_V + EF_W
-    zl = top(*xy(EF_U, EAST_V - 0.3))                                    # (the landing: the band's level at the gap)
-    zg = min(foot(*xy(EF_U + sg * (EF_LAND + 2.6), v0 + EF_W / 2)) for sg in (-1, 1))
-    n = flight_n(zl, zg)
-    rise = (zl - zg) / n
-    ul0, ul1 = EF_U - EF_LAND, EF_U + EF_LAND
-    zb = zg - 0.3
-    # landing: its top and its face to the lane
-    quads.append(['stone_step', [R(xy(ul0, v0), zl), R(xy(ul1, v0), zl), R(xy(ul1, v1), zl), R(xy(ul0, v1), zl)][::-1]])
-    walk.append([R(xy(ul0, v0 - 0.3), zl + 0.02), R(xy(ul1, v0 - 0.3), zl + 0.02), R(xy(ul1, v1), zl + 0.02), R(xy(ul0, v1), zl + 0.02)])
-    for sg, ue in ((1, ul1), (-1, ul0)):
-        # the flight from the landing's end out along the wall: riser k at ue + sg (k - 1) TREAD, tread k beyond it
-        for k in range(1, n + 1):
-            ua = ue + sg * (k - 1) * TREAD
-            za, zc = zl - (k - 1) * rise, zl - k * rise
-            q = [R(xy(ua, v0), zb), R(xy(ua, v1), zb), R(xy(ua, v1), za), R(xy(ua, v0), za)]
-            quads.append(['stone_step', q[::-1] if sg > 0 else q])                          # (the drop: a riser face)
-            if k < n:
-                ub = ua + sg * TREAD
-                q = [R(xy(ua, v0), zc), R(xy(ub, v0), zc), R(xy(ub, v1), zc), R(xy(ua, v1), zc)]
-                quads.append(['stone_step', q[::-1] if sg > 0 else q])
-        uf = ue + sg * (n - 1) * TREAD
-        walk.append([R(xy(ue, v0), zl + 0.02), R(xy(ue, v1), zl + 0.02), R(xy(uf + sg * 0.3, v1), zg), R(xy(uf + sg * 0.3, v0), zg)])
-        # the cheek on the lane side, down with the flight, a white coping on it
-        cw = [(ue, zl + 0.75)] + [(ue + sg * k * TREAD, zl - k * rise + 0.75) for k in range(1, n)]
-        for (ua, za), (ub, zc) in zip(cw, cw[1:]):
-            for vv, flip in ((v1, sg > 0), (v1 - EF_CHEEK, sg < 0)):
-                q = [R(xy(ua, vv), zb), R(xy(ub, vv), zb), R(xy(ub, vv), zc), R(xy(ua, vv), za)]
-                quads.append(['brick_red', q if flip else q[::-1]])
-            q = [R(xy(ua, v1 - EF_CHEEK), za), R(xy(ub, v1 - EF_CHEEK), zc), R(xy(ub, v1), zc), R(xy(ua, v1), za)]
-            quads.append(['stone_white', q[::-1] if sg > 0 else q])
-        ua, za = cw[-1]
-        q = [R(xy(ua, v1 - EF_CHEEK), zb), R(xy(ua, v1), zb), R(xy(ua, v1), za), R(xy(ua, v1 - EF_CHEEK), za)]
-        quads.append(['brick_red', q[::-1] if sg > 0 else q])
-        guards.append([[round(c, 3) for c in p] for p in (xy(ue, v1 - EF_CHEEK), xy(uf, v1 - EF_CHEEK), xy(uf, v1), xy(ue, v1))])
-    # the landing's cheek, level
-    for vv, flip in ((v1, True), (v1 - EF_CHEEK, False)):
-        q = [R(xy(ul0, vv), zb), R(xy(ul1, vv), zb), R(xy(ul1, vv), zl + 0.75), R(xy(ul0, vv), zl + 0.75)]
-        quads.append(['brick_red', q if flip else q[::-1]])
-    quads.append(['stone_white', [R(xy(ul0, v1 - EF_CHEEK), zl + 0.75), R(xy(ul1, v1 - EF_CHEEK), zl + 0.75),
-                                  R(xy(ul1, v1), zl + 0.75), R(xy(ul0, v1), zl + 0.75)][::-1]])
-    guards.append([[round(c, 3) for c in p] for p in (xy(ul0, v1 - EF_CHEEK), xy(ul1, v1 - EF_CHEEK), xy(ul1, v1), xy(ul0, v1))])
-    _EF[0] = dict(risers=n, landing=round(float(zl), 2), foot=round(float(zg), 2))
-
-
-_EF = [None]
 
 
 def paint():
@@ -428,8 +387,8 @@ def east_paint():
     u0, u1 = LANE_PAINT_U
     clear = [_box(WALL_U, u1, BLOCK[3] - 0.3, EAST_V + 0.3), _box(u0, u1, EAST_V, BANK_V + 0.3),
              _box(WALL_U - 6.0, WALL_U, WALL_V[1] + 4.4, EAST_V)]
-    asph = [_box(u0, u1, EAST_V, CURB_V), _box(WALL_U - 6.0, WALL_U, WALL_V[1] + 4.4, EAST_V)]
-    pave = [_box(WALL_U, BLOCK[1], BLOCK[3] - 0.3, BLOCK[3] + WALK_W)]
+    asph = [_box(u0, u1, EAST_V, CURB_V), _box(WALL_U - 6.0, WALL_U, WALL_V[1] + 4.4, EAST_V), _box(WALL_U, BAND_S_U, WALL_V[1], EAST_V)]
+    pave = [_box(BAND_S_U, BLOCK[1], BLOCK[3] - 0.3, BLOCK[3] + WALK_W)]
     return clear, asph, pave
 
 
@@ -455,7 +414,7 @@ def east_paths(paths):
     vm = (EAST_V + CURB_V) / 2
     paths.append(dict(kind='service', w=round(CURB_V - EAST_V, 1),
                       pts=[[round(c, 1) for c in xy(u, vm)] for u in (LANE_PAINT_U[0], LANE_PAINT_U[1])]))
-    paths.append(dict(kind='footway', w=WALK_W, pts=[[round(c, 1) for c in xy(u, BLOCK[3] + WALK_W / 2)] for u in (WALL_U, BLOCK[1])]))
+    paths.append(dict(kind='footway', w=WALK_W, pts=[[round(c, 1) for c in xy(u, BLOCK[3] + WALK_W / 2)] for u in (BAND_S_U, BLOCK[1])]))
     return cut, gone
 
 
@@ -483,3 +442,8 @@ def east_clear(items, kind):
             t[1], t[2] = (round(c, 2) for c in xy(u, v2))
             n += 1
     return n
+
+
+def east_trees():
+    """띠 위 큰 나무(EAST_TREES)의 campus.json trees 항목. 나무 목록의 맨 끝에 붙인다(웹은 목록 차례로 모델을 고름)"""
+    return [['zelkova', *(round(c, 2) for c in xy(u, v)), sc, rot] for u, v, sc, rot in EAST_TREES]

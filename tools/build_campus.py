@@ -12880,7 +12880,7 @@ for _jp, _jh, _jn in ((JK97_POLY, JK97_H, 'jk_south'), (JK97_LOW, JK97_LH, 'jk_l
                                   us=_pus, vs=_pvs, z=[[round(float(_jh(*medwest97.xy(u_, v_))) + 0.025, 3) for u_ in _pus] for v_ in _pvs]))
 _jkb['top_ground'] = round(max(ground_tn(x_, y_) for x_, y_ in _jkb['footprint']), 2)
 print('장기원 기념관 남쪽 끝 · 동쪽 발치:', {k_: (len(v_) if isinstance(v_, list) else v_) for k_, v_ in JK97_INFO.items()},
-      'quads %d, guards %d' % (len(_jk_quads), len(_jk_guards)), 'east flight', jk97._EF[0])
+      'quads %d, guards %d' % (len(_jk_quads), len(_jk_guards)))
 print('장기원 기념관 동쪽 발치: trees, shrubs off the lane', jk97.east_clear(out['trees'], 'tree'), jk97.east_clear(out['shrubs'], 'shrub'),
       'walks (cut, gone)', jk97.east_paths(out['paths']), 'decals', jk97.east_decals(out['decals']))
 # (독수리상 안쪽, EAGLE97 above: the azaleas of the round beds as first laid out, r 9.5, go; the beds of 1997 are planted
@@ -12926,6 +12926,9 @@ print('동문 둘레: trees', len(DONGMUN_TREES))
 # steps out in its place in the list
 MUAK_ROW_MORE = muak.rows97_more(MUAK, out['trees'])
 out['trees'] += MUAK_ROW_MORE
+# 장기원 기념관 동쪽 띠 위 큰 나무 둘 (tools/jk97.py EAST_TREES, 2026-11-22: 1996년 겨울 네 장의 줄기 · 그림자로 읽은
+# 밑동): at the trees' very end; the band had no tree in the list (east_clear above only moves the lane's)
+out['trees'] += jk97.east_trees()
 # 동문의 섬 관목 · 가로등 (tools/dongmun.py shrubs · props): at the lists' very end, after every other append
 out['shrubs'] += dongmun.shrubs()
 out['props'] += dongmun.props()
