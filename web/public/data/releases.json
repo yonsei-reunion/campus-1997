@@ -324,10 +324,12 @@
         "category": "걷기 · 충돌",
         "items": [
           "성산로 찻길: 건널목만 → 차도 어디서나 건넘(정문 앞에서 굴다리로 곧장)",
-          "성산로의 차도 걷는 사람 앞에서 섬"
+          "성산로의 차도 걷는 사람 앞에서 섬",
+          "창천교회 앞마당: 연세로 보도에서 교회 앞면까지, 독수리다방 마당과 이어짐 (1997년 항공 사진)"
         ],
         "images": [
-          { "src": "assets/news/505_seongsanro_walk.jpg", "alt": "성산로 찻길 한가운데" }
+          { "src": "assets/news/505_seongsanro_walk.jpg", "alt": "성산로 찻길 한가운데" },
+          { "src": "assets/news/509_church_yard.jpg", "alt": "걸어 들어가는 창천교회 앞마당" }
         ]
       },
       {
