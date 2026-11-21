@@ -1325,6 +1325,12 @@
   "rough": 0.5,
   "emissiveMap": true
  },
+ "sign_yro97": {
+  "_doc": "연세로 가게 간판, 굴다리에서 로터리까지 (2019 · 2021 문집의 신촌 약도, tools/yro97.py SIGNS, tools/make_textures.py sign_yro97, blender/town.py shops): 4 x 16 atlas",
+  "image": "sign_yro97.png",
+  "rough": 0.5,
+  "emissiveMap": true
+ },
  "sign_roof": {
   "_doc": "연세로 가게 지붕 위 틀에 세운 간판 (tools/make_textures.py sign_roof, blender/town.py yro_roofs; 1996년 사진 51979 · 52106의 병원 · 보험 · 학원 간판, 가게 이름은 지어냄): 2 x 8 atlas",
   "image": "sign_roof.png",
