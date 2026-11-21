@@ -387,7 +387,7 @@ LM_SHAPE = {
 # ---- 연세로's mouth, its two corners and the lot east of them (2026-11-16, 고증 4.10.7), drawn as the landmarks are:
 # - 금강제화 (north-west): the scans of 27/18 · 27/19 have one flat roof 32 - 35 m (four storeys over the 20 m walk)
 #   from x -137 to -107 between y -914 and -928, along 양화로 (the 1996 photos 52206 · 52006: its long south face, the
-#   shoe shop's maroon arch over the ground floor, clinics' and academies' boards up the floors, a round drum on the
+#   shoe shop's maroon arch over the ground floor, clinics', a 법무사's and 바둑's boards up the floors, a round drum on the
 #   roof's west end, 34 - 35 m in the scans); OSM 356215992's outline from x -137.5 east.  The row box (20 m along
 #   연세로) it was keeps its draws
 # - 홍익문고 (north-east): its row box (OSM 356219103), six storeys (52004 · 52006: five rows of windows over the
@@ -1855,7 +1855,7 @@ def layout(geo, town, extras, ground, taken_z):
     # (연세로's wall signs and banner: yro_; none on 금강제화's and 홍익문고's walls, which carry their own boards:
     # blender/town.py _kumkang, _hongik)
     own_walls = unary_union([kk_pg, hk_pg]).buffer(1.6)
-    town['vsigns'] = [q for q in yro_wall_signs(blocks) if not own_walls.contains(Point(q[0], q[1]))]
+    town['vsigns'] = yro97.vsign_cells([q for q in yro_wall_signs(blocks) if not own_walls.contains(Point(q[0], q[1]))])
     town['signs2'] = [q for q in town['signs2'] if not own_walls.contains(Point(q[0], q[1]))]
     town['banner'] = yro_banner(geo, ground)
     print('연세로: rows %d + %d, gone %d, wall signs %d, ginkgos %d (+ %d on the banks)' % (
@@ -2162,9 +2162,9 @@ YRO_FIXED = {
     # a low cream two, the white four with the long window bands and 비디오 signs (52004 · 52006)
     (1, 3): [[11.0, 4, 2, 13.0], [8.0, 3, 3, 11.0], [6.0, 2, 1, 10.0], [12.0, 4, 3, 13.0]],
     # west, the junction to the side street at y -884: 금강제화 on the corner (four storeys of white tile, the shoe shop's
-    # sign over the ground floor, clinics and academies above, 52005 · 52006), a cream three
+    # sign over the ground floor, clinics, a 법무사 and 바둑 above, 52005 · 52006), a cream three
     (-1, 3): [[20.0, 4, 3, 14.0], [9.0, 3, 1, 11.0]],
-    # west, north of it: the white five of INDIS · 바둑 · 학원 (52006), the seven storeys of white tile with dark window
+    # west, north of it: the white five of INDIS · 기원 · 바둑 · 만화 (52006), the seven storeys of white tile with dark window
     # bands and 현대예식장's sign up its corner (52106 · 52006, 신영증권 on its roof)
     (-1, 2): [[13.0, 5, 3, 13.0], [24.0, 7, 3, 16.0]],
 }
@@ -2314,7 +2314,8 @@ def yro_wall_signs(blocks):
     """The signs that stand out from the shops' walls up the floors over the ground floor (51979 · 52106: every front
     on 연세로 carries one, many two or three): along both rows, the bridge to the junction (gate_town's too, kind 2).
     A board 0.7 - 0.9 m out from the wall, 2.4 - 7 m tall, its two faces along the street; random.Random(4806).
-    [x, y of the board's middle, z of its middle, the wall's outward way (rad), out, height, cell of sign_yonseiro]"""
+    [x, y of the board's middle, z of its middle, the wall's outward way (rad), out, height, a draw for its cell]
+    (which sign: yro97.vsign_cells, after the corners' own walls are left out)"""
     rnd = random.Random(4806)
     out = []
     for b in blocks:

@@ -83,7 +83,7 @@ ROWS = {
         (-834.0, -842.5, 4, 2, 12.0, []),
         (-846.0, -861.0, 3, 3, 13.0, [('쌍쌍호프', 1)]),
         (-862.0, -876.2, 4, 3, 14.0, []),
-        (-876.4, -883.5, 5, 3, 13.0, []),          # (52006: the white five of INDIS · 바둑 · 학원)
+        (-876.4, -883.5, 5, 3, 13.0, []),          # (52006: the white five of INDIS · 기원 · 바둑 · 만화)
     ],
 }
 # the shop on the house YRO_FIXED keeps north of each corner's landmark (west: the cream three north of 금강제화)
@@ -173,3 +173,76 @@ CELL = {'연세식품': 0, '사진관': 1, '알서림': 2, '식품점': 3, '새�
         '오비넬라': 36, '뚱보분식': 37, '빌보드': 38, '파블로': 39, '약국': 40, '연세만화랑': 41, '하이클라스': 42,
         '국민은행': 43, '쌍쌍호프': 44, '스페인하우스': 45, '초원각': 46, '독수리약국': 47, '독수리만화방': 48}
 COLS, CELLS = 4, 64          # the atlas: 4 x 16 cells of 512 x 128 (2048 x 2048); SIGNS from cell 0, DOK_CELLS apart
+
+# 연세로's wall signs, the boards standing out from the shops' walls up the floors (tools/sinchon_rotary.py
+# yro_wall_signs, blender/town.py yro_signs; reference/고증/4.10.2 「세로 간판」).  sign_yonseiro.png: 16 x 2 cells of
+# 128 x 468 px over the banner's strip (tools/make_textures.py yro_signs), (words stacked down, background, letters,
+# small words over them).  Which sign hangs where:
+# - VS_UP: a shop the maps put upstairs (ROWS, floor 2 or 3; DOK97's street house) has the first signs of its own house
+# - VS_PIN: the seven storeys of white tile on the west (52106 · 52006: 현대예식장 · 신영증권 up its front; 하이크라스
+#   the 2019 map's 하이클라스 in it)
+# - VS_RUN: the rest of what the 1996 photos read (51979 · 52106: the two rows from the junction north), on the free
+#   signs of that side south of y_from, north to south in the photos' order (the houses themselves are not read)
+# - VS_ANY: everywhere else the kinds of business the photos and the maps show, by the sign's own draw
+VSIGNS = [
+    # west, 51979 · 52106
+    ('비디오방', (196, 30, 36), (255, 255, 255), '독수리'), ('포켓당구장', (244, 240, 236), (200, 30, 36), 'TJ'),
+    ('당구장', (248, 248, 246), (206, 30, 30), 'Y'), ('비디오방', (248, 196, 40), (196, 30, 30), '연세'),
+    ('비디오감상', (204, 184, 112), (150, 40, 30), '연세'), ('VIVA', (196, 30, 44), (255, 255, 255), None),
+    ('PISA', (248, 248, 250), (30, 60, 150), 'coffee'), ('오원당구클럽', (30, 50, 130), (255, 255, 255), '포켓전용'),
+    ('게임프라자', (28, 118, 70), (255, 255, 255), None), ('제니스', (28, 58, 140), (255, 255, 255), None),
+    ('하이크라스', (20, 90, 60), (255, 255, 255), None), ('현대예식장', (34, 40, 42), (255, 255, 255), None),
+    ('신영증권', (30, 58, 44), (255, 255, 255), None),
+    # east, 51979 · 52106
+    ('여인숙', (250, 250, 250), (30, 60, 150), None), ('비디오감상실', (250, 250, 248), (30, 40, 90), None),
+    ('M비디오', (196, 28, 36), (255, 255, 255), None), ('허리우드', (28, 118, 70), (255, 255, 255), '비디오'),
+    ('서영외과', (186, 30, 30), (255, 255, 255), '안재훈'), ('이발관', (240, 236, 220), (30, 40, 90), None),
+    ('탁구', (250, 250, 248), (206, 30, 30), '복지'),
+    # upstairs in the maps (their boards' colours in SIGNS)
+    ('영당구장', (20, 20, 24), (255, 200, 60), None), ('복지다방', (240, 228, 196), (110, 50, 20), None),
+    ('장미당구장', (196, 30, 60), (255, 255, 255), None), ('다방', (240, 228, 196), (110, 50, 20), '상아탑'),
+    ('당구장', (30, 100, 60), (255, 255, 230), '상아탑'), ('가든당구장', (30, 100, 60), (255, 255, 230), None),
+    ('연세만화랑', (255, 236, 120), (30, 60, 150), None), ('독수리만화방', (250, 226, 90), (40, 40, 110), None),
+    # any
+    ('당구장', (250, 250, 246), (206, 30, 30), None), ('다방', (240, 228, 196), (110, 50, 20), None),
+    ('기원', (250, 250, 244), (20, 20, 20), None), ('노래방', (30, 60, 160), (255, 230, 80), None),
+]
+VS_UP = {'영당구장': 20, '복지다방': 21, '장미당구장': 22, '상아탑다방': 23, '상아탑당구장': 24, '가든당구장': 25,
+         '연세만화랑': 26, '독수리만화방': 27, '기원': 30}
+VS_PIN = [(-1, -787.5, -816.5, [12, 11, 10])]                # (side, y north, y south, cells)
+VS_RUN = {-1: (-700.0, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]), 1: (-740.0, [13, 14, 15, 16, 17, 18, 19])}
+VS_ANY = [28, 29, 30, 31]
+
+
+def vsign_cells(signs):
+    """sets the cell (the last field) of each of yro_wall_signs' signs [x, y, z, outward way, out, height, cell] by
+    VS_UP · VS_PIN · VS_RUN, the rest VS_ANY by the cell yro_wall_signs drew (its draws stay as they were)"""
+    import math
+    side = [1 if math.cos(q[3]) < 0 else -1 for q in signs]       # (the wall faces west: an east house)
+    order = sorted(range(len(signs)), key=lambda i: -signs[i][1])  # (north first)
+    cell = [None] * len(signs)
+
+    def free(s, yn, ys):
+        return [i for i in order if side[i] == s and ys <= signs[i][1] <= yn and cell[i] is None]
+
+    def give(idx, cells):
+        for i, c in zip(idx, cells):
+            cell[i] = c
+        return list(cells[len(idx):])
+
+    houses = [(s, r[0], r[1], r[5]) for s in ROWS for r in ROWS[s]]
+    houses.append((1, DOK97['house'][0], DOK97['house'][1], DOK97['house'][6]))
+    for s, yn, ys, shops in houses:
+        give(free(s, yn, ys), [VS_UP[n] for n, fl in shops if fl >= 2 and n in VS_UP])
+    for s, yn, ys, cells in VS_PIN:                              # (what its house has no room for: the free signs
+        for c in give(free(s, yn, ys), cells):                   # nearest to it)
+            near = sorted(free(s, 1e9, -1e9), key=lambda i: abs(signs[i][1] - (yn + ys) / 2))
+            if near:
+                cell[near[0]] = c
+    for s, (y_from, cells) in VS_RUN.items():
+        rest = give(free(s, y_from, -1e9), cells)
+        if rest:
+            print('연세로 wall signs: no room for', [VSIGNS[c][0] for c in rest])
+    for i, q in enumerate(signs):
+        q[6] = cell[i] if cell[i] is not None else VS_ANY[q[6] % len(VS_ANY)]
+    return signs

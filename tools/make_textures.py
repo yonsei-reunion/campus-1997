@@ -885,8 +885,11 @@ def yro97_signs():
 yro97_signs()
 
 
-# sign_roof.png: 연세로's rooftop boards (blender/town.py yro_roofs; the 1996 photos 51979 · 52106: hospitals, insurers,
-# 학원 on frames over the shops' roofs). The kinds of business, not real names: 2 x 8 cells, 512 x 128 each
+# sign_roof.png: 연세로's rooftop boards (blender/town.py yro_roofs; reference/고증/4.10.2 「지붕 위 틀 간판」): 2 x 8 cells,
+# 512 x 128 each.  Cells 0 - 13 the kinds of business the 1996 photos (51979 · 52106 · 52006) and the anthologies' maps
+# show on 연세로, words only (the boards stand on houses drawn at random); 14 · 15 the two read on their own houses:
+# 신영증권 on the seven storeys of white tile, the white five's 「商業建築 企畫設計 | INDIS」 (52006: both on the top of the
+# south face, blender/town.py ROOF_PINS)
 def roof_signs():
     if ONLY and 'sign_roof' not in ONLY:
         return
@@ -900,11 +903,11 @@ def roof_signs():
                 continue
         return ImageFont.load_default()
     W_, RED, BLUE, GRN, NAVY = (250, 250, 246), (200, 30, 36), (24, 64, 156), (24, 120, 64), (26, 34, 70)
-    signs = [('외 과 의 원', W_, RED), ('산 부 인 과', W_, BLUE), ('영 어 학 원', BLUE, W_), ('컴퓨터 학원', W_, GRN),
-             ('예 식 장', (180, 24, 40), (255, 236, 150)), ('한 의 원', W_, (120, 50, 30)), ('치 과 의 원', W_, GRN),
-             ('화 재 보 험', NAVY, W_), ('생 명 보 험', W_, NAVY), ('사 우 나', (30, 90, 160), W_),
-             ('독 서 실', W_, (40, 40, 44)), ('당 구 장', (20, 20, 24), (255, 200, 60)), ('입 시 학 원', W_, RED),
-             ('안 과 의 원', W_, BLUE), ('기 원', (250, 244, 220), (30, 30, 30)), ('부 동 산', (250, 220, 40), (30, 30, 34))]
+    signs = [('외 과 의 원', W_, RED), ('내 과 의 원', W_, BLUE), ('치 과 의 원', W_, GRN), ('이비인후과', W_, RED),
+             ('비뇨기과 · 피부과', NAVY, W_), ('증 권', (30, 58, 44), W_), ('예 식 장', (180, 24, 40), (255, 236, 150)),
+             ('생 명 보 험', W_, RED), ('법 무 사', (22, 30, 70), W_), ('기 원', (250, 244, 220), (30, 30, 30)),
+             ('바 둑', (236, 234, 228), (90, 90, 96)), ('당 구 장', (20, 20, 24), (255, 200, 60)),
+             ('사 우 나', (30, 90, 160), W_), ('포켓볼전용', (200, 34, 30), W_)]
     img = Image.new('RGB', (1024, 1024), (200, 200, 200))
     d = ImageDraw.Draw(img)
     for i, (txt, bg, fg) in enumerate(signs):
@@ -922,6 +925,21 @@ def roof_signs():
                 break
             size -= 4
         d.text((x0 + 256 - w / 2, y0 + 62), txt, font=f, fill=fg, anchor='lm')
+    # 14: 신영증권, dark green words and its round mark on the pale grey band (52006)
+    x0, y0 = 0, 7 * 128
+    bg, ink = (232, 232, 226), (34, 74, 52)
+    d.rectangle([x0, y0, x0 + 511, y0 + 127], fill=bg)
+    d.ellipse([x0 + 40, y0 + 30, x0 + 108, y0 + 98], fill=ink)
+    d.ellipse([x0 + 58, y0 + 48, x0 + 90, y0 + 80], fill=bg)
+    d.text((x0 + 128, y0 + 62), '신영증권', font=fnt(84), fill=ink, anchor='lm')
+    # 15: INDIS, 「商業建築 / 企畫設計」 in green on the left, 「INDIS」 in navy under its small line on the right (52006)
+    x0 = 512
+    d.rectangle([x0, y0, x0 + 511, y0 + 127], fill=(214, 216, 208))
+    d.line([x0 + 250, y0 + 10, x0 + 250, y0 + 118], fill=(170, 172, 164), width=3)
+    d.text((x0 + 18, y0 + 34), '商業建築', font=fnt(44), fill=(40, 96, 72), anchor='lm')
+    d.text((x0 + 18, y0 + 92), '企畫設計', font=fnt(44), fill=(40, 96, 72), anchor='lm')
+    d.text((x0 + 380, y0 + 20), 'ENTERPRISE COMMUNICATION INC.', font=fnt(14), fill=(40, 50, 90), anchor='mm')
+    d.text((x0 + 380, y0 + 72), 'INDIS', font=fnt(70), fill=(30, 40, 110), anchor='mm')
     img.save(os.path.join(OUT, 'sign_roof.png'), optimize=True)
     print('sign_roof')
 
@@ -930,12 +948,14 @@ roof_signs()
 
 
 # sign_yonseiro.png: the signs that stand out from the walls of 연세로's shops (tools/sinchon_rotary.py yro_wall_signs,
-# blender/town.py yro_signs), 8 x 2 cells of 128 x 468 px, the words stacked down; the kinds and some names the 1996
-# photos 51979 · 52106 · 52006 show (당구장, 비디오방, M 비디오, 서영외과, 허리우드 비디오, 여인숙, PISA, …).  Under them,
-# 1024 x 88 px, 제5회 신촌문화축제's banner over the street (51979: the big green words read only as 「… 시범공연」).
+# blender/town.py yro_signs), 16 x 2 cells of 128 x 468 px (2048 wide), the words stacked down: tools/yro97.py VSIGNS,
+# what the 1996 photos 51979 · 52106 read (연세 비디오방, 오원당구클럽, 게임프라자, 현대예식장, 신영증권, 안재훈 서영외과,
+# 복지 탁구, …), the maps' upstairs shops and the kinds both show.  Under them, 2048 x 88 px, 제5회 신촌문화축제's banner
+# over the street (51979: the big green words read only as 「… 시범공연」), drawn at 1024 and stretched
 def yro_signs():
     if ONLY and 'sign_yonseiro' not in ONLY:
         return
+    import yro97
     fb = '/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc'
 
     def fnt(size):
@@ -945,20 +965,12 @@ def yro_signs():
             except Exception:
                 continue
         return ImageFont.load_default()
-    # (words, background, letters, small words over them)
-    signs = [('당구장', (250, 250, 246), (206, 30, 30), None), ('비디오방', (248, 206, 40), (196, 30, 30), '연세'),
-             ('M비디오', (196, 28, 36), (255, 255, 255), None), ('서영외과', (186, 30, 30), (255, 255, 255), None),
-             ('허리우드', (28, 118, 70), (255, 255, 255), '비디오'), ('여인숙', (250, 250, 250), (30, 60, 150), None),
-             ('PISA', (248, 248, 250), (30, 60, 150), 'coffee'), ('노래방', (30, 60, 160), (255, 230, 80), None),
-             ('호프', (110, 50, 24), (255, 220, 110), '생맥주'), ('치과의원', (252, 252, 248), (20, 120, 60), None),
-             ('한의원', (248, 244, 232), (20, 40, 100), None), ('영어학원', (20, 90, 170), (255, 255, 255), None),
-             ('약국', (252, 252, 250), (30, 130, 70), None), ('포켓볼', (200, 30, 40), (255, 255, 255), '당구'),
-             ('레코드', (90, 30, 120), (255, 230, 120), None), ('다방', (240, 228, 196), (110, 50, 20), '전원')]
+    signs = yro97.VSIGNS
     CW, CH = 128, 468
-    img = Image.new('RGB', (1024, 1024), (200, 200, 200))
+    img = Image.new('RGB', (2048, 1024), (200, 200, 200))
     d = ImageDraw.Draw(img)
     for i, (txt, bg, fg, top) in enumerate(signs):
-        x0, y0 = (i % 8) * CW, (i // 8) * CH
+        x0, y0 = (i % 16) * CW, (i // 16) * CH
         d.rectangle([x0, y0, x0 + CW - 1, y0 + CH - 1], fill=bg)
         d.rectangle([x0 + 5, y0 + 5, x0 + CW - 6, y0 + CH - 6], outline=tuple(int(c * 0.75) for c in fg), width=4)
         yy = y0 + 16
@@ -976,13 +988,14 @@ def yro_signs():
             w = d.textlength(ch, font=f)
             d.text((x0 + CW / 2 - w / 2, yy + step * (k + 0.5)), ch, font=f, fill=fg, anchor='lm')
     # the banner: white cloth, the festival in blue, the show in green, when and where in red
-    y0 = 2 * CH
-    d.rectangle([0, y0, 1023, 1023], fill=(244, 244, 238))
+    ban = Image.new('RGB', (1024, 1024 - 2 * CH), (244, 244, 238))
+    d, y0 = ImageDraw.Draw(ban), 0
     f1, f2, f3 = fnt(26), fnt(46), fnt(18)
     d.text((60, y0 + 20), '제5회 신촌문화축제', font=f1, fill=(30, 50, 150), anchor='lm')
     d.text((640, y0 + 20), '주최: 신촌문화축제 추진위원회', font=f3, fill=(30, 50, 150), anchor='lm')
     d.text((300, y0 + 58), '시범공연', font=f2, fill=(30, 120, 70), anchor='lm')
     d.text((560, y0 + 66), '일시: 96.5.4 16:00 ~ 17:00    T. 325-6282', font=f3, fill=(200, 40, 40), anchor='lm')
+    img.paste(ban.resize((2048, 1024 - 2 * CH), Image.LANCZOS), (0, 2 * CH))
     img.save(os.path.join(OUT, 'sign_yonseiro.png'), optimize=True)
     print('sign_yonseiro')
 
@@ -1205,7 +1218,7 @@ hall_banners()
 # sign_mouth.png (RGBA, 1024 x 1024, drawn at 2048) and data/sign_mouth_uv.json (each piece's rectangle as u0, v0, u1, v1, v up):
 # the boards of 연세로's mouth and 그랜드마트 as the 1995 · 1996 photos show them (고증 4.10.7, blender/town.py _kumkang,
 # _hongik, _grand).  금강제화 (52206 · 52006): the white band over the ground floor, a maroon arch with 「금강제화」 in
-# white and 「Kumkang」 in red; the corner's red-and-white upright; the clinics' and academies' boards up the floors.
+# white and 「Kumkang」 in red; the corner's red-and-white upright; the clinics', a 법무사's and 바둑's boards up the floors.
 # 홍익문고 (52004 · 52006): the white board along the top of the south face, a dark green ring with its mark and
 # 「홍익문고」 in red; the black upright on the west face.  그랜드마트 (52135 · 52119 · 52095): the red mark and 「그랜드마트
 # 신촌점」 straight on the tiles (transparent round them), the sale banners down the round face, the poster, the
@@ -1284,8 +1297,7 @@ def mouth_signs():
     # the boards up the floors (4 : 1 and 5 : 1): [words, ground, ink]
     boards = [('포켓볼전용', (200, 34, 30, 255), white), ('법무사', (22, 30, 70, 255), white), ('신진 바둑', (236, 234, 228, 255), (90, 90, 96, 255)),
               ('주인일 내과', (244, 242, 236, 255), (190, 30, 36, 255)), ('박비뇨기과 · 피부과', (28, 34, 82, 255), white),
-              ('이비인후과의원', (244, 242, 236, 255), (196, 30, 40, 255)), ('신촌치과의원', (246, 244, 238, 255), (190, 28, 34, 255)),
-              ('영어학원', (30, 70, 140, 255), white)]
+              ('이비인후과의원', (244, 242, 236, 255), (196, 30, 40, 255)), ('신촌치과의원', (246, 244, 238, 255), (190, 28, 34, 255))]
     for i, (txt, bg, fg) in enumerate(boards):
         x0, y0, w, h = piece('kk_b%d' % i, 1152 + (i % 2) * 448, 128 + (i // 2) * 112, 440, 104)
         d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=bg)

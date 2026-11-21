@@ -448,7 +448,7 @@ def _upright(mb, q, n, z0, z1, out, piece, th=0.16):
 def _kumkang(mb, d):
     """금강제화 (52206 · 52006, 1996.6 - 8): four storeys of pale grey tile along 양화로, the shoe shop's windows round
     the ground floor under its white band (the maroon arch with 「금강제화」, 「Kumkang」), three floors of window bands
-    between pilasters, the clinics' and academies' boards over the windows of the top two, the red-and-white upright
+    between pilasters, the clinics', a 법무사's and 바둑's boards over the windows of the top two, the red-and-white upright
     on the corner over 연세로, a round drum on the roof's west end and a dark steel frame on its east half"""
     o, base, top = _ccw([tuple(p) for p in d['outline']]), d['base'], d['top']
     zg, zb = base + 3.1, base + 4.6                       # (the shop windows' head, the band's top: the first floor's)
@@ -506,7 +506,7 @@ def _kumkang(mb, d):
                 cell = cells[(j + i * 2 + row) % len(cells)]
                 _board(mb, p0 + t * (L * (j + 0.5) / k), t, n, z, 3.9, 0.92, cell, off=0.14)
     p0, t, n, L = sides[east]
-    for f, cell in ((2, 'kk_b7'), (1, 'kk_b5')):
+    for f, cell in ((1, 'kk_b5'),):                        # (the east face's top floor: no board the photos read)
         _board(mb, p0 + t * (L * 0.45), t, n, zb + hf * f + hf - 0.25, 3.9, 0.92, cell, off=0.14)
     # the roof: inside the parapet, the drum at its west end (34 - 35 m in the scans), the steel frame
     _flat(mb, [o], top, 'roof_flat')
@@ -858,7 +858,7 @@ def shops():
 
 def yro_signs():
     """연세로 (tools/sinchon_rotary.py yro_wall_signs): the signs standing out from the shops' walls up the floors, a board
-    with its two faces along the street (sign_yonseiro, 8 x 2 cells over the banner's strip), dark edges.
+    with its two faces along the street (sign_yonseiro, 16 x 2 cells over the banner's strip), dark edges.
     [x, y, z of its middle, the wall's outward way, out, height, cell]"""
     mb = MeshBuilder('town_yro_signs')
     V0 = 88 / 1024                               # (the banner's strip under the cells)
@@ -866,8 +866,8 @@ def yro_signs():
         ox, oy = math.cos(ang), math.sin(ang)
         tx, ty = -oy, ox
         th = 0.14
-        u0, u1 = (cell % 8) / 8 + 0.004, (cell % 8 + 1) / 8 - 0.004
-        v1 = 1 - (cell // 8) * (1 - V0) / 2 - 0.002
+        u0, u1 = (cell % 16) / 16 + 0.002, (cell % 16 + 1) / 16 - 0.002
+        v1 = 1 - (cell // 16) * (1 - V0) / 2 - 0.002
         v0 = v1 - (1 - V0) / 2 + 0.004
         P = lambda a, b, dz: (x + ox * a + tx * b, y + oy * a + ty * b, z + dz)
         zb, zt = -h / 2, h / 2
@@ -885,9 +885,15 @@ def yro_signs():
 # 연세로's roofs and walls as the 1996 photos have them (51979 · 52106, reference/고증/4.10.2 「연세로 지붕 · 벽의 것」): white
 # satellite dishes on many roofs (무궁화위성, up from 1995: aimed south-south-west, azimuth about 198°, 45° up from
 # 신촌), the outdoor boxes of air conditioners hung on the walls by the windows, and boards on steel frames over the
-# shops' roofs.  Their own random stream per block (nothing drawn from houses()' stream, so no house changes).
+# shops' roofs (sign_roof: the kinds of business, ROOF_KINDS; the two read on their own houses, ROOF_PINS).  Their own
+# random stream per block (nothing drawn from houses()' stream, so no house changes).
 YRO_BOX = (-175.0, -1000.0, -20.0, -470.0)        # x0, y0, x1, y1: 연세로 and the first houses behind its rows
 DISH_AZ, DISH_EL = math.radians(198.0), math.radians(45.0)
+ROOF_KINDS = 14                                   # (sign_roof's cells 0 - 13; a board's draw of 16 taken modulo)
+# (x0, y0, x1, y1 the house's middle in, sign_roof's cell, the board's width, height): the two read on their own
+# houses in 52006, flat on the top of the south face (over the side streets), from its street end: 신영증권 on the
+# seven storeys of white tile, 「商業建築 企畫設計 | INDIS」 on the white five south of them
+ROOF_PINS = [(-120.0, -810.0, -105.0, -793.0, 14, 9.0, 2.0), (-120.0, -884.0, -108.0, -876.0, 15, 10.0, 2.4)]
 
 
 def _dish(mb, x, y, z, r, rnd):
@@ -948,14 +954,33 @@ def _aircon(mb, p, n, z, rnd):
         _rod(mb, a0, a0 + N * (d + 0.1), 0.02, 'metal_dark')
 
 
+def _pin_board(mb, P, L, W, c, zt, pin):
+    """a ROOF_PINS board flat on the top of the house's south face, from its street end"""
+    cell, bw, bh = pin[4:]
+    sg = 1 if c < 0 else -1                                 # (the side of v whose way is south: its y is c)
+    u0 = -L / 2 + 0.3
+    u1 = min(L / 2 - 0.3, u0 + bw)
+    a, b = P(u0, sg * (W / 2 + 0.1)), P(u1, sg * (W / 2 + 0.1))
+    o = P(0.0, sg)
+    m = P(0.0, 0.0)
+    nx, ny = o[0] - m[0], o[1] - m[1]                       # (the face's outward way)
+    if (b[1] - a[1]) * nx - (b[0] - a[0]) * ny < 0:         # (seen from outside: a on the left)
+        a, b = b, a
+    z1 = zt - 0.15
+    z0 = z1 - bh
+    uu, vv = (cell % 2) / 2, 1 - (cell // 2 + 1) / 8
+    mb.face([(a[0], a[1], z0), (b[0], b[1], z0), (b[0], b[1], z1), (a[0], a[1], z1)], 'sign_roof',
+            uvs=[(uu, vv), (uu + 0.5, vv), (uu + 0.5, vv + 0.125), (uu, vv + 0.125)])
+
+
 def _roof_board(mb, P, L, W, zt, rnd):
-    """a board on a steel frame over the street edge of a roof (the 1996 photos' hospital and 학원 boards)"""
+    """a board on a steel frame over the street edge of a roof (the 1996 photos' clinic, 증권 and 예식장 boards)"""
     bw = min(W - 1.0, rnd.uniform(5.0, 8.5))
     if bw < 3.5:
         return
     bh = min(2.4, max(1.3, bw / 4.0))
     lift = rnd.uniform(0.5, 1.2)
-    cell = rnd.randrange(16)
+    cell = rnd.randrange(16) % ROOF_KINDS
     u = -L / 2 + 0.6
     v0 = rnd.uniform(-(W - bw) / 2 + 0.3, (W - bw) / 2 - 0.3) if W - bw > 0.6 else 0.0
     a, b = P(u, v0 + bw / 2), P(u, v0 - bw / 2)             # (seen from the street, a on the right)
@@ -1020,6 +1045,9 @@ def yro_roofs():
         if shop and lv >= 4 and rnd.random() < 0.3:
             _roof_board(mb, P, L, W, zt, rnd)
             nb += 1
+        pin = next((q for q in ROOF_PINS if q[0] < cx < q[2] and q[1] < cy < q[3]), None)
+        if pin:
+            _pin_board(mb, P, L, W, c, zt, pin)
     print('연세로 roofs: %d dishes, %d air conditioners, %d boards' % (nd, na, nb))
     return mb
 
