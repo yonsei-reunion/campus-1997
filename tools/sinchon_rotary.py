@@ -82,7 +82,23 @@ BAEKBEOM_RNG = dict(ARMS['baekbeom'])
 # 신촌로 (the east arm, sinchon_e): the painted middle (a band of two lines 0.9 m apart near the junction) south of OSM's line
 # by 3.0 m at 26 m out, 2.35 at 50, 1.7 from 65 on (both scans, eleven windows within 0.15 m); the kerbs stay (the
 # north one within 0.5 m of the scans', the south one near the junction: SE_KERB below)
-SINCHON_E_MID = [(0.0, -3.0), (26.0, -3.0), (38.0, -2.7), (50.0, -2.35), (65.0, -1.75), (80.0, -1.7), (1000.0, -1.7)]
+SINCHON_E_MID = [(0.0, -3.0), (26.0, -3.0), (38.0, -2.7), (50.0, -2.35), (65.0, -1.75), (80.0, -1.7), (101.0, -1.75),
+                 (119.0, -1.5), (143.0, -1.2), (167.0, -0.85), (197.0, -0.7), (221.0, -0.5), (263.0, -0.5), (275.0, -0.7),
+                 (287.0, -1.1), (299.0, -1.4), (311.0, -1.65), (329.0, -2.0), (353.0, -1.7), (371.0, -1.45), (383.0, -1.15),
+                 (401.0, -0.65), (425.0, -0.5), (443.0, -0.55), (467.0, -1.1), (1000.0, -1.1)]
+# (2026-11-21, 고증 4.10.4 「신촌로(동)의 남쪽 연석」: past s 80 the band's brighter north line every 6 m in both scans,
+# 0.4 m north of the band's middle where both are read: the middle wanders 1.5 m about OSM's line out to the arm's end)
+# Its south lanes as the scans paint them, from the junction to the crossing at s 278 [(s, m off the arm's line), kind]
+# (both scans' dashes within 0.1 - 0.3 m): two dashed lines; the third dashed to the side street, then the bus lane's
+# blue line (52204, 1996.6); the stop's dashed line in front of 한일은행.  Past SE_PAINT_END the rule's lanes again
+SE_PAINT_END = 276.0
+SE_LINES = [([(45.0, -5.13), (55.0, -4.67), (64.0, -4.55), (72.0, -4.48), (88.0, -4.36), (103.0, -4.21), (126.0, -3.94),
+              (143.0, -3.73), (152.0, -3.6), (170.0, -3.42), (197.0, -3.1), (216.0, -2.94), (236.0, -2.84), (276.0, -2.8)], 'white_dash'),
+            ([(45.0, -7.6), (60.0, -7.45), (77.0, -7.27), (84.0, -7.18), (100.0, -6.96), (114.0, -6.79), (130.0, -6.63),
+              (148.0, -6.45), (166.0, -6.25), (184.0, -6.04), (212.0, -5.72), (240.0, -5.64), (261.0, -5.77), (276.0, -5.8)], 'white_dash'),
+            ([(53.0, -10.67), (64.0, -10.51), (80.0, -10.51), (98.0, -10.6)], 'white_dash'),
+            ([(100.0, -10.4), (112.0, -10.0), (130.0, -9.85), (148.0, -9.6), (160.0, -9.4), (195.0, -9.1), (276.0, -9.2)], 'blue'),
+            ([(98.0, -15.6), (125.0, -15.6)], 'white_dash')]
 # Its south kerb near the junction (2026-11-21, 고증 4.10.4 「신촌로(동)의 남쪽 연석」): 16.3 m south of the arm's line, not
 # 14, from the island's turning lane to the bus stop in front of 한일은행 (s 125).  52204 (1996.6, from 외환은행's roof)
 # across one row through the stop: the yellow middle, the two dashed lines, the blue bus lane's line and the dark
@@ -1236,12 +1252,21 @@ def layout(geo, town, extras, ground, taken_z):
                     sl = ss[ss <= s_stop + YRO_LANE_SOLID]
                     paint.append(dict(kind='white', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * o for s in sl])))
                     continue
-                for run in runs(ss[2:][ss[2:] >= ROT_LANE_FROM.get((k, sgn), 0.0)], cut):
+                s_r = ss[2:][ss[2:] >= ROT_LANE_FROM.get((k, sgn), 0.0)]
+                if k == 'sinchon_e' and sgn < 0:                 # (the scans' south lanes first: SE_LINES)
+                    s_r = s_r[s_r > SE_PAINT_END]
+                for run in runs(s_r, cut):
                     pts = []
                     for s in run:
                         hs = a.half - sgn * mid_of(k, s)                 # (the half on that side of the painted middle)
                         pts.append(AT(a, k, s, sgn * (0.3 + (hs - 0.3) / a.lanes * kk)))
                     paint.append(dict(kind='white_dash', w=0.12, pts=R2(pts)))
+    ae_ = A['sinchon_e']
+    for tab, kind in SE_LINES:                                     # (신촌로's south lanes, 1997)
+        t_ = np.array(tab)
+        sl = np.arange(t_[0, 0], t_[-1, 0], 2.0).tolist() + [t_[-1, 0]]
+        paint.append(dict(kind=kind, w=0.12, pts=R2([ae_.at(s)[0] + ae_.at(s)[2] * float(np.interp(s, t_[:, 0], t_[:, 1]))
+                                                    for s in sl])))
     # 연세로's crossing between the junction and the bridge, with stop lines either side (MID_CROSS: s_mid its south
     # edge, mid_dep its depth, s_stop_n / s_stop_s where its stop lines begin)
     s_mid = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS['y'][0])))

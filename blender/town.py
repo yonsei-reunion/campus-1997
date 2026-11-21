@@ -1698,7 +1698,7 @@ def road():
                 fine += [p, ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)]
             _ribbon(mb, fine + [pts[-1]], ln['w'], 'paint_white', dash=(3.0, 5.0))
         else:
-            _ribbon(mb, pts, ln['w'], 'paint_yellow' if ln['kind'] == 'yellow' else 'paint_white')
+            _ribbon(mb, pts, ln['w'], {'yellow': 'paint_yellow', 'blue': 'paint_blue'}.get(ln['kind'], 'paint_white'))
     for z in T['zebra']:
         (xa, ya), (xb, yb), (xc, yc), (xd, yd) = z
         n = max(1, int(max(abs(xb - xa), abs(yd - ya)) / 3.0))
