@@ -12769,6 +12769,7 @@ print('동문 둘레: trees', len(DONGMUN_TREES))
 # 동문의 섬 관목 · 가로등 (tools/dongmun.py shrubs · props): at the lists' very end, after every other append
 out['shrubs'] += dongmun.shrubs()
 out['props'] += dongmun.props()
+out['shrubs'] += north97.shrubs97_more()      # (무악학사 학사 사이 동 서쪽의 덩이, 2026-11-21: at the shrubs' very end)
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))

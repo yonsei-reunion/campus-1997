@@ -228,8 +228,14 @@ SHRUBS97 = (  # (kind, x, y, scale)
                                                 (152.5, 1160.8), (155.3, 1160.1), (155.5, 1162.8), (157.8, 1158.7), (159.3, 1161.6),
                                                 (160.4, 1163.9), (160.6, 1157.5), (162.4, 1161.8))] +
     # (the 1996 26/13 scan, downloaded 2026-11-17, with 26/14: dark round blobs within 0.75 m in both, one by the
-    #  low block between the halls and the island's two ends)
-    [('topiary_round', 136.6, 1164.5, 1.0), ('topiary_round', 147.4, 1165.2, 1.1), ('topiary_round', 170.1, 1158.5, 1.1)])
+    #  low block between the halls and two at the island's west end.  Their places as the east frame 27/14 puts them
+    #  with the west ones, 2026-11-21: the blobs where 27/14, 26/13 and 26/14 agree within 0.25 m on the plane 1.5 m
+    #  over the game's ground (read on 2026-11-17 on a plane 4.5 m too low, aerial97.ground ending at y 800, so the two
+    #  west frames had put them 1.5 - 2.5 m east); the third of then (170.1, 1158.5) is the paved pocket's stalls in
+    #  all three, and its place goes to the island's second blob)
+    [('topiary_round', 135.2, 1164.0, 1.0), ('topiary_round', 145.3, 1165.0, 1.1), ('topiary_round', 145.7, 1163.0, 1.1)])
+# (and a blob found with them on 2026-11-21, under the low block's tree: at the shrubs' very end, shrubs97_more())
+SHRUBS97_MORE = [('topiary_round', 134.4, 1162.2, 1.0)]
 # the wood north of the wings (the 1997 frames 26/13 · 27/15: closed crowns from the wings' north ends to the houses on
 # 연희로 at y 1255, the path across it from the yard behind 1학사 kept clear; x 200 east is the patch's woods already)
 NWOOD97 = Polygon([(118.0, 1236.0), (127.0, 1228.0), (137.0, 1228.5), (147.0, 1230.0), (153.0, 1226.0), (160.0, 1215.0),
@@ -251,6 +257,12 @@ def shrubs97():
     """the 1997 shrubs round the dormitories (SHRUBS97), for the shrubs' very end"""
     rd = random.Random(16000)
     return [[k, x, y, sc, round(rd.uniform(0, 6.28), 2)] for k, x, y, sc in SHRUBS97]
+
+
+def shrubs97_more():
+    """SHRUBS97_MORE, for the shrubs' very end"""
+    rd = random.Random(16022)
+    return [[k, x, y, sc, round(rd.uniform(0, 6.28), 2)] for k, x, y, sc in SHRUBS97_MORE]
 
 
 def grid_z(x, y):
