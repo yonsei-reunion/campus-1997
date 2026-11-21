@@ -10165,6 +10165,38 @@ out['paths'] += [dict(kind='service', w=7, pts=[[-96.0, -332.4], [-104.0, -327.0
                  dict(kind='service', w=GATE97_LANE_W, pts=[list(q_) for q_ in GATE97_LANE_PTS])]
 print('정문 안 갈림길 1997: shrubs %+d, props %+d, decals %+d, trees moved off the paving %s, new trees %d' % (
     len(out['shrubs']) - _n0[0], len(out['props']) - _n0[1], len(out['decals']) - _n0[2], _g97_moved, len(GATE97_NEW_TREES)))
+# 정문 안 화단 띠의 남쪽 끝 (reference/고증/2.3.1 「정문 안의 섬과 띠의 남쪽 끝」): the 1996 winter, July 1997, 1998 and 1999
+# scans have no verge between the gate and the crossing at s 62.8, only a short kerbed island either side behind the
+# main pillars (s 47.1 - 51.7, as wide as the verge), the paving beside them; the verges start again at the crossing's
+# south edge (s 61.6 - 61.9).  Drawn late, so that nothing planted moves: the gate's mouths keep the verge back to the
+# islands' south ends (blender/road.py mouths, 6th value: the sidewalk's paving out to the carriageway's kerb in front),
+# an opening from their north ends to the crossing (campus.json breaks; it runs on into the crossing's own); of the
+# verge's shrubs there the two nearest each island stand on it, the rest go
+GATE_ISL97 = (47.15, 51.7)                  # the islands' ends (s; west 47.08 - 51.63, east 47.24 - 51.79)
+GATE_VERGE97 = 61.7                         # the verges' south ends (west 61.57, east 61.86)
+for m_ in out['baekyangro']['mouths']:
+    if m_[1] == -2.0 and abs(m_[2] - round(GATE_S + 1.0, 2)) < 1e-6:
+        m_[5:] = [round(GATE_ISL97[0] - m_[2], 2)]
+out['baekyangro']['breaks'] += [[1, GATE_ISL97[1], GATE_VERGE97], [-1, GATE_ISL97[1], GATE_VERGE97]]
+_gi_mid = sum(GATE_ISL97) / 2
+_gi_n0, _gi_keep = len(out['shrubs']), {}
+for s_ in out['shrubs']:
+    if s_[0] not in ('juniper_tiers', 'topiary_round'):
+        continue
+    _s, _o = s_off(s_[1], s_[2])
+    if GATE_S < _s < GATE_VERGE97 + 1.0 and E_CURB0 < abs(_o) < E_VERGE + 0.3:
+        _gi_keep.setdefault(1 if _o > 0 else -1, []).append((abs(_s - _gi_mid), _s, id(s_), s_))
+_gi_on = {}
+for sd_, lst_ in _gi_keep.items():
+    lst_.sort(key=lambda q_: q_[0])
+    for k_, (_, _, i_, s_) in enumerate(sorted(lst_[:2], key=lambda q_: q_[1])):    # (on the island, 1.35 m apart)
+        x, y, _ = along_raw(_gi_mid + (k_ - 0.5) * 1.35, sd_ * (E_CURB + ROAD['verge'] * 0.5))
+        s_[1], s_[2] = round(x, 2), round(y, 2)
+        _gi_on[i_] = 1
+_gi_drop = {q_[2] for lst_ in _gi_keep.values() for q_ in lst_ if q_[2] not in _gi_on}
+out['shrubs'][:] = [s_ for s_ in out['shrubs'] if id(s_) not in _gi_drop]
+print('정문 안 섬 1997: islands s %.2f - %.2f, verges from %.1f, shrubs %d on the islands, %d gone' % (
+    GATE_ISL97[0], GATE_ISL97[1], GATE_VERGE97, len(_gi_on), _gi_n0 - len(out['shrubs'])))
 markers += ROT['markers']
 out['colliders'] += ROT['colliders']
 out.setdefault('walk_open', []).extend(ROT['walk_open'])     # (where the web may set a walker down past town.limit,
