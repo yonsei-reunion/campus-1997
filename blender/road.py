@@ -43,10 +43,11 @@ def build():
     e_verge = e_curb + verge
     e_walk = e_verge + walk
     e_strip = e_walk + strip
-    # verge planter top, sidewalk top (above the asphalt): the kerbs stood some 15 - 18 cm over the carriageway (the 1997
-    # photo, the 2010 / 2011 roadview before the rebuilding: the verge's soil level with its kerbs, a low lip on the
-    # sidewalk side); a 32 cm planter wall before
-    VZ, WZ = 0.18, 0.15
+    # verge planter top, sidewalk top (above the asphalt): the kerbs stood some 22 cm over the carriageway (the 1600 px
+    # copies of three 1996 photos from the rail bank, the verges' south ends just inside the gate seen square on:
+    # 21 - 27 cm, the sharpest, sunlit one 22 cm; the 2010 / 2011 roadview's 10 cm came later: reference/고증/2.3.1),
+    # the verge's soil level with its kerbs, a lip on the sidewalk side; 18 cm before, a 32 cm planter wall before that
+    VZ, WZ = 0.22, 0.15
     # the granite kerbs: their own material, whose shader draws a joint every metre of u (web/src/kerbjoints.js; the
     # 2010 / 2011 roadview: stones about 1 m long), u running along the road
     KERB = 'curb_road'
