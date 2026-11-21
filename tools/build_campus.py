@@ -12766,6 +12766,10 @@ out['shrubs'] = [s_ for s_ in out['shrubs'] if not _yf_new.buffer(0.4).contains(
 DONGMUN_TREES = dongmun.trees(out['trees'], [b_['footprint'] for b_ in out['buildings']], muak.woods_fill)
 out['trees'] += DONGMUN_TREES
 print('동문 둘레: trees', len(DONGMUN_TREES))
+# 무악학사 길 서쪽 줄의 밑동 셋 (tools/muak.py ROW97_MORE, 2026-11-21): at the trees' very end; a tree within 2 m of one
+# steps out in its place in the list
+MUAK_ROW_MORE = muak.rows97_more(MUAK, out['trees'])
+out['trees'] += MUAK_ROW_MORE
 # 동문의 섬 관목 · 가로등 (tools/dongmun.py shrubs · props): at the lists' very end, after every other append
 out['shrubs'] += dongmun.shrubs()
 out['props'] += dongmun.props()

@@ -67,11 +67,13 @@ OFF97_RNG = [(0, 2.0), (50, 2.0), (60, 1.2), (100, 1.2), (125, 2.7), (170, 2.7),
 # 3.21.1 「헤어핀」): the middle line left of OFF97's smoothed line (m), added after its smoothing.  Below the apex the
 # bright middle line lies in the middle of the paving (dark kerb shade at 0 .. +0.5, paving to -7.5, a pale strip +1 ..
 # +3.5 beside it), followed in plan from both ends to the apex, where the two follows meet within 0.3 m (s 344 - 352);
-# s 440 - 476 has no line (the wide paving at the car park's mouth): eased back to OFF97's by s 480, where the 1996
-# frames read it again on the line
+# s 440 - 452 has no line (the wide paving at the car park's mouth); s 454 - 470 the four winter frames, 1997 27/15 ·
+# 26/14 and 1999 27/15 · 26/15 read it 0.8 - 1.0 m right of the line eased through before (2026-11-21: the paving's
+# kerb on its left 2.8 m off it), s 432 - 438 0.2 - 0.35 m right, s 476 - 490 on it
 HAIRPIN97 = [(320, 0.0), (330, 0.15), (336, -1.0), (340, -2.8), (344, -4.6), (348, -5.3), (352, -5.5), (356, -4.8),
              (360, -4.2), (364, -3.6), (368, -3.55), (380, -3.55), (396, -3.5), (400, -3.2), (412, -3.1), (420, -3.05),
-             (424, -2.6), (428, -2.3), (436, -2.4), (448, -1.6), (460, -0.7), (472, -0.15), (480, 0.0)]
+             (424, -2.6), (428, -2.5), (432, -2.55), (436, -2.7), (456, -1.92), (460, -1.55), (463, -1.35), (470, -0.66),
+             (476, -0.06), (480, 0.0)]
 HALF = 3.0                      # half the carriageway
 # below the hairpin 7 m between the kerbs (the 1996 paving 7.8 m with the kerbs' shade, 2008's crossing at s 424 7.2 m):
 # (s from, to of the easing in), (from, to of the easing out), the half width added
@@ -297,6 +299,32 @@ def rows97(trees_, sides, line, seed=15997):
                 sp = 'oak' if rd.random() < 0.6 else 'zelkova'
                 extra.append([sp, round(float(q[0]), 2), round(float(q[1]), 2), round(rd.uniform(0.85, 1.15), 2), round(rd.uniform(0, 6.28), 2)])
     return extra
+
+
+# the west row's trunks found on 2026-11-21 (reference/고증/3.21.1 「노면의 선과 길가 나무」): the trunk's dark foot read on
+# planes over the road in the three winter frames 27/14 · 27/15 · 26/13 (and 26/14), where the east and the west
+# cameras agree on its place: s 240.5 within 0.3 m in four frames (at the plane the trunks either side agree on), s 276.5
+# within 0.25 m in three, s 268.6 in 27/14 · 27/15 within 0.1 m (26/13 sees it under an evergreen crown).  Read at the
+# road's own height before, two frames were 1.0 - 1.1 m apart.  (s, offset): new trees after every other tree
+ROW97_MORE = [(240.5, 4.0), (268.6, 4.7), (276.5, 6.0)]
+
+
+def rows97_more(line, trees_, seed=16021):
+    """the trunks of ROW97_MORE as new trees (for the trees' very end); a tree of trees_ standing within 2 m of one steps
+    out to 2 m in its place in the list"""
+    rd = random.Random(seed)
+    out = []
+    for s, o in ROW97_MORE:
+        q = at(line, s, o)
+        sp = 'oak' if rd.random() < 0.6 else 'zelkova'
+        out.append([sp, round(float(q[0]), 2), round(float(q[1]), 2), round(rd.uniform(0.85, 1.15), 2), round(rd.uniform(0, 6.28), 2)])
+    for t in trees_:
+        for r in out:
+            d = math.dist(t[1:3], r[1:3])
+            if d < 2.0:
+                u = ((t[1] - r[1]) / d, (t[2] - r[2]) / d) if d > 1e-6 else (1.0, 0.0)
+                t[1], t[2] = round(r[1] + u[0] * 2.0, 2), round(r[2] + u[1] * 2.0, 2)
+    return out
 
 
 def trees(line, trees_, halls, s0=14.0, s1=S_GRID, seed=15991, place=None, dec=None, sides=None):
