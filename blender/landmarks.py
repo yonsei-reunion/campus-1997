@@ -3875,7 +3875,7 @@ def auditorium():
 def chapel():
     """루스채플 as the 1997-07-28 and 1996 winter scans have it (tools/chapel97.py, reference/고증/3.25; campus.json
     'chapel97'): the hall under a flat roof 9.25 m over its floor, its parapet a dark band round the striped roof of four
-    bays; a lower strip along its north face, a block against its east face and a low wing north of the strip with four
+    bays, its underside sloping down and in to brick walls 12 m (east, west) and 7 m (south, north) within; a lower strip along its north face, a block against its east face and a low wing north of the strip with four
     skylights, all flat-roofed; the floor on the south porch's level, a granite plinth down to the ground, which falls
     to the west road; the porch before the south face with a walled planter at its west end and the doors on the axis
     of the flight that goes down in two runs between the round lawns (garden_flight).  No tower: the scans have none"""
@@ -3899,18 +3899,45 @@ def chapel():
 
     pu0, pu1, pv0, pv1 = P['porch']
     door0, door1 = -8.0, -3.0                                     # (the doors: on the flight's axis)
+    # the hall's roof is a wide slab whose underside slopes down and in, an upturned hipped soffit of dark boards, to the
+    # walls far in under it (the school-site photo chapel.jpg from the south-west, its camera tools/photofit/r96/
+    # chapel.json, and today's photo 학교연혁_루스채플.jpg: the hip from the south-west corner and the brick pier at the
+    # inner corner; reference/고증/3.25 「처마 밑 경사면과 안쪽 벽」)
+    FASCIA, IN_U, IN_V, RIM = 0.8, 12.0, 7.0, 4.85                 # (rim 46.5 m 해발 = floor 41.65 + 4.85)
     for name in ('hall', 'north', 'east', 'wing'):
         u0, u1, v0, v1 = P['parts'][name]['uv']
         top = P['parts'][name]['top']
         poly = ring(u0, u1, v0, v1)
         zb = min(0.0, low(poly)) - 0.5
-        zw = 0.6 if name == 'hall' else zb + 0.5                     # (the hall's granite plinth up to its floor's ledge)
-        mb.prism(offset_poly(poly, 0.12), zb, zw, 'stone_granite', 'stone_granite')
-        for i in range(4):
+        if name == 'hall':
+            # the granite podium up to the floor (the floor under the eave); the fascia; the soffit; the walls within
+            mb.prism(offset_poly(poly, 0.12), zb, 0.0, 'stone_granite', 'stone_step')
+            inner = ring(u0 + IN_U, u1 - IN_U, v0 + IN_V, v1 - IN_V)
+            for i in range(4):
+                a, c, ai, ci = poly[i], poly[(i + 1) % 4], inner[i], inner[(i + 1) % 4]
+                Pw, Le, tw, nw = edge_P(a, c)
+                flat_wall(mb, Pw, 0, Le, top - FASCIA, top, 'concrete_dark')
+                mb.quad((*ai, RIM), (*ci, RIM), (*c, top - FASCIA), (*a, top - FASCIA), 'wood_soffit')
+                Pi, Li, ti, ni = edge_P(ai, ci)
+                if i == 0:                                          # (south: the doors on the flight's axis)
+                    sd0, sd1 = door0 - ai[0], door1 - ai[0]
+                    flat_wall(mb, Pi, sd0, sd1, 2.8, RIM, 'brick_red')
+                    for s0_, s1_ in ((0, sd0), (sd1, Li)):
+                        window_grid(mb, Pi, s1_ - s0_, 0.0, 1, RIM, 2.6, 'brick_red', ww=0.3, sill=0.9, head=0.5,
+                                    trim='stone_trim', s_start=s0_, s_end=s1_)
+                else:
+                    window_grid(mb, Pi, Li, 0.0, 1, RIM, 2.6, 'brick_red', ww=0.3, sill=0.9, head=0.5, trim='stone_trim')
+            for (ua, va), su, sv in (((u0 + IN_U, v0 + IN_V), 1, 1), ((u1 - IN_U, v0 + IN_V), -1, 1),
+                                     ((u1 - IN_U, v1 - IN_V), -1, -1), ((u0 + IN_U, v1 - IN_V), 1, -1)):
+                mb.box((ua - su * 0.45, va - sv * 0.45, RIM / 2), (1.1, 1.1, RIM), 'brick_red')   # (corner piers)
+        else:
+            mb.prism(offset_poly(poly, 0.12), zb, zb + 0.5, 'stone_granite', 'stone_granite')
+        zw = zb + 0.5
+        for i in range(4 if name != 'hall' else 0):
             a, c = poly[i], poly[(i + 1) % 4]
             Pw, Le, tw, nw = edge_P(a, c)
-            flat_wall(mb, Pw, 0, Le, top - 0.7, top, 'concrete_dark' if name == 'hall' else 'stone_trim')   # (the parapet band)
-            if name != 'hall' and Le > 6.0 and top > 3.0:
+            flat_wall(mb, Pw, 0, Le, top - 0.7, top, 'stone_trim')   # (the parapet band)
+            if Le > 6.0 and top > 3.0:
                 # a row of windows on the floor's level (the low parts' walls are not in the scans: brick as the hall's)
                 flat_wall(mb, Pw, 0, Le, zw, 0.6, 'brick_red')
                 for s0_, s1_ in ((0, 1.0), (Le - 1.0, Le)):
@@ -3919,15 +3946,6 @@ def chapel():
                             s_start=1.0, s_end=Le - 1.0)
                 continue
             flat_wall(mb, Pw, 0, Le, zw, top - 0.7, 'brick_red')
-            if name == 'hall' and i in (0, 1, 3):
-                # tall narrow windows between brick piers; on the south face not over the doors
-                nf = int(Le / 2.6)
-                for k in range(1, nf):
-                    s_ = k * Le / nf
-                    if i == 0 and door0 - 0.8 < u0 + s_ < door1 + 0.8:
-                        continue
-                    mb.quad(Pw(s_ - 0.35, 1.6, 0.02), Pw(s_ + 0.35, 1.6, 0.02), Pw(s_ + 0.35, top - 1.6, 0.02), Pw(s_ - 0.35, top - 1.6, 0.02), 'glass')
-                    mb.quad(Pw(s_ - 0.45, 1.5, 0.05), Pw(s_ + 0.45, 1.5, 0.05), Pw(s_ + 0.45, 1.6, 0.05), Pw(s_ - 0.45, 1.6, 0.05), 'stone_trim')
         # the roof inside its parapet
         rin = offset_poly(poly, -0.7 if name == 'hall' else -0.3)
         zr = top - (0.45 if name == 'hall' else 0.25)
@@ -3957,7 +3975,7 @@ def chapel():
         mb.box((c_, (qv0 + qv1) / 2, 0.2), (0.24, qv1 - qv0 - 0.48, 0.4), 'stone_trim')
     mb.quad((qu0 + 0.24, qv0 + 0.24, 0.25), (qu1 - 0.24, qv0 + 0.24, 0.25), (qu1 - 0.24, qv1 - 0.24, 0.25), (qu0 + 0.24, qv1 - 0.24, 0.25), 'soil')
     # the doors on the flight's axis
-    hall_v0 = P['parts']['hall']['uv'][2]
+    hall_v0 = P['parts']['hall']['uv'][2] + IN_V                  # (the south wall within the eave)
     mb.quad((door0, hall_v0 - 0.03, 0.0), (door1, hall_v0 - 0.03, 0.0), (door1, hall_v0 - 0.03, 2.8), (door0, hall_v0 - 0.03, 2.8), 'glass_door')
     mb.box(((door0 + door1) / 2, hall_v0 - 0.05, 2.9), (door1 - door0 + 0.3, 0.1, 0.2), 'frame_dark')
     for u_ in (door0, door0 + 1.25, (door0 + door1) / 2, door1 - 1.25, door1):

@@ -1450,5 +1450,16 @@
   ],
   "rough": 0.6,
   "metal": 0.3
+ },
+ "wood_soffit": {
+  "_doc": "루스채플 처마 밑 경사면의 짙은 갈색 판 (학교 홈페이지 chapel.jpg, 학교연혁_루스채플.jpg, reference/고증/3.25)",
+  "tex": "wood_planks_dirt",
+  "tile": 3.0,
+  "tint": [
+   0.3,
+   0.21,
+   0.15
+  ],
+  "rough": 0.75
  }
 }
