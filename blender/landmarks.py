@@ -902,14 +902,26 @@ def centennial():
         Jt = A_ + tw * T_['face_s']                                           # the arc's north end, on the face
         a_w = math.atan2(Jt.y - c[1], Jt.x - c[0])
         a_k = math.atan2(-nw.y, -nw.x)                                        # where it turns into the straight wall
-        narc = max(3, int(math.ceil((a_k - a_w) / (2 * math.pi / 96))))
-        lp = [ring(Rt, a_w + (a_k - a_w) * k / narc) for k in range(narc + 1)]
-        ln = [(p - Vector(c)).normalized() for p in lp]
-        Ws = Vector(T_['south'])
-        ns_ = max(1, int(round((Ws - lp[-1]).length / 1.2)))
-        for k in range(1, ns_ + 1):
-            lp.append(lp[narc] + (Ws - lp[narc]) * (k / ns_))
-            ln.append(-nw)
+        # the mullions: equal bays of 1.54 m along the arc and the straight wall, counted from the south end, whose bay
+        # is 1.65 m (the as-built 백양로 elevation, 월간 건축문화 1988년 4월: sixteen mullions on this arc and line,
+        # rms 0.04 m; reference/고증/3.4 「1988년 준공 도면」); the face cuts the last bay short (the glass runs on
+        # into the porch under the box)
+        Tk, Ws = ring(Rt, a_k), Vector(T_['south'])
+        La, Ls = Rt * (a_k - a_w), (Ws - Tk).length
+        marks, m_ = [0.0], 1.65
+        while m_ < La + Ls - 0.3:
+            marks.append(m_)
+            m_ += 1.54
+        marks.append(La + Ls)
+        lp, ln = [], []
+        for m_ in reversed(marks):                                            # north (the face) to south
+            q_ = La + Ls - m_
+            if q_ <= La:
+                lp.append(ring(Rt, a_w + q_ / Rt))
+                ln.append((lp[-1] - Vector(c)).normalized())
+            else:
+                lp.append(Tk + (Ws - Tk) * ((q_ - La) / Ls))
+                ln.append(-nw)
         nw_lobby(mb, lp, ln, z0, HP, top=LT)
         zt = z0 + LT
         for k in range(len(lp) - 1):                                          # its roof, in under the drum's wall

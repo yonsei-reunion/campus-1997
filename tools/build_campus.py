@@ -1172,8 +1172,10 @@ _c0 = _c0_rv - _ts * 3.5 + _tw * _CBN
 _CBF, _CBS, _CBH = 25.0, 11.0 - _CBN, 6.9                          # front, side, height (its coping 0.4 over)
 # The as-built drawings (월간 건축문화 1988년 4월, AURUM: the 백양로 and south elevations) and the 1996 - 1999 frames: the
 # coping 7.3 m over the hall's floor (35.2 m), and along the front a taller part, 10.8 m (38.6 m) and 3.75 m deep (the
-# 백양로 elevation), its west end 2 m in from the west side (the frames: the side's edge stays at the coping's height)
-_CB_TALL = [1.5, 3.75, 10.8]                                       # from the corner along the front, depth, top
+# 백양로 elevation), from the west side (the south elevation: the front's top runs to the block's west edge without a
+# step; the 1996 - 1999 frames read the front edge tall from 2.5 m east of the corner, the side's edge low behind the
+# 3.75 m)
+_CB_TALL = [0.0, 3.75, 10.8]                                       # from the corner along the front, depth, top
 _cdr = np.array([-8.6, -241.8]) + BLD_MOVE[324328422]              # the drum's centre (blender/landmarks.py CENT_DRUM)
 _CTR = 19.1                                                        # the low curved wall's radius about it
 _ctT = _cdr + _nw * _CTR                                           # where the arc turns into the straight wall
