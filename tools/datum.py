@@ -393,7 +393,7 @@ def heights(c):
             for k in ('base', 'deck', 'top', 'foot'):
                 if k in l:
                     out.append((l, k, l['tilt'], None))
-        for l in T.get('sites', []):            # (연세로의 공사장: tools/yro97.py PIT)
+        for l in T.get('sites', []):            # (연세로의 옛 독수리다방: tools/yro97.py DOK97)
             for k in ('base', 'top', 'foot'):
                 A(l, k, sum(p[0] for p in l['outline']) / len(l['outline']), sum(p[1] for p in l['outline']) / len(l['outline']))
         ra = T['rail']

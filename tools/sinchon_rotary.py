@@ -1078,13 +1078,17 @@ def layout(geo, town, extras, ground, taken_z):
                 b[6] = -b[6]
                 n_mouth_gone += 1
     lm_draw += lm_mouth
-    # 독수리빌딩's lot in July 1997 (tools/yro97.py PIT): a pit behind a hoarding.  Not among the landmarks: those are
-    # level zones of the datum (tools/build_campus.py _dz_zones), and this one leaves the ground as it is
-    pit_pg = shapely.geometry.polygon.orient(Polygon(yro97.PIT), 1.0)
-    pit_o = list(pit_pg.exterior.coords)[:-1]
-    pit_z = [ground(x_, y_) for x_, y_ in pit_o]
-    town['sites'] = [dict(kind='pit97', name='독수리빌딩 터파기', base=round(max(pit_z), 2), top=round(max(pit_z) + 2.4, 2),
-                          foot=round(min(pit_z) - 0.3, 2), outline=R2(pit_o))]
+    # 독수리다방's own house in its lot (tools/yro97.py DOK97: as it stood in December 1996).  Not among the landmarks:
+    # those are level zones of the datum (tools/build_campus.py _dz_zones), and this one leaves the ground as it is:
+    # its floor is the ground at its door (the north-west corner), its walls go down to the lowest corner
+    dk = yro97.DOK97
+    dk_pg = shapely.geometry.polygon.orient(Polygon(dk['main']), 1.0)
+    dk_o = list(dk_pg.exterior.coords)[:-1]
+    dk_z = [ground(x_, y_) for x_, y_ in dk_o]
+    dk_base = ground(*dk['main'][0])
+    town['sites'] = [dict(kind='dok97', name='독수리다방', base=round(dk_base, 2), top=round(dk_base + dk['h'], 2),
+                          foot=round(min(dk_z) - 0.3, 2), outline=R2(dk_o), tower=R2(dk['tower']),
+                          tower_h=dk['tower_h'], bay=list(dk['bay']), cells=dict(yro97.DOK_CELLS))]
     print('연세로 어귀: 금강제화 · 홍익문고 · 공사장 as landmarks, %d boxes inside them gone' % n_mouth_gone)
     # ---- kerbs: the carriageways' edge (gate_town's 연세로 north of y -560 has its own), lane paint, crossings
     kerbs, paint, zebra = [], [], []
@@ -1535,6 +1539,12 @@ def layout(geo, town, extras, ground, taken_z):
     # road): its carriageway and south walk the length gate_town lays it (x -480 .. 340), open along the north kerb
     # (the campus's walk), walled at its two ends and along the south walk's back
     W_parts.append(extras['ssr_open'])
+    # 독수리다방's yard (yro97.DOK97; 2026-11-21): from 연세로's walk in to the house's walls and door and along the
+    # street house's front (the lane north of it is no walk, as before)
+    dk = yro97.DOK97
+    dk_walls = unary_union([Polygon(dk['main']).buffer(0.35), Point(dk['bay'][0], dk['bay'][1]).buffer(dk['bay'][2] + 0.3)]
+                           + [_box(b).buffer(0.4) for b in blocks if len(b) == 12 and b[6] > 0 and -90.0 < b[0] < -40.0 and -600.0 < b[1] < -550.0])
+    W_parts.append(unary_union([Polygon(dk['yard']), Polygon(dk['fore'])]).difference(dk_walls))
     Wk = unary_union(W_parts).buffer(0.05).buffer(-0.05)
     walk_open, walk_holes, barrier = [], [], []
     kn_ = extras['kerb_n'][np.argsort(extras['kerb_n'][:, 0])]
@@ -2194,7 +2204,7 @@ def yro_rows(geo, blocks, ground):
     anthologies' street maps have them (tools/yro97.py ROWS; 고증 4.10.8), appended to blocks; south of the last side
     street of each side YRO_FIXED's (the 1996 photos: 홍익문고 and the brick house, 금강제화 and the cream three; east
     also the four north of 연세로2길).  gate_town's rows north of y -640 and whatever stands in the new ones or in
-    독수리빌딩's pit go (b[6] < 0, their draws kept).  Returns the fronts of each side, north to south (the last of the
+    독수리다방's lot go (b[6] < 0, their draws kept; the lot's street house of 1996 is added last).  Returns the fronts of each side, north to south (the last of the
     east side is 홍익문고, of the west 금강제화), how many went, and the shops' boards: [x, y, z of the board's middle,
     the way it faces (rad), width, height, cell of sign_yro97]."""
     rnd = random.Random(4805)
@@ -2250,7 +2260,17 @@ def yro_rows(geo, blocks, ground):
                 fronts[side].append(b)
                 named.append((b, shops))
     rows = fronts[1] + fronts[-1]
-    rp = unary_union([_box(b).buffer(-0.2) for b in rows] + [Polygon(yro97.PIT).buffer(1.0)])
+    # 독수리다방's lot (yro97.DOK97): the street house of December 1996, its front behind the row's.  After the rows and
+    # with no draw of theirs, so the other houses keep their roofs
+    yn, ys, lv, wall, dep, back, shops = yro97.DOK97['house']
+    s_n, s_s = S(yn), S(ys)
+    p_, t_, n_ = ya.at((s_n + s_s) / 2)
+    c_ = p_ - n_ * (face((s_n + s_s) / 2, 1) + back + dep / 2)
+    dk_b = [round(float(c_[0]), 2), round(float(c_[1]), 2), round(dep, 2), round(s_n - s_s - 0.15, 2),
+            round(math.atan2(-n_[1], -n_[0]), 4), 0.0, int(lv), int(wall), 2, 0, 2, 1]
+    dk_b[5] = round(min(ground(x_, y_) for x_, y_ in list(_box(dk_b).exterior.coords)[:4]) - 0.3, 2)
+    named.append((dk_b, shops))
+    rp = unary_union([_box(b).buffer(-0.2) for b in rows] + [Polygon(yro97.LOT).buffer(1.0)])
     shapely.prepare(rp)
     n_gone = 0
     for b in blocks:
@@ -2259,7 +2279,7 @@ def yro_rows(geo, blocks, ground):
         if (b[10] == 2 and b[1] > Y_ROWS) or shapely.intersects(rp, _box(b)):       # (gate_town's rows; what stands here)
             b[6] = -b[6]
             n_gone += 1
-    blocks += rows
+    blocks += rows + [dk_b]
     # the shops' boards: over each ground floor shop its name, the frontage shared among them; a shop upstairs has its
     # board on the wall over its own floor's windows
     boards = []

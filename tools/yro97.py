@@ -26,8 +26,8 @@ ROWS = {
         # paved yard, open to the street (cars parked on it in the scans)
         (-520.0, -531.0, 5, 2, 12.0, [('연세식품', 1)]),
         (-531.0, -540.0, 2, 1, 10.0, [('사진관', 1)]),
-        # 연세로12길 to 명물1길: the lot of 독수리다방 · 초원각 · 독수리약국 was a pit in July 1997 (PIT: 독수리빌딩 going
-        # up); the three-storey house south of it stood on
+        # 연세로12길 to 명물1길: the lot of 독수리다방 · 초원각 · 독수리약국 is DOK97's (its houses of December 1996, not
+        # the pit of July 1997); the three-storey house south of it stood on
         (-587.6, -600.0, 3, 1, 10.0, [('알서림', 1), ('식품점', 1)]),
         # 명물1길 to the street at y -700
         (-604.0, -610.6, 2, 1, 9.0, [('새마을금고', 1)]),
@@ -89,12 +89,42 @@ ROWS = {
 # the shop on the house YRO_FIXED keeps north of each corner's landmark (west: the cream three north of 금강제화)
 FIXED_SHOPS = {(-1, 3, 1): [('스페인하우스', 1)]}
 
-# 독수리빌딩's lot, east side between 연세로12길 and the house at y -587.6: old low houses in the scans of 1996-12
-# (독수리다방's among them), a pit shored with steel struts in 1997-07-28 (26/16 · 27/17 · 27/18: the same lattice at
-# the same place in all three, 0 - 2 m over the walk, so beams at the ground's level over a hole, not a frame going
-# up), a tall block finished in 1998-10.  Its outline in the three frames
-PIT = [(-83.6, -563.6), (-69.0, -562.0), (-55.5, -561.5), (-53.0, -574.0), (-58.0, -584.5), (-63.5, -592.5), (-76.0, -591.5),
+# 독수리빌딩's lot, east side between 연세로12길 and the house at y -587.6.  In the scans of 1996-12-23 (26/16 · 26/17)
+# and 1996-11-28 (27/17 · 27/18) the old houses stand; on 1997-07-28 (26/16 · 27/17 · 27/18) it is a pit shored with steel
+# struts (the same lattice at the same place in all three, 0 - 2 m over the walk); a tall block finished in 1998-10
+# (연세춘추 1998-05-11: 8 storeys, to open that summer).  When the old houses came down between the two is not known; the
+# game's season is May and the user chose the old houses (2026-11-21).  LOT: the pit's outline in the three frames of
+# 1997, which is the lot that was cleared (whatever of gate_town's stands in it goes)
+LOT = [(-83.6, -563.6), (-69.0, -562.0), (-55.5, -561.5), (-53.0, -574.0), (-58.0, -584.5), (-63.5, -592.5), (-76.0, -591.5),
        (-83.2, -587.2)]
+
+# The lot in December 1996 (heights over the walk: the four frames' roofs matched pair by pair, 1.2 m windows every 1.5 m;
+# outlines: the roofs' edges where two frames laid at the roof's height agree):
+# - 독수리다방's own house at the back, 16 m in from 연세로 behind a paved yard at the lane's corner: a three-storey block
+#   11.0 m high, its north face 17.6 m along the lane, the west one 3.9 m and then turning south-east; a stair tower a
+#   storey higher (13.6 m) on that turned side; a round bay 8 - 10 m high bulging west where the two meet.  The 2019
+#   anthology's photo of the house (26쪽, an older print: dark brick, a slate mansard along the north face with the white
+#   letters 독 수 리 on it, three wide windows of coloured glass under it and a narrower one over the door at the corner,
+#   two storeys of glazing at the east half, the round bay and the taller tower round the corner on the right) is this
+#   one seen from the north-west: the same three masses at the same heights, and the three wide windows show in 26/16
+# - a four-storey house on the street south of the yard, 14.3 m high, its front 2.5 m behind the row's (a higher stair
+#   head on its north-east); its wall pale where the sun is on it (the south face in 26/17)
+# - the yard: the banded paving of 창천교회's front along the street's walk, cars on it
+DOK97 = dict(
+    # 독수리다방: the three-storey block's outline, counter-clockwise from its north-west corner
+    main=[(-66.0, -566.6), (-66.0, -570.5), (-63.6, -579.3), (-60.0, -579.8), (-58.8, -577.6), (-48.0, -570.0), (-48.5, -564.9)],
+    h=11.0,
+    tower=[(-66.0, -570.5), (-64.4, -576.5), (-61.0, -576.5), (-61.0, -570.5)], tower_h=13.6,
+    bay=(-66.0, -569.9, 2.4, 3.6, 9.4),          # (the round bay: its middle on the west wall, radius, from - to over the floor)
+    # the street house: (y north, y south, storeys, wall band, depth, how far its front is behind the row's, shops)
+    house=(-575.8, -587.3, 4, 1, 14.0, 2.5, [('초원각', 1), ('독수리약국', 1), ('독수리만화방', 2)]),
+    # the yard open to the walker: from the row's front line to 독수리다방's walls, the lane to the street house, and the
+    # strip before the street house's front
+    yard=[(-82.6, -561.0), (-82.6, -587.6), (-79.9, -587.6), (-79.9, -575.5), (-65.4, -575.5), (-65.4, -561.0)],
+    fore=[(-66.5, -561.0), (-66.5, -565.9), (-49.0, -564.2), (-49.0, -561.0)],     # (and the strip before its north face)
+)
+# sign_yro97's cells of the house itself (not shop boards): the roof's letters, the coloured glass of the wide windows
+DOK_CELLS = dict(roof=52, glass=53)
 
 # sign_yro97.png's cells, 4 across: (name as painted, background, letters)
 SIGNS = [
@@ -121,6 +151,8 @@ SIGNS = [
     ('약 국', (252, 252, 250), (30, 130, 70)), ('연세만화랑', (255, 236, 120), (30, 60, 150)),
     ('하이클라스', (30, 40, 100), (255, 240, 180)), ('국 민 은 행', (250, 250, 246), (90, 70, 50)),
     ('쌍쌍호프', (120, 30, 20), (255, 220, 120)), ('스페인하우스', (160, 30, 30), (255, 236, 170)),
+    ('초 원 각', (190, 30, 30), (255, 226, 120)), ('독수리약국', (252, 252, 250), (30, 130, 70)),
+    ('독수리만화방', (250, 226, 90), (40, 40, 110)),
 ]
 # the name in a shop's entry -> its cell
 CELL = {'연세식품': 0, '사진관': 1, '알서림': 2, '식품점': 3, '새마을금고': 4, '오락실': 5, '아마데우스': 6, '초원분식': 7,
@@ -129,5 +161,5 @@ CELL = {'연세식품': 0, '사진관': 1, '알서림': 2, '식품점': 3, '새�
         '연희식당': 22, '장미당구장': 23, '쟈뎅': 24, 'Y오락실': 25, '상아탑분식': 26, '상아탑다방': 27, '상아탑당구장': 28,
         '오늘의 책': 29, '기원': 30, '레코드': 31, '신촌반점': 32, '가든당구장': 33, '진미락': 34, '천지문': 35,
         '오비넬라': 36, '뚱보분식': 37, '빌보드': 38, '파블로': 39, '약국': 40, '연세만화랑': 41, '하이클라스': 42,
-        '국민은행': 43, '쌍쌍호프': 44, '스페인하우스': 45}
-COLS, CELLS = 4, 48          # the atlas: 4 x 12 cells of 512 x 128 (2048 x 1536 padded to 2048 x 2048)
+        '국민은행': 43, '쌍쌍호프': 44, '스페인하우스': 45, '초원각': 46, '독수리약국': 47, '독수리만화방': 48}
+COLS, CELLS = 4, 64          # the atlas: 4 x 16 cells of 512 x 128 (2048 x 2048); SIGNS from cell 0, DOK_CELLS apart

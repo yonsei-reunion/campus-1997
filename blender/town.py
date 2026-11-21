@@ -670,57 +670,102 @@ def _tower97(mb, d):
         _bar(mb, (mx, my, zt + 6.8), P(along, 0.0, z), 0.06, 'metal_dark')
 
 
-def _pit97(mb, d):
-    """독수리빌딩's lot in July 1997 (tools/yro97.py PIT, the scans of 26/16 · 27/17 · 27/18): a pit for its basements
-    shored with steel, behind a hoarding.  The scans from above: wales along the pit's sides, struts across it both ways
-    about 6 m apart on a skew grid, dark between them; a few pale boxes (site huts, plant) on a deck at its street end.
-    The hoarding is as such sites had then: pale steel sheets on posts, 2.4 m.  The ground is not dug (the walker never
-    comes here): the pit's floor is a dark face just over it"""
-    o, base, top = _ccw([tuple(p) for p in d['outline']]), d['base'], d['top']
-    foot = d.get('foot', base)
-    for i in range(len(o)):                                # the hoarding: sheets between posts 2.4 m apart
-        p0, t, n, L = _side(o, i)
+def _dok97(mb, d):
+    """독수리다방's own house as it stood until 1997 (tools/yro97.py DOK97: the masses from the scans of December 1996,
+    the looks from the photo in the 2019 anthology, 26쪽): three storeys of dark brick behind the yard at the lane's
+    corner.  The north face along the lane: a slate mansard along its top with the white letters 독 수 리, three wide
+    windows of coloured glass under it between white sills and heads and a narrower one with a white box over the door
+    at the corner, three white lamps, two storeys of glazing on its east half.  Round the corner the plain west wall,
+    a round bay bulging out of it over the ground floor, and the stair tower a storey higher on the wall that turns
+    south-east, small windows up it"""
+    o = _ccw([tuple(p) for p in d['outline']])
+    k0 = max(range(len(o)), key=lambda i: o[i][1] - o[i][0])       # (from the north-west corner)
+    o = o[k0:] + o[:k0]
+    base, top, foot = d['base'], d['top'], d.get('foot', d['base'])
+    BR, WH = 'brick_dok97', 'paint_white'
+    zp = top + 0.35                                         # (the parapet's top)
+    S = [_side(o, i) for i in range(len(o))]
+    for i in range(len(o)):
         a, b = o[i], o[(i + 1) % len(o)]
-        _quad(mb, a, b, foot, top, 'paint_white')
-        _quad(mb, b, a, foot, top, 'metal_dark')           # (its back)
-        k = max(1, round(L / 2.4))
-        for j in range(k + 1):
-            q = p0 + t * (L * j / k) + n * 0.06
-            mb.box((q.x, q.y, (foot + top) / 2), (0.1, 0.1, top - foot), 'metal_dark')
-    inner = _inset(o, 1.0)
-    _flat(mb, [inner], base + 0.05, 'trim_black')          # (the hole, seen from above)
-    xs, ys = [p[0] for p in inner], [p[1] for p in inner]
-    cx, cy = sum(xs) / len(xs), sum(ys) / len(ys)
-    ang = math.radians(-32.0)                              # (the struts' grid: turned as the scans have it)
-    u, v = Vector((math.cos(ang), math.sin(ang), 0)), Vector((-math.sin(ang), math.cos(ang), 0))
-    inside = lambda p: _in_poly(p, inner)
-    zb = base + 0.75
-    for axis, other in ((u, v), (v, u)):
-        for k in range(-4, 5):
-            c = Vector((cx, cy, 0)) + other * (6.0 * k)
-            run = [s_ for s_ in [x_ * 0.5 for x_ in range(-90, 91)] if inside((c + axis * s_)[:2])]
-            if len(run) < 6:
-                continue
-            p_, q_ = c + axis * run[0], c + axis * run[-1]
-            _bar(mb, (p_.x, p_.y, zb), (q_.x, q_.y, zb), 0.42, 'metal_dark')
-    for i in range(len(inner)):                            # (the wales along the sides)
-        a, b = inner[i], inner[(i + 1) % len(inner)]
-        _bar(mb, (a[0], a[1], zb), (b[0], b[1], zb), 0.42, 'metal_dark')
-    rn = random.Random(5971)
-    w0 = min(range(len(o)), key=lambda i: o[i][0])        # (its street end: the westmost corner)
-    for k in range(3):                                     # (the huts and plant on the deck by the street)
-        q = Vector((o[w0][0] + 4.5 + 3.4 * k, o[w0][1] - 3.5 - 2.6 * (k % 2), 0))
-        if inside((q.x, q.y)):
-            mb.box((q.x, q.y, base + 1.3 + 0.75), (rn.uniform(2.4, 5.5), 2.4, 2.6), 'paint_white', rotz=ang)
+        _quad(mb, a, b, foot, zp, BR)
+        _quad(mb, b, a, top, zp, 'concrete')               # (the parapet's inside)
+    _flat(mb, [o], top, 'roof_flat')
 
+    def cell(k, u0=0.0, u1=1.0):
+        c0, v1 = (k % 4) / 4, 1 - (k // 4) / 16
+        return [(c0 + 0.25 * u0, v1 - 1 / 16), (c0 + 0.25 * u1, v1 - 1 / 16), (c0 + 0.25 * u1, v1), (c0 + 0.25 * u0, v1)]
 
-def _in_poly(p, poly):
-    x, y, c = p[0], p[1], False
-    for i in range(len(poly)):
-        (x0, y0), (x1, y1) = poly[i], poly[(i + 1) % len(poly)]
-        if (y0 > y) != (y1 > y) and x < x0 + (x1 - x0) * (y - y0) / (y1 - y0):
-            c = not c
-    return c
+    # ---- the north face: d0 .. d1 are metres from the north-west corner
+    p0, t, n, L = S[-1]
+    P = lambda dn, out, z: tuple(p0 + t * (L - dn) + n * out + Vector((0, 0, z)))
+
+    def rect(d0, d1, z0, z1, mat, out=0.04, **kw):
+        mb.face([P(d1, out, z0), P(d0, out, z0), P(d0, out, z1), P(d1, out, z1)], mat, **kw)
+
+    def bar(d0, d1, z, h, out, mat=WH):                    # (a sill or a head: a box standing out of the wall)
+        c = P((d0 + d1) / 2, out / 2, z)
+        mb.box(c, (d1 - d0, out, h), mat, rotz=math.atan2(t.y, t.x))
+    cg = d['cells']
+    z3 = base + 7.5
+    for k, (d0, d1) in enumerate(((0.4, 2.3), (4.0, 7.2), (8.9, 12.2), (13.7, min(17.0, L - 0.4)))):
+        rect(d0, d1, z3, z3 + 1.4, 'sign_yro97', out=0.05, uvs=cell(cg['glass'], 0.0, 0.5 if k == 0 else 1.0))
+        bar(d0 - 0.15, d1 + 0.15, z3 + 1.5, 0.18, 0.22)
+        if k == 0:                                         # (the white box under the corner's window)
+            bar(d0 - 0.1, d1 + 0.1, z3 - 0.3, 0.55, 0.5)
+        else:
+            bar(d0 - 0.15, d1 + 0.15, z3 - 0.1, 0.18, 0.25)
+    # the mansard from the corner block east: slates sloping out to an eave, the letters before it
+    m0, zm = 2.5, top - 1.5
+    mb.face([P(L, 0.6, zm), P(m0, 0.6, zm), P(m0, 0.02, zp + 0.1), P(L, 0.02, zp + 0.1)], 'roof_slate')
+    mb.face([P(m0, 0.6, zm), P(L, 0.6, zm), P(L, 0.0, zm), P(m0, 0.0, zm)], 'trim_black')
+    mb.face([P(m0, 0.6, zm), P(m0, 0.0, zm), P(m0, 0.02, zp + 0.1)], 'roof_slate')
+    mb.face([P(L, 0.0, zm), P(L, 0.6, zm), P(L, 0.02, zp + 0.1)], 'roof_slate')
+    rect(7.4, 13.2, top - 1.05, top + 0.4, 'sign_yro97', out=0.64, uvs=cell(cg['roof']))
+    # the glazing of the east half, two storeys of it; the three lamps; the door at the corner on two steps
+    rect(8.7, min(16.6, L - 0.6), base + 0.5, base + 5.5, 'glass', out=0.05, panes=(6, 3))
+    bar(8.6, min(16.7, L - 0.5), base + 5.6, 0.2, 0.2, 'trim_black')
+    for dn in (4.4, 5.6, 6.8):
+        mb.box(P(dn, 0.2, base + 2.3), (0.3, 0.3, 0.42), WH, rotz=math.atan2(t.y, t.x))
+    rect(0.65, 1.6, base + 0.3, base + 2.5, WH, out=0.05)
+    rect(0.85, 1.4, base + 1.45, base + 2.25, 'glass', out=0.07, panes=(2, 3))
+    for k in range(2):                                     # (the upper step 0.3 m over the yard, the lower 0.15)
+        mb.box(P(1.12, 0.3 + 0.3 * k, base - 0.11 + 0.01 * k), (1.9, 0.6 + 0.6 * k, 0.82 - 0.32 * k), 'concrete',
+               rotz=math.atan2(t.y, t.x))
+    # ---- the round bay on the west wall, over the ground floor
+    bx, by, r, b0, b1 = d['bay']
+    arc = _arc((bx, by), r, math.pi / 2, 3 * math.pi / 2, 12)
+    for a, b in zip(arc, arc[1:]):
+        _quad(mb, a, b, base + b0, base + b1, BR)
+    ring = arc + [(bx + 0.7, by - r), (bx + 0.7, by + r)]
+    _flat(mb, [ring], base + b1, 'concrete')
+    _flat(mb, [ring], base + b0, 'trim_black', down=True)
+    _quad(mb, arc[-1], (bx + 0.7, by - r), base + b0, base + b1, BR)
+    # ---- the stair tower, a storey over the roof; its west wall is the turned wall's own
+    tw = _ccw([tuple(p) for p in d['tower']])
+    k0 = max(range(len(tw)), key=lambda i: tw[i][1] - tw[i][0])
+    tw = tw[k0:] + tw[:k0]
+    zt = base + d['tower_h']
+    for i in range(len(tw)):
+        a, b = tw[i], tw[(i + 1) % len(tw)]
+        _quad(mb, a, b, zp if i == 0 else top, zt + 0.3, BR)
+        _quad(mb, b, a, zt, zt + 0.3, 'concrete')
+    _flat(mb, [tw], zt, 'roof_flat')
+    cx, cy = sum(q[0] for q in tw) / len(tw), sum(q[1] for q in tw) / len(tw)
+    mb.box((cx + 1.0, cy - 1.2, zt + 0.75), (2.0, 2.0, 1.5), BR, mats={'top': 'concrete'}, skip=('bottom',))
+    p1, t1, n1, L1 = S[1]                                   # (the turned wall: the tower's small windows)
+    for z in (base + 4.4, base + 7.4, base + 10.4, zt - 1.9):
+        q = p1 + t1 * 3.4 + n1 * 0.04
+        a, b = q - t1 * 0.35, q + t1 * 0.35
+        mb.face([(a.x, a.y, z), (b.x, b.y, z), (b.x, b.y, z + 0.9), (a.x, a.y, z + 0.9)], 'glass', panes=(1, 1))
+    # ---- the back: windows on the long south-east wall, the water tank on the roof's south end
+    p4, t4, n4, L4 = S[4]
+    for f in range(3):
+        for k in range(3):
+            q = p4 + t4 * (L4 * (k + 0.5) / 3) + n4 * 0.04
+            a, b = q - t4 * 0.8, q + t4 * 0.8
+            z = base + 1.1 + 3.4 * f
+            mb.face([(a.x, a.y, z), (b.x, b.y, z), (b.x, b.y, z + 1.3), (a.x, a.y, z + 1.3)], 'glass', panes=(2, 1))
+    mb.cylinder(((o[3][0] + o[2][0]) / 2 + 0.6, (o[3][1] + o[2][1]) / 2 + 1.2), 0.7, top, top + 1.3, WH, seg=10)
 
 
 def _bar(mb, p, q, w, mat):
@@ -747,8 +792,8 @@ def landmarks():
             o = _ccw([tuple(p) for p in d['outline']])
             for i in range(len(o)):
                 _quad(mb, o[i], o[(i + 1) % len(o)], d['foot'], d['base'], 'trim_black' if d['kind'] == 'kexim' else 'tile_white')
-    for d in T.get('sites', []):               # (연세로's building sites of July 1997: tools/yro97.py)
-        dict(pit97=_pit97)[d['kind']](mb, d)
+    for d in T.get('sites', []):               # (연세로's houses with a shape of their own: tools/yro97.py DOK97)
+        dict(dok97=_dok97)[d['kind']](mb, d)
     return mb
 
 

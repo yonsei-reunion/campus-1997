@@ -859,6 +859,25 @@ def yro97_signs():
                 break
             size -= 4
         d.text((x0 + 256 - w / 2, y0 + 64), txt, font=f, fill=fg, anchor='lm')
+    # 옛 독수리다방's own cells (yro97.DOK_CELLS; the 2019 anthology's photo, 26쪽; blender/town.py _dok97): the white
+    # letters on the slates of its mansard, and the coloured glass of its wide windows (four panes, a blue and a red
+    # roundel by turns; the face it is laid on is 3.2 x 1.4 m, so a round one is drawn 72 x 42)
+    k = yro97.DOK_CELLS['roof']
+    x0, y0 = (k % yro97.COLS) * 512, (k // yro97.COLS) * 128
+    d.rectangle([x0, y0, x0 + 511, y0 + 127], fill=(52, 56, 66))
+    f = fnt(104)
+    for i, ch in enumerate('독수리'):
+        d.text((x0 + 96 + 160 * i, y0 + 62), ch, font=f, fill=(244, 244, 238), anchor='mm')
+    k = yro97.DOK_CELLS['glass']
+    x0, y0 = (k % yro97.COLS) * 512, (k // yro97.COLS) * 128
+    d.rectangle([x0, y0, x0 + 511, y0 + 127], fill=(232, 228, 216))
+    for i in range(4):
+        px = x0 + 128 * i
+        d.rectangle([px + 7, y0 + 9, px + 120, y0 + 118], fill=(92, 70, 44))
+        d.rectangle([px + 7, y0 + 9, px + 120, y0 + 40], fill=(118, 96, 62))
+        col = ((40, 60, 190), (214, 44, 40))[i % 2]
+        d.ellipse([px + 28, y0 + 44, px + 100, y0 + 86], fill=(240, 236, 226))
+        d.ellipse([px + 35, y0 + 48, px + 93, y0 + 82], fill=col)
     img.save(os.path.join(OUT, 'sign_yro97.png'), optimize=True)
     print('sign_yro97')
 

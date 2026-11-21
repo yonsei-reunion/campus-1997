@@ -1325,8 +1325,20 @@
   "rough": 0.5,
   "emissiveMap": true
  },
+ "brick_dok97": {
+  "_doc": "옛 독수리다방의 어두운 벽돌 (2019 문집 26쪽 사진, blender/town.py _dok97)",
+  "weather": 0.3,
+  "tex": "red_bricks_02",
+  "tile": 1.6,
+  "tint": [
+   0.5,
+   0.41,
+   0.37
+  ],
+  "rough": 0.88
+ },
  "sign_yro97": {
-  "_doc": "연세로 가게 간판, 굴다리에서 로터리까지 (2019 · 2021 문집의 신촌 약도, tools/yro97.py SIGNS, tools/make_textures.py sign_yro97, blender/town.py shops): 4 x 16 atlas",
+  "_doc": "연세로 가게 간판, 굴다리에서 로터리까지 (2019 · 2021 문집의 신촌 약도, tools/yro97.py SIGNS, tools/make_textures.py sign_yro97, blender/town.py shops; 옛 독수리다방의 지붕 글자 · 색유리 창도: yro97.DOK_CELLS): 4 x 16 atlas",
   "image": "sign_yro97.png",
   "rough": 0.5,
   "emissiveMap": true
