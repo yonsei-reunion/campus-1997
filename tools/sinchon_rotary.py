@@ -2001,7 +2001,8 @@ def layout(geo, town, extras, ground, taken_z):
     # (연세로's wall signs and banner: yro_; none on 금강제화's and 홍익문고's walls, which carry their own boards:
     # blender/town.py _kumkang, _hongik)
     own_walls = unary_union([kk_pg, hk_pg]).buffer(1.6)
-    town['vsigns'] = yro97.vsign_cells([q for q in yro_wall_signs(blocks) if not own_walls.contains(Point(q[0], q[1]))])
+    town['vsigns'] = yro97.vsign_cells([q for q in yro_wall_signs(blocks) if not own_walls.contains(Point(q[0], q[1]))],
+                                       blocks)
     town['signs2'] = [q for q in town['signs2'] if not own_walls.contains(Point(q[0], q[1]))]
     town['banner'] = yro_banner(geo, ground)
     print('연세로: rows %d + %d, gone %d, wall signs %d, ginkgos %d (+ %d on the banks)' % (

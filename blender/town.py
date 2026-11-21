@@ -874,16 +874,17 @@ def shops():
 
 def yro_signs():
     """연세로 (tools/sinchon_rotary.py yro_wall_signs): the signs standing out from the shops' walls up the floors, a board
-    with its two faces along the street (sign_yonseiro, 16 x 2 cells over the banner's strip), dark edges.
+    with its two faces along the street (sign_yonseiro, VS_COLS x 2 cells over the banner's strip), dark edges.
     [x, y, z of its middle, the wall's outward way, out, height, cell]"""
     mb = MeshBuilder('town_yro_signs')
     V0 = 88 / 1024                               # (the banner's strip under the cells)
+    VS_COLS = 18                                 # (tools/yro97.py VS_COLS)
     for x, y, z, ang, w, h, cell in T.get('vsigns', []):
         ox, oy = math.cos(ang), math.sin(ang)
         tx, ty = -oy, ox
         th = 0.14
-        u0, u1 = (cell % 16) / 16 + 0.002, (cell % 16 + 1) / 16 - 0.002
-        v1 = 1 - (cell // 16) * (1 - V0) / 2 - 0.002
+        u0, u1 = (cell % VS_COLS) / VS_COLS + 0.002, (cell % VS_COLS + 1) / VS_COLS - 0.002
+        v1 = 1 - (cell // VS_COLS) * (1 - V0) / 2 - 0.002
         v0 = v1 - (1 - V0) / 2 + 0.004
         P = lambda a, b, dz: (x + ox * a + tx * b, y + oy * a + ty * b, z + dz)
         zb, zt = -h / 2, h / 2

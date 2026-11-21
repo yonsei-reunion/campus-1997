@@ -1101,7 +1101,7 @@ roof_signs()
 
 
 # sign_yonseiro.png: the signs that stand out from the walls of 연세로's shops (tools/sinchon_rotary.py yro_wall_signs,
-# blender/town.py yro_signs), 16 x 2 cells of 128 x 468 px (2048 wide), the words stacked down: tools/yro97.py VSIGNS,
+# blender/town.py yro_signs), yro97.VS_COLS x 2 cells 468 px high (2048 wide), the words stacked down: tools/yro97.py VSIGNS,
 # what the 1996 photos 51979 · 52106 read (연세 비디오방, 오원당구클럽, 게임프라자, 현대예식장, 신영증권, 안재훈 서영외과,
 # 복지 탁구, …), the maps' upstairs shops and the kinds both show.  Under them, 2048 x 88 px, 제5회 신촌문화축제's banner
 # over the street (51979: the big green words read only as 「… 시범공연」), drawn at 1024 and stretched
@@ -1119,16 +1119,19 @@ def yro_signs():
                 continue
         return ImageFont.load_default()
     signs = yro97.VSIGNS
-    CW, CH = 128, 468
+    CW, CH = 2048 // yro97.VS_COLS, 468
     img = Image.new('RGB', (2048, 1024), (200, 200, 200))
     d = ImageDraw.Draw(img)
     for i, (txt, bg, fg, top) in enumerate(signs):
-        x0, y0 = (i % 16) * CW, (i // 16) * CH
+        x0, y0 = round((i % yro97.VS_COLS) * 2048 / yro97.VS_COLS), (i // yro97.VS_COLS) * CH
         d.rectangle([x0, y0, x0 + CW - 1, y0 + CH - 1], fill=bg)
         d.rectangle([x0 + 5, y0 + 5, x0 + CW - 6, y0 + CH - 6], outline=tuple(int(c * 0.75) for c in fg), width=4)
         yy = y0 + 16
         if top:
-            f = fnt(24)
+            sz = 24
+            while d.textlength(top, font=fnt(sz)) > CW - 16 and sz > 12:     # (the small words within the board)
+                sz -= 1
+            f = fnt(sz)
             w = d.textlength(top, font=f)
             d.text((x0 + CW / 2 - w / 2, yy), top, font=f, fill=fg)
             yy += 36
