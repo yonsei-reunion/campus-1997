@@ -4131,7 +4131,8 @@ def hanok():
 
 # ============================================================================= 구 노천극장 (1933 - 1997)
 def amphitheater():
-    """The old 노천극장 in its last photo (reference/1997_구노천극장_마지막모습.jpg, April 1997; reference/고증.md 3.14):
+    """The old 노천극장 in its last photo (reference/1997_구노천극장_마지막모습.jpg: the anthology says April 1997, but
+    the leaves are out, so late spring or summer before July 1997; reference/고증.md 3.14):
     grass terraces round a pale earth floor, a thin line of stone along the top of each grass riser, a stone kerb
     round the floor and a dashed ring of stones laid in it; at the open west end a low stage of the same earth behind
     a straight dark stone wall, and a flight of steps up beside each end of the seats (two to a row).  In the local
