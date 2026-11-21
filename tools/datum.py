@@ -372,8 +372,17 @@ def heights(c):
             A(p, 2, p[0], p[1])
         A(G['crane'], 2, G['crane'][0], G['crane'][1])
         gx = _fr(G['o'], (math.cos(G['rot']), math.sin(G['rot'])))
-        for q in [G['pit'], G['slab']] + G['sheds']:
+        for q in [G['slab']] + G['sheds'] + ([G['pit']] if 'pit' in G else []):
             A(q, 4, *gx((q[0] + q[1]) / 2, (q[2] + q[3]) / 2))
+        for d in G.get('decks', []):                # (the pit's decks: tools/gongwon97.py pieces, at each one's middle)
+            cx, cy = centroid(d['ring'])
+            A(d, 'z', cx, cy)
+            if 'floor' in d:
+                A(d, 'floor', cx, cy)
+        for q in G.get('stuff', []):
+            A(q, 2, q[0], q[1])
+        if 'bokgong' in G:
+            A(G['bokgong'], 'z', *centroid(G['bokgong']['ring']))
     J = c.get('jh_site')                         # (제2인문관 공사장 · 종합관 북쪽 마당: tools/widang97.py site)
     if J:
         for k in ('sheds', 'stacks', 'piles', 'heaps', 'machines', 'posts', 'rubble', 'hoard'):

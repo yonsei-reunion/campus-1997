@@ -7017,6 +7017,180 @@ def _tower_crane(x, y, z, H, brg, jib, cjib):
     return mb
 
 
+def _clip_uv(ring, u0, u1, v0, v1):
+    """a polygon (u, v) cut to the box u0..u1, v0..v1 (Sutherland - Hodgman: the box is convex)"""
+    pts = ring
+    for k, (lim, sg) in enumerate(((u0, 1), (u1, -1), (v0, 1), (v1, -1))):
+        ax = 0 if k < 2 else 1
+        if not pts:
+            return []
+        res = []
+        for i in range(len(pts)):
+            a, b = pts[i - 1], pts[i]
+            ia, ib = sg * (a[ax] - lim) >= 0, sg * (b[ax] - lim) >= 0
+            if ib:
+                if not ia:
+                    t = (lim - a[ax]) / (b[ax] - a[ax])
+                    res.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+                res.append(b)
+            elif ia:
+                t = (lim - a[ax]) / (b[ax] - a[ax])
+                res.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+        pts = res
+    return pts
+
+
+def _in_poly(p, ring):
+    c = False
+    for i in range(len(ring)):
+        (xa, ya), (xb, yb) = ring[i - 1], ring[i]
+        if (ya > p[1]) != (yb > p[1]) and p[0] < xa + (p[1] - ya) * (xb - xa) / (yb - ya):
+            c = not c
+    return c
+
+
+def _ccw_edges(ring):
+    """the ring's edges, counter-clockwise (the outside on the right)"""
+    n = len(ring)
+    ar = sum(ring[i][0] * ring[(i + 1) % n][1] - ring[(i + 1) % n][0] * ring[i][1] for i in range(n))
+    for i in range(n):
+        a, b = ring[i], ring[(i + 1) % n]
+        yield (a, b) if ar > 0 else (b, a)
+
+
+def _gongwon_pit(G):
+    """The dig behind the hoarding as the 1997-07-28 scans have it (tools/gongwon97.py, reference/고증/4.4 「원본 스캔으로
+    다시 읽은 구덩이」): the deck (the first basement's floor) at its three levels with its beams' lines and the columns'
+    stubs and their bars on the 9 m grid; over an L the ground floor's slab on its shoring (plywood forms and their
+    joints, two rows of props along its open edges and the dark under it); the steel deck (복공) over the dig at the
+    north side's west end, its two openings framed in white rails; the stuff on the decks (rebar bundles, stacks of
+    forms, boards, lumber).  The lagging and the soldier piles round it are build_campus's med_west quads, the ground
+    beyond them its deck."""
+    o, rot = G['o'], G['rot']
+    ca, sa = math.cos(rot), math.sin(rot)
+    to_uv = lambda x, y: ((x - o[0]) * ca + (y - o[1]) * sa, -(x - o[0]) * sa + (y - o[1]) * ca)
+    out = []
+    rnd = random.Random(19970728181)
+    for k, D in enumerate(G['decks']):
+        ring = [to_uv(*p) for p in D['ring']]
+        z, raised = D['z'], D['kind'] == 'raised'
+        d = MeshBuilder('lm_gongwon_%s_%d' % (D['kind'], k))
+        d.xf = local_frame(o[0], o[1], rot, 0.0)
+        us, vs = [p[0] for p in ring], [p[1] for p in ring]
+        top_mat = 'wood_bench' if raised else 'concrete'
+        step = 2.5
+        u = math.floor(min(us) / step) * step
+        while u < max(us):
+            v = math.floor(min(vs) / step) * step
+            while v < max(vs):
+                c = _clip_uv(ring, u, u + step, v, v + step)
+                if len(c) >= 3:
+                    d.face([(p[0], p[1], z) for p in c], top_mat)
+                v += step
+            u += step
+        # its edges, down a storey (a step to a lower deck shows; the rest stands in the ground or the deck beside it)
+        th = 0.6 if raised else 1.2
+        for a, b in _ccw_edges(ring):
+            d.face([(a[0], a[1], z - th), (b[0], b[1], z - th), (b[0], b[1], z), (a[0], a[1], z)], 'concrete')
+        # the beams' lines and, where two main lines cross on the deck, the columns' stubs with their bars
+        bw, bh, bm = (0.4, 0.12, 'wood_dark') if raised else (0.5, 0.22, 'concrete_dark')
+
+        def runs(fixed, along, lo, hi):
+            segs, s0, t = [], None, lo
+            while t <= hi + 1e-6:
+                inside = _in_poly((fixed, t) if along == 'v' else (t, fixed), ring)
+                if inside and s0 is None:
+                    s0 = t
+                if (not inside or t + 0.5 > hi) and s0 is not None:
+                    if t - s0 > 1.0:
+                        segs.append((s0 + 0.2, t - 0.2))
+                    s0 = None
+                t += 0.5
+            return segs
+        for uu in D.get('u', []):
+            for a, b in runs(uu, 'v', min(vs), max(vs)):
+                d.box((uu, (a + b) / 2, z + bh / 2), (bw, b - a, bh), bm, skip=('bottom',))
+        for vv in D.get('v', []):
+            for a, b in runs(vv, 'u', min(us), max(us)):
+                d.box(((a + b) / 2, vv, z + bh / 2), (b - a, bw, bh), bm, skip=('bottom',))
+        if not raised:
+            for uu in D.get('u', []):
+                for vv in D.get('v', []):
+                    if _in_poly((uu, vv), ring):
+                        d.box((uu, vv, z + 0.7), (0.6, 0.6, 1.4), 'concrete', skip=('bottom',))
+                        for du, dv in ((-0.22, -0.22), (0.22, -0.22), (0.22, 0.22), (-0.22, 0.22)):
+                            d.box((uu + du, vv + dv, z + 1.85), (0.05, 0.05, 0.9), 'metal_dark', skip=('bottom',))
+        else:
+            fl = D['floor']
+            for x, y in D.get('props', []):
+                pu, pv = to_uv(x, y)
+                d.box((pu, pv, (fl + z - th) / 2), (0.07, 0.07, z - th - fl), 'metal', skip=('bottom', 'top'))
+            for r in D.get('inner', []):          # (the dark under it: the props further in, unlit)
+                for a, b in _ccw_edges([to_uv(*p) for p in r]):
+                    d.face([(a[0], a[1], fl), (b[0], b[1], fl), (b[0], b[1], z - th), (a[0], a[1], z - th)], 'paint_black')
+        out.append(d)
+    # the steel deck: plates 2 x 1 m on its girders at the ground's height, its two openings framed by white rails
+    B = G.get('bokgong')
+    if B:
+        d = MeshBuilder('lm_gongwon_bokgong')
+        d.xf = local_frame(o[0], o[1], rot, 0.0)
+        ring = [to_uv(*p) for p in B['ring']]
+        z = B['z']
+        u0, u1 = min(p[0] for p in ring), max(p[0] for p in ring)
+        v0, v1 = min(p[1] for p in ring), max(p[1] for p in ring)
+        hb = []
+        for h in B['holes']:
+            hu = [to_uv(*p) for p in h]
+            hb.append((min(p[0] for p in hu), max(p[0] for p in hu), min(p[1] for p in hu), max(p[1] for p in hu)))
+        v = v0
+        while v < v1 - 0.05:
+            vv = min(v + 1.0, v1)
+            u = u0
+            while u < u1 - 0.05:
+                uu = min(u + 2.0, u1)
+                cu, cv = (u + uu) / 2, (v + vv) / 2
+                if not any(a <= cu <= b and c <= cv <= e for a, b, c, e in hb):
+                    d.box((cu, cv, z - 0.1), (uu - u - 0.03, vv - v - 0.03, 0.2), 'metal_dark', skip=('bottom',))
+                u = uu
+            v = vv
+        for a, b, c, e in hb:
+            for pa, pb in (((a, c), (b, c)), ((b, c), (b, e)), ((b, e), (a, e)), ((a, e), (a, c))):
+                for hz in (0.55, 1.1):
+                    rod(d, (pa[0], pa[1], z + hz), (pb[0], pb[1], z + hz), 0.025, 'paint_white', seg=4)
+                L = math.hypot(pb[0] - pa[0], pb[1] - pa[1])
+                for t in range(int(L / 1.5) + 1):
+                    f = t * 1.5 / L
+                    d.box((pa[0] + (pb[0] - pa[0]) * f, pa[1] + (pb[1] - pa[1]) * f, z + 0.56), (0.05, 0.05, 1.12), 'paint_white',
+                          skip=('bottom',))
+            for gv in (c - 0.15, e + 0.15):          # (the girders under it, seen through the openings)
+                d.box(((a + b) / 2, gv, z - 0.55), (b - a + 1.0, 0.3, 0.7), 'metal_dark')
+        out.append(d)
+    # the stuff on the decks: [x, y, z, L, W, ang, h, kind]
+    mb = MeshBuilder('lm_gongwon_stuff')
+    for x, y, z, L, W, ang, h, kind in G.get('stuff', []):
+        L, W = min(L, 8.0), min(W, 4.0)
+        cs, sn = math.cos(ang), math.sin(ang)
+        if kind in ('rebar', 'lumber'):
+            mat = 'metal_dark' if kind == 'rebar' else 'wood_bench'
+            n = max(2, min(8, int(W / 0.18)))
+            for layer in range(2):
+                for i in range(n - layer):
+                    t = (i + 0.5 * layer - (n - 1) / 2) * min(0.18, W / n)
+                    du = rnd.uniform(-0.3, 0.3)
+                    c = (x + du * cs - t * sn, y + du * sn + t * cs, z + 0.07 + layer * 0.13)
+                    mb.box(c, (L + rnd.uniform(-0.4, 0.2), 0.12, 0.12), mat, rotz=ang + rnd.uniform(-0.03, 0.03), skip=('bottom',))
+        else:
+            mat = 'metal' if kind == 'stack' else 'wood_bench'
+            nl = 2 if h < 0.7 else 3
+            for k in range(nl):
+                dl, dw = rnd.uniform(-0.15, 0.15), rnd.uniform(-0.1, 0.1)
+                mb.box((x + dl * cs - dw * sn, y + dl * sn + dw * cs, z + h * (k + 0.5) / nl),
+                       (max(0.5, L - 0.25 * k), max(0.4, W - 0.2 * k), h / nl + 0.02), mat, rotz=ang + rnd.uniform(-0.04, 0.04),
+                       skip=('bottom',))
+    out.append(mb)
+    return out
+
+
 def gongwon_site():
     """The hoarding round 공학원's building site, where the 정구장 had been (tools/build_campus.py GONGWON_SITE): steel
     sheet panels 2.4 m high on posts every 2.5 m following the ground, white over a blue foot band, both faces (6 cm
@@ -7046,7 +7220,9 @@ def gongwon_site():
         h = H + (0.45 if g0 <= i <= g1 else 0.1)
         mb.box((xa, ya, za + (h - sink) / 2), (0.1, 0.1, h + sink), 'metal_dark', rotz=math.atan2(yb - ya, xb - xa))
     out = [mb]
-    if 'pit' not in G:
+    if 'decks' in G:
+        out += _gongwon_pit(G)
+    elif 'pit' not in G:
         return out
     # Behind the hoarding, as the vertical aerial photos of 28 July 1997 have it (reference/고증/4.4): no storey over
     # the ground yet.  A concrete deck 3 m under the ground with its grid of beams and the columns' stubs standing out
@@ -7054,8 +7230,10 @@ def gongwon_site():
     # narrower strips.  (u, v): the site's own frame
     for key, name, bay, surf, line in (('pit', 'lm_gongwon_deck', 8.0, 'concrete', 'concrete_dark'),
                                        ('slab', 'lm_gongwon_slab', 4.0, 'concrete_dark', 'concrete')):
+        if key not in G:
+            continue
         u0, u1, v0, v1, z = G[key]
-        ins = 4.5 if key == 'pit' else 2.5       # (inside the levelled ground's 5 m grid cells, which slope up at its rim)
+        ins = 4.5 if key == 'pit' else (0.0 if 'decks' in G else 2.5)   # (inside the levelled ground's 5 m cells, which slope up at its rim)
         u0, u1, v0, v1 = u0 + ins, u1 - ins, v0 + ins, v1 - ins
         d = MeshBuilder(name)
         d.xf = local_frame(G['o'][0], G['o'][1], G['rot'], z + 0.1)

@@ -49,6 +49,7 @@ import fieldhill97
 import gymnorth97
 import scinorth97
 import widang97
+import gongwon97
 import appen97
 import audnorth97
 import chapel97
@@ -6548,8 +6549,14 @@ def site_poly(pts):
     return Polygon([site_xy(u_, v_) for u_, v_ in pts])
 
 
-GONGWON_SITE = shapely.geometry.polygon.orient(site_poly([(-80.5, -4.5), (10.5, -4.5), (10.5, 2.5), (51.0, 2.5), (54.0, 6.0),
-                                                          (54.0, 80.0), (-80.5, 80.0)]), 1.0)
+# (the 1997-07-28 scans, 2026-11-21, gongwon97: the south side east of its step stands at v -1.3, not 2.5 (the face of
+# the hoarding and the soldier piles under it read in both course-26 frames, the deck's edge at the same place in
+# both), its corner cut from u 36.7 to the east side at v 5; at the north side's west end the hoarding steps 4.5 m north
+# round the steel deck over the dig (u -55 to -28))
+GONGWON_SITE = shapely.geometry.polygon.orient(site_poly([(-80.5, -4.5), (10.5, -4.5), (10.5, -1.3), (36.7, -1.3), (54.0, 5.0),
+                                                          (54.0, 80.0), (-28.0, 80.0), (-28.0, 84.5), (-55.0, 84.5),
+                                                          (-55.0, 80.0), (-80.5, 80.0)]), 1.0)
+assert (TENNIS['o'], round(TENNIS['rot'], 9)) == (list(gongwon97.O), round(gongwon97.ROT, 9))
 GW_LOT = site_poly([(54.6, 56.5), (54.6, 91.8), (77.5, 91.8), (89.5, 83.5), (89.5, 56.5)])       # the car park (asphalt)
 GW_ROW = site_poly([(-16.0, 80.6), (54.6, 80.6), (54.6, 88.5), (-16.0, 88.5)])                   # the row along the hoarding
 GW_YARD = site_poly([(54.6, 8.0), (54.6, 56.5), (76.0, 56.5), (76.0, 30.0), (70.5, 30.0), (70.5, 22.0), (62.0, 8.0)])   # (bare)
@@ -7648,6 +7655,31 @@ for q_ in _e97_gs['ring']:
 _e97_gs['pit'][4], _e97_gs['slab'][4], _e97_gs['crane'][2] = ENG97['pit'], ENG97['slab'], ENG97['pit']
 for r_ in _e97_gs['sheds']:
     r_[4] = round(min(ground_h(*site_xy(u_, v_)) for u_ in r_[:2] for v_ in r_[2:4]), 2)
+# 공학원 공사장의 구덩이 (tools/gongwon97.py, reference/고증/4.4 「원본 스캔으로 다시 읽은 구덩이」; #181, gw), late, after
+# the site's ground and its edges are laid (the hoarding, the offices and the slab stand on them, above): the dig to
+# the hoarding on the south and east sides and 3 m inside it on the north, its deck at three levels, the ground floor's
+# slab on its shoring over an L, the steel deck at the north side's west end.  Every node of a cell the dig reaches
+# goes under the decks; the ground beyond the dig in those cells is a deck of its own on the ground as it was (GW_DIG_DECK
+# below, with the soldier piles and the lagging: med_west), so nothing outside the hoarding moves
+_gw_slab0 = list(_e97_gs['slab'])
+GW_DIG_NODES, GW_DIG_CELLS, GW_DIG_POLY, GW_DIG_TOP, GW_DIG = gongwon97.dig(Hn, X, Y, sample, NEAR_STEP, NEAR_HALF)
+FIXED[GW_DIG_NODES] = True
+_gw_h_dig = Hn.copy()
+_e97_gs.pop('pit')
+_e97_gs.update(gongwon97.pieces(datum.up))
+_gw_bk = Polygon(_e97_gs['bokgong']['ring'])
+_e97_gs['bokgong']['z'] = round(max(GW_DIG_TOP(x_, y_) for x_, y_ in _gw_bk.exterior.coords) + 0.05, 2)
+# (the slab at the ground's height, out to the hoarding on its west, south and north sides and to the dig on its east:
+# over every node there, the dig's cells too)
+_gw_sr = (-80.2, gongwon97.WEST_U, -4.3, 79.8)
+_gw_sm = shapely.contains_xy(site_poly([(_gw_sr[0], _gw_sr[2]), (_gw_sr[1], _gw_sr[2]), (_gw_sr[1], _gw_sr[3]), (_gw_sr[0], _gw_sr[3])]), X, Y)
+_gw_sm &= shapely.contains_xy(site_poly([(-77.0, 6.0), (_gw_sr[1], 6.0), (_gw_sr[1], 79.8), (-77.0, 79.8)]), X, Y)
+_e97_gs['slab'] = [*_gw_sr, round(max(_gw_slab0[4], float(Hn[_gw_sm & ~GW_DIG_NODES].max()) - 0.12), 2)]   # (but by the south hoarding)
+# (the tower crane's mast on the north deck: its jib 48.7 m 해발 as the scans have it)
+_e97_gs['crane'][2] = round(float(datum.up(*_e97_gs['crane'][:2], gongwon97.deck_z(*gongwon97.uv(*_e97_gs['crane'][:2])))), 2)
+_e97_gs['crane'][3] = round(48.7 - gongwon97.deck_z(*gongwon97.uv(*_e97_gs['crane'][:2])), 2)
+print('공학원 공사장 구덩이: %(nodes)d nodes down (most %(most).1f m), deck over %(cells)d cells (%(deck_m2).0f m2)' % GW_DIG,
+      '| decks', len(_e97_gs['decks']), 'stuff', len(_e97_gs['stuff']), '| slab %.2f -> %.2f' % (_gw_slab0[4], _e97_gs['slab'][4]))
 # (the south wing on the ground at its door: its roof in the scans is 1.0 - 1.3 m under the north block's, 45.0 m, where
 # the game had its floor 2 m over the alleys' ground; the north block's floor with it: its roof's deck in the scans is
 # level with the south and east wings' (46.6 - 47.0 m), where the game's stood 1.4 m over them.  제3공학관's door, which
@@ -8099,6 +8131,8 @@ MED_STRIP_DECK = dwb_deck(MED_STRIP_CELLS, MED_STRIP_POLY, med97.strip_h)       
 NURSE_DECK = dwb_deck(NURSE_CELLS, NURSE_POLY, med97.nurse_h)                   # (간호대학 북쪽 주차장: med97.nurse_grade above)
 WD_CUT_DECK = dwb_deck(WD_CUT_CELLS, WD_CUT_POLY, widang97.high_h)         # (제2인문관 공사장의 흙막이: widang97.cut_grade above)
 WD_PIT_DECK = dwb_deck(WD_PIT_CELLS, WD_PIT_POLY, WD_PIT_TOP)              # (교육관 서쪽 구덩이: widang97.pit_grade above)
+GW_DIG_DECK = dwb_deck(GW_DIG_CELLS, GW_DIG_POLY, GW_DIG_TOP)              # (공학원 공사장의 구덩이: gongwon97.dig above)
+assert float(np.abs(Hn - _gw_h_dig)[GW_DIG_NODES].max()) < 1e-6
 ALLEN_DECKS = {k_: (dwb_deck(c_, p_, h_), p_, h_) for k_, (c_, p_, h_) in ALLEN_DECK_CELLS.items()}   # (알렌관 둘레: allen97.grade)
 FOOT_DECK = dwb_deck(FOOT_CELLS, FOOT_POLY, FOOT_H0)                             # (음악대학 동쪽 큰 주차장 서쪽 통로: med97.foot_grade)
 ISLE_WALL_DECK = dwb_deck(ISLE_WALL_CELLS, ISLE_WALL_POLY, ISLE_WALL_H)          # (대강당 북쪽 끝 너머 섬: audnorth97.isle_wall_grade)
@@ -10516,6 +10550,7 @@ for _nm, _dk, _dp, _dh, _dw in (('ssr_strip', MED_STRIP_DECK, MED_STRIP_POLY, me
                                  lambda t_, f_: audnorth97.isle_walls(t_, f_, _isn)),
                                 ('widang_cut', WD_CUT_DECK, WD_CUT_POLY, widang97.high_h, widang97.cut_walls),
                                 ('widang_pit', WD_PIT_DECK, WD_PIT_POLY, WD_PIT_TOP, widang97.pit_walls),
+                                ('gongwon_pit', GW_DIG_DECK, GW_DIG_POLY, GW_DIG_TOP, gongwon97.walls),
                                 ('allen_terrace', ALLEN_DECKS['allen_terrace'][0], ALLEN_DECKS['allen_terrace'][1],
                                  allen97.upper_h, allen97.terrace_walls),
                                 ('allen_hill', ALLEN_DECKS['allen_hill'][0], ALLEN_DECKS['allen_hill'][1], allen97.hill_h,
@@ -10529,7 +10564,7 @@ for _nm, _dk, _dp, _dh, _dw in (('ssr_strip', MED_STRIP_DECK, MED_STRIP_POLY, me
     _ms_quads, _ms_guards = _dw(_ms_top, lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
     _mv['quads'] += _ms_quads
     out['colliders'] += _ms_guards
-    for g_ in getattr(_dp, 'geoms', [_dp]):
+    for g_ in getattr(_dp, 'geoms', [_dp]) if _nm != 'gongwon_pit' else []:      # (공학원: nothing built stands on it)
         if g_.geom_type != 'Polygon' or g_.area < 0.5:
             continue
         _pu, _pv = zip(*[medwest97.uv(x_, y_) for x_, y_ in g_.exterior.coords])
