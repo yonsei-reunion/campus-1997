@@ -130,7 +130,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 철둑 비탈은 땅의 재질(`terrain_drape`)로 그리고, 둑 메시(`town_bank_*`)는 걷는 면 목록에 넣어 둑의 나무가 그 위에 섭니다.
 - 동네 GLB는 둘입니다. 둑 · 섬만 담은 `campus_town_ground.glb`(약 50 KB)는 캠퍼스와 함께 받습니다. 나머지 `campus_town.glb`(약 1.3 MB)와 그 간판 텍스처는 로딩 화면이 끝난 뒤 시작 화면에서 받아 붙입니다(`main.js` 끝, `__y97.townLoaded`). 화면을 찍거나 굽는 도구(`tools/snapshots.mjs`, `tools/bake_sun_shadows.mjs`)는 그것을 기다립니다.
 - 성산로의 차는 먼 거리용 모델(`car_*_far`)을 한 메시로 합치고 재질 색을 정점에 적어 한 대가 draw call 하나입니다(바퀴는 돌지 않음). 백양로의 차는 그대로.
-- 정문 앞 연석 안쪽에 보이지 않는 충돌 띠(`campus.json` `colliders`)가 있어 차도로는 나가지 못합니다.
+- 성산로의 차도와 남쪽 보도(x −480 ~ 340 m)도 걷는 곳입니다(`campus.json` `walk_open`). 막은 두 끝과 남쪽 보도 뒤에 있고, 북쪽 연석(캠퍼스 쪽)에는 없습니다(아래 「신촌 로터리」의 걷기).
 - 땅 지도 밖의 근경 지형은 낮은 곳을 먼 도시와 같은 회색으로 칠합니다(`terrain.js`).
 
 ### 신촌 로터리
@@ -140,10 +140,10 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 땅: 5 m 격자(±800 m) 남쪽에 같은 방법의 조각 `terrain_south.bin`(x −600 ~ 400, y −1200 ~ −800 m, `campus.json` `terrain.south`). 웹 `Heightfield.setPatch` · `makeSouthTerrain`, Blender `common.ground` 가 읽고, 격자를 읽는 셰이더 가운데 벽의 흙 튐은 격자만, 해 그림자 높이(`bakedshadow.js` `sunTerrainH`)는 조각도 씁니다.
 - 땅 칠: 캠퍼스 땅 지도 밖은 따로 그린 `ground_splat_town.png`(`campus.json` `tsplat`, 0.5 m: R 아스팔트, G 보도, B 지하철 계단 구멍). 칠하지 않은 곳(가운데 섬)은 잔디.
 - 무작위: `random.Random(4802)` 하나. 4.8의 집 가운데 새 길에 걸리는 것은 `b[6] = −층수` 로 남겨 Blender 가 모양을 그대로 뽑고 그리지는 않음. 새 나무는 `trees` 끝에.
-- 연세로 가게 줄(`yro_rows`, `random.Random(4805)`): 1996년 사진에서 읽은 집(`YRO_FIXED`)과 사진의 층수 섞임(`YRO_MIX`). 전 줄은 같은 흐름으로 뽑아 `b[6] < 0` 으로 두고, 새 줄은 `blocks` 끝에 더해 다른 집 · OSM 상자 · 채운 집과 Blender 의 집 모양 흐름이 그대로.
+- 연세로 가게 줄(`yro_rows`): 굴다리에서 로터리까지 집 하나하나의 표 `tools/yro97.py` `ROWS`(1997년 7월 스캔의 지붕, 로드뷰의 벽, 두 문집 지도의 가게 이름: 고증 4.10.8)와 로터리 쪽 끝의 `YRO_FIXED`(1996년 사진). `gate_town` 의 줄과 전 줄은 같은 흐름으로 뽑아 `b[6] < 0` 으로 두고, 새 줄은 `blocks` 끝에 더해 다른 집 · OSM 상자 · 채운 집과 Blender 의 집 모양 흐름이 그대로. 가게 간판은 `town.shops` → `blender/town.py` `shops`, 아틀라스 `sign_yro97.png`(`make_textures.py sign_yro97`, 512 × 128 px 칸을 4 × 16). 독수리빌딩 자리의 터파기는 `town.sites` → `_pit97`(랜드마크 목록에 넣지 않아 땅의 수평 구역이 생기지 않음).
 - 세로 간판(`town.vsigns`, `yro_wall_signs`)과 축제 현수막(`town.banner`)은 `blender/town.py` `yro_signs` · `yro_banner`, 아틀라스 `sign_yonseiro.png`(`make_textures.py sign_yonseiro`: 128 × 468 px 칸 16개 밑에 현수막 띠).
 - 연세로 지붕 · 벽의 것(`blender/town.py` `yro_roofs`, 메시 `town_yro_roofs`): 위성 안테나 · 에어컨 실외기 · 지붕 위 틀 간판(아틀라스 `sign_roof.png`, `make_textures.py sign_roof`). 자리는 `campus.json` 에 없고 집마다 `random.Random(19970000 + 번호)` 로 Blender 가 뽑아 `houses()` 의 흐름과 다른 집은 그대로.
-- 걷기: 성산로 북쪽 연석의 충돌 띠(`gate_town.py`)를 건널목 자리까지 이어서 연세로 · 로터리로는 건너가지 못합니다. 그 띠의 북쪽 가장자리(`campus.json` `town.limit`)보다 남쪽으로는 하늘 시점 · 지도 · 출발 목록에서도 내려서지 않고 정문에 섭니다(`main.js` `beyondGate`).
+- 걷기: 성산로의 차도 · 남쪽 보도, 연세로 · 로터리의 보도 · 찻길을 한 다각형(`campus.json` `walk_open`)으로 묶고 그 둘레에 얇은 충돌 상자를 둡니다(`sinchon_rotary.py`. 성산로 북쪽 연석과 그 북쪽에는 두지 않음). 성산로 북쪽 연석의 선(`campus.json` `town.limit`)보다 남쪽으로는 하늘 시점 · 지도 · 출발 목록에서 `walk_open` 안에만 내려서고, 그 밖이면 가까운 `walk_open` 이나 정문에 섭니다(`main.js` `beyondGate`).
 - 차: `town.lanes` 의 `stops` 가 [s, 신호 묶음, 단계]. 차마다 앞 16 m 안의 다른 길 차와 걷는 사람을 봄(성산로끼리는 전처럼 같은 길만). 신호 주기는 `town.signals`, 신호등은 `town.heads`.
 - 연세로 보도의 사람은 `town.walks` 위의 두 번째 `Crowd`(`main.js` `townCrowd`, 씨앗 11, 폰 6명). 시점이 연세로에서 200 m 안일 때만 갱신합니다.
 - 차는 시점에서 400 m 안의 것만 움직이고 서로를 봅니다(`town.js` `Street` `WAKE`). 나머지는 제자리에 서서 그리지 않습니다. 신호등도 380 m 밖이면 그리지 않고, 불빛 색은 바뀔 때만 올립니다.

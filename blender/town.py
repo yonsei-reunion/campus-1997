@@ -670,6 +670,59 @@ def _tower97(mb, d):
         _bar(mb, (mx, my, zt + 6.8), P(along, 0.0, z), 0.06, 'metal_dark')
 
 
+def _pit97(mb, d):
+    """독수리빌딩's lot in July 1997 (tools/yro97.py PIT, the scans of 26/16 · 27/17 · 27/18): a pit for its basements
+    shored with steel, behind a hoarding.  The scans from above: wales along the pit's sides, struts across it both ways
+    about 6 m apart on a skew grid, dark between them; a few pale boxes (site huts, plant) on a deck at its street end.
+    The hoarding is as such sites had then: pale steel sheets on posts, 2.4 m.  The ground is not dug (the walker never
+    comes here): the pit's floor is a dark face just over it"""
+    o, base, top = _ccw([tuple(p) for p in d['outline']]), d['base'], d['top']
+    foot = d.get('foot', base)
+    for i in range(len(o)):                                # the hoarding: sheets between posts 2.4 m apart
+        p0, t, n, L = _side(o, i)
+        a, b = o[i], o[(i + 1) % len(o)]
+        _quad(mb, a, b, foot, top, 'paint_white')
+        _quad(mb, b, a, foot, top, 'metal_dark')           # (its back)
+        k = max(1, round(L / 2.4))
+        for j in range(k + 1):
+            q = p0 + t * (L * j / k) + n * 0.06
+            mb.box((q.x, q.y, (foot + top) / 2), (0.1, 0.1, top - foot), 'metal_dark')
+    inner = _inset(o, 1.0)
+    _flat(mb, [inner], base + 0.05, 'trim_black')          # (the hole, seen from above)
+    xs, ys = [p[0] for p in inner], [p[1] for p in inner]
+    cx, cy = sum(xs) / len(xs), sum(ys) / len(ys)
+    ang = math.radians(-32.0)                              # (the struts' grid: turned as the scans have it)
+    u, v = Vector((math.cos(ang), math.sin(ang), 0)), Vector((-math.sin(ang), math.cos(ang), 0))
+    inside = lambda p: _in_poly(p, inner)
+    zb = base + 0.75
+    for axis, other in ((u, v), (v, u)):
+        for k in range(-4, 5):
+            c = Vector((cx, cy, 0)) + other * (6.0 * k)
+            run = [s_ for s_ in [x_ * 0.5 for x_ in range(-90, 91)] if inside((c + axis * s_)[:2])]
+            if len(run) < 6:
+                continue
+            p_, q_ = c + axis * run[0], c + axis * run[-1]
+            _bar(mb, (p_.x, p_.y, zb), (q_.x, q_.y, zb), 0.42, 'metal_dark')
+    for i in range(len(inner)):                            # (the wales along the sides)
+        a, b = inner[i], inner[(i + 1) % len(inner)]
+        _bar(mb, (a[0], a[1], zb), (b[0], b[1], zb), 0.42, 'metal_dark')
+    rn = random.Random(5971)
+    w0 = min(range(len(o)), key=lambda i: o[i][0])        # (its street end: the westmost corner)
+    for k in range(3):                                     # (the huts and plant on the deck by the street)
+        q = Vector((o[w0][0] + 4.5 + 3.4 * k, o[w0][1] - 3.5 - 2.6 * (k % 2), 0))
+        if inside((q.x, q.y)):
+            mb.box((q.x, q.y, base + 1.3 + 0.75), (rn.uniform(2.4, 5.5), 2.4, 2.6), 'paint_white', rotz=ang)
+
+
+def _in_poly(p, poly):
+    x, y, c = p[0], p[1], False
+    for i in range(len(poly)):
+        (x0, y0), (x1, y1) = poly[i], poly[(i + 1) % len(poly)]
+        if (y0 > y) != (y1 > y) and x < x0 + (x1 - x0) * (y - y0) / (y1 - y0):
+            c = not c
+    return c
+
+
 def _bar(mb, p, q, w, mat):
     """a thin square bar from p to q (3D), w across"""
     p, q = Vector(p), Vector(q)
@@ -694,6 +747,8 @@ def landmarks():
             o = _ccw([tuple(p) for p in d['outline']])
             for i in range(len(o)):
                 _quad(mb, o[i], o[(i + 1) % len(o)], d['foot'], d['base'], 'trim_black' if d['kind'] == 'kexim' else 'tile_white')
+    for d in T.get('sites', []):               # (연세로's building sites of July 1997: tools/yro97.py)
+        dict(pit97=_pit97)[d['kind']](mb, d)
     return mb
 
 
@@ -731,6 +786,28 @@ def signs2():
             for c0, c1 in ((pa, p_), (q_, pb)):
                 mb.face([(c0[0], c0[1], z - h / 2), (c1[0], c1[1], z - h / 2), (c1[0], c1[1], z + h / 2), (c0[0], c0[1], z + h / 2)], 'metal_dark')
             mb.face([(p_[0], p_[1], z + h / 2), (q_[0], q_[1], z + h / 2), (pb[0], pb[1], z + h / 2), (pa[0], pa[1], z + h / 2)], 'metal_dark')
+    return mb
+
+
+def shops():
+    """연세로's shops from the bridge to the junction (tools/yro97.py: the anthologies' street maps on the houses of the
+    July 1997 scans; tools/sinchon_rotary.py yro_rows): a board over each shop, sign_yro97 (4 x 16 cells of 4 : 1):
+    [x, y, z of its middle, the way it faces, width, height, cell], standing off the wall on a shallow dark box"""
+    mb = MeshBuilder('town_shops')
+    for x, y, z, ang, w, h, idx in T.get('shops', []):
+        nx, ny = math.cos(ang), math.sin(ang)
+        tx, ty = -ny, nx
+        u0, v1 = (idx % 4) / 4, 1 - (idx // 4) / 16
+        a = (x - tx * w / 2, y - ty * w / 2)
+        b = (x + tx * w / 2, y + ty * w / 2)
+        mb.face([(a[0], a[1], z - h / 2), (b[0], b[1], z - h / 2), (b[0], b[1], z + h / 2), (a[0], a[1], z + h / 2)], 'sign_yro97',
+                uvs=[(u0, v1 - 1 / 16), (u0 + 0.25, v1 - 1 / 16), (u0 + 0.25, v1), (u0, v1)])
+        d = 0.18
+        pa, pb = (a[0] - nx * d, a[1] - ny * d), (b[0] - nx * d, b[1] - ny * d)
+        for c0, c1 in ((pa, a), (b, pb)):
+            mb.face([(c0[0], c0[1], z - h / 2), (c1[0], c1[1], z - h / 2), (c1[0], c1[1], z + h / 2), (c0[0], c0[1], z + h / 2)], 'metal_dark')
+        mb.face([(a[0], a[1], z + h / 2), (b[0], b[1], z + h / 2), (pb[0], pb[1], z + h / 2), (pa[0], pa[1], z + h / 2)], 'metal_dark')
+        mb.face([(pa[0], pa[1], z - h / 2), (pb[0], pb[1], z - h / 2), (b[0], b[1], z - h / 2), (a[0], a[1], z - h / 2)], 'metal_dark')
     return mb
 
 
@@ -1644,7 +1721,7 @@ def island():
 def build():
     if not T:
         return []
-    return houses() + [landmarks(), signs(), signs2(), entrances(), bridge(), poles(), road(), stops(), yard(), footbridges(), station97(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner(), yro_roofs()]
+    return houses() + [landmarks(), signs(), signs2(), shops(), entrances(), bridge(), poles(), road(), stops(), yard(), footbridges(), station97(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner(), yro_roofs()]
 
 
 # ----------------------------------------------------------------------------- the city bus

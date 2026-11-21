@@ -32,6 +32,7 @@ from shapely.ops import unary_union
 import shapely
 from PIL import Image, ImageDraw
 import gate_town as gt
+import yro97
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 SOUTH = dict(x0=-600.0, y0=-1200.0, step=5.0, nx=201, ny=81)          # x -600 .. 400, y -1200 .. -800
@@ -1041,7 +1042,7 @@ def layout(geo, town, extras, ground, taken_z):
                 not shapely.intersects(clear_old, _box(b)):
             b[6] = -b[6]
             n_moved += 1
-    fronts, n_yro_gone = yro_rows(geo, blocks, ground)           # (연세로's rows from the 1996 photos, at the end)
+    fronts, n_yro_gone, yro_shops = yro_rows(geo, blocks, ground)    # (연세로's rows house by house, at the end)
     # ---- 연세로's mouth (2026-11-16): 금강제화 and 홍익문고 as landmarks on their rows' boxes, the tower going up on the
     # lot south of 홍익문고 (KUMKANG_1997, HONGIK_FLOORS, TOWER97); what stood inside their outlines goes, its draws kept
     kk_b, hk_b = fronts[-1][-1], fronts[1][-1]
@@ -1077,6 +1078,13 @@ def layout(geo, town, extras, ground, taken_z):
                 b[6] = -b[6]
                 n_mouth_gone += 1
     lm_draw += lm_mouth
+    # 독수리빌딩's lot in July 1997 (tools/yro97.py PIT): a pit behind a hoarding.  Not among the landmarks: those are
+    # level zones of the datum (tools/build_campus.py _dz_zones), and this one leaves the ground as it is
+    pit_pg = shapely.geometry.polygon.orient(Polygon(yro97.PIT), 1.0)
+    pit_o = list(pit_pg.exterior.coords)[:-1]
+    pit_z = [ground(x_, y_) for x_, y_ in pit_o]
+    town['sites'] = [dict(kind='pit97', name='독수리빌딩 터파기', base=round(max(pit_z), 2), top=round(max(pit_z) + 2.4, 2),
+                          foot=round(min(pit_z) - 0.3, 2), outline=R2(pit_o))]
     print('연세로 어귀: 금강제화 · 홍익문고 · 공사장 as landmarks, %d boxes inside them gone' % n_mouth_gone)
     # ---- kerbs: the carriageways' edge (gate_town's 연세로 north of y -560 has its own), lane paint, crossings
     kerbs, paint, zebra = [], [], []
@@ -1523,9 +1531,15 @@ def layout(geo, town, extras, ground, taken_z):
     # the walker (web/src/town.js).  성산로's stays shut but for its crossing: its north kerb is the campus's own edge
     W_parts.append(street.intersection(near))
     W_parts.append(street.intersection(box(-140.0, JC[1] - 10.0, -50.0, geo['y_top'] - 1.0)))
+    # 성산로's too (2026-11-21, user's request: to cross where there is no zebra, from the gate to the bridge and along the
+    # road): its carriageway and south walk the length gate_town lays it (x -480 .. 340), open along the north kerb
+    # (the campus's walk), walled at its two ends and along the south walk's back
+    W_parts.append(extras['ssr_open'])
     Wk = unary_union(W_parts).buffer(0.05).buffer(-0.05)
     walk_open, walk_holes, barrier = [], [], []
-    y_open = cy1 + 0.1                             # (north of this: the campus's side of 성산로)
+    kn_ = extras['kerb_n'][np.argsort(extras['kerb_n'][:, 0])]
+    # (no wall on 성산로's north kerb or north of it: the campus's side)
+    campus_side = lambda q_: -480.5 < q_[0] < 340.5 and q_[1] > float(np.interp(q_[0], kn_[:, 0], kn_[:, 1])) - 0.4
     for pg in (Wk.geoms if hasattr(Wk, 'geoms') else [Wk]):
         if pg.geom_type != 'Polygon' or pg.area < 4.0:
             continue
@@ -1545,7 +1559,7 @@ def layout(geo, town, extras, ground, taken_z):
                 m = max(1, int(math.ceil(L / 1.5)))
                 for i in range(m):
                     a_, b_ = p + d * (i / m), p + d * ((i + 1) / m)
-                    if (a_[1] + b_[1]) / 2 > y_open:
+                    if campus_side((a_ + b_) / 2):
                         continue
                     barrier.append(R2([a_ - nrm * 0.05, b_ - nrm * 0.05, b_ + nrm * 0.85, a_ + nrm * 0.85]))
     # ---- lamps along the kerbs (every 30 m, both sides; none in a crossing), the subway's entrances at the corners
@@ -1774,24 +1788,11 @@ def layout(geo, town, extras, ground, taken_z):
     # 양화로's south walk at the 그랜드백화점 corner; 52145 · 52187: on 신촌로's south walk in front of 한일은행)
     stops_r, waiting = rot_stops(A)
     town['stops'] = town.get('stops', []) + stops_r
-    # ---- signs: the shops on the rows' ground floors (2019 · 2021 문집의 신촌 약도 have the rows north of the side
-    # street at y -552; these are the next ones down towards the junction, sign_sinchon2)
-    # (the names are of the kinds of shop the 1990s photos show along it, not of real shops; but 홍익문고, the east
-    # corner's bookshop since 1978, 연세로 2: 서울시 미디어허브)
-    names = {1: ['레코드', '안경원', '분식', '당구장', '커피숍', '홍익문고'], -1: ['약국', '서점', '호프', '노래방', '경양식', '제과점']}
+    # ---- signs: the shops' boards along 연세로 are yro_rows' (tools/yro97.py: the anthologies' street maps, sign_yro97);
+    # here the junction's landmarks' (sign_sinchon2: its first twelve cells, the kinds of shop that stood for the rows
+    # south of the maps before 2026-11-21, are unused now)
+    fronts[1][-1][6] = 5                                   # (홍익문고: five storeys)
     signs2 = []
-    for side in (1, -1):
-        fr = fronts[side]
-        pick = [fr[j] for j in np.linspace(1, len(fr) - 3, 5).astype(int)] + [fr[-1]] if side > 0 else \
-            [fr[min(j, len(fr) - 2)] for j in np.linspace(1, YRO_W_FRONTS - 2, 6).astype(int)]
-        if side > 0:
-            fr[-1][6] = 5                                  # (홍익문고: five storeys)
-        for i, b in enumerate(pick):
-            n_ = np.array([math.cos(b[4]), math.sin(b[4])])                 # (L axis: away from the street)
-            c = np.array(b[:2]) - n_ * (b[2] / 2 + 0.14)
-            face = math.atan2(-n_[1], -n_[0])
-            signs2.append([round(float(c[0]), 2), round(float(c[1]), 2), round(b[5] + 0.3 + 3.3, 2), round(face, 4),
-                           round(min(b[3] - 0.6, 6.4), 2), 1.1, (0 if side > 0 else 6) + i])
     # the landmarks' signs where the 1995 · 1996 photos have them (LM_SHAPE); a landmark without a shape: over its top,
     # facing the junction
     for lm, b in corner:
@@ -1837,7 +1838,8 @@ def layout(geo, town, extras, ground, taken_z):
     town['entrances'] = entrances
     town['signs2'] = signs2
     town['landmarks'] = lm_draw                                # (blender/town.py landmarks(), web/src/ui.js's map)
-    town['names2'] = names[1] + names[-1]
+    town['shops'] = yro_shops
+    town['signs'] = []            # (gate_town's sixteen boards north of y -640: the houses they hung on went, yro_rows)
     # (연세로's wall signs and banner: yro_; none on 금강제화's and 홍익문고's walls, which carry their own boards:
     # blender/town.py _kumkang, _hongik)
     own_walls = unary_union([kk_pg, hk_pg]).buffer(1.6)
@@ -2188,42 +2190,50 @@ def yro_walk_poly(a, s_kerb, yx=None, old=False):
 
 
 def yro_rows(geo, blocks, ground):
-    """The rows from y -640 to the junction behind the YRO_WALK walk: YRO_FIXED at the segments' south ends, YRO_MIX
-    for the rest (random.Random(4805)), appended to blocks; blocks that stand in them go (b[6] < 0).  Returns the
-    fronts of each side, north to south (the last of the east side is 홍익문고), and how many went."""
+    """연세로's rows from the bridge to the junction, house by house as the July 1997 scans, the roadview and the
+    anthologies' street maps have them (tools/yro97.py ROWS; 고증 4.10.8), appended to blocks; south of the last side
+    street of each side YRO_FIXED's (the 1996 photos: 홍익문고 and the brick house, 금강제화 and the cream three; east
+    also the four north of 연세로2길).  gate_town's rows north of y -640 and whatever stands in the new ones or in
+    독수리빌딩's pit go (b[6] < 0, their draws kept).  Returns the fronts of each side, north to south (the last of the
+    east side is 홍익문고, of the west 금강제화), how many went, and the shops' boards: [x, y, z of the board's middle,
+    the way it faces (rad), width, height, cell of sign_yro97]."""
     rnd = random.Random(4805)
     ya = geo['arms']['yonsei']
     corner_cut = geo['cross_streets'].buffer(1.0)
     shapely.prepare(corner_cut)
-    face_ = {1: ya.half + YRO_WALK_E, -1: ya.half + YRO_WALK_W}     # (side +1: the east row, at -n)
     S = lambda y: float(ya.ls.project(Point(gt.YONSEI_X if y > -740 else -100.0, y)))
+    s_rows = S(Y_ROWS)
+
+    def face(s_mid, side):                              # (the front wall from the street's middle: side +1 east, at -n)
+        if s_mid > s_rows:
+            return ya.half + gt.YONSEI_WALK                 # (gate_town's walks north of y -640)
+        return ya.half + (YRO_WALK_E if side > 0 else YRO_WALK_W)
 
     def mk(s_mid, wdt, lv, wall, dep, side, draw=True):
         p, t, n = ya.at(s_mid)
-        c = p - n * side * (face_[side] + dep / 2)
+        c = p - n * side * (face(s_mid, side) + dep / 2)
         ang = math.atan2(-n[1] * side, -n[0] * side)
         b = [round(float(c[0]), 2), round(float(c[1]), 2), round(dep, 2), round(wdt - 0.15, 2), round(ang, 4), 0.0, int(lv),
              int(wall), (3 if rnd.random() < 0.6 else 2) if draw else 3, 0, 2, int(rnd.random() < 0.7) if draw else 0]
         b[5] = round(min(ground(x_, y_) for x_, y_ in list(_box(b).exterior.coords)[:4]) - 0.3, 2)
         return b
 
-    def pick():
-        lv = rnd.choices(YRO_MIX['lv'], YRO_MIX['p'])[0]
-        return [rnd.uniform(*YRO_MIX['w']), lv, rnd.choice(YRO_MIX['wall']), rnd.uniform(*YRO_MIX['dep'])]
-
-    fronts = {1: [], -1: []}
+    fronts, named = {1: [], -1: []}, []
     for side in (1, -1):
-        segs, y0 = [], Y_ROWS
-        for g0, g1 in GAPS[side]:
-            segs.append((y0, g0))
-            y0 = g1
-        segs.append((y0, None))
-        for k, (yn, ys) in enumerate(segs):
+        for yn, ys, lv, wall, dep, shops in yro97.ROWS[side]:
+            s_n, s_s = S(yn), S(ys)
+            b = mk((s_n + s_s) / 2, s_n - s_s, lv, wall, dep, side)
+            fronts[side].append(b)
+            named.append((b, shops))
+        # the corner's segment (and, east, the one north of it): YRO_FIXED from each segment's south end
+        last = len(GAPS[side])
+        for k in ((last - 1, last) if side > 0 else (last,)):
+            yn = GAPS[side][k - 1][1]
             s_n = S(yn)
-            if ys is not None:
-                s_s = S(ys)
+            if k < last:
+                s_s = S(GAPS[side][k][0])
             elif side > 0:
-                s_s = S(-912.6)                               # (홍익문고's south wall; the fenced corner lot south of it)
+                s_s = S(-912.6)                               # (홍익문고's south wall; the tower's lot south of it)
             else:                                             # (the corner: where a row's box clears the cross street)
                 s_s = 0.0
                 while shapely.intersects(corner_cut, _box(mk(s_s + 0.5, 1.0, 1, 0, 12.0, side, False))):
@@ -2231,30 +2241,51 @@ def yro_rows(geo, blocks, ground):
             fixed = YRO_FIXED.get((side, k), [])
             seq, s = [], s_s
             for i, (w, lv, wall, dep) in enumerate(fixed):
-                if s + w > s_n - 0.5:
-                    break
-                if i == len(fixed) - 1 and s_n - (s + w) < 4.0:
+                if k == last and i == len(fixed) - 1 and s_n - (s + w) < 4.0:
                     w = s_n - s                               # (the last fixed one meets the segment's end)
-                seq.append((s + w / 2, w, lv, wall, dep))
+                seq.append((s + w / 2, w, lv, wall, dep, yro97.FIXED_SHOPS.get((side, k, i), [])))
                 s += w
-            while s < s_n - 0.5:
-                w, lv, wall, dep = pick()
-                if s_n - (s + w) < 5.0:
-                    w = s_n - s
-                seq.append((s + w / 2, w, lv, wall, dep))
-                s += w
-            for s_mid, w, lv, wall, dep in sorted(seq, key=lambda q: -q[0]):         # (north to south)
-                fronts[side].append(mk(s_mid, w, lv, wall, dep, side))
+            for s_mid, w, lv, wall, dep, shops in sorted(seq, key=lambda q: -q[0]):         # (north to south)
+                b = mk(s_mid, w, lv, wall, dep, side)
+                fronts[side].append(b)
+                named.append((b, shops))
     rows = fronts[1] + fronts[-1]
-    rp = unary_union([_box(b).buffer(-0.2) for b in rows])
+    rp = unary_union([_box(b).buffer(-0.2) for b in rows] + [Polygon(yro97.PIT).buffer(1.0)])
     shapely.prepare(rp)
     n_gone = 0
     for b in blocks:
-        if b[6] > 0 and b[1] < Y_ROWS + 2.0 and shapely.intersects(rp, _box(b)):
+        if b[6] <= 0:
+            continue
+        if (b[10] == 2 and b[1] > Y_ROWS) or shapely.intersects(rp, _box(b)):       # (gate_town's rows; what stands here)
             b[6] = -b[6]
             n_gone += 1
     blocks += rows
-    return fronts, n_gone
+    # the shops' boards: over each ground floor shop its name, the frontage shared among them; a shop upstairs has its
+    # board on the wall over its own floor's windows
+    boards = []
+    for b, shops in named:
+        cx, cy, L, W, ang, base, lv = b[:7]
+        u = np.array([math.cos(ang), math.sin(ang)])          # (L: away from the street)
+        t = np.array([-u[1], u[0]])
+        nd = t if t[1] > 0 else -t                             # (along the front, northwards: the shops are listed from the north)
+        fa = math.atan2(-u[1], -u[0])
+        top = base + 0.3 + 3.0 * lv
+        down = [n_ for n_, f_ in shops if f_ == 1]
+        for i, name in enumerate(down):
+            w = min(W / len(down) - 0.5, 5.0)
+            h = round(min(1.25, w / 4), 2)
+            q = np.array([cx, cy]) - u * (L / 2 + 0.14) + nd * (W / 2 - W * (i + 0.5) / len(down))
+            z = min(base + 0.3 + 3.3, top - h / 2 - 0.05)
+            boards.append([round(float(q[0]), 2), round(float(q[1]), 2), round(z, 2), round(fa, 4), round(w, 2), h, yro97.CELL[name]])
+        for name, f_ in shops:
+            if f_ < 2 or f_ > lv:
+                continue
+            w = min(W - 1.0, 4.4)
+            h = round(min(1.1, w / 4), 2)
+            q = np.array([cx, cy]) - u * (L / 2 + 0.14)
+            z = min(base + 0.3 + 3.0 * f_ + 0.3, top - h / 2 - 0.05)
+            boards.append([round(float(q[0]), 2), round(float(q[1]), 2), round(z, 2), round(fa, 4), round(w, 2), h, yro97.CELL[name]])
+    return fronts, n_gone, boards
 
 
 def yro_wall_signs(blocks):

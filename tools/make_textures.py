@@ -828,6 +828,44 @@ def sinchon2_signs():
 sinchon2_signs()
 
 
+# sign_yro97.png: 연세로's shops from the bridge to the junction as the anthologies' street maps name them (2019 문집
+# 25쪽, 2021 문집 22 ~ 23쪽; tools/yro97.py SIGNS, blender/town.py shops): 4 x 16 cells of 512 x 128, a board each in
+# the plain painted or lit-box manner of the 1996 photos (51979 · 52106: a flat ground, heavy letters, a thin frame)
+def yro97_signs():
+    if ONLY and 'sign_yro97' not in ONLY:
+        return
+    sys.path.insert(0, os.path.join(ROOT, 'tools'))
+    import yro97
+    fb = '/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc'
+
+    def fnt(size):
+        for i in (1, 0, 2, 3):
+            try:
+                return ImageFont.truetype(fb, size, index=i)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+    img = Image.new('RGB', (2048, 2048), (200, 200, 200))
+    d = ImageDraw.Draw(img)
+    for i, (txt, bg, fg) in enumerate(yro97.SIGNS):
+        x0, y0 = (i % yro97.COLS) * 512, (i // yro97.COLS) * 128
+        d.rectangle([x0, y0, x0 + 511, y0 + 127], fill=bg)
+        d.rectangle([x0 + 6, y0 + 6, x0 + 505, y0 + 121], outline=tuple(int(c * 0.75) for c in fg), width=4)
+        size = 96
+        while True:
+            f = fnt(size)
+            w = d.textlength(txt, font=f)
+            if w < 440 or size < 30:
+                break
+            size -= 4
+        d.text((x0 + 256 - w / 2, y0 + 64), txt, font=f, fill=fg, anchor='lm')
+    img.save(os.path.join(OUT, 'sign_yro97.png'), optimize=True)
+    print('sign_yro97')
+
+
+yro97_signs()
+
+
 # sign_roof.png: 연세로's rooftop boards (blender/town.py yro_roofs; the 1996 photos 51979 · 52106: hospitals, insurers,
 # 학원 on frames over the shops' roofs). The kinds of business, not real names: 2 x 8 cells, 512 x 128 each
 def roof_signs():

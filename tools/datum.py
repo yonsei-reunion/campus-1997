@@ -393,6 +393,9 @@ def heights(c):
             for k in ('base', 'deck', 'top', 'foot'):
                 if k in l:
                     out.append((l, k, l['tilt'], None))
+        for l in T.get('sites', []):            # (연세로의 공사장: tools/yro97.py PIT)
+            for k in ('base', 'top', 'foot'):
+                A(l, k, sum(p[0] for p in l['outline']) / len(l['outline']), sum(p[1] for p in l['outline']) / len(l['outline']))
         ra = T['rail']
         for s in ra['sections']:
             for k in (6, 7, 9, 10, 11):
@@ -412,8 +415,8 @@ def heights(c):
         A(ra, 'top', bx, by)
         for i, p in enumerate(T['road']['pts']):
             A(T['road']['z'], i, p[0], p[1])
-        for k in ('signs', 'signs2', 'vsigns'):
-            for q in T[k]:
+        for k in ('signs', 'signs2', 'vsigns', 'shops'):
+            for q in T.get(k, []):
                 A(q, 2, q[0], q[1])
     U = c.get('underwood_steps')
     if U:

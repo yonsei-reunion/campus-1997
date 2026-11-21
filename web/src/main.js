@@ -640,8 +640,8 @@ async function main() {
   }
   player.teleport(campus.spawn.pos[0], campus.spawn.pos[1], campus.spawn.yaw);
   // 정문 밖: past the line of 성산로's north kerb (tools/gate_town.py town.limit, the walker's barrier's north edge) the
-  // walk goes on only where campus.json walk_open has it: over 성산로's crossing, 연세로's two sidewalks and 신촌 로터리's
-  // corners and crossings (tools/sinchon_rotary.py, walled round by colliders). The map, the bird's eye view and the
+  // walk goes on only where campus.json walk_open has it: 성산로's carriageway and south walk, 연세로's and 신촌 로터리's
+  // walks and carriageways (tools/sinchon_rotary.py, walled round by colliders). The map, the bird's eye view and the
   // start list set no walker down past the line but there (a list of polygons: other gates may add theirs; walk_holes:
   // the rings cut out of them, 연세로's carriageway between two crossings)
   const LIMIT = campus.town?.limit ?? [];

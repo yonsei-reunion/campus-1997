@@ -818,26 +818,15 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
         for kk in range(LANES):
             pts = road.offn(sgn * (MID / 2 + LANE_W * (kk + 0.5)))[drive]
             lanes.append(dict(kind='bus' if kk == LANES - 1 else 'car', pts=R2(pts if sgn < 0 else pts[::-1])))
-    # ---- the walker's barrier: along the north kerb, the carriageway side, open at the crossing (shut 2026-11-11 ..
-    # 14): over it the walker goes on to 연세로 and 신촌 로터리, whose walks tools/sinchon_rotary.py walls and gives the
-    # web as walk_open.  The barrier's north edge goes out as town.limit: the web sets no walker down south of it but
-    # in walk_open (web/src/main.js beyondGate: the map, the bird's eye view, the start list)
+    # ---- the walker on 성산로 (2026-11-21, user's request: to cross anywhere, not only on the zebra): its carriageway
+    # and south walk from x -480 to 340 are open, walled round by tools/sinchon_rotary.py with 연세로's and the junction's
+    # (walk_open; no wall along the north kerb, the campus's side).  Before: thin boxes along the north kerb, open only
+    # at the zebra.  The north kerb's line still goes out as town.limit: the web sets no walker down south of it but in
+    # walk_open (web/src/main.js beyondGate: the map, the bird's eye view, the start list)
     barrier = []
-    bl = road.offn(HW - 0.9)
     bh = road.offn(HW - 0.1)
-    limit = []
-    gap = Polygon([(cross_x[0], ks - 1.0), (cross_x[1], ks - 1.0), (cross_x[1], kn + 1.0), (cross_x[0], kn + 1.0)])
-    for k in range(0, len(bl) - 3, 3):
-        if not (-480 < bl[k][0] < 340):
-            continue
-        limit.append(bh[k])
-        q = Polygon([tuple(bl[k]), tuple(bl[k + 3]), tuple(bh[k + 3]), tuple(bh[k])])
-        if not q.intersects(gap):
-            barrier.append(R2([bl[k], bl[k + 3], bh[k + 3], bh[k]]))
-            continue
-        for g in getattr(q.difference(gap), 'geoms', [q.difference(gap)]):
-            if g.geom_type == 'Polygon' and g.area > 0.01:
-                barrier.append(R2(list(g.exterior.coords)[:-1]))
+    limit = [bh[k] for k in range(0, len(bh) - 3, 3) if -480 < bh[k][0] < 340]
+    ssr_span = Polygon([(-480.0, -1000.0), (340.0, -1000.0), (340.0, 400.0), (-480.0, 400.0)])
     # ---- bus stops (the 1995 photo: two green-roofed shelters at the kerb west of the mouth) and lamps
     stops = []
     for x in (-203.0, -184.0):
@@ -947,7 +936,8 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
              dict(kind='tertiary', w=2 * YONSEI_HALF, pts=[[YONSEI_X, round(y_top, 1)], [YONSEI_X, -640.0]])]       # (the map)
     extra = dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, bank_rng=bank_r, paths=paths,
                  mouth=mouth, mouth_rng=mouth_rng,
-                 road_poly=road_poly0.union(walk_s), cross_box=(cross_x[0], cross_x[1], ks, kn), walk_s=walk_s)
+                 road_poly=road_poly0.union(walk_s), cross_box=(cross_x[0], cross_x[1], ks, kn), walk_s=walk_s,
+                 ssr_open=road_poly.union(walk_s).intersection(ssr_span).buffer(0), kerb_n=np.array(kerb_n))
     # 성산로 past the game's end, the footbridges, the wall on the bank west of the bridge and 신촌역's yard (tools/ssr97.py,
     # the 1997 scans; 고증 4.8): what stands in the yard, on the footbridges' landings or on the road goes (b[6] < 0)
     extra['ext'] = ssr97.layout(town, extra, road, sec_off, HW, MID, LANE_W, LANES, R2)
