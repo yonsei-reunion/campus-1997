@@ -1542,9 +1542,11 @@ def layout(geo, town, extras, ground, taken_z):
     # 독수리다방's yard (yro97.DOK97; 2026-11-21): from 연세로's walk in to the house's walls and door and along the
     # street house's front (the lane north of it is no walk, as before)
     dk = yro97.DOK97
+    # (and 창천교회's front yard north of it over the lane, yro97.CHURCH_YARD: to the church's west front)
+    dk_open = unary_union([Polygon(dk['yard']), Polygon(dk['fore'])] + [Polygon(p_) for p_ in yro97.CHURCH_YARD])
     dk_walls = unary_union([Polygon(dk['main']).buffer(0.35), Point(dk['bay'][0], dk['bay'][1]).buffer(dk['bay'][2] + 0.3)]
-                           + [_box(b).buffer(0.4) for b in blocks if len(b) == 12 and b[6] > 0 and -90.0 < b[0] < -40.0 and -600.0 < b[1] < -550.0])
-    W_parts.append(unary_union([Polygon(dk['yard']), Polygon(dk['fore'])]).difference(dk_walls))
+                           + [_box(b).buffer(0.4) for b in blocks if len(b) == 12 and b[6] > 0 and _box(b).intersects(dk_open)])
+    W_parts.append(dk_open.difference(dk_walls))
     Wk = unary_union(W_parts).buffer(0.05).buffer(-0.05)
     walk_open, walk_holes, barrier = [], [], []
     kn_ = extras['kerb_n'][np.argsort(extras['kerb_n'][:, 0])]

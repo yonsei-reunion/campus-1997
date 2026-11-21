@@ -123,6 +123,16 @@ DOK97 = dict(
     yard=[(-82.6, -561.0), (-82.6, -587.6), (-79.9, -587.6), (-79.9, -575.5), (-65.4, -575.5), (-65.4, -561.0)],
     fore=[(-66.5, -561.0), (-66.5, -565.9), (-49.0, -564.2), (-49.0, -561.0)],     # (and the strip before its north face)
 )
+# 창천교회's front yard, open to the walker (2026-11-21, user's request): north of 독수리다방's yard across the lane
+# (연세로12길), from 연세로's walk to the church's west front and along it north to the houses' end.  The scans of
+# 1997-07-28: a paved yard with cars parked on it south of 사진관's house, a bus standing before the church's front, the
+# lane's kerb along its south and south-west.  The game has no carriageway or kerb for the lane, so the whole of it to
+# 독수리다방's yard is one open ground; whatever house or the church stands in these boxes is cut out of them
+CHURCH_YARD = [
+    [(-82.6, -540.4), (-82.6, -561.2), (-49.0, -561.2), (-49.0, -540.4)],
+    [(-72.2, -520.5), (-72.2, -540.6), (-49.0, -540.6), (-49.0, -520.5)],
+]
+
 # sign_yro97's cells of the house itself (not shop boards): the roof's letters, the coloured glass of the wide windows
 DOK_CELLS = dict(roof=52, glass=53)
 
