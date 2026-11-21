@@ -27,7 +27,8 @@ const RADIUS = 0.32, STEP = 0.55;
 const WALL_RAY_H = [0.1, 0.2, 0.42, 0.65, 1.3];
 const LOW_RAY = 0.6;
 const WALL_PAD = 0.5;     // the walls a push-out rays are found for a box this much (m) wider each way (wallsAround)
-export const WALK = 2.4, RUN = 6.2, TURN = 2.3;
+import { WALK, RUN, TURN } from './pace.js';
+export { WALK, RUN, TURN };
 // The camera's one vertical axis, cam.lift: 0 is the usual view from behind and a little above; up to LIFT_MAX the
 // camera climbs to look down on the walker; below 0 the view looks up: by LOOK_UP the camera has sunk behind the
 // walker to CAM_LOW over the ground and the view has tipped up PITCH_MAX past its level look, about 70° above the

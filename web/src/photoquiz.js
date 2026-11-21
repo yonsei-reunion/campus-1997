@@ -7,26 +7,22 @@
 // Loaded only when the game starts (main.js).
 import * as THREE from 'three';
 import { HERO } from './characters.js';
-import { safeGet, safeSet, wrapAngle, versioned, copyButton, clamp } from './util.js';
+import { safeGet, safeSet, wrapAngle, versioned, copyButton } from './util.js';
 import './photoquiz.css';
+import { Run, RankBox } from './rank.js';
+import { PHOTO, photoScore, pickPhotos } from './rankrules.js';
 
-const ROUND = 5;
-const LIMIT = 100;                 // s for one photo (then the answer is taken where the walker stands)
+// (rankrules.js, which the ranking's server judges by) ROUND photos a round, LIMIT s for one (then the answer is taken
+// where the walker stands), starts NEAR m from the answer, no two answers closer than SEP m; the score: POS for the
+// place (full within D_FULL m, none past D_ZERO), DIR for the way (full within A_FULL°, none past A_ZERO; only
+// within D_ZERO m)
+const { ROUND, LIMIT, NEAR, POS, DIR, D_ZERO } = PHOTO;
 const HINT_AT = 40;                // s: the nearest named place shows from then on
-const NEAR = [60, 170];            // m: how far from the answer a photo starts
-const SEP = 15;                    // m: no two answers of a round closer than this
-// score: 700 for the place (full within 2 m, none past 42 m), 300 for the way (full within 10°, none past 70°;
-// only when within 42 m)
-const POS = 700, DIR = 300, D_FULL = 2, D_ZERO = 42, A_FULL = 10, A_ZERO = 70;
 const KEY = 'y97-photo-records', MAX = 50;
 const DEG = Math.PI / 180;
 
 export const photoUrl = () => `${location.origin}${location.pathname}?game=photo`;
-export function scoreOf(d, a) {
-  const p = clamp((D_ZERO - Math.max(d, D_FULL)) / (D_ZERO - D_FULL), 0, 1);
-  const w = d < D_ZERO ? clamp((A_ZERO - Math.max(a, A_FULL)) / (A_ZERO - A_FULL), 0, 1) : 0;
-  return { pos: Math.round(POS * p), dir: Math.round(DIR * w), total: Math.round(POS * p) + Math.round(DIR * w) };
-}
+export const scoreOf = photoScore;
 
 // ---------------------------------------------------------------- records (this browser only)
 export function records() {
@@ -43,7 +39,6 @@ function addRecord(rec) {
 }
 const day = (ms) => { const d = new Date(ms); return `${d.getMonth() + 1}/${d.getDate()}`; };
 const mmss = (s) => { s = Math.max(0, Math.ceil(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
 
 // the answer's mark: a column of light and an arrow on the ground the way the photo looks
@@ -108,15 +103,15 @@ export class PhotoQuiz {
 
   // ---------------------------------------------------------------- a round
   async start() {
-    if (this.state === 'load') return;
-    const items = await this.load();
+    if (this.state === 'load' || this.opening) return;
+    this.run?.fail('다시 시작');
+    let items, run;
+    this.opening = true;
+    try { [items, run] = await Promise.all([this.load(), Run.open('photo')]); } finally { this.opening = false; }
+    this.run = run;
     this.results(false);
-    // five answers, no two close together
-    const pick = [];
-    for (const q of shuffle([...items])) {
-      if (pick.length < ROUND && pick.every((p) => Math.hypot(p.x - q.x, p.y - q.y) >= SEP)) pick.push(q);
-    }
-    this.round = pick;
+    // five answers, no two close together, drawn by the ranking's seed (the server deals the same five)
+    this.round = pickPhotos(items, run.rnd);
     this.answers = [];
     this.score = 0;
     this.i = -1;
@@ -149,6 +144,7 @@ export class PhotoQuiz {
     pl.autoRun = true;
     pl.enabled = true;
     this.state = 'play';
+    this.run?.add('q', pl.x, pl.y, this.i);
     const near = this.places.filter((p) => far(p) < 60).sort((a, b) => far(a) - far(b))[0];
     this.hintText = near ? `힌트: ${near.name} 근처` : '힌트: 사진 속 건물을 찾아보세요';
     this.sound?.cue('beep');
@@ -162,6 +158,7 @@ export class PhotoQuiz {
     const look = Math.atan2(v.x, -v.z);
     const a = Math.abs(wrapAngle(look - q.bearing * DEG)) / DEG;
     const sc = scoreOf(d, a);
+    this.run?.add('a', pl.x, pl.y, this.i, Math.round(look / DEG * 100) / 100);
     this.score += sc.total;
     this.answers.push({ id: q.id, d: Math.round(d * 10) / 10, a: Math.round(a), s: sc.total, time: Math.round(LIMIT - this.time) });
     this.state = 'reveal';
@@ -196,6 +193,7 @@ export class PhotoQuiz {
 
   finish() {
     this.state = 'done';
+    this.run?.end();
     this.reveal(false);
     this.showPhoto(null);
     if (this.mark.parent) this.scene.remove(this.mark);
@@ -211,6 +209,7 @@ export class PhotoQuiz {
   stop() {
     if (!this.on) return;
     this.state = 'off';
+    this.run?.fail('그만둠');
     this.peeking = false;
     const pl = this.player;
     pl.autoRun = false;
@@ -229,9 +228,11 @@ export class PhotoQuiz {
   update(dt, t, paused) {
     if (!this.on) return;
     this.paused = paused;
+    this.run?.frame(dt, paused || this.zoomed);      // (the big photo stops the photo's clock too)
     if (this.mark.parent) this.mark.children[0].material.opacity = 0.28 + 0.12 * Math.sin(t * 3);
     if (this.state === 'play' && !paused && !this.zoomed) {
       this.time -= dt;
+      this.run?.sample(this.player.x, this.player.y);
       if (LIMIT - this.time >= HINT_AT) this.hint = this.hintText;
       if (this.time <= 0) { this.time = 0; this.submit(); }
     }
@@ -375,6 +376,8 @@ export class PhotoQuiz {
       li.append(el('span', 'n', `${i + 1}`), el('span', 'w', `${HERO[x.hero]?.name ?? ''} · ${day(x.at)}`), el('span', 'p', x.score.toLocaleString('ko-KR')));
       return li;
     }));
+    if (!this.rankBox) { this.rankBox = new RankBox(); r.querySelector('.ranks').after(this.rankBox.el); }
+    this.rankBox.set(this.run, { hero: rec.hero, heroName: HERO[rec.hero]?.name ?? '' });
     r.hidden = false;
     r.querySelector('.again').focus({ preventScroll: true });
   }

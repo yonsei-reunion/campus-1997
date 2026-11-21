@@ -6,76 +6,16 @@
 // Loaded only when the timetable picker opens (main.js).
 import * as THREE from 'three';
 import { HERO } from './characters.js';
-import { RUN } from './player.js';
 import { safeGet, safeSet, wrapAngle } from './util.js';
 import './timetable.css';
+import { Run, RankBox } from './rank.js';
+import { classBoard, CLASS } from './rankrules.js';
 
-// the halls with lecture rooms in 1997 (their 1997 names: 고증 3.1; halls built later are not in the game) and the
-// way between their doors in metres: the walker's colliders, A* over a 1 m grid from door to door (places.js: where
-// the walker stands 4 m past the foot of the widest flight), measured headless on the campus of 2026-11-21.
-// HALLS[i]'s ways to HALLS[0 .. i - 1] are WAY[i]
-const HALLS = ['인문관', '종합관', '연희관', '성암관', '교육관', '가정관', '광복관', '용재관', '상대신관', '상대별관', '경영학교실단', '과학관', '제1공학관',
-  '아펜젤러관', '음악대학', '체육교육관', '대강당', '연합신학대학원'];
-const WAY = [[], [127], [178, 164], [190, 205, 46], [135, 143, 44, 76], [200, 132, 93, 137, 89],
-  [253, 329, 396, 383, 353, 430], [188, 289, 243, 197, 225, 313, 243],
-  [285, 238, 159, 165, 162, 109, 515, 361], [286, 245, 119, 125, 162, 117, 508, 321, 51],
-  [193, 296, 302, 274, 259, 340, 188, 86, 421, 397],
-  [355, 431, 514, 513, 471, 548, 145, 396, 633, 631, 312],
-  [564, 659, 689, 655, 646, 727, 342, 462, 808, 779, 387, 320],
-  [152, 202, 154, 108, 139, 226, 299, 90, 272, 232, 166, 453, 548],
-  [471, 565, 483, 437, 482, 572, 433, 309, 584, 534, 302, 545, 443, 363],
-  [455, 525, 598, 585, 555, 632, 222, 440, 717, 710, 356, 155, 227, 501, 544],
-  [249, 353, 339, 293, 299, 387, 221, 99, 457, 416, 70, 345, 364, 185, 243, 377],
-  [85, 186, 265, 263, 222, 285, 168, 199, 371, 371, 178, 270, 488, 189, 462, 365, 239]];
-export const wayOf = (a, b) => {
-  const i = HALLS.indexOf(a), j = HALLS.indexOf(b);
-  return i < 0 || j < 0 || i === j ? 0 : i > j ? WAY[i][j] : WAY[j][i];
-};
-// the break: the way at running pace, two fifths more for the turns and the doubt, and 20 s to get going (checked
-// headless: a walker running the A* way, held up where steps and low walls are, makes every break of every timetable).
-// (제2공학관 is not in: its door is on the court between it and 제3공학관, up flights a walker coming at it from
-// below finds only by going round)
-export const breakOf = (m) => Math.ceil((m / RUN * 1.4 + 20) / 5) * 5;
-
-// the timetables: [class, hall] for 1 – 4교시 (a class every hour on the hour). The subjects are a game's: names
-// any college had, not a record of 1997's courses; 채플 was in 대강당
-export const SETS = [
-  { id: 'liberal', name: '문과대학', classes: [['국어학개론', '인문관'], ['대학영어', '종합관'], ['사회학개론', '연희관'], ['채플', '대강당']] },
-  { id: 'science', name: '이과대학', classes: [['일반물리학', '과학관'], ['교양체육', '체육교육관'], ['채플', '대강당'], ['기독교의 이해', '종합관']] },
-  { id: 'commerce', name: '상경대학', classes: [['경제원론', '상대신관'], ['대학영어', '종합관'], ['채플', '대강당'], ['회계원리', '상대별관']] },
-  { id: 'eng', name: '공과대학', classes: [['공업수학', '제1공학관'], ['미적분학', '과학관'], ['채플', '대강당'], ['대학영어', '종합관']] },
-];
-const SUBJECTS = ['대학영어', '기독교의 이해', '철학개론', '글쓰기', '통계학', '한국사', '심리학개론', '일반생물학', '경제학입문', '교양체육', '서양사', '컴퓨터 입문'];
-
-// 오늘의 시간표: four halls drawn from the day's date (the same for everyone that day), each break 120 – 480 m
-// (상대신관's door is up the horseshoe flights over 상뜰, which a walker coming from 백양로 finds late: a first class
-// only)
-const START_ONLY = ['상대신관'];
-const dayKey = (d = new Date()) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-function todaySet(key = dayKey()) {
-  let s = +key >>> 0;
-  const rnd = () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  const pick = (a) => a[Math.floor(rnd() * a.length)];
-  for (let tries = 0; tries < 200; tries++) {
-    const halls = [pick(HALLS)];
-    while (halls.length < 4) {
-      const last = halls[halls.length - 1];
-      const ok = HALLS.filter((h) => !halls.includes(h) && !START_ONLY.includes(h) && wayOf(last, h) >= 120 && wayOf(last, h) <= 480);
-      if (!ok.length) break;
-      halls.push(pick(ok));
-    }
-    if (halls.length < 4) continue;
-    const subj = [...SUBJECTS];
-    const classes = halls.map((h) => [h === '대강당' ? '채플' : subj.splice(Math.floor(rnd() * subj.length), 1)[0], h]);
-    return { id: `today-${key}`, name: '오늘의 시간표', today: true, classes };
-  }
-  return { ...SETS[0], id: `today-${key}`, name: '오늘의 시간표', today: true };
-}
-const setOf = (id) => (id?.startsWith('today') ? todaySet() : SETS.find((s) => s.id === id));
-const legsOf = (set) => set.classes.slice(1).map(([, h], k) => breakOf(wayOf(set.classes[k][1], h)));
+import { wayOf, breakOf, SETS, dayKey, setOf, legsOf, todaySet } from './timetables.js';
+export { wayOf, breakOf, SETS };
 
 const COUNT = 3;
-const DOOR_R = 5.5;                 // at the door: within this of the place where the walker would stand (4 m past the flight's foot)
+const DOOR_R = CLASS.DOOR_R;        // at the door: within this of the place where the walker would stand (4 m past the flight's foot)
 const NEAR = 35;                    // the plain round shows the door's ring only this close
 const PEEKS = 3, PEEK_T = 4;        // the easy round's looks from above: how many, how long (the clock runs meanwhile)
 const KEY = 'y97-class-records', MAX = 30;
@@ -227,10 +167,12 @@ export class Timetable {
     const stops = set.classes.map(([, h]) => this.placeOf(h));
     if (stops.some((p) => !p)) return;
     this.starting = true;
+    this.run?.fail('다시 시작');
+    let run;
     try {
-      const wait = this.ensure?.(stops[0].x, stops[0].y);
-      if (wait) await wait;
+      [run] = await Promise.all([Run.open(classBoard(set.id, this.easy)), this.ensure?.(stops[0].x, stops[0].y)]);
     } finally { this.starting = false; }
+    this.run = run;
     this.results(false);
     this.set = set;
     this.stops = stops.map((p) => ({ name: p.name, x: p.x, y: p.y, h: this.groundAt(p.x, p.y) }));
@@ -270,6 +212,7 @@ export class Timetable {
     if (!this.on) return;
     this.endPeek();
     this.state = 'off';
+    this.run?.fail('그만둠');
     this.player.autoRun = false;
     this.player.enabled = true;
     if (this.group.parent) this.scene.remove(this.group);
@@ -331,6 +274,7 @@ export class Timetable {
   update(dt, t, paused) {
     if (!this.on) return;
     this.doorParts.ring.rotation.y = t * 0.6;
+    this.run?.frame(dt, paused);
     if (!paused) this.tick(dt);
     this.showDoor();
     if (this.peekT > 0) this.peekCam();
@@ -349,9 +293,11 @@ export class Timetable {
         this.big('쉬는 시간!');
         this.sound?.cue('go');
         pl.enabled = true;
+        this.run?.add('go', pl.x, pl.y);
       }
     } else if (this.state === 'play') {
       this.time += dt;
+      this.run?.sample(pl.x, pl.y);
       this.leg += dt;
       if (this.peekT > 0) { this.peekT -= dt; if (this.peekT <= 0) this.endPeek(); }
       const lim = this.limits[this.next - 1];
@@ -364,6 +310,7 @@ export class Timetable {
 
   arrive() {
     const i = this.next, lim = this.limits[i - 1], late = this.leg > lim;
+    this.run?.add('ar', this.player.x, this.player.y, i);
     this.endPeek();
     this.splits.push(Math.round(this.leg * 10) / 10);
     this.lates.push(late);
@@ -380,6 +327,7 @@ export class Timetable {
 
   finish() {
     this.state = 'done';
+    this.run?.end();
     this.sound?.cue('buzzer');
     this.big('수업 끝!');
     this.fillTable();
@@ -561,6 +509,8 @@ export class Timetable {
       li.querySelector('.t').textContent = `${fmt(r.time)}${r.late ? ` · 지각 ${r.late}` : ''}`;
       return li;
     }));
+    if (!this.rankBox) { this.rankBox = new RankBox(); el.querySelector('.ranks').after(this.rankBox.el); }
+    this.rankBox.set(this.run, { hero: rec.hero, heroName: HERO[rec.hero]?.name ?? '' });
     el.hidden = false;
     el.querySelector('.again').focus({ preventScroll: true });
   }

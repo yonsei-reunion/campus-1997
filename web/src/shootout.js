@@ -3,16 +3,18 @@
 // by a heap of balls and keeps you supplied: they bend for a ball, come up with it and chest-pass it to wherever you
 // stand as soon as your shot is away (ballpose.js). Walk where you like: the farther out, the narrower the timing
 // (hoops.js). A shot counts if it left the hands before the buzzer. Balls that have come down fade and turn up in
-// the heap again. Every game is kept in this browser with its place in the ranking (shootrecords.js).
+// the heap again. Every game is kept in this browser with its place in the ranking (shootrecords.js), and may go up
+// on the ranking of everybody (rank.js: the round's log, judged again by the server).
 // Loaded only when the game starts (main.js).
 import * as THREE from 'three';
-import { play } from './characters.js';
+import { play, HERO } from './characters.js';
 import { BallForm, PICK, PASS, R } from './ballpose.js';
 import { FREE_THROW, verdict } from './hoops.js';
 import { lineTime } from './talk.js';
 import { wrapAngle, copyButton, gameUrl } from './util.js';
 import { tallOf } from './who.js';
 import * as Records from './shootrecords.js';
+import { Run, RankBox } from './rank.js';
 
 const FRIEND = 'p05';              // 줄무늬 티 · 갈색 머리: a student you never walk as
 // ... but 승민 and 서연 (characters.js HERO: the two of 건축학개론) feed each other
@@ -75,6 +77,10 @@ export class Shootout {
   // (re)start: the walker on the free-throw line facing the basket, the friend by the heap, three seconds to go
   start() {
     const pl = this.player, b = this.ball;
+    this.run?.fail('다시 시작');
+    // the round's ticket for the ranking of everybody: asked for now, the count covers the wait
+    const run = this.run = new Run('shoot');
+    run.opening.then(() => { if (this.run === run && this.state !== 'count') run.fail('늦게 열림'); });
     this.setFriend(friendOf(pl.actor.id));      // (the walker may be somebody else since the last game)
     if (!this.f.holder.parent) this.scene.add(this.f.holder);
     // what the walker had in hand, or in the air, goes back to the heap with the rest
@@ -111,6 +117,7 @@ export class Shootout {
   stop() {
     if (!this.on) return;
     this.state = 'off';
+    this.run?.fail('그만둠');
     const b = this.ball, pl = this.player;
     if (this.f.holder.parent) this.scene.remove(this.f.holder);
     this.form?.rest();
@@ -138,10 +145,14 @@ export class Shootout {
   onRelease(s) { if (this.state === 'play' && verdict(s.q)[1] === 'perfect') this.perfect++; }
   onShot(b) {
     b.shot.counts = this.state === 'play';
-    if (b.shot.counts) this.shots++;
+    if (b.shot.counts) {
+      b.shot.n = this.shots++;
+      this.run?.add('sh', this.player.x, this.player.y, b.shot.three ? 1 : 0);
+    }
   }
   onScore(b) {
     if (!b.shot.counts) return;
+    this.run?.add('mk', this.player.x, this.player.y, b.shot.n);
     this.makes++;
     this.streak++;
     if (b.shot.three) this.threes++;
@@ -172,6 +183,7 @@ export class Shootout {
   update(dt, t, paused) {
     if (!this.on) return;
     this.t = t;
+    this.run?.frame(dt, paused);
     if (!paused) {
       this.tick(dt);
       this.friend(dt);
@@ -185,11 +197,16 @@ export class Shootout {
       this.clock -= dt;
       const n = Math.ceil(this.clock);
       if (n !== this.shown && n > 0) { this.shown = n; this.big(String(n)); this.sound?.cue('beep'); }
-      if (this.clock <= 0) { this.state = 'play'; this.clock = TIME; this.big('시작!'); this.sound?.cue('go'); }
+      if (this.clock <= 0) {
+        this.state = 'play'; this.clock = TIME; this.big('시작!'); this.sound?.cue('go');
+        if (this.run?.state === 'opening') this.run.fail('순위 서버가 늦게 답해요');
+        this.run?.add('go', this.player.x, this.player.y);
+      }
     } else if (this.state === 'play') {
       this.clock -= dt;
+      this.run?.sample(this.player.x, this.player.y);
       if (this.clock <= 10 && !this.said10) { this.said10 = true; this.say('10초 남았어!'); }
-      if (this.clock <= 0) { this.clock = 0; this.state = 'over'; this.overT = 0; this.big('끝!'); this.sound?.cue('buzzer'); }
+      if (this.clock <= 0) { this.clock = 0; this.state = 'over'; this.overT = 0; this.big('끝!'); this.sound?.cue('buzzer'); this.run?.add('end', this.player.x, this.player.y); }
     } else if (this.state === 'over') {
       // the shots let go before the buzzer come down first
       this.overT += dt;
@@ -341,6 +358,7 @@ export class Shootout {
   finish() {
     this.state = 'done';
     this.big('');
+    this.run?.end();
     const pl = this.player;
     pl.enabled = false;                    // (behind the results card)
     const prev = Records.load()[0]?.makes ?? 0;
@@ -361,7 +379,7 @@ export class Shootout {
       el.id = 'shootresult';
       el.innerHTML = '<div><h2>1분 슛 게임</h2><p class="big"></p><p class="detail"></p><p class="best"></p>'
         + '<label class="name">이름 <input type="text" maxlength="12" enterkeyhint="done" autocomplete="off" spellcheck="false" /></label>'
-        + '<div class="ranks"></div>'
+        + '<div class="ranks"></div><div class="rankslot"></div>'
         + '<div class="btns"><button type="button" class="again">다시 하기</button><button type="button" class="quit">그만하고 산책하기</button><button type="button" class="quit totitle" data-to-title>처음 화면으로</button></div>'
         + '<p class="link"><button type="button" class="all">순위 전체 보기</button><button type="button" class="copy">게임 주소 복사</button>'
         + '<br>이 주소로 친구와 겨뤄 보세요 <code></code></p></div>';
@@ -373,6 +391,8 @@ export class Shootout {
       const name = el.querySelector('.name input');
       name.addEventListener('input', () => { if (this.rec) { Records.rename(this.rec.id, name.value); this.drawRanks(); } });
       name.addEventListener('keydown', (e) => { if (e.key === 'Enter') name.blur(); });
+      this.rankBox = new RankBox();
+      el.querySelector('.rankslot').replaceWith(this.rankBox.el);
     }
     this.rec = info.rec;
     const pct = this.shots ? Math.round((100 * this.makes) / this.shots) : 0;
@@ -385,6 +405,7 @@ export class Shootout {
     name.value = info.rec.name || '';
     name.placeholder = Records.who({ hero: info.rec.hero });
     this.drawRanks();
+    this.rankBox.set(this.run, { hero: info.rec.hero, heroName: info.rec.name || HERO[info.rec.hero]?.name || '' });
     el.querySelector('.link code').textContent = gameUrl();
     el.hidden = false;
     el.querySelector('.again').focus({ preventScroll: true });

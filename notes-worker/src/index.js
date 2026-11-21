@@ -5,7 +5,10 @@
 // 받는 것은 둘뿐이다. SQL 은 여기서 만든다(아무 SQL 이나 넘기지 않음).
 //   POST   /         { text, name, color, x, y, z, yaw, kind, place } → { id, created_at }
 //   DELETE /<id>                                                     → { ok: true }
+// 미니 게임 전체 순위(/rank/start · beat · submit)는 rank.js.
 // 토큰은 secret DOLT_TOKEN(wrangler secret put DOLT_TOKEN), DB 는 vars DOLT_DB(owner/name).
+// 순위의 키는 secret RANK_KEY(P-256 개인 키 JWK: node keygen.mjs 가 만듦).
+import * as Rank from './rank.js';
 
 const API = 'https://www.dolthub.com/api/v1alpha1';
 const ORIGINS = [
@@ -16,8 +19,9 @@ const ORIGINS = [
 const COLORS = new Set(['yellow', 'pink', 'mint', 'blue', 'orange']);
 const KINDS = new Set(['wall', 'stake']);
 const MAX_TEXT = 100, MAX_NAME = 12, MAX_PLACE = 40;
-// 한 isolate 안에서만 세는 느슨한 제한: 한 IP 가 1분에 쓰기 8번
+// 한 isolate 안에서만 세는 느슨한 제한: 한 IP 가 1분에 쓰기 8번(순위: 판 열기 20번, 박동 40번, 올리기 6번)
 const RATE = 8, WINDOW = 60_000;
+const RATES = { note: RATE, start: 20, beat: 40, submit: 6 };
 const hits = new Map();
 
 function cors(origin) {
@@ -71,11 +75,11 @@ async function write(env, stmt) {
   throw new Error('DoltHub 작업이 20초 안에 끝나지 않았어요');
 }
 
-function limited(ip) {
-  const now = Date.now(), list = (hits.get(ip) || []).filter((t) => now - t < WINDOW);
-  if (list.length >= RATE) { hits.set(ip, list); return true; }
+function limited(ip, what = 'note') {
+  const key = `${what}|${ip}`, now = Date.now(), list = (hits.get(key) || []).filter((t) => now - t < WINDOW);
+  if (list.length >= RATES[what]) { hits.set(key, list); return true; }
   list.push(now);
-  hits.set(ip, list);
+  hits.set(key, list);
   if (hits.size > 5000) hits.clear();
   return false;
 }
@@ -96,11 +100,19 @@ async function add(env, body) {
 }
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const head = cors(req.headers.get('origin'));
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: head });
     const path = new URL(req.url).pathname.replace(/\/+$/, '');
     try {
+      const rm = path.match(/^\/rank\/(start|beat|submit)$/);
+      if (req.method === 'POST' && rm) {
+        if (limited(req.headers.get('cf-connecting-ip') || '?', rm[1])) return json({ error: '잠시 뒤에 다시 해 주세요' }, 429, head);
+        let body;
+        try { body = await req.json(); } catch { return json({ error: '읽을 수 없는 요청이에요' }, 400, head); }
+        const [status, out] = await Rank[rm[1]]({ ...env, write: (stmt) => write(env, stmt) }, body || {}, ctx);
+        return json(out, status, head);
+      }
       if (req.method === 'POST' && path === '') {
         if (limited(req.headers.get('cf-connecting-ip') || '?')) return json({ error: '잠시 뒤에 다시 붙여 주세요' }, 429, head);
         let body;

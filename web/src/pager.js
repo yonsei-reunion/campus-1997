@@ -10,12 +10,12 @@ import * as THREE from 'three';
 import { HERO, play } from './characters.js';
 import { safeGet, safeSet, wrapAngle } from './util.js';
 import './pager.css';
+import { Run, RankBox } from './rank.js';
+import { PAGER, callLimit, meetLimit, pickMeet } from './rankrules.js';
 
-const PAGES = 3;
+const { PAGES } = PAGER;           // (rankrules.js: the ranking's server judges by the same)
 const KEY = 'y97-pager-records', MAX = 50;
-const NEAR = 1.4;                 // m from a booth's standing spot: the receiver within reach
-const MEET_R = 4.0;               // m from the meeting place: arrived
-const RUN = 6.2;                  // the walker's running speed (player.js RUN)
+const { NEAR, MEET_R } = PAGER;    // m from a booth's standing spot: the receiver within reach; from the meeting place: arrived
 const STAND = 0.85;               // m out of a booth's open front: where its caller stands (main.js, the crowd's)
 
 // the codes of the 1990s pagers (the loading card's quiz has most of them: loading.js); how: shown after the answer;
@@ -50,7 +50,6 @@ const fmt = (s) => { s = Math.max(0, Math.ceil(s)); return `${Math.floor(s / 60)
 const day = (ms) => { const d = new Date(ms); return `${d.getMonth() + 1}/${d.getDate()}`; };
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const round5 = (s) => Math.ceil(s / 5) * 5;
 const dash = (n) => `${n.slice(0, 3)}-${n.slice(3)}`;
 // 로 or 으로 after a word (a final consonant other than ㄹ takes 으로; digits by their reading)
 const ro = (w) => {
@@ -110,8 +109,14 @@ export class Pager {
   get busy() { return this.state === 'dial' || this.resultsOpen; }
 
   // ---------------------------------------------------------------- a game
-  start() {
-    if (!this.booths.length) return;
+  async start() {
+    if (!this.booths.length || this.opening) return;
+    this.run?.fail('다시 시작');
+    this.opening = true;
+    let run;
+    try { run = await Run.open('pager'); } finally { this.opening = false; }
+    this.run = run;
+    run.ctx = { places: { places: this.places, booths: this.booths.map((b) => [b.sx, b.sy]) } };
     this.results(false);
     this.dial(false);
     if (this.crowd?.hidden) this.crowd.hidden = false;      // (the race takes the crowd away while it runs)
@@ -131,11 +136,13 @@ export class Pager {
     this.state = 'gap';
     this.gapT = 1.2;                  // (a breath before the first page)
     this.target = null;
+    run.add('go', pl.x, pl.y);
   }
 
   stop() {
     if (!this.on) return;
     this.state = 'off';
+    this.run?.fail('그만둠');
     const pl = this.player;
     pl.autoRun = false;
     pl.enabled = true;
@@ -157,8 +164,9 @@ export class Pager {
     const code = pick(CODES.filter((c) => c.code !== this.page?.code.code));
     const num = pick(EXCH) + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
     const pl = this.player, d = Math.min(...this.booths.map((b) => Math.hypot(b.sx - pl.x, b.sy - pl.y)));
-    const limit = round5(20 + (d * 1.35) / RUN);
+    const limit = callLimit(d);
     this.page = { num, code, limit };
+    this.run?.add('pg', pl.x, pl.y, this.n);
     this.left = limit;
     this.state = 'run';
     this.lcd(screenText(this.page), `호출 ${this.n}/${PAGES}`);
@@ -287,6 +295,7 @@ export class Pager {
     const pl = this.player;
     this.booth = b;
     pl.teleport(b.sx, b.sy, Math.atan2(b.fx, -b.fy));
+    this.run?.add('lf', b.sx, b.sy);
     pl.enabled = false;
     pl.speed = 0;
     pl.actor.stand = 'phone';
@@ -309,6 +318,7 @@ export class Pager {
     const pts = Math.ceil(this.left) * 10;
     this.score += pts;
     this.legs.push({ what: 'call', left: Math.ceil(this.left) });
+    this.run?.add('cn', this.booth.sx, this.booth.sy);
     this.lcd('', `호출 ${this.n}/${PAGES}`);
   }
 
@@ -318,7 +328,8 @@ export class Pager {
     if (this.n >= PAGES) { this.finish(true); return; }
     const m = this.meet = this.nextMeet;
     const pl = this.player, d = Math.hypot(m.x - pl.x, m.y - pl.y);
-    this.left = round5(12 + (d * 1.35) / RUN);
+    this.run?.add('ag', pl.x, pl.y);
+    this.left = meetLimit(d);
     this.meetLimit = this.left;
     this.state = 'meet';
     const h = this.groundAt(m.x, m.y);
@@ -329,23 +340,15 @@ export class Pager {
     this.ensure?.(m.x, m.y);
   }
 
-  // somewhere 80 - 230 m off, not where the game has been
+  // somewhere 80 - 230 m off the booth, not where the game has been (rankrules.js: drawn by the ranking's seed, so the
+  // server finds the same)
   meetPlace() {
-    const pl = this.player;
-    const ok = (p, lo, hi) => {
-      const d = Math.hypot(p.x - pl.x, p.y - pl.y);
-      return d > lo && d < hi && p.y > -420 && p.y < 460 && !this.used.some((u) => Math.hypot(u.x - p.x, u.y - p.y) < 40);
-    };
-    let list = this.places.filter((p) => ok(p, 80, 230));
-    if (!list.length) list = this.places.filter((p) => ok(p, 40, 400));
-    if (!list.length) list = this.places;
-    const p = pick(list);
-    const m = { x: p.x, y: p.y, name: p.name };
-    this.used.push(m);
-    return m;
+    const b = this.booth || { sx: this.player.x, sy: this.player.y };
+    return pickMeet(this.places, b.sx, b.sy, this.used, this.run?.rnd || Math.random);
   }
 
   arrived() {
+    this.run?.add('mt', this.player.x, this.player.y);
     const pts = Math.ceil(this.left) * 10;
     this.score += pts;
     this.legs.push({ what: 'meet', left: Math.ceil(this.left) });
@@ -358,6 +361,8 @@ export class Pager {
 
   finish(all) {
     this.state = 'done';
+    this.run?.add('end', this.player.x, this.player.y, all ? 1 : 0);
+    this.run?.end();
     this.target = null;
     this.button(null);
     this.group.visible = false;
@@ -378,7 +383,8 @@ export class Pager {
     if (!this.on) return;
     this.t = t;
     this.ring.rotation.y = t * 0.6;
-    if (!paused) this.tick(dt, t);
+    if (this.state !== 'done') this.run?.frame(dt, paused);
+    if (!paused) { this.tick(dt, t); if (this.state !== 'done') this.run?.sample(this.player.x, this.player.y); }
     this.updateGuests(paused ? 0 : dt, t);
     this.drawHud();
   }
@@ -514,6 +520,7 @@ export class Pager {
     const c = this.page.code, ok = dl.opts[i] === c, q = dl.el.querySelector('.quiz');
     q.querySelectorAll('.opts button').forEach((b, k) => { b.disabled = true; b.classList.toggle('right', dl.opts[k] === c); b.classList.toggle('wrong', k === i && !ok); });
     if (ok) { this.right++; this.score += 100; }
+    this.run?.add('ans', this.player.x, this.player.y, ok ? 1 : 0);
     q.querySelector('.res').textContent = ok ? `맞아요! +100점 · ${c.how}` : `「${c.mean}」였어요 · ${c.how}`;
     this.sound?.cue(ok ? 'go' : 'beep');
     setTimeout(() => { if (this.dl === dl && this.state === 'dial') this.talk(); }, 2200);
@@ -651,6 +658,9 @@ export class Pager {
       li.querySelector('.t').textContent = `${r.score}점`;
       return li;
     }));
+    if (!this.rankBox) { this.rankBox = new RankBox(); el.querySelector('.ranks').after(this.rankBox.el); }
+    this.rankBox.el.hidden = !rec.score;
+    if (rec.score) this.rankBox.set(this.run, { hero: rec.hero, heroName: HERO[rec.hero]?.name ?? '' });
     el.hidden = false;
     el.querySelector('.again').focus({ preventScroll: true });
   }

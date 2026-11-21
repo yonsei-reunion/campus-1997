@@ -13,12 +13,15 @@ import { lineTime } from './talk.js';
 import { tallOf } from './who.js';
 import { safeGet, safeSet, wrapAngle } from './util.js';
 import './bdaygame.css';
+import { Run, RankBox } from './rank.js';
+import { BDAY, pickHalls } from './rankrules.js';
 
-const N = 4;                      // friends to bring
-const LIMIT = 300;                // s
-const NEAR = 4.0;                 // a friend within this (m) can be asked along
+// (rankrules.js, which the ranking's server judges by) N friends to bring within LIMIT s; one within NEAR m can be
+// asked along; HALLS: where they wait, halls round 활천대 within about 250 m (places.js startPlaces: in front of the
+// door)
+const { N, LIMIT, NEAR, HALLS } = BDAY;
 const CALL = 14;                  // a friend waves and calls out once you are this close
-const BDAY_NEAR = 4.4;            // the birthday student (birthday.js OFFER_NEAR 4.6)
+const BDAY_NEAR = BDAY.BDAY_NEAR; // the birthday student (birthday.js OFFER_NEAR 4.6)
 const GAP0 = 1.1, GAP = 0.95;     // along the trail: the first follower behind the walker, then each to the next
 const SNAP = 14;                  // further behind than this along the trail: set down on it closer up
 const SHOW = 170;                 // friends drawn within this of the camera
@@ -36,8 +39,6 @@ const POOL = [
   { id: 'p17', name: '은주', look: '청남방에 검은 숄더백', bag: { type: 'shoulder', color: '#1b1b1e', side: 1, size: 1 } },
   { id: 'p15', name: '지혜', look: '줄무늬 티에 파란 백팩', bag: { type: 'backpack', color: '#27458c', size: 1 } },
 ];
-// where they wait: halls round 활천대 within about 250 m (places.js startPlaces: in front of the door)
-const HALLS = ['제1공학관', '백주년기념관', '학생회관', '중앙도서관', '체육관', '광혜원', '루스채플', '제2공학관', '장기원 기념관'];
 const HELLO = ['어, 누구 생일인데? 가자!', '생일? 당연히 가야지!', '분수에 빠뜨리러? 좋아!', '오늘이었어? 같이 가!'];
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 // 민수야 / 경희야, 태호야: the call's ending by the name's last syllable
@@ -122,17 +123,21 @@ export class BdayGame {
     const bd = this.birthday;
     if (!bd || this.starting) return;
     this.starting = true;
+    this.run?.fail('다시 시작');
+    let run;
     try {
-      const wait = this.ensure?.(bd.spot.x, -bd.spot.z);
-      if (wait) await wait;
+      [run] = await Promise.all([Run.open('bday'), this.ensure?.(bd.spot.x, -bd.spot.z)]);
     } finally { this.starting = false; }
+    this.run = run;
     this.results(false);
     this.clear();
     const pl = this.player;
     if (pl.scripted) bd.abort(); else bd.reset();
     // who, and where: four of the friends (not the one you walk as) in front of four halls
     const who = shuffle(POOL.filter((f) => f.id !== pl.actor.id)).slice(0, N);
-    const halls = shuffle(HALLS.map((n) => this.places.find((p) => p.name === n && p.front) || this.places.find((p) => p.name === n)).filter(Boolean)).slice(0, N);
+    // (the halls drawn by the ranking's seed: the server deals the same)
+    const placeOf = (n) => this.places.find((p) => p.name === n && p.front) || this.places.find((p) => p.name === n);
+    const halls = pickHalls((n) => !!placeOf(n), run.rnd).map(placeOf);
     this.friends = who.slice(0, halls.length).map((f, i) => {
       const a = this.actorOf(f), h = halls[i];
       // facing out of the door (the place faces the door: Player.teleport's yaw)
@@ -157,6 +162,7 @@ export class BdayGame {
     this.trail.reset(pl.pos);
     this.clock = LIMIT;
     this.state = 'play';
+    run.add('go', pl.x, pl.y);
     this.counted = 0; this.wasState = bd.state; this.nagged = false; this.doneAt = null;
     const t = this.t;
     this.say(bd.f.holder, bd.fTop, `친구들 ${this.friends.length}명만 불러 와 줘!`, t + 2.3);
@@ -169,6 +175,7 @@ export class BdayGame {
   // back to the walk (onQuit: main.js resumes it)
   stop() {
     if (!this.on) return;
+    this.run?.fail('그만둠');
     const bd = this.birthday;
     if (this.state === 'scene' && this.player.scripted) bd.abort();
     this.state = 'off';
@@ -206,6 +213,7 @@ export class BdayGame {
     if (act.f) {
       const f = act.f;
       f.got = true;
+      this.run?.add('pk', pl.x, pl.y, this.friends.indexOf(f));
       const k = this.friends.filter((x) => x.got && x !== f).length;
       f.order = k;
       f.s = Math.max(this.trail.start, this.trail.head - GAP0 - k * GAP);
@@ -223,6 +231,8 @@ export class BdayGame {
       bd.said = true;
       if (!bd.action()) return;
       this.time = LIMIT - this.clock;
+      this.run?.add('fin', pl.x, pl.y);
+      this.run?.end();
       this.state = 'scene';
       this.counted = 0;
       this.sound?.cue('go');
@@ -268,8 +278,9 @@ export class BdayGame {
     this.paused = paused;
     if (!this.on) return;
     const pl = this.player, bd = this.birthday;
+    if (this.state === 'play') this.run?.frame(dt, paused);
     if (this.state === 'play') {
-      if (!paused) this.clock -= dt;
+      if (!paused) { this.clock -= dt; this.run?.sample(pl.x, pl.y); }
       // the trail: a jump (somewhere else at once) starts it again where the walker is
       const last = this.trail.p[this.trail.p.length - 1];
       if (last && Math.hypot(pl.pos.x - last.x, pl.pos.z - last.z) > 6) {
@@ -394,6 +405,7 @@ export class BdayGame {
 
   timeUp() {
     this.state = 'done';
+    this.run?.fail('시간 초과');
     this.clock = 0;
     this.setAct(null);
     this.sound?.cue('buzzer');
@@ -498,6 +510,9 @@ export class BdayGame {
       li.querySelector('.t').textContent = fmt(r.time);
       return li;
     }));
+    if (!this.rankBox) { this.rankBox = new RankBox(); el.querySelector('.ranks').after(this.rankBox.el); }
+    this.rankBox.el.hidden = !info.ok;
+    if (info.ok) this.rankBox.set(this.run, { hero: info.rec.hero, heroName: HERO[info.rec.hero]?.name ?? '' });
     if (this.hud) this.hud.el.hidden = true;
     el.hidden = false;
     el.querySelector('.again').focus({ preventScroll: true });

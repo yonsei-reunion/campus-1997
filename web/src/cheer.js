@@ -17,6 +17,10 @@ import { lineTime } from './talk.js';
 import { safeGet, safeSet, mulberry } from './util.js';
 import { tallOf } from './who.js';
 import './cheer.css';
+import { CHARTS, chartOf, lengthOf, JUDGE, LATE, notesOf } from './cheercharts.js';
+import { Run, RankBox } from './rank.js';
+import { cheerBoard } from './rankrules.js';
+export { CHARTS, chartOf };
 
 // the four lanes, left to right: what the sign is, its keys and its colour
 export const LANES = [
@@ -28,34 +32,8 @@ export const LANES = [
 const MOVES = LANES.map((l) => l.id);
 const CALL = { clap: '박수!', up: '만세!', sway: '어깨동무!', jump: '뛰어!' };     // the leader's call before a new sign
 
-// the beats: a bar is eight eighth notes, c 박수 · u 만세 · s 어깨동무 (left and right by turns) · j 뛰기 · . nothing.
-// 짝짝 짝짝짝 and 삼삼칠 박수 are the clapping everybody knew; the rest is made up for the game
-export const CHARTS = [
-  { id: 'easy', name: '천천히', bpm: 84, lead: 2.0, desc: '한 박에 하나씩. 박수와 만세부터',
-    bars: ['c...c...', 'c...c...', 'c.c.c.c.', 'c.c.c.c.', 'u.......', 'u.......', 'c.c.u...', 'c.c.u...',
-      's...s...', 's...s...', 's.s.s.s.', 'c.c.c.c.', 'j.......', 'j.......', 'c.c.u...', 'c.c.j...',
-      's...s...', 's.s.s.s.', 'c.c.u...', 'u...j...'] },
-  { id: 'normal', name: '보통', bpm: 100, lead: 1.6, desc: '짝짝 짝짝짝, 삼삼칠 박수가 섞여요',
-    bars: ['c.c.c.c.', 'c.c.ccc.', 'c.c.c.c.', 'c.c.ccc.', 'u...u...', 'c.c.u...', 'u...u...', 'c.c.u.u.',
-      's.s.s.s.', 's.s.s.s.', 'c.c.ccc.', 'u...j...', 'ccc.ccc.', 'ccccccc.', 's.s.s.s.', 'j...j...',
-      'c.c.u...', 'c.c.u...', 's.s.c.c.', 's.s.c.c.', 'u.u.j...', 'ccc.ccc.', 'ccccccc.', 'u...j...'] },
-  { id: 'hard', name: '빠르게', bpm: 124, lead: 1.25, desc: '엇박과 바뀌는 동작. 응원단 수준',
-    bars: ['c.c.ccc.', 'c.c.ccc.', 'u.c.u.c.', 'u.c.u.c.', 's.s.s.s.', 's.s.cc.c', 'j...c.c.', 'j...u...',
-      'ccc.ccc.', 'ccccccc.', 'u.cc.cu.', 's.s.u.u.', 'c.cc.cc.', 'u...j...', 's.s.s.cc', 's.s.s.u.',
-      'j...c.c.', 'j...c.c.', 'uccucc..', 'u.u.j...', 's.s.c.cc', 's.s.u.cc', 'j...j...', 'c.c.ccc.',
-      'ccc.ccc.', 'ccccccc.', 'u.s.u.s.', 'c.c.j...', 'cc.cc.u.', 'cc.cc.u.', 's.s.s.s.', 'u...j...'] },
-];
-export const chartOf = (id) => CHARTS.find((c) => c.id === id);
-const lengthOf = (c) => c.bars.length * 8 * 30 / c.bpm;
 
-// timing windows (s either side of the beat) and what each is worth
-const JUDGE = [
-  { w: 0.045, name: '최고!', cls: 'perfect', pts: 1000, acc: 1 },
-  { w: 0.09, name: '좋아!', cls: 'great', pts: 700, acc: 0.7 },
-  { w: 0.14, name: '괜찮아', cls: 'good', pts: 400, acc: 0.4 },
-];
 const LINE = 24;                     // the line: this far over the lanes' foot (px)
-const LATE = JUDGE[JUDGE.length - 1].w;
 const KEY = 'y97-cheer-records', MAX = 30;
 const VERDICT = [[0.95, '응원단장감!'], [0.85, '응원단 합격'], [0.7, '목이 좀 풀렸어요'], [0.5, '연습이 더 필요해요'], [0, '내일 또 나와요']];
 
@@ -93,18 +71,6 @@ const day = (ms) => { const d = new Date(ms); return `${d.getMonth() + 1}/${d.ge
 const num = (n) => n.toLocaleString('ko-KR');
 
 // the signs of a chart: { t: s from the first bar, lane, dir (어깨동무: -1 / 1 by turns) }
-function notesOf(c) {
-  const e = 30 / c.bpm, out = [];
-  let sway = 0;
-  c.bars.forEach((b, m) => {
-    for (let i = 0; i < 8; i++) {
-      const lane = 'cusj'.indexOf(b[i]);
-      if (lane < 0) continue;
-      out.push({ t: (m * 8 + i) * e, lane, dir: lane === 2 ? (sway++ % 2 ? 1 : -1) : 0, hit: null, el: null });
-    }
-  });
-  return out;
-}
 
 // the drums under it, and the crowd's sounds on the signs: { t, kind }
 function drumsOf(c, notes) {
@@ -334,12 +300,14 @@ export class Cheer {
     const c = chartOf(id);
     if (!c || this.starting) return;
     this.starting = true;
+    this.run?.fail('다시 시작');
+    let run;
     try {
       const [cx, cy] = at(LEADER_D, S0);
-      const wait = this.ensure?.(cx, cy);
-      if (wait) await wait;
+      [run] = await Promise.all([Run.open(cheerBoard(c.id)), this.ensure?.(cx, cy)]);
       await this.makeBlock();
     } finally { this.starting = false; }
+    this.run = run;
     this.results(false);
     this.halt();
     this.chart = c;
@@ -385,6 +353,7 @@ export class Cheer {
     this.drums = drumsOf(c, this.notes);
     this.beat = 60 / c.bpm;
     this.song = -4 * this.beat - 0.6;      // (a breath before the count)
+    run.add('st', pl.x, pl.y, this.song);
     this.end = lengthOf(c);
     this.di = 0; this.ci = 0;
     for (const p of this.perfs) p.nextI = 0;
@@ -453,6 +422,7 @@ export class Cheer {
   stop() {
     if (!this.on) return;
     this.state = 'off';
+    this.run?.fail('그만둠');
     this.halt();
     const pl = this.player;
     pl.scripted = false;
@@ -480,6 +450,8 @@ export class Cheer {
     const now = performance.now(), wall0 = this.wall;
     this.wall = now;
     this.paused = paused;
+    if (this.auto) this.run?.fail('자동 연주');
+    if (this.state === 'count' || this.state === 'play') this.run?.frame(dt, paused);
     if (paused) { this.presses.length = 0; return; }
     const s0 = this.song, s1 = s0 + dt;
     this.song = s1;
@@ -549,6 +521,7 @@ export class Cheer {
     const J = JUDGE[j];
     best.hit = J.cls;
     best.off = off;
+    this.run?.add('ht', this.player.x, this.player.y, this.notes.indexOf(best), off);
     this.counts[j]++;
     this.combo++;
     this.maxCombo = Math.max(this.maxCombo, this.combo);
@@ -567,6 +540,8 @@ export class Cheer {
 
   finish() {
     this.state = 'done';
+    this.run?.add('end', this.player.x, this.player.y);
+    this.run?.end();
     const n = this.notes.length, [p, g, o, m] = this.counts;
     const acc = n ? (p + g * 0.7 + o * 0.4) / n : 0;
     const rec = { id: Date.now(), at: Date.now(), score: this.score, combo: this.maxCombo, acc: Math.round(acc * 1000) / 1000,
@@ -770,6 +745,8 @@ export class Cheer {
       li.querySelector('.t').textContent = num(r.score);
       return li;
     }));
+    if (!this.rankBox) { this.rankBox = new RankBox(); el.querySelector('.ranks').after(this.rankBox.el); }
+    this.rankBox.set(this.run, { hero: rec.hero, heroName: HERO[rec.hero]?.name ?? '' });
     el.hidden = false;
     el.querySelector('.again').focus({ preventScroll: true });
   }

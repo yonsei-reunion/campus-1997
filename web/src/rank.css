@@ -1,0 +1,32 @@
+/* 미니 게임 전체 순위 (rank.js RankBox): the box on every game's results card. The cards style their own buttons by
+   id (#raceresult button …), so the box's own rules go through :is(...) to win over them */
+.rankbox { margin: 4px 0 14px; padding: 10px 12px 8px; border: 1.5px solid #d8d0bb; border-radius: 8px; background: #fbf7ea; text-align: left;
+  font: 13px/1.4 var(--font, sans-serif); color: var(--ink, #16202e); }
+.rankbox[hidden] { display: none; }
+.rankbox h3 { margin: 0 0 4px; font: 700 14px var(--font, sans-serif); color: var(--mint-ink, #0e6f6b); }
+.rankbox h3 small { margin-left: 4px; font-weight: 400; font-size: 11px; color: #6b7280; }
+.rankbox .rk-msg { margin: 0 0 6px; font-size: 13px; color: #5c6572; min-height: 1.4em; }
+.rankbox .rk-msg.good { color: #c0392b; font-weight: 700; }
+.rankbox .rk-msg.off { color: #6b7280; }
+.rankbox .rk-form { display: flex; gap: 6px; margin: 0 0 8px; }
+.rankbox .rk-form[hidden] { display: none; }
+.rankbox .rk-form input { flex: 1; min-width: 0; border: 2px solid var(--ink, #16202e); border-radius: 8px; padding: 6px 10px; font: 700 15px var(--font, sans-serif);
+  background: #fff; color: var(--ink, #16202e); }
+:is(#shootresult, #raceresult, #pqresult, #classresult, #bdayresult, #pagerresult, #cheerresult, body) .rankbox .rk-form button {
+  width: auto; flex: none; margin: 0; border: 0; border-radius: 8px; padding: 6px 14px; font: 700 14px var(--font, sans-serif);
+  background: #c0392b; color: #fff; cursor: pointer; }
+:is(#shootresult, #raceresult, #pqresult, #classresult, #bdayresult, #pagerresult, #cheerresult, body) .rankbox .rk-form button:disabled { opacity: .5; cursor: default; }
+.rankbox .rk-list { list-style: none; margin: 0; padding: 0; max-height: 15.5em; overflow: auto; }
+.rankbox .rk-list li { display: grid; grid-template-columns: 2em minmax(0, 1fr) auto; column-gap: 8px; padding: 3px 4px; border-bottom: 1px dashed #d8d0bb; }
+.rankbox .rk-list li.me { background: #fff3b0; font-weight: 700; }
+.rankbox .rk-list li.gap, .rankbox .rk-list li.none { display: block; text-align: center; color: #8a93a0; }
+.rankbox .rk-list .n { text-align: center; color: #6b7280; }
+.rankbox .rk-list li:first-child .n { color: #c08a00; font-weight: 800; }
+.rankbox .rk-list .w { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.rankbox .rk-list .v { font-variant-numeric: tabular-nums; color: var(--blue, #143c8c); font-weight: 700; text-align: right; }
+.rankbox .rk-list .d { grid-column: 2 / 4; font-size: 11px; color: #8a93a0; }
+.rankbox .rk-list .d:empty { display: none; }
+:is(#shootresult, #raceresult, #pqresult, #classresult, #bdayresult, #pagerresult, #cheerresult, body) .rankbox .rk-more {
+  display: block; width: auto; margin: 6px 0 0; padding: 0; border: 0; background: none; color: var(--mint-ink, #0e6f6b);
+  font: 700 12px var(--font, sans-serif); text-decoration: underline; cursor: pointer; }
+:is(#shootresult, #raceresult, #pqresult, #classresult, #bdayresult, #pagerresult, #cheerresult, body) .rankbox .rk-more[hidden] { display: none; }
