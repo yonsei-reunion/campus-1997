@@ -923,13 +923,46 @@ def centennial():
                 lp.append(Tk + (Ws - Tk) * ((q_ - La) / Ls))
                 ln.append(-nw)
         nw_lobby(mb, lp, ln, z0, HP, top=LT)
-        zt = z0 + LT
-        for k in range(len(lp) - 1):                                          # its roof, in under the drum's wall
-            p0, p1 = lp[k] - ln[k] * 0.1, lp[k + 1] - ln[k + 1] * 0.1
-            q0, q1 = lp[k] - ln[k] * 4.0, lp[k + 1] - ln[k + 1] * 4.0
-            mb.quad((p0.x, p0.y, zt), (p1.x, p1.y, zt), (q1.x, q1.y, zt), (q0.x, q0.y, zt), 'roof_flat')
-        e0, e1 = lp[-1] + ln[-1] * 0.12, lp[-1] - ln[-1] * 4.0                # its south end, over the corner block
-        mb.quad((e0.x, e0.y, z0 + K['h']), (e1.x, e1.y, z0 + K['h']), (e1.x, e1.y, zt), (e0.x, e0.y, zt), 'stone_panel_white')
+        # over the band the same face goes on up to the line of the front's taller part (LT2, 10.8 m): the 2008 · 2010
+        # roadview from 백양로 (2381234, 1016785994) shows the white face between the dark line at the band's top (LT)
+        # and the upper line standing free of the drum, its rounded north end flush with the band below, the porch's
+        # shadow and the drum behind its top; the as-built 백양로 elevation draws that upper line on through to the
+        # front's taller part (reference/고증/3.4 「로드뷰로 본 곡면 벽 위 띠」).  Along the straight wall's line it goes
+        # on south over the corner block to the taller part, 1.7 m in from the block's west side (whose coping the 1997
+        # and 1996 - 1999 frames read at 35.2 m)
+        LT2 = max(K['tall'][2], LT) if K.get('tall') else LT
+        W_ = 'stone_panel_white'
+        Wt_ = Ws - tsd * (K['side'] - K['tall'][1]) if K.get('tall') else Ws  # where it meets the taller part
+        up_p = lp + ([Wt_] if (Wt_ - Ws).length > 0.1 else [])
+        up_n = ln + ([ln[-1]] if len(up_p) > len(lp) else [])
+        zt = z0 + LT2 - 0.3                                                   # its roof, inside a 0.3 m parapet
+        for k in range(len(up_p) - 1):
+            A0, B0 = up_p[k] + up_n[k] * 0.05, up_p[k + 1] + up_n[k + 1] * 0.05
+            Ai, Bi = up_p[k] - up_n[k] * 0.35, up_p[k + 1] - up_n[k + 1] * 0.35
+            zb_ = LT if k < len(lp) - 1 else K['h'] + 0.4                      # (over the block: from its coping)
+            mb.quad((*A0, z0 + zb_), (*B0, z0 + zb_), (*B0, z0 + LT2), (*A0, z0 + LT2), W_)
+            mb.quad((*A0, z0 + LT2), (*B0, z0 + LT2), (*Bi, z0 + LT2), (*Ai, z0 + LT2), W_)   # its cap
+            mb.quad((*Ai, z0 + LT2), (*Bi, z0 + LT2), (*Bi, zt), (*Ai, zt), W_)
+            if k < len(lp) - 1:                                               # the dark line at the band's top
+                Aj, Bj = up_p[k] + up_n[k] * 0.07, up_p[k + 1] + up_n[k + 1] * 0.07
+                mb.quad((*Aj, z0 + LT), (*Bj, z0 + LT), (*Bj, z0 + LT + 0.08), (*Aj, z0 + LT + 0.08), 'concrete_dark')
+                q0, q1 = up_p[k] - up_n[k] * 4.0, up_p[k + 1] - up_n[k + 1] * 4.0   # the roof, in under the drum's wall
+                mb.quad((*Ai, zt), (*Bi, zt), (*q1, zt), (*q0, zt), 'roof_flat')
+        if len(up_p) > len(lp):                                               # its roof over the block, in to the drum
+            def to_drum(p):
+                v_ = p - Vector(c)
+                b_ = v_.dot(nw)
+                return -b_ - math.sqrt(max(b_ * b_ - (v_.length_squared - R * R), 0.0))
+            dr_ = max(to_drum(Ws), to_drum(Wt_)) + 1.0
+            pa, pb = Ws + nw * 0.35, Wt_ + nw * 0.35
+            mb.quad((*pa, zt), (*pb, zt), (*(Wt_ + nw * dr_), zt), (*(Ws + nw * dr_), zt), 'roof_flat')
+        e0 = up_p[0] + up_n[0] * 0.05                                         # its north end against the hall's face
+        e1 = up_p[0] - up_n[0] * 0.35
+        mb.quad((*e1, z0 + LT), (*e0, z0 + LT), (*e0, z0 + LT2), (*e1, z0 + LT2), W_)
+        if len(up_p) == len(lp):
+            e0, e1 = lp[-1] + ln[-1] * 0.12, lp[-1] - ln[-1] * 4.0            # its south end, over the corner block
+            mb.quad((e0.x, e0.y, z0 + K['h']), (e1.x, e1.y, z0 + K['h']), (e1.x, e1.y, zt), (e0.x, e0.y, zt), W_)
+        LT = LT2 - 0.3                                                        # (the drum's wall from its roof up)
     # the drum, with incised horizontal joints, from the ground (inside the box and the block it is hidden), above the
     # lobby glass only from the glass's band up
     joints = [j for j in (3.2, 6.0, HP + 0.9, HP + 3.9, HP + 6.9, HP + 9.9, HP + 12.9) if j < HD - 1.5]
