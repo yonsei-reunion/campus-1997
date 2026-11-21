@@ -11787,6 +11787,7 @@ def curb_runs(F3):
                            [Polygon(b_['footprint']).buffer(0.5) for b_ in out['buildings']] +
                            [audnorth97.isle_wall_line(_isn).buffer(0.5)] +   # (대강당 북쪽 끝 너머 섬: its wall is the edge)
                            [jk97.bed().buffer(0.6)] +                        # (장기원 기념관 남쪽 화단: its wall is the edge)
+                           [jk97.bank_flight_poly()] +                       # (장기원 기념관 동쪽 길 -> 도서관 서쪽 길 돌계단: no kerb across it)
                            [LineString(xy(q) for q in w_['geometry']).buffer(WID[w_['tags']['highway']] / 2 + 1.5)
                             for w_ in ways.values() if w_.get('tags', {}).get('highway') in ('primary', 'secondary')])
     area = unary_union([Polygon(b_['footprint']).buffer(45.0) for b_ in out['buildings'] if b_['style'] != 'city'] +
@@ -12915,6 +12916,8 @@ print('장기원 기념관 남쪽 끝 · 동쪽 발치:', {k_: (len(v_) if isins
       'quads %d, guards %d' % (len(_jk_quads), len(_jk_guards)))
 print('장기원 기념관 동쪽 발치: trees, shrubs off the lane', jk97.east_clear(out['trees'], 'tree'), jk97.east_clear(out['shrubs'], 'shrub'),
       'walks (cut, gone)', jk97.east_paths(out['paths']), 'decals', jk97.east_decals(out['decals']))
+print('장기원 기념관 동쪽 길 -> 도서관 서쪽 길 돌계단:', jk97._BF[0], 'off it (trees, shrubs, props)',
+      [jk97.bank_clear(out[k_]) for k_ in ('trees', 'shrubs', 'props')])
 # (독수리상 안쪽, EAGLE97 above: the azaleas of the round beds as first laid out, r 9.5, go; the beds of 1997 are planted
 # on the same 1.1 m staggered grid with their own draws, clear of the trunks and of the groups' wedges on the diagonals)
 _n_old = len(out['shrubs'])
