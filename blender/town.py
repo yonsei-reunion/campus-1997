@@ -1278,10 +1278,48 @@ def yard():
         mb.box((c[0], c[1], z0 + 0.55), (L - 2.0, 2.2, 0.7), 'metal_dark', rotz=ang)
         mb.box((c[0], c[1], z0 + (0.9 + top - 0.15) / 2), (L, 2.8, top - 0.15 - 0.9), 'wagon_brown', rotz=ang)
         mb.box((c[0], c[1], z0 + top - 0.075), (L + 0.1, 2.9, 0.15), 'roof_metal', rotz=ang)
-    W = R.get('wall97') or []
-    for a, b in zip(W[:-1], W[1:]):
-        _slab(mb, a[:2], b[:2], 0.3, (a[2] - 0.4, b[2] - 0.4), (a[3], b[3]), ends=(a is W[0] or b is W[-1]), bottom=False)
+    _wall97(mb, R.get('wall97') or [])
     return mb
+
+
+W97_PANEL = 2.8              # the metal panels' height under the wall's top (2008-08 roadview 50556 · 50557, 2010-10)
+W97_RIBS = 6                 # their ribs
+W97_POST = 3.5               # metres between the posts, from the end at the bridge
+W97_END_UP = 0.3             # the end post at the bridge over the panels' top (the others 0.12)
+
+
+def _wall97(mb, W):
+    """the noise wall on the bank's edge west of the bridge (tools/ssr97.py WALL97; 고증 4.8.4 「철둑 남쪽 벽의 생김새」):
+    a concrete plinth from the bank's surface, over it light grey metal panels ribbed across, dark posts every
+    W97_POST from the end at the bridge, which stops on the bridge's abutment with a taller post"""
+    if len(W) < 2:
+        return
+    for a, b in zip(W[:-1], W[1:]):
+        e = (a is W[0] or b is W[-1])
+        _slab(mb, a[:2], b[:2], 0.36, (a[2] - 0.4, b[2] - 0.4), (a[3] - W97_PANEL, b[3] - W97_PANEL), ends=e, bottom=False)
+        _slab(mb, a[:2], b[:2], 0.12, (a[3] - W97_PANEL - 0.05, b[3] - W97_PANEL - 0.05), (a[3], b[3]), cell=3, ends=e,
+              bottom=False)
+        for i in range(1, W97_RIBS):                         # (the ribs: a grey line across both faces)
+            f = i / W97_RIBS
+            za, zb = a[3] - W97_PANEL * (1 - f), b[3] - W97_PANEL * (1 - f)
+            _slab(mb, a[:2], b[:2], 0.15, (za - 0.025, zb - 0.025), (za + 0.025, zb + 0.025), cell=2, ends=False,
+                  bottom=True)
+    cum, pts = [0.0], W[::-1]                                # (posts from the east end, the bridge's)
+    for p, q in zip(pts[:-1], pts[1:]):
+        cum.append(cum[-1] + math.hypot(q[0] - p[0], q[1] - p[1]))
+    s, k = 0.0, 0
+    while s <= cum[-1] + 1e-6:
+        while k < len(pts) - 2 and cum[k + 1] < s:
+            k += 1
+        p, q = pts[k], pts[k + 1]
+        f = (s - cum[k]) / max(1e-6, cum[k + 1] - cum[k])
+        x, y = p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f
+        top = p[3] + (q[3] - p[3]) * f
+        z0 = top - W97_PANEL - 0.05
+        z1 = top + (W97_END_UP if s == 0.0 else 0.12)
+        ang = math.atan2(q[1] - p[1], q[0] - p[0])
+        mb.box((x, y, (z0 + z1) / 2), (0.2, 0.22, z1 - z0), 'metal_dark', rotz=ang, skip=('bottom',))
+        s += W97_POST
 
 
 def footbridges():
