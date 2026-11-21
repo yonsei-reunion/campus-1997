@@ -404,7 +404,7 @@ class SignalHeads {
       const fx = Math.cos(face), fy = Math.sin(face);           // the way the lamps look (at the cars coming)
       const ax = fy, ay = -fx;                                  // the mast arm reaches out over the lanes: to the right
       const pole = new THREE.CylinderGeometry(0.11, 0.13, 6.2, 8).translate(x, z + 3.1, -y);
-      const arm = new THREE.BoxGeometry(reach, 0.12, 0.12);
+      const arm = new THREE.BoxGeometry(Math.abs(reach), 0.12, 0.12);   // (a negative reach: out to the left)
       arm.rotateY(Math.atan2(ay, ax)).translate(x + ax * reach / 2, z + 5.9, -(y + ay * reach / 2));
       const hx = x + ax * reach * 0.8, hy = y + ay * reach * 0.8;
       const four = nl === 4;

@@ -525,6 +525,14 @@ MOUTH_SIGN = dict(pole=(-104.2, -925.5), x=(-102.9, -97.6), h=1.25, z0=5.0)
 # back-projected at 6.0 m over the road (the camera solved from stairs 5's roof corners, 4 px; +-0.5 m in that height
 # moves it 1.3 m along the ray from the south-west); the arm's reach from its length in the photo (about 7 m)
 FAR_E_SIGNAL = dict(pole=(-45.0, -983.4), face=180.0, reach=7.0)
+# And for the cars from 신촌로(동) on the far side, in front of 그랜드 (2026-11-22, 고증 4.10.4.1 「52122의 카메라」):
+# 52122 (1996.6, telephoto, from the same roof south-east of the island as 52114; solved on the south-west wedge's
+# paint, the island and 그랜드's corners, 4 px) has two poles on 그랜드's walk, each an arm with two heads of four
+# lamps facing east (both red).  pole: the foot (52122's ray; the south one where it crosses 0.65 m behind
+# 1997년 신촌로's north-west kerb, 52139's foot at the crossing's end; the north one from its foot over the kerb in
+# 52122), face: compass bearing the lamps face, heads: m along the arm to each head (+: to the lamps' right, -: left)
+GRAND_SIGNALS = [dict(pole=(-153.4, -1012.0), face=53.7, heads=(4.0, 6.4)),     # arm south-east over the lanes out
+                 dict(pole=(-147.9, -991.9), face=78.0, heads=(-3.8, -6.9))]    # arm north over the wedge's lanes
 LANE_W = 3.25
 # 연세로's two lanes each way, their middles m off its line (2026-11-15): 4.10.1's 13 m of carriageway, two lanes of
 # 3.2 - 3.3 m a way (the scan of 27/19 at the mouth: the southbound queue's two rows 1.4 and 4.4 m west of the
@@ -1521,6 +1529,13 @@ def layout(geo, town, extras, ground, taken_z):
     # 2 - 3 m apart on it; the web hangs one at 0.8 of the reach), with 신촌로 · 양화로 (phase 1)
     fe = FAR_E_SIGNAL
     heads.append([fe['pole'][0], fe['pole'][1], round(math.radians(fe['face']), 4), 0, 1, fe['reach'], 4])
+    # (2026-11-22) the two in front of 그랜드 (GRAND_SIGNALS, 52122), with 신촌로 · 양화로 (phase 1); a head each (the web
+    # hangs it at 0.8 of the reach; a negative reach: the arm to the lamps' left)
+    for gs in GRAND_SIGNALS:
+        fb = math.radians(gs['face'])
+        for o_ in gs['heads']:
+            heads.append([gs['pole'][0], gs['pole'][1], round(math.atan2(math.cos(fb), math.sin(fb)), 4), 0, 1,
+                          round(o_ / 0.8, 2), 4])
     # 연세로's other two crossings (y -690 and gate_town's at -575): 51979 (1996.5) through its camera solved on the 1997
     # ground has two heads hung over the road just beyond each for the cars going north, on an arm from the east walk
     # (5.5 - 6.2 m up: y -679 .. -693 and -568 .. -580; x 1.3 m east and 0.9 m west of the middle at the near one, 0.3 and
