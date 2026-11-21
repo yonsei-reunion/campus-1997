@@ -88,26 +88,59 @@ SINCHON_E_MID = [(0.0, -3.0), (26.0, -3.0), (38.0, -2.7), (50.0, -2.35), (65.0, 
                  (401.0, -0.65), (425.0, -0.5), (443.0, -0.55), (467.0, -1.1), (1000.0, -1.1)]
 # (2026-11-21, 고증 4.10.4.3 「신촌로(동)의 남쪽 연석」: past s 80 the band's brighter north line every 6 m in both scans,
 # 0.4 m north of the band's middle where both are read: the middle wanders 1.5 m about OSM's line out to the arm's end)
-# Its south lanes as the scans paint them, from the junction to the crossing at s 278 [(s, m off the arm's line), kind]
-# (both scans' dashes within 0.1 - 0.3 m): two dashed lines; the third dashed to the side street, then the bus lane's
-# blue line (52204, 1996.6); the stop's dashed line in front of 한일은행.  Past SE_PAINT_END the rule's lanes again
-SE_PAINT_END = 276.0
+# Its south lanes as the scans paint them, from the junction to the crossing at s 278 (both scans' dashes within
+# 0.1 - 0.3 m): two dashed lines, solid the last 6 - 12 m to the stop line (SE_STOP); the third dashed to the side
+# street, then the bus lane's blue line (52204, 1996.6); the stop's dashed line in front of 한일은행; a solid line
+# 2.9 m off the kerb from behind the stop to s 220 (2026-11-21 둘째: the scans' -12.2 .. -13.0, which the frames of
+# 1996 have with a bus south of it).  [(s, m off the arm's line)] and the [s0, s1] spans painted with each kind
 SE_LINES = [([(45.0, -5.13), (55.0, -4.67), (64.0, -4.55), (72.0, -4.48), (88.0, -4.36), (103.0, -4.21), (126.0, -3.94),
-              (143.0, -3.73), (152.0, -3.6), (170.0, -3.42), (197.0, -3.1), (216.0, -2.94), (236.0, -2.84), (276.0, -2.8)], 'white_dash'),
+              (143.0, -3.73), (152.0, -3.6), (170.0, -3.42), (197.0, -3.1), (216.0, -2.94), (236.0, -2.84), (276.0, -2.8)],
+             [(45.0, 263.3, 'white_dash'), (263.3, 275.0, 'white')]),
             ([(45.0, -7.6), (60.0, -7.45), (77.0, -7.27), (84.0, -7.18), (100.0, -6.96), (114.0, -6.79), (130.0, -6.63),
-              (148.0, -6.45), (166.0, -6.25), (184.0, -6.04), (212.0, -5.72), (240.0, -5.64), (261.0, -5.77), (276.0, -5.8)], 'white_dash'),
-            ([(53.0, -10.67), (64.0, -10.51), (80.0, -10.51), (98.0, -10.6)], 'white_dash'),
-            ([(100.0, -10.4), (112.0, -10.0), (130.0, -9.85), (148.0, -9.6), (160.0, -9.4), (195.0, -9.1), (276.0, -9.2)], 'blue'),
-            ([(98.0, -15.6), (125.0, -15.6)], 'white_dash')]
-# Its south kerb near the junction (2026-11-21, 고증 4.10.4.3 「신촌로(동)의 남쪽 연석」): 16.3 m south of the arm's line, not
-# 14, from the island's turning lane to the bus stop in front of 한일은행 (s 125).  52204 (1996.6, from 외환은행's roof)
-# across one row through the stop: the yellow middle, the two dashed lines, the blue bus lane's line and the dark
-# pavement behind the kerb (the scans' -1.7, -4.2, -6.9, -10.0 and -16.8) put the kerb's brown line at -16.26 and the
-# stop's dashed line at -15.57 (the scans' bright line -15.6), 0.08 m off at most; 27/18 · 27/19 both have the gutter's
-# dark line at -16.2 either side of the side street (s 86, 98) and a car at -13.4 .. -15 (s 78); stair 5's roof
-# (-16.4 .. -20.4, s 58 .. 68) stands at the kerb.  Past s 145 under the trees (s 150 - 215 the scans' kerb is nearer
-# the line, -12.5: 남은 한계) the arm's own.  [(s, m off the line)]: the asphalt the game adds south of -half
-SE_KERB = [(40.0, -16.3), (125.0, -16.3), (145.0, -14.0)]
+              (148.0, -6.45), (166.0, -6.25), (184.0, -6.04), (212.0, -5.72), (240.0, -5.64), (261.0, -5.77), (276.0, -5.8)],
+             [(45.0, 269.0, 'white_dash'), (269.0, 275.0, 'white')]),
+            ([(53.0, -10.67), (64.0, -10.51), (80.0, -10.51), (98.0, -10.6)], [(53.0, 98.0, 'white_dash')]),
+            ([(100.0, -10.4), (112.0, -10.0), (130.0, -9.85), (148.0, -9.6), (160.0, -9.4), (195.0, -9.1), (276.0, -9.2)],
+             [(100.0, 275.0, 'blue')]),
+            ([(98.0, -15.6), (125.0, -15.6)], [(98.0, 125.0, 'white_dash')]),
+            ([(130.0, -12.95), (146.0, -12.75), (170.0, -12.45), (194.0, -12.2), (206.0, -12.05), (220.0, -11.9)],
+             [(130.0, 220.0, 'white')])]
+# The crossing at s 278 (2026-11-21 둘째, 고증 4.10.4.3 「신촌로(동)의 건널목과 바깥 차로」): two columns of bars s 278.4 -
+# 281.9 and 282.1 - 285.75 from the south kerb to 1.25 m short of the north one (o -14.85 .. +12.75), the stop line of
+# the way out 3.25 m before it (s 275.15), of the way in 4.1 m past it (s 289.85); both scans within 0.1 m.  No signals
+SE_CROSS = dict(cols=[(278.4, 281.9), (282.1, 285.75)], o=(-14.85, 12.75), stop_out=275.15, stop_in=289.85)
+# and past it both halves' lines as the scans have them (both frames within 0.1 - 0.2 m, every 6 m to s 477): three
+# each way, solid for 12 - 18 m from the crossing, the outer one solid all the way (south: the bus lane's blue line,
+# on from before the crossing; north: white, its colour not known).  The rule's lanes no more past the crossing
+SE_FAR_LINES = [([(286.0, -3.5), (297.0, -3.8), (309.0, -4.1), (321.0, -4.4), (345.0, -4.4), (357.0, -3.95), (369.0, -3.75),
+                  (387.0, -3.4), (399.0, -3.3), (423.0, -2.9), (441.0, -2.9), (453.0, -3.2), (465.0, -3.5), (500.0, -3.5)],
+                 [(286.0, 303.0, 'white'), (303.0, 489.0, 'white_dash')]),
+                ([(286.0, -6.4), (303.0, -6.7), (321.0, -7.1), (333.0, -7.0), (363.0, -7.0), (375.0, -6.7), (387.0, -6.2),
+                  (399.0, -6.0), (411.0, -5.8), (435.0, -5.8), (447.0, -6.0), (459.0, -6.2), (471.0, -6.4), (500.0, -6.4)],
+                 [(286.3, 298.0, 'white'), (298.0, 489.0, 'white_dash')]),
+                ([(286.0, -9.3), (303.0, -9.8), (321.0, -10.1), (351.0, -9.6), (369.0, -10.1), (381.0, -9.8), (393.0, -9.15),
+                  (411.0, -9.15), (417.0, -8.9), (441.0, -8.9), (459.0, -9.45), (500.0, -9.45)], [(286.0, 489.0, 'blue')]),
+                ([(290.0, 1.9), (297.0, 1.8), (309.0, 1.5), (321.0, 1.35), (339.0, 1.35), (351.0, 1.55), (363.0, 1.85),
+                  (375.0, 2.05), (387.0, 2.35), (399.0, 2.55), (411.0, 2.7), (423.0, 2.85), (441.0, 2.85), (453.0, 2.45),
+                  (465.0, 2.3), (500.0, 2.3)], [(290.3, 302.5, 'white'), (302.5, 489.0, 'white_dash')]),
+                ([(290.0, 4.9), (297.0, 4.6), (309.0, 4.4), (321.0, 4.25), (333.0, 4.25), (345.0, 4.4), (357.0, 4.6), (369.0, 4.8),
+                  (381.0, 4.95), (393.0, 5.4), (411.0, 5.4), (429.0, 5.6), (447.0, 5.3), (459.0, 5.0), (500.0, 5.0)],
+                 [(290.3, 308.0, 'white'), (308.0, 489.0, 'white_dash')]),
+                ([(290.0, 7.5), (345.0, 7.5), (357.0, 7.75), (369.0, 7.9), (387.0, 7.9), (399.0, 8.25), (411.0, 8.25),
+                  (423.0, 8.9), (435.0, 8.9), (441.0, 8.1), (453.0, 8.2), (500.0, 8.2)], [(290.3, 489.0, 'white')])]
+# Its south kerb (2026-11-21, 고증 4.10.4.3 「신촌로(동)의 남쪽 연석」): 16.3 m south of the arm's line, not 14, from the
+# island's turning lane to the bus stop in front of 한일은행 (s 125).  52204 (1996.6, from 외환은행's roof) across one row
+# through the stop: the yellow middle, the two dashed lines, the blue bus lane's line and the dark pavement behind the
+# kerb (the scans' -1.7, -4.2, -6.9, -10.0 and -16.8) put the kerb's brown line at -16.26 and the stop's dashed line at
+# -15.57 (the scans' bright line -15.6), 0.08 m off at most; 27/18 · 27/19 both have the gutter's dark line at -16.2
+# either side of the side street (s 86, 98) and a car at -13.4 .. -15 (s 78); stair 5's roof (-16.4 .. -20.4, s 58 ..
+# 68) stands at the kerb.  On out (2026-11-21 둘째): -15.5 under the trees (s 140 - 185: the leaf-off frames of 1996,
+# 26/17 · 27/18, where the asphalt meets the paving, less the 0.25 m those frames read south of 1997's on the painted
+# line beside it), -15.2 from s 205 (1997's paving edge in both frames wherever no crown hides it, s 218 - 330),
+# back to the arm's -14 by s 360 (s 341 -14.6, s 359 - 383 -14.0 .. -14.4).  [(s, m off the line)]: the asphalt the
+# game adds south of -half
+SE_KERB = [(40.0, -16.3), (125.0, -16.3), (140.0, -15.5), (185.0, -15.5), (205.0, -15.2), (330.0, -15.2), (345.0, -14.6),
+           (360.0, -14.0)]
 
 
 def se_kerb(s):
@@ -1233,6 +1266,8 @@ def layout(geo, town, extras, ground, taken_z):
         if len(ss) < 2:
             continue
         cut = [(s_x - 0.3, s_x + dep + 0.3)] if s_stop < s_x else []
+        if k == 'sinchon_e':                           # (its crossing at s 278: SE_CROSS)
+            cut.append((SE_CROSS['cols'][0][0] - 0.2, SE_CROSS['cols'][-1][1] + 0.2))
         if k == 'seogang':
             # 1997년 신촌로 as the scans have it (SG_LINES off the painted middle, SG_MID): the double yellow middle and
             # three lines, two in and one out, from the stop line out, broken at the crossing
@@ -1253,8 +1288,8 @@ def layout(geo, town, extras, ground, taken_z):
                     paint.append(dict(kind='white', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * o for s in sl])))
                     continue
                 s_r = ss[2:][ss[2:] >= ROT_LANE_FROM.get((k, sgn), 0.0)]
-                if k == 'sinchon_e' and sgn < 0:                 # (the scans' south lanes first: SE_LINES)
-                    s_r = s_r[s_r > SE_PAINT_END]
+                if k == 'sinchon_e':                 # (the scans' lanes: SE_LINES south, SE_FAR_LINES past the crossing)
+                    s_r = s_r[s_r < SE_CROSS['cols'][0][0] - 0.3] if sgn > 0 else s_r[:0]
                 for run in runs(s_r, cut):
                     pts = []
                     for s in run:
@@ -1262,11 +1297,20 @@ def layout(geo, town, extras, ground, taken_z):
                         pts.append(AT(a, k, s, sgn * (0.3 + (hs - 0.3) / a.lanes * kk)))
                     paint.append(dict(kind='white_dash', w=0.12, pts=R2(pts)))
     ae_ = A['sinchon_e']
-    for tab, kind in SE_LINES:                                     # (신촌로's south lanes, 1997)
+    SO = lambda s, o: ae_.at(s)[0] + ae_.at(s)[2] * o
+    for tab, spans in SE_LINES + SE_FAR_LINES:                    # (신촌로's lanes, 1997)
         t_ = np.array(tab)
-        sl = np.arange(t_[0, 0], t_[-1, 0], 2.0).tolist() + [t_[-1, 0]]
-        paint.append(dict(kind=kind, w=0.12, pts=R2([ae_.at(s)[0] + ae_.at(s)[2] * float(np.interp(s, t_[:, 0], t_[:, 1]))
-                                                    for s in sl])))
+        for s0_, s1_, kind in spans:
+            sl = np.arange(s0_, s1_, 2.0).tolist() + [s1_]
+            paint.append(dict(kind=kind, w=0.12, pts=R2([SO(s, float(np.interp(s, t_[:, 0], t_[:, 1]))) for s in sl])))
+    # its crossing at s 278 (SE_CROSS): two columns of 0.45 m bars, and the two stop lines (from the painted middle to
+    # the kerbs: the south one SE_KERB's, the north one where the bars end)
+    for sa, sb in SE_CROSS['cols']:
+        for o in np.arange(SE_CROSS['o'][0], SE_CROSS['o'][1] - 0.4, 0.95):
+            zebra.append(R2([SO(sa, o), SO(sb, o), SO(sb, o + 0.45), SO(sa, o + 0.45)]))
+    for s_, o0, o1 in ((SE_CROSS['stop_out'], se_kerb(SE_CROSS['stop_out']) + 0.3, mid_of('sinchon_e', SE_CROSS['stop_out']) - 0.3),
+                       (SE_CROSS['stop_in'], mid_of('sinchon_e', SE_CROSS['stop_in']) + 0.3, SE_CROSS['o'][1])):
+        zebra.append(R2([SO(s_, o0), SO(s_ + 0.5, o0), SO(s_ + 0.5, o1), SO(s_, o1)]))
     # 연세로's crossing between the junction and the bridge, with stop lines either side (MID_CROSS: s_mid its south
     # edge, mid_dep its depth, s_stop_n / s_stop_s where its stop lines begin)
     s_mid = float(ya.ls.project(Point(gt.YONSEI_X, MID_CROSS['y'][0])))
