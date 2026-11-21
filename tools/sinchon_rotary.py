@@ -111,7 +111,7 @@ SE_LINES = [([(45.0, -5.13), (55.0, -4.67), (64.0, -4.55), (72.0, -4.48), (88.0,
 SE_CROSS = dict(cols=[(278.4, 281.9), (282.1, 285.75)], o=(-14.85, 12.75), stop_out=275.15, stop_in=289.85)
 # and past it both halves' lines as the scans have them (both frames within 0.1 - 0.2 m, every 6 m to s 477): three
 # each way, solid for 12 - 18 m from the crossing, the outer one solid all the way (south: the bus lane's blue line,
-# on from before the crossing; north: white, its colour not known).  The rule's lanes no more past the crossing
+# on from before the crossing; north: white, its colour not known).  The rule's lanes no more on this arm
 SE_FAR_LINES = [([(286.0, -3.5), (297.0, -3.8), (309.0, -4.1), (321.0, -4.4), (345.0, -4.4), (357.0, -3.95), (369.0, -3.75),
                   (387.0, -3.4), (399.0, -3.3), (423.0, -2.9), (441.0, -2.9), (453.0, -3.2), (465.0, -3.5), (500.0, -3.5)],
                  [(286.0, 303.0, 'white'), (303.0, 489.0, 'white_dash')]),
@@ -128,6 +128,15 @@ SE_FAR_LINES = [([(286.0, -3.5), (297.0, -3.8), (309.0, -4.1), (321.0, -4.4), (3
                  [(290.3, 308.0, 'white'), (308.0, 489.0, 'white_dash')]),
                 ([(290.0, 7.5), (345.0, 7.5), (357.0, 7.75), (369.0, 7.9), (387.0, 7.9), (399.0, 8.25), (411.0, 8.25),
                   (423.0, 8.9), (435.0, 8.9), (441.0, 8.1), (453.0, 8.2), (500.0, 8.2)], [(290.3, 489.0, 'white')])]
+# Its north lanes from the taxis' band (ROT_LANE_FROM) to the crossing, as both scans have them (6 m windows, 0.1 m
+# apart; 2026-11-21 둘째): two dashed lines and a solid one by the bus lane from s 94 (its colour not known).  Before:
+# the rule's three dashed lines, 0.6 - 1.7 m further out
+NE_LINES = [([(47.0, 2.0), (58.0, 2.0), (64.0, 1.7), (100.0, 1.5), (124.0, 1.7), (142.0, 1.9), (160.0, 2.2), (184.0, 2.5),
+              (202.0, 2.6), (220.0, 2.75), (262.0, 2.75), (274.0, 2.5), (278.0, 2.5)], [(47.0, 278.0, 'white_dash')]),
+            ([(47.0, 4.4), (64.0, 4.35), (100.0, 4.35), (112.0, 4.55), (130.0, 4.7), (148.0, 4.9), (166.0, 5.1), (184.0, 5.3),
+              (202.0, 5.5), (226.0, 5.65), (250.0, 5.8), (278.0, 5.7)], [(47.0, 278.0, 'white_dash')]),
+            ([(94.0, 7.5), (124.0, 7.75), (142.0, 7.95), (160.0, 8.23), (184.0, 8.4), (208.0, 8.53), (226.0, 8.78),
+              (278.0, 8.7)], [(94.0, 278.0, 'white')])]
 # Its south kerb (2026-11-21, 고증 4.10.4.3 「신촌로(동)의 남쪽 연석」): 16.3 m south of the arm's line, not 14, from the
 # island's turning lane to the bus stop in front of 한일은행 (s 125).  52204 (1996.6, from 외환은행's roof) across one row
 # through the stop: the yellow middle, the two dashed lines, the blue bus lane's line and the dark pavement behind the
@@ -1288,8 +1297,8 @@ def layout(geo, town, extras, ground, taken_z):
                     paint.append(dict(kind='white', w=0.12, pts=R2([a.at(s)[0] + a.at(s)[2] * o for s in sl])))
                     continue
                 s_r = ss[2:][ss[2:] >= ROT_LANE_FROM.get((k, sgn), 0.0)]
-                if k == 'sinchon_e':                 # (the scans' lanes: SE_LINES south, SE_FAR_LINES past the crossing)
-                    s_r = s_r[s_r < SE_CROSS['cols'][0][0] - 0.3] if sgn > 0 else s_r[:0]
+                if k == 'sinchon_e':                 # (the scans' lanes: SE_LINES, NE_LINES, SE_FAR_LINES)
+                    s_r = s_r[:0]
                 for run in runs(s_r, cut):
                     pts = []
                     for s in run:
@@ -1298,7 +1307,7 @@ def layout(geo, town, extras, ground, taken_z):
                     paint.append(dict(kind='white_dash', w=0.12, pts=R2(pts)))
     ae_ = A['sinchon_e']
     SO = lambda s, o: ae_.at(s)[0] + ae_.at(s)[2] * o
-    for tab, spans in SE_LINES + SE_FAR_LINES:                    # (신촌로's lanes, 1997)
+    for tab, spans in SE_LINES + NE_LINES + SE_FAR_LINES:         # (신촌로's lanes, 1997)
         t_ = np.array(tab)
         for s0_, s1_, kind in spans:
             sl = np.arange(s0_, s1_, 2.0).tolist() + [s1_]
