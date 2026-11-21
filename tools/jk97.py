@@ -84,13 +84,13 @@ def lane_h(x, y):
 
 def raised_h(x, y):
     """옹벽 위(화단 · 동쪽 띠 · 몸체 북쪽 끝 너머)의 면(해발). 화단은 원통 둘레 마당의 면(court_h), 동쪽 띠는 band_h, 그 사이는
-    화단에서 3 m 안에서 잇고, 몸체 북쪽 끝 너머는 v 4.5 에서 서쪽으로 3 m 안에 그 서쪽 땅(NORTH_Z)으로"""
+    화단에서 3 m 안에서 잇고, 몸체 북쪽 끝 너머는 동쪽 면 0.25 m 안쪽에서 서쪽으로 3 m 안에 그 서쪽 땅(NORTH_Z)으로"""
     u, v = _uv(x, y)
     z = band_h(x, y)
     d = np.hypot(np.maximum(v - WALL_V[1], 0.0), np.maximum(u - BLOCK[0], 0.0))
     z = np.where((u < BLOCK[0] + 3.0) & (v < WALL_V[1] + 3.0), z + (court_h(x, y) - z) * np.clip(1.0 - d / 3.0, 0, 1), z)
     zn = NORTH_Z[0] + NORTH_Z[1] * np.maximum(1.5 - v, 0.0)
-    z = np.where(u > BLOCK[1], z + (zn - z) * np.clip((4.5 - v) / 3.0, 0, 1), z)
+    z = np.where(u > BLOCK[1], z + (zn - z) * np.clip((BLOCK[3] - 0.25 - v) / 3.0, 0, 1), z)
     return z
 
 
@@ -233,7 +233,7 @@ def grade(Hn, X, Y, halls, step=5.0, half_=800.0):
     inh = shapely.contains_xy(hb, X, Y)
     band = (Du >= BAND_S_U) & (Du <= BAND_DOWN_U) & (Dv >= WALL_V[1]) & (Dv < EAST_V) & ~inh & ~down
     Hn[band] = lane_h(X[band], Y[band]) - 0.1 + tl[band]
-    clamp = inh & (Du > BLOCK[0]) & (Du < BLOCK[1]) & (Dv > 0.0)
+    clamp = inh & (Du > BLOCK[0]) & (Du < BLOCK[1]) & (Dv > BLOCK[3] - 4.75)        # (the east 4.75 m: v 0 when the face was at 4.75)
     Hn[clamp] = np.minimum(Hn[clamp], raised_h(X[clamp], Y[clamp]) - 0.3 + tl[clamp])
     foot0 = lambda u: _bil(h0, *xya(u, BANK_V + 2.0)) - datum.tilt(*xya(u, BANK_V + 2.0))  # (해발: the road's side, before)
     lane = (Du >= LANE_DOWN_U[0]) & (Du <= LANE_DOWN_U[1]) & (Dv >= EAST_V) & (Dv <= BANK_V) & ~inh
