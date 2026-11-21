@@ -2,9 +2,10 @@
 // October. You stand in the front row of a block of students facing the porch, where a cheerleader leads; signs come
 // down four lanes (박수, 만세, 어깨동무 and 뛰기) and are pressed on the beat. The block and the leader do every sign on
 // the beat themselves, so the one standing still is you.
-//  - the music is Yonsei's 「응원가」 (its tune from the school's score, cheersong.js) played by a band made here of
-//    audio.js's building blocks: guitar, bass, keyboard and drums; and the crowd's claps, shouts and landings on the
-//    signs. No words and no recording
+//  - the music (cheersong.js): the 아카라카 chant, shouted by voices made here (a buzz through each vowel's formants,
+//    its line in a bubble), then Yonsei's 「응원가」 (its tune from the school's score) played by a band of audio.js's
+//    building blocks: guitar, bass, keyboard and drums; and the crowd's claps, shouts and landings on the signs.
+//    No recording
 //  - the signs are timed by the game's clock (the loop's dt), not the wall's: a key's moment is placed between the
 //    frame before it and the one after by its event time, so a slow frame takes nothing from the player
 //  - the moves are built over 'idle' (no clip in the rig claps or jumps): the hands by two-bone IK (armpose.js
@@ -19,7 +20,7 @@ import { safeGet, safeSet, mulberry } from './util.js';
 import { tallOf } from './who.js';
 import './cheer.css';
 import { CHARTS, chartOf, lengthOf, JUDGE, LATE, notesOf } from './cheercharts.js';
-import { bandOf } from './cheersong.js';
+import { bandOf, SYL, CHANT_BARS } from './cheersong.js';
 import { Run, RankBox } from './rank.js';
 import { cheerBoard } from './rankrules.js';
 export { CHARTS, chartOf };
@@ -33,6 +34,8 @@ export const LANES = [
 ];
 const MOVES = LANES.map((l) => l.id);
 const CALL = { clap: '박수!', up: '만세!', sway: '어깨동무!', jump: '뛰어!' };     // the leader's call before a new sign
+// the chant's vowels: the first two formants (Hz) of a shout
+const VOWEL = { a: [800, 1250], i: [310, 2250], o: [480, 850], u: [360, 800], eo: [620, 1000], e: [480, 1850], eu: [360, 1450] };
 
 
 const LINE = 24;                     // the line: this far over the lanes' foot (px)
@@ -368,8 +371,9 @@ export class Cheer {
   callsOf(notes) {
     const out = [];
     let prev = -1, lastT = -9;
+    const quiet = 4 * this.beat;         // (the chant's first bar is the leader's own call)
     for (const n of notes) {
-      if (n.lane !== prev && n.t - lastT > 2) { out.push({ t: n.t - this.beat * 1.5, text: CALL[MOVES[n.lane]] }); lastT = n.t; }
+      if (n.lane !== prev && n.t - lastT > 2 && (n.t - this.beat * 1.5 > quiet || !CHANT_BARS)) { out.push({ t: n.t - this.beat * 1.5, text: CALL[MOVES[n.lane]] }); lastT = n.t; }
       prev = n.lane;
     }
     return out;
@@ -559,8 +563,18 @@ export class Cheer {
     const LOOK = 0.12;
     while (this.di < this.drums.length && this.drums[this.di].t < s + LOOK) {
       const e = this.drums[this.di++];
-      if (e.t > s - 0.05) this.voice(e.kind, Math.max(0, e.t - s), e.k ?? 1, e);
+      if (e.kind === 'line') this.chantLine(e, Math.max(0, e.t - s));
+      else if (e.t > s - 0.05) this.voice(e.kind, Math.max(0, e.t - s), e.k ?? 1, e);
     }
+  }
+
+  // the chant's line over the leader (the call) or a student of the front row beside you (the block's answer)
+  chantLine(e, dt) {
+    const B = this.block;
+    if (!this.bubbles || !B) return;
+    if (e.lead) { this.bubbles.add(this.leader.a.holder, this.leaderTop, e.text, this.t + dt, this.t + dt + e.d); return; }
+    const st = B.people.filter((p) => p.row === 0 && !p.front && p.a.holder.parent).sort((p, q) => Math.abs(p.col + 3) - Math.abs(q.col + 3))[0];
+    if (st) this.bubbles.add(st.a.holder, 1.7, e.text, this.t + dt, this.t + dt + e.d);
   }
 
   // the bus, and each instrument's own chain into it: the guitar through a drive and a speaker's roll-off
@@ -580,6 +594,7 @@ export class Cheer {
       bass: chain(S._gain(1), S._filter('lowpass', 750, 1.1), S._gain(0.14)),
       lead: chain(S._gain(1), S._filter('lowpass', 3400, 0.8), S._gain(0.42)),
       keys: chain(S._gain(1), S._filter('lowpass', 1800, 0.7), S._gain(0.25)),
+      chant: chain(S._gain(1), S._filter('highpass', 140, 0.7), S._gain(1.45)),
     };
     return bus;
   }
@@ -590,6 +605,36 @@ export class Cheer {
     if (!this.bus || !ctx || this.hushed === on) return;
     this.hushed = on;
     this.bus.gain.setTargetAtTime(on ? 0 : 0.85, ctx.currentTime, on ? 0.03 : 0.01);
+  }
+
+  // one syllable of the chant: the consonant's noise, then the vowel: a few throats' buzz (the leader's one) through
+  // its two formants, and the breath through them. No recording
+  shout(e, at) {
+    const S = this.sound, ctx = S.ctx, out = this.inst.chant;
+    const [c, v] = SYL[e.syl] ?? ['', 'a'], [F1, F2] = VOWEL[v];
+    const pre = { k: 0.02, ch: 0.04, s: 0.06, h: 0.035, p: 0.015, b: 0.012 }[c] ?? 0;
+    const g = 0.75 * e.k;
+    if (c === 'k' || c === 'p') S._burst(out, { at, type: 'highpass', f: c === 'k' ? 1800 : 900, q: 0.7, gain: 0.3 * g, decay: pre });
+    else if (c === 'ch' || c === 's') S._burst(out, { at, type: 'highpass', f: c === 's' ? 4500 : 3000, q: 0.7, gain: 0.35 * g, attack: 0.008, decay: pre });
+    else if (c === 'h') S._burst(out, { at, type: 'bandpass', f: 1500, q: 0.5, gain: 0.25 * g, attack: 0.01, decay: pre });
+    else if (c === 'b') S._burst(out, { at, type: 'lowpass', f: 500, q: 0.7, gain: 0.3 * g, decay: 0.03 });
+    const t = at + pre, d = Math.max(0.06, e.d - pre), end = t + d + 0.1;
+    // the formants: in parallel, F2 sliding in from /i/ after y-
+    const vin = S._gain(1), mix = S._gain(1);
+    const f1 = S._filter('bandpass', F1, 4), f2 = S._filter('bandpass', c === 'y' ? 2200 : F2, 6), f3 = S._filter('bandpass', 2700, 8);
+    if (c === 'y') f2.frequency.setTargetAtTime(F2, t, 0.03);
+    const g2 = S._gain(0.6), g3 = S._gain(0.25);
+    vin.connect(f1); f1.connect(mix);
+    vin.connect(f2); f2.connect(g2); g2.connect(mix);
+    vin.connect(f3); f3.connect(g3); g3.connect(mix);
+    mix.connect(out);
+    setTimeout(() => { for (const n of [vin, f1, f2, f3, g2, g3, mix]) n.disconnect(); }, (end - ctx.currentTime) * 1000 + 300);
+    const rise = e.syl === '야' ? 1.3 : 1.04, voices = e.lead ? [255, 258] : [178, 191, 205, 219, 296, 322];
+    for (const f of voices) {
+      const r = 1 + (Math.random() - 0.5) * 0.03;
+      S._tone(vin, { at: t + Math.random() * 0.02, type: 'sawtooth', f: f * r * (e.k > 0.9 ? 1.08 : 1), f1: f * r * rise, gain: g * 0.9 / voices.length ** 0.5, attack: c === 'r' ? 0.03 : 0.015, hold: d * 0.6, decay: d * 0.4 + 0.06 });
+    }
+    S._burst(vin, { at: t, type: 'lowpass', f: 3500, q: 0.5, gain: 0.5 * g, attack: 0.015, decay: d + 0.04, pink: true });
   }
 
   voice(kind, dt = 0, k = 1, e = null) {
@@ -620,6 +665,7 @@ export class Cheer {
         S._tone(I.lead, { at, type: 'sawtooth', f: f * 2, gain: 0.05, attack: 0.01, hold, decay: 0.1 });
         break;
       }
+      case 'chant': this.shout(e, at); break;
       case 'keys':       // 키보드 왼손: the chord held, an organ's drawbars
         for (const m of e.m) {
           S._tone(I.keys, { at, type: 'triangle', f: hz(m), gain: 0.16, attack: 0.02, hold: Math.max(0.02, e.d - 0.15), decay: 0.18 });

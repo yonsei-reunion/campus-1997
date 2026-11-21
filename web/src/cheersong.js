@@ -1,7 +1,9 @@
-// 응원 연습(cheer.js)의 음악: 연세대학교 「응원가」(용맹있게 앞에 나가라 굳센 연세 용사들아)를 기타 · 베이스 · 키보드 · 드럼으로.
+// 응원 연습(cheer.js)의 음악: 아카라카 구호로 열고, 연세대학교 「응원가」(용맹있게 앞에 나가라 굳센 연세 용사들아)를
+// 기타 · 베이스 · 키보드 · 드럼으로.
 //  - 가락은 학교 홈페이지 「노래」에 실린 응원가 악보(yonsei.ac.kr/sites/sc/down/img_rooterssong.jpg)를 옮긴 것:
 //    내림가장조, 4/4, 열세 마디. 학교 음원(song_03.mp3)의 빠르기는 약 100 BPM 으로 「보통」과 같다. 가사는 싣지 않는다
-//  - 화음, 악기의 짜임, 판마다 마디 수를 채우는 순서(앞 네 마디, 뒷부분 되풀이, 끝 화음)는 이 게임이 붙인 것
+//  - 구호의 글은 학교 홈페이지 「구호」(yonsei.ac.kr/sc/240/subview.do)의 첫 구호, 장단은 이 게임이 붙인 것
+//  - 화음, 악기의 짜임, 판마다 마디 수를 채우는 순서(구호 여섯 마디, 되풀이, 끝 화음)는 이 게임이 붙인 것
 //  - 박자표(cheercharts.js)는 그대로라 순위 서버의 검사와 지난 기록은 바뀌지 않는다
 // three.js 를 읽지 않는 자료라 node 에서도 돌린다.
 
@@ -41,11 +43,30 @@ const CHORD = {
   Bbm: { root: 34, keys: [53, 58, 61] },
 };
 
-// the bars of a chart of n bars: four bars of the song's end before it, the song as many times as fit, then its
-// last two lines or its last line, and what is left held on the home chord
+// 아카라카 구호(학교 홈페이지 「구호」의 첫 구호): the words as the page gives them, the beat is the game's (no source
+// writes it down): six bars on sixteenths, the leader's call alone, then the block. Bar by bar:
+// [the bubble's line, [[sixteenth, syllable], …], the sixteenths where the drums and the band hit with it]
+const CHANT = [
+  ['아카라카!', [[0, '아'], [2, '카'], [4, '라'], [6, '카']], []],
+  ['아카라카칭 아카라카쵸', [[0, '아'], [1, '카'], [2, '라'], [3, '카'], [4, '칭'], [8, '아'], [9, '카'], [10, '라'], [11, '카'], [12, '쵸']], [4, 12]],
+  ['아카라카 칭칭 쵸쵸쵸', [[0, '아'], [1, '카'], [2, '라'], [3, '카'], [4, '칭'], [6, '칭'], [8, '쵸'], [10, '쵸'], [12, '쵸']], [4, 6, 8, 10, 12]],
+  ['랄랄라 시스붐바', [[0, '랄'], [2, '랄'], [4, '라'], [8, '시'], [9, '스'], [10, '붐'], [12, '바']], [12]],
+  ['연세 선수 라플라', [[0, '연'], [2, '세'], [4, '선'], [6, '수'], [8, '라'], [10, '플'], [12, '라']], [12]],
+  ['헤이 연세 야!', [[0, '헤'], [2, '이'], [4, '연'], [6, '세'], [8, '야']], [8]],
+];
+export const CHANT_BARS = CHANT.length;
+// each syllable's sounds for the voice (cheer.js): the consonant before it and the vowel
+export const SYL = {
+  아: ['', 'a'], 카: ['k', 'a'], 라: ['r', 'a'], 칭: ['ch', 'i'], 쵸: ['ch', 'o'], 랄: ['r', 'a'], 시: ['s', 'i'], 스: ['s', 'eu'],
+  붐: ['b', 'u'], 바: ['b', 'a'], 연: ['y', 'eo'], 세: ['s', 'e'], 선: ['s', 'eo'], 수: ['s', 'u'], 플: ['p', 'eu'], 헤: ['h', 'e'],
+  이: ['', 'i'], 야: ['y', 'a'],
+};
+
+// the bars of a chart of n bars: the chant, the song as many times as fit, then its last two lines or its last
+// line, and what is left held on the home chord
 export function arrange(n) {
   const out = [], song = (i, phrase = PHRASE.has(i)) => out.push({ ...SONG[i], i, phrase });
-  for (let i = 9; i < 13 && out.length < n; i++) song(i, i === 9);
+  for (let i = 0; i < CHANT.length && out.length < n; i++) out.push({ chant: CHANT[i], i, phrase: i === 0 });
   while (n - out.length >= SONG.length) for (let i = 0; i < SONG.length; i++) song(i);
   let rest = n - out.length;
   const from = rest >= 6 ? 7 : rest >= 3 ? 10 : 13;
@@ -64,6 +85,24 @@ export function bandOf(bpm, n) {
   bars.forEach((bar, m) => {
     const t0 = m * 4 * b, next = bars[m + 1], fill = !next || next.phrase;
     const at = (beat) => t0 + beat * b;
+    if (bar.chant) {
+      // the chant: the leader's call bare, then the big drum on every beat under the block and the band on its hits
+      const [text, syl, hits] = bar.chant, lead = bar.i === 0;
+      push(t0, 'line', { text, lead, d: 4 * b });
+      syl.forEach(([q, s], j) => {
+        const nq = j + 1 < syl.length ? syl[j + 1][0] : 16;
+        push(at(q / 4), 'chant', { syl: s, d: s === '야' ? 1.2 * b : Math.min(0.9, (nq - q) / 4) * b, k: hits.includes(q) ? 1 : 0.8, lead });
+      });
+      if (lead) return;
+      for (let k = 0; k < 4; k++) if (!(fill && k === 3)) push(at(k), 'kick', { k: 0.9 });
+      for (const q of hits) {
+        push(at(q / 4), 'snare', { k: 0.8 });
+        push(at(q / 4), 'gtr', { m: 44, d: b * 0.5, k: 1 });
+        push(at(q / 4), 'bass', { m: 32, d: b * 0.4 });
+      }
+      if (fill) { push(at(2), 'cymbal'); for (let i = 1; i < 4; i++) push(at(3 + i / 4), 'snare2'); }
+      return;
+    }
     if (bar.hold) {
       // the home chord let ring, a roll on the snare into the end
       if (bar.phrase) {
