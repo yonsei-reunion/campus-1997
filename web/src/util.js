@@ -63,8 +63,11 @@ export const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 export function safeGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 export function safeSet(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } }
 
-// the 1-minute basketball game's own address (main.js ?game=shoot), for sharing
-export const gameUrl = () => `${location.origin}${location.pathname}?game=shoot`;
+// the mini games' own addresses (./?game=<key>, main.js), for sharing: ?game=shoot makes the title card the game's,
+// the others make their button stand out on it. While one is under way the address bar says it (src/nav.js)
+export const GAMES = { shoot: '농구 1분 슛 게임', run: '캠퍼스 달리기', photo: '이곳은 어디?', pager: '삐삐 호출', cheer: '연고전 응원 연습',
+  class: '강의실 찾기', bday: '생일 축하' };
+export const gameUrl = (key = 'shoot') => `${location.origin}${location.pathname}?game=${key}`;
 // put text on the clipboard: the Clipboard API, or (plain http, an old browser) a hidden field's selection. True when
 // it worked
 export async function copyText(text) {
@@ -80,12 +83,12 @@ export async function copyText(text) {
   return ok;
 }
 // a copy button: copies what text() gives and says so on the button for a moment (or that it could not)
-export function copyButton(btn, text) {
+export function copyButton(btn, text, fail = '복사하지 못했어요 · 주소를 길게 눌러 복사하세요') {
   const label = btn.textContent;
   btn.addEventListener('click', async (e) => {
     e.stopPropagation();
     const ok = await copyText(text());
-    btn.textContent = ok ? '복사했어요!' : '복사하지 못했어요 · 주소를 길게 눌러 복사하세요';
+    btn.textContent = ok ? '복사했어요!' : fail;
     btn.classList.toggle('done', ok);
     clearTimeout(btn._t);
     btn._t = setTimeout(() => { btn.textContent = label; btn.classList.remove('done'); }, ok ? 1600 : 4000);

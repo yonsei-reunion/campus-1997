@@ -37,11 +37,19 @@ import { Curbs } from './curbs.js';
 import { Verge } from './verge.js';
 import { Sound } from './audio.js';
 import { addTown, Street } from './town.js';
-import { $, MOBILE, versioned, safeGet, safeSet, copyButton, gameUrl, mulberry, countBy, polylineLength, closestOnSegment, placeMatrix } from './util.js';
+import * as nav from './nav.js';
+import { $, MOBILE, versioned, safeGet, safeSet, copyButton, gameUrl, GAMES, mulberry, countBy, polylineLength, closestOnSegment, placeMatrix } from './util.js';
 
 const canvas = $('#view');
-// ./?game=shoot: the title card is the 1-minute basketball game's (style.css body.game-shoot)
-if (new URLSearchParams(location.search).get('game') === 'shoot') document.body.classList.add('game-shoot');
+// ./?game=shoot: the title card is the 1-minute basketball game's (style.css body.game-shoot); ./?game=<key> of another
+// mini game (util.js GAMES): its button first and large on the title card
+const GAME_PARAM = new URLSearchParams(location.search).get('game');
+if (GAME_PARAM === 'shoot') document.body.classList.add('game-shoot');
+else if (GAMES[GAME_PARAM]) {
+  const b = $(`#${GAME_PARAM}-start`);
+  b?.classList.add('picked');
+  requestAnimationFrame(() => b?.scrollIntoView({ block: 'nearest' }));
+}
 let season = safeGet('y97-season');
 if (!SEASONS[season]) season = 'summer';
 const NOBODY = { x: 1e9, y: 1e9 };       // the player before the walk starts: nobody in the way
@@ -76,9 +84,39 @@ function seasonButtons(v) {
 }
 seasonButtons(season);
 setupNews();
+// the menu's 조작법: the title card's own list of keys (and of fingers on a phone)
+$('#pause .howto').append(...[...document.querySelectorAll('#intro .keys, #intro .keys-touch')].map((e) => e.cloneNode(true)));
 // 캠퍼스 쪽지 (src/memos.js): the list from the title card at once, the notes in the scene once the walker is in
 const memos = new Memos();
 memos.load();
+memos.openFromUrl();          // (./?memos: the list, ./?memo=<id>: one note, at once)
+// 자료 출처 · 고마운 분들 (./?credits): from the title card and the menu, a history entry of its own (src/nav.js)
+{
+  const card = $('#credits');
+  const open = (e) => {
+    e?.stopPropagation(); e?.currentTarget?.blur?.();
+    if (!card.hidden) return;
+    card.hidden = false;
+    nav.open('credits', nav.urlWith('credits'), () => { card.hidden = true; });
+  };
+  const close = () => { if (!card.hidden && !nav.close(['credits'])) card.hidden = true; };
+  document.querySelectorAll('.credits-open').forEach((b) => b.addEventListener('click', open));
+  card.querySelector('.close').addEventListener('click', close);
+  card.addEventListener('click', (e) => { if (e.target === card) close(); });
+  addEventListener('keydown', (e) => { if (!card.hidden && e.code === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); close(); } }, true);
+  copyButton($('#credits-copy'), () => nav.fullUrl(location.pathname + '?credits'), '복사하지 못했어요 · 주소창의 주소를 복사하세요');
+  if (new URLSearchParams(location.search).has('credits')) { nav.base(); open(); }
+}
+// each mini game's address, picked from a list, to copy and send (the title card and the menu)
+for (const [pick, text, copy] of [['#game-url-pick', '#shoot-url', '#shoot-copy'], ['#game-url-pause', '#game-url-pause-text', '#game-copy-pause']]) {
+  const sel = $(pick);
+  for (const [k, name] of Object.entries(GAMES)) sel.appendChild(new Option(name, k));
+  sel.value = GAMES[GAME_PARAM] ? GAME_PARAM : 'shoot';
+  const show = () => { $(text).textContent = gameUrl(sel.value); };
+  sel.addEventListener('change', show);
+  show();
+  copyButton($(copy), () => gameUrl(sel.value));
+}
 $('#memo-title').addEventListener('click', (e) => { e.currentTarget.blur(); memos.openList(); });
 
 async function main() {
@@ -956,9 +994,6 @@ async function main() {
   shootBest();
   const openRanking = (e) => { e.stopPropagation(); e.currentTarget.blur(); import('./shootrecords.js').then((R) => R.openRanking({ onChange: shootBest })); };
   $('#shoot-rank').addEventListener('click', openRanking);
-  // the game's own address, to copy and send
-  $('#shoot-url').textContent = gameUrl();
-  copyButton($('#shoot-copy'), gameUrl);
   $('#rank-pause').addEventListener('click', openRanking);
   // 캠퍼스 달리기 (src/race.js): a course picked from the title card or the settings card, a run through its gates
   let race = null, raceLoad = null;
@@ -995,8 +1030,6 @@ async function main() {
     update: (dt, t, p) => quiz?.update(dt, t, p),
     pauseButtons: (game) => { $('#photo-go').hidden = game; $('#photo-quit').hidden = !quiz?.on; } };
   games.push(quizEntry);
-  // (./?game=photo makes the title card's button stand out)
-  if (new URLSearchParams(location.search).get('game') === 'photo') document.body.classList.add('game-photo');
   const loadQuiz = () => (quizLoad ||= import('./photoquiz.js').then(({ PhotoQuiz }) => (quiz = new PhotoQuiz({
     scene, camera, player, sound, places, groundAt, mobile: MOBILE,
     go: async (x, y, yaw, still) => {      // (still(): not let go of while the halls came in)
@@ -1161,6 +1194,25 @@ async function main() {
   $('#bday-go').addEventListener('click', startBday);
   $('#bday-quit').addEventListener('click', (e) => { e.stopPropagation(); bday?.stop(); });
   if (birthday) birthday.onSplash = (p) => sound.splash(p);
+  // a mini game under way has its address (./?game=<key>) as a history entry (src/nav.js): the browser's back lets go
+  // of it, to the title card when it was started from there, else to the walk. Each game marks the body while it is
+  // on (the class names below); the click that started it says from where
+  const GAME_CLASS = { shootout: 'shoot', racing: 'run', photoquiz: 'photo', paging: 'pager', cheering: 'cheer', classing: 'class', bdaygame: 'bday' };
+  let gameOn = null, gameFromTitle = false, clickOnTitle = false;
+  addEventListener('click', () => { clickOnTitle = !started; }, true);
+  new MutationObserver(() => {
+    const c = Object.keys(GAME_CLASS).find((k) => document.body.classList.contains(k)), key = c ? GAME_CLASS[c] : null;
+    if (key === gameOn) return;
+    if (gameOn) nav.close(['game'], false);
+    gameOn = key;
+    if (!key) return;
+    gameFromTitle = clickOnTitle;
+    nav.open('game', nav.urlWith('game', key), () => {
+      gameOn = null;
+      if (gameFromTitle) toTitle();
+      else { shootout?.stop(); race?.stop(); stopGames(); }
+    });
+  }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   $('#opt-sound').checked = sound.on;
   $('#opt-sound').addEventListener('change', (e) => sound.setOn(e.target.checked));
   for (const id of ['#start', '#tour-start', '#shoot-start', '#run-start']) $(id).addEventListener('click', () => sound.start());

@@ -29,7 +29,8 @@
   <section id="intro">
     <div class="intro-bg"></div>
     <div class="intro-card">
-      <p class="eyebrow">설레던 백양로, 첫 시작의 기억 <button class="newsbtn" type="button">새 소식<i hidden></i></button><a class="newsbtn" href="people.html" target="_blank" rel="noopener">캠퍼스 사람들</a></p>
+      <nav class="intro-links" aria-label="더 보기"><button class="newsbtn" type="button">새 소식<i hidden></i></button><a class="newsbtn" href="people.html" target="_blank" rel="noopener">캠퍼스 사람들</a><button class="newsbtn credits-open" type="button" title="자료 출처 · 고마운 분들 · 틀린 곳 제보 (주소: ?credits)">자료 출처 · 제보</button></nav>
+      <p class="eyebrow">설레던 백양로, 첫 시작의 기억</p>
       <h1>신촌 캠퍼스 1997<br /><span>그 시절 우리 학교는</span></h1>
       <p class="lead walk-only">1997년 봄과 가을, 신촌 연세대학교 캠퍼스. 정문에서 백양로를 따라 걸으며 그때의 중앙도서관, 학생회관, 옛 노천극장과 언더우드관을 다시 만나 보세요.</p>
       <p class="lead game-only"><b>농구 1분 슛 게임</b> · 대강당 앞 농구장에서 1분 동안 몇 골이나 넣을 수 있을까요? 옆에서 친구가 계속 공을 패스해 줘요. 버튼을 꾹 눌렀다가 점프가 가장 높을 때 떼면 들어가요. 골대에서 멀수록 타이밍이 어려워요.</p>
@@ -44,27 +45,30 @@
           <span class="waittext" aria-live="polite"><small>기다리는 동안 · 삐삐 퀴즈</small><span class="line">뜻을 보고 삐삐 번호를 눌러 보세요</span></span>
         </form>
       </div>
-      <div class="season-pick" role="radiogroup" aria-label="계절">
-        <button data-season="spring">4월 · 벚꽃</button>
-        <button data-season="summer" class="on">5월 · 신록</button>
-        <button data-season="autumn">10월 · 단풍</button>
+      <p class="pick-label">언제 걸어 볼까요? <small class="hint">계절 · 시점</small></p>
+      <div class="when-row">
+        <div class="season-pick" role="radiogroup" aria-label="계절">
+          <button data-season="spring">4월 · 벚꽃</button>
+          <button data-season="summer" class="on">5월 · 신록</button>
+          <button data-season="autumn">10월 · 단풍</button>
+        </div>
+        <div class="view-pick" role="radiogroup" aria-label="시점" title="1인칭 · 3인칭 시점 (걷는 중에는 V)">
+          <button type="button" data-view="third">3인칭</button>
+          <button type="button" data-view="first">1인칭</button>
+        </div>
       </div>
       <p class="pick-label"><span class="walk-only">누구로 걸어 볼까요?</span><span class="game-only">누구로 슛해 볼까요?</span> <span id="hero-who"></span><button type="button" id="hero-zoom" class="newsbtn" disabled title="고른 캐릭터를 크게 돌려 보기">크게 보기</button></p>
       <div id="hero-pick" role="radiogroup" aria-label="캐릭터"></div>
       <label class="pick-label" for="place-pick">어디서 걸어 볼까요?</label>
       <select id="place-pick" disabled><option value="">정문</option></select>
       <button id="start" disabled>캠퍼스 산책하기</button>
-      <button id="tour-start" class="ghost" disabled title="하늘에서 1997년 캠퍼스를 날아다니며 구경합니다">캠퍼스 위로 날아가기</button>
-      <button id="memo-title" type="button" title="캠퍼스 곳곳에 붙은 쪽지를 읽고, 쪽지가 붙은 곳으로 갑니다">캠퍼스 쪽지 보기</button>
+      <div class="start-more">
+        <button id="tour-start" class="ghost" disabled title="하늘에서 1997년 캠퍼스를 날아다니며 구경합니다">캠퍼스 위로 날아가기</button>
+        <button id="memo-title" type="button" title="캠퍼스 곳곳에 붙은 쪽지를 읽고, 쪽지가 붙은 곳으로 갑니다 (주소: ?memos)">캠퍼스 쪽지 보기</button>
+      </div>
       <div id="minigame">
-        <p class="pick-label"><span class="walk-only">미니 게임</span><span class="game-only">시점</span> <span id="shoot-best"></span><button type="button" id="shoot-rank" class="newsbtn" hidden>순위 보기</button></p>
-        <div class="mg-row">
-          <button id="shoot-start" disabled title="대강당 앞 농구장에서 1분 동안 슛을 몇 개나 넣는지 겨뤄 봅니다 (주소: ?game=shoot)">농구 1분 슛 게임</button>
-          <div class="view-pick" role="radiogroup" aria-label="미니 게임 시점">
-            <button type="button" data-view="third">3인칭</button>
-            <button type="button" data-view="first">1인칭</button>
-          </div>
-        </div>
+        <p class="pick-label"><span class="walk-only">미니 게임</span> <span id="shoot-best"></span><button type="button" id="shoot-rank" class="newsbtn" hidden>슛 게임 순위</button></p>
+        <button id="shoot-start" disabled title="대강당 앞 농구장에서 1분 동안 슛을 몇 개나 넣는지 겨뤄 봅니다 (주소: ?game=shoot)">농구 1분 슛 게임</button>
         <div class="mg-grid walk-only">
           <button id="run-start" type="button" disabled title="코스를 골라 캠퍼스를 달리며 기록을 겨뤄 봅니다">캠퍼스 달리기</button>
           <button id="photo-start" type="button" disabled title="옛 사진을 찍은 자리를 찾아가 같은 쪽을 봅니다 (주소: ?game=photo)">이곳은 어디?</button>
@@ -73,9 +77,10 @@
           <button id="class-start" type="button" disabled title="시간표대로 쉬는 시간 안에 다음 수업 건물을 찾아갑니다">강의실 찾기</button>
           <button id="bday-start" type="button" disabled title="5분 안에 캠퍼스의 친구 넷을 찾아 활천대로 데려와 생일인 친구를 분수에 빠뜨립니다">생일 축하</button>
         </div>
-        <p class="mg-url">게임 주소 <code id="shoot-url"></code><button type="button" id="shoot-copy" class="newsbtn">주소 복사</button></p>
+        <p class="mg-url">게임 주소 <select id="game-url-pick" aria-label="주소를 볼 미니 게임"></select> <code id="shoot-url"></code><button type="button" id="shoot-copy" class="newsbtn">주소 복사</button></p>
         <a class="walk-link game-only" href="./">캠퍼스 산책하러 가기</a>
       </div>
+      <p class="pick-label howto-label">조작법</p>
       <dl class="keys pc-only">
         <div><dt>↑ ↓ 또는 W S</dt><dd>앞뒤로 걷기</dd></div>
         <div><dt>← → 또는 A D</dt><dd>방향 돌기</dd></div>
@@ -90,12 +95,13 @@
         <div><dt>B</dt><dd>캠퍼스 위로 날아가기</dd></div>
         <div><dt>F · 1 2 3</dt><dd>필름 · 계절</dd></div>
         <div><dt>C</dt><dd>구름 그림자 끄기</dd></div>
-        <div><dt>Esc</dt><dd>일시정지</dd></div>
+        <div><dt>Esc</dt><dd>메뉴 · 일시정지</dd></div>
       </dl>
       <ul class="keys-touch touch-only">
         <li><b>화면 왼쪽</b>을 누른 채 가고 싶은 쪽으로 밀면 걸어요 (끝까지 밀면 뛰기)</li>
         <li><b>화면 오른쪽</b>을 끌면 둘러보고(위로 끌면 하늘까지 올려다봐요), 두 손가락으로 벌리면 가까이</li>
         <li>추억 장소에 가면 나오는 <b>「추억 보기」</b>를 누르세요</li>
+        <li>오른쪽 위 <b>메뉴</b>에 미니 게임 · 쪽지 목록 · 계절 · 화면 설정이 모여 있어요</li>
         <li>오른쪽 위 <b>지도</b>를 누르면 원하는 곳으로 바로 이동, <b>1인칭</b>을 누르면 내 눈높이로 봐요</li>
         <li>오른쪽 위 <b>쪽지</b>를 누르면 그 자리에 쪽지를 붙이고, 붙은 쪽지를 누르면 읽어요</li>
         <li>농구공을 들면 <b>「슛」</b>을 꾹 눌렀다가 막대가 초록 칸에 올 때 떼세요</li>
@@ -114,11 +120,11 @@
     <div id="toast" hidden></div>
     <div id="datestamp">'97 5 21</div>
     <div id="hudbtns">
-      <button id="birdbtn" title="캠퍼스 위로 날아가기 (B)">날아가기 <kbd>B</kbd></button>
+      <button id="menubtn" title="미니 게임 · 쪽지 목록 · 새 소식 · 계절 · 화면 설정 (Esc)">메뉴 <kbd>Esc</kbd></button>
       <button id="mapbtn" title="캠퍼스 지도 · 장소를 누르면 이동 (M)">지도 <kbd>M</kbd></button>
-      <button id="menubtn" title="계절 · 필름 · 화질 설정 (Esc)">설정 <kbd>Esc</kbd></button>
       <button id="viewbtn" title="1인칭 · 3인칭 시점 바꾸기 (V)"><span>1인칭</span> <kbd>V</kbd></button>
-      <button id="memobtn" title="여기에 쪽지 남기기 (N)">쪽지 <kbd>N</kbd></button>
+      <button id="memobtn" title="여기에 쪽지 남기기 (N)">쪽지<span class="wide"> 쓰기</span> <kbd>N</kbd></button>
+      <button id="birdbtn" title="캠퍼스 위로 날아가기 (B)">날아가기 <kbd>B</kbd></button>
       <button id="homebtn" title="캐릭터 · 계절 · 출발할 곳을 다시 고르는 처음 화면으로">처음 화면</button>
     </div>
   </div>
@@ -175,41 +181,61 @@
     </div>
   </div>
 
-  <!-- pause -->
+  <!-- pause: the walk's menu -->
   <div id="pause" hidden>
-    <div>
-      <h2>잠시 멈춤</h2>
-      <p><span class="pc-only">Esc를 누르거나 </span>아래 버튼을 누르면 다시 걷습니다.</p>
-      <div class="season-pick">
-        <button data-season="spring">4월 · 벚꽃</button>
-        <button data-season="summer">5월 · 신록</button>
-        <button data-season="autumn">10월 · 단풍</button>
+    <div class="menu" role="dialog" aria-labelledby="menu-title">
+      <h2 id="menu-title">메뉴 <small>잠시 멈춤<span class="pc-only"> · Esc를 누르면 다시 걸어요</span></small></h2>
+      <div class="menu-body">
+        <section class="menu-games">
+          <h3>미니 게임</h3>
+          <div class="go-row">
+            <button id="shoot-go" type="button" title="대강당 앞 농구장에서 1분 동안 슛을 몇 개나 넣는지 겨뤄 봅니다">농구 1분 슛 게임</button>
+            <button id="shoot-quit" type="button" class="quit" hidden>1분 슛 게임 그만하기</button>
+            <button id="run-go" type="button" title="코스를 골라 캠퍼스를 달리며 기록을 겨뤄 봅니다">캠퍼스 달리기</button>
+            <button id="run-quit" type="button" class="quit" hidden>달리기 그만하기</button>
+            <button id="photo-go" type="button" title="옛 사진을 찍은 자리를 찾아가 같은 쪽을 봅니다">이곳은 어디?</button>
+            <button id="photo-quit" type="button" class="quit" hidden>사진 찾기 그만하기</button>
+            <button id="pager-go" type="button" title="삐삐가 울리면 공중전화까지 달려가 번호를 눌러요">삐삐 호출</button>
+            <button id="pager-quit" type="button" class="quit" hidden>삐삐 호출 그만하기</button>
+            <button id="cheer-go" type="button" title="10월 대강당 앞마당에서 응원단장을 따라 박자에 맞춰 응원 동작을 합니다">연고전 응원 연습</button>
+            <button id="cheer-quit" type="button" class="quit" hidden>응원 연습 그만하기</button>
+            <button id="class-go" type="button" title="시간표대로 쉬는 시간 안에 다음 수업 건물을 찾아갑니다">강의실 찾기</button>
+            <button id="class-quit" type="button" class="quit" hidden>강의실 찾기 그만하기</button>
+            <button id="bday-go" type="button" title="5분 안에 캠퍼스의 친구 넷을 찾아 활천대로 데려와 생일인 친구를 분수에 빠뜨립니다">생일 축하</button>
+            <button id="bday-quit" type="button" class="quit" hidden>생일 축하 그만하기</button>
+          </div>
+          <p class="mg-url">게임 주소 <select id="game-url-pause" aria-label="주소를 볼 미니 게임"></select> <code id="game-url-pause-text"></code><button type="button" id="game-copy-pause" class="newsbtn">주소 복사</button></p>
+          <h3>쪽지 · 소식</h3>
+          <div class="menu-links">
+            <button type="button" id="memo-pause">캠퍼스 쪽지 목록</button>
+            <button class="newsbtn" type="button">새 소식 · 업데이트 내역<i hidden></i></button>
+            <a href="people.html" target="_blank" rel="noopener">캠퍼스 사람들 · 캐릭터 구경</a>
+            <button id="rank-pause" type="button" hidden>1분 슛 게임 순위</button>
+            <button type="button" class="credits-open">자료 출처 · 고마운 분들 · 제보</button>
+          </div>
+        </section>
+        <section class="menu-view">
+          <h3>계절</h3>
+          <div class="season-pick">
+            <button data-season="spring">4월 · 벚꽃</button>
+            <button data-season="summer">5월 · 신록</button>
+            <button data-season="autumn">10월 · 단풍</button>
+          </div>
+          <h3>화면 · 소리</h3>
+          <div class="view-pick" role="radiogroup" aria-label="시점">
+            <button type="button" data-view="third">3인칭</button>
+            <button type="button" data-view="first">1인칭</button>
+          </div>
+          <label class="toggle"><input type="checkbox" id="opt-film" /> 1997 필름 감성</label>
+          <label class="toggle"><input type="checkbox" id="opt-sound" checked /> 소리 (바람 · 새 · 분수 · 발소리)</label>
+          <label class="toggle pc-only"><input type="checkbox" id="opt-hq" checked /> 고품질 그림자 · 앰비언트 오클루전</label>
+          <details class="howto"><summary>조작법</summary></details>
+        </section>
       </div>
-      <label class="toggle"><input type="checkbox" id="opt-film" /> 1997 필름 감성</label>
-      <label class="toggle"><input type="checkbox" id="opt-sound" checked /> 소리 (바람 · 새 · 분수 · 발소리)</label>
-      <button class="newsbtn" type="button">새 소식 · 업데이트 내역<i hidden></i></button>
-      <button class="newsbtn" type="button" id="memo-pause">캠퍼스 쪽지 목록</button>
-      <a class="newsbtn" href="people.html" target="_blank" rel="noopener">캠퍼스 사람들 · 캐릭터 구경</a>
-      <button class="newsbtn" id="rank-pause" type="button" hidden>1분 슛 게임 순위</button>
-      <label class="toggle pc-only"><input type="checkbox" id="opt-hq" checked /> 고품질 그림자 · 앰비언트 오클루전</label>
-      <div class="go-row">
-        <button id="shoot-go" type="button" title="대강당 앞 농구장에서 1분 동안 슛을 몇 개나 넣는지 겨뤄 봅니다">농구 1분 슛 게임</button>
-        <button id="shoot-quit" type="button" hidden>1분 슛 게임 그만하기</button>
-        <button id="run-go" type="button" title="코스를 골라 캠퍼스를 달리며 기록을 겨뤄 봅니다">캠퍼스 달리기</button>
-        <button id="run-quit" type="button" hidden>달리기 그만하기</button>
-        <button id="photo-go" type="button" title="옛 사진을 찍은 자리를 찾아가 같은 쪽을 봅니다">이곳은 어디?</button>
-        <button id="photo-quit" type="button" hidden>사진 찾기 그만하기</button>
-        <button id="pager-go" type="button" title="삐삐가 울리면 공중전화까지 달려가 번호를 눌러요">삐삐 호출</button>
-        <button id="pager-quit" type="button" hidden>삐삐 호출 그만하기</button>
-        <button id="cheer-go" type="button" title="10월 대강당 앞마당에서 응원단장을 따라 박자에 맞춰 응원 동작을 합니다">연고전 응원 연습</button>
-        <button id="cheer-quit" type="button" hidden>응원 연습 그만하기</button>
-        <button id="class-go" type="button" title="시간표대로 쉬는 시간 안에 다음 수업 건물을 찾아갑니다">강의실 찾기</button>
-        <button id="class-quit" type="button" hidden>강의실 찾기 그만하기</button>
-        <button id="bday-go" type="button" title="5분 안에 캠퍼스의 친구 넷을 찾아 활천대로 데려와 생일인 친구를 분수에 빠뜨립니다">생일 축하</button>
-        <button id="bday-quit" type="button" hidden>생일 축하 그만하기</button>
+      <div class="menu-foot">
         <button id="to-title" type="button" title="캐릭터 · 계절 · 출발할 곳을 다시 고릅니다">처음 화면으로</button>
+        <button id="resume">계속 걷기</button>
       </div>
-      <button id="resume">계속 걷기</button>
     </div>
   </div>
 
@@ -219,6 +245,74 @@
       <h2>새 소식 <small>날짜별 업데이트 내역</small></h2>
       <div class="list"></div>
       <p class="newslink"><a href="news.html" target="_blank" rel="noopener">별도 페이지로 보기 (주소를 공유할 수 있어요)</a></p>
+      <button class="close" type="button">닫기</button>
+    </article>
+  </div>
+
+  <!-- 자료 출처 · 고마운 분들 (?credits) -->
+  <div id="credits" hidden>
+    <article>
+      <h2>자료 출처 · 고마운 분들</h2>
+      <section class="report">
+        <h3>현실과 다른 곳을 알려 주세요</h3>
+        <p>1997년의 신촌 캠퍼스와 다른 건물 · 길 · 나무 · 간판이 보이면, 기억나는 모습이나 사진과 함께 알려 주세요. 하나씩 확인해서 고칩니다.</p>
+        <ul>
+          <li><b>게임 안 쪽지</b>: 다른 곳 앞에서 <span class="pc-only"><kbd>N</kbd> 키나 </span>「쪽지」 버튼으로 그 자리에 쪽지를 붙여 주세요</li>
+          <li><b>GitHub 이슈</b>: <a href="https://github.com/yonsei-reunion/campus-1997/issues" target="_blank" rel="noopener">github.com/yonsei-reunion/campus-1997/issues</a></li>
+          <li><b>메일</b>: <a href="mailto:benelog@gmail.com">benelog@gmail.com</a></li>
+        </ul>
+      </section>
+      <section class="thanks">
+        <h3>Thanks to</h3>
+        <p>사진과 기억을 나눠 주신 <b>아카라카북클럽(ABC) 회원 여러분</b></p>
+        <h3>Special Thanks to</h3>
+        <p><b>이중윤</b></p>
+      </section>
+      <section>
+        <h3>사진 · 기록</h3>
+        <ul>
+          <li>연세대학교 재상봉 25주년 기념문집 (2019 ~ 2026년), 2026년 문집 「응답하라 1997!」</li>
+          <li>문집 사진의 출처: 연세대학교 기록관 · 연세동문회보 · 연세춘추 · 교육97 김연희 · 상경97 김태봉 동문</li>
+          <li>1996 ~ 2000년의 연세대학교 홈페이지 사진 (인터넷 아카이브 웨이백 머신 저장본)</li>
+          <li>연세춘추</li>
+          <li>서울연구원 「사진으로 본 서울」 (공공누리 제1유형 · CC BY 4.0)</li>
+          <li>Wikimedia Commons: 언더우드 동상 · 언더우드관 · 스팀슨관 · 아펜젤러관 · 연희관 사진 (퍼블릭 도메인 · CC BY · CC BY-SA)</li>
+          <li>동문들이 보내 준 사진과 기억</li>
+        </ul>
+        <p class="note">사진은 동문회 비영리 용도로만 씁니다. 다시 쓰려면 원 출처의 허락을 받아야 합니다.</p>
+      </section>
+      <section>
+        <h3>보며 측정만 한 자료</h3>
+        <p class="note">건물 · 길 · 나무의 자리와 높이를 잴 때 보기만 했고, 원본은 게임 서버에 두지 않습니다.</p>
+        <ul>
+          <li>국토지리정보원 국토정보플랫폼: 1996 ~ 1999년 항공사진, 1:5,000 수치지형도</li>
+          <li>카카오맵 로드뷰 · 스카이뷰 (2008 ~ 2011년 촬영분), 네이버 거리뷰 (2010년)</li>
+        </ul>
+      </section>
+      <section>
+        <h3>지도 · 지형</h3>
+        <ul>
+          <li>지도 데이터: © OpenStreetMap contributors (ODbL)</li>
+          <li>고도: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014, © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA)</li>
+        </ul>
+      </section>
+      <section>
+        <h3>3D 모형 · 텍스처 · 움직임</h3>
+        <ul>
+          <li>텍스처 · 하늘(HDRI) · 공중전화 · 잎과 꽃 스캔: <a href="https://polyhaven.com" target="_blank" rel="noopener">Poly Haven</a> (CC0)</li>
+          <li>인물: Quaternius Ultimate Modular Men · Women, Universal Animation Library (CC0)</li>
+          <li>언더우드 동상의 머리 · 손 바탕: Blender 재단 Human Base Meshes (CC0)</li>
+          <li>걷기 · 서기 · 통화: The 100STYLE Dataset, Ian Mason (CC BY 4.0)</li>
+          <li>걸음 · 대화 · 두리번: Open Motion Project, ACCAD / The Ohio State University (CC BY 3.0)</li>
+          <li>걸음 · 뛰기: CMU Graphics Lab Motion Capture Database (mocap.cs.cmu.edu, NSF EIA-0196217)</li>
+          <li>분수 물결: Ultra Water (MIT)</li>
+          <li>글꼴: Noto Sans KR · Jua · Do Hyeon (SIL OFL)</li>
+          <li>3D 엔진: three.js (MIT)</li>
+          <li>캠퍼스 쪽지 저장소: DoltHub benelog/yonsei-1997</li>
+        </ul>
+        <p class="note">파일마다의 출처와 고증 기록은 <a href="https://github.com/yonsei-reunion/campus-1997" target="_blank" rel="noopener">GitHub 저장소</a>의 README 「출처 · 라이선스」와 reference/ 폴더에 있습니다.</p>
+      </section>
+      <p class="credits-share"><button type="button" class="newsbtn" id="credits-copy" title="이 창이 바로 열리는 주소를 복사해요">이 창의 주소 복사</button></p>
       <button class="close" type="button">닫기</button>
     </article>
   </div>

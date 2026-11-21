@@ -44,11 +44,19 @@ html.touch .pc-only, html:not(.touch) .touch-only { display: none !important; }
   content: ''; position: absolute; top: -14px; left: 50%; width: 140px; height: 28px; margin-left: -70px;
   background: rgba(246, 201, 214, .85); transform: rotate(2deg);
 }
+/* 새 소식 · 캠퍼스 사람들: a small row over the title, clear of the tape */
+.intro-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin: -14px -12px 4px 0; }
+.intro-links .newsbtn { margin-left: 0; padding: 3px 11px; }
 .eyebrow { margin: 0 0 6px; color: var(--mint-ink); font-weight: 700; font-size: 13px; letter-spacing: .02em; }
 h1 { font-family: var(--title); font-weight: 400; font-size: clamp(34px, 6vw, 52px); line-height: 1.08; margin: 0 0 14px; color: var(--mint-ink); text-shadow: 3px 3px 0 #fff, 5px 5px 0 rgba(14,111,107,.18); }
 h1 span { color: var(--ink); font-size: .72em; }
 .lead { margin: 0 0 16px; line-height: 1.65; font-size: 15px; color: #34404f; }
 .season-pick { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 14px; }
+/* 언제 걸어 볼까요?: the season and the view (first / third person) side by side */
+.when-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; margin: 0 0 14px; }
+.when-row .season-pick { margin: 0; }
+.when-row .view-pick { height: 36px; }
+.pick-label .hint { margin-left: 4px; font-weight: 400; font-size: 12px; color: #7a8492; }
 .season-pick button { border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 6px 14px; font-size: 14px; font-weight: 700; }
 .season-pick button.on { background: var(--yellow); }
 /* hero picker */
@@ -115,8 +123,14 @@ h1 span { color: var(--ink); font-size: .72em; }
 #start {
   width: 100%; border: 0; border-radius: 10px; padding: 14px; font-size: 18px; font-family: var(--title);
   background: var(--blue); color: #fff; box-shadow: 0 4px 0 #0b2659;
+  /* in sight at the card's foot while the pickers above it scroll (a long card on a phone) */
+  position: sticky; bottom: 4px; z-index: 2;
 }
-#start:disabled { opacity: .45; cursor: progress; }
+#start:not(:disabled) { box-shadow: 0 4px 0 #0b2659, 0 8px 18px rgba(14, 22, 34, .25); }
+#start:disabled { background: #8d9cc0; box-shadow: 0 4px 0 #6f7da0; cursor: progress; }
+.start-more { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.howto-label { margin-top: 16px; }
+.howto-label + .keys { margin-top: 6px; }
 .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 10px; margin: 16px 0 0; font-size: 12px; }
 .keys div { display: flex; gap: 6px; align-items: baseline; }
 .keys dt { font-weight: 800; white-space: nowrap; }
@@ -174,14 +188,31 @@ body.film #datestamp { display: block; }
 .mapwrap h2 small { font-family: var(--font); font-size: 13px; color: #5c6572; margin-left: 8px; }
 #bigmap { width: min(84vh, 88vw); height: min(84vh, 88vw); display: block; cursor: pointer; border-radius: 4px; }
 
-/* ------------------------------------------------------------ pause */
-#pause { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; background: rgba(10,18,28,.45); }
-#pause > div { background: var(--paper); padding: 26px 30px; border-radius: 8px; min-width: 320px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow: auto;
-  box-shadow: 0 18px 50px rgba(0,0,0,.35); }
-#pause h2 { font-family: var(--title); font-weight: 400; margin: 0 0 6px; color: var(--mint-ink); }
-#pause p { margin: 0 0 12px; color: #5c6572; }
+/* ------------------------------------------------------------ pause: the walk's menu */
+/* mini games and the notes · news on one side, the season and the screen on the other (one column on a phone); the
+   way back to the walk always at the foot */
+#pause { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; background: rgba(10,18,28,.45); padding: 8px; }
+#pause .menu { display: flex; flex-direction: column; background: var(--paper); border-radius: 10px; width: min(820px, 100%); max-height: calc(100vh - 16px);
+  box-shadow: 0 18px 50px rgba(0,0,0,.35); overflow: hidden; }
+#pause h2 { font-family: var(--title); font-weight: 400; margin: 0; padding: 18px 24px 4px; color: var(--mint-ink); font-size: 26px; }
+#pause h2 small { font-family: var(--font); font-size: 13px; color: #5c6572; margin-left: 8px; }
+.menu-body { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: 1.25fr 1fr; gap: 0 28px; padding: 0 24px 6px; }
+#pause h3 { margin: 14px 0 8px; font-size: 13px; font-weight: 800; letter-spacing: .04em; color: var(--mint-ink); }
+#pause .season-pick { margin: 0; }
+#pause .view-pick { display: inline-flex; height: 34px; margin: 0 0 4px; }
 .toggle { display: flex; gap: 8px; align-items: center; margin: 8px 0; font-weight: 600; }
-#resume { margin-top: 12px; width: 100%; border: 0; border-radius: 8px; padding: 12px; background: var(--blue); color: #fff; font-size: 16px; font-weight: 700; }
+.menu-links { display: flex; flex-wrap: wrap; gap: 6px; }
+#pause .menu-links > * { position: relative; display: inline-block; border: 1.5px solid var(--mint-ink); background: #fff; color: var(--mint-ink); border-radius: 999px;
+  padding: 6px 12px; margin: 0; font: 700 13px var(--font); text-decoration: none; vertical-align: 0; }
+@media (hover: hover) { #pause .menu-links > *:hover { background: #eef8f6; } }
+#pause .menu-links > #memo-pause { background: var(--mint-ink); color: #fff; }
+.howto { margin: 12px 0 4px; font-size: 13px; }
+.howto summary { cursor: pointer; font-weight: 800; color: var(--mint-ink); }
+.howto .keys { grid-template-columns: repeat(2, 1fr); margin-top: 8px; }
+.howto .keys-touch { margin-top: 8px; }
+.menu-foot { display: grid; grid-template-columns: minmax(max-content, 1fr) 2fr; gap: 8px; padding: 12px 24px 16px; border-top: 1.5px dashed #d8d0bb; }
+#to-title { border: 2px solid var(--ink); border-radius: 8px; padding: 10px 14px; white-space: nowrap; background: #fff; color: var(--ink); font-size: 15px; font-weight: 700; }
+#resume { border: 0; border-radius: 8px; padding: 12px; background: var(--blue); color: #fff; font-size: 16px; font-weight: 700; }
 
 #blabels { position: absolute; inset: 0; overflow: hidden; }
 #blabels .blabel { position: absolute; left: 0; top: 0; white-space: nowrap; font: 700 13px var(--font); color: var(--ink);
@@ -202,8 +233,6 @@ body.birds #bubbles { display: none; }
 .newsbtn i { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: #e63946; }
 a.newsbtn { display: inline-block; text-decoration: none; }
 .newsbtn:disabled { opacity: .45; }
-#pause .newsbtn { display: block; margin: 10px 0 4px; padding: 6px 12px; font-size: 13px; text-align: center; }
-#pause a.newsbtn { margin-left: 0; width: fit-content; }
 #news { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(10,18,28,.55); padding: 16px; }
 #news article { position: relative; background: var(--paper); border-radius: 8px; width: min(620px, 100%); max-height: calc(100vh - 32px); overflow: auto;
   padding: 22px 24px 18px; box-shadow: 0 18px 50px rgba(0,0,0,.35); }
@@ -232,10 +261,12 @@ a.newsbtn { display: inline-block; text-decoration: none; }
 #hudbtns { position: absolute; top: calc(272px + var(--st)); right: calc(16px + var(--sr)); width: 200px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 #hudbtns button { pointer-events: auto; border: 0; border-radius: 10px; padding: 8px 6px; white-space: nowrap;
   background: var(--paper); color: var(--ink); font-family: var(--title); font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; }
-#hudbtns #birdbtn { grid-column: 1 / -1; font-size: 17px; }
+#hudbtns #menubtn { grid-column: 1 / -1; font-size: 17px; background: var(--yellow); }
+body.birds #hudbtns #birdbtn { grid-column: 1 / -1; font-size: 17px; }
 #hudbtns #homebtn { grid-column: 1 / -1; font-size: 15px; padding: 6px; background: rgba(255,253,246,.82); }
 #hudbtns kbd { display: inline-block; background: var(--ink); color: #fff; border-radius: 5px; padding: 0 5px; font-family: inherit; font-size: 12px; margin-left: 3px; }
 html.touch #hudbtns kbd { display: none; }
+#hudbtns .wide { font: inherit; }
 body.birds #birdbtn { background: var(--yellow); }
 body.birds #mapbtn, body.birds #menubtn, body.birds #viewbtn, body.birds #memobtn, body.birds #homebtn { display: none; }
 body.birds #prompt { display: none; }
@@ -253,17 +284,16 @@ html.touch #tourbar .tour-touch { display: block; }
 body.birds #view { cursor: grab; touch-action: none; }
 body.birds #view.grabbing { cursor: grabbing; }
 body.birds #stamps { display: none; }
-#tour-start, #memo-title { margin-top: 8px; width: 100%; border: 2px solid var(--ink); background: #fff; color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); cursor: pointer; }
+#tour-start, #memo-title { width: 100%; border: 2px solid var(--ink); background: #fff; color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); cursor: pointer; }
 #tour-start:disabled { opacity: .45; cursor: progress; }
 /* the 1-minute basketball game (src/shootout.js) and its view; ./?game=shoot makes it the card's own (body.game-shoot) */
 #minigame { margin-top: 12px; padding-top: 10px; border-top: 1.5px dashed #d8d0bb; }
 #minigame .pick-label { margin-bottom: 6px; }
 #shoot-best { margin-left: 6px; font-weight: 400; color: var(--mint-ink); }
-.mg-row { display: flex; gap: 8px; align-items: stretch; }
-#shoot-start { flex: 1; border: 2px solid var(--ink); background: var(--yellow); color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); }
+#shoot-start { display: block; width: 100%; border: 2px solid var(--ink); background: var(--yellow); color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); }
 #shoot-start:disabled { opacity: .45; cursor: progress; }
 /* the other mini games, two to a row (each game's own css comes with it when it starts) */
-.mg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.mg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
 .mg-grid button { border: 2px solid var(--ink); color: var(--ink); border-radius: 10px; padding: 10px 6px; font-size: 15px; font-family: var(--title);
   cursor: pointer; background: #fff; line-height: 1.25; word-break: keep-all; }
 .mg-grid button:disabled { opacity: .45; cursor: progress; }
@@ -274,7 +304,8 @@ body.birds #stamps { display: none; }
 #cheer-start { background: #ffd0c8; }
 #class-start { background: #d6e6ff; }
 #bday-start { background: #f2d4f0; }
-body.game-photo #photo-start { grid-column: 1 / -1; padding: 14px; font-size: 18px; background: var(--blue, #143c8c); color: #fff; border-color: var(--blue, #143c8c); }
+/* ./?game=<key> (main.js): that game's button first and large */
+.mg-grid button.picked { grid-column: 1 / -1; order: -1; padding: 14px; font-size: 18px; background: var(--blue); color: #fff; border-color: var(--blue); }
 .view-pick { display: flex; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: #fff; }
 .view-pick button { border: 0; background: none; padding: 0 12px; font: 700 14px var(--font); color: var(--ink); }
 .view-pick button + button { border-left: 2px solid var(--ink); }
@@ -283,14 +314,19 @@ body.game-photo #photo-start { grid-column: 1 / -1; padding: 14px; font-size: 18
 .mg-url { margin: 8px 0 0; font-size: 12px; color: #5c6572; line-height: 1.7; }
 .mg-url code { margin: 0 2px 0 6px; padding: 1px 6px; border-radius: 5px; background: #f3efe2; color: var(--ink); font: 600 12px var(--font); word-break: break-all;
   -webkit-user-select: all; user-select: all; }
+.mg-url select { margin: 0 0 0 6px; border: 1.5px solid #cfc6ae; border-radius: 6px; background: #fff; color: var(--ink); font: 600 12px var(--font); padding: 1px 4px; }
+#pause .mg-url { margin-top: 10px; }
 .newsbtn.done { background: var(--mint-ink); color: #fff; }
 body:not(.game-shoot) .game-only, body.game-shoot .walk-only { display: none !important; }
-body.game-shoot #start, body.game-shoot #tour-start, body.game-shoot #memo-title, body.game-shoot label[for="place-pick"], body.game-shoot #place-pick { display: none; }
+body.game-shoot #start, body.game-shoot .start-more, body.game-shoot label[for="place-pick"], body.game-shoot #place-pick { display: none; }
 body.game-shoot #minigame { margin-top: 0; padding-top: 0; border-top: 0; }
 body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: 0 4px 0 #0b2659; }
-/* the settings card's ways out of the walk: into the 1-minute game (or out of it) and back to the title card */
-.go-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.go-row button { flex: 1 1 auto; border: 2px solid var(--ink); border-radius: 8px; padding: 10px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 700; white-space: nowrap; }
+/* the menu's mini games: into one (or out of the one under way: .quit, on a row of its own) */
+.go-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.go-row button { border: 2px solid var(--ink); border-radius: 8px; padding: 9px 6px; background: #fff; color: var(--ink); font-size: 15px; font-family: var(--title);
+  line-height: 1.25; word-break: keep-all; }
+@media (hover: hover) { .go-row button:not(.quit):hover:not(:disabled) { background: #fff8d2; } }
+.go-row button.quit { grid-column: 1 / -1; order: -1; background: #e63946; border-color: #e63946; color: #fff; }
 .go-row button:disabled { opacity: .45; cursor: progress; }
 #birdpins { position: fixed; inset: 0; z-index: 9; pointer-events: none; overflow: hidden; --pin-scale: 1; }
 #birdpins .pin { position: absolute; left: 0; top: 0; pointer-events: auto; border: 0; padding: 0; background: none; cursor: pointer; }
@@ -318,9 +354,14 @@ body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(-
   #minimap { width: 120px; height: 120px; }
   #stamps { top: calc(146px + var(--st)); width: 120px; }
   #hudbtns { top: calc(196px + var(--st)); width: 120px; }
-  #hudbtns button, #hudbtns #birdbtn { font-size: 15px; padding: 9px 4px; }
-  #hudbtns kbd { display: none; }
+  #hudbtns button, #hudbtns #menubtn { font-size: 15px; padding: 9px 4px; }
+  #hudbtns kbd, #hudbtns .wide { display: none; }
   #prompt { font-size: 15px; }
+  .mg-grid { grid-template-columns: 1fr 1fr; }
+  #game-url-pause-text { display: none; }
+  .menu-body { grid-template-columns: 1fr; padding: 0 18px 6px; }
+  #pause h2 { padding: 16px 18px 2px; }
+  .menu-foot { padding: 10px 18px 14px; }
   #birdbar { bottom: 150px; flex-wrap: wrap; justify-content: center; }
   #place b { font-size: 18px; }
   .intro-card { padding: 22px 18px; }
@@ -336,8 +377,8 @@ body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(-
   #stamps { top: calc(10px + var(--st)); right: calc(128px + var(--sr)); width: auto; padding: 4px 10px; }
   #stamps small { display: none; }
   #hudbtns { top: calc(122px + var(--st)); width: 104px; gap: 5px; }
-  #hudbtns button, #hudbtns #birdbtn { font-size: 14px; padding: 7px 3px; }
-  #hudbtns kbd { display: none; }
+  #hudbtns button, #hudbtns #menubtn { font-size: 14px; padding: 7px 3px; }
+  #hudbtns kbd, #hudbtns .wide { display: none; }
   #place { top: calc(10px + var(--st)); padding: 5px 12px 6px; }
   #place b { font-size: 17px; }
   #toast { top: 12%; font-size: 17px; }
@@ -345,16 +386,38 @@ body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(-
   #stick { bottom: calc(24px + var(--sb)); width: 116px; height: 116px; }
   #stick div { left: 33px; top: 33px; }
   .intro-card { padding: 18px 20px; }
-  /* the settings card whole on the screen: no hint, its links side by side */
-  #pause > div { padding: 14px 24px; min-width: 400px; }
-  #pause p { display: none; }
-  #pause .season-pick { margin: 6px 0 8px; }
+  /* the menu on a phone held sideways: two columns, a slimmer head and foot */
+  #pause h2 { padding: 10px 20px 0; font-size: 21px; }
+  .menu-body { grid-template-columns: 1.25fr 1fr; padding: 0 20px 4px; }
+  #pause h3 { margin: 8px 0 6px; }
   #pause .toggle { margin: 5px 0; }
-  #pause .newsbtn { display: inline-block; margin: 6px 4px 2px 0; padding: 5px 12px; }
-  .go-row, #resume { margin-top: 8px; }
-  .go-row button, #resume { padding: 9px; }
+  .go-row button { padding: 7px 4px; font-size: 14px; }
+  .menu-foot { padding: 8px 20px 10px; }
+  #resume, #to-title { padding: 8px; }
+  #start { position: static; }
 }
 body.birds #stick { display: none; }
+
+/* 자료 출처 · 고마운 분들 (?credits) */
+#credits { position: fixed; inset: 0; z-index: 41; display: grid; place-items: center; background: rgba(10,18,28,.55); padding: 16px; }
+#credits article { position: relative; background: var(--paper); border-radius: 8px; width: min(640px, 100%); max-height: calc(100vh - 32px); overflow: auto;
+  padding: 22px 24px 18px; box-shadow: 0 18px 50px rgba(0,0,0,.35); }
+#credits h2 { font-family: var(--title); font-weight: 400; color: var(--mint-ink); margin: 0 0 6px; padding-right: 60px; }
+#credits section { border-top: 1px dashed #d9d3c3; padding: 10px 0 6px; }
+#credits h3 { margin: 4px 0 6px; font-size: 15px; color: var(--ink); }
+#credits p, #credits li { font-size: 14px; line-height: 1.6; color: #34404f; }
+#credits p { margin: 0 0 6px; }
+#credits ul { margin: 0 0 6px; padding-left: 20px; }
+#credits a { color: var(--blue); }
+#credits .note { font-size: 12.5px; color: #6a7380; }
+#credits .report { background: #fff6cf; border: 0; border-radius: 10px; padding: 12px 14px 8px; margin: 6px 0 10px; }
+#credits .thanks { text-align: center; }
+#credits .thanks h3 { margin-top: 8px; font-family: var(--title); font-weight: 400; font-size: 20px; color: var(--mint-ink); letter-spacing: .02em; }
+#credits .thanks p { font-size: 16px; }
+#credits kbd { display: inline-block; background: var(--ink); color: #fff; border-radius: 4px; padding: 0 5px; font: 700 12px var(--font); }
+#credits .credits-share { text-align: center; margin: 10px 0 0; }
+#credits .credits-share .newsbtn { margin: 0; padding: 4px 12px; }
+#credits .close { position: absolute; top: 14px; right: 14px; border: 0; background: var(--ink); color: #fff; border-radius: 8px; padding: 7px 12px; font-weight: 700; }
 
 /* release notes: screenshots and the link to the standalone page */
 #news .shot { margin: 10px 0 0; }

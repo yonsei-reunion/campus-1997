@@ -5,8 +5,12 @@
 // Notes come and go with the wind: one taken off here, or gone from the list when it is read again, blows away.
 // A note: { id, text, name, color, x, y (campus), z (its top edge, 해발 = the game's height), yaw (the way it faces,
 // campus: (sin, cos), 0 = north), kind ('wall' | 'stake'), place (the place name where it was put), created_at (UTC) }.
+// Each card has an address of its own, to copy and send: ./?memos the list, ./?memo=<id> one note. A card opens as a
+// history entry (src/nav.js): the browser's back closes it, and a page opened at one opens its card at once
+// (openFromUrl) over the plain game.
 import * as THREE from 'three';
-import { $, safeGet, safeSet, MOBILE } from './util.js';
+import { $, safeGet, safeSet, MOBILE, copyButton } from './util.js';
+import * as nav from './nav.js';
 import './memos.css';
 
 const READ = 'https://www.dolthub.com/api/v1alpha1/benelog/yonsei-1997/main';
@@ -34,6 +38,12 @@ export function ago(s) {
   const y = d.getFullYear() !== new Date().getFullYear() ? `${d.getFullYear()}년 ` : '';
   return `${y}${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
+const ID = /^[0-9a-z]{4,40}$/i;          // (notes-worker: 12 hex digits)
+const COPY_FAIL = '복사하지 못했어요 · 주소창의 주소를 복사하세요';
+const base = () => location.origin + location.pathname;
+export const listUrl = () => `${base()}?memos`;
+export const noteUrl = (id) => `${base()}?memo=${encodeURIComponent(id)}`;
+const LIST = 'memos', NOTE = 'memo';      // (their entries in src/nav.js)
 const row = (r) => ({
   id: String(r.id), text: String(r.text ?? ''), name: String(r.name ?? ''), color: COLORS[r.color] ? r.color : 'yellow',
   x: +r.x, y: +r.y, z: +r.z, yaw: +r.yaw, kind: r.kind === 'stake' ? 'stake' : 'wall', place: String(r.place ?? ''), created_at: String(r.created_at ?? ''),
@@ -123,7 +133,8 @@ export class Memos {
     this.ray.firstHitOnly = true;
     this._bindPick(canvas);
     for (const o of this.notes.values()) this._mesh(o);
-    this._changed();                 // (the list's 「가기」 come on)
+    this._changed();                 // (the list's 「가기」 come on, and the card's)
+    this._goState();
   }
   get attached() { return !!this.scene; }
 
@@ -131,12 +142,8 @@ export class Memos {
   async load() {
     if (this._loading) return this._loading;
     this._loading = (async () => {
-      const q = `SELECT id, text, name, color, x, y, z, yaw, kind, place, created_at FROM notes ORDER BY created_at DESC LIMIT ${SHOW}`;
       try {
-        const r = await fetch(`${READ}?q=${encodeURIComponent(q)}`, { cache: 'no-store' });
-        const j = await r.json();
-        if (j.query_execution_status !== 'Success') throw new Error(j.query_execution_message || 'DoltHub');
-        this._sync((j.rows || []).map(row).filter((n) => Number.isFinite(n.x + n.y + n.z + n.yaw)));
+        this._sync(await this._query(`ORDER BY created_at DESC LIMIT ${SHOW}`));
         this.loaded = true;
         this.error = null;
       } catch (e) {
@@ -148,10 +155,29 @@ export class Memos {
     })();
     return this._loading;
   }
-  // what came back is what hangs now: new ones put up, the ones gone blow away (but not one of ours still going up)
+  async _query(tail) {
+    const q = `SELECT id, text, name, color, x, y, z, yaw, kind, place, created_at FROM notes ${tail}`;
+    const r = await fetch(`${READ}?q=${encodeURIComponent(q)}`, { cache: 'no-store' });
+    const j = await r.json();
+    if (j.query_execution_status !== 'Success') throw new Error(j.query_execution_message || 'DoltHub');
+    return (j.rows || []).map(row).filter((n) => Number.isFinite(n.x + n.y + n.z + n.yaw));
+  }
+  // one note by its id (an address's, older than the list reaches): put up with the rest, or null when it is gone
+  async _fetchOne(id) {
+    if (this.notes.has(id)) return this.notes.get(id).n;
+    if (!ID.test(id)) return null;
+    try {
+      const n = (await this._query(`WHERE id = '${id}'`))[0];
+      if (!n) return null;
+      if (!this.notes.has(n.id)) { this._put(n).extra = true; this._changed(); }
+      return this.notes.get(n.id).n;
+    } catch { return null; }
+  }
+  // what came back is what hangs now: new ones put up, the ones gone blow away (but not one of ours still going up,
+  // nor one an address asked for past the list's end)
   _sync(list) {
     const keep = new Set(list.map((n) => n.id));
-    for (const [id, o] of this.notes) if (!keep.has(id) && !o.pending) this._blow(id);
+    for (const [id, o] of this.notes) if (!keep.has(id) && !o.pending && !o.extra) this._blow(id);
     for (const n of list) if (!this.notes.has(n.id)) this._put(n);
   }
   get list() { return [...this.notes.values()].map((o) => o.n).sort((a, b) => (a.created_at < b.created_at ? 1 : -1)); }
@@ -326,14 +352,47 @@ export class Memos {
     root.addEventListener('click', (e) => { if (e.target === root) this._close(root); });
     return [root, card];
   }
+  // closed by its button, Esc or a click beside it: the write card at once, the list and a note through their history
+  // entries (_drop when it is taken away)
   _close(root) {
     if (root.hidden) return;
+    if (root === this.writeEl) { root.hidden = true; this._preview(null); if (!this.open) this.onClose(); return; }
+    if (!nav.close([root === this.readEl ? NOTE : LIST])) this._drop(root);
+  }
+  // a card's entry taken away (its button, the browser's back): a note read from the list goes back to the list
+  _drop(root) {
+    if (root.hidden) return;
     root.hidden = true;
-    if (root === this.writeEl) this._preview(null);
-    if (root === this.readEl && this._fromList) { this._fromList = false; this.listEl.hidden = false; return; }
+    if (root === this.readEl && this._fromList && nav.has(LIST)) { this._fromList = false; this.listEl.hidden = false; this._fillList(); return; }
     if (!this.open) this.onClose();
   }
-  closeAll() { for (const r of [this.writeEl, this.readEl, this.listEl]) r.hidden = true; this._preview(null); this._fromList = false; }
+  closeAll() {
+    for (const r of [this.writeEl, this.readEl, this.listEl]) r.hidden = true;
+    this._preview(null);
+    this._fromList = false;
+    nav.close([LIST, NOTE], false);
+  }
+
+  // ---------------------------------------------------------------- addresses
+  // a page opened at a card's address: that card, over the title card (the note's: the list under it, and a word
+  // when it has blown away meanwhile); back goes to the title card
+  async openFromUrl() {
+    const q = new URLSearchParams(location.search), id = q.get('memo');
+    if (id === null && !q.has('memos')) return;
+    nav.base();
+    this.openList();
+    if (id === null) return;
+    await this.load();
+    const n = await this._fetchOne(id);
+    if (this.listEl.hidden) return;              // (closed meanwhile)
+    if (n) this.read(n, true);
+    else this._say('찾는 쪽지는 바람에 날아갔어요 · 다른 쪽지를 읽어 보세요');
+  }
+  _say(text) {
+    const p = this.listEl.querySelector('.memo-notice');
+    p.textContent = text;
+    p.hidden = !text;
+  }
 
   _buildCards() {
     this._buildWrite();
@@ -382,11 +441,13 @@ export class Memos {
     this.readEl = root;
     c.innerHTML = `<div class="memo-paper big"><p class="text"></p><p class="sign"></p></div>
       <p class="memo-meta"></p>
+      <p class="memo-share"><button type="button" class="memo-copy" title="이 쪽지가 바로 열리는 주소를 복사해요">쪽지 주소 복사</button></p>
       <p class="memo-wind small">🍃 바람에 날려 언제든 없어질 수 있는 쪽지예요</p>
       <div class="memo-row"><button type="button" class="go">그곳으로 가기</button><button type="button" class="ghost del">떼어 내기</button><button type="button" class="close">닫기</button></div>`;
     c.querySelector('.close').addEventListener('click', () => this._close(root));
     c.querySelector('.go').addEventListener('click', () => { const n = this._reading; if (!n) return; this.closeAll(); this.onGo(n); });
     c.querySelector('.del').addEventListener('click', () => this._remove());
+    copyButton(c.querySelector('.memo-copy'), () => noteUrl(this._reading?.id ?? ''), COPY_FAIL);
   }
 
   // 쪽지 목록
@@ -395,9 +456,12 @@ export class Memos {
     this.listEl = root;
     c.innerHTML = `<h2>캠퍼스 쪽지 <small class="count"></small></h2>
       <p class="memo-wind">🍃 쪽지는 바람에 날려 언제든 없어질 수 있어요. 누르면 쪽지를 읽고, 「가기」를 누르면 쪽지가 붙은 곳으로 가요.</p>
+      <p class="memo-share"><button type="button" class="memo-copy" title="이 목록이 바로 열리는 주소를 복사해요">목록 주소 복사</button></p>
+      <p class="memo-notice" hidden></p>
       <ul class="memo-items"></ul>
       <button type="button" class="close">닫기</button>`;
     c.querySelector('.close').addEventListener('click', () => this._close(root));
+    copyButton(c.querySelector('.memo-copy'), listUrl, COPY_FAIL);
     this.listeners.add(() => { if (!this.listEl.hidden) this._fillList(); });
   }
 
@@ -491,14 +555,21 @@ export class Memos {
     c.querySelector('.sign').textContent = n.name ? `— ${n.name}` : '';
     c.querySelector('.memo-meta').textContent = [n.place, ago(n.created_at)].filter(Boolean).join(' · ');
     c.querySelector('.go').hidden = !this._fromList;
-    c.querySelector('.go').disabled = !this.attached;
-    c.querySelector('.go').textContent = this.attached ? '그곳으로 가기' : '캠퍼스를 불러오는 중…';
+    this._goState();
+    c.querySelector('.memo-copy').disabled = n.id.startsWith('tmp-');
     const del = c.querySelector('.del');
     del.textContent = '떼어 내기'; del.classList.remove('armed'); del.disabled = n.id.startsWith('tmp-');
     clearTimeout(this._arm);
     this.listEl.hidden = true;
     c.hidden = false;
+    if (!n.id.startsWith('tmp-')) nav.open(NOTE, nav.urlWith('memo', n.id), () => this._drop(c));
     this.onOpen();
+  }
+  // 「그곳으로 가기」: once the campus is in (the title card's list opens before)
+  _goState() {
+    const go = this.readEl.querySelector('.go');
+    go.disabled = !this.attached;
+    go.textContent = this.attached ? '그곳으로 가기' : '캠퍼스를 불러오는 중…';
   }
 
   // 떼어 내기: pressed twice (the first press asks), then it blows away at once and the database is told
@@ -514,7 +585,7 @@ export class Memos {
     }
     clearTimeout(this._arm);
     this._fromList = false;
-    this._close(c);
+    if (!nav.close([LIST, NOTE])) this._drop(c);
     const had = this.notes.get(n.id);
     if (had) this._blow(n.id);
     this.toast('쪽지를 떼었어요 · 바람에 날려 보냈어요');
@@ -528,8 +599,10 @@ export class Memos {
   }
 
   openList() {
+    this._say('');
     this._fillList();
     this.listEl.hidden = false;
+    nav.open(LIST, nav.urlWith('memos'), () => this._drop(this.listEl));
     this.onOpen();
     this.load();
   }
