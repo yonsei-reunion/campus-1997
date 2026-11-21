@@ -12494,6 +12494,33 @@ _hcol = Polygon([tuple(p_[:2]) for p_ in _hb['footprint']]).buffer(0).difference
 _hcol = max(getattr(_hcol, 'geoms', [_hcol]), key=lambda g_: g_.area)
 _hb['collider'] = [[round(x_, 2), round(y_, 2)] for x_, y_ in list(_hcol.exterior.coords)[:-1]]
 print('백주년기념관 남서쪽 로비 앞: beds %d, shrubs %d' % (len(CENT_SW97_TIERS), len(centsw97.shrubs(CENT_SW97_TIERS))))
+# 장기원 기념관 남서쪽 원통 건물 (990015; its court: JK_SW97 below): the roof's disc on the 41.3 m plane in the July
+# 1997, 1998 and 1999 frames (centre (-177.7, -40.7), 9.2 - 9.7 m across), the floor at the court's low south-east
+# side (37.5 m), the parapet a little over the roof (41.6 m).  White (sci.jpg: a white fascia over a band of windows); at the halls' very end (blender/
+# build.py draws each hall's looks in its order).  What stands within a metre of its wall steps aside 1.5 m off it
+JK_DRUM97 = dict(id=990015, c=(-177.7, -40.7), r=4.8, floor=37.5, roof=41.3, parapet=41.6)
+_jd = shapely.geometry.polygon.orient(Polygon([(JK_DRUM97['c'][0] + JK_DRUM97['r'] * math.cos(math.pi * k_ / 5),
+                                                JK_DRUM97['c'][1] + JK_DRUM97['r'] * math.sin(math.pi * k_ / 5))
+                                               for k_ in range(10)]), 1.0)   # (ten sides of 2.97 m: blender/generic.py
+                                                                             # wall_edge leaves walls under 2.6 m blank)
+_jdh = [ground_tn(x_, y_) for x_, y_ in _jd.exterior.coords]
+_jdb = datum.up(*JK_DRUM97['c'], JK_DRUM97['floor'])
+buildings.append(dict(id=JK_DRUM97['id'], name='', style='white', levels=1, fh=round(JK_DRUM97['roof'] - JK_DRUM97['floor'], 2),
+                      height=round(JK_DRUM97['parapet'] - JK_DRUM97['floor'], 2), base=round(min(_jdb, min(_jdh)), 2),
+                      top_ground=round(max(_jdh), 2),
+                      footprint=[[round(x_, 2), round(y_, 2)] for x_, y_ in list(_jd.exterior.coords)[:-1]]))
+_jdr = _jd.buffer(1.5).exterior
+_jd_moved = 0
+for k_ in ('trees', 'shrubs'):
+    for t_ in out[k_]:
+        if _jd.buffer(1.0).contains(Point(t_[1], t_[2])):
+            q_ = _jdr.interpolate(_jdr.project(Point(t_[1], t_[2])))
+            if k_ == 'trees' and len(t_) < 6:
+                t_.append((t_[1], t_[2]))      # (later clearings ask where it first stood: rxy)
+            t_[1], t_[2] = round(q_.x, 2), round(q_.y, 2)
+            _jd_moved += 1
+print('장기원 기념관 남서쪽 원통 건물: base %.2f, aside %d' % (buildings[-1]['base'], _jd_moved))
+JK_DRUM_B = buildings[-1]
 # ---------------------------------------------------------------------------
 # 해발로 (tools/datum.py; reference/고증/2.8.1).  Everything above is laid on the working datum, 해발 + the tilt
 # the 1997 photos' block had (0.052 + 0.522 x/100 + 0.248 y/100 m): the levels the photos read as flat, the roads'
@@ -12677,20 +12704,25 @@ out['trees'].append(['cherry', *YJ_FRONT97_CHERRIES[1], 2.4])
 for x_, y_ in YJ_FRONT97_BOARDS:
     out['props'].append(['glass_board', x_, y_, round(YJ_FRONT97_FACE, 3)])
 print('용재관 앞 둑: ginkgo', _yf_k, 'to a cherry, one cherry and two boards added')
-# 장기원 기념관 남서쪽 (i222; reference/고증/3.15-3.17 「장기원 기념관 남서쪽의 땅」): the 1997 July and 1996 winter scans
-# (2 m grid, each flight on its own) put the round platform at the terrace's south-west foot 3 m under the terrace the
-# game ran out over it (41.2 m, 해발), and the yard between it and 과학관's east yard 2 - 2.5 m over the game's slope
-# (a plane, 43.7 m).  Eased into the ground over 4 m; after everything that read the ground, so nothing moves
-JK_SW97 = [(Polygon([(-182.0, -47.0), (-169.0, -47.0), (-169.0, -35.0), (-175.0, -33.0), (-182.0, -36.0)]),
-            lambda x_, y_: np.full(np.shape(x_), 41.25)),
-           (Polygon([(-204.0, -44.0), (-186.0, -44.0), (-185.0, -21.0), (-204.0, -21.0)]),
-            lambda x_, y_: 43.7 + 0.03 * (y_ + 32.0))]
+# 장기원 기념관 남서쪽 (i222 · i225; reference/고증/3.15-3.17 「장기원 기념관 남서쪽의 땅」 · 「원통 건물」): the 1997 July
+# and 1996 winter scans (2 m grid, each flight on its own) put the yard between the terrace and 과학관's east yard 2 -
+# 2.5 m over the game's slope (a plane, 43.7 m), and at the terrace's south-west foot a round one-storey hall whose
+# flat roof (41.3 m, 해발) the game first took for a sunken round yard: all ten frames of 1996 - 1999 show the drum and
+# its wall, the leaf-off ones its shadow on the low ground north of it; the school site's sci.jpg has its east face.
+# The court round it (JK_COURT97) a plane falling south, 39.5 m by the terrace to 37.2 m at the low road (19 points,
+# 0.7 m rms), eased over 1.5 m into the walls of the yard and the terrace (after the yard: the court wins between
+# them).  After everything that read the ground, so nothing moves
+JK_COURT97 = Polygon([(-186.0, -50.0), (-168.0, -50.0), (-167.5, -36.0), (-172.0, -31.0), (-175.0, -28.0), (-186.0, -29.0)])
+JK_SW97 = [(Polygon([(-204.0, -44.0), (-186.0, -44.0), (-185.0, -21.0), (-204.0, -21.0)]),
+            lambda x_, y_: 43.7 + 0.03 * (y_ + 32.0), 4.0),
+           (JK_COURT97, lambda x_, y_: 38.31 + 0.118 * (y_ + 40.7), 1.5)]
 _jm = (np.abs(X + 190) < 30) & (np.abs(Y + 32) < 30)
-for poly_, zf_ in JK_SW97:
+for poly_, zf_, ease_ in JK_SW97:
     _jw = np.zeros(X.shape)
-    _jw[_jm] = np.clip(1.0 - shapely.distance(poly_, shapely.points(X[_jm], Y[_jm])) / 4.0, 0, 1)
+    _jw[_jm] = np.clip(1.0 - shapely.distance(poly_, shapely.points(X[_jm], Y[_jm])) / ease_, 0, 1)
     Hn[:] = Hn * (1 - _jw) + (zf_(X, Y) + datum.tilt(X, Y)) * _jw
 print('장기원 기념관 남서쪽: nodes', int(_jm.sum()))
+JK_DRUM_B['top_ground'] = round(max(ground_tn(x_, y_) for x_, y_ in JK_DRUM_B['footprint']), 2)
 # (독수리상 안쪽, EAGLE97 above: the azaleas of the round beds as first laid out, r 9.5, go; the beds of 1997 are planted
 # on the same 1.1 m staggered grid with their own draws, clear of the trunks and of the groups' wedges on the diagonals)
 _n_old = len(out['shrubs'])
