@@ -47,6 +47,13 @@
               "앞 보도: 골목을 따라 깐 화강석"
             ]
           },
+          {
+            "text": "정문 동쪽 낮은 담 (1996 · 1998 · 1999년 항공 사진)",
+            "items": [
+              "길이: 15.3 m → 18.8 m, 성산로 보도까지",
+              "돌기둥: 고르게 셋 → 4.4 m 사이로 넷"
+            ]
+          },
           "이름표 「동문」 · 「법현학사」"
         ],
         "images": [
@@ -54,7 +61,8 @@
           { "src": "assets/news/492_kwangbok_east.jpg", "alt": "광복관 북쪽 날개 동쪽 면: 1996년 사진, 전, 후" },
           { "src": "assets/news/494_dongmun.jpg", "alt": "동문 둘레를 위에서: 전, 후" },
           { "src": "assets/news/495_dongmun_gate.jpg", "alt": "청송길에서 본 동문과 요금정산소" },
-          { "src": "assets/news/496_seomun_bunsik.jpg", "alt": "서문 곁 서문분식: 전, 후" }
+          { "src": "assets/news/496_seomun_bunsik.jpg", "alt": "서문 곁 서문분식: 전, 후" },
+          { "src": "assets/news/499_gate_east_wall.jpg", "alt": "정문 동쪽 낮은 담: 전, 후" }
         ]
       },
       {

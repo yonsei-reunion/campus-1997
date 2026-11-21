@@ -330,6 +330,10 @@ GATE_EAST = dict(u=11.5, w=1.05, d=3.6, fin=0.3, h=3.7, h_back=3.45, core=3.4)  
 GATE_WALL = dict(pts=[(12.19, -0.36), (15.49, -3.31), (20.14, -3.31)], h=2.7, t=0.35)
 GATE_END = 31.5              # the low wall's ends (tools/build_campus.py reads the same length for the ground)
 GATE_TURN = dict(u0=20.64, v0=-3.41, to=(34.14, -10.51))   # the east low wall: south-east from the white wall's end (tools/gate_town.py EAST_TURN)
+# ... on to 성산로's sidewalk 18.8 m along that line, its four piers' middles along it (the 1996-12 · 1998 · 1999 scans,
+# the piers' white posts at their top's height: 4.37 m apart, 고증 4.8.1 「동쪽 낮은 담의 칸 나눔」)
+GATE_TURN_LEN = 18.8
+GATE_TURN_PIERS = (3.65, 8.02, 12.39, 16.76)
 GATE_LEAF = 2.8              # the iron leaves' height
 
 
@@ -479,20 +483,20 @@ def gate():
            rotz=a2, skip=('bottom',))
     # ---- east of the white wall: the low wall again, pier and fence by turns as in the west (the May 1996 photo
     # from the rail bank), turning south-east along the mouth's edge down to 성산로's sidewalk (its line in the July
-    # 1997 vertical photos).  Drawn in its own frame along that line.
+    # 1997 vertical photos; its four piers and its end in the leafless December 1996 scans and those of 1998 · 1999).
+    # Drawn in its own frame along that line.
     G = GATE_TURN
     (xa, ya), (xb, yb) = (G['u0'], G.get('v0', 0.0)), G['to']
-    ln, a = math.hypot(xb - xa, yb - ya), math.atan2(yb - ya, xb - xa)
+    a = math.atan2(yb - ya, xb - xa)
     ca, sa = math.cos(a), math.sin(a)
     gz2 = lambda u, v=0.0: gz(xa + u * ca - v * sa, ya + u * sa + v * ca)
     xf0, mb.xf = mb.xf, Matrix.Translation((xa, ya, 0.0)) @ Matrix.Rotation(a, 4, 'Z')
-    bay = (ln - 3 * 1.7) / 4
     e0 = 0.0
-    for k in range(4):
-        _gate_fence(mb, gz2, e0, e0 + bay)
-        if k < 3:
-            _gate_pier(mb, gz2, e0 + bay, e0 + bay + 1.7)
-        e0 += bay + 1.7
+    for c in GATE_TURN_PIERS:
+        _gate_fence(mb, gz2, e0, c - 0.85)
+        _gate_pier(mb, gz2, c - 0.85, c + 0.85)
+        e0 = c + 0.85
+    _gate_fence(mb, gz2, e0, GATE_TURN_LEN)
     mb.xf = xf0
     return mb
 
