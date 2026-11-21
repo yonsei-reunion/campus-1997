@@ -1051,6 +1051,7 @@
  "bin_green": {"_doc": "its dark green painted doors", "color": [0.025, 0.14, 0.075], "rough": 0.45, "metal": 0.1},
  "frame_paleblue": {"_doc": "유리 게시판의 연한 청회색 틀 · 기둥 · 덮개 (props.glass_board, reference/학교홈페이지/edu2.jpg)", "color": [0.28, 0.37, 0.48], "rough": 0.5, "metal": 0.3},
  "town_far": {"_doc": "정문 밖의 동네 집 · 철둑 위 · 굴다리 (blender/town.py): one atlas, each band a storey of wall tiling along it (tools/make_textures.py town_atlas)", "image": "town_atlas.jpg", "rough": 0.9, "repeat": true},
+ "town_yro": {"_doc": "연세로 가게 줄의 벽만 (blender/town.py, tools/yro97.py WALLS97): 1996년 사진의 회색 · 흰 타일 · 크림 · 벽돌 · 분홍 · 연보라, 창틀 · 옥상 가의 빗물 줄과 발치의 때 (tools/make_textures.py yro_walls, 고증 4.10.8 「벽」)", "image": "town_yro.jpg", "rough": 0.92, "repeat": true},
  "sign_sinchon": {"_doc": "연세로 가게 간판 (2019 · 2021 문집의 신촌 약도, tools/make_textures.py sign_sinchon): 2 x 8 atlas", "image": "sign_sinchon.png", "rough": 0.5, "emissiveMap": true},
  "sign_sinchon2": {"_doc": "신촌 로터리의 연세로 가게 간판과 모퉁이 건물 간판 (tools/make_textures.py sign_sinchon2, tools/sinchon_rotary.py): 2 x 8 atlas", "image": "sign_sinchon2.png", "rough": 0.5, "emissiveMap": true},
  "brick_dok97": {"_doc": "옛 독수리다방의 어두운 벽돌 (2019 문집 26쪽 사진, blender/town.py _dok97)", "weather": 0.3, "tex": "red_bricks_02", "tile": 1.6, "tint": [0.5, 0.41, 0.37], "rough": 0.88},

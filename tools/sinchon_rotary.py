@@ -2150,23 +2150,25 @@ def town_splat(paints, path):
 
 # ----------------------------------------------------------------------------- 연세로's rows, signs and banner (yro_)
 # The shop rows from y -640 to the junction as the 1996 photos show them where they can be read (고증 4.10): from the
-# junction north, the buildings of each side between its side streets.  [frontage m, storeys, wall band (blender/town.py:
-# 0 red brick, 1 cream, 2 grey, 3 white tile), depth m], from the segment's south end north; the rest of a segment is
-# filled from the photos' mix (YRO_MIX).  Segments: GAPS split each side, 0 = the northmost.
+# junction north, the buildings of each side between its side streets.  [frontage m, storeys, wall (yro97.WALLS97: the
+# 1996 photos' own, 고증 4.10.8 「벽」), depth m], from the segment's south end north.  Segments: GAPS split each side,
+# 0 = the northmost.  blender/town.py draws a block whose wall field is YRO_WALL + a WALLS97 wall with the rows' own
+# atlas (town_yro), so the town's atlas and 창천동's houses stay as they were
+YRO_WALL = 8
 YRO_FIXED = {
     # east, 연세로2길 (y -893) to the junction: the brick house OSM 356219100 (3 storeys in 52004 · 52006), 홍익문고
     # (OSM 356219103: 7.2 m on 연세로, 11 m deep; its storeys are the corner's, below).  South of it the corner lot stood
     # fenced in 1996 (52005 · 52006: yellow banners on the hoarding, a bus shelter in front; 엘리트 빌딩 now)
-    (1, 4): [[7.2, 5, 1, 11.0], [12.4, 3, 0, 8.5]],
+    (1, 4): [[7.2, 5, 2, 11.0], [12.4, 3, 0, 8.5]],
     # east, 연세로2길 north: the purple-grey four storeys whose south wall faces the side street (52106), a white three,
     # a low cream two, the white four with the long window bands and 비디오 signs (52004 · 52006)
-    (1, 3): [[11.0, 4, 2, 13.0], [8.0, 3, 3, 11.0], [6.0, 2, 1, 10.0], [12.0, 4, 3, 13.0]],
+    (1, 3): [[11.0, 4, 6, 13.0], [8.0, 3, 4, 11.0], [6.0, 2, 2, 10.0], [12.0, 4, 4, 13.0]],
     # west, the junction to the side street at y -884: 금강제화 on the corner (four storeys of white tile, the shoe shop's
     # sign over the ground floor, clinics, a 법무사 and 바둑 above, 52005 · 52006), a cream three
-    (-1, 3): [[20.0, 4, 3, 14.0], [9.0, 3, 1, 11.0]],
+    (-1, 3): [[20.0, 4, 4, 14.0], [9.0, 3, 2, 11.0]],
     # west, north of it: the white five of INDIS · 기원 · 바둑 · 만화 (52006), the seven storeys of white tile with dark window
     # bands and 현대예식장's sign up its corner (52106 · 52006, 신영증권 on its roof)
-    (-1, 2): [[13.0, 5, 3, 13.0], [24.0, 7, 3, 16.0]],
+    (-1, 2): [[13.0, 5, 4, 13.0], [24.0, 7, 4, 16.0]],
 }
 # the mix along the rest of 연세로 in 51979 · 52006 (both sides, the junction to the bridge): storeys and their share,
 # frontages 5.5 - 12 m, every wall band (red brick seldom), flat roofs with tanks
@@ -2226,7 +2228,7 @@ def yro_rows(geo, blocks, ground):
         c = p - n * side * (face(s_mid, side) + dep / 2)
         ang = math.atan2(-n[1] * side, -n[0] * side)
         b = [round(float(c[0]), 2), round(float(c[1]), 2), round(dep, 2), round(wdt - 0.15, 2), round(ang, 4), 0.0, int(lv),
-             int(wall), (3 if rnd.random() < 0.6 else 2) if draw else 3, 0, 2, int(rnd.random() < 0.7) if draw else 0]
+             YRO_WALL + int(wall), (3 if rnd.random() < 0.6 else 2) if draw else 3, 0, 2, int(rnd.random() < 0.7) if draw else 0]
         b[5] = round(min(ground(x_, y_) for x_, y_ in list(_box(b).exterior.coords)[:4]) - 0.3, 2)
         return b
 
@@ -2269,7 +2271,7 @@ def yro_rows(geo, blocks, ground):
     p_, t_, n_ = ya.at((s_n + s_s) / 2)
     c_ = p_ - n_ * (face((s_n + s_s) / 2, 1) + back + dep / 2)
     dk_b = [round(float(c_[0]), 2), round(float(c_[1]), 2), round(dep, 2), round(s_n - s_s - 0.15, 2),
-            round(math.atan2(-n_[1], -n_[0]), 4), 0.0, int(lv), int(wall), 2, 0, 2, 1]
+            round(math.atan2(-n_[1], -n_[0]), 4), 0.0, int(lv), YRO_WALL + int(wall), 2, 0, 2, 1]
     dk_b[5] = round(min(ground(x_, y_) for x_, y_ in list(_box(dk_b).exterior.coords)[:4]) - 0.3, 2)
     named.append((dk_b, shops))
     rp = unary_union([_box(b).buffer(-0.2) for b in rows] + [Polygon(yro97.LOT).buffer(1.0)])

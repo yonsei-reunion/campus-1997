@@ -20,35 +20,47 @@ BAY = 3.0                    # metres a bay (a quarter of the atlas across), and
 # cells of the plain band (eighths): wall colours, then gravel, concrete, the tanks' yellow and blue
 P_GRAVEL, P_CONC, P_YELLOW, P_BLUE = 4, 5, 6, 7
 STOREY = 3.0
+# 연세로's shop rows (tools/sinchon_rotary.py yro_rows) wear an atlas of their own (material `town_yro`, tools/
+# make_textures.py yro_walls; reference/고증/4.10.8 「벽」): a block whose wall field is 8 + one of tools/yro97.py WALLS97
+# takes its storeys from it, so that the town's atlas, and so 창천동's houses, stay as they were.  Sixteen bands: a middle
+# storey of each of the seven walls, the top storey of each (the parapet's streaks), the shop front, plain colours
+YRO_ATLAS = 'town_yro'
+YRO_NB = 16
+YRO_GUARD = 6 / 2048
+Y_TOP, Y_SHOP, Y_PLAIN = 7, 14, 15
+YRO_WALL = 8                 # (a block's wall field from here up: a WALLS97 wall of 연세로's rows)
 
 
-def band(k):
+def band(k, atlas=ATLAS):
+    if atlas == YRO_ATLAS:
+        return 1 - (k + 1) / YRO_NB + YRO_GUARD, 1 - k / YRO_NB - YRO_GUARD
     return 1 - (k + 1) / NB + GUARD, 1 - k / NB - GUARD
 
 
-def cell_uv(k, cell, n=8):
+def cell_uv(k, cell, n=8, atlas=ATLAS):
     """a patch inside cell `cell` of n across band k: (u0, v0, u1, v1)"""
-    v0, v1 = band(k)
-    return (cell + 0.2) / n, v0 + 0.01, (cell + 0.8) / n, v1 - 0.01
+    v0, v1 = band(k, atlas)
+    e = 0.005 if atlas == YRO_ATLAS else 0.01            # (the same pixels in from a band's edges)
+    return (cell + 0.2) / n, v0 + e, (cell + 0.8) / n, v1 - e
 
 
-def flat(mb, pts, k, cell, n=8):
+def flat(mb, pts, k, cell, n=8, atlas=ATLAS):
     """a face in one plain colour: its corners spread over the cell's patch"""
-    u0, v0, u1, v1 = cell_uv(k, cell, n)
+    u0, v0, u1, v1 = cell_uv(k, cell, n, atlas)
     m = len(pts)
     uv = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)] if m == 4 else [(u0, v0), (u1, v0), ((u0 + u1) / 2, v1)][:m]
     if m > 4:
         uv = [(u0 + (u1 - u0) * (i % 2), v0 + (v1 - v0) * (i / (m - 1))) for i in range(m)]
-    mb.face(pts, ATLAS, uvs=uv)
+    mb.face(pts, atlas, uvs=uv)
 
 
-def wall(mb, a, b, z0, z1, k, rnd, bays=None):
+def wall(mb, a, b, z0, z1, k, rnd, bays=None, atlas=ATLAS):
     """one storey of wall from a to b (the outside on the right going a -> b), band k tiling along it"""
     w = math.hypot(b[0] - a[0], b[1] - a[1])
     nb = bays or max(1, round(w / BAY))
     u0 = rnd.randrange(4) / 4
-    v0, v1 = band(k)
-    mb.face([(a[0], a[1], z0), (b[0], b[1], z0), (b[0], b[1], z1), (a[0], a[1], z1)], ATLAS,
+    v0, v1 = band(k, atlas)
+    mb.face([(a[0], a[1], z0), (b[0], b[1], z0), (b[0], b[1], z1), (a[0], a[1], z1)], atlas,
             uvs=[(u0, v0), (u0 + nb / 4, v0), (u0 + nb / 4, v1), (u0, v1)])
 
 
@@ -61,11 +73,15 @@ def house(mb, b, rnd):
     P = lambda u, v: (cx + u * c - v * s, cy + u * s + v * c)
     q = [P(-L / 2, -W / 2), P(L / 2, -W / 2), P(L / 2, W / 2), P(-L / 2, W / 2)]        # counter-clockwise
     z = base
+    yro = wk >= YRO_WALL                           # (연세로's rows: their own atlas, the same draws)
     for f in range(lv):
         z1 = base + 0.3 + sh * (f + 1)
-        k = B_SHOP if (f == 0 and kind) else wk
+        if yro:
+            k = Y_SHOP if (f == 0 and kind) else (wk - YRO_WALL) + (Y_TOP if f == lv - 1 else 0)
+        else:
+            k = B_SHOP if (f == 0 and kind) else wk
         for i in range(4):
-            wall(mb, q[i], q[(i + 1) % 4], z, z1, k, rnd)
+            wall(mb, q[i], q[(i + 1) % 4], z, z1, k, rnd, atlas=YRO_ATLAS if yro else ATLAS)
         z = z1
     zt = z
     if hip == 1:                                   # a tiled hipped roof, its ridge along the long side
@@ -125,7 +141,7 @@ def house(mb, b, rnd):
         h = [P(hx - 1.6, hy - 1.4), P(hx + 1.6, hy - 1.4), P(hx + 1.6, hy + 1.4), P(hx - 1.6, hy + 1.4)]
         for i in range(4):
             flat(mb, [(h[i][0], h[i][1], zt), (h[(i + 1) % 4][0], h[(i + 1) % 4][1], zt), (h[(i + 1) % 4][0], h[(i + 1) % 4][1], zt + 2.4),
-                      (h[i][0], h[i][1], zt + 2.4)], B_PLAIN, wk)
+                      (h[i][0], h[i][1], zt + 2.4)], *((Y_PLAIN, wk - YRO_WALL, 8, YRO_ATLAS) if yro else (B_PLAIN, wk)))
         flat(mb, [(p[0], p[1], zt + 2.4) for p in h], B_PLAIN, P_CONC)
     if tank and min(L, W) > 5:                     # the yellow or blue water tank of every Seoul roof
         tx, ty = P(rnd.uniform(-L / 3, L / 3), rnd.uniform(-W / 3, W / 3))

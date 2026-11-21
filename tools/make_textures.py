@@ -885,6 +885,159 @@ def yro97_signs():
 yro97_signs()
 
 
+# town_yro.jpg (blender/town.py, material town_yro): the walls of 연세로's shop rows only (tools/yro97.py WALLS97), so
+# that the town's own atlas (town_atlas.jpg, 창천동's houses) stays as it is.  1024 x 2048, sixteen bands of 128 px laid
+# as town_atlas's (a band one storey of 3 m, four bays of a window each across, tiling along u): bands 0 - 6 a middle
+# storey of each wall, 7 - 13 the top storey of each (the parapet's streaks down it), 14 the shop front, 15 plain
+# colours in eighths (the seven walls, then concrete).  The 1996 photos (51979 · 52106 · 52004 · 52006; reference/고증/
+# 4.10.8 「벽」): grey render and tile, white tile and cream gone grey with grime, brick red and brown, the purple-grey
+# and pink renders; streaks of rain from each sill and from the parapet down, dirt under each slab's edge and at the foot.
+# Every noise is periodic across the band (made in Fourier space or wrapped), so a wall tiles without a seam.
+YRO_WALLS = [(132, 84, 70), (108, 88, 74), (198, 186, 162), (146, 144, 139), (178, 178, 174), (188, 156, 152), (156, 147, 158)]
+
+
+def yro_walls():
+    if ONLY and 'town_yro' not in ONLY:
+        return
+    rs = np.random.RandomState(4807)
+    rnd = random.Random(4807)
+    S, BH, BAYW, NBAND = 1024, 128, 256, 16
+    A = np.zeros((NBAND * BH, S, 3), np.float32)
+
+    def pnoise(h, w, scale_y, scale_x):
+        """periodic in x (w) smooth noise of unit spread, its blobs about scale_y x scale_x px"""
+        f = rs.randn(h, w)
+        f = ndimage.gaussian_filter(f, (scale_y, scale_x), mode='wrap')
+        return f / (f.std() + 1e-6)
+
+    def streaks(h, w, n, len0, len1, wid0, wid1, xs=None):
+        """darkening (0 - 1) of n rain streaks from the top of an h x w field down, fading with length; at xs if given"""
+        D = np.zeros((h, w), np.float32)
+        yy = np.arange(h, dtype=np.float32)[:, None]
+        for i in range(n):
+            x = xs[i] if xs is not None else rnd.uniform(0, w)
+            wid = rnd.uniform(wid0, wid1)
+            ln = rnd.uniform(len0, len1)
+            a = rnd.uniform(0.5, 1.0)
+            xx = (np.arange(w, dtype=np.float32)[None, :] - x + w / 2) % w - w / 2          # (wrapped)
+            prof = np.exp(-(xx / wid) ** 2)
+            fall = np.clip(1 - yy / ln, 0, 1) ** 1.3
+            D = np.maximum(D, a * prof * fall)
+        # a little ragged along their length
+        return D * (0.75 + 0.25 * np.clip(pnoise(h, w, 2, 1.5), -1.5, 1.5) / 1.5)
+
+    def wall_band(k, col, cls, top):
+        y0 = k * BH
+        base = np.array(col, np.float32)
+        tone = pnoise(BH, S, 22, 90)[..., None]                   # broad, uneven fading
+        grain = rs.randn(BH, S, 1).astype(np.float32)
+        plaster = cls in (2, 3, 5, 6)
+        B = base * (1 + tone * (0.045 if plaster else 0.03)) + grain * (5.0 if cls < 2 else 3.5)
+        if plaster:                                              # blotches where the render was patched or washed
+            B *= 1 + 0.025 * np.clip(pnoise(BH, S, 8, 14), -2, 2)[..., None]
+        if cls < 2:                                              # brick courses and head joints
+            for yy in range(0, BH, 3):
+                B[yy] *= 0.84
+            for yy in range(0, BH, 6):
+                off = 0 if (yy // 6) % 2 else 5
+                B[yy:yy + 3, off::10] *= 0.88
+            B *= 1 + 0.06 * rs.randn(BH // 3 + 1, S // 10 + 1).repeat(3, 0).repeat(10, 1)[:BH, :S, None]
+        if cls == 4:                                             # tile joints
+            for yy in range(0, BH, 6):
+                B[yy] *= 0.9
+            B[:, ::6] *= 0.93
+        if cls == 3:                                             # the formwork's faint seams in the grey
+            B[::32] *= 0.94
+        A[y0:y0 + BH] = B
+        # the slab's edge, the dirt that gathers under it
+        A[y0:y0 + 5] = np.array((150, 148, 142), np.float32) * (0.92 if cls < 2 else 1.0)
+        A[y0 + 5] *= 0.72
+        A[y0 + 6:y0 + 14] *= (1 - 0.10 * np.linspace(1, 0, 8))[:, None, None]
+        wide = cls == 4
+        sill_x = []
+        for b in range(4):
+            x0 = b * BAYW
+            wx0, wx1 = (x0 + 28, x0 + 228) if wide else (x0 + 64, x0 + 192)
+            wy0, wy1 = y0 + 34, y0 + 88
+            A[wy0 - 3:wy0, wx0 - 4:wx1 + 4] *= 0.8                                   # lintel shadow
+            A[wy0:wy1, wx0:wx1] = (182, 184, 186)                                    # the frame, dulled
+            g0, g1 = np.array((32, 40, 50), np.float32), np.array((66, 80, 94), np.float32)
+            panes = 4 if wide else 2
+            pw = (wx1 - wx0 - 3) // panes
+            for pi in range(panes):
+                px0 = wx0 + 3 + pi * pw
+                shade = rnd.random()
+                for yy in range(wy0 + 3, wy1 - 3):
+                    f = (yy - wy0) / (wy1 - wy0)
+                    c = g1 * (1 - f) + g0 * f
+                    if shade < 0.35:                                                 # a curtain or blind behind the glass
+                        c = c * 0.45 + np.array((176, 168, 148), np.float32) * 0.55
+                    A[yy, px0:px0 + pw - 3] = c
+            A[wy1:wy1 + 4, wx0 - 6:wx1 + 6] = (164, 162, 156)                        # the sill
+            A[wy1 + 4:wy1 + 6, wx0 - 6:wx1 + 6] *= 0.78
+            sill_x += [wx0 - 4, wx1 + 4] + [rnd.uniform(wx0 + 8, wx1 - 8) for _ in range(2 if wide else 1)]
+            if cls not in (4,) and rnd.random() < 0.3:                               # an air conditioner's box below
+                A[wy1 + 8:wy1 + 24, wx1 - 34:wx1 - 4] = (196, 194, 186)
+                A[wy1 + 11:wy1 + 21, wx1 - 30:wx1 - 18] = (60, 62, 66)
+        # rain from the sills' ends and middles down to the slab under them (and, faint, under the slab above: the
+        # bays line up storey over storey, town.py moves a wall's start by whole bays)
+        dark = 0.32 if cls in (2, 4, 5) else (0.26 if cls in (3, 6) else 0.14)
+        under = streaks(BH - 94, S, len(sill_x), 24, 44, 3.0, 8.0, xs=sill_x)
+        A[y0 + 94:y0 + BH] *= (1 - 1.5 * dark * under)[..., None]
+        above = streaks(26, S, len(sill_x), 14, 30, 3.0, 7.0, xs=sill_x)
+        A[y0 + 6:y0 + 32] *= (1 - dark * 0.9 * above)[..., None]
+        if top:                                                  # the parapet: its coping, the streaks from it
+            A[y0:y0 + 5] = np.array((160, 158, 152), np.float32)
+            A[y0 + 5] *= 0.6
+            run = streaks(BH - 6, S, 40, 40, 140, 3.0, 12.0)
+            band = (1 - 0.16 * np.linspace(1, 0, BH - 6) ** 2)[:, None]               # grime thickest by the top
+            mask = np.ones((BH - 6, S), np.float32)
+            for b in range(4):                                   # (not over the glass)
+                x0 = b * BAYW
+                wx0, wx1 = (x0 + 28, x0 + 228) if wide else (x0 + 64, x0 + 192)
+                mask[34 - 6 + 3:88 - 6 - 3, wx0 + 3:wx1 - 3] = 0.25
+            A[y0 + 6:y0 + BH] *= (band * (1 - dark * 2.0 * run * mask))[..., None]
+
+    for cls, col in enumerate(YRO_WALLS):
+        wall_band(cls, col, cls, False)
+        wall_band(7 + cls, col, cls, True)
+    # the shop front (town_atlas's, dirtier): the boards over the shops, glass, the wall between, the grime at its foot
+    k = 14
+    y0 = k * BH
+    A[y0:y0 + BH] = np.array((142, 140, 134), np.float32) * (1 + 0.04 * pnoise(BH, S, 20, 80)[..., None]) + rs.randn(BH, S, 1) * 4
+    fasc = [(166, 42, 38), (28, 68, 140), (226, 186, 46), (34, 104, 70)]
+    for b in range(4):
+        x0 = b * BAYW
+        A[y0:y0 + 5, x0:x0 + BAYW] = (160, 158, 152)
+        A[y0 + 7:y0 + 30, x0 + 6:x0 + BAYW - 6] = fasc[b]
+        xx = x0 + 22
+        while xx < x0 + BAYW - 40:
+            w_ = rnd.randint(14, 26)
+            A[y0 + 12:y0 + 25, xx:xx + w_] = (244, 240, 226) if b != 2 else (30, 28, 26)
+            xx += w_ + rnd.randint(5, 9)
+        A[y0 + 34:y0 + 118, x0 + 10:x0 + BAYW - 10] = (178, 180, 182)
+        for px0, px1 in ((x0 + 14, x0 + 96), (x0 + 100, x0 + 160), (x0 + 164, x0 + BAYW - 14)):
+            for yy in range(y0 + 38, y0 + 115):
+                f = (yy - y0 - 38) / 77
+                A[yy, px0:px1] = np.array((58, 70, 82), np.float32) * (1 - f) + np.array((34, 40, 46), np.float32) * f
+        A[y0 + 60:y0 + 100, x0 + 20:x0 + 90] = np.array(rnd.choice([(200, 180, 120), (170, 60, 50), (210, 210, 200)]), np.float32) * 0.8
+        A[y0 + 118:y0 + BH, x0:x0 + BAYW] = (112, 110, 104)
+    # the foot: splashed dirt up the wall and the frames' bottoms, darkest at the step
+    foot = np.clip((np.arange(BH, dtype=np.float32)[:, None] - (BH - 34)) / 34, 0, 1) ** 1.5
+    foot = foot * (0.8 + 0.2 * np.clip(pnoise(BH, S, 3, 6), -2, 2) / 2)
+    A[y0:y0 + BH] *= (1 - 0.28 * foot)[..., None]
+    A[y0 + 30:y0 + 34] *= 0.85                                                       # under the boards
+    # plain colours: the walls (a little dirtier than the bands' average), concrete
+    plain = [tuple(c * 0.95 for c in col) for col in YRO_WALLS] + [(150, 148, 142)]
+    for c, col in enumerate(plain):
+        A[15 * BH:16 * BH, c * 128:(c + 1) * 128] = np.array(col, np.float32) + rs.randn(BH, 128, 1) * 4
+    Image.fromarray(np.clip(A, 0, 255).astype(np.uint8), 'RGB').save(os.path.join(OUT, 'town_yro.jpg'), quality=88)
+    print('town_yro')
+
+
+yro_walls()
+
+
 # sign_roof.png: 연세로's rooftop boards (blender/town.py yro_roofs; reference/고증/4.10.2 「지붕 위 틀 간판」): 2 x 8 cells,
 # 512 x 128 each.  Cells 0 - 13 the kinds of business the 1996 photos (51979 · 52106 · 52006) and the anthologies' maps
 # show on 연세로, words only (the boards stand on houses drawn at random); 14 · 15 the two read on their own houses:
