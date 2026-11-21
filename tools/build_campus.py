@@ -10525,6 +10525,15 @@ for g_ in jk97.paint()[1]:                     # (장기원 기념관 남쪽 옹
     for l_, v_ in (('_yg', 255), ('_gd', 0), ('_yp', 0)):
         SPLAT_OPS.append(('poly', l_, list(g_.exterior.coords), v_))
 _ypaint(jk97.paint()[1], _ga)
+# 장기원 기념관 동쪽 발치 (jk97.east_paint; reference/고증/3.15-3.17 「동쪽 발치의 띠와 길」): today's walk, its steps and the
+# apron out of the band, the lane and the bank (lawn: the fine map's strokes only), the lane and the yard east of the
+# bed asphalt, the walk along the east face on the band paving
+_jke_clear, _jke_asph, _jke_pave = jk97.east_paint()
+for g_ in _jke_clear:
+    for l_, v_ in (('_yg', 255), ('_ga', 0), ('_gp', 0), ('_yp', 0), ('_gd', 0)):
+        SPLAT_OPS.append(('poly', l_, list(g_.exterior.coords), v_))
+_ypaint(_jke_asph, _ga)
+_ypaint(_jke_pave, _gp)
 _al_asph, _al_pave = allen97.paint()           # (알렌관 둘레: the west yard's asphalt, the court's and the terrace's paving; al)
 for g_ in _al_asph + _al_pave:
     for l_, v_ in (('_yg', 255), ('_gd', 0), ('_yp', 0)):
@@ -12839,26 +12848,41 @@ JK_DRUM_B['top_ground'] = round(max(ground_tn(x_, y_) for x_, y_ in JK_DRUM_B['f
 # cells the wall crosses down to the yard, the bed a deck over them), the piers and the flight between them (meshes with
 # 의료원 서쪽's surfaces).  After everything that read the ground, as the court above
 _jkb = next(b_ for b_ in buildings if b_['id'] == jk97.ID)
-_jk_down, _jk_cells, JK97_POLY, JK97_H, JK97_INFO = jk97.grade(Hn, X, Y, [Polygon(_jkb['footprint']), Polygon(JK_DRUM_B['footprint'])])
-JK97_DECK = dwb_deck(_jk_cells, JK97_POLY, JK97_H)
-_jk_n0 = len(out['med_west']['top']['v'])
-out['med_west']['top']['v'] += JK97_DECK['v']
-out['med_west']['top']['f'] += [[i_ + _jk_n0 for i_ in f_] for f_ in JK97_DECK['f']]
+# 장기원 기념관 동쪽 발치 (jk97 「동쪽 발치」; reference/고증/3.15-3.17 「동쪽 발치의 띠와 길」): the 1996 winter scans' band on
+# the east face (37.1 - 37.8 m) behind the south wall run on east and north along its edge, the lane at its foot
+# (35.85 m) out to the kerb and the bank down to 도서관 서쪽 길: the band's and the lane's nodes pulled down under two
+# decks (the band's with the bed's), the walls the band's edge; the ground north of the block's end on the scans
+_jk_down, _jk_cells, JK97_POLYS, JK97_HS, JK97_INFO = jk97.grade(Hn, X, Y, [Polygon(_jkb['footprint']), Polygon(JK_DRUM_B['footprint'])])
+JK97_POLY, JK97_H = JK97_POLYS['raised'], JK97_HS['raised']
+JK97_LOW, JK97_LH = JK97_POLYS['low'], JK97_HS['low']
+for _jp, _jh in ((JK97_POLY, JK97_H), (JK97_LOW, JK97_LH)):
+    _jd = dwb_deck(_jk_cells, _jp, _jh)
+    _jk_n0 = len(out['med_west']['top']['v'])
+    out['med_west']['top']['v'] += _jd['v']
+    out['med_west']['top']['f'] += [[i_ + _jk_n0 for i_ in f_] for f_ in _jd['f']]
+    print('장기원 기념관 판: %d triangles, %.1f m2' % (len(_jd['f']), _jp.area))
 shapely.prepare(JK97_POLY)
+shapely.prepare(JK97_LOW)
 _jk_quads, _jk_guards, _jk_walk = jk97.walls(
     lambda x_, y_: JK97_H(x_, y_) + 0.025 if shapely.contains_xy(JK97_POLY, x_, y_) else sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_),
-    lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
+    lambda x_, y_: JK97_LH(x_, y_) + 0.025 if shapely.contains_xy(JK97_LOW, x_, y_) else sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
 out['med_west']['quads'] += _jk_quads
 out['med_west']['walk'] += _jk_walk
 out['colliders'] += _jk_guards
-for g_ in getattr(JK97_POLY, 'geoms', [JK97_POLY]):
-    _pu, _pv = zip(*[medwest97.uv(x_, y_) for x_, y_ in g_.exterior.coords])
-    _pus, _pvs = [round(float(min(_pu)) - 0.5, 3), round(float(max(_pu)) + 0.5, 3)], [round(float(min(_pv)) - 0.5, 3), round(float(max(_pv)) + 0.5, 3)]
-    out['med_west']['plates'].append(dict(name='jk_south', poly=[[round(x_, 3), round(y_, 3)] for x_, y_ in list(g_.exterior.coords)[:-1]],
-                              holes=[[[round(x_, 3), round(y_, 3)] for x_, y_ in list(r_.coords)[:-1]] for r_ in g_.interiors],
-                              us=_pus, vs=_pvs, z=[[round(float(JK97_H(*medwest97.xy(u_, v_))) + 0.025, 3) for u_ in _pus] for v_ in _pvs]))
+# (the raised surfaces for what Blender stands on them, the door's flight on the band: a table every 2 m in med_west's frame)
+for _jp, _jh, _jn in ((JK97_POLY, JK97_H, 'jk_south'), (JK97_LOW, JK97_LH, 'jk_low')):
+    for g_ in getattr(_jp, 'geoms', [_jp]):
+        _pu, _pv = zip(*[medwest97.uv(x_, y_) for x_, y_ in g_.exterior.coords])
+        _pus = [round(float(u_), 3) for u_ in np.arange(min(_pu) - 0.5, max(_pu) + 2.5, 2.0)]
+        _pvs = [round(float(v_), 3) for v_ in np.arange(min(_pv) - 0.5, max(_pv) + 2.5, 2.0)]
+        out['med_west']['plates'].append(dict(name=_jn, poly=[[round(x_, 3), round(y_, 3)] for x_, y_ in list(g_.exterior.coords)[:-1]],
+                                  holes=[[[round(x_, 3), round(y_, 3)] for x_, y_ in list(r_.coords)[:-1]] for r_ in g_.interiors],
+                                  us=_pus, vs=_pvs, z=[[round(float(_jh(*medwest97.xy(u_, v_))) + 0.025, 3) for u_ in _pus] for v_ in _pvs]))
 _jkb['top_ground'] = round(max(ground_tn(x_, y_) for x_, y_ in _jkb['footprint']), 2)
-print('장기원 기념관 남쪽 끝:', JK97_INFO, 'deck %d triangles, quads %d, guards %d' % (len(JK97_DECK['f']), len(_jk_quads), len(_jk_guards)))
+print('장기원 기념관 남쪽 끝 · 동쪽 발치:', {k_: (len(v_) if isinstance(v_, list) else v_) for k_, v_ in JK97_INFO.items()},
+      'quads %d, guards %d' % (len(_jk_quads), len(_jk_guards)), 'east flight', jk97._EF[0])
+print('장기원 기념관 동쪽 발치: trees, shrubs off the lane', jk97.east_clear(out['trees'], 'tree'), jk97.east_clear(out['shrubs'], 'shrub'),
+      'walks (cut, gone)', jk97.east_paths(out['paths']), 'decals', jk97.east_decals(out['decals']))
 # (독수리상 안쪽, EAGLE97 above: the azaleas of the round beds as first laid out, r 9.5, go; the beds of 1997 are planted
 # on the same 1.1 m staggered grid with their own draws, clear of the trunks and of the groups' wedges on the diagonals)
 _n_old = len(out['shrubs'])
