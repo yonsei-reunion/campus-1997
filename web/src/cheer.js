@@ -3,9 +3,9 @@
 // down four lanes (박수, 만세, 어깨동무 and 뛰기) and are pressed on the beat. The block and the leader do every sign on
 // the beat themselves, so the one standing still is you.
 //  - the music (cheersong.js): the 아카라카 chant, shouted by voices made here (a buzz through each vowel's formants,
-//    its line in a bubble), then Yonsei's 「응원가」 (its tune from the school's score) played by a band of audio.js's
-//    building blocks: guitar, bass, keyboard and drums; and the crowd's claps, shouts and landings on the signs.
-//    No recording
+//    its line in a bubble), then Yonsei's 「응원가」 (its tune from the school's score) played by a band: guitar, bass,
+//    keyboard and drums, each note a buffer computed by cheersynth.js and played by cheerband.js; and the crowd's
+//    claps, shouts and landings on the signs (audio.js's building blocks). No recording
 //  - the signs are timed by the game's clock (the loop's dt), not the wall's: a key's moment is placed between the
 //    frame before it and the one after by its event time, so a slow frame takes nothing from the player
 //  - the moves are built over 'idle' (no clip in the rig claps or jumps): the hands by two-bone IK (armpose.js
@@ -21,6 +21,8 @@ import { tallOf } from './who.js';
 import './cheer.css';
 import { CHARTS, chartOf, lengthOf, JUDGE, LATE, notesOf } from './cheercharts.js';
 import { bandOf, SYL, CHANT_BARS } from './cheersong.js';
+import { BAND } from './cheersynth.js';
+import { Band } from './cheerband.js';
 import { Run, RankBox } from './rank.js';
 import { cheerBoard } from './rankrules.js';
 export { CHARTS, chartOf };
@@ -78,8 +80,8 @@ const num = (n) => n.toLocaleString('ko-KR');
 // the signs of a chart: { t: s from the first bar, lane, dir (어깨동무: -1 / 1 by turns) }
 
 // the band under it (cheersong.js), and the crowd's sounds on the signs: { t, kind, ... }
-function drumsOf(c, notes) {
-  const ev = bandOf(c.bpm, c.bars.length);
+function drumsOf(c, notes, band) {
+  const ev = band.slice();
   ev.push({ t: c.bars.length * 240 / c.bpm + 0.05, kind: 'roar' });
   for (const x of notes) {
     const id = MOVES[x.lane];
@@ -207,6 +209,7 @@ export class Cheer {
     this.hidden = new Set();
     this.presses = [];
     this.t = 0;
+    this.band = new Band(sound);
     addEventListener('keydown', (e) => this.key(e), true);
     if (window.__y97) window.__y97.cheer = this;
   }
@@ -297,9 +300,10 @@ export class Cheer {
     this.starting = true;
     this.run?.fail('다시 시작');
     let run;
+    const band = bandOf(c.bpm, c.bars.length);
     try {
       const [cx, cy] = at(LEADER_D, S0);
-      [run] = await Promise.all([Run.open(cheerBoard(c.id)), this.ensure?.(cx, cy)]);
+      [run] = await Promise.all([Run.open(cheerBoard(c.id)), this.ensure?.(cx, cy), this.band.prepare(band)]);
       await this.makeBlock();
     } finally { this.starting = false; }
     this.run = run;
@@ -345,7 +349,7 @@ export class Cheer {
     this.me.reset();
     // the game
     this.notes = notesOf(c);
-    this.drums = drumsOf(c, this.notes);
+    this.drums = drumsOf(c, this.notes, band);
     this.hush(false);
     this.beat = 60 / c.bpm;
     this.song = -4 * this.beat - 0.6;      // (a breath before the count)
@@ -577,25 +581,21 @@ export class Cheer {
     if (st) this.bubbles.add(st.a.holder, 1.7, e.text, this.t + dt, this.t + dt + e.d);
   }
 
-  // the bus, and each instrument's own chain into it: the guitar through a drive and a speaker's roll-off
+  // the bus: the band (cheerband.js), the chant's voices and the crowd, a little of the voices and the crowd into
+  // the band's room
   ensureBus() {
     const S = this.sound, ctx = S.ctx;
     if (this.bus && this.bus.context === ctx) return this.bus;
     const bus = this.bus = ctx.createGain();
     bus.gain.value = 0.85;
     bus.connect(S.master);
-    const drive = ctx.createWaveShaper(), curve = new Float32Array(1024);
-    for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(5 * (i / (curve.length - 1) * 2 - 1));
-    drive.curve = curve;
-    drive.oversample = '2x';
-    const chain = (...n) => { S._chain(...n, bus); return n[0]; };
-    this.inst = {
-      gtr: chain(S._gain(0.6), drive, S._filter('lowpass', 2600, 0.9), S._filter('highpass', 90, 0.7), S._gain(0.16)),
-      bass: chain(S._gain(1), S._filter('lowpass', 750, 1.1), S._gain(0.14)),
-      lead: chain(S._gain(1), S._filter('lowpass', 3400, 0.8), S._gain(0.42)),
-      keys: chain(S._gain(1), S._filter('lowpass', 1800, 0.7), S._gain(0.25)),
-      chant: chain(S._gain(1), S._filter('highpass', 140, 0.7), S._gain(1.45)),
-    };
+    this.band.ensure().connect(bus);
+    const chant = S._gain(1), crowd = S._gain(1);
+    S._chain(chant, S._filter('highpass', 140, 0.7), S._gain(1.45), bus);
+    crowd.connect(bus);
+    this.band.send(chant, 0.3);
+    this.band.send(crowd, 0.12);
+    this.inst = { chant, crowd };
     return bus;
   }
 
@@ -640,56 +640,12 @@ export class Cheer {
   voice(kind, dt = 0, k = 1, e = null) {
     const S = this.sound, ctx = S?.ctx;
     if (!ctx || ctx.state !== 'running') return;
-    const out = this.ensureBus(), at = ctx.currentTime + dt + 0.01;
+    const bus = this.ensureBus(), at = ctx.currentTime + dt + 0.01;
+    if (BAND.has(kind)) { this.band.play(e ?? { kind, k }, at); return; }
+    const out = kind === 'tok' ? bus : this.inst.crowd;        // (your own hit stays dry)
     const tone = (o) => S._tone(out, { at, ...o }), burst = (o) => S._burst(out, { at, ...o });
-    const hz = (m) => 440 * 2 ** ((m - 69) / 12), I = this.inst;
     switch (kind) {
-      case 'gtr': {      // 기타: a power chord (root, fifth, octave), muted short or let ring
-        const f = hz(e.m), d = e.d, g = 0.5 * k;
-        for (const [r, dt2] of [[1, 0], [1.4983, 0.004], [2, 0.008], [1.003, 0.002]]) {
-          S._tone(I.gtr, { at: at + dt2, type: 'sawtooth', f: f * r, gain: g, attack: 0.003, hold: e.open ? d * 0.4 : d * 0.25, decay: e.open ? d * 0.6 + 0.3 : 0.07 });
-        }
-        if (!e.open) S._burst(I.gtr, { at, type: 'bandpass', f: 1600, q: 1.2, gain: 0.25 * k, decay: 0.02 });     // the pick
-        break;
-      }
-      case 'bass': {     // 베이스: a plucked string, its round low and the attack's bite
-        const f = hz(e.m);
-        S._tone(I.bass, { at, type: 'sawtooth', f, gain: 0.5, attack: 0.004, hold: e.d * 0.6, decay: e.d * 0.4 + 0.05 });
-        S._tone(I.bass, { at, type: 'sine', f, gain: 0.6, attack: 0.004, hold: e.d * 0.7, decay: e.d * 0.3 + 0.05 });
-        break;
-      }
-      case 'lead': {     // 키보드 오른손: the tune on two square waves a hair apart, an octave above it soft
-        const f = hz(e.m), hold = Math.max(0.02, e.d - 0.08);
-        S._tone(I.lead, { at, type: 'square', f, gain: 0.22, attack: 0.008, hold, decay: 0.12 });
-        S._tone(I.lead, { at, type: 'square', f: f * 1.005, gain: 0.16, attack: 0.008, hold, decay: 0.12 });
-        S._tone(I.lead, { at, type: 'sawtooth', f: f * 2, gain: 0.05, attack: 0.01, hold, decay: 0.1 });
-        break;
-      }
       case 'chant': this.shout(e, at); break;
-      case 'keys':       // 키보드 왼손: the chord held, an organ's drawbars
-        for (const m of e.m) {
-          S._tone(I.keys, { at, type: 'triangle', f: hz(m), gain: 0.16, attack: 0.02, hold: Math.max(0.02, e.d - 0.15), decay: 0.18 });
-          S._tone(I.keys, { at, type: 'sine', f: hz(m) * 2, gain: 0.06, attack: 0.02, hold: Math.max(0.02, e.d - 0.15), decay: 0.18 });
-        }
-        break;
-      case 'kick':       // 큰북: a low thump falling in pitch, and the skin's slap
-        tone({ type: 'sine', f: 118, f1: 46, gain: 0.6 * k, attack: 0.003, decay: 0.42 });
-        burst({ type: 'lowpass', f: 380, q: 0.7, gain: 0.18 * k, decay: 0.06 });
-        break;
-      case 'snare': case 'snare2':
-        burst({ type: 'bandpass', f: 1900, q: 0.7, gain: (kind === 'snare' ? 0.2 : 0.11) * k, decay: 0.15 });
-        tone({ type: 'triangle', f: 230, f1: 180, gain: (kind === 'snare' ? 0.12 : 0.06) * k, decay: 0.08 });
-        break;
-      case 'tick':
-        burst({ type: 'highpass', f: 6500, q: 0.7, gain: 0.045 * k, decay: 0.035 });
-        break;
-      case 'rim': case 'rim2':     // the sticks counting in
-        tone({ type: 'square', f: kind === 'rim2' ? 1250 : 940, f1: 700, gain: 0.05, decay: 0.05 });
-        burst({ type: 'bandpass', f: 3000, q: 2, gain: 0.08, decay: 0.03 });
-        break;
-      case 'cymbal':
-        burst({ type: 'highpass', f: 5200, q: 0.5, gain: 0.07, attack: 0.002, decay: 0.9 });
-        break;
       case 'clap':       // the block's claps: a few hands not quite together
         for (let i = 0; i < 4; i++) S._burst(out, { at: at + i * 0.007, type: 'bandpass', f: 1050 + i * 120, q: 1.1, gain: 0.13, decay: 0.07 });
         burst({ type: 'bandpass', f: 1400, q: 0.6, gain: 0.05, attack: 0.02, decay: 0.2 });
