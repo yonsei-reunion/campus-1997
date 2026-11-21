@@ -58,6 +58,64 @@ WALL_MIN = 2.7               # (한 층: 사진의 땅을 맞춘 면이 집 곁�
 DARK = {'H3', 'C', 'E2', 'G3'}           # (1997년 7월 27/17 에서 어두운 기와 지붕: 나머지는 밝은 시멘트 기와)
 
 
+# 사진의 땅: 1997년 7월 · 1996년 겨울 · 1999년 5월 장에서 잰 골목 · 마당 · 위쪽 골목의 점 (u, v, 해발)과 그것에 맞춘 면
+# (u, v 의 2차: 1, u, v, uv, v²). 찻길(v 0.5, 37.7 ~ 39.5 m)은 그 북서쪽 둑(3 m 남짓) 밑이라 면에 넣지 않음
+GROUND_Q = [(6.5, 20, 40.5), (6.5, 23, 40.7), (6.5, 26, 41.3), (6.5, 29, 42.4), (6.5, 32, 42.6), (6.5, 35, 42.7),
+            (6.5, 38, 42.7), (6.5, 41, 43.1), (5, 45.5, 43.9), (13, 45.5, 44.1), (21, 45.5, 44.4), (60, 43.6, 49.7),
+            (75, 43.8, 50.8), (15, 28.5, 43.1), (18, 27.5, 43.0), (45, 8, 42.0), (50, 7, 42.35), (68.6, 16, 45.0)]
+ROAD_Q = [(5, .5, 37.7), (21, .5, 38.0), (29, .5, 38.6), (37, .5, 38.2), (45, .5, 38.4), (53, .5, 38.7), (61, .5, 39.0),
+          (69, .5, 39.2), (77, .5, 39.5)]
+
+
+def _basis(u, v):
+    import numpy as np
+    u, v = np.asarray(u, float) / 50.0, np.asarray(v, float) / 50.0
+    return np.stack([np.ones_like(u), u, v, u * v, v * v], -1)
+
+
+def _fit():
+    import numpy as np
+    q = np.array(GROUND_Q, float)
+    c, *_ = np.linalg.lstsq(_basis(q[:, 0], q[:, 1]), q[:, 2], rcond=None)
+    return c
+
+
+_C = None
+
+
+def ground(u, v):
+    """사진의 땅(해발) at (u, v): GROUND_Q 에 맞춘 면. 배열도 받음"""
+    global _C
+    if _C is None:
+        _C = _fit()
+    return _basis(u, v) @ _C
+
+
+def uv(x, y):
+    dx, dy = x - O[0], y - O[1]
+    return dx * T[0] + dy * T[1], dx * N[0] + dy * N[1]
+
+
+# 땅을 사진의 면으로 고치는 곳: 게임의 잔디 한 덩이(찻길 가장자리 v 3.6, 보도 가장자리 v 42.0, 서쪽 길 가장자리 u 6,
+# 동쪽 길 가장자리 u 81.2 + 0.373 v). 가장자리에서는 그대로이고, 안쪽으로 1 m 에 0.5 m 까지만 고침(둘레 길 · 보도의 높이는
+# 그대로: 1997년에는 그 자리에 옹벽 · 둑이 있었음)
+ZONE_UV = [(6.0, 3.6), (81.2, 3.6), (95.4, 42.0), (6.0, 42.0)]
+SLOPE_MAX = 0.5
+
+
+def zone():
+    from shapely.geometry import Polygon
+    return Polygon([xy(u, v) for u, v in ZONE_UV])
+
+
+def paving():
+    """골목 · 마당의 포장: 집들을 3 m 부풀려 1 m 줄인 것(집 사이 6 m 안의 틈을 메움) ∩ ZONE 0.3 m 안"""
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    hs = unary_union([Polygon([xy(u, v) for u, v in uv]) for _, _, uv, _, _, _ in HOUSES])
+    return hs.buffer(3.0, join_style=2).buffer(-1.0, join_style=2).intersection(zone().buffer(-0.3)).difference(hs.buffer(-0.2))
+
+
 def pitch(eaves, ridge):
     """처마 띠(외곽 안 0.6 ~ 1.6 m)와 안쪽(1.6 m 안)의 높이차를 두 띠 사이 1.2 m 로 나눈 기울기, 0.2 ~ 0.45"""
     return round(min(0.45, max(0.2, (ridge - eaves) / 1.2)), 3)

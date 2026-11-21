@@ -10329,6 +10329,7 @@ _ypaint([p_.buffer(3.5, join_style=2).difference(unary_union(jonghap97.GRASS)).d
         + [Polygon([tuple(_bkc + BK_T * u + BK_N * v) for u, v in ((-4.5, 0.0), (4.5, 0.0), (4.5, 7.1), (-4.5, 7.1))])]
         + [Polygon([tuple(_gyc + _gyt * u + _gyn * v) for u, v in ((-2.6, 8.4), (2.6, 8.4), (2.6, 12.6), (-2.6, 12.6))])], _gp)
 _ypaint([chapel97.porch_poly(), chapel97.stair_poly()], _gp)   # (루스채플 남쪽 단과 두 잔디 사이 계단 밑: tools/chapel97.py)
+_ypaint([hangjeong97.paving()], _gp)          # (행정동 자리의 골목 · 마당: the houses at the halls' end, tools/hangjeong97.py)
 # 백주년기념관 앞 테라스 (CENT_TERRACE): the apron paved out to the sidewalk, and under the flights, landings and the
 # porch's level to just inside their side walls and the retaining wall (so no kerb runs along them)
 _ypaint([Polygon([ct_xy(s_, sec_[0][0] + 0.3)[:2] for s_, sec_ in _ap] + [ct_xy(s_, sec_[2][0] - 0.25)[:2] for s_, sec_ in _ap[::-1]]),
@@ -12567,6 +12568,19 @@ JK_DRUM_B = buildings[-1]
 # ground there (the game's ground is 1.5 - 3 m over the photos' here); the annex on GUEST97's south-west wall.  At the
 # halls' very end (blender/build.py draws each hall's looks in its order); what stands within a metre of a wall
 # steps aside 1.5 m off it, in its place in the list
+# the ground first: the lawn's nodes towards the photos' ground (hangjeong97.ground: the lanes, yards and roads of the
+# 1996 - 1999 frames, 1.5 - 3 m under the surface model in the west, 1 - 4 m over it in the north-east), by at most
+# SLOPE_MAX m a metre in from the lawn's edge, so the roads and the walk round it keep their heights.  After everything
+# that read the ground (the planting, kerbs, decals): nothing moves
+_hjz = hangjeong97.zone()
+_hjm = (np.abs(X - 470.0) < 70.0) & (np.abs(Y + 40.0) < 70.0)
+_hjm &= shapely.contains_xy(_hjz, X, Y)
+_hju, _hjv = hangjeong97.uv(X[_hjm], Y[_hjm])
+_hjd = hangjeong97.ground(_hju, _hjv) + datum.tilt(X[_hjm], Y[_hjm]) - Hn[_hjm]
+_hjr = shapely.distance(_hjz.exterior, shapely.points(X[_hjm], Y[_hjm])) * hangjeong97.SLOPE_MAX
+_hjd = np.clip(_hjd, -_hjr, _hjr)
+Hn[_hjm] += _hjd
+print('행정동 자리의 땅: %d nodes, %+.2f .. %+.2f m' % (int(_hjm.sum()), _hjd.min(), _hjd.max()))
 _hj_new = []
 for k_, (n_, roof_, uv_, eaves_, ridge_, g_) in enumerate(hangjeong97.HOUSES):
     _p = shapely.geometry.polygon.orient(Polygon([hangjeong97.xy(u_, v_) for u_, v_ in uv_]), 1.0)
