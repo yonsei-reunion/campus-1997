@@ -81,8 +81,23 @@ BB_LINES_N = [(3.3, 'white'), (6.65, 'white')]
 BAEKBEOM_RNG = dict(ARMS['baekbeom'])
 # 신촌로 (the east arm, sinchon_e): the painted middle (a band of two lines 0.9 m apart near the junction) south of OSM's line
 # by 3.0 m at 26 m out, 2.35 at 50, 1.7 from 65 on (both scans, eleven windows within 0.15 m); the kerbs stay (the
-# north one within 0.5 m of the scans', the south one behind its bus bays not read)
+# north one within 0.5 m of the scans', the south one near the junction: SE_KERB below)
 SINCHON_E_MID = [(0.0, -3.0), (26.0, -3.0), (38.0, -2.7), (50.0, -2.35), (65.0, -1.75), (80.0, -1.7), (1000.0, -1.7)]
+# Its south kerb near the junction (2026-11-21, 고증 4.10.4 「신촌로(동)의 남쪽 연석」): 16.3 m south of the arm's line, not
+# 14, from the island's turning lane to the bus stop in front of 한일은행 (s 125).  52204 (1996.6, from 외환은행's roof)
+# across one row through the stop: the yellow middle, the two dashed lines, the blue bus lane's line and the dark
+# pavement behind the kerb (the scans' -1.7, -4.2, -6.9, -10.0 and -16.8) put the kerb's brown line at -16.26 and the
+# stop's dashed line at -15.57 (the scans' bright line -15.6), 0.08 m off at most; 27/18 · 27/19 both have the gutter's
+# dark line at -16.2 either side of the side street (s 86, 98) and a car at -13.4 .. -15 (s 78); stair 5's roof
+# (-16.4 .. -20.4, s 58 .. 68) stands at the kerb.  Past s 145 under the trees (s 150 - 215 the scans' kerb is nearer
+# the line, -12.5: 남은 한계) the arm's own.  [(s, m off the line)]: the asphalt the game adds south of -half
+SE_KERB = [(40.0, -16.3), (125.0, -16.3), (145.0, -14.0)]
+
+
+def se_kerb(s):
+    """신촌로 (동)'s south kerb, m off the arm's line (-: south), s m out"""
+    t = np.array(SE_KERB)
+    return float(np.interp(s, t[:, 0], t[:, 1])) if s <= t[-1, 0] else -ARMS['sinchon_e']['half']
 # 양화로 (sinchon_w, ARMS above: lanes 5, mid -0.75): its painted middle 0.75 m north of the arm's line, five lanes of
 # 2.75 - 2.9 m each way between kerbs 13.75 m either side of it (both scans, nine windows: lines 2.85, 5.65, 8.75 and
 # 11.3 m south of the middle, 2.85, 5.75, 8.75 and 10.9 north; 1995's 52145: four rows of cars and the buses' lane in);
@@ -619,6 +634,14 @@ def streets(pl):
     return geo
 
 
+def se_widen(a):
+    """the asphalt between 신촌로 (동)'s arm (-half) and its 1997 south kerb (SE_KERB)"""
+    ss = np.arange(SE_KERB[0][0], SE_KERB[-1][0], 1.0).tolist() + [SE_KERB[-1][0]]
+    out = [tuple(a.at(s)[0] + a.at(s)[2] * se_kerb(s)) for s in ss]
+    back = [tuple(a.at(s)[0] - a.at(s)[2] * (a.half - 0.2)) for s in ss[::-1]]
+    return Polygon(out + back).buffer(0)
+
+
 def wedge_back(w, d=0.0, area=False):
     """a wedge's sidewalk (ROT_WEDGES): the line `walk + d` m behind its kerb, or (area) the strip between the two;
     the kerb's first run carried on backwards by `back` m"""
@@ -656,6 +679,8 @@ def _streets(pl, A, yx=None, old=False):
         walks['s_corner'] = ks.buffer(ROT_S_WALK, single_sided=True).difference(road)
         # 1997년 신촌로 short of its crossing: the old asphalt south-east of its line (the lanes in, the turning lane)
         road = road.union(Arm('seogang', SEOGANG_RNG).poly(0.0, SEOGANG_RNG['half'], 0.0, SG_CORNER_S))
+        # 신촌로 (동)'s south kerb near the junction (SE_KERB): the asphalt out to it
+        road = road.union(se_widen(A['sinchon_e']))
         # the three corners that were road in 1997 (ROT_WEDGES): asphalt out to their kerbs, a sidewalk behind each
         wedges = unary_union([Polygon(w['kerb'] + w['fill']).buffer(0) for w in ROT_WEDGES.values()])
         road = road.union(wedges)
@@ -1535,6 +1560,12 @@ def layout(geo, town, extras, ground, taken_z):
     # the walker (web/src/town.js).  성산로's stays shut but for its crossing: its north kerb is the campus's own edge
     W_parts.append(street.intersection(near))
     W_parts.append(street.intersection(box(-140.0, JC[1] - 10.0, -50.0, geo['y_top'] - 1.0)))
+    # 신촌로's south walk behind stair 5 and the kiosk (2026-11-21: the 1997 kerb, SE_KERB, leaves 0.7 m between it and
+    # the stairwell; 52204 has the walk on past them to 한일은행's front): 3 m more behind the walk's back, s 46 - 80
+    ae = A['sinchon_e']
+    se_back = ae.poly(-ae.half - ae.walk - 3.0, -ae.half - ae.walk + 0.5, 46.0, 80.0)
+    W_parts.append(se_back.difference(road).difference(unary_union([_box(b).buffer(0.4) for b in blocks
+                                                                    if len(b) == 12 and b[6] > 0 and _box(b).intersects(se_back)])))
     # 성산로's too (2026-11-21, user's request: to cross where there is no zebra, from the gate to the bridge and along the
     # road): its carriageway and south walk the length gate_town lays it (x -480 .. 340), open along the north kerb
     # (the campus's walk), walled at its two ends and along the south walk's back
@@ -1592,7 +1623,8 @@ def layout(geo, town, extras, ground, taken_z):
                 continue
             p, t, n = a.at(s)
             for sgn in (1, -1):
-                q = p + n * sgn * (a.half + 0.7)
+                o_k = -se_kerb(s) if k == 'sinchon_e' and sgn < 0 else a.half    # (신촌로's south kerb: SE_KERB)
+                q = p + n * sgn * (o_k + 0.7)
                 if k == 'yonsei' and q[1] > -508.0:          # (south of the baked sun shadow's edge)
                     continue
                 if apron_in.contains(Point(*q)) or road_l.contains(Point(*q)):   # (the island's wedge, the corners' asphalt)
@@ -2007,7 +2039,8 @@ def rot_wedge_marks():
 # (deg from east), the way from the road to the walk (deg)].  The buses pull in at the kerb beside the stairs' canopies
 # (52146 · 52141 · 52204 · 52145): 양화로's south side north of stairs 7 (그랜드백화점's corner), 신촌로's south side by
 # stairs 5 (한일은행), 양화로's north side between stairs 1 and 2 (금강제화), 신촌로's north side between 3 and 4
-ROT_WAIT97 = [((-152.8, -974.9), 162.0, 252.0), ((-32.7, -975.2), 23.0, 293.0),
+# (신촌로's south: past stair 5's open end, 2 m behind the 1997 kerb (SE_KERB); (-32.7, -975.2) before 2026-11-21)
+ROT_WAIT97 = [((-152.8, -974.9), 162.0, 252.0), ((-19.97, -973.28), 23.0, 293.0),
               ((-122.4, -939.9), 26.0, 116.0), ((-71.8, -941.3), -32.4, 57.6)]
 
 
