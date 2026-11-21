@@ -5971,9 +5971,10 @@ BANNERS = [
                seasons=dict(autumn=dict(text='’97 가을 학술제  ·  학과별 발표회와 초청강연', color='white'))), 'yellow'),
     (390, dict(text='신입생 여러분 환영합니다  —  총학생회',
                seasons=dict(autumn=dict(text='2학기 중간고사  ·  중앙도서관 열람실 24시간 개방  —  총학생회'))), 'white'),
-    # 연고전 is in September: in spring the 4·19 marathon (reference/1997_마라톤대회.jpg), in May the 대동제 shows,
-    # in late October the victory (reference/1997_연고전_승리.jpg: 3승 1무 1패)
-    (460, dict(text='’97 4·19 마라톤대회  —  4월 19일 백양로 출발',
+    # 연고전 is in September: in spring the 4·19 marathon (reference/1997_마라톤대회.jpg: the anthology says 19 April,
+    # but it is the photo of 연세춘추 1997.5.5, run on 18 April from 학생회관), in May the 대동제 shows, in late October
+    # the victory (reference/1997_연고전_승리.jpg: 3승 1무 1패)
+    (460, dict(text='’97 4·19 마라톤대회  —  4월 18일 학생회관 앞 출발',
                seasons=dict(summer=dict(text='’97 대동제 축하공연  ·  노천극장', color='yellow'),
                             autumn=dict(text='’97 정기 연고전 3승 1무 1패 압승!  고마워요 연세인'))), 'blue'),
 ]
