@@ -541,6 +541,13 @@ FAR_E_SIGNAL = dict(pole=(-45.0, -983.4), face=180.0, reach=7.0)
 # 52122), face: compass bearing the lamps face, heads: m along the arm to each head (+: to the lamps' right, -: left)
 GRAND_SIGNALS = [dict(pole=(-153.4, -1012.0), face=53.7, heads=(4.0, 6.4)),     # arm south-east over the lanes out
                  dict(pole=(-147.9, -991.9), face=78.0, heads=(-3.8, -6.9))]    # arm north over the wedge's lanes
+# And on 양화로's north kerb at its mouth, where the north-west wedge's kerb begins (2026-11-22 셋째, 고증 4.10.4.1 「양화로
+# 어귀 북쪽의 신호 기둥」): the scans of 27/18 · 27/19 have a pole with a straight arm 10.3 m long reaching south-south-west
+# over 양화로's lanes out, 5.9 m up (its root and end where both frames agree within 0.15 m), 3 m east of the lamp
+# (ROT_LAMPS97); 서울연구원 52115 (1996.6) · 52128 (1996.8) show it with three heads of four lamps facing east-south-east
+# (red with 그랜드's) and a 「신촌로터리」 plate by the pole: 신촌로(동)'s cars' far-side signal, as 그랜드's.  reach: the
+# arm's length; heads: m along it to each head (the photos' heads on the arm)
+YH_SIGNAL = dict(pole=(-137.5, -946.6), face=106.3, reach=10.3, heads=(3.8, 7.05, 10.0))
 LANE_W = 3.25
 # 연세로's two lanes each way, their middles m off its line (2026-11-15): 4.10.1's 13 m of carriageway, two lanes of
 # 3.2 - 3.3 m a way (the scan of 27/19 at the mouth: the southbound queue's two rows 1.4 and 4.4 m west of the
@@ -1544,6 +1551,12 @@ def layout(geo, town, extras, ground, taken_z):
         for o_ in gs['heads']:
             heads.append([gs['pole'][0], gs['pole'][1], round(math.atan2(math.cos(fb), math.sin(fb)), 4), 0, 1,
                           round(o_ / 0.8, 2), 4])
+    # (2026-11-22 셋째) 양화로's north kerb, the same phase: one arm of its true length, the heads where the photos have
+    # them (`heads`' 8th field: m along the arm; web/src/town.js)
+    fb = math.radians(YH_SIGNAL['face'])
+    for o_ in YH_SIGNAL['heads']:
+        heads.append([YH_SIGNAL['pole'][0], YH_SIGNAL['pole'][1], round(math.atan2(math.cos(fb), math.sin(fb)), 4), 0, 1,
+                      YH_SIGNAL['reach'], 4, o_])
     # 연세로's other two crossings (y -690 and gate_town's at -575): 51979 (1996.5) through its camera solved on the 1997
     # ground has two heads hung over the road just beyond each for the cars going north, on an arm from the east walk
     # (5.5 - 6.2 m up: y -679 .. -693 and -568 .. -580; x 1.3 m east and 0.9 m west of the middle at the near one, 0.3 and
