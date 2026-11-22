@@ -1540,5 +1540,14 @@
   ],
   "rough": 0.85,
   "metal": 0.1
+ },
+ "stone_verde": {
+  "_doc": "중앙도서관 1층 칸 뒷벽의 짙은 초록 돌 (2004년 사진, blender/landmarks.py library; 고증 3.2-3.3 「1층 칸」)",
+  "color": [
+   0.07,
+   0.1,
+   0.09
+  ],
+  "rough": 0.6
  }
 }

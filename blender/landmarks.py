@@ -207,13 +207,49 @@ def library():
         gaps = [(x0 - a[0] + 0.15, x1 - a[0] - 0.15) for x0, x1 in door_bays] if i == 0 else []
         cuts = [0.0] + [v for g in gaps for v in g] + [Le]
         mull = [(k + 0.5) * Le / int(Le / 2.0) for k in range(int(Le / 2.0))]
-        for s0_, s1_ in zip(cuts[0::2], cuts[1::2]):                          # ground floor: dark glazing, set back
-            glass_run(mb, P, s0_, s1_, g0, g0 + 3.4, -0.3, mull[1::2])        # a hall behind every two lights
-        for k in range(int(Le / 2.0)):
-            s = (k + 0.5) * Le / int(Le / 2.0)
-            if any(g[0] - 0.1 < s < g[1] + 0.1 for g in gaps):
-                continue
-            mb.quad(P(s - 0.06, g0, -0.25), P(s + 0.06, g0, -0.25), P(s + 0.06, g0 + 3.4, -0.25), P(s - 0.06, g0 + 3.4, -0.25), 'frame_dark')
+        if i == 0:
+            # the 백양로 front's other bays (reference/동문_이중윤/2004-10_어느_건물_출입구.jpg, a bay of the north half seen
+            # from the terrace's edge -- its glass mirrors 학생회관's screen in the evening sun; reference/고증/3.2-3.3
+            # 「1층 칸」): the back wall of dark green stone, and in the bay's middle a bronze-framed front 4 m wide --
+            # four leaves of glass on a low sill (the outer two with a rail half-way up), a bronze band over them and
+            # two lights above, under a bronze soffit.  The 1997 photo has the same narrow dark openings in the south
+            # half's bays.  At the glazing's old depth, so the arcade is walked as before
+            FW, zt = 3.96, g0 + 3.4
+            fronts = []
+            for k in range(nb_f):
+                o0 = (k * bw_f + PIER if k else PIER * 1.4) - inset
+                o1 = ((k + 1) * bw_f if k + 1 < nb_f else L - PIER * 1.4) - inset
+                c = (o0 + o1) / 2
+                if not any(g[0] - 0.5 < c < g[1] + 0.5 for g in gaps):
+                    fronts.append((c - FW / 2, c + FW / 2, o0, o1))
+            holes = sorted([(f0, f1) for f0, f1, _, _ in fronts] + gaps)
+            edges = [0.0] + [v for h in holes for v in h] + [Le]
+            for s0_, s1_ in zip(edges[0::2], edges[1::2]):
+                flat_wall(mb, P, s0_, s1_, g0, zt, 'stone_verde', d=-0.3)
+            for f0, f1, o0, o1 in fronts:
+                Q = lambda s, z, d=0.0: P(s, z, -0.3 + d)
+                lw = FW / 4
+                z1, z2, z3, z4 = g0 + 0.18, g0 + 2.35, g0 + 2.68, g0 + 3.28
+                flat_wall(mb, P, f0, f1, g0, z1, 'panel_bronze', d=-0.3)                     # sill
+                glass_run(mb, P, f0, f1, z1, z2, -0.3, [f0 + lw * q for q in (1, 2, 3)])    # four leaves
+                flat_wall(mb, P, f0, f1, z2, z3, 'panel_bronze', d=-0.3)                     # the band over them
+                glass_run(mb, P, f0, f1, z3, z4, -0.3, [(f0 + f1) / 2])                      # two lights above
+                flat_wall(mb, P, f0, f1, z4, zt, 'panel_bronze', d=-0.3)
+                for q in range(5):                                                           # stiles
+                    sq = min(max(f0 + lw * q, f0 + 0.04), f1 - 0.04)
+                    mb.quad(Q(sq - 0.04, z1, 0.03), Q(sq + 0.04, z1, 0.03), Q(sq + 0.04, z2, 0.03), Q(sq - 0.04, z2, 0.03), 'panel_bronze')
+                for sq in (f0 + 0.04, (f0 + f1) / 2, f1 - 0.04):                             # the lights' frame
+                    mb.quad(Q(sq - 0.04, z3, 0.03), Q(sq + 0.04, z3, 0.03), Q(sq + 0.04, z4, 0.03), Q(sq - 0.04, z4, 0.03), 'panel_bronze')
+                for r0, r1 in ((f0, f0 + lw), (f1 - lw, f1)):                                # the outer leaves' rail
+                    zr = (z1 + z2) / 2
+                    mb.quad(Q(r0, zr - 0.03, 0.03), Q(r1, zr - 0.03, 0.03), Q(r1, zr + 0.03, 0.03), Q(r0, zr + 0.03, 0.03), 'panel_bronze')
+                mb.quad(P(o0, zt, 0), P(o0, zt, -0.3), P(o1, zt, -0.3), P(o1, zt, 0), 'panel_bronze')   # soffit
+        else:
+            for s0_, s1_ in zip(cuts[0::2], cuts[1::2]):                      # ground floor: dark glazing, set back
+                glass_run(mb, P, s0_, s1_, g0, g0 + 3.4, -0.3, mull[1::2])    # a hall behind every two lights
+            for k in range(int(Le / 2.0)):
+                s = (k + 0.5) * Le / int(Le / 2.0)
+                mb.quad(P(s - 0.06, g0, -0.25), P(s + 0.06, g0, -0.25), P(s + 0.06, g0 + 3.4, -0.25), P(s - 0.06, g0 + 3.4, -0.25), 'frame_dark')
         for s0_, s1_ in gaps:
             shopfront(mb, P, s0_, s1_, g0, g0 + 3.3, -0.3, bays=4, door_h=2.4)
             vestibule(mb, P, s0_ - 0.1, s1_ + 0.1, g0 + 0.002, g0 + 3.25, -0.32, 6.0, lights=3)
@@ -6834,9 +6870,10 @@ def yongjae():
 # ============================================================================= 음악관 서쪽 계단 (「음대 계단」)
 def eng_stone():
     """The standing stone before 제1공학관 (campus.json eng_stone; reference/동문_이중윤/졸업식날_공대_앞_선돌.jpg, its place
-    from the 1996 - 1999 scans: reference/고증/3.8_제1공학관.md 「앞마당의 선돌」): a rough grey stone set upright in the lawn,
-    about twice a man's height, a little wider than deep, tapering a little, its top sloping off to one side with a
-    crack down from it.  Local frame: pos, rotated rot degrees; the foot sunk 0.3 m."""
+    from the roadview of 2010 - 2011 and the skyview of 2008 - 2010: reference/고증/3.8_제1공학관.md 「앞마당의 선돌」): a
+    rough grey stone set upright in the lawn, half again a man's height, a little wider than deep, tapering a little,
+    its top sloping off to one side with a crack down from it.  Local frame: pos, rotated rot degrees; the foot sunk
+    0.3 m."""
     E = CAMPUS.get('eng_stone')
     if not E:
         return []
@@ -6849,7 +6886,7 @@ def eng_stone():
     K, R = 14, 10
     jit = [1.0 + rr.uniform(-0.16, 0.16) for _ in range(K)]
     hb = h + 0.3                                                       # (from the sunk foot)
-    top = lambda rx: hb - 0.2 - 0.45 * (rx / (w / 2))                 # (the top: a rough plane falling to +x)
+    top = lambda rx: hb - 0.1 - 0.12 * (rx / (w / 2))                 # (the top: a rough plane falling a little to +x)
     rings = []
     for j in range(R + 1):
         f = j / R
@@ -6871,8 +6908,8 @@ def eng_stone():
     for k in range(K):
         mb.face([tr[k], tr[(k + 1) % K], (c[0], c[1], cz)], 'stone_boulder')
     # the crack down from the top on its face: a dark sliver
-    mb.face([(-0.08, -d / 2 * 0.9 - 0.015, h * 0.55), (-0.04, -d / 2 * 0.9 - 0.015, h * 0.55),
-             (0.0, -d / 2 * 0.86 - 0.015, top(0.0) - 0.05), (-0.04, -d / 2 * 0.86 - 0.015, top(-0.04) - 0.05)], 'metal_dark')
+    mb.face([(-0.085, -d / 2 * 0.9 - 0.015, h * 0.8), (-0.07, -d / 2 * 0.9 - 0.015, h * 0.8),
+             (-0.04, -d / 2 * 0.86 - 0.015, top(-0.04) - 0.03), (-0.065, -d / 2 * 0.86 - 0.015, top(-0.065) - 0.03)], 'metal_dark')
     print('제1공학관 앞 선돌: (%.1f, %.1f) %.1f m' % (x, y, h))
     return [mb]
 

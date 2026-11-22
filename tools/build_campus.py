@@ -12894,14 +12894,21 @@ for u_, v_ in KB_BOLLARDS:
     out['props'].append(['bollard', round(kwangbok97.KB_O[0] + u_ * math.cos(_kb_t) - v_ * math.sin(_kb_t), 2),
                          round(kwangbok97.KB_O[1] + u_ * math.sin(_kb_t) + v_ * math.cos(_kb_t), 2), 0.0])
 # 제1공학관 앞 선돌 (reference/고증/3.8_제1공학관.md 「앞마당의 선돌」; reference/동문_이중윤/졸업식날_공대_앞_선돌.jpg, the
-# user: 「제1공학관 앞」): the 1996 - 1999 scans show no stone in the open forecourt, so its place is inferred: from the
-# photo's storeys the stone stands 17 - 19 m before the east face (a 35 - 40 mm lens puts it on the south garden's north
-# edge), a big conifer 1 - 3 m behind it -- the scans' conifer at the garden's north-west corner (crown 4.6 m across,
-# widest 2.5 - 3 m up), which the game lacked.  In the lawn 0.8 m in from the garden's edge, north-east of the conifer,
-# its broad face to the forecourt.  Late: the stone a collider here, the conifer at the trees' very end (below)
-ENG_STONE = dict(pos=[-101.3, -263.0], h=3.5, w=0.7, d=0.5, rot=135.0)
+# user: 「제1공학관 앞」): in the lawn of the garden north of the door, by its west edge, 13.6 m before the east face.
+# The scans of 1996-11 · 1996-12 · 1997-07 · 1998-10 · 1999-05 have an upright thing 2.5 m high and 0.35 - 0.5 m across
+# with its foot at (-96.7, -239.8) (its relief displacement in eight frames, rms 0.2 m); the roadview of 2010-12 and
+# 2011-04 has the stone there (12.2 m before the face by its parallax along the window piers), the skyview of 2008 and
+# 2010 its bright sliver 1 m off, and the photo's own geometry (the lens from the piers' 4.4 m bays: 55 - 60 mm) puts it
+# 13.6 - 13.8 m before the face.  2.6 m high (1.5 times the graduate beside it), its cracked face to the north.
+# Behind it in the photo a cone-shaped conifer: the scans' evergreen 2.4 m west-south-west, crown 3 m, some 5 m high --
+# the planting's maple that stood on the open lawn by the stone (trees[969]) becomes it in place.
+# Late: the stone a collider here, nothing drawn
+ENG_STONE = dict(pos=[-96.7, -239.8], h=2.6, w=0.55, d=0.45, rot=165.0)
 out['eng_stone'] = ENG_STONE
-out['colliders'].append(_dz_box(ENG_STONE['pos'], math.radians(ENG_STONE['rot']), 0.42, 0.32))
+out['colliders'].append(_dz_box(ENG_STONE['pos'], math.radians(ENG_STONE['rot']), 0.36, 0.3))
+_es_i = min(range(len(out['trees'])), key=lambda i_: math.hypot(out['trees'][i_][1] + 97.37, out['trees'][i_][2] + 240.6))
+assert out['trees'][_es_i][0] == 'maple' and math.hypot(out['trees'][_es_i][1] + 97.37, out['trees'][_es_i][2] + 240.6) < 0.1, _es_i
+out['trees'][_es_i][:4] = ['fir', -99.0, -240.5, 0.31]
 if os.environ.get('Y97_WORK_DUMP'):          # (the working datum's own result, to compare two builds on it)
     os.makedirs(os.environ['Y97_WORK_DUMP'], exist_ok=True)
     json.dump(out, open(os.path.join(os.environ['Y97_WORK_DUMP'], 'campus.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
@@ -13255,7 +13262,7 @@ out['trees'] += jk97.east_trees()
 DONGMUNGIL_TREES, _dmg_near = dongmungil97.trees(out['paths'], out['trees'])
 out['trees'] += DONGMUNGIL_TREES
 print('연대동문길 가로수: trees', len(DONGMUNGIL_TREES), 'old trees within 1.5 m', _dmg_near)
-out['trees'].append(['fir', -104.0, -264.3, 0.55, 2.1])     # (제1공학관 앞 선돌 뒤 침엽수: ENG_STONE above)
+out['trees'].append(['fir', -104.0, -264.3, 0.55, 2.1])     # (제1공학관 남쪽 정원 북서 귀퉁이의 큰 침엽수: 1996 - 1998년 스캔, 고증 3.8)
 # 동문의 섬 관목 · 가로등 (tools/dongmun.py shrubs · props): at the lists' very end, after every other append
 out['shrubs'] += dongmun.shrubs()
 out['props'] += dongmun.props()
