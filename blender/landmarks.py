@@ -5859,10 +5859,35 @@ def parking_lines():
             nx, ny = -dy * hw, dx * hw                     # (half the width, to the left)
             n = max(1, int(math.ceil(L / 0.5)))
             pts = [(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n) for k in range(n + 1)]
-            zs = [ground_top(x, y) + 0.03 for x, y in pts]
+            zs = [max(ground_top(x, y), _kli_deck_z(x, y)) + 0.03 for x, y in pts]
             for (xa, ya), (xb, yb), za, zb in zip(pts, pts[1:], zs, zs[1:]):
                 mb.quad((xa - nx, ya - ny, za), (xb - nx, yb - ny, zb), (xb + nx, yb + ny, zb), (xa + nx, ya + ny, za), mat)
     return [mb] if mb.faces else []
+
+
+_KLI_TRIS = None
+
+
+def _kli_deck_z(x, y):
+    """the top of 한국어학당's decks at (x, y) (campus.json kli97: over the cells whose nodes went down), or -inf"""
+    global _KLI_TRIS
+    if _KLI_TRIS is None:
+        _KLI_TRIS = []
+        for kd in CAMPUS.get('kli97', {}).values():
+            for f in kd['f']:
+                q = [kd['v'][i] for i in f]
+                _KLI_TRIS.append((min(p[0] for p in q), min(p[1] for p in q), max(p[0] for p in q), max(p[1] for p in q), q))
+    for x0, y0, x1, y1, q in _KLI_TRIS:
+        if x0 <= x <= x1 and y0 <= y <= y1:
+            (ax, ay, az), (bx, by, bz), (cx, cy, cz) = q[0][:3], q[1][:3], q[2][:3]
+            d = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
+            if abs(d) < 1e-12:
+                continue
+            l1 = ((by - cy) * (x - cx) + (cx - bx) * (y - cy)) / d
+            l2 = ((cy - ay) * (x - cx) + (ax - cx) * (y - cy)) / d
+            if l1 >= -1e-6 and l2 >= -1e-6 and l1 + l2 <= 1 + 1e-6:
+                return l1 * az + l2 * bz + (1 - l1 - l2) * cz
+    return float('-inf')
 
 
 def road_paint():
@@ -8949,15 +8974,17 @@ def kli():
         lower(Pb, [L - u1 + k * 2 * p for k in range(n // 2 + 1)])
         pipe(Pb, L - (u0 + u1) / 2, F1 + 0.3, zband - 0.1)
     zc, zt = pl['dormers'][0][3], pl['dormers'][0][4]     # (the dormers' cheeks and ridges)
-    for u0, u1, d in bays:                                # the rear bays: a storey-high window each floor, a gable over them
+    rnd = pl.get('round', {})
+    for kb, (u0, u1, d) in enumerate(bays):               # the rear bays: a storey-high window each floor, a gable over them
         Pq = lambda s, z, dd=0.0, u1=u1, d=d: (u1 - s, W + d + dd, z)
         w = u1 - u0
+        zd = rnd['rear_floor'][kb] if rnd else -FB       # (#233: the doors of the lowest storey, the porches' floors)
         upper(Pq, 0.0, w, 2, band_on=False)
         flat_wall(mb, Pq, 0.0, w, zband, ze, BR)
-        wall_holes(mb, Pq, 0.0, w, zbot, F1, BR, [(w / 2 - 0.9, w / 2 + 0.9, -FB, -FB + 2.4)])
-        mb.quad(Pq(w / 2 - 0.9, -FB, -0.15), Pq(w / 2 + 0.9, -FB, -0.15), Pq(w / 2 + 0.9, -FB + 2.4, -0.15), Pq(w / 2 - 0.9, -FB + 2.4, -0.15), 'glass_door')
+        wall_holes(mb, Pq, 0.0, w, zbot, F1, BR, [(w / 2 - 0.9, w / 2 + 0.9, zd, zd + 2.4)])
+        mb.quad(Pq(w / 2 - 0.9, zd, -0.15), Pq(w / 2 + 0.9, zd, -0.15), Pq(w / 2 + 0.9, zd + 2.4, -0.15), Pq(w / 2 - 0.9, zd + 2.4, -0.15), 'glass_door')
         for s in (w / 2 - 0.9, w / 2, w / 2 + 0.9):
-            bar(mb, Pq, s, -FB, s, -FB + 2.4, 0.07, -0.15, -0.08, 'frame_dark')
+            bar(mb, Pq, s, zd, s, zd + 2.4, 0.07, -0.15, -0.08, 'frame_dark')
         for s, sg in ((0.0, -1), (w, 1)):
             sface(Pq, s, 0.0, -d, zbot, ze, BR, sg)
         Pg = lambda s, z, dd=0.0, u0=u0, u1=u1, d=d: ((u0 + u1) / 2 - s, W + d + dd, z)
@@ -9203,7 +9230,82 @@ def kli():
     WALK_FACES.append([W_(uc - hw_, -pd, 0.0), W_(uc + hw_, -pd, 0.0), W_(uc + hw_, -(bd - ft) + 0.3, 0.0), W_(uc - hw_, -(bd - ft) + 0.3, 0.0)])
     stair_flight(mb, uc, -pd, 2 * hw_ - 0.7, 0.0, mat='stone_step', landing=0.3, tread=0.44, flare=0.0, rail=True,
                  rail_mat='frame_silver', gfn=lambda x, y: zt, risers=5)
-    return [mb]
+    rnd = pl.get('round')
+    if not rnd:
+        return [mb]
+    # ----- round it (#233; tools/kli97.py plan_round, reference/고증/3.27): the retaining wall on past the slab to the
+    # yard's end, its coping 0.25 m over the yard
+    we, yv, yz = rnd['wall_end'], rnd['yard_v'], rnd['yard_z']
+    ywall = lambda v: (zt - 0.05) + (yz - zt + 0.05) * min(1.0, max(0.0, (tv0 - v) / (tv0 - yv)))
+    def lowv(v):                                          # (the island's ground east of it, 1 m under)
+        bv, bz = rnd['bank_v'], rnd['bank_z']
+        for k in range(len(bv) - 1):
+            if bv[k + 1] <= v <= bv[k]:
+                return bz[k] + (bz[k + 1] - bz[k]) * (bv[k] - v) / (bv[k] - bv[k + 1]) - 1.0
+        return (bz[0] if v > bv[0] else bz[-1]) - 1.0
+    vs = [tv0, yv, we] if we < yv else [tv0, we]
+    for va_, vb_ in zip(vs[:-1], vs[1:]):
+        za, zb = ywall(va_) + 0.25, ywall(vb_) + 0.25
+        la, lb = min(zlo, lowv(va_)), min(zlo, lowv(vb_))
+        oface(mb, [(tw, va_, la), (tw, vb_, lb), (tw, vb_, zb), (tw, va_, za)], 'stone_granite', (1, 0, 0))
+        oface(mb, [(tw - 0.3, va_, za - 0.6), (tw - 0.3, vb_, zb - 0.6), (tw - 0.3, vb_, zb), (tw - 0.3, va_, za)], 'stone_granite', (-1, 0, 0))
+        oface(mb, [(tw - 0.3, va_, za), (tw - 0.3, vb_, zb), (tw, vb_, zb), (tw, va_, za)], CP, (0, 0, 1))
+    oface(mb, [(tw - 0.3, we, ywall(we) - 0.35), (tw, we, lowv(we)), (tw, we, ywall(we) + 0.25), (tw - 0.3, we, ywall(we) + 0.25)], 'stone_granite', (0, -1, 0))
+    # the rear porches: the south-east one's floor on the lane's level; the north-west one's down a flight from the
+    # lane between two retaining walls, its floor under the porch's roof at the door of the lowest storey
+    pw_ = pl['rear_porch'][0]
+    for kb, (u0, u1, d) in enumerate(bays):
+        um, zf = (u0 + u1) / 2, rnd['rear_floor'][kb]
+        if kb == 1:
+            mb.box((um, W + d + pl['rear_porch'][1] / 2, zf - 0.6), (pw_, pl['rear_porch'][1], 1.2), 'stone_step', mats={'top': 'stone_step'})
+            mb.box((um, W + d + pl['rear_porch'][1] + 0.18, zf - 0.8), (pw_, 0.36, 1.2), 'stone_step', mats={'top': 'stone_step'})
+            WALK_FACES.append([W_(um - pw_ / 2, W + d, zf), W_(um + pw_ / 2, W + d, zf), W_(um + pw_ / 2, W + d + pl['rear_porch'][1], zf),
+                               W_(um - pw_ / 2, W + d + pl['rear_porch'][1], zf)])
+    P_ = rnd['pit']
+    w0, w1, t_ = P_['walls'][0], P_['walls'][1], P_['t']
+    zf, ztop = P_['floor'], P_['top_z']
+    n_r = int(round((ztop - zf) / 0.155))
+    yface = P_['end_v'] - 1.2
+    y_foot = yface - n_r * P_['tread']
+    xm, wid = (w0 + w1) / 2, w1 - w0 - t_
+    stair_flight(mb, xm, yface, wid, ztop, n=n_r, mat='stone_step', landing=0.0, tread=P_['tread'], flare=0.0,
+                 zbot=zf, ground=zf - 0.5)
+    mb.face([(w0 + t_ / 2, W, zf), (w1 - t_ / 2, W, zf), (w1 - t_ / 2, y_foot, zf), (w0 + t_ / 2, y_foot, zf)][::-1], 'stone_step')
+    WALK_FACES.append([W_(w0 + t_ / 2, W, zf), W_(w1 - t_ / 2, W, zf), W_(w1 - t_ / 2, y_foot, zf), W_(w0 + t_ / 2, y_foot, zf)])
+    ztw = P_['wall_top']
+    wtop = lambda v: ztw if v <= P_['end_v'] - 1.0 else ztw + (ztop + 0.1 - ztw) * (v - P_['end_v'] + 1.0)
+    for uw in (w0, w1):
+        a, b = uw - t_ / 2, uw + t_ / 2
+        for va_, vb_ in ((W, P_['end_v'] - 1.0), (P_['end_v'] - 1.0, P_['end_v'])):
+            for uu, nx in ((a, -1), (b, 1)):
+                oface(mb, [(uu, va_, zf - 0.3), (uu, vb_, zf - 0.3), (uu, vb_, wtop(vb_)), (uu, va_, wtop(va_))], 'stone_granite', (nx, 0, 0))
+            oface(mb, [(a, va_, wtop(va_)), (b, va_, wtop(va_)), (b, vb_, wtop(vb_)), (a, vb_, wtop(vb_))], CP, (0, 0, 1))
+        oface(mb, [(a, P_['end_v'], zf - 0.3), (b, P_['end_v'], zf - 0.3), (b, P_['end_v'], wtop(P_['end_v'])), (a, P_['end_v'], wtop(P_['end_v']))],
+              'stone_granite', (0, 1, 0))
+    # the plant yard off the north-west end: a walled yard, two round cooling towers in it (their fans' grilles on top)
+    Pl = rnd['plant']
+    a0, a1, b0, b1 = Pl['yard']
+    zp, zw = Pl['floor'], Pl['floor'] + Pl['wall']
+    mb.face([(a0, b0, zp), (a1, b0, zp), (a1, b1, zp), (a0, b1, zp)], 'concrete')
+    for (q0, q1, r0, r1) in ((a0, a1, b0, b0 + 0.2), (a0, a1, b1 - 0.2, b1), (a0, a0 + 0.2, b0, b1), (a1 - 0.2, a1, b0, b1)):
+        mb.box(((q0 + q1) / 2, (r0 + r1) / 2, (zw + zp - 2.5) / 2), (q1 - q0, r1 - r0, zw - zp + 2.5), 'concrete', mats={'top': CP})
+    for cu, cv, r in Pl['towers']:
+        mb.cylinder((cu, cv), r, zp, Pl['top'] - 0.35, 'paint_white', seg=24, cap_top=False)
+        mb.cylinder((cu, cv), r + 0.05, Pl['top'] - 0.35, Pl['top'], 'paint_white', seg=24, cap_top=False)
+        mb.cylinder((cu, cv), r * 0.8, Pl['top'] - 0.6, Pl['top'] - 0.1, 'metal_dark', seg=24)
+        mb.cylinder((cu, cv), 0.25, Pl['top'] - 0.1, Pl['top'] + 0.05, 'metal', seg=12)
+    out_ = [mb]
+    # the decks over the cells whose nodes went down (tools/kli97.py grade, deck_polys): the ground's own look, walked on
+    for key in ('yard', 'back'):
+        kd = CAMPUS.get('kli97', {}).get(key)
+        if kd:
+            dk = MeshBuilder('lm_kli_' + key)
+            for f in kd['f']:
+                q = [tuple(kd['v'][i]) for i in f]
+                dk.face(q, 'terrain_drape')
+                WALK_FACES.append(q)
+            out_.append(dk)
+    return out_
 
 
 BUILDERS = {'library': library, 'union': union, 'centennial': centennial, 'underwood': underwood, 'eng_hall': eng_hall,

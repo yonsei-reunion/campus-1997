@@ -7893,13 +7893,14 @@ _kli_keep = shapely.contains_xy(unary_union(
     [Polygon(b_['footprint']).buffer(kli97.HALL_PAD) for b_ in buildings
      if b_['id'] != kli97.KLI and b_['id'] not in LATE_FOOTPRINT_1997 and Polygon(b_['footprint']).intersects(_kli_box)] +
     [Polygon(v_).buffer(kli97.HALL_PAD) for k_, v_ in LATE_FOOTPRINT_1997.items() if Polygon(v_).intersects(_kli_box)]), X, Y)
-_kli_took, KLI97_GRADE = kli97.grade(Hn, X, Y, FIXED, _kli_keep, harmonic_fill)
+_kli_took, KLI_HPRE, KLI_LOW, KLI_PIT, KLI97_GRADE = kli97.grade(Hn, X, Y, FIXED, _kli_keep, harmonic_fill)
 FIXED[_kli_took] = True
 print('한국어학당 둘레 땅:', KLI97_GRADE)
 LATE_FOOTPRINT_1997[kli97.KLI] = kli97.outline()
 LATE_NO_SIMPLIFY.add(kli97.KLI)
 SITES_NEW_1997.add(kli97.KLI)
 KLI_PLAN = kli97.plan()
+KLI_PLAN['round'] = kli97.plan_round()         # (#233: the wall on to the yard's end, the rear porches, the plant yard)
 BASE_1997[kli97.KLI] = round(KLI_PLAN['floor'] - KLI_PLAN['fb'], 2)     # (the storey under the entrance floor)
 LATE_SITES = []
 LATE_SITES_RNG = []        # (as the trees were first cleared: MED_SITES_RNG)
@@ -10065,6 +10066,16 @@ for name_, d_ in cars97.NEW_LOTS.items():
     _l['lines'] = [[round(v_, 2) for v_ in q_] for q_ in d_.get('lines', [])]
     for x_, y_, h_ in d_['stalls']:
         c97_stall(_l, x_, y_, h_)
+# 한국어학당 둘레 (kli97.parking, #233): the lined rows before it and behind it, the north-west car park, their cars
+# (both frames of 1997-07-28), at the list's end after the others' with their own draws
+_kl_lots, _kl_cars = kli97.parking()
+for name_, paint_, st_, ln_ in _kl_lots:
+    _l = c97_lot(name_, paint_)
+    _l['lines'] = ln_
+    for x_, y_, h_ in st_:
+        c97_stall(_l, x_, y_, h_)
+for x_, y_, h_, s_, w_ in _kl_cars:
+    c97_new(x_, y_, h_, s_, w_)
 cars += CARS97_NEW
 # (what stood in a car moved or put in: a tree steps aside out of it in its place in the list, a shrub or a prop goes;
 # a car in a hall's footprint is only told)
@@ -10532,6 +10543,14 @@ assert not any(ENG1_HALL.buffer(0.3).contains(Point(c_[1], c_[2])) for c_ in car
 _kb_cells, _kb_area, _kb_h, _kb_n = kwangbok97.bank_deck(Hn, X, Y, gx, NEAR_STEP,
                                                          lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
 out['kb_bank'] = dict(deck=dwb_deck(_kb_cells, _kb_area, _kb_h))
+# 한국어학당 (kli97.grade, #233): decks over the cells whose nodes went down, the yard's along the retaining wall on to its
+# end and the lane's round the rear porch's flight; on the ground as it was laid (KLI_HPRE), the yard by its table
+_klc = lambda m_: {(int(j_), int(i_)) for j_, i_ in zip(*np.nonzero(m_[:-1, :-1] | m_[1:, :-1] | m_[:-1, 1:] | m_[1:, 1:]))}
+_kl_lc, _kl_pc = _klc(KLI_LOW), _klc(KLI_PIT)
+_kl_yp, _kl_bp = kli97.deck_polys(gx, NEAR_STEP, _kl_lc, _kl_pc)
+_kl_h = lambda x_, y_: kli97.deck_z(x_, y_, lambda a_, b_: sample(KLI_HPRE, NEAR_HALF, NEAR_STEP, a_, b_))
+out['kli97'] = dict(yard=dwb_deck(_kl_lc, _kl_yp, _kl_h), back=dwb_deck(_kl_pc, _kl_bp, _kl_h))
+print('한국어학당 덱: yard %d cells %.0f m2, back %d cells %.0f m2' % (len(_kl_lc), _kl_yp.area, len(_kl_pc), _kl_bp.area))
 print('광복관 서쪽 찻길 둑의 발치: %d nodes behind the cars, the deck %.0f m2 (%d triangles)' % (
     _kb_n, _kb_area.area, len(out['kb_bank']['deck']['f'])))
 # 의료원: the two sites left out without a name are the car parks round the old halls (asphalt, their aprons paved)
@@ -11196,6 +11215,7 @@ _ypaint([lf_rect(48.55, 56.0, 33.0, 36.1)], _gp)  # (용재 동상 앞 포장 �
 _ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 길: SCI_DRIVE97)
 _ypaint([KB97_ASPH], _ga)                    # (광복관 안마당 · 서쪽 길 · 북쪽 길, 핀슨관 서쪽 길 · 북쪽 주차장: kwangbok97)
 _ypaint([kli97.LOT_POLY], _ga)                # (한국어학당 앞 주차장: the paved lot of the 1997 scans; kli97)
+_ypaint(kli97.paved(), _ga)                   # (its south-east edge, the lane and the row behind, the north-west car park: #233)
 _ypaint([KB97_FORE], _gd)                    # (광복관 앞마당: the gravel at the foot of the front flight)
 _ypaint(annex97.trail_polys(), _gd)          # (상대별관 북동쪽 세모 숲의 오솔길 두 갈래: bare earth; annex97)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
@@ -12896,6 +12916,7 @@ if os.environ.get('Y97_WORK_DUMP'):          # (the working datum's own result, 
 # 걷기 막이: 2 m 넘게 떨어지거나 떨어져 갇히는 열린 가장자리의 보이지 않는 작은 막(tools/walkguard97.py; 심기가 끝난 뒤라
 # 난수와 상관없고, 2D 라 높이 기준과도 상관없음)
 out['colliders'] += walkguard97.colliders()
+out['colliders'] += kli97.guards()           # (한국어학당: the wall on to the yard's end, the rear flight's walls)
 # 북문의 두 틀 (tools/muak.py GATE_FRAMES): drawn by blender/landmarks.py north_gate_frame as ㄇ frames (style 'lm:'); the
 # colour draws the plain white halls made in their places are made by ghosts there, so the halls after them keep their looks
 for i_, b_ in enumerate(out['buildings']):
