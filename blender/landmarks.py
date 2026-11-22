@@ -6236,10 +6236,11 @@ def yongjae():
     with the canopy at its foot), the mid-1950s photo of the first library building (slc.bc.ca/yonsei: the fin face
     square on, the V reliefs of its crown, the wing's groups of three tall lights, the gabled block behind, the lower
     hipped block beyond the tower) and the 1994 / 1997 aerial photos (the tower over the south block's roof).
-    - the stair tower, six storeys of 3.6 m: on its fin face (to 백양로) two narrow bays of tall steel windows, one a
-      floor for five floors over a sunk panel, between three slim fins, broad blank bays either side, the top floor a
-      blank crown with a V in each window bay, a thin roof slab standing out all round, a penthouse and a mast;
-      on its north and south sides two columns of small windows near the fin face, two a floor
+    - the stair tower, six storeys: on its fin face (to 백양로) two narrow bays of steel windows, one a floor for
+      five floors over a sunk panel, each between two slim fins, broad blank bays either side, the top floor a
+      blank crown with a pointed arch in each window bay, a thin roof slab standing out all round, a penthouse and a
+      mast; on its north and south sides two columns of small windows near the fin face, two a floor (the south
+      side's all the way down, and east of them the stair's tall light between two fins over a door)
     - the north wing, three storeys under a dark hipped roof, 2.0 m back from the fin face: four bays of three tall
       lights between pilasters on its 백양로 front, a chimney box over its north end
     - the entrance in the corner: a one-storey porch with the notice board on its 백양로 side and the glass doors on
@@ -6300,44 +6301,82 @@ def yongjae():
     Pe, Le = plane(u1, v0, u1, v1)
     for P, L in ((Pw, Lw), (Pn, Ln), (Ps, Ls), (Pe, Le)):
         flat_wall(mb, P, 0, L, z0 - 4.0, z0, 'concrete_dark')
-    # fin face: blank bay 3.0 | windows 2.8 | windows 2.8 | blank bay 3.0, the window bays 0.1 back
-    fins, rec = (3.0, 5.8, 8.6), 0.1
+    # The windows' storeys (reference/고증/3.13 「탑의 창」: the school site's two photos of 1996, edu.jpg from the
+    # west and edu2.jpg from the yard before 대강당, the 1990s telephoto and the 2004 close views): 3.7 m apart, the
+    # lowest window's sill a hand over the plinth's band, the fifth's head 1.3 storeys under the roof slab.
+    tp = 3.7
+    # fin face: blank bay | fin, window, fin | fin, window, fin | blank bay: four slim fins, the middle two 0.64 apart,
+    # the window bays 0.1 back, each window filling its bay between the fins
+    fins, rec = (2.8, 4.88, 5.52, 7.6), 0.1
     flat_wall(mb, Pw, 0.0, fins[0], z0, zp, Wm)
-    flat_wall(mb, Pw, fins[2], Lw, z0, zp, Wm)
+    flat_wall(mb, Pw, fins[3], Lw, z0, zp, Wm)
     Pr = lambda s, z, d=0.0: Pw(s, z, d - rec)
-    zc = z0 + 5 * fh                                           # the crown
-    for b0, b1 in ((fins[0], fins[1]), (fins[1], fins[2])):
+    flat_wall(mb, Pr, fins[1], fins[2], z0, zp, Wm)
+    zc = z0 + 4 * tp + 2.8                                     # the crown, over the fifth window's head
+
+    def crown(P, b0, b1):
+        """the blank crown of a window bay: a pointed arch in relief, its foot on the fins"""
+        bc = (b0 + b1) / 2
+        flat_wall(mb, P, b0, b1, zc, zp, Wm)
+        for sg in (-1, 1):
+            bar(mb, P, bc + sg * (b1 - b0) / 2, zp - 2.15, bc, zp - 1.4, 0.1, 0.0, 0.06, Wm, ends=True)
+
+    for b0, b1 in ((fins[0], fins[1]), (fins[2], fins[3])):
         bc = (b0 + b1) / 2
         w0, w1 = bc - 0.8, bc + 0.8
-        wins = [(w0, w1, z0 + k * fh + 0.6, z0 + k * fh + 2.65) for k in range(5)]
+        wins = [(w0, w1, z0 + k * tp + 0.85, z0 + k * tp + 2.8) for k in range(5)]
         panels = [(w0, w1, zh + 0.25, zs - 0.2) for (_, _, _, zh), (_, _, zs, _) in zip(wins, wins[1:])]
         wall_holes(mb, Pr, b0, b1, z0, zc, Wm, wins + panels)
         for (_, _, zs, zh) in wins:
-            window(mb, Pr, w0, w1, zs, zh, 0.2, 3, 4)
+            window(mb, Pr, w0, w1, zs, zh, 0.15, 3, 4)
         for (_, _, za, zb) in panels:                          # the sunk panel under each window above
             reveal(mb, Pr, w0, w1, za, zb, 0.06, Wm)
             flat_wall(mb, Pr, w0, w1, za, zb, Wm, d=-0.06)
-        # the crown: blank, a V in relief
-        flat_wall(mb, Pr, b0, b1, zc, zp, Wm)
-        for sg in (-1, 1):
-            bar(mb, Pr, bc + sg * 1.2, zp - 0.35, bc, zc + 1.7, 0.13, 0.0, 0.07, Wm, ends=True)
-    for sa_, sb_ in ((0.0, fins[0]), (fins[2], Lw)):                 # the blank bays' plinth: rough-cut stone, a pale band
+        crown(Pr, b0, b1)
+    for sa_, sb_ in ((0.0, fins[0]), (fins[3], Lw)):           # the blank bays' plinth: rough-cut stone, a pale band
         flat_wall(mb, Pw, sa_, sb_, z0, z0 + 0.6, 'stone_ashlar', d=0.05)
         bar(mb, Pw, sa_, z0 + 0.65, sb_, z0 + 0.65, 0.1, 0.0, 0.07, 'stone_trim', ends=True)
-    for s in fins:                                             # slim fins, the whole height
-        bar(mb, Pw, s, z0, s, zp - 0.02, 0.22, -rec, 0.42, Wm, ends=True)
-    # north and south sides: two columns of small windows near the fin face, two a floor (the north side's are seen
-    # over the wing's roof; under it the wing and the porch stand against the wall)
-    for P, L, cols in ((Pn, Ln, (Ln - 3.55, Ln - 2.1)), (Ps, Ls, (2.1, 3.55))):
-        holes, wins = [], []
-        for k in range(3, 6):
-            zf = z0 + k * fh
+    for s in fins:                                             # slim fins, the whole height, 0.28 proud of the wall
+        bar(mb, Pw, s, z0, s, zp - 0.02, 0.22, -rec, 0.28, Wm, ends=True)
+    # north and south sides: two columns of small windows near the fin face, two a floor, the upper one's head 0.2 over
+    # the fin face's windows'.  On the north side they are seen over the wing's roof (under it the wing and the
+    # porch stand against the wall); on the south side, open to the yard before 대강당, they go down all six storeys
+    small = lambda k: ((z0 + k * tp + 0.8, z0 + k * tp + 1.55), (z0 + k * tp + 2.25, z0 + k * tp + 3.0))
+    # the south side's stair light, east of them: one more window bay between two fins, glass from over the door at its
+    # foot to the fifth window's head, a band of wall at each storey, the same pointed arch on its crown; a flat canopy
+    # over the door
+    sf0, sf1 = 6.5, 8.58
+    g0, g1 = (sf0 + sf1) / 2 - 0.8, (sf0 + sf1) / 2 + 0.8
+    Psr = lambda s, z, d=0.0: Ps(s, z, d - rec)
+    for P, L, cols, floors in ((Pn, Ln, (Ln - 4.05, Ln - 2.5), range(3, 6)), (Ps, Ls, (2.5, 4.05), range(6))):
+        holes = []
+        for k in floors:
             for sc in cols:
-                for za, zb in ((zf + 0.85, zf + 1.65), (zf + 2.2, zf + 3.0)):
+                for za, zb in small(k):
                     holes.append((sc - 0.4, sc + 0.4, za, zb))
-        wall_holes(mb, P, 0.0, L, z0, zp, Wm, holes)
+        if P is Ps:                                            # (a strip of its own by the fin: the fin's baked
+            wall_holes(mb, P, 0.0, sf0 - 0.7, z0, zp, Wm, holes)   # shade stays in it, not smeared along the storeys)
+            flat_wall(mb, P, sf0 - 0.7, sf0, z0, zp, Wm)
+            flat_wall(mb, P, sf1, L, z0, zp, Wm)
+        else:
+            wall_holes(mb, P, 0.0, L, z0, zp, Wm, holes)
         for (w0, w1, za, zb) in holes:
             window(mb, P, w0, w1, za, zb, 0.16, 2, 2)
+    lights = [(g0, g1, z0 + 2.55, z0 + tp + 0.3)]
+    lights += [(g0, g1, z0 + k * tp + 0.65, z0 + (k + 1) * tp + 0.3) for k in (1, 2, 3)]
+    lights += [(g0, g1, z0 + 4 * tp + 0.65, zc)]
+    door = (g0 + 0.05, g1 - 0.05, z0, z0 + 2.1)
+    wall_holes(mb, Psr, sf0, sf1, z0, zc, Wm, lights + [door])
+    for (a_, b_, za, zb) in lights:
+        reveal(mb, Psr, a_, b_, za, zb, 0.14, Wm)
+        glazing(mb, Psr, a_, b_, za, zb, -0.14, 3, max(2, round((zb - za) / 0.85)), 'frame_dark', glass='glass_reflect',
+                fw=0.045)
+    reveal(mb, Psr, door[0], door[1], door[2], door[3], 0.14, Wm)
+    glazing(mb, Psr, door[0], door[1], door[2], door[3], -0.14, 2, 1, 'frame_dark', glass='glass_door', fw=0.06)
+    crown(Psr, sf0, sf1)
+    for s in (sf0, sf1):
+        bar(mb, Ps, s, z0, s, zp - 0.02, 0.22, -rec, 0.28, Wm, ends=True)
+    box(mb, u0 + (sf0 + sf1) / 2, v0 - 0.65, z0 + 2.35, 3.0, 1.3, 0.2, Wm, mats={'top': 'roof_flat'})
     bar(mb, Pn, Ln - 1.4, z0 + 3.7, Ln - 1.4, zp - 0.1, 0.11, 0.06, 0.17, 'metal_dark', ends=True)    # downpipe
     flat_wall(mb, Pe, 0.0, Le, z0, zp, Wm)
     # the roof slab standing out 0.35 all round, a penthouse with its own slab towards the back, a mast
