@@ -6648,18 +6648,22 @@ def yongjae():
         reveal(mb, P, a, b, za, zb, 0.18, Wm)
         glazing(mb, P, a, b, za, zb, -0.18, 2, max(2, round((zb - za) / 0.35)), 'metal_dark', fw=0.03)
 
-    nbay = 10
+    # (the long sides: fourteen bays 1.2 m apart down the middle of each, the 1996 - 1999 scans unfolded on the walls'
+    # planes, reference/고증/3.13 「맞배 동의 네 면」; the east side one tall narrow light a tier, 1.9 - 4.9 m over its foot)
+    nbay, pbay = 14, 1.2
     for P, L, panels in ((PEw, LEw, True), (PEe, LEe, False)):
-        bw_ = L / nbay
-        cs = [(k + 0.5) * bw_ for k in range(nbay)]
+        cs = [L / 2 + (k - (nbay - 1) / 2) * pbay for k in range(nbay)]
         holes = []
         for sc in cs:
-            holes += [(sc - 0.3, sc + 0.3, tz(0) + 0.8, tz(0) + 2.9), (sc - 0.3, sc + 0.3, tz(0) + 3.7, tz(0) + 5.1)]
+            if panels:
+                holes += [(sc - 0.3, sc + 0.3, tz(0) + 0.8, tz(0) + 2.9), (sc - 0.3, sc + 0.3, tz(0) + 3.7, tz(0) + 5.1)]
+            else:
+                holes.append((sc - 0.25, sc + 0.25, tz(0) + 1.9, tz(0) + 4.9))
             for k in (1, 2):
                 if panels:
                     holes.append((sc - 0.45, sc + 0.45, tz(k) + 0.6, tz(k) + 5.4))
                 else:
-                    holes += [(sc - 0.3, sc + 0.3, tz(k) + 0.9, tz(k) + 2.3), (sc - 0.3, sc + 0.3, tz(k) + 3.8, tz(k) + 5.2)]
+                    holes.append((sc - 0.25, sc + 0.25, tz(k) + 1.9, tz(k) + 4.9))
         wall_holes(mb, P, 0.0, L, z0, ze, Wm, holes)
         for (a_, b_, za, zb) in holes:
             if b_ - a_ > 0.8:
@@ -6671,7 +6675,7 @@ def yongjae():
         # the eaves: a white soffit, a dark gutter, two downpipes
         mb.quad(P(0, ze, 0), P(L, ze, 0), P(L, zeo, over), P(0, zeo, over), 'plaster_white')
         bar(mb, P, 0.0, zeo + 0.02, L, zeo + 0.02, 0.14, over - 0.02, over + 0.12, 'metal_dark', ends=True)
-        for sd in (L * 0.4, L - 0.6):
+        for sd in (L / 2 - 3.6, L / 2 + 3.6):                   # (the scans: two downpipes on each side, between bays)
             bar(mb, P, sd, z0 + 0.3, sd, zeo - 0.05, 0.11, 0.06, 0.17, 'metal_dark', ends=True)
     mb.face([U(eu0 - over, ev0, zeo), U(um_, ev0, zre), U(um_, ev1, zre), U(eu0 - over, ev1, zeo)], 'roof_slate')
     mb.face([U(eu1 + over, ev1, zeo), U(um_, ev1, zre), U(um_, ev0, zre), U(eu1 + over, ev0, zeo)], 'roof_slate')
@@ -6679,22 +6683,26 @@ def yongjae():
     PAR = 0.35
     for P, L in ((PEn, LEn), (PEs, LEs)):
         top = lambda s: ze + PAR + (L / 2 - abs(s - L / 2)) * pitch
+        # both ends: three narrow bays either side of the middle, 3.05, 4.25 and 5.5 m out, and a light in the middle (on
+        # the north end the stair's doors), three tiers of them (the 1996 - 1999 scans unfolded on the ends' planes,
+        # reference/고증/3.13 「맞배 동의 네 면」); on the north end the bays west of the middle as the 2004 photos have them
+        # (grilles, tall lights, lights over a small square one)
+        west = [L / 2 + o_ for o_ in (3.05, 4.25, 5.5)]
+        east = [L / 2 - o_ for o_ in (3.05, 4.25, 5.5)]
+        cols = west + east + ([] if P is PEn else [L / 2])
+        holes = [(bc - 0.4, bc + 0.4, tz(0) + 0.8, tz(0) + 4.7) for bc in cols]
+        holes += [(bc - 0.4, bc + 0.4, tz(1) + 0.6, tz(1) + 5.0) for bc in cols]
+        holes += [(bc - 0.4, bc + 0.4, tz(2) + 0.5, tz(2) + 4.9) for bc in cols if not (P is PEn and bc in west[1:])]
         if P is PEn:
-            b1, b2, b3 = L / 2 + 2.1, L / 2 + 3.4, L / 2 + 4.7              # the three bays, west of the middle
-            holes = [(bc - 0.4, bc + 0.4, tz(0) + 0.8, tz(0) + 4.7) for bc in (b1, b2, b3)]
-            holes += [(bc - 0.4, bc + 0.4, tz(1) + 0.6, tz(1) + 5.0) for bc in (b1, b2, b3)]
-            holes += [(b1 - 0.4, b1 + 0.4, tz(2) + 0.5, tz(2) + 4.9)]
-            holes += [(bc - 0.45, bc + 0.45, tz(2) + 0.5, tz(2) + 4.9) for bc in (b2, b3)]
-            wall_holes(mb, P, 0.0, L, z0, ze, Wm, holes)
-            for (a_, b_, za, zb) in holes:
-                if b_ - a_ > 0.85:
-                    slot(P, (a_ + b_) / 2, za, zb, [(zb - 2.1, zb - 0.12), (za + 1.2, za + 1.8)])
-                elif za < tz(1):
-                    grille(P, a_, b_, za, zb)
-                else:
-                    window(mb, P, a_, b_, za, zb, 0.18, 1, 5)
-        else:
-            flat_wall(mb, P, 0.0, L, z0, ze, Wm)
+            holes += [(bc - 0.45, bc + 0.45, tz(2) + 0.5, tz(2) + 4.9) for bc in west[1:]]
+        wall_holes(mb, P, 0.0, L, z0, ze, Wm, holes)
+        for (a_, b_, za, zb) in holes:
+            if b_ - a_ > 0.85:
+                slot(P, (a_ + b_) / 2, za, zb, [(zb - 2.1, zb - 0.12), (za + 1.2, za + 1.8)])
+            elif za < tz(1):
+                grille(P, a_, b_, za, zb)
+            else:
+                window(mb, P, a_, b_, za, zb, 0.18, 1, 5)
         slits = [(L / 2 - 0.55, L / 2 - 0.25), (L / 2 + 0.25, L / 2 + 0.55)]
         zs0, zs1 = ze + 0.7, ze + 1.7
         # the gable over the eaves line, the two slits left out of it
