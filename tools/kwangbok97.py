@@ -1,5 +1,5 @@
 """광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길의 1997년 땅 (#189; reference/고증/3.9_광복관.md 「둘레 땅의 높이」 · 「1997년의 평면과
-지붕」 · 「서쪽 찻길 위 둑」, 2.9_찻길.md 「서쪽 길의 높이」, 3.15-3.17_일반_건물.md 「핀슨관 · 한경관의 바닥」).  tools/build_campus.py 가 부른다.
+지붕」 · 「서쪽 찻길 위 둑」, 2.9.2_찻길의_땅과_높이.md 「서쪽 길의 높이」, 3.15-3.17_일반_건물.md 「핀슨관 · 한경관의 바닥」).  tools/build_campus.py 가 부른다.
 
     took, info = kwangbok97.grade(Hn, X, Y, FIXED, keep, fill, tr_pts, tr_n)   # 심기가 끝난 뒤, 저장 바로 앞
     kwangbok97.outline()                      # 광복관의 1997년 외곽 (LATE_FOOTPRINT_1997)

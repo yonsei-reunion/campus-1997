@@ -1,4 +1,4 @@
-"""스팀슨관 서쪽 찻길의 화단 섬과 그 남쪽 찻길 (reference/고증/2.9_찻길.md 「서쪽 화단 섬과 서쪽 길: 1996년 겨울 사진」).  tools/build_campus.py 가 부른다.
+"""스팀슨관 서쪽 찻길의 화단 섬과 그 남쪽 찻길 (reference/고증/2.9.3_서쪽_화단_섬과_서쪽_길.md 「서쪽 화단 섬과 서쪽 길: 1996년 겨울 사진」).  tools/build_campus.py 가 부른다.
 
     westisle97.LANE                      # 서쪽 찻길(TR_W)의 섬 구간 가운데 선: 심기가 끝난 뒤 이 선으로 다시 그음
     westisle97.ISLAND, .GARDEN           # 1996 · 1997년의 섬(잔디), 섬 남쪽 숲 정원의 북쪽 연석 안쪽(잔디)
@@ -10,7 +10,7 @@ Frame: campus metres, x east, y north (the block frame of the 1997 aerial photos
 build_campus.py's `rng`: the old line (OSM's road round the island's south, 4 m north of the 1997 one) is what the
 ground was graded along and what the planting read; this is laid after the planting.
 
-What was measured (고증 2.9 「서쪽 화단 섬과 서쪽 길: 1996년 겨울 사진」): the leafless scans of 1996 (26/14 · 26/15 · 26/16 of
+What was measured (고증 2.9.3 「서쪽 화단 섬과 서쪽 길: 1996년 겨울 사진」): the leafless scans of 1996 (26/14 · 26/15 · 26/16 of
 12-23, 27/15 · 27/16 · 27/17 of 11-28) and the July 1997 scans, brightness profiles across each kerb on the plane of
 the road's height (해발 50.0 m; the pairs' surface 49.6 - 50.1 m there), the kerb where five or six frames agree:
 - the island: its east kerb x -23.1 (y 217 - 218.5), -23.3 (220), -23.6 (221.5), -24.1 (223) in six 1996 and four 1997

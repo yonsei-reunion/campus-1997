@@ -2329,7 +2329,7 @@ def eagle_statue(site=None):
 # The block after the bust there in the 2010 street view (0.6 x 0.5 m, 0.92 m and a 0.08 m cap, a dark plate on its
 # front).  The figure is sculpted densely and baked onto a light mesh (blender/sculpt.py), the head from the Blender
 # Foundation's CC0 "Human Base Meshes" as the Underwood statue's.  Local frame: front = -Y, +X his left, z from the
-# block's foot (reference/고증/2.9 「노천극장 쪽 갈림길의 세모 섬」).
+# block's foot (reference/고증/2.9.4 「노천극장 쪽 갈림길의 세모 섬」).
 BUST_BLOCK = (0.6, 0.5, 0.92, 0.08)       # width, depth, height, cap
 BUST_PLATE = (0.40, 0.46, 0.20)           # the dark plate on the block's front: width, height, its top under the block's
 OS_FOOT = (0.25, 0.19, 0.06)              # the bronze foot under the chest: width, depth, height

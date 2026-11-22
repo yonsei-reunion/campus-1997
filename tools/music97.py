@@ -23,7 +23,7 @@ the working datum the ground is laid on (해발 + tilt: tools/datum.py) where it
   west of it over 6 m, as the photos have that 4 m under the floor).
 - 동쪽 찻길 (TR_E) from 아펜젤러관's yard to the fork east of 한경길 (EAST_Q97 from there): ROAD, the survey's spot
   heights and the contours crossing it.  The photos' across-road profiles here read 1.5 - 3.5 m higher
-  (the canopy's edge, as 2.9 「남은 한계」 suspected).  Levelled across as tr_grade does.
+  (the canopy's edge: 고증 2.9.2 「동쪽 길의 높이」).  Levelled across as tr_grade does.
 - 용재관's drive (YJ_BRANCH, x < 126) is the 대강당 · 용재관 part's (51.2 m at its east end): TM_KEEP stays.
 - 음악관 두 동 (halls; 3.11 「두 동의 절대 높이」): the two halls and the ground before them stood 1.5 · 2.25 m under the
   photos and the survey.  HALLS_FRONT: the road along 구관's front and 신관's forecourt at its door, read again on bare

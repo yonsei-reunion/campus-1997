@@ -878,7 +878,7 @@
    0.045
   ]
  },
- "bronze_oesol": {"_doc": "외솔 최현배 흉상(1994)의 청동: 정밀 원형을 구운 맵 (blender/statues.py oesol_sculpt, 고증 2.9)", "maps": "statues/oesol", "color": [0.105, 0.078, 0.05]},
+ "bronze_oesol": {"_doc": "외솔 최현배 흉상(1994)의 청동: 정밀 원형을 구운 맵 (blender/statues.py oesol_sculpt, 고증 2.9.4)", "maps": "statues/oesol", "color": [0.105, 0.078, 0.05]},
  "granite_light": {
   "weather": 0.12,
   "streak": 0.3,

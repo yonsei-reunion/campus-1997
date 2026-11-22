@@ -5847,7 +5847,7 @@ def parking_lines():
 
 
 def road_paint():
-    """The paint on the two drives off 백양로 (tools/build_campus.py RD_PAINT: campus.json `road_paint`; reference/고증/2.9
+    """The paint on the two drives off 백양로 (tools/build_campus.py RD_PAINT: campus.json `road_paint`; reference/고증/2.9.1
     「노면의 선과 길가 나무」): the yellow edge and middle lines, the zebra crossings' stripes and a stop line as strips
     cut every half metre and laid 3 cm over the ground the web app draws, as the car parks' bays are (parking_lines); a
     dashed line 2.5 m on, 4 m off (blender/road.py's apron lines).  The humps of the 1997 photos, narrow painted ones:

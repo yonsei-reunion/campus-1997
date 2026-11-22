@@ -1987,7 +1987,7 @@ YH_C = (78.4, 318.3)                                                            
 # 한경길 by the photos: (x, height) along it.  East of the drive along 성암관 it runs on to the east road (the road
 # past 노천극장), as level as before: the photos 49.7 - 50.4 m at x 132 - 150 (the original scans, corr. 0.5 - 0.8),
 # and the east road's own 49.3 - 50.6 m at the fork (EAST_Q97 below).  Before, the ground as the surface model had it
-# from x 113 on, 1.4 - 4 m higher at the fork (고증 2.8 「남은 한계」, 2.9 「동쪽 길의 높이」)
+# from x 113 on, 1.4 - 4 m higher at the fork (고증 2.8 「남은 한계」, 2.9.2 「동쪽 길의 높이」)
 HANGYEONG_Q = datum.up_at([(34.0, 49.42), (40.3, 49.49), (72.5, 49.54), (92.0, 49.65), (106.0, 49.29), (113.0, 49.35), (130.0, 49.48),
                (140.0, 49.63), (150.0, 49.89)],
                           [(34.0, 301.6), (40.3, 301.6), (72.5, 295.2), (92.0, 289.8), (106.0, 285.9), (113.0, 283.7),
@@ -2988,7 +2988,7 @@ _e_r[2], _e_r[21], _e_r[-3] = 9.0, 9.0, 6.0
 # the asphalt to take up again, read this one)
 TR_E_OSM = tr_line(_e_raw, _e_r)[0]
 TR_EKH_OSM = int(round(LineString([tuple(q_) for q_ in TR_E_OSM]).project(Point(*_ej))))
-# The east road where the aerial photos of July 1997 have it (reference/고증/2.9 「노면의 선과 길가 나무」,
+# The east road where the aerial photos of July 1997 have it (reference/고증/2.9.1 「노면의 선과 길가 나무」,
 # tools/roadview/roads/adopt.py -> adopted.json): the 2008 - 2010 survey's middle line, and from the corner under 청송대
 # to the bend the middle of the two kerbs read off three of the 1997 frames (0.2 - 3.9 m west of the survey's, 6 - 8 m
 # east of OSM's line abreast of 대우관 별관, which is the walk beside the road there).  Its width is the photos' too
@@ -3054,13 +3054,13 @@ tr_tilt_of(TR_E, TR_EN, TR_EO, TR_EK0, 'east (before)')
 _emine = LineString([tuple(q_) for q_ in TR_E[TR_EK0 + 2:int(_els.project(Point(156.3, 276.3))) + 14]]).buffer(7.5)
 # (2026-11-14) The road from 아펜젤러관's back past the fork east of 한경길 and up under 청송대 to 대우관 별관 ran on one
 # 17 % grade, 3.8 - 4.7 m over the 1997 photos' road at the fork and 8 m at the corner under 청송대.  The photos' road
-# (reference/고증/2.9 「동쪽 길의 높이」: the original scans, across-road profiles matched between six frames, and the
+# (reference/고증/2.9.2 「동쪽 길의 높이」: the original scans, across-road profiles matched between six frames, and the
 # surface itself where it is open): 49.3 m at the fork's south end, 51.7 a little north of it, then hidden under the
 # wood's canopy (66 - 70 m) as far as the corner, 58.9 there, and 63.2 · 66.5 · 70.0 m up past the annex.  EAST_Q97:
 # (x, y, height) on the road's middle line, survey s 140 (where the grade is left as it was: the photos' heights south
 # of it are not settled), 184, 196, 208, 296, 304 ... 400 (beyond it the road had the photos' heights already).
 # (2026-11-17) s 228 · 258 · 282 under the canopy: the leaf-off winter scans of 1996, each course's pair on its own,
-# the two within 0.4 m (reference/고증/2.9 「동쪽 길의 높이」): 0.2 - 0.6 m over the one grade that joined s 208 to s 296.
+# the two within 0.4 m (reference/고증/2.9.2 「동쪽 길의 높이」): 0.2 - 0.6 m over the one grade that joined s 208 to s 296.
 EAST_Q97 = datum.up3([(132.6, 222.4, 46.8), (149.7, 262.8, 49.11), (152.6, 274.4, 50.37), (156.4, 285.8, 51.42),
             (164.15, 304.19, 53.37), (182.25, 327.92, 56.31), (198.21, 345.82, 57.91), (207.5, 356.2, 58.88), (210.3, 363.4, 59.75), (210.4, 375.3, 61.22), (208.0, 391.1, 63.19),
             (205.9, 403.0, 64.67), (203.9, 414.8, 66.45), (201.5, 426.5, 67.94), (197.5, 436.8, 69.03),
@@ -7257,13 +7257,13 @@ for b_ in buildings:
 print('대강당 윗단 북쪽 끝 너머:', {k_: v_ for k_, v_ in ISLE97_GRADE.items() if k_ != 'at'}, 'flight', ISLE97['flight']['n'],
       ISLE97['flight']['z_top'], ISLE97['flight']['z_foot'])
 # ---------------------------------------------------------------------------
-# 광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길 (tools/kwangbok97.py; reference/고증/3.9 「둘레 땅의 높이」, 2.9 「서쪽 길의 높이」),
+# 광복관 · 핀슨관 · 한경관 둘레와 서쪽 찻길 (tools/kwangbok97.py; reference/고증/3.9 「둘레 땅의 높이」, 2.9.2 「서쪽 길의 높이」),
 # after the planting and everything else that read the ground as it was: 광복관's bench (its yard, the roads west and
 # north of it, the place south of 핀슨관) level at 49.85 m 해발 where the game had a lawn slope, 핀슨관's knoll and
 # 한경관 3 - 6 m up on the scans and the 2006 survey, the cars' west road (TR_W) on the survey's profile.  The halls
 # that stay keep their feet; 핀슨관 and 한경관 stand on the new ground (below), 광복관 on its 1997 outline
 # ---------------------------------------------------------------------------
-# 서쪽 화단 섬 (tools/westisle97.py, reference/고증/2.9 「서쪽 화단 섬과 서쪽 길: 1996년 겨울 사진」): the island stood
+# 서쪽 화단 섬 (tools/westisle97.py, reference/고증/2.9.3 「서쪽 화단 섬과 서쪽 길: 1996년 겨울 사진」): the island stood
 # 2 - 4 m south of the game's and the garden's kerb 4 - 5 m south of the game's lawn, so the road round the island's
 # south ran 4 m south of OSM's.  The old line is what the ground was graded along before the planting (TR_W_RNG,
 # tr_grade above); from here on the cars, the ground's road cells, the asphalt and the trees out of the way take the
@@ -9843,7 +9843,7 @@ CAR_GROUPS['공학원 공사장 앞'] = cars[_n_gw:]
 CAR_GROUPS['과학관'] = list(SCI_CARS)
 CAR_GROUPS['학생회관 별관 앞'] = list(ANNEX_CARS)
 cars += SCI_CARS                    # (과학관's court and yard: last, so that no other car changes its model)
-# 한경길 · 연희관 앞길 (reference/고증/2.9 「세운 차」): the rows of parked cars the vertical photos of July 1997 have (frames
+# 한경길 · 연희관 앞길 (reference/고증/2.9.1 「세운 차」): the rows of parked cars the vertical photos of July 1997 have (frames
 # 26/15 and 27/16 at the road's height, tools/aerial97.py): side by side along both lanes of 한경길 behind 언더우드관,
 # noses to the garden on the north lane and to the hall's back wall on the south one, the row of street trees between
 # the lanes; before 연희관 a row nose in at its north wall and a few across the road.  Parked cars only: whether the
@@ -10877,7 +10877,7 @@ for t_ in trees:
         t_[1], t_[2] = round(n_.x, 2), round(n_.y, 2)
 print('traffic: on the roads, shrubs taken out %d, props %d, trees moved aside %d' % (_n0[0] - len(shrubs), _n0[1] - len(props), len(_tmoved)), _tmoved)
 print('traffic: 삼거리 s %.1f, leaves 백양로 at %.1f' % (TR_SJ, TR_S0))
-# 길가 나무 (RD97['trees'], reference/고증/2.9 「노면의 선과 길가 나무」): the rows and the big trees the 2008 roadview has
+# 길가 나무 (RD97['trees'], reference/고증/2.9.1 「노면의 선과 길가 나무」): the rows and the big trees the 2008 roadview has
 # beside the two roads, those the 1997 photos bear out (the rows of young zelkovas west of the east road, the pine on
 # its island, the closed crowns of the wood between the two roads).  After every other tree (the web picks a tree's
 # model by its place in the list); one that would stand in a road or a walk a metre outside its edge, one of the
@@ -10902,7 +10902,7 @@ for sp_, x_, y_, sc_, grp_, _ in RD97['trees']:
     RD_NEW_TREES.append([sp_, round(q_.x, 2), round(q_.y, 2), sc_, round(_rd_rt.uniform(0, 6.28), 2)])
 trees += RD_NEW_TREES
 print('찻길 trees: new %d of %d, left out %d' % (len(RD_NEW_TREES), len(RD97['trees']), len(_rd_skip)), _rd_skip)
-# 한경길's tree strip (the 1997 scans, 26/15 · 27/16 · 26/16; reference/고증/2.9 「한경길 · 연희관 앞」): between its two
+# 한경길's tree strip (the 1997 scans, 26/15 · 27/16 · 26/16; reference/고증/2.9.1 「한경길 · 연희관 앞」): between its two
 # lanes a planted strip some 7 m wide from abreast of 교육관 (x 52) to the fork east of it (x 118), its kerbs rounded at
 # the west end, under a closed row of big round crowns (6 - 7 m across, about 6 m apart: eleven).  The game had the
 # lanes and no tree there.  At the list's end, so that no other tree changes its model; their places on the middle
@@ -12796,7 +12796,7 @@ for l_ in out['town']['landmarks']:                      # (신촌 로터리의 
     _dz_zones.append(dict(name=l_['name'], t=l_['tilt'], poly=l_['outline']))
 out['datum'] = dict(tilt=list(datum.TILT), core=list(datum.CORE), fade=datum.FADE, pad=datum.PAD, ease=datum.EASE, zones=_dz_zones)
 DATUM = datum.field(out)
-# 외솔 최현배 흉상 (1994 ~ 2001, reference/고증/2.9 「노천극장 쪽 갈림길의 세모 섬」; nth): on the island at the fork to
+# 외솔 최현배 흉상 (1994 ~ 2001, reference/고증/2.9.4 「노천극장 쪽 갈림길의 세모 섬」; nth): on the island at the fork to
 # 노천극장 north of 용재관 (연세춘추 2007-03-25: 「용재관 앞 노천극장 가는 길목」 until 2001, 한결 김윤경's bust there after).
 # Its place is that of the bust there in the 2010 street view (three panoramas' bearings meet within +- 2 m), the face
 # west-south-west down the fork as that one's block; blender/statues.py oesol_bust (front = -Y), the block a collider.
