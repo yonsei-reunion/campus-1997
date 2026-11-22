@@ -13321,6 +13321,10 @@ print('이중윤 동문 사진: library seats', len(_lt['seats']), 'colliders', 
 ENG_BED_CONES97 = [(72.0, 2.7), (76.0, 2.7), (80.0, 2.7)]
 out['shrubs'] += [['topiary_cone', *(round(float(c_), 2) for c_ in eng97.xy(u_, v_)), 0.9, round(0.7 + 1.9 * k_, 3)]
                   for k_, (u_, v_) in enumerate(ENG_BED_CONES97)]
+# - 음악관 서쪽 계단 둘레의 나무 (reference/고증/3.11 「둘레의 나무와 발치 높이」): crowns that the stereo of two or more
+#   flights (1996 winter · 1997 · 1998 · 1999) puts at the same place within 1.5 m, trunks taken under their tops
+MUSIC_STAIR_TREES97 = [('pine', 91.0, -9.2, 1.15, 2.1), ('pine', 96.5, -13.5, 1.0, 4.6), ('zelkova', 100.5, -13.0, 0.9, 0.8)]
+out['trees'] += [list(t_) for t_ in MUSIC_STAIR_TREES97]
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
