@@ -64,7 +64,8 @@
               "옆벽: 갓돌 얹은 두꺼운 벽, 발치에 네모 끝",
               "발치: 땅까지 내려가는 짧은 턱"
             ]
-          }
+          },
+          "음대 계단 · 용재관 앞 둑 계단의 디딤 그늘: 디딤 전체 → 옆벽 · 난간 곁만"
         ],
         "images": [
           { "src": "assets/news/526_yonseiro_7f.jpg", "alt": "연세로 서쪽 흰 타일 7층의 세로 간판, 전 · 후" },
@@ -75,7 +76,8 @@
           { "src": "assets/news/535_kli_front.jpg", "alt": "한국어학당 정면 가운데, 2004년 사진과 게임" },
           { "src": "assets/news/536_kli_side.jpg", "alt": "한국어학당 정면을 남동쪽 끝에서, 2004년 사진과 게임" },
           { "src": "assets/news/538_yj_bank_stair.jpg", "alt": "대강당 북쪽 마당에서 용재관으로 오르는 둑 계단, 전 · 후" },
-          { "src": "assets/news/539_yj_bank_stair_photo.jpg", "alt": "용재관 앞 둑 계단, 1996년 학교 홈페이지 사진과 게임" }
+          { "src": "assets/news/539_yj_bank_stair_photo.jpg", "alt": "용재관 앞 둑 계단, 1996년 학교 홈페이지 사진과 게임" },
+          { "src": "assets/news/542_music_stair_treads.jpg", "alt": "음대 계단의 디딤 그늘, 전 · 후" }
         ]
       },
       {
