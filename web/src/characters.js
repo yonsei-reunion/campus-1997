@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { MeshoptSimplifier } from 'meshoptimizer/simplifier';
 import { loadGLB } from './world.js';
 import { pcss, windTime, imageTexture } from './materials.js';
 import { HERO_BAGS, baggedGeometry } from './bags.js';
@@ -554,6 +555,68 @@ function dressed(geo, ranges, colors, glasses, blink = 0, print = true) {
   return g;
 }
 
+// ---------------------------------------------------------------- from some way off: fewer triangles
+// A person is about ten thousand triangles; past FAR_AT metres from the view they are drawn from the same corners with
+// about a third of them (meshoptimizer's simplify, run on each model once as it loads): a second index over the very
+// same vertices, so the colours, the face and print atlas, the trousers' seams and the skinning carry over unchanged.
+// The glasses are left out of it (from there on they are the drawn ones only, rimLod), a bag's few triangles kept.
+// Each person's mesh goes under a THREE.LOD with its far twin, bound to the same skeleton: three picks one per frame.
+const FAR_AT = MOBILE ? 20 : 30, FAR_GIVE = 0.08;
+const FAR_SHARE = 0.3, FAR_ERR = 0.01;          // (share of the triangles aimed at; error held to 1 % of the model's size)
+// the model's own triangles but the glasses', simplified: { index (Uint32Array), count: the model's index length }
+function farIndexOf(geo, ranges) {
+  const pos = geo.attributes.position, n = pos.count, P = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { P[i * 3] = pos.getX(i); P[i * 3 + 1] = pos.getY(i); P[i * 3 + 2] = pos.getZ(i); }
+  const glass = ranges?.find((p) => p.name === 'Glasses'), src = geo.index.array, keep = [];
+  for (let i = 0; i < src.length; i += 3) {
+    if (glass && src[i] >= glass.start && src[i] < glass.start + glass.count) continue;
+    keep.push(src[i], src[i + 1], src[i + 2]);
+  }
+  const idx = Uint32Array.from(keep);
+  const [index] = MeshoptSimplifier.simplify(idx, P, 3, Math.floor(idx.length * FAR_SHARE / 3) * 3, FAR_ERR);
+  return { index, count: src.length };
+}
+// the far index of a model's geometry or of that with a bag (the bag's triangles follow the person's: bags.js)
+const farIndices = new WeakMap();
+function farIndex(full, far) {
+  let f = farIndices.get(full.index);
+  if (!f) {
+    const tail = full.index.array.subarray(far.count), n = full.attributes.position.count;
+    const a = new (n > 65535 ? Uint32Array : Uint16Array)(far.index.length + tail.length);
+    a.set(far.index); a.set(tail, far.index.length);
+    farIndices.set(full.index, f = new THREE.BufferAttribute(a, 1));
+  }
+  return f;
+}
+// a dressed geometry's far twin: every attribute shared, the far index (people who share a look share it too)
+const farTwins = new WeakMap();
+function farTwin(g, full, far) {
+  let f = farTwins.get(g);
+  if (!f) {
+    f = new THREE.BufferGeometry();
+    for (const k in g.attributes) f.setAttribute(k, g.attributes[k]);
+    f.setIndex(farIndex(full, far));
+    f.boundingSphere = g.boundingSphere;
+    f.boundingBox = g.boundingBox;
+    farTwins.set(g, f);
+  }
+  return f;
+}
+// the person's mesh m (geometry g, made from `full`) under a LOD with its far twin
+function withFar(m, full, far) {
+  const lod = new THREE.LOD();
+  lod.name = m.name + '_lod';
+  lod.position.copy(m.position); lod.quaternion.copy(m.quaternion); lod.scale.copy(m.scale);
+  m.parent.add(lod);
+  m.position.set(0, 0, 0); m.quaternion.identity(); m.scale.set(1, 1, 1);
+  lod.addLevel(m, 0);
+  const f = new THREE.SkinnedMesh(farTwin(m.geometry, full, far), m.material);
+  f.name = m.name + '_far';
+  f.bind(m.skeleton, m.bindMatrix);
+  f.boundingSphere = m.boundingSphere;
+  lod.addLevel(f, FAR_AT, FAR_GIVE);
+}
+
 const PEOPLE_DIR = 'assets/models/people/', RIGS = ['rig-umc', 'rig-women'];
 // the files Cast.load(ids) reads (for world.js prefetch)
 export const castFiles = (ids) => [...RIGS, ...ids].map((n) => PEOPLE_DIR + n + '.glb');
@@ -564,6 +627,7 @@ export class Cast {
   async load(ids, onEach) {
     const base = PEOPLE_DIR;
     const drawn = loadFaces();
+    const simplifier = MeshoptSimplifier.ready.then(() => true, (e) => { console.warn('people: no far models', e); return false; });
     await Promise.all(RIGS.map(async (r) => {
       const g = await loadGLB(base + r + '.glb');
       const u = g.scene.getObjectByName(r)?.userData || {};
@@ -579,7 +643,9 @@ export class Cast {
         if (o.userData && typeof o.userData.rig === 'string') { rig = o.userData.rig; glasses = !!o.userData.glasses; }
       });
       const ranges = mergeParts(g.scene);
-      this.models[id] = { scene: g.scene, rig, ranges, glasses };
+      let far = null;
+      if (await simplifier) g.scene.traverse((o) => { if (o.isSkinnedMesh && o.geometry.index && !far) far = farIndexOf(o.geometry, ranges); });
+      this.models[id] = { scene: g.scene, rig, ranges, glasses, far };
       onEach?.();
     }));
     await drawn;
@@ -602,11 +668,14 @@ export class Cast {
       };
       root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = baggedGeometry(o, id, bag, stand); });
     }
-    root.traverse((o) => {
-      if (!o.isSkinnedMesh) return;
-      o.geometry = dressed(o.geometry, src.ranges, look?.colors, look ? look.glasses : src.glasses, look?.blink, look ? look.print !== false : true);
+    const meshes = [];
+    root.traverse((o) => { if (o.isSkinnedMesh) meshes.push(o); });
+    for (const o of meshes) {
+      const full = o.geometry;
+      o.geometry = dressed(full, src.ranges, look?.colors, look ? look.glasses : src.glasses, look?.blink, look ? look.print !== false : true);
       if (o.geometry.userData.rims) o.onBeforeRender = rimLod;
-    });
+      if (src.far && full.index) withFar(o, full, src.far);
+    }
     const [wide, tall] = scale || look?.scale || [1, 1];
     holder.scale.set(wide, tall, wide);
     // frustum culled by the posed bounds above (off-screen people cost nothing, in the shadow pass too)
