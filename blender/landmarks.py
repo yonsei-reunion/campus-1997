@@ -6658,10 +6658,22 @@ def music_stair():
     hw, kw, kh = W / 2, 0.22, 0.12                                           # (cheek: width, over the treads)
     N = len(nose)
     starts, ends = [0.0] + nose, nose + [L]
-    for k, (t0, t1) in enumerate(zip(starts, ends)):                       # each tread a block down into the bank
+    # each tread: its top and its riser between the cheeks, over a block down into the bank whose sides stand 5 cm
+    # into the cheeks (not in the cheeks' faces) and whose top is the next tread's level (hidden).  The bake reads a
+    # quad's light at its corners (blender/bake.py), so no visible face has a corner inside another solid: the top
+    # starts 1 cm in front of the riser above (a strip for the crease), the riser spans one rise only, and both come in
+    # three strips across (the cheeks and the rails shade the corners by them; as yj_bank_stair)
+    hb, xs = hw + 0.05, (-hw, -hw + 0.4, hw - 0.4, hw)
+    for k, (t0, t1) in enumerate(zip(starts, ends)):
         zt = -r * k
-        lo = min(min(gl(x_, -tt) for x_ in (-hw, 0.0, hw) for tt in (t0, t1)), zt) - 0.6
-        mb.box((0.0, -(t0 + t1) / 2, (zt + lo) / 2), (W, t1 - t0 + 0.02, zt - lo), 'concrete')
+        lo = min(min(gl(x_, -tt) for x_ in (-hb, 0.0, hb) for tt in (t0, t1)), zt) - 0.6
+        last = k == N
+        zb = zt - (0.05 if last else r)
+        mb.box((0.0, -(t0 + t1) / 2, (zb + lo) / 2), (2 * hb, t1 - t0, zb - lo), 'concrete', skip=('top', 'bottom'))
+        for xa, xb in zip(xs, xs[1:]):
+            for ta, tb in ([(t0, t1)] if k == 0 else [(t0, t0 + 0.01), (t0 + 0.01, t1)]):
+                mb.quad((xa, -ta, zt), (xa, -tb, zt), (xb, -tb, zt), (xb, -ta, zt), 'concrete')
+            mb.quad((xa, -t1, zb), (xb, -t1, zb), (xb, -t1, zt), (xa, -t1, zt), 'concrete')   # (the foot's: the block's below)
     W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
     # walked: a ramp through the nosings within a flight, level over the head, each landing and the foot
     pts = [(0.0, 0.0)] + [(t_, -r * k) for k, t_ in enumerate(nose)] + [(L, -r * N)]
@@ -6793,8 +6805,10 @@ def yj_bank_stair():
     # each tread: its top and its riser between the cheeks, over a block down into the bank whose sides stand 5 cm
     # into the cheeks (not in the cheeks' faces) and whose top is the next tread's level (hidden).  The bake reads a
     # quad's light at its corners (blender/bake.py), so no visible face has a corner inside another solid: the top
-    # starts 1 cm in front of the riser above (a strip for the crease), the riser spans one rise only
+    # starts 1 cm in front of the riser above (a strip for the crease), the riser spans one rise only, and both come in
+    # three strips across (the cheeks shade the corners by them)
     starts, ends = [0.0] + nose, nose + [L]
+    ss = (-hw, -hw + 0.4, hw - 0.4, hw)
     for k, (t0, t1) in enumerate(zip(starts, ends)):
         zt = -r * k
         poly = slab(t0, t1)
@@ -6802,13 +6816,15 @@ def yj_bank_stair():
         last = t1 >= L - 1e-6
         mb.prism(slab(t0, t1, hw + 0.05), lo, zt - (0.05 if last else r), 'concrete')
         lg = 0 if t1 <= tb else 1
-        zr = lo if last else zt - r
-        mb.quad((*P(t1, -hw, lg), zr), (*P(t1, hw, lg), zr), (*P(t1, hw, lg), zt), (*P(t1, -hw, lg), zt), 'concrete')
-        if k == 0 or t0 < tb < t1:                        # (the head; the landing, whose corners stand clear)
+        zr = zt - (0.05 if last else r)
+        for sa, sb in zip(ss, ss[1:]):
+            mb.quad((*P(t1, sa, lg), zr), (*P(t1, sb, lg), zr), (*P(t1, sb, lg), zt), (*P(t1, sa, lg), zt), 'concrete')
+        if t0 < tb < t1:                                  # (the landing, whose corners stand clear)
             mb.face([(*p, zt) for p in poly], 'concrete')
-        else:
-            mb.face([(*p, zt) for p in slab(t0, t0 + 0.01)], 'concrete')
-            mb.face([(*p, zt) for p in slab(t0 + 0.01, t1)], 'concrete')
+            continue
+        for sa, sb in zip(ss, ss[1:]):
+            for ta, tb_ in ([(t0, t1)] if k == 0 else [(t0, t0 + 0.01), (t0 + 0.01, t1)]):
+                mb.face([(*p, zt) for p in ccw([P(ta, sa, lg), P(tb_, sa, lg), P(tb_, sb, lg), P(ta, sb, lg)])], 'concrete')
 
     # an apron in front of the foot, down to the ground: the foot crosses the bank's fall, so that its last tread stands
     # up to a third of a metre over the ground at its low side
