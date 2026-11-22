@@ -27,7 +27,7 @@ import { WalkLabels } from './labels.js';
 import { Bubbles } from './talk.js';
 import { FountainWater } from './water/fountain.js';
 import { Birthday } from './birthday.js';
-import { startPlaces, NORTH } from './places.js';
+import { startPlaces, NORTH, AREAS, OTHER_AREA } from './places.js';
 import { SunMap, bakeSunMap } from './bakedshadow.js';
 import { Blobs } from './blobs.js';
 import { Birds } from './birds.js';
@@ -773,10 +773,15 @@ async function main() {
     })
     .filter(Boolean);
   const placeEl = $('#place-pick');
-  for (const group of ['추억 장소', '건물']) {
-    const og = Object.assign(document.createElement('optgroup'), { label: group });
-    places.forEach((p, i) => { if (p.group === group) og.appendChild(new Option(p.name, i)); });
-    placeEl.appendChild(og);
+  // one group per area (places.js AREAS), names in 가나다 order, ★ the memory spots; 정문 (value '') heads the first
+  placeEl.title = '★ 추억 카드가 있는 곳';
+  const gate = placeEl.querySelector('option[value=""]');
+  for (const area of [...AREAS.map(([a]) => a), OTHER_AREA]) {
+    const og = Object.assign(document.createElement('optgroup'), { label: area });
+    if (area === AREAS[0][0] && gate) { gate.textContent = '정문 ★'; og.appendChild(gate); }
+    places.map((p, i) => [p, i]).filter(([p]) => p.group === area).sort(([a], [b]) => a.name.localeCompare(b.name, 'ko'))
+      .forEach(([p, i]) => og.appendChild(new Option(p.memory ? `${p.name} ★` : p.name, i)));
+    if (og.children.length) placeEl.appendChild(og);
   }
   heroPlace = (id) => { const i = places.findIndex((p) => p.name === HERO[id]?.place); placeEl.value = i < 0 ? '' : i; };
   heroPlace(heroId);
