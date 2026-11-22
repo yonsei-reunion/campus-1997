@@ -6695,6 +6695,50 @@ def yongjae():
 
 
 # ============================================================================= 음악관 서쪽 계단 (「음대 계단」)
+def eng_stone():
+    """The standing stone before 제1공학관 (campus.json eng_stone; reference/동문_이중윤/졸업식날_공대_앞_선돌.jpg, its place
+    from the 1996 - 1999 scans: reference/고증/3.8_제1공학관.md 「앞마당의 선돌」): a rough grey stone set upright in the lawn,
+    about twice a man's height, a little wider than deep, tapering a little, its top sloping off to one side with a
+    crack down from it.  Local frame: pos, rotated rot degrees; the foot sunk 0.3 m."""
+    E = CAMPUS.get('eng_stone')
+    if not E:
+        return []
+    import random
+    rr = random.Random(1997)
+    mb = MeshBuilder('lm_eng_stone')
+    (x, y), h, w, d = E['pos'], E['h'], E['w'], E['d']
+    g = min(ground_top(x + dx, y + dy) for dx in (-w / 2, w / 2) for dy in (-d / 2, d / 2))
+    mb.xf = local_frame(x, y, math.radians(E.get('rot', 0.0)), g - 0.3)
+    K, R = 12, 9
+    jit = [1.0 + rr.uniform(-0.12, 0.12) for _ in range(K)]
+    rings = []
+    for j in range(R + 1):
+        f = j / R
+        z = (h + 0.3) * f
+        sc = 1.0 - 0.18 * f + 0.04 * math.sin(f * 5.0)              # (a little narrower up, a bulge or two)
+        cut = max(0.0, f - 0.82) / 0.18                               # (the top: off to one side, rounded)
+        ring = []
+        for k in range(K):
+            a = 2 * math.pi * k / K
+            rx, ry = w / 2 * math.cos(a) * jit[k] * sc, d / 2 * math.sin(a) * jit[(k + j) % K] * sc
+            zk = z - cut * (0.35 + 0.25 * math.cos(a)) * (h * 0.12)
+            ring.append((rx * (1.0 - 0.55 * cut ** 2) + 0.04 * f, ry * (1.0 - 0.55 * cut ** 2), zk))
+        rings.append(ring)
+    for j in range(R):
+        for k in range(K):
+            k2 = (k + 1) % K
+            mb.face([rings[j][k], rings[j][k2], rings[j + 1][k2], rings[j + 1][k]], 'stone_boulder', smooth='eng_stone')
+    top = rings[-1]
+    cz = sum(p[2] for p in top) / K + 0.06
+    for k in range(K):
+        mb.face([top[k], top[(k + 1) % K], (0.04, 0.0, cz)], 'stone_boulder', smooth='eng_stone')
+    # the crack down from the top on its face: a dark sliver
+    mb.face([(-0.06, -d / 2 * 0.86 - 0.012, h * 0.62), (-0.02, -d / 2 * 0.84 - 0.012, h * 0.62),
+             (0.03, -d / 2 * 0.80 - 0.012, h * 1.0), (-0.01, -d / 2 * 0.80 - 0.012, h * 1.0)], 'metal_dark')
+    print('제1공학관 앞 선돌: (%.1f, %.1f) %.1f m' % (x, y, h))
+    return [mb]
+
+
 def music_stair():
     """The long flight from 음악관's west yard down the wooded bank to 대강당's south-east corner (campus.json music_stair,
     tools/build_campus.py MUSIC_STAIR97): its line and length from the leafless scans of 1996, its look from

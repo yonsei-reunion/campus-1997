@@ -12872,6 +12872,15 @@ _kb_t = math.radians(kwangbok97.KB_ANG)
 for u_, v_ in KB_BOLLARDS:
     out['props'].append(['bollard', round(kwangbok97.KB_O[0] + u_ * math.cos(_kb_t) - v_ * math.sin(_kb_t), 2),
                          round(kwangbok97.KB_O[1] + u_ * math.sin(_kb_t) + v_ * math.cos(_kb_t), 2), 0.0])
+# 제1공학관 앞 선돌 (reference/고증/3.8_제1공학관.md 「앞마당의 선돌」; reference/동문_이중윤/졸업식날_공대_앞_선돌.jpg, the
+# user: 「제1공학관 앞」): the 1996 - 1999 scans show no stone in the open forecourt, so its place is inferred: from the
+# photo's storeys the stone stands 17 - 19 m before the east face (a 35 - 40 mm lens puts it on the south garden's north
+# edge), a big conifer 1 - 3 m behind it -- the scans' conifer at the garden's north-west corner (crown 4.6 m across,
+# widest 2.5 - 3 m up), which the game lacked.  In the lawn 0.8 m in from the garden's edge, north-east of the conifer,
+# its broad face to the forecourt.  Late: the stone a collider here, the conifer at the trees' very end (below)
+ENG_STONE = dict(pos=[-101.3, -263.0], h=3.5, w=0.7, d=0.5, rot=135.0)
+out['eng_stone'] = ENG_STONE
+out['colliders'].append(_dz_box(ENG_STONE['pos'], math.radians(ENG_STONE['rot']), 0.42, 0.32))
 if os.environ.get('Y97_WORK_DUMP'):          # (the working datum's own result, to compare two builds on it)
     os.makedirs(os.environ['Y97_WORK_DUMP'], exist_ok=True)
     json.dump(out, open(os.path.join(os.environ['Y97_WORK_DUMP'], 'campus.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
@@ -13219,6 +13228,7 @@ out['trees'] += MUAK_ROW_MORE
 # 장기원 기념관 동쪽 띠 위 큰 나무 둘 (tools/jk97.py EAST_TREES, 2026-11-22: 1996년 겨울 네 장의 줄기 · 그림자로 읽은
 # 밑동): at the trees' very end; the band had no tree in the list (east_clear above only moves the lane's)
 out['trees'] += jk97.east_trees()
+out['trees'].append(['fir', -104.0, -264.3, 0.55, 2.1])     # (제1공학관 앞 선돌 뒤 침엽수: ENG_STONE above)
 # 동문의 섬 관목 · 가로등 (tools/dongmun.py shrubs · props): at the lists' very end, after every other append
 out['shrubs'] += dongmun.shrubs()
 out['props'] += dongmun.props()
