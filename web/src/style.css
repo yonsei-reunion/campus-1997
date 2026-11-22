@@ -59,11 +59,27 @@ h1 span { color: var(--ink); font-size: .72em; }
 .pick-label .hint { margin-left: 4px; font-weight: 400; font-size: 12px; color: #7a8492; }
 .season-pick button { border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 6px 14px; font-size: 14px; font-weight: 700; }
 .season-pick button.on { background: var(--yellow); }
+.season-pick small, .season-pick i { font: inherit; }   /* (the title card's: the month on a line of its own on a phone) */
 /* hero picker */
 .pick-label { display: block; margin: 2px 0 6px; font-weight: 700; font-size: 14px; }
 #hero-who { margin-left: 6px; font-weight: 400; color: var(--mint-ink); }
-#place-pick { display: block; width: 100%; margin: 0 0 14px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; color: var(--ink);
+/* 어디서 출발할까요?: the label and the list on one line */
+.place-row { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.place-row .pick-label { flex: none; margin: 0; }
+#place-pick { display: block; flex: 1; min-width: 0; border: 2px solid var(--ink); border-radius: 10px; background: #fff; color: var(--ink);
   padding: 8px 12px; font: 700 15px var(--font); cursor: pointer; }
+/* what to do (캠퍼스 산책 · 미니 게임 · 조작법): folder tabs over one panel at a time (main.js showTab) */
+.intro-tabs { display: flex; gap: 4px; margin: 2px 0 0; padding: 0 2px; border-bottom: 2px solid var(--ink); }
+.intro-tabs button { flex: 1; padding: 9px 6px 7px; border: 2px solid transparent; border-bottom: 0; border-radius: 10px 10px 0 0;
+  background: #efe9d8; color: #6a7380; font: 400 17px var(--title); white-space: nowrap; }
+.intro-tabs button[aria-selected="true"] { margin-bottom: -2px; background: var(--paper); color: var(--ink); border-color: var(--ink); padding-bottom: 9px; }
+.intro-tabs button[aria-selected="false"]:hover { color: var(--ink); background: #f6f0de; }
+.intro-tabs small { display: inline-block; margin-left: 3px; padding: 0 6px; border-radius: 99px; background: var(--yellow); color: var(--ink);
+  font: 800 11px/17px var(--font); vertical-align: 2px; }
+.intro-panel { padding: 14px 0 0; }
+body.game-shoot .intro-tabs small { display: none; }   /* (?game=shoot: the one game) */
+.intro-panel[hidden] { display: none !important; }
+.intro-panel .keys, .intro-panel .keys-touch { margin-top: 0; }
 #place-pick:disabled { opacity: .45; cursor: progress; }
 #hero-pick { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 3px; margin-bottom: 14px; min-height: 40px; }
 #hero-pick button { border: 2px solid #d9d3c3; background: linear-gradient(180deg, #e6f4f2, #fdf8e1); border-radius: 10px; padding: 4px 2px 6px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 2px; }
@@ -129,8 +145,6 @@ h1 span { color: var(--ink); font-size: .72em; }
 #start:not(:disabled) { box-shadow: 0 4px 0 #0b2659, 0 8px 18px rgba(14, 22, 34, .25); }
 #start:disabled { background: #8d9cc0; box-shadow: 0 4px 0 #6f7da0; cursor: progress; }
 .start-more { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-.howto-label { margin-top: 16px; }
-.howto-label + .keys { margin-top: 6px; }
 .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 10px; margin: 16px 0 0; font-size: 12px; }
 .keys div { display: flex; gap: 6px; align-items: baseline; }
 .keys dt { font-weight: 800; white-space: nowrap; }
@@ -287,9 +301,11 @@ body.birds #stamps { display: none; }
 #tour-start, #memo-title { width: 100%; border: 2px solid var(--ink); background: #fff; color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); cursor: pointer; }
 #tour-start:disabled { opacity: .45; cursor: progress; }
 /* the 1-minute basketball game (src/shootout.js) and its view; ./?game=shoot makes it the card's own (body.game-shoot) */
-#minigame { margin-top: 12px; padding-top: 10px; border-top: 1.5px dashed #d8d0bb; }
-#minigame .pick-label { margin-bottom: 6px; }
-#shoot-best { margin-left: 6px; font-weight: 400; color: var(--mint-ink); }
+/* 최고 기록 · 슛 게임 순위 under the basketball button, gone while there is neither */
+.mg-head { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin: 6px 0 0; font-size: 13px; }
+.mg-head:has(#shoot-best:empty):has(#shoot-rank[hidden]) { display: none; }
+.mg-head .newsbtn { margin: 0; }
+#shoot-best { font-weight: 700; color: var(--mint-ink); }
 #shoot-start { display: block; width: 100%; border: 2px solid var(--ink); background: var(--yellow); color: var(--ink); border-radius: 10px; padding: 10px; font-size: 16px; font-family: var(--title); }
 #shoot-start:disabled { opacity: .45; cursor: progress; }
 /* the other mini games, two to a row (each game's own css comes with it when it starts) */
@@ -312,14 +328,16 @@ body.birds #stamps { display: none; }
 .view-pick button.on { background: var(--ink); color: #fff; }
 .walk-link { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--mint-ink); }
 .mg-url { margin: 8px 0 0; font-size: 12px; color: #5c6572; line-height: 1.7; }
+/* (the title card's: on one line, the address cut short at the end; 주소 복사 copies it whole) */
+#minigame .mg-url { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+#minigame .mg-url select, #minigame .mg-url code, #minigame .mg-url .newsbtn { margin: 0; }
+#minigame .mg-url code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .mg-url code { margin: 0 2px 0 6px; padding: 1px 6px; border-radius: 5px; background: #f3efe2; color: var(--ink); font: 600 12px var(--font); word-break: break-all;
   -webkit-user-select: all; user-select: all; }
 .mg-url select { margin: 0 0 0 6px; border: 1.5px solid #cfc6ae; border-radius: 6px; background: #fff; color: var(--ink); font: 600 12px var(--font); padding: 1px 4px; }
 #pause .mg-url { margin-top: 10px; }
 .newsbtn.done { background: var(--mint-ink); color: #fff; }
 body:not(.game-shoot) .game-only, body.game-shoot .walk-only { display: none !important; }
-body.game-shoot #start, body.game-shoot .start-more, body.game-shoot label[for="place-pick"], body.game-shoot #place-pick { display: none; }
-body.game-shoot #minigame { margin-top: 0; padding-top: 0; border-top: 0; }
 body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: 0 4px 0 #0b2659; }
 /* the menu's mini games: into one (or out of the one under way: .quit, on a row of its own) */
 .go-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -350,7 +368,28 @@ body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(-
 
 @media (max-width: 640px) {
   .keys { grid-template-columns: repeat(2, 1fr); }
-  #hero-pick { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  /* the title card on a phone: everything up to the tabs on the first screen. The heroes in one row that scrolls
+     sideways (the faded edge says there are more), the months over the seasons so the view fits beside them */
+  #intro { padding: 10px; }
+  #hero-pick { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; gap: 4px; margin-bottom: 12px;
+    -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+  #hero-pick::-webkit-scrollbar { display: none; }
+  #hero-pick.end { -webkit-mask-image: none; mask-image: none; }
+  #hero-pick button { flex: 0 0 50px; scroll-snap-align: start; }
+  .lead { font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+  #intro h1 { margin-bottom: 10px; }
+  #intro .when-row { flex-wrap: nowrap; margin-bottom: 12px; }
+  #intro .season-pick { flex-wrap: nowrap; gap: 5px; }
+  #intro .season-pick button { display: flex; flex-direction: column; align-items: center; padding: 3px 12px 4px; border-radius: 12px; font-size: 14px; line-height: 1.2; }
+  #intro .season-pick small { font-size: 11px; font-weight: 700; opacity: .75; }
+  #intro .season-pick i { display: none; }
+  #intro .when-row .view-pick { height: 44px; flex: none; }
+  #intro .view-pick button { padding: 0 10px; }
+  .place-row .pick-label { font-size: 13px; }
+  .intro-tabs button { font-size: 16px; padding: 8px 4px 6px; }
+  .intro-tabs button[aria-selected="true"] { padding-bottom: 8px; }
+  #minigame .mg-url > span { display: none; }
+  #minigame .mg-grid button { padding: 9px 6px; }
   #minimap { width: 120px; height: 120px; }
   #stamps { top: calc(146px + var(--st)); width: 120px; }
   #hudbtns { top: calc(196px + var(--st)); width: 120px; }
@@ -364,7 +403,7 @@ body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(-
   .menu-foot { padding: 10px 18px 14px; }
   #birdbar { bottom: 150px; flex-wrap: wrap; justify-content: center; }
   #place b { font-size: 18px; }
-  .intro-card { padding: 22px 18px; }
+  .intro-card { padding: 20px 16px 18px; max-height: calc(100vh - 20px); max-height: calc(100dvh - 20px); }
   #waitbox { height: 104px; gap: 10px; padding: 0 10px; }
   .pager { width: 80px; padding: 7px 6px 13px; }
   .pager .lcd input { font-size: 16px; letter-spacing: 0; }   /* (16 px: iOS zooms into a smaller field) */

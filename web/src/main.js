@@ -44,8 +44,31 @@ const canvas = $('#view');
 // ./?game=shoot: the title card is the 1-minute basketball game's (style.css body.game-shoot); ./?game=<key> of another
 // mini game (util.js GAMES): its button first and large on the title card
 const GAME_PARAM = new URLSearchParams(location.search).get('game');
+// the title card's tabs (캠퍼스 산책 · 미니 게임 · 조작법): one panel at a time, arrow keys between the tabs
+const introTabs = [...document.querySelectorAll('.intro-tabs [role=tab]')];
+const showTab = (tab, focus = false) => {
+  for (const t of introTabs) {
+    const on = t === tab;
+    t.setAttribute('aria-selected', on);
+    t.tabIndex = on ? 0 : -1;
+    $(`#${t.getAttribute('aria-controls')}`).hidden = !on;
+  }
+  if (focus) tab.focus();
+};
+for (const t of introTabs) {
+  t.addEventListener('click', () => showTab(t));
+  t.addEventListener('keydown', (e) => {
+    const shown = introTabs.filter((x) => x.offsetParent);
+    const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    showTab(shown[(shown.indexOf(t) + d + shown.length) % shown.length], true);
+  });
+}
 if (GAME_PARAM === 'shoot') document.body.classList.add('game-shoot');
-else if (GAMES[GAME_PARAM]) {
+if (GAME_PARAM === 'shoot' || GAMES[GAME_PARAM]) showTab($('#tab-games'));
+else showTab($('#tab-walk'));
+if (GAME_PARAM !== 'shoot' && GAMES[GAME_PARAM]) {
   const b = $(`#${GAME_PARAM}-start`);
   b?.classList.add('picked');
   requestAnimationFrame(() => b?.scrollIntoView({ block: 'nearest' }));
@@ -742,6 +765,12 @@ async function main() {
     pickEl.appendChild(b);
   }
   pickHero(heroId);
+  // (a phone shows the heroes in one row that scrolls sideways, style.css: the one picked in sight, the fade gone at the end)
+  const pickEnd = () => pickEl.classList.toggle('end', pickEl.scrollLeft + pickEl.clientWidth >= pickEl.scrollWidth - 2);
+  pickEl.addEventListener('scroll', pickEnd, { passive: true });
+  const onBtn = pickEl.querySelector('button.on');
+  if (onBtn && pickEl.scrollWidth > pickEl.clientWidth) pickEl.scrollLeft = onBtn.offsetLeft - pickEl.offsetLeft - 4;
+  pickEnd();
   // 「크게 보기」: the hero picked, large (src/herozoom.js, loaded on the first press); its arrows pick the next one
   $('#hero-zoom').disabled = false;
   $('#hero-zoom').addEventListener('click', (e) => {
