@@ -2614,24 +2614,35 @@ def oesol_bust(st, z0, gfn):
 # 용재 백낙준 (the university's first president)'s seated bronze before the north half of 중앙도서관's front, put up by
 # the alumni association in May 1987 (오마이뉴스 2005-04-13; 한국민족문화대백과 「백낙준」) and there through 1991
 # (연합뉴스 1991-10-08: 한글탑 「도서관 앞 白樂濬 전 총장 동상의 맞은 편」), 1999 (연세춘추) and the photos of 2005,
-# 2007 and 2019 (reference/고증/3.2-3.3 「용재 동상」).  As in those photos: he sits upright in a doctor's gown over a
-# suit (shirt collar and tie, the hood's band round the neck, wide sleeves, the gown to mid-shin, the trousers' cuffs
-# and shoes below) in a high-backed armchair with boxy arms and closed sides, the right hand on the end of the right
-# arm, the left holding a mortarboard on the left knee, the feet apart; a block of light granite with a thin slab
-# set in on it and a black plaque high on its front.  Its place and size from the scans of 1996 - 1999 (reference/고증/
-# 3.2-3.3 「용재 동상」): the slab's top 2.3 m over the paved strip it stands at the head of, the crown 1.8 m over it,
-# the same in all three years.  So the figure is built for a head (crown to chin) of 0.28 m, its crown 1.40 m over the
-# chair's foot, and set up YJ_K times that; the stone after the 2019 front photo in head heights (the slab 3.6 wide
-# and 0.35 high on a block 4.0 wide, the plaque 1.9 x 1.4: the head 0.36 m at the statue's size), the block as deep
-# as the scans' top runs from the crown's place.  The face is a sketch.  Local frame: front = -Y (south), +X his
-# left, z = 0 on the lowest ground at the block's foot.
-YJ_K = 1.8 / 1.40                         # the figure and the chair: from the drawn size to the scans'
-YJ_BLOCK = (1.44, 2.0, 2.17)              # the granite block: width, depth, height over the ground at its foot
-YJ_SLAB = (1.30, 1.86, 0.13)              # the slab set on it (its top 2.3 m up)
-YJ_PLAQUE = (0.68, 0.50)                  # the black plaque on the block's front, its top 0.15 m under the block's
-YJ_BACK = 0.36                            # the chair this far back of the slab's middle (the crown 0.46 m behind it)
+# 2007 and 2019 (reference/고증/3.2-3.3 「용재 동상」).  As in those photos (연세춘추 2007: from the front with a long
+# lens, reference/연세춘추/2007-03-24_10503_874_2738_5018.jpg, and from his left side close below, ..._2737_4438.jpg;
+# 오마이뉴스 2005 from below): an old man with a broad round face, bald over short hair, in round spectacles, sits
+# upright in a doctor's gown over a suit - the shirt collar and tie under his chin, the hood's broad band from the
+# shoulders to a point on the breast, wide sleeves whose bags hang over the chair's arms, the gown falling from the
+# knees to mid-shin with its fronts apart between the legs, the trousers' turn-ups and heavy shoes below, the feet
+# apart; his right hand on the end of the chair's right arm, the left holding a mortarboard that lies on the lap
+# tipped up to his left.  The armchair: a closed box to the seat on a foot rail, square posts at the front carrying
+# the arm rails over an open gap, a thick back to his shoulders.  The whole modelled roughly, as in clay.
+# The stone: a block of light granite ashlar in two courses on a plinth course, a thin band proud of its top, a slab
+# set in on it, a black plate with 「용재 백낙준 박사상」 and the inscription high on the front.
+# Sizes (reference/고증/3.2-3.3 「용재 동상」, 「크기」): the proportions from the 2007 front photo (the figure 1, the
+# head 0.21, the chair 0.63 wide, the slab 0.78, the block 0.86, the slab's top 1.15 over the ground seen from the
+# plaza); the slab's top 2.2 m over the block's foot and the crown 2.0 m over it, by that photo's ratio within what
+# the scans of 1996 - 1999 measure (the top 2.3 m, the crown 4.1 m over the strip).  The figure is sculpted densely
+# and baked onto a light mesh (yongjae_sculpt, blender/sculpt.py); its head and hands start from the Blender
+# Foundation's CC0 "Human Base Meshes".  Local frame: front = -Y (south), +X his left, z = 0 on the lowest ground
+# at the block's foot; the sculpt's own z = 0 is the slab's top.
+YJ_H = 2.0                                # the figure: the slab's top to the crown
+YJ_BLOCK = (1.72, 2.12, 2.03)             # the granite block: width, depth, its top over the ground at its foot
+YJ_PLINTH = (0.25, 0.04)                  # its plinth course: height, how far it stands out
+YJ_BAND = (0.045, 0.012)                  # the band on its top: height, how far it stands out
+YJ_SLAB = (1.56, 1.96, 0.125)             # the slab set in on it (its top 2.2 m up)
+YJ_PLAQUE = (0.80, 0.61, 0.16)            # the black plate on the block's front: width, height, its top under the block's
+YJ_BACK = 0.27                            # the chair's frame this far back of the slab's middle (the toes 0.14 m from its front)
 YJ_STRIP = (-1.5, 1.6, -5.75, 1.7)       # the paved strip from the head of its steps to the block (x0, x1, y0, y1; the scans)
-YJ_CHAIR = dict(w=0.85, y0=-0.26, y1=0.44, seat=0.40, arm=0.70, arm_w=0.11, back=1.06, back_d=0.14)
+# the chair (m, at the statue's size; z = 0 on the slab)
+YJ_CHAIR = dict(w=1.27, y0=-0.45, y1=0.60, seat=0.64, rail0=0.92, rail1=1.04, rail_w=0.17, post=0.14, back=1.46,
+                back_d=0.16, foot=0.09)
 
 
 def _yj_rows(sp, rows, n=28, k=3.0):
@@ -2650,67 +2661,570 @@ def _yj_rows(sp, rows, n=28, k=3.0):
     sp.loft(rings)
 
 
-def yongjae_figure():
-    """the seated figure, the chair's foot on z = 0, as one smooth bronze skin (sculpt.union); the chair apart"""
+def _yj_box(sp, lo, hi, r=0.0, n=4):
+    """a box lo..hi, its upright edges rounded by r"""
+    (x0, y0, z0), (x1, y1, z1) = lo, hi
+    if r <= 0:
+        ring = lambda z: [(x0, y0, z), (x1, y0, z), (x1, y1, z), (x0, y1, z)]
+    else:
+        def ring(z):
+            out = []
+            for cx, cy, a0 in ((x1 - r, y1 - r, 0), (x0 + r, y1 - r, 90), (x0 + r, y0 + r, 180), (x1 - r, y0 + r, 270)):
+                for k in range(n + 1):
+                    a = math.radians(a0 + 90 * k / n)
+                    out.append((cx + r * math.cos(a), cy + r * math.sin(a), z))
+            return out
+    sp.loft([ring(z0), ring(z1)])
+
+
+def _yj_chair(sp):
+    """the armchair: a closed box to the seat on a foot rail, square posts at the front carrying the arm rails over an
+    open gap, a thick high back leaning a little"""
+    c = YJ_CHAIR
+    w, y0, y1 = c['w'] / 2, c['y0'], c['y1']
+    _yj_box(sp, (-w - 0.02, y0 - 0.02, 0.0), (w + 0.02, y1 + 0.02, c['foot']), 0.012)          # the foot rail
+    _yj_box(sp, (-w, y0 + 0.035, 0.0), (w, y1, c['seat']), 0.012)                                # the box under the seat
+    for sx in (-1, 1):
+        xa, xb = sorted((sx * (w - c['post']), sx * w))
+        _yj_box(sp, (xa, y0, 0.0), (xb, y0 + c['post'], c['rail1'] - 0.02), 0.015)               # the front post
+        xa, xb = sorted((sx * (w - c['rail_w'] + 0.01), sx * (w + 0.015)))
+        _yj_box(sp, (xa, y0 - 0.025, c['rail0']), (xb, y1 - 0.02, c['rail1']), 0.02)             # the arm rail
+        xa, xb = sorted((sx * (w - 0.10), sx * w))
+        _yj_box(sp, (xa, y1 - c['back_d'] - 0.02, 0.0), (xb, y1, c['rail1']), 0.012)             # the back post under it
+    # the back: a slab leaning 4 degrees, its top rounded
+    yb = y1 - c['back_d']
+    rows = []
+    for z, dw in ((0.0, 0.0), (0.6, 0.0), (1.2, 0.0), (c['back'] - 0.06, 0.0), (c['back'] - 0.015, -0.02), (c['back'], -0.06)):
+        lean = 0.07 * max(0.0, z - c['seat'])
+        rows.append([(-w - dw, yb + lean, z), (w + dw, yb + lean, z), (w + dw, y1 + lean, z), (-w - dw, y1 + lean, z)])
+    sp.loft(rows)
+
+
+def _yj_sm(a, b, x):
+    t = min(max((x - a) / (b - a), 0.0), 1.0)
+    return t * t * (3 - 2 * t)
+
+
+def _yj_se(a, b, k, n, xc=0.0, yc=0.0):
+    """points round a superellipse (half-axes a, b), from +x counter-clockwise"""
+    out = []
+    for i in range(n):
+        t = 2 * math.pi * i / n
+        c, s = math.cos(t), math.sin(t)
+        out.append((xc + a * math.copysign(abs(c) ** (2 / k), c), yc + b * math.copysign(abs(s) ** (2 / k), s), t))
+    return out
+
+
+def _yj_skirt(sp):
+    """the gown from the knees down: hanging in front of the shins and round their outsides to a wavy hem, cut up in
+    an inverted V between the legs (the fronts fall apart there); hollow from below"""
+    n = 120
+    rnd = random.Random(1987)
+    ph = [rnd.uniform(0, 6.28) for _ in range(4)]
+
+    def hem(x, f):
+        v = 0.42 + 0.17 * max(0.0, 1 - abs(x) / 0.25) ** 1.1
+        return v + 0.02 * math.sin(x * 17 + ph[0]) + 0.012 * math.sin(x * 31 + ph[1]) + 0.06 * (1 - f)
+
+    def top(x, f):
+        return 0.76 + 0.075 * math.exp(-((abs(x) - 0.36) / 0.15) ** 2) * f
+
+    outer, inner = [], []
+    rows = 14
+    for j in range(rows + 1):
+        t = j / rows
+        ring = []
+        for x, y, a in _yj_se(0.535 + 0.02 * t, 0.19 + 0.10 * t, 3.6, n, yc=-0.585):
+            f = max(0.0, -math.sin(a)) ** 0.6                       # 1 in front, 0 at the back
+            sag = (0.10 + 0.05 * t) * math.exp(-(x / 0.17) ** 2) * f
+            sag += 0.06 * _yj_sm(0.44, 0.60, abs(x)) * f * (1 - t)      # round the outside of the knee
+            fold = t ** 1.3 * f * (0.032 * math.cos(9 * a + ph[2]) + 0.016 * math.cos(17 * a + ph[3]))
+            r = 1 + fold / 0.4
+            zt, zh = top(x, f), hem(x, f)
+            ring.append((x * r, -0.585 + (y + sag + 0.585) * r, zt - (zt - zh) * t))
+        outer.append(ring)
+    th = 0.055
+    for j in range(rows, rows // 3, -2):                     # hollow from below: the inside of the cloth
+        ring = []
+        R_ = outer[j]
+        for i, ((x, y, z), (x0, y0, z0)) in enumerate(zip(R_, outer[0])):
+            (xa, ya, _), (xb, yb, _) = R_[i - 1], R_[(i + 1) % n]
+            tx, ty = xb - xa, yb - ya
+            L = math.hypot(tx, ty) or 1.0
+            nx, ny = -ty / L, tx / L                         # (the ring runs counter-clockwise: its left is inside)
+            ring.append((x + nx * th, y + ny * th, min(z + 0.004, z0 - 0.07)))
+        inner.append(ring)
+    sp.loft(outer + inner)
+
+
+def _yj_shoe(sp, sx):
+    """a heavy round-toed shoe with a thick sole, the toe turned a little out"""
+    ax, ay = sx * 0.33, -0.70
+    q = Matrix.Rotation(math.radians(-sx * 7), 3, 'Z')
+    rows = []
+    # along the foot: (y from the ankle, half-width, height)
+    for y, w, h in ((-0.115, 0.055, 0.10), (-0.09, 0.085, 0.16), (-0.02, 0.10, 0.20), (0.06, 0.105, 0.21), (0.14, 0.11, 0.185),
+                    (0.22, 0.115, 0.15), (0.30, 0.115, 0.125), (0.36, 0.10, 0.115), (0.395, 0.07, 0.10), (0.41, 0.03, 0.08)):
+        ring = []
+        for i in range(20):
+            t = 2 * math.pi * i / 20
+            c, s = math.cos(t), math.sin(t)
+            p = q @ Vector((w * math.copysign(abs(c) ** 0.8, c), -y, 0))
+            ring.append((ax + p.x, ay + p.y, max(0.0, h / 2 + h / 2 * math.copysign(abs(s) ** 0.7, s))))
+        rows.append(ring)
+    sp.loft(rows)
+
+
+def _yj_solids():
+    """the clothed body, the chair and the mortarboard as closed solids (one union)"""
     sp = _Soup()
-    # the gown from the waist down: over the seat and the thighs, falling in front of the shins to its hem
-    _yj_rows(sp, [(0.22, -0.30, -0.47, 0.30), (0.30, -0.28, -0.48, 0.30), (0.40, 0.30, -0.49, 0.30),
-                  (0.48, 0.30, -0.49, 0.30), (0.54, 0.29, -0.47, 0.29), (0.585, 0.27, -0.40, 0.27),
-                  (0.63, 0.25, -0.18, 0.25), (0.68, 0.24, -0.04, 0.235), (0.74, 0.24, 0.0, 0.23)])
+    _yj_chair(sp)
+    R = _yj_rows
+    # the trunk in the gown, leaning back against the chair: stout, the shoulders sloping
+    R(sp, [(0.62, 0.45, -0.10, 0.37), (0.80, 0.46, -0.15, 0.375), (0.95, 0.47, -0.165, 0.375), (1.10, 0.47, -0.15, 0.37),
+           (1.25, 0.47, -0.12, 0.365), (1.38, 0.46, -0.09, 0.365), (1.47, 0.45, -0.055, 0.35), (1.53, 0.42, -0.035, 0.29),
+           (1.58, 0.33, -0.02, 0.19), (1.63, 0.27, -0.01, 0.14)], n=40, k=2.6)
+    for sx in (-1, 1):                                                                 # the shoulders, sloping from the neck
+        sp.capsule((sx * 0.13, 0.20, 1.545), (sx * 0.41, 0.21, 1.43), 0.10, 0.115)
+    sp.capsule((0, 0.17, 1.45), (0, 0.13, 1.61), 0.155, 0.13)                          # the neck's foot
+    # the lap: the thighs under the gown, the cloth between them and over the seat
+    sp.ellipsoid((0, 0.0, 0.70), (0.50, 0.44, 0.11))
+    sp.ellipsoid((0, -0.36, 0.735), (0.33, 0.32, 0.085))
     for sx in (-1, 1):
-        sp.ellipsoid((sx * 0.15, -0.39, 0.53), (0.10, 0.10, 0.055))        # the knee under the gown
-        sp.capsule((sx * 0.20, -0.40, 0.30), (sx * 0.215, -0.42, 0.08), 0.068, 0.062)   # the trouser leg below the hem
-        sp.ellipsoid((sx * 0.215, -0.47, 0.05), (0.062, 0.13, 0.05))       # the shoe
-    # the trunk in the gown, the shoulders broad with its fullness, the neck and the head
-    sp.ellipsoid((0, 0.12, 0.80), (0.235, 0.15, 0.14))
-    sp.ellipsoid((0, 0.13, 0.93), (0.25, 0.145, 0.14))
-    sp.capsule((-0.22, 0.14, 1.00), (0.22, 0.14, 1.00), 0.085)
-    sp.capsule((0, 0.12, 1.02), (0, 0.10, 1.13), 0.06)
-    sp.ellipsoid((0, 0.08, 1.262), (0.112, 0.118, 0.14))                    # head (crown 1.40, chin 1.12)
-    sp.ellipsoid((0, 0.06, 1.19), (0.095, 0.095, 0.07))                     # the lower face, broad
-    sp.ellipsoid((0, -0.035, 1.24), (0.018, 0.02, 0.028))                   # nose
+        sp.capsule((sx * 0.25, 0.12, 0.76), (sx * 0.36, -0.59, 0.715), 0.155, 0.135)
+        sp.ellipsoid((sx * 0.47, -0.25, 0.70), (0.09, 0.30, 0.10))                    # the gown lying beside the thigh
+        # the trouser leg, its turn-up, the shoe
+        sp.capsule((sx * 0.36, -0.60, 0.70), (sx * 0.335, -0.69, 0.25), 0.12, 0.115)
+        sp.loft([[(sx * 0.335 + r * math.cos(a), -0.695 + r * 1.05 * math.sin(a), z) for a in (2 * math.pi * i / 24 for i in range(24))]
+                 for z, r in ((0.12, 0.105), (0.15, 0.124), (0.22, 0.128), (0.245, 0.12))])
+        _yj_shoe(sp, sx)
+    _yj_skirt(sp)
+    # the arms in the wide sleeves.  His right: the forearm along the chair's arm, the hand on the post's end, the
+    # sleeve's open end hanging outside the arm; his left: the forearm in over the lap to the mortarboard
+    A = dict()
+    A[-1] = (Vector((-0.43, 0.22, 1.39)), Vector((-0.555, 0.24, 1.15)), Vector((-0.565, -0.25, 1.10)))
+    A[1] = (Vector((0.43, 0.22, 1.39)), Vector((0.56, 0.20, 1.15)), Vector((0.50, -0.26, 1.07)))
+    for sx, (S, E, W) in A.items():
+        sp.capsule(S, E, 0.125, 0.15)
+        sp.capsule(E, E.lerp(W, 0.8), 0.145, 0.115)
+        sp.capsule(E.lerp(W, 0.7), W, 0.10, 0.07)
+        # the sleeve's bag under the forearm, over the rail and down its outside
+        sp.ellipsoid((sx * 0.635, 0.13, 1.03), (0.085, 0.27, 0.17), _eq('X', -8))
+        sp.ellipsoid((sx * 0.585, 0.0, 1.08), (0.11, 0.24, 0.09))
+    # the mortarboard on the lap, tipped up to his left; its cap under it
+    q = _eq('Y', -9) @ _eq('X', 5)
+    Mb = Matrix.Translation((0.215, -0.40, 0.985)) @ q.to_matrix().to_4x4()
+    sp.loft([[tuple(Mb @ Vector((x, y, z))) for x, y in ((-0.255, -0.255), (0.255, -0.255), (0.255, 0.255), (-0.255, 0.255))]
+             for z in (-0.016, 0.016)])
+    sp.ellipsoid((0.215, -0.38, 0.915), (0.18, 0.18, 0.085))
+    return sp, A
+
+
+def _band(ob, lines, half, height, soft=0.006, facing=None):
+    """A flat band of cloth laid on the surface: everything within `half` of the polylines `lines` (on the surface)
+    stands `height` proud, its edges `soft` wide."""
+    P = sculpt.co(ob)
+    N = sculpt.normals(ob)
+    best = np.full(len(P), 1e9, np.float32)
+    lo = np.min([np.min(np.asarray(l), 0) for l in lines], 0) - half - 2 * soft
+    hi = np.max([np.max(np.asarray(l), 0) for l in lines], 0) + half + 2 * soft
+    box = np.all((P > lo) & (P < hi), axis=1)
+    if facing is not None:
+        box &= N @ np.asarray(facing[0], np.float32) > facing[1]
+    idx = np.nonzero(box)[0]
+    for l in lines:
+        l = np.asarray(l, np.float32)
+        d, _ = sculpt._seg_dist(P[idx], l[:-1], l[1:])
+        best[idx] = np.minimum(best[idx], d)
+    w = _smooth01(half + soft, half - soft, best[idx])
+    P[idx] += N[idx] * (w * height)[:, None]
+    sculpt.set_co(ob, P)
+
+
+def _yj_tailor(ob):
+    """cut the clothes into the skin: the hood's band, the shirt and tie, the gown's pleats and folds, the cuffs"""
+    S_ = sculpt
+    tree = _tree(ob)
+    on = lambda pts, lift=0.0: _onto(tree, pts, lift)
+    def F(x, z):                                     # the point of the chest's front at (x, z)
+        loc, *_ = tree.ray_cast(Vector((x, -0.33, z)), Vector((0, 1, 0)))
+        return tuple(loc) if loc is not None else (x, -0.1, z)
+    # the shirt and tie inside the gown's neck
+    _relief(ob, [(-0.15, 1.62), (-0.10, 1.51), (0.0, 1.415), (0.10, 1.51), (0.15, 1.62)], -0.022, soft=0.006)
+    _relief(ob, [(-0.05, 1.615), (-0.036, 1.555), (-0.045, 1.48), (0.0, 1.425), (0.045, 1.48), (0.036, 1.555), (0.05, 1.615)],
+            0.02, soft=0.005)
+    tree = _tree(ob)
+    # the hood's band: from behind each shoulder over it and down to a point on the breast
+    lines = []
     for sx in (-1, 1):
-        sp.ellipsoid((sx * 0.11, 0.09, 1.25), (0.016, 0.03, 0.042))        # ears
-    # the hood's band from the shoulders down to a point on the chest; the shirt collar and the tie inside it
+        lines.append(on([(sx * 0.29, 0.36, 1.52), (sx * 0.285, 0.2, 1.56), (sx * 0.27, 0.06, 1.55)]) + [F(sx * 0.235, 1.505), F(sx * 0.16, 1.44), F(sx * 0.08, 1.375), F(0.0, 1.335)])
+    _band(ob, lines, 0.07, 0.022)
+    st = []
+    # the shirt collar's wings, the knot's lower edge
     for sx in (-1, 1):
-        sp.capsule((sx * 0.13, 0.15, 1.07), (sx * 0.17, 0.03, 1.02), 0.03)
-        sp.capsule((sx * 0.17, 0.03, 1.02), (sx * 0.03, -0.02, 0.88), 0.03, 0.022)
-    sp.capsule((0, -0.015, 1.04), (0, -0.02, 0.92), 0.022, 0.03)          # the tie
-    # the arms in the wide sleeves: the right (-X) along the chair's right arm to its end, the left forearm in to the
-    # mortarboard on the left knee
-    sp.capsule((-0.26, 0.15, 0.99), (-0.33, 0.12, 0.78), 0.09, 0.095)
-    sp.capsule((-0.33, 0.12, 0.78), (-0.35, -0.15, 0.76), 0.09, 0.095)      # the sleeve on the chair's arm
-    sp.ellipsoid((-0.36, -0.24, 0.735), (0.042, 0.075, 0.03), _eq('X', -10))  # the right hand over its end
-    sp.capsule((0.26, 0.15, 0.99), (0.33, 0.10, 0.77), 0.09, 0.095)
-    sp.capsule((0.33, 0.10, 0.77), (0.22, -0.20, 0.66), 0.095, 0.105)
-    sp.ellipsoid((0.20, -0.28, 0.65), (0.05, 0.08, 0.035), _eq('Y', 30))    # the left hand at the board's edge
-    sp.loft([[(x, y, z) for x, y in ((0.0, -0.40), (0.24, -0.40), (0.24, -0.16), (0.0, -0.16))]
-             for z in (0.60, 0.635)])                                       # the mortarboard, flat on the knee
-    sp.ellipsoid((0.12, -0.28, 0.60), (0.09, 0.09, 0.04))                   # its cap under the board
-    ob = sculpt.union([sp.build('yj_soup')], 0.008, smooth=4, factor=0.6, name='yj_high')
-    low = sculpt.lowpoly(ob, 10000, name='yj_low')
-    bpy.data.objects.remove(ob)
+        st.append(([F(sx * 0.03, 1.585), F(sx * 0.075, 1.565), F(sx * 0.115, 1.53)], 0.016, 0.009, (0.1, 0.3)))
+    st.append(([F(-0.04, 1.553), F(0.0, 1.545), F(0.04, 1.553)], 0.006, -0.005, (0.1, 0.1)))
+    # under the band's point: the gown's closing down the middle, a short tab at its head
+    st.append(([F(0.0, 1.305), F(0.0, 1.19)], 0.022, 0.010, (0.1, 0.3)))
+    st.append(([F(0.0, 1.22), F(0.0, 1.1), F(0.0, 0.99)], 0.008, -0.006, (0.05, 0.2)))
+    # the gown's fullness: pleats falling from the band to the lap, deeper below
+    rnd = random.Random(1895)
+    for sx in (-1, 1):
+        for x0, z0, h in ((0.10, 1.31, 0.012), (0.24, 1.4, 0.014)):
+            x1 = x0 + rnd.uniform(0.0, 0.04)
+            z1 = 0.96 + rnd.uniform(-0.03, 0.05)
+            st.append(([F(sx * x0, z0), F(sx * (x0 + x1) / 2, (z0 + z1) / 2), F(sx * x1, z1)], 0.05, h, (0.2, 0.25)))
+            st.append(([F(sx * (x0 + 0.07), z0 - 0.02), F(sx * (x1 + 0.075), z1 + 0.04)], 0.035, -0.010, (0.25, 0.25)))
+    S_.strokes(ob, st)
+    # the lap: the cloth hangs between the knees in swags, and falls from each knee in long folds
+    tree = _tree(ob)
+    T = lambda x, y: (x, y, 1.6)                     # (a point over the lap: brought down onto it)
+
+    def down(p):                                     # onto the surface straight down
+        loc, *_ = tree.ray_cast(Vector(p), Vector((0, 0, -1)))
+        return tuple(loc) if loc is not None else p
+
+    def back(p):                                     # onto the surface straight back (from in front)
+        loc, *_ = tree.ray_cast(Vector(p), Vector((0, 1, 0)))
+        return tuple(loc) if loc is not None else p
+    st = []
+    for y, dip, h in ((-0.50, 0.03, -0.012), (-0.60, 0.05, 0.012), (-0.69, 0.07, -0.014)):
+        st.append(([down(T(x, y + dip * (1 - (x / 0.3) ** 2))) for x in (-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3) if abs(x - 0.25) > 0.2 or y < -0.55],
+                   0.035, h, (0.2, 0.2)))
+    for sx in (-1, 1):
+        for x0, x1, z1, h, w in ((0.30, 0.22, 0.47, 0.016, 0.04), (0.38, 0.36, 0.40, -0.014, 0.035), (0.46, 0.50, 0.40, 0.016, 0.045),
+                                  (0.22, 0.14, 0.52, -0.012, 0.03), (0.53, 0.57, 0.46, -0.012, 0.035)):
+            pts = [back((sx * (x0 + (x1 - x0) * k / 4), -1.5, 0.80 - (0.80 - z1) * k / 4)) for k in range(5)]
+            st.append((pts, w, h, (0.15, 0.1)))
+        # the trouser leg's crease and its break over the shoe
+        st.append(([back((sx * 0.335, -1.5, z)) for z in (0.33, 0.28, 0.24)], 0.02, 0.006, (0.2, 0.1)))
+    S_.strokes(ob, st)
+
+
+def _yj_sleeves(ob, A):
+    """the wide sleeves: folds drawn from the shoulder to the bend of the elbow, the bag hanging in long folds"""
+    tree = _tree(ob)
+    st = []
+    rnd = random.Random(87)
+    for sx, (S, E, W) in A.items():
+        out = lambda p: tuple(tree.find_nearest(Vector(p))[0])
+        # across the upper arm, falling towards the elbow
+        for k in range(4):
+            f = k / 3
+            a = S.lerp(E, 0.1 + 0.55 * f) + Vector((sx * 0.02, -0.3, 0.12))
+            b = S.lerp(E, 0.45 + 0.5 * f) + Vector((sx * 0.3, -0.12, -0.02))
+            c = S.lerp(E, 0.7 + 0.4 * f) + Vector((sx * 0.3, 0.15, -0.12))
+            st.append(([out(a), out(a.lerp(b, 0.5)), out(b), out(b.lerp(c, 0.5)), out(c)], 0.045, 0.010 if k % 2 == 0 else -0.009, (0.25, 0.3)))
+        # down the hanging bag, outside the chair's arm
+        for k in range(5):
+            y = -0.12 + 0.11 * k + rnd.uniform(-0.02, 0.02)
+            pts = [out((sx * 1.2, y + 0.02 * j, 1.16 - 0.09 * j)) for j in range(5)]
+            st.append((pts, 0.06, 0.007 if k % 2 == 0 else -0.007, (0.3, 0.3)))
+        # the sleeve's mouth: a turned edge round the wrist
+        d = (W - E).normalized()
+        u = d.orthogonal().normalized()
+        v = d.cross(u)
+        ring = [out(W - d * 0.09 + (u * math.cos(a) + v * math.sin(a)) * 0.3) for a in (2 * math.pi * i / 16 for i in range(17))]
+        st.append((ring, 0.018, 0.008, (0.0, 0.0)))
+    sculpt.strokes(ob, st)
+
+
+def _yj_hand(side, curl):
+    """A hand at life size, palm down, the fingers curled by `curl` degrees at the knuckles and the middle joints:
+    wrist at the origin, x along the fingers, z out of the palm; side = +1 his left."""
+    h, = _hbm((HBM_HAND,), sub=1)
+    P = sculpt.co(h).astype(np.float64)
+    Q = np.stack([0.345 - P[:, 2], -(P[:, 0] - 1.405), P[:, 1] - 0.012], axis=1)
+    fing = 1 - _smooth01(-0.058, -0.068, Q[:, 1]) * _smooth01(0.115, 0.1, Q[:, 0])   # the four fingers (not the thumb)
+    Q[:, 1] -= fing * 0.3 * Q[:, 1] * np.clip((Q[:, 0] - 0.095) / 0.09, 0, 1)
+    for x0, ang in ((0.145, curl[1]), (0.097, curl[0])):
+        a = np.radians(ang) * _smooth01(x0 - 0.012, x0 + 0.012, Q[:, 0]) * fing
+        dx, dz = Q[:, 0] - x0, Q[:, 2] - 0.008
+        Q[:, 0] = x0 + dx * np.cos(a) - dz * np.sin(a)
+        Q[:, 2] = 0.008 + dx * np.sin(a) + dz * np.cos(a)
+    if side > 0:
+        Q[:, 1] = -Q[:, 1]
+    sculpt.set_co(h, Q)
+    if side > 0:
+        h.data.flip_normals()
+    return sculpt.union([h], 0.0012, smooth=1, name='_yj_hand%d' % (side > 0))
+
+
+def _yj_hands():
+    """the two hands in place: his right laid over the end of the chair's right arm, the fingers down over its front;
+    his left on the mortarboard's edge (where, the fingers' way, their curl at the knuckles and the middle joints)"""
+    out = []
+    for sx, curl, at, d in ((-1, (42, 38), Vector((-0.565, -0.24, 1.085)), Vector((0.03, -1, -0.05))),
+                            (1, (22, 24), Vector((0.505, -0.25, 1.055)), Vector((-0.2, -1, -0.12)))):
+        h = _yj_hand(sx, curl)
+        d = d.normalized()
+        z = Vector((0, 0, -1))
+        z = (z - d * z.dot(d)).normalized()            # out of the palm: down
+        y = z.cross(d)
+        M = Matrix((d, y, z)).transposed().to_4x4()
+        h.data.transform(Matrix.Translation(at) @ M @ Matrix.Scale(1.75, 4))
+        h.data.update()
+        out.append(h)
+    return out
+
+
+def _yj_body(voxel=0.005):
+    """the clothed body, the chair and the mortarboard as one dense skin, the clothes cut into it, the marks of the
+    modelling clay over everything (2007 side photo: lumps the size of a hand); returns (object, the arms' joints)"""
+    sp, A = _yj_solids()
+    ob = sculpt.union([sp.build('yj_soup')], voxel, smooth=3, factor=0.5, name='yj_body')
+    _yj_tailor(ob)
+    _yj_sleeves(ob, A)
+    sculpt.smooth(ob, iterations=1, factor=0.5)
+    sculpt.clay(ob, amp=0.007, scale=0.13, seed=3)
+    sculpt.clay(ob, amp=0.0025, scale=0.04, seed=5)
+    return ob, A
+
+
+def _yj_head_base():
+    """the base head, the origin between the eyes, facing -Y, at life size; with the eyeballs"""
+    head, e0, e1 = _hbm((HBM_HEAD, HBM_HEAD + '.sclera.L', HBM_HEAD + '.sclera.R'), sub=1)
+    c = (sum((v.co for v in e0.data.vertices), Vector()) / len(e0.data.vertices)
+         + sum((v.co for v in e1.data.vertices), Vector()) / len(e1.data.vertices)) / 2
+    for o in (head, e0, e1):
+        o.data.transform(Matrix.Translation(-c))
+    _cut(head, Vector((0, 0, -0.165)), Vector((0, 0, -1)))
+    return head, e0, e1
+
+
+YJ_SKULL = (0.0, 0.075, 0.012)          # the middle of the skull (the hair is laid out in angles about it)
+
+
+def _yj_glasses(front):
+    """round spectacles: two rims, the bridge, the sides back to the ears (solids for the head's union)"""
+    sp = _Soup()
+    rr, tr = 0.0235, 0.0026
+    for sx in (-1, 1):
+        cx, cz = sx * 0.033, -0.001
+        yc = min(front(cx + dx, cz + dz) for dx in (-0.015, 0, 0.015) for dz in (-0.012, 0, 0.012)) - 0.009
+        path = []
+        for i in range(33):
+            a = 2 * math.pi * i / 32
+            x = cx + rr * math.cos(a)
+            wrap = 0.006 * ((x - sx * 0.01) / 0.05) ** 2                       # the rims follow the face round a little
+            path.append((x, yc + wrap, cz + rr * 0.92 * math.sin(a)))
+        sp.tube(path, [tr] * len(path), n=10)
+        # the side: from the rim's outer edge back over the ear
+        x0 = cx + sx * rr
+        y0 = yc + 0.006 * ((x0 - sx * 0.01) / 0.05) ** 2
+        sp.tube([(x0, y0, cz + 0.004), (sx * 0.068, y0 + 0.018, 0.006), (sx * 0.0765, 0.03, 0.008), (sx * 0.079, 0.07, 0.008),
+                 (sx * 0.078, 0.095, 0.0)], [tr, tr, tr * 0.9, tr * 0.9, tr * 0.8], n=8)
+    yb = front(0.0, 0.004) - 0.006
+    sp.tube([(-0.0105, yb + 0.002, 0.004), (-0.005, yb - 0.001, 0.008), (0.005, yb - 0.001, 0.008), (0.0105, yb + 0.002, 0.004)],
+            [tr] * 4, n=8)
+    return sp.build('yj_glasses')
+
+
+def _yj_hair(ob):
+    """the hair: short round the sides and the back under the bald crown, a low raised mass in combed locks"""
+    P = sculpt.co(ob)
+    N = sculpt.normals(ob)
+    d = P - np.asarray(YJ_SKULL, np.float32)
+    r = np.linalg.norm(d, axis=1)
+    el = np.degrees(np.arcsin(np.clip(d[:, 2] / np.maximum(r, 1e-6), -1, 1)))
+    az = np.degrees(np.arctan2(np.abs(d[:, 0]), -d[:, 1]))             # 0 in front .. 180 behind
+    top = np.interp(az, [55, 70, 90, 130, 180], [8, 24, 34, 44, 48])
+    low = np.interp(az, [50, 68, 80, 86, 110, 120, 180], [-6, -20, -20, 4, 4, -32, -40])
+    fore = np.interp(el, [-20, 0, 15, 40], [68, 64, 66, 80])           # the hairline at the temple
+    m = _smooth01(0, 22, top - el) * _smooth01(0, 7, el - low) * _smooth01(0, 6, az - fore)
+    m *= _smooth01(0.012, 0.004, r - np.interp(el, [-40, 0, 40, 90], [0.097, 0.1, 0.103, 0.103]))   # (not the ears)
+    w = np.arctan2(d[:, 0], -d[:, 1])
+    turn = np.radians(80) * _smooth01(110, 150, az)
+    ph = el * np.cos(turn) + 0.9 * az * np.sin(turn)
+    ph = ph + 3.5 * np.sin(w * 2 + 1.4) + 2.0 * np.sin(w * 5 + np.radians(el * 4)) + 1.0 * np.sin(w * 11 - np.radians(el * 7))
+    lock = 0.5 + 0.5 * np.sin(np.radians(ph * 360 / 7.0 - 90))
+    lock = lock ** 0.7 * (0.65 + 0.35 * np.sin(w * 9 + np.floor(ph / 7.0) * 2.4))
+    h = m * (0.0016 + 0.0009 * lock)
+    sculpt.set_co(ob, P + N * h[:, None])
+
+
+def yongjae_head(voxel=0.0012):
+    """His head at life size (origin between the eyes, facing -Y): an old man's broad round face - full cheeks and
+    jowls over a short thick neck, a bald crown with the hair short round the sides and back, large ears, a short
+    broad nose, narrow eyes under heavy lids behind round spectacles, a wide thin mouth closed firmly with its corners
+    down, the folds from the nose past the mouth (photos of 2005 from below, 2007 from the front and the side)."""
+    head, e0, e1 = _yj_head_base()
+    for o in (head, e0, e1):            # the eyes narrower
+        P = sculpt.co(o)
+        w = _smooth01(0.024, 0.01, np.abs(np.abs(P[:, 0]) - 0.032)) * _smooth01(0.02, 0.008, np.abs(P[:, 2]))
+        w = w * (P[:, 1] < 0.012)
+        P[:, 2] *= 1 - 0.18 * w
+        sculpt.set_co(o, P)
+    P = sculpt.co(head)                 # a broad face and a broad skull; a thick neck
+    lower = _smooth01(0.035, -0.02, P[:, 2]) * _smooth01(0.11, 0.03, P[:, 1])
+    P[:, 0] *= 1.06 + 0.17 * lower
+    w = 0.22 * _smooth01(-0.10, -0.15, P[:, 2])
+    P[:, 0] *= 1 + w
+    P[:, 1] = 0.103 + (P[:, 1] - 0.103) * (1 + 0.6 * w)
+    sculpt.set_co(head, P)
+    for o in (e0, e1):
+        Q = sculpt.co(o)
+        Q[:, 0] *= 1.05
+        sculpt.set_co(o, Q)
+    tree = _tree(head)
+
+    def front(x, z):                    # the face's surface at (x, z)
+        loc, *_ = tree.ray_cast(Vector((x, -1.0, z)), Vector((0, 1, 0)))
+        return loc.y if loc is not None else 0.0
+
+    ob = sculpt.union([head, e0, e1], voxel, smooth=2, name='yongjae_head')
+    S = sculpt
+    # -- the masses of an old, full face
+    S.push(ob, (0, -0.046, -0.036), 0.03, (0, 0.005, 0.004))               # a short nose
+    S.inflate(ob, (0, -0.022, -0.006), 0.016, -0.0025)                      # ... its bridge low
+    S.inflate(ob, (0, -0.045, -0.04), 0.016, 0.003)                         # ... its tip round
+    for sx in (-1, 1):
+        S.inflate(ob, (sx * 0.021, -0.032, -0.043), 0.015, 0.0045)          # the wings of the nose, wide
+        S.inflate(ob, (sx * 0.05, -0.012, -0.04), 0.04, 0.005)              # full cheeks
+        S.inflate(ob, (sx * 0.048, -0.004, -0.098), 0.04, 0.010)            # jowls
+        S.push(ob, (sx * 0.05, -0.0, -0.10), 0.035, (0, 0, -0.006))         # ... hanging over the jaw
+        S.inflate(ob, (sx * 0.034, -0.016, 0.0095), 0.016, 0.0028)          # heavy upper lids
+        S.inflate(ob, (sx * 0.034, -0.016, -0.016), 0.014, 0.0018)          # the bags under the eyes
+        S.push(ob, (sx * 0.029, -0.022, -0.073), 0.014, (0, 0.001, -0.0012))  # the corners of the mouth a little down
+        S.push(ob, (sx * 0.095, 0.085, -0.02), 0.045, (sx * 0.005, 0, 0))   # the ears standing out
+        S.push(ob, (sx * 0.092, 0.085, -0.05), 0.022, (0, 0, -0.006))       # ... their lobes long
+    S.inflate(ob, (0, -0.036, -0.068), 0.022, -0.0025)                      # thin lips
+    S.inflate(ob, (0, -0.03, -0.108), 0.03, 0.004)                          # the chin
+    S.inflate(ob, (0, 0.0, -0.132), 0.05, 0.011)                            # the flesh under the chin
+    S.push(ob, (0, 0.06, 0.12), 0.09, (0, 0, -0.004))                       # the crown a little flat
+    tree = _tree(ob)
+    on = lambda pts, lift=0.0: _onto(tree, pts, lift)
+    st = []
+    for sx in (-1, 1):
+        # the brow: a soft ridge over the eye
+        st.append((on([(sx * 0.01, -0.03, 0.0165), (sx * 0.026, -0.03, 0.02), (sx * 0.046, -0.025, 0.0185),
+                       (sx * 0.06, -0.012, 0.011)]), 0.012, 0.003, (0.2, 0.3)))
+        # the fold of the upper lid, the crease under the bag
+        st.append((on([(sx * 0.018, -0.02, 0.0075), (sx * 0.033, -0.02, 0.0095), (sx * 0.048, -0.015, 0.006)]), 0.004, -0.0012))
+        st.append((on([(sx * 0.017, -0.02, -0.02), (sx * 0.033, -0.02, -0.025), (sx * 0.05, -0.015, -0.019)]), 0.006, -0.0018))
+        # the fold from the wing of the nose past the corner of the mouth to the jowl
+        st.append((on([(sx * 0.024, -0.03, -0.036), (sx * 0.034, -0.03, -0.052), (sx * 0.041, -0.02, -0.07),
+                       (sx * 0.043, -0.02, -0.092)]), 0.008, -0.004, (0.12, 0.35)))
+        # the line down from the corner of the mouth
+        st.append((on([(sx * 0.03, -0.03, -0.074), (sx * 0.034, -0.03, -0.088), (sx * 0.034, -0.02, -0.1)]), 0.006, -0.0025, (0.1, 0.4)))
+        # crow's feet
+        for dz in (-0.006, 0.0, 0.006):
+            st.append((on([(sx * 0.055, -0.01, 0.001 + dz * 0.3), (sx * 0.066, 0.0, 0.001 + dz)]), 0.0025, -0.0008))
+    # the mouth's line, firm; the hollow between the lower lip and the chin; lines across the forehead
+    st.append((on([(-0.03, -0.03, -0.0745), (-0.015, -0.03, -0.0712), (0, -0.03, -0.0705), (0.015, -0.03, -0.0712),
+                   (0.03, -0.03, -0.0745)]), 0.004, -0.0022, (0.1, 0.1)))
+    st.append((on([(-0.02, -0.03, -0.09), (0, -0.03, -0.0885), (0.02, -0.03, -0.09)]), 0.009, -0.0025))
+    for z, w in ((0.036, 0.04), (0.05, 0.036), (0.064, 0.03)):
+        st.append((on([(-w, -0.03, z - 0.003), (-w / 2, -0.03, z), (w / 2, -0.03, z), (w, -0.03, z - 0.003)]), 0.0035, -0.0009))
+    S.strokes(ob, st)
+    _yj_hair(ob)
+    tree = _tree(ob)
+
+    def front2(x, z):
+        loc, *_ = tree.ray_cast(Vector((x, -1.0, z)), Vector((0, 1, 0)))
+        return loc.y if loc is not None else 0.0
+    ob = sculpt.union([ob, _yj_glasses(front2)], voxel, smooth=1, name='yongjae_head')
+    return ob
+
+
+def _yj_place_head(head):
+    """the head to its size (chin to crown 0.415 m: 0.21 of the figure, 2007 front photo) and place, the crown at YJ_H"""
+    P = sculpt.co(head)
+    chin = P[(np.abs(P[:, 0]) < 0.012) & (P[:, 1] < 0.0) & (P[:, 2] > -0.13)][:, 2].min()
+    k = 0.415 / (P[:, 2].max() - chin)
+    head.data.transform(Matrix.Scale(k, 4))
+    P = sculpt.co(head)
+    head.data.transform(Matrix.Translation((0, -0.06, YJ_H - P[:, 2].max())))
+    head.data.update()
+    return head
+
+
+# the bronze as in the photos of 2005 and 2007: an even pale moss green all over, black where it is sheltered
+YJ_LOOK = dict(verdigris=0.9, wear=0.04, base=(0.22, 0.27, 0.155), green=(0.34, 0.40, 0.23), soot=(0.04, 0.045, 0.03),
+               bare=(0.2, 0.17, 0.09), rough=(0.8, 0.92, 0.55), metal=(0.15, 0.03, 0.8))
+
+
+def yongjae_high(voxel=0.005):
+    """The dense sculpt in place (z = 0 on the slab, facing -Y): the body in its chair, the head, the hands."""
+    body, A = _yj_body(voxel)
+    head = _yj_place_head(yongjae_head())
+    sculpt.clay(head, amp=0.0022, scale=0.05, seed=7)
+    hands = _yj_hands()
+    for h in hands:
+        sculpt.clay(h, amp=0.002, scale=0.05, seed=9)
+    return [body, head] + hands
+
+
+def _yj_maps(raw, owner):
+    """the maps from the baked masks: the shelter mask deepened and darkened in streaks down the upright faces where
+    the rain runs off the patina (2005 and 2007 photos: black runs down the chair's sides and under the arms)"""
+    ao = raw['ao'].copy()
+    up, cloud, run = raw['m0'][..., 1], raw['m0'][..., 2], raw['m1'][..., 0]
+    streak = _smooth01(0.48, 0.66, run) * _smooth01(0.8, 0.5, up) * np.clip(0.3 + 1.4 * (cloud - 0.25), 0, 1)
+    ao[..., 0] = np.clip(ao[..., 0], 0, 1) ** 1.4 * (1 - 0.55 * streak)
+    m0 = raw['m0'].copy()
+    m0[..., 2] = np.clip(0.5 + (cloud - 0.5) * 1.1, 0, 1)
+    sculpt.write_maps('yongjae', raw['nor'], ao, m0, raw['m1'], owner >= 0, YJ_LOOK)
+
+
+def yongjae_sculpt(size=1024, cache=None, voxel=0.005):
+    """Sculpt the seated figure in its chair, bake it onto its light mesh and save both (sculpt.load('yongjae'))."""
+    body, head, *hands = yongjae_high(voxel)
+    lows = [sculpt.lowpoly(body, 9200, 'yj_low_body'), sculpt.lowpoly(head, 3600, 'yj_low_head')]
+    lows += [sculpt.lowpoly(h, 700, 'yj_low_hand') for h in hands]
+    for i, o in enumerate(lows):
+        a = o.data.attributes.new('part', 'INT', 'FACE')
+        a.data.foreach_set('value', np.full(len(o.data.polygons), i, np.int32))
+    low = sculpt.join(lows, 'yongjae_low')
+    sculpt.smooth_shade(low)
+    sculpt.unwrap(low, margin=0.003)
+    _uw_layout(low, {1: 1.9, 2: 1.2, 3: 1.2})
+    highs = [body, head] + hands
+    part = _attr(low, 'part')
+    owner = _uv_owner(low, part, size)
+    raw = None
+    for i, (h, ex) in enumerate(zip(highs, (0.02, 0.008, 0.008, 0.008))):
+        piece = low.copy()
+        piece.data = low.data.copy()
+        bpy.context.scene.collection.objects.link(piece)
+        bm = bmesh.new()
+        bm.from_mesh(piece.data)
+        lay = bm.faces.layers.int['part']
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if f[lay] != i], context='FACES')
+        bm.to_mesh(piece.data)
+        bm.free()
+        low.hide_render = True
+        piece.hide_render = False
+        keep = {}
+        sculpt.bake(h, piece, 'yongjae', size=size, extrude=ex, ray=ex * 2.5, ao_dist=0.8, look=YJ_LOOK, keep=keep)
+        bpy.data.objects.remove(piece)
+        if raw is None:
+            raw = {k: v.copy() for k, v in keep.items() if k != 'cover'}
+        else:
+            for k in raw:
+                raw[k][owner == i] = keep[k][owner == i]
+    low.hide_render = False
+    if cache:
+        np.savez_compressed(cache, owner=owner, **raw)
+    _yj_maps(raw, owner)
+    low.data.attributes.remove(low.data.attributes['part'])
+    low.data.materials.clear()
+    low.data.materials.append(material('bronze_yongjae'))
+    sculpt.save(low, 'yongjae')
     return low
 
 
-def _yj_chair(mb, B):
-    c = YJ_CHAIR
-    w, y0, y1 = c['w'] / 2, c['y0'], c['y1']
-    yb = y1 - c['back_d']
-    mb.box((0, (y0 + yb) / 2, c['seat'] / 2), (2 * w - 2 * c['arm_w'], yb - y0, c['seat']), B)     # under the seat
-    for sx in (-1, 1):                                                      # the boxy arms, closed down to the foot
-        xc = sx * (w - c['arm_w'] / 2)
-        mb.box((xc, (y0 + y1) / 2, c['arm'] / 2), (c['arm_w'], y1 - y0, c['arm']), B)
-    mb.box((0, (yb + y1) / 2, c['back'] / 2), (2 * w, y1 - yb, c['back']), B)                     # the high back
+SCULPTS['yongjae'] = yongjae_sculpt
 
 
 def yongjae_statue(st, z0, gfn):
-    """the block on the lowest ground under it (z0), going on down 0.3 m; the slab, the chair and the figure on it;
-    the paved strip in front laid 7 cm over the ground (walked on with it: under the walker's 0.1 m ankle ray): the
-    strip's deck (tools/libbeds97.py STRIP, a plate common.ground reads), its steps from the plaza libbeds97's"""
+    """the block on the lowest ground under it (z0), going on down 0.3 m: a plinth course, two courses of ashlar, the
+    band and the slab; the bronze on it (sculpt.load('yongjae'), `blender/build.py -- statues`); the paved strip in
+    front laid 7 cm over the ground (walked on with it: under the walker's 0.1 m ankle ray): the strip's deck
+    (tools/libbeds97.py STRIP, a plate common.ground reads), its steps from the plaza libbeds97's"""
     bw, bd, bh = YJ_BLOCK
     sw, sd, sh = YJ_SLAB
-    G, B = 'stone_granite', 'bronze_yongjae'
+    G, J = 'granite_light', 'concrete_dark'           # (the photos' pale granite, as 언더우드 동상's pedestal)
     x, y = st['pos']
     c, s_ = math.cos(st['rot']), math.sin(st['rot'])
     g = lambda u, v: gfn(x + u * c - v * s_, y + u * s_ + v * c) - z0
@@ -2725,13 +3239,48 @@ def yongjae_statue(st, z0, gfn):
     for j in range(nv):
         for i in range(nu):
             mb.face([P[j][i], P[j][i + 1], P[j + 1][i + 1], P[j + 1][i]], 'stone_step', smooth='yj_strip')
-    mb.box((0, 0, (zb - 0.3) / 2), (bw, bd, zb + 0.3), G, skip=('bottom',))
-    mb.box((0, 0, zb + sh / 2), (sw, sd, sh), G, skip=('bottom',))
-    pw, ph = YJ_PLAQUE
-    pz = zb - 0.15 - ph / 2
-    mb.face([(-pw / 2, -bd / 2 - 0.012, pz - ph / 2), (pw / 2, -bd / 2 - 0.012, pz - ph / 2),
-             (pw / 2, -bd / 2 - 0.012, pz + ph / 2), (-pw / 2, -bd / 2 - 0.012, pz + ph / 2)], 'trim_black')
-    mb.xf = Matrix.Translation((0, YJ_BACK, zb + sh)) @ Matrix.Scale(YJ_K, 4)
-    _yj_chair(mb, B)
-    _to_mb(yongjae_figure(), mb, B)                                         # (placed by the same xf)
-    return [mb.build()]
+    ph_, po = YJ_PLINTH
+    zp = up + ph_                                                           # the plinth's top
+    mb.box((0, 0, (zp - 0.3) / 2), (bw + 2 * po, bd + 2 * po, zp + 0.3), G, skip=('bottom',))
+    mb.box((0, 0, (zp + zb) / 2), (bw, bd, zb - zp), G, skip=('bottom',))
+    th, to = YJ_BAND
+    mb.box((0, 0, zb + th / 2), (bw + 2 * to, bd + 2 * to, th), G, skip=('bottom',))
+    mb.box((0, 0, zb + th + sh / 2), (sw, sd, sh), G, skip=('bottom',))
+    # the joints (2007 front photo): the two courses meet at mid-height, each of two stones on the front and the back
+    # and of two unequal ones on the sides; the plinth course in shorter stones
+    e, jw = 0.004, 0.008
+    zm = zp + (zb - zp) * 0.51
+
+    def joint(a, b):                                                        # a thin dark strip from a to b on a face
+        (xa, ya, za), (xb, yb, zb_) = a, b
+        nrm = Vector((1 if xa > bw / 2 else -1 if xa < -bw / 2 else 0, 1 if ya > bd / 2 else -1 if ya < -bd / 2 else 0, 0))
+        if abs(za - zb_) < 1e-6:                                            # level
+            q = [(xa, ya, za - jw / 2), (xb, yb, za - jw / 2), (xb, yb, za + jw / 2), (xa, ya, za + jw / 2)]
+        elif nrm.y:                                                         # upright on the front or the back
+            q = [(xa - jw / 2, ya, za), (xa + jw / 2, ya, za), (xa + jw / 2, ya, zb_), (xa - jw / 2, ya, zb_)]
+        else:                                                               # upright on a side
+            q = [(xa, ya - jw / 2, za), (xa, ya + jw / 2, za), (xa, ya + jw / 2, zb_), (xa, ya - jw / 2, zb_)]
+        a_, b_, c_ = (Vector(p) for p in q[:3])
+        mb.face(q if (b_ - a_).cross(c_ - b_).dot(nrm) > 0 else q[::-1], J)
+    for sg in (-1, 1):
+        yf, xf = sg * (bd / 2 + e), sg * (bw / 2 + e)
+        joint((-bw / 2, yf, zm), (bw / 2, yf, zm))
+        joint((xf, -bd / 2, zm), (xf, bd / 2, zm))
+        joint((0.02 * sg, yf, zp), (0.02 * sg, yf, zm))                     # (the upper one is behind the plate in front)
+        joint((-0.04 * sg, yf, zm), (-0.04 * sg, yf, zb))
+        joint((xf, sg * 0.5, zp), (xf, sg * 0.5, zm))
+        joint((xf, sg * 0.28 * bd, zm), (xf, sg * 0.28 * bd, zb))
+        yf, xf = sg * (bd / 2 + po + e), sg * (bw / 2 + po + e)
+        for t in (-0.3, -0.1, 0.12, 0.33):
+            joint((t * bw, yf, up), (t * bw, yf, zp))
+        for t in (-0.27, 0.0, 0.26):
+            joint((xf, t * bd, up), (xf, t * bd, zp))
+    pw, ph, pt = YJ_PLAQUE
+    pz = zb - pt - ph / 2
+    mb.box((0, -bd / 2 - 0.009, pz), (pw + 0.03, 0.018, ph + 0.03), 'trim_black', skip=('bottom',))
+    mb.face([(-pw / 2, -bd / 2 - 0.02, pz - ph / 2), (pw / 2, -bd / 2 - 0.02, pz - ph / 2),
+             (pw / 2, -bd / 2 - 0.02, pz + ph / 2), (-pw / 2, -bd / 2 - 0.02, pz + ph / 2)], 'yongjae_plaque',
+            uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
+    fig = sculpt.load('yongjae')                 # (yongjae_sculpt, `blender/build.py -- statues`)
+    fig.data.transform(Matrix.Translation((0, YJ_BACK, zb + th + sh)))
+    return [mb.build(), fig]

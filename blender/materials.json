@@ -1074,6 +1074,7 @@
  "wagon_brown": {"_doc": "신촌역 구내 북쪽 옆선에 선 유개화차의 짙은 갈색 몸 (서울연구원 52044 · 52045, 1996)", "color": [0.16, 0.07, 0.05], "rough": 0.6, "metal": 0.3},
  "wood_soffit": {"_doc": "루스채플 처마 밑 경사면의 짙은 갈색 판 (학교 홈페이지 chapel.jpg, 학교연혁_루스채플.jpg, reference/고증/3.25)", "tex": "wood_planks_dirt", "tile": 3.0, "tint": [0.3, 0.21, 0.15], "rough": 0.75},
  "tarp_orange": {"_doc": "신촌역 구내 북쪽 마당의 덮개를 씌운 더미 (서울연구원 52044 · 52045 · 52074 · 52090, 1996; 1997년 7월 원본 스캔의 흰 윗면과 타이어: 고증 4.8.4)", "color": [0.78, 0.36, 0.12], "rough": 0.85},
- "bronze_yongjae": {"_doc": "용재 좌상(1987)의 청동: 2005 · 2007년 사진처럼 녹이 슨 흐린 초록 (blender/statues.py yongjae_statue, 고증 3.2-3.3)", "color": [0.11, 0.15, 0.10], "rough": 0.7, "metal": 0.25},
+ "bronze_yongjae": {"_doc": "용재 좌상(1987)의 청동: 2005 · 2007년 사진처럼 녹이 슨 흐린 초록. 정밀 원형을 구운 맵 (blender/statues.py yongjae_sculpt, 고증 3.2-3.3)", "maps": "statues/yongjae", "color": [0.2, 0.25, 0.135]},
+ "yongjae_plaque": {"_doc": "용재 좌상 받침 앞면의 검은 명판: 「용재 백낙준 박사상」과 비문 (tools/make_textures.py yongjae_plaque, 2005 · 2007년 사진)", "image": "yongjae_plaque.png", "rough": 0.35},
  "roof_patina": {"_doc": "한국어학당의 연한 청록 금속 지붕 (2004년 사진, blender/landmarks.py kli; 고증 3.27)", "color": [0.2, 0.42, 0.33], "rough": 0.55, "metal": 0.35}
 }

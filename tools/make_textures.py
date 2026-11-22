@@ -1562,6 +1562,45 @@ def hangeul_tower_tex():
 hangeul_tower_tex()
 
 
+# yongjae_plaque.png: the black plate on the front of 용재 동상's block (blender/statues.py yongjae_statue, 0.80 x 0.61 m;
+# reference/고증/3.2-3.3 「용재 동상」): 「용재 백낙준 박사상」 across its head as in the photos of 2005 and 2007, the
+# inscription under it in small letters.  Of the inscription only the sentence 뉴스타파 (2019-07-19) quotes is known; it
+# is set here over the lines the photos show (too small to read in them).
+def yongjae_plaque_tex():
+    if ONLY and 'yongjae_plaque' not in ONLY:
+        return
+    W, H = 512, 390
+    img = Image.new('RGB', (W * SS, H * SS), (17, 18, 20))
+    d = ImageDraw.Draw(img)
+    ink = (176, 174, 166)
+    font = lambda px: ImageFont.truetype('/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc', int(px * SS), index=1)   # (KR)
+    f = font(40)
+    x = 62 * SS
+    for ch_ in '용재 백낙준 박사상':
+        if ch_ != ' ':
+            d.text((x, 44 * SS), ch_, font=f, fill=ink, anchor='lm')
+        x += (46 if ch_ != ' ' else 22) * SS
+    text = ('교육과 학문 민족봉사와 자유정신의 구현에 뜻을 두시고 일생동안 연세와 민족을 붙들고 키운 연세의 정신적 지주시며 '
+            '민족교육의 스승이시며 겨레의 지도자시고 하나님의 종이시다.')
+    f = font(21)
+    lines, line = [], ''
+    for word in text.split(' '):
+        if d.textlength((line + ' ' + word).strip(), font=f) > (W - 56) * SS:
+            lines.append(line)
+            line = word
+        else:
+            line = (line + ' ' + word).strip()
+    lines.append(line)
+    for i, ln in enumerate(lines):
+        d.text((28 * SS, (118 + i * 50) * SS), ln, font=f, fill=(150, 148, 142), anchor='lm')
+    img = img.resize((W, H), Image.LANCZOS)
+    img.save(os.path.join(OUT, 'yongjae_plaque.png'), optimize=True)
+    print('yongjae_plaque')
+
+
+yongjae_plaque_tex()
+
+
 # ---------------------------------------------------------------- 옛 신촌역 역사의 이름판
 # The board on the waiting hall's gable (서울연구원 52234 · 52245 · 52250, 1996): white, a thin dark rim, 「신촌역」 big,
 # 「新村驛」 under it, 「Shinchon Station」 at the foot; 2.3 x 0.95 m (blender/town.py station97), drawn 1024 x 424 and

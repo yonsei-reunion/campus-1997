@@ -20,7 +20,7 @@ description: 생성 파일(campus.json 두 벌, 지형, 땅 지도, GLB, 해 그
 | 백양로 단면 · 연석(`blender/road.py`) | `-- road` (`baekyangro.glb`, `road_meta.json`) |
 | 정문 밖 동네 · 연세로 · 로터리(`blender/town.py`) | `-- town` (`campus_town.glb` · `campus_town_ground.glb` · `props/bus.glb`) |
 | 관목(`blender/shrubs.py`) / 소품 / 차 | `-- shrubs` / `-- props` / `-- cars` |
-| 청동 조각상의 원형(`blender/sculpt.py` · `statues.py`) | `-- statues`(하나에 2 ~ 3분) → `-- landmarks` |
+| 청동 조각상의 원형(`blender/sculpt.py` · `statues.py`) | `-- statues`(하나에 2 ~ 4분. `-- statues yongjae` 처럼 이름을 주면 그것만) → `-- landmarks` |
 | 간판 · 현수막 · 잎 아틀라스(`tools/make_textures.py`) | `.venv/bin/python tools/make_textures.py <이름>` (이름을 꼭 준다) |
 | `blender/materials.json` | `.venv/bin/python tools/prepare_web_textures.py` (웹 사본을 다시 씀) |
 

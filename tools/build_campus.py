@@ -12810,14 +12810,33 @@ out['colliders'].append(_dz_box(OESOL_BUST['pos'], OESOL_BUST['rot'], 0.36, 0.31
 # 1999: 「한글탑과 용재상이 마주 보고」).  The 1996 winter, July 1997 and 1999 scans: the block's middle at s 54.3,
 # o 34.5 of the library's front (+- 0.5 m), the strip s 47.8 - 56.0, o 33.0 - 36.1.  blender/statues.py yongjae_statue
 # (front = -Y; the strip in it), the block a collider.  Late and nothing drawn: the zelkova that stood on the strip
-# (trees[3011]) is moved in place into the bed west of it, the hedge across the strip's mouth (two shrubs) dropped
+# (trees[3011]) goes in place into the row of evergreens west of it (below), the hedge across the strip's mouth (two shrubs) dropped
 YJ_STATUE = dict(pos=[round(c_, 2) for c_ in LF(54.3, 34.5)], rot=round(math.atan2(-_lfu[0], _lfu[1]), 4))
 YJ_STATUE['h'] = round(float(ground_h(*YJ_STATUE['pos'])), 2)
 out['statues']['yongjae'] = YJ_STATUE
-out['colliders'].append(_dz_box(YJ_STATUE['pos'], YJ_STATUE['rot'], 0.72, 1.0))
+out['colliders'].append(_dz_box(YJ_STATUE['pos'], YJ_STATUE['rot'], 0.90, 1.10))   # (the plinth course: statues.YJ_BLOCK + YJ_PLINTH)
+# its memory spot, on the strip 4.5 m before the block (appended here, after everything that reads the list's places)
+LANDMARKS.append(dict(
+    id='yongjae_statue', name='용재 동상', pos=[round(c_, 1) for c_ in LF(49.8, 34.55)], r=7,
+    photo=['photos/yongjae_statue_2007_front.jpg', 'photos/yongjae_statue_2007_side.jpg'],
+    title='용재 백낙준 박사상', year='1987',
+    credit='사진: 연세춘추 (2007년 3월, 김영아 기자)',
+    text='중앙도서관 앞 화단 끝에 앉아 있던 초대 총장 용재(庸齋) 백낙준의 청동 좌상. 1987년 5월 총동문회가 세웠다. 박사 학위복 차림으로 '
+         '팔걸이 의자에 앉아 무릎에 사각모를 올려 놓았고, 광장 건너 연세한글탑과 마주 보았다. 사진은 녹청이 오른 2007년의 모습.'))
 _yj_s = lambda x_, y_: (float(np.dot(np.array([x_, y_]) - _lf0, _lfu)), float(np.dot(np.array([x_, y_]) - _lf0, _lfn)))
 assert out['trees'][3011][0] == 'zelkova' and abs(_yj_s(*out['trees'][3011][1:3])[0] - 50.0) < 0.3, 'the tree on the strip'
-out['trees'][3011][1:3] = [round(c_, 2) for c_ in LF(51.5, 28.5)]
+# the trees round it (the 1996 winter, July 1997 and May 1999 scans, each pair of frames on its own: reference/고증/3.2-3.3
+# 「용재 동상」 「둘레의 나무」): no crown over 5 m within 9.5 m of the block and none over the block or the strip (the
+# crown and the slab's top are read in four frames); west of it and behind, a row of low evergreens (o 30.4 - 31.8,
+# s 53.5 - 63, 2 - 3 m wide, matched 2.5 m over the bed), and one evergreen crown 4.5 m across north-east of it (s 67,
+# o 37.6).  The planting had drawn four zelkovas (two within 4 m, their crowns over the figure) and a pine here, and a
+# maple by the evergreen: in place, the five become the row (small firs, for want of a juniper) and the maple the pine
+for i_, kind_, s_, to_ in ((3394, 'zelkova', 56.0, 54.3), (3398, 'zelkova', 54.0, 56.4), (3011, 'zelkova', 50.0, 58.5),
+                           (3012, 'zelkova', 61.0, 60.6), (3010, 'pine', 61.3, 62.7)):
+    assert out['trees'][i_][0] == kind_ and abs(_yj_s(*out['trees'][i_][1:3])[0] - s_) < 0.3, ('round the statue', i_)
+    out['trees'][i_][:4] = ['fir'] + [round(c_, 2) for c_ in LF(to_, 31.1)] + [0.3]
+assert out['trees'][3397][0] == 'maple' and abs(_yj_s(*out['trees'][3397][1:3])[0] - 66.0) < 0.3, 'the tree by the evergreen'
+out['trees'][3397][:4] = ['pine'] + [round(c_, 2) for c_ in LF(67.0, 37.6)] + [0.5]
 out['shrubs'] = [sh_ for sh_ in out['shrubs'] if not (47.0 < _yj_s(sh_[1], sh_[2])[0] < 56.5
                                                      and 33.3 < _yj_s(sh_[1], sh_[2])[1] < 35.9)]
 # 북문 주차 요금정산소와 차단기 (1994-11 ~, reference/고증/3.21 「북문 · 갈림길 · 서쪽 학사길」; nth): the white box on the
