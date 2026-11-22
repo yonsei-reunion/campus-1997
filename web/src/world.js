@@ -7,6 +7,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { mulberry, placeMatrix, countBy, versioned } from './util.js';
 import { Impostor, renderImpostors, nearTreeMaterial, LOD, FADE } from './impostors.js';
 import { fetchCounted } from './loading.js';
+import { solidAttr } from './materials.js';
 
 const draco = new DRACOLoader().setDecoderPath('draco/').preload();     // (the decoder comes down with the first files)
 export const gltfLoader = new GLTFLoader().setDRACOLoader(draco);
@@ -119,7 +120,8 @@ function splitByChunk(g, chunk) {
 // Merge every mesh under root into one mesh per (material, chunk); chunk 0: one per material. A mesh goes to the chunk
 // of its middle; split: a mesh wider than two chunks is cut by triangle first (the town's kerbs and road paint are one
 // mesh each from the rotary to the campus: unsplit, they were drawn wherever one stood on the campus)
-export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShadow = true, name = 'static', split = false } = {}) {
+// lib: the material library, to draw the plain colours with one material (MaterialLibrary.solid)
+export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShadow = true, name = 'static', split = false, lib = null } = {}) {
   root.updateMatrixWorld(true);
   const buckets = new Map();
   const box = new THREE.Box3(), c = new THREE.Vector3();
@@ -130,6 +132,9 @@ export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShado
     for (const k of Object.keys(g.attributes)) {
       if (!['position', 'normal', 'uv', 'color', 'bake', 'edge'].includes(k)) g.deleteAttribute(k);
     }
+    const plain = lib?.solidOf(o.material);
+    const mat = plain ? lib.solid(!!o.material.userData.baked) : o.material;
+    if (plain) g.setAttribute('solid', solidAttr(plain, g.attributes.position.count));
     if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
     if (o.material.userData.baked) g.setAttribute('bake', bakeU16(g.attributes.bake, g.attributes.position.count));
     else if (g.attributes.bake) g.deleteAttribute('bake');
@@ -149,13 +154,13 @@ export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShado
     box.setFromBufferAttribute(g.attributes.position);
     box.getCenter(c);
     // (by material object: a building's own weathering makes a second copy of a library material, same name)
-    const mk = o.material.name + '#' + o.material.id;
+    const mk = mat.name + '#' + mat.id;
     const pieces = !chunk ? [['', g]]
       : split && Math.max(box.max.x - box.min.x, box.max.z - box.min.z) > 2 * chunk ? splitByChunk(g, chunk).map(([k, p]) => ['|' + k, p])
       : [['|' + Math.floor(c.x / chunk) + '|' + Math.floor(c.z / chunk), g]];
     for (const [ck, p] of pieces) {
       const key = mk + ck;
-      if (!buckets.has(key)) buckets.set(key, { mat: o.material, geos: [] });
+      if (!buckets.has(key)) buckets.set(key, { mat, geos: [] });
       buckets.get(key).geos.push(p);
     }
   });
@@ -195,7 +200,7 @@ const attrSig = (g) => (g.index ? 'i' : '') + Object.keys(g.attributes).sort().m
 // The meshes that draw with one material are one part (a car's tyres, rims and trim with the body's: 28 parts → 13,
 // and every part is a draw call each frame), in the order of their first mesh.
 export class InstancedKit {
-  constructor(gltfScene, lib, capacity, { shadows = true, colors = false, mat = (m) => lib.instanced(m) } = {}) {
+  constructor(gltfScene, lib, capacity, { shadows = true, colors = false, mat = (m) => lib.instanced(m), name = '' } = {}) {
     this.parts = [];
     gltfScene.updateMatrixWorld(true);
     const same = new Map();          // material -> attributes -> geometries
@@ -217,6 +222,7 @@ export class InstancedKit {
         this.parts.push(instanced(g, m, capacity, shadows));
       } else for (const q of geos) this.parts.push(instanced(q, m, capacity, shadows));     // (could not merge)
     }
+    if (name) for (const p of this.parts) p.name = name;        // (the kit's model: what a frame's draws are counted by)
     this.capacity = capacity;
     this.count = 0;
     this.colors = colors;

@@ -6,6 +6,8 @@
 // A slow tone over the surface keeps a long hedge from repeating its tile. Phones: the colour only (three taps), the
 // normal map is left off.
 // The sprig cards that stand out of the bodies keep the usual leaf atlases (leaf_<name>.png), the same season's.
+import * as THREE from 'three';
+import { MeshoptSimplifier } from 'meshoptimizer/simplifier';
 import { MOBILE } from './util.js';
 
 // metres per repeat of each surface tile (tools/make_shrub_textures.py TILE: the leaves at their real size)
@@ -96,4 +98,47 @@ export function hedgeEdit(species) {
         }
         #endif`);
   };
+}
+
+// A shrub from farther still (main.js SHRUB_FAR2): its lighter model (blender/shrubs.py far_version) without the sprig
+// cards and with a body of fewer faces. From the gate a phone drew some 1,500 hedge pieces and 2,000 other shrubs at
+// their _far models (400 k triangles), nearly all of them more than 50 m off, where a 0.6 m hedge is a few pixels
+// high and the cards' fringe less than one. The body's corners are welded by place first (the model splits them
+// along its seams). Those bodies are already about as light as simplify can make them (a hedge piece 76 triangles,
+// 68 at best), so the sloppy simplifier (which merges by place, whatever the surface's shape) takes the fewest of
+// FAR2_SHARES whose error stays within FAR2_ERR; each corner keeps the first one's normal and shade.
+export const far2Ready = MeshoptSimplifier.ready.then(() => true, (e) => { console.warn('shrubs: no far2 models', e); return false; });
+const FAR2_SHARES = [0.25, 0.35, 0.5, 0.7], FAR2_ERR = 0.08;     // (error: of the model's size; 50 m off on a phone 0.08 of a 1 m shrub is under a pixel)
+function fewerFaces(idx, P) {
+  for (const share of FAR2_SHARES) {
+    // (unbounded, then judged by the error it reports: given FAR2_ERR as its bound it stops well short of the share)
+    const [index, err] = MeshoptSimplifier.simplifySloppy(idx, P, 3, null, Math.floor(idx.length * share / 3) * 3, 1);
+    if (index.length && err <= FAR2_ERR) return index;
+  }
+  return MeshoptSimplifier.simplify(idx, P, 3, 0, FAR2_ERR)[0];
+}
+export function shrubFar2(scene) {
+  const g = new THREE.Group();
+  scene.updateMatrixWorld(true);
+  scene.traverse((o) => {
+    if (!o.isMesh || o.material.name.startsWith('leaf_')) return;
+    const geo = o.geometry.clone();
+    geo.applyMatrix4(o.matrixWorld);
+    if (geo.index && !o.material.name.startsWith('bark')) {
+      const pos = geo.attributes.position, n = pos.count, P = new Float32Array(n * 3), first = new Map(), remap = new Uint32Array(n);
+      for (let i = 0; i < n; i++) {
+        P[i * 3] = pos.getX(i); P[i * 3 + 1] = pos.getY(i); P[i * 3 + 2] = pos.getZ(i);
+        const k = `${Math.round(P[i * 3] * 1e4)},${Math.round(P[i * 3 + 1] * 1e4)},${Math.round(P[i * 3 + 2] * 1e4)}`;
+        remap[i] = first.has(k) ? first.get(k) : (first.set(k, i), i);
+      }
+      const src = geo.index.array, idx = new Uint32Array(src.length);
+      for (let i = 0; i < src.length; i++) idx[i] = remap[src[i]];
+      const index = fewerFaces(idx, P);
+      geo.setIndex(new THREE.BufferAttribute(n > 65535 ? index : Uint16Array.from(index), 1));
+    }
+    const m = new THREE.Mesh(geo, o.material);
+    m.name = o.name;
+    g.add(m);
+  });
+  return g;
 }

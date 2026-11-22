@@ -5,7 +5,7 @@ export const $ = (s) => document.querySelector(s);
 
 // every asset URL carries its file's content hash (vite.config.js assetHashes), so a new deploy never mixes with cached
 // old files and a file that did not change keeps its URL (and its place in the browser's cache and public/sw.js's). A
-// file the build did not hash carries the build number. A PNG with a WebP copy (tools/webp_textures.py) comes as that.
+// file the build did not hash carries the build number. A PNG or JPG with a WebP copy (tools/webp_textures.py) comes as that.
 export const BUILD = __BUILD__;
 const ASSETS = __ASSETS__;
 export function versioned(url) {

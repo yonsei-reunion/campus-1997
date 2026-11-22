@@ -11,6 +11,7 @@ import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFar
 import { loadGLB, prefetch, glbMaterials, bindMaterials, InstancedKit, KitCuller, Forest } from './world.js';
 import { chunkIndex, nearUrls, CampusChunks } from './chunks.js';
 import { Grass } from './grass.js';
+import { shrubFar2, far2Ready } from './hedges.js';
 import { Fall } from './fall.js';
 import { Player, Colliders, pointInPoly } from './player.js';
 import { UI } from './ui.js';
@@ -98,7 +99,9 @@ const CAR_FAR2 = 60;
 // were in view, 1.6 M triangles of the lighter models, most of them behind 백양로's trees)
 const CAR_MAX_MOBILE = 250;
 const SHRUB_R = { topiary_cone: 0.6, azalea_red: 0.62, pine_cloud: 0.3, topiary_dome: 1.0, topiary_egg: 1.15 };   // (walls, m at scale 1; the pine: its trunk)
+const FOREST_FAR = 1500;  // the far hills' crowns farther than this: 20 faces (terrain.js makeFarForest)
 const SHRUB_FAR = 25;   // shrubs, hedges and flower beds farther than this: theirs (blender/shrubs.py far_version)
+const SHRUB_FAR2 = MOBILE ? 50 : 80;    // and farther than this: that without its sprig cards, the body simplified (hedges.js)
 // the vegetation campus.json plants: two models of each tree species, one of each shrub (and its lighter one, _far)
 const treeFile = (sp, v) => `veg/${sp}_${v}.glb`, shrubFile = (k) => `veg/${k}.glb`;
 const vegFiles = (campus) => [...new Set(campus.trees.map((t) => t[0]))].flatMap((sp) => [treeFile(sp, 0), treeFile(sp, 1)])
@@ -278,8 +281,8 @@ async function main() {
   const farForest = makeFarForest(hfFar, T.near.half, 3800, patches, northPatch &&
     { hf: hfNear, rect: [northPatch.x0, northPatch.y0, northPatch.x1, northPatch.y1], clear: T.north.clear || [], woods: T.north.woods || [] },
     hfFarRng);
-  kitCull.add([farForest]);
-  scene.add(farForest);
+  kitCull.add([farForest], { far: [farForest.userData.far], dist: FOREST_FAR });
+  scene.add(farForest, farForest.userData.far);
   scene.add(makeSummitTower(hfFar));
   progress('백양로를 까는 중…', 20);
 
@@ -374,15 +377,22 @@ async function main() {
   const forest = new Forest(scene, renderer, lib, kits, campus.trees, groundAt, kitCull);
   // (and their lighter models farther than SHRUB_FAR from the camera)
   const shrubKits = {};
-  for (const k in shrubCounts) for (const f of [k, k + '_far']) shrubKits[f] = new InstancedKit(shrubScenes[f], lib, shrubCounts[k]);
+  const far2 = await far2Ready;
+  for (const k in shrubCounts) {
+    for (const f of [k, k + '_far']) shrubKits[f] = new InstancedKit(shrubScenes[f], lib, shrubCounts[k], { name: f });
+    if (far2) shrubKits[k + '_far2'] = new InstancedKit(shrubFar2(shrubScenes[k + '_far']), lib, shrubCounts[k], { name: k + '_far2' });
+  }
   const m4 = new THREE.Matrix4();
   for (const [k, x, y, sc, rot] of campus.shrubs) {
     placeMatrix(m4, x, groundAt(x, y) - 0.05, y, rot, sc);
     shrubKits[k].add(m4);
     shrubKits[k + '_far'].add(m4);
+    shrubKits[k + '_far2']?.add(m4);
   }
   for (const k in shrubKits) { shrubKits[k].commit(); shrubKits[k].addTo(scene); }
-  for (const k in shrubCounts) kitCull.add(shrubKits[k].parts, { far: shrubKits[k + '_far'].parts, dist: SHRUB_FAR });
+  for (const k in shrubCounts) {
+    kitCull.add(shrubKits[k].parts, { far: shrubKits[k + '_far'].parts, dist: SHRUB_FAR, far2: shrubKits[k + '_far2']?.parts, dist2: SHRUB_FAR2 });
+  }
 
   // ---------------------------------------------------------------- props
   progress('가로등과 벤치를 놓는 중…', 16);

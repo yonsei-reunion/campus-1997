@@ -33,7 +33,7 @@ export function addTown(scene, gltf, lib, terrainMat) {
   }
   scene.add(group);
   group.updateMatrixWorld(true);
-  scene.add(mergeStatic(root, { name: 'town', chunk: 320, split: true }));
+  scene.add(mergeStatic(root, { name: 'town', chunk: 320, split: true, lib }));
   return banks;
 }
 

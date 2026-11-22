@@ -686,6 +686,29 @@ function bakeShade(m, uniforms, weather) {
   });
 }
 
+// the plain colours' attribute: linear rgb, and roughness and metalness 8 bits each in the fourth (16-bit normalized)
+const SOLID_KEYS = new Set(['_doc', 'color', 'rough', 'metal']);
+export function solidAttr(m, count) {
+  const out = new Uint16Array(count * 4);
+  const r = Math.round(m.color.r * 65535), g = Math.round(m.color.g * 65535), b = Math.round(m.color.b * 65535);
+  const rm = Math.round(m.roughness * 255) * 256 + Math.round(m.metalness * 255);
+  for (let i = 0; i < count; i++) { out[i * 4] = r; out[i * 4 + 1] = g; out[i * 4 + 2] = b; out[i * 4 + 3] = rm; }
+  return new THREE.BufferAttribute(out, 4, true);
+}
+const solidEdit = (sh) => {
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\nattribute vec4 solid;\nvarying vec4 vSolid;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSolid = solid;');
+  sh.fragmentShader = sh.fragmentShader
+    .replace('#include <common>', '#include <common>\nvarying vec4 vSolid;')
+    .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= vSolid.rgb;')
+    .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      float slRM = floor( vSolid.a * 65535.0 + 0.5 );
+      roughnessFactor *= floor( slRM / 256.0 ) / 255.0;`)
+    .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>
+      metalnessFactor *= mod( slRM, 256.0 ) / 255.0;`);
+};
+
 export class MaterialLibrary {
   constructor(defs) {
     this.defs = defs;
@@ -725,6 +748,38 @@ export class MaterialLibrary {
       bakeShade(v, { uBakeAO, uTerrain, uTerrainGrid, uWeather: v.userData.uWeather, uStreak }, weather > 0);
       const edge = edgeWear(this.defs[m.name]);               // worn arrises (walltone.js)
       if (edge) { patchShader(v, edge.key, edge.edit); v.defaultAttributeValues.edge = edge.none; }
+      this.bakedMats.set(key, v);
+    }
+    return v;
+  }
+
+  // The plain colours (frame_silver, metal, trim_black …: a colour, a roughness and a metalness, no texture) merged
+  // into the halls, the landmarks and the town (world.js mergeStatic) draw with one material for all of them, reading
+  // each corner's colour, roughness and metalness from the attribute `solid` (solidAttr): one draw call a cell where
+  // there were some seven. The library's own copies differ by those three values only (get() gives the plain ones
+  // no shader edit of their own; the scene-wide ones, the baked sun shadow's, reach this one alike), so the frame
+  // comes out the same. baked: the halls' copy, with the baked shade (no weathering: none of these has any).
+  solidOf(m) {
+    const d = this.defs[m.name], orig = this.mats.get(m.name);
+    if (!d || !orig || m.name.startsWith('glass') || Object.keys(d).some((k) => !SOLID_KEYS.has(k))) return null;
+    if (m !== orig && !(m.userData.baked && !m.userData.wallLeaf && !(m.userData.uWeather?.value > 0))) return null;
+    if (orig.transparent || orig.side !== THREE.FrontSide || orig.vertexColors || orig.isMeshPhysicalMaterial) return null;
+    return orig;
+  }
+  solid(baked) {
+    const key = baked ? 'solid|baked' : 'solid';
+    let v = this.bakedMats.get(key);
+    if (!v) {
+      const m = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 1 });
+      m.name = 'solid';
+      v = globalPatch(pcss(m));
+      patchShader(v, 'solid', solidEdit);
+      if (baked) {
+        v = bakedCopy(m);
+        v.userData.uWeather = { value: 0 };
+        const { uBakeAO, uTerrain, uTerrainGrid } = this.uniforms;
+        bakeShade(v, { uBakeAO, uTerrain, uTerrainGrid, uWeather: v.userData.uWeather, uStreak: { value: 1 } }, false);
+      }
       this.bakedMats.set(key, v);
     }
     return v;

@@ -511,6 +511,8 @@ export function makeFarTerrain(hf, nearHalf, south = null) {
   return mesh;
 }
 
+const FAR_CROWN = 1.12;        // (the far crowns' size: makeFarForest)
+
 // Forest canopy on the far hills (안산, 인왕산 …): clumps of low-poly crowns so the slopes read as woodland
 // rather than a smooth green dome.
 export function makeFarForest(hf, nearHalf, maxR = 3800, south = null, north = null, hfRng = hf) {
@@ -568,6 +570,22 @@ export function makeFarForest(hf, nearHalf, maxR = 3800, south = null, north = n
   im.instanceMatrix.needsUpdate = true;
   im.computeBoundingSphere();
   im.name = 'far_forest';
+  // the crowns farther than FOREST_FAR from the camera (main.js: KitCuller's far model): 20 faces, not 80, the same
+  // places and shades. All of them at 20 made the hills behind the campus look faceted (#13); seen 1.5 km off and more
+  // (most of what a view over the far ring draws: 480 k triangles from the gate on a phone) a crown is some ten pixels
+  // Shaded smooth, from its corners' normals (round as a ball, not 20 flat facets), and a little larger: the 20 faces
+  // lie farther inside the unit sphere than the 80 (their centres at 0.79, not 0.93), so the crowns looked smaller
+  // and thinner on the slope
+  const ico0 = new THREE.IcosahedronGeometry(FAR_CROWN, 0).deleteAttribute('uv');
+  ico0.setAttribute('normal', new THREE.BufferAttribute(ico0.attributes.position.array.map((v) => v / FAR_CROWN), 3));   // (three gives detail 0 its faces' normals)
+  const farMat = mat.clone();
+  farMat.flatShading = false;
+  const far = new THREE.InstancedMesh(mergeVertices(ico0), farMat, pts.length);
+  far.instanceMatrix.array.set(im.instanceMatrix.array);
+  far.instanceColor = new THREE.InstancedBufferAttribute(im.instanceColor.array.slice(), 3);
+  far.boundingSphere = im.boundingSphere;
+  far.name = 'far_forest';
+  im.userData.far = far;
   return im;
 }
 

@@ -181,6 +181,8 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
   - 카드는 뿌리 쪽 몸통의 노멀과 그늘을 받아 겉면과 같은 밝기, 뒷면을 볼 때도 노멀을 뒤집지 않음
   - 잎 · 꽃은 Poly Haven 「Periwinkle Plant」 스캔을 잘라 실제 크기로 다시 칠함(`tools/make_shrub_textures.py`)
   - 25 m 밖은 가벼운 모델 `<종류>_far.glb`(`shrubs.far_version`: 카드 셋에 하나, 몸통 40 %)
+  - 폰 50 m · 데스크톱 80 m 밖은 그 모델에서 카드를 빼고 몸통을 meshopt 의 sloppy 단순화로 줄인 것(`hedges.js` `shrubFar2`, 불러올 때 만듦, 오차는 모델 크기의 8 % 안): 생울타리 토막 112 → 18 삼각형. 정문에서 폰이 그리는 관목 약 27만 → 12만 삼각형
+- 먼 산 숲은 정이십면체 수관(80면)이고, 카메라에서 1.5 km 밖은 20면을 부드러운 음영 · 1.12배로 그립니다(`terrain.js` `makeFarForest`, `KitCuller` 의 먼 모델). 정문에서 폰이 그리는 숲 48만 → 16만 삼각형. 모두 20면으로 하면 뒷산이 각져 보였음(#13)
 
 ### 사람
 
@@ -406,11 +408,16 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 대기: 높이 안개와 구름 그림자를 모든 재질에 셰이더 패치로 넣습니다(`materials.js` `ATMOS`).
 - 후처리(`post.js`): N8AO → TAA(서브픽셀 지터 · 깊이 재투영) 또는 SMAA → 두 단계 블룸 → 1997 필름 → AgX 톤매핑. 폰은 `RenderPass` + 4x MSAA 만.
 - 건물 · 랜드마크는 재질 · 160 m 칸마다 한 메시로 합칩니다(`world.js` `mergeStatic`, 칸은 파일의 칸: `chunks.js`). 작은 불투명 재질을 640 m 칸으로 더 합쳐 그리는 메시를 줄여 보았으나(정문 1,136 → 833개), 실제 폰에서 출발 자리 · 정문이 느려져(약 30 → 22 fps) 되돌림(2026-11-15).
+  - 텍스처 없는 단색 재질(`frame_silver` · `metal` · `trim_black` 처럼 `materials.json` 에 색 · 거칠기 · 금속도만 있는 것, 유리 · 양면 · 반투명 · 발광 빼고)은 칸마다 재질 하나(`lib.solid`)로 묶습니다. 정점 속성 `solid` 에 선형 색과 거칠기 · 금속도를 적고, 구운 AO 와 해 그림자 패치는 다른 재질과 같이 받습니다. 칸 크기는 그대로라 컬링은 같습니다. 폰 경로 정문 1,702 → 1,395 call, 하늘 시점 1,761 → 1,433(2026-11-23, 헤드리스). 같은 카메라의 전 · 후 화면에서 건물 면은 같음
 - 셰이더 패치는 `materials.js` `patchShader` 로 쌓습니다. 캐시 키를 함께 관리해 같은 프로그램이 여러 번 컴파일되지 않게 합니다.
 - 폰은 텍스처를 1024 이하로 줄여 올립니다(2K 세트는 밉맵 포함 약 1 GB).
   - 큰 텍스처(PBR 2K 세트, 8K 하늘)는 폰용 사본(`<이름>_1k.jpg`, `sky_8k_4k.jpg`)을 받습니다(`util.js` `phoneCopy`). `tools/mobile_textures.py` 가 만들고 원본의 sha1 을 `tools/mobile_sources.json` 에 적습니다. 원본이 바뀌었는데 사본을 다시 만들지 않으면 폰도 원본을 받아 줄입니다.
 - 텍스처 이미지는 `createImageBitmap` 으로 메인 스레드 밖에서 풉니다(`materials.js` `imageTexture`). `<img>` 는 WebGL 이 처음 올릴 때 메인 스레드에서 풀려, 첫 장면 전에 2.2 ~ 2.8 s 를 붙잡았습니다(이제 0.7 ~ 0.9 s). 폰의 줄이기도 `createImageBitmap` 의 `resize` 로 합니다. 비트맵은 WebGL 의 unpack 플래그를 받지 않아 뒤집기(`imageOrientation`) · 색 변환을 그 자리에서 정하고, 텍스처의 `flipY` 는 끕니다. Safari 17 · Firefox 98 전은 `TextureLoader` 그대로.
   - KTX2(Basis)는 재 보고 넣지 않았습니다(2026-11-19, PBR 24세트). ETC1S 는 최고 품질에서도 잔디 · 아스팔트 · 회반죽의 diff 가 PSNR 26 ~ 29 dB 로 뭉개지고 노멀은 JPG 의 1.7배, UASTC 는 JPG 의 2 ~ 3배라 받는 양이 늘어납니다.
+  - PBR 맵(2K와 폰용 1K)은 WebP 로 받습니다(2026-11-23). `tools/webp_textures.py` 가 JPG 를 만든 Poly Haven 원본(`assets_src/textures/`)에서, 원본에 대한 PSNR 이 JPG 이상인 가장 낮은 품질로 만들어 sha1 을 `tools/webp_sources.json` 에 적고, 빌드가 JPG 대신 내보냅니다(잎 PNG 와 같은 방식, JPG 가 바뀌면 JPG 로 되돌아감). 2K 24.0 → 16.8 MB, 1K 5.5 → 3.4 MB. JPG 를 다시 인코딩하면 같은 화질에서 줄지 않고, 원본이 없거나 JPG 가 원본에서 나오지 않은 16장(그린 나무껍질, JPG 가 이미 고운 거칠기 맵)은 JPG 그대로
+  - 같은 화질의 AVIF 는 WebP 보다 6 %p 작을 뿐이라(2K −35 %, 1K −41 %) 못 푸는 브라우저의 되돌림 · 느린 풀기를 감수하지 않음
+  - 구운 해 그림자 두 장(`sun_shadow.png` · `sun_ground.png`)은 무손실 WebP(3.1 → 2.8 MB, 값은 같음). `tools/bake_sun_shadows.mjs` 가 굽고 나서 만듭니다
+  - 40 Mbps · RTT 40 ms 의 h2 서버에서 로딩 화면이 데스크톱 약 14.0 → 13.0 s, 폰 경로 12.4 → 11.7 s
 
 ### 성능: 정문 밖 · 신촌 로터리
 

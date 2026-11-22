@@ -138,7 +138,7 @@ export class CampusChunks {
       this.amph.push(m);
     }
     // a cell's file: one mesh of each material (its own cell); a base file: in 160 m cells as before
-    const merged = mergeStatic(root, { chunk: f.cell ? 0 : 160, name: f.file });
+    const merged = mergeStatic(root, { chunk: f.cell ? 0 : 160, name: f.file, lib });
     const meshes = [...merged.children];
     if (this.late) {
       this.onPrepare?.(merged);

@@ -13,6 +13,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import zlib from 'zlib';
+import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -91,6 +92,13 @@ await browser.close();
 const { w, h } = res, data = new Uint8Array(Buffer.from(res.b64, 'base64')), lift = new Uint8Array(Buffer.from(res.lift, 'base64'));
 fs.writeFileSync(OUT, png(w, h, data));
 fs.writeFileSync(OUT_GROUND, png(res.lw, res.lh, lift));
+// the copies the game downloads: lossless WebP, the same values in fewer bytes (tools/webp_textures.py; without them
+// the build serves the PNGs)
+{
+  const py = path.join(here, '../.venv/bin/python');
+  const r = spawnSync(fs.existsSync(py) ? py : 'python3', [path.join(here, 'webp_textures.py'), OUT, OUT_GROUND], { stdio: 'inherit' });
+  if (r.status !== 0) console.warn('no WebP copies of the sun maps: run python tools/webp_textures.py');
+}
 let lit = 0, raised = 0, top = 0, full = 0;
 for (const v of data) lit += v;
 // (the town's slices: the columns east of the campus's 3200, the rows they fill)
