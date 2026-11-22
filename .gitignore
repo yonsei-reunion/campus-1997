@@ -6,6 +6,9 @@ data/raw/pdf_images/
 previews/
 __pycache__/
 trailer/*.mp4
+# 영상을 올릴 때 쓰는 글 · 썸네일(tools/trailer/intro*, /intro-video)
+trailer/*.txt
+trailer/*.jpg
 
 .claude/worktrees/
 .claude/settings.local.json

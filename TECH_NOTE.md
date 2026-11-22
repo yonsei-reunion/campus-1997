@@ -513,6 +513,16 @@ node tools/trailer/birthday.mjs /tmp/bday --port 5197                    # (web 
 python3 tools/trailer/birthday_video.py /tmp/bday trailer/birthday.mp4   # 사진 → 게임 전환, 자막, 소리
 ```
 
+게임 소개 영상(약 3분: 신촌 로터리에서 정문까지, 주인공 열세 명, 사진과 게임, 쪽지 · 미니 게임, 참고 자료 · 출처)은
+`tools/trailer/intro*` 가 만듭니다. 순서와 점검할 것은 Claude Code 스킬 `/intro-video`(`.claude/skills/intro-video/SKILL.md`)에 있습니다.
+
+```bash
+cd web && npx vite build --outDir /tmp/intro/dist --emptyOutDir && npx vite preview --outDir /tmp/intro/dist --port 5231   # 빌드한 사본
+node tools/trailer/intro.mjs /tmp/intro/take                                  # 장면마다 프레임 (intro_segments.js)
+node tools/trailer/intro_audio.mjs /tmp/intro/take                            # 게임의 소리(응원가 · 바람 · 분수)
+.venv/bin/python tools/trailer/intro_video.py /tmp/intro/take trailer/intro.mp4   # 잇기 · 배경 음악 · MP4
+```
+
 ## 커밋과 이슈
 
 커밋 메시지 · 이슈 댓글 규칙은 [`CLAUDE.md`](CLAUDE.md) 에 있습니다.
