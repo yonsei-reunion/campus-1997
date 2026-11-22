@@ -53,13 +53,11 @@ export function todaySet(key = dayKey()) {
   let s = +key >>> 0;
   const rnd = () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const pick = (a) => a[Math.floor(rnd() * a.length)];
-  // (장기원 기념관 came in on 2026-11-22: the days before keep the halls their boards were run on)
-  const pool = +key < 20261123 ? HALLS.filter((h) => h !== '장기원 기념관') : HALLS;
   for (let tries = 0; tries < 200; tries++) {
-    const halls = [pick(pool)];
+    const halls = [pick(HALLS)];
     while (halls.length < 4) {
       const last = halls[halls.length - 1];
-      const ok = pool.filter((h) => !halls.includes(h) && !START_ONLY.includes(h) && wayOf(last, h) >= 120 && wayOf(last, h) <= 480);
+      const ok = HALLS.filter((h) => !halls.includes(h) && !START_ONLY.includes(h) && wayOf(last, h) >= 120 && wayOf(last, h) <= 480);
       if (!ok.length) break;
       halls.push(pick(ok));
     }
