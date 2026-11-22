@@ -2396,7 +2396,7 @@ YJ_BLOCK = (1.44, 2.0, 2.17)              # the granite block: width, depth, hei
 YJ_SLAB = (1.30, 1.86, 0.13)              # the slab set on it (its top 2.3 m up)
 YJ_PLAQUE = (0.68, 0.50)                  # the black plaque on the block's front, its top 0.15 m under the block's
 YJ_BACK = 0.36                            # the chair this far back of the slab's middle (the crown 0.46 m behind it)
-YJ_STRIP = (-1.5, 1.6, -6.8, 1.7)        # the paved strip from the plaza's kerb to the block (x0, x1, y0, y1; the scans)
+YJ_STRIP = (-1.5, 1.6, -5.75, 1.7)       # the paved strip from the head of its steps to the block (x0, x1, y0, y1; the scans)
 YJ_CHAIR = dict(w=0.85, y0=-0.26, y1=0.44, seat=0.40, arm=0.70, arm_w=0.11, back=1.06, back_d=0.14)
 
 
@@ -2472,8 +2472,8 @@ def _yj_chair(mb, B):
 
 def yongjae_statue(st, z0, gfn):
     """the block on the lowest ground under it (z0), going on down 0.3 m; the slab, the chair and the figure on it;
-    the paved strip in front laid 7 cm over the ground (walked on with it: under the walker's 0.1 m ankle ray; the game's
-    terrain stands up to 2 cm over common.ground here)"""
+    the paved strip in front laid 7 cm over the ground (walked on with it: under the walker's 0.1 m ankle ray): the
+    strip's deck (tools/libbeds97.py STRIP, a plate common.ground reads), its steps from the plaza libbeds97's"""
     bw, bd, bh = YJ_BLOCK
     sw, sd, sh = YJ_SLAB
     G, B = 'stone_granite', 'bronze_yongjae'

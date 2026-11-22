@@ -42,6 +42,7 @@ import jonghap97
 import libsouth97
 import libwest97
 import libnorth97
+import libbeds97
 import centsw97
 import yongjae97
 import ridge97
@@ -11185,7 +11186,7 @@ _ypaint(fieldhill97.bare(), _gd)
 DONGMUN_WOODS, DONGMUN_WALK = dongmun.splat_paint()       # (동문 둘레, x < 641: the knoll's woods, the walk south of 청송길)
 _ypaint([g_ for g_ in getattr(DONGMUN_WOODS, 'geoms', [DONGMUN_WOODS]) if g_.geom_type == 'Polygon'], _gf)
 _ypaint([DONGMUN_WALK], _gp)
-_ypaint([lf_rect(47.5, 56.0, 33.0, 36.1)], _gp)   # (용재 동상 앞 포장 띠, YJ_STATUE below: paved under its slabs, no grass)
+_ypaint([lf_rect(48.55, 56.0, 33.0, 36.1)], _gp)  # (용재 동상 앞 포장 띠, YJ_STATUE below: paved under its slabs, no grass; its steps libbeds97)
 _ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 길: SCI_DRIVE97)
 _ypaint([KB97_ASPH], _ga)                    # (광복관 안마당 · 서쪽 길 · 북쪽 길, 핀슨관 서쪽 길 · 북쪽 주차장: kwangbok97)
 _ypaint([kli97.LOT_POLY], _ga)                # (한국어학당 앞 주차장: the paved lot of the 1997 scans; kli97)
@@ -12999,6 +13000,24 @@ print('장기원 기념관 동쪽 발치: trees, shrubs off the lane', jk97.east
       'walks (cut, gone)', jk97.east_paths(out['paths']), 'decals', jk97.east_decals(out['decals']))
 print('장기원 기념관 동쪽 길 -> 도서관 서쪽 길 돌계단:', jk97._BF[0], 'off it (trees, shrubs, props)',
       [jk97.bank_clear(out[k_]) for k_ in ('trees', 'shrubs', 'props')])
+# 중앙도서관 앞마당의 돋운 화단 (tools/libbeds97.py, reference/고증/3.2-3.3 3.2.1 「돋운 화단」): the 1996 - 1999 scans' beds
+# stand 0.3 - 0.8 m over the paving round them on steep grass banks, the strip before 용재 동상 a little higher with four
+# steps up from the plaza.  The grid stays as it is (at the paving's level); each bed a deck over it in the ground's own
+# material, its banks down to the paving, as med_west top · quads · walk; the decks' heights as plates (what stands on
+# them: the statue, the trees and shrubs on the walked surface).  After everything that read the ground
+LIBBEDS97 = libbeds97.build(lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
+_lb_n0 = len(out['med_west']['top']['v'])
+out['med_west']['top']['v'] += LIBBEDS97['top']['v']
+out['med_west']['top']['f'] += [[i_ + _lb_n0 for i_ in f_] for f_ in LIBBEDS97['top']['f']]
+out['med_west']['quads'] += LIBBEDS97['quads']
+out['med_west']['walk'] += LIBBEDS97['walk']
+for _lp in LIBBEDS97['plates']:
+    _pu, _pv = zip(*[medwest97.uv(x_, y_) for x_, y_ in _lp['poly']])
+    _pus = [round(float(u_), 3) for u_ in np.arange(min(_pu) - 0.5, max(_pu) + 2.5, 2.0)]
+    _pvs = [round(float(v_), 3) for v_ in np.arange(min(_pv) - 0.5, max(_pv) + 2.5, 2.0)]
+    out['med_west']['plates'].append(dict(name=_lp['name'], poly=[[round(x_, 3), round(y_, 3)] for x_, y_ in _lp['poly']], holes=[],
+                                          us=_pus, vs=_pvs, z=[[round(float(_lp['hfun'](*medwest97.xy(u_, v_))), 3) for u_ in _pus] for v_ in _pvs]))
+print('중앙도서관 앞마당 돋운 화단:', LIBBEDS97['info'], 'triangles %d, quads %d' % (len(LIBBEDS97['top']['f']), len(LIBBEDS97['quads'])))
 # (독수리상 안쪽, EAGLE97 above: the azaleas of the round beds as first laid out, r 9.5, go; the beds of 1997 are planted
 # on the same 1.1 m staggered grid with their own draws, clear of the trunks and of the groups' wedges on the diagonals)
 _n_old = len(out['shrubs'])
