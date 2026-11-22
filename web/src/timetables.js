@@ -29,15 +29,18 @@ export const wayOf = (a, b) => {
 // below finds only by going round)
 export const breakOf = (m) => Math.ceil((m / RUN * 1.4 + 20) / 5) * 5;
 
-// the timetables: [class, hall] for 1 – 4교시 (a class every hour on the hour). The subjects are a game's: names
-// any college had, not a record of 1997's courses; 채플 was in 대강당
+// the timetables: [class, hall] for 1 – 4교시 (a class every hour on the hour). The subjects are a game's, under
+// their 1997 names where known (고증 4.15): 채플 was in 대강당, 교양영어 in 경영학교실단. The ids changed with the
+// halls (liberal · commerce · eng had 대학영어 in 종합관), so the boards of the old ways are not mixed in
 export const SETS = [
-  { id: 'liberal', name: '문과대학', classes: [['국어학개론', '인문관'], ['대학영어', '종합관'], ['사회학개론', '연희관'], ['채플', '대강당']] },
+  { id: 'arts', name: '문과대학', classes: [['국어학개론', '인문관'], ['교양영어', '경영학교실단'], ['사회학개론', '연희관'], ['채플', '대강당']] },
   { id: 'science', name: '이과대학', classes: [['일반물리학', '과학관'], ['교양체육', '체육교육관'], ['채플', '대강당'], ['기독교의 이해', '종합관']] },
-  { id: 'commerce', name: '상경대학', classes: [['경제원론', '상대신관'], ['대학영어', '종합관'], ['채플', '대강당'], ['회계원리', '상대별관']] },
-  { id: 'eng', name: '공과대학', classes: [['공업수학', '제1공학관'], ['미적분학', '과학관'], ['채플', '대강당'], ['대학영어', '종합관']] },
+  { id: 'econ', name: '상경대학', classes: [['경제원론', '상대신관'], ['교양영어', '경영학교실단'], ['채플', '대강당'], ['회계원리', '상대별관']] },
+  { id: 'engr', name: '공과대학', classes: [['공업수학', '제1공학관'], ['미적분학', '과학관'], ['채플', '대강당'], ['교양영어', '경영학교실단']] },
 ];
-export const SUBJECTS = ['대학영어', '기독교의 이해', '철학개론', '글쓰기', '통계학', '한국사', '심리학개론', '일반생물학', '경제학입문', '교양체육', '서양사', '컴퓨터 입문'];
+// the halls whose class is always the same (오늘의 시간표 too); the rest draw from SUBJECTS
+export const FIXED = { 대강당: '채플', 경영학교실단: '교양영어' };
+export const SUBJECTS = ['기독교의 이해', '철학개론', '글과 삶', '말과 삶', '통계학', '한국사', '심리학개론', '일반생물학', '경제학입문', '교양체육', '서양사', '컴퓨터 입문', '일의 세계와 심리학', '청년기 갈등과 자기 이해', '연극의 이해'];
 
 // 오늘의 시간표: four halls drawn from the day's date (the same for everyone that day), each break 120 – 480 m
 // (상대신관's door is up the horseshoe flights over 상뜰, which a walker coming from 백양로 finds late: a first class
@@ -58,7 +61,7 @@ export function todaySet(key = dayKey()) {
     }
     if (halls.length < 4) continue;
     const subj = [...SUBJECTS];
-    const classes = halls.map((h) => [h === '대강당' ? '채플' : subj.splice(Math.floor(rnd() * subj.length), 1)[0], h]);
+    const classes = halls.map((h) => [FIXED[h] || subj.splice(Math.floor(rnd() * subj.length), 1)[0], h]);
     return { id: `today-${key}`, name: '오늘의 시간표', today: true, classes };
   }
   return { ...SETS[0], id: `today-${key}`, name: '오늘의 시간표', today: true };
