@@ -12988,9 +12988,74 @@ for (a_, b_, _), (k_, w_, c_) in zip(MUSIC_STAIR97_OLD, MUSIC_STAIR97_NEW):
     out['paths'][_mk] = dict(kind=k_, w=w_, pts=[list(q_) for q_ in c_])
 _n_mst = len(out['shrubs'])
 out['shrubs'] = [s_ for s_ in out['shrubs'] if not _mst_new.buffer(0.4).contains(Point(s_[1], s_[2]))]
-out['music_stair'] = dict(top=list(MUSIC_STAIR97['top']), foot=list(MUSIC_STAIR97['foot']), w=MUSIC_STAIR97['w'])
+# Its flights (2004 photos: one straight run, a short landing after every nine or ten risers; reference/고증/3.11 「서쪽
+# 계단」): from the yard's level at the head down to the game's ground at the foot, rises of about 0.165 m and treads of
+# 0.30 m; each flight starts as early as its treads still clear the bank as the game had it (the head stays at the
+# yard's level over the bank's convex brow), the length left over goes to the landings, more of it to the lower ones.
+# The bank beside it then comes up to it: the game's slope (Copernicus under the woods) fell steep at the top and flat
+# at the foot, 2.4 m under a straight run in its lower half, where all three 1:5000 surveys have the bank higher than
+# the game's and the photo has the flight sunk between concrete cheeks.  Here, after everything that read the ground
+_ms_t, _ms_f = MUSIC_STAIR97['top'], MUSIC_STAIR97['foot']
+_ms_L = math.hypot(_ms_f[0] - _ms_t[0], _ms_f[1] - _ms_t[1])
+_ms_d = ((_ms_f[0] - _ms_t[0]) / _ms_L, (_ms_f[1] - _ms_t[1]) / _ms_L)
+_ms_te, _ms_tr, _ms_per, _ms_pmin = _ms_L - 0.3, 0.30, 10, 0.6
+_ms_xy = lambda t_, s_=0.0: (_ms_t[0] + _ms_d[0] * t_ - _ms_d[1] * s_, _ms_t[1] + _ms_d[1] * t_ + _ms_d[0] * s_)
+_ms_gt = lambda t_: max(ground_h(*_ms_xy(t_, s_)) for s_ in (-1.7, 0.0, 1.7))        # (the walk and its kerbs)
+_ms_z0 = ground_h(*_ms_t)
+_ms_D = _ms_z0 - ground_h(*_ms_xy(_ms_te))
+_ms_n = max(1, round(_ms_D / 0.165))
+_ms_r = _ms_D / _ms_n
+_ms_nf = math.ceil(_ms_n / _ms_per)
+_ms_fl = [_ms_n // _ms_nf + (1 if k_ < _ms_n % _ms_nf else 0) for k_ in range(_ms_nf)]
+_ms_ts = np.arange(0.0, _ms_te + 0.01, 0.05)
+_ms_gs = np.array([_ms_gt(t_) for t_ in _ms_ts]) - _ms_z0
+
+
+def _ms_first(i_):
+    """where the tread after riser i_ (1-based, down to -r i_) is first over the bank (within 3 cm)"""
+    ok_ = np.where(_ms_gs <= -_ms_r * i_ + 0.03)[0]
+    return float(_ms_ts[ok_[0]]) if len(ok_) else _ms_te
+
+
+_ms_st, _ms_tc, _ms_ic = [], 0.3, 0
+for n_ in _ms_fl:
+    # (the last three risers come down to the foot's own ground: not held to it)
+    s_ = max([_ms_tc] + [_ms_first(_ms_ic + k_ + 1) - k_ * _ms_tr for k_ in range(n_) if _ms_ic + k_ + 1 <= _ms_n - 3])
+    _ms_st.append(s_)
+    _ms_ic += n_
+    _ms_tc = s_ + (n_ - 1) * _ms_tr + _ms_pmin
+_ms_slack = _ms_te - 0.3 - (_ms_st[-1] + (_ms_fl[-1] - 1) * _ms_tr)
+assert _ms_slack >= 0.0, _ms_slack
+_ms_st = [s_ + _ms_slack * k_ / max(1, _ms_nf - 1) for k_, s_ in enumerate(_ms_st)]
+_ms_nose = [round(s_ + k_ * _ms_tr, 3) for s_, n_ in zip(_ms_st, _ms_fl) for k_ in range(n_)]
+out['music_stair'] = dict(top=list(MUSIC_STAIR97['top']), foot=list(MUSIC_STAIR97['foot']), w=MUSIC_STAIR97['w'],
+                          z0=round(_ms_z0, 3), rise=round(_ms_r, 4), nose=_ms_nose)
+
+
+def _ms_line(t_):
+    """the line through the nosings (the head and the foot level), work-plane z"""
+    k_ = int(np.searchsorted(_ms_nose, t_, side='right'))
+    if k_ == 0:
+        return _ms_z0
+    if k_ >= len(_ms_nose):
+        return _ms_z0 - _ms_n * _ms_r
+    ta_, tb_ = _ms_nose[k_ - 1], _ms_nose[k_]
+    return _ms_z0 - _ms_r * (k_ - 1) - _ms_r * (t_ - ta_) / (tb_ - ta_)
+
+
+_msm = (np.abs(X - (_ms_t[0] + _ms_f[0]) / 2) < 30) & (np.abs(Y - (_ms_t[1] + _ms_f[1]) / 2) < 25)
+_ms_px, _ms_py = X[_msm] - _ms_t[0], Y[_msm] - _ms_t[1]
+_ms_tt = np.clip(_ms_px * _ms_d[0] + _ms_py * _ms_d[1], 0.0, _ms_L)
+_ms_dist = np.hypot(_ms_px - _ms_tt * _ms_d[0], _ms_py - _ms_tt * _ms_d[1])
+_ms_w = np.clip(1.0 - (_ms_dist - (MUSIC_STAIR97['w'] / 2 + 0.5)) / 6.0, 0.0, 1.0)
+_ms_tgt = np.array([_ms_line(t_) for t_ in _ms_tt]) - 0.25                     # (the cheeks' kerbs stand over it)
+_ms_old = Hn[_msm].copy()
+Hn[_msm] = np.maximum(_ms_old, _ms_old * (1 - _ms_w) + _ms_tgt * _ms_w)
 print('음악관 서쪽 계단: shrubs off it', _n_mst - len(out['shrubs']),
-      'trees on it', sum(1 for t_ in out['trees'] if _mst_new.buffer(0.3).contains(Point(t_[1], t_[2]))))
+      'trees on it', sum(1 for t_ in out['trees'] if _mst_new.buffer(0.3).contains(Point(t_[1], t_[2]))),
+      '| %d risers of %.3f m in flights %s, landings %s m, the bank up %.2f m at most on %d nodes' % (
+          _ms_n, _ms_r, _ms_fl, [round(_ms_st[k_ + 1] - _ms_st[k_] - (_ms_fl[k_] - 1) * _ms_tr, 2) for k_ in range(_ms_nf - 1)],
+          float((Hn[_msm] - _ms_old).max()), int((Hn[_msm] - _ms_old > 0.01).sum())))
 # 동문 둘레의 숲 (tools/dongmun.py trees): the knoll's and the slope's crowns of the 1997 scans and the island's pines, at
 # the trees' very end (the web picks each tree's model by its place in the list)
 DONGMUN_TREES = dongmun.trees(out['trees'], [b_['footprint'] for b_ in out['buildings']], muak.woods_fill)

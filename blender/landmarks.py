@@ -6640,9 +6640,11 @@ def yongjae():
 def music_stair():
     """The long flight from 음악관's west yard down the wooded bank to 대강당's south-east corner (campus.json music_stair,
     tools/build_campus.py MUSIC_STAIR97): its line and length from the leafless scans of 1996, its look from
-    reference/동문_이중윤/2004_음대_계단_*.jpg (concrete treads between low concrete kerbs).  The treads go down with
-    the game's ground, a riser wherever it has fallen one rise (step_walk): the bank's heights could not be read off the
-    scans under the trees, so the landings of the photo are not laid out (reference/고증/3.11 「서쪽 계단」)."""
+    reference/동문_이중윤/2004_음대_계단_*.jpg: one straight run of concrete treads between low sloping concrete cheeks,
+    a short landing after every nine or ten risers (the flights as build_campus.py laid them: `nose`, the risers' places
+    down the line, `rise`, `z0` the head's level), and stainless handrails on both cheeks (posts, a top rail, a bottom
+    rail over the cheek, close upright bars between, a grab rail on brackets inside the top rail), level over each
+    landing (reference/고증/3.11 「서쪽 계단」)."""
     M = CAMPUS.get('music_stair')
     if not M:
         return []
@@ -6650,8 +6652,92 @@ def music_stair():
     L = math.hypot(fx - tx, fy - ty)
     dx, dy = (fx - tx) / L, (fy - ty) / L
     mb = MeshBuilder('lm_music_stair')
-    mb.xf = local_frame(tx, ty, math.atan2(dx, -dy), ground(tx, ty))       # (local -y: down the flight)
-    step_walk(mb, M['w'], L - 0.3, local_ground(mb), rise=0.165, tread_min=0.3, mat='concrete', kerb_mat='concrete', kerb=0.2)
+    mb.xf = local_frame(tx, ty, math.atan2(dx, -dy), M['z0'])               # (local -y: down the flight)
+    gl = local_ground(mb)
+    W, r, nose = M['w'], M['rise'], M['nose']
+    hw, kw, kh = W / 2, 0.22, 0.12                                           # (cheek: width, over the treads)
+    N = len(nose)
+    starts, ends = [0.0] + nose, nose + [L]
+    for k, (t0, t1) in enumerate(zip(starts, ends)):                       # each tread a block down into the bank
+        zt = -r * k
+        lo = min(min(gl(x_, -tt) for x_ in (-hw, 0.0, hw) for tt in (t0, t1)), zt) - 0.6
+        mb.box((0.0, -(t0 + t1) / 2, (zt + lo) / 2), (W, t1 - t0 + 0.02, zt - lo), 'concrete')
+    W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
+    # walked: a ramp through the nosings within a flight, level over the head, each landing and the foot
+    pts = [(0.0, 0.0)] + [(t_, -r * k) for k, t_ in enumerate(nose)] + [(L, -r * N)]
+    for (ta, za), (tb, zb) in zip(pts, pts[1:]):
+        flat = tb - ta > 0.45                                               # (the head, a landing, the foot)
+        zb_ = za if flat else zb
+        WALK_FACES.append([W_(-hw, -ta + 0.05, za), W_(hw, -ta + 0.05, za), W_(hw, -tb - 0.05, zb_), W_(-hw, -tb - 0.05, zb_)])
+        if flat and tb < L:
+            WALK_FACES.append([W_(-hw, -tb + 0.05, za), W_(hw, -tb + 0.05, za), W_(hw, -tb - 0.05, zb), W_(-hw, -tb - 0.05, zb)])
+
+    # the line the cheeks and rails follow: through the nosings down a flight, level over the head, the landings and
+    # the foot (one tread past a flight's last nosing, where its landing starts)
+    rl = [(0.0, 0.0)]
+    for k, t_ in enumerate(nose):
+        if k == 0 or t_ - nose[k - 1] > 0.45:
+            rl.append((t_, -r * k))
+        if k == N - 1 or nose[k + 1] - t_ > 0.45:
+            gap = (nose[k + 1] if k < N - 1 else L) - t_
+            rl.append((t_ + min(0.3, gap / 2), -r * (k + 1)))
+    rl.append((L, -r * N))
+    rl = [q for i, q in enumerate(rl) if i == 0 or q[0] - rl[i - 1][0] > 1e-3]
+
+    def at(t):
+        for (ta, za), (tb, zb) in zip(rl, rl[1:]):
+            if t <= tb:
+                return za + (zb - za) * (t - ta) / max(tb - ta, 1e-6)
+        return rl[-1][1]
+    ck = r + kh                                   # (the cheek's top over the line: a rise, so it clears every tread)
+    # the cheeks: sloping concrete walls along the line, down into the bank
+    for sg in (-1, 1):
+        xi, xo = sg * hw, sg * (hw + kw)
+        for (ta, za), (tb, zb) in zip(rl, rl[1:]):
+            m = max(1, int(math.ceil((tb - ta) / 1.0)))
+            for j in range(m):
+                sa, sb = ta + (tb - ta) * j / m, ta + (tb - ta) * (j + 1) / m
+                ua, ub = at(sa) + ck, at(sb) + ck
+                lo = min(gl(x_, -tt) for x_ in (xi, xo) for tt in (sa, sb)) - 0.5
+                lo = min(lo, min(ua, ub) - 1.0)
+                quad = (lambda p, q, u, v: mb.quad(p, q, u, v, 'concrete')) if sg > 0 else (lambda p, q, u, v: mb.quad(q, p, v, u, 'concrete'))
+                quad((xi, -sa, ua), (xi, -sb, ub), (xo, -sb, ub), (xo, -sa, ua))              # top
+                quad((xo, -sa, ua), (xo, -sb, ub), (xo, -sb, lo), (xo, -sa, lo))              # outer face
+                quad((xi, -sa, lo), (xi, -sb, lo), (xi, -sb, ub), (xi, -sa, ua))              # inner face
+        for t_, zt_ in ((0.0, at(0.0)), (L, at(L))):                                       # the ends
+            lo = min(gl(sg * hw, -t_), gl(sg * (hw + kw), -t_)) - 0.5
+            p0, p1 = (xi, -t_), (xo, -t_)
+            if (t_ == 0.0) == (sg > 0):
+                p0, p1 = p1, p0
+            mb.quad((p0[0], p0[1], lo), (p1[0], p1[1], lo), (p1[0], p1[1], zt_ + ck), (p0[0], p0[1], zt_ + ck), 'concrete')
+
+    # handrails on the cheeks
+    H, HB, HG = 0.9, ck + 0.1, 0.78                       # top rail, bottom rail, grab rail: over the line
+    t_a, t_b = 0.15, L - 0.15
+    rail = [(t_a, at(t_a))] + [q for q in rl if t_a < q[0] < t_b] + [(t_b, at(t_b))]
+    for sg in (-1, 1):
+        xr = sg * (hw + kw / 2)
+        xg = sg * (hw - 0.07)                                               # (the grab rail, inside)
+        for (ta, za), (tb, zb) in zip(rail, rail[1:]):
+            rod(mb, (xr, -ta, za + H), (xr, -tb, zb + H), 0.024, 'chrome', seg=8)
+            rod(mb, (xr, -ta, za + HB), (xr, -tb, zb + HB), 0.012, 'chrome', seg=6)
+            rod(mb, (xg, -ta, za + HG), (xg, -tb, zb + HG), 0.019, 'chrome', seg=8)
+        posts = []
+        for (ta, _), (tb, _) in zip(rail, rail[1:]):                        # at the kinks and every 1.5 m or so
+            m = max(1, int(round((tb - ta) / 1.5)))
+            posts += [ta + (tb - ta) * j / m for j in range(m)]
+        posts.append(rail[-1][0])
+        for t_ in posts:
+            z_ = at(t_)
+            rod(mb, (xr, -t_, z_ + ck), (xr, -t_, z_ + H), 0.022, 'chrome', seg=8, caps=True)
+            rod(mb, (xr, -t_, z_ + HG - 0.07), (xg, -t_, z_ + HG - 0.07), 0.009, 'chrome', seg=4)   # the bracket
+            rod(mb, (xg, -t_, z_ + HG - 0.07), (xg, -t_, z_ + HG), 0.009, 'chrome', seg=4)
+        t_ = t_a + 0.06
+        while t_ < t_b - 0.03:                                              # close upright bars
+            z_ = at(t_)
+            rod(mb, (xr, -t_, z_ + HB), (xr, -t_, z_ + H), 0.008, 'chrome', seg=4)
+            t_ += 0.12
+    print('음대 계단: %d risers of %.3f m, %.1f m down, %d bends in its rails a side' % (N, r, r * N, len(rail)))
     return [mb]
 
 
