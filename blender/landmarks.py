@@ -4326,10 +4326,12 @@ def amphitheater():
 
 # ============================================================================= 대우관 (1984)
 def gable_hall(mb, u0, u1, v0, v1, floors, fh, wall, pitch=1.3, plinth=1.0, bay=3.3, iv=None, ivy=0.0, seed=0, gothic_trim=False,
-               blind=(), finial=True, oriel=None):
+               blind=(), finial=True, oriel=None, rear=None, roof='roof_slate', skylights=None):
     """A stone hall in the builder's local frame whose ridge runs along v, with steep gables on its two v ends
     (the end pavilions of 대우관: their gables face the forecourt).  blind: the sides (0 front, 1, 2 back, 3) whose
-    ground storey has no windows (the ground stands a storey higher there)."""
+    ground storey has no windows (the ground stands a storey higher there).  rear: the back gable end laid out as
+    gable_rear() reads it (instead of the window grid); roof: the slopes' material; skylights: [(side, x, v), ...]
+    roof lights, side 0 the u0 slope and 1 the u1 slope, x their middle's distance in from the wall line."""
     W = u1 - u0
     Hw = plinth + floors * fh + 0.6
     hz = Hw + W / 2 * pitch
@@ -4338,14 +4340,17 @@ def gable_hall(mb, u0, u1, v0, v1, floors, fh, wall, pitch=1.3, plinth=1.0, bay=
     gl = local_ground(mb)
     for i in range(4):
         P, Le, t, n = edge_P(body[i], body[(i + 1) % 4])
-        if i in blind:
+        if i == 2 and rear:
+            gable_rear(mb, P, Le, wall, plinth, plinth + floors * fh, Hw, rear)
+        elif i in blind:
             flat_wall(mb, P, 0, Le, plinth, plinth + fh, wall)
             window_grid(mb, P, Le, plinth + fh, floors - 1, fh, bay, wall, ww=0.5, trim='stone_trim', mull=2)
         else:
             window_grid(mb, P, Le, plinth, floors, fh, bay, wall, ww=0.5, trim='stone_trim', mull=2)
         if plinth > 1.2:
             basement_windows(mb, P, 0, Le, bay, plinth, gl, wall)
-        flat_wall(mb, P, 0, Le, plinth + floors * fh, Hw, wall)
+        if not (i == 2 and rear):
+            flat_wall(mb, P, 0, Le, plinth + floors * fh, Hw, wall)
         if gothic_trim and i in (1, 3):
             # as on the old stone halls (언더우드관): buttresses up the long sides and a battlemented parapet
             nbut = int(round(Le / 6.6))
@@ -4370,6 +4375,13 @@ def gable_hall(mb, u0, u1, v0, v1, floors, fh, wall, pitch=1.3, plinth=1.0, bay=
             c = P(Le / 2, hz + 0.9, 0.05)
             if finial:
                 mb.box(c, (0.7, 0.7, 1.2), 'stone_trim', rotz=math.atan2(t.y, t.x), skip=('bottom',))
+            if i == 2 and rear and rear.get('kneeler'):
+                # shoulders: the coping runs level over the corners before it climbs (2004 photo, the scans' level
+                # bright band over the eaves at both corners)
+                kw = rear['kneeler']
+                for s0_, s1_ in ((-0.3, kw), (Le - kw, Le + 0.3)):
+                    q = P((s0_ + s1_) / 2, Hw + 0.3, 0.05)
+                    mb.box(q, (s1_ - s0_, 0.55, 0.6), 'stone_trim', rotz=math.atan2(t.y, t.x), skip=('bottom',))
         if i == 0 and oriel:
             # (대우관's pavilions: a bay of three lights standing out of the middle of the front over the storeys
             # oriel = (first, last), a small slate-faced gable over its head)
@@ -4397,9 +4409,57 @@ def gable_hall(mb, u0, u1, v0, v1, floors, fh, wall, pitch=1.3, plinth=1.0, bay=
     A, B = (u0 - e, v0 - e, Hw - e * pitch), (u0 - e, v1 + e, Hw - e * pitch)
     C, D = (u1 + e, v1 + e, Hw - e * pitch), (u1 + e, v0 - e, Hw - e * pitch)
     R1, R2 = (uc, v0 - e, hz), (uc, v1 + e, hz)
-    mb.face([A, R1, R2, B], 'roof_slate')
-    mb.face([C, R2, R1, D], 'roof_slate')
+    mb.face([A, R1, R2, B], roof)
+    mb.face([C, R2, R1, D], roof)
     mb.box((uc, (v0 + v1) / 2, hz + 0.1), (0.35, v1 - v0, 0.3), 'metal_dark')
+    # roof lights flush with the slope: a dark frame and the glass, 0.9 m up the slope and 1.0 m along it
+    for side, x, v in (skylights or ()):
+        sg = -1.0 if side == 0 else 1.0
+        ue = u0 if side == 0 else u1                         # (the wall line; the slope rises inwards from it)
+        for (hx, hv, lift, mat) in ((0.42, 0.55, 0.03, 'metal_dark'), (0.36, 0.48, 0.05, 'glass_reflect')):
+            xa, xb = x - hx, x + hx
+            Q = lambda xx, vv: (ue - sg * xx, vv, Hw + xx * pitch + lift)
+            pts = [Q(xa, v - hv), Q(xb, v - hv), Q(xb, v + hv), Q(xa, v + hv)]
+            mb.face(pts if side == 0 else pts[::-1], mat)
+
+
+def gable_rear(mb, P, Le, wall, z_a, z_b, Hw, r):
+    """대우관's wings' back gable ends (reference/고증/3.6 「날개 뒤 끝 박공」: the 1996 winter scan 27/14 and the July
+    1997 one 27/15 unfolded on the wall's plane, reference/동문_이중윤/2004-09_대우관_뒤쪽_주차장에서.jpg): a blank wall
+    over the low court, four rows of windows, a single light near each corner and a bay standing out of the middle
+    with five narrow lights a row, the bay's own low gable under the main one with a dark vent in it.  P(s, z, d) the
+    end's plane, z in the hall's local heights.  r: rows [(za, zb)], side (centre of the corner lights from each end),
+    bay (half width), proud, lights (n, pitch, width), bay_top (feet, apex over Hw)"""
+    rows, sd, bw, pr = r['rows'], r['side'], r['bay'], r['proud']
+    n_l, p_l, w_l = r['lights']
+    sm = Le / 2
+    ba, bb = sm - bw, sm + bw
+    holes = [(c - 0.4, c + 0.4, za, zb) for za, zb in rows for c in (sd, Le - sd)]
+    wall_holes(mb, P, 0, ba, z_a, Hw, wall, [h for h in holes if h[1] <= ba])
+    wall_holes(mb, P, bb, Le, z_a, Hw, wall, [h for h in holes if h[0] >= bb])
+    for (h0, h1, za, zb) in holes:
+        reveal(mb, P, h0, h1, za, zb, 0.25, 'stone_trim')
+        glazing(mb, P, h0, h1, za, zb, -0.25, 1, 3, 'frame_dark', fw=0.05)
+    # the bay: its face pr out, its sides back to the wall, the lights in its face
+    lc = [sm + (k - (n_l - 1) / 2) * p_l for k in range(n_l)]
+    bh = [(c - w_l / 2, c + w_l / 2, za, zb) for za, zb in rows for c in lc]
+    Pb = lambda s_, z_, d_=0.0: P(s_, z_, d_ + pr)
+    wall_holes(mb, Pb, ba, bb, z_a, Hw, wall, bh)
+    for (h0, h1, za, zb) in bh:
+        reveal(mb, Pb, h0, h1, za, zb, 0.2, 'stone_trim')
+        glazing(mb, Pb, h0, h1, za, zb, -0.2, 1, 3, 'frame_dark', fw=0.04)
+    for s_, sg in ((ba, -1), (bb, 1)):
+        q = [P(s_, z_a, 0), P(s_, z_a, pr), P(s_, Hw, pr), P(s_, Hw, 0)]
+        mb.face(q if sg > 0 else q[::-1], wall)
+    # its own gable over the eaves line, a coping along it, the vent under its apex
+    f0, f1 = r['bay_top']
+    za_, zt_ = Hw + f0, Hw + f1
+    mb.face([Pb(ba, Hw), Pb(bb, Hw), Pb(bb, za_), Pb(sm, zt_), Pb(ba, za_)], wall)
+    for (sa, zsa), (sb, zsb) in (((ba - 0.15, za_), (sm, zt_ + 0.15)), ((sm, zt_ + 0.15), (bb + 0.15, za_))):
+        mb.quad(Pb(sa, zsa, 0.12), Pb(sb, zsb, 0.12), Pb(sb, zsb, -pr), Pb(sa, zsa, -pr), 'stone_trim')
+    for s_ in (ba, bb):
+        mb.quad(P(s_, Hw, 0), P(s_, Hw, pr), P(s_, za_, pr), P(s_, za_, 0), wall)
+    flat_wall(mb, Pb, sm - 0.4, sm + 0.4, Hw - 0.2, Hw + 0.8, 'frame_dark', d=0.02)
 
 
 def daewoo_front(mb, lv, z0):
@@ -5093,8 +5153,20 @@ def daewoo():
     mb = MeshBuilder('lm_daewoo_pavilions')
     mb.xf = local_frame(a.x, a.y, ang, z0)
     v0w, v1w = lv['wing_v']                               # (the wings' two ends: the 1997 aerial photos' roofs)
-    for ua_, ub_ in ((uc - wo, uc - wi), (uc + wi, uc + wo)):
-        gable_hall(mb, ua_, ub_, v0w, v1w, 6, 3.6, 'stone_white', blind=(2,), pitch=0.75, finial=False, oriel=(2, 5))
+    # the wings' back gable ends and roofs (reference/고증/3.6 「날개 뒤 끝 박공과 지붕」): the 1996 · 1997 scans unfolded on the
+    # ends' plane give four rows of windows (heights a.s.l. below), a light 1.05 m in from each corner and a bay 5.8 m
+    # wide standing 0.5 m out of the middle with five narrow lights a row and its own low gable; the slopes carry pairs
+    # of roof lights 1.05 and 2.25 m in from the wall line every 3 m (the same in the 1996 - 1999 scans and the 2004
+    # photo, so the roof is the one of 1996: grey metal, as in that photo)
+    rear = dict(rows=[(za_ - z0, zb_ - z0) for za_, zb_ in ((73.7, 75.7), (77.8, 79.6), (81.6, 83.3), (85.3, 87.0))],
+                side=1.05, bay=2.9, proud=0.5, lights=(5, 0.75, 0.5), bay_top=(0.3, 2.1), kneeler=0.9)
+    outer_v = (22.75, 19.7, 16.7, 7.8, 4.8, 1.8, -1.2, -4.2)
+    inner_v = (22.75, 19.7, 4.85, 1.85, -1.15, -4.2)
+    for k_, (ua_, ub_) in enumerate(((uc - wo, uc - wi), (uc + wi, uc + wo))):
+        sky = [(side, x, v) for side, vs in ((0, outer_v if k_ == 0 else inner_v), (1, inner_v if k_ == 0 else outer_v))
+               for v in vs for x in (1.05, 2.25)]
+        gable_hall(mb, ua_, ub_, v0w, v1w, 6, 3.6, 'stone_white', blind=(2,), pitch=0.75, finial=False, oriel=(2, 5),
+                   rear=rear, roof='roof_seam_grey', skylights=sky)
     fr = MeshBuilder('lm_daewoo_front')
     fr.xf = local_frame(a.x, a.y, ang, z0)
     daewoo_front(fr, lv, z0)

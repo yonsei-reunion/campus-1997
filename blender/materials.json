@@ -1077,5 +1077,6 @@
  "tarp_orange": {"_doc": "신촌역 구내 북쪽 마당의 덮개를 씌운 더미 (서울연구원 52044 · 52045 · 52074 · 52090, 1996; 1997년 7월 원본 스캔의 흰 윗면과 타이어: 고증 4.8.4)", "color": [0.78, 0.36, 0.12], "rough": 0.85},
  "bronze_yongjae": {"_doc": "용재 좌상(1987)의 청동: 2005 · 2007년 사진처럼 녹이 슨 흐린 초록. 정밀 원형을 구운 맵 (blender/statues.py yongjae_sculpt, 고증 3.2-3.3)", "maps": "statues/yongjae", "color": [0.2, 0.25, 0.135]},
  "yongjae_plaque": {"_doc": "용재 좌상 받침 앞면의 검은 명판: 「용재 백낙준 박사상」과 비문 (tools/make_textures.py yongjae_plaque, 2005 · 2007년 사진)", "image": "yongjae_plaque.png", "rough": 0.35},
- "roof_patina": {"_doc": "한국어학당의 연한 청록 금속 지붕 (2004년 사진, blender/landmarks.py kli; 고증 3.27)", "color": [0.2, 0.42, 0.33], "rough": 0.55, "metal": 0.35}
+ "roof_patina": {"_doc": "한국어학당의 연한 청록 금속 지붕 (2004년 사진, blender/landmarks.py kli; 고증 3.27)", "color": [0.2, 0.42, 0.33], "rough": 0.55, "metal": 0.35},
+ "roof_seam_grey": {"_doc": "대우관 날개의 회색 금속판 지붕 (2004년 사진의 무딘 중간 회색, 고증 3.6 「날개 뒤 끝 박공과 지붕」): 하늘을 덜 비추게 metal 을 낮춤", "color": [0.17, 0.18, 0.19], "rough": 0.85, "metal": 0.1}
 }
