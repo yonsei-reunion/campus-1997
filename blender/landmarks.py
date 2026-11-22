@@ -5153,13 +5153,14 @@ def yeonhui():
     return out + [mb, iv] + yeonhui_garden(yh)
 
 
-def garden_flight(f, wall='stone_rubble', mat='stone_step', apron=True):
+def garden_flight(f, wall='stone_rubble', mat='stone_step', apron=True, wall_ends=()):
     """An outdoor flight between two levels of the ground, laid out by tools/build_campus.py (flight_at): from the
     middle of its upper edge f['top'] it goes down along f['down'] -- a short landing, then f['n'] risers of granite
     treads on a solid core -- to the ground at its foot.  f['cheek'] > 0: side walls of the wall's stone with a pale
     coping that follow the flight, square capped posts at both ends; f['rails']: steel handrails on posts along both
     sides (on the side walls when there are any).  f['head']: how far the side walls run on past the top (1.2 m);
-    apron=False: no paved apron round the head (a flight that rises onto a built landing)."""
+    apron=False: no paved apron round the head (a flight that rises onto a built landing).  wall_ends: the ends (x, y)
+    of a retaining wall the flight goes down through: a plain side runs out to the wall's end beside its foot."""
     mb = MeshBuilder('lm_flight_' + f['name'])
     d = Vector(f['down']).normalized()
     mb.xf = local_frame(f['top'][0], f['top'][1], math.atan2(d.x, -d.y), 0.0)
@@ -5218,8 +5219,17 @@ def garden_flight(f, wall='stone_rubble', mat='stone_step', apron=True):
             z_nos = zt - (zt - (zf + rise)) * k / 10
             prof.append((y_, max(z_nos + 0.06, zf + wh)))
         prof.append((y_foot - 0.25, zf + wh))
+        # (out to the retaining wall's end beside the foot, where there is one within 1.5 m: a slot 0.35 - 0.6 m wide
+        # between the side and the wall's end, its bed and the boxwood on it, went down to the road's level)
+        inv = mb.xf.inverted()
+        out_ = {-1: ct, 1: ct}
+        for e in wall_ends:
+            q = inv @ Vector((e[0], e[1], mb.xf.translation.z))
+            sg_ = 1 if q.x > 0 else -1
+            if abs(q.y - y_foot) < 1.5 and 0.0 < abs(q.x) - hw - ct < 1.5:
+                out_[sg_] = max(out_[sg_], abs(q.x) - hw + 0.05)
         for sg in (-1, 1):
-            x0, x1 = sorted((sg * hw, sg * (hw + ct)))
+            x0, x1 = sorted((sg * hw, sg * (hw + out_[sg])))
             sloped_wall(mb, x0, x1, prof, gnd, wall, cap=wall, ct=0.02)
             # its top is walked on: it lies between the flight's walk face and the apron's, and a walker stepping
             # sideways off the flight sank through the visible top to the terrain 1.1 - 1.5 m under it
@@ -5262,7 +5272,8 @@ def yeonhui_garden(yh):
     plain rubble sides), the one-step ways in from the drives along 교육관 and 성암관 -- the low concrete drum of the
     round planter in the middle, its clipped yew planted in it (shrubs), the forecourt's slabs, the rubble retaining
     wall along 한경길 (yeonhui_wall) and the lamp at the south flight's head."""
-    out = [garden_flight(f) for f in yh.get('flights', [])]
+    ends = [tuple(r[k][:2]) for r in yh.get('wall', []) for k in (0, -1)]
+    out = [garden_flight(f, wall_ends=ends) for f in yh.get('flights', [])]
     pl = yh.get('planter')
     if pl:
         mb = MeshBuilder('lm_yeonhui_planter')
