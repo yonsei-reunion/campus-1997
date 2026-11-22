@@ -116,12 +116,12 @@
     },
   };
 
-  // ---------------------------------------------------------------- 썸네일: 언더우드관 (영상에는 넣지 않음, --seg thumb)
+  // ---------------------------------------------------------------- 썸네일: 5월의 언더우드관 (영상에는 넣지 않음, --seg thumb)
   // tools/snapshots.json anthology/underwood(언더우드 동상 뒤에서 정원 축을 따라)를 조금 높고 넓게
   seg.thumb = {
     n: 1,
     extra: true,
-    season: 'spring',
+    season: 'summer',                                                // 5월 · 신록
     async init() {
       toBird();
       hud('none');

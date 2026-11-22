@@ -54,7 +54,7 @@ description: 게임 소개 영상(약 3분, 1920 × 1080)을 지금 게임으로
    - 미니 게임마다 카운트다운이 아니라 플레이 화면이 나오는지, 쪽지가 벽 · 기둥에 붙는지
    - 소리: `ffmpeg -i trailer/intro.mp4 -af volumedetect -f null -` 로 크기(평균 −20 dB 안팎), 구간마다의 크기는 `intro_video.py` 가 쓴 `$W/take/intro.wav` 로
 8. **커밋한다.** 영상은 git 밖이다. 고친 `tools/trailer/intro*` 와 이 스킬, README(통계를 고쳤으면)만 커밋한다(`/shared-commit`).
-9. **올릴 글을 준비한다.** 제목 · 설명 · 구간 시각(6 의 출력에서)을 `trailer/intro_upload.txt`(git 밖)에 적고, 썸네일을 찍는다(언더우드관과 정원: `node tools/trailer/intro.mjs $W/take --seg thumb && cp $W/take/thumb/00000.jpg trailer/intro_thumb.jpg`. `extra: true` 인 장면이라 전체 녹화에는 들지 않는다). 치지직 스튜디오(`studio.chzzk.naver.com`)는 Chrome 확장이 막아 두었고 파일 올리기도 10 MB 까지라, 올리는 일은 사용자가 한다.
+9. **올릴 글을 준비한다.** 제목 · 설명 · 구간 시각(6 의 출력에서)을 `trailer/intro_upload.txt`(git 밖)에 적고, 썸네일을 찍는다(5월의 언더우드관과 정원: `node tools/trailer/intro.mjs $W/take --seg thumb && cp $W/take/thumb/00000.jpg trailer/intro_thumb.jpg`. `extra: true` 인 장면이라 전체 녹화에는 들지 않는다). 치지직 스튜디오(`studio.chzzk.naver.com`)는 Chrome 확장이 막아 두었고 파일 올리기도 10 MB 까지라, 올리는 일은 사용자가 한다.
 
 ## 장면을 고칠 때
 
