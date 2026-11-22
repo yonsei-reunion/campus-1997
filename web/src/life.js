@@ -6,6 +6,7 @@ import { play, locomotion, gesturing, crowdLook } from './characters.js';
 import { crowdBag, carriesInHand } from './bags.js';
 import { kindOf, meeting, chatter, hello, excuse, lineTime } from './talk.js';
 import { tallOf } from './who.js';
+import { oneMesh, painted, carMaterial } from './carmesh.js';
 
 // ---------------------------------------------------------------- polyline helpers (campus frame)
 const _a = new THREE.Vector2(), _b = new THREE.Vector2();
@@ -775,11 +776,40 @@ function reachFor([upper, lower, wrist], target, pole) {
   swing(lower, _w3.sub(_e3), _t3.sub(_e3));
 }
 
+// How the cars look from the view (Traffic.update's view): the full model (thirty meshes, the driver, the brake lights,
+// the wheels turning) nearer than CAR_NEAR, farther the lighter models (blender/build.py car_*_far, car_*_far2) each
+// as one mesh (carmesh.js), past CAR_FAR the lightest. A few metres' give either way, so that one standing at the line
+// does not swap back and forth.
+const CAR_NEAR = 25, CAR_FAR = 60, CAR_GIVE = 2;
+// Gives car its three looks under its root: [the model's own parts, far, far2] (far2 null: far is the last)
+function carLooks(root, far, far2, color) {
+  const near = new THREE.Group();
+  near.name = 'near';
+  for (const o of [...root.children]) near.add(o);
+  root.add(near);
+  const looks = [near];
+  for (const base of [far, far2]) {
+    if (!base) { looks.push(null); continue; }
+    const m = new THREE.Mesh(painted(base, color), carMaterial());
+    m.castShadow = m.receiveShadow = true;
+    m.visible = false;
+    root.add(m);
+    looks.push(m);
+  }
+  return looks;
+}
+
 export class Traffic {
   // single: the first `single` lanes take one car each (a stall a car cannot pass by: main.js)
-  constructor(scene, carGltfs, lanes, n = 12, cast = null, driverIds = [], rndSeed = 9, single = 0) {
+  // lighter: { kind: [far gltf, far2 gltf] } (their looks from off: carLooks above)
+  constructor(scene, carGltfs, lanes, n = 12, cast = null, driverIds = [], rndSeed = 9, single = 0, lighter = {}) {
     this.scene = scene;
     this.cars = [];
+    const bases = {};
+    const baseOf = (kind, i) => {
+      const g = lighter[kind]?.[i];
+      return g ? (bases[kind + i] ||= oneMesh(g.scene)) : null;
+    };
     const rnd = mulberry(rndSeed);
     const bag = Object.entries(WEIGHTS).filter(([k]) => carGltfs[k]).flatMap(([k, w]) => Array(w).fill(k));
     for (let i = 0; i < n; i++) {
@@ -804,6 +834,8 @@ export class Traffic {
       for (const w of wheels) { w.getWorldPosition(wv); wx.push(wv.x); wz.push(wv.z); }
       const tyres = wx.length ? { f: Math.max(...wx), r: Math.min(...wx), l: Math.min(...wz), rt: Math.max(...wz) } : { f: 1.4, r: -1.4, l: -0.75, rt: 0.75 };
       root.rotation.order = 'YZX';             // yaw, then pitch about its own Z, then roll about its own X
+      const far = baseOf(kind, 0);
+      const looks = far ? carLooks(root, far, baseOf(kind, 1), col) : null;     // (before the driver gets in)
       let driver = null;
       if (cast && driverIds.length) {
         driver = cast.make(driverIds[Math.floor(rnd() * driverIds.length)], null);     // (no bag at the wheel)
@@ -823,7 +855,7 @@ export class Traffic {
       const radius = wheels.length ? new THREE.Box3().setFromObject(wheels[0]).getSize(new THREE.Vector3()).y / 2 : 0.3;
       let s0 = ((i / n) * lane.length * lanes.length + rnd() * 20) % lane.length;
       if (lane.det && s0 > lane.det[0] - 12 && s0 < lane.det[1] + 6) s0 = lane.det[1] + 6 + rnd() * 20;   // (not inside a stall)
-      this.cars.push({ root, lane, s: s0, speed: 8 + rnd() * 4, v: 8, len, wheels, brake, radius, driver, kind, k, tyres, pitch: 0, roll: 0,
+      this.cars.push({ root, lane, s: s0, speed: 8 + rnd() * 4, v: 8, len, wheels, brake, radius, driver, kind, k, tyres, pitch: 0, roll: 0, looks, look: 0,
         x: lane.at(s0).x, y: lane.at(s0).y, hx: 1, hy: 0, stopK: lane.stops ? lane.stops.filter((q) => q.s < s0).length : 0 });
     }
   }
@@ -831,6 +863,8 @@ export class Traffic {
   // sits on the 'sit' clip, the arms brought to the grips (reachFor, above); the scooter leans into the bends
   addBikes(scene, gltf, lanes, n, cast, riderIds, rndSeed = 31) {
     const rnd = mulberry(rndSeed);
+    const inStand = (o) => { for (let q = o; q; q = q.parent) if (q.name === 'stand') return true; return false; };
+    const far = oneMesh(gltf.scene, (o) => !inStand(o));
     for (let i = 0; i < n && lanes.length; i++) {
       const root = gltf.scene.clone(true);
       const col = new THREE.Color(BIKE_COLORS[Math.floor(rnd() * BIKE_COLORS.length)]);
@@ -850,6 +884,7 @@ export class Traffic {
       const tyres = { f: Math.max(...wx), r: Math.min(...wx), l: 0, rt: 0 };
       const radius = wheels.length ? new THREE.Box3().setFromObject(wheels[0]).getSize(_s3).y / 2 : 0.2;
       root.rotation.order = 'YZX';
+      const looks = carLooks(root, far, null, col);       // (before the rider gets on)
       let driver = null, arms = null;
       if (cast && riderIds.length) {
         const id = riderIds[Math.floor(rnd() * riderIds.length)];
@@ -874,7 +909,7 @@ export class Traffic {
       const lane = lanes[i % lanes.length];
       const s0 = ((i + 0.37) / n * lane.length + rnd() * 30) % lane.length;
       this.cars.push({ root, lane, s: s0, speed: 6.5 + rnd() * 2.5, v: 6, len: box.max.x - box.min.x, wheels, brake, radius, driver, kind: 'scooter',
-        k: 0.9 + rnd() * 0.15, tyres, pitch: 0, roll: 0, x: lane.at(s0).x, y: lane.at(s0).y, hx: 1, hy: 0, stopK: 0, bike: true, arms, hd0: null });
+        k: 0.9 + rnd() * 0.15, tyres, pitch: 0, roll: 0, x: lane.at(s0).x, y: lane.at(s0).y, hx: 1, hy: 0, stopK: 0, bike: true, arms, hd0: null, looks, look: 0 });
     }
   }
   // camPos: the view's centre (three coords); drivers of cars farther than the crowd's reach leave the car.
@@ -890,11 +925,13 @@ export class Traffic {
   }
   get hidden() { return !!this._hidden; }
 
-  update(dt, player, camPos = null, walkers = null) {
+  // view: the camera's position (three coords), for the cars' looks (CAR_NEAR); none: all in their full models
+  update(dt, player, camPos = null, walkers = null, view = null) {
     if (this._hidden) return;
     const p = this.p ||= new THREE.Vector2(), d = this.d ||= new THREE.Vector2(), q = this.q ||= new THREE.Vector2();
     for (const c of this.cars) {
       const L = c.lane;
+      if (c.looks) this._look(c, view);
       // out of the gate and away for a while (a loop's two ends are one spot, side by side: the car that left would
       // be the one coming in), then in again once the lane's first metres are clear (every lane starts up 백양로)
       if (c.away > 0) {
@@ -909,8 +946,9 @@ export class Traffic {
         const away = c.parked && c.parkT > 2 && c.parkT < c.parkT0 - 2.5;
         if (c.driver) {
           const h = c.driver.holder;
-          if (away && h.parent) c.root.remove(h);
-          else if (!away && !h.parent && (!camPos || (c.x - camPos.x) ** 2 + (c.y + camPos.z) ** 2 < FAR2)) c.root.add(h);
+          const seated = !away && this._seated(c, camPos);
+          if (!seated && h.parent) c.root.remove(h);
+          else if (seated && !h.parent) c.root.add(h);
         }
         for (const m of c.brake) m.emissiveIntensity = c.parked && c.parkT < c.parkT0 - 1 && c.parkT > 1.2 ? 0.35 : 3.0;
         if (c.parkT > 0) continue;
@@ -1024,7 +1062,7 @@ export class Traffic {
       } else c.root.position.set(p.x, L.h(c.s), -p.y);
       for (const w of c.wheels) w.rotation.z -= g * (c.v * dt) / c.radius;
       if (c.driver) {
-        const near = !camPos || (p.x - camPos.x) ** 2 + (p.y + camPos.z) ** 2 < FAR2;
+        const near = this._seated(c, camPos);
         const h = c.driver.holder;
         if (near && !h.parent) c.root.add(h);
         else if (!near && h.parent) c.root.remove(h);
@@ -1040,6 +1078,23 @@ export class Traffic {
         }
       }
     }
+  }
+  // which of its looks a car shows (CAR_NEAR, CAR_FAR above)
+  _look(c, view) {
+    let k = 0;
+    if (view) {
+      const r = c.root.position, d2 = (r.x - view.x) ** 2 + (r.y - view.y) ** 2 + (r.z - view.z) ** 2;
+      const near = CAR_NEAR + (c.look === 0 ? CAR_GIVE : -CAR_GIVE), far = CAR_FAR + (c.look === 2 ? -CAR_GIVE : CAR_GIVE);
+      k = d2 < near * near ? 0 : d2 < far * far || !c.looks[2] ? 1 : 2;
+    }
+    if (k === c.look) return;
+    c.look = k;
+    for (let i = 0; i < 3; i++) if (c.looks[i]) c.looks[i].visible = i === k;
+  }
+  // the driver at the wheel: within the crowd's reach, and only in the full model (a scooter's rider in any look)
+  _seated(c, camPos) {
+    if (!c.bike && c.look !== 0) return false;
+    return !camPos || (c.x - camPos.x) ** 2 + (c.y + camPos.z) ** 2 < FAR2;
   }
   // circles along each car near the player, appended to out (reused circles per car: this runs every frame)
   movers(px, py, out) {

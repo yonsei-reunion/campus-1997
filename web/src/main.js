@@ -643,8 +643,10 @@ async function main() {
   }
   // (more of them: the loop is nearly twice the two lanes' length and slow off 백양로, which still carries a few
   // fewer than it did)
-  const traffic = new Traffic(scene, { sedan: P.car_sedan, sedan2: P.car_sedan2, hatch: P.car_hatch, tico: P.car_tico, taxi: P.car_taxi, van: P.car_van }, lanes,
-    campus.traffic ? (MOBILE ? 18 : 26) : 14, cast, STUDENTS.concat(['p07', 'p08', 'p14']), 9, westLanes);
+  const runKinds = ['sedan', 'sedan2', 'hatch', 'tico', 'taxi', 'van'];
+  const traffic = new Traffic(scene, Object.fromEntries(runKinds.map((k) => [k, P['car_' + k]])), lanes,
+    campus.traffic ? (MOBILE ? 18 : 26) : 14, cast, STUDENTS.concat(['p07', 'p08', 'p14']), 9, westLanes,
+    Object.fromEntries(runKinds.map((k) => [k, [P[`car_${k}_far`], P[`car_${k}_far2`]]])));      // (their looks from off)
   if (P.scooter) traffic.addBikes(scene, P.scooter, bikeLanes, MOBILE ? 3 : 5, cast, ['p01', 'p02', 'p04', 'p03', 'p01', 'p09', 'p13']);
   for (const c of traffic.cars) shadows.addDynamic(c.root, c.len / 2 + 1.5);
   const walkers = crowd.people.filter((p) => p.path);        // (the cars wait for them: life.js Traffic)
@@ -1503,7 +1505,7 @@ async function main() {
     birthday?.update(dt, tAcc, started && !bird.active, focus);
     crowd.bubbles.update(tAcc, started && !bird.active);
     birds.update(dt, tAcc, started ? player : NOBODY, crowd.people, focus);
-    traffic.update(dt, started ? player : NOBODY, focus, walkers);
+    traffic.update(dt, started ? player : NOBODY, focus, walkers, camera.position);
     street?.update(dt, focus, started ? player : null);
     gates.update(dt, traffic);
     fountainWater?.update(dt, camera);
