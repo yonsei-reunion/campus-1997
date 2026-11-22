@@ -340,6 +340,16 @@ def library():
     slab(mid + sw / 2, TR['north'], 0.6, dep)
     slab(mid - sw / 2, mid + sw / 2, 0.6, dep - 2.4)          # behind the flight's head (its own landing block: the rest)
     slab(TR['south'], -0.6, TR['south_w'], 0.6)               # round the south end, the hall's whole depth
+    # the seat-high parapet along the terrace's edge (campus.json library_terrace seats; reference/동문_이중윤/
+    # 2004_중앙도서관_테라스_난간_턱.jpg: two courses of granite, a smooth cap half a metre broad that people sat on)
+    SEAT_H = TR.get('seat_h', 0.45)
+    for s0, s1, d0, d1 in TR.get('seats', ()):
+        c = [Lp(s0, d0), Lp(s1, d0), Lp(s1, d1), Lp(s0, d1)]
+        x0, x1 = min(v.x for v in c), max(v.x for v in c)
+        y0, y1 = min(v.y for v in c), max(v.y for v in c)
+        mb.box(((x0 + x1) / 2, (y0 + y1) / 2, g0 + (SEAT_H - 0.12) / 2), (x1 - x0, y1 - y0, SEAT_H - 0.12), 'stone_granite',
+               skip=('bottom', 'top'))
+        mb.box(((x0 + x1) / 2, (y0 + y1) / 2, g0 + SEAT_H - 0.06), (x1 - x0 + 0.04, y1 - y0 + 0.04, 0.12), 'stone_trim')
     # round the north end, 21 m back from the corner (the 1997 photos), and at its west end a flight down north to
     # the drive, let into the band's edge with the terrace's wall on its west (the photos; the 2008 - 2010 roadview:
     # five or six granite risers)
@@ -4049,7 +4059,23 @@ def engineering():
         a, bb = body[i], body[(i + 1) % 4]
         P, Le, t, n = edge_P(a, bb)
         if Le < W + 0.1:
-            flat_wall(mb, P, 0, Le, 0.4, H + 0.9, 'stone_rubble_gray')   # grey rubble-granite end walls (1997 photo)
+            # grey rubble-granite end walls (1997 photo).  The south one has a column of windows, one a floor from the
+            # first floor up, 0.42 of its width from the west corner, each in a pale stone surround (the August 1996
+            # photo from the rail bank, reference/1996_정문_철둑에서_북쪽으로.jpg, and reference/동문_이중윤/
+            # 2003-12_제1공학관_남동_모서리.jpg; reference/고증/3.8 「남쪽 끝 벽의 창」)
+            wa, wb = mb.xf @ Vector((a[0], a[1], 0.0)), mb.xf @ Vector((bb[0], bb[1], 0.0))
+            if (wa.y + wb.y) / 2 < cy:
+                sc = Le * (0.42 if wa.x < wb.x else 0.58)
+                holes = [(sc - 1.0, sc + 1.0, 0.4 + k * fh + 1.0, 0.4 + k * fh + 2.75) for k in range(1, nf)]
+                wall_holes(mb, P, 0, Le, 0.4, H + 0.9, 'stone_rubble_gray', holes)
+                for (h0, h1, za, zb) in holes:
+                    reveal(mb, P, h0, h1, za, zb, 0.25, 'stone_trim')
+                    glazing(mb, P, h0, h1, za, zb, -0.25, 2, 2, 'frame_dark', fw=0.05)
+                    for (e0, f0, e1, f1) in ((h0 - 0.1, za - 0.07, h1 + 0.1, za - 0.07), (h0 - 0.1, zb + 0.07, h1 + 0.1, zb + 0.07),
+                                             (h0 - 0.07, za, h0 - 0.07, zb), (h1 + 0.07, za, h1 + 0.07, zb)):
+                        bar(mb, P, e0, f0, e1, f1, 0.14, 0.0, 0.04, 'stone_trim', ends=True)
+            else:
+                flat_wall(mb, P, 0, Le, 0.4, H + 0.9, 'stone_rubble_gray')
         else:
             # use local coordinates for the generic edge builder via a temporary identity xf
             pass
@@ -6295,6 +6321,9 @@ def yongjae():
         flat_wall(mb, Pr, b0, b1, zc, zp, Wm)
         for sg in (-1, 1):
             bar(mb, Pr, bc + sg * 1.2, zp - 0.35, bc, zc + 1.7, 0.13, 0.0, 0.07, Wm, ends=True)
+    for sa_, sb_ in ((0.0, fins[0]), (fins[2], Lw)):                 # the blank bays' plinth: rough-cut stone, a pale band
+        flat_wall(mb, Pw, sa_, sb_, z0, z0 + 0.6, 'stone_ashlar', d=0.05)
+        bar(mb, Pw, sa_, z0 + 0.65, sb_, z0 + 0.65, 0.1, 0.0, 0.07, 'stone_trim', ends=True)
     for s in fins:                                             # slim fins, the whole height
         bar(mb, Pw, s, z0, s, zp - 0.02, 0.22, -rec, 0.42, Wm, ends=True)
     # north and south sides: two columns of small windows near the fin face, two a floor (the north side's are seen
@@ -6352,7 +6381,11 @@ def yongjae():
         lights3(Pf, k * bw, (k + 1) * bw, 3, zt)
     for k in range(nb + 1):
         bar(mb, Pf, k * bw, z0, k * bw, zt - 0.05, 0.45, 0.0, 0.12, Wm, ends=True)
-    flat_wall(mb, Pf, 0, Lf, z0, z0 + 0.55, 'concrete', d=0.05)                     # plinth
+    # plinth: rough-cut stone under a pale band (reference/동문_이중윤/2004-09_용재관_날개_기단과_지하_창.jpg)
+    for P_, L_ in ((Pf, Lf), (Pt, Lt)):
+        flat_wall(mb, P_, 0, L_, z0, z0 + 0.6, 'stone_ashlar', d=0.05)
+        mb.quad(P_(0, z0 + 0.6, 0.0), P_(0, z0 + 0.6, 0.05), P_(L_, z0 + 0.6, 0.05), P_(L_, z0 + 0.6, 0.0), 'stone_trim')
+        bar(mb, P_, 0.0, z0 + 0.65, L_, z0 + 0.65, 0.1, 0.0, 0.07, 'stone_trim', ends=True)
     lights3(Pt, 0.0, Lt, 3, zt)
     for s in (0.0, Lt):
         bar(mb, Pt, s, z0, s, zt - 0.05, 0.45, 0.0, 0.12, Wm, ends=True)
@@ -6384,11 +6417,14 @@ def yongjae():
     glazing(mb, Pqn, d0, d1, z0, z0 + 2.7, -0.25, 4, 2, 'frame_dark', fw=0.05, transom=z0 + 2.15)
     # the canopy: a flat slab over the porch and on out over the doors and the walk, one slim post at its corner
     cu0, cu1, cv0, cv1 = qu0 - 0.9, qu1, qv0, qv1 + 4.5
-    box(mb, (cu0 + cu1) / 2, (cv0 + cv1) / 2, zq + 0.15, cu1 - cu0, cv1 - cv0, 0.3, Wm, mats={'top': 'roof_flat'})
-    box(mb, cu0 + 0.35, cv1 - 0.35, z0 + zq / 2 - z0 / 2, 0.28, 0.28, zq - z0, Wm)
+    box(mb, (cu0 + cu1) / 2, (cv0 + cv1) / 2, zq + 0.24, cu1 - cu0, cv1 - cv0, 0.48, Wm, mats={'top': 'roof_flat'})
+    box(mb, cu0 + 0.45, cv1 - 0.45, z0 + zq / 2 - z0 / 2, 0.6, 0.6, zq - z0, Wm)          # (a stout square post: 2004)
+    box(mb, cu0 + 0.45, cv1 - 0.45, z0 + 0.09, 0.62, 0.62, 0.18, 'frame_dark', skip=('bottom',))   # black skirting
+    for P_, L_ in ((Pqw, Lqw), (Pqn, Lqn)):
+        flat_wall(mb, P_, 0, L_, z0, z0 + 0.18, 'frame_dark', d=0.035)
     for k, (uu, vv) in enumerate(((qu0 + 0.9, qv0 + 1.6), (qu0 + 0.9, qv0 + 2.7), (qu0 + 1.4, qv1 + 1.0))):
-        box(mb, uu, vv, zq + 0.3 + 0.32, 0.36, 0.9, 0.64, 'plaster_white')                 # air conditioners
-        box(mb, uu - 0.19, vv, zq + 0.3 + 0.32, 0.02, 0.5, 0.5, 'metal_dark')
+        box(mb, uu, vv, zq + 0.48 + 0.32, 0.36, 0.9, 0.64, 'plaster_white')                # air conditioners
+        box(mb, uu - 0.19, vv, zq + 0.48 + 0.32, 0.02, 0.5, 0.5, 'metal_dark')
     out.append(mb)
 
     # ------------------------------------------------------------------ the blocks behind
@@ -6396,14 +6432,169 @@ def yongjae():
     mb = MeshBuilder('lm_yongjae_east')
     eu0, eu1, ev0, ev1 = E
     ze = z0 + 5 * fh
-    simple_walls(mb, E, 5, ze)
-    pitch, over = 0.48, 0.5
+    # The book stacks (reference/동문_이중윤/2004-09_용재관_맞배_동_북쪽_면과_바깥_계단.jpg · 2004_용재관_맞배_동_박공.jpg,
+    # and the July 1997 scans 26/15 · 27/16, reference/고증/3.13 「맞배 동」): three tiers of two stack levels, not five
+    # floors of rooms.  A low gable between end walls that stand a hand over the roof; narrow lights in tall sunk
+    # panels on the long sides; on the north end three bays west of the middle (grilles, tall lights, lights over a
+    # small square one), two slits under the peak, and the outside stair on its two concrete piers.
+    TIER, pitch, over = 5.8, 0.32, 0.5
     um_, h_ = (eu0 + eu1) / 2, (eu1 - eu0) / 2 * pitch
-    zre, zeo, vA, vB = ze + h_, ze - over * pitch, ev0 - 0.4, ev1 + 0.4
-    mb.face([U(eu0 - over, vA, zeo), U(um_, vA, zre), U(um_, vB, zre), U(eu0 - over, vB, zeo)], 'roof_slate')
-    mb.face([U(eu1 + over, vB, zeo), U(um_, vB, zre), U(um_, vA, zre), U(eu1 + over, vA, zeo)], 'roof_slate')
-    mb.face([U(eu0, ev0, ze), U(eu1, ev0, ze), U(um_, ev0, zre)], Wm)
-    mb.face([U(eu1, ev1, ze), U(eu0, ev1, ze), U(um_, ev1, zre)], Wm)
+    zre, zeo = ze + h_, ze - over * pitch
+    PEw, LEw = plane(eu0, ev1, eu0, ev0)            # west side, s from the north end
+    PEe, LEe = plane(eu1, ev0, eu1, ev1)            # east side, s from the south end
+    PEn, LEn = plane(eu1, ev1, eu0, ev1)            # north end, s from its east corner
+    PEs, LEs = plane(eu0, ev0, eu1, ev0)            # south end, s from its west corner
+    for P, L in ((PEw, LEw), (PEe, LEe), (PEn, LEn), (PEs, LEs)):
+        flat_wall(mb, P, 0, L, z0 - 4.0, z0, 'concrete_dark')
+    tz = lambda k: z0 + 0.2 + k * TIER
+
+    def slot(P, sc, za, zb, glass):
+        """a sunk panel 0.9 wide, the narrow light(s) glass = [(za, zb), ...] at its left edge, a sill under it"""
+        reveal(mb, P, sc - 0.45, sc + 0.45, za, zb, 0.22, Wm)
+        flat_wall(mb, P, sc - 0.45, sc + 0.45, za, zb, Wm, d=-0.22)
+        for ga, gb in glass:
+            glazing(mb, P, sc - 0.41, sc - 0.03, ga, gb, -0.2, 1, max(1, round((gb - ga) / 0.9)), 'frame_dark', fw=0.04)
+        bar(mb, P, sc - 0.5, za - 0.05, sc + 0.5, za - 0.05, 0.1, -0.02, 0.1, Wm, ends=True)
+
+    def grille(P, a, b, za, zb):
+        """a light behind a steel lattice"""
+        reveal(mb, P, a, b, za, zb, 0.18, Wm)
+        glazing(mb, P, a, b, za, zb, -0.18, 2, max(2, round((zb - za) / 0.35)), 'metal_dark', fw=0.03)
+
+    nbay = 10
+    for P, L, panels in ((PEw, LEw, True), (PEe, LEe, False)):
+        bw_ = L / nbay
+        cs = [(k + 0.5) * bw_ for k in range(nbay)]
+        holes = []
+        for sc in cs:
+            holes += [(sc - 0.3, sc + 0.3, tz(0) + 0.8, tz(0) + 2.9), (sc - 0.3, sc + 0.3, tz(0) + 3.7, tz(0) + 5.1)]
+            for k in (1, 2):
+                if panels:
+                    holes.append((sc - 0.45, sc + 0.45, tz(k) + 0.6, tz(k) + 5.4))
+                else:
+                    holes += [(sc - 0.3, sc + 0.3, tz(k) + 0.9, tz(k) + 2.3), (sc - 0.3, sc + 0.3, tz(k) + 3.8, tz(k) + 5.2)]
+        wall_holes(mb, P, 0.0, L, z0, ze, Wm, holes)
+        for (a_, b_, za, zb) in holes:
+            if b_ - a_ > 0.8:
+                slot(P, (a_ + b_) / 2, za, zb, [(zb - 2.3, zb - 0.12)])
+            elif za < tz(1):
+                grille(P, a_, b_, za, zb)
+            else:
+                window(mb, P, a_, b_, za, zb, 0.18, 1, 2)
+        # the eaves: a white soffit, a dark gutter, two downpipes
+        mb.quad(P(0, ze, 0), P(L, ze, 0), P(L, zeo, over), P(0, zeo, over), 'plaster_white')
+        bar(mb, P, 0.0, zeo + 0.02, L, zeo + 0.02, 0.14, over - 0.02, over + 0.12, 'metal_dark', ends=True)
+        for sd in (L * 0.4, L - 0.6):
+            bar(mb, P, sd, z0 + 0.3, sd, zeo - 0.05, 0.11, 0.06, 0.17, 'metal_dark', ends=True)
+    mb.face([U(eu0 - over, ev0, zeo), U(um_, ev0, zre), U(um_, ev1, zre), U(eu0 - over, ev1, zeo)], 'roof_slate')
+    mb.face([U(eu1 + over, ev1, zeo), U(um_, ev1, zre), U(um_, ev0, zre), U(eu1 + over, ev0, zeo)], 'roof_slate')
+    # the end walls: up to the roof and 0.35 over it, a thin coping along the slopes, short kneelers over the eaves
+    PAR = 0.35
+    for P, L in ((PEn, LEn), (PEs, LEs)):
+        top = lambda s: ze + PAR + (L / 2 - abs(s - L / 2)) * pitch
+        if P is PEn:
+            b1, b2, b3 = L / 2 + 2.1, L / 2 + 3.4, L / 2 + 4.7              # the three bays, west of the middle
+            holes = [(bc - 0.4, bc + 0.4, tz(0) + 0.8, tz(0) + 4.7) for bc in (b1, b2, b3)]
+            holes += [(bc - 0.4, bc + 0.4, tz(1) + 0.6, tz(1) + 5.0) for bc in (b1, b2, b3)]
+            holes += [(b1 - 0.4, b1 + 0.4, tz(2) + 0.5, tz(2) + 4.9)]
+            holes += [(bc - 0.45, bc + 0.45, tz(2) + 0.5, tz(2) + 4.9) for bc in (b2, b3)]
+            wall_holes(mb, P, 0.0, L, z0, ze, Wm, holes)
+            for (a_, b_, za, zb) in holes:
+                if b_ - a_ > 0.85:
+                    slot(P, (a_ + b_) / 2, za, zb, [(zb - 2.1, zb - 0.12), (za + 1.2, za + 1.8)])
+                elif za < tz(1):
+                    grille(P, a_, b_, za, zb)
+                else:
+                    window(mb, P, a_, b_, za, zb, 0.18, 1, 5)
+        else:
+            flat_wall(mb, P, 0.0, L, z0, ze, Wm)
+        slits = [(L / 2 - 0.55, L / 2 - 0.25), (L / 2 + 0.25, L / 2 + 0.55)]
+        zs0, zs1 = ze + 0.7, ze + 1.7
+        # the gable over the eaves line, the two slits left out of it
+        cuts = [0.0, slits[0][0], slits[0][1], slits[1][0], slits[1][1], L]
+        for a_, b_ in zip(cuts, cuts[1:]):
+            if (a_, b_) in slits:
+                mb.face([P(a_, ze, 0), P(b_, ze, 0), P(b_, zs0, 0), P(a_, zs0, 0)], Wm)
+                mb.face([P(a_, zs1, 0), P(b_, zs1, 0), P(b_, top(b_), 0), P(a_, top(a_), 0)], Wm)
+                window(mb, P, a_, b_, zs0, zs1, 0.16, 1, 1, sill=False)
+            else:
+                mid = [L / 2] if a_ < L / 2 < b_ else []
+                mb.face([P(a_, ze, 0), P(b_, ze, 0), P(b_, top(b_), 0)] + [P(m, top(m), 0) for m in mid] + [P(a_, top(a_), 0)], Wm)
+        mb.face([P(L, ze, -0.25), P(0.0, ze, -0.25), P(0.0, top(0.0), -0.25), P(L / 2, top(L / 2), -0.25),
+                 P(L, top(L), -0.25)], Wm)                                           # (its back, over the roof)
+        for e0, e1 in ((0.0, L / 2), (L / 2, L)):                  # (not sa: that is the frame's sine, U above)
+            bar(mb, P, e0, top(e0) + 0.04, e1, top(e1) + 0.04, 0.08, -0.29, 0.04, Wm, ends=True)
+        for s in (-0.02, L + 0.02):
+            bar(mb, P, s, ze - 0.3, s, ze + PAR + 0.1, 0.3, -0.25, 0.06, Wm, ends=True)
+    out.append(mb)
+
+    # the outside stair on the north end (the same two photos; the 1997 scan 27/16 has its zigzag against the wall):
+    # two lanes along the wall, flights of eleven risers between landings at the west end (the doors, 3.6 m apart) and
+    # the east end, on a broad concrete pier at the north-west corner and a slim one at the north-east, a glass lean-to
+    # over the top landing.  Not walked (campus.json colliders: tools/build_campus.py YJ_STAIR97).
+    mb = MeshBuilder('lm_yongjae_stair')
+    Cm = 'concrete'
+
+    def pbox(s0, s1, za, zb, d0, d1, mat, skip=()):
+        A, B, C, D = (s0, d0), (s1, d0), (s1, d1), (s0, d1)
+        if 'top' not in skip:
+            mb.quad(PEn(s0, zb, d0), PEn(s0, zb, d1), PEn(s1, zb, d1), PEn(s1, zb, d0), mat)
+        if 'bottom' not in skip:
+            mb.quad(PEn(s0, za, d0), PEn(s1, za, d0), PEn(s1, za, d1), PEn(s0, za, d1), mat)
+        for (sa, da), (sb, db) in ((A, B), (B, C), (C, D), (D, A)):
+            # (side quads wound so that their normals point out of the box in the plane's left-handed (s, d) frame)
+            mb.quad(PEn(sb, za, db), PEn(sa, za, da), PEn(sa, zb, da), PEn(sb, zb, db), mat)
+
+    def rail(pts, d):
+        """a steel railing along the polyline pts [(s, z), ...] (the walking line) at depth d: top rail, mid rail, posts"""
+        for (sa, za), (sb, zb) in zip(pts, pts[1:]):
+            for h_ in (1.0, 0.5):
+                rod(mb, PEn(sa, za + h_, d), PEn(sb, zb + h_, d), 0.022, 'metal_dark', seg=5)
+            n_ = max(1, round(math.hypot(sb - sa, zb - za) / 0.9))
+            for k in range(n_ + 1):
+                t = k / n_
+                s_, z_ = sa + (sb - sa) * t, za + (zb - za) * t
+                rod(mb, PEn(s_, z_, d), PEn(s_, z_ + 1.0, d), 0.018, 'metal_dark', seg=5)
+
+    sW0, sW1, sE0, sE1 = LEn / 2 - 0.45, LEn / 2 + 0.85, LEn / 2 - 4.65, LEn / 2 - 3.35     # the two ends' landings
+    dI0, dI1, dO0, dO1 = 0.08, 1.24, 1.32, 2.5                                              # inner and outer lanes
+    NR, RISE = 11, 1.8 / 11
+    TREAD = (sW0 - sE1) / (NR - 1)
+    for i in range(6):                                           # flights: odd ones up to the east in the outer lane
+        zl = z0 + i * 1.8
+        east = i % 2 == 0
+        d0, d1 = (dO0, dO1) if east else (dI0, dI1)
+        f0 = sW0 if east else sE1                                # (the flight's foot and head along the wall)
+        sg = -1 if east else 1
+        for k in range(NR - 1):
+            s0, s1 = sorted((f0 + sg * k * TREAD, f0 + sg * (k + 1) * TREAD))
+            pbox(s0, s1, zl + (k + 1) * RISE - 0.16, zl + (k + 1) * RISE, d0, d1, Cm)
+        f1 = f0 + sg * (NR - 1) * TREAD
+        bar(mb, PEn, f0, zl - 0.14, f1, zl + 1.8 - RISE - 0.14, 0.16, d0, d1, Cm, ends=True)        # the waist under them
+        rail([(f0, zl + RISE), (f1, zl + 1.8)], d1)
+        if east:
+            rail([(f0, zl + RISE), (f1, zl + 1.8)], d0)
+    for i in range(1, 7):                                        # landings: east at 1.8, 5.4, 9.0; west at 3.6, 7.2, 10.8
+        zl = z0 + i * 1.8
+        s0, s1 = (sE0, sE1) if i % 2 else (sW0, sW1)
+        pbox(s0, s1, zl - 0.2, zl, dI0, dO1, Cm)
+        send = s0 if i % 2 else s1
+        rail([(s0, zl), (s1, zl)], dO1)
+        for da, db in ((dI0, dO1),):
+            for h_ in (1.0, 0.5):
+                rod(mb, PEn(send, zl + h_, da), PEn(send, zl + h_, db), 0.022, 'metal_dark', seg=5)
+        if i % 2 == 0:                                           # a steel door in the wall
+            flat_wall(mb, PEn, sW0 + 0.15, sW0 + 1.05, zl, zl + 2.1, 'frame_dark', d=0.03)
+    zpier = z0 + 10.8 + 1.5
+    pbox(sW1 - 0.95, sW1, z0 - 1.5, zpier, dO1, dO1 + 0.45, Cm, skip=('bottom',))            # the piers
+    pbox(sE0, sE0 + 0.4, z0 - 1.5, zpier, dO1, dO1 + 0.4, Cm, skip=('bottom',))
+    zc = z0 + 10.8 + 2.9                                         # the lean-to: green glass on two steel arms
+    mb.quad(PEn(sW0 - 0.2, zc - 0.7, dO1), PEn(sW1 + 0.2, zc - 0.7, dO1), PEn(sW1 + 0.2, zc, 0.05), PEn(sW0 - 0.2, zc, 0.05),
+            'glass_green')
+    mb.quad(PEn(sW0 - 0.2, zc, 0.05), PEn(sW1 + 0.2, zc, 0.05), PEn(sW1 + 0.2, zc - 0.7, dO1), PEn(sW0 - 0.2, zc - 0.7, dO1),
+            'glass_green')
+    for s_ in (sW0 - 0.2, sW1 + 0.2):
+        rod(mb, PEn(s_, zc + 0.03, 0.05), PEn(s_, zc - 0.67, dO1), 0.03, 'metal_dark', seg=5)
     out.append(mb)
 
     S = parts[990004]['frame']['uv']
@@ -6443,6 +6634,25 @@ def yongjae():
     step_walk(mb, 2.6, t_end, local_ground(mb), mat='stone_step', kerb_mat='concrete')
     out.append(mb)
     return out
+
+
+# ============================================================================= 음악관 서쪽 계단 (「음대 계단」)
+def music_stair():
+    """The long flight from 음악관's west yard down the wooded bank to 대강당's south-east corner (campus.json music_stair,
+    tools/build_campus.py MUSIC_STAIR97): its line and length from the leafless scans of 1996, its look from
+    reference/동문_이중윤/2004_음대_계단_*.jpg (concrete treads between low concrete kerbs).  The treads go down with
+    the game's ground, a riser wherever it has fallen one rise (step_walk): the bank's heights could not be read off the
+    scans under the trees, so the landings of the photo are not laid out (reference/고증/3.11 「서쪽 계단」)."""
+    M = CAMPUS.get('music_stair')
+    if not M:
+        return []
+    (tx, ty), (fx, fy) = M['top'], M['foot']
+    L = math.hypot(fx - tx, fy - ty)
+    dx, dy = (fx - tx) / L, (fy - ty) / L
+    mb = MeshBuilder('lm_music_stair')
+    mb.xf = local_frame(tx, ty, math.atan2(dx, -dy), ground(tx, ty))       # (local -y: down the flight)
+    step_walk(mb, M['w'], L - 0.3, local_ground(mb), rise=0.165, tread_min=0.3, mat='concrete', kerb_mat='concrete', kerb=0.2)
+    return [mb]
 
 
 # ============================================================================= 정구장 (tennis courts)

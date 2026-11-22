@@ -6387,9 +6387,10 @@ LANDMARKS = [
     dict(id='baekyangro', name='백양로', pos=[-82, -300], r=26, photo=['photos/baekyangro_1997_pano.jpg', 'photos/yongo_banner_news_1997.jpg'],
          title='그때의 백양로', year='1997',
          text='1997년의 백양로는 차와 사람이 함께 오가던 아스팔트 길이었다. 2차선 차도 양옆의 둥근 회양목, 넓은 보도와 은행나무 가로수, 그리고 길을 가로지른 현수막들. 연고제가 있는 가을이면 신촌 상점들이 건 푸른 응원 현수막이 줄지어 걸려 「제2백양로의 파란물결」이라 불렸다. 2015년 백양로 재창조 사업으로 차도는 지하로 들어가고 지금은 보행자 전용 숲길이 되었다.'),
-    dict(id='engineering', name='제1공학관', pos=[-104, -262], r=20, photo=None,
+    dict(id='engineering', name='제1공학관', pos=[-104, -262], r=20, photo=['photos/engineering_2003.jpg'],
          title='공과대학 (제1공학관)', year='1997',
-         text='정문을 들어서면 왼편으로 길게 늘어선 공학관. 1997년 사진 속 공학관 앞에는 오토바이들이 줄지어 서 있다.'),
+         credit='사진: 이중윤 동문 (2003년 12월, 남동쪽 모서리)',
+         text='정문을 들어서면 왼편으로 길게 늘어선 공학관. 1997년 사진 속 공학관 앞에는 오토바이들이 줄지어 서 있다. 몇 해 뒤 겨울 저녁의 사진에도 남동쪽 모서리 돌벽 아래 오토바이와 자전거가 빼곡하다.'),
     dict(id='centennial', name='백주년기념관', pos=[-30, -215], r=26, photo=['photos/centennial_1997.jpg'],
          title='백주년기념관', year='1997',
          text='원통형 매스가 인상적인 백주년기념관. 공연과 강연, 졸업 행사가 열리던 곳으로, 1997년 백양로 오른편 풍경의 중심이었다.'),
@@ -6407,9 +6408,11 @@ LANDMARKS = [
          title='활천대 (活泉臺)', year='1974',
          credit='사진: 연세대학교 공식 블로그 「연세대학교의 조형물을 찾아서!! 제3탄」(2017)의 「예전의 활천대」(blog.naver.com/luckycmw)',
          text='독수리상 옆의 분수대. 전기공학과 동창회가 모금해 1974년 앞뜰에 만들었고, 연세의 영향력이 사회 전 분야에 퍼지길 바라는 마음을 담았다고 한다. 둥근 막돌 담 안에 물이 찰랑이고, 가운데 돌섬 위에 선 十자 기둥 꼭대기에서 물기둥이 솟았다. 공대 축제 「활천제」의 이름도 여기서 왔다. 백양로 재창조 뒤에는 제1공학관 앞으로 자리를 옮겼다.'),
-    dict(id='library', name='중앙도서관', pos=[-58, -40], r=22, photo=['photos/library_1997.jpg', 'photos/library_reading_1997.jpg', 'photos/baekyangro_library_1995.jpg'],
+    dict(id='library', name='중앙도서관', pos=[-58, -40], r=22, photo=['photos/library_1997.jpg', 'photos/library_reading_1997.jpg', 'photos/baekyangro_library_1995.jpg',
+                                                                         'photos/library_autumn_2000s.jpg', 'photos/library_terrace_2004.jpg'],
          title='1997년 중앙도서관', year='1997',
-         text='1979년 준공된 중앙도서관. 아치형 기둥이 늘어선 정면은 그 시절 연세인 모두의 배경이었다. 시험 기간이면 열람실 자리를 맡으려 새벽부터 줄을 섰다.'),
+         credit='사진출처: 연세대학교 기록관 · 연세동문회보 · 연세춘추 · 이중윤 동문 (2000년대 가을의 백양로, 2004년 테라스)',
+         text='1979년 준공된 중앙도서관. 아치형 기둥이 늘어선 정면은 그 시절 연세인 모두의 배경이었다. 시험 기간이면 열람실 자리를 맡으려 새벽부터 줄을 섰다. 공부하다 나오면 정면 테라스의 낮은 돌 난간에 걸터앉아 쉬었고, 그 곁에는 나무 상자 재떨이가 놓여 있었다.'),
     dict(id='union', name='학생회관', pos=[0, -62], r=22, photo=['photos/union_1997.jpg', 'photos/marathon_news_1997.jpg'],
          title='1997년 학생회관', year='1997',
          credit='사진: 연세춘추 제1316호(1997.5.5) 「4·19 정신잇기」 김민정 기자 · 연세대학교 기록관',
@@ -6431,19 +6434,31 @@ LANDMARKS = [
     dict(id='events', name='게시판 · 그때 우리는', pos=[9, -36], r=9, photo=['photos/marathon_1997.jpg', 'photos/daedongje_1997.jpg', 'photos/yongo_1997.jpg', 'photos/cheer_1997.jpg', 'photos/yongo_banner_1997.jpg'],
          title='신촌 캠퍼스 1997 · 그때 우리는', year='1997',
          text='4월 마라톤대회, 5월 빗속의 대동제, 9월 정기 연고전 출정식과 응원제. 백양로는 늘 푸른 물결로 가득했다.'),
-    dict(id='yongjae', name='용재관', pos=[64.2, 127.7], r=18, photo=['photos/yongjae_1990s.jpg'],
+    dict(id='yongjae', name='용재관', pos=[64.2, 127.7], r=18,
+         photo=['photos/yongjae_1990s.jpg', 'photos/yongjae_2004_front.jpg', 'photos/yongjae_2004_porch.jpg', 'photos/yongjae_2004_stacks.jpg'],
          title='용재관', year='1957 – 2013',
-         credit='사진: 동문 제공 (reference/용재관.jpg)',
+         credit='사진: 동문 제공 (1990년대 봄) · 이중윤 동문 (2004년: 북서쪽 비탈에서, 현관 차양, 뒤쪽 서고 동의 바깥 계단)',
          text='연세대 초대 총장 용재(庸齋) 백낙준의 호를 딴 흰 건물. 1957년 도서관으로 지어졌고, 언더우드 동상 너머로 보이던 세로로 긴 계단탑이 상징이었다. 2013년 헐리고 그 자리에 경영관(2015)이 섰다. 경영관 한쪽의 「용재관 타워」가 옛 모습을 잇는다.'),
     dict(id='daewoo', name='상대신관', pos=[113.5, 453.8], r=26,
-         photo=['photos/daewoo_2017.jpg', 'photos/daewoo_2024.jpg', 'photos/daewoo_annex_2017.jpg'],
+         photo=['photos/daewoo_2017.jpg', 'photos/daewoo_2024.jpg', 'photos/daewoo_annex_2017.jpg', 'photos/daewoo_back_2004.jpg'],
          title='상대신관과 상뜰', year='1996',
-         credit='사진: 연세대 상경대학 홈페이지 (blog.naver.com/maxx5335/221067910905 재인용) · 다음 카페 「훌리건 천국」 이호성 (2024)',
+         credit='사진: 연세대 상경대학 홈페이지 (blog.naver.com/maxx5335/221067910905 재인용) · 다음 카페 「훌리건 천국」 이호성 (2024) · 이중윤 동문 (2004년 9월, 뒤쪽 주차장에서)',
          text='1996년 6월 문을 연 상경대학의 새 집. 대우그룹 김우중 회장과 상경대 동문들의 기부로 지어져 정식 이름은 「김우중 기념관」이었지만, 학교 지도에는 「상대신관」, 학생들 입에는 「신상경관」이었다(지금의 대우관). 흰 석조의 고딕풍 건물로, 앞뜰의 소나무 정원 「상뜰」은 공강 시간마다 붐볐다. 정문에서 900m, 캠퍼스에서 가장 높고 깊숙한 곳.'),
     dict(id='yeonhui', name='연희관', pos=[88.0, 343.0], r=20, photo=['photos/yeonhui_2024a.jpg', 'photos/yeonhui_2024b.jpg'],
          title='연희관 가는 길', year='1956',
          credit='사진: 다음 카페 「훌리건 천국」 이호성 (2024)',
          text='1956년 과학관으로 지어져 1984년부터 연희관으로 불린 석조 건물. 담쟁이 덮인 벽과 회양목 정원 사이로, 대우관까지 이어지는 오르막길이 시작된다.'),
+    # 한국어학당 (언어연구교육원, 1991): before the middle of its south-west front (the 2004 photos: the long front with
+    # the glazed middle bay and the door faces south-west; reference/동문_이중윤/2004-09_한국어학당_정면.jpg)
+    dict(id='kli', name='한국어학당', pos=[480.0, 136.7], r=18, photo=['photos/kli_2004_front.jpg', 'photos/kli_2004_side.jpg'],
+         title='한국어학당 (언어연구교육원)', year='1991',
+         credit='사진: 이중윤 동문 (2004년)',
+         text='1959년 문을 연 한국어학당이 1991년 4월 옮겨 온 붉은 벽돌 건물. 캠퍼스 동쪽 끝 언덕에 길게 누워, 뾰족한 박공 창이 줄지은 지붕과 가운데 유리 벽, 화강석 현관으로 손님을 맞았다. 세계 여러 나라에서 온 학생들의 한국어가 복도마다 들리던 곳.'),
+    # 음대 계단: at the foot of the flight (MUSIC_STAIR97 below: the line of the 1996 winter scans), by 대강당's south-east corner
+    dict(id='music_stair', name='음대 계단', pos=[89.0, -6.0], r=9, photo=['photos/music_stair_2004a.jpg', 'photos/music_stair_2004b.jpg'],
+         title='음대 계단', year='1997',
+         credit='사진: 이중윤 동문 (2004년)',
+         text='대강당 옆에서 음악관 서쪽 마당으로 오르는 숲속의 긴 계단. 「음대 계단」이라 불렀다. 여름이면 나무가 머리 위를 덮어 초록 그늘이 되었고, 쉬어 가는 참을 몇 번 지나야 끝이 보였다.'),
 ]
 
 # ---------------------------------------------------------------------------
@@ -11562,6 +11577,20 @@ _yf_new = unary_union([LineString(c_).buffer(w_ / 2) for _, w_, c_ in YJ_FLIGHT9
 draw_poly('pavers', unary_union([LineString([a_, b_]).buffer(w_ / 2 + 0.2) for a_, b_, w_ in YJ_FLIGHT97_OLD]).difference(
     _yf_new).difference(LineString([(50.3, 82.7), (61.1, 79.6), (87.7, 72.6)]).buffer(1.5)), 0, pre=False)
 draw_poly('pavers', _yf_new, pre=False)
+# 음악관 서쪽 계단 (「음대 계단」; reference/고증/3.11 「서쪽 계단」, 2026-11-22): OSM's flight (118.0, -15.3) -> (99.0, -11.5)
+# lies 3 - 4 m south of the one in the leafless scans of 1996 (26/15 · 26/16: the treads' hatching from the hall's west
+# yard down past 대강당's south-east corner), and is 7 m short.  Painted here on the game's map only, as YJ_FLIGHT97
+# above (the planting, decals and leaf map read OSM's walk as it was); out['paths'] and campus.json music_stair (the
+# treads: blender/landmarks.py music_stair) at the end
+MUSIC_STAIR97 = dict(top=(117.5, -11.5), foot=(91.5, -6.0), w=3.0)
+MUSIC_STAIR97_OLD = [((126.7, -14.1), (118.0, -15.3), 2.6), ((118.0, -15.3), (99.0, -11.5), 3.0), ((99.0, -11.5), (78.3, -6.5), 2.6)]
+MUSIC_STAIR97_NEW = [('footway', 2.6, [(126.7, -14.1), MUSIC_STAIR97['top']]),
+                     ('steps', MUSIC_STAIR97['w'], [MUSIC_STAIR97['top'], MUSIC_STAIR97['foot']]),
+                     ('footway', 2.6, [MUSIC_STAIR97['foot'], (78.3, -6.5), (70.2, -4.4)])]
+_mst_new = unary_union([LineString(c_).buffer(w_ / 2) for _, w_, c_ in MUSIC_STAIR97_NEW])
+draw_poly('pavers', unary_union([LineString([a_, b_]).buffer(w_ / 2 + 0.2) for a_, b_, w_ in MUSIC_STAIR97_OLD]).difference(_mst_new).difference(
+    unary_union([LineString([(84.6, 18.9), (78.3, -6.5)]), LineString([(78.3, -6.5), (70.2, -4.4)])]).buffer(1.5)), 0, pre=False)
+draw_poly('pavers', _mst_new, pre=False)
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -12952,6 +12981,16 @@ for (a_, b_, _), (k_, w_, c_) in zip(YJ_FLIGHT97_OLD, YJ_FLIGHT97):
                and math.hypot(p_['pts'][1][0] - b_[0], p_['pts'][1][1] - b_[1]) < 0.2)
     out['paths'][_yk] = dict(kind=k_, w=w_, pts=[list(q_) for q_ in c_])
 out['shrubs'] = [s_ for s_ in out['shrubs'] if not _yf_new.buffer(0.4).contains(Point(s_[1], s_[2]))]
+# (음악관 서쪽 계단 moved above, MUSIC_STAIR97: OSM's three pieces keep their places in the list; the bushes on it go)
+for (a_, b_, _), (k_, w_, c_) in zip(MUSIC_STAIR97_OLD, MUSIC_STAIR97_NEW):
+    _mk = next(i_ for i_, p_ in enumerate(out['paths']) if math.hypot(p_['pts'][0][0] - a_[0], p_['pts'][0][1] - a_[1]) < 0.2
+               and math.hypot(p_['pts'][1][0] - b_[0], p_['pts'][1][1] - b_[1]) < 0.2)
+    out['paths'][_mk] = dict(kind=k_, w=w_, pts=[list(q_) for q_ in c_])
+_n_mst = len(out['shrubs'])
+out['shrubs'] = [s_ for s_ in out['shrubs'] if not _mst_new.buffer(0.4).contains(Point(s_[1], s_[2]))]
+out['music_stair'] = dict(top=list(MUSIC_STAIR97['top']), foot=list(MUSIC_STAIR97['foot']), w=MUSIC_STAIR97['w'])
+print('음악관 서쪽 계단: shrubs off it', _n_mst - len(out['shrubs']),
+      'trees on it', sum(1 for t_ in out['trees'] if _mst_new.buffer(0.3).contains(Point(t_[1], t_[2]))))
 # 동문 둘레의 숲 (tools/dongmun.py trees): the knoll's and the slope's crowns of the 1997 scans and the island's pines, at
 # the trees' very end (the web picks each tree's model by its place in the list)
 DONGMUN_TREES = dongmun.trees(out['trees'], [b_['footprint'] for b_ in out['buildings']], muak.woods_fill)
@@ -12968,6 +13007,31 @@ out['trees'] += jk97.east_trees()
 out['shrubs'] += dongmun.shrubs()
 out['props'] += dongmun.props()
 out['shrubs'] += north97.shrubs97_more()      # (무악학사 학사 사이 동 서쪽의 덩이, 2026-11-21: at the shrubs' very end)
+# 이중윤 동문의 2003 ~ 2004년 사진(reference/동문_이중윤/, reference/고증/1_자료.md 자료 S)에서 옮긴 것(2026-11-22). Late, no draws.
+# - 중앙도서관 테라스의 난간 턱 (reference/고증/3.2-3.3 3.2.1 「난간 턱」): a seat-high granite parapet along the terrace's
+#   outer edge, [s0, s1, d0, d1] in the terrace's frame (blender/landmarks.py library() builds them; the walker is kept
+#   by the colliders).  The front's two runs are the photo's; the two ends' are taken to be the same wall
+_lt = out['library_terrace']
+_lt_mid, _lt_dep = _lt['len'] / 2, _lt['depth']
+_lt['seat_h'], _lt['seats'] = 0.45, [
+    [_lt['south'], round(_lt_mid - _lt['stair_w'] / 2, 3), round(_lt_dep - 0.5, 3), _lt_dep],
+    [round(_lt_mid + _lt['stair_w'] / 2, 3), _lt['north'], round(_lt_dep - 0.5, 3), _lt_dep],
+    [_lt['south'], round(_lt['south'] + 0.5, 3), _lt['south_w'], round(_lt_dep - 0.5, 3)],
+    [round(_lt['north'] - 0.5, 3), _lt['north'], round(_lt['north_w'] + _lt['nstair_wall'] + _lt['nstair_w'], 3), round(_lt_dep - 0.5, 3)]]
+for s0_, s1_, d0_, d1_ in _lt['seats']:
+    out['colliders'].append([[round(_lt['o'][0] + _lt['t'][0] * s_ + _lt['n'][0] * d_, 2),
+                              round(_lt['o'][1] + _lt['t'][1] * s_ + _lt['n'][1] * d_, 2)]
+                             for s_, d_ in ((s0_, d0_), (s1_, d0_), (s1_, d1_), (s0_, d1_))])
+# - 용재관 맞배 동(서고) 북쪽 면의 바깥 계단 (reference/고증/3.13 「맞배 동과 바깥 계단」; blender/landmarks.py yongjae(),
+#   lm_yongjae_stair): not walked, its footprint a collider (u0, u1, v0, v1 in 용재관's frame).  The car of the 1997
+#   scans that stood nose-in against its east pier steps 0.45 m east, in its place in the list
+YJ_STAIR97 = (28.7, 34.2, 43.0, 45.95)
+out['colliders'].append([[round(x_, 2), round(y_, 2)] for x_, y_ in list(yongjae_poly(*YJ_STAIR97).exterior.coords)[:-1]])
+_yj_car = [c_ for c_ in out['cars'] if math.hypot(c_[1] - 119.18, c_[2] - 135.05) < 0.05]
+assert len(_yj_car) == 1, _yj_car
+_yj_car[0][1] = round(_yj_car[0][1] + 0.45 * math.cos(YONGJAE['ang']), 2)
+_yj_car[0][2] = round(_yj_car[0][2] + 0.45 * math.sin(YONGJAE['ang']), 2)
+print('이중윤 동문 사진: library seats', len(_lt['seats']), 'colliders', len(out['colliders']), 'car', _yj_car[0][:3])
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
