@@ -357,7 +357,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 두 단계: 쓰기 · 읽기 · 목록 창과 데이터는 페이지와 함께(`new Memos()`, 처음 화면의 목록은 불러오는 동안에도 열림), 장면의 쪽지는 걷는 사람이 생긴 뒤 `attach()` 로. 그 전에는 목록의 「가기」가 꺼져 있습니다.
 - 읽기: 브라우저가 DoltHub SQL API(`/api/v1alpha1/benelog/yonsei-1997/main?q=`)에서 토큰 없이 바로 읽습니다(최근 300장). 처음, 목록을 열 때, 걷는 동안 90 s 마다. 다시 읽어 없어진 쪽지는 바람에 날려 보냅니다.
 - 쓰기: DoltHub 는 브라우저가 `authorization` 헤더를 붙인 요청을 CORS 로 막습니다(preflight 가 GET 만 허용). 그래서 Cloudflare Worker `notes-worker/`(`y97-notes`, 미니 게임 전체 순위도 함께)가 토큰(secret `DOLT_TOKEN`)을 들고 대신 씁니다. 받는 것은 `POST /`(쪽지 하나 더하기)와 `DELETE /<id>` 뿐이고, SQL 은 Worker 가 만듭니다(글자 수 · 색 · 자리 검사, IP 마다 1분 8번). DoltHub 쓰기는 한 번에 커밋 하나, 1 ~ 2 s.
-  - 배포: `cd notes-worker && npx wrangler deploy`. 토큰을 바꾸면 `npx wrangler secret put DOLT_TOKEN`. 로컬 시험은 `.dev.vars` 에 `DOLT_TOKEN=…` 을 두고 `npx wrangler dev --port 8788`, 게임 주소에 `?notesapi=http://127.0.0.1:8788`.
+  - 배포: main 에 push 하면 `.github/workflows/worker.yml` 이 Worker 를 이루는 파일(`node tools/worker_deps.mjs`)이 떠 있는 배포 뒤로 바뀌었을 때 `tools/deploy_worker.sh` 로 배포합니다. 손으로는 `tools/deploy_worker.sh`(그 파일들이 origin/main 과 같을 때만. `--dry-run` 은 묶기만, `--force` 는 검사 없이). Actions 의 secret 은 `CLOUDFLARE_API_TOKEN` · `CLOUDFLARE_ACCOUNT_ID`. 토큰을 바꾸면 `npx wrangler secret put DOLT_TOKEN`. 로컬 시험은 `.dev.vars` 에 `DOLT_TOKEN=…` 을 두고 `npx wrangler dev --port 8788`, 게임 주소에 `?notesapi=http://127.0.0.1:8788`.
 - 자리(`Memos.spot`): 가슴 높이(발 + 1.35 m)에서 보는 쪽과 좌우 17° · 34° 로 `player.walls`(건물 · 랜드마크 메시)에 광선을 쏴, 3 m 안의 가장 가까운 거의 수직인 면에 붙입니다. 없으면 1.2 m 앞에 말뚝(종이 윗변이 땅에서 1.3 m)을 세웁니다.
 - 그림: 종이(0.4 m)는 윗변을 경첩으로 매달려 아랫단이 바람에 들썩입니다. 45 m 안에서만 글씨 텍스처(256 px 캔버스, Jua)를 만들고, 그 밖은 색만, 160 m 밖은 그리지 않습니다.
 
@@ -378,7 +378,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
      - 게임마다: 달리기는 문을 차례로 반지름 안에서 지나고 코스 선에서 28 m 안. 사진은 서버가 뽑은 다섯 장, 출발이 정답에서 39 ~ 175 m 의 출발할 곳, 100 s 안, 점수는 찍은 자리와 방위로 다시 셈. 강의실은 현관 반지름 안에 닿고, 구간이 건물 사이 길이(`WAY`)를 뛰는 시간보다 크게 짧지 않음. 생일은 서버가 뽑은 건물 앞에서 친구를 만나고 생일인 친구 곁에서 끝. 삐삐는 부스 자리에서 연결, 제한 시간은 서버가 자리로 다시 셈. 슛은 60 s 안의 슛, 슛 사이 0.9 s 넘게, 들어간 공은 그 슛 0.3 ~ 4.6 s 뒤. 응원은 노래 시계 위의 때가 그 동작의 박 ± 판정 창과 맞고, 점수 · 콤보는 다시 셈.
   7. 이름은 1 ~ 12자(제어 · 보이지 않는 문자를 뺌). 판 열기는 IP 마다 1분 20번, 박동 40번, 올리기 6번.
 - 한계: 브라우저에서 도는 게임이라 기록을 만드는 코드도 브라우저에 있습니다. 게임을 고쳐 「사람이 할 수 있는 가장 좋은 판」을 실시간으로 흉내 내면(자동 조종, 응원의 자동 연주) 막지 못합니다. 위 검사는 그런 판도 실제 시간을 들여 사람이 낼 수 있는 기록 안에서만 나오게 합니다. 삐삐의 숫자 암호를 맞혔는지는 기록을 믿습니다.
-- 판정 자료가 바뀌면 Worker 를 다시 배포합니다(`cd notes-worker && npx wrangler deploy`): 코스(`courses.js`), 시간표(`timetables.js`), 박자표(`cheercharts.js`), 사진 문제(`data/photoquiz.json`), 출발할 곳 · 공중전화 · 생일인 친구 자리(`notes-worker/src/places.json`: 건물 · 현관 · 땅을 고친 뒤 `node tools/rank_places.mjs --port <포트>` 로 다시 뽑음). 배포 전의 게임과 Worker 의 자료가 다르면 그 판은 「올릴 수 없는 판」이 됩니다.
+- 판정 자료가 바뀌면 Worker 를 다시 배포해야 합니다(push 하면 `worker.yml` 이 함): 코스(`courses.js`), 시간표(`timetables.js`), 박자표(`cheercharts.js`), 사진 문제(`data/photoquiz.json`), 출발할 곳 · 공중전화 · 생일인 친구 자리(`notes-worker/src/places.json`: 건물 · 현관 · 땅을 고친 뒤 `node tools/rank_places.mjs --port <포트>` 로 다시 뽑음). 배포 전의 게임과 Worker 의 자료가 다르면 그 판은 「올릴 수 없는 판」이 됩니다.
 - 키: `cd notes-worker && node keygen.mjs | npx wrangler secret put RANK_KEY`. 바꾸면 진행 중인 판의 열쇠 · 영수증은 모두 무효. 로컬 시험은 `.dev.vars` 에 `RANK_KEY='<JWK>'` 를 두고 `npx wrangler dev --port 8788`, 게임 주소에 `?notesapi=http://127.0.0.1:8788`(로컬 Worker 도 진짜 DoltHub 에 씁니다).
 
 ### 렌더링

@@ -1,0 +1,86 @@
+name: Worker 배포 (y97-notes)
+
+# main 에 push 될 때마다, Worker(notes-worker)를 이루는 파일이 지금 떠 있는 배포 뒤로
+# 바뀌었으면 다시 배포한다(tools/deploy_worker.sh).
+# - 이루는 파일: notes-worker/wrangler.jsonc 와 src/index.js 가 불러오는 모든 파일
+#   (판정 규칙 web/src/rankrules.js · courses.js · timetables.js · cheercharts.js ·
+#   pace.js, 사진 문제 photoquiz.json, 출발할 곳 places.json …). 목록은 여기 적지 않고
+#   tools/worker_deps.mjs 가 import 를 따라가 낸다.
+# - 견주는 기준은 직전 push 가 아니라 떠 있는 배포다: 배포할 때 커밋 해시를 배포
+#   메시지로 남기고, 그 커밋부터 지금까지 바뀐 파일을 본다. 실행이 밀리거나 취소돼도
+#   다음 실행이 빠진 배포를 챙긴다. 기준을 모르면(메시지 없는 손 배포 등) 배포한다.
+# - secret CLOUDFLARE_API_TOKEN(Workers 스크립트 편집 권한) · CLOUDFLARE_ACCOUNT_ID.
+#   없으면 경고만 남기고 건너뛴다. Worker 의 secret 은 배포로 바뀌지 않는다.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: '바뀐 것이 없어도 배포'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            notes-worker
+            tools/deploy_worker.sh
+            tools/worker_deps.mjs
+            web/src
+            web/public/data
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 배포할지 정하기
+        id: need
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          node tools/worker_deps.mjs > /tmp/deps.txt       # (불러오는 파일이 없으면 여기서 실패)
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::warning::secret CLOUDFLARE_API_TOKEN 이 없어 Worker 를 배포하지 않음"
+            echo "deploy=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$FORCE" = "true" ]; then
+            echo "손으로 실행(force)"; echo "deploy=1" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # 떠 있는 배포의 메시지(= 그때의 커밋 해시)
+          last="$(cd notes-worker && npx --yes wrangler@4 deployments list --json 2>/dev/null \
+            | node -e 'let s="";process.stdin.on("data",(d)=>s+=d).on("end",()=>{try{const a=JSON.parse(s);a.sort((x,y)=>x.created_on<y.created_on?-1:1);const m=(a.at(-1).annotations||{})["workers/message"]||"";console.log(/^[0-9a-f]{7,40}$/.test(m)?m:"")}catch{console.log("")}})' || true)"
+          if [ -z "$last" ]; then
+            echo "떠 있는 배포의 커밋을 모름: 배포"; echo "deploy=1" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if ! gh api "repos/$GITHUB_REPOSITORY/compare/$last...$GITHUB_SHA" > /tmp/cmp.json 2>/dev/null; then
+            echo "$last 와 견줄 수 없음: 배포"; echo "deploy=1" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          n="$(jq '.files | length' /tmp/cmp.json)"
+          hit="$(jq -r '.files[].filename' /tmp/cmp.json | node tools/worker_deps.mjs --match)"
+          if [ -n "$hit" ] || [ "$n" -ge 300 ]; then      # (300: 비교 API 가 주는 파일 수의 끝)
+            echo "떠 있는 배포($last) 뒤로 바뀜(파일 $n개 가운데):"; echo "$hit"
+            echo "deploy=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "떠 있는 배포($last) 뒤로 Worker 를 이루는 파일은 그대로(바뀐 파일 $n개)"
+            echo "deploy=0" >> "$GITHUB_OUTPUT"
+          fi
+      - name: 배포
+        if: steps.need.outputs.deploy == '1'
+        run: tools/deploy_worker.sh

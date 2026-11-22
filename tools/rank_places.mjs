@@ -3,7 +3,7 @@
 // 앞의 둘은 게임이 열릴 때 충돌 · 현관 자료로 셈하는 값이라 헤드리스로 읽어 둔다.
 //   cd web && npx vite --port 5197          (다른 터미널, 아무 포트)
 //   node tools/rank_places.mjs [--port 5197]   → notes-worker/src/places.json
-// 건물 · 현관 · 땅을 고쳐 출발할 곳이 옮겨지면 다시 돌리고 Worker 를 다시 배포한다(cd notes-worker && npx wrangler deploy).
+// 건물 · 현관 · 땅을 고쳐 출발할 곳이 옮겨지면 다시 돌린다. 바뀐 places.json 을 push 하면 Worker 가 다시 배포된다(worker.yml).
 import { createRequire } from 'module';
 import fs from 'fs';
 import path from 'path';

@@ -1,5 +1,5 @@
 {
-  // 캠퍼스 쪽지의 쓰기 다리(src/index.js). 배포: npx wrangler deploy (이 폴더에서)
+  // 캠퍼스 쪽지의 쓰기 다리(src/index.js). 배포: main 에 push 하면 Actions(worker.yml)가, 손으로는 tools/deploy_worker.sh
   // 토큰은 secret: npx wrangler secret put DOLT_TOKEN. 로컬 시험은 .dev.vars 에 DOLT_TOKEN=... (커밋하지 않음)
   "name": "y97-notes",
   "main": "src/index.js",
