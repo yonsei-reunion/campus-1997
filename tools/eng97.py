@@ -13,6 +13,7 @@ tools/build_campus.py 가 부른다. 근거와 잰 값은 reference/고증/3.8_�
     eng97.south_walks(paths)             # 그 자리의 뒷날 보행로 · 진입로를 빼고 정원의 대각선 길을 넣음
     eng97.move_off_south(trees, shrubs, props)   # 제3공학관 남쪽의 나무는 정원의 나무 자리로(목록 제자리), 관목 · 소품은 뺌
     eng97.s3_floor(base)                 # 제3공학관: 테라스에서 지붕까지 여섯 층 (levels, fh)
+    eng97.ng_paved() · ng_lawn() · ng_paths() · ng_plant(trees, shrubs)   # 현관 북쪽 정원 (3.8.3)
 
 What the scans (26/16 · 26/15 · 27/17, each pair by itself, 1.5 - 3 m windows) and the 2006 survey have:
 - The three wings stand on one nearly level platform: the court between them 27.9 m (north alley) to 27.2 m (south
@@ -892,3 +893,134 @@ def plaza_parts():
     out['wall_windows'] = wins
     out['tile_runs'] = [0, 1, 2]                 # (WALL_RUNS: the lot's three runs, the bay between)
     return out
+
+
+# ---------------------------------------------------------------------------
+# 현관 북쪽 정원 (reference/고증/3.8.3_현관_북쪽_정원.md, 2026-11-22). Campus metres (x east, y north), not
+# the court's frame: read off the 1996 winter · 1997-07 · 1998 · 1999 scans on the ground's plane (27.75 m).
+#
+# - Its west kerb x = -92.7 + 0.239 (y + 206.1) (six stations within 0.2 m of the line, ten frames within 0.3 - 0.5 m),
+#   the south kerb y = -242.83 - 0.262 (x + 100.14) (+-0.2 m), the low hedge along its east side x = -77.7 +
+#   0.244 (y + 246) (the game's hedge within 0.3 m).  The game's lawn ran 6.4 m further west (a 5 m band of paving before
+#   the hall where the scans have 9 - 11 m, motorbikes and a lorry standing on it) and stopped 1 m short of the south kerb.
+# - A foot-worn path 0.9 m wide from the west kerb south-south-east to the south kerb (four frames of 1997 and two of
+#   1998 within 0.15 - 0.35 m; as bright as paving in summer, not to be told from the dry lawn in the 1996 winter
+#   frames: taken as bare earth), and a branch north-east from its fork, lost under the crowns after 4 m.
+# - The south half is planted in rows 4.5 - 5 m apart, parallel to the south kerb: clipped cones and domes (the dark
+#   visual hull of the six winter frames a metre over the ground; heights by the shadows' tips where they are free), a
+#   pine with a bare stem, a row of small round shrubs 2.5 m apart just inside the south kerb, a low hedge inside the
+#   west kerb's south half (the roadview of 2010 - 2011 has it too).
+# - The north half is under one closed canopy in July 1997 (7 - 8 m over the ground; the pairs' correlation under 0.6):
+#   the trunks are only candidates, where the trunk's shadow of 1996-12-23 and that of 1996-11-28 start at one point
+#   (within 0.1 - 0.4 m; the shadows 20 m long: trees 9 - 10 m high).  Their kind is not known: zelkovas here.
+NG_FOUNTAIN_N = -199.0                      # (y: where the west kerb's line meets the walk to 활천대; read to y -206.1)
+NG_PATH = [(-98.2, -229.2), (-97.4, -229.6), (-96.5, -230.0), (-95.5, -231.8), (-94.5, -233.5), (-93.9, -235.4),
+           (-93.4, -237.4), (-93.1, -238.3), (-92.1, -240.1), (-90.9, -241.7), (-90.0, -243.5), (-89.4, -245.0)]
+NG_BRANCH = [(-96.5, -230.0), (-95.3, -229.9), (-94.4, -229.4), (-93.5, -229.0), (-92.6, -228.6)]
+# (the path's head is read (-97.8, -228.2) -> (-97.4, -228.7), the frames 0.9 m apart there: laid 0.9 m south of that,
+# clear of the clipped tree E1 beside it)
+NG_PATH_W = 1.2                             # (0.6 - 0.9 m at half height in 1997, 1.0 - 1.2 m in 1998; the ground map is 0.5 m a pixel)
+# shrubs (kind, x, y, scale): E1 - E3, E6 - E17 of the reading (E4 is the fir behind the stone, E5 the pine below).
+# topiary_egg 2.6 x 3.4 m, topiary_cone 1.5 x 2.5 m, topiary_round 1.5 x 1.1 m, topiary_dome 2.2 x 1.0 m at scale 1
+NG_EVERGREENS = [
+    ('topiary_egg', -96.7, -228.0, 0.9),    # E1: a rounded cone 3.1 m across, 2.6 m high
+    ('topiary_cone', -97.3, -232.1, 1.4),   # E2: a narrow cone 1.9 m across, 3.2 - 4.4 m
+    ('topiary_egg', -97.7, -236.5, 1.05),   # E3: a broad cone 3.4 m across, 3.3 m
+    ('topiary_round', -94.6, -223.2, 1.5),  # E6: a low mass 2.4 m across
+    ('topiary_round', -85.9, -229.4, 1.05),  # E7
+    ('topiary_round', -90.5, -230.1, 0.9),  # E8
+    ('topiary_cone', -87.4, -235.0, 1.4),   # E9: 2.0 m across, 3.7 m by one shadow
+    ('topiary_round', -92.9, -233.9, 0.75),  # E10
+    ('topiary_dome', -80.8, -235.4, 1.9),   # E11: a spreading evergreen mass 4.1 m across, 2.5 m
+    ('topiary_round', -82.2, -232.7, 0.9),  # E12
+    ('topiary_round', -91.3, -238.3, 0.8),  # E13
+    ('topiary_round', -87.1, -239.9, 0.95),  # E14
+    ('topiary_cone', -92.2, -242.6, 1.2),   # E15: narrow cones 1.5 - 1.8 m across, 2.5 - 4 m
+    ('topiary_cone', -87.6, -243.8, 1.2),   # E16
+    ('topiary_cone', -82.9, -244.9, 1.15),  # E17
+]
+NG_ROW = [(-98.6, -241.7), (-96.0, -242.9), (-93.3, -243.4), (-91.0, -244.4), (-88.5, -244.8), (-86.1, -245.7),
+          (-83.7, -245.9), (-81.7, -246.9), (-80.5, -247.2), (-79.6, -247.3)]     # (small round shrubs inside the south kerb)
+NG_HEDGE_Y = (-241.4, -231.6)               # (the low hedge inside the west kerb: y from, to, short of the path's mouth; 0.7 m inside it)
+NG_PINE = ('pine', -95.0, -235.3, 0.5)      # E5: a crown 2.6 m across on a stem bare to 2.5 m, some 6 m high
+# the trunks' candidates D1 - D7: the two young zelkovas the planting put here (one of them on what is now the paved
+# band) go to D5 and D7 in their places in the list, the rest are new (the list's end)
+NG_TREES_MOVE = [((-99.41, -229.78), (-91.3, -225.6)), ((-91.67, -217.48), (-91.7, -216.2))]
+NG_TREES_NEW = [('zelkova', -78.9, -221.6, 0.7), ('zelkova', -77.5, -229.9, 0.66), ('zelkova', -84.8, -220.3, 0.68),
+                ('zelkova', -80.8, -241.3, 0.72), ('zelkova', -85.6, -227.3, 0.64)]
+
+
+def ng_west(y):
+    return -92.7 + 0.239 * (np.asarray(y, float) + 206.1)
+
+
+def ng_south(x):
+    return -242.83 - 0.262 * (np.asarray(x, float) + 100.14)
+
+
+def ng_east(y):
+    return -77.7 + 0.244 * (np.asarray(y, float) + 246.0)
+
+
+NG_SW, NG_SE = (-101.40, -242.50), (-78.32, -248.55)        # (where the kerbs' lines meet)
+
+
+def ng_garden():
+    """the garden between its three kerbs up to NG_FOUNTAIN_N, its south-west corner rounded (as the scans have it)"""
+    g = Polygon([NG_SW, NG_SE, (float(ng_east(NG_FOUNTAIN_N)), NG_FOUNTAIN_N), (float(ng_west(NG_FOUNTAIN_N)), NG_FOUNTAIN_N)])
+    return g.buffer(-1.5).buffer(1.5).union(g.difference(Point(*NG_SW).buffer(4.0)))
+
+
+def ng_paved():
+    """the paved band before the hall as far east as the 1997 west kerb (over the game's lawn; 8 m west of the kerb
+    beside the hall, 7 m north of its end, where the next lawn begins beyond the walk) and the rounded corner's sliver"""
+    ys = [NG_SW[1], -216.0, -216.0, NG_FOUNTAIN_N]
+    off = [8.0, 8.0, 7.0, 7.0]
+    east = [(float(ng_west(y)), y) for y in ys]
+    west = [(float(ng_west(y)) - o, y) for y, o in zip(ys, off)]
+    band = Polygon(east + west[::-1])
+    corner = Point(*NG_SW).buffer(4.0).intersection(Polygon([NG_SW, (NG_SW[0] + 5, float(ng_south(NG_SW[0] + 5))),
+                                                             (float(ng_west(-237.0)), -237.0)])).difference(ng_garden())
+    return unary_union([band, corner])
+
+
+def ng_lawn():
+    """the lawn's strip along the 1997 south kerb (the forecourt's asphalt lay 1 m over it): to the kerb's line"""
+    xs = np.linspace(NG_SW[0], NG_SE[0], 12)
+    strip = Polygon([(float(x), float(ng_south(x))) for x in xs] + [(float(x), float(ng_south(x)) + 2.5) for x in xs[::-1]])
+    return strip.intersection(ng_garden())
+
+
+def ng_paths():
+    """the foot-worn path and its branch (polygons)"""
+    return [LineString(NG_PATH).buffer(NG_PATH_W / 2, cap_style="flat"), LineString(NG_BRANCH).buffer(NG_PATH_W / 2 - 0.1, cap_style="flat")]
+
+
+def ng_plant(trees, shrubs):
+    """The garden's planting as the scans have it.  The trees of NG_TREES_MOVE go to their candidates in their places in
+    the list; shrubs standing on the new paved band give their places in the list to shrubs of the south kerb's row.
+    Returns (trees to append at the list's very end, shrubs to append, how many shrubs went)"""
+    for (x0, y0), (x1, y1) in NG_TREES_MOVE:
+        t = min(trees, key=lambda q: math.hypot(q[1] - x0, q[2] - y0))
+        assert t[0] == 'zelkova_young' and math.hypot(t[1] - x0, t[2] - y0) < 0.1, t
+        t[1], t[2] = x1, y1
+    band = ng_paved().buffer(0.3)
+    on = [t for t in trees if band.contains(Point(t[1], t[2]))]
+    assert not on, on
+    rot = lambda k: round((0.7 + 2.399 * k) % 6.283, 3)
+    new_s = [[k_, x, y, s, rot(i)] for i, (k_, x, y, s) in enumerate(NG_EVERGREENS)]
+    row = [['topiary_round', x, y, 0.55, 0] for x, y in NG_ROW]
+    gone = [s for s in shrubs if band.contains(Point(s[1], s[2]))]
+    assert len(gone) <= len(row), gone
+    for s in gone:                                             # (their places in the list go to shrubs of the kerb's row)
+        s[:] = row.pop()
+    new_s += row
+    step = 1.84 / math.hypot(1.0, 0.239)                       # (hedge_low pieces 1.84 m long, along the kerb)
+    ang = round(math.atan2(1.0, 0.239), 3)
+    y = NG_HEDGE_Y[0]
+    while y <= NG_HEDGE_Y[1] + 1e-6:
+        new_s.append(['hedge_low', round(float(ng_west(y)) + 0.7, 2), round(y, 2), 1.0, ang])
+        y += step
+    new_t = [[NG_PINE[0], NG_PINE[1], NG_PINE[2], NG_PINE[3], 1.9]]
+    new_t += [[k_, x, y, s, rot(i + 3)] for i, (k_, x, y, s) in enumerate(NG_TREES_NEW)]
+    return new_t, new_s, len(gone)

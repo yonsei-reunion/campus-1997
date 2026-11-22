@@ -7896,6 +7896,17 @@ _kli_keep = shapely.contains_xy(unary_union(
 _kli_took, KLI_HPRE, KLI_LOW, KLI_PIT, KLI97_GRADE = kli97.grade(Hn, X, Y, FIXED, _kli_keep, harmonic_fill)
 FIXED[_kli_took] = True
 print('한국어학당 둘레 땅:', KLI97_GRADE)
+# 연대동문길 (tools/dongmungil97.py, reference/고증/3.27 「연대동문길의 자리와 노면」): the road's surface at the 1996 winter
+# scans' heights (the 1:5000 survey's spots on it within 0.15 m) along its 1997 middle line, late: the planting ran on
+# OSM's line and the ground as it stood; the halls' feet and what the scans laid round 한국어학당 stay
+_dmg_box = dongmungil97.middle()[0].buffer(dongmungil97.RING + 12.0)
+_dmg_keep = shapely.contains_xy(unary_union(
+    [Polygon(b_['footprint']).buffer(2.5) for b_ in buildings
+     if b_['id'] not in LATE_FOOTPRINT_1997 and Polygon(b_['footprint']).intersects(_dmg_box)] +
+    [Polygon(v_).buffer(2.5) for k_, v_ in LATE_FOOTPRINT_1997.items() if Polygon(v_).intersects(_dmg_box)] + [Point(0, 0).buffer(0.1)]), X, Y)
+_dmg_took, DMG97_GRADE = dongmungil97.grade(Hn, X, Y, FIXED, _dmg_keep)
+FIXED[_dmg_took] = True
+print('연대동문길 노면:', DMG97_GRADE)
 LATE_FOOTPRINT_1997[kli97.KLI] = kli97.outline()
 LATE_NO_SIMPLIFY.add(kli97.KLI)
 SITES_NEW_1997.add(kli97.KLI)
@@ -10076,6 +10087,11 @@ for name_, paint_, st_, ln_ in _kl_lots:
         c97_stall(_l, x_, y_, h_)
 for x_, y_, h_, s_, w_ in _kl_cars:
     c97_new(x_, y_, h_, s_, w_)
+# 연대동문길 (dongmungil97): a car the planting stood on what is now its carriageway steps off it in its place in the
+# list; the cars along its west kerb in the three frames of the 1996 winter flight, at the list's end
+_dmg_cars = dongmungil97.clear(cars)
+for x_, y_, h_, s_, w_ in dongmungil97.CARS:
+    c97_new(x_, y_, math.radians(h_), s_, w_)
 cars += CARS97_NEW
 # (what stood in a car moved or put in: a tree steps aside out of it in its place in the list, a shrub or a prop goes;
 # a car in a hall's footprint is only told)
@@ -10278,6 +10294,13 @@ def _ypaint(geoms, img, width=None):
 print('상대별관 북동쪽 오솔길: trees moved aside in their places', annex97.trail_clear(trees))
 print('빌링슬리관 동쪽 찻길: moved off the new asphalt (trees, shrubs, props, cars)',
       [bill97.clear(l_) for l_ in (trees, shrubs, props, cars)])
+# 연대동문길 (dongmungil97): OSM's line 1 - 5 m west of the 1997 road and a metre narrower.  Late: its asphalt off the
+# 1997 carriageway taken up (_yg below; the walks along it paved again), the carriageway laid (_ga), the walk behind
+# the east row (_gp); what stood on the carriageway steps off it in its place in the list; the road's entry in the
+# paths follows the 1997 middle line
+DMG_OLD, DMG_NEW, DMG_WALK = dongmungil97.strips()
+print('연대동문길: moved off the 1997 carriageway (trees, shrubs, props, cars)',
+      [dongmungil97.clear(l_) for l_ in (trees, shrubs, props)] + [_dmg_cars], 'paths', dongmungil97.repath(paths_out), dongmungil97.repath(out['paths']))
 _yz, _yg, _yp = (Image.new('L', (SW, SH), 0) for _ in range(3))
 _YN = {id(_yz): '_yz', id(_yg): '_yg', id(_yp): '_yp'}
 MUAK_OLD = muak.takeup(paths_out)              # (무악학사 길: OSM's road north of the corner and its walk taken up)
@@ -10300,6 +10323,7 @@ _ypaint([ENG3_CLEAR, ENG3_LAWN], _yg)       # (제3공학관 남쪽, 남쪽 동 
 _ypaint([eng97.strip_lawn()], _yg)           # (안뜰 서쪽 옹벽 뒤 화단 띠와 활꼴 어귀: lawn, OSM's later walk to the bay out; eng97)
 _ypaint([eng97.plaza_poly(), eng97.upper_paved()], _yg)   # (제2 · 제3공학관 사이와 그 동쪽 윗땅: OSM's later lawn and walks out; _gp · _ga below; eng97)
 _ypaint([ENG_BED97], _yg)                    # (제1공학관 앞 진입로 가운데의 긴 화단, 1997)
+_ypaint([eng97.ng_lawn()], _yg)               # (현관 북쪽 정원: the lawn on to its 1997 south kerb, 1 m into the forecourt's asphalt; eng97)
 # (the aprons of the halls left out or moved since the planting was laid, GONE_LAWN · SITES_NEW_1997: lawn where no hall of
 # 1997 stands; 과학관's court paved to the bank's foot and under its flight)
 _old_aprons = unary_union([Polygon(g_['footprint']) for g_ in RND_GHOSTS if g_['id'] in GONE_LAWN] +
@@ -10320,6 +10344,10 @@ _ypaint([footprint(ways[kli97.KLI]).buffer(3.6, join_style=2).union(kli97.hall()
          .difference(kli97.LOT_POLY).difference(kli97.WALK_POLY)], _yg)
 _ypaint([kli97.WALK_POLY], _yp)
 _ypaint([bill97.OLD_STRIP], _yg)             # (빌링슬리관 동쪽 면 곁: OSM's asphalt west of the 1997 kerb, the planted strip; bill97)
+_ypaint([DMG_OLD], _yg)                      # (연대동문길: OSM's asphalt west of the 1997 carriageway; dongmungil97)
+for p_ in paths_out:                         # (the walks along it: their paving again, over the lawn)
+    if p_['kind'] in ('footway', 'path', 'pedestrian') and len(p_['pts']) > 1 and LineString(p_['pts']).intersects(DMG_OLD.buffer(1.5)):
+        _ypaint([[tuple(q_[:2]) for q_ in p_['pts']]], _yp, width=p_['w'])
 KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
 _ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
 _ypaint([westisle97.lawn()], _yg)              # (서쪽 화단 섬: the 1997 island and the garden's north end; the road round them, _ga below)
@@ -10602,7 +10630,7 @@ _ypaint([GATE97_PAVE.difference(bline.buffer(E_CURB0))], _ga)   # (정문 안 �
 _ypaint([Polygon([st_xy(-5.4, -2.2), st_xy(5.4, -2.2), st_xy(5.4, 0.05), st_xy(-5.4, 0.05)])]
         + [Polygon([st_xy(sg_ * 1.0, 0.0), st_xy(sg_ * 5.4, 0.0), st_xy(sg_ * 5.4, 0.6), st_xy(sg_ * 1.0, 0.6)]) for sg_ in (-1, 1)],
         _ga)                                  # (and on under the flights' first treads, not up the lawn strip between)
-_ypaint(ENG_COURT_PAINT, _ga)                 # (제1공학관 앞 진입로: the 1997 forecourt round the bed)
+_ypaint([p_.difference(eng97.ng_lawn()) for p_ in ENG_COURT_PAINT], _ga)   # (제1공학관 앞 진입로: the 1997 forecourt round the bed, short of the north garden's south kerb)
 _ypaint(libwest97.paint(), _ga)               # (중앙도서관 서쪽 길 · 자재 마당 · 북쪽 면 앞 띠, 북서쪽 굽은 길)
 # 중앙도서관 북쪽 찻길 (tools/libnorth97.py, reference/고증/3.2-3.3 「북쪽 찻길과 그 둘레」): the drive's west end
 # asphalt on to the north flight's foot and the curved road (the game had lawn and today's walks there); the beds'
@@ -11190,7 +11218,9 @@ _ypaint([SEOMUN_YARD], _gd)                    # (the bare yard round the small 
 _ypaint([west_ground.YARD], _gd)               # (독수리상 서쪽 마당: bare earth, the walks across it under it)
 _ypaint([ENG3_BARE], _gd)                      # (제3공학관 남쪽: bare earth all round the hall, the track, the bench)
 _ypaint([eng97.north_path().buffer(0.7)], _gd)  # (공학관 사이 북쪽 끝: the footpath down the bank to the yard; eng97)
+_ypaint(eng97.ng_paths(), _gd)                 # (현관 북쪽 정원: the foot-worn path across its south-west corner and its branch; eng97)
 _ypaint([ENG3_PAVED], _gp)                     # (... its tile deck and the landing before its door)
+_ypaint([eng97.ng_paved()], _gp)               # (현관 북쪽 정원 서쪽: the paved band before the hall on to the 1997 west kerb; eng97)
 _ypaint([eng97.plaza_poly()], _gp)             # (제2 · 제3공학관 사이: the paved deck; eng97)
 _ypaint([ENG3_WALK], _gp, width=eng97.GARDEN_WALK_W)   # (the walk across the garden south-east of the south wing)
 _ypaint([west_ground.road_south()], _ga)       # (... and the paved margin south of its road, where cars stood along it)
@@ -11216,6 +11246,8 @@ _ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 �
 _ypaint([KB97_ASPH], _ga)                    # (광복관 안마당 · 서쪽 길 · 북쪽 길, 핀슨관 서쪽 길 · 북쪽 주차장: kwangbok97)
 _ypaint([kli97.LOT_POLY], _ga)                # (한국어학당 앞 주차장: the paved lot of the 1997 scans; kli97)
 _ypaint(kli97.paved(), _ga)                   # (its south-east edge, the lane and the row behind, the north-west car park: #233)
+_ypaint([DMG_NEW], _ga)                      # (연대동문길: the 1997 carriageway; dongmungil97)
+_ypaint([DMG_WALK], _gp)                     # (... the walk behind its east row, s 77 - 104)
 _ypaint([KB97_FORE], _gd)                    # (광복관 앞마당: the gravel at the foot of the front flight)
 _ypaint(annex97.trail_polys(), _gd)          # (상대별관 북동쪽 세모 숲의 오솔길 두 갈래: bare earth; annex97)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
@@ -13258,10 +13290,11 @@ out['trees'] += MUAK_ROW_MORE
 # 밑동): at the trees' very end; the band had no tree in the list (east_clear above only moves the lane's)
 out['trees'] += jk97.east_trees()
 # 연대동문길의 가로수 (tools/dongmungil97.py, reference/고증/3.27 「연대동문길의 가로수」, 2026-11-22: 1996년 겨울 세 장의
-# 밑동, 백합나무): at the trees' very end, set out from the game road's edges as the scans have them from the kerbs
-DONGMUNGIL_TREES, _dmg_near = dongmungil97.trees(out['paths'], out['trees'])
-out['trees'] += DONGMUNGIL_TREES
-print('연대동문길 가로수: trees', len(DONGMUNGIL_TREES), 'old trees within 1.5 m', _dmg_near)
+# 밑동과 2008년 겨울 스카이뷰가 함께 가리키는 밑동, 백합나무): at the trees' very end, each at its own place beside the
+# road as the scans have it
+DONGMUNGIL_TREES, DONGMUNGIL_MORE, _dmg_near = dongmungil97.trees(out['trees'])
+out['trees'] += DONGMUNGIL_TREES              # (the twelve of the first reading, where they stood in the list; the rest below)
+print('연대동문길 가로수: trees', len(DONGMUNGIL_TREES), '+', len(DONGMUNGIL_MORE), 'old trees within 1.5 m', _dmg_near)
 out['trees'].append(['fir', -104.0, -264.3, 0.55, 2.1])     # (제1공학관 남쪽 정원 북서 귀퉁이의 큰 침엽수: 1996 - 1998년 스캔, 고증 3.8)
 # 동문의 섬 관목 · 가로등 (tools/dongmun.py shrubs · props): at the lists' very end, after every other append
 out['shrubs'] += dongmun.shrubs()
@@ -13332,6 +13365,27 @@ out['shrubs'] += [['topiary_cone', *(round(float(c_), 2) for c_ in eng97.xy(u_, 
 #   flights (1996 winter · 1997 · 1998 · 1999) puts at the same place within 1.5 m, trunks taken under their tops
 MUSIC_STAIR_TREES97 = [('pine', 91.0, -9.2, 1.15, 2.1), ('pine', 96.5, -13.5, 1.0, 4.6), ('zelkova', 100.5, -13.0, 0.9, 0.8)]
 out['trees'] += [list(t_) for t_ in MUSIC_STAIR_TREES97]
+# 제1공학관 현관 북쪽 정원의 심기 (tools/eng97.py ng_plant, reference/고증/3.8.3, 2026-11-22: the 1996 -
+# 1999 scans).  Late, no draws: the two young zelkovas of the planting move to trunks' candidates in their places in
+# the list, the rest at the lists' very end; the bushes on what is now the paved band go
+out['trees'] += DONGMUNGIL_MORE               # (연대동문길: the trunks the 2008 skyview and the 1996 frames agree on, dongmungil97)
+_ng_t, _ng_s, _ng_gone = eng97.ng_plant(out['trees'], out['shrubs'])
+out['trees'] += _ng_t
+out['shrubs'] += _ng_s
+# 활천대 둘레의 상록수 고리 (reference/고증/4.3 「둘레의 상록수 고리」, the same scans): eight evergreens 9.2 m (+-0.25 m) from
+# the basin's middle, 45 degrees apart round its south half (N1 - N8; none on the north, where the road passed).  The
+# two small pines the planting scattered there go to N1 and N4 in their places in the list (N4 2.7 m across); the
+# others as clipped domes (1 - 1.7 m high by their shadows) and rounded cones (N3 4 m high; N5's height not read)
+FOUNTAIN_RING97 = [('topiary_dome', -88.7, -205.4, 0.86), ('topiary_egg', -87.4, -210.3, 1.15), ('topiary_egg', -78.4, -214.2, 1.0),
+                   ('topiary_dome', -74.1, -212.0, 1.05), ('topiary_dome', -70.8, -208.3, 0.95), ('topiary_dome', -70.5, -203.5, 1.1)]
+for (x0_, y0_), (x1_, y1_, s_) in (((-87.77, -203.56), (-88.0, -200.8, None)), ((-84.99, -212.93), (-83.3, -213.4, 0.33))):
+    t_ = min(out['trees'], key=lambda q_: math.hypot(q_[1] - x0_, q_[2] - y0_))
+    assert t_[0] == 'pine' and math.hypot(t_[1] - x0_, t_[2] - y0_) < 0.1, t_
+    t_[1], t_[2] = x1_, y1_
+    if s_:
+        t_[3] = s_
+out['shrubs'] += [[k_, x_, y_, s_, round((1.1 + 2.399 * i_) % 6.283, 3)] for i_, (k_, x_, y_, s_) in enumerate(FOUNTAIN_RING97)]
+print('제1공학관 북쪽 정원: trees new', len(_ng_t), 'shrubs new', len(_ng_s), 'shrubs gone', _ng_gone, '활천대 고리', len(FOUNTAIN_RING97) + 2)
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
