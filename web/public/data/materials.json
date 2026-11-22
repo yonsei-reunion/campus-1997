@@ -1504,5 +1504,15 @@
   ],
   "rough": 0.7,
   "metal": 0.25
+ },
+ "roof_patina": {
+  "_doc": "한국어학당의 연한 청록 금속 지붕 (2004년 사진, blender/landmarks.py kli; 고증 3.27)",
+  "color": [
+   0.2,
+   0.42,
+   0.33
+  ],
+  "rough": 0.55,
+  "metal": 0.35
  }
 }

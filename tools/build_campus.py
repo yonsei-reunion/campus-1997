@@ -60,6 +60,7 @@ import bill97
 import cent97
 import allen97
 import jk97
+import kli97
 import datum
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -6448,9 +6449,9 @@ LANDMARKS = [
          title='연희관 가는 길', year='1956',
          credit='사진: 다음 카페 「훌리건 천국」 이호성 (2024)',
          text='1956년 과학관으로 지어져 1984년부터 연희관으로 불린 석조 건물. 담쟁이 덮인 벽과 회양목 정원 사이로, 대우관까지 이어지는 오르막길이 시작된다.'),
-    # 한국어학당 (언어연구교육원, 1991): before the middle of its south-west front (the 2004 photos: the long front with
-    # the glazed middle bay and the door faces south-west; reference/동문_이중윤/2004-09_한국어학당_정면.jpg)
-    dict(id='kli', name='한국어학당', pos=[480.0, 136.7], r=18, photo=['photos/kli_2004_front.jpg', 'photos/kli_2004_side.jpg'],
+    # 한국어학당 (언어연구교육원, 1991): on the terrace before its porch (tools/kli97.py; the 2004 photos: the long front
+    # with the glazed bay and the door faces south-west; reference/동문_이중윤/2004-09_한국어학당_정면.jpg)
+    dict(id='kli', name='한국어학당', pos=[round(c_, 1) for c_ in kli97.xy(kli97.UC, -11.0)], r=12, photo=['photos/kli_2004_front.jpg', 'photos/kli_2004_side.jpg'],
          title='한국어학당 (언어연구교육원)', year='1991',
          credit='사진: 이중윤 동문 (2004년)',
          text='1959년 문을 연 한국어학당이 1991년 4월 옮겨 온 붉은 벽돌 건물. 캠퍼스 동쪽 끝 언덕에 길게 누워, 뾰족한 박공 창이 줄지은 지붕과 가운데 유리 벽, 화강석 현관으로 손님을 맞았다. 세계 여러 나라에서 온 학생들의 한국어가 복도마다 들리던 곳.'),
@@ -7872,6 +7873,27 @@ for _jid in (jonghap97.JONGHAP, jonghap97.OESOL2, jonghap97.INMUN):
     SITES_NEW_1997.add(_jid)
     BASE_1997[_jid] = jonghap97.FLOORS[_jid]['base']
     ENTRY_AT[_jid] = jonghap97.DOORS[_jid]
+# 한국어학당 (언어연구교육원, 1991) as the 1997-07-28 scans and the 2004 photos have it (tools/kli97.py, reference/고증/
+# 3.27): a hall of its own (blender/landmarks.py kli), no longer OSM's box of plain brick.  The
+# planting ran with OSM's outline and the plain hall's door; the hall goes in after it, the trees in what it gained
+# step aside (SITES_NEW_1997).  The flat-roofed hall it was still draws its roof clutter from blender/build.py's stream
+# at its place in the list (RND_GHOSTS, at the file's end), so that the halls after it keep their looks
+_kli_old = {k_: v_ for k_, v_ in next(b_ for b_ in buildings if b_['id'] == kli97.KLI).items() if k_ != 'entry'}
+# (the ground round it as the scans have it, kli97.grade: the car park before its south-east half a storey and a half
+# under the entrance terrace, the back down to the lane behind; the feet of the halls beside it stay)
+_kli_box = kli97.REGION.buffer(kli97.RING + 10.0)
+_kli_keep = shapely.contains_xy(unary_union(
+    [Polygon(b_['footprint']).buffer(kli97.HALL_PAD) for b_ in buildings
+     if b_['id'] != kli97.KLI and b_['id'] not in LATE_FOOTPRINT_1997 and Polygon(b_['footprint']).intersects(_kli_box)] +
+    [Polygon(v_).buffer(kli97.HALL_PAD) for k_, v_ in LATE_FOOTPRINT_1997.items() if Polygon(v_).intersects(_kli_box)]), X, Y)
+_kli_took, KLI97_GRADE = kli97.grade(Hn, X, Y, FIXED, _kli_keep, harmonic_fill)
+FIXED[_kli_took] = True
+print('한국어학당 둘레 땅:', KLI97_GRADE)
+LATE_FOOTPRINT_1997[kli97.KLI] = kli97.outline()
+LATE_NO_SIMPLIFY.add(kli97.KLI)
+SITES_NEW_1997.add(kli97.KLI)
+KLI_PLAN = kli97.plan()
+BASE_1997[kli97.KLI] = round(KLI_PLAN['floor'] - KLI_PLAN['fb'], 2)     # (the storey under the entrance floor)
 LATE_SITES = []
 LATE_SITES_RNG = []        # (as the trees were first cleared: MED_SITES_RNG)
 for b in buildings:
@@ -7889,6 +7911,8 @@ for b in buildings:
     if b['id'] == kwangbok97.KB:       # (blender/landmarks.py kwangbok: the 1997 walls, roofs and heights)
         b['plan'] = kwangbok97.plan()
         b['height'] = round(b['plan']['tower'] - b['base'], 2)
+    if b['id'] == kli97.KLI:           # (blender/landmarks.py kli: its own walls, roofs and porch; no generic door)
+        b.update(style='lm:kli', plan=KLI_PLAN, height=round(KLI_PLAN['floor'] + KLI_PLAN['z_ridge'] - b['base'], 2))
     if b['id'] == chapel97.CHAPEL:     # (blender/landmarks.py chapel: the hall's flat roof over its floor; out['chapel97'])
         b['height'] = round(chapel97.PARTS['hall'][1] - chapel97.FLOOR, 2)
     if b['id'] == BILL:                # (blender/generic.py billingsley_roof: the blocks and their roofs)
@@ -10272,6 +10296,11 @@ _ypaint([YJ_WALK], _yp, width=2.6)
 _ypaint([LIB97_ZONE.difference(LIB97_TERRACE.buffer(-0.2))], _yg)   # (중앙도서관 앞: lawn; its walks and plaza below, _gp · _ga)
 _ypaint([UTS_LAWN], _yg)                     # (연합신학대학원: OSM's outline and its apron lawn again; the 1997 hall's: _gp)
 _ypaint([BILL_LAWN], _yg)                    # (빌링슬리관: OSM's box and apron lawn again; the landing: _gp)
+# (한국어학당, kli97: OSM's box and apron lawn again, as the planted strips under the 1997 hall's walls; the walk from its
+# terrace to the road paved; its car park asphalt, _ga below)
+_ypaint([footprint(ways[kli97.KLI]).buffer(3.6, join_style=2).union(kli97.hall().buffer(4.0))
+         .difference(kli97.LOT_POLY).difference(kli97.WALK_POLY)], _yg)
+_ypaint([kli97.WALK_POLY], _yp)
 _ypaint([bill97.OLD_STRIP], _yg)             # (빌링슬리관 동쪽 면 곁: OSM's asphalt west of the 1997 kerb, the planted strip; bill97)
 KB97_UP, KB97_ASPH, KB97_FORE = kwangbok97.paint()
 _ypaint([KB97_UP], _yg)                      # (광복관 · 핀슨관: OSM's hall and apron, the walks across the 1997 yard and bank; _ga · _gd below)
@@ -10377,7 +10406,8 @@ _bll = BILL_UV['landing']
 # (not over the court east of 외솔관2 and the strip west of 인문관, jonghap97.GRASS: lawn there)
 _ypaint([p_.buffer(3.5, join_style=2).difference(unary_union(jonghap97.GRASS)).difference(chapel97.front_lawn())
          .difference(unary_union(jk97.paint()[0])) for p_ in LATE_SITES if not BILL_POLY.buffer(0.5).contains(p_)
-         and not kwangbok97.hall().buffer(0.5).contains(p_)]      # (광복관: the scans' asphalt runs up to its walls, cars against them)
+         and not kwangbok97.hall().buffer(0.5).contains(p_)       # (광복관: the scans' asphalt runs up to its walls, cars against them)
+         and not kli97.hall().buffer(0.5).contains(p_)]           # (한국어학당: planted strips under its walls, its terrace a slab)
         + [Polygon([bill_xy(u_, v_) for u_, v_ in ((_bll[0], _bll[2]), (_bll[1], _bll[2]), (_bll[1], _bll[3]), (_bll[0], _bll[3]))])]
         + [Polygon([tuple(_bkc + BK_T * u + BK_N * v) for u, v in ((-4.5, 0.0), (4.5, 0.0), (4.5, 7.1), (-4.5, 7.1))])]
         + [Polygon([tuple(_gyc + _gyt * u + _gyn * v) for u, v in ((-2.6, 8.4), (2.6, 8.4), (2.6, 12.6), (-2.6, 12.6))])], _gp)
@@ -11158,6 +11188,7 @@ _ypaint([DONGMUN_WALK], _gp)
 _ypaint([lf_rect(47.5, 56.0, 33.0, 36.1)], _gp)   # (용재 동상 앞 포장 띠, YJ_STATUE below: paved under its slabs, no grass)
 _ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 길: SCI_DRIVE97)
 _ypaint([KB97_ASPH], _ga)                    # (광복관 안마당 · 서쪽 길 · 북쪽 길, 핀슨관 서쪽 길 · 북쪽 주차장: kwangbok97)
+_ypaint([kli97.LOT_POLY], _ga)                # (한국어학당 앞 주차장: the paved lot of the 1997 scans; kli97)
 _ypaint([KB97_FORE], _gd)                    # (광복관 앞마당: the gravel at the foot of the front flight)
 _ypaint(annex97.trail_polys(), _gd)          # (상대별관 북동쪽 세모 숲의 오솔길 두 갈래: bare earth; annex97)
 _gw = Image.new('L', (SW, SH), 0)                # (백양관 앞 계단 길: paving over the asphalt laid under 백양로's mesh)
@@ -12071,6 +12102,9 @@ LN97_SHRUBS = libnorth97.shrubs()
 shrubs += LN97_SHRUBS
 print('중앙도서관 북쪽 찻길: trees moved aside %d, shrubs taken out %d, props %d, walks out %d, shrubs added %d, band mounds turned %d'
       % (len(_ln_n[0]), _ln_n[1], _ln_n[2], _ln_w, len(LN97_SHRUBS), _ln_a), _ln_n[0])
+# 한국어학당 (kli97): the same on the hall of the scans, its terrace, the walk and the car park
+_kli_n = kli97.move_off(trees, shrubs, props)
+print('한국어학당: shrubs taken out %d, props %d, trees moved aside %d' % (_kli_n[0], _kli_n[1], len(_kli_n[2])), _kli_n[2])
 _kb_w = kwangbok97.walks(out['paths'])
 # (서쪽 화단 섬: OSM's road round the island's south on the 1997 line, for the map)
 for p_ in out['paths']:
@@ -12818,6 +12852,8 @@ for i_, b_ in enumerate(out['buildings']):
     if b_['id'] in muak.GATE_FRAME_IDS + (991043,):     # (and the lodge, a plain white hall before: muak.GATE_LODGE)
         RND_GHOSTS.append({**{k_: v_ for k_, v_ in b_.items() if k_ != 'tilt'}, 'style': 'white', 'height': 3.3, 'fh': 3.3,
                            'at': i_})       # (as the boxes they were: one 3.3 m storey)
+# 한국어학당 (tools/kli97.py): the roof clutter the plain brick hall drew in its place is drawn by a ghost there
+RND_GHOSTS.append({**_kli_old, 'at': next(i_ for i_, b_ in enumerate(out['buildings']) if b_['id'] == kli97.KLI)})
 # the far ring as it was where 동네 땅 changed it (town97.far_ring): web/src/terrain.js's far forest and city decide on
 # these, so that their draws stay as they were; 해발 as terrain_far.bin is written below (float32, shortest decimals)
 _fx = -tf['half'] + np.arange(tf['n']) * tf['step']
