@@ -1681,7 +1681,7 @@ function clearEntrances(shrubs, zones) {
   }
 }
 
-// 게시판 with the 1997 photos pinned up (the "그때 우리는" memory spot)
+// 학생회관 앞 게시판 with the 1997 photos pinned up (the memory spot whose card is 「그때 우리는」)
 function makeBoard(l, groundAt) {
   const g = new THREE.Group();
   if (!l) return g;
