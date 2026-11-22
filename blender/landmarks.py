@@ -6741,6 +6741,172 @@ def music_stair():
     return [mb]
 
 
+def yj_bank_stair():
+    """The flight up the bank in front of 용재관, from the yard north of 대강당 (campus.json yj_bank_stair, tools/build_campus.py
+    YJ_BANK97): two legs along the walk YJ_FLIGHT97 paints, head first (`pts`: the head on the level ground, the bend,
+    the foot), the risers at `nose` (distances down the line from the head; `rise` each, `z0` the head's level), a level
+    landing at the bend whose inner corners meet (`miter` along the line each side of it).  Its look from edu2.jpg
+    (자료 R, reference/고증/3.13 「앞 둑의 게시판 둘과 벚나무 둘」): light stone treads between solid cheek walls with a
+    pale coping parallel to the flight, square ends at the foot; no handrail."""
+    M = CAMPUS.get('yj_bank_stair')
+    if not M:
+        return []
+    h, b, f = [Vector((p[0], p[1])) for p in M['pts']]
+    l0, l1 = (b - h).length, (f - b).length
+    d0, d1 = (b - h) / l0, (f - b) / l1
+    tb, L, e = M['bend'], l0 + l1, M['miter']
+    W, r, nose = M['w'], M['rise'], M['nose']
+    hw, kw, ck = W / 2, 0.3, 0.5                       # (cheek: width, its top over the line through the nosings)
+    tphi = e / hw
+    kap = -1.0 if (d0.x * d1.y - d0.y * d1.x) > 0 else 1.0     # (+1: a right turn going down, its outer side the left)
+    mb = MeshBuilder('lm_yj_bank_stair')
+    mb.xf = local_frame(0.0, 0.0, 0.0, M['z0'])         # (world x, y; z over the head)
+    gl = local_ground(mb)
+    N = len(nose)
+
+    def P(t, s, leg=None):
+        """the point t down the line, s to the left (going down), on leg 0 / 1 (by t unless given; each leg's own
+        line, extended past the bend)"""
+        k = (0 if t < tb else 1) if leg is None else leg
+        o, d = (h + d0 * t, d0) if k == 0 else (b + d1 * (t - tb), d1)
+        return (o.x - d.y * s, o.y + d.x * s)
+
+    def miter(leg, s):
+        return tb + kap * s * tphi if leg == 0 else tb - kap * s * tphi
+
+    def ccw(poly):
+        q = []
+        for p in poly:
+            if not q or abs(p[0] - q[-1][0]) + abs(p[1] - q[-1][1]) > 1e-4:
+                q.append(p)
+        if len(q) > 2 and abs(q[0][0] - q[-1][0]) + abs(q[0][1] - q[-1][1]) <= 1e-4:
+            q.pop()
+        ar = sum(q[i][0] * q[(i + 1) % len(q)][1] - q[(i + 1) % len(q)][0] * q[i][1] for i in range(len(q)))
+        return q if ar > 0 else q[::-1]
+
+    def slab(t0, t1, s=hw):
+        """the outline from t0 to t1 between -s and s (across the bend: the landing, mitred)"""
+        if t1 <= tb or t0 >= tb:
+            return ccw([P(t0, s), P(t1, s, 0 if t1 <= tb else 1), P(t1, -s, 0 if t1 <= tb else 1), P(t0, -s)])
+        return ccw([P(t0, s, 0), P(miter(0, s), s, 0), P(t1, s, 1), P(t1, -s, 1), P(miter(0, -s), -s, 0), P(t0, -s, 0)])
+
+    # each tread: its top and its riser between the cheeks, over a block down into the bank whose sides stand 5 cm
+    # into the cheeks (not in the cheeks' faces) and whose top is the next tread's level (hidden).  The bake reads a
+    # quad's light at its corners (blender/bake.py), so no visible face has a corner inside another solid: the top
+    # starts 1 cm in front of the riser above (a strip for the crease), the riser spans one rise only
+    starts, ends = [0.0] + nose, nose + [L]
+    for k, (t0, t1) in enumerate(zip(starts, ends)):
+        zt = -r * k
+        poly = slab(t0, t1)
+        lo = min(min(gl(*p) for p in slab(t0, t1, hw + 0.05)), zt) - 0.6
+        last = t1 >= L - 1e-6
+        mb.prism(slab(t0, t1, hw + 0.05), lo, zt - (0.05 if last else r), 'concrete')
+        lg = 0 if t1 <= tb else 1
+        zr = lo if last else zt - r
+        mb.quad((*P(t1, -hw, lg), zr), (*P(t1, hw, lg), zr), (*P(t1, hw, lg), zt), (*P(t1, -hw, lg), zt), 'concrete')
+        if k == 0 or t0 < tb < t1:                        # (the head; the landing, whose corners stand clear)
+            mb.face([(*p, zt) for p in poly], 'concrete')
+        else:
+            mb.face([(*p, zt) for p in slab(t0, t0 + 0.01)], 'concrete')
+            mb.face([(*p, zt) for p in slab(t0 + 0.01, t1)], 'concrete')
+
+    # an apron in front of the foot, down to the ground: the foot crosses the bank's fall, so that its last tread stands
+    # up to a third of a metre over the ground at its low side
+    W_ = lambda xy, z: (xy[0], xy[1], z + M['z0'])
+    zf, ta_ = -r * N, L + 0.6
+    fr = {s_: min(zf, gl(*P(ta_, s_, 1))) for s_ in (-hw, hw)}
+    if min(fr.values()) < zf - 0.03:
+        q = [(*P(L, -hw, 1), zf), (*P(ta_, -hw, 1), fr[-hw]), (*P(ta_, hw, 1), fr[hw]), (*P(L, hw, 1), zf)]
+        if sum(q[i][0] * q[(i + 1) % 4][1] - q[(i + 1) % 4][0] * q[i][1] for i in range(4)) < 0:
+            q = q[::-1]
+        mb.face(q, 'concrete')
+        WALK_FACES.append([(x_, y_, z_ + M['z0']) for x_, y_, z_ in q])
+        lo = min(gl(*P(t_, s_, 1)) for t_ in (L, ta_) for s_ in (-hw, hw)) - 0.4
+        for (a_, b_) in ((q[i], q[(i + 1) % 4]) for i in range(4)):            # its sides and front, down into the ground
+            if abs(a_[2] - zf) < 1e-6 and abs(b_[2] - zf) < 1e-6:
+                continue                                                     # (the back: the last tread's riser)
+            mb.face([(a_[0], a_[1], lo), (b_[0], b_[1], lo), b_, a_], 'concrete')
+
+    # walked: a ramp through the nosings within a flight, level over the head, the landing and the foot
+    pts = [(0.0, 0.0)] + [(t_, -r * k) for k, t_ in enumerate(nose)] + [(L, -r * N)]
+    for (ta, za), (tb_, zb) in zip(pts, pts[1:]):
+        flat = tb_ - ta > 0.45
+        a_, b_ = max(0.0, ta - 0.05), min(L, tb_ + 0.05)
+        if flat:
+            WALK_FACES.append([W_(p, za) for p in slab(a_, b_)])
+            if tb_ < L:
+                lg = 0 if tb_ < tb else 1
+                WALK_FACES.append([W_(P(tb_ - 0.05, hw, lg), za), W_(P(tb_ - 0.05, -hw, lg), za),
+                                   W_(P(tb_ + 0.05, -hw, lg), zb), W_(P(tb_ + 0.05, hw, lg), zb)])
+        else:
+            lg = 0 if tb_ < tb else 1
+            WALK_FACES.append([W_(P(a_, hw, lg), za), W_(P(a_, -hw, lg), za), W_(P(b_, -hw, lg), zb), W_(P(b_, hw, lg), zb)])
+
+    # the line the cheeks follow: through the nosings down a flight, level over the head, the landing and the foot
+    rl = [(0.0, 0.0)]
+    for k, t_ in enumerate(nose):
+        if k == 0 or t_ - nose[k - 1] > 0.45:
+            rl.append((t_, -r * k))
+        if k == N - 1 or nose[k + 1] - t_ > 0.45:
+            gap = (nose[k + 1] if k < N - 1 else L) - t_
+            rl.append((t_ + min(0.3, gap / 2), -r * (k + 1)))
+    rl.append((L, -r * N))
+    rl = [q for i, q in enumerate(rl) if i == 0 or q[0] - rl[i - 1][0] > 1e-3]
+
+    def at(t):
+        for (ta, za), (tb_, zb) in zip(rl, rl[1:]):
+            if t <= tb_:
+                return za + (zb - za) * (t - ta) / max(tb_ - ta, 1e-6)
+        return rl[-1][1]
+
+    # the cheeks: solid walls each side of each leg, mitred where the legs meet, down into the bank
+    for leg in (0, 1):
+        for sg in (-1, 1):
+            xi, xo = sg * hw, sg * (hw + kw)
+            ti = (0.0, miter(0, xi)) if leg == 0 else (miter(1, xi), L)
+            to = (0.0, miter(0, xo)) if leg == 0 else (miter(1, xo), L)
+            zc = (lambda t: at(min(t, tb)) + ck) if leg == 0 else (lambda t: at(max(t, tb)) + ck)
+            m = max(2, int(math.ceil(max(ti[1] - ti[0], to[1] - to[0]) / 0.3)))
+            for j in range(m):
+                ua, ub = j / m, (j + 1) / m
+                sia, sib = ti[0] + (ti[1] - ti[0]) * ua, ti[0] + (ti[1] - ti[0]) * ub
+                soa, sob = to[0] + (to[1] - to[0]) * ua, to[0] + (to[1] - to[0]) * ub
+                pia, pib, poa, pob = P(sia, xi, leg), P(sib, xi, leg), P(soa, xo, leg), P(sob, xo, leg)
+                zia, zib, zoa, zob = zc(sia), zc(sib), zc(soa), zc(sob)
+                lo = min(gl(*p) for p in (pia, pib, poa, pob)) - 0.5
+                lo = min(lo, min(zia, zib, zoa, zob) - 1.0)
+                if sg > 0:
+                    quad = lambda p, q, u, v, mt: mb.quad(p, q, u, v, mt)
+                else:
+                    quad = lambda p, q, u, v, mt: mb.quad(q, p, v, u, mt)
+                quad((*pia, zia), (*pib, zib), (*pob, zob), (*poa, zoa), 'stone_trim')          # coping
+                quad((*poa, zoa), (*pob, zob), (*pob, lo), (*poa, lo), 'stone_granite')      # outer face
+                quad((*pia, lo), (*pib, lo), (*pib, zib), (*pia, zia), 'stone_granite')      # inner face
+            t_ = 0.0 if leg == 0 else L                                                    # the head's / foot's end
+            p0, p1 = P(t_, xi, leg), P(t_, xo, leg)
+            if (leg == 0) == (sg > 0):
+                p0, p1 = p1, p0
+            lo = min(gl(*p0), gl(*p1)) - 0.5
+            mb.quad((*p0, lo), (*p1, lo), (*p1, zc(t_)), (*p0, zc(t_)), 'stone_granite')
+            # the mitred end, where the other leg's cheek meets it (the inner one a riser higher: closed both ways)
+            ta_, tb2 = (ti[1], to[1]) if leg == 0 else (ti[0], to[0])
+            p0, p1 = P(ta_, xi, leg), P(tb2, xo, leg)
+            lo = min(gl(*p0), gl(*p1)) - 0.5
+            q = [(*p0, lo), (*p1, lo), (*p1, zc(tb2)), (*p0, zc(ta_))]
+            mb.face(q, 'stone_granite')
+            mb.face(q[::-1], 'stone_granite')
+    # square ends at the foot, a little over the cheeks (outside the treads)
+    for sg in (-1, 1):
+        pw = kw + 0.08
+        c0, c1 = L - pw, L
+        s0, s1 = sg * hw, sg * (hw + pw)
+        poly = ccw([P(c0, s0, 1), P(c1, s0, 1), P(c1, s1, 1), P(c0, s1, 1)])
+        lo = min(gl(*p) for p in poly) - 0.5
+        mb.prism(poly, lo, -r * N + ck + 0.15, 'stone_granite', 'stone_trim')
+    print('용재관 앞 둑 계단: %d risers of %.3f m, %.2f m down, landing %.2f m at the bend' % (N, r, r * N, 2 * e))
+    return [mb]
+
+
 # ============================================================================= 정구장 (tennis courts)
 def tennis():
     """The two fenced blocks of courts south-west of 공학관 (tools/build_campus.py TENNIS; 1990/1995 maps no. 47, the

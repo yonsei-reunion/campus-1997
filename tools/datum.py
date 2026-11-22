@@ -244,6 +244,9 @@ def heights(c):
     if 'music_stair' in c and 'z0' in c['music_stair']:
         m = c['music_stair']                       # (음대 계단: its head tread at the top end of its line)
         A(m, 'z0', *m['top'])
+    if 'yj_bank_stair' in c and 'z0' in c['yj_bank_stair']:
+        m = c['yj_bank_stair']                         # (용재관 앞 둑 계단: its head, the first point of its line)
+        A(m, 'z0', *m['pts'][0])
     if 'aud_bank' in c:
         b = c['aud_bank']
         for s in b['sections']:
