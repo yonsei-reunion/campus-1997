@@ -13314,6 +13314,13 @@ assert len(_yj_car) == 1, _yj_car
 _yj_car[0][1] = round(_yj_car[0][1] + 0.45 * math.cos(YONGJAE['ang']), 2)
 _yj_car[0][2] = round(_yj_car[0][2] + 0.45 * math.sin(YONGJAE['ang']), 2)
 print('이중윤 동문 사진: library seats', len(_lt['seats']), 'colliders', len(out['colliders']), 'car', _yj_car[0][:3])
+# 이중윤 동문 사진의 줄을 원본 스캔으로 다시 본 것(2026-11-22, #232). Late, no draws: appended at the lists' very end.
+# - 제1공학관 앞 가운데 긴 화단(ENG_BED97)의 원뿔 상록수 셋 (reference/고증/3.8 「두 끝 벽과 현관 앞 마당의 원본 스캔」): the 1996 winter
+#   scans (five frames) have three cone-shaped shadows out of the bed to the NNW, at u 72 · 76 · 80 (about 2 m high by
+#   the shadows); in July 1997 the bed is one dark block.  (No round island, no bollards in 1996 - 1999.)
+ENG_BED_CONES97 = [(72.0, 2.7), (76.0, 2.7), (80.0, 2.7)]
+out['shrubs'] += [['topiary_cone', *(round(float(c_), 2) for c_ in eng97.xy(u_, v_)), 0.9, round(0.7 + 1.9 * k_, 3)]
+                  for k_, (u_, v_) in enumerate(ENG_BED_CONES97)]
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))

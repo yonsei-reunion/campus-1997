@@ -4088,23 +4088,26 @@ def engineering():
         a, bb = body[i], body[(i + 1) % 4]
         P, Le, t, n = edge_P(a, bb)
         if Le < W + 0.1:
-            # grey rubble-granite end walls (1997 photo).  The south one has a column of windows, one a floor from the
-            # first floor up, 0.42 of its width from the west corner, each in a pale stone surround (the August 1996
-            # photo from the rail bank, reference/1996_정문_철둑에서_북쪽으로.jpg, and reference/동문_이중윤/
-            # 2003-12_제1공학관_남동_모서리.jpg; reference/고증/3.8 「남쪽 끝 벽의 창」)
-            wa, wb = mb.xf @ Vector((a[0], a[1], 0.0)), mb.xf @ Vector((bb[0], bb[1], 0.0))
-            if (wa.y + wb.y) / 2 < cy:
-                sc = Le * (0.42 if wa.x < wb.x else 0.58)
-                holes = [(sc - 1.0, sc + 1.0, 0.4 + k * fh + 1.0, 0.4 + k * fh + 2.75) for k in range(1, nf)]
-                wall_holes(mb, P, 0, Le, 0.4, H + 0.9, 'stone_rubble_gray', holes)
-                for (h0, h1, za, zb) in holes:
-                    reveal(mb, P, h0, h1, za, zb, 0.25, 'stone_trim')
-                    glazing(mb, P, h0, h1, za, zb, -0.25, 2, 2, 'frame_dark', fw=0.05)
-                    for (e0, f0, e1, f1) in ((h0 - 0.1, za - 0.07, h1 + 0.1, za - 0.07), (h0 - 0.1, zb + 0.07, h1 + 0.1, zb + 0.07),
-                                             (h0 - 0.07, za, h0 - 0.07, zb), (h1 + 0.07, za, h1 + 0.07, zb)):
-                        bar(mb, P, e0, f0, e1, f1, 0.14, 0.0, 0.04, 'stone_trim', ends=True)
-            else:
-                flat_wall(mb, P, 0, Le, 0.4, H + 0.9, 'stone_rubble_gray')
+            # grey rubble-granite end walls (1997 photo).  Both have a column of windows down their middle, one a floor
+            # from the ground floor up, each in a pale stone surround: the 1996 · 1997 · 1999 scans unfolded on the two
+            # walls' planes (the south one 26/17 · 27/18 of 1996, five rows, 0.49 - 0.54 of its width from the west
+            # corner; the north one 26/15 · 27/16 of 1997 and of 1996, five rows, 0.51), and on the south one the August
+            # 1996 photo from the rail bank (reference/1996_정문_철둑에서_북쪽으로.jpg) and reference/동문_이중윤/
+            # 2003-12_제1공학관_남동_모서리.jpg (reference/고증/3.8 「남쪽 끝 벽의 창」)
+            sc = Le * 0.5
+            holes = [(sc - 1.0, sc + 1.0, 0.4 + k * fh + 1.0, 0.4 + k * fh + 2.75) for k in range(0, nf)]
+            # (the holes' column in a strip of its own: the baked AO, read at the vertices, darkens whole quads round a
+            # reveal, and a quad running to the wall's corner smeared it far over the stone)
+            flat_wall(mb, P, 0, sc - 1.4, 0.4, H + 0.9, 'stone_rubble_gray')
+            flat_wall(mb, P, sc + 1.4, Le, 0.4, H + 0.9, 'stone_rubble_gray')
+            wall_holes(mb, P, sc - 1.4, sc + 1.4, 0.4, H + 0.9, 'stone_rubble_gray',
+                       holes + [(sc - 1.4, sc - 1.4, za - 0.5, za - 0.5) for (_, _, za, _) in holes])
+            for (h0, h1, za, zb) in holes:
+                reveal(mb, P, h0, h1, za, zb, 0.25, 'stone_trim')
+                glazing(mb, P, h0, h1, za, zb, -0.25, 2, 2, 'frame_dark', fw=0.05)
+                for (e0, f0, e1, f1) in ((h0 - 0.1, za - 0.07, h1 + 0.1, za - 0.07), (h0 - 0.1, zb + 0.07, h1 + 0.1, zb + 0.07),
+                                         (h0 - 0.07, za, h0 - 0.07, zb), (h1 + 0.07, za, h1 + 0.07, zb)):
+                    bar(mb, P, e0, f0, e1, f1, 0.14, 0.0, 0.04, 'stone_trim', ends=True)
         else:
             # use local coordinates for the generic edge builder via a temporary identity xf
             pass
