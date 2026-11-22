@@ -11604,17 +11604,27 @@ EAGLE97_BEDS_OUT = _e97c.buffer(EAGLE97['beds'], 96).difference(_e97c.buffer(EAG
 draw_poly('pavers', unary_union([_e97c.buffer(EAGLE97['ring'], 96).difference(_e97c.buffer(EAGLE97['kerb'], 96)),
                                  EAGLE97_FRONT, EAGLE97_WALKS]).difference(bline.buffer(E_WALK)), pre=False)
 draw_poly('pavers', unary_union([EAGLE97_BEDS_IN, EAGLE97_BEDS_OUT, EAGLE97_SQUARE]), 0, pre=False)   # (no kerb round the platform)
-# 용재관 앞 둑의 계단 길 (i222; reference/고증/3.13.1 「앞 둑의 게시판 둘과 벚나무 둘」): OSM's flight up the bank (paths
-# 512 · 513) runs where the east glass board stood in 1997; edu2.jpg has the flight just right of that board, going up
-# to the right, and the 1996 winter scans a pale strip on from it north along x 69 - 71 to the level ground.  Painted
-# here, on the game's map only (the planting, decals and leaf map read OSM's walk as it was); out['paths'] at the end
+# 용재관 앞 둑의 계단 길과 발치 옹벽 (reference/고증/3.13.1 「앞 둑의 게시판 둘과 벚나무 둘」 「둑 계단과 발치 옹벽」): OSM's flight up
+# the bank (paths 512 · 513) runs where the east glass board stood in 1997.  The flight goes nearly straight up the bank
+# (1996 winter scans: the pale strip of its upper half, bearing 16 deg, treads rising 0.82 m a metre; edu2.jpg: its
+# cheeks at the same bearing, its foot right of the east board), from the foot of a low rubble wall that runs along the
+# bank's foot behind the boards (edu2.jpg), out to x 75.  Painted here, on the game's map only (the planting, decals and
+# leaf map read OSM's walk as it was): the walk, and the yard's asphalt up to the wall (the bank's 5 m nodes in front of
+# it come down to the yard at the end: YJ_BANK97); out['paths'] at the end
 YJ_FLIGHT97_OLD = [((61.1, 79.6), (62.1, 82.5), 2.6), ((62.1, 82.5), (63.2, 87.1), 3.0)]
-YJ_FLIGHT97 = [('footway', 2.6, [(64.6, 78.9), (64.6, 81.8)]),
-               ('steps', 3.0, [(64.6, 81.8), (70.5, 84.8), (70.6, 92.0), (70.6, 95.5)])]
+YJ_BANK97 = dict(head=(70.81, 90.0), foot=(68.43, 81.76), w=2.4, kw=0.4, ck=0.45, rise=0.18, head_t=0.45, foot_t=0.3)
+YJ_WALL97 = dict(pts=[(55.4, 91.4), (58.4, 86.78), (75.0, 78.47)], h=0.6, cap=0.35, ymax=90.0, xmax=75.0)
+YJ_FLIGHT97 = [('footway', 2.6, [YJ_BANK97['head'], (70.6, 95.5)]),
+               ('steps', YJ_BANK97['w'] + 2 * YJ_BANK97['kw'], [YJ_BANK97['foot'], YJ_BANK97['head']])]
 _yf_new = unary_union([LineString(c_).buffer(w_ / 2) for _, w_, c_ in YJ_FLIGHT97])
 draw_poly('pavers', unary_union([LineString([a_, b_]).buffer(w_ / 2 + 0.2) for a_, b_, w_ in YJ_FLIGHT97_OLD]).difference(
     _yf_new).difference(LineString([(50.3, 82.7), (61.1, 79.6), (87.7, 72.6)]).buffer(1.5)), 0, pre=False)
 draw_poly('pavers', _yf_new, pre=False)
+_yw_line = LineString(YJ_WALL97['pts'])
+_yw_front = Polygon(YJ_WALL97['pts'] + [(75.0, 76.0), (55.4, 76.0)]).buffer(0)       # (the yard's side of the wall)
+_yw_asph = _yw_front.intersection(_yw_line.buffer(3.0)).difference(_yf_new.buffer(0.2))
+draw_poly('pavers', _yw_asph, 0, pre=False)
+draw_poly('asphalt', _yw_asph, pre=False)
 # 음악관 서쪽 계단 (「음대 계단」; reference/고증/3.11 「서쪽 계단」, 2026-11-22): OSM's flight (118.0, -15.3) -> (99.0, -11.5)
 # lies 3 - 4 m south of the one in the leafless scans of 1996 (26/15 · 26/16: the treads' hatching from the hall's west
 # yard down past 대강당's south-east corner), and is 7 m short.  Painted here on the game's map only, as YJ_FLIGHT97
@@ -13151,109 +13161,47 @@ print('음악관 서쪽 계단: shrubs off it', _n_mst - len(out['shrubs']),
       '| %d risers of %.3f m in flights %s, landings %s m, the bank up %.2f m at most on %d nodes' % (
           _ms_n, _ms_r, _ms_fl, [round(_ms_st[k_ + 1] - _ms_st[k_] - (_ms_fl[k_] - 1) * _ms_tr, 2) for k_ in range(_ms_nf - 1)],
           float((Hn[_msm] - _ms_old).max()), int((Hn[_msm] - _ms_old > 0.01).sum())))
-# 용재관 앞 둑 계단의 디딤 (reference/고증/3.13.1 「앞 둑의 게시판 둘과 벚나무 둘」, 2026-11-22): edu2.jpg has stone treads
-# between cheek walls where YJ_FLIGHT97 paints its walk; the game had only the bank under the paint (54 % on average,
-# 76 % up its north leg).  The treads along that walk's two legs, head first: the head where the north leg meets the
-# level ground of the game (the bank's brow at y 90; the walk goes on north as paving), a landing at the bend (as long
-# as the turn needs between the cheeks: the inner corners meet), the foot at the walk's foot; the risers even (about
-# 0.17 m) from the level ground down to the foot's ground, the treads even over each leg (split so that both legs
-# come out alike).  The bank then comes up to the line under it (up only, on the bank's own nodes: never the yard's)
-YJ_BANK97 = dict(pts=[(70.572, 90.0), (70.5, 84.8), (64.6, 81.8)], w=2.4, head=0.3, foot=0.3, rise=0.17)
-_ys_p = [np.array(p_, float) for p_ in YJ_BANK97['pts']]
-_ys_l = [float(np.linalg.norm(_ys_p[k_ + 1] - _ys_p[k_])) for k_ in range(2)]
-_ys_d = [(_ys_p[k_ + 1] - _ys_p[k_]) / _ys_l[k_] for k_ in range(2)]
-_ys_tb, _ys_L = _ys_l[0], sum(_ys_l)
-_ys_e = YJ_BANK97['w'] / 2 * math.tan(math.acos(float(np.clip(np.dot(*_ys_d), -1.0, 1.0))) / 2)
-_ys_z0 = ground_h(*YJ_BANK97['pts'][0])
-_ys_D = _ys_z0 - ground_h(*YJ_BANK97['pts'][-1])
-_ys_n = max(4, round(_ys_D / YJ_BANK97['rise']))
-_ys_r = _ys_D / _ys_n
-_ys_run = [_ys_tb - _ys_e - YJ_BANK97['head'], _ys_L - _ys_tb - _ys_e - YJ_BANK97['foot']]
-_ys_n0 = min(_ys_n - 2, max(2, 1 + round(_ys_run[0] / (sum(_ys_run) / (_ys_n - 2)))))
-_ys_nose = [YJ_BANK97['head'] + _ys_run[0] * k_ / (_ys_n0 - 1) for k_ in range(_ys_n0)] + \
-           [_ys_tb + _ys_e + _ys_run[1] * k_ / (_ys_n - _ys_n0 - 1) for k_ in range(_ys_n - _ys_n0)]
-out['yj_bank_stair'] = dict(pts=[[round(float(v_), 3) for v_ in p_] for p_ in _ys_p], w=YJ_BANK97['w'], z0=round(_ys_z0, 3),
-                       rise=round(_ys_r, 4), nose=[round(t_, 3) for t_ in _ys_nose], bend=round(_ys_tb, 3), miter=round(_ys_e, 3))
-
-
-def _ys_line(t_):
-    """the line through the nosings (level over the head, the landing and the foot), work-plane z"""
-    k_ = int(np.searchsorted(_ys_nose, t_, side='right'))
-    if k_ == 0:
-        return _ys_z0
-    if k_ >= _ys_n or _ys_nose[k_] - _ys_nose[k_ - 1] > 0.45:
-        return _ys_z0 - _ys_r * k_
-    return _ys_z0 - _ys_r * (k_ - 1) - _ys_r * (t_ - _ys_nose[k_ - 1]) / (_ys_nose[k_] - _ys_nose[k_ - 1])
-
-
-_ysm = (np.abs(X - 67.5) < 12) & (np.abs(Y - 86) < 12)
-_ys_old = Hn[_ysm].copy()
-_ys_new = _ys_old.copy()
-_ys_yard = ground_h(64.6, 78.9)
-for i_, (x_, y_) in enumerate(zip(X[_ysm], Y[_ysm])):
-    best_ = None
-    for k_ in range(2):
-        v_ = np.array([x_, y_]) - _ys_p[k_]
-        s_ = float(np.dot(v_, _ys_d[k_]))
-        if 0.0 < s_ < _ys_l[k_]:
-            dist_ = abs(float(v_[0] * _ys_d[k_][1] - v_[1] * _ys_d[k_][0]))
-            if best_ is None or dist_ < best_[0]:
-                best_ = (dist_, s_ + (_ys_tb if k_ else 0.0))
-    if best_ is None or _ys_old[i_] < _ys_yard + 0.3:
-        continue
-    w_ = float(np.clip(1.0 - (best_[0] - (YJ_BANK97['w'] / 2 + 0.6)) / 2.5, 0.0, 1.0))
-    _ys_new[i_] = max(_ys_old[i_], _ys_old[i_] * (1 - w_) + (_ys_line(best_[1]) - 0.25) * w_)
-# then, under the treads, the bank's nodes come down wherever the ground (the bilinear or the drawn triangles: web/src/
-# terrain.js, blender/common.py ground_top) would stand within 5 cm of a tread: the second leg runs across the bank's
-# fall, and its uphill edge was over it
-_ys_sm = []
-for t_ in np.arange(0.0, _ys_L + 1e-6, 0.1):
-    k_ = int(np.searchsorted(_ys_nose, t_, side='right'))
-    lg_ = 0 if t_ < _ys_tb else 1
-    o_ = _ys_p[0] + _ys_d[0] * t_ if lg_ == 0 else _ys_p[1] + _ys_d[1] * (t_ - _ys_tb)
-    for s_ in np.linspace(-YJ_BANK97['w'] / 2, YJ_BANK97['w'] / 2, 9):
-        _ys_sm.append((o_[0] - _ys_d[lg_][1] * s_, o_[1] + _ys_d[lg_][0] * s_, _ys_z0 - _ys_r * k_ - 0.05))
-Hn[_ysm] = _ys_new
-_ys_ix = {}
-for i_, (j_, ii_) in enumerate(np.argwhere(_ysm)):
-    _ys_ix[(int(j_), int(ii_))] = i_
-
-
-def _ys_cell(x_, y_):
-    fx_, fy_ = (x_ + NEAR_HALF) / NEAR_STEP, (y_ + NEAR_HALF) / NEAR_STEP
-    i0_, j0_ = int(math.floor(fx_)), int(math.floor(fy_))
-    return i0_, j0_, fx_ - i0_, fy_ - j0_
-
-
-def _ys_top(i0_, j0_, u_, v_):
-    z00, z10, z01, z11 = Hn[j0_, i0_], Hn[j0_, i0_ + 1], Hn[j0_ + 1, i0_], Hn[j0_ + 1, i0_ + 1]
-    bil_ = z00 * (1 - u_) * (1 - v_) + z10 * u_ * (1 - v_) + z01 * (1 - u_) * v_ + z11 * u_ * v_
-    tri_ = z00 + u_ * (z10 - z00) + v_ * (z01 - z00) if u_ + v_ <= 1 else z11 + (1 - u_) * (z01 - z11) + (1 - v_) * (z10 - z11)
-    return max(bil_, tri_)
-
-
-for _ in range(60):
-    worst_ = 0.0
-    for x_, y_, zt_ in _ys_sm:
-        i0_, j0_, u_, v_ = _ys_cell(x_, y_)
-        ex_ = _ys_top(i0_, j0_, u_, v_) - zt_
-        if ex_ <= 0.0:
-            continue
-        worst_ = max(worst_, ex_)
-        wts_ = {(j0_, i0_): (1 - u_) * (1 - v_), (j0_, i0_ + 1): u_ * (1 - v_), (j0_ + 1, i0_): (1 - u_) * v_, (j0_ + 1, i0_ + 1): u_ * v_}
-        wts_ = {k_: w_ for k_, w_ in wts_.items() if k_ in _ys_ix and _ys_old[_ys_ix[k_]] >= _ys_yard + 0.3}
-        sw_ = sum(w_ * w_ for w_ in wts_.values())
-        for k_, w_ in wts_.items():
-            if sw_ > 1e-6:
-                Hn[k_] -= 1.02 * ex_ * w_ / sw_
-    if worst_ <= 0.0:
-        break
-_ys_new = Hn[_ysm]
-print('용재관 앞 둑 계단: %d risers of %.3f m (%.2f m), %d + %d, treads %.3f / %.3f m, landing %.2f m, bank nodes %s m, '
-      'the ground at least %.2f m under the treads' % (
-          _ys_n, _ys_r, _ys_D, _ys_n0, _ys_n - _ys_n0, _ys_run[0] / (_ys_n0 - 1), _ys_run[1] / (_ys_n - _ys_n0 - 1), 2 * _ys_e,
-          ['(%d, %d) %+.2f' % (X[_ysm][i_], Y[_ysm][i_], _ys_new[i_] - _ys_old[i_]) for i_ in np.where(np.abs(_ys_new - _ys_old) > 0.01)[0]],
-          min(zt_ + 0.05 - _ys_top(*_ys_cell(x_, y_)) for x_, y_, zt_ in _ys_sm)))
+# 용재관 앞 둑 계단 · 발치 옹벽 (YJ_BANK97 · YJ_WALL97 above; reference/고증/3.13.1 「둑 계단과 발치 옹벽」): late, after everything
+# that read the ground.  The bank's two 5 m nodes in front of the wall's line, (65, 85) and (70, 85), come down to the
+# yard's level, so that the yard runs flat up to the wall; behind the wall blender/landmarks.py yj_bank_wall draws the
+# bank in the ground's own material out to the grid lines y 90 and x 75, whose heights the nodes it leaves alone give.
+# The flight: one straight run from the yard's level at the wall to the level ground at the head, the risers even
+# (about 0.18 m), the treads even between a head tread and a foot tread
+_yb_yard = ground_h(64.6, 78.9)
+_yb_nodes = []
+for x_, y_ in ((65.0, 85.0), (70.0, 85.0)):
+    j_, i_ = int(round((y_ + NEAR_HALF) / NEAR_STEP)), int(round((x_ + NEAR_HALF) / NEAR_STEP))
+    _yb_nodes.append('(%d, %d) %+.2f' % (x_, y_, _yb_yard - Hn[j_, i_]))
+    Hn[j_, i_] = min(Hn[j_, i_], _yb_yard)
+_yb_h, _yb_f = np.array(YJ_BANK97['head']), np.array(YJ_BANK97['foot'])
+_yb_L = float(np.linalg.norm(_yb_f - _yb_h))
+_yb_z0 = ground_h(*YJ_BANK97['head'])
+_yb_D = _yb_z0 - ground_h(*YJ_BANK97['foot'])
+_yb_n = max(4, round(_yb_D / YJ_BANK97['rise']))
+_yb_r = _yb_D / _yb_n
+_yb_run = _yb_L - YJ_BANK97['head_t'] - YJ_BANK97['foot_t']
+_yb_nose = [YJ_BANK97['head_t'] + _yb_run * k_ / (_yb_n - 1) for k_ in range(_yb_n)]
+out['yj_bank_stair'] = dict(top=list(YJ_BANK97['head']), foot=list(YJ_BANK97['foot']), w=YJ_BANK97['w'], kw=YJ_BANK97['kw'],
+                            ck=YJ_BANK97['ck'], z0=round(_yb_z0, 3), rise=round(_yb_r, 4), nose=[round(t_, 3) for t_ in _yb_nose])
+out['yj_bank_wall'] = dict(pts=[list(p_) for p_ in YJ_WALL97['pts']], h=YJ_WALL97['h'], cap=YJ_WALL97['cap'],
+                           ymax=YJ_WALL97['ymax'], xmax=YJ_WALL97['xmax'])
+# (the ground stays under the treads: the bilinear and the drawn triangles, a centimetre's margin)
+_yb_d = (_yb_f - _yb_h) / _yb_L
+_yb_clear = 1e9
+for t_ in np.arange(0.0, _yb_L + 1e-6, 0.1):
+    k_ = int(np.searchsorted(_yb_nose, t_, side='right'))
+    for s_ in np.linspace(-YJ_BANK97['w'] / 2, YJ_BANK97['w'] / 2, 7):
+        x_, y_ = _yb_h + _yb_d * t_ + np.array([-_yb_d[1], _yb_d[0]]) * s_
+        fx_, fy_ = (x_ + NEAR_HALF) / NEAR_STEP, (y_ + NEAR_HALF) / NEAR_STEP
+        i0_, j0_ = int(fx_), int(fy_)
+        u_, v_ = fx_ - i0_, fy_ - j0_
+        z00, z10, z01, z11 = Hn[j0_, i0_], Hn[j0_, i0_ + 1], Hn[j0_ + 1, i0_], Hn[j0_ + 1, i0_ + 1]
+        tri_ = z00 + u_ * (z10 - z00) + v_ * (z01 - z00) if u_ + v_ <= 1 else z11 + (1 - u_) * (z01 - z11) + (1 - v_) * (z10 - z11)
+        bil_ = z00 * (1 - u_) * (1 - v_) + z10 * u_ * (1 - v_) + z01 * (1 - u_) * v_ + z11 * u_ * v_
+        _yb_clear = min(_yb_clear, _yb_z0 - _yb_r * k_ - max(tri_, bil_))
+assert _yb_clear > -0.01, _yb_clear
+print('용재관 앞 둑 계단: %d risers of %.3f m (%.2f m), treads %.3f m, %.2f m long; nodes to the yard %s; '
+      'the ground at least %.2f m under the treads' % (_yb_n, _yb_r, _yb_D, _yb_run / (_yb_n - 1), _yb_L, _yb_nodes, _yb_clear))
 # 동문 둘레의 숲 (tools/dongmun.py trees): the knoll's and the slope's crowns of the 1997 scans and the island's pines, at
 # the trees' very end (the web picks each tree's model by its place in the list)
 DONGMUN_TREES = dongmun.trees(out['trees'], [b_['footprint'] for b_ in out['buildings']], muak.woods_fill)

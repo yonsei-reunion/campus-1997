@@ -6794,171 +6794,228 @@ def music_stair():
 
 def yj_bank_stair():
     """The flight up the bank in front of 용재관, from the yard north of 대강당 (campus.json yj_bank_stair, tools/build_campus.py
-    YJ_BANK97): two legs along the walk YJ_FLIGHT97 paints, head first (`pts`: the head on the level ground, the bend,
-    the foot), the risers at `nose` (distances down the line from the head; `rise` each, `z0` the head's level), a level
-    landing at the bend whose inner corners meet (`miter` along the line each side of it).  Its look from edu2.jpg
-    (자료 R, reference/고증/3.13.1 「앞 둑의 게시판 둘과 벚나무 둘」): light stone treads between solid cheek walls with a
-    pale coping parallel to the flight, square ends at the foot; no handrail."""
+    YJ_BANK97; reference/고증/3.13.1 「둑 계단과 발치 옹벽」): one straight run from the foot of the rubble wall (yj_bank_wall) to the
+    level ground, bearing 16 deg as the 1996 winter scans' pale strip and edu2.jpg's cheeks have it, the risers at `nose`
+    (distances down the line from the head; `rise` each, `z0` the head's level).  Light stone treads between solid cheeks
+    with a pale coping parallel to the flight (`ck` over the line through the nosings, `kw` wide), square ends at the
+    foot in line with the wall; no handrail (edu2.jpg).  Local frame as music_stair: -y down the flight."""
     M = CAMPUS.get('yj_bank_stair')
     if not M:
         return []
-    h, b, f = [Vector((p[0], p[1])) for p in M['pts']]
-    l0, l1 = (b - h).length, (f - b).length
-    d0, d1 = (b - h) / l0, (f - b) / l1
-    tb, L, e = M['bend'], l0 + l1, M['miter']
-    W, r, nose = M['w'], M['rise'], M['nose']
-    hw, kw, ck = W / 2, 0.3, 0.5                       # (cheek: width, its top over the line through the nosings)
-    tphi = e / hw
-    kap = -1.0 if (d0.x * d1.y - d0.y * d1.x) > 0 else 1.0     # (+1: a right turn going down, its outer side the left)
+    (tx, ty), (fx, fy) = M['top'], M['foot']
+    L = math.hypot(fx - tx, fy - ty)
+    dx, dy = (fx - tx) / L, (fy - ty) / L
     mb = MeshBuilder('lm_yj_bank_stair')
-    mb.xf = local_frame(0.0, 0.0, 0.0, M['z0'])         # (world x, y; z over the head)
+    mb.xf = local_frame(tx, ty, math.atan2(dx, -dy), M['z0'])
     gl = local_ground(mb)
+    W, r, nose, kw, ck = M['w'], M['rise'], M['nose'], M['kw'], M['ck']
+    hw, hb = W / 2, W / 2 + 0.05
+    xs = (-hw, -hw + 0.4, hw - 0.4, hw)
     N = len(nose)
-
-    def P(t, s, leg=None):
-        """the point t down the line, s to the left (going down), on leg 0 / 1 (by t unless given; each leg's own
-        line, extended past the bend)"""
-        k = (0 if t < tb else 1) if leg is None else leg
-        o, d = (h + d0 * t, d0) if k == 0 else (b + d1 * (t - tb), d1)
-        return (o.x - d.y * s, o.y + d.x * s)
-
-    def miter(leg, s):
-        return tb + kap * s * tphi if leg == 0 else tb - kap * s * tphi
-
-    def ccw(poly):
-        q = []
-        for p in poly:
-            if not q or abs(p[0] - q[-1][0]) + abs(p[1] - q[-1][1]) > 1e-4:
-                q.append(p)
-        if len(q) > 2 and abs(q[0][0] - q[-1][0]) + abs(q[0][1] - q[-1][1]) <= 1e-4:
-            q.pop()
-        ar = sum(q[i][0] * q[(i + 1) % len(q)][1] - q[(i + 1) % len(q)][0] * q[i][1] for i in range(len(q)))
-        return q if ar > 0 else q[::-1]
-
-    def slab(t0, t1, s=hw):
-        """the outline from t0 to t1 between -s and s (across the bend: the landing, mitred)"""
-        if t1 <= tb or t0 >= tb:
-            return ccw([P(t0, s), P(t1, s, 0 if t1 <= tb else 1), P(t1, -s, 0 if t1 <= tb else 1), P(t0, -s)])
-        return ccw([P(t0, s, 0), P(miter(0, s), s, 0), P(t1, s, 1), P(t1, -s, 1), P(miter(0, -s), -s, 0), P(t0, -s, 0)])
-
-    # each tread: its top and its riser between the cheeks, over a block down into the bank whose sides stand 5 cm
-    # into the cheeks (not in the cheeks' faces) and whose top is the next tread's level (hidden).  The bake reads a
-    # quad's light at its corners (blender/bake.py), so no visible face has a corner inside another solid: the top
-    # starts 1 cm in front of the riser above (a strip for the crease), the riser spans one rise only, and both come in
-    # three strips across (the cheeks shade the corners by them)
     starts, ends = [0.0] + nose, nose + [L]
-    ss = (-hw, -hw + 0.4, hw - 0.4, hw)
+    # each tread: its top and its riser between the cheeks, in three strips across, over a block down into the bank
+    # whose sides stand 5 cm into the cheeks and whose top is the next tread's level (as music_stair: the bake reads a
+    # quad's light at its corners)
     for k, (t0, t1) in enumerate(zip(starts, ends)):
         zt = -r * k
-        poly = slab(t0, t1)
-        lo = min(min(gl(*p) for p in slab(t0, t1, hw + 0.05)), zt) - 0.6
-        last = t1 >= L - 1e-6
-        mb.prism(slab(t0, t1, hw + 0.05), lo, zt - (0.05 if last else r), 'concrete')
-        lg = 0 if t1 <= tb else 1
-        zr = zt - (0.05 if last else r)
-        for sa, sb in zip(ss, ss[1:]):
-            mb.quad((*P(t1, sa, lg), zr), (*P(t1, sb, lg), zr), (*P(t1, sb, lg), zt), (*P(t1, sa, lg), zt), 'concrete')
-        if t0 < tb < t1:                                  # (the landing, whose corners stand clear)
-            mb.face([(*p, zt) for p in poly], 'concrete')
-            continue
-        for sa, sb in zip(ss, ss[1:]):
-            for ta, tb_ in ([(t0, t1)] if k == 0 else [(t0, t0 + 0.01), (t0 + 0.01, t1)]):
-                mb.face([(*p, zt) for p in ccw([P(ta, sa, lg), P(tb_, sa, lg), P(tb_, sb, lg), P(ta, sb, lg)])], 'concrete')
-
-    # an apron in front of the foot, down to the ground: the foot crosses the bank's fall, so that its last tread stands
-    # up to a third of a metre over the ground at its low side
-    W_ = lambda xy, z: (xy[0], xy[1], z + M['z0'])
-    zf, ta_ = -r * N, L + 0.6
-    fr = {s_: min(zf, gl(*P(ta_, s_, 1))) for s_ in (-hw, hw)}
-    if min(fr.values()) < zf - 0.03:
-        q = [(*P(L, -hw, 1), zf), (*P(ta_, -hw, 1), fr[-hw]), (*P(ta_, hw, 1), fr[hw]), (*P(L, hw, 1), zf)]
-        if sum(q[i][0] * q[(i + 1) % 4][1] - q[(i + 1) % 4][0] * q[i][1] for i in range(4)) < 0:
-            q = q[::-1]
-        mb.face(q, 'concrete')
-        WALK_FACES.append([(x_, y_, z_ + M['z0']) for x_, y_, z_ in q])
-        lo = min(gl(*P(t_, s_, 1)) for t_ in (L, ta_) for s_ in (-hw, hw)) - 0.4
-        for (a_, b_) in ((q[i], q[(i + 1) % 4]) for i in range(4)):            # its sides and front, down into the ground
-            if abs(a_[2] - zf) < 1e-6 and abs(b_[2] - zf) < 1e-6:
-                continue                                                     # (the back: the last tread's riser)
-            mb.face([(a_[0], a_[1], lo), (b_[0], b_[1], lo), b_, a_], 'concrete')
-
-    # walked: a ramp through the nosings within a flight, level over the head, the landing and the foot
+        lo = min(min(gl(x_, -tt) for x_ in (-hb, 0.0, hb) for tt in (t0, t1)), zt) - 0.6
+        zb = zt - (0.05 if k == N else r)
+        mb.box((0.0, -(t0 + t1) / 2, (zb + lo) / 2), (2 * hb, t1 - t0, zb - lo), 'concrete', skip=('top', 'bottom'))
+        for xa, xb in zip(xs, xs[1:]):
+            for ta, tb in ([(t0, t1)] if k == 0 else [(t0, t0 + 0.01), (t0 + 0.01, t1)]):
+                mb.quad((xa, -ta, zt), (xa, -tb, zt), (xb, -tb, zt), (xb, -ta, zt), 'concrete')
+            mb.quad((xa, -t1, zb), (xb, -t1, zb), (xb, -t1, zt), (xa, -t1, zt), 'concrete')
+    W_ = lambda lx, ly, lz: tuple(mb.xf @ Vector((lx, ly, lz)))
+    # walked: a ramp through the nosings, level over the head and the foot
     pts = [(0.0, 0.0)] + [(t_, -r * k) for k, t_ in enumerate(nose)] + [(L, -r * N)]
-    for (ta, za), (tb_, zb) in zip(pts, pts[1:]):
-        flat = tb_ - ta > 0.45
-        a_, b_ = max(0.0, ta - 0.05), min(L, tb_ + 0.05)
-        if flat:
-            WALK_FACES.append([W_(p, za) for p in slab(a_, b_)])
-            if tb_ < L:
-                lg = 0 if tb_ < tb else 1
-                WALK_FACES.append([W_(P(tb_ - 0.05, hw, lg), za), W_(P(tb_ - 0.05, -hw, lg), za),
-                                   W_(P(tb_ + 0.05, -hw, lg), zb), W_(P(tb_ + 0.05, hw, lg), zb)])
-        else:
-            lg = 0 if tb_ < tb else 1
-            WALK_FACES.append([W_(P(a_, hw, lg), za), W_(P(a_, -hw, lg), za), W_(P(b_, -hw, lg), zb), W_(P(b_, hw, lg), zb)])
-
-    # the line the cheeks follow: through the nosings down a flight, level over the head, the landing and the foot
-    rl = [(0.0, 0.0)]
-    for k, t_ in enumerate(nose):
-        if k == 0 or t_ - nose[k - 1] > 0.45:
-            rl.append((t_, -r * k))
-        if k == N - 1 or nose[k + 1] - t_ > 0.45:
-            gap = (nose[k + 1] if k < N - 1 else L) - t_
-            rl.append((t_ + min(0.3, gap / 2), -r * (k + 1)))
-    rl.append((L, -r * N))
-    rl = [q for i, q in enumerate(rl) if i == 0 or q[0] - rl[i - 1][0] > 1e-3]
+    for (ta, za), (tb, zb) in zip(pts, pts[1:]):
+        flat = tb - ta > 0.45
+        zb_ = za if flat else zb
+        WALK_FACES.append([W_(-hw, -ta + 0.05, za), W_(hw, -ta + 0.05, za), W_(hw, -tb - 0.05, zb_), W_(-hw, -tb - 0.05, zb_)])
+        if flat and tb < L:
+            WALK_FACES.append([W_(-hw, -tb + 0.05, za), W_(hw, -tb + 0.05, za), W_(hw, -tb - 0.05, zb), W_(-hw, -tb - 0.05, zb)])
+    # the cheeks: solid walls along the line through the nosings (level over the head and the foot), down into the bank
+    rl = [(0.0, 0.0), (nose[0], 0.0), (nose[-1] + min(0.3, (L - nose[-1]) / 2), -r * N), (L, -r * N)]
 
     def at(t):
-        for (ta, za), (tb_, zb) in zip(rl, rl[1:]):
-            if t <= tb_:
-                return za + (zb - za) * (t - ta) / max(tb_ - ta, 1e-6)
+        for (ta, za), (tb, zb) in zip(rl, rl[1:]):
+            if t <= tb:
+                return za + (zb - za) * (t - ta) / max(tb - ta, 1e-6)
         return rl[-1][1]
-
-    # the cheeks: solid walls each side of each leg, mitred where the legs meet, down into the bank
-    for leg in (0, 1):
-        for sg in (-1, 1):
-            xi, xo = sg * hw, sg * (hw + kw)
-            ti = (0.0, miter(0, xi)) if leg == 0 else (miter(1, xi), L)
-            to = (0.0, miter(0, xo)) if leg == 0 else (miter(1, xo), L)
-            zc = (lambda t: at(min(t, tb)) + ck) if leg == 0 else (lambda t: at(max(t, tb)) + ck)
-            m = max(2, int(math.ceil(max(ti[1] - ti[0], to[1] - to[0]) / 0.3)))
-            for j in range(m):
-                ua, ub = j / m, (j + 1) / m
-                sia, sib = ti[0] + (ti[1] - ti[0]) * ua, ti[0] + (ti[1] - ti[0]) * ub
-                soa, sob = to[0] + (to[1] - to[0]) * ua, to[0] + (to[1] - to[0]) * ub
-                pia, pib, poa, pob = P(sia, xi, leg), P(sib, xi, leg), P(soa, xo, leg), P(sob, xo, leg)
-                zia, zib, zoa, zob = zc(sia), zc(sib), zc(soa), zc(sob)
-                lo = min(gl(*p) for p in (pia, pib, poa, pob)) - 0.5
-                lo = min(lo, min(zia, zib, zoa, zob) - 1.0)
-                if sg > 0:
-                    quad = lambda p, q, u, v, mt: mb.quad(p, q, u, v, mt)
-                else:
-                    quad = lambda p, q, u, v, mt: mb.quad(q, p, v, u, mt)
-                quad((*pia, zia), (*pib, zib), (*pob, zob), (*poa, zoa), 'stone_trim')          # coping
-                quad((*poa, zoa), (*pob, zob), (*pob, lo), (*poa, lo), 'stone_granite')      # outer face
-                quad((*pia, lo), (*pib, lo), (*pib, zib), (*pia, zia), 'stone_granite')      # inner face
-            t_ = 0.0 if leg == 0 else L                                                    # the head's / foot's end
-            p0, p1 = P(t_, xi, leg), P(t_, xo, leg)
-            if (leg == 0) == (sg > 0):
-                p0, p1 = p1, p0
-            lo = min(gl(*p0), gl(*p1)) - 0.5
-            mb.quad((*p0, lo), (*p1, lo), (*p1, zc(t_)), (*p0, zc(t_)), 'stone_granite')
-            # the mitred end, where the other leg's cheek meets it (the inner one a riser higher: closed both ways)
-            ta_, tb2 = (ti[1], to[1]) if leg == 0 else (ti[0], to[0])
-            p0, p1 = P(ta_, xi, leg), P(tb2, xo, leg)
-            lo = min(gl(*p0), gl(*p1)) - 0.5
-            q = [(*p0, lo), (*p1, lo), (*p1, zc(tb2)), (*p0, zc(ta_))]
-            mb.face(q, 'stone_granite')
-            mb.face(q[::-1], 'stone_granite')
-    # square ends at the foot, a little over the cheeks (outside the treads)
     for sg in (-1, 1):
-        pw = kw + 0.08
-        c0, c1 = L - pw, L
-        s0, s1 = sg * hw, sg * (hw + pw)
-        poly = ccw([P(c0, s0, 1), P(c1, s0, 1), P(c1, s1, 1), P(c0, s1, 1)])
-        lo = min(gl(*p) for p in poly) - 0.5
-        mb.prism(poly, lo, -r * N + ck + 0.15, 'stone_granite', 'stone_trim')
-    print('용재관 앞 둑 계단: %d risers of %.3f m, %.2f m down, landing %.2f m at the bend' % (N, r, r * N, 2 * e))
+        xi, xo = sg * hw, sg * (hw + kw)
+        m = max(2, int(math.ceil(L / 0.5)))
+        for j in range(m):
+            sa, sb = L * j / m, L * (j + 1) / m
+            ua, ub = at(sa) + ck, at(sb) + ck
+            lo = min(gl(x_, -tt) for x_ in (xi, xo) for tt in (sa, sb)) - 0.5
+            lo = min(lo, min(ua, ub) - 1.0)
+            quad = (lambda p, q, u, v, mt: mb.quad(p, q, u, v, mt)) if sg > 0 else (lambda p, q, u, v, mt: mb.quad(q, p, v, u, mt))
+            quad((xi, -sa, ua), (xi, -sb, ub), (xo, -sb, ub), (xo, -sa, ua), 'stone_trim')            # coping
+            quad((xo, -sa, ua), (xo, -sb, ub), (xo, -sb, lo), (xo, -sa, lo), 'stone_granite')        # outer face
+            quad((xi, -sa, lo), (xi, -sb, lo), (xi, -sb, ub), (xi, -sa, ua), 'stone_granite')        # inner face
+        for t_ in (0.0, L):                                                                  # the head's and foot's ends
+            lo = min(gl(xi, -t_), gl(xo, -t_)) - 0.5
+            p0, p1 = (xi, -t_), (xo, -t_)
+            if (t_ == 0.0) == (sg > 0):
+                p0, p1 = p1, p0
+            mb.quad((p0[0], p0[1], lo), (p1[0], p1[1], lo), (p1[0], p1[1], at(t_) + ck), (p0[0], p0[1], at(t_) + ck), 'stone_granite')
+        pw = kw + 0.08                                                    # the square end at the foot, over the cheek
+        cx = sg * (hw + pw / 2)
+        lo = min(gl(sg * hw, -L), gl(sg * (hw + pw), -L)) - 0.5
+        mb.box((cx, -(L - pw / 2), (lo + at(L) + ck + 0.15) / 2), (pw, pw, at(L) + ck + 0.15 - lo), 'stone_granite',
+               mats={'top': 'stone_trim'})
+    print('용재관 앞 둑 계단: %d risers of %.3f m, %.2f m down, %.2f m long' % (N, r, r * N, L))
+    return [mb]
+
+
+def yj_bank_wall():
+    """The low rubble wall along the foot of the bank in front of 용재관 and the bank behind it (campus.json yj_bank_wall,
+    tools/build_campus.py YJ_WALL97; edu2.jpg: about 0.6 m of rubble from the flight at 대강당's north-east corner past
+    the flight up the bank, the glass boards on the paving in front of it).  The wall's face over the yard (`h` over the
+    ground in front), a flat top `cap` deep, and the bank from it up to the grid lines y `ymax` and x `xmax`, where the
+    terrain's own heights take over (build_campus.py brought the 5 m nodes in front of the wall down to the yard: the bank
+    is this mesh, in the ground's own material, walked on; the shrubs stand on it).  The bank is laid in strips along
+    the flight's bearing, so that the flight (yj_bank_stair) cuts a clean gap through it and the wall; next to it the
+    bank stays under the cheeks' coping."""
+    B, S = CAMPUS.get('yj_bank_wall'), CAMPUS.get('yj_bank_stair')
+    if not B or not S:
+        return []
+    mb = MeshBuilder('lm_yj_bank_wall')
+    pts = [Vector((p[0], p[1])) for p in B['pts']]
+    h, cap, ymax, xmax = B['h'], B['cap'], B['ymax'], B['xmax']
+    top, foot = Vector(S['top']), Vector(S['foot'])
+    Ls = (top - foot).length
+    up = (top - foot) / Ls                                   # (up the flight: the bank's strips run this way)
+    side = Vector((up.y, -up.x))                             # (to the right going up)
+    half = S['w'] / 2 + S['kw']
+    nose, r, z0, ck = S['nose'], S['rise'], S['z0'], S['ck']
+    zf = z0 - r * len(nose)
+
+    def stair_top(u):
+        """the cheeks' coping u up the flight from its foot"""
+        t = Ls - u
+        a_, b_ = nose[0], nose[-1] + 0.3
+        z = z0 if t <= a_ else zf if t >= b_ else z0 + (zf - z0) * (t - a_) / (b_ - a_)
+        return z + ck
+
+    # the wall's line: stations every half metre, one at each corner (its normal the bisector) and at the flight's sides
+    segs = list(zip(pts, pts[1:]))
+    cum = [0.0]
+    for a, b in segs:
+        cum.append(cum[-1] + (b - a).length)
+    lat = lambda q: (q - foot).dot(side)
+    ss = set()
+    for i, (a, b) in enumerate(segs):
+        n_ = max(1, int(math.ceil((b - a).length / 0.5)))
+        ss.update(cum[i] + (b - a).length * k / n_ for k in range(n_ + 1))
+        d_ = (b - a).normalized()
+        off = cap * Vector((-d_.y, d_.x)).dot(side)          # (the bank starts behind the top: its line's lateral offset)
+        la, lb = lat(a) + off, lat(b) + off
+        for edge in (-half, half):
+            if (la - edge) * (lb - edge) < 0:
+                ss.add(cum[i] + (b - a).length * (edge - la) / (lb - la))
+    ss = sorted(ss)
+
+    def station(s):
+        i = max(0, min(len(segs) - 1, next((k for k in range(len(segs)) if s <= cum[k + 1] + 1e-9), len(segs) - 1)))
+        a, b = segs[i]
+        d = (b - a).normalized()
+        q = a + d * (s - cum[i])
+        nrm = Vector((-d.y, d.x))                          # (into the bank: left going along, the yard on the right)
+        for k in (i - 1, i + 1):                           # (at a corner, the bisector)
+            if 0 <= k < len(segs) and abs(s - cum[max(i, k)]) < 1e-6:
+                d2 = (segs[k][1] - segs[k][0]).normalized()
+                nrm = (nrm + Vector((-d2.y, d2.x))).normalized()
+        return q, nrm
+
+    def ray_len(p):
+        """how far up the flight's bearing from p to the grid line y ymax or x xmax"""
+        ts = []
+        if up.y > 1e-6:
+            ts.append((ymax - p.y) / up.y)
+        if up.x > 1e-6:
+            ts.append((xmax - p.x) / up.x)
+        return max(0.0, min(ts))
+
+    secs = []
+    for s in ss:
+        q, nrm = station(s)
+        zb = ground_top(*(q - nrm * 0.25))
+        wt = zb + h
+        p0 = q + nrm * cap
+        oe = ray_len(p0)
+        ze = ground_top(*(p0 + up * oe))
+        no = max(1, int(math.ceil(oe / 0.5)))
+        prof = []
+        la = lat(p0)
+        for k in range(no + 1):
+            o = oe * k / no
+            pq = p0 + up * o
+            t_ = o / oe if oe > 1e-6 else 1.0
+            z = wt + (ze - wt) * t_ * t_ * (3 - 2 * t_)
+            if abs(la) < half + 3.0:                 # (beside the flight: with its coping, the bank's slope away from it)
+                ct, d_ = stair_top((pq - foot).dot(up)) - 0.05, max(0.0, abs(la) - half)
+                z = min(max(z, ct - 0.6 * d_), ct + 0.6 * d_)
+            z = max(z, ground_top(*pq) + 0.03) if k < no else ze
+            prof.append((pq.x, pq.y, z))
+        secs.append(dict(s=s, q=q, n=nrm, zb=zb, top=wt, prof=prof, lat=la))
+    BATTER = 0.05
+    P = lambda sec, o, z: (sec['q'].x + sec['n'].x * o, sec['q'].y + sec['n'].y * o, z)
+
+    def face(q, want, mat):
+        """q facing the way want points (its normal from Newell's sums)"""
+        nx = sum((q[i - 1][1] - q[i][1]) * (q[i - 1][2] + q[i][2]) for i in range(len(q)))
+        ny = sum((q[i - 1][2] - q[i][2]) * (q[i - 1][0] + q[i][0]) for i in range(len(q)))
+        nz = sum((q[i - 1][0] - q[i][0]) * (q[i - 1][1] + q[i][1]) for i in range(len(q)))
+        mb.face(q if nx * want[0] + ny * want[1] + nz * want[2] >= 0 else q[::-1], mat)
+
+    # strips between stations: none where the flight runs (its cheeks and square ends close the gap)
+    gaps = [abs(a['lat']) < half - 1e-3 or abs(b['lat']) < half - 1e-3 or
+            (a['lat'] + half) * (b['lat'] + half) < -1e-9 or (a['lat'] - half) * (b['lat'] - half) < -1e-9
+            for a, b in zip(secs[:-1], secs[1:])]
+    UP = (0.0, 0.0, 1.0)
+    for (a, b), g in zip(zip(secs[:-1], secs[1:]), gaps):
+        if g:
+            continue
+        road = (-a['n'].x, -a['n'].y, 0.0)
+        face([P(a, BATTER, a['top']), P(b, BATTER, b['top']), P(b, 0.0, b['zb'] - 0.35), P(a, 0.0, a['zb'] - 0.35)],
+             road, 'stone_rubble_warm')
+        q = [P(a, BATTER, a['top']), P(a, cap, a['top']), P(b, cap, b['top']), P(b, BATTER, b['top'])]
+        face(q, UP, 'curb')
+        WALK_FACES.append(q)
+        # the bank, strip by strip (the two sections' profiles resampled to as many points)
+        pa, pb = a['prof'], b['prof']
+        n_ = max(len(pa), len(pb))
+        ra = [pa[min(len(pa) - 1, round(k * (len(pa) - 1) / max(1, n_ - 1)))] for k in range(n_)]
+        rb = [pb[min(len(pb) - 1, round(k * (len(pb) - 1) / max(1, n_ - 1)))] for k in range(n_)]
+        for k in range(n_ - 1):
+            q = [ra[k], ra[k + 1], rb[k + 1], rb[k]]
+            if (q[0][0] - q[1][0]) ** 2 + (q[0][1] - q[1][1]) ** 2 + (q[3][0] - q[2][0]) ** 2 + (q[3][1] - q[2][1]) ** 2 < 1e-8:
+                continue
+            face(q, UP, 'terrain_drape')
+            WALK_FACES.append(q)
+    # the ends of each run of wall and bank (the line's two ends, the flight's sides): rubble down to the ground
+    ends_ = []
+    for i, g in enumerate(gaps):
+        if g:
+            continue
+        if i == 0 or gaps[i - 1]:
+            ends_.append((secs[i], -1.0, i == 0))           # (a run starts: its end faces back along the line)
+        if i == len(gaps) - 1 or gaps[i + 1]:
+            ends_.append((secs[i + 1], 1.0, i == len(gaps) - 1))
+    for sec, sgn, line_end in ends_:
+        dvec = Vector((sec['n'].y, -sec['n'].x)) * sgn      # (along the line: the yard on the right going along)
+        want = (dvec.x, dvec.y, 0.0)
+        lo = sec['zb'] - 0.35
+        face([P(sec, 0.0, lo), P(sec, cap, lo), P(sec, cap, sec['top']), P(sec, BATTER, sec['top'])], want, 'stone_rubble_warm')
+        if not line_end:
+            continue                                         # (at the flight: its cheek's outer face is there)
+        prof = sec['prof']
+        for (x0, y0, z0_), (x1, y1, z1_) in zip(prof[:-1], prof[1:]):
+            g0, g1 = ground_top(x0, y0) - 0.3, ground_top(x1, y1) - 0.3
+            face([(x0, y0, g0), (x1, y1, g1), (x1, y1, z1_), (x0, y0, z0_)], want, 'stone_rubble_warm')
+    print('용재관 앞 둑 옹벽: %.1f m of wall, %d sections, the bank to y %.0f / x %.0f' % (cum[-1], len(secs), ymax, xmax))
     return [mb]
 
 
