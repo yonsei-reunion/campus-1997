@@ -11639,6 +11639,11 @@ _mst_new = unary_union([LineString(c_).buffer(w_ / 2) for _, w_, c_ in MUSIC_STA
 draw_poly('pavers', unary_union([LineString([a_, b_]).buffer(w_ / 2 + 0.2) for a_, b_, w_ in MUSIC_STAIR97_OLD]).difference(_mst_new).difference(
     unary_union([LineString([(84.6, 18.9), (78.3, -6.5)]), LineString([(78.3, -6.5), (70.2, -4.4)])]).buffer(1.5)), 0, pre=False)
 draw_poly('pavers', _mst_new, pre=False)
+# 대우관 포디엄의 현관 (blender/landmarks.py daewoo_front: the arch 8.6 m wide, its porch 3 m deep to the glass and the
+# lobby behind): paved under it, on the game's map only.  The lawn beside the forecourt ran on under the porch's floor
+# and the grass blades (web/src/grass.js reads this map) stood up through it before the glass doors
+draw_poly('pavers', _uvh([(DW_UC - 4.5, _pd['face']), (DW_UC + 4.5, _pd['face']),
+                          (DW_UC + 4.5, _pd['face'] + 5.6), (DW_UC - 4.5, _pd['face'] + 5.6)]), pre=False)
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0

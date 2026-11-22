@@ -4468,7 +4468,11 @@ def daewoo_front(mb, lv, z0):
         z = zP + 0.6 + k * (zT - zP - 0.6) / 5
         if zs - 0.3 < z < zc + 1.2:
             continue
-        mb.quad(Pf(0, z, 0.012), Pf(2 * hp, z, 0.012), Pf(2 * hp, z + 0.03, 0.012), Pf(0, z + 0.03, 0.012), 'stone_trim')
+        # (under the arch's springing: the wall either side only, up to the jambs' moulding -- drawn the face's whole
+        # width, the two lowest joints ran across the open arch, two thin lines floating before the porch)
+        spans = [(0, fa - 0.32), (fa + ow + 0.32, 2 * hp)] if z < zc else [(0, 2 * hp)]
+        for sa, sb in spans:
+            mb.quad(Pf(sa, z, 0.012), Pf(sb, z, 0.012), Pf(sb, z + 0.03, 0.012), Pf(sa, z + 0.03, 0.012), 'stone_trim')
     parapet(ia, ib, vf, vf + 0.4, zT)                                  # the parapet over the face
     # on top: the planter of dark clipped shrubs (the photos' dark rectangle, 5.5 m by 3.8 m)
     block(uc - 2.75, uc + 2.75, -23.4, -19.6, zT, zT + 0.45, 'stone_trim', top='soil')
@@ -5217,6 +5221,10 @@ def garden_flight(f, wall='stone_rubble', mat='stone_step', apron=True):
         for sg in (-1, 1):
             x0, x1 = sorted((sg * hw, sg * (hw + ct)))
             sloped_wall(mb, x0, x1, prof, gnd, wall, cap=wall, ct=0.02)
+            # its top is walked on: it lies between the flight's walk face and the apron's, and a walker stepping
+            # sideways off the flight sank through the visible top to the terrain 1.1 - 1.5 m under it
+            for (ya, za), (yb, zb) in zip(prof, prof[1:]):
+                WALK_FACES.append([W_(x0, yb, zb), W_(x1, yb, zb), W_(x1, ya, za), W_(x0, ya, za)])
     elif ct:
         hc = 0.55 if not f.get('rails') else 0.18          # (a kerb under handrails, a low wall otherwise)
         head = f.get('head', 1.2)
