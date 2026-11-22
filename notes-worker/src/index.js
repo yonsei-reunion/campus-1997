@@ -5,10 +5,11 @@
 // 받는 것은 둘뿐이다. SQL 은 여기서 만든다(아무 SQL 이나 넘기지 않음).
 //   POST   /         { text, name, color, x, y, z, yaw, kind, place } → { id, created_at }
 //   DELETE /<id>                                                     → { ok: true }
-// 미니 게임 전체 순위(/rank/start · beat · submit)는 rank.js.
+// 미니 게임 전체 순위(/rank/start · beat · submit)는 rank.js, 메타모아 접속자 수(cron)는 live.js.
 // 토큰은 secret DOLT_TOKEN(wrangler secret put DOLT_TOKEN), DB 는 vars DOLT_DB(owner/name).
 // 순위의 키는 secret RANK_KEY(P-256 개인 키 JWK: node keygen.mjs 가 만듦).
 import * as Rank from './rank.js';
+import * as Live from './live.js';
 
 const API = 'https://www.dolthub.com/api/v1alpha1';
 const ORIGINS = [
@@ -131,5 +132,9 @@ export default {
     } catch (e) {
       return json({ error: String(e.message || e).slice(0, 200) }, 502, head);
     }
+  },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(Live.push(env));
   },
 };

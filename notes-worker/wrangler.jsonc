@@ -6,7 +6,14 @@
   "compatibility_date": "2026-11-01",
   "workers_dev": true,
   "preview_urls": false,
+  // 메타모아 접속자 수(src/live.js): 매시 정각(UTC), 한국 시각 01:00 ~ 04:00(UTC 16 ~ 19시)은 건너뜀.
+  // secret 둘: npx wrangler secret put GA_SA (서비스 계정 JSON 키) · npx wrangler secret put METAMOA_KEY
+  "triggers": {
+    "crons": ["0 0-15,20-23 * * *"]
+  },
   "vars": {
-    "DOLT_DB": "benelog/yonsei-1997"
+    "DOLT_DB": "benelog/yonsei-1997",
+    "GA_PROPERTY": "565345855",
+    "METAMOA_SPACE": "yonsei-1997-benelog-net-mwj6vzb6"
   }
 }
