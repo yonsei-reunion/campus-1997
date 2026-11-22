@@ -1505,14 +1505,18 @@
   "rough": 0.85
  },
  "bronze_yongjae": {
-  "_doc": "용재 좌상(1987)의 청동: 2005 · 2007년 사진처럼 녹이 슨 흐린 초록 (blender/statues.py yongjae_statue, 고증 3.2-3.3)",
+  "_doc": "용재 좌상(1987)의 청동: 2005 · 2007년 사진처럼 녹이 슨 흐린 초록. 정밀 원형을 구운 맵 (blender/statues.py yongjae_sculpt, 고증 3.2-3.3)",
+  "maps": "statues/yongjae",
   "color": [
-   0.11,
-   0.15,
-   0.1
-  ],
-  "rough": 0.7,
-  "metal": 0.25
+   0.2,
+   0.25,
+   0.135
+  ]
+ },
+ "yongjae_plaque": {
+  "_doc": "용재 좌상 받침 앞면의 검은 명판: 「용재 백낙준 박사상」과 비문 (tools/make_textures.py yongjae_plaque, 2005 · 2007년 사진)",
+  "image": "yongjae_plaque.png",
+  "rough": 0.35
  },
  "roof_patina": {
   "_doc": "한국어학당의 연한 청록 금속 지붕 (2004년 사진, blender/landmarks.py kli; 고증 3.27)",
