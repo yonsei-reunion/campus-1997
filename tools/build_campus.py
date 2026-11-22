@@ -7032,7 +7032,7 @@ HK97 = dict(z=round(float(0.5 * (sample(Hn, NEAR_HALF, NEAR_STEP, 72.0, 275.5) +
 late_level((_hk_s >= 27.0) & (_hk_s <= 59.0) & (_hk_w >= -4.0) & (_hk_w <= 7.5),
            (_hk_s >= 20.0) & (_hk_s <= 60.0) & (_hk_w >= -4.0) & (_hk_w <= 13.0) & ~near_buildings(0.5), HK97['z'], '한경길 남쪽 줄',
            up_only=True)
-# 용재관 북쪽 드는 길 (YJ_BRANCH, reference/고증/3.13 「북쪽 드는 길의 높이」): the drive to 노천극장 climbed east past the car
+# 용재관 북쪽 드는 길 (YJ_BRANCH, reference/고증/3.13.1 「북쪽 드는 길의 높이」): the drive to 노천극장 climbed east past the car
 # park, 6 m in its last 25 m (the photos 48.6 -> 51.1 m from x 105 to 121, two to four frame pairs over 0.7; the 2006
 # survey's surface on the game's datum the same less 0.1 - 0.9 m).
 # The game had it flat at 41.8 - 42.7 m.  YJ97['prof']: (s along YJ_BRANCH, z 해발: the one absolute height of
@@ -7059,7 +7059,7 @@ harmonic_fill(_yjf)
 FIXED[_yjm] = True
 print('용재관 북쪽 드는 길: %d nodes on the profile (%+.2f .. %+.2f), %d eased (%+.2f .. %+.2f)' % (
     int(_yjm.sum()), (Hn - _yjh0)[_yjm].min(), (Hn - _yjh0)[_yjm].max(), int(_yjf.sum()), (Hn - _yjh0)[_yjf].min(), (Hn - _yjh0)[_yjf].max()))
-# 노천극장 갈림길 남쪽 (reference/고증/3.13 「북쪽 드는 길의 높이」): between that drive, the east road and the foot of
+# 노천극장 갈림길 남쪽 (reference/고증/3.13.1 「북쪽 드는 길의 높이」): between that drive, the east road and the foot of
 # 노천극장's west bank the grid had kept the ground from before the three were raised, a hole 3 - 7 m under them (the
 # 1997 photos have the ground there at the drive's own height: 16 points with five to ten frame pairs, 해발 50 - 51 m
 # where the grid had 43.3 - 47.8).  One smooth surface between the three, which stay
@@ -7093,7 +7093,7 @@ print('중앙도서관 화단 남쪽 ~ 독수리상 둘레:', LIBBELT97)
 _lw_took, LIBWEST97 = libwest97.grade(Hn, X, Y, FIXED, near_buildings(3.0), harmonic_fill, _lib)
 FIXED[_lw_took] = True
 print('중앙도서관 서쪽 길 · 북서쪽 굽은 길:', LIBWEST97)
-# 용재관 바닥과 둘레 땅 (tools/yongjae97.py, reference/고증/3.13 「바닥과 둘레 땅의 높이」): the level ground round the
+# 용재관 바닥과 둘레 땅 (tools/yongjae97.py, reference/고증/3.13.1 「바닥과 둘레 땅의 높이」): the level ground round the
 # hall and the car park before its north walls (YJ_PAD) on the 1997 scans' and the 2006 survey's height (해발 45.9 m,
 # 2.2 m over the game's), the 진달래동산 bank round it one smooth surface out to the east fork, 백양로 and the drive
 # to 노천극장 (YJ97, set above), which stay; the hall's parts go up with it.  Late, here: the planting has read the
@@ -7116,7 +7116,7 @@ Hn[_yj_nw] = YONGJAE['floor'] + _yj_dz        # (the car across the car park's n
 FIXED[_yj_nw] = True
 print('용재관 바닥과 둘레 땅:', YJ97_PAD)
 print('   the node by the car park\'s north-west edge: %+.2f m' % (float(Hn[_yj_nw]) - _yj_nw0))
-# 용재관 평평한 땅의 남쪽 가 (tools/yongjae97.py SOUTH, reference/고증/3.13 「평평한 땅의 남쪽 가」): south of the south block
+# 용재관 평평한 땅의 남쪽 가 (tools/yongjae97.py SOUTH, reference/고증/3.13.1 「평평한 땅의 남쪽 가」): south of the south block
 # the level ground ran on to the top of the bank down to 대강당's yard (the 1997 and 1996 scans, the 2006 survey's 45 m
 # contour); the ring round it eased again, and 대강당 북쪽 날개 둘레 (below) keeps it
 _ys_zone, _ys_ring, YJ97_SOUTH = yongjae97.south_edge(
@@ -11599,7 +11599,7 @@ EAGLE97_BEDS_OUT = _e97c.buffer(EAGLE97['beds'], 96).difference(_e97c.buffer(EAG
 draw_poly('pavers', unary_union([_e97c.buffer(EAGLE97['ring'], 96).difference(_e97c.buffer(EAGLE97['kerb'], 96)),
                                  EAGLE97_FRONT, EAGLE97_WALKS]).difference(bline.buffer(E_WALK)), pre=False)
 draw_poly('pavers', unary_union([EAGLE97_BEDS_IN, EAGLE97_BEDS_OUT, EAGLE97_SQUARE]), 0, pre=False)   # (no kerb round the platform)
-# 용재관 앞 둑의 계단 길 (i222; reference/고증/3.13 「앞 둑의 게시판 둘과 벚나무 둘」): OSM's flight up the bank (paths
+# 용재관 앞 둑의 계단 길 (i222; reference/고증/3.13.1 「앞 둑의 게시판 둘과 벚나무 둘」): OSM's flight up the bank (paths
 # 512 · 513) runs where the east glass board stood in 1997; edu2.jpg has the flight just right of that board, going up
 # to the right, and the 1996 winter scans a pale strip on from it north along x 69 - 71 to the level ground.  Painted
 # here, on the game's map only (the planting, decals and leaf map read OSM's walk as it was); out['paths'] at the end
@@ -12925,7 +12925,7 @@ out['baekyangro']['booth'] = _i219_b
 out['baekyangro']['bump'] = 107.2
 out['colliders'].append(_dz_box(_i219[:2], _i219[2], 1.6, 0.85))
 print('정산소 1997: s %.1f (photo A %.1f), %.2f m east, bump s %.1f' % (I219_BOOTH_S, BOOTH['s'], -I219_BOOTH_OFF, 107.2))
-# 용재관 앞 둑 (i222; reference/고증/3.13 「앞 둑의 게시판 둘과 벚나무 둘」, edu2.jpg of the school site): the two cherries
+# 용재관 앞 둑 (i222; reference/고증/3.13.1 「앞 둑의 게시판 둘과 벚나무 둘」, edu2.jpg of the school site): the two cherries
 # on the level ground's south edge, whose crowns the 1997 scans give (top 54.4 - 55 m), the random ginkgo the game had
 # under the east one turned into it in its place in the list and the west one at the trees' end; the two glass
 # boards side by side at the bank's foot, the east one's cap read off four 1997 frames (2.3 m over the road), the west
@@ -13127,7 +13127,7 @@ print('음악관 서쪽 계단: shrubs off it', _n_mst - len(out['shrubs']),
       '| %d risers of %.3f m in flights %s, landings %s m, the bank up %.2f m at most on %d nodes' % (
           _ms_n, _ms_r, _ms_fl, [round(_ms_st[k_ + 1] - _ms_st[k_] - (_ms_fl[k_] - 1) * _ms_tr, 2) for k_ in range(_ms_nf - 1)],
           float((Hn[_msm] - _ms_old).max()), int((Hn[_msm] - _ms_old > 0.01).sum())))
-# 용재관 앞 둑 계단의 디딤 (reference/고증/3.13 「앞 둑의 게시판 둘과 벚나무 둘」, 2026-11-22): edu2.jpg has stone treads
+# 용재관 앞 둑 계단의 디딤 (reference/고증/3.13.1 「앞 둑의 게시판 둘과 벚나무 둘」, 2026-11-22): edu2.jpg has stone treads
 # between cheek walls where YJ_FLIGHT97 paints its walk; the game had only the bank under the paint (54 % on average,
 # 76 % up its north leg).  The treads along that walk's two legs, head first: the head where the north leg meets the
 # level ground of the game (the bank's brow at y 90; the walk goes on north as paving), a landing at the bend (as long

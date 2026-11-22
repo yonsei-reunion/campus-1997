@@ -1,4 +1,4 @@
-"""용재관 바닥과 둘레 땅의 1997년 높이 (#189; reference/고증/3.13_용재관.md 「바닥과 둘레 땅의 높이」).  tools/build_campus.py 가
+"""용재관 바닥과 둘레 땅의 1997년 높이 (#189; reference/고증/3.13.1 「바닥과 둘레 땅의 높이」).  tools/build_campus.py 가
 무작위 심기가 끝난 뒤(늦은 블록) 부른다.
 
     dz, took, info = yongjae97.raise_pad(Hn, X, Y, FIXED, pad, ring, floor_work, cluster_xy, fill)
@@ -36,7 +36,7 @@ WALK_HALF = 3.0                   # the ground this far either side of the walk'
 # the fork's middle runs 9.4 m off), and the asphalt 1.7 m out from the edge
 LOT_NW_NODE = (90.0, 155.0)
 LOT_NW_PAVE = [(89.5, 152.0), (95.0, 157.5), (93.8, 158.7), (88.3, 153.2)]
-# South of the hall the level ground ran on 8 - 18 m past the walls (reference/고증/3.13 「평평한 땅의 남쪽 가」): the 1997
+# South of the hall the level ground ran on 8 - 18 m past the walls (reference/고증/3.13.1 「평평한 땅의 남쪽 가」): the 1997
 # scans 45.8 - 45.9 m at x 94 to y 78 and 46.2 - 47.1 m at x 96 - 100 to y 72 (rising east), 45.4 - 46.4 m south-west
 # of the tower (x 68 - 74, y 94 - 98); the leafless 1996 frames 45.5 - 45.9 m at x 64 - 96, y 84 - 90; the 2006
 # survey's 45 m contour runs round it a metre or two out ((66.6, 89.6), (71.1, 86.5), (81.8, 83.4), (92.0, 78.2),

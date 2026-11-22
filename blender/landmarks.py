@@ -6797,7 +6797,7 @@ def yj_bank_stair():
     YJ_BANK97): two legs along the walk YJ_FLIGHT97 paints, head first (`pts`: the head on the level ground, the bend,
     the foot), the risers at `nose` (distances down the line from the head; `rise` each, `z0` the head's level), a level
     landing at the bend whose inner corners meet (`miter` along the line each side of it).  Its look from edu2.jpg
-    (자료 R, reference/고증/3.13 「앞 둑의 게시판 둘과 벚나무 둘」): light stone treads between solid cheek walls with a
+    (자료 R, reference/고증/3.13.1 「앞 둑의 게시판 둘과 벚나무 둘」): light stone treads between solid cheek walls with a
     pale coping parallel to the flight, square ends at the foot; no handrail."""
     M = CAMPUS.get('yj_bank_stair')
     if not M:

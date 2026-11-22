@@ -665,7 +665,7 @@ def notice_board():
 
 def glass_board():
     """유리 게시판 (reference/학교홈페이지/edu2.jpg, spring before 1997: two side by side at the foot of the bank before
-    용재관's south block, left of the steps; reference/고증/3.13 「앞 둑의 게시판 둘과 벚나무 둘」): a glass-fronted case
+    용재관's south block, left of the steps; reference/고증/3.13.1 「앞 둑의 게시판 둘과 벚나무 둘」): a glass-fronted case
     3.8 m long on two square posts, its frame and flat cap a pale blue-grey, three panes over the posters, the case
     0.62 - 2.18 m up and the cap's top 2.3 m (the 1997 scans put the cap 2.3 m over the road).  The panes face -Y; the
     origin is the middle of its footprint on the ground."""
