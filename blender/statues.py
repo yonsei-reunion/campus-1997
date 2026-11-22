@@ -2338,9 +2338,12 @@ OS_CHIN = 0.28                            # the chin over the chest's lower edge
 OS_NECK = 0.035                           # the middle of the neck behind the chest's
 OS_BAND = ((-0.09, 0.224), (0.013, 0.06), (0.09, 0.224), (-0.062, -0.016))   # the collar's two bands on the front (x, z):
 #                                           his right one from the neck to the crossing, his left one over it to the edge
-# the bronze three years out of doors: brown, dull, darker in the hollows, a breath of green where the rain stands
-OS_LOOK = dict(verdigris=0.22, wear=0.45, base=(0.16, 0.115, 0.07), green=(0.16, 0.2, 0.15), soot=(0.04, 0.03, 0.022),
-               bare=(0.34, 0.23, 0.1), rough=(0.62, 0.88, 0.4), metal=(0.4, 0.08, 0.9))
+# the bronze as in the photo of 2007 (연세춘추, the only photo of this bust): an even pale grey-green all over, darker
+# in the hollows of the face and the folds, hardly any bare metal.  The colours are lighter and yellower than the
+# photo's, because the bust stands in the pines' shade under a blue sky (reference/고증/2.9.4 「흉상의 생김새」).
+OS_LOOK = dict(verdigris=0.85, wear=0.06, base=(0.385, 0.44, 0.32), green=(0.47, 0.535, 0.385), soot=(0.06, 0.07, 0.05),
+               bare=(0.36, 0.36, 0.26), rough=(0.8, 0.92, 0.6), metal=(0.15, 0.03, 0.6))
+OS_AO = 2.0                               # the shelter mask's power (_os_maps)
 
 
 def bust_foot(st, gfn):
@@ -2560,8 +2563,17 @@ def oesol_high():
     return out
 
 
-def oesol_sculpt(size=1024):
-    """Sculpt the bust, bake it onto its light mesh and save both (sculpt.load('oesol'))."""
+def _os_maps(raw):
+    """the maps from the baked masks: the shelter mask deepened, so that the face and the folds read in the shade of
+    the pines (as the Underwood statue's)"""
+    ao = raw['ao'].copy()
+    ao[..., 0] = np.clip(ao[..., 0], 0, 1) ** OS_AO
+    sculpt.write_maps('oesol', raw['nor'], ao, raw['m0'], raw['m1'], raw['cover'], OS_LOOK)
+
+
+def oesol_sculpt(size=1024, cache=None):
+    """Sculpt the bust, bake it onto its light mesh and save both (sculpt.load('oesol')).  cache: a file that receives
+    the baked masks, for trying another look without baking again (_os_maps)."""
     chest, head = oesol_high()
     sculpt.clay(head, amp=0.0018, scale=0.045, seed=3)
     sculpt.clay(chest, amp=0.0035, scale=0.07, seed=4)
@@ -2578,10 +2590,9 @@ def oesol_sculpt(size=1024):
     low.data.attributes.remove(low.data.attributes['part'])
     keep = {}
     sculpt.bake([chest, head], low, 'oesol', size=size, extrude=0.006, ray=0.02, ao_dist=0.4, look=OS_LOOK, keep=keep)
-    # the shelter mask deepened, so that the face and the folds read in the shade of the pines (as the Underwood statue's)
-    ao = keep['ao'].copy()
-    ao[..., 0] = np.clip(ao[..., 0], 0, 1) ** 1.7
-    sculpt.write_maps('oesol', keep['nor'], ao, keep['m0'], keep['m1'], keep['cover'], OS_LOOK)
+    if cache:
+        np.savez_compressed(cache, **keep)
+    _os_maps(keep)
     sculpt.save(low, 'oesol')
     return low
 
