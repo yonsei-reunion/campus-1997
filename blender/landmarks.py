@@ -6734,32 +6734,33 @@ def eng_stone():
     (x, y), h, w, d = E['pos'], E['h'], E['w'], E['d']
     g = min(ground_top(x + dx, y + dy) for dx in (-w / 2, w / 2) for dy in (-d / 2, d / 2))
     mb.xf = local_frame(x, y, math.radians(E.get('rot', 0.0)), g - 0.3)
-    K, R = 12, 9
-    jit = [1.0 + rr.uniform(-0.12, 0.12) for _ in range(K)]
+    K, R = 14, 10
+    jit = [1.0 + rr.uniform(-0.16, 0.16) for _ in range(K)]
+    hb = h + 0.3                                                       # (from the sunk foot)
+    top = lambda rx: hb - 0.2 - 0.45 * (rx / (w / 2))                 # (the top: a rough plane falling to +x)
     rings = []
     for j in range(R + 1):
         f = j / R
-        z = (h + 0.3) * f
-        sc = 1.0 - 0.18 * f + 0.04 * math.sin(f * 5.0)              # (a little narrower up, a bulge or two)
-        cut = max(0.0, f - 0.82) / 0.18                               # (the top: off to one side, rounded)
+        sc = 1.06 - 0.2 * f + 0.05 * math.sin(f * 7.0 + 1.0)        # (broader at the foot, a bulge or two, a little lean)
         ring = []
         for k in range(K):
             a = 2 * math.pi * k / K
-            rx, ry = w / 2 * math.cos(a) * jit[k] * sc, d / 2 * math.sin(a) * jit[(k + j) % K] * sc
-            zk = z - cut * (0.35 + 0.25 * math.cos(a)) * (h * 0.12)
-            ring.append((rx * (1.0 - 0.55 * cut ** 2) + 0.04 * f, ry * (1.0 - 0.55 * cut ** 2), zk))
+            rx = w / 2 * math.cos(a) * jit[k] * sc + 0.06 * f
+            ry = d / 2 * math.sin(a) * jit[(k + 3 * j) % K] * sc
+            ring.append((rx, ry, min(hb * f, top(rx) + rr.uniform(-0.04, 0.04) * (f > 0.7))))
         rings.append(ring)
     for j in range(R):
         for k in range(K):
             k2 = (k + 1) % K
             mb.face([rings[j][k], rings[j][k2], rings[j + 1][k2], rings[j + 1][k]], 'stone_boulder', smooth='eng_stone')
-    top = rings[-1]
-    cz = sum(p[2] for p in top) / K + 0.06
+    tr = rings[-1]
+    c = (sum(p[0] for p in tr) / K, sum(p[1] for p in tr) / K)
+    cz = top(c[0]) + 0.03
     for k in range(K):
-        mb.face([top[k], top[(k + 1) % K], (0.04, 0.0, cz)], 'stone_boulder', smooth='eng_stone')
+        mb.face([tr[k], tr[(k + 1) % K], (c[0], c[1], cz)], 'stone_boulder')
     # the crack down from the top on its face: a dark sliver
-    mb.face([(-0.06, -d / 2 * 0.86 - 0.012, h * 0.62), (-0.02, -d / 2 * 0.84 - 0.012, h * 0.62),
-             (0.03, -d / 2 * 0.80 - 0.012, h * 1.0), (-0.01, -d / 2 * 0.80 - 0.012, h * 1.0)], 'metal_dark')
+    mb.face([(-0.08, -d / 2 * 0.9 - 0.015, h * 0.55), (-0.04, -d / 2 * 0.9 - 0.015, h * 0.55),
+             (0.0, -d / 2 * 0.86 - 0.015, top(0.0) - 0.05), (-0.04, -d / 2 * 0.86 - 0.015, top(-0.04) - 0.05)], 'metal_dark')
     print('제1공학관 앞 선돌: (%.1f, %.1f) %.1f m' % (x, y, h))
     return [mb]
 
