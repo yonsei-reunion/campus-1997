@@ -1212,6 +1212,9 @@
  "leaf_poplar": {
   "leaf": "poplar"
  },
+ "leaf_tulip": {
+  "leaf": "tulip"
+ },
  "leaf_pansy": {
   "leaf": "pansy"
  },

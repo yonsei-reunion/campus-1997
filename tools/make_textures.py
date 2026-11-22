@@ -122,6 +122,14 @@ def shape_poplar(rnd):
     return pts, 0.18
 
 
+def shape_tulip(rnd):
+    """백합나무(튤립나무): four lobes, two by the stalk and two up the sides, the tip cut square with a shallow notch"""
+    k = rnd.uniform(0.9, 1.1)
+    right = [(0.0, 0.0), (0.2, -0.03), (0.38, -0.13), (0.45 * k, -0.3), (0.31, -0.42), (0.4, -0.6), (0.47 * k, -0.78),
+             (0.3, -0.8), (0.14, -0.86), (0.0, -0.79)]
+    return right + [(-x, y) for x, y in reversed(right[1:-1])], 0.16
+
+
 def shape_tepal(rnd):
     """one tepal of a magnolia flower (tip toward -y): narrow at the base, broad and rounded at the tip"""
     w = 0.3 * rnd.uniform(0.85, 1.1)
@@ -193,12 +201,12 @@ def cluster_cell(kind, palette, rnd, flowers=None):
         return finish(img)
     shapes = {'ginkgo': shape_ginkgo, 'zelkova': lambda r: shape_ovate(r, 0.08, 0.36), 'cherry': lambda r: shape_ovate(r, 0.05, 0.4),
               'maple': shape_maple, 'oak': shape_oak, 'ivy': shape_ivy, 'boxwood': lambda r: shape_ovate(r, 0.0, 0.55, 0.9),
-              'azalea': lambda r: shape_ovate(r, 0.0, 0.33), 'magnolia': shape_obovate, 'poplar': shape_poplar,
+              'azalea': lambda r: shape_ovate(r, 0.0, 0.33), 'magnolia': shape_obovate, 'poplar': shape_poplar, 'tulip': shape_tulip,
               'pansy': lambda r: shape_ovate(r, 0.0, 0.5, 0.8)}
     size_rng = {'ginkgo': (0.055, 0.075), 'zelkova': (0.05, 0.075), 'cherry': (0.06, 0.085), 'maple': (0.06, 0.085),
                 'oak': (0.07, 0.095), 'ivy': (0.06, 0.09), 'boxwood': (0.022, 0.03), 'azalea': (0.04, 0.055),
-                'magnolia': (0.085, 0.115), 'poplar': (0.06, 0.085), 'pansy': (0.03, 0.042)}[kind]
-    n = {'boxwood': 1500, 'azalea': 420, 'ivy': 330, 'magnolia': 150, 'pansy': 900}.get(kind, 230)
+                'magnolia': (0.085, 0.115), 'poplar': (0.06, 0.085), 'tulip': (0.075, 0.1), 'pansy': (0.03, 0.042)}[kind]
+    n = {'boxwood': 1500, 'azalea': 420, 'ivy': 330, 'magnolia': 150, 'tulip': 170, 'pansy': 900}.get(kind, 230)
     for k in range(n):
         # leaves concentrate in an ellipse (cluster), denser in the middle; ivy: a flatter mat filling the card
         r = (rnd.random() ** (0.45 if kind == 'ivy' else 0.6)) * (0.47 if kind == 'ivy' else 0.45)
@@ -439,6 +447,12 @@ atlas('magnolia_autumn', 'magnolia', [(178, 146, 64), (150, 116, 52), (196, 168,
 atlas('poplar', 'poplar', [(58, 92, 40), (68, 104, 44), (50, 82, 36), (62, 98, 42), (54, 88, 38), (176, 188, 170)])
 atlas('poplar_spring', 'twigs', [(120, 104, 70), (140, 128, 84), (110, 118, 70)])
 atlas('poplar_autumn', 'poplar', [(222, 190, 70), (204, 170, 60), (186, 152, 58), (196, 172, 72), (170, 150, 70)])
+# 백합나무(튤립나무) (the rows along 연대동문길, reference/동문_이중윤/2004_가로수_길_*.jpg): fresh mid-green four-lobed
+# leaves in May, butter-yellow with some green-yellow in late October; in mid-April the buds just opening, small
+# yellow-green leaves at the twig tips
+atlas('tulip', 'tulip', [(84, 132, 44), (98, 146, 50), (72, 118, 40), (108, 152, 58)])
+atlas('tulip_spring', 'twigs', [(150, 176, 70), (170, 190, 84), (132, 160, 62)])
+atlas('tulip_autumn', 'tulip', [(232, 196, 70), (218, 176, 52), (240, 210, 96), (196, 160, 60), (170, 160, 70)])
 # 담쟁이 (Boston ivy) on the stone halls: fresh glossy green in late May (underwood_2023.jpg), crimson / orange /
 # wine in late October with a few leaves still green-yellow, the vines showing with their new leaves in mid-April
 atlas('ivy', 'ivy', [(54, 98, 30), (70, 116, 36), (44, 82, 26), (86, 130, 42)])

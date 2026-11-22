@@ -2,6 +2,8 @@
 
 usage: blender -b --factory-startup --python blender/build.py -- [buildings] [statues] [landmarks] [road] [town] [veg] [shrubs] [props] [cars] [polyhaven] [preview]
 (no argument = everything; add noao to skip the occlusion / weathering bake of the halls and landmarks, blender/bake.py)
+`veg:<species>` builds that species' two tree models only (veg/<species>_0.glb, _1.glb): the trees' seeds come from
+hash(str) and change from one run to the next, so `veg` alone would make every tree of the campus a new one
 """
 import sys, os, math, random, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +18,7 @@ ALL = not argv
 BLEND = 'blend' in argv
 BAKE = 'noao' not in argv
 argv = [a for a in argv if a not in ('blend', 'noao')]
+VEG_ONLY = [a[4:] for a in argv if a.startswith('veg:')]
 ALL = not argv
 want = lambda k: ALL or k in argv
 stats = {}
@@ -168,8 +171,8 @@ if want('town'):          # 정문 밖 (blender/town.py): 성산로, the 경의�
     stats['bus'] = tri_count(objs)
     export_glb(objs, os.path.join(OUT, 'props', 'bus.glb'))
 
-if want('veg'):
-    for sp in vegetation.SPECIES:
+if want('veg') or VEG_ONLY:
+    for sp in VEG_ONLY or vegetation.SPECIES:
         for v in range(2):
             reset_scene()
             mb = vegetation.make_tree(sp, v)

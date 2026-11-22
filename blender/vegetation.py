@@ -40,6 +40,11 @@ SPECIES = {
     # drooping branches from low down, a narrow spire (the pine's needles; evergreen)
     'fir': dict(h=16.0, th=1.2, cz=6.0, rx=3.1, rz=9.0, n=560, card=1.05, groups=18, exc=True, bark='bark_pine',
                 taper=0.92, leaf='leaf_pine'),
+    # 백합나무(튤립나무) (reference/동문_이중윤/2004_가로수_길_*.jpg, 연대동문길): a tall straight grey-brown trunk up into
+    # the crown, the first limbs high (5 - 6 m), a tall oval crown that thins toward the top; the rows' crowns meet over
+    # the road.  Big four-lobed leaves cut square at the tip (leaf_tulip); in mid-April only the new leaves opening on
+    # the twigs (leaf_tulip_spring), butter-yellow in late October
+    'tulip': dict(h=15.0, th=5.0, cz=10.0, rx=3.6, rz=5.0, n=190, card=1.9, groups=8, exc=True, bark='bark', taper=0.45),
 }
 CONIFERS = ('pine', 'metasequoia', 'fir')          # cards laid flat like sprays (not leaves turned to the light)
 

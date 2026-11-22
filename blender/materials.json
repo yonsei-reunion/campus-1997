@@ -1038,6 +1038,7 @@
  "bark_smooth": {"tex": "bark_smooth", "tile": 1.2, "tint": [1.0, 1.0, 1.0], "rough": 0.85},
  "leaf_magnolia": {"leaf": "magnolia"},
  "leaf_poplar": {"leaf": "poplar"},
+ "leaf_tulip": {"leaf": "tulip"},
  "leaf_pansy": {"leaf": "pansy"},
  "hedge_pansy": {"leaf": "pansy", "opaque": true},
  "leaf_summerbed": {"leaf": "summerbed"},
