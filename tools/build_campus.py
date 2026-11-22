@@ -60,6 +60,7 @@ import annex97
 import bill97
 import cent97
 import allen97
+import dongmungil97
 import jk97
 import kli97
 import datum
@@ -13228,6 +13229,11 @@ out['trees'] += MUAK_ROW_MORE
 # 장기원 기념관 동쪽 띠 위 큰 나무 둘 (tools/jk97.py EAST_TREES, 2026-11-22: 1996년 겨울 네 장의 줄기 · 그림자로 읽은
 # 밑동): at the trees' very end; the band had no tree in the list (east_clear above only moves the lane's)
 out['trees'] += jk97.east_trees()
+# 연대동문길의 가로수 (tools/dongmungil97.py, reference/고증/3.27 「연대동문길의 가로수」, 2026-11-22: 1996년 겨울 세 장의
+# 밑동, 백합나무): at the trees' very end, set out from the game road's edges as the scans have them from the kerbs
+DONGMUNGIL_TREES, _dmg_near = dongmungil97.trees(out['paths'], out['trees'])
+out['trees'] += DONGMUNGIL_TREES
+print('연대동문길 가로수: trees', len(DONGMUNGIL_TREES), 'old trees within 1.5 m', _dmg_near)
 out['trees'].append(['fir', -104.0, -264.3, 0.55, 2.1])     # (제1공학관 앞 선돌 뒤 침엽수: ENG_STONE above)
 # 동문의 섬 관목 · 가로등 (tools/dongmun.py shrubs · props): at the lists' very end, after every other append
 out['shrubs'] += dongmun.shrubs()
@@ -13288,7 +13294,7 @@ for t in trees:
     x, y = tp(t[1], t[2])
     c_ = {'ginkgo': (255, 230, 0), 'pine': (0, 90, 30), 'zelkova': (40, 160, 40), 'cherry': (255, 150, 200), 'maple': (200, 60, 20), 'oak': (60, 120, 30),
           'zelkova_young': (120, 220, 90), 'cherry_young': (255, 190, 220), 'metasequoia': (150, 200, 60),
-          'magnolia': (250, 250, 235), 'poplar': (210, 220, 210), 'fir': (10, 70, 40)}[t[0]]
+          'magnolia': (250, 250, 235), 'poplar': (210, 220, 210), 'fir': (10, 70, 40), 'tulip': (150, 200, 40)}[t[0]]
     d.ellipse([x - 2, y - 2, x + 2, y + 2], fill=c_)
 for l in LANDMARKS:
     x, y = tp(*l['pos'])
