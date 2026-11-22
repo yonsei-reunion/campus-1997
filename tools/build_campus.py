@@ -13271,6 +13271,35 @@ _lt['seat_h'], _lt['seats'] = 0.45, [
     [round(_lt_mid + _lt['stair_w'] / 2, 3), _lt['north'], round(_lt_dep - 0.5, 3), _lt_dep],
     [_lt['south'], round(_lt['south'] + 0.5, 3), _lt['south_w'], round(_lt_dep - 0.5, 3)],
     [round(_lt['north'] - 0.5, 3), _lt['north'], round(_lt['north_w'] + _lt['nstair_wall'] + _lt['nstair_w'], 3), round(_lt_dep - 0.5, 3)]]
+# - 그 남쪽 끝 (reference/고증/3.2-3.3 「테라스의 남 · 북쪽 끝」, 2026-11-22 #232): the 1996 - 1999 scans have the coping
+#   round the south end too, but behind it a planter 1.9 m deep with a row of shrubs (o -40.6 .. -3.5), and an opening
+#   o -19.1 .. -14.6 where a flight goes down south through the edge (its treads s -6.6 .. -8.5; the coping turns in
+#   along both its sides; a gap in the tree band and a path at its foot).  The seat there is split round the opening
+LIB_SSTAIR97 = dict(o=[-19.1, -14.6], head=-6.6, risers=8, tread=0.27)
+_ls0, _ls1 = LIB_SSTAIR97['o']
+_lsh, _lsr = LIB_SSTAIR97['head'], round(_lt['south'] + 0.5, 3)
+_lt['seats'][2:3] = [[_lt['south'], _lsr, _lt['south_w'], round(_ls0 - 0.3, 3)],
+                     [_lt['south'], _lsr, round(_ls1 + 0.3, 3), round(_lt_dep - 0.5, 3)],
+                     [_lsr, _lsh, round(_ls0 - 0.3, 3), _ls0], [_lsr, _lsh, _ls1, round(_ls1 + 0.3, 3)]]
+_lt['sstair'] = LIB_SSTAIR97
+LIB_SPLANT97 = [(-40.6, round(_ls0 - 0.3, 3)), (round(_ls1 + 0.3, 3), -3.5)]
+_lt['planters'] = [[_lsr, round(_lsh - 0.15, 3), a_, b_] for a_, b_ in LIB_SPLANT97]
+_lt['kerbs'] = [[round(_lsh - 0.15, 3), _lsh, a_, b_] for a_, b_ in LIB_SPLANT97]
+_lso = lambda s_, o_: [round(_lt['o'][0] + _lt['t'][0] * s_ + _lt['n'][0] * o_, 2), round(_lt['o'][1] + _lt['t'][1] * s_ + _lt['n'][1] * o_, 2)]
+# (the band of clipped shrubs at the edge's foot opens before the flight, as the 1996 scans' tree band does: the three
+# in the way step aside to a second row by the opening, in their places in the list)
+_lsd = lambda q_, ax_: (q_[1] - _lt['o'][0]) * _lt[ax_][0] + (q_[2] - _lt['o'][1]) * _lt[ax_][1]
+_lsb = [sh_ for sh_ in out['shrubs'] if sh_[0] == 'hedge_blob' and abs(_lsd(sh_, 't') + 9.9) < 0.4
+        and _ls0 - 1.0 < _lsd(sh_, 'n') < _ls1 + 1.0]
+assert len(_lsb) == 3, _lsb
+for sh_, (s_, o_) in zip(sorted(_lsb, key=lambda q_: q_[1]), ((-11.1, -22.0), (-11.1, -20.2), (-11.1, -13.7))):
+    sh_[1], sh_[2] = _lso(s_, o_)
+_lpm = (_lsr + _lsh - 0.15) / 2
+for a_, b_ in LIB_SPLANT97:
+    for k_ in range(int((b_ - a_ - 0.4) / 1.2) + 1):
+        o_ = a_ + 0.6 + k_ * 1.2
+        out['shrubs'].append(['topiary_round', round(_lt['o'][0] + _lt['t'][0] * _lpm + _lt['n'][0] * o_, 2),
+                              round(_lt['o'][1] + _lt['t'][1] * _lpm + _lt['n'][1] * o_, 2), 0.65, round((k_ * 1.37) % 6.28, 3)])
 for s0_, s1_, d0_, d1_ in _lt['seats']:
     out['colliders'].append([[round(_lt['o'][0] + _lt['t'][0] * s_ + _lt['n'][0] * d_, 2),
                               round(_lt['o'][1] + _lt['t'][1] * s_ + _lt['n'][1] * d_, 2)]

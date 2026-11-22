@@ -339,7 +339,36 @@ def library():
     slab(TR['south'], mid - sw / 2, 0.6, dep)                 # along the front, south and north of the flight
     slab(mid + sw / 2, TR['north'], 0.6, dep)
     slab(mid - sw / 2, mid + sw / 2, 0.6, dep - 2.4)          # behind the flight's head (its own landing block: the rest)
-    slab(TR['south'], -0.6, TR['south_w'], 0.6)               # round the south end, the hall's whole depth
+    ss_ = TR.get('sstair')
+    if ss_:
+        # round the south end, the hall's whole depth, with a flight down south through its edge between two planters
+        # (reference/고증/3.2-3.3 「테라스의 남 · 북쪽 끝」: the 1996 - 1999 scans)
+        so0, so1, s_hd = ss_['o'][0], ss_['o'][1], ss_['head']
+        slab(TR['south'], -0.6, TR['south_w'], so0)
+        slab(TR['south'], -0.6, so1, 0.6)
+        slab(s_hd, -0.6, so0, so1)
+        xf0 = mb.xf
+        c = o_ + t_ * s_hd + n_ * (so0 + so1) / 2
+        mb.xf = local_frame(c.x, c.y, math.atan2(TR['t'][0], -TR['t'][1]) + math.pi, z0)   # (-y: south along the front)
+        stair_flight(mb, 0.0, 0.0, so1 - so0, g0, landing=0.0, tread=ss_['tread'], flare=0.0, cheek=0.0, rail=False,
+                     gfn=local_ground(mb), risers=ss_['risers'], mat='stone_step')
+        mb.xf = xf0
+    else:
+        slab(TR['south'], -0.6, TR['south_w'], 0.6)           # round the south end, the hall's whole depth
+    # the planters along the south end's edge (the scans' row of shrubs behind the coping, 1.9 m deep): soil a hand
+    # under the coping, a low kerb on the terrace's side, walked faces set in from the rims for the shrubs to stand on
+    for (pa_, pb_, pd0, pd1) in TR.get('planters', ()):
+        c = [Lp(pa_, pd0), Lp(pb_, pd0), Lp(pb_, pd1), Lp(pa_, pd1)]
+        x0, x1 = min(v.x for v in c), max(v.x for v in c)
+        y0, y1 = min(v.y for v in c), max(v.y for v in c)
+        mb.face([(x0, y0, g0 + 0.3), (x1, y0, g0 + 0.3), (x1, y1, g0 + 0.3), (x0, y1, g0 + 0.3)], 'soil')
+        WALK_FACES.append([W_(x0 + 0.15, y0 + 0.15, g0 + 0.3), W_(x1 - 0.15, y0 + 0.15, g0 + 0.3),
+                           W_(x1 - 0.15, y1 - 0.15, g0 + 0.3), W_(x0 + 0.15, y1 - 0.15, g0 + 0.3)])
+    for (ka_, kb_, kd0, kd1) in TR.get('kerbs', ()):
+        c = [Lp(ka_, kd0), Lp(kb_, kd0), Lp(kb_, kd1), Lp(ka_, kd1)]
+        x0, x1 = min(v.x for v in c), max(v.x for v in c)
+        y0, y1 = min(v.y for v in c), max(v.y for v in c)
+        mb.box(((x0 + x1) / 2, (y0 + y1) / 2, g0 + 0.2), (x1 - x0, y1 - y0, 0.4), 'stone_trim', skip=('bottom',))
     # the seat-high parapet along the terrace's edge (campus.json library_terrace seats; reference/동문_이중윤/
     # 2004_중앙도서관_테라스_난간_턱.jpg: two courses of granite, a smooth cap half a metre broad that people sat on)
     SEAT_H = TR.get('seat_h', 0.45)

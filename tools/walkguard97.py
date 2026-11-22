@@ -210,8 +210,20 @@ SITES = {
 }
 
 
+# 막이 줄 가운데 뒤에 길을 낸 곳: 그 네모(꼭짓점 넷, 반시계) 안의 점은 두지 않음
+OPENINGS = {
+    # 중앙도서관 테라스 남쪽 끝의 계단 (tools/build_campus.py LIB_SSTAIR97, o −19.05 ~ −14.65, s −10 ~ −6)
+    'LIBRARY_TERRACE': [(-106.41, -75.9), (-102.15, -77.02), (-101.13, -73.16), (-105.39, -72.04)],
+}
+
+
+def _inside(q, x, y):
+    return all((bx - ax) * (y - ay) - (by - ay) * (x - ax) > 0 for (ax, ay), (bx, by) in zip(q, q[1:] + q[:1]))
+
+
 def colliders(side=SIDE):
     """the guards as campus.json collider polygons (squares round each point)"""
     h = side / 2
     return [[[round(x - h, 3), round(y - h, 3)], [round(x + h, 3), round(y - h, 3)], [round(x + h, 3), round(y + h, 3)],
-             [round(x - h, 3), round(y + h, 3)]] for pts in SITES.values() for x, y in pts]
+             [round(x - h, 3), round(y + h, 3)]] for k, pts in SITES.items() for x, y in pts
+            if not (k in OPENINGS and _inside(OPENINGS[k], x, y))]
