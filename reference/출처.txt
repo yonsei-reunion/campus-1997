@@ -279,7 +279,7 @@ reference/ 사진 출처
     - Eng_lndscape_5.jpg 「Introduction to the University」: https://web.archive.org/web/19970517154612/http://www.yonsei.ac.kr/Eng/image/lndscape/5.jpg (1997년 5월)
     - eagle.jpg: https://web.archive.org/web/19970517154543/http://www.yonsei.ac.kr/Eng/image/lndscape/eagle.jpg (1997년 5월)
     - eagle.gif: https://web.archive.org/web/19970517183711/http://www.yonsei.ac.kr/Eng/Admin/eagle.gif (1997년 5월)
-    - junginbo.jpg: https://web.archive.org/web/19970517184727/http://www.yonsei.ac.kr/Eng/image/lndscape/junginbo.jpg (1997년 5월)
+    - junginbo.jpg: https://web.archive.org/web/19970517184727/http://www.yonsei.ac.kr/Eng/image/lndscape/junginbo.jpg (1997년 5월). 추억 카드 「외솔 흉상」의 둘째 사진(web/public/assets/photos/widang_bust_1997.jpg: 3배로 키움)
     - stone.jpg: https://web.archive.org/web/19970517155311/http://www.yonsei.ac.kr/Eng/image/building/stone.jpg (1997년 5월)
     - Eng_schlife_16.jpg: https://web.archive.org/web/19970517161127/http://www.yonsei.ac.kr/Eng/image/schlife/16.jpg (1997년 5월)
   - 학교 홈페이지 그 밖의 쪽 http://www.yonsei.ac.kr/Html/
@@ -338,8 +338,8 @@ reference/ 사진 출처
 - 철쭉 · 진달래가 피는 때(reference/고증.md 4.7.1)
   - 기상청 보도자료 「서울 벚꽃 개화」 연도별 표 (2025.4.4, https://www.kma.go.kr/kma/flexer/html/press/2025/04/04/ATC202504041406132_1b2121a2-f6d6-4e38-836a-b37c7b8f1a66.hwp.files/Sections1.html): 1997년 개화 4월 8일, 평년 개화 4월 8일 · 만발 4월 10일
   - 기상청 강원지방기상청 봄꽃 개화 예상 (2011.2.28, https://www.kma.go.kr/kma/flexer/html/press2/2011/02/28/ATC201102280930131_dd36cc97-1295-4284-920b-f52418ae3b01.hwp.files/Sections1.html): 서울 진달래 평년 3월 31일 · 개나리 3월 30일, 1971 ~ 2000년
-- 언더우드 동상의 머리 · 손 바탕(구운 메시 · 텍스처만 저장소에 둠): Blender 재단 「Human Base Meshes」 v1.4.1 https://download.blender.org/demo/asset-bundles/human-base-meshes/human-base-meshes-bundle-v1.4.1.zip (CC0)
-  - assets_src/blender-human-base-meshes/ 에 풀어 두면 blender/build.py -- statues 가 읽어 blender/statues.py 가 고쳐 빚음. reference/고증.md 4.2
+- 언더우드 동상의 머리 · 손, 외솔 흉상의 머리 바탕(구운 메시 · 텍스처만 저장소에 둠): Blender 재단 「Human Base Meshes」 v1.4.1 https://download.blender.org/demo/asset-bundles/human-base-meshes/human-base-meshes-bundle-v1.4.1.zip (CC0)
+  - assets_src/blender-human-base-meshes/ 에 풀어 두면 blender/build.py -- statues 가 읽어 blender/statues.py 가 고쳐 빚음. reference/고증.md 4.2 · 2.9 「흉상의 생김새」
 - 관목 · 꽃 텍스처의 잎 · 꽃 · 가지(게임 텍스처만 저장소에 둠): Poly Haven 「Periwinkle Plant」 https://polyhaven.com/a/periwinkle_plant (Amal Kumar, CC0). tools/fetch_polyhaven.py models 2k periwinkle_plant 로 받아 tools/make_shrub_textures.py 가 잘라 다시 칠함
 - 백주년기념관_박물관입구_1996_정면.jpg, _정면_2.jpg, _측면.jpg, _현관.jpg, 음악관_현관_1996.jpg, 과학관_계단_1996_1.jpg, _2.jpg, 광복관_현관_1996_1.jpg, _2.jpg, 빌링슬리관_현관_1996.jpg: 위 단체사진(2022 연세대학교 재상봉 25주년 기념문집, 사용자 제공 PDF)에서 사람 머리 위의 건물 부분만 자른 것
   - 학과와 쪽수는 reference/고증.md 「단체사진에서 자른 건물 윗부분」
@@ -1009,7 +1009,7 @@ reference/ 사진 출처
   - 2010-10-02_15555_2619_8541_1627.jpg · _8542_1636.jpg · _8547_1734.jpg · _8548_1743.jpg: https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=15555 (2010-10-02, 「윤동주도 '기숙사생'이었다고?!」, 이해인 기자, 사진에 www.YONDO.net 표시: 알로하(개관식 · 확장된 모습 · 명패), 선우학사(1985년 오픈하우스), 제중학사, 법현학사). reference/고증/3.1.2.1_학사와_옛_이름.md
   - 2007-11-04_11275_1226_3653_3357.jpg: https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=11275 (2007-11-04, 「'제2중도' 학술정보관 미리보기」, 김정하 기자 · 사진 홍선화 기자: 「▲ 장기원 기념관」, 헐리기 전 가을). reference/고증/3.15-3.17_일반_건물.md 「3.16」
   - 2007-03-24_10503_874_2737_4438.jpg: https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=10503 (2007-03-24, 「민족의 선지자 혹은 친일파, 백낙준 박사」, 사진 김영아 기자: 중앙도서관 정면을 뒤로 한 용재 동상의 옆모습). reference/고증/3.2-3.3_중앙도서관_학생회관.md 「용재 동상」
-  - 2007-03-25_10505_876_2698_316.jpg: https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=10505 (2007-03-25, 「위당? 외솔? 그 정체를 밝혀보자!」: 외솔관 앞으로 옮긴 뒤의 외솔 최현배 흉상). reference/고증/2.9_찻길.md
+  - 2007-03-25_10505_876_2698_316.jpg: https://chunchu.yonsei.ac.kr/news/articleView.html?idxno=10505 (2007-03-25, 「위당? 외솔? 그 정체를 밝혀보자!」: 외솔관 앞으로 옮긴 뒤의 외솔 최현배 흉상). reference/고증/2.9_찻길.md 「흉상의 생김새」. 추억 카드 「외솔 흉상」(web/public/assets/photos/oesol_bust_2007.jpg: 사진 부분만 잘라 3배로 키움)과 README 「사진과 비교」에도 씀
 - 1996_금화터널_위에서_동문_둘레와_봉원고가.jpg: 서울연구원 「사진으로 본 서울」 (https://data.si.re.kr/node/52276, 01N01222Db7000, 1996.9, 촬영장소 「금화터널 위」, 공공누리 제1유형 · CC BY 4.0, 900 px 그대로)
   - 봉원고가차도와 그 밑 사거리, 동문 북쪽 숲 언덕, 언덕 밑 비탈의 공사, 봉원동 · 대신동의 집(reference/고증/3.26_동문.md)
 - 한국어학당의 지붕 · 평면 · 둘레 땅(2026-11-22, 사진 · 지도는 저장하지 않고 보며 잼, reference/고증/3.27_한국어학당.md)

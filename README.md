@@ -66,6 +66,11 @@
 </tr>
 <tr><td colspan="2" align="center"><b>언더우드 동상</b> · 2009년</td></tr>
 <tr>
+<td valign="top"><img src="docs/compare/oesol_bust_photo.jpg" alt="외솔 최현배 흉상 2007년 사진" width="100%"></td>
+<td valign="top"><img src="docs/compare/oesol_bust_game.jpg" alt="게임의 외솔 흉상" width="100%"></td>
+</tr>
+<tr><td colspan="2" align="center"><b>외솔 흉상</b> · 2007년 (외솔관 앞으로 옮긴 뒤)</td></tr>
+<tr>
 <td valign="top"><img src="docs/compare/stimson_photo.jpg" alt="스팀슨관 2016년 사진" width="100%"></td>
 <td valign="top"><img src="docs/compare/stimson_game.jpg" alt="게임의 스팀슨관" width="100%"></td>
 </tr>
@@ -381,7 +386,7 @@
   - 여자 걸음 · 서기 · 대화, 남자의 체중 이동 · 두리번: [Open Motion Project](https://accad.osu.edu/research/motion-lab/mocap-system-and-data) by ACCAD/The Ohio State University, CC BY 3.0
   - 남자 걸음 · 뛰기: The data used in this project was obtained from [mocap.cs.cmu.edu](http://mocap.cs.cmu.edu). The database was created with funding from NSF EIA-0196217. (BVH 변환: B. Hahne, cgspeed.com)
   - 앉기 · 대화 · 팔짱 · 손 흔들기: Quaternius [Universal Animation Library](https://quaternius.com/packs/universalanimationlibrary.html) 1 · 2 와 위 팩의 클립, CC0
-- 언더우드 동상의 머리 · 손 바탕: Blender 재단 [Human Base Meshes](https://www.blender.org/download/demo-files/#assets) v1.4.1, CC0
+- 언더우드 동상의 머리 · 손, 외솔 흉상의 머리 바탕: Blender 재단 [Human Base Meshes](https://www.blender.org/download/demo-files/#assets) v1.4.1, CC0
 - 글꼴: Noto Sans KR, Jua, Do Hyeon (SIL OFL)
 - 분수 물결 · 빛무늬: [Ultra Water](https://github.com/Humpalumps/Ultra-Water), MIT
 - 언더우드 동상 사진: Wikimedia Commons User:Thinkinglex (2009, 퍼블릭 도메인), Rickinasia (2019) · 콩가루 (2011, CC BY-SA 4.0), Fumihiko Ueno (2010, CC BY 3.0).

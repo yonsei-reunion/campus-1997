@@ -56,7 +56,10 @@ if want('buildings'):
     export_glb(objs, os.path.join(OUT, 'campus_buildings.glb'), colors=BAKE)
 
 if want('statues'):         # the bronzes' sculpts, baked onto light meshes (blender/sculpt.py); the landmarks read them back
-    for fn in statues.SCULPTS.values():
+    _pick = [a for a in argv if a in statues.SCULPTS]          # (`-- statues oesol`: only the named ones)
+    for name, fn in statues.SCULPTS.items():
+        if _pick and name not in _pick:
+            continue
         reset_scene()
         fn()
 
