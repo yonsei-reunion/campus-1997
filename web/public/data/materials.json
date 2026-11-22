@@ -1494,5 +1494,15 @@
    0.12
   ],
   "rough": 0.85
+ },
+ "bronze_yongjae": {
+  "_doc": "용재 좌상(1987)의 청동: 2005 · 2007년 사진처럼 녹이 슨 흐린 초록 (blender/statues.py yongjae_statue, 고증 3.2-3.3)",
+  "color": [
+   0.11,
+   0.15,
+   0.1
+  ],
+  "rough": 0.7,
+  "metal": 0.25
  }
 }

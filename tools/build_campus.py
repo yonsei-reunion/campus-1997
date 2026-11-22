@@ -11155,6 +11155,7 @@ _ypaint(fieldhill97.bare(), _gd)
 DONGMUN_WOODS, DONGMUN_WALK = dongmun.splat_paint()       # (동문 둘레, x < 641: the knoll's woods, the walk south of 청송길)
 _ypaint([g_ for g_ in getattr(DONGMUN_WOODS, 'geoms', [DONGMUN_WOODS]) if g_.geom_type == 'Polygon'], _gf)
 _ypaint([DONGMUN_WALK], _gp)
+_ypaint([lf_rect(47.5, 56.0, 33.0, 36.1)], _gp)   # (용재 동상 앞 포장 띠, YJ_STATUE below: paved under its slabs, no grass)
 _ypaint([SCI_DRIVE97], _ga)                  # (과학관 마당 둘레의 차 길: SCI_DRIVE97)
 _ypaint([KB97_ASPH], _ga)                    # (광복관 안마당 · 서쪽 길 · 북쪽 길, 핀슨관 서쪽 길 · 북쪽 주차장: kwangbok97)
 _ypaint([KB97_FORE], _gd)                    # (광복관 앞마당: the gravel at the foot of the front flight)
@@ -12764,6 +12765,21 @@ OESOL_BUST = dict(pos=[104.0, 170.0], rot=round(math.radians(-75.0), 4))
 OESOL_BUST['h'] = round(float(ground_h(*OESOL_BUST['pos'])), 2)
 out['statues']['oesol_bust'] = OESOL_BUST
 out['colliders'].append(_dz_box(OESOL_BUST['pos'], OESOL_BUST['rot'], 0.36, 0.31))
+# 용재 동상 (백낙준 좌상, 1987-05 ~, reference/고증/3.2-3.3 「용재 동상」; nth): at the head of a paved strip running north
+# from the library's plaza into the north bed, the figure facing south down the library's axis to 한글탑 (연세춘추
+# 1999: 「한글탑과 용재상이 마주 보고」).  The 1996 winter, July 1997 and 1999 scans: the block's middle at s 54.3,
+# o 34.5 of the library's front (+- 0.5 m), the strip s 47.8 - 56.0, o 33.0 - 36.1.  blender/statues.py yongjae_statue
+# (front = -Y; the strip in it), the block a collider.  Late and nothing drawn: the zelkova that stood on the strip
+# (trees[3011]) is moved in place into the bed west of it, the hedge across the strip's mouth (two shrubs) dropped
+YJ_STATUE = dict(pos=[round(c_, 2) for c_ in LF(54.3, 34.5)], rot=round(math.atan2(-_lfu[0], _lfu[1]), 4))
+YJ_STATUE['h'] = round(float(ground_h(*YJ_STATUE['pos'])), 2)
+out['statues']['yongjae'] = YJ_STATUE
+out['colliders'].append(_dz_box(YJ_STATUE['pos'], YJ_STATUE['rot'], 0.72, 1.0))
+_yj_s = lambda x_, y_: (float(np.dot(np.array([x_, y_]) - _lf0, _lfu)), float(np.dot(np.array([x_, y_]) - _lf0, _lfn)))
+assert out['trees'][3011][0] == 'zelkova' and abs(_yj_s(*out['trees'][3011][1:3])[0] - 50.0) < 0.3, 'the tree on the strip'
+out['trees'][3011][1:3] = [round(c_, 2) for c_ in LF(51.5, 28.5)]
+out['shrubs'] = [sh_ for sh_ in out['shrubs'] if not (47.0 < _yj_s(sh_[1], sh_[2])[0] < 56.5
+                                                     and 33.3 < _yj_s(sh_[1], sh_[2])[1] < 35.9)]
 # 북문 주차 요금정산소와 차단기 (1994-11 ~, reference/고증/3.21 「북문 · 갈림길 · 서쪽 학사길」; nth): the white box on the
 # loop's inner edge 31 m from the fork in the 1996 - 1999 scans (3.2 x 1.5 m along the road, 2.2 - 2.6 m high) and the
 # white bar across the road at each of its ends: the campus's paid parking had a barrier and a booth at 북문 (동아일보

@@ -2325,8 +2325,8 @@ BUST_BLOCK = (0.6, 0.5, 0.92, 0.08)       # width, depth, height, cap
 
 
 def bust_foot(st, gfn):
-    """the lowest ground under the block's corners (the block goes on down 0.3 m into it)"""
-    w, d = BUST_BLOCK[0] / 2, BUST_BLOCK[1] / 2
+    """the lowest ground under the block's corners (the block goes on down 0.3 m into it); st['size'] if not the bust's"""
+    w, d = st.get('size', BUST_BLOCK)[0] / 2, st.get('size', BUST_BLOCK)[1] / 2
     c, s = math.cos(st['rot']), math.sin(st['rot'])
     x, y = st['pos']
     return min(gfn(x + u * c - v * s, y + u * s + v * c) for u in (-w, w) for v in (-d, d))
@@ -2373,4 +2373,131 @@ def oesol_bust(st, z0, gfn):
         q = [(a0[0] - 0.025 * sg, a0[1] - 0.01, a0[2]), (a0[0] + 0.03 * sg, a0[1] - 0.01, a0[2]),
              (a1[0] + 0.03 * sg, a1[1] - 0.012, a1[2]), (a1[0] - 0.025 * sg, a1[1] - 0.012, a1[2])]
         mb.face(q[::-1] if sg > 0 else q, B)
+    return [mb.build()]
+
+
+# ============================================================================= 용재 백낙준 좌상
+# 용재 백낙준 (the university's first president)'s seated bronze before the north half of 중앙도서관's front, put up by
+# the alumni association in May 1987 (오마이뉴스 2005-04-13; 한국민족문화대백과 「백낙준」) and there through 1991
+# (연합뉴스 1991-10-08: 한글탑 「도서관 앞 白樂濬 전 총장 동상의 맞은 편」), 1999 (연세춘추) and the photos of 2005,
+# 2007 and 2019 (reference/고증/3.2-3.3 「용재 동상」).  As in those photos: he sits upright in a doctor's gown over a
+# suit (shirt collar and tie, the hood's band round the neck, wide sleeves, the gown to mid-shin, the trousers' cuffs
+# and shoes below) in a high-backed armchair with boxy arms and closed sides, the right hand on the end of the right
+# arm, the left holding a mortarboard on the left knee, the feet apart; a block of light granite with a thin slab
+# set in on it and a black plaque high on its front.  Its place and size from the scans of 1996 - 1999 (reference/고증/
+# 3.2-3.3 「용재 동상」): the slab's top 2.3 m over the paved strip it stands at the head of, the crown 1.8 m over it,
+# the same in all three years.  So the figure is built for a head (crown to chin) of 0.28 m, its crown 1.40 m over the
+# chair's foot, and set up YJ_K times that; the stone after the 2019 front photo in head heights (the slab 3.6 wide
+# and 0.35 high on a block 4.0 wide, the plaque 1.9 x 1.4: the head 0.36 m at the statue's size), the block as deep
+# as the scans' top runs from the crown's place.  The face is a sketch.  Local frame: front = -Y (south), +X his
+# left, z = 0 on the lowest ground at the block's foot.
+YJ_K = 1.8 / 1.40                         # the figure and the chair: from the drawn size to the scans'
+YJ_BLOCK = (1.44, 2.0, 2.17)              # the granite block: width, depth, height over the ground at its foot
+YJ_SLAB = (1.30, 1.86, 0.13)              # the slab set on it (its top 2.3 m up)
+YJ_PLAQUE = (0.68, 0.50)                  # the black plaque on the block's front, its top 0.15 m under the block's
+YJ_BACK = 0.36                            # the chair this far back of the slab's middle (the crown 0.46 m behind it)
+YJ_STRIP = (-1.5, 1.6, -6.8, 1.7)        # the paved strip from the plaza's kerb to the block (x0, x1, y0, y1; the scans)
+YJ_CHAIR = dict(w=0.85, y0=-0.26, y1=0.44, seat=0.40, arm=0.70, arm_w=0.11, back=1.06, back_d=0.14)
+
+
+def _yj_rows(sp, rows, n=28, k=3.0):
+    """a closed loft of horizontal superellipse rings (z, back y, front y, half width[, x centre])"""
+    rings = []
+    for r in rows:
+        z, yb, yf, w = r[:4]
+        xc = r[4] if len(r) > 4 else 0.0
+        yc, ry = (yb + yf) / 2, (yb - yf) / 2
+        R = []
+        for i in range(n):
+            t = 2 * math.pi * i / n
+            c, s_ = math.cos(t), math.sin(t)
+            R.append((xc + w * math.copysign(abs(c) ** (2 / k), c), yc + ry * math.copysign(abs(s_) ** (2 / k), s_), z))
+        rings.append(R)
+    sp.loft(rings)
+
+
+def yongjae_figure():
+    """the seated figure, the chair's foot on z = 0, as one smooth bronze skin (sculpt.union); the chair apart"""
+    sp = _Soup()
+    # the gown from the waist down: over the seat and the thighs, falling in front of the shins to its hem
+    _yj_rows(sp, [(0.22, -0.30, -0.47, 0.30), (0.30, -0.28, -0.48, 0.30), (0.40, 0.30, -0.49, 0.30),
+                  (0.48, 0.30, -0.49, 0.30), (0.54, 0.29, -0.47, 0.29), (0.585, 0.27, -0.40, 0.27),
+                  (0.63, 0.25, -0.18, 0.25), (0.68, 0.24, -0.04, 0.235), (0.74, 0.24, 0.0, 0.23)])
+    for sx in (-1, 1):
+        sp.ellipsoid((sx * 0.15, -0.39, 0.53), (0.10, 0.10, 0.055))        # the knee under the gown
+        sp.capsule((sx * 0.20, -0.40, 0.30), (sx * 0.215, -0.42, 0.08), 0.068, 0.062)   # the trouser leg below the hem
+        sp.ellipsoid((sx * 0.215, -0.47, 0.05), (0.062, 0.13, 0.05))       # the shoe
+    # the trunk in the gown, the shoulders broad with its fullness, the neck and the head
+    sp.ellipsoid((0, 0.12, 0.80), (0.235, 0.15, 0.14))
+    sp.ellipsoid((0, 0.13, 0.93), (0.25, 0.145, 0.14))
+    sp.capsule((-0.22, 0.14, 1.00), (0.22, 0.14, 1.00), 0.085)
+    sp.capsule((0, 0.12, 1.02), (0, 0.10, 1.13), 0.06)
+    sp.ellipsoid((0, 0.08, 1.262), (0.112, 0.118, 0.14))                    # head (crown 1.40, chin 1.12)
+    sp.ellipsoid((0, 0.06, 1.19), (0.095, 0.095, 0.07))                     # the lower face, broad
+    sp.ellipsoid((0, -0.035, 1.24), (0.018, 0.02, 0.028))                   # nose
+    for sx in (-1, 1):
+        sp.ellipsoid((sx * 0.11, 0.09, 1.25), (0.016, 0.03, 0.042))        # ears
+    # the hood's band from the shoulders down to a point on the chest; the shirt collar and the tie inside it
+    for sx in (-1, 1):
+        sp.capsule((sx * 0.13, 0.15, 1.07), (sx * 0.17, 0.03, 1.02), 0.03)
+        sp.capsule((sx * 0.17, 0.03, 1.02), (sx * 0.03, -0.02, 0.88), 0.03, 0.022)
+    sp.capsule((0, -0.015, 1.04), (0, -0.02, 0.92), 0.022, 0.03)          # the tie
+    # the arms in the wide sleeves: the right (-X) along the chair's right arm to its end, the left forearm in to the
+    # mortarboard on the left knee
+    sp.capsule((-0.26, 0.15, 0.99), (-0.33, 0.12, 0.78), 0.09, 0.095)
+    sp.capsule((-0.33, 0.12, 0.78), (-0.35, -0.15, 0.76), 0.09, 0.095)      # the sleeve on the chair's arm
+    sp.ellipsoid((-0.36, -0.24, 0.735), (0.042, 0.075, 0.03), _eq('X', -10))  # the right hand over its end
+    sp.capsule((0.26, 0.15, 0.99), (0.33, 0.10, 0.77), 0.09, 0.095)
+    sp.capsule((0.33, 0.10, 0.77), (0.22, -0.20, 0.66), 0.095, 0.105)
+    sp.ellipsoid((0.20, -0.28, 0.65), (0.05, 0.08, 0.035), _eq('Y', 30))    # the left hand at the board's edge
+    sp.loft([[(x, y, z) for x, y in ((0.0, -0.40), (0.24, -0.40), (0.24, -0.16), (0.0, -0.16))]
+             for z in (0.60, 0.635)])                                       # the mortarboard, flat on the knee
+    sp.ellipsoid((0.12, -0.28, 0.60), (0.09, 0.09, 0.04))                   # its cap under the board
+    ob = sculpt.union([sp.build('yj_soup')], 0.008, smooth=4, factor=0.6, name='yj_high')
+    low = sculpt.lowpoly(ob, 10000, name='yj_low')
+    bpy.data.objects.remove(ob)
+    return low
+
+
+def _yj_chair(mb, B):
+    c = YJ_CHAIR
+    w, y0, y1 = c['w'] / 2, c['y0'], c['y1']
+    yb = y1 - c['back_d']
+    mb.box((0, (y0 + yb) / 2, c['seat'] / 2), (2 * w - 2 * c['arm_w'], yb - y0, c['seat']), B)     # under the seat
+    for sx in (-1, 1):                                                      # the boxy arms, closed down to the foot
+        xc = sx * (w - c['arm_w'] / 2)
+        mb.box((xc, (y0 + y1) / 2, c['arm'] / 2), (c['arm_w'], y1 - y0, c['arm']), B)
+    mb.box((0, (yb + y1) / 2, c['back'] / 2), (2 * w, y1 - yb, c['back']), B)                     # the high back
+
+
+def yongjae_statue(st, z0, gfn):
+    """the block on the lowest ground under it (z0), going on down 0.3 m; the slab, the chair and the figure on it;
+    the paved strip in front laid 7 cm over the ground (walked on with it: under the walker's 0.1 m ankle ray; the game's
+    terrain stands up to 2 cm over common.ground here)"""
+    bw, bd, bh = YJ_BLOCK
+    sw, sd, sh = YJ_SLAB
+    G, B = 'stone_granite', 'bronze_yongjae'
+    x, y = st['pos']
+    c, s_ = math.cos(st['rot']), math.sin(st['rot'])
+    g = lambda u, v: gfn(x + u * c - v * s_, y + u * s_ + v * c) - z0
+    up = max(g(u, v) for u in (-bw / 2, bw / 2) for v in (-bd / 2, bd / 2))
+    zb = up + bh                                                            # the block's top over its lowest foot
+    mb = MeshBuilder('yongjae_statue')
+    x0, x1, y0, y1 = YJ_STRIP
+    nu, nv = 4, 14
+    U = [x0 + (x1 - x0) * i / nu for i in range(nu + 1)]
+    V = [y0 + (y1 - y0) * j / nv for j in range(nv + 1)]
+    P = [[(u, v, g(u, v) + 0.07) for u in U] for v in V]
+    for j in range(nv):
+        for i in range(nu):
+            mb.face([P[j][i], P[j][i + 1], P[j + 1][i + 1], P[j + 1][i]], 'stone_step', smooth='yj_strip')
+    mb.box((0, 0, (zb - 0.3) / 2), (bw, bd, zb + 0.3), G, skip=('bottom',))
+    mb.box((0, 0, zb + sh / 2), (sw, sd, sh), G, skip=('bottom',))
+    pw, ph = YJ_PLAQUE
+    pz = zb - 0.15 - ph / 2
+    mb.face([(-pw / 2, -bd / 2 - 0.012, pz - ph / 2), (pw / 2, -bd / 2 - 0.012, pz - ph / 2),
+             (pw / 2, -bd / 2 - 0.012, pz + ph / 2), (-pw / 2, -bd / 2 - 0.012, pz + ph / 2)], 'trim_black')
+    mb.xf = Matrix.Translation((0, YJ_BACK, zb + sh)) @ Matrix.Scale(YJ_K, 4)
+    _yj_chair(mb, B)
+    _to_mb(yongjae_figure(), mb, B)                                         # (placed by the same xf)
     return [mb.build()]
