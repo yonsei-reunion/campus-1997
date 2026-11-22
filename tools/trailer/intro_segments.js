@@ -5,41 +5,136 @@
   const { seg, show, line, key, tag, hud, toWalk, toBird, birdCam, walkCam, season, ensure, spline, step, settle, ground, P, G, V, sleep, smooth, lerp, clamp, FPS, DT, $ } = I;
   const mix = (a, b, u) => a.map((v, k) => lerp(v, b[k], u));
 
-  // ---------------------------------------------------------------- 신촌 로터리 → 연세로 → 정문 (날아가기)
+  // ---------------------------------------------------------------- 신촌 로터리 → 연세로 → 정문 → 백양로 → 독수리상 (날아가기)
+  // 독수리상을 가까이서 한 바퀴 돈 뒤 땅으로 내려와 성구(상경대학)의 뒤, 걷는 화면의 카메라 자리로. 내려오기 시작할 때
+  // 걷기 화면으로 바꾼다(성구가 그 자리에 서 있게). 카메라는 내려온 끝에서 게임의 카메라(player.js behindCamera)와 같은
+  // 자리 · 시야각이라, 놓아주면 그대로 이어진다
+  const EAGLE = [-67.95, -161.78];
+  const ROAD = [0.242, 0.970];                                       // 백양로의 방향(북쪽으로)
+  const FLY = { A: 14, B: 8.5, C: 3.6, D: 4.2 };                    // 날아가기 · 한 바퀴 · 내려오기 · 걷기 (s)
   seg.fly = {
-    n: 11.5 * FPS,
+    n: Math.round((FLY.A + FLY.B + FLY.C + FLY.D) * FPS),
     async init() {
       await y.townReady;
       toBird();
       hud('none');
-      this.path = [[-52, -1068, 60], [-84, -1004, 49], [-98, -915, 40], [-97, -785, 36], [-96, -665, 36], [-97, -565, 38], [-99, -487, 40], [-104, -432, 28.5]];
+      const E = EAGLE, n = ROAD;
+      this.gE = ground(...E);
+      this.R = 14;                                                   // 도는 반지름 m
+      this.eh = this.gE + 10;                                        // 도는 높이(단 0.4 + 탑신 8.5 m 위의 독수리)
+      this.eye = [E[0], E[1], this.gE + 10.4];                        // 독수리의 몸
+      const O = [E[0] - n[0] * this.R, E[1] - n[1] * this.R];       // 남쪽(정면)에서 돌기 시작
+      // 정문을 넘어 백양로 위로는 땅 위 높이로 적음
+      const rel = (x, yy, dh) => [x, yy, ground(x, yy) + dh];
+      const pts = [[-52, -1068, 60], [-84, -1004, 49], [-98, -915, 40], [-97, -785, 36], [-96, -665, 36], [-97, -565, 38], [-99, -487, 38],
+        rel(-103, -432, 10), rel(-101, -384, 10.5), rel(-93, -318, 12), rel(-84, -262, 14), rel(-77, -214, 13.5), [O[0], O[1], this.eh]];
+      // 곡선의 길이로 고르게(점 사이의 거리가 달라도 빠르기가 튀지 않게)
+      const K = 600, P3 = [], S = [0];
+      for (let k = 0; k <= K; k++) { P3.push(spline(pts, k / K)); if (k) S.push(S[k - 1] + Math.hypot(...P3[k].map((v, j) => v - P3[k - 1][j]))); }
+      this.L = S[K];
+      this.along = (d) => { d = clamp(d, 0, this.L); let a = 0, b = K; while (b - a > 1) { const m = (a + b) >> 1; if (S[m] <= d) a = m; else b = m; } const f = (d - S[a]) / Math.max(1e-6, S[b] - S[a]); return mix(P3[a], P3[b], f); };
+      // 빠르기: 1.5 초에 걸쳐 오르고, 끝 4.5 초에 걸쳐 0 으로 내려앉음
+      const NA = Math.round(FLY.A * FPS), D = [0];
+      const v = (t) => Math.min(smooth(t / 1.5), smooth((FLY.A - t) / 4.5));
+      for (let k = 1; k <= NA; k++) D.push(D[k - 1] + v((k - 0.5) / FPS));
+      this.dist = (t) => { const f = clamp(t * FPS, 0, NA), k = Math.min(NA - 1, Math.floor(f)); return this.L * lerp(D[k], D[k + 1], f - k) / D[NA]; };
+      // 성구: 독수리상 남쪽 15 m 에서 북쪽(독수리상)을 봄
+      this.S = [E[0] - n[0] * 15, E[1] - n[1] * 15];
       this.at(0);
       settle(60);
     },
-    at(t) {
-      const T = this.n / FPS, u = clamp(t / T, 0, 1), s = lerp(u, smooth(u), 0.55);
-      const p = spline(this.path, s), a = spline(this.path, Math.min(1, s + 0.17));
-      let look = [a[0], a[1], lerp(27, 26, s)];
-      // 처음에는 로터리 건너 그랜드백화점을 봄
-      look = mix(look, [-150, -975, 40], 0.85 * smooth(1 - s / 0.13));
-      // 창천교회 쪽으로 잠깐 고개를 돌림
-      const k = 0.42 * smooth(1 - Math.abs(p[1] + 640) / 110);
-      look = mix(look, [-34, -533, 36], k);
-      // 끝에서는 정문을 봄
-      look = mix(look, [-105, -388, 27], smooth((s - 0.72) / 0.28));
-      birdCam(p[0], p[1], p[2], look[0], look[1], look[2], lerp(52, 46, s));
+    // 게임의 카메라가 성구 뒤에 놓는 자리(player.js behindCamera: dist 5.4, 올려 본 각 0.36)
+    behind() {
+      const p = pl.pos, h = pl.heading, el = 0.36, dist = pl.cam.dist;
+      const back = dist * Math.cos(el), high = 1.25 + dist * Math.sin(el);
+      return { pos: new V(p.x - Math.sin(h) * back, p.y + high, p.z - Math.cos(h) * back), look: new V(p.x + Math.sin(h) * 1.2, p.y + 1.45, p.z + Math.cos(h) * 1.2) };
     },
-    step(i, t) {
-      this.at(t);
-      step();
-      show('scrim', 'scrim', '', t, 0, 99, { slide: 0 });
+    orbit(u) {
+      const n = ROAD, a0 = Math.atan2(-n[1], -n[0]), a = a0 + 2 * Math.PI * smooth(u);
+      return [EAGLE[0] + Math.cos(a) * this.R, EAGLE[1] + Math.sin(a) * this.R, this.eh + 0.6 * Math.sin(Math.PI * u)];
+    },
+    at(t) {
+      if (t < FLY.A) {
+        const d = this.dist(t), s = d / this.L;
+        const p = this.along(d), a = this.along(d + 130);
+        let look = [a[0], a[1], ground(a[0], a[1]) + 2];
+        // 처음에는 로터리 건너 그랜드백화점을 봄
+        look = mix(look, [-150, -975, 40], 0.85 * smooth(1 - d / 85));
+        // 창천교회 쪽으로 잠깐 고개를 돌림
+        const k = 0.42 * smooth(1 - Math.abs(p[1] + 640) / 110);
+        look = mix(look, [-34, -533, 36], k);
+        // 백양로 위에서는 독수리상을 봄
+        look = mix(look, this.eye, smooth((p[1] + 330) / 120));
+        birdCam(p[0], p[1], p[2], look[0], look[1], look[2], lerp(52, 46, smooth(s)));
+        return;
+      }
+      const q = this.orbit(clamp((t - FLY.A) / FLY.B, 0, 1));
+      birdCam(q[0], q[1], q[2], ...this.eye, 46);
+    },
+    async step(i, t) {
+      if (t < FLY.A + FLY.B) { this.at(t); step(); }
+      else {
+        if (!this.walking) {
+          // 걷기 화면으로: 성구를 독수리상 남쪽에 세움(카메라는 돌던 자리 그대로 이어 받음)
+          this.walking = true;
+          const q = this.orbit(1);
+          this.from = { pos: P(q[0], q[1], q[2]), look: P(this.eye[0], this.eye[1], this.eye[2]) };
+          await toWalk('p04', '독수리상');
+          hud('none');
+          await ensure(...this.S);
+          pl.teleport(...this.S, null);
+          pl.heading = Math.atan2(ROAD[0], -ROAD[1]);
+          pl.actor.holder.rotation.y = pl.heading;
+          walkCam(this.from.pos.clone(), this.from.look.clone(), 46);
+          settle(20);
+          this.to = this.behind();
+        }
+        const u = (t - FLY.A - FLY.B) / FLY.C;
+        if (u < 1) {
+          const k = smooth(u);
+          // 내려오며 뒤로: 높이는 처음에 천천히, 끝에서 빨리 내려앉지 않게 같은 곡선으로
+          walkCam(this.from.pos.clone().lerp(this.to.pos, k), this.from.look.clone().lerp(this.to.look, k), lerp(46, 66, k));
+        } else if (pl.camOverride) {
+          pl.camOverride = null;                                     // 게임의 카메라로(같은 자리에서 이어짐)
+          I.fov(66);
+        }
+        if (u > 1.08 && !this.go) { this.go = true; key('KeyW', true); }
+        step();
+      }
+      show('scrim', 'scrim', '', t, 0, 999, { slide: 0 });
       show('title', 'cap', '<b>신촌 캠퍼스 1997</b><span>1997년의 연세대학교 신촌 캠퍼스를 걷는 웹 3D 게임</span>', t, 0.5, 5.2);
       tag('grand', P(-168, -992, 60), '그랜드백화점', t, 0.3, 3.4);
       tag('grace', P(-186, -885, 79), '그레이스백화점', t, 0.9, 3.6);
       tag('hongik', P(-83.1, -909.3, 41), '홍익문고', t, 1.6, 4.8);
-      tag('church', P(-30.3, -533.1, 52), '창천교회', t, 5.2, 8.6);
-      tag('gate', P(-105.05, -395.96, 34), '정문', t, 9.2, 11.3);
-      line('road', '신촌 로터리에서 연세로를 따라 <i>정문</i>까지', t, 6.0, 11.2);
+      tag('church', P(-30.3, -533.1, 52), '창천교회', t, 5.0, 8.0);
+      tag('gate', P(-105.05, -395.96, 34), '정문', t, 8.0, 10.4);
+      line('road', '신촌 로터리에서 연세로를 따라 <i>정문</i>으로, 백양로를 따라 <i>독수리상</i>까지', t, 5.8, FLY.A - 0.6);
+      show('eagle', 'cap', '<b>독수리상</b><span>높은 기둥 위에서 정문 쪽 백양로를 내려다보는</span>', t, FLY.A + 0.4, FLY.A + FLY.B - 0.5);
+      const t3 = FLY.A + FLY.B + FLY.C;
+      show('hero', 'cap', '<b>성구 <i style="font-size:.62em">상경대학</i></b><span>주인공이 되어 1997년의 캠퍼스를 걷습니다</span>', t, t3 - 0.6, t3 + FLY.D);
+      if (i === this.n - 1) key('KeyW', false);
+    },
+  };
+
+  // ---------------------------------------------------------------- 썸네일: 언더우드관 (영상에는 넣지 않음, --seg thumb)
+  // tools/snapshots.json anthology/underwood(언더우드 동상 뒤에서 정원 축을 따라)를 조금 높고 넓게
+  seg.thumb = {
+    n: 1,
+    extra: true,
+    season: 'spring',
+    async init() {
+      toBird();
+      hud('none');
+      const g = ground(48.4, 192.7), q = { x: 47.6, y: 186.5, h: g + 11, tx: 60.25, ty: 239.9, th: ground(60.25, 239.9) + 3, fov: 56 };
+      await ensure(q.tx, q.ty);
+      await ensure(q.x, q.y);
+      birdCam(q.x, q.y, q.h, q.tx, q.ty, q.th, q.fov);
+      settle(90);
+    },
+    step(i, t) {
+      step();
+      show('scrim', 'scrim', '', 1, 0, 9, { slide: 0, fade: 0.01 });
+      show('title', 'cap', '<b>신촌 캠퍼스 1997</b><span>1997년의 연세대학교를 다시 걷는 웹 3D 게임</span>', 1, 0, 9, { slide: 0, fade: 0.01 });
     },
   };
 
@@ -269,7 +364,7 @@
           : s === 'fly' ? SHOT.throw
           : s === 'water' ? (bd.st > 0.9 ? SHOT.water : SHOT.throw)
           : s === 'stand' || s === 'wade' ? SHOT.water
-          : s === 'climb' || (s === 'back' && bd.st < 2.0) ? SHOT.back
+          : s === 'climb' || (s === 'back' && bd.st < 3.0) ? SHOT.back
           : SHOT.sky;
       }
       this.spring(goal, goal === SHOT.sky ? 1.1 : 3.2, DT);
@@ -443,9 +538,36 @@
       },
       end() { key('KeyW', false); } },
     { key: 'bday', name: '생일 축하', sub: '친구 넷을 찾아<br>활천대로 데려오기',
-      async begin() { $('#bday-start').click(); await waitFor(() => shown('#bdayhud')); settle(30); },
-      tick(u) { if (u > 1.6 && !this.go) { this.go = true; key('KeyA', true); } if (u > 2.3 && this.go === true) { this.go = 2; key('KeyA', false); key('KeyW', true); } },
-      end() { key('KeyA', false); key('KeyW', false); } },
+      // (활천대 앞은 생일 장면이 이미 보여 줌) 친구 넷을 다 데려온 때로: 백양로 동쪽 보도를 북쪽으로 뛰는 주인공과
+      // 그 발자취를 따라 뛰는 친구 넷을 동쪽 생울타리 위 앞에서 비스듬히 따라가며(줄이 겹치지 않게. 서쪽 화단은 관목이 가림)
+      async begin() {
+        $('#bday-start').click();
+        await waitFor(() => shown('#bdayhud') && y.bday?.state === 'play');
+        settle(10);
+        const B = y.bday, n = ROAD, s0 = 32, at = (s) => [-76.3 + n[0] * s, -318 + n[1] * s];
+        await ensure(...at(s0 + 25));
+        pl.teleport(...at(s0), null);
+        pl.heading = Math.atan2(n[0], -n[1]);
+        pl.actor.holder.rotation.y = pl.heading;
+        // 발자취: 주인공 뒤로 곧게 7 m, 친구는 그 위에 줄지어(bdaygame.js GAP0 1.1 · GAP 0.95)
+        B.trail.reset(G(...at(s0 - 7)));
+        for (let d = -6.75; d < 0; d += 0.25) B.trail.push(G(...at(s0 + d)));
+        B.trail.push(pl.pos);
+        B.friends.forEach((f, k) => {
+          f.got = true; f.order = k; f.w = 1; f.a.stand = 'idle';
+          f.s = B.trail.head - 1.1 - k * 0.95;
+          B.trail.at(f.s, f.a.holder.position);
+        });
+        B.drawHud(true);
+        key('ShiftLeft', true); key('KeyW', true);
+        await untilDo(() => false, 36);                              // 뛰는 빠르기에 오를 때까지
+      },
+      tick(u) {
+        const B = y.bday, n = ROAD, p = pl.pos, f = new V(n[0], 0, -n[1]), w = new V(-n[1], 0, -n[0]);     // 앞 · 서쪽(-w: 동쪽)
+        walkCam(p.clone().addScaledVector(f, 4.0).addScaledVector(w, -3.3).setY(p.y + 2.2), p.clone().addScaledVector(f, -2.4).setY(p.y + 0.9), 44);
+        if (u > 0.5 && !this.said) { this.said = true; const q = B.friends[1]; B.say(q.a.holder, q.top, '분수에 빠뜨리러 가자!', B.t); }
+      },
+      end() { key('ShiftLeft', false); key('KeyW', false); pl.camOverride = null; } },
   ];
   seg.games = {
     n: Math.round(GAMES.length * GAME_T * FPS),
@@ -479,18 +601,21 @@
   // ---------------------------------------------------------------- 사진과 게임: 같은 시점에서 나란히
   // 왼쪽에 사진, 오른쪽에 같은 크기의 창으로 게임. 게임의 카메라는 사진에 맞춘 것(tools/snapshots.json 의 compare/*,
   // 독수리상 · 용재 동상은 여기서 맞춤)이고, 창이 사진과 같은 비율이라 창 안에 사진의 화면이 그대로 들어간다
-  const EAGLE = [-67.95, -161.78], YJ = [-38.26, -27.34];
+  const EAGLE_C = [-67.95, -161.78], YJ = [-38.26, -27.34];
   const CMP = [
     { key: 'eagle', name: '독수리상', note: '1970년, 학생들의 모금으로 세운 연세의 상징', photo: '1971년 · 공유마당', file: 'reference/1971_독수리상_공유마당.jpg', size: [1254, 1600], t: 5.5,
       // 동쪽 조금 남쪽 42 m 에서, 기둥을 화면 왼쪽에 두고
-      cam: () => { const a = -12 * Math.PI / 180, D = 42, g = ground(...EAGLE), d = [-Math.cos(a), -Math.sin(a)], r = [d[1], -d[0]];
-        return { x: EAGLE[0] - d[0] * D, y: EAGLE[1] - d[1] * D, h: ground(EAGLE[0] - d[0] * D, EAGLE[1] - d[1] * D) + 1.6, tx: EAGLE[0] + r[0] * 5.0, ty: EAGLE[1] + r[1] * 5.0, th: g + 5.2, fov: 27 }; } },
+      cam: () => { const a = -12 * Math.PI / 180, D = 42, g = ground(...EAGLE_C), d = [-Math.cos(a), -Math.sin(a)], r = [d[1], -d[0]];
+        return { x: EAGLE_C[0] - d[0] * D, y: EAGLE_C[1] - d[1] * D, h: ground(EAGLE_C[0] - d[0] * D, EAGLE_C[1] - d[1] * D) + 1.6, tx: EAGLE_C[0] + r[0] * 5.0, ty: EAGLE_C[1] + r[1] * 5.0, th: g + 5.2, fov: 27 }; } },
     { key: 'uw', name: '언더우드 동상', note: '언더우드관 앞 정원에서 두 팔 벌려 맞이하는', photo: '2009년 · Wikimedia Commons', file: 'docs/compare/underwood_statue_photo.jpg', size: [717, 1365], t: 5.5, season: 'spring',
       cam: () => ({ x: 52.83, y: 184.65, h: 44.73, tx: 50.75, ty: 193.75, th: 45.41, fov: 18.53 }) },
     { key: 'yj', name: '용재 동상', note: '중앙도서관 앞, 초대 총장 용재 백낙준', photo: '2007년 · 연세춘추', file: 'reference/연세춘추/2007-03-24_10503_874_2738_5018.jpg', size: [290, 436], t: 5.5, season: 'spring',
       // 동상은 남쪽(방위 195°)을 봄: 정면 조금 서쪽 15 m 에서 망원으로 올려다봄
       cam: () => { const f = [-0.259, -0.966], w = [-0.966, 0.259], g = ground(...YJ), x = YJ[0] + f[0] * 15 + w[0] * 3.2, yy = YJ[1] + f[1] * 15 + w[1] * 3.2;
         return { x, y: yy, h: ground(x, yy) + 1.5, tx: YJ[0], ty: YJ[1], th: g + 2.35, fov: 19.2 }; } },
+    { key: 'oesol', name: '외솔 흉상', note: '노천극장 가는 길목, 1994년에 세운 한글학자 외솔 최현배의 얼굴상', photo: '2007년 · 연세춘추 (외솔관 앞으로 옮긴 뒤)', file: 'docs/compare/oesol_bust_photo.jpg', size: [508, 374], t: 5.5, season: 'spring',
+      // tools/snapshots.json compare/oesol_bust: 흉상 정면 4 m 에서 망원으로
+      cam: () => ({ x: 100.14, y: 168.96, h: 47.85, tx: 104.0, ty: 170.0, th: 47.85, fov: 11.1 }) },
     { key: 'gate', name: '정문', photo: '1996년 8월 · 서울연구원', file: 'docs/compare/gate_photo.jpg', size: [1350, 903], t: 3.4, near: 38,
       cam: () => ({ x: -128.06, y: -468.52, h: 31.76, tx: -112.42, ty: -394.14, th: 29.92, fov: 18.54 }) },
     { key: 'road', name: '백양로', photo: '1999년 봄 항공 사진', file: 'docs/compare/baekyangro_photo.jpg', size: [1413, 900], t: 3.4,

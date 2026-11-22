@@ -1,6 +1,6 @@
 ---
 name: intro-video
-description: 게임 소개 영상(약 3분, 1920 × 1080)을 지금 게임으로 다시 찍는다. 장면은 tools/trailer/intro_segments.js, 녹화는 intro.mjs(프레임) · intro_audio.mjs(게임의 소리), 잇기 · 배경 음악은 intro_video.py. 신촌 로터리에서 정문까지 날아가기, 대자보, 벚꽃 · 낙엽, 주인공 열세 명, 사진과 게임의 대비, 활천대 · 농구장, 쪽지, 미니 게임, 참고 자료 통계 · 출처 · 제보 · Thanks to. 「소개 영상 다시 찍어줘」, 「영상에 장면 더해줘」, 「치지직에 올릴 영상」, 게임을 크게 고친 뒤 영상을 맞출 때 쓴다.
+description: 게임 소개 영상(약 3분, 1920 × 1080)을 지금 게임으로 다시 찍는다. 장면은 tools/trailer/intro_segments.js, 녹화는 intro.mjs(프레임) · intro_audio.mjs(게임의 소리), 잇기 · 배경 음악은 intro_video.py. 신촌 로터리에서 정문 · 백양로를 지나 독수리상까지 날아가 한 바퀴 돌고 성구의 걷는 화면으로 내려오기, 대자보, 벚꽃 · 낙엽, 주인공 열세 명, 사진과 게임의 대비(동상 · 흉상 · 건물), 활천대 생일(「고마워!」까지) · 농구장, 쪽지, 미니 게임, 참고 자료 통계 · 출처 · 제보 · Thanks to. 「소개 영상 다시 찍어줘」, 「영상에 장면 더해줘」, 「치지직에 올릴 영상」, 게임을 크게 고친 뒤 영상을 맞출 때 쓴다.
 ---
 
 # 소개 영상
@@ -54,11 +54,13 @@ description: 게임 소개 영상(약 3분, 1920 × 1080)을 지금 게임으로
    - 미니 게임마다 카운트다운이 아니라 플레이 화면이 나오는지, 쪽지가 벽 · 기둥에 붙는지
    - 소리: `ffmpeg -i trailer/intro.mp4 -af volumedetect -f null -` 로 크기(평균 −20 dB 안팎), 구간마다의 크기는 `intro_video.py` 가 쓴 `$W/take/intro.wav` 로
 8. **커밋한다.** 영상은 git 밖이다. 고친 `tools/trailer/intro*` 와 이 스킬, README(통계를 고쳤으면)만 커밋한다(`/shared-commit`).
-9. **올릴 글을 준비한다.** 제목 · 설명 · 구간 시각(6 의 출력에서)을 `trailer/intro_upload.txt`(git 밖)에 적고, 썸네일을 뽑는다(`ffmpeg -ss 3 -i trailer/intro.mp4 -frames:v 1 trailer/intro_thumb.jpg`). 치지직 스튜디오(`studio.chzzk.naver.com`)는 Chrome 확장이 막아 두었고 파일 올리기도 10 MB 까지라, 올리는 일은 사용자가 한다.
+9. **올릴 글을 준비한다.** 제목 · 설명 · 구간 시각(6 의 출력에서)을 `trailer/intro_upload.txt`(git 밖)에 적고, 썸네일을 찍는다(언더우드관과 정원: `node tools/trailer/intro.mjs $W/take --seg thumb && cp $W/take/thumb/00000.jpg trailer/intro_thumb.jpg`. `extra: true` 인 장면이라 전체 녹화에는 들지 않는다). 치지직 스튜디오(`studio.chzzk.naver.com`)는 Chrome 확장이 막아 두었고 파일 올리기도 10 MB 까지라, 올리는 일은 사용자가 한다.
 
 ## 장면을 고칠 때
 
 - 장면 하나 = `seg.<이름> = { n, season?, files?, init(arg), step(i, t) }`. `step` 이 카메라 · 자막을 놓고 `step()`(게임 한 프레임)을 부른다. 끝나는 때가 정해지지 않은 장면은 `{ done: true }` 를 돌려준다. `{ mark: '이름' }` 은 `meta.json` 에 남아 `intro_video.py` 의 `CLIPS` 가 그 때로 자른다(활천대 생일 장면).
+- 한 장면 안에서 날아가기 → 걷기로 바꿀 때(`fly`): `step` 안에서 `await toWalk(...)` 하고(그동안 프레임은 저장되지 않음), `walkCam` 으로 앞의 카메라를 이어 받아 게임의 카메라 자리(`player.js` `behindCamera`, 시야각 66)까지 옮긴 뒤 `pl.camOverride = null` 로 놓아준다.
+- 미니 게임은 게임 화면을 그대로 두되, 다른 장면과 겹치는 곳(생일 축하의 활천대 앞)은 피한다: 생일 축하는 친구 넷을 다 데려온 상태(`y.bday.friends` · `trail`)를 만들어 백양로 보도를 뛰게 한다.
 - 순서 · 길이를 바꾸면 `intro_video.py` 의 `CLIPS` 와 소리의 구간(`span('games')` 등)을 함께 본다.
 - 화면은 CSS 1280 × 720 에 기기 화소 비 1.5 로 찍는다(1920 × 1080). 게임의 창 · 안내 버튼 · 말풍선이 영상에서 읽히게 하려는 것이다. 자막은 1920 × 1080 의 화소로 적는다(`#iv` 가 줄여 놓음).
 - 자막 뒤의 어두운 그라데이션(`.scrim`)은 왼쪽 아래 모서리에만 둔다. 화면 아래 전체를 덮으면 서 있는 사람이 흐려 보인다.

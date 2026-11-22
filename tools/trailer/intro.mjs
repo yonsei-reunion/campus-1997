@@ -88,7 +88,9 @@ const load = async (query = '') => {
 await open();
 await load();
 const all = await page.evaluate(() => Object.keys(window.__iv.seg));
-const names = arg('seg', '') ? arg('seg', '').split(',') : all;
+// (extra: 영상에 넣지 않는 장면, 예 썸네일. --seg 로만)
+const extra = await page.evaluate(() => Object.keys(window.__iv.seg).filter((k) => window.__iv.seg[k].extra));
+const names = arg('seg', '') ? arg('seg', '').split(',') : all.filter((k) => !extra.includes(k));
 const shoot = async (name) => {
   const t0 = Date.now();
   const query = await page.evaluate((n) => window.__iv.seg[n].query || '', name);

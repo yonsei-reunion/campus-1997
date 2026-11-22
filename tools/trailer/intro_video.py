@@ -38,7 +38,7 @@ CLIPS = [
     ('compare', None, None),
     ('birthday', ('t', 0.3), ('mark', 'action', 1.0)),          # 다가가서 「나 오늘 생일이야!」
     ('birthday', ('mark', 'swing', -0.3), ('mark', 'water', 2.4)),   # 흔들어 던짐, 물보라
-    ('birthday', ('mark', 'stand', -0.2), ('mark', 'stand', 1.9)),   # 분수 안에서 일어섬
+    ('birthday', ('mark', 'stand', -0.2), ('mark', 'back', 2.5)),    # 분수에서 나와 「고마워!」
     ('court', ('t', 0.4), None),
     ('memo', None, None),
     ('games', None, None),
