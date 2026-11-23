@@ -345,6 +345,29 @@ async function main() {
     const h = ray.intersectObjects(under, false);
     return h.length ? h[0].point.y : hfNear.height(x, y);
   };
+  // the phone booths: a bank of them (booths within 1.5 m of each other, as by 학생회관 and the gate) stands on one footing
+  // at the mean of the ground under their middles, their roofs in one line; set one by one on the ground under each,
+  // the bank stepped down the slope before 학생회관 (blender/props.py payphone_booth: the footing reaches 0.4 m down)
+  const boothFloor = new Map();
+  const banksLaid = () => {
+    if (boothFloor.size) return;
+    const phones = campus.props.filter((pr) => pr[0] === 'payphone');
+    const bank = phones.map((_, i) => i);
+    const root = (i) => (bank[i] === i ? i : (bank[i] = root(bank[i])));
+    phones.forEach((p, i) => phones.forEach((q, j) => { if (j > i && Math.hypot(p[1] - q[1], p[2] - q[2]) < 1.5) bank[root(j)] = root(i); }));
+    const sum = new Map();
+    phones.forEach((p, i) => { const s = sum.get(root(i)) || [0, 0]; s[0] += groundAt(p[1], p[2]); s[1]++; sum.set(root(i), s); });
+    phones.forEach((p, i) => { const [z, n] = sum.get(root(i)); boothFloor.set(p, z / n); });
+  };
+  // (where a caller stands: the booth's floor inside its walls, the ground elsewhere)
+  const standAt = (x, y) => {
+    banksLaid();
+    for (const [p, z] of boothFloor) {
+      const dx = x - p[1], dy = y - p[2], c = Math.cos(p[3]), s = Math.sin(p[3]);
+      if (Math.abs(dx * c + dy * s) < 0.5 && Math.abs(-dx * s + dy * c) < 0.55) return z;
+    }
+    return groundAt(x, y);
+  };
 
   // ---------------------------------------------------------------- vegetation
   // trees, shrubs and props parsed (and their textures asked for) together, the cast alongside (placed further down)
@@ -414,10 +437,12 @@ async function main() {
       const src = P[kind === 'motorbike' ? 'scooter' : kind];
       if (!src) continue;
       const kit = new InstancedKit(src.scene, lib, list.length, { colors: true });
-      for (const [, x, y, rot] of list) {
+      if (kind === 'payphone') banksLaid();
+      for (const pr of list) {
+        const [, x, y, rot] = pr;
         // Blender models face -Y; campus rotation is the heading in the campus frame
         const col = kind === 'motorbike' ? new THREE.Color(BIKE_PAINT[Math.floor(rnd() * BIKE_PAINT.length)]) : null;
-        kit.add(placeMatrix(m4, x, groundAt(x, y), y, rot + (kind === 'motorbike' ? 0 : Math.PI / 2)), col);
+        kit.add(placeMatrix(m4, x, kind === 'payphone' ? boothFloor.get(pr) : groundAt(x, y), y, rot + (kind === 'motorbike' ? 0 : Math.PI / 2)), col);
         // a bench (1.8 m by 0.62, facing rot): three circles along its length
         if (kind === 'bench') for (const t of [-0.55, 0, 0.55]) colliders.addCircle(x - Math.sin(rot) * t, y + Math.cos(rot) * t, 0.38);
         // a glass notice board (3.8 m by 0.36): five along its length
@@ -575,7 +600,7 @@ async function main() {
       if (booths.length > 1 && i === booths.length - 1) return;        // (one booth free)
       const fx = Math.cos(rot), fy = Math.sin(rot), heading = Math.atan2(-fx, fy);
       const at = (d, side = 0) => { const px = x + fx * d - fy * side, py = y + fy * d + fx * side; return { x: px, y: py, h: groundAt(px, py), heading }; };
-      const on = { ...at(0), phone: true };                           // (the one in the booth: in its middle, pager.js STAND)
+      const on = { ...at(0), h: standAt(x, y), phone: true };                         // (the one in the booth: in its middle, pager.js STAND)
       lines.push(i === Math.floor((booths.length - 1) / 2) && !MOBILE ? [on, at(1.2, 0.1), at(2.05, -0.12)] : [on]);
     });
   }
@@ -1124,7 +1149,7 @@ async function main() {
     pauseButtons: (game) => { $('#pager-go').hidden = game; $('#pager-quit').hidden = !pager?.on; } };
   games.push(pagerGame);
   const loadPager = () => (pagerLoad ||= import('./pager.js').then(({ Pager }) => (pager = new Pager({
-    scene, camera, player, cast, crowd, sound, groundAt, ensure: (x, y) => chunks.ensure(x, y), shadows, blobs, mobile: MOBILE,
+    scene, camera, player, cast, crowd, sound, groundAt: standAt, ensure: (x, y) => chunks.ensure(x, y), shadows, blobs, mobile: MOBILE,
     booths: campus.props.filter((pr) => pr[0] === 'payphone'), buildings: campus.buildings, places: places.filter((p) => !NORTH.includes(p.name)),
     onBegin: (msg) => {
       if (bird.active) leaveBird();
