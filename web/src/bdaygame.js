@@ -13,7 +13,7 @@ import { lineTime } from './talk.js';
 import { tallOf } from './who.js';
 import { safeGet, safeSet, wrapAngle } from './util.js';
 import './bdaygame.css';
-import { Run, RankBox } from './rank.js';
+import { Run, mountRankBox } from './rank.js';
 import { BDAY, pickHalls } from './rankrules.js';
 
 // (rankrules.js, which the ranking's server judges by) N friends to bring within LIMIT s; one within NEAR m can be
@@ -491,8 +491,8 @@ export class BdayGame {
       big.textContent = fmt(rec.time);
       const top = rank === 1;
       be.textContent = top
-        ? (prev ? `새 기록! ${Math.round(prev.time - rec.time)}초 앞당김 · 친구 ${rec.n}명과 함께` : `첫 기록! 친구 ${rec.n}명과 함께 축하했어요`)
-        : `이 브라우저 ${rank}위 (${total}번 가운데) · 최고 ${fmt(prev.time)}`;
+        ? (prev ? `내 새 기록! ${Math.round(prev.time - rec.time)}초 앞당김 · 친구 ${rec.n}명과 함께` : `첫 기록! 친구 ${rec.n}명과 함께 축하했어요`)
+        : `내 기록 ${rank}번째 (${total}번 가운데) · 내 최고 ${fmt(prev.time)}`;
       be.classList.toggle('new', top);
     } else {
       big.textContent = '시간 초과';
@@ -510,7 +510,7 @@ export class BdayGame {
       li.querySelector('.t').textContent = fmt(r.time);
       return li;
     }));
-    if (!this.rankBox) { this.rankBox = new RankBox(); el.querySelector('.ranks').after(this.rankBox.el); }
+    if (!this.rankBox) { this.rankBox = mountRankBox(el.querySelector('.ranks')); }
     this.rankBox.el.hidden = !info.ok;
     if (info.ok) this.rankBox.set(this.run, { hero: info.rec.hero, heroName: HERO[info.rec.hero]?.name ?? '' });
     if (this.hud) this.hud.el.hidden = true;

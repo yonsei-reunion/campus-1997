@@ -6,6 +6,7 @@
 .rankbox h3 { margin: 0 0 4px; font: 700 14px var(--font, sans-serif); color: var(--mint-ink, #0e6f6b); }
 .rankbox h3 small { margin-left: 4px; font-weight: 400; font-size: 11px; color: #6b7280; }
 .rankbox .rk-msg { margin: 0 0 6px; font-size: 13px; color: #5c6572; min-height: 1.4em; }
+.rankbox .rk-msg:empty { display: none; }
 .rankbox .rk-msg.good { color: #c0392b; font-weight: 700; }
 .rankbox .rk-msg.off { color: #6b7280; }
 .rankbox .rk-form { display: flex; gap: 6px; margin: 0 0 8px; }
@@ -30,3 +31,5 @@
   display: block; width: auto; margin: 6px 0 0; padding: 0; border: 0; background: none; color: var(--mint-ink, #0e6f6b);
   font: 700 12px var(--font, sans-serif); text-decoration: underline; cursor: pointer; }
 :is(#shootresult, #raceresult, #pqresult, #classresult, #bdayresult, #pagerresult, #cheerresult, body) .rankbox .rk-more[hidden] { display: none; }
+/* the heading over a card's own list of this browser's rounds, below the box (mountRankBox) */
+.rk-mine { margin: 2px 0 4px; font: 700 13px var(--font, sans-serif); color: #6b7280; text-align: left; }

@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { HERO } from './characters.js';
 import { safeGet, safeSet, wrapAngle, versioned, copyButton } from './util.js';
 import './photoquiz.css';
-import { Run, RankBox } from './rank.js';
+import { Run, mountRankBox } from './rank.js';
 import { PHOTO, photoScore, pickPhotos } from './rankrules.js';
 
 // (rankrules.js, which the ranking's server judges by) ROUND photos a round, LIMIT s for one (then the answer is taken
@@ -361,8 +361,8 @@ export class PhotoQuiz {
     r.querySelector('.big').textContent = `${rec.score.toLocaleString('ko-KR')}점`;
     const be = r.querySelector('.best'), top = rank === 1;
     be.textContent = top
-      ? (prev ? `새 기록! ${(rec.score - prev.score).toLocaleString('ko-KR')}점 올림` : `첫 기록! (${ROUND * (POS + DIR)}점 만점)`)
-      : `이 브라우저 ${rank}위 (${total}번 가운데) · 최고 ${prev.score.toLocaleString('ko-KR')}점`;
+      ? (prev ? `내 새 기록! ${(rec.score - prev.score).toLocaleString('ko-KR')}점 올림` : `첫 기록! (${ROUND * (POS + DIR)}점 만점)`)
+      : `내 기록 ${rank}번째 (${total}번 가운데) · 내 최고 ${prev.score.toLocaleString('ko-KR')}점`;
     be.classList.toggle('new', top);
     const byId = new Map(this.items.map((q) => [q.id, q]));
     r.querySelector('.each').replaceChildren(...rec.items.map((x) => {
@@ -376,7 +376,7 @@ export class PhotoQuiz {
       li.append(el('span', 'n', `${i + 1}`), el('span', 'w', `${HERO[x.hero]?.name ?? ''} · ${day(x.at)}`), el('span', 'p', x.score.toLocaleString('ko-KR')));
       return li;
     }));
-    if (!this.rankBox) { this.rankBox = new RankBox(); r.querySelector('.ranks').after(this.rankBox.el); }
+    if (!this.rankBox) { this.rankBox = mountRankBox(r.querySelector('.ranks')); }
     this.rankBox.set(this.run, { hero: rec.hero, heroName: HERO[rec.hero]?.name ?? '' });
     r.hidden = false;
     r.querySelector('.again').focus({ preventScroll: true });

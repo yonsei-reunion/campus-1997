@@ -1068,14 +1068,14 @@ async function main() {
   $('#shoot-start').addEventListener('click', startShoot);
   $('#shoot-go').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); startShoot(); });
   $('#shoot-quit').addEventListener('click', (e) => { e.stopPropagation(); shootout?.stop(); });
-  // this browser's ranking of the game, from the title card and the pause card (src/shootrecords.js, loaded when opened)
+  // the game's ranking (the server's, then this browser's records), from the title card and the pause card
+  // (src/shootrecords.js, loaded when opened); the title card shows this browser's best
   const shootBest = () => {
     let list;
     try { list = JSON.parse(safeGet('y97-shoot-records') || '[]'); } catch { list = []; }
     if (!Array.isArray(list)) list = [];
     const best = Math.max(0, +(safeGet('y97-shoot-best') || 0), ...list.map((r) => +r?.makes || 0));
-    $('#shoot-best').textContent = best ? `최고 기록 ${best}골` : '';
-    $('#shoot-rank').hidden = $('#rank-pause').hidden = !(best || list.length);
+    $('#shoot-best').textContent = best ? `내 최고 ${best}골` : '';
   };
   shootBest();
   const openRanking = (e) => { e.stopPropagation(); e.currentTarget.blur(); import('./shootrecords.js').then((R) => R.openRanking({ onChange: shootBest })); };

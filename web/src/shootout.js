@@ -14,7 +14,7 @@ import { lineTime } from './talk.js';
 import { wrapAngle, copyButton, gameUrl } from './util.js';
 import { tallOf } from './who.js';
 import * as Records from './shootrecords.js';
-import { Run, RankBox } from './rank.js';
+import { Run, mountRankBox, lastName } from './rank.js';
 
 const FRIEND = 'p05';              // 줄무늬 티 · 갈색 머리: a student you never walk as
 // ... but 승민 and 서연 (characters.js HERO: the two of 건축학개론) feed each other
@@ -363,7 +363,7 @@ export class Shootout {
     pl.enabled = false;                    // (behind the results card)
     const prev = Records.load()[0]?.makes ?? 0;
     const rec = { id: Date.now(), at: Date.now(), makes: this.makes, shots: this.shots, threes: this.threes, perfect: this.perfect,
-      hero: pl.actor.id, view: pl.fpv ? 'first' : 'third', name: Records.lastName() };
+      hero: pl.actor.id, view: pl.fpv ? 'first' : 'third', name: lastName() };
     const { rank, total } = Records.add(rec);
     const top = this.makes > prev && this.makes > 0;
     this.say(top ? `${this.makes}골! 신기록이다!` : rank <= 3 && total > 3 ? `${this.makes}골, ${rank}등이야!` : this.makes >= 10 ? `${this.makes}골! 잘하는데?` : '수고했어! 한 번 더?', 0.1);
@@ -378,8 +378,7 @@ export class Shootout {
       el = this.resEl = document.createElement('div');
       el.id = 'shootresult';
       el.innerHTML = '<div><h2>1분 슛 게임</h2><p class="big"></p><p class="detail"></p><p class="best"></p>'
-        + '<label class="name">이름 <input type="text" maxlength="12" enterkeyhint="done" autocomplete="off" spellcheck="false" /></label>'
-        + '<div class="ranks"></div><div class="rankslot"></div>'
+        + '<div class="ranks"></div>'
         + '<div class="btns"><button type="button" class="again">다시 하기</button><button type="button" class="quit">그만하고 산책하기</button><button type="button" class="quit totitle" data-to-title>처음 화면으로</button></div>'
         + '<p class="link"><button type="button" class="all">순위 전체 보기</button><button type="button" class="copy">게임 주소 복사</button>'
         + '<br>이 주소로 친구와 겨뤄 보세요 <code></code></p></div>';
@@ -388,24 +387,20 @@ export class Shootout {
       el.querySelector('.quit').addEventListener('click', (e) => { e.currentTarget.blur(); this.stop(); });
       el.querySelector('.all').addEventListener('click', () => Records.openRanking({ mark: this.rec?.id, onChange: () => this.drawRanks() }));
       copyButton(el.querySelector('.copy'), gameUrl);
-      const name = el.querySelector('.name input');
-      name.addEventListener('input', () => { if (this.rec) { Records.rename(this.rec.id, name.value); this.drawRanks(); } });
-      name.addEventListener('keydown', (e) => { if (e.key === 'Enter') name.blur(); });
-      this.rankBox = new RankBox();
-      el.querySelector('.rankslot').replaceWith(this.rankBox.el);
+      this.rankBox = mountRankBox(el.querySelector('.ranks'));
     }
     this.rec = info.rec;
     const pct = this.shots ? Math.round((100 * this.makes) / this.shots) : 0;
     el.querySelector('.big').innerHTML = `${this.makes}<small>골</small>`;
     el.querySelector('.detail').textContent = `슛 ${this.shots}번 · 성공률 ${pct}%${this.threes ? ` · 3점슛 ${this.threes}개` : ''}${this.perfect ? ` · 완벽한 타이밍 ${this.perfect}번` : ''}`;
     const be = el.querySelector('.best');
-    be.textContent = info.top ? '새 기록! 이 브라우저 1위' : `이 브라우저 ${info.rank}위 (${info.total}판 가운데)`;
+    be.textContent = info.top ? '내 새 기록!' : `내 기록 ${info.rank}번째 (${info.total}판 가운데)`;
     be.classList.toggle('new', !!info.top);
-    const name = el.querySelector('.name input');
-    name.value = info.rec.name || '';
-    name.placeholder = Records.who({ hero: info.rec.hero });
     this.drawRanks();
-    this.rankBox.set(this.run, { hero: info.rec.hero, heroName: info.rec.name || HERO[info.rec.hero]?.name || '' });
+    // the one name of the card is the box's: the name a round goes up under is this browser's record's too
+    const rec = info.rec;
+    this.rankBox.set(this.run, { hero: rec.hero, heroName: HERO[rec.hero]?.name || '',
+      onName: (n) => { Records.rename(rec.id, n); if (this.rec === rec) this.drawRanks(); } });
     el.querySelector('.link code').textContent = gameUrl();
     el.hidden = false;
     el.querySelector('.again').focus({ preventScroll: true });

@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { HERO } from './characters.js';
 import { safeGet, safeSet, wrapAngle } from './util.js';
 import './timetable.css';
-import { Run, RankBox } from './rank.js';
+import { Run, mountRankBox } from './rank.js';
 import { classBoard, CLASS } from './rankrules.js';
 
 import { wayOf, breakOf, SETS, dayKey, setOf, legsOf, todaySet } from './timetables.js';
@@ -148,7 +148,7 @@ export class Timetable {
       li.querySelector('b').textContent = s.name;
       li.querySelector('.desc').textContent = s.classes.map(([, h]) => h).join(' → ');
       const m = s.classes.slice(1).reduce((a, [, h], k) => a + wayOf(s.classes[k][1], h), 0);
-      li.querySelector('.meta').textContent = `약 ${Math.round(m / 10) * 10} m · 쉬는 시간 셋${best ? ` · 최고 ${fmt(best.time)}${best.late ? ` (지각 ${best.late})` : ''}` : ''}`;
+      li.querySelector('.meta').textContent = `약 ${Math.round(m / 10) * 10} m · 쉬는 시간 셋${best ? ` · 내 최고 ${fmt(best.time)}${best.late ? ` (지각 ${best.late})` : ''}` : ''}`;
       li.querySelector('button').addEventListener('click', (e) => { e.currentTarget.blur(); this.closePicker(); this.start(s.id); });
       return li;
     }));
@@ -486,8 +486,8 @@ export class Timetable {
     el.querySelector('.big').classList.toggle('late', rec.late > 0);
     const be = el.querySelector('.best'), top = rank === 1;
     be.textContent = `${fmt(rec.time)} · ${top
-      ? (prev ? '새 기록!' : '첫 기록!')
-      : `이 브라우저 ${rank}위 (${total}번 가운데)`}${this.easy ? ` · 조감도 ${rec.peeks}번` : ''}`;
+      ? (prev ? '내 새 기록!' : '첫 기록!')
+      : `내 기록 ${rank}번째 (${total}번 가운데)`}${this.easy ? ` · 조감도 ${rec.peeks}번` : ''}`;
     be.classList.toggle('new', top);
     el.querySelector('.legs').replaceChildren(...this.splits.map((t, i) => {
       const tr = document.createElement('tr'), lim = this.limits[i];
@@ -509,7 +509,7 @@ export class Timetable {
       li.querySelector('.t').textContent = `${fmt(r.time)}${r.late ? ` · 지각 ${r.late}` : ''}`;
       return li;
     }));
-    if (!this.rankBox) { this.rankBox = new RankBox(); el.querySelector('.ranks').after(this.rankBox.el); }
+    if (!this.rankBox) { this.rankBox = mountRankBox(el.querySelector('.ranks')); }
     this.rankBox.set(this.run, { hero: rec.hero, heroName: HERO[rec.hero]?.name ?? '' });
     el.hidden = false;
     el.querySelector('.again').focus({ preventScroll: true });

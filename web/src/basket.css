@@ -51,9 +51,6 @@ body.shootout #blabels { display: none !important; }
 #shootresult .big small { font-size: 26px; margin-left: 4px; }
 #shootresult .detail { margin: 0 0 8px; font-size: 14px; color: #34404f; line-height: 1.6; }
 #shootresult .best { margin: 0 0 10px; font-weight: 700; font-size: 15px; }
-#shootresult .name { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 10px; font-size: 13px; font-weight: 700; color: #5c6572; }
-#shootresult .name input { width: 11em; border: 2px solid var(--ink, #16202e); border-radius: 8px; padding: 5px 10px; font: 700 15px var(--font, sans-serif);
-  color: var(--ink, #16202e); background: #fff; text-align: center; }
 #shootresult .ranks { margin: 0 0 14px; }
 #shootresult .best.new { color: #c0392b; }
 #shootresult .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

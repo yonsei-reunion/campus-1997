@@ -1,9 +1,11 @@
 // 1분 슛 게임의 기록: every game played in this browser, kept in localStorage (best first, up to MAX), and the ranking
-// table the results card (shootout.js), the title card and the pause card (main.js) show. Nothing leaves the browser.
+// table the results card (shootout.js), the title card and the pause card (main.js) show. These records stay in the
+// browser; the ranking window shows the whole ranking of the server (rank.js) above them.
 // A record: { id, makes, shots, threes, perfect, hero (characters.js id), view ('first' | 'third'), name, at (ms) }.
 // Loaded with the game, or when a ranking is opened (main.js), not with the page.
 import { HERO } from './characters.js';
 import { safeGet, safeSet } from './util.js';
+import { RankBox } from './rank.js';
 import './records.css';
 
 export const KEY = 'y97-shoot-records';
@@ -90,15 +92,19 @@ export function table(list, { mark = null, limit = SHOW } = {}) {
   return t;
 }
 
-// the whole ranking over everything (the title card, the pause card, the results card's 「순위 전체」)
-let panel = null;
+// the ranking window (the title card, the pause card, the results card's 「순위 전체」): the server's board of the
+// game, then this browser's records
+let panel = null, board = null;
 export function openRanking({ mark = null, onChange = null } = {}) {
   if (!panel) {
     panel = document.createElement('div');
     panel.id = 'shootrank';
-    panel.innerHTML = '<div role="dialog" aria-label="1분 슛 게임 순위"><h2>1분 슛 게임 순위</h2><p class="sub">이 브라우저에 저장된 기록이에요</p>'
-      + '<div class="tbl"></div><div class="btns"><button type="button" class="clear">기록 지우기</button><button type="button" class="close">닫기</button></div></div>';
+    panel.innerHTML = '<div role="dialog" aria-label="1분 슛 게임 순위"><h2>1분 슛 게임 순위</h2><div class="board"></div>'
+      + '<h3 class="rk-mine"></h3>'
+      + '<div class="tbl"></div><div class="btns"><button type="button" class="clear">내 기록 지우기</button><button type="button" class="close">닫기</button></div></div>';
     document.body.appendChild(panel);
+    board = new RankBox();
+    panel.querySelector('.board').replaceWith(board.el);
     const close = () => { panel.hidden = true; };
     panel.addEventListener('click', (e) => { if (e.target === panel) close(); });
     panel.querySelector('.close').addEventListener('click', close);
@@ -112,11 +118,11 @@ export function openRanking({ mark = null, onChange = null } = {}) {
     wipe.addEventListener('click', () => {
       if (!wipe.classList.contains('ask')) {
         wipe.classList.add('ask'); wipe.textContent = '한 번 더 누르면 모두 지워요';
-        clearTimeout(wipe._t); wipe._t = setTimeout(() => { wipe.classList.remove('ask'); wipe.textContent = '기록 지우기'; }, 3000);
+        clearTimeout(wipe._t); wipe._t = setTimeout(() => { wipe.classList.remove('ask'); wipe.textContent = '내 기록 지우기'; }, 3000);
         return;
       }
       clear();
-      wipe.classList.remove('ask'); wipe.textContent = '기록 지우기';
+      wipe.classList.remove('ask'); wipe.textContent = '내 기록 지우기';
       fill();
       panel._onChange?.();
     });
@@ -125,10 +131,11 @@ export function openRanking({ mark = null, onChange = null } = {}) {
     const list = load(), box = panel.querySelector('.tbl');
     box.replaceChildren(table(list, { mark: panel._mark, limit: 20 }));
     panel.querySelector('.clear').hidden = !list.length;
-    panel.querySelector('.sub').textContent = list.length ? `이 브라우저에 저장된 기록 ${list.length}판` : '이 브라우저에 저장된 기록이에요';
+    panel.querySelector('.rk-mine').textContent = `내 기록 (이 브라우저)${list.length ? ` · ${list.length}판` : ''}`;
   };
   panel._mark = mark; panel._onChange = onChange;
   fill();
+  board.view('shoot');
   panel.hidden = false;
   panel.querySelector('.close').focus({ preventScroll: true });
 }

@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import { HERO, play } from './characters.js';
 import { safeGet, safeSet, wrapAngle } from './util.js';
 import './pager.css';
-import { Run, RankBox } from './rank.js';
+import { Run, mountRankBox } from './rank.js';
 import { PAGER, callLimit, meetLimit, pickMeet } from './rankrules.js';
 
 const { PAGES } = PAGER;           // (rankrules.js: the ranking's server judges by the same)
@@ -651,8 +651,8 @@ export class Pager {
     el.querySelector('.big').textContent = `${rec.score}점`;
     el.querySelector('.sub').textContent = `${all ? `${PAGES}통 모두 걸었어요` : `${rec.calls}통 걸고 시간이 다 됐어요`} · 숫자 암호 ${rec.right}개 맞힘`;
     const be = el.querySelector('.best'), top = rank === 1;
-    be.textContent = !rank ? '다음엔 한 통이라도 걸어 봐요' : top ? (prev ? `새 기록! 전 최고 ${prev.score}점` : '첫 기록!')
-      : `이 브라우저 ${rank}위 (${total}판 가운데) · 최고 ${prev.score}점`;
+    be.textContent = !rank ? '다음엔 한 통이라도 걸어 봐요' : top ? (prev ? `내 새 기록! 전 최고 ${prev.score}점` : '첫 기록!')
+      : `내 기록 ${rank}번째 (${total}판 가운데) · 내 최고 ${prev.score}점`;
     be.classList.toggle('new', top);
     el.querySelector('.ranks').replaceChildren(...records().slice(0, 5).map((r, i) => {
       const li = document.createElement('li');
@@ -663,7 +663,7 @@ export class Pager {
       li.querySelector('.t').textContent = `${r.score}점`;
       return li;
     }));
-    if (!this.rankBox) { this.rankBox = new RankBox(); el.querySelector('.ranks').after(this.rankBox.el); }
+    if (!this.rankBox) { this.rankBox = mountRankBox(el.querySelector('.ranks')); }
     this.rankBox.el.hidden = !rec.score;
     if (rec.score) this.rankBox.set(this.run, { hero: rec.hero, heroName: HERO[rec.hero]?.name ?? '' });
     el.hidden = false;

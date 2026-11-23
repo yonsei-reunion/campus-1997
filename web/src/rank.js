@@ -187,11 +187,16 @@ export async function fetchTop(board) {
 
 export const lastName = () => safeGet(NAME) || safeGet('y97-shoot-name') || '';
 
-const day = (s) => { const m = String(s || '').match(/^\d{4}-(\d\d)-(\d\d)/); return m ? `${+m[1]}/${+m[2]}` : ''; };
+// created_at is the server's UTC: shown as this browser's date (a Korean morning is the day after UTC's evening)
+const day = (s) => {
+  const d = new Date(`${String(s || '').replace(' ', 'T')}Z`);
+  return Number.isNaN(d.getTime()) ? '' : `${d.getMonth() + 1}/${d.getDate()}`;
+};
 const parse = (s) => { try { return JSON.parse(s || '{}'); } catch { return {}; } };
 
 // ---------------------------------------------------------------- the box on a results card
-// new RankBox() once per card (append box.el where it goes), then box.set(run, { hero, heroName }) for each round
+// new RankBox() once per card (append box.el where it goes, or mountRankBox), then box.set(run, { hero, heroName })
+// for each round; box.view(board) shows a board alone (no round, no form)
 export class RankBox {
   constructor() {
     const el = this.el = document.createElement('section');
@@ -211,8 +216,27 @@ export class RankBox {
     this.more.addEventListener('click', () => { this.all = !this.all; this.draw(); });
   }
 
-  async set(run, { hero = '', heroName = '' } = {}) {
-    this.run = run; this.hero = hero; this.all = false; this.mark = null; this.rows = null;
+  // the board without a round of this browser (the ranking window of the title card and the pause card)
+  async view(board) {
+    const run = this.run = { board, game: parseBoard(board)?.game, ranked: false };
+    this.all = true; this.mark = null; this.rows = null; this.onName = null;
+    this.el.querySelector('h3 small').textContent = `${boardTitle(board)} · ${TOP}위까지`;
+    this.form.hidden = true;
+    this.say('순위를 읽는 중…');
+    this.draw();
+    try {
+      this.rows = await fetchTop(board);
+      if (this.run === run) this.say('');
+    } catch {
+      this.rows = [];
+      if (this.run === run) this.say('순위를 읽지 못했어요', 'off');
+    }
+    if (this.run === run) this.draw();
+  }
+
+  // onName(name): called with the name a round went up under (a game keeps it on its own record too)
+  async set(run, { hero = '', heroName = '', onName = null } = {}) {
+    this.run = run; this.hero = hero; this.all = false; this.mark = null; this.rows = null; this.onName = onName;
     const board = run?.board;
     this.el.querySelector('h3 small').textContent = board ? `${boardTitle(board)} · ${TOP}위까지` : '';
     this.form.hidden = true;
@@ -254,6 +278,7 @@ export class RankBox {
     try {
       const out = await run.submit(name, this.hero);
       if (this.run !== run) return;
+      this.onName?.(name);
       this.form.hidden = true;
       if (out.rank) {
         this.rows = out.top; this.mark = out.sid;
@@ -296,4 +321,16 @@ export class RankBox {
     this.more.hidden = rows.length <= 5;
     this.more.textContent = this.all ? '다섯 위까지만 보기' : `${TOP}위까지 모두 보기 (${rows.length}명)`;
   }
+}
+
+// the box on a results card, above the card's own list of this browser's rounds (`mine`), which gets the heading
+// 「내 기록」 (a heading already there just before it is reused)
+export function mountRankBox(mine) {
+  const box = new RankBox();
+  let head = mine.previousElementSibling;
+  if (head?.tagName !== 'H3') { head = document.createElement('h3'); mine.before(head); }
+  head.className = 'rk-mine';
+  head.textContent = '내 기록 (이 브라우저)';
+  head.before(box.el);
+  return box;
 }

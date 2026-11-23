@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { HERO, STUDENTS, crowdLook, locomotion } from './characters.js';
 import { safeGet, safeSet, wrapAngle } from './util.js';
 import './race.css';
-import { Run, RankBox } from './rank.js';
+import { Run, mountRankBox } from './rank.js';
 import { raceBoard, RACE } from './rankrules.js';
 
 import { COURSES, courseOf, lineOf, lengthOf } from './courses.js';
@@ -144,7 +144,7 @@ export class Race {
       li.innerHTML = `<button type="button"><b></b><span class="desc"></span><span class="meta"></span></button>`;
       li.querySelector('b').textContent = c.name;
       li.querySelector('.desc').textContent = c.desc;
-      li.querySelector('.meta').textContent = `약 ${Math.round(lengthOf(c) / 10) * 10} m · 문 ${c.gates.length - 2}개와 결승${best ? ` · 최고 ${fmt(best.time)}` : ''}`;
+      li.querySelector('.meta').textContent = `약 ${Math.round(lengthOf(c) / 10) * 10} m · 문 ${c.gates.length - 2}개와 결승${best ? ` · 내 최고 ${fmt(best.time)}` : ''}`;
       li.querySelector('button').addEventListener('click', (e) => { e.currentTarget.blur(); this.closePicker(); this.start(c.id); });
       return li;
     }));
@@ -570,8 +570,8 @@ export class Race {
     el.querySelector('.big').textContent = fmt(rec.time);
     const be = el.querySelector('.best'), top = rank === 1;
     be.textContent = top
-      ? (prev ? `새 기록! ${(prev.time - rec.time).toFixed(2)}초 앞당김` : '첫 기록! 다음엔 이 기록과 겨뤄요')
-      : `이 브라우저 ${rank}위 (${total}번 가운데) · 최고 ${fmt(prev.time)}`;
+      ? (prev ? `내 새 기록! ${(prev.time - rec.time).toFixed(2)}초 앞당김` : '첫 기록! 다음엔 이 기록과 겨뤄요')
+      : `내 기록 ${rank}번째 (${total}번 가운데) · 내 최고 ${fmt(prev.time)}`;
     be.classList.toggle('new', top);
     const list = records(this.course.id).slice(0, 5);
     el.querySelector('.ranks').replaceChildren(...list.map((r, i) => {
@@ -583,7 +583,7 @@ export class Race {
       li.querySelector('.t').textContent = fmt(r.time);
       return li;
     }));
-    if (!this.rankBox) { this.rankBox = new RankBox(); el.querySelector('.ranks').after(this.rankBox.el); }
+    if (!this.rankBox) { this.rankBox = mountRankBox(el.querySelector('.ranks')); }
     this.rankBox.set(this.run, { hero: rec.hero, heroName: HERO[rec.hero]?.name ?? '' });
     el.hidden = false;
     el.querySelector('.again').focus({ preventScroll: true });
