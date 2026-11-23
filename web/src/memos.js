@@ -400,6 +400,13 @@ export class Memos {
     this._buildList();
     // Esc: our card first (before main.js: the capture phase)
     addEventListener('keydown', (e) => {
+      // ← →: the note before / after at the same spot (while one is being read)
+      if (!this.readEl.hidden && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        this.step(e.code === 'ArrowLeft' ? -1 : 1);
+        return;
+      }
       if (!this.open || e.code !== 'Escape') return;
       e.stopImmediatePropagation();
       e.preventDefault();
@@ -440,6 +447,7 @@ export class Memos {
     const [root, c] = this._modal('memo-read', 'memo-readcard');
     this.readEl = root;
     c.innerHTML = `<div class="memo-paper big"><p class="text"></p><p class="sign"></p></div>
+      <div class="memo-step" hidden><button type="button" class="prev" aria-label="이전 쪽지">‹ 이전</button><span class="pos"></span><button type="button" class="next" aria-label="다음 쪽지">다음 ›</button></div>
       <p class="memo-meta"></p>
       <p class="memo-share"><button type="button" class="memo-copy" title="이 쪽지가 바로 열리는 주소를 복사해요">쪽지 주소 복사</button></p>
       <p class="memo-wind small">🍃 바람에 날려 언제든 없어질 수 있는 쪽지예요</p>
@@ -448,6 +456,19 @@ export class Memos {
     c.querySelector('.go').addEventListener('click', () => { const n = this._reading; if (!n) return; this.closeAll(); this.onGo(n); });
     c.querySelector('.del').addEventListener('click', () => this._remove());
     copyButton(c.querySelector('.memo-copy'), () => noteUrl(this._reading?.id ?? ''), COPY_FAIL);
+    c.querySelector('.prev').addEventListener('click', () => this.step(-1));
+    c.querySelector('.next').addEventListener('click', () => this.step(1));
+    // a sideways swipe on the paper: the next note (to the left) or the one before
+    const paper = c.querySelector('.memo-paper');
+    let tx = null, ty = 0;
+    paper.addEventListener('touchstart', (e) => { const t = e.touches[0]; tx = e.touches.length === 1 ? t.clientX : null; ty = t.clientY; }, { passive: true });
+    paper.addEventListener('touchend', (e) => {
+      const t = e.changedTouches[0];
+      if (tx === null || !t) return;
+      const dx = t.clientX - tx, dy = t.clientY - ty;
+      tx = null;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) this.step(dx < 0 ? 1 : -1);
+    });
   }
 
   // 쪽지 목록
@@ -542,11 +563,38 @@ export class Memos {
     }
   }
 
-  // read: the note on a big paper. fromList: opened from the list (its 「그곳으로 가기」 shown, closing goes back to it)
+  // read: the note on a big paper. fromList: opened from the list (its 「그곳으로 가기」 shown, closing goes back to it).
+  // Read in the scene, the other notes readable from where the walker stands come with it: 「이전」 · 「다음」 (← →, a
+  // swipe) go through them, left to right as the walker sees them
   read(n, fromList = false) {
     if (!n) return;
-    this._reading = n;
     this._fromList = fromList || !this.listEl.hidden;
+    this._group = this._fromList ? [n] : this._around(n);
+    this._show(n);
+  }
+  // the notes read from one spot: the ones within reach of the walker (nearest's reach), or, for a note tapped from
+  // further off, the ones within that reach of it; left to right from the walker's view, the newest first on a tie
+  _around(n) {
+    if (!this.attached) return [n];
+    const p = this.player, x = p.pos.x, y = -p.pos.z, h = p.pos.y;
+    const all = [...this.notes.values()].map((o) => o.n);
+    let g = all.filter((m) => Math.hypot(m.x - x, m.y - y) < NEAR && Math.abs(m.z - 1.5 - h) < 2.5);
+    if (!g.includes(n)) g = all.filter((m) => Math.hypot(m.x - n.x, m.y - n.y) < NEAR && Math.abs(m.z - n.z) < 1.5);
+    if (!g.includes(n)) g.push(n);
+    const f = this.camera.getWorldDirection(new THREE.Vector3()), fx = f.x, fy = -f.z;
+    const side = (m) => { const dx = m.x - x, dy = m.y - y; return Math.atan2(dx * fy - dy * fx, dx * fx + dy * fy); };
+    return g.map((m) => [side(m), m]).sort((a, b) => a[0] - b[0] || (a[1].created_at < b[1].created_at ? -1 : 1)).map((e) => e[1]);
+  }
+  // the note before (-1) or after (1) among the ones read from this spot (those blown away meanwhile skipped)
+  step(d) {
+    if (this.readEl.hidden || !this._reading) return;
+    const g = (this._group || []).filter((m) => m === this._reading || this.notes.get(m.id)?.n === m);
+    this._group = g;
+    const n = g[g.indexOf(this._reading) + d];
+    if (n) this._show(n);
+  }
+  _show(n) {
+    this._reading = n;
     const c = this.readEl;
     const paper = c.querySelector('.memo-paper');
     paper.style.background = COLORS[n.color];
@@ -554,6 +602,11 @@ export class Memos {
     c.querySelector('.text').textContent = n.text;
     c.querySelector('.sign').textContent = n.name ? `— ${n.name}` : '';
     c.querySelector('.memo-meta').textContent = [n.place, ago(n.created_at)].filter(Boolean).join(' · ');
+    const g = this._group || [n], i = g.indexOf(n), step = c.querySelector('.memo-step');
+    step.hidden = g.length < 2;
+    step.querySelector('.pos').textContent = `${i + 1} / ${g.length}`;
+    step.querySelector('.prev').disabled = i <= 0;
+    step.querySelector('.next').disabled = i >= g.length - 1;
     c.querySelector('.go').hidden = !this._fromList;
     this._goState();
     c.querySelector('.memo-copy').disabled = n.id.startsWith('tmp-');

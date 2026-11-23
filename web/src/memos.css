@@ -33,6 +33,15 @@
 .memo-paper.big { min-height: 300px; padding: 34px 26px 22px; display: flex; flex-direction: column; }
 .memo-paper.big .text { flex: 1; margin: 0; font-family: var(--title); font-size: 24px; line-height: 1.45; color: #26324a; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; }
 .memo-paper.big .sign { margin: 14px 0 0; text-align: right; font-family: var(--title); font-size: 18px; color: #26324a; }
+/* the other notes at the same spot: ‹ 이전 · 2 / 3 · 다음 › */
+.memo-step { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 18px 0 0; }
+.memo-step[hidden] { display: none; }
+.memo-step button { border: 1.5px solid rgba(255,255,255,.65); background: rgba(255,255,255,.12); color: #fff; border-radius: 999px;
+  padding: 6px 14px; font: 700 14px var(--font); min-width: 78px; }
+.memo-step button:hover:not(:disabled) { background: rgba(255,255,255,.24); }
+.memo-step button:disabled { opacity: .35; cursor: default; }
+.memo-step .pos { color: #fff; font-size: 14px; font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; }
+.memo-step:not([hidden]) + .memo-meta { margin-top: 8px; }
 .memo-readcard .memo-meta { margin: 18px 0 0; text-align: center; font-size: 14px; color: #fff; }
 .memo-readcard .memo-wind { color: #d5dce6; }
 .memo-readcard .memo-row button { box-shadow: 0 4px 12px rgba(0,0,0,.25); }
@@ -87,6 +96,8 @@
   .memo-paper.big { min-height: 130px; padding: 20px 20px 14px; }
   .memo-paper.big .text { font-size: 19px; }
   .memo-readcard .memo-meta { margin-top: 10px; }
+  .memo-step { margin-top: 10px; }
+  .memo-step button { padding: 4px 12px; }
 }
 /* (the mini games keep the HUD to themselves) */
 body.shootout #memobtn, body.racing #memobtn, body.photoquiz #memobtn, body.paging #memobtn, body.cheering #memobtn, body.classing #memobtn,
