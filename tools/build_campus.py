@@ -13299,6 +13299,14 @@ out['trees'].append(['fir', -104.0, -264.3, 0.55, 2.1])     # (제1공학관 남
 # 동문의 섬 관목 · 가로등 (tools/dongmun.py shrubs · props): at the lists' very end, after every other append
 out['shrubs'] += dongmun.shrubs()
 out['props'] += dongmun.props()
+# 공중전화 부스 둘 by the gate's lodge (reference/고증/4.8.1 「수위실 곁 공중전화 부스」): the 2008 - 2011 roadview
+# has a pair of booths at the lodge's north-east corner (동문 기억: 정문과 공대 사이). In the gate's frame (STATUES
+# 'gate', u east along the gate's line, v north) their backs to the lodge's north wall (blender/props.py GATE_LODGE:
+# u -19.18 .. -12.18, v up to 9.7), the east one flush with its east wall, the open fronts north onto the paving (the
+# game's low hedge stands 1.2 m east of the lodge where the roadview had the walk). At the props' very end (no index moves)
+for _u in (-12.66, -13.61):
+    _p = _gc + _gw_t * _u + _gw_n * 10.23
+    out['props'].append(['payphone', round(float(_p[0]), 2), round(float(_p[1]), 2), round(math.atan2(_gw_n[1], _gw_n[0]), 3)])
 out['shrubs'] += north97.shrubs97_more()      # (무악학사 학사 사이 동 서쪽의 덩이, 2026-11-21: at the shrubs' very end)
 # 이중윤 동문의 2003 ~ 2004년 사진(reference/동문_이중윤/, reference/고증/1_자료.md 자료 S)에서 옮긴 것(2026-11-22). Late, no draws.
 # - 중앙도서관 테라스의 난간 턱 (reference/고증/3.2-3.3 3.2.1 「난간 턱」): a seat-high granite parapet along the terrace's
