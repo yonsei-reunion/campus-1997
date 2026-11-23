@@ -1556,5 +1556,20 @@
    0.09
   ],
   "rough": 0.6
+ },
+ "booth_skyblue": {
+  "_doc": "공중전화 부스의 하늘색 칠한 틀 (1996 ~ 2000년 가을 사진, blender/props.py payphone_booth; 고증 3.5)",
+  "color": [
+   0.2,
+   0.47,
+   0.66
+  ],
+  "rough": 0.45,
+  "metal": 0.15
+ },
+ "payphone_sign": {
+  "_doc": "그 부스 앞 · 옆 위의 남색 간판 띠: 흰 글씨와 둥근 표 (tools/make_textures.py payphone_sign)",
+  "image": "payphone_sign.png",
+  "rough": 0.5
  }
 }
