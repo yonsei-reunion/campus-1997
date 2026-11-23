@@ -28,7 +28,7 @@ SPECIES = {
     # a slim cone of soft light-green sprays from low down, a straight trunk to the tip
     'metasequoia':   dict(h=13.5, th=1.2, cz=7.0, rx=2.3, rz=6.4, n=300, card=1.05, groups=14, exc=True, bark='bark',
                           taper=0.92, leaf='leaf_metasequoia'),
-    # 목련 (2003_봄_교육관에서_본_연희관앞정원과_성암관.jpg, 2024_봄_언더우드관_목련.jpg): a rounded crown on a short smooth
+    # 목련 (2003_봄_교육관에서_본_연희관앞정원과_성암관.jpg, 2024_봄_성암관_목련.jpg): a rounded crown on a short smooth
     # grey trunk that forks low into a few rising limbs; ivory flowers on the bare wood in April (leaf_magnolia_spring)
     'magnolia': dict(h=8.0, th=1.4, cz=5.1, rx=3.4, rz=2.9, n=160, card=1.55, groups=6, exc=False, bark='bark_smooth',
                      taper=0.1, lift=0.95),

@@ -1,8 +1,9 @@
 reference/ 사진 출처
 - 1997_*, 1999_*: 2026 연세대학교 재상봉 25주년 기념문집 「응답하라 1997!」 (사용자 제공 PDF, 사진출처 연세대학교 기록관 · 연세동문회보 · 연세춘추). 아래에 따로 적은 파일은 그 줄대로
-- 2023_봄_언더우드관.jpg, 2024_봄_언더우드관_목련.jpg, 2024_가을_독수리상.jpg, 2025_가을_캠퍼스.jpg: 같은 문집 21쪽 「연세의 계절」 (사용자 제공 PDF, 사진마다 제공자)
-  - 2023_봄_언더우드관.jpg: 교육97 김연희 동문 (게임: 언더우드관 추억 카드 photos/underwood_2023.jpg)
-  - 2024_봄_언더우드관_목련.jpg: 연세대학교 기록원 (게임: 언더우드관 추억 카드 photos/underwood_2024.jpg)
+- 2023_봄_연희관.jpg, 2024_봄_성암관_목련.jpg, 2024_가을_독수리상.jpg, 2025_가을_캠퍼스.jpg: 같은 문집 21쪽 「연세의 계절」 (사용자 제공 PDF, 사진마다 제공자)
+  - 2023_봄_연희관.jpg: 교육97 김연희 동문 (게임: 연희관 추억 카드 photos/yeonhui_2023.jpg)
+  - 2024_봄_성암관_목련.jpg: 연세대학교 기록원 (게임: 연희관 추억 카드 photos/seongam_magnolia_2024.jpg)
+  - 위 둘은 2026-11-23 까지 언더우드관으로 읽어 2023_봄_언더우드관.jpg · 2024_봄_언더우드관_목련.jpg 로 두고 언더우드관 추억 카드에 썼음. 건물의 생김새로 연희관 · 성암관임을 가림(reference/고증/3.5_옛_석조관.md 「추억 카드의 사진」)
   - 2024_가을_독수리상.jpg: 상경97 김태봉 동문 (게임: 독수리상 추억 카드 photos/eagle_2024.jpg)
   - 2025_가을_캠퍼스.jpg: 교육97 김연희 동문
   - 2024_겨울_독수리상과_중앙도서관.jpg 는 이 문집이 아님(Wikimedia Commons, 아래 줄)
@@ -112,7 +113,7 @@ reference/ 사진 출처
   - 카카오맵 장소 「연세대학교 금호아트홀연세」(서울 서대문구 연세로 50 백양누리 지하1층)의 지도 위치
   - 나무위키 「연세대학교/신촌캠퍼스」 백양누리 항목(「금호 아트홀을 만들면서 … 독수리상, 한글탑, 활천대 등이 모조리 철거되고」)
 - 대우관_별관_정면_현관.jpg: 사용자 제공 (대우관 별관 정면 현관, 2020년대 촬영)
-- 언더우드관_정면_2016.jpg, 스팀슨관_정면_2016.jpg, 아펜젤러관_정면_2016.jpg: Wikimedia Commons "Underwood Hall Front.jpg", "Stimson Front.jpg", "Appenzeller Front.jpg" (2016-10-01, User:Tungdangthanh, CC BY-SA 4.0, 1920px 축소본)
+- 언더우드관_정면_2016.jpg, 스팀슨관_정면_2016.jpg, 아펜젤러관_정면_2016.jpg: Wikimedia Commons "Underwood Hall Front.jpg", "Stimson Front.jpg", "Appenzeller Front.jpg" (2016-10-01, User:Tungdangthanh, CC BY-SA 4.0, 1920px 축소본). 언더우드관 사진은 언더우드관 추억 카드의 첫 사진(web/public/assets/photos/underwood_2016.jpg: 1400px 로 줄임)
   - 현관 철제 유리문 · 튜더 아치 · 입구 계단(단 수, 중간 참, 돌 난간벽과 네모 기둥) · 반지하 창 고증
 - 스팀슨관_측면_2016.jpg, 아펜젤러관_측면_2016.jpg: Wikimedia Commons "Stimson Side.jpg", "Appenzeller Side.jpg" (2016-10-01, User:Tungdangthanh, CC BY-SA 4.0, 1920px 축소본. 아펜젤러관은 원본 아래쪽의 회색 띠를 잘라 냄)
   - 스팀슨관 남쪽 박공벽의 꺾인 내닫이 칸 · 방패 · 환기창 · 홑창, 용마루 위 굴뚝, 아펜젤러관 북쪽 박공벽 창 고증
@@ -235,7 +236,7 @@ reference/ 사진 출처
   - 저작권 연세대학교, 학교의 허락을 받아 실음(사용자가 받기로 함, 2026-11-17)
   - 저장 연월은 웨이백이 처음 저장한 때(찍은 때가 아님). 찍은 때 어림 · 보이는 것은 reference/고증/1_자료.md 1.1.2
   - 「캠퍼스 구경」 http://www.yonsei.ac.kr/Html/Tour/ (「」는 그 사진을 쓴 쪽의 제목. 지도 범례는 map.html)
-    - 1-16.jpg 「본관 (本館, Underwood Hall)」: https://web.archive.org/web/19961215075815/http://www.yonsei.ac.kr:80/Html/Tour/image/1-16.jpg (1996년 12월)
+    - 1-16.jpg 「본관 (本館, Underwood Hall)」: https://web.archive.org/web/19961215075815/http://www.yonsei.ac.kr:80/Html/Tour/image/1-16.jpg (1996년 12월). 언더우드관 추억 카드의 둘째 사진(web/public/assets/photos/underwood_1996.jpg: 2.5배로 키움)
     - 100-1.jpg 「백주년 기념관」: https://web.archive.org/web/19970517173512/http://www.yonsei.ac.kr:80/Html/Tour/image/100-1.jpg (1997년 5월)
     - bus.jpg 「경영학교실단」: https://web.archive.org/web/19961215083909/http://www.yonsei.ac.kr:80/Html/Tour/image/bus.jpg (1996년 12월)
     - center3.jpg: https://web.archive.org/web/19970517181458/http://www.yonsei.ac.kr:80/Html/Tour/image/center3.jpg (1997년 5월)

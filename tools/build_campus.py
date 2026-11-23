@@ -5559,10 +5559,11 @@ PHOTO03.append(('ginkgo', x_, y_, 0.42))
 #    same tree in the 2010 and 2026 roadview, a thick trunk forking at 4 - 5 m; the white trunk at the left of the
 #    photo from the steps' head is this one, not a second tree by the drive west of the 삼거리)
 #  - 목련: in the north-west corner of 연희관 앞 정원 behind the double lamp (2003_봄_교육관에서_본_*), and before
-#    언더우드관 east of its tower (2024_봄_언더우드관_목련.jpg).  That one was young in 1997: in the December 2010
-#    roadview (1016786670, 1016786671, 1016786656) it is a slender tree with a narrow crown, its top level with the
-#    tower's door head, about 5.5 - 6 m, where the 2024 photo has it full grown (8 m).  Run back thirteen years at a
-#    young magnolia's 25 - 30 cm a year it stood about 2.5 - 3 m in 1997: a newly planted tree of the nurseries' size
+#    언더우드관 east of its tower.  That one was young in 1997: in the December 2010 roadview (1016786670,
+#    1016786671, 1016786656) it is a slender tree with a narrow crown, its top level with the tower's door head,
+#    about 5.5 - 6 m.  Run back thirteen years at a young magnolia's 25 - 30 cm a year it stood about 2.5 - 3 m in
+#    1997: a newly planted tree of the nurseries' size.  (The anthology's 2024 magnolia photo, once read as this
+#    tree full grown, is the one before 성암관: 2024_봄_성암관_목련.jpg, reference/고증 3.18)
 MAGNOLIA_UW_1997 = 0.38                                           # (x 8 m: 3 m)
 PHOTO03.append(('poplar', *st_xy(6.6, 0.2), 1.0))
 PHOTO03 += [('magnolia', 58.0, 339.5, 1.0), ('magnolia', *WU(-3.0, 40.6), MAGNOLIA_UW_1997)]
@@ -6431,8 +6432,11 @@ LANDMARKS = [
     dict(id='amphitheater', name='노천극장', pos=[150, 150], r=30, photo=['photos/amphitheater_1997.jpg', 'photos/amphitheater_1999.jpg'],
          title='구 노천극장의 마지막 모습', year='1997.04',
          text='잔디 계단이 언덕을 따라 둥글게 둘러선 옛 노천극장. 1997년 4월 사진은 철거 전 마지막 모습이다. 아카라카와 응원제의 함성이 울리던 이 자리에는 1999년 5월 지금의 새 노천극장이 들어섰다.'),
-    dict(id='underwood', name='언더우드관', pos=[58, 215], r=30, photo=['photos/underwood_2023.jpg', 'photos/underwood_2024.jpg', 'photos/underwood_garden_2024.jpg'],
+    # (its photos: 언더우드관 itself, two storeys under a plain gable roof with the tower in the middle.  The anthology's
+    # two 「언더우드관」 photos show 연희관 and 성암관 and are on 연희관's card: reference/고증 3.5)
+    dict(id='underwood', name='언더우드관', pos=[58, 215], r=30, photo=['photos/underwood_2016.jpg', 'photos/underwood_1996.jpg', 'photos/underwood_garden_2024.jpg'],
          title='언더우드관 · 스팀슨관 · 아펜젤러관', year='1920s',
+         credit='사진: Tungdangthanh · Wikimedia Commons, CC BY-SA 4.0 (2016년) · 연세대학교 홈페이지 (1996년, 동상과 본관) · 다음 카페 「훌리건 천국」 이호성 (2024년)',
          text='백양로 끝, 담쟁이로 덮인 석조 건물들. 언더우드관 앞 정원을 사이에 두고 스팀슨관과 아펜젤러관이 마주 선다. 연세의 역사가 시작된 곳.'),
     dict(id='events', name='학생회관 앞 게시판', pos=[9, -36], r=9, photo=['photos/marathon_1997.jpg', 'photos/daedongje_1997.jpg', 'photos/yongo_1997.jpg', 'photos/cheer_1997.jpg', 'photos/yongo_banner_1997.jpg'],
          title='신촌 캠퍼스 1997 · 그때 우리는', year='1997',
@@ -6447,10 +6451,13 @@ LANDMARKS = [
          title='상대신관과 상뜰', year='1996',
          credit='사진: 연세대 상경대학 홈페이지 (blog.naver.com/maxx5335/221067910905 재인용) · 다음 카페 「훌리건 천국」 이호성 (2024) · 이중윤 동문 (2004년 9월, 뒤쪽 주차장에서)',
          text='1996년 6월 문을 연 상경대학의 새 집. 대우그룹 김우중 회장과 상경대 동문들의 기부로 지어져 정식 이름은 「김우중 기념관」이었지만, 학교 지도에는 「상대신관」, 학생들 입에는 「신상경관」이었다(지금의 대우관). 흰 석조의 고딕풍 건물로, 앞뜰의 소나무 정원 「상뜰」은 공강 시간마다 붐볐다. 정문에서 900m, 캠퍼스에서 가장 높고 깊숙한 곳.'),
-    dict(id='yeonhui', name='연희관', pos=[88.0, 343.0], r=20, photo=['photos/yeonhui_2024a.jpg', 'photos/yeonhui_2024b.jpg'],
+    dict(id='yeonhui', name='연희관', pos=[88.0, 343.0], r=20,
+         photo=['photos/yeonhui_2023.jpg', 'photos/yeonhui_2024a.jpg', 'photos/yeonhui_2024b.jpg', 'photos/seongam_magnolia_2024.jpg'],
          title='연희관 가는 길', year='1956',
-         credit='사진: 다음 카페 「훌리건 천국」 이호성 (2024)',
-         text='1956년 과학관으로 지어져 1984년부터 연희관으로 불린 석조 건물. 담쟁이 덮인 벽과 회양목 정원 사이로, 대우관까지 이어지는 오르막길이 시작된다.'),
+         credit='사진: 교육97 김연희 동문 (2023년 봄) · 다음 카페 「훌리건 천국」 이호성 (2024년) · 연세대학교 기록원 (2024년 봄, 성암관 앞 목련). '
+                '첫째 · 넷째는 2026 재상봉 25주년 기념문집 「연세의 계절」',
+         text='1956년 과학관으로 지어져 1984년부터 연희관으로 불린 석조 건물. 담쟁이 덮인 벽과 회양목 정원 사이로, 대우관까지 이어지는 오르막길이 시작된다. '
+              '정원 동쪽에는 둥근 탑 둘 사이로 현관을 낸 성암관이 서 있다.'),
     # 한국어학당 (언어연구교육원, 1991): on the terrace before its porch (tools/kli97.py; the 2004 photos: the long front
     # with the glazed bay and the door faces south-west; reference/동문_이중윤/2004-09_한국어학당_정면.jpg)
     dict(id='kli', name='한국어학당', pos=[round(c_, 1) for c_ in kli97.xy(kli97.UC, -11.0)], r=12, photo=['photos/kli_2004_front.jpg', 'photos/kli_2004_side.jpg'],

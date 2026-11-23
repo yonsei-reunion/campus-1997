@@ -436,7 +436,7 @@ atlas('oak', 'oak', [(70, 105, 38), (82, 118, 42), (60, 92, 32)])
 atlas('oak_autumn', 'oak', [(150, 110, 50), (130, 90, 40), (165, 125, 55)])
 atlas('oak_spring', 'oak', [(105, 150, 55), (95, 140, 50)])
 atlas('pine', 'pine', [(40, 75, 35), (50, 88, 40), (34, 64, 30), (60, 95, 45)])
-# 목련 (2003_봄_교육관에서_본_연희관앞정원과_성암관.jpg, 2024_봄_언더우드관_목련.jpg): ivory cups on the bare wood in
+# 목련 (2003_봄_교육관에서_본_연희관앞정원과_성암관.jpg, 2024_봄_성암관_목련.jpg): ivory cups on the bare wood in
 # April, big obovate mid-green leaves in May, dull yellow-brown in late October
 atlas('magnolia', 'magnolia', [(82, 128, 46), (95, 140, 52), (70, 112, 40), (104, 146, 58)])
 atlas('magnolia_spring', 'magnolia_bloom', [(250, 247, 236), (244, 240, 226), (252, 250, 244), (238, 232, 216)])
@@ -453,7 +453,7 @@ atlas('poplar_autumn', 'poplar', [(222, 190, 70), (204, 170, 60), (186, 152, 58)
 atlas('tulip', 'tulip', [(84, 132, 44), (98, 146, 50), (72, 118, 40), (108, 152, 58)])
 atlas('tulip_spring', 'twigs', [(150, 176, 70), (170, 190, 84), (132, 160, 62)])
 atlas('tulip_autumn', 'tulip', [(232, 196, 70), (218, 176, 52), (240, 210, 96), (196, 160, 60), (170, 160, 70)])
-# 담쟁이 (Boston ivy) on the stone halls: fresh glossy green in late May (underwood_2023.jpg), crimson / orange /
+# 담쟁이 (Boston ivy) on the stone halls: fresh glossy green in late May (2023_봄_연희관.jpg), crimson / orange /
 # wine in late October with a few leaves still green-yellow, the vines showing with their new leaves in mid-April
 atlas('ivy', 'ivy', [(54, 98, 30), (70, 116, 36), (44, 82, 26), (86, 130, 42)])
 atlas('ivy_autumn', 'ivy', [(165, 34, 30), (190, 58, 32), (128, 28, 40), (205, 96, 38), (150, 100, 40), (110, 30, 45)])
