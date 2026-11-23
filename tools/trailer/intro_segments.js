@@ -608,7 +608,7 @@
       cam: () => { const a = -12 * Math.PI / 180, D = 42, g = ground(...EAGLE_C), d = [-Math.cos(a), -Math.sin(a)], r = [d[1], -d[0]];
         return { x: EAGLE_C[0] - d[0] * D, y: EAGLE_C[1] - d[1] * D, h: ground(EAGLE_C[0] - d[0] * D, EAGLE_C[1] - d[1] * D) + 1.6, tx: EAGLE_C[0] + r[0] * 5.0, ty: EAGLE_C[1] + r[1] * 5.0, th: g + 5.2, fov: 27 }; } },
     { key: 'uw', name: '언더우드 동상', note: '언더우드관 앞 정원에서 두 팔 벌려 맞이하는', photo: '2009년 · Wikimedia Commons', file: 'docs/compare/underwood_statue_photo.jpg', size: [717, 1365], t: 5.5, season: 'spring',
-      cam: () => ({ x: 52.83, y: 184.65, h: 44.73, tx: 50.75, ty: 193.75, th: 45.41, fov: 18.53 }) },
+      cam: () => ({ x: 51.38, y: 190.97, h: 44.5, tx: 49.19, ty: 200.6, th: 46.11, fov: 34.13 }) },
     { key: 'yj', name: '용재 동상', note: '중앙도서관 앞, 초대 총장 용재 백낙준', photo: '2007년 · 연세춘추', file: 'reference/연세춘추/2007-03-24_10503_874_2738_5018.jpg', size: [290, 436], t: 5.5, season: 'spring',
       // 동상은 남쪽(방위 195°)을 봄: 정면 조금 서쪽 15 m 에서 망원으로 올려다봄
       cam: () => { const f = [-0.259, -0.966], w = [-0.966, 0.259], g = ground(...YJ), x = YJ[0] + f[0] * 15 + w[0] * 3.2, yy = YJ[1] + f[1] * 15 + w[1] * 3.2;

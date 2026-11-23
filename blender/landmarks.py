@@ -2779,10 +2779,169 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
     return [mb, iv]
 
 
+# ============================================================================= 언더우드관 (1924)
+# Two storeys over a half-sunk basement under one long slate roof with coped gable ends, and a square battlemented tower
+# through the middle of it (reference/언더우드관_정면_2016.jpg, 학교연혁_언더우드관.jpg; the west end behind the statue in
+# 언더우드동상_2009.jpg; the roof, the tower and their heights from the scans of 1997-07-28: reference/고증/3.5 「언더우드관의
+# 지붕과 탑」).  No end pavilions, dormers, buttresses or battlements along the eaves: those were 연희관's, whose builder
+# this hall shared until 2026-11-23, a storey too many.
+# Over the door's threshold (47.1 m above the sea): the eaves 8.9 m (56.0), the ridge 13.2 m (60.3), the tower's parapet
+# 19.0 m (66.05) round a flat roof at 17.5 m, the stair tower behind it 20.25 m (67.35); the lights 1.1 - 3.75 m and
+# 5.0 - 7.55 m (the 2016 photo's, in the scans' eaves).  Each wing: two lights 4 m from its end, then two groups of four.
+# The tower fills the hall's depth and stands only half a metre before the front wall.
+UW_TOWER = dict(w=9.5, proj=0.5, back=0.45, top=19.0, roof=17.5, stair=20.25)
+
+
+def uw_tower(mb, iv, f):
+    """언더우드관's tower over its entrance bay (stone_hall's porch, which carries the door and the wall up to the
+    eaves): the shaft on through the roof to a battlemented head with a taller block for the school's roundel in the
+    middle of the front, three lights under it, the two-storey oriel of dressed stone over the door; behind, at its
+    north-east corner, the stair tower that tops it, and the chimney by its north-west corner.  Local frame of the
+    hall; heights over the threshold (the 2016 photo's proportions on the scans' heights)."""
+    L, W, plinth, Hw, hz, wall, ivy = f['L'], f['W'], f['plinth'], f['Hw'], f['hz'], f['wall'], f['ivy']
+    zd = plinth - 0.1
+    tw, pp = UW_TOWER['w'], UW_TOWER['proj']
+    yf, yk, zt0 = -W / 2 - pp, W / 2 + UW_TOWER['back'], Hw + 0.8        # (front, back; the porch's top)
+    zm, zr = zd + UW_TOWER['top'], zd + UW_TOWER['roof']                # the parapet's top; the flat roof
+    Ht = zm - 0.4                                                        # the crenels between the merlons
+    T = [(-tw / 2, yf), (tw / 2, yf), (tw / 2, yk), (-tw / 2, yk)]
+    rz = lambda t: math.atan2(t.y, t.x)
+    zw = (zd + 14.6, zd + 16.0)                                          # the lights high in the shaft
+    for i in range(4):
+        P, Le, t, n = edge_P(T[i], T[(i + 1) % 4])
+        holes, ivh = [], []
+        c = Le / 2
+        if i == 0:
+            light_group(mb, P, c - 1.7, c + 1.7, *zw, 3)
+            holes.append((c - 1.7, c + 1.7, *zw))
+            ivh.append((c - 3.0, c + 3.0, -1.0, zd + 13.9))               # (the oriel and its hood)
+            wall_holes(mb, P, 0, Le, zt0, Ht, wall, holes)
+            # the middle block with the roundel, the parapet stepping up to it
+            zk = zm + 0.35
+            flat_wall(mb, P, c - 1.6, c + 1.6, Ht, zk, wall)
+            mb.quad(P(c + 1.6, Ht, -0.4), P(c - 1.6, Ht, -0.4), P(c - 1.6, zk, -0.4), P(c + 1.6, zk, -0.4), wall)
+            for s_ in (c - 1.6, c + 1.6):
+                sg = 1 if s_ > c else -1
+                oface(mb, [P(s_, Ht, 0), P(s_, Ht, -0.4), P(s_, zk, -0.4), P(s_, zk, 0)], wall, tuple(t * sg))
+            bar(mb, P, c - 1.7, zk + 0.07, c + 1.7, zk + 0.07, 0.14, -0.46, 0.08, 'stone_trim', ends=True)
+            for r_, d_, m_ in ((0.64, 0.06, 'stone_trim'), (0.44, 0.075, 'bronze')):
+                oface(mb, [P(c + r_ * math.cos(2 * math.pi * k / 20), zm - 1.05 + r_ * math.sin(2 * math.pi * k / 20), d_)
+                           for k in range(20)], m_, tuple(n))
+        elif i in (1, 3):
+            # (the sides stand on the porch's before the front wall, then on the roof, and behind the back wall on the ground)
+            light_group(mb, P, c - 0.6, c + 0.6, *zw, 2, mw=0.14)
+            holes.append((c - 0.6, c + 0.6, *zw))
+            a_, b_ = (0.0, pp) if i == 1 else (Le - pp, Le)              # before the front wall
+            wall_holes(mb, P, a_, b_, zt0, Ht, wall, [])
+            a2, b2 = (pp, Le - UW_TOWER['back']) if i == 1 else (UW_TOWER['back'], Le - pp)
+            wall_holes(mb, P, a2, b2, Hw - 0.3, Ht, wall, holes)
+            a3, b3 = (Le - UW_TOWER['back'], Le) if i == 1 else (0.0, UW_TOWER['back'])
+            flat_wall(mb, P, a3, b3, plinth - 1.0, Ht, wall)
+        else:
+            for fl_ in f['fl']:                                          # (the back: a pair of lights a floor)
+                light_group(mb, P, c - 1.1, c + 1.1, fl_[0], fl_[1], 2)
+                holes.append((c - 1.1, c + 1.1, fl_[0], fl_[1]))
+            wall_holes(mb, P, 0, Le, plinth - 1.0, Ht, wall, holes)
+        mb.quad(P(Le, zr, -0.4), P(0, zr, -0.4), P(0, Ht, -0.4), P(Le, Ht, -0.4), wall)            # the parapet's inside
+        bar(mb, P, -0.1, zm - 1.95, Le + 0.1, zm - 1.95, 0.22, 0.0, 0.12, 'stone_trim')           # string course
+        # battlements (the 2016 photo's front): a merlon 2.3 m broad at each corner, a 0.65 m crenel, then on the front
+        # the middle block with a low shoulder either side; the other sides in merlons about 2 m broad
+        if i == 0:
+            mer = [(0.0, 2.3), (Le - 2.3, Le)]
+            for a_, b_ in ((c - 1.9, c - 1.6), (c + 1.6, c + 1.9)):                          # the block's shoulders
+                mb.box(P((a_ + b_) / 2, Ht + 0.12, -0.2), (b_ - a_, 0.4, 0.24), wall, rotz=rz(t), mats={'top': 'stone_trim'},
+                       skip=('bottom',))
+            gaps = [(2.3, c - 1.9), (c + 1.9, Le - 2.3)]
+        else:
+            n_ = max(1, int(round((Le - 4.6 - 0.65) / 2.65)))
+            w_ = (Le - 4.6 - 0.65 * (n_ + 1)) / n_
+            mer = [(0.0, 2.3)] + [(2.3 + 0.65 + k * (w_ + 0.65), 2.3 + 0.65 + k * (w_ + 0.65) + w_) for k in range(n_)] + [(Le - 2.3, Le)]
+            gaps = [(a_[1], b_[0]) for a_, b_ in zip(mer, mer[1:])]
+        for a_, b_ in mer:
+            a_, b_ = a_ - (0.02 if a_ == 0 else 0), b_ + (0.02 if b_ == Le else 0)
+            mb.box(P((a_ + b_) / 2, (Ht + zm) / 2, -0.2), (b_ - a_, 0.4, zm - Ht), wall, rotz=rz(t),
+                   mats={'top': 'stone_trim'}, skip=('bottom',))
+        for a_, b_ in gaps:
+            bar(mb, P, a_, Ht + 0.05, b_, Ht + 0.05, 0.1, -0.42, 0.04, 'stone_trim')            # a crenel's coping
+        if ivy:
+            z_lo = plinth - 0.5 if i == 2 else zt0
+            ivy_patch(iv, P, 0, Le, z_lo, Ht - 0.3, 5.5, 71 + i, cover=ivy * (0.95 if i != 2 else 0.5),
+                      holes=[(a - 0.3, b + 0.3, za_ - 0.3, zb_ + 0.35) for a, b, za_, zb_ in holes] + ivh
+                      + ([(c - 0.95, c + 0.95, zm - 2.0, zm)] if i == 0 else []))
+    stone_base(mb, [(-tw / 2, W / 2), (tw / 2, W / 2), (tw / 2, yk), (-tw / 2, yk)], plinth, wall)
+    mb.face([(x_ + (0.4 if x_ < 0 else -0.4), y_ + (0.4 if y_ < 0 else -0.4), zr) for x_, y_ in T], 'roof_flat')
+    for sx in (-1.6, 1.6):                                # the two flagstaffs (the 2016 photo)
+        mb.cylinder((sx, yf + 1.2), 0.045, zr, zm + 4.6, 'paint_white', seg=6)
+    # --- the oriel over the door: canted, of dressed stone, two tiers of lights (three in front, one in each side),
+    # a moulded foot tapering to the wall over the arch and a sloped hood
+    fw, ow, pj = 3.2, 5.15, 0.8
+    z0_, z1_ = zd + 5.05, zd + 12.55
+    Q = [(-ow / 2, yf), (-fw / 2, yf - pj), (fw / 2, yf - pj), (ow / 2, yf)]
+    tiers = [(zd + 5.35, zd + 8.05), (zd + 9.6, zd + 12.3)]
+    for k in range(3):
+        P, Le, t, n = edge_P(Q[k], Q[k + 1])
+        holes = []
+        for za, zb in tiers:
+            m_ = 0.14 if k == 1 else 0.22
+            light_group(mb, P, m_, Le - m_, za, zb, 3 if k == 1 else 1, mw=0.16, depth=0.2)
+            holes.append((m_, Le - m_, za, zb))
+        wall_holes(mb, P, 0, Le, z0_, z1_, 'stone_trim', holes)
+        for z_ in (z0_ + 0.12, (tiers[0][1] + tiers[1][0]) / 2, z1_ - 0.1):                       # its moulded bands
+            bar(mb, P, -0.03, z_, Le + 0.03, z_, 0.2, 0.0, 0.07, 'stone_trim')
+        # the foot (down to a line on the wall) and the hood (up to one)
+        a_, b_ = Q[k], Q[k + 1]
+        fa, fb = (a_[0] * 0.55, yf), (b_[0] * 0.55, yf)
+        oface(mb, [(*fa, z0_ - 1.0), (*fb, z0_ - 1.0), (*b_, z0_), (*a_, z0_)], 'stone_trim', (n.x, n.y, -1.0))
+        ha, hb = (a_[0] * 0.92, yf), (b_[0] * 0.92, yf)
+        oface(mb, [(*a_, z1_), (*b_, z1_), (*hb, z1_ + 0.95), (*ha, z1_ + 0.95)], 'roof_slate', (n.x, n.y, 1.0))
+    # --- the stair tower at the tower's north-east corner (the scans: 3.7 x 4.25 m, its rim 1.3 m over the tower's;
+    # the higher block behind the tower's right shoulder in the 2016 photo): a plain shaft with a coped parapet
+    x0, x1, ya, yb_ = tw / 2 - 0.35, tw / 2 + 3.35, W / 2 - 3.65, W / 2 + 0.6
+    zq = zd + UW_TOWER['stair']
+    R = [(x0, ya), (x1, ya), (x1, yb_), (x0, yb_)]
+    for i in range(4):
+        P, Le, t, n = edge_P(R[i], R[(i + 1) % 4])
+        z_lo = plinth - 1.0 if i == 2 else Hw - 0.3
+        if i == 1:                                         # (the part of its east side behind the back wall)
+            flat_wall(mb, P, Le - 0.6, Le, plinth - 1.0, Hw - 0.3, wall)
+        flat_wall(mb, P, 0, Le, z_lo, zq, wall)
+        mb.quad(P(Le, zq - 1.2, -0.35), P(0, zq - 1.2, -0.35), P(0, zq, -0.35), P(Le, zq, -0.35), wall)
+        bar(mb, P, -0.05, zq - 0.9, Le + 0.05, zq - 0.9, 0.18, 0.0, 0.09, 'stone_trim')
+        bar(mb, P, -0.04, zq + 0.06, Le + 0.04, zq + 0.06, 0.12, -0.39, 0.06, 'stone_trim')
+        if i in (0, 2):
+            for z_ in (zd + 14.9, zd + 17.6):                                                       # slit lights
+                mb.quad(P(Le / 2 - 0.14, z_, 0.012), P(Le / 2 + 0.14, z_, 0.012), P(Le / 2 + 0.14, z_ + 1.1, 0.012),
+                        P(Le / 2 - 0.14, z_ + 1.1, 0.012), 'glass')
+                bar(mb, P, Le / 2 - 0.24, z_ - 0.05, Le / 2 + 0.24, z_ - 0.05, 0.1, 0.0, 0.05, 'stone_trim', ends=True)
+        if ivy and i != 3:
+            ivy_patch(iv, P, 0, Le, z_lo, zq - 0.5, 5.5, 81 + i, cover=ivy * 0.6)
+    mb.face([(x_ + (0.35 if x_ < x1 - 1 else -0.35), y_ + (0.35 if y_ < yb_ - 1 else -0.35), zq - 1.2) for x_, y_ in R], 'roof_flat')
+    # --- the chimney behind the tower's north-west corner (the scans of four years: a square flue about 1.3 m across
+    # outside the back wall, its top 67 - 69 m above the sea)
+    cx_, cy_, zc_ = -tw / 2 + 0.75, yk + 0.65, zd + 20.9
+    mb.box((cx_, cy_, (plinth - 1.0 + zc_) / 2), (1.3, 1.3, zc_ - plinth + 1.0), wall, skip=('bottom',), mats={'top': 'metal_dark'})
+    mb.box((cx_, cy_, zc_ - 0.25), (1.5, 1.5, 0.22), 'stone_trim', skip=('bottom',))
+
+
 def underwood():
-    # the porch stands ~2.5 m over the garden walk (about 16 risers in the 2016 photo: five, a landing, then the rest)
-    return gothic('underwood', bld(246156115), (0.27, -1.0), 3, tower_w=9.0, tower_extra=9.5, ivy=1.0,
-                  stairs=dict(width=4.2, wl=5.8, rise=2.45), door=dict(w=3.0, style='grid'))
+    b = bld(246156115)
+    front = (0.27, -1.0)
+    L, W = frame_for(b, front)[2:4]
+    tw = UW_TOWER['w']
+    wing = (L - tw) / 2
+    groups = []
+    for c_, w_, n_ in ((4.0, 2.25, 2), (10.8, 4.65, 4), (17.3, 4.7, 4)):         # from each end: centre, width, lights
+        c_ *= wing / 20.35                                 # (read where the front photo's wing was 20.35 m)
+        groups += [(c_ - w_ / 2, c_ + w_ / 2, n_), (L - c_ - w_ / 2, L - c_ + w_ / 2, n_)]
+    groups.sort()
+    # the porch stands ~2.5 m over the garden walk (about 16 risers in the 2016 photo: five, a landing, then the rest).
+    # fh: what brings the eaves to 56.0 m above the sea over the floor the flight gives (8.9 m over the threshold)
+    out = stone_hall('underwood', b, front, groups, ivy=1.0, fh=4.12, pitch=0.61, lights=((1.02, 3.65), (0.77, 3.35)),
+                     porch=dict(s0=wing, s1=wing + tw, proj=UW_TOWER['proj'], parapet=0.8, win=(1.6, [1.0, 1.0]), hump=False),
+                     stairs=dict(width=4.2, wl=5.8, rise=2.45), door=dict(w=2.3, spring=1.8, style='grid', rec=0.9),
+                     extra=uw_tower)
+    out[0].tower_front = -W / 2 - UW_TOWER['proj']
+    return out
 
 
 # ============================================================================= 스팀슨관 (1920) · 아펜젤러관 (1924)
@@ -2900,7 +3059,7 @@ def _stone_ivy_spec(ivy, walls, w):
 def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pitch=0.5, door_group=None, porch=None,
                bays=None, back=(), chimney=None, door=None, stairs=None, floors=2, plinth=1.3, basement=True,
                dormers=(), end_wins=None, z0=None, rect_fp=None, extra=None, attic=None, end_bay=None, rear=None,
-               ivy_walls=None):
+               ivy_walls=None, lights=None):
     """스팀슨관 · 아펜젤러관 (see above), 성암관 and 교육관.  groups: the front's window groups (s0, s1, lights) on every
     floor, s along the front from its left end seen from outside; door_group: the one whose ground-floor place the front
     door takes; porch: a central entrance bay standing forward to a flat parapet a little over the eaves (스팀슨관,
@@ -2914,7 +3073,8 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
     (z over the wall top), end_bay: a canted bay standing out of a gable end (스팀슨관's south end), rear: the stair
     window over the back door in the middle of the back wall (스팀슨관, 아펜젤러관), z0: the floor level, rect_fp: the
     main block's corners when the outline takes in a bay, extra(mb, iv, frame): further parts in the local frame,
-    ivy_walls: the ivy of single walls (_stone_ivy_spec)."""
+    ivy_walls: the ivy of single walls (_stone_ivy_spec), lights: the sill and head of the lights over each floor
+    (LIGHTS)."""
     cx, cy, L, W, ang, z0_ = frame_for(dict(b, footprint=rect_fp) if rect_fp else b, front)
     stairs = dict(dict(width=3.6, wl=None, rise=1.3, cheeks=True, lamps=False, terrace=None), **(stairs or {}))
     door = dict(dict(w=2.2, arch='tudor', spring=1.9, style='panel', rec=0.6), **(door or {}))
@@ -2936,7 +3096,8 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
     Hw = plinth + floors * fh + 0.8            # wall top
     hz = Hw + W / 2 * pitch                    # ridge
     eave = 0.4
-    fl = [(plinth + f * fh + LIGHTS[min(f, 1)][0], plinth + f * fh + LIGHTS[min(f, 1)][1]) for f in range(floors)]
+    lights = lights or LIGHTS
+    fl = [(plinth + f * fh + lights[min(f, 1)][0], plinth + f * fh + lights[min(f, 1)][1]) for f in range(floors)]
     body = rect(L, W)
     rd = None
     if rear:
@@ -3253,7 +3414,7 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
         for sg in (-1, 1):
             shed_dormer(mb, x0, x1, nl, sg, W, hz, pitch)
     if extra:
-        extra(mb, iv, dict(L=L, W=W, plinth=plinth, fh=fh, Hw=Hw, hz=hz, pitch=pitch, wall=wall, gl=gl, ivy=ivy))
+        extra(mb, iv, dict(L=L, W=W, plinth=plinth, fh=fh, Hw=Hw, hz=hz, pitch=pitch, wall=wall, gl=gl, ivy=ivy, fl=fl))
     mb.z_base = z0
     return [mb, iv]
 
@@ -6868,12 +7029,28 @@ def yongjae():
 
 
 # ============================================================================= 음악관 서쪽 계단 (「음대 계단」)
+# The stone's outline in reference/동문_이중윤/졸업식날_공대_앞_선돌.jpg, seen from the north-north-east: height over the
+# grass and its left (east) and right (west) edge from the middle of its foot, in metres at 2.6 m (the photo's pixels
+# through its own perspective: the horizon on row 1225, a 57 mm lens, 7.3 m off; tools/make_textures.py eng_stone_tex
+# holds the pixels).  0.56 m wide at the grass, 0.30 m from half its height up, the east edge hollow and the west one
+# flaring to the foot, so that the head stands 0.16 m east of the foot; a rounded head
+ENG_STONE_EDGE = [(0.0, -0.279, 0.279), (0.11, -0.277, 0.277), (0.248, -0.272, 0.272), (0.387, -0.267, 0.262),
+                  (0.528, -0.254, 0.248), (0.669, -0.238, 0.235), (0.811, -0.224, 0.215), (0.954, -0.225, 0.19),
+                  (1.099, -0.222, 0.164), (1.244, -0.217, 0.141), (1.39, -0.218, 0.121), (1.538, -0.231, 0.101),
+                  (1.686, -0.244, 0.08), (1.836, -0.262, 0.054), (1.986, -0.275, 0.03), (2.138, -0.297, 0.006),
+                  (2.291, -0.307, -0.006), (2.445, -0.309, -0.018), (2.491, -0.303, -0.024), (2.553, -0.279, -0.042),
+                  (2.581, -0.24, -0.058), (2.6, -0.173, -0.097)]
+
+
 def eng_stone():
-    """The standing stone before 제1공학관 (campus.json eng_stone; reference/동문_이중윤/졸업식날_공대_앞_선돌.jpg, its place
-    from the roadview of 2010 - 2011 and the skyview of 2008 - 2010: reference/고증/3.8_제1공학관.md 「앞마당의 선돌」): a
-    rough grey stone set upright in the lawn, half again a man's height, a little wider than deep, tapering a little,
-    its top sloping off to one side with a crack down from it.  Local frame: pos, rotated rot degrees; the foot sunk
-    0.3 m."""
+    """The standing stone before 제1공학관 (campus.json eng_stone; reference/고증/3.8_제1공학관.md 「앞마당의 선돌」): a slender
+    natural stone set upright in the lawn.  Its north face is the one in reference/동문_이중윤/졸업식날_공대_앞_선돌.jpg: the
+    outline is ENG_STONE_EDGE and the skin the photo's own stone, unrolled round it (materials.json stone_menhir,
+    tools/make_textures.py eng_stone_tex: the photographed face on the north half, its mirror on the south).  Its
+    thickness from the roadview of 2011-04 (1017220165 - 167, looking west: as thick as it is wide, 0.3 m at the head
+    and 0.5 m at the foot, the south edge upright and the north one flaring to the foot).  Local frame: pos, rotated
+    rot degrees, -y the photographed face, +x the photo's right; h the height, w and d the foot's width and
+    thickness; the foot sunk 0.3 m."""
     E = CAMPUS.get('eng_stone')
     if not E:
         return []
@@ -6883,33 +7060,37 @@ def eng_stone():
     (x, y), h, w, d = E['pos'], E['h'], E['w'], E['d']
     g = min(ground_top(x + dx, y + dy) for dx in (-w / 2, w / 2) for dy in (-d / 2, d / 2))
     mb.xf = local_frame(x, y, math.radians(E.get('rot', 0.0)), g - 0.3)
-    K, R = 14, 10
-    jit = [1.0 + rr.uniform(-0.16, 0.16) for _ in range(K)]
-    hb = h + 0.3                                                       # (from the sunk foot)
-    top = lambda rx: hb - 0.1 - 0.12 * (rx / (w / 2))                 # (the top: a rough plane falling a little to +x)
-    rings = []
-    for j in range(R + 1):
-        f = j / R
-        sc = 1.06 - 0.2 * f + 0.05 * math.sin(f * 7.0 + 1.0)        # (broader at the foot, a bulge or two, a little lean)
+    kz, kx = h / 2.6, w / 0.558
+    K, n = 20, 2.7                                            # (points round it; the section a rounded square)
+    # a few slow waves over the skin: the section's corners and flats wander up the stone
+    waves = [(rr.uniform(0.02, 0.05), rr.choice((2, 3, 3, 4)), rr.uniform(0, 6.28), rr.uniform(1.5, 4.0), rr.uniform(0, 6.28))
+             for _ in range(5)]
+    rings = []                                                 # (z over the sunk foot, v, [(x, y)])
+    for z_, xl, xr in [(-0.3 / kz, *ENG_STONE_EDGE[0][1:])] + ENG_STONE_EDGE:
+        xl, xr = xl * kx, xr * kx
+        t = (xr - xl) * d / w * 1.05                          # (the thickness: as the width, by the foot's)
+        yb = 0.42 * d                                          # (the south edge upright)
         ring = []
         for k in range(K):
             a = 2 * math.pi * k / K
-            rx = w / 2 * math.cos(a) * jit[k] * sc + 0.06 * f
-            ry = d / 2 * math.sin(a) * jit[(k + 3 * j) % K] * sc
-            ring.append((rx, ry, min(hb * f, top(rx) + rr.uniform(-0.04, 0.04) * (f > 0.7))))
-        rings.append(ring)
-    for j in range(R):
+            c_, s_ = math.cos(a), math.sin(a)
+            q = 1.0 + sum(am * math.sin(m_ * a + ph + fz * z_ + pz) for am, m_, ph, fz, pz in waves)
+            ring.append((math.copysign(abs(c_) ** (2 / n), c_) * q, math.copysign(abs(s_) ** (2 / n), s_) * q))
+        x0, x1 = min(p_[0] for p_ in ring), max(p_[0] for p_ in ring)
+        y0, y1 = min(p_[1] for p_ in ring), max(p_[1] for p_ in ring)
+        rings.append((z_ * kz + 0.3, max(0.0, z_ / 2.6),
+                      [(xl + (p_[0] - x0) / (x1 - x0) * (xr - xl), yb - t + (p_[1] - y0) / (y1 - y0) * t) for p_ in ring]))
+    U = lambda k: 0.75 + k / K                                 # (u round it: the photographed face's middle at 0.5)
+    for (za, va, ra), (zb, vb, rb) in zip(rings, rings[1:]):
         for k in range(K):
             k2 = (k + 1) % K
-            mb.face([rings[j][k], rings[j][k2], rings[j + 1][k2], rings[j + 1][k]], 'stone_boulder', smooth='eng_stone')
-    tr = rings[-1]
-    c = (sum(p[0] for p in tr) / K, sum(p[1] for p in tr) / K)
-    cz = top(c[0]) + 0.03
+            mb.face([(*ra[k], za), (*ra[k2], za), (*rb[k2], zb), (*rb[k], zb)], 'stone_menhir', smooth='eng_stone',
+                    uvs=[(U(k), va), (U(k + 1), va), (U(k + 1), vb), (U(k), vb)])
+    zt, vt, tr = rings[-1]
+    c = (sum(p_[0] for p_ in tr) / K, sum(p_[1] for p_ in tr) / K)
     for k in range(K):
-        mb.face([tr[k], tr[(k + 1) % K], (c[0], c[1], cz)], 'stone_boulder')
-    # the crack down from the top on its face: a dark sliver
-    mb.face([(-0.085, -d / 2 * 0.9 - 0.015, h * 0.8), (-0.07, -d / 2 * 0.9 - 0.015, h * 0.8),
-             (-0.04, -d / 2 * 0.86 - 0.015, top(-0.04) - 0.03), (-0.065, -d / 2 * 0.86 - 0.015, top(-0.065) - 0.03)], 'metal_dark')
+        mb.face([(*tr[k], zt), (*tr[(k + 1) % K], zt), (*c, zt + 0.012 * kz)], 'stone_menhir', smooth='eng_stone',
+                uvs=[(U(k), vt), (U(k + 1), vt), (U(k + 0.5), 0.995)])
     print('제1공학관 앞 선돌: (%.1f, %.1f) %.1f m' % (x, y, h))
     return [mb]
 

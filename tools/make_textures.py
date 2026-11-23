@@ -1683,6 +1683,90 @@ def seomun_sign():
 
 seomun_sign()
 
+
+# eng_stone.jpg: the skin of the standing stone before 제1공학관 (blender/landmarks.py eng_stone, materials.json
+# stone_menhir; reference/고증/3.8 「앞마당의 선돌」), 512 x 1024: u once round the stone, v up it.  The middle half is the
+# stone's own face in reference/동문_이중윤/졸업식날_공대_앞_선돌.jpg (a rainy day on film), each row between the stone's edges
+# (ENG_STONE_PX: row, left, right) unrolled as round a cylinder; the two outer quarters are its mirror, for the side
+# no photo shows, with the crack at the head painted out there.  Rows are evenly spaced in height through the photo's
+# perspective (horizon on row 1225, a 57 mm lens: 2470 px).  The film's violet cast and the wet stone's darkness are
+# taken out: a dry stone in the sun is a pale warm grey with darker lichen (the roadview of 2011-04), so the mean goes
+# to that and the photo gives the mottling, the dark foot and the crack.
+ENG_STONE_PX = [(650, 297, 322), (656, 275, 335), (665, 262, 340), (685, 254, 346), (700, 252, 348), (750, 252, 352),
+                (800, 255, 356), (850, 262, 364), (900, 266, 372), (950, 272, 381), (1000, 276, 388), (1050, 280, 395),
+                (1100, 280, 402), (1150, 278, 410), (1200, 277, 419), (1250, 277, 428), (1300, 272, 435),
+                (1350, 266, 440), (1400, 261, 445), (1450, 259, 449), (1500, 257, 451), (1540, 256, 452)]
+
+
+def eng_stone_tex():
+    if ONLY and 'eng_stone' not in ONLY:
+        return
+    src = np.asarray(Image.open(os.path.join(ROOT, 'reference/동문_이중윤/졸업식날_공대_앞_선돌.jpg')).convert('RGB')).astype(np.float32)
+    W, H = 512, 1024
+    f, cy, pit = 2470.0, 774.0, math.radians(10.3)
+    tb, tt = (math.tan(pit - math.atan((y_ - cy) / f)) for y_ in (1540, 650))
+    ys, ls, rs = (np.array(c_, dtype=np.float64) for c_ in zip(*ENG_STONE_PX))
+    half = np.zeros((H, W // 2, 3), np.float32)
+    for j in range(H):
+        t = tt + (tb - tt) * (j + 0.5) / H                                  # (even steps in height, the head on row 0)
+        y = cy + f * math.tan(pit - math.atan(t))
+        y = 1528.0 - abs(1528.0 - (686.0 + abs(y - 686.0)))                  # (the head's full width and off the grass: folded back)
+        l, r = np.interp(y, ys, ls), np.interp(y, ys, rs)
+        c, hw = (l + r) / 2, (r - l) / 2 * 0.84                              # (inside the edges: no sky, no fir)
+        # (as round a cylinder, but only its middle 110 degrees: nearer the edges a pixel would smear over a hand's width)
+        x = c + hw * np.sin(((np.arange(W // 2) + 0.5) / (W // 2) - 0.5) * math.radians(110)) / math.sin(math.radians(55))
+        half[j] = ndimage.map_coordinates(src, [np.full(x.shape, y)[None].repeat(3, 0), x[None].repeat(3, 0),
+                                                np.arange(3)[:, None].repeat(len(x), 1)], order=1).T
+    lum = half @ np.array([0.299, 0.587, 0.114], np.float32)
+    # the light on the day out: the slow change up the stone (wet and dark at the foot) kept at a third, across it a quarter
+    slow = ndimage.gaussian_filter(lum, (60, 40), mode='nearest')
+    rowm = slow.mean(1, keepdims=True)
+    flat = lum / slow * (rowm ** 0.35 * (slow / rowm) ** 0.25) * (lum.mean() ** 0.65)
+    flat = (flat / flat.mean() - 1.0) * 1.35 + 1.0                            # (the mottling a little stronger)
+    grey = np.clip(flat, 0.25, 1.9)
+    chroma = half / np.maximum(lum[..., None], 1.0)                           # (its colour: the film's cast taken to grey)
+    chroma = chroma / chroma.reshape(-1, 3).mean(0)
+    chroma = 1.0 + (chroma - 1.0) * 0.45
+    out = grey[..., None] * chroma * np.array([116.0, 113.0, 105.0], np.float32)
+    # the crack down from the head (the photo's rows 652 - 712, lost above where the rows fold back): drawn again
+    ck = Image.new('L', (W // 2 * 4, H * 4), 0)
+    pts = []
+    for y_, x_ in ((652, 299.5), (662, 300.5), (672, 299.0), (684, 300.5), (696, 302.0), (706, 301.0), (714, 302.5)):
+        t = math.tan(pit - math.atan((y_ - cy) / f))
+        l, r = np.interp(max(y_, 686.0), ys, ls), np.interp(max(y_, 686.0), ys, rs)
+        q = (x_ - (l + r) / 2) / ((r - l) / 2 * 0.84) * math.sin(math.radians(55))
+        pts.append(((0.5 + math.degrees(math.asin(max(-1.0, min(1.0, q)))) / 110.0) * W // 2 * 4, (t - tt) / (tb - tt) * H * 4))
+    dk = ImageDraw.Draw(ck)
+    for i_, (p0, p1) in enumerate(zip(pts, pts[1:])):
+        dk.line([p0, p1], fill=255, width=max(3, 16 - 2 * i_))
+    ck = np.asarray(ck.resize((W // 2, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.6)), np.float32) / 255.0
+    out = out * (1.0 - 0.72 * ck[..., None])
+    slow_v = ndimage.gaussian_filter1d(out.mean((1, 2)), 40, mode='nearest')    # (how dark each height is)
+    back = out[:, ::-1].copy()                                                # (the far side: the mirror)
+    # the crack at the head, painted out of the far side with the stone a little way down
+    j0, j1, i0, i1 = 0, int(H * 0.085), int(W // 2 * 0.36), int(W // 2 * 0.72)
+    ramp = np.clip(1.0 - (np.arange(j1 - j0) - (j1 - j0) * 0.6) / ((j1 - j0) * 0.4), 0, 1)[:, None, None]
+    edge = np.clip(np.minimum(np.arange(i1 - i0), np.arange(i1 - i0)[::-1]) / 10.0, 0, 1)[None, :, None]
+    patch = back[j1 + 30:j1 + 30 + (j1 - j0), i0:i1]
+    back[j0:j1, i0:i1] = back[j0:j1, i0:i1] * (1 - ramp * edge) + patch * (ramp * edge)
+    # away from the two joins the mirror slides 0.4 m down, so that no pattern faces its own reflection across a join
+    wj = np.clip(np.minimum(np.arange(W // 2), np.arange(W // 2)[::-1]) / 40.0, 0, 1)
+    wj = (wj * wj * (3 - 2 * wj))[None, :, None]
+    back = back * (1 - wj) + back[np.abs(np.arange(H) - 150)] * wj
+    img = np.concatenate([back[:, W // 4:], out, back[:, :W // 4]], axis=1)
+    # over each join a feathered strip of the face's middle from another height: the unrolled edges are the photo's
+    # blurred rim, and the rim facing its mirror reads as a vein down the stone's side
+    feather = (np.sin(np.arange(72) / 71.0 * math.pi) ** 2 * 0.9)[None, :, None]
+    for xj, off, i0 in ((W // 4, 260, 152), (3 * W // 4, 420, 30)):          # (columns clear of the crack)
+        rows = np.abs(H - 1 - np.abs(H - 1 - np.abs(np.arange(H) - off)))
+        strip = out[rows, i0:i0 + 72] * (slow_v / slow_v[rows])[:, None, None]
+        img[:, xj - 36:xj + 36] = img[:, xj - 36:xj + 36] * (1 - feather) + strip * feather
+    Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).save(os.path.join(OUT, 'eng_stone.jpg'), quality=90)
+    print('eng_stone')
+
+
+eng_stone_tex()
+
 if ONLY:
     raise SystemExit(0)
 

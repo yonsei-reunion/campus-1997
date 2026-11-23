@@ -2319,13 +2319,19 @@ def eagle_statue(site=None):
 # to 노천극장 north of 용재관, then moved before 외솔관 (연세춘추 2007-03-25 「위당? 외솔? 그 정체를 밝혀보자!」; 한결
 # 김윤경's bust stood on the island in 2008 · 2010).  65 cm of bronze, 1.5 times life, the man at sixty to sixty-five,
 # on a rectangular granite block with a passage of his 「우리말본」 cut in its front (the same article).  As in that
-# article's photo of it from the front (reference/연세춘추/2007-03-25_10505_876_2698_316.jpg): a lean old face - the
-# hair full and combed straight back from a high forehead, the brows drawn a little together, narrow eyes with bags
-# under them, broad cheekbones over fallen cheeks, deep folds from the nose past the firm, closed mouth, big ears -
-# on a strong neck in a 두루마기, its broad collar with the 동정 crossed on the chest (his left side over his right);
-# the shoulders are cut off at the arms and the chest ends in an uneven edge over a small bronze foot.  The head is
-# 0.55 of the height and the shoulders as wide as the bust is tall.  The bronze is the brown of the 위당 bust of the
-# same day in the school site's photo of 1997 (reference/학교홈페이지/junginbo.jpg; the grey-green of 2007 came later).
+# article's photo of it from the front (reference/연세춘추/2007-03-25_10505_876_2698_316.jpg): a long, lean old head
+# turned a little to his left - short hair combed back from the forehead, flat on top and broad at the head's upper
+# corners, narrow level eyes set deep under a straight low brow, their irises cut, a long broad nose, broad cheekbones
+# over fallen cheeks, a long upper lip over a straight, closed mouth, the jaw narrowing to a long chin, big ears that
+# stand out - on a strong neck in a 두루마기, whose collar stands round the neck up to the jaw and comes down the fronts
+# as two broad flat bands that cross low on the chest (his left one over his right and on down to the edge); round
+# shoulders cut off at the arms, his right one lower, the chest ending in an uneven edge over a small bronze foot.
+# Sizes from that photo, which looks up at the bust a little (the chin hides part of the neck, the ears sit low): the
+# chin's edge 0.55 of the way from the crown to the chest's edge, the shoulders 1.06 times that height; in the head
+# (crown to chin's edge) the eyes at 0.445, the nose's foot at 0.65, the mouth at 0.76, the width 0.81 with the ears
+# and 0.55 across the jaw at the mouth.  Seen so the chin's edge is 0.02 m higher than it is, so the head is 0.375 m
+# from chin to crown where the chest's edge to the crown is the article's 0.64 m.  The bronze is the pale grey-green
+# of that photo (OS_LOOK).
 # The block after the bust there in the 2010 street view (0.6 x 0.5 m, 0.92 m and a 0.08 m cap, a dark plate on its
 # front).  The figure is sculpted densely and baked onto a light mesh (blender/sculpt.py), the head from the Blender
 # Foundation's CC0 "Human Base Meshes" as the Underwood statue's.  Local frame: front = -Y, +X his left, z from the
@@ -2333,16 +2339,25 @@ def eagle_statue(site=None):
 BUST_BLOCK = (0.6, 0.5, 0.92, 0.08)       # width, depth, height, cap
 BUST_PLATE = (0.40, 0.46, 0.20)           # the dark plate on the block's front: width, height, its top under the block's
 OS_FOOT = (0.25, 0.19, 0.06)              # the bronze foot under the chest: width, depth, height
-OS_HEAD = 0.355                           # chin to crown (1.5 x life); the chest's edge to the crown 0.64 m
-OS_CHIN = 0.28                            # the chin over the chest's lower edge
-OS_NECK = 0.035                           # the middle of the neck behind the chest's
-OS_BAND = ((-0.09, 0.224), (0.013, 0.06), (0.09, 0.224), (-0.062, -0.016))   # the collar's two bands on the front (x, z):
-#                                           his right one from the neck to the crossing, his left one over it to the edge
+OS_HIGH = 0.64                            # the chest's lower edge to the crown
+OS_HEAD = 0.375                           # chin to crown (1.6 x life)
+OS_UNIT = OS_HIGH / 0.64                  # (the chest is laid out as 0.64 m high)
+OS_NECK = 0.035                           # the middle of the neck behind the chest's (in the chest's layout)
+OS_BAND = (((-0.103, 0.29), (-0.018, 0.1315), (-0.008, 0.116)),       # the collar's two bands on the front (x, z, in the
+           ((0.103, 0.29), (0.0244, 0.132), (-0.068, 0.005)))         # chest's layout): his right one from the neck to the
+#                                           crossing, his left one over it and on to the edge
+OS_VEE = ((0.003, 0.145), (0.084, 0.3))   # the opening between them: its point (x, z), its upper corners (+-x, z)
+OS_TURN = 7.0                             # the head turned to his left (degrees)
 # the bronze as in the photo of 2007 (연세춘추, the only photo of this bust): an even pale grey-green all over, darker
 # in the hollows of the face and the folds, hardly any bare metal.  The colours are lighter and yellower than the
 # photo's, because the bust stands in the pines' shade under a blue sky (reference/고증/2.9.4 「흉상의 생김새」).
 OS_LOOK = dict(verdigris=0.85, wear=0.06, base=(0.385, 0.44, 0.32), green=(0.47, 0.535, 0.385), soot=(0.06, 0.07, 0.05),
                bare=(0.36, 0.36, 0.26), rough=(0.8, 0.92, 0.6), metal=(0.15, 0.03, 0.6))
+OS_EYE = (0.2, 0.22, 0.0)                 # the eyes: lower by this share, longer by this; the iris' height
+OS_JAW = (0.2, 0.02, 0.08)                # the lower face wider by this share: the jaw, the neck; the chin narrower by this
+OS_LONG = (0.914, 1.14)                   # the head's height above the brows, from the mouth to the chin (_os_long)
+OS_LEAN = 0.9                             # the head's width, of the base head's
+OS_FOLD = (1.25, 1.15)                    # the folds of the coat wider and deeper than laid out (deep narrow ones bake as soot lines)
 OS_AO = 2.0                               # the shelter mask's power (_os_maps)
 
 
@@ -2371,86 +2386,123 @@ def oesol_head(voxel=0.0011):
          + sum((v.co for v in e1.data.vertices), Vector()) / len(e1.data.vertices)) / 2
     for o in (head, e0, e1):
         o.data.transform(Matrix.Translation(-c))
-    _cut(head, Vector((0, 0, -0.178)), Vector((0, 0, -1)))
-    for o in (head, e0, e1):            # the eyes narrower under heavy lids
+    _cut(head, Vector((0, 0, -0.16)), Vector((0, 0, -1)))        # (lower, the shoulders come out of the coat)
+    for o in (head, e0, e1):            # the eyes narrow and long
         P = sculpt.co(o)
         w = _smooth01(0.026, 0.01, np.abs(np.abs(P[:, 0]) - 0.032)) * _smooth01(0.02, 0.008, np.abs(P[:, 2]))
         w = w * (P[:, 1] < 0.012)
-        P[:, 2] *= 1 - 0.22 * w
+        P[:, 2] *= 1 - OS_EYE[0] * w
+        sx = np.sign(P[:, 0])
+        P[:, 0] = np.where(w > 0, sx * (0.032 + (np.abs(P[:, 0]) - 0.032) * (1 + OS_EYE[1] * w)), P[:, 0])
         sculpt.set_co(o, P)
     ob = sculpt.union([head, e0, e1], voxel, smooth=2, name='os_head')
     S = sculpt
-    # -- the bones: a flatter middle of the face, broad cheekbones, a lean jaw, a long upper lip
+    # -- the bones: a lean head, broad cheekbones, the jaw narrowing to the chin
     P = S.co(ob)
     face = _smooth01(0.03, -0.02, P[:, 1])
+    P[:, 0] *= OS_LEAN                                                      # a long, lean head
     P[:, 0] *= 1 + 0.06 * face * _smooth01(-0.06, -0.02, P[:, 2]) * _smooth01(0.03, -0.01, P[:, 2])    # cheekbones
-    P[:, 0] *= 1 - 0.03 * _smooth01(0.06, -0.02, P[:, 1]) * _smooth01(-0.05, -0.1, P[:, 2])            # the jaw narrower
-    P[:, 0] *= 1 - 0.1 * _smooth01(0.0, -0.03, P[:, 1]) * _smooth01(0.022, 0.008, np.abs(P[:, 2] + 0.071))   # a small mouth
+    # the jaw: the lower face wider than the lean head's, down to the jaw's border (the ears move out with it, not wider)
+    zj = -0.118 + 0.05 * _smooth01(-0.03, 0.075, P[:, 1])                  # (the jaw's lower border, from the chin to its angle)
+    a = OS_JAW[1] + (OS_JAW[0] * _smooth01(0.0, -0.08, P[:, 2]) - OS_JAW[1]) * _smooth01(-0.016, 0.01, P[:, 2] - zj)
+    P[:, 0] += np.sign(P[:, 0]) * 0.07 * (1 - np.exp(-np.abs(P[:, 0]) / 0.07)) * a
+    P[:, 0] *= 1 - OS_JAW[2] * _smooth01(-0.082, -0.11, P[:, 2]) * _smooth01(-0.02, 0.008, P[:, 2] - zj) * _smooth01(0.06, 0.02, P[:, 1])
+    P[:, 0] *= 1 - 0.02 * _smooth01(0.0, -0.03, P[:, 1]) * _smooth01(0.024, 0.01, np.abs(P[:, 2] + 0.071))  # (the mouth wide)
+    # a broad nose, its wings spread
+    P[:, 0] *= 1 + 0.1 * _smooth01(0.032, 0.018, np.abs(P[:, 0])) * _smooth01(0.014, 0.006, np.abs(P[:, 2] + 0.039)) * _smooth01(-0.01, -0.03, P[:, 1])
+    # the mouth straight, its corners turned a little down
+    P[:, 2] -= (0.0022 * _smooth01(0.01, 0.034, np.abs(P[:, 0])) * np.exp(-((P[:, 2] + 0.071) / 0.014) ** 2)
+                * _smooth01(0.01, -0.02, P[:, 1]))
     ear = _smooth01(0.068, 0.08, np.abs(P[:, 0])) * _smooth01(0.04, 0.06, P[:, 1]) * _smooth01(0.14, 0.11, P[:, 1])
     P[:, 2] = np.where(ear > 0, -0.012 + (P[:, 2] + 0.012) * (1 + 0.2 * ear), P[:, 2])                  # long ears
     S.set_co(ob, P)
     S.push(ob, (0, -0.03, 0.002), 0.022, (0, 0.0045, 0))                    # the root of the nose lower
-    S.push(ob, (0, -0.046, -0.036), 0.024, (0, 0.003, 0.001))               # the nose shorter, its tip rounder
+    S.push(ob, (0, -0.046, -0.038), 0.026, (0, 0.0005, 0.0))                # the nose's tip round
     S.inflate(ob, (0, -0.045, -0.037), 0.014, 0.0015)
     S.push(ob, (0, -0.02, 0.08), 0.08, (0, -0.003, 0.004))                  # a high, full forehead
-    S.inflate(ob, (0, -0.03, -0.103), 0.03, 0.002)                          # the chin
-    S.push(ob, (0, -0.03, -0.07), 0.024, (0, 0.003, 0))                     # the mouth drawn in, the lips thin
-    S.inflate(ob, (0, -0.04, -0.064), 0.014, -0.002)
-    S.inflate(ob, (0, -0.038, -0.079), 0.014, -0.0025)
-    S.push(ob, (0, -0.04, -0.05), 0.014, (0, 0, 0.0015))                    # a long upper lip
+    S.push(ob, (0, -0.02, -0.108), 0.034, (0, -0.002, -0.006))              # a long chin
+    S.inflate(ob, (0, -0.03, -0.106), 0.03, 0.002)
     for sx in (-1, 1):
-        S.inflate(ob, (sx * 0.019, -0.032, -0.04), 0.012, 0.001)            # the wings of the nose
-        S.inflate(ob, (sx * 0.031, -0.014, 0.0085), 0.013, 0.0022)          # the lids full under the brow
-        S.inflate(ob, (sx * 0.032, -0.0125, 0.0), 0.0095, 0.0006, falloff=1.0)
-        S.inflate(ob, (sx * 0.055, -0.006, -0.03), 0.028, 0.004)            # cheekbones
-        S.inflate(ob, (sx * 0.04, -0.008, -0.068), 0.03, -0.0045)           # the cheeks fallen in under them
+        S.inflate(ob, (sx * 0.02, -0.02, -0.105), 0.02, 0.001)              # ... square
+    S.push(ob, (0, -0.03, -0.07), 0.03, (0, 0.004, 0))                      # the mouth drawn in, the lips thin
+    for sx in (-0.5, 0.5):
+        S.inflate(ob, (sx * 0.03, -0.04, -0.0645), 0.016, -0.0032)
+        S.inflate(ob, (sx * 0.03, -0.038, -0.079), 0.016, -0.0022)
+    S.push(ob, (0, -0.04, -0.05), 0.014, (0, 0, 0.0015))                    # a long upper lip
+    S.push(ob, (0, -0.042, -0.066), 0.022, (0, 0.006, 0))                   # ... thin, not forward of the lower one
+    S.push(ob, (0, -0.04, -0.014), 0.017, (0, 0.002, 0))                    # the bridge of the nose low and straight
+    for sx in (-1, 1):
+        S.inflate(ob, (sx * 0.021, -0.032, -0.04), 0.012, 0.0022)           # the wings of the nose
+        S.push(ob, (sx * 0.029, -0.014, 0.0), 0.021, (0, 0.0032, 0))        # the eyes deep under the brow
+        S.push(ob, (sx * 0.027, -0.026, 0.0155), 0.015, (0, -0.0016, -0.0012))   # ... which comes low over them
+        S.inflate(ob, (sx * 0.057, -0.004, -0.026), 0.026, 0.0035)          # cheekbones
+        S.inflate(ob, (sx * 0.05, 0.0, -0.058), 0.046, -0.0024)              # the cheeks fallen in under them
+        S.inflate(ob, (sx * 0.036, -0.02, -0.036), 0.024, -0.0022)          # ... and flat beside the nose
         S.inflate(ob, (sx * 0.06, 0.03, -0.01), 0.03, -0.002)               # the temples
-        S.push(ob, (sx * 0.088, 0.085, -0.02), 0.045, (sx * 0.008, -0.004, 0))   # big ears, standing out
+        S.push(ob, (sx * 0.088, 0.085, -0.02), 0.045, (sx * 0.015, -0.005, 0))   # big ears, standing out
         S.push(ob, (sx * 0.09, 0.09, -0.045), 0.03, (0, 0, -0.006))         # ... their lobes long
-        S.push(ob, (sx * 0.026, -0.022, -0.071), 0.012, (0, 0, -0.0012))     # the corners of the mouth down a little
     tree = _tree(ob)
     on = lambda pts, lift=0.0: _onto(tree, pts, lift)
     st = []
     for sx in (-1, 1):
-        # the brow: a ridge over the eye, higher at its outer end; the crease between the brows
-        st.append((on([(sx * 0.009, -0.03, 0.0165), (sx * 0.025, -0.03, 0.02), (sx * 0.043, -0.025, 0.02),
-                       (sx * 0.057, -0.012, 0.014)]), 0.01, 0.003, (0.25, 0.3)))
+        # the brow: a straight, low ridge over the eye
+        st.append((on([(sx * 0.008, -0.03, 0.0135), (sx * 0.023, -0.03, 0.0145), (sx * 0.04, -0.025, 0.0145),
+                       (sx * 0.053, -0.012, 0.0125)]), 0.009, 0.003, (0.2, 0.25)))
         # the upper lid's fold, the bag under the eye and the line below it
-        st.append((on([(sx * 0.017, -0.02, 0.0075), (sx * 0.032, -0.02, 0.0095), (sx * 0.046, -0.015, 0.0065)]), 0.004, -0.0011))
-        st.append((on([(sx * 0.018, -0.02, -0.012), (sx * 0.032, -0.02, -0.0145), (sx * 0.046, -0.015, -0.011)]), 0.007, 0.0014))
-        st.append((on([(sx * 0.015, -0.02, -0.019), (sx * 0.03, -0.02, -0.0235), (sx * 0.046, -0.015, -0.021)]), 0.005, -0.0014))
+        st.append((on([(sx * 0.014, -0.02, 0.0065), (sx * 0.029, -0.02, 0.0072), (sx * 0.044, -0.015, 0.0065)]), 0.004, -0.0013))
+        st.append((on([(sx * 0.018, -0.02, -0.012), (sx * 0.032, -0.02, -0.0145), (sx * 0.046, -0.015, -0.011)]), 0.007, 0.0009))
+        st.append((on([(sx * 0.015, -0.02, -0.019), (sx * 0.03, -0.02, -0.0235), (sx * 0.046, -0.015, -0.021)]), 0.006, -0.0009))
         # the fold from the wing of the nose past the mouth to beside the chin, deep
-        st.append((on([(sx * 0.02, -0.03, -0.033), (sx * 0.029, -0.03, -0.048), (sx * 0.036, -0.02, -0.066),
-                       (sx * 0.034, -0.02, -0.088)]), 0.0075, -0.0036, (0.12, 0.35)))
-        st.append((on([(sx * 0.03, -0.02, -0.074), (sx * 0.033, -0.02, -0.095), (sx * 0.028, -0.02, -0.108)]), 0.006, -0.0016))
+        st.append((on([(sx * 0.021, -0.03, -0.034), (sx * 0.029, -0.03, -0.05), (sx * 0.036, -0.02, -0.066),
+                       (sx * 0.037, -0.02, -0.08)]), 0.008, -0.0024, (0.12, 0.4)))
+        st.append((on([(sx * 0.032, -0.02, -0.078), (sx * 0.034, -0.02, -0.092), (sx * 0.031, -0.02, -0.104)]), 0.008, -0.001))
         # the hollow of the cheek, running down from the cheekbone; crow's feet
-        st.append((on([(sx * 0.058, -0.004, -0.04), (sx * 0.054, -0.004, -0.065), (sx * 0.046, 0.0, -0.09)]), 0.012, -0.0022))
+        st.append((on([(sx * 0.058, -0.004, -0.04), (sx * 0.054, -0.004, -0.065), (sx * 0.046, 0.0, -0.09)]), 0.014, -0.001))
         # the cords of the neck
         st.append((on([(sx * 0.02, 0.03, -0.125), (sx * 0.026, 0.04, -0.16), (sx * 0.03, 0.05, -0.195)]), 0.011, 0.002, (0.3, 0.1)))
-    # the closed mouth: a firm line, the lower lip a little forward; the hollow under it; lines across the forehead
-    st.append((on([(-0.025, -0.03, -0.0715), (-0.012, -0.03, -0.0695), (0, -0.03, -0.0705), (0.012, -0.03, -0.0695),
-                   (0.025, -0.03, -0.0715)]), 0.0032, -0.0014, (0.15, 0.15)))
+    # the hollow under the lower lip; lines across the forehead
     st.append((on([(-0.016, -0.03, -0.088), (0, -0.03, -0.0865), (0.016, -0.03, -0.088)]), 0.008, -0.002))
     for z, w, h in ((0.038, 0.038, -0.0006), (0.054, 0.032, -0.0005)):
         st.append((on([(-w, -0.02, z - 0.004), (-w * 0.4, -0.03, z + 0.001), (w * 0.3, -0.03, z - 0.0005), (w, -0.02, z - 0.003)]),
                    0.004, h))
     st.append((on([(-0.012, 0.02, -0.132), (0, 0.02, -0.14), (0.012, 0.02, -0.132)]), 0.01, 0.0018))      # the Adam's apple
     S.strokes(ob, st)
+    # the eyes' irises cut as shallow dishes with a deeper pupil (they give the bronze its look)
+    tree = _tree(ob)
+    for sx in (-1, 1):
+        loc, *_ = tree.ray_cast(Vector((sx * 0.032 * OS_LEAN, -1.0, OS_EYE[2])), Vector((0, 1, 0)))
+        S.inflate(ob, tuple(loc), 0.0058, -0.0008, falloff=0.6)
+        S.inflate(ob, tuple(loc), 0.0028, -0.001, falloff=0.6)
     _os_hair(ob)
+    _os_long(ob)
     return ob
 
 
+def _os_long(ob):
+    """A long face under a low crown: the head lower above the brows and longer from the mouth to the chin (in the photo
+    the eyes are 0.445 of the way from the crown to the chin's edge, the nose's foot 0.65, the mouth 0.76)."""
+    top, chin = OS_LONG
+    z0 = np.array([-0.4, -0.119, -0.076, 0.012, 0.3])
+    z1 = np.array([-0.4 - 0.043 * (chin - 1), -0.076 - 0.043 * chin, -0.076, 0.012, 0.012 + 0.288 * top])
+    zg = np.arange(-0.4, 0.3, 0.0005)
+    new = np.convolve(np.pad(np.interp(zg, z0, z1), 12, mode='edge'), np.ones(25) / 25, 'valid')     # (the corners rounded)
+    P = sculpt.co(ob)
+    P[:, 2] = np.interp(P[:, 2], zg, new)
+    sculpt.set_co(ob, P)
+
+
 def _os_hair(ob):
-    """The hair as a raised mass: full on top and combed straight back from a high forehead, receding a little at the
-    temples, short over the ears and down the back of the head, in broad soft locks from the forehead back."""
+    """The hair as a raised mass: cut short and combed straight back from the forehead, standing a little over it, flat
+    on top and full at the head's upper corners, short over the ears and down the back of the head, in locks from the
+    forehead back."""
     P = sculpt.co(ob)
     N = sculpt.normals(ob)
     d = P - np.asarray(UW_SKULL, np.float32)
     r = np.linalg.norm(d, axis=1)
     el = np.degrees(np.arcsin(np.clip(d[:, 2] / np.maximum(r, 1e-6), -1, 1)))
     az = np.degrees(np.arctan2(np.abs(d[:, 0]), -d[:, 1]))             # 0 in front .. 180 behind
-    low = np.interp(az, [0, 22, 40, 54, 66, 76, 84, 112, 122, 180], [44, 45, 46, 38, 16, 1, 7, 8, -26, -36])
-    m = _smooth01(-5, 13, el - low)
+    low = np.interp(az, [0, 22, 40, 54, 66, 76, 84, 112, 122, 180], [40, 42, 44, 40, 17, 1, 7, 8, -26, -36])
+    m = _smooth01(-3, 6, el - low)
     m *= _smooth01(0.012, 0.004, r - np.interp(el, [-40, 0, 40, 90], [0.097, 0.1, 0.103, 0.103]))   # (not the ears)
     # the locks: ridges that run from the forehead back over the crown and down the back of the head (lines of equal
     # angle about an axis from front to back that sinks towards the nape, so that they do not meet on the head), each
@@ -2459,91 +2511,110 @@ def _os_hair(ob):
     psi = np.degrees(np.arctan2(d[:, 0], zc))                           # about that axis: 0 on top
     along = np.degrees(np.arctan2(d[:, 1], d[:, 2] + 0.03))            # from the front back
     ph = psi + 5.0 * np.sin(np.radians(along * 1.7 + psi * 1.3)) + 2.5 * np.sin(np.radians(along * 4.1 + psi * 2.3) + 1.0)
-    band = np.floor(ph / 21.0)
-    lock = 0.5 + 0.5 * np.sin(np.radians(ph * 360 / 21.0 - 90))
+    band = np.floor(ph / 10.0)
+    lock = 0.5 + 0.5 * np.sin(np.radians(ph * 360 / 10.0 - 90))
     lock = lock ** 0.8 * (0.6 + 0.4 * np.sin(np.radians(along * 3) + band * 2.1))
     fine = 0.5 + 0.5 * np.sin(np.radians(ph * 360 / 5.5) + 2.5 * np.sin(np.radians(along * 2.3) + band))
     # fuller over the forehead (the hair stands up before it goes back), on top and over the ears, thin at the nape
-    full = 0.004 + 0.007 * np.exp(-((el - 60) / 28) ** 2) * _smooth01(150, 60, az) + 0.003 * _smooth01(15, 55, el)
-    full += 0.003 * np.exp(-((az - 90) / 40) ** 2) * np.exp(-((el - 28) / 22) ** 2)
+    full = 0.0045 + 0.002 * np.exp(-((el - 62) / 26) ** 2) * _smooth01(150, 60, az) + 0.0015 * _smooth01(15, 55, el)
+    full += 0.001 * np.exp(-((az - 90) / 40) ** 2) * np.exp(-((el - 28) / 22) ** 2)
+    full += 0.0045 * np.exp(-((az - 62) / 30) ** 2) * np.exp(-((el - 48) / 20) ** 2)      # (the head broad at its upper corners)
     full *= 0.5 + 0.5 * _smooth01(-30, 10, el)
-    h = m * (full + 0.0019 * lock + 0.00045 * fine)
+    h = m * (full + 0.002 * lock + 0.0012 * fine)
     sculpt.set_co(ob, P + N * h[:, None])
 
 
 def oesol_chest():
     """The chest in the 두루마기 at the bust's size (z = 0 at its lower edge, facing -Y) and the bronze foot under it:
-    the shoulders fall from the neck to the cut arms low at the sides, the coat rounding in under them to the foot."""
+    round shoulders that fall from the collar - which stands round the neck up to the jaw - to the cut arms, the coat
+    rounding in under them to the foot (the outline after the 2007 photo: half widths at ten levels)."""
     sp = _Soup()
-    R = [(0.0, 0.14, 0.1), (0.02, 0.2, 0.118), (0.045, 0.25, 0.13), (0.075, 0.295, 0.14), (0.1, 0.325, 0.145),
-         (0.12, 0.335, 0.145), (0.14, 0.318, 0.142), (0.16, 0.275, 0.136), (0.18, 0.225, 0.128), (0.2, 0.175, 0.118),
-         (0.215, 0.14, 0.11), (0.228, 0.112, 0.103), (0.238, 0.098, 0.097)]
+    R = [(0.0, 0.147, 0.1), (0.016, 0.176, 0.114), (0.032, 0.2, 0.124), (0.048, 0.225, 0.132), (0.064, 0.265, 0.138),
+         (0.08, 0.3, 0.142), (0.096, 0.319, 0.145), (0.112, 0.332, 0.146), (0.128, 0.338, 0.146), (0.144, 0.33, 0.145),
+         (0.16, 0.314, 0.142), (0.176, 0.287, 0.138), (0.192, 0.258, 0.133), (0.208, 0.224, 0.128), (0.224, 0.17, 0.121),
+         (0.24, 0.138, 0.114), (0.256, 0.118, 0.107), (0.272, 0.105, 0.102), (0.29, 0.098, 0.099)]
     yc = lambda z: (OS_NECK + 0.02) * _sstep(z / 0.2)
     sp.loft([_ring(z, ax, ay, k=2.4 if z < 0.13 else 2.1, y0=yc(z), n=48) for z, ax, ay in R])
-    fw, fd, fh = OS_FOOT
+    fw, fd, fh = (v / OS_UNIT for v in OS_FOOT)
     sp.loft([[(sx * fw / 2, sy * fd / 2 + 0.01, z) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))] for z in (-fh, 0.03)])
     # the collar's rim standing round the back and the sides of the neck
     rim = [math.radians(a) for a in range(-30, 211, 15)]
-    sp.tube([(0.098 * math.cos(a), yc(0.24) + 0.098 * math.sin(a), 0.234 + 0.006 * math.sin(a)) for a in rim],
+    sp.tube([(0.092 * math.cos(a), yc(0.27) + 0.093 * math.sin(a), 0.286 + 0.006 * math.sin(a)) for a in rim],
             [0.0105 if 0 < i < len(rim) - 1 else 0.008 for i in range(len(rim))], n=12)
     ob = sculpt.union([sp.build('os_chest')], 0.002, smooth=6, factor=0.6, name='os_chest')
     S = sculpt
     # the uneven lower edge: the cloth ends in a torn line, higher and lower round the bust
     P = S.co(ob)
     th = np.arctan2(P[:, 1], P[:, 0])
-    out = np.hypot(P[:, 0] / 0.14, P[:, 1] / 0.1) > 0.85                   # (not the foot)
-    w = _smooth01(0.05, 0.0, P[:, 2]) * (P[:, 2] > -0.004) * out
+    w = _smooth01(0.05, 0.0, P[:, 2]) * _smooth01(-0.055, -0.001, P[:, 2])   # (the flat under the coat and the foot's top with it:
+    #                                                                          a shorter ramp folds the surface over itself)
     P[:, 2] += w * (0.01 * np.sin(th * 3 + 0.6) + 0.006 * np.sin(th * 7 + 2.0) + 0.003 * np.sin(th * 13))
+    # his right arm is cut lower than his left
+    P[:, 2] -= 0.01 * np.sign(P[:, 0]) * _smooth01(0.2, 0.33, np.abs(P[:, 0]))
+    # the skin of the neck and the breast in the opening between the collar's fronts, sunk under them: a triangle
+    # from the sides of the neck under the jaw to the crossing
+    (ax_, az_), top = OS_VEE
+    dl = ((P[:, 0] - ax_) * (top[1] - az_) + (P[:, 2] - az_) * top[0]) / math.hypot(top[0], top[1] - az_)
+    dr = (-(P[:, 0] - ax_) * (top[1] - az_) + (P[:, 2] - az_) * top[0]) / math.hypot(top[0], top[1] - az_)
+    P[:, 1] += 0.011 * _smooth01(0.0, 0.012, np.minimum(dl, dr)) * (P[:, 1] < yc(0.27)) * _smooth01(0.305, 0.285, P[:, 2])
     S.set_co(ob, P)
     tree = _tree(ob)
     on = lambda pts, lift=0.0: _onto(tree, pts, lift)
 
-    def front(x, z):                    # the point of the coat's front at (x, z)
-        loc, *_ = tree.ray_cast(Vector((x, -1.0, z)), Vector((0, 1, 0)))
-        return tuple(loc) if loc is not None else on([(x, -0.3, z)])[0]
+    def front(x, z, d=1):               # the point of the coat's front at (x, z) (d = -1: of its back); beside the
+        for i in range(40):             # coat, the nearest point of its outline at that height
+            loc, *_ = tree.ray_cast(Vector((x * (1 - 0.03 * i), -d * 1.0, z)), Vector((0, d, 0)))
+            if loc is not None:
+                return tuple(loc)
+        return on([(0.0, -d * 0.3, z)])[0]
 
-    def band(a, b, off, n=9):           # a line on the front from a to b (x, z), `off` to its lower side
-        dx, dz = b[0] - a[0], b[1] - a[1]
-        L = math.hypot(dx, dz)
-        nx, nz = (dz / L, -dx / L) if dz * 0 + (-dx / L) < 0 else (-dz / L, dx / L)
-        return [front(a[0] + dx * i / n + nx * off, a[1] + dz * i / n + nz * off) for i in range(n + 1)]
+    def band(pts, off, n=5):            # a line on the front through the points (x, z), `off` to its lower side
+        out = []
+        for a, b in zip(pts[:-1], pts[1:]):
+            dx, dz = b[0] - a[0], b[1] - a[1]
+            L = math.hypot(dx, dz)
+            nx, nz = (dz / L, -dx / L) if -dx / L < 0 else (-dz / L, dx / L)
+            out += [front(a[0] + dx * i / n + nx * off, a[1] + dz * i / n + nz * off) for i in range(0 if not out else 1, n + 1)]
+        return out
 
     # the collar down the fronts: two broad flat bands from the sides of the neck to the crossing on the chest, his
     # left front over his right and on down to the edge; the 동정 (the narrow band sewn on the collar) a fine step
     # along each, the cloth cut in under the band's lower edge
     st = []
-    for a, b, h, t1 in ((OS_BAND[0], OS_BAND[1], 0.0048, 0.12), (OS_BAND[2], OS_BAND[3], 0.006, 0.03)):
-        for off in (-0.015, 0.0, 0.015):
-            st.append((band(a, b, off), 0.02, h, (0.04, t1)))
+    for pts, h, t1 in ((OS_BAND[0], 0.0045, 0.06), (OS_BAND[1], 0.006, 0.03)):
+        for off in (-0.013, 0.0, 0.013):
+            st.append((band(pts, off), 0.018, h, (0.03, t1)))
     S.strokes(ob, st)
     tree = _tree(ob)
     st = []
-    for a, b, t1 in ((OS_BAND[0], OS_BAND[1], 0.2), (OS_BAND[2], OS_BAND[3], 0.03)):
-        st.append((band(a, b, -0.006), 0.0035, -0.0018, (0.04, t1)))
-        st.append((band(a, b, 0.032), 0.007, -0.0035, (0.04, t1)))
-        st.append((band(a, b, -0.03), 0.006, -0.003, (0.04, t1 + 0.2)))
-    # the skin of the neck between the bands, sunk under them
+    for pts, t1 in ((OS_BAND[0], 0.1), (OS_BAND[1], 0.03)):
+        st.append((band(pts, -0.008), 0.003, -0.001, (0.03, t1)))
+        st.append((band(pts, 0.029), 0.007, -0.003, (0.03, t1)))
+        st.append((band(pts, -0.027), 0.006, -0.002, (0.03, t1 + 0.2)))
     S.strokes(ob, st)
-    S.push(ob, front(0.0, 0.175), 0.06, (0, 0.012, 0))
     tree = _tree(ob)
     st = []
     # the folds of the cloth: from the shoulders in and down towards the crossing, the pull of the tie at his right
     fr = lambda x, z: front(x, z)
+    bk = lambda x, z: front(x, z, -1)
     for sx in (-1, 1):
-        st.append((on([fr(sx * 0.27, 0.125), fr(sx * 0.2, 0.105), fr(sx * 0.13, 0.065), fr(sx * 0.085, 0.02)]),
+        st.append((on([fr(sx * 0.285, 0.15), fr(sx * 0.215, 0.125), fr(sx * 0.14, 0.08), fr(sx * 0.09, 0.03)]),
                    0.02, -0.0095, (0.2, 0.3)))
-        st.append((on([fr(sx * 0.28, 0.075), fr(sx * 0.21, 0.05), fr(sx * 0.15, 0.012)]), 0.018, -0.008, (0.25, 0.3)))
-        st.append((on([fr(sx * 0.21, 0.165), fr(sx * 0.16, 0.14), fr(sx * 0.12, 0.1)]), 0.015, 0.006, (0.3, 0.3)))
-        st.append((on([fr(sx * 0.25, 0.1), fr(sx * 0.18, 0.078), fr(sx * 0.11, 0.035)]), 0.016, 0.007, (0.3, 0.3)))
-        st.append((on([fr(sx * 0.14, 0.195), fr(sx * 0.2, 0.165), fr(sx * 0.27, 0.145)]), 0.014, -0.006, (0.3, 0.3)))
-        st.append((on([fr(sx * 0.2, 0.035), fr(sx * 0.15, 0.018), fr(sx * 0.11, 0.0)]), 0.014, 0.006, (0.3, 0.3)))
+        st.append((on([fr(sx * 0.3, 0.095), fr(sx * 0.225, 0.065), fr(sx * 0.16, 0.02)]), 0.018, -0.008, (0.25, 0.3)))
+        st.append((on([fr(sx * 0.225, 0.195), fr(sx * 0.17, 0.165), fr(sx * 0.125, 0.12)]), 0.015, 0.006, (0.3, 0.3)))
+        st.append((on([fr(sx * 0.265, 0.125), fr(sx * 0.19, 0.098), fr(sx * 0.115, 0.05)]), 0.016, 0.007, (0.3, 0.3)))
+        st.append((on([fr(sx * 0.15, 0.228), fr(sx * 0.21, 0.2), fr(sx * 0.28, 0.172)]), 0.014, -0.006, (0.3, 0.3)))
+        st.append((on([fr(sx * 0.215, 0.045), fr(sx * 0.16, 0.025), fr(sx * 0.115, 0.004)]), 0.014, 0.006, (0.3, 0.3)))
+        st.append((on([fr(sx * 0.3, 0.15), fr(sx * 0.285, 0.09), fr(sx * 0.25, 0.05)]), 0.014, -0.005, (0.25, 0.3)))
+        st.append((on([fr(sx * 0.19, 0.215), fr(sx * 0.13, 0.19), fr(sx * 0.085, 0.15)]), 0.011, -0.004, (0.3, 0.3)))
         # the folds down the back and round the cut arm
-        st.append((on([(sx * 0.08, 0.3, 0.19), (sx * 0.12, 0.3, 0.12), (sx * 0.11, 0.3, 0.03)]), 0.028, -0.005, (0.2, 0.2)))
-        st.append((on([(sx * 0.2, 0.3, 0.15), (sx * 0.22, 0.3, 0.09), (sx * 0.19, 0.3, 0.03)]), 0.022, 0.004, (0.2, 0.2)))
-        st.append((on([(sx * 0.4, -0.06, 0.14), (sx * 0.4, -0.02, 0.08), (sx * 0.4, 0.0, 0.03)]), 0.018, -0.005, (0.2, 0.2)))
-    st.append((on([fr(-0.07, 0.035), fr(-0.125, 0.03), fr(-0.18, 0.04)]), 0.011, 0.004, (0.2, 0.4)))         # the tie's pull
-    st.append((on([(0.0, 0.3, 0.19), (0.0, 0.3, 0.11), (0.0, 0.3, 0.03)]), 0.02, -0.004, (0.2, 0.2)))        # the back seam
-    S.strokes(ob, st)
+        st.append(([bk(sx * 0.08, 0.22), bk(sx * 0.12, 0.13), bk(sx * 0.11, 0.03)], 0.028, -0.005, (0.2, 0.2)))
+        st.append(([bk(sx * 0.2, 0.17), bk(sx * 0.22, 0.1), bk(sx * 0.19, 0.03)], 0.022, 0.004, (0.2, 0.2)))
+        st.append((on([(sx * 0.4, -0.06, 0.16), (sx * 0.4, -0.02, 0.09), (sx * 0.4, 0.0, 0.035)]), 0.018, -0.005, (0.2, 0.2)))
+    st.append((on([fr(-0.08, 0.04), fr(-0.135, 0.035), fr(-0.19, 0.045)]), 0.011, 0.004, (0.2, 0.4)))         # the tie's pull
+    st.append(([bk(0.0, 0.25), bk(0.0, 0.13), bk(0.0, 0.03)], 0.02, -0.004, (0.2, 0.2)))                     # the back seam
+    S.strokes(ob, [(q[0], q[1] * OS_FOLD[0], q[2] * OS_FOLD[1]) + tuple(q[3:]) for q in st])
+    ob.data.transform(Matrix.Scale(OS_UNIT, 4))
     return ob
 
 
@@ -2555,7 +2626,8 @@ def oesol_high():
     chin = P[(np.abs(P[:, 0]) < 0.012) & (P[:, 1] < 0.0) & (P[:, 2] > -0.13)][:, 2].min()
     k = OS_HEAD / (P[:, 2].max() - chin)
     neck = Vector((0, 0.103, -0.14))                           # (the middle of the neck, in the head's frame)
-    head.data.transform(Matrix.Translation((0, OS_NECK - neck.y * k, OS_CHIN - chin * k)) @ Matrix.Scale(k, 4))
+    turn = Matrix.Translation((0, neck.y, 0)) @ Matrix.Rotation(math.radians(OS_TURN), 4, 'Z') @ Matrix.Translation((0, -neck.y, 0))
+    head.data.transform(Matrix.Translation((0, OS_NECK * OS_UNIT - neck.y * k, OS_HIGH - OS_HEAD - chin * k)) @ Matrix.Scale(k, 4) @ turn)
     out = [chest, head]
     for o in out:
         o.data.transform(Matrix.Translation((0, 0, OS_FOOT[2])))

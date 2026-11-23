@@ -911,6 +911,7 @@ export class MaterialLibrary {
         m.emissive = new THREE.Color(0.35, 0.35, 0.35);
       }
       if (d.cut) m.alphaTest = d.cut;                 // (boards whose words stand on a wall: the rest cut away)
+      if (d.bump) { m.bumpMap = m.map; m.bumpScale = d.bump; }   // (a photographed skin: its light grains stand out a little)
     } else {
       const P = d.clearcoat ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
       m = new P({
