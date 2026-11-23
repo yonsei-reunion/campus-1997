@@ -8269,6 +8269,15 @@ out['baekyangro']['mouths'] += [[1, -2.0, round(GATE_S + 1.0, 2), 0.0, 0.0], [-1
 # 대강당 앞 둑: blender/road.py leaves the planting strip out where the wall stands, blender/landmarks.py aud_bank builds it
 out['baekyangro']['walls'] = [[AUD_BANK['side'], AUD_BANK['s0'], AUD_BANK['s1']]]
 out['baekyangro']['strip_breaks'] = [list(ENG_MOUTH97 if o_ is ENG_MOUTH else o_) for o_ in STRIP_OPEN]   # (제1공학관 앞 진입로: 1997, 백양관 앞)
+# 정문 수위실 북동 모서리 (reference/고증/4.8.1 「수위실 곁 공중전화 부스」): the planting strip's hedge starts 4 m north
+# of the lodge's north wall on the 1996 winter scans (26/16 · 26/17: its first dark clump at s 47.5 - 47.7, leaf-off);
+# short of it the corner is bright paving from the sidewalk to the lodge's yard (1997 July 26/16 · 27/17, 1998 26/17),
+# where the 2008 - 2011 roadview has the payphone booths.  Late: the strip open there (blender/road.py strip_breaks),
+# paved (_yp below), its hedge pieces gone (with the booths below), so nothing else planted moves
+GATE_CORNER = (1, 42.6, 47.2)
+GATE_CORNER_PAVE = Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((42.0, E_WALK - 0.2), (GATE_CORNER[2], E_WALK - 0.2),
+                                                                 (GATE_CORNER[2], E_WALK + ROAD['strip'] + 1.5), (42.0, E_WALK + ROAD['strip'] + 1.5))])
+out['baekyangro']['strip_breaks'].append(list(GATE_CORNER))
 out['baekyangro']['breaks'] = VERGE_BREAKS + [ENG_VERGE97]     # (the verge's openings besides crossings and gaps, above; 제1공학관 앞: 1997)
 # yellow-and-black bollards on the ramps of the openings, where the 2008 and the 2010 roadview both have them
 # (side, s; 1997 unknown): 백주년기념관 앞 건널목 (the one south of the grate), 학생회관 앞 (two, two, three, two and
@@ -10367,6 +10376,7 @@ if UTS_WALK:
     _ypaint([UTS_WALK], _yp, width=2.6)
 _ypaint(union97.west_paint(), _yp)         # (학생회관 남쪽 앞마당으로 드는 길: paving, as the forecourt's; tools/union97.py)
 _ypaint([GATE97_LAWN], _yg)                 # (정문 안 갈림길: the 1999 forecourt and island out, lawn under the 1997 crowns; GATE97)
+_ypaint([GATE_CORNER_PAVE], _yp)            # (수위실 북동 모서리: paving from the sidewalk to the lodge's yard; GATE_CORNER)
 # 찻길, the east road on the 1997 photos' line (TR_E, RD97 above), after the planting has read the ground as it was:
 #  - OSM's asphalt along the old line (TR_E_OSM) is taken up (lawn; the woods' floor again in the woods, _gf below),
 #    but for the roads and walks that met it, which keep their ends and run on to the new road (_rd_join: _ga, _gp);
@@ -13307,13 +13317,19 @@ out['trees'].append(['fir', -104.0, -264.3, 0.55, 2.1])     # (제1공학관 남
 out['shrubs'] += dongmun.shrubs()
 out['props'] += dongmun.props()
 # 공중전화 부스 둘 by the gate's lodge (reference/고증/4.8.1 「수위실 곁 공중전화 부스」): the 2008 - 2011 roadview
-# has a pair of booths at the lodge's north-east corner (동문 기억: 정문과 공대 사이). In the gate's frame (STATUES
-# 'gate', u east along the gate's line, v north) their backs to the lodge's north wall (blender/props.py GATE_LODGE:
-# u -19.18 .. -12.18, v up to 9.7), the east one flush with its east wall, the open fronts north onto the paving (the
-# game's low hedge stands 1.2 m east of the lodge where the roadview had the walk). At the props' very end (no index moves)
-for _u in (-12.66, -13.61):
-    _p = _gc + _gw_t * _u + _gw_n * 10.23
-    out['props'].append(['payphone', round(float(_p[0]), 2), round(float(_p[1]), 2), round(math.atan2(_gw_n[1], _gw_n[0]), 3)])
+# has a pair of booths just past the north end of the lodge's east face (동문 기억: 정문과 공대 사이), the open fronts
+# east onto the sidewalk.  In the gate's frame (STATUES 'gate', u east along the gate's line, v north; blender/props.py
+# GATE_LODGE: u -19.18 .. -12.18, v up to 9.7) side by side northwards off the lodge's north wall, their fronts in line
+# with its east face; the planting strip's hedge there is gone (GATE_CORNER below).  At the props' very end (no index moves)
+for _v in (10.23, 11.18):
+    _p = _gc + _gw_t * -12.71 + _gw_n * _v
+    out['props'].append(['payphone', round(float(_p[0]), 2), round(float(_p[1]), 2), round(math.atan2(_gw_t[1], _gw_t[0]), 3)])
+# (and the strip's hedge pieces on GATE_CORNER go, each slot given to the shrubs' last: late, no draws)
+_gcz = Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((GATE_CORNER[1], E_WALK), (GATE_CORNER[2], E_WALK),
+                                                    (GATE_CORNER[2], E_WALK + ROAD['strip']), (GATE_CORNER[1], E_WALK + ROAD['strip']))])
+for _i in sorted((i_ for i_, s_ in enumerate(out['shrubs']) if s_[0] == 'hedge_low' and _gcz.contains(Point(s_[1], s_[2]))), reverse=True):
+    out['shrubs'][_i] = out['shrubs'][-1]
+    out['shrubs'].pop()
 out['shrubs'] += north97.shrubs97_more()      # (무악학사 학사 사이 동 서쪽의 덩이, 2026-11-21: at the shrubs' very end)
 # 이중윤 동문의 2003 ~ 2004년 사진(reference/동문_이중윤/, reference/고증/1_자료.md 자료 S)에서 옮긴 것(2026-11-22). Late, no draws.
 # - 중앙도서관 테라스의 난간 턱 (reference/고증/3.2-3.3 3.2.1 「난간 턱」): a seat-high granite parapet along the terrace's

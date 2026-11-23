@@ -253,6 +253,26 @@ def build():
         def quad(q):
             mb.face(q if side > 0 else [q[1], q[0], q[3], q[2]], q_mat[0])
 
+        # the planting strip's openings (campus.json strip_breaks) apply here too: 정문 수위실 북동 모서리 is within
+        # the gate mouth's reach (mouth_at: its verge's end + 1.1 m)
+        brk = [(w0, w1) for sd, w0, w1 in sbreaks if sd == side and w1 > sa and w0 < sb]
+
+        def in_sbreak(s):
+            return any(w0 < s < w1 for w0, w1 in brk)
+
+        def strip_left(u0, v0, u1, v1):
+            # a strip band's stretch [u, v] (u0 · v0 on its inner edge, u1 · v1 on its outer) less the openings
+            out = [(u0, v0, u1, v1)]
+            for w0, w1 in brk:
+                nxt = []
+                for a0, b0, a1, b1 in out:
+                    if min(a0, a1) < w0:
+                        nxt.append((a0, max(a0, min(b0, w0)), a1, max(a1, min(b1, w0))))
+                    if max(b0, b1) > w1:
+                        nxt.append((min(b0, max(a0, w1)), b0, min(b1, max(a1, w1)), b1))
+                out = [q for q in nxt if q[1] - q[0] > 1e-4 or q[3] - q[2] > 1e-4]
+            return out
+
         q_mat = [None]
         # (o0, o1, z, mat) bands standing beside the road, as in the plain cross-section
         bands = [(e_lane, e_curb, VZ, 'curb'), (e_curb, e_verge - 0.2, VZ, LAWN), (e_verge - 0.2, e_verge, VZ, 'curb'),
@@ -280,11 +300,12 @@ def build():
                     if u0 >= v0 - 1e-4 and u1 >= v1 - 1e-4:
                         continue
                     v0, v1 = max(u0, v0), max(u1, v1)
-                    q_mat[0] = mat
-                    quad([P(u0, p0, z), P(v0, p0, z), P(v1, p1, z), P(u1, p1, z)])
+                    for u0_, v0_, u1_, v1_ in (strip_left(u0, v0, u1, v1) if o0 >= e_walk - 1e-6 else [(u0, v0, u1, v1)]):
+                        q_mat[0] = mat
+                        quad([P(u0_, p0, z), P(v0_, p0, z), P(v1_, p1, z), P(u1_, p1, z)])
                     # the kerb face where the band stops, towards the mouth
                     e0, e1 = (v0, v1) if edge == 'end' else (u0, u1)
-                    if sa < e0 < sb or sa < e1 < sb:
+                    if (sa < e0 < sb or sa < e1 < sb) and not (o0 >= e_walk - 1e-6 and in_sbreak(0.5 * (e0 + e1))):
                         q_mat[0] = KERB
                         f = [P(e0, p0, 0), P(e1, p1, 0), P(e1, p1, z), P(e0, p0, z)]
                         quad(f if edge == 'end' else [f[1], f[0], f[3], f[2]])
@@ -293,16 +314,31 @@ def build():
                                        (e_strip, -0.8, WZ, True)):
             lo, hi = cut(m, off, off <= e_verge + 1e-6)
             for u, v in ((sa, min(sb, lo)), (max(sa, hi), sb)):
-                if v - u > 1e-3:
-                    q_mat[0] = KERB
-                    f = [P(u, off, z0_), P(v, off, z0_), P(v, off, z1_), P(u, off, z1_)]
-                    quad([f[1], f[0], f[3], f[2]] if outward else f)
+                for u, v, _, _ in (strip_left(u, v, u, v) if off >= e_walk - 1e-6 else [(u, v, u, v)]):
+                    if v - u > 1e-3:
+                        q_mat[0] = KERB
+                        f = [P(u, off, z0_), P(v, off, z0_), P(v, off, z1_), P(u, off, z1_)]
+                        quad([f[1], f[0], f[3], f[2]] if outward else f)
             if off == e_lane and m[5] > 0:
                 # the low kerb of the paving in front of the verge's end
                 u, v = max(sa, cut(m, off)[1]), min(sb, hi)
                 if v - u > 1e-3:
                     q_mat[0] = KERB
                     quad([P(u, off, 0), P(v, off, 0), P(v, off, WZ), P(u, off, WZ)])
+        # in a strip opening the sidewalk's edge goes down to the terrain, and the strip's ends face it (as below, the
+        # plain cross-section)
+        for w0, w1 in brk:
+            u, v = max(sa, w0), min(sb, w1)
+            if v - u > 1e-3:
+                q_mat[0] = KERB
+                f = [P(u, e_walk, -0.8), P(v, e_walk, -0.8), P(v, e_walk, WZ), P(u, e_walk, WZ)]
+                quad([f[1], f[0], f[3], f[2]])
+            for w in (w0, w1):
+                if sa < w < sb:
+                    q_mat[0] = KERB
+                    q = [P(w, e_walk, -0.8), P(w, e_strip, -0.8), P(w, e_strip, WZ), P(w, e_walk, WZ)]
+                    quad(q)
+                    quad([q[1], q[0], q[3], q[2]])
         # the flush asphalt of the mouth, out past the strip onto the terrain's own asphalt, with a skirt beneath
         k = int(math.ceil((e_strip + 0.6 - e_lane) / 0.4))
         for i in range(k):
