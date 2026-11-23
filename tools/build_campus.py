@@ -11718,13 +11718,23 @@ draw_poly('pavers', _uvh([(DW_UC - 4.5, _pd['face']), (DW_UC + 4.5, _pd['face'])
 # strip along the gable's foot to the hedge, and the path along the lawn south of it; the lawn and the bank up to the
 # road grass (the paving that ran over them and OSM's walk along the road above them out), on the game's map only
 for _ly in ('pavers', '_yp', '_yg', '_gp'):
-    for _g in (appen97.LEVEL, appen97.BANK):
+    for _g in (appen97.LEVEL, appen97.BANK, appen97.SQUARE):
         SPLAT_OPS.append(('poly', _ly, list(_g.exterior.coords), 0))
 draw_poly('dirt', appen97.LEVEL, 0, pre=False)
 draw_poly('dirt', appen97.YARD.difference(LineString(appen97.GABLE[::-1]).buffer(appen97.WALL_STRIP, cap_style='flat',
                                                                                    single_sided=True)), pre=False)
-draw_poly('dirt', appen97.PLOT_PATH.buffer(0.5, cap_style='flat').union(appen97.CORNER), pre=False)
 draw_poly('dirt', appen97.BANK, 0, pre=False)
+draw_poly('dirt', appen97.PLOT_PATH.buffer(0.5, cap_style='flat').union(appen97.CORNER), pre=False)
+draw_poly('dirt', appen97.SQUARE, pre=False)          # (잔디 터 남쪽의 맨흙 광장: the 1996 winter frames, the 2008 skyview)
+# (건물 앞 길의 남쪽 끝, 3.5.5: south of the hall's end wall the walk on the terrace is bare earth out to the lawn's edge)
+_apw = appen97.walk(TERR['ap']['xy'], lambda s_: terr_at(TERR['ap'], 'far', s_))
+for _ly in ('asphalt', 'pavers', '_yp', '_yg', '_gp', '_ga'):
+    for _g in getattr(_apw, 'geoms', [_apw]):
+        SPLAT_OPS.append(('poly', _ly, list(_g.exterior.coords), 0))
+draw_poly('asphalt', _apw, 0, pre=False)
+draw_poly('dirt', _apw, pre=False)
+print('아펜젤러관 앞 길의 남쪽 끝: %.0f m2 of bare earth, walkers\' line' % _apw.area,
+      appen97.repath(paths_out, TERR['ap']['xy']), appen97.repath(out['paths'], TERR['ap']['xy']))
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -13107,6 +13117,61 @@ _ayw[_ay_m] = np.clip(1.0 - shapely.distance(appen97.LEVEL, shapely.points(X[_ay
 _ay0 = Hn.copy()
 Hn[:] = Hn * (1 - _ayw) + (appen97.yard_z(X, Y) + datum.tilt(X, Y)) * _ayw
 print('아펜젤러관 남쪽 마당: nodes', int((_ayw > 0).sum()), 'moved %.2f .. %.2f m' % ((Hn - _ay0).min(), (Hn - _ay0).max()))
+# (잔디 터 남쪽, appen97.SOUTH: the square under the great tree on the 1996 winter pairs' heights, eased over SOUTH_EASE;
+# the terrace's own nodes west of it and the lawn's north of it stay)
+_ays = np.zeros(X.shape)
+_ays_m = (np.abs(X - 76.0) < 14.0) & (np.abs(Y - 164.0) < 16.0)
+_ays[_ays_m] = np.clip(1.0 - shapely.distance(appen97.SOUTH, shapely.points(X[_ays_m], Y[_ays_m])) / appen97.SOUTH_EASE, 0, 1)
+_ays[shapely.contains_xy(appen97.LEVEL.buffer(0.5), X, Y)] = 0.0
+_ays[terr_sd(TERR['ap'], X, Y)[1] > -1.0] = 0.0
+_ay1 = Hn.copy()
+Hn[:] = Hn * (1 - _ays) + (appen97.south_z(X, Y) + datum.tilt(X, Y)) * _ays
+print('아펜젤러관 잔디 터 남쪽: nodes', int((_ays > 0).sum()), 'moved %.2f .. %.2f m' % ((Hn - _ay1).min(), (Hn - _ay1).max()))
+# (마당 동쪽 둑, appen97.bank_grade: the slope from the scans' foot line up to the kerb's back as a deck over the grid,
+# the nodes under it down at the yard's level; with 의료원 서쪽's surfaces (terrain_drape, walked), its heights a plate
+# for what Blender lays on the ground there, the road's lines)
+_ab_h0 = Hn.copy()
+_ab_plane = lambda x_, y_: appen97.yard_z(x_, y_) + datum.tilt(x_, y_)
+_ab_nodes, _ab_cells = appen97.bank_grade(Hn, X, Y, _ab_plane)
+_ab_poly = unary_union([shapely.geometry.box(gx[i_], gx[j_], gx[i_] + NEAR_STEP, gx[j_] + NEAR_STEP) for j_, i_ in _ab_cells]) \
+    .difference(Polygon(next(b_ for b_ in buildings if b_['id'] == 246156116)['footprint']).buffer(0.3))
+_ab_h = lambda x_, y_: appen97.bank_h(x_, y_, lambda a_, b_: sample(_ab_h0, NEAR_HALF, NEAR_STEP, a_, b_), _ab_plane)
+_ab_d = dwb_deck(_ab_cells, _ab_poly, _ab_h)
+_ab_n0 = len(out['med_west']['top']['v'])
+out['med_west']['top']['v'] += _ab_d['v']
+out['med_west']['top']['f'] += [[i_ + _ab_n0 for i_ in f_] for f_ in _ab_d['f']]
+for g_ in getattr(_ab_poly, 'geoms', [_ab_poly]):
+    _pu, _pv = zip(*[medwest97.uv(x_, y_) for x_, y_ in g_.exterior.coords])
+    _pus = [round(float(u_), 3) for u_ in np.arange(min(_pu) - 0.5, max(_pu) + 1.5, 1.0)]
+    _pvs = [round(float(v_), 3) for v_ in np.arange(min(_pv) - 0.5, max(_pv) + 1.5, 1.0)]
+    out['med_west']['plates'].append(dict(name='appen_bank', poly=[[round(x_, 3), round(y_, 3)] for x_, y_ in list(g_.exterior.coords)[:-1]],
+                                          holes=[[[round(x_, 3), round(y_, 3)] for x_, y_ in list(r_.coords)[:-1]] for r_ in g_.interiors],
+                                          us=_pus, vs=_pvs, z=[[round(float(_ab_h(*medwest97.xy(u_, v_))) + 0.025, 3) for u_ in _pus] for v_ in _pvs]))
+_ab_over = max(sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_) - z_ for x_, y_, z_ in _ab_d['v'])
+# (건물 앞 단의 동쪽 가, 끝벽 너머: the terrace's deck stops at the line of the front wall (d -0.05), but the cells under it
+# run on east with the ground falling to the nodes pulled down under the deck: a ledge of 0.2 - 0.4 m along the walk's
+# east side where the scans have the walk level with the yard.  An apron over those cells' east parts: the walk's
+# height at the line, the yard's, the lawn's or the square's 2 m east of it, the ground itself along the cells' edges)
+_apr_T = TERR['ap']
+_apr_poly = unary_union([shapely.geometry.box(gx[i_], gx[j_], gx[i_] + NEAR_STEP, gx[j_] + NEAR_STEP) for j_, i_ in _apr_T['cells']]) \
+    .intersection(Polygon([_apr_T['xy'](18.1, -0.05), _apr_T['xy'](62.0, -0.05), _apr_T['xy'](62.0, -12.0), _apr_T['xy'](18.1, -12.0)])) \
+    .difference(Polygon(next(b_ for b_ in buildings if b_['id'] == 246156116)['footprint']).buffer(0.3))
+
+
+def _apr_h(x_, y_):
+    b_ = float(terrace_h(_apr_T, x_, y_))
+    k_ = float(np.clip(-terr_sd(_apr_T, x_, y_)[1] / 2.0, 0, 1))
+    return b_ + (appen97.east_z(x_, y_) + datum.tilt(x_, y_) - b_) * k_
+
+
+_apr_d = dwb_deck(_apr_T['cells'], _apr_poly, _apr_h)
+_ab_n0 = len(out['med_west']['top']['v'])
+out['med_west']['top']['v'] += _apr_d['v']
+out['med_west']['top']['f'] += [[i_ + _ab_n0 for i_ in f_] for f_ in _apr_d['f']]
+print('아펜젤러관 앞 단의 동쪽 가: %d triangles, %.0f m2; the ground over it by at most %.3f m' % (
+    len(_apr_d['f']), _apr_poly.area, max(sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_) - z_ for x_, y_, z_ in _apr_d['v'])))
+print('아펜젤러관 남쪽 마당 동쪽 둑: nodes down', [(float(X[j_, i_]), float(Y[j_, i_]), round(float(_ab_h0[j_, i_] - Hn[j_, i_]), 2)) for j_, i_ in _ab_nodes],
+      'deck cells %d, %d triangles, %.0f m2; the ground over the deck by at most %.3f m' % (len(_ab_cells), len(_ab_d['f']), _ab_poly.area, _ab_over))
 # 장기원 기념관 남쪽 끝 (tools/jk97.py; reference/고증/3.15-3.17 「몸체의 외곽선과 남쪽 끝」): the bed before the block's south
 # face on the court's plane, the brick wall along its south edge over the yard (the grid's nodes under the bed in the
 # cells the wall crosses down to the yard, the bed a deck over them), the piers and the flight between them (meshes with
@@ -13442,6 +13507,9 @@ for (x0_, y0_), (x1_, y1_, s_) in (((-87.77, -203.56), (-88.0, -200.8, None)), (
 out['shrubs'] += [[k_, x_, y_, s_, round((1.1 + 2.399 * i_) % 6.283, 3)] for i_, (k_, x_, y_, s_) in enumerate(FOUNTAIN_RING97)]
 print('제1공학관 북쪽 정원: trees new', len(_ng_t), 'shrubs new', len(_ng_s), 'shrubs gone', _ng_gone, '활천대 고리', len(FOUNTAIN_RING97) + 2)
 out['shrubs'] += appen97.yard_shrubs()         # (아펜젤러관 남쪽 마당의 생울타리 · 둑의 관목: at the shrubs' very end)
+_t = min(out['trees'], key=lambda q_: math.hypot(q_[1] - appen97.TREE_MOVE[0][0], q_[2] - appen97.TREE_MOVE[0][1]))
+assert _t[0] == 'zelkova' and math.hypot(_t[1] - appen97.TREE_MOVE[0][0], _t[2] - appen97.TREE_MOVE[0][1]) < 0.1, _t
+_t[1], _t[2] = appen97.TREE_MOVE[1]            # (잔디 터 남쪽 광장의 큰 나무: onto the 1996 winter frames' trunk, in its place)
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
