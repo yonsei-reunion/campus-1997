@@ -11714,6 +11714,17 @@ draw_poly('pavers', _mst_new, pre=False)
 # and the grass blades (web/src/grass.js reads this map) stood up through it before the glass doors
 draw_poly('pavers', _uvh([(DW_UC - 4.5, _pd['face']), (DW_UC + 4.5, _pd['face']),
                           (DW_UC + 4.5, _pd['face'] + 5.6), (DW_UC - 4.5, _pd['face'] + 5.6)]), pre=False)
+# 아펜젤러관 남쪽 박공벽 앞 마당 (tools/appen97.py; reference/고증/3.5.5_아펜젤러관_남쪽_마당.md): bare earth from the grass
+# strip along the gable's foot to the hedge, and the path along the lawn south of it; the lawn and the bank up to the
+# road grass (the paving that ran over them and OSM's walk along the road above them out), on the game's map only
+for _ly in ('pavers', '_yp', '_yg', '_gp'):
+    for _g in (appen97.LEVEL, appen97.BANK):
+        SPLAT_OPS.append(('poly', _ly, list(_g.exterior.coords), 0))
+draw_poly('dirt', appen97.LEVEL, 0, pre=False)
+draw_poly('dirt', appen97.YARD.difference(LineString(appen97.GABLE[::-1]).buffer(appen97.WALL_STRIP, cap_style='flat',
+                                                                                   single_sided=True)), pre=False)
+draw_poly('dirt', appen97.PLOT_PATH.buffer(0.5, cap_style='flat').union(appen97.CORNER), pre=False)
+draw_poly('dirt', appen97.BANK, 0, pre=False)
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -13084,6 +13095,18 @@ for poly_, zf_, ease_ in JK_SW97:
     Hn[:] = Hn * (1 - _jw) + (zf_(X, Y) + datum.tilt(X, Y)) * _jw
 print('장기원 기념관 남서쪽: nodes', int(_jm.sum()))
 JK_DRUM_B['top_ground'] = round(max(ground_tn(x_, y_) for x_, y_ in JK_DRUM_B['footprint']), 2)
+# 아펜젤러관 남쪽 박공벽 앞 마당 (tools/appen97.py LEVEL, 3.5.5): the nodes of the yard, the lawn south of it and its path
+# on the scans' plane, eased back to the ground round them (over EASE_EAST towards the bank and the road and towards the
+# walk before the hall and its terrace west of them, EASE_SOUTH to the south), the hall's own nodes left.  After
+# everything that read the ground, as the court above
+_ay_m = (np.abs(X - 83.0) < 20.0) & (np.abs(Y - 182.0) < 20.0)
+_ay_m &= ~shapely.contains_xy(Polygon(next(b_ for b_ in buildings if b_['id'] == 246156116)['footprint']), X, Y)
+_ayw = np.zeros(X.shape)
+_ayw[_ay_m] = np.clip(1.0 - shapely.distance(appen97.LEVEL, shapely.points(X[_ay_m], Y[_ay_m])) /
+                      np.where((X[_ay_m] > 89.0) | (X[_ay_m] < 76.5), appen97.EASE_EAST, appen97.EASE_SOUTH), 0, 1)
+_ay0 = Hn.copy()
+Hn[:] = Hn * (1 - _ayw) + (appen97.yard_z(X, Y) + datum.tilt(X, Y)) * _ayw
+print('아펜젤러관 남쪽 마당: nodes', int((_ayw > 0).sum()), 'moved %.2f .. %.2f m' % ((Hn - _ay0).min(), (Hn - _ay0).max()))
 # 장기원 기념관 남쪽 끝 (tools/jk97.py; reference/고증/3.15-3.17 「몸체의 외곽선과 남쪽 끝」): the bed before the block's south
 # face on the court's plane, the brick wall along its south edge over the yard (the grid's nodes under the bed in the
 # cells the wall crosses down to the yard, the bed a deck over them), the piers and the flight between them (meshes with
@@ -13418,6 +13441,7 @@ for (x0_, y0_), (x1_, y1_, s_) in (((-87.77, -203.56), (-88.0, -200.8, None)), (
         t_[3] = s_
 out['shrubs'] += [[k_, x_, y_, s_, round((1.1 + 2.399 * i_) % 6.283, 3)] for i_, (k_, x_, y_, s_) in enumerate(FOUNTAIN_RING97)]
 print('제1공학관 북쪽 정원: trees new', len(_ng_t), 'shrubs new', len(_ng_s), 'shrubs gone', _ng_gone, '활천대 고리', len(FOUNTAIN_RING97) + 2)
+out['shrubs'] += appen97.yard_shrubs()         # (아펜젤러관 남쪽 마당의 생울타리 · 둑의 관목: at the shrubs' very end)
 datum.to_sea(out, DATUM)
 for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
     json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
