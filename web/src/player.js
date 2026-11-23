@@ -4,7 +4,7 @@
 // Dragging up (or PageUp) looks up: the camera sinks behind the walker and tips up to the roofs, the statues and the
 // sky; dragging down (PageDown) brings it level and then up over the walker. The look up settles back as you walk.
 // The touch stick (touch.js) is camera-relative instead: push it the way you want to go on screen and the
-// walker turns that way; the camera keeps its direction and only drifts back behind you while you head away from it.
+// walker turns that way; the camera drifts back behind you as you go, except while you head towards it.
 // Collisions: building footprints and circles (trees, lamps, statues, people); ground follows the
 // terrain, the 백양로 curbs and the amphitheater terraces through a BVH raycast.
 // First person (V, the HUD button, the wheel or a pinch on past the closest view): the camera in the walker's eyes,
@@ -512,8 +512,11 @@ export class Player {
       this.heading += d;
       c.orbit = wrapAngle(c.orbit - d);
       inp.fwd = inp.stick.m;
-      // drift back behind the walker only while walking away from the camera (never while coming towards it)
-      inp.recenter = 1.3 * Math.max(0, Math.cos(inp.stick.rel));
+      // drift back behind the walker while walking away from the camera, never while coming towards it. Behind the
+      // walker also while heading off to the side: a turn comes round to straight up the screen, so pushing up
+      // after it goes on the new way (it went back the old way when only the walker had turned)
+      const cs = Math.cos(inp.stick.rel);
+      inp.recenter = this.fpv ? 1.3 * Math.max(0, cs) : 2.4 * clamp((cs + 0.5) / 0.8, 0, 1);
     } else if (this.fpv && !this.camOverride && (inp.fwd || inp.turn)) {
       // first person, keys: the body comes round to where you look as you set off (the view itself stays), so you
       // walk where you look, and a drag steers while you walk

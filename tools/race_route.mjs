@@ -2,6 +2,7 @@
 //   cd web && npx vite --port 5197          (다른 터미널, 아무 포트)
 //   node tools/race_route.mjs [--port 5197] [--only baekyang,loop] [--check]
 // - 길: 걷는 사람의 충돌(Colliders: 건물 외곽 · 나무 · 관목 · 소품) 위 0.5 m 격자에서 A*. 벽에서 0.45 m 안은 막고 1.6 m 안은 비싸게.
+// - A* 격자의 계단 모양은 곧게 편다(__pull: 각 점에서 0.6 m 비켜 트인 가장 먼 점으로).
 // - 그 길을 Player.update 로 실제로 달려 본다(계단 · 테라스 벽 · 화단 턱은 충돌 목록에 없고 걷기의 광선에만 있음).
 //   2 s 동안 2 m 를 못 가면 그 자리를 막고 다시 찾는다(8번까지).
 // - 문: 길을 따라 약 55 m 마다. 출력의 gates 를 courses.js COURSES 에 붙인다(그 뒤 순위 Worker 를 다시 배포).
@@ -26,7 +27,11 @@ const check = process.argv.includes('--check');
 const VIA = {
   baekyang: [[-110.2, -383.0], [-46, -166], [-15, -50], [28, 124], '언더우드관'],
   loop: [[-2, -58], [30, -10], [42.0, 48.3], [64.7, 131.3], [-70.9, 140.7], [-130.1, 67.9], [-58, -40], [-6, -48]],
-  cheongsong: ['언더우드관', [147.5, 138.4], [235.8, 293.4], [150, 284], [84.9, 334.6], [40, 250]],
+  // (청송대: 아펜젤러관 옆 찻길을 올라 숲의 포장된 길로만 한 바퀴, 한경길 북쪽 차로로 돌아옴)
+  cheongsong: [[59, 244], [72, 225], [72, 210], [77, 199], [106, 188], [122, 208], [138, 231], [146, 258], [152, 256], [173, 257], [180, 258],
+    [195, 253], [232, 231], [258, 221], [264, 263], [266, 288], [267, 309], [258, 305], [228, 304],
+    [214, 305], [198, 305], [186, 309], [176, 311], [165, 306], [159, 292], [154, 280], [148, 269], [104, 281], [71, 291],
+    [52, 297], [40.3, 295], [40, 260], [57, 243]],
   // (상대신관: 상뜰 남쪽 계단으로 올라 상뜰 위가 결승)
   gate_sang: [[-110.2, -383.0], [-46, -166], [-15, -50], [28, 124], '언더우드관', [102.1, 403.2], [104.6, 413.0], [106, 421]],
   rotary_sang: [[-104, -930], [-99, -700], [-99, -470], [-68, -456.5], [-68, -421], [-110.2, -383.0], [-46, -166], [-15, -50],
@@ -100,6 +105,30 @@ function pageLib() {
       full = full.concat(i > 1 ? p.slice(1) : p);
     }
     return asLegs ? legs : full;
+  };
+  // the A* grid's stairs pulled straight: from each point on to the farthest one in plain sight (R clear all the way)
+  window.__pull = (path, blocked, R = 0.6) => {
+    const C = window.__y97.player.col;
+    const free = (a, b) => {
+      const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.25);
+      for (let s = 1; s < n; s++) {
+        const x = a[0] + (b[0] - a[0]) * s / n, y = a[1] + (b[1] - a[1]) * s / n;
+        if (!C.clear(x, y, R) || blocked.some(([bx, by, r]) => Math.hypot(x - bx, y - by) < r)) return false;
+      }
+      return true;
+    };
+    const out = [path[0]];
+    for (let i = 0; i < path.length - 1;) {
+      let j = path.length - 1;
+      while (j > i + 1 && !free(path[i], path[j])) j--;
+      out.push(path[j]); i = j;
+    }
+    // back to points every 0.5 m (the gates are spaced along it, the walker steered over it)
+    return out.flatMap((p, k) => {
+      if (!k) return [p];
+      const a = out[k - 1], n = Math.max(1, Math.round(Math.hypot(p[0] - a[0], p[1] - a[1]) / 0.5));
+      return Array.from({ length: n }, (_, s) => [a[0] + (p[0] - a[0]) * (s + 1) / n, a[1] + (p[1] - a[1]) * (s + 1) / n]);
+    });
   };
   // run along path (the walker steered at the point 2.5 m ahead); where it stays put 2 s, note it and hop on
   window.__sim = async (path) => {
@@ -223,7 +252,11 @@ for (const id of ids) {
   const blocked = [];
   let path = null;
   for (let it = 0; it < 8; it++) {
-    path = await page.evaluate(([v, b]) => window.__route(v, b), [VIA[id], blocked]);
+    path = await page.evaluate(([v, b]) => {
+      // (each leg between two of the course's points pulled on its own: the loop's far ends are never joined)
+      const legs = window.__route(v, b, true);
+      return Array.isArray(legs) ? legs.map((l) => window.__pull(l, b)).flatMap((l, i) => (i ? l.slice(1) : l)) : legs;
+    }, [VIA[id], blocked]);
     if (!Array.isArray(path)) { console.error(id, 'no way between', JSON.stringify(path)); path = null; break; }
     const r = await page.evaluate((p) => window.__sim(p), path);
     console.error(`${id}: try ${it + 1}, ${r.t.toFixed(1)} s, stuck ${r.stuck.length / 2}${r.stuck.length ? " at " + JSON.stringify(r.stuck.filter((_, i) => !(i % 2)).map((p) => p.map((v) => Math.round(v)))) : ""}`);
