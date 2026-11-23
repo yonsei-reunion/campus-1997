@@ -2,7 +2,7 @@
 
     appen97.WALK_OUT                      # 심기가 끝난 뒤 잔디로 칠함(OSM 의 보도를 걷어 냄)
     appen97.bollards()                    # ['bollard_stone', x, y, rot] 목록: props 끝에
-    appen97.payphone()                    # ['payphone', x, y, rot] 하나: 남쪽 박공벽 동쪽 모서리 곁 공중전화 부스
+    appen97.payphone()                    # ['payphone', x, y, rot] 하나: 남쪽 박공벽 앞 마당의 공중전화 부스
 
 Frame: campus metres, x east, y north; along the east road the survey's middle line (tools/roadview/roads/adopt.py
 `at('E', s, o)`: s from the 삼거리, o to the left = west, m).  The road's west kerb is at o +3.0 there.
@@ -46,12 +46,20 @@ def bollards():
     return out
 
 
-# 공중전화 부스 by the south gable's east corner (reference/고증/3.5_옛_석조관.md 「아펜젤러관 남쪽 공중전화 부스」): the
-# 1996 - 2000 autumn photo has a booth just past that corner, the 2010 roadview one in the same place. Out from the
-# corner along the gable's line (GABLE: its west and east corners, campus.json) and a little south of it, on the
-# paved band along the back wall, its open front to the south
+# 공중전화 부스 south of the south gable (reference/고증/3.5_옛_석조관.md 「아펜젤러관 남쪽 공중전화 부스」): the 1996 - 2000
+# autumn photo (reference/문집/2025_22쪽_…) has a booth to the right of the gable's east corner, the callers' queue
+# before it; the 2010 roadview has one by that corner too.  With the photo's camera found against the game (20 m off
+# the gable's middle, 25 degrees west of its normal: the middle windows' width and the east corner fall within 3 px of
+# 1300), the booth's height in the picture puts it 16 - 17 m from the camera on the bearing 60.5 degrees: on the flat
+# yard at the gable's foot, just before the bank that rises to the east road (the shrubs and trees behind it in the
+# photo), not on top of that bank past the corner as first placed.  PHONE_ALONG, PHONE_OUT: m east of the east corner
+# along the gable's line (GABLE: its west and east corners, campus.json), m south of that line.
+# Its open front looks west-south-west along the yard, where the photo has the queue: from the camera the booth's front
+# is nearly face on and its far side shows to the right of it, so the front is turned PHONE_TURN from the gable's normal
+# (south) towards the west
 GABLE = ((79.65, 194.79), (93.63, 190.99))
-PHONE_ALONG, PHONE_OUT = 1.8, 1.2         # m past the east corner along the gable, m south of its line
+PHONE_ALONG, PHONE_OUT = -2.6, 5.9         # (a metre nearer the gable than the photo's (90.3, 185.3): the flattest ground of the game's yard there)
+PHONE_TURN = math.radians(65)
 
 
 def payphone():
@@ -61,4 +69,6 @@ def payphone():
     ux, uy = (xb - xa) / ln, (yb - ya) / ln
     nx, ny = uy, -ux                       # (the gable's outward normal: south)
     x, y = xb + ux * PHONE_ALONG + nx * PHONE_OUT, yb + uy * PHONE_ALONG + ny * PHONE_OUT
-    return [['payphone', round(x, 2), round(y, 2), round(math.atan2(ny, nx), 3)]]
+    c, s = math.cos(PHONE_TURN), math.sin(PHONE_TURN)
+    fx, fy = nx * c - ux * s, ny * c - uy * s
+    return [['payphone', round(x, 2), round(y, 2), round(math.atan2(fy, fx), 3)]]

@@ -41,8 +41,8 @@ const data = await page.evaluate(async () => {
   };
 });
 await browser.close();
-// the booths' standing spots (pager.js: STAND m out of the open front)
-const STAND = 0.85;
+// the booths' standing spots (pager.js: STAND m from the booth's middle towards its open front: inside the booth)
+const STAND = 0;
 const campus = JSON.parse(fs.readFileSync(path.join(root, 'web/public/data/campus.json'), 'utf8'));
 data.booths = campus.props.filter((p) => p[0] === 'payphone').map(([, x, y, rot]) => [x + Math.cos(rot) * STAND, y + Math.sin(rot) * STAND]);
 fs.writeFileSync(out, JSON.stringify(data, null, 1) + '\n');

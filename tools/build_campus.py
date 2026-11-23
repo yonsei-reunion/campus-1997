@@ -10932,7 +10932,7 @@ props[:] = [p_ for p_ in props if not _troad.contains(Point(p_[1], p_[2]))]
 # (아펜젤러관 뒤 찻길 서쪽 가: the concrete posts of the 1996 winter scans, 0.45 m behind the kerb, past the cars' wheels;
 # tools/appen97.py)
 props += appen97.bollards()
-props += appen97.payphone()             # (the booth by the south gable's east corner: the 1996 - 2000 autumn photo)
+props += appen97.payphone()             # (the booth on the yard south of the south gable: the 1996 - 2000 autumn photo)
 _tmoved = []
 for t_ in trees:
     q_ = Point(t_[1], t_[2])
@@ -13320,9 +13320,10 @@ out['props'] += dongmun.props()
 # has a pair of booths just past the north end of the lodge's east face (동문 기억: 정문과 공대 사이), the open fronts
 # east onto the sidewalk.  In the gate's frame (STATUES 'gate', u east along the gate's line, v north; blender/props.py
 # GATE_LODGE: u -19.18 .. -12.18, v up to 9.7) side by side northwards off the lodge's north wall, their fronts in line
-# with its east face; the planting strip's hedge there is gone (GATE_CORNER below).  At the props' very end (no index moves)
-for _v in (10.23, 11.18):
-    _p = _gc + _gw_t * -12.71 + _gw_n * _v
+# with its east face; the planting strip's hedge there is gone (GATE_CORNER below).  At the props' very end (no index moves).
+# (The booth is 1.1 m across and 1.0 m deep, blender/props.py BOOTH_W · BOOTH_D: the two touch, the first 5 cm off the wall)
+for _v in (10.30, 11.40):
+    _p = _gc + _gw_t * -12.73 + _gw_n * _v
     out['props'].append(['payphone', round(float(_p[0]), 2), round(float(_p[1]), 2), round(math.atan2(_gw_t[1], _gw_t[0]), 3)])
 # (and the strip's hedge pieces on GATE_CORNER go, each slot given to the shrubs' last: late, no draws)
 _gcz = Polygon([along_raw(s_, o_)[:2] for s_, o_ in ((GATE_CORNER[1], E_WALK), (GATE_CORNER[2], E_WALK),

@@ -86,10 +86,11 @@ export class Colliders {
         this.grid.get(k).push(o);
       }
   }
-  addPolygon(pts) {   // campus frame [[x,y],...]
+  // thin: a wall of something walked into (a phone booth's side), not a hall's outline: insideBuilding passes it by
+  addPolygon(pts, thin = false) {   // campus frame [[x,y],...]
     let minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
     for (const [x, y] of pts) { minx = Math.min(minx, x); maxx = Math.max(maxx, x); miny = Math.min(miny, y); maxy = Math.max(maxy, y); }
-    this._put({ type: 'poly', pts }, minx, miny, maxx, maxy);
+    this._put({ type: 'poly', pts, thin }, minx, miny, maxx, maxy);
   }
   addCircle(x, y, r) {
     this._put({ type: 'circle', x, y, r }, x - r, y - r, x + r, y + r);
@@ -109,7 +110,7 @@ export class Colliders {
   }
   insideBuilding(x, y) {
     const a = this.grid.get(cellKey(Math.floor(x / this.cell), Math.floor(y / this.cell)));
-    return !!a && a.some((o) => o.type === 'poly' && pointInPoly(x, y, o.pts));
+    return !!a && a.some((o) => o.type === 'poly' && !o.thin && pointInPoly(x, y, o.pts));
   }
   // whether a circle (x, y, r) touches no collider
   clear(x, y, r = RADIUS) {

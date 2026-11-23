@@ -289,11 +289,11 @@ if want('polyhaven'):
                 o.scale = (o.scale[0] * s, o.scale[1] * s, o.scale[2] * s)
             bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
         if name == 'payphone':
-            # the phone at its real size (74 cm) hung on the back wall of a booth (95 x 95 cm, 2.2 m)
+            # the phone at its real size (74 cm) hung on the back wall's board of the booth (props.payphone_booth)
             bb = [o.matrix_world @ Vector(c) for o in objs for c in o.bound_box]
             cx_ = (max(v.x for v in bb) + min(v.x for v in bb)) / 2
             for o in objs:
-                o.location = (o.location.x - cx_, o.location.y - max(v.y for v in bb) + 0.46, o.location.z - min(v.z for v in bb) + 0.92)
+                o.location = (o.location.x - cx_, o.location.y - max(v.y for v in bb) + props.BOOTH_PHONE_Y, o.location.z - min(v.z for v in bb) + 0.92)
             bpy.ops.object.select_all(action='DESELECT')
             for o in objs:
                 o.select_set(True)

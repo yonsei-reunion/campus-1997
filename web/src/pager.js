@@ -16,7 +16,8 @@ import { PAGER, callLimit, meetLimit, pickMeet } from './rankrules.js';
 const { PAGES } = PAGER;           // (rankrules.js: the ranking's server judges by the same)
 const KEY = 'y97-pager-records', MAX = 50;
 const { NEAR, MEET_R } = PAGER;    // m from a booth's standing spot: the receiver within reach; from the meeting place: arrived
-const STAND = 0.85;               // m out of a booth's open front: where its caller stands (main.js, the crowd's)
+const STAND = 0;                  // m from a booth's middle towards its open front: where its caller stands, inside (main.js, the crowd's)
+const OUT = 0.9;                  // m from a booth's middle towards its front: clear of its sides (the booth is 1.0 m deep)
 
 // the codes of the 1990s pagers (the loading card's quiz has most of them: loading.js); how: shown after the answer;
 // say: the friend's line naming the place to meet, bye: the last call's
@@ -217,9 +218,10 @@ export class Pager {
     if (now) { g.booth = null; if (g.a.holder.parent) this.scene.remove(g.a.holder); return; }
     g.leave = 3.2;
     g.a.stand = 'idle';
-    // out of the front and to the side, away from you
+    // out of the front (straight, between the booth's sides: updateGuests) and then to the side, away from you
     const pl = this.player, sx = -b.fy, sy = b.fx, side = (pl.x - b.sx) * sx + (pl.y - b.sy) * sy > 0 ? -1 : 1;
     g.vx = (b.fx * 0.5 + sx * side) * 1.25; g.vy = (b.fy * 0.5 + sy * side) * 1.25;
+    g.from = b;
   }
 
   updateGuests(dt, t) {
@@ -240,10 +242,13 @@ export class Pager {
       } else {
         // walking off
         g.leave -= dt;
-        const p = a.holder.position;
-        p.x += g.vx * dt; p.z -= g.vy * dt;
+        const p = a.holder.position, f = g.from;
+        // (still between the booth's sides: straight out of its front)
+        const inside = f && (p.x - f.x) * f.fx + (-p.z - f.y) * f.fy < OUT;
+        const vx = inside ? f.fx * 1.25 : g.vx, vy = inside ? f.fy * 1.25 : g.vy;
+        p.x += vx * dt; p.z -= vy * dt;
         p.y = this.groundAt(p.x, -p.z);
-        a.holder.rotation.y = Math.atan2(g.vx, -g.vy) + Math.PI;
+        a.holder.rotation.y = Math.atan2(vx, -vy) + Math.PI;
         a.stand = 'idle';
         play(a, 'walk', { fade: 0.3 });
         if (g.leave <= 0) { g.booth = null; if (a.holder.parent) this.scene.remove(a.holder); continue; }

@@ -1615,6 +1615,43 @@ def yongjae_plaque_tex():
 yongjae_plaque_tex()
 
 
+# payphone_sign.png: the royal-blue sign bands of the 공중전화 부스 (blender/props.py payphone_booth), the front's
+# (0.92 x 0.25 m, the upper two thirds of the sheet) and the sides' (0.84 x 0.13 m, the lower third).  The 1996 - 2000
+# photo (reference/문집/2025_22쪽_가을_아펜젤러관_남쪽_박공벽과_공중전화_부스.jpg) has white lettering either side of a round
+# white mark on each band, too small to read: the words here are the object's own name in Korean and English, the mark
+# a plain ring (reference/고증/3.5 「아펜젤러관 남쪽 공중전화 부스」)
+def payphone_sign_tex():
+    if ONLY and 'payphone_sign' not in ONLY:
+        return
+    K = 4
+    blue, white = (40, 52, 150), (240, 243, 248)
+    sheet = Image.new('RGB', (512, 192), blue)
+    for (w_m, h_m, y0, cell_h) in ((0.92, 0.25, 0, 128), (0.84, 0.13, 128, 64)):
+        H = cell_h * K
+        W = int(round(H * w_m / h_m))
+        img = Image.new('RGB', (W, H), blue)
+        d = ImageDraw.Draw(img)
+        font = lambda px: ImageFont.truetype('/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc', int(px), index=1)   # (KR)
+        cy, r = H * 0.45, H * 0.24
+        gap = r * 1.6
+        k = 1.0                                   # (the words as large as the band lets: 88 % of its length at most)
+        for _ in range(2):
+            fk, fe = font(H * 0.46 * k), font(H * 0.33 * k)
+            half = gap + max(d.textlength('공중전화', font=fk), d.textlength('TELEPHONE', font=fe))
+            k *= min(1.0, 0.44 * W / half)
+        d.ellipse([W / 2 - r, cy - r, W / 2 + r, cy + r], outline=white, width=max(2, int(H * 0.055)))
+        d.ellipse([W / 2 - r * 0.3, cy - r * 0.3, W / 2 + r * 0.3, cy + r * 0.3], fill=white)
+        d.text((W / 2 - gap, cy), '공중전화', font=fk, fill=white, anchor='rm')
+        d.text((W / 2 + gap, cy), 'TELEPHONE', font=fe, fill=white, anchor='lm')
+        d.rectangle([0, H * 0.9, W, H], fill=(86, 104, 196))                          # (a paler line along the foot)
+        sheet.paste(img.resize((512, cell_h), Image.LANCZOS), (0, y0))
+    sheet.save(os.path.join(OUT, 'payphone_sign.png'), optimize=True)
+    print('payphone_sign')
+
+
+payphone_sign_tex()
+
+
 # ---------------------------------------------------------------- 옛 신촌역 역사의 이름판
 # The board on the waiting hall's gable (서울연구원 52234 · 52245 · 52250, 1996): white, a thin dark rim, 「신촌역」 big,
 # 「新村驛」 under it, 「Shinchon Station」 at the foot; 2.3 x 0.95 m (blender/town.py station97), drawn 1024 x 424 and

@@ -89,27 +89,86 @@ def flag_white():
 
 
 # ----------------------------------------------------------------------------- 공중전화 부스
+# The booth of the 1996 - 2000 autumn photo by 아펜젤러관's south gable (2025 기념문집 22쪽, reference/문집/
+# 2025_22쪽_가을_아펜젤러관_남쪽_박공벽과_공중전화_부스.jpg; reference/고증/3.5 「아펜젤러관 남쪽 공중전화 부스」): a sky-blue painted
+# frame whose front is a hoop with rounded top corners, under its top a royal-blue sign band with white lettering either
+# side of a round mark and a pale strip below it, the front open (no door), each side two panes of glass over a rail at
+# knee height with a narrower blue band along its top.  Sizes off the photo against the caller standing in the doorway
+# (the booth 1.5 times his stooped height, the front 0.43 of the booth's height seen 20 degrees off): 1.1 m across,
+# 1.0 m deep, 2.4 m high.  web/src/main.js walls the walker by the same numbers (BOOTH there).
+BOOTH_W, BOOTH_D, BOOTH_H = 1.10, 1.00, 2.40
+BOOTH_PHONE_Y = BOOTH_D / 2 - 0.07          # the phone's back on the board of the back wall (build.py hangs it there)
+
+
+def _booth_hoop(mb, y, w, h, t, dy, mat, r=0.14, ri=0.05, seg=5):
+    """A portal frame in the XZ plane at depth y (dy thick): two posts t wide and a head, the top corners rounded
+    (outer radius r, inner ri)."""
+    def path(hw, top, rad):
+        pts = [(-hw, 0.0)]
+        for k in range(seg + 1):
+            a = math.pi - k * (math.pi / 2) / seg
+            pts.append((-hw + rad + rad * math.cos(a), top - rad + rad * math.sin(a)))
+        for k in range(seg + 1):
+            a = math.pi / 2 - k * (math.pi / 2) / seg
+            pts.append((hw - rad + rad * math.cos(a), top - rad + rad * math.sin(a)))
+        pts.append((hw, 0.0))
+        return pts
+    out, inn = path(w / 2, h, r), path(w / 2 - t, h - t, ri)
+    y0, y1 = y - dy / 2, y + dy / 2
+    for i in range(len(out) - 1):
+        (ax, az), (bx, bz), (cx, cz), (ex, ez) = out[i], out[i + 1], inn[i + 1], inn[i]
+        mb.face([(ax, y0, az), (ex, y0, ez), (cx, y0, cz), (bx, y0, bz)], mat)             # front (-Y)
+        mb.face([(ax, y1, az), (bx, y1, bz), (cx, y1, cz), (ex, y1, ez)], mat)             # back
+        mb.face([(ax, y0, az), (bx, y0, bz), (bx, y1, bz), (ax, y1, az)], mat)             # outer
+        mb.face([(ex, y0, ez), (ex, y1, ez), (cx, y1, cz), (cx, y0, cz)], mat)             # inner
+
+
 def payphone_booth():
-    """공중전화 부스 as on a 1990s campus: 95 x 95 cm, 2.2 m high, a grey steel frame with clear panels on three sides,
-    an open front, a lit sign on the roof and a shelf under the phone (the phone itself, Poly Haven's Korean payphone,
-    is added in build.py).  The front faces -Y."""
+    """공중전화 부스 (the 1996 - 2000 photo above); the phone itself, Poly Haven's Korean payphone, is added in
+    build.py.  The open front faces -Y, the origin is the middle of the floor."""
     mb = MeshBuilder('payphone_booth')
-    w = d = 0.95
-    h = 2.2
-    mb.box((0, 0, 0.04), (w + 0.1, d + 0.1, 0.08), 'concrete')                         # base slab
+    w, d, h = BOOTH_W, BOOTH_D, BOOTH_H
+    t = 0.09                                    # the frame's width
+    F, G, S = 'booth_skyblue', 'glass_door', 'payphone_sign'
+    yf, yb = -d / 2 + 0.04, d / 2 - 0.04        # the front and the back hoops' middles
+    mb.box((0, 0, 0.012), (w - 0.02, d - 0.02, 0.024), 'metal_dark')                   # floor plate
+    # a concrete footing under it, down into the ground: where the ground falls away under a corner (the booth stands
+    # level at the height of the ground under its middle) the footing shows instead of a gap
+    mb.box((0, 0, -0.2), (w + 0.06, d + 0.06, 0.4), 'concrete', skip=('bottom',))
+    _booth_hoop(mb, yf, w, h, t, 0.08, F)
+    _booth_hoop(mb, yb, w, h, t, 0.08, F)
+    # the roof: a shallow cap between the hoops, its long edges the sides' top rails; a lamp under it
+    mb.box((0, 0, h - 0.045), (w, d - 0.16, 0.09), F)
+    mb.box((0, 0.05, h - 0.115), (0.42, 0.2, 0.05), 'light_white')
+    # the front's sign band and the pale strip under it (the doorway's head 1.97 m up)
+    z1 = h - t
+    mb.face([(-w / 2 + t, yf - 0.02, z1 - 0.25), (w / 2 - t, yf - 0.02, z1 - 0.25), (w / 2 - t, yf - 0.02, z1),
+             (-w / 2 + t, yf - 0.02, z1)], S, uvs=[(0, 1 / 3), (1, 1 / 3), (1, 1), (0, 1)])
+    mb.box((0, yf + 0.005, z1 - 0.125), (w - 2 * t, 0.05, 0.25), F, skip=('front',))
+    mb.box((0, yf, z1 - 0.3), (w - 2 * t, 0.06, 0.1), F)
+    # the sides: a blue band along the top, two panes over a rail 0.75 - 0.86 m up, a sill; thin posts at the panes' ends
+    ys = (yf + 0.04, yb - 0.04)
+    L = ys[1] - ys[0]
     for sx in (-1, 1):
-        for sy in (-1, 1):
-            mb.box((sx * (w / 2 - 0.03), sy * (d / 2 - 0.03), h / 2), (0.06, 0.06, h), 'frame_silver')
-    for sx in (-1, 1):                                                                 # clear side panels, mid rail
-        mb.box((sx * (w / 2 - 0.03), 0, 1.2), (0.03, d - 0.1, 1.9), 'glass_door')
-        mb.box((sx * (w / 2 - 0.03), 0, 1.0), (0.05, d - 0.06, 0.05), 'frame_silver')
-    mb.box((0, d / 2 - 0.03, 1.2), (w - 0.1, 0.03, 1.9), 'glass_door')                 # back panel: lower half solid
-    mb.box((0, d / 2 - 0.03, 0.55), (w - 0.06, 0.05, 0.9), 'plastic_grey')
-    mb.box((0, -d / 2 + 0.03, 2.05), (w - 0.06, 0.06, 0.2), 'frame_silver')            # front head rail
-    mb.box((0, 0, h + 0.05), (w + 0.12, d + 0.12, 0.1), 'frame_silver')                # roof
-    mb.box((0, -d / 2 - 0.02, h + 0.27), (w * 0.9, 0.12, 0.34), 'light_white')         # lit sign
-    mb.box((0, -d / 2 - 0.09, h + 0.27), (w * 0.9 - 0.12, 0.02, 0.2), 'sign_blue')
-    mb.box((0, d / 2 - 0.2, 0.86), (0.5, 0.3, 0.04), 'metal')                          # shelf under the phone
+        x = sx * (w / 2 - 0.03)
+        xo = sx * (w / 2 - 0.004)
+        q = [(xo, ys[0], z1 - 0.15), (xo, ys[1], z1 - 0.15), (xo, ys[1], z1 - 0.02), (xo, ys[0], z1 - 0.02)]
+        mb.face(q if sx > 0 else q[::-1], S, uvs=[(0, 0), (1, 0), (1, 1 / 3), (0, 1 / 3)] if sx > 0 else [(0, 1 / 3), (1, 1 / 3), (1, 0), (0, 0)])
+        mb.box((x, 0, z1 - 0.085), (0.05, L, 0.17), F, skip=('right',) if sx > 0 else ('left',))
+        mb.box((x, 0, z1 - 0.2), (0.05, L, 0.06), F)                                   # under the band
+        mb.box((x, 0, 0.805), (0.05, L, 0.11), F)                                      # the rail
+        mb.box((x, 0, 0.065), (0.05, L, 0.13), F)                                      # the sill
+        mb.box((x, 0, 1.445), (0.012, L, 1.17), G)                                     # upper pane
+        mb.box((x, 0, 0.44), (0.012, L, 0.62), G)                                      # lower pane
+    # the back: the same rails and panes, and a board in the middle the phone hangs on
+    xb = w - 2 * t
+    mb.box((0, yb, z1 - 0.115), (xb, 0.05, 0.23), F)
+    mb.box((0, yb, 0.805), (xb, 0.05, 0.11), F)
+    mb.box((0, yb, 0.065), (xb, 0.05, 0.13), F)
+    mb.box((0, yb, 1.445), (xb, 0.012, 1.17), G)
+    mb.box((0, yb, 0.44), (xb, 0.012, 0.62), G)
+    mb.box((0, yb - 0.015, 1.3), (0.5, 0.03, 0.88), F)                                 # the phone's board
+    mb.box((0, yb - 0.17, 0.87), (0.5, 0.28, 0.03), 'metal')                           # shelf under the phone
     return mb
 
 

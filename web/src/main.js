@@ -404,8 +404,10 @@ async function main() {
     const byKind = {};
     for (const pr of campus.props) (byKind[pr[0]] ||= []).push(pr);
     const rnd = mulberry(5);
-    const COLLIDE = { lamp_double: 0.25, lamp_quad: 0.25, lamp_arm: 0.25, flag_white: 0.12, planter: 0.5, stone_marker: 1.0, sign_board: 0.9, payphone: 0.62, guard_booth: 1.05,
+    const COLLIDE = { lamp_double: 0.25, lamp_quad: 0.25, lamp_arm: 0.25, flag_white: 0.12, planter: 0.5, stone_marker: 1.0, sign_board: 0.9, guard_booth: 1.05,
       bollard: 0.12, bollard_stone: 0.14, tent_kiosk: 1.5, notice_board: 0.7, haetae: 0.95, parking_booth: 1.3, recycle_bin: 0.7 };
+    // a phone booth's walls in its own frame [towards the front from, to; to the left from, to] (m from its middle)
+    const BOOTH_WALLS = [[-0.5, 0.5, 0.51, 0.55], [-0.5, 0.5, -0.55, -0.51], [-0.5, -0.36, -0.55, 0.55]];
     // (the 오토바이 parked before 제1공학관: the scooter the students ride, blender/bikes.py, on its stand)
     const BIKE_PAINT = ['#b3262b', '#e6e4dc', '#1f3f8f', '#d2a81c', '#1b1b1e', '#1f6f66', '#8e9399', '#7a1f2c'];
     for (const [kind, list] of Object.entries(byKind)) {
@@ -420,6 +422,13 @@ async function main() {
         if (kind === 'bench') for (const t of [-0.55, 0, 0.55]) colliders.addCircle(x - Math.sin(rot) * t, y + Math.cos(rot) * t, 0.38);
         // a glass notice board (3.8 m by 0.36): five along its length
         else if (kind === 'glass_board') for (const t of [-1.6, -0.8, 0, 0.8, 1.6]) colliders.addCircle(x - Math.sin(rot) * t, y + Math.cos(rot) * t, 0.25);
+        // a phone booth (1.1 m across, 1.0 m deep: blender/props.py BOOTH_W, BOOTH_D), walked into by its open front
+        // (towards rot): its two glass sides and its back, the back as deep as the phone and its shelf stand out
+        else if (kind === 'payphone') {
+          const fx = Math.cos(rot), fy = Math.sin(rot);
+          for (const [f0, f1, s0, s1] of BOOTH_WALLS)
+            colliders.addPolygon([[f0, s0], [f1, s0], [f1, s1], [f0, s1]].map(([f, t]) => [x + fx * f - fy * t, y + fy * f + fx * t]), true);
+        }
         else if (kind !== 'motorbike') colliders.addCircle(x, y, COLLIDE[kind] ?? 0.55);
       }
       kit.commit();
@@ -566,8 +575,8 @@ async function main() {
       if (booths.length > 1 && i === booths.length - 1) return;        // (one booth free)
       const fx = Math.cos(rot), fy = Math.sin(rot), heading = Math.atan2(-fx, fy);
       const at = (d, side = 0) => { const px = x + fx * d - fy * side, py = y + fy * d + fx * side; return { x: px, y: py, h: groundAt(px, py), heading }; };
-      const on = { ...at(0.85), phone: true };                        // (the one in the booth)
-      lines.push(i === Math.floor((booths.length - 1) / 2) && !MOBILE ? [on, at(1.95, 0.1), at(2.8, -0.12)] : [on]);
+      const on = { ...at(0), phone: true };                           // (the one in the booth: in its middle, pager.js STAND)
+      lines.push(i === Math.floor((booths.length - 1) / 2) && !MOBILE ? [on, at(1.2, 0.1), at(2.05, -0.12)] : [on]);
     });
   }
   const crowd = new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'p07', 'p08', 'p14'], paths, groups, MOBILE ? 40 : 110, 3, { seats, lines });
