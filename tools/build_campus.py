@@ -4576,7 +4576,15 @@ HALL_SPAN = {246156118: (-16.6, 18.5), 246156116: (-21.0, 14.6)}
 # (their depth from the front wall: OSM's but for 아펜젤러관, whose back wall the 1996 - 1999 scans have 12.9 m behind
 # the front (wall planes swept in the east frames of 1996 and 1997, the eaves' outer edge 0.45 - 0.5 m beyond both
 # walls, the gables' kneelers 0.2 m: three ways within 0.15 m); OSM had 14.5 m.  reference/고증/3.5.4)
-HALL_DEPTH = {246156116: 12.9}
+# 스팀슨관's back: its back wall unread under trees, the eaves' edges 13.6 - 13.8 m apart in the scans (south end),
+# 14.1 - 14.35 in the 2008 / 2010 skyview (north end): less the eaves' overhang the walls 12.8 - 13.25 m apart, the
+# back wall 1.9 - 2.4 m east of OSM's (14.72 m); the middle of the two.  reference/고증/3.5.3)
+HALL_DEPTH = {246156116: 12.9, 246156118: 13.0}
+# (and their direction: the eaves, ridges and front walls in the 1996 - 1999 scans run 0.5 - 0.75 degrees
+# anticlockwise of OSM's fronts in both halls, parallel within 0.2 degrees in the same frames; 언더우드관 in the same
+# frames agrees with the 1:5000 survey within 0.25, so it is the outlines, not the photos' bundle.  Turned about the
+# door, where the flights and the road were read; reference/고증/3.5.3 「스팀슨관의 방향 · 처마 높이 · 폭」)
+HALL_ROT = {246156118: 0.6, 246156116: 0.6}
 ST_S0, AP_S0 = 0.95, -3.2
 _stm0, _stt, _stf, _sth = hall_front(246156118, (1.0, -0.27))
 _apm0, _apt, _apf, _aph = hall_front(246156116, (-1.0, 0.27))
@@ -8034,6 +8042,8 @@ for b in buildings:
     W_ = HALL_DEPTH.get(b['id']) or max(float(-(np.array(q_) - m_) @ f_) for q_ in footprint(ways[b['id']]).exterior.coords)
     sa_, sb_ = HALL_SPAN[b['id']]
     poly = shapely.geometry.polygon.orient(Polygon([m_ + t_ * sa_, m_ + t_ * sb_, m_ + t_ * sb_ - f_ * W_, m_ + t_ * sa_ - f_ * W_]), 1.0)
+    door_ = m_ + t_ * (ST_S0 if b['id'] == 246156118 else AP_S0)
+    poly = shapely.affinity.rotate(poly, HALL_ROT.get(b['id'], 0.0), origin=tuple(float(v_) for v_ in door_))
     b['footprint'] = [[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]
     print('hall outline', b['name'], 'length %.1f m, depth %.1f m' % (sb_ - sa_, W_))
 MARKER_NAME = {n: None for n in ('별동연구동', '영빈관', '영선실', '차량실', '행정동', '학생회관 별관', '광혜관')}

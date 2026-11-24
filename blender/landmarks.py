@@ -3059,7 +3059,7 @@ def _stone_ivy_spec(ivy, walls, w):
 def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pitch=0.5, door_group=None, porch=None,
                bays=None, back=(), chimney=None, door=None, stairs=None, floors=2, plinth=1.3, basement=True,
                dormers=(), end_wins=None, z0=None, rect_fp=None, extra=None, attic=None, end_bay=None, rear=None,
-               ivy_walls=None, lights=None):
+               ivy_walls=None, lights=None, top=0.8):
     """스팀슨관 · 아펜젤러관 (see above), 성암관 and 교육관.  groups: the front's window groups (s0, s1, lights) on every
     floor, s along the front from its left end seen from outside; door_group: the one whose ground-floor place the front
     door takes; porch: a central entrance bay standing forward to a flat parapet a little over the eaves (스팀슨관,
@@ -3074,7 +3074,7 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
     window over the back door in the middle of the back wall (스팀슨관, 아펜젤러관), z0: the floor level, rect_fp: the
     main block's corners when the outline takes in a bay, extra(mb, iv, frame): further parts in the local frame,
     ivy_walls: the ivy of single walls (_stone_ivy_spec), lights: the sill and head of the lights over each floor
-    (LIGHTS)."""
+    (LIGHTS), top: the wall over the top floor (its height less the lights' sills)."""
     cx, cy, L, W, ang, z0_ = frame_for(dict(b, footprint=rect_fp) if rect_fp else b, front)
     stairs = dict(dict(width=3.6, wl=None, rise=1.3, cheeks=True, lamps=False, terrace=None), **(stairs or {}))
     door = dict(dict(w=2.2, arch='tudor', spring=1.9, style='panel', rec=0.6), **(door or {}))
@@ -3093,7 +3093,7 @@ def stone_hall(name, b, front, groups, ivy=1.0, fh=3.3, wall='stone_rubble', pit
                 return max(gl0_(lx, ly), lerp_table(tr_['zr'], lx) - z0)
             return gl0_(lx, ly)
     zd = plinth - 0.1                          # door threshold = top of the entrance porch
-    Hw = plinth + floors * fh + 0.8            # wall top
+    Hw = plinth + floors * fh + top            # wall top
     hz = Hw + W / 2 * pitch                    # ridge
     eave = 0.4
     lights = lights or LIGHTS
@@ -3693,8 +3693,13 @@ def stimson():
                  2: dict(cover=0.6, zmax=4.3)}
     # (the front: the door's flight, the road on its terrace, the flight down the bank -- tools/build_campus.py ST_FRONT,
     # reference/고증/3.5.3; the floor stays where the level apron had it)
+    # (the walls' height: the 2016 front photos (scaled by the gables' kneelers, 35.1 / 35.55 m) have the eaves'
+    # edge 8.1 m over the sill, the upper lights' sills and heads 4.3 - 4.4 and 6.7 - 6.85 m over it; the 1996 - 1999
+    # scans the eaves' edge at 53.0 m in both halls (reference/고증/3.5.3 「스팀슨관의 방향 · 처마 높이 · 폭」).  The
+    # upper storey 0.2 m taller and the wall over its lights 0.4 m more: the eaves 0.8 m higher, the sill kept)
     sf = CAMPUS.get('stimson_front')
-    out = stone_hall('stimson', b, (1.0, -0.27), groups, ivy=1.15, ivy_walls=ivy_walls,
+    # (the ridge 56.7 m in the scans: on the 13.0 m deep outline the roof's pitch 0.54)
+    out = stone_hall('stimson', b, (1.0, -0.27), groups, ivy=1.15, ivy_walls=ivy_walls, fh=3.5, top=1.2, pitch=0.54,
                      porch=dict(s0=L / 2 - pw / 2, s1=L / 2 + pw / 2, proj=0.9, parapet=0.8, win=(2.3, [0.45, 1.0, 0.45])),
                      chimney=dict(at=(-5.8 * k_, 0.0), h=3.0, sky=(-5.8 * k_, 2.3)), end_wins=ends,
                      attic={1: (W / 2, 0.7, 0.4, 1.75), 3: (W / 2, 0.75, 0.35, 1.2)},
@@ -3749,6 +3754,7 @@ def appenzeller():
     # reference/고증/3.5.4; the floor 0.55 m higher than the level apron had it, from the eaves' height in the scans)
     af = CAMPUS.get('appenzeller_front')
     out = stone_hall('appenzeller', b, (-1.0, 0.27), groups, ivy=1.15, door_group=2, ivy_walls=ivy_walls,
+                     fh=3.5, top=1.2,     # (the walls' height: as at 스팀슨관)
                      bays=dict(at=at, front=3.0, proj=0.75),
                      back=[(c - gw / 2, c + gw / 2, 3) for c in (4.0, L - 4.0)], end_wins={1: end, 3: end},
                      attic={1: (W / 2, 0.9, 0.4, 2.0), 3: (W / 2, 0.9, 0.4, 2.0)},
