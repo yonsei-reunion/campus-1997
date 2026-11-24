@@ -1800,17 +1800,36 @@ HAIR_AZ = [0, 6, 12, 18, 24, 30, 36, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82,
 # between the brows down the bridge, over a round tip and under it back to the lip, with a wing either side.
 # Of a face, what its line from the side is made of: nose (how far the tip stands off the face, of NOSE_TIP), bridge
 # (how much of that is left between the eyes), nose_curve (the bridge between them: 1 straight, less: a scooped one
-# with the tip standing out, and only a little; never more: a bridge that is high half way down made the nose a lump), tip_up (the
-# tip's height over where the nose meets the lip, of NOSE_UNDER: more is a turned-up tip that shows its underside,
-# less a drooping one), nose_up (the tip higher still, m), tip_round (how blunt the tip is: more is a round one,
-# less a fine one).  From the front: nose_w (the wings' width, a scale), wing (how full they are)
+# with the tip standing out, and only a little; never more: a bridge that is high half way down made the nose a lump), tip_up (how
+# steeply the underside rises from the lip to the tip, about NOSE_TILT: more is a turned-up tip that shows its
+# underside, less a drooping one), nose_up (the tip higher still, m), tip_round (how blunt the tip is, the radius
+# of its round: more is a round one, less a fine one).  From the front: nose_w (the wings' width, a scale), wing (how full they are)
 NOSE = dict(nose=0.92, bridge=0.21, nose_curve=1.0, tip_up=1.0, tip_round=1.0, wing=1.0)
+# The line of a Korean nose from the side, as measured on a thousand people in their twenties (Bae et al. 2009:
+# reference/고증 4.9.3): the forehead and the bridge meet at 135 (men) to 140 degrees (women) in a hollow between the
+# eyes, the bridge leaves the face's plane at 30 degrees, the underside meets the lip at 95, the tip stands 17 mm
+# off its foot.  The packs' heads have a child's face: the forehead out, everything under the eyes drawn back, the
+# chin most of all; a bridge laid on that stood nearly upright against the face (7 to 9 degrees off it), one line
+# with the forehead, and the underside had to climb to the tip.  So
+#   - the face under the eyes is brought forward (head_profile, FACE_FWD: in depth only, most at the nose's foot and
+#     from there down to the chin),
+#   - the bridge between the eyes is low (NOSE_RADIX of a person's `bridge`) and ends a little over the eye line
+#     (NOSE_ROOT): the hollow,
+#   - the underside leaves the lip nearly level (NOSE_TILT) and the tip is a round lying on it (NOSE_BALL), which
+#     the bridge leaves as a straight line (nose_shape).
+FACE_FWD = {'umc': 0.0075, 'women': 0.0095}       # how far the face comes forward at the nose's foot (a face's `fwd`)
+FACE_EYE = 0.010           # the face stays as it is down to this far under the eye line
+FACE_SIDE = (0.018, 0.062)                         # all of it within so far of the middle, none of it from there
+FACE_DEEP = (0.030, 0.070)                         # and so far behind the upper lip (the throat, the jaw's corners)
+NOSE_RADIX = 0.4
 NOSE_TIP = {'umc': 0.0165, 'women': 0.0212}       # (the packs' wedges stood 0.0145, 0.0188 off the face)
-NOSE_ROOT = 0.012          # the bridge dies away this far over the eye line (and only there: it is straight up to it)
-NOSE_UNDER = 0.0085        # the tip over the underside (where the nose meets the lip)
+NOSE_ROOT = 0.006          # the bridge dies away this far over the eye line (and only there: it is straight up to it)
+NOSE_UNDER = 0.0085        # (a nostril is as deep as it is when the tip stands this far over the nose's foot)
 NOSE_LOW = 0.0055          # (and no lower than this: the nostrils need the room)
-NOSE_EASE = 24             # how often the profile is eased (a tip_round of 1): fewer, and the tip is a corner
-NOSE_COL = 1.35            # the underside from the lip out to the tip: 1 a straight line, more: bowed out
+NOSE_EASE = 8              # how often the profile is eased (its joins, the foot)
+NOSE_BALL = 0.0056         # the round of the tip: its radius (a tip_round of 1)
+NOSE_TILT_MIN = math.radians(2.5)
+NOSE_TILT, NOSE_TILT_UP = 8.0, 7.0      # the underside's rise from the lip, degrees; and so much more for a tip_up of 2
 NOSE_RIDGE = (0.0120, 0.0120)      # half the bridge's foot on the face: between the eyes, at the tip
 NOSE_WING = dict(x=0.0098, rx=0.0072, z=0.0058, up=0.0135, tall=0.52)   # a wing: its middle from the nose's and
 #                         over the underside, its half width, how far up the side it dies away, its height of the tip's
@@ -2139,6 +2158,42 @@ def head_soften(ob, L):
     bm.free()
 
 
+def head_profile(ob, L, face, rig):
+    """The face's own line from the side (see FACE_FWD): the face under the eyes brought forward, the more the lower,
+    and all of it from the nose's foot to the chin; only in depth, so seen from the front nothing moves (the eyes,
+    the drawn face's place on the atlas).  It dies away to the sides (the cheekbones, the jaw's corners), into the
+    head (the throat under the chin) and under the chin."""
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+    fwd = face.get('fwd', FACE_FWD[rig])
+    if not fwd:
+        return
+    mw = ob.matrix_world
+    inv = mw.inverted()
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    cos = [mw @ v.co for v in bm.verts]
+    tree = BVHTree.FromPolygons(cos, [[v.index for v in f.verts] for f in bm.faces])
+    ez, nb = eye_line(L, face), L['nose'][0].z
+    # the chin's foot: down the middle of the face, where its line turns back under the chin
+    z, last, zc = nb - 0.02, None, nb - 0.07
+    while z > nb - 0.12:
+        hit = tree.ray_cast(Vector((0, -0.6, z)), Vector((0, 1, 0)))[0]
+        if hit is None or (last is not None and hit.y > last + 0.004):
+            zc = z
+            break
+        last, z = hit.y, z - 0.002
+    y0 = tree.ray_cast(Vector((0, -0.6, nb - 0.012)), Vector((0, 1, 0)))[0].y          # (the upper lip)
+    for v, p in zip(bm.verts, cos):
+        w = _smooth(ez - FACE_EYE, nb, p.z) if p.z > nb else _smooth(zc - 0.035, zc - 0.004, p.z)
+        w *= 1 - _smooth(FACE_SIDE[0], FACE_SIDE[1], abs(p.x))
+        w *= 1 - _smooth(y0 + FACE_DEEP[0], y0 + FACE_DEEP[1], p.y)
+        if w > 0:
+            v.co = inv @ Vector((p.x, p.y - fwd * w, p.z))
+    bm.to_mesh(ob.data)
+    bm.free()
+
+
 def _inside(poly, x, z):
     """Whether (x, z) lies in the polygon [(x, z), ...]."""
     n, hit = len(poly), False
@@ -2164,25 +2219,50 @@ def nose_shape(fy, ez, nb, face, rig):
         'nose', 'bridge', 'nose_curve', 'tip_up', 'tip_round', 'wing'))
     wide = face.get('nose_w', 1.0)
     T = NOSE_TIP[rig] * tip
-    zt, z1 = nb + max(NOSE_LOW, NOSE_UNDER * tip_up + face.get('nose_up', 0.0)), ez + NOSE_ROOT
+    z1 = ez + NOSE_ROOT
     W, H = NOSE_WING, NOSE_HOLE
-    # the profile: the ridge is a straight line (by `curve`) over the chord of the face from
-    # the tip to the eye line, whatever the face does between them; over the eye line it dies away, and under the
-    # tip it runs back to the lip (NOSE_COL).  Sampled every half millimetre and eased, which rounds the tip.
+    # The profile, as how far forward the nose's line is at each height (u: the face's own is -fy):
+    #   - the underside leaves the lip at the nose's foot rising only NOSE_TILT (more for a turned-up tip: tip_up),
+    #   - the tip is a round of the radius NOSE_BALL (tip_round) lying on that line, its foremost point T before the
+    #     chord of the face (the straight line from the face at the tip's height to the face at the eye line),
+    #   - the bridge is the straight line from that round up to the hollow between the eyes, where bridge x
+    #     NOSE_RADIX of T is left of it (nose_curve under 1: sagging between them), and dies away over the eye line.
+    # Sampled every half millimetre and eased a little (the foot, the joins).
+    R = NOSE_BALL * (0.55 + 0.45 * blunt)
+    tilt = max(NOSE_TILT_MIN, math.radians(NOSE_TILT + NOSE_TILT_UP * (tip_up - 1)))
+    u = lambda z: -fy(0, z)                                    # noqa: E731
+    us = u(nb)
+    zt = nb + NOSE_LOW
+    for _ in range(4):                                         # (the round's middle: its height hangs on the face there)
+        uc = u(zt) + T - R
+        # (nose_up moves the tip, and the underside's line with it; never under the least rise: the foot is the foot)
+        zt = nb + max(((uc - us) * math.sin(tilt) + R) / math.cos(tilt) + face.get('nose_up', 0.0),
+                      ((uc - us) * math.sin(NOSE_TILT_MIN) + R) / math.cos(NOSE_TILT_MIN))
+    uc = u(zt) + T - R
+    tilt = math.acos(min(1.0, R / math.hypot(zt - nb, uc - us))) - math.atan2(uc - us, zt - nb)
+    foot = (zt - R * math.cos(tilt), uc + R * math.sin(tilt))   # where the underside's line meets the round (z, u)
+    root = (ez, u(ez) + bridge * NOSE_RADIX * T)                # the bridge between the eyes
+    dz, du = zt - root[0], uc - root[1]
+    far = math.hypot(dz, du)
+    turn = math.asin(min(1.0, R / far))
+    a0 = math.atan2(du, dz) - turn                              # (the tangent that passes before the round)
+    run = math.sqrt(max(0.0, far * far - R * R))
+    top = (root[0] + run * math.cos(a0), root[1] + run * math.sin(a0))      # where the bridge leaves the round
     N = int(round((z1 - nb) / 0.0005))
     zs = [z1 - (z1 - nb) * i / N for i in range(N + 1)]
-    y_t, y_r = fy(0, zt), fy(0, ez)
     M = []
     for z in zs:
-        if z >= zt:
-            h = (z - zt) / (ez - zt)
-            line = T * (1 - (1 - bridge) * min(h, 1.25) ** curve)
-            m = fy(0, z) - (y_t + (y_r - y_t) * h - line)
-            m = max(0.0, m) * (1 - _smooth(ez, z1, z))
+        if z >= top[0]:
+            h = (z - top[0]) / (root[0] - top[0])
+            line = top[1] + (root[1] - top[1]) * h - 0.5 * (1 - curve) * T * math.sin(math.pi * min(h, 1.0))
+            m = (line - u(z)) * (1 - _smooth(ez, z1, z))
+        elif z >= foot[0]:
+            m = uc + math.sqrt(max(0.0, R * R - (z - zt) ** 2)) - u(z)
         else:
-            m = T * (1 - ((zt - z) / (zt - nb)) ** NOSE_COL)
-        M.append(m)
-    for _ in range(max(6, int(round(NOSE_EASE * blunt * blunt)))):
+            m = us + (foot[1] - us) * (z - nb) / max(1e-6, foot[0] - nb) - u(z)
+        M.append(max(0.0, m))
+    M[0] = M[N] = 0.0
+    for _ in range(NOSE_EASE):
         M = [M[0]] + [(M[i - 1] + 2 * M[i] + M[i + 1]) / 4 for i in range(1, N)] + [M[N]]
     k = T / max(M)
     M = [m * k for m in M]
@@ -2324,9 +2404,13 @@ def head_nose(ob, L, face, rig):
         if _inside(pts[:nh], x, z) and not _inside(rim, x, z):
             new_face([both[i] for i in tri])
     bmesh.ops.recalc_face_normals(bm, faces=made)
+    # every face of it looks away from the inside of the head (a point behind the bridge; the underside is nearly
+    # level and a nostril's front wall looks back and down, so `forward` is no test)
+    ez, nb = eye_line(L, face), L['nose'][0].z
+    core = Vector((0, fy(0, ez) + 0.03, (ez + nb) / 2))
     for f in made:
-        if (mw.to_3x3() @ f.normal).y > 0:
-            raise SystemExit(f'{ob.name}: a face of the nose looks back')
+        if (mw.to_3x3() @ f.normal).dot(mw @ f.calc_center_median() - core) < 0:
+            raise SystemExit(f'{ob.name}: a face of the nose looks in')
     bm.to_mesh(me)
     bm.free()
 
@@ -2781,6 +2865,7 @@ def head_1997(pid, head, body, arm, spec):
     face = spec.get('face', {})
     L = head_clean(head, st, face, rig)
     head_soften(head, L)
+    head_profile(head, L, face, rig)
     head_nose(head, L, face, rig)
     surf = HeadSurface(head, body, L)
     if spec.get('bridge'):
