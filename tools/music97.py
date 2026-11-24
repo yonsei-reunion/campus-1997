@@ -22,7 +22,7 @@ the working datum the ground is laid on (해발 + tilt: tools/datum.py) where it
   into the old ground (the same terraces and easing past the rim; behind the stage 2 m level, then down to the walk
   west of it over 6 m, as the photos have that 4 m under the floor).
 - 동쪽 찻길 (TR_E) from 아펜젤러관's yard to the fork east of 한경길 (EAST_Q97 from there): ROAD, the survey's spot
-  heights and the contours crossing it.  The photos' across-road profiles here read 1.5 - 3.5 m higher
+  heights and the contours crossing it; beside 아펜젤러관 (s 64 - 124) the 1996 - 1999 scans' open asphalt.  The photos' across-road profiles here read 1.5 - 3.5 m higher
   (the canopy's edge: 고증 2.9.2 「동쪽 길의 높이」).  Levelled across as tr_grade does.
 - 용재관's drive (YJ_BRANCH, x < 126) is the 대강당 · 용재관 part's (51.2 m at its east end): TM_KEEP stays.
 - 음악관 두 동 (halls; 3.11 「두 동의 절대 높이」): the two halls and the ground before them stood 1.5 · 2.25 m under the
@@ -53,7 +53,25 @@ from shapely.ops import unary_union
 # --- heights, 해발 (each taken up to the working datum at its place) -----------------------------------------------
 AMPH_FLOOR = datum.up(154.0, 160.0, 56.35)                 # 노천극장's floor (the 1997 scans)
 ROAD = datum.up3([(69.1, 146.2, 42.12),      # (x, y, height) on TR_E: 아펜젤러관's yard (the square's level, kept)
-        (86.0, 164.6, 44.99),      # 2006 contour 45 m, 0.9 m off the road's middle
+        # (beside 아펜젤러관, survey s 64 - 124 (tools/roadview/roads/adopt.py 'E'): the 1996 - 1999 scans, each pair on
+        # its own on the open asphalt, 3 m windows (reference/고증/3.5.5 「찻길(둑 머리)」, #246); the 2024 survey's 45 and
+        # 50 m contours agree within 0.2 m.  Before: one grade through the 2006 contour 45 m at (86.0, 164.6), whose
+        # edition put its 50 m contour 7 m too far up the road: 0.25 - 0.45 m over the photos at s 64 - 84, 0.2 - 0.8 m
+        # under them at s 86 - 124)
+        (86.30, 162.30, 44.40),    # s 64
+        (90.38, 166.70, 45.20),    # s 70
+        (93.87, 171.54, 45.75),    # s 76
+        (99.46, 179.83, 47.20),    # s 86
+        (100.65, 181.43, 47.50),   # s 88
+        (103.18, 184.53, 48.00),   # s 92
+        (105.73, 187.61, 48.70),   # s 96
+        (108.35, 190.64, 49.10),   # s 100
+        (110.97, 193.66, 49.60),   # s 104
+        (113.53, 196.73, 50.15),   # s 108
+        (116.10, 199.80, 50.30),   # s 112
+        (118.60, 202.92, 50.60),   # s 116
+        (121.03, 206.10, 50.95),   # s 120
+        (123.45, 209.28, 51.20),   # s 124
         (126.1, 211.5, 51.37),     # 2024 spot 51.34 m on the road
         (132.6, 222.4, 50.7),     # (between it and the 50 m contour 6.9 m off at (128.8, 231.1))
         (141.5, 251.0, 49.99),     # 2005/2006 contour 50 m, 3 m off

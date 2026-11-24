@@ -3734,8 +3734,11 @@ def appenzeller():
     s0 = L / 2 - (5 * gw + 4 * pier) / 2
     groups = [(s0 + k * (gw + pier), s0 + k * (gw + pier) + gw, 3) for k in range(5)]
     at = [(2.3 * k_, 6.6 * k_), (L - 6.6 * k_, L - 2.3 * k_)]
-    end = [w for f in (0, 1) for w in ((W / 2 - 5.05, W / 2 - 2.95, 2, f), (W / 2 - 1.6, W / 2 + 1.6, 3, f),
-                                        (W / 2 + 2.95, W / 2 + 5.05, 2, f))]
+    # (the end walls' groups were read in the roadview with the corners where OSM's 14.49 m outline had them; the scans
+    # have the hall 12.9 m deep (reference/고증/3.5.4), so the widths and margins shrink with it)
+    kw = W / 14.49
+    end = [w for f in (0, 1) for w in ((W / 2 - 5.05 * kw, W / 2 - 2.95 * kw, 2, f), (W / 2 - 1.6 * kw, W / 2 + 1.6 * kw, 3, f),
+                                        (W / 2 + 2.95 * kw, W / 2 + 5.05 * kw, 2, f))]
     # the ivy (reference/고증/3.5 「담쟁이 범위」): the front a mat to the eaves and over the bays' parapets, the north
     # end to its gable (the school's homepage photos before 1997-05: grad.jpg from the north-west, sin.jpg from the
     # south-west; a 1996 group photo, 2010, 2016); the south end (1: the +x one) strands up the piers and a band under

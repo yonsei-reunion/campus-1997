@@ -1,6 +1,8 @@
 """아펜젤러관 뒤 동쪽 찻길의 서쪽 가 (reference/고증/3.5_옛_석조관.md 「아펜젤러관 뒤 땅」).  tools/build_campus.py 가 부른다.
 
     appen97.WALK_OUT                      # 심기가 끝난 뒤 잔디로 칠함(OSM 의 보도를 걷어 냄)
+    appen97.SHOULDER                      # 찻길 서쪽 가: 아스팔트 끝 줄에서 연석 뒤까지의 밝은 띠(포장)
+    appen97.pull_paint(lines)             # 그 구간의 노란 가장자리 선을 아스팔트 끝 줄 안으로
     appen97.bollards()                    # ['bollard_stone', x, y, rot] 목록: props 끝에
     appen97.payphone()                    # ['payphone', x, y, rot] 하나: 남쪽 박공벽 앞 마당의 공중전화 부스
     appen97.walk(xy, far)                 # 건물 앞 길의 남쪽 끝(끝벽 너머): 흙길로 칠할 다각형
@@ -51,6 +53,18 @@ def bollards():
     return out
 
 
+# The asphalt's west edge beside the yard and the hall's back (3.5.5 「찻길(둑 머리)」, #246): the 1996 - 1999 scans
+# (four years, both courses, 4 - 14 frames a station, +-0.05 - 0.3 m) have the dark asphalt end at a thin bright line
+# that bends in from the kerb's line (o 3.0) at s 76 to o 1.2 - 1.45 at s 86 - 98 and back out by s 114; west of it
+# a band brighter than the asphalt (5 - 30 % in 1996, 1.5 - 2 times in 1998) out to o 3.0 - 3.6, the posts in it.  Not
+# a shadow's or a crown's edge (the same o in four suns and from both sides).  Whether the line is a kerb or a change
+# of surface does not show (a kerb's 18 cm is under a pixel): the band is laid as paving flush with the road.
+# EDGE97: (s, o) of the line; SHOULDER: the band from it to the kerb's back
+EDGE97 = [(74.0, 3.0), (76.0, 2.58), (78.0, 2.3), (80.0, 2.25), (82.0, 2.09), (84.0, 1.81), (86.0, 1.46), (88.0, 1.43),
+          (90.0, 1.35), (92.0, 1.25), (94.0, 1.27), (96.0, 1.23), (98.0, 1.18), (100.0, 1.59), (102.0, 1.82),
+          (104.0, 2.09), (106.0, 2.17), (108.0, 2.49), (110.0, 2.52), (112.0, 2.69), (114.0, 2.94), (115.0, 3.0)]
+
+
 # 공중전화 부스 south of the south gable (reference/고증/3.5_옛_석조관.md 「아펜젤러관 남쪽 공중전화 부스」): the 1996 - 2000
 # autumn photo (reference/문집/2025_22쪽_…) has a booth to the right of the gable's east corner, the callers' queue
 # beside it; the original scans of 1996 - 1999 have a white box the size of a booth on the yard, the same place in all
@@ -70,8 +84,8 @@ def bollards():
 # west): from the photo's camera (the booth to it: 258 degrees) the front, 1.1 m across, is 94 px of 1000 wide where a
 # face-on one would be 123, so 40 degrees off, the near side to its right; the 2010 roadview has it 295 - 300 (face on
 # from 661, 38 degrees off from 662); the scans' top lies square with the gable within 10 degrees (285).
-GABLE = ((79.65, 194.79), (93.63, 190.99))
-PHONE_ALONG, PHONE_OUT = -5.63, 6.37       # ((86.52, 186.32): the scans' box, the middle of the 1997 and the 1999 solves)
+GABLE = ((79.65, 194.79), (92.1, 191.41))      # (the east corner 12.9 m from the front: 3.5.4, tools/build_campus.py HALL_DEPTH)
+PHONE_ALONG, PHONE_OUT = -4.04, 6.37       # ((86.52, 186.32): the scans' box, the middle of the 1997 and the 1999 solves)
 PHONE_TURN = math.radians(103)
 
 
@@ -113,13 +127,13 @@ FOOT = [(82.64, 172.0), (85.08, 175.0), (86.93, 178.0), (88.86, 181.0), (91.01, 
         (96.3, 191.2)]
 SHRUB_EDGE = [(94.3, 190.8), (93.2, 189.2), (92.2, 187.8), (91.3, 186.3), (90.6, 185.0), (90.0, 183.5), (89.4, 182.0),
               (88.86, 181.0)]
-YARD = Polygon([(77.6, 187.3), (88.0, 185.5), (88.0, 181.0)] + SHRUB_EDGE[::-1] + [(93.63, 190.99), (79.65, 194.79),
+YARD = Polygon([(77.6, 187.3), (88.0, 185.5), (88.0, 181.0)] + SHRUB_EDGE[::-1] + [GABLE[1], GABLE[0],
                (77.4, 194.2)])
 PLOT = Polygon([(77.6, 187.3), (88.0, 185.5), (85.8, 180.0), (82.6, 172.0), (73.5, 172.0), (74.5, 176.0), (76.5, 184.0)])
 PLOT_PATH = LineString([(89.0, 185.3), (86.8, 179.6), (83.6, 171.8)])     # (the 1 m path along its east side)
-CORNER = Polygon([(94.3, 190.8), (96.3, 191.2), (93.63, 190.99)])     # (round the south-east corner towards the back yard)
+CORNER = Polygon([(94.3, 190.8), (96.3, 191.2), (93.2, 192.6), GABLE[1]])     # (round the south-east corner towards the back yard)
 # (all that lies level: the yard, the lawn, the path east of it and the grass out to the bank's foot)
-LEVEL = Polygon([(77.4, 194.2), (79.65, 194.79), (93.63, 190.99)] + FOOT[::-1] + [(73.5, 172.0), (74.5, 176.0),
+LEVEL = Polygon([(77.4, 194.2), GABLE[0], GABLE[1]] + FOOT[::-1] + [(73.5, 172.0), (74.5, 176.0),
                 (76.5, 184.0), (77.6, 187.3)])
 EASE_SOUTH, EASE_EAST = 5.0, 1.5     # (m over which the nodes outside come back to their own: little towards the bank)
 WALL_STRIP = 2.8                     # (the grass along the gable's foot: the photo's kerb line lies 2.7 - 3.3 m off the wall from the camera above)
@@ -137,6 +151,29 @@ BANK_S = (72.0, 96.5)
 FOOT_O, TOP_O = 9.3, 3.3
 BANK = Polygon([tuple(float(v) for v in adopt.at('E', s_, FOOT_O + 0.2)) for s_ in np.arange(70.0, 97.6, 1.5)] +
                [tuple(float(v) for v in adopt.at('E', s_, TOP_O)) for s_ in np.arange(97.0, 69.9, -1.5)])
+SHOULDER = Polygon([tuple(float(v) for v in adopt.at('E', s_, o_)) for s_, o_ in EDGE97] +
+                   [tuple(float(v) for v in adopt.at('E', s_, TOP_O)) for s_, _ in EDGE97[::-1]])
+# (the line itself: no kerb along it, the band flush with the road -- the lanes' wheels run 2.2 m off the middle)
+EDGE_LINE = LineString([tuple(float(v) for v in adopt.at('E', s_, o_)) for s_, o_ in EDGE97 if o_ < 2.7])
+
+
+def pull_paint(lines):
+    """the yellow edge line (2008 roadview, 0.35 m inside the kerb) moved in onto the asphalt where the band is:
+    0.35 m inside the line; returns the points moved"""
+    es, eo = np.array([e[0] for e in EDGE97]), np.array([e[1] for e in EDGE97])
+    n = 0
+    for l_ in lines:
+        if l_['kind'] not in ('yellow', 'yellow_dash'):
+            continue
+        for q_ in l_['pts']:
+            s_, o_ = _so(q_[0], q_[1])
+            if not (es[0] <= s_ <= es[-1]) or o_ < 0.0:
+                continue
+            ot_ = float(np.interp(s_, es, eo)) - 0.35
+            if o_ > ot_:
+                q_[0], q_[1] = (round(float(v), 2) for v in adopt.at('E', s_, ot_))
+                n += 1
+    return n
 
 
 def yard_z(x, y):

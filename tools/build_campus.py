@@ -4573,6 +4573,10 @@ def hall_front(wid, front):
 # -1.95 .. 3.75) and both its flights 0.95 - 1.0 m along s from OSM's middle, 아펜젤러관's flights 3.2 m (both the
 # halls' middles); both doors on the garden's cross walk (UW_CROSS_V)
 HALL_SPAN = {246156118: (-16.6, 18.5), 246156116: (-21.0, 14.6)}
+# (their depth from the front wall: OSM's but for 아펜젤러관, whose back wall the 1996 - 1999 scans have 12.9 m behind
+# the front (wall planes swept in the east frames of 1996 and 1997, the eaves' outer edge 0.45 - 0.5 m beyond both
+# walls, the gables' kneelers 0.2 m: three ways within 0.15 m); OSM had 14.5 m.  reference/고증/3.5.4)
+HALL_DEPTH = {246156116: 12.9}
 ST_S0, AP_S0 = 0.95, -3.2
 _stm0, _stt, _stf, _sth = hall_front(246156118, (1.0, -0.27))
 _apm0, _apt, _apf, _aph = hall_front(246156116, (-1.0, 0.27))
@@ -8021,12 +8025,13 @@ for b in LATE_HALLS:
         LATE_SITES_RNG.append(q_)
 print('1997: left out', [n for n, _ in GONE_SITES], '- outlines put back', len(LATE_SITES))
 # 스팀슨관 · 아펜젤러관 (HALL_SPAN above; reference/고증/3.5.3): the outlines the 1997 scans and Kakao's base map give,
-# OSM's front and back with the end walls moved; set after the planting, which read OSM's outlines
+# OSM's front and back (아펜젤러관's back: HALL_DEPTH) with the end walls moved; set after the planting, which read
+# OSM's outlines
 for b in buildings:
     if b['id'] not in HALL_SPAN:
         continue
     m_, t_, f_ = (_stm0, _stt, _stf) if b['id'] == 246156118 else (_apm0, _apt, _apf)
-    W_ = max(float(-(np.array(q_) - m_) @ f_) for q_ in footprint(ways[b['id']]).exterior.coords)
+    W_ = HALL_DEPTH.get(b['id']) or max(float(-(np.array(q_) - m_) @ f_) for q_ in footprint(ways[b['id']]).exterior.coords)
     sa_, sb_ = HALL_SPAN[b['id']]
     poly = shapely.geometry.polygon.orient(Polygon([m_ + t_ * sa_, m_ + t_ * sb_, m_ + t_ * sb_ - f_ * W_, m_ + t_ * sa_ - f_ * W_]), 1.0)
     b['footprint'] = [[round(x, 2), round(y, 2)] for x, y in list(poly.exterior.coords)[:-1]]
@@ -11065,6 +11070,7 @@ for m_, k_ in _rd_marks:
         RD_PAINT['lines'].append(dict(kind='white', w=0.15, pts=[[round(float(v_), 2) for v_ in q_] for q_ in (TR_E[-1], _bars[3][1])]))
 RD_PAINT['lines'] += medwest97.zebra()        # (의료원 서쪽: the three crossings of the 1997 scans)
 RD_PAINT['lines'] += muak.paint_lines(MUAK)   # (무악학사 길: the middle line, a stop line and a crossing of the 1996 · 1997 scans)
+print('아펜젤러관 곁 동쪽 찻길: edge line points moved onto the asphalt', appen97.pull_paint(RD_PAINT['lines']))
 out['road_paint'] = RD_PAINT
 print('찻길 paint: lines %d (yellow %.0f m, dashed %.0f m, white %.0f m), humps %d' % (
     len(RD_PAINT['lines']), *(sum(LineString(l_['pts']).length for l_ in RD_PAINT['lines'] if l_['kind'] == k_)
@@ -11735,6 +11741,12 @@ draw_poly('asphalt', _apw, 0, pre=False)
 draw_poly('dirt', _apw, pre=False)
 print('아펜젤러관 앞 길의 남쪽 끝: %.0f m2 of bare earth, walkers\' line' % _apw.area,
       appen97.repath(paths_out, TERR['ap']['xy']), appen97.repath(out['paths'], TERR['ap']['xy']))
+# (아펜젤러관 곁 동쪽 찻길의 서쪽 가, 3.5.5: the asphalt ends at the scans' line, s 76 - 114; paving out to the kerb's
+# back beyond it)
+for _ly in ('asphalt', '_ga', '_yg', '_yp', '_gp'):
+    SPLAT_OPS.append(('poly', _ly, list(appen97.SHOULDER.exterior.coords), 0))
+draw_poly('asphalt', appen97.SHOULDER, 0, pre=False)
+draw_poly('pavers', appen97.SHOULDER, pre=False)
 _aa = splat_aa(['asphalt', 'pavers', 'dirt', '_yz', '_yg', '_yp', '_gd', '_gp', '_ga', '_gw', '_gf'])
 spl_aa = np.stack([_aa['asphalt'], _aa['pavers'], ndimage.gaussian_filter(_aa['dirt'], 0.7)], -1)
 _yzA, _ygA = _aa['_yz'] / 255.0, _aa['_yg'] / 255.0
@@ -11961,6 +11973,7 @@ def curb_runs(F3):
                            [audnorth97.isle_wall_line(_isn).buffer(0.5)] +   # (대강당 북쪽 끝 너머 섬: its wall is the edge)
                            [jk97.bed().buffer(0.6)] +                        # (장기원 기념관 남쪽 화단: its wall is the edge)
                            [jk97.bank_flight_poly()] +                       # (장기원 기념관 동쪽 길 -> 도서관 서쪽 길 돌계단: no kerb across it)
+                           [appen97.EDGE_LINE.buffer(0.35)] +                # (아펜젤러관 곁 동쪽 찻길: the band west of the asphalt flush)
                            [LineString(xy(q) for q in w_['geometry']).buffer(WID[w_['tags']['highway']] / 2 + 1.5)
                             for w_ in ways.values() if w_.get('tags', {}).get('highway') in ('primary', 'secondary')])
     area = unary_union([Polygon(b_['footprint']).buffer(45.0) for b_ in out['buildings'] if b_['style'] != 'city'] +
