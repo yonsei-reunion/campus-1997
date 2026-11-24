@@ -1622,7 +1622,7 @@ yongjae_plaque_tex()
 # (0.92 x 0.25 m, the upper two thirds of the sheet) and the sides' (0.84 x 0.13 m, the lower third).  The 1996 - 2000
 # photo (reference/문집/2025_22쪽_가을_아펜젤러관_남쪽_박공벽과_공중전화_부스.jpg) has white lettering either side of a round
 # white mark on each band, too small to read: the words here are the object's own name in Korean and English, the mark
-# a plain ring (reference/고증/3.5 「아펜젤러관 남쪽 공중전화 부스」)
+# a plain ring (reference/고증/3.5.6)
 def payphone_sign_tex():
     if ONLY and 'payphone_sign' not in ONLY:
         return

@@ -9221,7 +9221,7 @@ _stz = unary_union([_stm_f(ST_BED), LineString(ST_PATH).buffer(2.2)])    # (clea
 ST_BED = Polygon([(9.4, 186.4), ST_XY(-42.4 - ST_S0, 1.6), ST_XY(-26.75 - ST_S0, 1.6), (9.8, 201.8)]).buffer(-1.5).buffer(1.5)
 ST_MASATO = _stm_f(ST_BED)
 # (and its west apron where the two cars of July 1997 stood, nose to the trees: the 2008 and 2009 winter skyviews' bare
-# earth goes west to x 9 - 10 between the bed and the lawn, reference/고증/3.5_옛_석조관.md 3.5.2.  Not cleared like
+# earth goes west to x 9 - 10 between the bed and the lawn, reference/고증/3.5.2_스팀슨관_남쪽_박공벽_앞.md.  Not cleared like
 # _stz: nothing stood there but OSM's later walk west, PRUNE_SCRAP)
 ST_APRON = Polygon([(8.0, 185.6), (14.8, 185.6), (14.4, 178.2), (7.8, 178.6)])
 ST_MASATO = ST_MASATO.union(ST_APRON)

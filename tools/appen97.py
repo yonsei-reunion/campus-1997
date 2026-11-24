@@ -65,7 +65,7 @@ EDGE97 = [(74.0, 3.0), (76.0, 2.58), (78.0, 2.3), (80.0, 2.25), (82.0, 2.09), (8
           (104.0, 2.09), (106.0, 2.17), (108.0, 2.49), (110.0, 2.52), (112.0, 2.69), (114.0, 2.94), (115.0, 3.0)]
 
 
-# 공중전화 부스 south of the south gable (reference/고증/3.5_옛_석조관.md 「아펜젤러관 남쪽 공중전화 부스」): the 1996 - 2000
+# 공중전화 부스 south of the south gable (reference/고증/3.5.6_아펜젤러관_남쪽_공중전화_부스.md): the 1996 - 2000
 # autumn photo (reference/문집/2025_22쪽_…) has a booth to the right of the gable's east corner, the callers' queue
 # beside it; the original scans of 1996 - 1999 have a white box the size of a booth on the yard, the same place in all
 # four years: its top's middle (86.47, 186.37) in July 1997 (six rays) and (86.57, 186.26) in May 1999 (four), 0.12 m.

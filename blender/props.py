@@ -90,7 +90,7 @@ def flag_white():
 
 # ----------------------------------------------------------------------------- 공중전화 부스
 # The booth of the 1996 - 2000 autumn photo by 아펜젤러관's south gable (2025 기념문집 22쪽, reference/문집/
-# 2025_22쪽_가을_아펜젤러관_남쪽_박공벽과_공중전화_부스.jpg; reference/고증/3.5 「아펜젤러관 남쪽 공중전화 부스」): a sky-blue painted
+# 2025_22쪽_가을_아펜젤러관_남쪽_박공벽과_공중전화_부스.jpg; reference/고증/3.5.6): a sky-blue painted
 # frame whose front is a hoop with rounded top corners, under its top a royal-blue sign band with white lettering either
 # side of a round mark and a pale strip below it, the front open (no door), each side two panes of glass over a rail at
 # waist height with a narrower blue band along its top.  Sizes: 1.1 m across, 1.0 m deep, 2.4 m high (the photo: its
