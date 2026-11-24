@@ -10,7 +10,8 @@
   const waitFor = async (ok, ms = 8000) => { for (let k = 0; k < ms / 50 && !ok(); k++) await sleep(50); return ok(); };
   const shown = (sel) => { const e = $(sel); return !!e && !e.hidden && getComputedStyle(e).display !== 'none'; };
   // 게임의 화면 요소: 걷기 화면의 것은 숨기고 달리기의 HUD(기록 · 문 · 화살표, 가운데 큰 글씨, 문마다의 차이)만
-  const RACE_HUD = '#hud > *:not(#bubbles), #toast, #birdpins, #tourbar, #birdbar { display: none !important; }';
+  // (결과 창의 전체 순위 칸: 녹화는 순위 서버에 닿지 않으므로 「닿지 못했어요」가 나와 감춤)
+  const RACE_HUD = '#hud > *:not(#bubbles), #toast, #birdpins, #tourbar, #birdbar, #raceresult .rankbox { display: none !important; }';
   const NO_RACE_HUD = RACE_HUD + ' #racehud, #racebig, #racesplit, #racehint, #raceresult { display: none !important; }';
 
   // 코스를 골라 출발선에 섬(카운트가 시작된 때). hero: 주인공 id
@@ -20,6 +21,9 @@
     $('#news .close')?.click();
     await R.start(id);
     await waitFor(() => R.state === 'count', 10000);
+    // 함께 뛰는 사람: 모두 같은 쪽으로, 코스 선에서 1.3 m 비켜(게임에서는 셋에 하나가 마주 와서 좁은 보도에서
+    // 주인공과 부딪혀 밀려남. 같은 쪽으로 더 느리게 뛰니 주인공이 옆으로 앞질러 감)
+    for (const r of R.runners) { r.dir = 1; r.side = r.n % 2 ? 1.3 : -1.3; }
     return R;
   };
   // 이 브라우저의 기록: 그 코스를 조금 늦게 뛴 판 셋(문마다의 시간과 함께). 문을 지날 때 「최고 기록」과의 차이(초록)가,
@@ -42,8 +46,17 @@
   // 다음 점으로). 카메라는 등 뒤(orbit 0). d.s: 선을 따라 온 길이, d.dir: 달리는 쪽(부드럽게)
   const driver = (R) => {
     const { pts, at } = R.line;
-    const d = { s: 0, k: 1, dir: null };
+    const d = { s: 0, k: 1, dir: null, t: 0, best: 0, bestT: 0 };
     d.update = (dt = DT) => {
+      // 1.5 s 동안 1 m 도 못 나아가면(턱 · 벽에 걸림) 선을 따라 4 m 앞으로(건너뛰는 동안에만: 찍는 장면은 막히지 않는 곳)
+      d.t += dt;
+      if (d.s > d.best + 1) { d.best = d.s; d.bestT = d.t; }
+      else if (d.unstick && d.t - d.bestT > 1.5) {
+        const q = R.pointAt(d.s + 4);
+        pl.teleport(q.x, q.y, null);
+        while (d.k < pts.length - 1 && at[d.k] < d.s + 4.5) d.k++;
+        d.bestT = d.t;
+      }
       while (d.k < pts.length - 1 && Math.hypot(pts[d.k][0] - pl.x, pts[d.k][1] - pl.y) < 2.5) d.k++;
       const [tx, ty] = pts[d.k], left = Math.hypot(tx - pl.x, ty - pl.y);
       d.s = Math.max(d.s, at[d.k] - left);
@@ -85,7 +98,7 @@
       this.d = driver(this.R);
       for (let k = 0; k < 40; k++) { hold(this.R); step(); }
       hold(this.R);
-      this.from = { pos: G(-101.5, -356, 26), look: G(-109, -381, 1.2) };
+      this.from = { pos: G(-100, -343, 30), look: G(-108, -383, 1.2) };
       this.go = null;
     },
     async step(i, t) {
@@ -93,10 +106,10 @@
       let mark;
       if (t < T.title) {
         hold(R);
-        // 북쪽 25 m · 26 m 위에서 출발선을 내려다보다 등 뒤 게임의 카메라 자리로
+        // 북쪽 40 m · 30 m 위에서 출발선을 내려다보다 길 위로(가로수 위) 넘어가 등 뒤 게임의 카메라 자리로
         const u = smooth(t / T.title), b = behind();
         const k = smooth(clamp((t - 1.2) / (T.title - 1.2), 0, 1));
-        const mid = { pos: G(-121, -372, 12), look: G(-108, -378, 1.4) };
+        const mid = { pos: G(-107, -404, 12), look: G(-109, -381, 1.4) };
         const a = { pos: this.from.pos.clone().lerp(mid.pos, smooth(Math.min(1, u * 1.6))), look: this.from.look.clone().lerp(mid.look, smooth(Math.min(1, u * 1.6))) };
         mixCam(a, b, k * k, 48, 66);
       } else if (!this.released) {
@@ -117,7 +130,9 @@
         this.jumped = true;
         const L = R.line.len;
         hud(NO_RACE_HUD);
-        await untilDo(() => { this.d.update(DT * 2); return this.d.s > L - 40 || R.state !== 'play'; }, 6000, DT * 2);
+        this.d.unstick = true;
+        await untilDo(() => { this.d.update(); return this.d.s > L - 40 || R.state !== 'play'; }, 9000);
+        this.d.unstick = false;
         hud(RACE_HUD);
         mark = 'jump';
       }
@@ -138,7 +153,7 @@
       line('l1', '빛의 <i>문</i>을 차례로 지나 결승까지', t, g + 4.2, g + 8.2);
       line('l2', '바닥의 <i>화살표</i>를 따라 · 문마다 내 최고 기록과 겨루기', t, g + 8.6, g + T.run - 0.3);
       if (this.fin) {
-        show('c2', 'cap', '<b>도착!</b><span>기록은 이 브라우저에, 전체 순위에도</span>', t, this.fin + 1.6, this.fin + T.after);
+        show('c2', 'cap', '<b>새 기록!</b><span>내 최고 기록을<br>몇 초 앞당겼을까</span>', t, this.fin + 1.6, this.fin + T.after);
         if (t > this.fin + T.after) return { done: true, mark };
       }
       return { mark, note: `${R.state} gate ${R.next} s ${this.d.s.toFixed(0)}` };
@@ -156,17 +171,18 @@
       await untilDo(() => R.state === 'play', 400);
       key('KeyW', true);
       this.d = driver(R);
-      // 4번 문(숲의 길 어귀) 조금 앞까지
-      const g = R.course.gates[arg?.gate ?? 4];
-      await untilDo(() => { this.d.update(DT * 2); return Math.hypot(pl.x - g[0], pl.y - g[1]) < (arg?.near ?? 14) || R.state !== 'play'; }, 4000, DT * 2);
+      // 4번 문(숲의 길 어귀)을 지나 조금 더(카메라가 문의 빛 기둥 안에 들지 않게)
+      const gate = arg?.gate ?? 4;
+      this.d.unstick = true;
+      await untilDo(() => { this.d.update(); return R.next > gate || R.state !== 'play'; }, 6000);
+      this.d.unstick = false;
       for (let k = 0; k < 30; k++) { this.d.update(); step(); }
     },
     step(i, t) {
       this.d.update();
-      // 앞에서 뒷걸음질하며(낮게, 달려오는 얼굴) → 옆 위로 돌아 숲을 내려다봄
-      const u = smooth(clamp((t - 5) / 4.5, 0, 1));
-      const a = rig(this.d.dir, 6.5, -2.0, 1.1, [0, 0, 1.25]), b = rig(this.d.dir, -5, 5.5, 7.5, [6, 0, 0.6]);
-      mixCam(a, b, u, 50, 56);
+      // 앞에서 뒷걸음질하며(낮게, 달려오는 얼굴) | 컷 | 뒤 옆 위에서 숲길을 내려다봄
+      if (t < 5) { const a = rig(this.d.dir, 5.5, -1.6, 1.2, [0, 0, 1.25]); walkCam(a.pos, a.look, 46); }
+      else { const b = rig(this.d.dir, -6, 3.5, 6.5, [5, 0, 0.8]); walkCam(b.pos, b.look, 54); }
       step();
       show('scrim', 'scrim', '', t, 0, 999, { slide: 0 });
       show('c', 'cap', '<b>청송대 숲길</b><span>아펜젤러관 옆 찻길을 올라 숲의 길을 한 바퀴</span>', t, 0.4, 10.2);
@@ -191,10 +207,9 @@
     },
     step(i, t) {
       this.d.update();
-      // 앞 위에서 돌아보며(길과 가게들) → 낮게 옆으로
-      const u = smooth(clamp(t / 9.5, 0, 1));
-      const a = rig(this.d.dir, 16, 3, 9, [-2, 0, 1.0]), b = rig(this.d.dir, 5, -3.2, 1.5, [-1, 0, 1.3]);
-      mixCam(a, b, u, 52, 50);
+      // 찻길 위 높이에서 돌아보며(길과 가게들, 가로수 너머) | 컷 | 보도 위 앞에서 낮게
+      if (t < 4.5) { const a = rig(this.d.dir, lerp(16, 12, t / 4.5), 7, 15, [-2, 0, 1.0]); walkCam(a.pos, a.look, 50); }
+      else { const b = rig(this.d.dir, 6, 0.6, 1.7, [-1, 0, 1.3]); walkCam(b.pos, b.look, 50); }
       step();
       show('scrim', 'scrim', '', t, 0, 999, { slide: 0 });
       show('c', 'cap', '<b>신촌 로터리에서 상대신관</b><span>연세로를 올라 정문 · 백양로를 지나 1.5 km</span>', t, 0.4, 9.2);
