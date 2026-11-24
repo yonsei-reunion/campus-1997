@@ -19,8 +19,9 @@ record, but made from the Poly Haven source the JPG was made from (assets_src/te
 alike: tools/prepare_web_textures.py, mobile_textures.py), at the lowest quality whose PSNR to that source is no
 lower than the JPG's: as good as the JPG, about 30 % fewer bytes (2026-11-23: 2K maps -29 %, 1K copies -36 %; AVIF
 at the same quality -35 % / -41 %, not worth a second format and its fallback). Made from the JPG itself a WebP
-as close is no smaller. A map with no source, or one the JPG was not made from (the painted barks: no quality
-reaches the JPG's PSNR), keeps its JPG (recorded as jpg:<sha1>, so it is not tried again until the JPG changes).
+as close is no smaller. A map with no source, or one whose JPG is a byte copy of its source (no quality reaches an
+infinite PSNR; the painted barks were so until 2026-11-24), keeps its JPG (recorded as jpg:<sha1>, so it is not tried
+again until the JPG changes).
 
   python tools/webp_textures.py --pbr        the PBR maps only (missing or stale)
 """

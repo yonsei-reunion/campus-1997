@@ -14,6 +14,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from scipy import ndimage
 from webp_textures import to_webp
+from prepare_web_textures import prepare_set
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 OUT = os.path.join(ROOT, 'web/public/assets/textures')
@@ -498,7 +499,8 @@ def draw_petal(d, pts, cx, cy, ang, size, col, rnd):
 # Bark tiles that Poly Haven has none of (blender/materials.json `tex`; x round the trunk, y up it; seamless):
 #  bark_poplar  은백양: chalky white with dark diamond-shaped lenticels and short dark dashes round the stem
 #  bark_smooth  목련: smooth mid-grey, mottled, with fine pale dashes
-# Written to assets_src/textures/<name> (Blender) and web/public/assets/textures/pbr/<name> (the web app).
+# Written to assets_src/textures/<name> (Blender, the source); prepare_web_textures.py makes the web copy in
+# web/public/assets/textures/pbr/<name> from it, as for the Poly Haven sets.
 def bark_tex(name, base, mottle, marks, n_marks, size_m, diamonds=False, px=1024):
     if ONLY and name not in ONLY:
         return
@@ -536,11 +538,12 @@ def bark_tex(name, base, mottle, marks, n_marks, size_m, diamonds=False, px=1024
     ln = np.sqrt(nx * nx + ny * ny + nz * nz)
     nor = np.stack([nx / ln, ny / ln, nz / ln], -1) * 0.5 + 0.5
     rough = 0.82 + 0.12 * m + 0.04 * fine
-    for root in (os.path.join(ROOT, 'assets_src/textures', name), os.path.join(OUT, 'pbr', name)):
-        os.makedirs(root, exist_ok=True)
-        Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8), 'RGB').save(os.path.join(root, 'diff.jpg'), quality=88)
-        Image.fromarray(np.clip(nor * 255, 0, 255).astype(np.uint8), 'RGB').save(os.path.join(root, 'nor.jpg'), quality=85)
-        Image.fromarray(np.clip(rough * 255, 0, 255).astype(np.uint8), 'L').save(os.path.join(root, 'rough.jpg'), quality=85)
+    root = os.path.join(ROOT, 'assets_src/textures', name)
+    os.makedirs(root, exist_ok=True)
+    Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8), 'RGB').save(os.path.join(root, 'diff.jpg'), quality=88)
+    Image.fromarray(np.clip(nor * 255, 0, 255).astype(np.uint8), 'RGB').save(os.path.join(root, 'nor.jpg'), quality=85)
+    Image.fromarray(np.clip(rough * 255, 0, 255).astype(np.uint8), 'L').save(os.path.join(root, 'rough.jpg'), quality=85)
+    prepare_set(name)
     print('bark', name)
 
 
