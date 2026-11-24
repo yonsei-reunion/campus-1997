@@ -69,7 +69,12 @@ export const HERO = {
 //  - cloth is unevenly dyed and worn, takes a soft light at grazing angles (its fuzz), and folds: trousers stack up
 //    at the ankle and crease at the knee and the crotch, tops drape. The folds are a height over the rest pose
 //    (bumped), so they stay on the cloth as it moves; they fade where a fold is smaller than a pixel
-//  - skin has a little sheen, hair has strands (running down from the crown) in its colour and its gloss
+//  - skin has a little sheen
+//  - hair, from near, is strands (HAIR): locks and threads running down from the crown, each a little darker or paler;
+//    its gloss two bands of light round the head where the strands lie across the light, from the sun and from the
+//    sky; and its hem the strands' own ends, each somewhere within the cut's raggedness of the shell's edge (the model
+//    says how far a point is from that edge, in the attribute `leg`: a head has no trousers). Further off none of it
+//    is worked out and the hair is the flat colour with an even shine, as it was (reference/고증 4.9.2)
 //  - trousers are drawn by a leg's own coordinates (the attribute `leg`, blender/characters.py cut_trousers: which
 //    way a point faces round the leg, and its height from the hem to the waistband): the seams down the outside and
 //    the inside, the hem, the waistband, the back pockets and the front pockets' openings; and denim its wash, worn
@@ -80,7 +85,7 @@ export const HERO = {
 //    attribute `leg` of such a vertex is CHECK_W and where those are, mergeParts); over the shoulders, where the
 //    cloth lies flat, across and back. Broad darker bands both ways, darkest where two cross, and a thin line
 //    between them: a deep red on pale cloth, cream on dark
-// Phones go without the folds and the strands (no noise in the fragment shader there).
+// Phones go without the folds and the strands, the bands and the ends of hair (no noise in the fragment shader there).
 // The eyes, brows and mouths are a few lines drawn on one small atlas all the people share (blender/faces.py): the
 // front of a face lies on its own cell, everything else on the blank cell, and the picture multiplies the vertex
 // colour. So the lines keep to whatever skin a person of the crowd has, and fade into it with distance (mip maps).
@@ -200,6 +205,11 @@ const CHECK = { pitch: 0.054, round: 16, sleeve: 6, deep: '0.66', band: 0.40, li
 const CHECK_W = 77;                    // the attribute `leg`'s fourth byte on such cloth (trousers: 255, anything else: 0)
 const LEG_TOP = '1.25';                // (characters.py LEG_TOP)
 const FINE = !MOBILE;               // the folds of cloth and the strands of hair
+// hair from near (blender/characters.py TIP_FAR, WISP_FAR: the attribute `leg` of a head of hair is how far a point is
+// from its strand's end, how glossy the hair is there, and how far up from the hem single strands end). near: the
+// strands and their ends come in between so many metres to a pixel; gloss: the bands of light between these
+// (sun, sky: how bright the narrow band and the broad one are, of the light that falls on the hair)
+const HAIR = { tip: 0.06, wisp: 0.04, near: [0.006, 0.02], gloss: [0.02, 0.05], sun: [0.035, 0.04], sky: [0.009, 0.012] };
 PERSON_MAT.onBeforeCompile = (sh) => {
   sh.uniforms.uRims = RIMS_TEX;
   sh.uniforms.uBlinkT = windTime;
@@ -209,6 +219,23 @@ PERSON_MAT.onBeforeCompile = (sh) => {
   sh.vertexShader = sh.vertexShader
     .replace('#include <common>', '#include <common>\nattribute vec3 part;\nattribute float glass;\nattribute vec4 leg;\nvarying vec3 vPart, vRest, vRestN;\nvarying float vGlass;\nvarying vec4 vLeg;')
     .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPart = part;\nvGlass = glass;\nvLeg = leg;\nvRest = position;\nvRestN = normal;');
+  // which way a hair runs at a vertex (in the view's frame, moved with the head as the normal is): down the head from
+  // the crown, in the plane through the head's axis; on a tied tail, which is no round of the head, simply down
+  if (FINE) sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vHairT;')
+    .replace('#include <skinnormal_vertex>', `#include <skinnormal_vertex>
+      vHairT = vec3( 0.0 );
+      if ( part.y > 1.5 && part.y < 2.5 ) {
+        vec3 hR = vec3( position.x, 0.0, position.z + 0.04 );
+        hR /= max( length( hR ), 1e-4 );
+        vec3 hT = cross( vec3( hR.z, 0.0, - hR.x ), normal );
+        if ( dot( normal, hR ) < - 0.3 ) hT = - hT;              // (the inner side of hair that hangs)
+        if ( dot( hT, hT ) < 0.04 ) hT = cross( normal, cross( vec3( 0.0, - 1.0, 0.0 ), normal ) );
+        #ifdef USE_SKINNING
+          hT = ( skinMatrix * vec4( hT, 0.0 ) ).xyz;
+        #endif
+        vHairT = normalMatrix * hT;
+      }`);
   sh.fragmentShader = sh.fragmentShader
     .replace('#include <common>', `#include <common>
       varying vec3 vPart, vRest, vRestN;
@@ -234,6 +261,23 @@ PERSON_MAT.onBeforeCompile = (sh) => {
         return mix( col, ink, 0.8 * max( thin.x, thin.y ) );
       }
       ${FINE ? `
+      varying vec3 vHairT;
+      float pHash2( vec2 p ) { vec3 q = fract( p.xyx * 0.1031 ); q += dot( q, q.yzx + 33.33 ); return fract( ( q.x + q.y ) * q.z ); }
+      // noise that comes round again after per cells of x (the round of a head)
+      float pRing( vec2 p, float per ) {
+        vec2 i = floor( p ), f = fract( p ); f = f * f * ( 3.0 - 2.0 * f );
+        float x0 = mod( i.x, per ), x1 = mod( i.x + 1.0, per );
+        return mix( mix( pHash2( vec2( x0, i.y ) ), pHash2( vec2( x1, i.y ) ), f.x ), mix( pHash2( vec2( x0, i.y + 1.0 ) ), pHash2( vec2( x1, i.y + 1.0 ) ), f.x ), f.y );
+      }
+      // strands side by side: per of them to the round of the head a hand's width from its axis (a: the place round the
+      // head, 0 .. 1; s: along the strand, in cells), half as many each time the round halves towards the crown (lv: the
+      // logarithm of that), so that they keep their width; even grey where they are finer than a pixel (px: of the
+      // round to a pixel)
+      float pStrands( float a, float s, float lv, float per, float px ) {
+        float l0 = floor( lv ), fr = lv - l0, p0 = per * exp2( l0 );
+        float n = mix( pRing( vec2( a * p0, s + 17.0 * l0 ), p0 ), pRing( vec2( a * p0 * 2.0, s + 17.0 * l0 + 17.0 ), p0 * 2.0 ), fr );
+        return mix( n, 0.5, smoothstep( 0.45, 1.0, px * p0 * ( 1.0 + fr ) ) );
+      }
       float pHash( vec3 p ) { p = fract( p * 0.3183099 + 0.1 ); p *= 17.0; return fract( p.x * p.y * p.z * ( p.x + p.y + p.z ) ); }
       float pNoise( vec3 x ) { vec3 i = floor( x ), f = fract( x ); f = f * f * ( 3.0 - 2.0 * f );
         return mix( mix( mix( pHash( i ), pHash( i + vec3( 1, 0, 0 ) ), f.x ), mix( pHash( i + vec3( 0, 1, 0 ) ), pHash( i + vec3( 1, 1, 0 ) ), f.x ), f.y ),
@@ -255,15 +299,37 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       roughnessFactor = mix( roughnessFactor, ${SKIN_ROUGH.toFixed(2)}, pSkin );
       roughnessFactor = mix( roughnessFactor, 0.14, pGloss );
       ${FINE ? `
-      float pNear = 1.0 - smoothstep( 0.006, 0.02, length( fwidth( vRest ) ) );          // (m to a pixel)
+      float pHairM = length( fwidth( vRest ) );                                          // (m to a pixel)
+      float pNear = 1.0 - smoothstep( 0.006, 0.02, pHairM );
       float pDye = pNoise( vRest * vec3( 9.0, 5.0, 9.0 ) ) * 0.6 + pNoise( vRest * vec3( 37.0, 23.0, 37.0 ) ) * 0.4;
       diffuseColor.rgb *= mix( 1.0, mix( 0.88 + 0.22 * pDye, 0.82 + 0.34 * pDye, pJean * pWash / 3.0 ), pCloth );
       // (skin is not of one colour either: a little redder and darker in patches, from near)
       diffuseColor.rgb *= mix( vec3( 1.0 ), vec3( 1.03, 1.035, 1.04 ) - vec3( 0.06, 0.10, 0.11 ) * pDye, pSkin * pNear );
-      float pAz = atan( vRest.x, vRest.z + 0.04 );
-      float pStrand = pNoise( vec3( pAz * 46.0, vRest.y * 7.0, 3.0 ) ) * 0.65 + pNoise( vec3( pAz * 150.0, vRest.y * 11.0, 9.0 ) ) * 0.35;
-      diffuseColor.rgb *= mix( 1.0, 0.82 + 0.40 * pStrand, pHair * pNear );
-      roughnessFactor = mix( roughnessFactor, 0.34 + 0.22 * pStrand, pHair );` : ''}`)
+      // hair from near: locks and, in them, strands, each a little darker or paler and lying a little higher or lower;
+      // and every strand ends where it does, within the cut's raggedness of the hem (the shell ends there)
+      float pLock = 0.5, pStrand = 0.5, pFine = 0.5;
+      float pHairN = pHair * ( 1.0 - smoothstep( ${HAIR.near[0]}, ${HAIR.near[1]}, pHairM ) );
+      if ( pHairN > 0.0 ) {
+        vec2 hR = vec2( vRest.x, vRest.z + 0.04 );
+        float hr = max( length( hR ), 0.007 );
+        float hA = atan( hR.x, hR.y ) * 0.15915494 + 0.5, hLv = clamp( log2( hr * 10.0 ), - 3.0, 0.99 );
+        float hPx = length( fwidth( hR ) ) / hr * 0.15915494, hS = hr - vRest.y;
+        pLock = pStrands( hA, hS * 5.0, hLv, 48.0, hPx );
+        pFine = 0.6 * pStrands( hA, hS * 9.0, hLv, 384.0, hPx ) + 0.4 * pStrands( hA, hS * 13.0, hLv, 1536.0, hPx );
+        // (round the crown, where they all meet, none of it)
+        float hOff = smoothstep( 0.004, 0.022, hr );
+        pLock = mix( 0.5, pLock, hOff ); pFine = mix( 0.5, pFine, hOff );
+        pStrand = 0.4 * pLock + 0.6 * pFine;
+        if ( vLeg.w > 0.5 ) {
+          // (the longest strands reach the hem: few, and thin; most end short of it, lock by lock)
+          float hCut = vLeg.z * ${HAIR.wisp.toFixed(3)} * ( 1.0 - 0.28 * smoothstep( 0.3, 0.7, pLock ) - 0.72 * smoothstep( 0.4, 0.72, pFine ) ) * pHairN;
+          if ( vLeg.x * ${HAIR.tip.toFixed(3)} < hCut ) discard;
+        }
+        diffuseColor.rgb *= mix( 1.0, 0.66 + 0.68 * pStrand, pHairN );
+        // (clipped hair: stubble, the skin between it)
+        if ( vLeg.w > 0.5 && vLeg.y < 0.5 ) diffuseColor.rgb *= mix( 1.0, 0.74 + 0.52 * pNoise( vRest * 700.0 ), 1.0 - smoothstep( 0.0007, 0.0018, pHairM ) );
+      }
+      roughnessFactor = mix( roughnessFactor, 0.45, pHair );` : ''}`)
     // the drawn face, laid on after the vertex colour (the white of the eye is white on any skin), read most of a
     // mip level sharper than the screen asks for: thin strokes hold a little further away
     .replace('#include <map_fragment>', '')
@@ -310,7 +376,8 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       float rimPx = ${RIM_UV} / max( max( rimD.x, rimD.y ), 1e-7 );
       float rim = texture2D( uRims, vMapUv ).r * step( 0.5, pGlass ) * smoothstep( ${(2 * RIM_PX).toFixed(2)}, ${RIM_PX.toFixed(2)}, rimPx );
       diffuseColor.rgb = mix( diffuseColor.rgb, pGlass > 1.5 ? ${glsl(RIMS[1])} : ${glsl(RIMS[0])}, rim );
-      float pLegs = step( 0.5, vLeg.w ) * step( 0.01, vLeg.x + vLeg.y );      // (a geometry without the attribute reads 0 0 0 1)
+      // (a geometry without the attribute reads 0 0 0 1; a head of hair has other things in it: HAIR)
+      float pLegs = step( 0.5, vLeg.w ) * step( 0.01, vLeg.x + vLeg.y )${FINE ? ' * ( 1.0 - step( 1.5, vPart.y ) * step( vPart.y, 2.5 ) )' : ''};
       if ( vLeg.w > 0.2 && vLeg.w < 0.4 ) {
         // a checked shirt, in checks: round the trunk (evenly round an oval about its middle) and up it; over the
         // shoulders, where the cloth lies flat, across and back (a yoke); round a sleeve (about the arm's axis) and
@@ -362,6 +429,50 @@ PERSON_MAT.onBeforeCompile = (sh) => {
         diffuseColor.rgb *= 1.0 - line * ( pWash < 0.5 ? 0.16 : 0.34 );
       }`)
     .replace('#include <aomap_fragment>', `#include <aomap_fragment>
+      ${FINE ? `
+      {
+        // hair's gloss: every strand a thin rod, bright where it lies across the half way between the light and the
+        // eye, so a band of light round the head and not a spot: a narrow one of the light's colour and, a little
+        // off it, a broad one of the hair's own (the light that has been through the strand); from the sun, and a
+        // softer pair from the sky overhead. Each strand's band lies a little higher or lower: the band is of threads
+        float hK = pHair * ( 1.0 - smoothstep( ${HAIR.gloss[0]}, ${HAIR.gloss[1]}, pHairM ) ), hDull = hK;
+        vec3 hT = vHairT - normal * dot( vHairT, normal );
+        float hTl = dot( hT, hT );
+        vec3 hGloss = vec3( 0.0 ), hGlow = vec3( 0.0 );
+        // (not the skin under it, nor the crown's whorl, nor the strands' very ends)
+        hK *= vLeg.w * vLeg.y * smoothstep( 0.05, 0.5, vLeg.x );
+        if ( hK > 0.0 ) {
+          hT *= inversesqrt( max( hTl, 1e-8 ) );
+          hK *= mix( 0.3, 1.7, smoothstep( 0.3, 0.7, pFine ) );          // (thread by thread)
+          vec3 hV = normalize( vViewPosition );
+          float hSh = ( pStrand - 0.5 ) * 0.5 + ( pLock - 0.5 ) * 0.2;
+          vec3 hT1 = normalize( hT + normal * ( 0.05 + hSh ) ), hT2 = normalize( hT + normal * ( - 0.20 + 1.5 * hSh ) );
+          vec3 hSun = reflectedLight.directDiffuse * PI / max( material.diffuseColor, vec3( 1e-4 ) );
+          vec3 hSky = reflectedLight.indirectDiffuse * PI / max( material.diffuseColor, vec3( 1e-4 ) );
+          float hMax = max( vColor.r, max( vColor.g, vColor.b ) );
+          vec3 hTint = mix( vColor.rgb / max( hMax, 1e-3 ), vec3( 1.0, 0.80, 0.62 ), 0.35 ) * mix( 0.5, 1.0, smoothstep( 0.0, 0.25, hMax ) );
+          // (round the crown the strands run every way: there the band closes to a soft spot, as on a smooth head)
+          float hTop = 1.0 - smoothstep( 0.012, 0.05, length( vec2( vRest.x, vRest.z + 0.04 ) ) );
+          vec3 hSpec = vec3( 0.0 );
+          #if NUM_DIR_LIGHTS > 0
+            vec3 hH = normalize( directionalLights[ 0 ].direction + hV );
+            float hD1 = dot( hT1, hH ), hD2 = dot( hT2, hH ), hDn = dot( normal, hH );
+            hD1 = mix( 1.0 - hD1 * hD1, hDn * hDn, hTop ); hD2 = mix( 1.0 - hD2 * hD2, hDn * hDn, hTop );
+            hSpec = hSun * ( ${HAIR.sun[0]} * pow( max( 0.0, hD1 ), 80.0 ) + ${HAIR.sun[1]} * hTint * pow( max( 0.0, hD2 ), 22.0 ) );
+          #endif
+          vec3 hU = normalize( ( viewMatrix * vec4( 0.0, 1.0, 0.0, 0.0 ) ).xyz + hV );
+          float hU1 = dot( hT1, hU ), hU2 = dot( hT2, hU ), hUn = dot( normal, hU );
+          hU1 = mix( 1.0 - hU1 * hU1, hUn * hUn, hTop ); hU2 = mix( 1.0 - hU2 * hU2, hUn * hUn, hTop );
+          vec3 hRing = hSky * ( ${HAIR.sky[0]} * pow( max( 0.0, hU1 ), 44.0 ) + ${HAIR.sky[1]} * hTint * pow( max( 0.0, hU2 ), 14.0 ) );
+          hRing *= smoothstep( - 0.2, 0.5, dot( normal, normalize( ( viewMatrix * vec4( 0.0, 1.0, 0.0, 0.0 ) ).xyz ) ) );
+          // (and the edge of a head of hair, where the light comes through it)
+          float hEdge = pow( 1.0 - saturate( dot( normal, hV ) ), 3.0 );
+          hGloss = hSpec * hK; hGlow = ( hRing + ( hSun + hSky ) * hTint * ( 0.03 * hEdge ) ) * hK;
+        }
+        // (in place of the shine of a smooth surface: a round spot of the sun, a blurred picture of the sky)
+        reflectedLight.directSpecular = reflectedLight.directSpecular * ( 1.0 - hDull ) + hGloss;
+        reflectedLight.indirectSpecular = reflectedLight.indirectSpecular * ( 1.0 - hDull ) + hGlow;
+      }` : ''}
       {
         // the shut-in places: skin shades warm (the light that gets there has been through skin), the rest grey
         vec3 pShade = mix( vec3( 1.0 ), mix( vec3( 0.0 ), vec3( 0.62, 0.40, 0.33 ), pSkin ), vPart.z * mix( 1.0, 0.75, pSkin ) );
@@ -387,7 +498,7 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       }`);
   if (FINE) sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
       {
-        float pH = pFolds( vRest, pLegs ) * pCloth * pNear + ( pStrand - 0.5 ) * 0.0018 * pHair * pNear;
+        float pH = pFolds( vRest, pLegs ) * pCloth * pNear + ( pLock - 0.5 ) * 0.0022 * pHairN;       // (locks stand off one another)
         vec3 pDx = dFdx( - vViewPosition ), pDy = dFdy( - vViewPosition );
         vec3 pR1 = cross( pDy, normal ), pR2 = cross( normal, pDx );
         float pDet = dot( pDx, pR1 );
@@ -458,18 +569,20 @@ function mergeParts(root) {
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(idx, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(wt, 4));
     // the trousers' own coordinates (the model's _LEG, four bytes; only the parts with trousers have it)
-    const leg = new Uint8Array(n * 4), sl = src.attributes._leg;
+    // (a head of hair has its strands' ends in the same attribute: HAIR; phones draw none of that)
+    const kind = kindOfPart(m.material.name);
+    const leg = new Uint8Array(n * 4), sl = kind === KIND.hair && !FINE ? null : src.attributes._leg;
     if (sl) for (let i = 0; i < n * 4; i++) leg[i] = sl.array[i];
     // (a checked shirt: where its sleeves begin, and the arms' axis: its height over 1 m, its depth + 0.5 m)
     else if (m.material.name === 'Check' && check) for (let i = 0; i < n; i++) leg.set(check, i * 4);
     g.setAttribute('leg', new THREE.Uint8BufferAttribute(leg, 4, true));
-    ranges.push({ name: m.material.name, start: at, count: n, hex: '#' + m.material.color.getHexString(), legs: !!sl });
+    ranges.push({ name: m.material.name, start: at, count: n, hex: '#' + m.material.color.getHexString(), legs: !!sl && kind !== KIND.hair });
     at += n;
     const c = m.material.color, col = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     // roughness, kind, occlusion (the model's _OCC, a byte; an older file has none)
-    const part = new Float32Array(n * 3), so = src.attributes._occ, kind = kindOfPart(m.material.name);
+    const part = new Float32Array(n * 3), so = src.attributes._occ;
     for (let i = 0; i < n; i++) { part[i * 3] = /Hair/.test(m.material.name) ? 0.55 : 0.85; part[i * 3 + 1] = kind; part[i * 3 + 2] = so ? so.getX(i) / 255 : 0; }
     g.setAttribute('part', new THREE.Float32BufferAttribute(part, 3));
     g.setIndex(src.index ? Array.from(src.index.array) : Array.from({ length: n }, (_, i) => i));

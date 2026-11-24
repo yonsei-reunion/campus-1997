@@ -1784,7 +1784,8 @@ def skirt_sit(arm, parts, s):
 #     faces.png (face_map; the drawing and its lengths: faces.py), the rest of the person on the atlas' blank cell,
 #   - glasses, thin metal rims a centimetre off the eyes (everybody has a pair; the game shows it or not),
 #   - hair as a shell around the skull: columns run from the crown down to a hem whose height is given by azimuth
-#     (HAIR_STYLES), lie `vol` off the scalp and hang free below it; the hanging part has an inner side.
+#     (HAIR_STYLES), lie `vol` off the scalp and hang free below it; the hanging part has an inner side.  The strands
+#     themselves, their gloss and their ends at the hem are the game's to draw (TIP_FAR below).
 # Lengths are in the source's units (men x 0.93, women x 0.90 in the game), heights `dz` from the brow line.
 # Everything is skinned to the bone Head (long hair shares its ends with Neck and Chest: hair_follow), so bags.js,
 # which reads the build off the vertices of the other bones, and the clips see the same body as before.
@@ -1824,6 +1825,18 @@ HAIR_SEED = {'p01': 3059047122, 'p02': 3446908966, 'p03': 3174642879, 'p04': 428
              'p11': 1663235077, 'p12': 4110200170, 'p13': 1745548507, 'p14': 3387443816, 'p15': 4178735585,
              'p16': 2052646949, 'p17': 3902518138}
 HAIR_RN = 0.115            # nominal radius of the head of hair: arc length on the scalp = HAIR_RN x angle from the crown
+# What the game draws a head of hair by (web/src/characters.js: the strands' ends, the gloss): every point of the shell
+# carries, in the attribute LEG (a head has no trousers), how far it is from its strand's end (x, of TIP_FAR), how
+# glossy the hair is there (y: 1 grown hair, GLOSS_CLIP hair clipped to a few millimetres) and how far up from the
+# hem single strands end (z, of WISP_FAR: a style's `wisp`, WISP by default).  The game lets each strand end
+# within that of the hem, so a hem is strands' ends and a hairline single hairs, not the shell's edge.
+TIP_FAR, WISP_FAR = 0.06, 0.04
+# hair that hangs free; a cut that lies on the head: its fringe, and (by azimuth) its sides and nape, where the short
+# hair painted on the skin under the hem must not come out from under it; clipped hair
+WISP = dict(hang=0.022, cut=[(0, 0.007), (50, 0.007), (72, 0.005), (180, 0.005)], clip=0.004)
+HAIR_HEM = 0.003
+HAIR_ROW = (0.024, 0.045)  # rows of the shell: so far apart on the round of the head (corners in its outline), hanging
+GLOSS_CLIP = 0.35
 
 
 def _ear(burn=-.036, over=-.008, back=(-.052, -.094, -.104), temple=.012):
@@ -1862,7 +1875,9 @@ HAIR_STYLES = {
     #      person's left; unsigned lists are mirrored).  vol: [(azimuth, m)] off the scalp, `top` at the crown,
     #      `edge` at the hem.  part: (azimuth, depth, width in degrees).  fall: how fast free hair may close in on
     #      the neck (m per m).  curl: the hem turns in.  sheet: thickness of hanging hair.  rough, ragged: how uneven
-    #      the volume and the hem are from lock to lock.  The cuts and what they were taken from: reference/고증 4.9.
+    #      the volume and the hem are from lock to lock.  rows: at least so many down a column (HAIR_ROW asks for
+    #      more).  wisp: how far up from the hem single strands end, m or [(azimuth, m)] (WISP).  gloss: 0 .. 1.
+    #      The cuts and what they were taken from: reference/고증 4.9; how the game draws the hair: 4.9.2.
     # the top swept up and back; the sides and the back clipped (바리캉으로 올려 친 머리): the top hair ends 2.5 cm
     # over the ear and level with its top behind, and under it a second shell lies close on the scalp (`under`) in two
     # bands that let the skin show through (`fade`: the materials above and below the height dz, their colours the
@@ -2378,15 +2393,26 @@ def hair_grow(pid, surf, st):
     rnd = random.Random(HAIR_SEED[pid])
     cols = [math.radians(surf.from_style(a)) for a in HAIR_AZ]
     cols += [2 * math.pi - a for a in reversed(cols[1:-1])]             # (round the head, 0 = the front, the left first)
-    NA, NR = len(cols), st.get('rows', 7)
+    NA = len(cols)
     C, Rn = surf.C, HAIR_RN
     s_eq = Rn * math.pi / 2
+    # rows: close together over the round of the head (N1 of them down to the level of the centre), further apart
+    # below; a column that ends above that level has them all evenly
+    longest = max(Rn * (math.pi / 2 - math.asin(min(1.0, v / Rn))) if v >= 0 else s_eq - v for _, v in st['tip'])
+    N1 = math.ceil(min(longest, s_eq) / HAIR_ROW[0])
+    NR = max(st.get('rows', 7), N1 + math.ceil(max(0.0, longest - s_eq) / HAIR_ROW[1]) + 1)
+    N2 = NR - 1 - N1
+    NR += 1         # (and one row HAIR_HEM over the hem: the hem's points, which the hem's own face turns down, light
+    #                 only that much of the shell wrongly, and the game takes the gloss off the strands' very ends)
     fall, sheet, curl = st.get('fall', 1.5), st.get('sheet', 0.012), st.get('curl', 0.0)
     noise = [rnd.uniform(-1, 1) for _ in range(NA)]
     noise = [(noise[j - 1] + 2 * noise[j] + noise[(j + 1) % NA]) / 4 for j in range(NA)]
     lock = [rnd.uniform(-1, 1) for _ in range(NA)]
     lock = [(lock[j - 1] + 2 * lock[j] + lock[(j + 1) % NA]) / 3 for j in range(NA)]       # (locks a few columns wide)
     pts, faces = [C.copy()], []
+    clip = st.get('vol') and max(v for _, v in st['vol']) < 0.005       # (clipped: the close shell under a longer cut)
+    gloss = st.get('gloss', GLOSS_CLIP if clip else 1.0)
+    tips = [(1.0, gloss, 1 / 255)]      # by point, for the game: (to the strand's end, gloss, how ragged the ends), 0 .. 1
     streak, aps = [], []        # faces of the bleached locks (style 'bridge': [(azimuth, half width)]); azimuth by column
     grid = {}                  # (column, row) -> vertex
     inner = {}                 # (column, row) -> vertex of the inner side
@@ -2405,9 +2431,17 @@ def hair_grow(pid, surf, st):
         part = st.get('part')
         prev = None
         hang = dz_tip < -0.08
+        wisp = st.get('wisp', WISP['clip' if clip else 'hang' if hang else 'cut'])
+        wisp = wisp if isinstance(wisp, float) else _by_azimuth(wisp, ap)
+        tip = lambda s: (min(1.0, (s_end - s) / TIP_FAR), gloss, max(1 / 255, min(1.0, wisp / WISP_FAR)))    # noqa: E731
         for i in range(1, NR):
-            u = i / (NR - 1)
-            s = s_end * u
+            if i == NR - 1:
+                s = s_end
+            elif i == NR - 2:
+                s = s_end - min(HAIR_HEM, 0.3 * s_end / (N1 + N2))
+            else:
+                s = s_end * i / (N1 + N2) if s_end <= s_eq else s_eq * i / N1 if i <= N1 else s_eq + (s_end - s_eq) * (i - N1) / N2
+            u = s / s_end
             t = st['top'] + (zone - st['top']) * _smooth(0.0, 0.55, s / max(s_end, 0.16))
             t *= 1 + st.get('rough', 0) * noise[j] * _smooth(0.05, 0.3, u)
             if part:
@@ -2435,12 +2469,14 @@ def hair_grow(pid, surf, st):
             prev = (rho, z, rs)
             grid[j, i] = len(pts)
             pts.append(Vector((C.x + rho * math.sin(a), C.y - rho * math.cos(a), z)))
+            tips.append(tip(s))
             if i == 1:
                 top_r.append((rho, z))
             if hang and z < C.z - 0.03 or i == NR - 1:
                 ri = min(rho - 0.002, max(rs + (0.0008 if z > C.z - 0.12 else 0.003), rho - sheet))
                 inner[j, i] = len(pts)
                 pts.append(Vector((C.x + ri * math.sin(a), C.y - ri * math.cos(a), z + (0.0 if i < NR - 1 else 0.0005))))
+                tips.append(tip(s))
     pts[0] = Vector((C.x, C.y, max(z for _, z in top_r) + 0.0045))             # the crown: a little over the first ring
 
     def split(a, b, c, d):
@@ -2477,7 +2513,8 @@ def hair_grow(pid, surf, st):
         pts += tp
         faces += tf
         follow += [(0.6 * _smooth(C.z - 0.10, C.z - 0.30, p.z), 0.0) for p in tp]       # (tied to the head)
-    return pts, faces, follow, (cols, ends), band, streak
+        tips += [(1.0, gloss, 1 / 255)] * len(tp)
+    return pts, faces, follow, (cols, ends), band, streak, tips
 
 
 def hair_follow(C, p):
@@ -2679,9 +2716,9 @@ def head_trim(ob, surf, st, ends):
     bm.free()
 
 
-def head_part(name, arm, pieces, follow=None):
+def head_part(name, arm, pieces, follow=None, tips=None):
     """A mesh of [(material, points, faces)] skinned to the head (and, by `follow`: (neck, chest) for each point of the
-    pieces in turn, to the neck and the chest)."""
+    pieces in turn, to the neck and the chest).  tips: what the game draws hair by (hair_grow), for each point in turn."""
     me = bpy.data.meshes.new(name)
     pts, faces, mats = [], [], []
     for mname, p, fs in pieces:
@@ -2695,6 +2732,10 @@ def head_part(name, arm, pieces, follow=None):
         me.materials.append(bpy.data.materials.get(m) or colour_material(m, (0, 0, 0, 1)))
     for poly, (_, mi) in zip(me.polygons, faces):
         poly.material_index = mi
+    if tips:
+        att = me.attributes.new(LEG, 'FLOAT_VECTOR', 'POINT')
+        for i, t in enumerate(tips):
+            att.data[i].vector = t
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
     ob.parent = arm
@@ -2725,10 +2766,10 @@ def head_1997(pid, head, body, arm, spec):
     surf = HeadSurface(head, body, L)
     if spec.get('bridge'):
         st = dict(st, bridge=spec['bridge'])
-    pts, faces, follow, ends, band, streak = hair_grow(pid, surf, st)
+    pts, faces, follow, ends, band, streak, tips = hair_grow(pid, surf, st)
     under = None
     if st.get('under'):                                      # (the clipped hair under a two-block cut)
-        u_pts, u_faces, u_follow, u_ends, _, _ = hair_grow(pid, surf, st['under'])
+        u_pts, u_faces, u_follow, u_ends, _, _, u_tips = hair_grow(pid, surf, st['under'])
         C, s_eq = surf.C, HAIR_RN * math.pi / 2
         cols = ends[0]
 
@@ -2748,22 +2789,25 @@ def head_1997(pid, head, body, arm, spec):
         for name, fs in bands.items():
             ring = sorted({i for f in fs for i in f})
             at = {i: n for n, i in enumerate(ring)}
-            under.append(((name, [u_pts[i] for i in ring], [tuple(at[i] for i in f) for f in fs]), [u_follow[i] for i in ring]))
+            under.append(((name, [u_pts[i] for i in ring], [tuple(at[i] for i in f) for f in fs]), [u_follow[i] for i in ring],
+                          [u_tips[i] for i in ring]))
         head_trim(head, surf, st['under'], u_ends)
     else:
         head_trim(head, surf, st, ends)
     other = set(band) | set(streak)
     pieces = [('Hair', pts, [f for i, f in enumerate(faces) if i not in other])]
-    weights = list(follow)
-    for piece, fol in under or ():
+    weights, marks = list(follow), list(tips)
+    for piece, fol, tp in under or ():
         pieces.append(piece)
         weights += fol
+        marks += tp
     for name, part in (('Band', band), ('Bridge', streak)):  # (these have points of their own, weighted as the hair's)
         if part:
             ring = sorted({i for b in part for i in faces[b]})
             at = {i: n for n, i in enumerate(ring)}
             pieces.append((name, [pts[i] * 1.0 for i in ring], [tuple(at[i] for i in faces[b]) for b in part]))
             weights += [follow[i] for i in ring]
+            marks += [tips[i] for i in ring]
     col = spec['colors']
     hair = col.get('Hair', HAIR['black'])
     skin = col.get('Skin', SKIN['b'])
@@ -2771,7 +2815,7 @@ def head_1997(pid, head, body, arm, spec):
                     HairFade=hex_fade(hair, skin, FADE[0]), HairFade2=hex_fade(hair, skin, FADE[1]))
     for name in ('Hair', 'Band', 'Glasses', 'Bridge', 'HairFade', 'HairFade2'):
         colour_material(name, srgb_to_linear(col.get(name, defaults[name])))
-    hob = head_part(pid + '-hair', arm, pieces, weights)
+    hob = head_part(pid + '-hair', arm, pieces, weights, marks)
     fob = head_part(pid + '-glasses', arm, [('Glasses', *face_glasses(surf, L, rig, face))])
     face_map(head, surf, L, face, rig, list(PEOPLE).index(pid))
     if abs(glasses_line(L) - eye_line(L, face) - faces_mod.RIM_DZ) > 0.0005:
@@ -3594,7 +3638,8 @@ def quantize_weights(path):
 def slim_texcoords(path):
     """TEXCOORD_0 only where a part has a face on the atlas, and there as normalized unsigned shorts: the parts that
     lie wholly on the blank cell go without (web/src/characters.js puts them there).  The trousers' coordinates (LEG)
-    likewise only on the parts with trousers, as bytes."""
+    likewise only on the parts with trousers, as bytes; a head of hair carries its strands' ends in the same attribute
+    (TIP_FAR)."""
     with open(path, 'rb') as fh:
         d = fh.read()
     n = struct.unpack('<I', d[12:16])[0]
@@ -3614,6 +3659,7 @@ def slim_texcoords(path):
                     drop.add(ai)
                 else:
                     # four plain bytes a vertex (as _OCC): the three values and whether the vertex is of the trousers
+                    # (or of the shell of a head of hair)
                     q = lambda v: min(255, max(0, round(v * 255)))
                     views[acc['bufferView']] = b''.join(
                         bytes([q(vals[i]), q(vals[i + 1]), q(vals[i + 2]), 255 if any(vals[i:i + 3]) else 0])
