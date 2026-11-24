@@ -1,11 +1,14 @@
-"""WebP copies of the colour atlases the game downloads (leaf_*.png, litter_*.png).
+"""WebP copies of the colour atlases the game downloads (leaf_*.png, litter_*.png) and of the people's faces from
+near (assets/models/people/faces/*.png: blender/characters.py -- faces writes the PNGs, this their copies; a face's
+relief <id>_n.png goes lossless: lossy colour halves the resolution of two of its three channels, which are a normal's
+x and y and the gloss, and leaves errors of up to a half at the lids' edges).
 
 The PNGs stay the source (Blender reads leaf_<name>.png, the texture tools write them). Beside each one this writes
 <name>.webp, lossy colour (q90) with lossless alpha, and records the PNG's sha1 in tools/webp_sources.json.
 web/vite.config.js serves the .webp in place of the .png only while that sha1 still matches: a PNG rewritten without
 its WebP falls back to the PNG by itself.
 
-  python tools/webp_textures.py              every leaf_* / litter_* PNG whose WebP is missing or stale
+  python tools/webp_textures.py              every leaf_* / litter_* / face PNG whose WebP is missing or stale
   python tools/webp_textures.py --all        all of them again
   python tools/webp_textures.py a.png b.png  these files
 
@@ -33,6 +36,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEX = os.path.join(ROOT, 'web/public/assets/textures')
 RECORD = os.path.join(ROOT, 'tools/webp_sources.json')
 PATTERNS = ('leaf_*.png', 'litter_*.png')
+FACES = os.path.join(ROOT, 'web/public/assets/models/people/faces/*.png')     # (a face's colour under its alpha 0 is the eye: exact)
 LOSSLESS = ('sun_shadow.png', 'sun_ground.png')
 PBR = os.path.join(TEX, 'pbr/*/*.jpg')
 SRC = os.path.join(ROOT, 'assets_src/textures')
@@ -68,7 +72,8 @@ def to_webp(png, rec=None):
         rec = _load()
     im = Image.open(png)
     im.load()
-    if os.path.basename(png) in LOSSLESS:
+    relief = os.path.basename(os.path.dirname(png)) == 'faces' and png.endswith('_n.png')
+    if os.path.basename(png) in LOSSLESS or relief:
         im.save(png[:-4] + '.webp', 'WEBP', lossless=True, quality=100, method=4, exact=True)
     else:
         # exact: keep the colour under transparent pixels (the atlases bleed their edge colour there for the mip maps)
@@ -133,7 +138,7 @@ def main(args):
     else:
         files = sorted(glob.glob(PBR))
         if '--pbr' not in args:
-            files = sorted(p for pat in PATTERNS + LOSSLESS for p in glob.glob(os.path.join(TEX, pat))) + files
+            files = sorted(p for pat in PATTERNS + LOSSLESS for p in glob.glob(os.path.join(TEX, pat))) + sorted(glob.glob(FACES)) + files
         if '--all' not in args:
             stale = lambda p: rec.get(_key(p)) != 'jpg:' + _sha1(p) and (
                 not os.path.exists(p[:-4] + '.webp') or rec.get(_key(p)) != _sha1(p))

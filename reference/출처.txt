@@ -818,6 +818,10 @@ reference/ 사진 출처
   - 서연: https://commons.wikimedia.org/?curid=30520196 (영화 제작발표회, 2012)
   - 승민: https://commons.wikimedia.org/?curid=63481586 (2016)
   - 성구: https://commons.wikimedia.org/?curid=192741690 (2011) · https://commons.wikimedia.org/?curid=47832790 (2014)
+- 승민 · 서연 · 성구의 가까운 얼굴(2026-11-24, 사진은 저장하지 않고 보며 잼, reference/고증/4.9.1_가까이서_본_얼굴.md 「세 주인공과 본 사진」): 위키미디어 공용의 사진 여섯 장
+  - 서연: https://commons.wikimedia.org/?curid=47151335 · https://commons.wikimedia.org/?curid=47151336
+  - 승민: https://commons.wikimedia.org/?curid=74155954 · https://commons.wikimedia.org/?curid=138297996
+  - 성구: https://commons.wikimedia.org/?curid=180369845 · https://commons.wikimedia.org/?curid=47832790 (2014)
 - 신촌 로터리의 1997년 모습(저장소에 넣지 않고 보며 잼): 국토정보맵 항공사진 서울특별시청 1997년 1차(1997-07-28) 27/18 · 27/19(미리보기 · 원본 스캔)와 1998년 2차(1998-10-08) 26/17(미리보기)
   - 1997년 여섯 장의 카메라에 이음점으로 맞춤(섬의 자리 · 유턴 고리 · 건널목 · 모퉁이 건물의 지붕 높이)
   - 파일은 reference/고증/1.5_저장소_밖_자료.md, 잰 것은 reference/고증/4.10.4_1997년_7월_항공사진.md

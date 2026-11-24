@@ -139,7 +139,9 @@ def canvas(upper, rubber):
 # brows also brow_len, brow_gap, brow_up, brow_peak, brow_corner, brow_drop, brow_taper, brow_soft (faces.py), of the
 # nose nose, bridge, nose_curve, tip_up, nose_up, tip_round, nose_w, wing (NOSE below); of the head's shape jaw (the lower face's width), chin
 # (its length), cheek (the width at the cheeks), taper (the jaw narrower toward the chin).  paint: parts of the outfit in colours of their own
-# (see '1997 wardrobe').
+# (see '1997 wardrobe').  Of the face from near (faces.py draw_near: the picture of a person's own the game shows
+# from a metre or so): aegyo, bow, socket, stubble, fold, flush, iris_tone; and of both faces crease (a double
+# eyelid's fold nearer the lashes or further) and lip_tint (the lips' own colour).
 PEOPLE = {
     # 승민 (the film 건축학개론, 2012: a first-year of 1996 in the knock-off sweatshirt): a long oval face, narrow
     # gentle eyes (the lids' fold only at the outer corner) under straight heavy brows that fall a little outward, a
@@ -153,9 +155,10 @@ PEOPLE = {
                           'feet': trainers('umc', 'Red_Dark')},
                    prints={'body': [dict(name='geuss', of=('LightBrown',), w=.28, z=1.33)]}, cut='wide',
                    neck=.85,
-                   face=dict(lid='inner', slant=.0, eye=1.0, eye_open=.84, jaw=.95, chin=1.08, brow=1.35, brow_tilt=-.05,
-                             arch=.3, brow_len=1.02, brow_taper=1.3, brow_soft=1.6, smile=.0018, mouth=1.08, lip=1.3,
-                             nose=1.04, tip_up=.95, tip_round=.9, bridge=.27, nose_w=.98)),
+                   face=dict(lid='inner', slant=.0, eye=.96, eye_open=.80, jaw=.95, chin=1.08, brow=1.35, brow_tilt=-.05,
+                             arch=.3, brow_len=1.02, brow_taper=1.3, brow_soft=1.6, brow_up=-.0012, smile=.0018, mouth=1.24,
+                             lip=1.6, nose=1.04, tip_up=.95, tip_round=.9, bridge=.27, nose_w=.98,
+                             aegyo=.7, lip_up=.8, lip_ink=1.7, lip_tint=(.80, .44, .45), bow=1.25, iris_tone=.8)),
     # 성훈: a beige checked shirt (체크 남방) worn open over a white tee, its long sleeves down (the pack's short-sleeved
     # shirt and the bare arms to the wrists).  The checks are not in the model: the game draws them on whatever is of
     # the material 'Check' (web/src/characters.js)
@@ -190,9 +193,10 @@ PEOPLE = {
                      'the long top swept from a 7:3 parting',
                      paint={'body': [neckline(('Purple',), drop=.024, ring=.006, lobe=1.5)], 'feet': trainers('umc', 'Red_Dark')}, cut='wide',
                      prints={'body': [dict(name='yonsei', of=('Purple',), w=.27, z=1.36)]},
-                     face=dict(lid='double', slant=.03, jaw=1.0, chin=1.14, eye=1.04, eye_open=.82, mouth=1.25, smile=.0040,
+                     face=dict(lid='double', slant=.03, jaw=1.0, chin=1.14, eye=1.0, eye_open=.76, mouth=1.25, smile=.0040,
                                lip=1.2, brow=1.7, arch=.55, brow_len=1.1, brow_peak=.6, brow_up=-.0022, brow_taper=1.5,
-                               brow_soft=1.5, nose=1.18, tip_up=.72, tip_round=1.1, bridge=.35, nose_w=1.06)),
+                               brow_soft=1.5, nose=1.18, tip_up=.72, tip_round=1.1, bridge=.35, nose_w=1.06,
+                               socket=1.4, stubble=1.8, fold=.8, aegyo=.5, lip_up=.55, lip_ink=1.2, iris_tone=.9)),
     'p05': man('curtain-64', 'Casual_2', 'Casual_2', 'Casual_2',
                     {'LightBrown': '#1f2f55', 'Stripe': '#1f8580', 'Stripe2': '#d8742c', 'Collar': '#ece8dc',
                      'LightBlue': JEANS['dark'], 'Red_Dark': '#3a2c24', 'Skin': SKIN['b'], 'Hair': HAIR['dyed'], 'Brow': '#1c1410'},
@@ -262,9 +266,10 @@ PEOPLE = {
                                 'legs': [dict(of=('LimeGreen',), to='Skirt')],
                                 'head': [dict(of=('Hair',), to='Band', y=(-.090, -.062), z=(1.690, None))]},
                          skirt='denim',
-                         face=dict(lid='double', slant=.03, eye=1.18, lash=1.25, jaw=.98, cheek=1.05, chin=1.0, taper=.10, brow=1.2,
-                                   arch=.25, brow_len=1.0, brow_soft=2.0, smile=.0020, mouth=.95, mouth_line=1.3, lip=1.5,
-                                   lip_up=.85, lip_ink=1.25, nose=.74, tip_up=1.1, tip_round=.8, wing=.9, bridge=.18, nose_w=.94, nose_up=.0015)),
+                         face=dict(lid='double', slant=.03, eye=1.08, eye_open=.90, lash=1.25, jaw=.98, cheek=1.05, chin=1.0, taper=.10, brow=1.3,
+                                   arch=.25, brow_len=1.0, brow_soft=2.0, brow_up=-.0018, smile=.0026, mouth=1.15, mouth_line=1.3, lip=1.45,
+                                   lip_up=.85, lip_ink=1.35, nose=.74, tip_up=1.1, tip_round=.8, wing=.9, bridge=.18, nose_w=.94, nose_up=.0015,
+                                   crease=.62, aegyo=1.0, bow=1.35, flush=1.2, lip_tint=(.80, .34, .38), iris_tone=.7)),
     'p12': woman('shoulder', 'Formal', 'Casual', 'Casual',
                               {'LimeGreen': '#ece4cc', 'Rib': '#dcd2b4', 'Orange': JEANS['black'], 'Grey': '#1f1f24', 'Skin': SKIN['b'],
                                'Hair': HAIR['brown'], 'Bridge': '#9c6c3a', 'Brow': HAIR['dark']},
@@ -3706,9 +3711,11 @@ def check(pid, path):
 
 # ---------- main ----------
 
-def face_atlas():
+def face_atlas(near=None):
     """faces.png: everybody's face in the order of PEOPLE (the cells face_map lays the faces on); faces_rims.png:
-    everybody's glasses in the same cells (the game shows them on whoever wears glasses, from a few metres off)."""
+    everybody's glasses in the same cells (the game shows them on whoever wears glasses, from a few metres off);
+    faces/<id>.png, faces/<id>_n.png: each face from near, four times as fine, and its relief (near: of these ids
+    only; 3 s a face)."""
     rows = []
     for sp in PEOPLE.values():
         col = sp['colors']
@@ -3721,6 +3728,12 @@ def face_atlas():
     rims = os.path.join(OUT, 'faces_rims.png')
     faces.write_rims(rims, [(sp['rig'], sp.get('face', {})) for sp in PEOPLE.values()])
     print(f'faces_rims: png {os.path.getsize(rims) // 1024} KB  ({faces.GRID * faces.RIM_CELL} px)')
+    # everybody's face from near, a picture and its relief each (the game fetches them for whoever stands near)
+    folder = os.path.join(OUT, faces.NEAR_DIR)
+    faces.write_near(folder, [(pid,) + row for pid, row in zip(PEOPLE, rows)], near)
+    size = sum(os.path.getsize(os.path.join(folder, n)) for n in os.listdir(folder) if n.endswith('.png'))
+    print(f'faces from near: {len(near) if near is not None else len(rows)} of {len(rows)} drawn, {size // 1024} KB in all  ({faces.NEAR} px; '
+          f'then python tools/webp_textures.py for the copies the game fetches)')
 
 
 def main():
@@ -3751,7 +3764,7 @@ def main():
     todo = wanted or ([] if 'faces' in argv else list(RIGS) + list(PEOPLE))
     os.makedirs(OUT, exist_ok=True)
     if 'faces' in argv or any(pid in PEOPLE for pid in todo):
-        face_atlas()
+        face_atlas(None if 'faces' in argv or not wanted else [pid for pid in todo if pid in PEOPLE])
     tmp = keep or tempfile.mkdtemp()
     os.makedirs(tmp, exist_ok=True)
     failed = []

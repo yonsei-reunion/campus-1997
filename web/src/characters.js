@@ -89,7 +89,7 @@ export const HERO = {
 // way, from the atlas' print cell: ink is the picture's colour times the cloth's, white lettering its alpha.
 // Glasses: everybody's model has a pair, a few millimetres thin. Thinner than a pixel, they glitter on and off from
 // frame to frame where nothing smooths the edges (phones have no anti-aliasing, nor TAA): so a person who wears glasses
-// has the rims' geometry drawn only while the rims are RIM_PX pixels or more across (rimLod: the index puts the glasses'
+// has the rims' geometry drawn only while the rims are RIM_PX pixels or more across (faceLod: the index puts the glasses'
 // triangles last, and the draw stops short of them), and from somewhat nearer than that on the same glasses drawn on
 // the face from a second atlas (faces_rims.png), which the mip maps fade evenly with distance. Who wears them, and
 // which rims, rides along as the attribute `glass` (0 none, 1 thin metal, 2 dark horn; plus 4 x the person's blink
@@ -97,10 +97,20 @@ export const HERO = {
 // Blinking: every few seconds (each of the BLINKS kinds of the crowd in its own time) the eyes of a face are drawn
 // shut for an eighth of a second: skin over the eye's place on the cell and the lashes' line, sagging in the middle.
 // By the clock of the wind; the line only from near.
+// The face from near: the atlas gives a face 256 pixels, which is what a screen shows of it from about a metre; nearer
+// (walking up to somebody, the first person, 「얼굴 가까이」 on the title card) the lines are only lines. So each model
+// has a picture of its own, four times as fine and drawn in full (blender/faces.py draw_near: an iris, lashes, the
+// brows' hairs, both lips, the shade round the eyes), and with it the face's relief and gloss (the ball of the eye, the
+// lids, the lips: a normal map). They are fetched for a model only when somebody of it comes near and faces the view
+// (faceLod, as each person is drawn), kept for the last few such models (NEAR.keep) and let go again; whoever is near
+// is drawn with a material of that model's own, which is PERSON_MAT with those two pictures: the same shader program,
+// where a uniform (uFaceIn, 0 on PERSON_MAT) lets everybody else skip the near face altogether. In the shader the two
+// faces are blended by how many pixels the atlas' cell takes on the screen (NEAR.px0 .. px1), so nothing pops.
 const KIND = { cloth: 0, skin: 1, hair: 2, hard: 3 };
 const kindOfPart = (name) => (name === 'Skin' ? KIND.skin : /^(Hair|Bridge)/.test(name) ? KIND.hair : /Glasses|feet/.test(name) ? KIND.hard : KIND.cloth);
 const SKIN_ROUGH = 0.5;
-const PERSON_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, envMapIntensity: 0.8 });
+const personMaterial = () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, envMapIntensity: 0.8 });
+const PERSON_MAT = personMaterial();
 PERSON_MAT.name = 'person';
 const FACE_BIAS = '-0.75', EYE_WHITE = '0.84, 0.83, 0.80';     // (faces.py WHITE)
 const BLANK_UV = 0.9;              // the middle of the atlas' blank cell (u and v): faces.py BLANK (the last of 5 x 5)
@@ -130,6 +140,60 @@ async function loadFaces() {
   PERSON_MAT.needsUpdate = true;
 }
 const GRID_F = '5.0';                  // (faces.py GRID)
+// the face from near: blended in while the atlas' cell is px0 .. px1 pixels across on the screen, asked for from `ask`
+// pixels; the pictures of `keep` models are kept at a time (phones: fewer, at half the size)
+// (idle: a model's pictures may go when nobody has asked for them for so long, ms; fade: a fetched face comes in over
+// so long; hold: a view that wants the far face waits so long after one that wanted the near one, when two views draw
+// the same person in one frame)
+const NEAR = { px0: 64, px1: 128, ask: 48, keep: MOBILE ? 2 : 6, max: MOBILE ? 512 : Infinity, idle: 4000, fade: 350, hold: 150 };
+const EYE_GLOSS = [0.62, 0.92];        // the relief picture's gloss from which a pixel is the eye (faces.py EYE_GLOSS)
+const FACE_M = 0.14;                   // a cell's width on a face, m (faces.py 2 HALF, at the people's scale)
+const NO_FACE = { value: null }, NO_NEAR = { value: 0 };
+const nearFaces = new Map();           // model id -> { state: 0 loading, 1 there, -1 none; mat, col, nor, fade, seen, since }
+function loadNear(id, name, srgb) {
+  return new Promise((res, rej) => imageTexture(versioned(`${PEOPLE_DIR}faces/${id}${name}.png`), { srgb, max: NEAR.max }, (t) => {
+    t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    t.flipY = false;
+    t.anisotropy = 4;
+    res(t);
+  }, rej));
+}
+// the near face of a model, asked for at the time `now` (ms): fetched on the first call, null until it is there (or
+// when the models kept are all in use just now)
+function nearFace(id, now) {
+  let f = nearFaces.get(id);
+  if (f) { f.seen = now; return f.state === 1 ? f : null; }
+  let kept = 0, old = null;
+  for (const [k, v] of nearFaces) {
+    if (v.state < 0) continue;
+    kept++;
+    if (v.state === 1 && now - v.seen > NEAR.idle && (!old || v.seen < nearFaces.get(old).seen)) old = k;
+  }
+  if (kept >= NEAR.keep) {
+    if (!old) return null;
+    const o = nearFaces.get(old);
+    o.col.dispose(); o.nor.dispose(); o.mat.dispose();
+    nearFaces.delete(old);
+  }
+  nearFaces.set(id, f = { state: 0, seen: now, since: 0, fade: { value: 0 }, mat: null, col: null, nor: null });
+  Promise.all([loadNear(id, '', true), loadNear(id, '_n', false)]).then(([col, nor]) => {
+    if (nearFaces.get(id) !== f) { col.dispose(); nor.dispose(); return; }
+    // PERSON_MAT as it is (whatever was patched onto it: the shadows, the atmosphere) with this model's pictures
+    const m = personMaterial();
+    m.name = PERSON_MAT.name;
+    m.map = PERSON_MAT.map;
+    m.userData.base = PERSON_MAT.version;
+    m.onBeforeCompile = (sh, renderer) => {
+      PERSON_MAT.onBeforeCompile(sh, renderer);
+      sh.uniforms.uFaceHi = { value: col };
+      sh.uniforms.uFaceN = { value: nor };
+      sh.uniforms.uFaceIn = f.fade;
+    };
+    m.customProgramCacheKey = () => PERSON_MAT.customProgramCacheKey();
+    Object.assign(f, { state: 1, mat: m, col, nor, since: performance.now() });
+  }, () => { f.state = -1; });
+  return null;
+}
 // a checked shirt (the material `Check`): the checks' size up the trunk (m), how many go round the trunk and round a
 // sleeve, how deep the trunk's oval is for its width (the reciprocal), a band's and a thin line's share of a check
 const CHECK = { pitch: 0.054, round: 16, sleeve: 6, deep: '0.66', band: 0.40, line: 0.07 };
@@ -139,6 +203,9 @@ const FINE = !MOBILE;               // the folds of cloth and the strands of hai
 PERSON_MAT.onBeforeCompile = (sh) => {
   sh.uniforms.uRims = RIMS_TEX;
   sh.uniforms.uBlinkT = windTime;
+  sh.uniforms.uFaceHi = NO_FACE;
+  sh.uniforms.uFaceN = NO_FACE;
+  sh.uniforms.uFaceIn = NO_NEAR;
   sh.vertexShader = sh.vertexShader
     .replace('#include <common>', '#include <common>\nattribute vec3 part;\nattribute float glass;\nattribute vec4 leg;\nvarying vec3 vPart, vRest, vRestN;\nvarying float vGlass;\nvarying vec4 vLeg;')
     .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPart = part;\nvGlass = glass;\nvLeg = leg;\nvRest = position;\nvRestN = normal;');
@@ -147,7 +214,8 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       varying vec3 vPart, vRest, vRestN;
       varying float vGlass;
       varying vec4 vLeg;
-      uniform sampler2D uRims;
+      uniform sampler2D uRims, uFaceHi, uFaceN;
+      uniform float uFaceIn;
       // a line of half width w about x = 0, as much of the pixel as it covers (d: x over a pixel)
       float pLine( float x, float w, float d ) { return clamp( ( w - abs( x ) ) / max( d, 1e-5 ) + 0.5, 0.0, 1.0 ) * min( 1.0, 2.0 * w / max( d, 1e-5 ) ); }
       uniform float uBlinkT;
@@ -185,10 +253,13 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       float pCloth = 1.0 - step( 0.5, vPart.y ), pSkin = step( 0.5, vPart.y ) * ( 1.0 - step( 1.5, vPart.y ) );
       float pHair = step( 1.5, vPart.y ) * ( 1.0 - step( 2.5, vPart.y ) );
       roughnessFactor = mix( roughnessFactor, ${SKIN_ROUGH.toFixed(2)}, pSkin );
+      roughnessFactor = mix( roughnessFactor, 0.14, pGloss );
       ${FINE ? `
       float pNear = 1.0 - smoothstep( 0.006, 0.02, length( fwidth( vRest ) ) );          // (m to a pixel)
       float pDye = pNoise( vRest * vec3( 9.0, 5.0, 9.0 ) ) * 0.6 + pNoise( vRest * vec3( 37.0, 23.0, 37.0 ) ) * 0.4;
       diffuseColor.rgb *= mix( 1.0, mix( 0.88 + 0.22 * pDye, 0.82 + 0.34 * pDye, pJean * pWash / 3.0 ), pCloth );
+      // (skin is not of one colour either: a little redder and darker in patches, from near)
+      diffuseColor.rgb *= mix( vec3( 1.0 ), vec3( 1.03, 1.035, 1.04 ) - vec3( 0.06, 0.10, 0.11 ) * pDye, pSkin * pNear );
       float pAz = atan( vRest.x, vRest.z + 0.04 );
       float pStrand = pNoise( vec3( pAz * 46.0, vRest.y * 7.0, 3.0 ) ) * 0.65 + pNoise( vec3( pAz * 150.0, vRest.y * 11.0, 9.0 ) ) * 0.35;
       diffuseColor.rgb *= mix( 1.0, 0.82 + 0.40 * pStrand, pHair * pNear );
@@ -200,19 +271,42 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       vec4 drawn = texture2D( map, vMapUv, ${FACE_BIAS} );
       float pWash = floor( vGlass / 64.0 + 0.01 ), pBlink = floor( ( vGlass - 64.0 * pWash ) / 4.0 + 0.01 );
       float pGlass = vGlass - 64.0 * pWash - 4.0 * pBlink;
+      float pLid = 0.0, pLash = 0.0;
       {
         // a blink: now and then (every 3 to 6 s, by the person's own count) the eyes shut for an eighth of a second
         vec2 c = fract( vMapUv * ${GRID_F} );
         vec2 e = vec2( ( abs( c.x - 0.5 ) - ${EYE_U.toFixed(4)} ) / ${EYE_A.toFixed(4)}, ( c.y - ${(EYE_V - 0.02).toFixed(4)} ) / ${EYE_B.toFixed(4)} );
         float shut = step( fract( ( uBlinkT + pBlink * 1.37 ) / ( 3.0 + 0.19 * pBlink ) ) * ( 3.0 + 0.19 * pBlink ), 0.13 );
         shut *= step( 0.5, vPart.y ) * step( vPart.y, 1.5 ) * ( 1.0 - step( 0.8, vMapUv.x ) * step( 0.8, vMapUv.y ) );      // (skin, not the blank cell)
-        float lid = shut * ( 1.0 - smoothstep( 0.8, 1.0, length( e ) ) );
-        float lash = ( 1.0 - smoothstep( 0.09, 0.17, abs( e.y - 0.38 + 0.30 * e.x * e.x ) ) ) * ( 1.0 - smoothstep( 0.015, 0.04, length( fwidth( c ) ) ) );     // (the line from near only)
-        drawn = mix( drawn, vec4( mix( vec3( 1.0 ), vec3( 0.07, 0.05, 0.05 ), lash * step( abs( e.x ), 0.92 ) ), 1.0 ), lid );
+        pLid = shut * ( 1.0 - smoothstep( 0.8, 1.0, length( e ) ) );
+        pLash = ( 1.0 - smoothstep( 0.09, 0.17, abs( e.y - 0.38 + 0.30 * e.x * e.x ) ) ) * ( 1.0 - smoothstep( 0.015, 0.04, length( fwidth( c ) ) ) );     // (the line from near only)
+        pLash *= step( abs( e.x ), 0.92 );
+        drawn = mix( drawn, vec4( mix( vec3( 1.0 ), vec3( 0.07, 0.05, 0.05 ), pLash ), 1.0 ), pLid );
       }
+      vec3 pSkinLight = diffuseColor.rgb;
       diffuseColor.rgb = mix( vec3( ${EYE_WHITE} ), diffuseColor.rgb * drawn.rgb, drawn.a );
-      // the drawn glasses: in as the rims' geometry goes (how many pixels a rim is across, from the atlas' scale here)
       vec2 rimD = vec2( length( dFdx( vMapUv ) ), length( dFdy( vMapUv ) ) );
+      // the face from near (only a material with a model's own pictures has uFaceIn): blended in as the atlas' cell
+      // grows on the screen; its relief and gloss go to the normal and the roughness further down
+      vec3 pFaceN = vec3( 0.0, 0.0, 1.0 );
+      float pNearF = 0.0, pGloss = 0.0;
+      if ( uFaceIn > 0.0 ) {
+        float cellPx = ${(1 / 5).toFixed(2)} / max( max( rimD.x, rimD.y ), 1e-7 );
+        pNearF = uFaceIn * smoothstep( ${NEAR.px0.toFixed(1)}, ${NEAR.px1.toFixed(1)}, cellPx ) * step( 0.5, vPart.y ) * step( vPart.y, 1.5 )
+          * ( 1.0 - step( 0.6, vMapUv.x ) * step( 0.8, vMapUv.y ) );
+        vec2 nUv = fract( vMapUv * ${GRID_F} ), nDx = dFdx( vMapUv ) * ${GRID_F}, nDy = dFdy( vMapUv ) * ${GRID_F};
+        if ( pNearF > 0.0 ) {
+          // (the eye is where the gloss is the eye's: faces.py EYE_GLOSS; its colour is its own, the rest is skin's)
+          vec3 nearC = textureGrad( uFaceHi, nUv, nDx, nDy ).rgb, nearN = textureGrad( uFaceN, nUv, nDx, nDy ).rgb;
+          float nearEye = smoothstep( ${EYE_GLOSS[0].toFixed(2)}, ${EYE_GLOSS[1].toFixed(2)}, nearN.z ) * ( 1.0 - pLid );
+          nearC = mix( nearC, mix( vec3( 0.90, 0.85, 0.84 ), vec3( 0.07, 0.05, 0.05 ), pLash ), pLid );
+          diffuseColor.rgb = mix( diffuseColor.rgb, nearC * mix( pSkinLight, vec3( 1.0 ), nearEye ), pNearF );
+          pFaceN.xy = ( nearN.xy * 2.0 - 1.0 ) * ( 1.0 - pLid );
+          pFaceN.z = sqrt( max( 0.0, 1.0 - dot( pFaceN.xy, pFaceN.xy ) ) );
+          pGloss = nearN.z * ( 1.0 - pLid ) * pNearF;
+        }
+      }
+      // the drawn glasses: in as the rims' geometry goes (how many pixels a rim is across, from the atlas' scale here)
       float rimPx = ${RIM_UV} / max( max( rimD.x, rimD.y ), 1e-7 );
       float rim = texture2D( uRims, vMapUv ).r * step( 0.5, pGlass ) * smoothstep( ${(2 * RIM_PX).toFixed(2)}, ${RIM_PX.toFixed(2)}, rimPx );
       diffuseColor.rgb = mix( diffuseColor.rgb, pGlass > 1.5 ? ${glsl(RIMS[1])} : ${glsl(RIMS[0])}, rim );
@@ -280,6 +374,17 @@ PERSON_MAT.onBeforeCompile = (sh) => {
         vec3 pLit = ( reflectedLight.directDiffuse + reflectedLight.indirectDiffuse ) / max( material.diffuseColor, vec3( 0.05 ) );
         reflectedLight.indirectDiffuse += pLit * pEdge * ( pCloth * 0.085 * mix( vec3( 1.0 ), material.diffuseColor, 0.6 ) + pSkin * 0.035 * vec3( 1.0, 0.78, 0.68 ) );
       }`);
+  sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+      if ( uFaceIn > 0.0 ) {
+        // the near face's relief, in the frame of the atlas' coordinates on the surface (no tangents on the model)
+        vec3 nQ0 = dFdx( - vViewPosition ), nQ1 = dFdy( - vViewPosition );
+        vec2 nS0 = dFdx( vMapUv ), nS1 = dFdy( vMapUv );
+        vec3 nP1 = cross( nQ1, normal ), nP0 = cross( normal, nQ0 );
+        vec3 nT = nP1 * nS0.x + nP0 * nS1.x, nB = nP1 * nS0.y + nP0 * nS1.y;
+        float nDet = max( dot( nT, nT ), dot( nB, nB ) );
+        float nSc = nDet == 0.0 ? 0.0 : inversesqrt( nDet );
+        normal = normalize( mix( normal, normalize( nT * nSc * pFaceN.x + nB * nSc * pFaceN.y + normal * pFaceN.z ), pNearF ) );
+      }`);
   if (FINE) sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
       {
         float pH = pFolds( vRest, pLegs ) * pCloth * pNear + ( pStrand - 0.5 ) * 0.0018 * pHair * pNear;
@@ -291,15 +396,32 @@ PERSON_MAT.onBeforeCompile = (sh) => {
 };
 pcss(PERSON_MAT);
 
-// (onBeforeRender of a person who wears glasses) the rims' geometry only while it is RIM_PX pixels or more across: the
-// glasses' triangles are the index's last (dressed), the draw stops short of them otherwise
+// (onBeforeRender of a person's mesh) by how large the head is on the screen:
+//  - who wears glasses: the rims' geometry only while it is RIM_PX pixels or more across (the glasses' triangles are
+//    the index's last (dressed), the draw stops short of them otherwise)
+//  - the face from near: the model's own material while a face is NEAR.ask pixels or more across and turned to the
+//    view (from the next frame on: this one's is already picked), PERSON_MAT otherwise
 const _vp = new THREE.Vector4(), _head = new THREE.Vector3(), _eye = new THREE.Vector3();
-function rimLod(renderer, scene, camera, geometry) {
+function faceLod(renderer, scene, camera, geometry) {
   if (!camera.isPerspectiveCamera) return;           // (the shadow pass: as the view left it)
   renderer.getCurrentViewport(_vp);
+  const e = this.matrixWorld.elements;
   _head.setFromMatrixPosition(this.matrixWorld).y += 1.5;
-  const d = Math.max(0.1, _head.distanceTo(_eye.setFromMatrixPosition(camera.matrixWorld)));
-  geometry.drawRange.count = RIM_W * camera.projectionMatrix.elements[5] * _vp.w / (2 * d) >= RIM_PX ? Infinity : geometry.userData.rims;
+  _eye.setFromMatrixPosition(camera.matrixWorld).sub(_head);
+  const d = Math.max(0.1, _eye.length()), k = camera.projectionMatrix.elements[5] * _vp.w / (2 * d);
+  if (geometry.userData.rims) geometry.drawRange.count = RIM_W * k >= RIM_PX ? Infinity : geometry.userData.rims;
+  let want = PERSON_MAT;
+  const u = this.userData;
+  if (FACE_M * k >= NEAR.ask && e[8] * _eye.x + e[9] * _eye.y + e[10] * _eye.z > -0.3 * d) {
+    const now = performance.now(), f = nearFace(u.person, now);
+    if (f) {
+      f.fade.value = Math.min(1, (now - f.since) / NEAR.fade);
+      if (f.mat.userData.base !== PERSON_MAT.version) { f.mat.userData.base = PERSON_MAT.version; f.mat.needsUpdate = true; }
+      want = f.mat;
+      u.nearAt = now;
+    }
+  } else if (this.material !== PERSON_MAT && performance.now() - u.nearAt < NEAR.hold) return;
+  if (this.material !== want) this.material = want;
 }
 
 // The bounds the frustum (and shadow frustum) test uses: the rest pose sphere, grown to hold swinging arms,
@@ -533,7 +655,7 @@ function dressed(geo, ranges, colors, glasses, blink = 0, print = true) {
   const order = glassesLast(geo, ranges);
   g.setIndex(order ? order.index : geo.index);
   if (order && !glasses) g.setDrawRange(0, order.bare);
-  if (order && glasses) g.userData.rims = order.bare;           // (rimLod)
+  if (order && glasses) g.userData.rims = order.bare;           // (faceLod)
   const legs = ranges.find((p) => p.legs);
   g.setAttribute('glass', glassAttribute(geo.attributes.position.count,
     (!order || !glasses ? 0 : colors.Glasses === RIMS[1] ? 2 : 1) + 4 * blink + 64 * (legs ? washOf(colors[legs.name] || legs.hex) : 0)));
@@ -559,7 +681,7 @@ function dressed(geo, ranges, colors, glasses, blink = 0, print = true) {
 // A person is about ten thousand triangles; past FAR_AT metres from the view they are drawn from the same corners with
 // about a third of them (meshoptimizer's simplify, run on each model once as it loads): a second index over the very
 // same vertices, so the colours, the face and print atlas, the trousers' seams and the skinning carry over unchanged.
-// The glasses are left out of it (from there on they are the drawn ones only, rimLod), a bag's few triangles kept.
+// The glasses are left out of it (from there on they are the drawn ones only, faceLod), a bag's few triangles kept.
 // Each person's mesh goes under a THREE.LOD with its far twin, bound to the same skeleton: three picks one per frame.
 const FAR_AT = MOBILE ? 20 : 30, FAR_GIVE = 0.08;
 const FAR_SHARE = 0.3, FAR_ERR = 0.01;          // (share of the triangles aimed at; error held to 1 % of the model's size)
@@ -622,7 +744,7 @@ const PEOPLE_DIR = 'assets/models/people/', RIGS = ['rig-umc', 'rig-women'];
 export const castFiles = (ids) => [...RIGS, ...ids].map((n) => PEOPLE_DIR + n + '.glb');
 
 export class Cast {
-  constructor() { this.models = {}; this.rigs = {}; }
+  constructor() { this.models = {}; this.rigs = {}; this.near = NEAR; this.nearFaces = nearFaces; }      // (the last two: for looking from a console)
 
   async load(ids, onEach) {
     const base = PEOPLE_DIR;
@@ -673,7 +795,8 @@ export class Cast {
     for (const o of meshes) {
       const full = o.geometry;
       o.geometry = dressed(full, src.ranges, look?.colors, look ? look.glasses : src.glasses, look?.blink, look ? look.print !== false : true);
-      if (o.geometry.userData.rims) o.onBeforeRender = rimLod;
+      o.userData.person = id;
+      o.onBeforeRender = faceLod;
       if (src.far && full.index) withFar(o, full, src.far);
     }
     const [wide, tall] = scale || look?.scale || [1, 1];
