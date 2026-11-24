@@ -1830,10 +1830,15 @@ HAIR_RN = 0.115            # nominal radius of the head of hair: arc length on t
 # glossy the hair is there (y: 1 grown hair, GLOSS_CLIP hair clipped to a few millimetres) and how far up from the
 # hem single strands end (z, of WISP_FAR: a style's `wisp`, WISP by default).  The game lets each strand end
 # within that of the hem, so a hem is strands' ends and a hairline single hairs, not the shell's edge.
+# Only where the hem is the strands' ends, though: where it runs along the strands (the edge of a fringe swept to one
+# side, of a curtain, of long hair beside the cheek: the hem's height changes quickly from column to column) it is
+# the side of a lock and stays the clean line it is.  WISP_RUN: the hem's slope (its drop over the way round the
+# head) at which half the raggedness is left.
 TIP_FAR, WISP_FAR = 0.06, 0.04
 # hair that hangs free; a cut that lies on the head: its fringe, and (by azimuth) its sides and nape, where the short
 # hair painted on the skin under the hem must not come out from under it; clipped hair
-WISP = dict(hang=0.022, cut=[(0, 0.007), (50, 0.007), (72, 0.005), (180, 0.005)], clip=0.004)
+WISP = dict(hang=0.022, cut=[(0, 0.006), (50, 0.006), (72, 0.004), (180, 0.004)], clip=0.004)
+WISP_RUN = 0.6
 HAIR_HEM = 0.003
 HAIR_ROW = (0.024, 0.045)  # rows of the shell: so far apart on the round of the head (corners in its outline), hanging
 GLOSS_CLIP = 0.35
@@ -2418,6 +2423,20 @@ def hair_grow(pid, surf, st):
     inner = {}                 # (column, row) -> vertex of the inner side
     ends = []                  # per column: arc length of the hem
     top_r = []
+
+    def hem_arc(a):
+        dz = _by_azimuth(st['tip'], surf.style_azimuth(math.degrees(a if a <= math.pi else a - 2 * math.pi)))
+        return Rn * (math.pi / 2 - math.asin(min(1.0, dz / Rn))) if dz >= 0 else s_eq - dz
+    # how much of the raggedness a column keeps: by the hem's slope either side of it (the style's own line, without
+    # the locks' unevenness)
+    hems = [hem_arc(a) for a in cols]
+    keep = []
+    for j in range(NA):
+        run = 0.0
+        for k in (j - 1, (j + 1) % NA):
+            way = Rn * max(0.4, math.sin(min(hems[j], hems[k], s_eq) / Rn)) * abs((cols[j] - cols[k] + math.pi) % (2 * math.pi) - math.pi)
+            run = max(run, abs(hems[j] - hems[k]) / max(way, 1e-4))
+        keep.append(1 / (1 + (run / WISP_RUN) ** 2))
     for j in range(NA):
         a = cols[j]
         deg = math.degrees(a if a <= math.pi else a - 2 * math.pi)
@@ -2432,7 +2451,7 @@ def hair_grow(pid, surf, st):
         prev = None
         hang = dz_tip < -0.08
         wisp = st.get('wisp', WISP['clip' if clip else 'hang' if hang else 'cut'])
-        wisp = wisp if isinstance(wisp, float) else _by_azimuth(wisp, ap)
+        wisp = (wisp if isinstance(wisp, float) else _by_azimuth(wisp, ap)) * keep[j]
         tip = lambda s: (min(1.0, (s_end - s) / TIP_FAR), gloss, max(1 / 255, min(1.0, wisp / WISP_FAR)))    # noqa: E731
         for i in range(1, NR):
             if i == NR - 1:

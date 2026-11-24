@@ -315,14 +315,18 @@ PERSON_MAT.onBeforeCompile = (sh) => {
         float hA = atan( hR.x, hR.y ) * 0.15915494 + 0.5, hLv = clamp( log2( hr * 10.0 ), - 3.0, 0.99 );
         float hPx = length( fwidth( hR ) ) / hr * 0.15915494, hS = hr - vRest.y;
         pLock = pStrands( hA, hS * 5.0, hLv, 48.0, hPx );
-        pFine = 0.6 * pStrands( hA, hS * 9.0, hLv, 384.0, hPx ) + 0.4 * pStrands( hA, hS * 13.0, hLv, 1536.0, hPx );
+        float hThin = pStrands( hA, hS * 13.0, hLv, 1536.0, hPx );
+        pFine = 0.6 * pStrands( hA, hS * 9.0, hLv, 384.0, hPx ) + 0.4 * hThin;
         // (round the crown, where they all meet, none of it)
         float hOff = smoothstep( 0.004, 0.022, hr );
         pLock = mix( 0.5, pLock, hOff ); pFine = mix( 0.5, pFine, hOff );
         pStrand = 0.4 * pLock + 0.6 * pFine;
         if ( vLeg.w > 0.5 ) {
-          // (the longest strands reach the hem: few, and thin; most end short of it, lock by lock)
-          float hCut = vLeg.z * ${HAIR.wisp.toFixed(3)} * ( 1.0 - 0.28 * smoothstep( 0.3, 0.7, pLock ) - 0.72 * smoothstep( 0.4, 0.72, pFine ) ) * pHairN;
+          // hair that hangs thins out to its ends: the longest strands reach the hem, few and thin, most end short
+          // of it. A cut that lies on the head (a fringe, a hairline: a shallow raggedness) keeps its line: nearly
+          // every hair ends at it, and single thin ones short of it
+          float hEnd = clamp( ( 0.15 * pLock + 0.40 * pFine + 0.45 * hThin - 0.3 ) * 2.5, 0.0, 1.0 );
+          float hCut = vLeg.z * ${HAIR.wisp.toFixed(3)} * pow( 1.0 - hEnd, mix( 2.4, 1.0, smoothstep( 0.25, 0.5, vLeg.z ) ) ) * pHairN;
           if ( vLeg.x * ${HAIR.tip.toFixed(3)} < hCut ) discard;
         }
         diffuseColor.rgb *= mix( 1.0, 0.66 + 0.68 * pStrand, pHairN );
