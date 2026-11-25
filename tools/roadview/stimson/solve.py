@@ -1,6 +1,7 @@
-"""solve.py [--fixvf] [--drop pano:feat,...] [--only pano,...] [--sig px]
-Joint resection of the west-road panoramas: per pano x, y, yaw, two tilts; Stimson's rear offsets WS, WN (and front
-offsets vfS, vfN unless --fixvf); the chimney CH and Underwood's shift free.  Readings: readings.json."""
+"""solve.py [--us sigma_m] [--fixvf] [--drop pano:feat,...] [--only pano,...] [--sig px] [--up [--tsig deg]]
+Joint resection of the panoramas round 스팀슨관: per pano x, y, yaw, two tilts; Stimson's rear offsets WS, WN (and front
+offsets vfS, vfN unless --fixvf); the chimney CH and Underwood's shift free.  Readings: readings.json.
+--up: each pano's two tilts pulled (sigma --tsig, default 0.5 deg) to its 'up' in up.json (tilt.py) instead of 0 +- 14 deg."""
 import os
 import sys, json, math, numpy as np
 from scipy.optimize import least_squares
@@ -12,6 +13,8 @@ sig = float(A[A.index('--sig') + 1]) if '--sig' in A else 1.5
 drop = set(A[A.index('--drop') + 1].split(',')) if '--drop' in A else set()
 only = set(A[A.index('--only') + 1].split(',')) if '--only' in A else None
 vfp = float(A[A.index('--vfp') + 1]) if '--vfp' in A else 0.25
+tsig = math.radians(float(A[A.index('--tsig') + 1])) if '--tsig' in A else math.radians(0.5)
+UP = json.load(open(f'{D}/up.json')) if '--up' in A else {}
 R = json.load(open(f'{D}/readings.json'))
 obs = []
 for p, fs in R.items():
@@ -20,16 +23,22 @@ for p, fs in R.items():
         if f'{p}:{f}' in drop or f'{p[-3:]}:{f}' in drop or f.startswith('_'): continue
         for c, r in pts: obs.append((p, f, c, r))
 panos = sorted({o[0] for o in obs})
-G = ['WS', 'WN', 'vfS', 'vfN', 'CHx', 'CHy', 'UWx', 'UWy', 'pk']
+G = ['WS', 'WN', 'vfS', 'vfN', 'CHx', 'CHy', 'UWx', 'UWy', 'pk', 'us']
 feats = {o[1] for o in obs}
 if 'CH' not in feats: G = [g for g in G if not g.startswith('CH')]
 if not any(f.startswith('UW') for f in feats): G = [g for g in G if not g.startswith('UW')]
 if fixvf: G = [g for g in G if not g.startswith('vf')]
 if not any(f.endswith('K') for f in feats): G.remove('pk')
 if '--oneW' in A: G.remove('WN')
+usp = float(A[A.index('--us') + 1]) if '--us' in A else None     # Stimson slid along its length: prior sigma (m)
+if usp is None: G.remove('us')
 gi = {g: i for i, g in enumerate(G)}; NG = len(G)
 def gv(par, g, d=0.0): return par[gi[g]] if g in gi else d
 def where(f, par):
+    if f.startswith('ST_'):
+        X, Y = where0(f, par); d = gv(par, 'us'); return (X + d * U[0], Y + d * U[1])
+    return where0(f, par)
+def where0(f, par):
     if f == 'ST_SE': return st(0, gv(par, 'vfS'))
     if f == 'ST_NE': return st(LEN, gv(par, 'vfN', gv(par, 'vfS')))
     if f == 'ST_SW': return st(0, gv(par, 'WS'))
@@ -55,6 +64,12 @@ def rot(yaw, ax, ay):
     Ry = np.array([[math.cos(ay), 0, math.sin(ay)], [0, 1, 0], [-math.sin(ay), 0, math.cos(ay)]])
     return Rz @ Rx @ Ry
 RAYS = [ray(c, r) for _, _, c, r in obs]
+def tilt0(p):
+    """(ax, ay) that bring the pano's measured up to the zenith (rot's Rx Ry), or None."""
+    if p not in UP: return None
+    u = np.array(UP[p]); f = lambda t: (rot(0, t[0], t[1]) @ u)[:2]
+    return least_squares(f, [0.0, 0.0]).x
+T0 = {p: tilt0(p) for p in panos}
 def wrap(a): return (a + math.pi) % (2 * math.pi) - math.pi
 def resid(par):
     out = []
@@ -69,13 +84,16 @@ def resid(par):
         if g.startswith('vf'): out.append(par[gi[g]] / vfp)
         if g.startswith('UW'): out.append(par[gi[g]] / 0.5)
         if g == 'pk': out.append((par[gi[g]] - 0.15) / 0.15)
+        if g == 'us': out.append(par[gi[g]] / usp)
     for j in range(len(panos)):
-        i = NG + 5 * j; out += [par[i + 3] / 0.25, par[i + 4] / 0.25]
+        i = NG + 5 * j; t0 = T0[panos[j]]
+        out += [par[i + 3] / 0.25, par[i + 4] / 0.25] if t0 is None else [(par[i + 3] - t0[0]) / tsig, (par[i + 4] - t0[1]) / tsig]
     return np.array(out)
 p0 = []
 for g in G: p0.append({'WS': 13.0, 'WN': 13.0, 'CHx': 12.0, 'CHy': 230.0}.get(g, 0.0))
 for p in panos:
-    pp = P[int(p)]; p0 += [pp['xy'][0], pp['xy'][1], math.radians(-pp['na']), 0.0, 0.0]
+    pp = P[int(p)]; t0 = T0[p] if T0[p] is not None else (0.0, 0.0)
+    p0 += [pp['xy'][0], pp['xy'][1], math.radians(-pp['na']), t0[0], t0[1]]
 p0 = np.array(p0)
 best = None
 for trial in range(6):   # yaw restarts

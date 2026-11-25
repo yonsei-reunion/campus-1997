@@ -20,7 +20,7 @@
 | `muak/` | 대우관 북동쪽 모퉁이에서 무악학사 · 북문까지의 길 조사(2026-11-12, 아직 게임에 넣지 않음): `proposal_roads.json` 에 2008년 스카이뷰로 읽은 가운데 선(모퉁이 → 헤어핀 → 북문 갈림 630 m)과 북문 고리 · 동쪽 · 서쪽 학사길의 OSM 선. 게임 땅(y 800 m) 밖 |
 | `yonsei_ro/` | 연세로 차도 폭(2008 · 2009년 로드뷰, `reference/고증/4.10.1_연세로의_자리.md` 「로드뷰로 잰 차도 폭」): `walk.mjs`(지금 마디를 남북으로 따라가며 옛 파노라마 목록) · `paths.mjs`(옛 파노라마의 그림 경로) · `fetch.py`(원본 타일 32장을 정거원통 한 장으로, 저장소 밖 `$YRO_WORK`) · `lev2.py`(세로 모서리로 기울기) · `section.py`(길을 따라 본 화면을 소실점에 맞춰 단면 띠로 폄, s = 옆 거리 ÷ 카메라 높이) · `prof.py` · `kerbsheet.py`(연석 면 판독) · `zrv.py` · `zcount.py`(건널목 막대를 세어 미터로) · `facade.py`(길과 나란한 세로 면에 펴서 양쪽 가게 줄의 앞면 띠로: 층수 · 벽 · 간판, `reference/고증/4.10.8_연세로_가게_줄.md`. 정거원통의 왼쪽 끝이 차가 가는 쪽: 열의 방위 = 360 · (c + 0.5) / 4096 − northAngle). 지난 파노라마는 주소로 열리지 않지만 `pastCompare.show(<옛 id>)` 로 비교 화면에 띄우고, 그림 경로(`getPastStreet(id).imagePath`)로 타일을 받을 수 있음 |
 | `hangeul/` | 연세한글탑의 자리: 2011년 4월(176 ~ 184) · 2010년 12월 파노라마에서 탑 머리의 가운데를 읽어 `north/` 의 기준점과 함께 풂(`tower.py`: 파노라마마다 자리 · 방위, `--model line` 은 주행마다 한 직선, `--loo` · `--drop`). 남북은 1997년 항공사진과 0.3 m 안, 동서는 1.3 ~ 3 m 서쪽(카메라의 가로 자리에 걸림) (`reference/고증/4.14_연세한글탑.md`) |
-| `stimson/` | 스팀슨관 폭([#247](https://github.com/yonsei-reunion/campus-1997/issues/247), 끝나지 않음): 서쪽 찻길 2008 · 2010 · 2011년 파노라마의 모서리 판독(`batch.py`), 기울기(`tilt.py`), 방위 그물(`solve.py`). `stimson/README.md` |
+| `stimson/` | 스팀슨관 폭([#247](https://github.com/yonsei-reunion/campus-1997/issues/247), 끝나지 않음): 서쪽 찻길 2008 · 2010 · 2011년 파노라마와 2010년 앞길 걸음의 모서리 판독(`batch.py` · `edge.py`), 기울기(`tilt.py`), 방위 그물(`solve.py`). `stimson/README.md` |
 | `pw.mjs` | playwright 찾기, 게임 좌표 ↔ 위경도 |
 
 ## 측정할 때

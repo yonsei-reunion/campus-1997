@@ -1,5 +1,7 @@
-"""tilt.py <pano> ...  -- the true 'up' in each equirect from its near-vertical line segments (LSD): the plane through
-the camera and a vertical edge holds 'up', so its normal is perpendicular to it.  Robust fit; writes up.json."""
+"""tilt.py [--len px] <pano> ...  -- the true 'up' in each equirect from its near-vertical line segments (LSD): the plane through
+the camera and a vertical edge holds 'up', so its normal is perpendicular to it.  Robust fit; writes up.json.
+--len: shortest segment kept (default 45).  The 2010-12 front-walk panos need 18 to reach the far halls' window jambs;
+with 45 their few segments sit in one direction and the tilt swings by degrees."""
 import os
 import sys, json, math, numpy as np, cv2
 D = os.environ.get('ST_WORK', '/tmp/stimson_rv')
@@ -8,7 +10,10 @@ def ray(c, r):
     return np.array([math.sin(az) * math.cos(el), math.cos(az) * math.cos(el), math.sin(el)])
 try: UP = json.load(open(f'{D}/up.json'))
 except Exception: UP = {}
-for pano in sys.argv[1:]:
+A = sys.argv[1:]
+LMIN = 45.0
+if '--len' in A: i = A.index('--len'); LMIN = float(A[i + 1]); del A[i:i + 2]
+for pano in A:
     g = cv2.imread(f'{D}/st/tiles/eq/{pano}.jpg', cv2.IMREAD_GRAYSCALE)
     R0, R1 = 640, 1400
     lsd = cv2.createLineSegmentDetector()
@@ -16,7 +21,7 @@ for pano in sys.argv[1:]:
     N, Wt, A = [], [], []
     for x1, y1, x2, y2 in segs:
         L = math.hypot(x2 - x1, y2 - y1)
-        if L < 45 or abs(x2 - x1) > 0.35 * abs(y2 - y1): continue
+        if L < LMIN or abs(x2 - x1) > 0.35 * abs(y2 - y1): continue
         n = np.cross(ray(x1, y1 + R0), ray(x2, y2 + R0)); n /= np.linalg.norm(n)
         N.append(n); Wt.append(L * L); A.append((x1 + x2) / 2)
     N = np.array(N); Wt = np.array(Wt); A = np.array(A)

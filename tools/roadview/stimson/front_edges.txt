@@ -1,0 +1,9 @@
+# the south gable's corners in the front walk, as lines (edge.py): column, rows, window, sign, the lean the walk's
+# tilt gives (tilt.py --len 18, averaged over 678 - 686).  SE: the sunlit gable face against the shaded front.
+1016786683 ST_SW 1070.5 870 1040 3 0 -0.0344
+1016786684 ST_SW 1440 950 1080 3 0 -0.035
+1016786684 ST_SE 1888.5 780 960 3 -1 -0.0233
+1016786685 ST_SW 1642 850 1040 3 0 -0.0316
+1016786685 ST_SE 1967.5 860 1000 3 -1 -0.0186
+1016786686 ST_SW 1748 990 1040 3 0 -0.0275
+1016786686 ST_SE 1995.7 870 990 3 -1 -0.0171
