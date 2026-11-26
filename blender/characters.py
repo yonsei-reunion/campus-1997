@@ -2135,6 +2135,7 @@ HAIR_RN = 0.115            # nominal radius of the head of hair: arc length on t
 # the side of a lock and stays the clean line it is.  WISP_RUN: the hem's slope (its drop over the way round the
 # head) at which half the raggedness is left.
 TIP_FAR, WISP_FAR = 0.06, 0.04
+HEM_STEEP = 2.0           # (head_trim: a hem dropping faster than this between two columns, m per m)
 # hair that hangs free; a cut that lies on the head: its fringe, and (by azimuth) its sides and nape, where the short
 # hair painted on the skin under the hem must not come out from under it; clipped hair
 WISP = dict(hang=0.022, cut=[(0, 0.006), (50, 0.006), (72, 0.004), (180, 0.004)], clip=0.004)
@@ -3158,10 +3159,10 @@ def face_glasses(surf, L, rig, face, sunk=0.0):
     return pts, faces
 
 
-def head_trim(ob, surf, st, ends):
+def head_trim(ob, surf, st, ends, shells=()):
     """Scalp that the hair covers goes (nothing sees it); the old cap's paint is skin wherever the new hair does not
     cover it, from the forehead round to behind the ears, or all round (it ends in whole faces: a stepped hairline;
-    a man's nape keeps it as short hair)."""
+    a man's nape keeps it as short hair).  shells: [(points, faces, tips)] of the hair grown (hair_grow)."""
     import bmesh
     me = ob.data
     mw = ob.matrix_world
@@ -3174,30 +3175,105 @@ def head_trim(ob, surf, st, ends):
     skin = next(i for i, m in enumerate(me.materials) if m and m.name.split('.')[0] == 'Skin')
 
     def where(p):
+        """(azimuth, dz, arc length down from the crown, the least hem near, the hem here, the shorter of the two
+        columns either side, how steeply the hem drops between them)."""
         a = math.atan2(p.x - C.x, -(p.y - C.y))
         dz = p.z - C.z
         s = Rn * (math.pi / 2 - math.atan2(dz, math.hypot(p.x - C.x, p.y - C.y))) if dz >= 0 else s_eq - dz
         w = a % (2 * math.pi)
         j = bisect.bisect_right(cols, w) - 1
-        t = (w - cols[j]) / ((cols[j + 1] if j + 1 < NA else 2 * math.pi) - cols[j])
+        span = (cols[j + 1] if j + 1 < NA else 2 * math.pi) - cols[j]
+        t = (w - cols[j]) / span
         near = [ends[(j + d) % NA] for d in (-1, 0, 1, 2)]
-        # (.., least, here, the shorter of the two columns either side: where the hem drops steeply between two
-        #  columns, as at the temples of hair worn down, the shell's edge does not follow the line drawn between them)
-        return math.degrees(a), dz, s, min(near), near[1] + (near[2] - near[1]) * t, min(near[1:3])
+        slope = abs(near[2] - near[1]) / (Rn * max(0.4, math.sin(min(near[1], near[2], s_eq) / Rn)) * span)
+        return math.degrees(a), dz, s, min(near), near[1] + (near[2] - near[1]) * t, min(near[1:3]), slope
 
     back = 118 if st.get('ears', True) is True else 100     # (hair over the ears hides the sides of the head too)
     bm = bmesh.new()
     bm.from_mesh(me)
-    kill = []
+    info = {f: [where(mw @ v.co) for v in f.verts] for f in bm.faces}
+    kill = [f for f in bm.faces
+            if all(s < lo - 0.03 and (dz > 0.0 or (abs(surf.style_azimuth(a)) > back and dz > -0.07))
+                   for a, dz, s, lo, _, _, _ in info[f])]
+    gone = set(kill)
+    # Where the hem drops steeply between two columns (the temples of hair worn down), the line drawn between
+    # them is not the shell's edge, and from near the game leaves out the strands' ends (the last `wisp` before a
+    # strand's end, tips) and the hem's own face: there a face is drawn as hair only if the hair hides it, or it
+    # pokes through or lies in the shell.  Painted where it could be seen, it showed as a dark block with straight
+    # sides, or a speck beside the eye.
+    from mathutils.bvhtree import BVHTree
+    sp, sf, solid = [], [], []
+    for q, fs, tp in shells:
+        base = len(sp)
+        sp += [tuple(p) for p in q]
+        for f in fs:
+            sf.append(tuple(base + i for i in f))
+            solid.append(all(tp[i][0] * TIP_FAR > tp[i][2] * WISP_FAR + 0.001 for i in f))
+    shell = BVHTree.FromPolygons(sp, sf)
+    close = BVHTree.FromPolygons(sp, [f for f, k in zip(sf, solid) if k])
+    head = BVHTree.FromPolygons([tuple(mw @ v.co) for v in bm.verts],
+                                [tuple(v.index for v in f.verts) for f in bm.faces if f not in gone])
+    looks = {}
+    for y in range(-90, 91, 5):
+        for t in range(-30, 31, 10):
+            y_, t_ = math.radians(y), math.radians(t)
+            looks[y, t] = Vector((math.sin(y_) * math.cos(t_), -math.cos(y_) * math.cos(t_), math.sin(t_)))
+
+    def through(p, d, far):
+        """How the ray from p along d gets past the hair within far: None if the solid hair stops it, 'open' if it
+        meets no hair, 'ends' if the first hair it meets, close over the skin, is strands' ends, 'crack' if it
+        meets them only further on (out between two pieces of the shell first)."""
+        way, gone_by = 'open', 0.0
+        while far > 0:
+            hit, _, i, t = shell.ray_cast(p, d, far)
+            if hit is None:
+                return way
+            if solid[i]:
+                return None
+            if way == 'open':
+                way = 'ends' if gone_by + t < 0.025 else 'crack'
+            p, far, gone_by = hit + d * 0.0002, far - t - 0.0002, gone_by + t + 0.0002
+        return way
+
+    def hidden(f):
+        """Hidden by the hair, poking through it or lying in it.  Under both columns' hems it is seen only through
+        the strands' ends right over it; nearer the hem also beside the shell."""
+        deep = all(i[2] < i[5] - 0.006 for i in info[f])
+        n = (mw.to_3x3() @ f.normal).normalized()
+        vs = [mw @ v.co for v in f.verts]
+        for p in vs + [(a + b) / 2 for a, b in zip(vs, vs[1:] + vs[:1])] + [sum(vs, Vector()) / len(vs)]:
+            if through(p, ((C if p.z > C.z else Vector((C.x, C.y, p.z))) - p).normalized(), 0.02) is None or \
+                    close.find_nearest(p, 0.002)[0] is not None:
+                return True
+        # seen: from some way of looking, and past the hair every way 5 degrees beside it and 10 above and below,
+        # with no hair behind it (then it would stand out of the hair)
+        for p in vs + [sum(vs, Vector()) / len(vs)]:
+            p = p + n * 0.0005
+            seen = {}
+
+            def sees(k):
+                if k not in seen:
+                    d = looks.get(k)
+                    w = None if d is None else through(p, d, 0.5)
+                    seen[k] = None if w is None or head.ray_cast(p + d * 0.0005, d, 0.5)[0] is not None else w
+                return seen[k]
+            for (y, t), d in looks.items():
+                if d.dot(n) > 0.02 and sees((y, t)) in (('ends',) if deep else ('open', 'ends')) and \
+                        all(sees((y + dy, t + dt)) in ('open', 'ends') for dy in (-5, 0, 5) for dt in (0, -10, 10)) \
+                        and through(p, -d, 0.03) is not None:
+                    return False
+        return True
+
     for f in bm.faces:
-        info = [where(mw @ v.co) for v in f.verts]
-        if all(s < lo - 0.03 and (dz > 0.0 or (abs(surf.style_azimuth(a)) > back and dz > -0.07)) for a, dz, s, lo, _, _ in info):
-            kill.append(f)
-        elif f.material_index == hair:
+        if f in gone:
+            continue
+        steep = any(i[6] > HEM_STEEP for i in info[f])
+        if f.material_index == hair:
             a = where(mw @ f.calc_center_median())[0]             # (a face any corner of which shows)
-            if (abs(surf.style_azimuth(a)) < 104 or not st.get('nape', True)) and any(s > here - 0.002 for _, _, s, _, here, _ in info):
+            if (abs(surf.style_azimuth(a)) < 104 or not st.get('nape', True)) and (
+                    any(s > here - 0.002 for _, _, s, _, here, _, _ in info[f]) or steep and not hidden(f)):
                 f.material_index = skin
-        elif all(s < short - 0.006 and dz > -0.03 for _, dz, s, _, _, short in info):
+        elif all(s < here - 0.006 and dz > -0.03 for _, dz, s, _, here, _, _ in info[f]) and (not steep or hidden(f)):
             f.material_index = hair                               # (skin under the hair: if it pokes through, as hair)
     bmesh.ops.delete(bm, geom=kill, context='FACES')
     bm.to_mesh(me)
@@ -3282,9 +3358,9 @@ def head_1997(pid, head, body, arm, spec):
             at = {i: n for n, i in enumerate(ring)}
             under.append(((name, [u_pts[i] for i in ring], [tuple(at[i] for i in f) for f in fs]), [u_follow[i] for i in ring],
                           [u_tips[i] for i in ring]))
-        head_trim(head, surf, st['under'], u_ends)
+        head_trim(head, surf, st['under'], u_ends, ((pts, faces, tips), (u_pts, u_faces, u_tips)))
     else:
-        head_trim(head, surf, st, ends)
+        head_trim(head, surf, st, ends, ((pts, faces, tips),))
     other = set(band) | set(streak)
     pieces = [('Hair', pts, [f for i, f in enumerate(faces) if i not in other])]
     weights, marks = list(follow), list(tips)
