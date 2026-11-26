@@ -236,7 +236,7 @@ PEOPLE = {
                        'loose white tee with YONSEI in blue across the chest, wide light jeans (연청), white trainers; long '
                        'black hair, the top half tied back',
                        paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')}, cut='wide',
-                       prints={'body': [dict(name='yonsei_ink', of=('White',), w=.22, z=1.40)]}, fit=dict(start=.11),
+                       prints={'body': [dict(name='yonsei_ink', of=('White',), w=.22, z=1.40)]}, 
                        face=dict(lid='inner', slant=.07, eye=1.03, jaw=1.03, smile=.0030, brow=.9, arch=1.35, brow_peak=.58, brow_len=1.05, brow_up=-.002, brow_soft=1.3,
                                  nose=.80, nose_curve=.9, tip_up=1.2, tip_round=.95, bridge=.20, nose_w=.96, nose_up=.001)),
     'p10': woman('tuck', 'Casual', 'Casual', 'Casual',
@@ -244,7 +244,7 @@ PEOPLE = {
                          'feet:Sole': '#cfccc4', 'Skin': SKIN['fair'], 'Hair': HAIR['dark']},
                         'pink knit, wide beige trousers, white trainers; short bob, one side behind the ear',
                         paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')},
-                        bust=1.3, fit='slim', face=dict(lid='inner', slant=.03, jaw=1.04, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
+                        bust=1.3, face=dict(lid='inner', slant=.03, jaw=1.04, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
                                   nose=.72, nose_curve=.85, tip_up=1.45, tip_round=1.25, bridge=.17, nose_w=1.02, nose_up=.002)),
     # 서연 (the film 건축학개론, 2012: a first-year of the college of music in 1996): a round, soft face, large eyes with
     # double lids, straight soft brows, a small nose, a ready smile; long straight hair worn down
@@ -288,7 +288,7 @@ PEOPLE = {
                                               dict(of=('LimeGreen',), to='Rib', x=(0, .082), y=(-.045, None), z=(1.492, None)),
                                               neckline(('LimeGreen',), to='Rib', drop=.036, half=.085, side=.06),
                                               neckline(('Rib',), drop=.020, half=.068, side=.06)]},
-                              roomy=1.16, cut='wide', fit='sweat',
+                              roomy=1.16, cut='wide',
                               face=dict(lid='double', slant=.10, eye=.99, jaw=.98, smile=.0022, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
                                         brow_peak=.68, brow_drop=1.0, brow_soft=1.3, nose=.84, tip_round=.9, bridge=.22, nose_w=.95)),
     'p13': woman('pixie', 'Suit', 'Casual', 'Casual',
@@ -301,7 +301,7 @@ PEOPLE = {
                                       nose=.76, nose_curve=.96, tip_up=1.05, tip_round=1.3, wing=1.1, bridge=.20, nose_w=1.08)),
     'p14': woman('perm', 'Suit', 'Suit', 'Suit',
                          {'Black': '#2f3644', 'White': '#eef0f2', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
-                         'office staff: navy suit, short permed hair', fit='jacket',
+                         'office staff: navy suit, short permed hair',
                          paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)]}, face=dict(lid='inner', slant=.0, jaw=1.06, eye=.95, brow_tilt=-.03, smile=.0014, age='mid',
                                                                                  brow=.9, arch=1.25, brow_len=.96, brow_soft=1.4, nose=.84, tip_up=.85, tip_round=1.1, bridge=.21, nose_w=1.10)),
     # (added last: the faces' cells go by this order)
@@ -319,7 +319,7 @@ PEOPLE = {
                                           *[dict(of=('LimeGreen',), to='Stripe', x=(x - .013, x + .013))
                                             for x in (.193, .249, .305, .361, .417, .473, .529)],
                                           neckline(('LimeGreen',), drop=.030, half=.085, side=.06)],
-                                 'feet': trainers('women', 'Grey')}, fit=False,
+                                 'feet': trainers('women', 'Grey')},
                           face=dict(lid='inner', slant=.06, eye=1.04, jaw=1.0, smile=.0027, mouth=1.0, brow=1.0, arch=.9, brow_len=1.0,
                                     brow_soft=1.5, nose=.80, tip_up=1.38, tip_round=.7, bridge=.20, nose_w=1.0, nose_up=.001)),
     'p16': man('curtain', 'Adventurer', 'Casual_2', 'Casual_2',
@@ -336,7 +336,7 @@ PEOPLE = {
                          'denim shirt (청남방) worn open over a white tee, beige cotton trousers, white trainers; hair to the '
                          'shoulders with a straight fringe',
                          paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)], 'feet': trainers('women', 'Grey')},
-                         bust=1.3, fit='shirt', face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
+                         bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
                                    brow_soft=1.6, nose=.78, nose_curve=.88, tip_up=1.12, tip_round=1.05, bridge=.19, nose_w=.98, nose_up=.001)),
 }
 RIGS = {'rig-umc': 'umc', 'rig-women': 'women'}
@@ -1194,29 +1194,29 @@ def long_sleeves(ob, arm, r0, r1, cuff=0.03):
 # stretch evenly, what is printed on the chest stays as it is) and turned in by `turn`, so that nobody looks up into
 # it.  Nothing moves from the armpits up.  Lengths in the source's units (x 0.93 men, 0.90 women in the game).
 # A person's own `fit`: one of these by name, a dict of what differs from the outfit's, or False: the pack's tight
-# fit (reference/고증 4.11: a few wore theirs so).
+# fit.
 FIT = {
     'tee': dict(hang=1.0, ease=(.008, .022), side=.5, hem=-.020, start=.07, turn=.022, sleeve=(.006, .024)),
     'shirt': dict(hang=1.0, ease=(.008, .024), side=.5, hem=-.035, start=.07, turn=.022, sleeve=(.004, .018)),
-    'knit': dict(hang=.75, ease=(.004, .012), side=.5, hem=.030, start=.07, turn=.018, sleeve=(.006, .009)),
-    'slim': dict(hang=.6, ease=(.002, .008), side=.5, hem=.040, start=.07, turn=.016, sleeve=(.002, .008)),
-    'sweat': dict(hang=1.0, ease=(.008, .016), side=.6, hem=.020, start=.07, turn=.020, sleeve=(.010, .016)),
     'hood': dict(hang=.6, ease=(.0, .004), side=.5, hem=None, start=.07, turn=.020, sleeve=None, cap=False),
     'jacket': dict(hang=.8, ease=(.004, .016), side=.5, hem=-.050, start=.09, turn=.020, sleeve=(.002, .008)),
-    'cardigan': dict(hang=1.0, ease=(.006, .016), side=.5, hem=.010, start=.09, turn=.020, sleeve=(.004, .012)),
     'vest': dict(hang=.8, ease=(.004, .012), side=.5, hem=-.010, start=.07, turn=.020, sleeve=(.004, .016)),
 }
+# The men's tops only.  The women's were hung the same way for a day (2026-11-26: tees, knits, a sweatshirt and
+# cardigans, the values in reference/고증 4.11) and taken back at the maker's word (「여자 캐릭터들은 이전 핏이 나은 것
+# 같다」): they keep the pack's fit.
 FITS = {('umc', 'Casual_2'): 'tee', ('umc', 'Adventurer'): 'shirt', ('umc', 'Casual_Hoodie'): 'hood', ('umc', 'Suit'): 'jacket',
-        ('umc', 'Worker'): 'vest', ('women', 'Casual'): 'tee', ('women', 'Formal'): 'knit', ('women', 'Suit'): 'cardigan'}
+        ('umc', 'Worker'): 'vest'}
 HANG_RAYS = 96                # directions round the trunk
 HANG_ARM = (0.3, 0.7)         # what the arms hold so much of is a sleeve: none of it moves with the trunk
 
 
 def fit_of(spec):
     own = spec.get('fit')
-    if own is False:
+    kind = own if isinstance(own, str) else FITS.get((spec['rig'], spec['parts']['body']))
+    if own is False or kind is None:
         return None
-    C = dict(FIT[FITS[(spec['rig'], spec['parts']['body'])] if not isinstance(own, str) else own])
+    C = dict(FIT[kind])
     if isinstance(own, dict):
         C.update(own)
     return C
