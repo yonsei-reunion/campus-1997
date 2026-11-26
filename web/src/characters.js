@@ -69,7 +69,8 @@ export const HERO = {
 //  - cloth is unevenly dyed and worn, takes a soft light at grazing angles (its fuzz), and folds: trousers stack up
 //    at the ankle and crease at the knee and the crotch, tops drape. The folds are a height over the rest pose
 //    (bumped), so they stay on the cloth as it moves; they fade where a fold is smaller than a pixel
-//  - skin has a little sheen
+//  - skin has a little sheen; in the sun, a warm band where the sun's light ends on it, and an ear with the sun behind
+//    it shines red (SKIN_SUN: the model says where skin is thin, in the attribute `leg`); from very near, its grain
 //  - hair, from near, is strands (HAIR): locks and threads running down from the crown, each a little darker or paler;
 //    its gloss two bands of light round the head where the strands lie across the light, from the sun and from the
 //    sky; and its hem the strands' own ends, each somewhere within the cut's raggedness of the shell's edge (the model
@@ -111,6 +112,7 @@ export const HERO = {
 // is drawn with a material of that model's own, which is PERSON_MAT with those two pictures: the same shader program,
 // where a uniform (uFaceIn, 0 on PERSON_MAT) lets everybody else skip the near face altogether. In the shader the two
 // faces are blended by how many pixels the atlas' cell takes on the screen (NEAR.px0 .. px1), so nothing pops.
+// The eyes of a near face turn to the view (GAZE, gazeOf): the eye's picture is read a little to the side.
 const KIND = { cloth: 0, skin: 1, hair: 2, hard: 3 };
 const kindOfPart = (name) => (name === 'Skin' ? KIND.skin : /^(Hair|Bridge)/.test(name) ? KIND.hair : /Glasses|feet/.test(name) ? KIND.hard : KIND.cloth);
 const SKIN_ROUGH = 0.5;
@@ -153,7 +155,17 @@ const GRID_F = '5.0';                  // (faces.py GRID)
 const NEAR = { px0: 64, px1: 128, ask: 48, keep: MOBILE ? 2 : 6, max: MOBILE ? 512 : Infinity, idle: 4000, fade: 350, hold: 150 };
 const EYE_GLOSS = [0.62, 0.92];        // the relief picture's gloss from which a pixel is the eye (faces.py EYE_GLOSS)
 const FACE_M = 0.14;                   // a cell's width on a face, m (faces.py 2 HALF, at the people's scale)
-const NO_FACE = { value: null }, NO_NEAR = { value: 0 };
+const NO_FACE = { value: null }, NO_NEAR = { value: 0 }, NO_GAZE = { value: new THREE.Vector2() };
+// skin in the sun (reference/고증 4.9.5). scatter: the light that went into the skin and comes out a little further on,
+// a warm band where the sun's light ends (of the sun's light, at its most); through: the sun behind thin skin (an
+// ear: the model's `thin`, in the attribute `leg` of skin) shines through it red; pore: the height of the skin's
+// grain from very near, m (desktop)
+const SKIN_SUN = { scatter: 0.24, through: 0.85, pore: 0.000035 };
+// the eyes turn to whoever looks at the face from near (the near face only: its picture is read a little to the side
+// in the eye's opening, so the iris moves under the lids). reach: how far the iris goes to the side and up or down, m
+// on the face; turn: the angle at which it is half way there, rad; out: past this angle to the side the eyes give up
+// and look ahead (nobody looks out of the corner of their eye for long); quick: how fast they move, 1/s
+const GAZE = { reach: [0.0028, 0.0008], turn: 0.42, out: [1.0, 1.35], eye: [0.07, 0.075], quick: 14 };
 const nearFaces = new Map();           // model id -> { state: 0 loading, 1 there, -1 none; mat, col, nor, fade, seen, since }
 function loadNear(id, name, srgb) {
   return new Promise((res, rej) => imageTexture(versioned(`${PEOPLE_DIR}faces/${id}${name}.png`), { srgb, max: NEAR.max }, (t) => {
@@ -180,7 +192,7 @@ function nearFace(id, now) {
     o.col.dispose(); o.nor.dispose(); o.mat.dispose();
     nearFaces.delete(old);
   }
-  nearFaces.set(id, f = { state: 0, seen: now, since: 0, fade: { value: 0 }, mat: null, col: null, nor: null });
+  nearFaces.set(id, f = { state: 0, seen: now, since: 0, fade: { value: 0 }, gaze: { value: new THREE.Vector2() }, mat: null, col: null, nor: null });
   Promise.all([loadNear(id, '', true), loadNear(id, '_n', false)]).then(([col, nor]) => {
     if (nearFaces.get(id) !== f) { col.dispose(); nor.dispose(); return; }
     // PERSON_MAT as it is (whatever was patched onto it: the shadows, the atmosphere) with this model's pictures
@@ -193,6 +205,7 @@ function nearFace(id, now) {
       sh.uniforms.uFaceHi = { value: col };
       sh.uniforms.uFaceN = { value: nor };
       sh.uniforms.uFaceIn = f.fade;
+      sh.uniforms.uGaze = f.gaze;
     };
     m.customProgramCacheKey = () => PERSON_MAT.customProgramCacheKey();
     Object.assign(f, { state: 1, mat: m, col, nor, since: performance.now() });
@@ -216,6 +229,7 @@ PERSON_MAT.onBeforeCompile = (sh) => {
   sh.uniforms.uFaceHi = NO_FACE;
   sh.uniforms.uFaceN = NO_FACE;
   sh.uniforms.uFaceIn = NO_NEAR;
+  sh.uniforms.uGaze = NO_GAZE;
   sh.vertexShader = sh.vertexShader
     .replace('#include <common>', '#include <common>\nattribute vec3 part;\nattribute float glass;\nattribute vec4 leg;\nvarying vec3 vPart, vRest, vRestN;\nvarying float vGlass;\nvarying vec4 vLeg;')
     .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPart = part;\nvGlass = glass;\nvLeg = leg;\nvRest = position;\nvRestN = normal;');
@@ -243,6 +257,7 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       varying vec4 vLeg;
       uniform sampler2D uRims, uFaceHi, uFaceN;
       uniform float uFaceIn;
+      uniform vec2 uGaze;
       // a line of half width w about x = 0, as much of the pixel as it covers (d: x over a pixel)
       float pLine( float x, float w, float d ) { return clamp( ( w - abs( x ) ) / max( d, 1e-5 ) + 0.5, 0.0, 1.0 ) * min( 1.0, 2.0 * w / max( d, 1e-5 ) ); }
       uniform float uBlinkT;
@@ -369,6 +384,16 @@ PERSON_MAT.onBeforeCompile = (sh) => {
           // (the eye is where the gloss is the eye's: faces.py EYE_GLOSS; its colour is its own, the rest is skin's)
           vec3 nearC = textureGrad( uFaceHi, nUv, nDx, nDy ).rgb, nearN = textureGrad( uFaceN, nUv, nDx, nDy ).rgb;
           float nearEye = smoothstep( ${EYE_GLOSS[0].toFixed(2)}, ${EYE_GLOSS[1].toFixed(2)}, nearN.z ) * ( 1.0 - pLid );
+          if ( nearEye > 0.0 ) {
+            // the eyes turned (uGaze, of the picture): the ball's picture is read from where it was, all of the way
+            // about the iris and less towards the corners, where the white of the eye only stretches
+            vec2 gE = vec2( ( abs( nUv.x - 0.5 ) - ${EYE_U.toFixed(4)} ) / ${EYE_A.toFixed(4)}, ( nUv.y - ${EYE_V.toFixed(4)} ) / ${EYE_B.toFixed(4)} );
+            vec2 gUv = nUv - uGaze * ( 1.0 - smoothstep( 0.45, 1.0, length( gE ) ) );
+            vec3 gC = textureGrad( uFaceHi, gUv, nDx, nDy ).rgb;
+            // (only where that place is the eye's opening too: at the lids' edges the picture there is skin)
+            float gIn = smoothstep( ${EYE_GLOSS[0].toFixed(2)}, ${EYE_GLOSS[1].toFixed(2)}, textureGrad( uFaceN, gUv, nDx, nDy ).z );
+            nearC = mix( nearC, gC, gIn * step( 0.5, nearEye ) );
+          }
           nearC = mix( nearC, mix( vec3( 0.90, 0.85, 0.84 ), vec3( 0.07, 0.05, 0.05 ), pLash ), pLid );
           diffuseColor.rgb = mix( diffuseColor.rgb, nearC * mix( pSkinLight, vec3( 1.0 ), nearEye ), pNearF );
           pFaceN.xy = ( nearN.xy * 2.0 - 1.0 ) * ( 1.0 - pLid );
@@ -477,6 +502,22 @@ PERSON_MAT.onBeforeCompile = (sh) => {
         reflectedLight.directSpecular = reflectedLight.directSpecular * ( 1.0 - hDull ) + hGloss;
         reflectedLight.indirectSpecular = reflectedLight.indirectSpecular * ( 1.0 - hDull ) + hGlow;
       }` : ''}
+      #if NUM_DIR_LIGHTS > 0
+      if ( pSkin > 0.0 ) {
+        // skin in the sun (SKIN_SUN): where the sun's light ends on it, a warm band (the light that went in comes out a
+        // little further on); and the sun behind thin skin, an ear, shines through it. directLight is still the
+        // sun's, with its shadows in its colour
+        float sN = dot( normal, directLight.direction );
+        vec3 sSun = directLight.color * material.diffuseColor * RECIPROCAL_PI * pSkin;
+        float sBand = smoothstep( - 0.40, 0.22, sN ) * ( 1.0 - smoothstep( 0.05, 0.60, sN ) );
+        reflectedLight.directDiffuse += sSun * vec3( 1.0, 0.30, 0.17 ) * ( ${SKIN_SUN.scatter.toFixed(2)} * sBand );
+        float sThin = vLeg.z * step( vLeg.x + vLeg.y, 0.005 );
+        if ( sThin > 0.0 ) {
+          float sFace = dot( - directLight.direction, normalize( vViewPosition ) );          // (looking into the sun: 1)
+          reflectedLight.directDiffuse += sSun * vec3( 1.0, 0.22, 0.10 ) * ( ${SKIN_SUN.through.toFixed(2)} * sThin * smoothstep( 0.25, - 0.35, sN ) * ( 0.35 + 0.65 * smoothstep( - 0.2, 0.8, sFace ) ) );
+        }
+      }
+      #endif
       {
         // the shut-in places: skin shades warm (the light that gets there has been through skin), the rest grey
         vec3 pShade = mix( vec3( 1.0 ), mix( vec3( 0.0 ), vec3( 0.62, 0.40, 0.33 ), pSkin ), vPart.z * mix( 1.0, 0.75, pSkin ) );
@@ -503,6 +544,9 @@ PERSON_MAT.onBeforeCompile = (sh) => {
   if (FINE) sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
       {
         float pH = pFolds( vRest, pLegs ) * pCloth * pNear + ( pLock - 0.5 ) * 0.0022 * pHairN;       // (locks stand off one another)
+        // (the skin's grain, from very near: its shine is broken up, not a film's)
+        float pPore = pSkin * ( 1.0 - smoothstep( 0.0003, 0.0010, pHairM ) );
+        if ( pPore > 0.0 ) pH += ( pNoise( vRest * 2600.0 ) + 0.6 * pNoise( vRest * 900.0 ) - 0.8 ) * ${SKIN_SUN.pore.toFixed(6)} * pPore;
         vec3 pDx = dFdx( - vViewPosition ), pDy = dFdy( - vViewPosition );
         vec3 pR1 = cross( pDy, normal ), pR2 = cross( normal, pDx );
         float pDet = dot( pDx, pR1 );
@@ -517,6 +561,31 @@ pcss(PERSON_MAT);
 //  - the face from near: the model's own material while a face is NEAR.ask pixels or more across and turned to the
 //    view (from the next frame on: this one's is already picked), PERSON_MAT otherwise
 const _vp = new THREE.Vector4(), _head = new THREE.Vector3(), _eye = new THREE.Vector3();
+const _hm = new THREE.Matrix4(), _hc = new THREE.Vector3();
+// where a person's eyes are turned (GAZE), as the near face's picture counts it (a share of its width; across, down):
+// towards the view, as seen from the head as it is held just now; kept on the mesh and eased, so two people of one
+// model each look their own way. Now and then they look ahead for a moment
+function gazeOf(mesh, camera, now, out) {
+  const u = mesh.userData, sk = mesh.skeleton;
+  if (u.headAt === undefined) {
+    u.headAt = sk ? sk.bones.findIndex((b) => b.name === 'Head') : -1;
+    u.gaze = new THREE.Vector2(); u.gazeAt = now; u.gazeSeed = Math.random() * 7;
+    // (the eyes, in the model as it stands at rest: over and before the head's joint)
+    if (u.headAt >= 0) u.eyes = new THREE.Vector3().setFromMatrixPosition(_hm.copy(sk.boneInverses[u.headAt]).invert()).add(new THREE.Vector3(0, GAZE.eye[0], GAZE.eye[1]));
+  }
+  if (u.headAt < 0) return out.set(0, 0);
+  // the view's place in the model at rest, as the head has moved since (the face looks along +z there)
+  _hm.multiplyMatrices(sk.bones[u.headAt].matrixWorld, sk.boneInverses[u.headAt]).invert();
+  _hc.setFromMatrixPosition(camera.matrixWorld).applyMatrix4(_hm).sub(u.eyes);
+  const yaw = Math.atan2(_hc.x, _hc.z), pitch = Math.atan2(_hc.y, Math.hypot(_hc.x, _hc.z));
+  const t = THREE.MathUtils.clamp((Math.abs(yaw) - GAZE.out[0]) / (GAZE.out[1] - GAZE.out[0]), 0, 1);
+  const k = ((now * 0.001 + u.gazeSeed) % 6.5 < 0.6 ? 0 : 1) * (1 - t * t * (3 - 2 * t));
+  const gx = GAZE.reach[0] * Math.tanh(yaw / GAZE.turn) * k / FACE_M, gy = -GAZE.reach[1] * Math.tanh(pitch / GAZE.turn) * k / FACE_M;
+  const a = 1 - Math.exp(-Math.min(0.1, (now - u.gazeAt) / 1000) * GAZE.quick);
+  u.gazeAt = now;
+  u.gaze.x += (gx - u.gaze.x) * a; u.gaze.y += (gy - u.gaze.y) * a;
+  return out.copy(u.gaze);
+}
 function faceLod(renderer, scene, camera, geometry) {
   if (!camera.isPerspectiveCamera) return;           // (the shadow pass: as the view left it)
   renderer.getCurrentViewport(_vp);
@@ -534,6 +603,7 @@ function faceLod(renderer, scene, camera, geometry) {
       if (f.mat.userData.base !== PERSON_MAT.version) { f.mat.userData.base = PERSON_MAT.version; f.mat.needsUpdate = true; }
       want = f.mat;
       u.nearAt = now;
+      gazeOf(this, camera, now, f.gaze.value);
     }
   } else if (this.material !== PERSON_MAT && performance.now() - u.nearAt < NEAR.hold) return;
   if (this.material !== want) this.material = want;
@@ -580,7 +650,7 @@ function mergeParts(root) {
     // (a checked shirt: where its sleeves begin, and the arms' axis: its height over 1 m, its depth + 0.5 m)
     else if (m.material.name === 'Check' && check) for (let i = 0; i < n; i++) leg.set(check, i * 4);
     g.setAttribute('leg', new THREE.Uint8BufferAttribute(leg, 4, true));
-    ranges.push({ name: m.material.name, start: at, count: n, hex: '#' + m.material.color.getHexString(), legs: !!sl && kind !== KIND.hair });
+    ranges.push({ name: m.material.name, start: at, count: n, hex: '#' + m.material.color.getHexString(), legs: !!sl && kind === KIND.cloth });
     at += n;
     const c = m.material.color, col = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
@@ -801,7 +871,8 @@ function dressed(geo, ranges, colors, glasses, blink = 0, print = true) {
 // The glasses are left out of it (from there on they are the drawn ones only, faceLod), a bag's few triangles kept.
 // Each person's mesh goes under a THREE.LOD with its far twin, bound to the same skeleton: three picks one per frame.
 const FAR_AT = MOBILE ? 20 : 30, FAR_GIVE = 0.08;
-const FAR_SHARE = 0.3, FAR_ERR = 0.01;          // (share of the triangles aimed at; error held to 1 % of the model's size)
+const FAR_SHARE = 0.265, FAR_ERR = 0.01;        // (share of the triangles aimed at: about 3,000, as before the face's finer
+//                                                 sheets came, blender/characters.py head_face; error held to 1 % of the model's size)
 // the model's own triangles but the glasses', simplified: { index (Uint32Array), count: the model's index length }
 function farIndexOf(geo, ranges) {
   const pos = geo.attributes.position, n = pos.count, P = new Float32Array(n * 3);

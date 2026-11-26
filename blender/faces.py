@@ -540,6 +540,175 @@ def _blur(a, sigma):
     return np.fft.irfft2(np.fft.rfft2(a) * np.exp(-2 * np.pi ** 2 * sigma ** 2 * (fx ** 2 + fy ** 2)), s=a.shape)
 
 
+# ---------- the face's relief as geometry ----------
+# Eyes and a mouth that are only drawn lie on the skull like a print: from the side the lips are a flat line, from
+# three quarters the eyes sit on the cheek's own round, and no light falls into a socket.  So the head's mesh takes
+# the larger forms of them (blender/characters.py head_face lets two finer sheets into the face, their rows along the
+# lids and the lips, and moves every point of them in depth by forms() below; the drawn face is laid on from the
+# front, so nothing of it moves):
+#   - the sockets: the skin round each eye lies behind the brow, the cheek and the bridge of the nose, deepest
+#     beside the nose (`socket`, `inner`); the lids swell over the ball of the eye (`dome`); in the opening the ball
+#     lies behind the lids' edges, most under the upper one (`ball`), with the cornea's rise; the lower lid's roll
+#   - the lips: the skin over the upper lip leans forward down to the lip's edge (`slope`), both lips are rolls
+#     (`lip_u`, `lip_l`: no more than a share of the lip's own height, so thin lips stay thin) with the line between
+#     them drawn in (`line`) and the corners drawn in (`corner`); the hollow under the lower lip (`sulcus`), the
+#     groove under the nose (`groove`)
+# The relief picture of the near face (draw_near) keeps only what the mesh is too coarse for: the same forms less
+# their blur over FORMS_MESH, and the fine lines.
+FORMS = {
+    'umc': dict(socket=.0027, inner=.0015, dome=.0020, ball=.0010, roll=.0003, slope=.0010, lip_u=.0021, lip_l=.0025,
+                sulcus=.0016, line=.0007, corner=.0007, groove=.0005, chin=.0115),
+    'women': dict(socket=.0023, inner=.0012, dome=.0019, ball=.0010, roll=.0003, slope=.0010, lip_u=.0023, lip_l=.0026,
+                  sulcus=.0014, line=.0007, corner=.0006, groove=.0005, chin=.0085),
+}
+FORMS_TOP, FORMS_BOT = 0.026, -0.024      # the eyes' sheet: from so far over the eye line down to so far under it
+FORMS_NOSE = 0.0075                       # the mouth's sheet begins so far under the nose's foot
+#                                          and ends `chin` under the lower lip (a woman's chin is shorter), or higher
+#                                          where the face turns under the jaw before that (sheets' `floor`)
+FORMS_MESH = 0.0010                       # what the sheets hold: forms no finer than about this (the blur's sigma, m)
+EYE_COLS = (-1.62, -1.30, -1.06, -0.85, -0.55, -0.20, 0.15, 0.50, 0.80, 1.02)    # of the eye's half width, from its middle
+EYE_OUT = (0.0035, 0.0075)                 # then, beyond the outer corner: m
+MOUTH_COLS = (0.0, 0.12, 0.27, 0.45, 0.63, 0.80, 0.93, 1.04)      # of the mouth's half width; then, beyond the corner:
+MOUTH_OUT = (0.0035, 0.0065, 0.0100)                               # m
+
+
+def lip_edges(rig, face, X):
+    """The mouth at the places X across the face: (tx: X in half widths of the mouth, the line between the lips, the
+    upper lip's upper edge, the lower lip's lower edge) as heights over the eye line, and (half width, the lower
+    lip's height, the upper lip's, the line's height at the corners)."""
+    f = FACE[rig]
+    mw = f['mouth'][0] * face.get('mouth', 1.0)
+    mz = f['mouth_dz']
+    smile = face.get('smile', 0.0024)
+    curve = lambda t: mz + smile * np.abs(t) ** 2.0 - 0.0004 * np.exp(-(t / 0.2) ** 2)         # noqa: E731
+    lip = f['lip'] * face.get('lip', 1.0)
+    hu = lip * face.get('lip_up', LIP_UP[rig])
+    tx = np.asarray(X, float) / mw
+    cz = curve(np.clip(tx, -1.0, 1.0))
+    bow = face.get('bow', 1.0)
+    up_edge = cz + hu * np.maximum(0.0, 1 - (tx / 0.9) ** 2) ** 0.6 * (1 - min(0.6, 0.3 * bow) * np.exp(-(tx / 0.16) ** 2)) \
+        * (1 + 0.10 * (bow - 1) * np.exp(-((np.abs(tx) - 0.27) / 0.13) ** 2))
+    lo_edge = cz - lip * np.maximum(0.0, 1 - (tx / 0.82) ** 2) ** 0.7
+    return tx, cz, up_edge, lo_edge, (mw, lip, hu, curve(1.0))
+
+
+def forms(rig, face, X, Z):
+    """The relief of the face that the mesh holds (see FORMS): how far each place (X across the face, Z over the eye
+    line; arrays) stands off the smooth skull, m; forward is positive."""
+    f, F = FACE[rig], FORMS[rig]
+    X, Z = np.asarray(X, float), np.asarray(Z, float)
+    h = np.zeros(X.shape)
+    k = face.get('eye', 1.0)
+    deep = (0.6 + 0.4 * face.get('socket', 1.0)) * face.get('deep', 1.0)
+    for sx in (1, -1):
+        ex, hw, top, bot = eye_curves(f, face, sx)
+        T = (X - ex) / (sx * hw)
+        zt, zb = top(T), bot(T)
+        zc = (top(0.0) + bot(0.0)) / 2
+        # the socket: all of the skin round the eye, from under the brow down to the cheek, and beside the nose
+        bx = _smooth(-1.72, -1.02, T) * _smooth(1.0 + (EYE_OUT[-1] - 0.001) / hw, 0.55, T)
+        # (under the eye it runs out slowly into the cheek: a slope there looks up and takes the sky's light as a
+        # pale band)
+        bz = _smooth(FORMS_TOP - 0.002, 0.010, Z) * _smooth(FORMS_BOT + 0.001, float(bot(0.0)) + 0.001, Z)
+        h -= F['socket'] * deep * bx * bz
+        h -= F['inner'] * deep * _gauss(X, Z, ex - sx * 1.10 * hw, 0.0035, 0.0060, 0.0085)
+        # the lids over the ball; a single eyelid is full up to the brow
+        d2 = ((X - ex) / (1.02 * hw)) ** 2 + ((Z - zc) / 0.0118) ** 2
+        h += F['dome'] * np.maximum(0.0, 1 - d2) ** 1.5
+        if face.get('lid', 'inner') == 'mono':
+            h += 0.0007 * bx * _gauss(X, Z, ex, top(0.0) + 0.0055, 0.95 * hw, 0.0050)
+        # the opening: the ball behind the lids' edges, the cornea
+        edge = 0.0005
+        inside = np.clip((zt - Z) / edge, 0.0, 1.0) * np.clip((Z - zb) / edge, 0.0, 1.0) * (np.abs(T) < 1.0)
+        v = np.clip((Z - zb) / np.maximum(zt - zb, 1e-6), 0.0, 1.0)
+        di = np.hypot(X - ex, Z - (zc + 0.0006)) / (f['iris'] * k)
+        h += inside * (-F['ball'] * (0.35 + 0.65 * v) + 0.0004 * np.maximum(0.0, 1 - di * di))
+        # the lower lid's roll (애교살: more of it)
+        q = zb - Z
+        h += (F['roll'] + 0.0004 * face.get('aegyo', 0.0)) * np.exp(-((q - 0.0013 * k) / 0.0011) ** 2) * (q > 0) \
+            * _smooth(1.0, 0.7, np.abs(T))
+    # the mouth
+    tx, cz, ue, le, (mw, lip, hu, zcorner) = lip_edges(rig, face, X)
+    nz = f['nose_dz']
+    ax = np.abs(tx)
+    ztop = nz - FORMS_NOSE
+    s = np.clip((ztop - Z) / np.maximum(ztop - ue, 1e-6), 0.0, 1.0)
+    vu = np.clip((Z - cz) / np.maximum(ue - cz, 1e-6), 0.0, 1.0)
+    vl = np.clip((cz - Z) / np.maximum(cz - le, 1e-6), 0.0, 1.0)
+    lean = F['slope'] * _smooth(mw + 0.009, 0.70 * mw, np.abs(X))
+    over, on_up, on_lo = Z >= ue, (Z < ue) & (Z >= cz), (Z < cz) & (Z > le)
+    h += over * lean * s * s * (3 - 2 * s)
+    up = min(F['lip_u'], 0.55 * hu) * np.maximum(0.0, 1 - (tx / 0.95) ** 2) ** 0.5
+    lo = min(F['lip_l'], 0.46 * lip) * np.maximum(0.0, 1 - (tx / 0.86) ** 2) ** 0.5
+    h += on_up * (lean * vu ** 0.6 + up * (4 * vu * (1 - vu)) ** 0.75)
+    h += on_lo * lo * (0.8 * (4 * vl * (1 - vl)) ** 0.6 + 0.2 * vl)
+    h += (Z <= le) * 0.2 * lo * np.exp(-np.maximum(le - Z, 0.0) / 0.0025)
+    h -= F['sulcus'] * np.exp(-((le - Z - 0.40 * F['chin']) / (0.28 * F['chin'])) ** 2) * np.exp(-(X / (0.75 * mw)) ** 2)
+    h -= F['line'] * np.exp(-((Z - cz) / 0.0008) ** 2) * _smooth(1.08, 0.90, ax)
+    for sx in (1, -1):
+        h -= F['corner'] * _gauss(X, Z, sx * 1.03 * mw, zcorner, 0.0026, 0.0026)
+    under = _smooth(ztop, ztop - 0.003, Z) * (Z > ue)
+    h += (-F['groove'] * np.exp(-(X / 0.0034) ** 2) + 0.00018 * np.exp(-((np.abs(X) - 0.0052) / 0.0022) ** 2)) * under
+    return h
+
+
+def sheets(rig, face, floor=None):
+    """The two sheets of the face's relief as rows [[(x, z, height), ...], ...] (as characters.py nose_shape: from
+    the top down, every row from the person's right to their left; the outermost rows and columns lie on the face):
+    the eyes' (one sheet across both, its rows along the lids), the mouth's (its rows along the lips; floor(x): the
+    height over the eye line under which the face at x turns away under the jaw: the sheet ends there)."""
+    f = FACE[rig]
+    # the eyes: by column, the heights of the lids there (beyond the corners the two keep a little apart, so that no
+    # row meets another)
+    cols = []
+    ex, hw, top, bot = eye_curves(f, face, 1)
+    for t in EYE_COLS + tuple(1 + d / hw for d in EYE_OUT):
+        zt, zb = float(top(t)), float(bot(t))
+        mid, half = (zt + zb) / 2, max((zt - zb) / 2, 0.0009)
+        cols.append((ex + hw * t, mid + half, mid - half))
+    mid, half = cols[0][1:]
+    cols = [(-x, a, b) for x, a, b in reversed(cols)] + [(0.0, cols[0][1], cols[0][2])] + cols
+    ups, ins, downs = (0.80, 0.60, 0.42, 0.27, 0.15, 0.05), (0.22, 0.50, 0.78), (0.06, 0.18, 0.34, 0.52, 0.70, 0.86)
+    rows = [[(x, FORMS_TOP) for x, _, _ in cols]]
+    rows += [[(x, a + (FORMS_TOP - a) * q) for x, a, _ in cols] for q in ups]
+    rows += [[(x, a) for x, a, _ in cols]]
+    rows += [[(x, a - (a - b) * q) for x, a, b in cols] for q in ins]
+    rows += [[(x, b) for x, _, b in cols]]
+    rows += [[(x, b - (b - FORMS_BOT) * q) for x, _, b in cols] for q in downs]
+    rows += [[(x, FORMS_BOT) for x, _, _ in cols]]
+    eyes = rows
+    # the mouth: by column, the line and the lips' edges (kept apart likewise)
+    mw = f['mouth'][0] * face.get('mouth', 1.0)
+    xs = [mw * t for t in MOUTH_COLS] + [mw + d for d in MOUTH_OUT]
+    xs = [-x for x in reversed(xs[1:])] + xs
+    _, cz, ue, le, (_, lip, _, _) = lip_edges(rig, face, np.array(xs))
+    zt, zb = f['nose_dz'] - FORMS_NOSE, f['mouth_dz'] - lip - FORMS[rig]['chin']
+    cols = [(x, float(c), float(max(u, c + 0.0008)), float(min(l, c - 0.0008)), max(zb, floor(x)) if floor else zb)
+            for x, c, u, l in zip(xs, cz, ue, le)]
+    if any(l - e < 0.003 for _, _, _, l, e in cols):
+        raise SystemExit('the face turns under the jaw less than 3 mm under the lower lip')
+    rows = [[(x, zt) for x, *_ in cols]]
+    rows += [[(x, u + (zt - u) * q) for x, _, u, _, _ in cols] for q in (0.55, 0.22)]
+    rows += [[(x, u) for x, _, u, _, _ in cols], [(x, (c + u) / 2) for x, c, u, _, _ in cols], [(x, c) for x, c, *_ in cols]]
+    rows += [[(x, c - (c - l) * q) for x, c, _, l, _ in cols] for q in (0.40, 0.75)]
+    rows += [[(x, l) for x, _, _, l, _ in cols]]
+    rows += [[(x, l - (l - e) * q) for x, _, _, l, e in cols] for q in (0.10, 0.25, 0.45, 0.70)]
+    rows += [[(x, e) for x, *_, e in cols]]
+    mouth = rows
+    out = []
+    for rows in (eyes, mouth):
+        X, Z = np.array([[p[0] for p in row] for row in rows]), np.array([[p[1] for p in row] for row in rows])
+        H = forms(rig, face, X, Z)
+        H[0, :] = H[-1, :] = H[:, 0] = H[:, -1] = 0.0
+        if rows is mouth and floor:                         # (where the sheet ends early, what is left of the hollow eases out)
+            for c in range(H.shape[1]):
+                cut = Z[-1, c] - zb
+                if cut > 0:
+                    H[9:, c] *= np.clip((Z[9:, c] - Z[-1, c]) / max(Z[8, c] - Z[-1, c], 1e-6), 0.0, 1.0) ** 0.5 if cut > 0.002 else 1.0
+        out.append([[(float(x), float(z), float(h)) for x, z, h in zip(*r)] for r in zip(X, Z, H)])
+    return out
+
+
 def draw_near(rig, face, skin, brow, seed=0, n=NEAR):
     """A person's face from near: (colour (n, n, 3): factors of the skin's light, in the eye a colour of its own,
     relief (n, n, 3): the normal's x and y (-1 .. 1) and the gloss (0 .. 1; the eye's says where the eye is))."""
@@ -679,19 +848,10 @@ def draw_near(rig, face, skin, brow, seed=0, n=NEAR):
         if age == 'old':                                    # the fold under an older eye
             ts = np.linspace(-0.55, 0.75, 14)
             tint(ink, cv.stroke([(at(t), bot(t) - 0.0042 - 0.0012 * (1 - t * t)) for t in ts], 0.0003, soft=3.0), LINE, 0.5)
-        # the relief: the ball lies behind the upper lid's edge and is round; the upper lid swells over it a little,
-        # with its crease; the socket beside the nose (under the eye the shade alone: any relief there catches the
-        # light from above as a pale ring)
-        round_ = -0.00005 - 0.00095 * np.clip((Z - zb) / np.maximum(zt - zb, 1e-6), 0.0, 1.0) - dx ** 2 / (2 * 0.050) - (Z - zc) ** 2 / (2 * 0.030) + 0.0005 * np.clip(1 - d * d, 0.0, 1.0)
-        skin_h = 0.0005 * np.exp(-(np.maximum(Z - zt, 0.0) / 0.0050) ** 2) * (Z > zt) * beside
-        skin_h -= 0.0009 * _gauss(X, Z, ex - sx * 0.92 * hw, 0.0060, 0.0080, 0.0100)
+        # the relief: the crease's fine line (the socket, the lids over the ball and the ball behind them are the
+        # mesh's: forms)
         if crease:
-            skin_h -= 0.00022 * cv.stroke(crease, 0.0007, soft=6.0)
-        if aegyo:
-            vv = zb - Z
-            skin_h += aegyo * (0.00016 * np.exp(-((vv - 0.0016 * k) / 0.0011) ** 2) - 0.00014 * np.exp(-((vv - 0.0034 * k) / 0.0011) ** 2)) \
-                * (vv > 0) * _smooth(1.0, 0.75, np.abs(T))
-        h += skin_h * (1 - inside) + round_ * inside
+            h -= 0.00022 * cv.stroke(crease, 0.0007, soft=6.0) * (1 - inside)
                 # the brow: a soft ground, lighter than the far face's one stroke, and its hairs over it: at the head they
         # stand up, further out those of the lower edge lean up and those of the upper edge down, towards the tail
         tb, bz, bth = brow_line(f, face, hw, slant)
@@ -725,23 +885,14 @@ def draw_near(rig, face, skin, brow, seed=0, n=NEAR):
             tint(mul, hair(strand, 0.00016 * (1 - 0.6 * ps), soft=1.2), to, 0.90 * weight * edge * (1 - 0.5 * _smooth(0.85, 1.0, s)))
     # the mouth: the line between the lips as the far face draws it, thinner, in its shade; over it the upper lip with
     # its dip, under it the lower lip
-    mw, mt = f['mouth']
-    mw *= face.get('mouth', 1.0)
+    mt = f['mouth'][1] * face.get('mouth_line', 1.0)
     mz = f['mouth_dz']
-    smile = face.get('smile', 0.0024)
-    curve = lambda t: mz + smile * np.abs(t) ** 2.0 - 0.0004 * np.exp(-(t / 0.2) ** 2)         # noqa: E731
     to, strength = LIP_NEAR[rig]
     to = face.get('lip_tint', to)
     strength = min(1.0, strength * face.get('lip_ink', 1.0))
-    mt *= face.get('mouth_line', 1.0)
-    lip = f['lip'] * face.get('lip', 1.0)
-    hu = lip * face.get('lip_up', LIP_UP[rig]) * (1.0 if woman else 1.0)
-    tx = X / mw
-    cz = curve(np.clip(tx, -1.0, 1.0))
+    tx, cz, up_edge, lo_edge, (mw, lip, hu, _) = lip_edges(rig, face, X)
+    curve = lambda t: lip_edges(rig, face, mw * np.asarray(t, float))[1]                       # noqa: E731
     bow = face.get('bow', 1.0)
-    up_edge = cz + hu * np.maximum(0.0, 1 - (tx / 0.9) ** 2) ** 0.6 * (1 - min(0.6, 0.3 * bow) * np.exp(-(tx / 0.16) ** 2)) \
-        * (1 + 0.10 * (bow - 1) * np.exp(-((np.abs(tx) - 0.27) / 0.13) ** 2))
-    lo_edge = cz - lip * np.maximum(0.0, 1 - (tx / 0.82) ** 2) ** 0.7
     upper = np.clip(0.5 + (up_edge - Z) / (4.0 * px), 0.0, 1.0) * np.clip(0.5 + (Z - cz) / (1.5 * px), 0.0, 1.0) * (np.abs(tx) < 0.9)
     lower = np.clip(0.5 + (cz - Z) / (1.5 * px), 0.0, 1.0) * np.clip(0.5 + (Z - lo_edge) / (8.0 * px), 0.0, 1.0) * (np.abs(tx) < 0.82)
     vu = np.clip((Z - cz) / np.maximum(up_edge - cz, 1e-5), 0.0, 1.0)
@@ -766,8 +917,6 @@ def draw_near(rig, face, skin, brow, seed=0, n=NEAR):
     low0 = mz - lip
     tint(mul, _gauss(X, Z, 0.0, low0 - 0.0040, 0.60 * mw, 0.0030), SHADE, 0.32)
     tint(mul, _gauss(X, Z, 0.0, nz - 0.0030, 0.0110, 0.0040), SHADE, 0.12)
-    top0 = mz + hu * (1 - min(0.6, 0.3 * bow))
-    between = _smooth(top0, top0 + 0.002, Z) * _smooth(nz - 0.001, nz - 0.004, Z)
     # a little colour on the cheeks and the nose (a young woman's cheeks more, as on the far face)
     for sx in (1, -1):
         if woman and not age:
@@ -804,15 +953,18 @@ def draw_near(rig, face, skin, brow, seed=0, n=NEAR):
                     x0, z0 = ex + sx * hw * 1.12, top(1.0)
                     crow = [(x0 + sx * 0.0060 * q, z0 + 0.0060 * q * a - 0.0006 * q * q) for q in np.linspace(0.0, 1.0, 8)]
                     tint(ink, cv.stroke(crow, 0.00022, soft=3.0), LINE, 0.4)
-    # the lips' relief and gloss: two rolls and the groove between them, the hollows under the lip and under the nose
-    h += 0.0012 * (4 * vu * (1 - vu)) ** 0.7 * upper
-    h += 0.0019 * (4 * vl * (1 - vl)) ** 0.6 * lower * np.maximum(0.0, 1 - tx ** 2) ** 0.5
-    h -= 0.0010 * np.exp(-((Z - cz) / 0.0007) ** 2) * _smooth(1.08, 0.95, np.abs(tx))
-    h -= 0.0007 * _gauss(X, Z, 0.0, low0 - 0.0040, 0.60 * mw, 0.0030)
-    h += (-0.00030 * np.exp(-(X / 0.0034) ** 2) + 0.00010 * np.exp(-((np.abs(X) - 0.0052) / 0.0022) ** 2)) * between
+    # the lips' gloss
+    # (the lips' rolls, the groove between them and the hollows are the mesh's: forms; here what is finer than it)
+    form = forms(rig, face, X, Z)
+    h += form - _blur(form, FORMS_MESH / px)
     gloss = np.maximum(gloss, LIP_GLOSS * lower * (0.6 + 0.4 * np.exp(-((vl - 0.36) / 0.25) ** 2)))
     gloss = np.maximum(gloss, 0.30 * upper)
     gloss = np.maximum(gloss, 0.22 * _gauss(X, Z, 0.0, nz + 0.014, 0.0060, 0.0150))
+    # (and where the skin lies tight over bone and is a little oily: the brow's middle, the cheekbones, the chin)
+    gloss = np.maximum(gloss, 0.16 * _gauss(X, Z, 0.0, 0.030, 0.026, 0.012))
+    for sx in (1, -1):
+        gloss = np.maximum(gloss, 0.14 * _gauss(X, Z, sx * 0.041, nz + 0.024, 0.013, 0.008))
+    gloss = np.maximum(gloss, 0.10 * _gauss(X, Z, 0.0, mz - lip - 0.013, 0.010, 0.006))
     # bare at the cell's edge: the faces of the mesh just outside the frame have none of it
     edge = np.minimum(np.minimum(X + HALF, HALF - X), np.minimum(TOP - Z, Z - (TOP - 2 * HALF)))
     win = _smooth(MARGIN, MARGIN + 0.005, edge)

@@ -2040,6 +2040,8 @@ def skirt_sit(arm, parts, s):
 # women: Adventurer), which is softened (one level of subdivision), loses the doll's eyes and brows, and gets
 #   - eyes, brows and a mouth drawn in a few lines: the front of the face is laid on the person's cell of the atlas
 #     faces.png (face_map; the drawing and its lengths: faces.py), the rest of the person on the atlas' blank cell,
+#   - the relief of the eyes and the mouth: two finer sheets let into the face, moved in depth by the drawing's own
+#     curves (head_face; faces.py FORMS: the sockets, the lids over the ball, the lips), and the nose (head_nose),
 #   - glasses, thin metal rims a centimetre off the eyes (everybody has a pair; the game shows it or not),
 #   - hair as a shell around the skull: columns run from the crown down to a hem whose height is given by azimuth
 #     (HAIR_STYLES), lie `vol` off the scalp and hang free below it; the hanging part has an inner side.  The strands
@@ -2619,10 +2621,12 @@ def nose_shape(fy, ez, nb, face, rig):
     return [[(x, z1 + NOSE_APRON, 0.0) for x, _, _ in rows[0]]] + rows + [[(x, nb - NOSE_APRON, 0.0) for x, _, _ in rows[-1]]]
 
 
-def head_nose(ob, L, face, rig):
-    """The nose (see NOSE): a sheet of heights off the face, let into the skin.  The faces of the skull under it go,
-    and the ring between the hole and the sheet's rim, which lies on the face, is filled with triangles: one skin, so
-    the nose is shaded with the face and nothing shows where it begins."""
+def sheet_in(ob, shape, name, deep=0.01):
+    """A sheet of heights off the face let into the skin: shape(fy) gives its rows [[(x, z, height), ...], ...] from
+    the top down, every row from the person's right to their left, the outermost rows and columns on the face
+    (fy(x, z): the face seen from the front).  The faces of the skull under it go, and the ring between the hole and
+    the sheet's rim is filled with triangles: one skin, shaded as one.  Returns (the faces made, the mesh's matrix,
+    the bmesh: the caller checks them and writes the mesh)."""
     import bmesh
     from mathutils.bvhtree import BVHTree
     from mathutils.geometry import delaunay_2d_cdt
@@ -2637,10 +2641,10 @@ def head_nose(ob, L, face, rig):
 
     def fy(x, z):
         return tree.ray_cast(Vector((x, -0.6, z)), Vector((0, 1, 0)))[0].y
-    rows = nose_shape(fy, eye_line(L, face), L['nose'][0].z, face, rig)
+    rows = shape(fy)
     NR, NC = len(rows) - 1, (len(rows[0]) - 1) // 2
     grid = [[Vector((x, fy(x, z) - h, z)) for x, z, h in row] for row in rows]
-    # the rim, round the nose, and the faces of the skull that reach under it (a little more than it)
+    # the rim, round the sheet, and the faces of the skull that reach under it (a little more than it)
     ring = [(r, 0) for r in range(NR)] + [(NR, c) for c in range(2 * NC)] + [(r, 2 * NC) for r in range(NR, 0, -1)] \
         + [(0, c) for c in range(2 * NC, 0, -1)]
     rim = [(grid[r][c].x, grid[r][c].z) for r, c in ring]
@@ -2649,7 +2653,7 @@ def head_nose(ob, L, face, rig):
            for x, z in rim]
     x0, x1 = min(x for x, _ in out), max(x for x, _ in out)
     z0, z1 = min(z for _, z in out), max(z for _, z in out)
-    front = min(p.y for row in grid for p in row) - 0.01, max(p.y for row in grid for p in row) + 0.01
+    front = min(p.y for row in grid for p in row) - 0.01, max(p.y for row in grid for p in row) + deep
     gone = []
     for f in bm.faces:
         ps = [cos[v.index] for v in f.verts]
@@ -2663,7 +2667,7 @@ def head_nose(ob, L, face, rig):
                        for i in range(len(q)) for j in range(len(out)))):
             gone.append(f)
     if not gone:
-        raise SystemExit(f'{ob.name}: no face of the skull under the nose')
+        raise SystemExit(f'{ob.name}: no face of the skull under the {name}')
     mat = gone[0].material_index
     dead = set(gone)
     edge = [e for f in gone for e in f.edges if any(g not in dead for g in e.link_faces)]
@@ -2673,7 +2677,7 @@ def head_nose(ob, L, face, rig):
         for v in e.verts:
             nxt.setdefault(v, []).append(e)
     if any(len(es) != 2 for es in nxt.values()):
-        raise SystemExit(f'{ob.name}: the hole for the nose is not one loop')
+        raise SystemExit(f'{ob.name}: the hole for the {name} is not one loop')
     hole, e = [edge[0].verts[0]], edge[0]
     while True:
         v = e.other_vert(hole[-1])
@@ -2682,7 +2686,7 @@ def head_nose(ob, L, face, rig):
         hole.append(v)
         e = next(x for x in nxt[v] if x is not e)
     if len(hole) != len(edge):
-        raise SystemExit(f'{ob.name}: the hole for the nose is not one loop')
+        raise SystemExit(f'{ob.name}: the hole for the {name} is not one loop')
     bmesh.ops.delete(bm, geom=gone, context='FACES')
     dl = bm.verts.layers.deform.verify()
     hp = [mw @ v.co for v in hole]
@@ -2714,13 +2718,21 @@ def head_nose(ob, L, face, rig):
     loops = [(i, (i + 1) % nh) for i in range(nh)] + [(nh + i, nh + (i + 1) % nr) for i in range(nr)]
     res = delaunay_2d_cdt([Vector(p) for p in pts], loops, [], 0, 1e-7)
     if len(res[0]) != len(pts):
-        raise SystemExit(f'{ob.name}: the hole for the nose crosses its rim')
+        raise SystemExit(f'{ob.name}: the hole for the {name} crosses its rim')
     both = hole + rv
     for tri in res[2]:
         x, z = (sum(pts[i][k] for i in tri) / 3 for k in (0, 1))
         if _inside(pts[:nh], x, z) and not _inside(rim, x, z):
             new_face([both[i] for i in tri])
     bmesh.ops.recalc_face_normals(bm, faces=made)
+    return made, fy, bm
+
+
+def head_nose(ob, L, face, rig):
+    """The nose (see NOSE): a sheet of heights off the face, let into the skin (sheet_in), so the nose is shaded with
+    the face and nothing shows where it begins."""
+    mw = ob.matrix_world
+    made, fy, bm = sheet_in(ob, lambda fy: nose_shape(fy, eye_line(L, face), L['nose'][0].z, face, rig), 'nose')
     # every face of it looks away from the inside of the head (a point behind the bridge; the underside is nearly
     # level and a nostril's front wall looks back and down, so `forward` is no test)
     ez, nb = eye_line(L, face), L['nose'][0].z
@@ -2728,8 +2740,41 @@ def head_nose(ob, L, face, rig):
     for f in made:
         if (mw.to_3x3() @ f.normal).dot(mw @ f.calc_center_median() - core) < 0:
             raise SystemExit(f'{ob.name}: a face of the nose looks in')
-    bm.to_mesh(me)
+    bm.to_mesh(ob.data)
     bm.free()
+
+
+def head_face(ob, L, face, rig):
+    """The eyes' and the mouth's relief (faces.py FORMS): two sheets let into the face before the nose is, their rows
+    along the lids and the lips, every point moved in depth only (the drawn face is laid on from the front: it stays
+    where it is).  Returns how far the eyes' middles now lie behind the smooth face (the glasses stay where they were)."""
+    ez = eye_line(L, face)
+    rot = ob.matrix_world.to_3x3()
+
+    def shape(fy, i):
+        def floor(x):
+            # down from the mouth: where the face leans back more than 45 degrees, or turns from the front by 58
+            z, step = ez + FACE[rig]['mouth_dz'], 0.001
+            while z > ez + FACE[rig]['mouth_dz'] - 0.04:
+                try:
+                    dz = (fy(x, z - step) - fy(x, z)) / step
+                    dx = (fy(x + step, z) - fy(x - step, z)) / (2 * step)
+                except AttributeError:                       # (past the face)
+                    break
+                if dz > 1.0 or math.hypot(dx, dz) > 1.6:
+                    break
+                z -= step
+            return z + 0.002 - ez
+        return [[(x, ez + z, h) for x, z, h in row] for row in faces_mod.sheets(rig, face, floor)[i]]
+    for i, name in enumerate(('eyes', 'mouth')):
+        made, fy, bm = sheet_in(ob, lambda fy: shape(fy, i), name, deep=0.03)
+        for f in made:
+            if (rot @ f.normal).y > -0.02:
+                raise SystemExit(f'{ob.name}: a face of the {name} looks away')
+        bm.to_mesh(ob.data)
+        bm.free()
+    _, ex, _, _ = faces_mod.rim_frame(rig, face)
+    return float(faces_mod.forms(rig, face, [ex], [glasses_line(L) - ez])[0])
 
 
 class HeadSurface:
@@ -3048,9 +3093,10 @@ def glasses_line(L):
     return (L['eyes'][0][0].z + L['eyes'][0][1].z) / 2 - 0.001
 
 
-def face_glasses(surf, L, rig, face):
+def face_glasses(surf, L, rig, face, sunk=0.0):
     """Round-cornered rims a centimetre off the eyes, a bridge, and temples back to the ears: (points, faces).  The
-    frame and the rims' thickness are faces.py's, which draws the same glasses for the game to show from further off."""
+    frame and the rims' thickness are faces.py's, which draws the same glasses for the game to show from further off.
+    sunk: how far the eyes lie in their sockets (head_face; negative): the rims stand off the smooth face as before."""
     pts, faces = [], []
     ez = glasses_line(L)
     ear = max(L['ears'], key=lambda box: box[1].x)
@@ -3058,7 +3104,7 @@ def face_glasses(surf, L, rig, face):
     T, N = faces_mod.RIM_T, 16
     for box in L['eyes']:
         sx = 1 if box[0].x + box[1].x > 0 else -1
-        y = surf.front(sx * ex, ez)[0].y - 0.011
+        y = surf.front(sx * ex, ez)[0].y - 0.011 - sunk
         base = len(pts)
         for q in range(N):
             w = 2 * math.pi * q / N
@@ -3184,6 +3230,7 @@ def head_1997(pid, head, body, arm, spec):
     head_soften(head, L)
     head_profile(head, L, face, rig)
     head_jaw(head, L, face, rig)
+    sunk = head_face(head, L, face, rig)
     head_nose(head, L, face, rig)
     surf = HeadSurface(head, body, L)
     if spec.get('bridge'):
@@ -3238,7 +3285,7 @@ def head_1997(pid, head, body, arm, spec):
     for name in ('Hair', 'Band', 'Glasses', 'Bridge', 'HairFade', 'HairFade2'):
         colour_material(name, srgb_to_linear(col.get(name, defaults[name])))
     hob = head_part(pid + '-hair', arm, pieces, weights, marks)
-    fob = head_part(pid + '-glasses', arm, [('Glasses', *face_glasses(surf, L, rig, face))])
+    fob = head_part(pid + '-glasses', arm, [('Glasses', *face_glasses(surf, L, rig, face, sunk))])
     face_map(head, surf, L, face, rig, list(PEOPLE).index(pid))
     if abs(glasses_line(L) - eye_line(L, face) - faces_mod.RIM_DZ) > 0.0005:
         raise SystemExit(f'{pid}: the glasses are {glasses_line(L) - eye_line(L, face):.4f} under the eyes; faces.py '
@@ -3880,6 +3927,42 @@ def occlude(mesh, scale=1.0):
         me.attributes.remove(was)
 
 
+THIN = (0.006, 0.018)        # metres: skin this thin lets the sun behind it through, this thick none of it
+THIN_HEAD = 0.27             # (only the head's: so far down from the top of the hair)
+
+
+def thin_skin(mesh):
+    """How thin the head's skin is (an ear; the nose a little): for the game, which lets the sun behind such skin shine
+    through it red (web/src/characters.js SKIN_SUN).  A ray from each point of the skin into the head, to where it comes
+    out again; kept in the attribute LEG as (0, 0, thin): a trouser leg's coordinates never have both of the first
+    two 0, so the game tells them apart."""
+    from mathutils.bvhtree import BVHTree
+    me = mesh.data
+    skin = {i for i, m in enumerate(me.materials) if m and m.name.split('.')[0] == 'Skin'}
+    polys = [p for p in me.polygons if p.material_index in skin]
+    tree = BVHTree.FromPolygons([v.co for v in me.vertices], [tuple(p.vertices) for p in polys])
+    z0 = max(v.co.z for v in me.vertices) - THIN_HEAD
+    thin = {}
+    for i in {i for p in polys for i in p.vertices}:
+        v = me.vertices[i]
+        if v.co.z < z0:
+            continue
+        hit = tree.ray_cast(v.co - v.normal * 0.0008, -v.normal, 0.03)
+        if hit[0] is not None and hit[1].dot(v.normal) < 0:           # (out through skin that looks the other way)
+            thin[i] = 1 - _smooth(THIN[0], THIN[1], hit[3] + 0.0008)
+    near = {}
+    for e in me.edges:
+        a, b = e.vertices
+        if a in thin or b in thin:
+            near.setdefault(a, []).append(b)
+            near.setdefault(b, []).append(a)
+    eased = {i: (thin.get(i, 0.0) + sum(thin.get(j, 0.0) for j in js) / len(js)) / 2 for i, js in near.items()}
+    att = me.attributes.get(LEG) or me.attributes.new(LEG, 'FLOAT_VECTOR', 'POINT')
+    for i, t in eased.items():
+        if t > 0.02 and not any(att.data[i].vector):
+            att.data[i].vector = (0.0, 0.0, t)
+
+
 def weld_skin(mesh):
     """The parts are the pack's modules: where skin runs from one into the next (the neck into a low neckline, a wrist
     into a hand), each ends in a rim of its own.  Lit by its own faces alone, each rim shades a little differently, and
@@ -3932,6 +4015,7 @@ def finish_person(pid, arm, parts, s, rig, glasses):
     me.transform(Matrix.Scale(s, 4))
     scale_rig(arm, s)
     occlude(mesh, s)
+    thin_skin(mesh)
     mesh.name = me.name = pid + '-mesh'
     arm.name = pid
     arm.data.name = pid
@@ -4178,10 +4262,11 @@ def slim_texcoords(path):
                     drop.add(ai)
                 else:
                     # four plain bytes a vertex (as _OCC): the three values and whether the vertex is of the trousers
-                    # (or of the shell of a head of hair)
+                    # (or of the shell of a head of hair: either has one of the first two; thin skin, thin_skin, has
+                    # neither and is told by that)
                     q = lambda v: min(255, max(0, round(v * 255)))
                     views[acc['bufferView']] = b''.join(
-                        bytes([q(vals[i]), q(vals[i + 1]), q(vals[i + 2]), 255 if any(vals[i:i + 3]) else 0])
+                        bytes([q(vals[i]), q(vals[i + 1]), q(vals[i + 2]), 255 if any(vals[i:i + 2]) else 0])
                         for i in range(0, len(vals), 3))
                     acc['componentType'] = 5121
                     acc['type'] = 'VEC4'
