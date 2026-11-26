@@ -269,9 +269,9 @@ PEOPLE = {
                                 'legs': [dict(of=('LimeGreen',), to='Skirt')],
                                 'head': [dict(of=('Hair',), to='Band', y=(-.090, -.062), z=(1.690, None))]},
                          skirt='denim', shoulders=dict(square=1.1),
-                         face=dict(lid='double', slant=.03, eye=1.08, eye_open=.90, lash=1.25, jaw=.98, cheek=1.05, chin=.98, taper=.10, gonial=.4, brow=1.3,
-                                   arch=.25, brow_len=1.0, brow_soft=2.0, brow_up=-.0018, smile=.0026, mouth=1.15, mouth_line=1.3, lip=1.45,
-                                   lip_up=.85, lip_ink=1.35, nose=.74, tip_up=1.1, tip_round=.8, wing=.9, bridge=.18, nose_w=.94, nose_up=.0015,
+                         face=dict(lid='double', slant=.03, eye=1.08, eye_open=.90, lash=1.25, jaw=.95, cheek=.99, chin=.98, taper=.16, gonial=.4, brow=1.3,
+                                   arch=.25, brow_len=1.0, brow_soft=2.0, brow_up=-.0018, smile=.0026, mouth=1.32, mouth_line=1.3, lip=1.75,
+                                   lip_up=.80, lip_ink=1.35, nose=.86, tip_up=.85, tip_round=.8, wing=.9, bridge=.23, nose_w=.90, nose_up=.0,
                                    crease=.62, aegyo=1.0, bow=1.35, flush=1.2, lip_tint=(.80, .34, .38), iris_tone=.7)),
     'p12': woman('shoulder', 'Formal', 'Casual', 'Casual',
                               {'LimeGreen': '#ece4cc', 'Rib': '#dcd2b4', 'Orange': JEANS['black'], 'Grey': '#1f1f24', 'Skin': SKIN['b'],
@@ -2227,13 +2227,14 @@ HAIR_STYLES = {
                            _ear(burn=-.030, back=(-.048, -.090, -.100))),
                  vol=[(-180, .007), (-90, .005), (-30, .010), (25, .008), (60, .005), (180, .007)], top=.017, edge=.003,
                  part=(34, .006, 8), rows=6, rough=.12),
-    # long straight hair worn down from a parting a little off the middle, drawn back off the face: the forehead and
-    # the cheeks show, the hair falls from the temples
-    'long': dict(tip=[(-180, -.350), (-135, -.330), (-108, -.215), (-90, -.180), (-74, -.215), (-64, -.215), (-57, -.120),
-                      (-50, -.040), (-40, .006), (-26, .032), (-10, .050), (6, .060), (20, .046), (34, .024), (44, .000),
-                      (52, -.050), (58, -.130), (64, -.215), (74, -.215), (90, -.180), (108, -.215), (135, -.330), (180, -.350)],
+    # long straight hair worn down from a parting a little to the person's right of the middle: from the parting it
+    # falls down either side of the forehead to the brows' tails and on beside the cheeks (the film's still)
+    'long': dict(tip=[(-180, -.350), (-135, -.330), (-108, -.215), (-90, -.180), (-74, -.215), (-64, -.215), (-58, -.140),
+                      (-52, -.060), (-46, -.014), (-38, .004), (-28, .022), (-18, .042), (-8, .060), (6, .048), (18, .030),
+                      (30, .014), (40, .000), (47, -.022), (53, -.075), (59, -.145), (64, -.215), (74, -.215), (90, -.180),
+                      (108, -.215), (135, -.330), (180, -.350)],
                  vol=[(-180, .016), (-90, .015), (-45, .013), (6, .011), (45, .013), (90, .015), (180, .016)], top=.017, edge=.010,
-                 part=(6, .007, 7),
+                 part=(-8, .007, 7),
                  fall=.10, sheet=.014, rows=12, rough=.08, ragged=.004, ears=False),
     # hair to the shoulders with a straight fringe to just over the brows, no parting (일자 앞머리)
     'bang': dict(tip=[(-180, -.205), (-135, -.20), (-90, -.175), (-60, -.185), (-53, -.10), (-47, -.020), (-41, .007), (-20, .005),
