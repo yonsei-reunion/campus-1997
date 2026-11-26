@@ -836,6 +836,9 @@ reference/ 사진 출처
   - 서연: https://commons.wikimedia.org/?curid=158091279 · https://commons.wikimedia.org/?curid=116743744 · https://commons.wikimedia.org/?curid=182862147
   - 성구: https://commons.wikimedia.org/?curid=180369845 · https://commons.wikimedia.org/?curid=47832790
   - 성구의 턱을 한 번 더 맞추며 더 본 것(같은 날): https://commons.wikimedia.org/?curid=192741690 · https://commons.wikimedia.org/?curid=29742247 · https://commons.wikimedia.org/?curid=29741880 (2011) · https://commons.wikimedia.org/?curid=119913205 (2017) · https://commons.wikimedia.org/?curid=164692679 (2023) · https://commons.wikimedia.org/?curid=164690892 (2025), 기사 · 화보의 사진 https://newspim.com/news/view/20130913000141 (2013) · https://www.elle.co.kr/article/58760 (2021) · https://isplus.com/article/view/isp202205250144 (2022)
+- 승민 · 서연의 아래 얼굴, 승민의 앞머리(2026-11-27, 사진은 저장하지 않고 보며 잼, reference/고증/4.9.6_아래_얼굴과_눈썹.md): 위키미디어 공용의 사진 네 장과 같은 영화의 장면 세 장(만든 이가 줌)
+  - 승민: https://commons.wikimedia.org/?curid=138297995 · https://commons.wikimedia.org/?curid=181237506 (2025)
+  - 서연: https://commons.wikimedia.org/?curid=158091279 (2024) · https://commons.wikimedia.org/?curid=182862147 (2024)
 - 신촌 로터리의 1997년 모습(저장소에 넣지 않고 보며 잼): 국토정보맵 항공사진 서울특별시청 1997년 1차(1997-07-28) 27/18 · 27/19(미리보기 · 원본 스캔)와 1998년 2차(1998-10-08) 26/17(미리보기)
   - 1997년 여섯 장의 카메라에 이음점으로 맞춤(섬의 자리 · 유턴 고리 · 건널목 · 모퉁이 건물의 지붕 높이)
   - 파일은 reference/고증/1.5_저장소_밖_자료.md, 잰 것은 reference/고증/4.10.4_1997년_7월_항공사진.md

@@ -50,10 +50,10 @@ GLASSES = {'umc': (1.36, 1.02), 'women': (1.26, .92)}     # a rim's half width a
 FACE = {
     'umc': dict(eye=(.0168, .0046), lid=dict(mono=.0068, inner=.0078, double=.0088), iris=.0064, gap=.0384, slant=.07,
                 brow=(.0246, .0056, .0026, .0028), mouth=(.0215, .0016), mouth_dz=-.0747, nose_dz=-.0521, lash=.0030,
-                lip=.0054, chin=.74, cheek=1.18),
+                lip=.0054, chin=.87, chin0=.74, cheek=1.18),
     'women': dict(eye=(.0174, .0048), lid=dict(mono=.0074, inner=.0085, double=.0096), iris=.0068, gap=.0376, slant=.09,
                   brow=(.0262, .0056, .0028, .0040), mouth=(.0195, .0015), mouth_dz=-.0793, nose_dz=-.0595, lash=.0036,
-                  lip=.0052, chin=.78, cheek=1.16),
+                  lip=.0052, chin=.94, chin0=.78, cheek=1.16),
 }
 # what the lines do to the skin's (linear) light
 INK = (.030, .022, .022)           # the upper lid and the pupil
@@ -168,6 +168,14 @@ def eye_curves(f, face, sx):
     return ex, hw, top, bot
 
 
+# A brow is hairs on skin, not a band: at its head (over the inner corner of the eye) the hairs stand upright and
+# apart, so the skin shows between them and the brow begins softly (`head`: over so much of its length, from
+# `head_ink` of its weight); the body is densest; the tail thins to a point (`tail`: from there on, losing `point` of
+# its thickness).  Seen from far it is not the hair's colour but hair and skin mixed (`far`: of the brow's colour);
+# from near, a faint ground (`ground`) under the hairs themselves (`hairs`: so many a brow of weight 1).
+BROW = dict(head=0.24, head_ink=0.48, tail=0.74, point=0.80, far=0.92, ground=0.76, hairs=400)
+
+
 def brow_line(f, face, hw, slant):
     """A brow's middle line and its thickness along it: t (as eye_curves counts it along the eye), z over the eye
     line, the thickness."""
@@ -186,8 +194,13 @@ def brow_line(f, face, hw, slant):
         - arch * 1.35 * face.get('brow_drop', 1.0) * fall + tilt * (ts - 0.5) * length
     taper = face.get('brow_taper', 1.0)
     th = (bt0 + (bt1 * taper - bt0) * ts ** 1.3) * face.get('brow', 1.0) * (0.72 + 0.28 * _smooth(0.0, 0.12, ts)) \
-        * (1 - 0.45 / taper * _smooth(0.82, 1.0, ts))
+        * (1 - BROW['point'] * _smooth(BROW['tail'], 1.0, ts))
     return t0 + (t1 - t0) * ts, bz, th
+
+
+def brow_dense(ts):
+    """How much of the skin a brow covers along it (ts: 0 the head .. 1 the tail): the hairs of the head stand apart."""
+    return BROW['head_ink'] + (1 - BROW['head_ink']) * _smooth(0.0, BROW['head'], np.clip(ts, 0.0, 1.0))
 
 
 def draw_face(rig, face, skin, brow):
@@ -248,8 +261,9 @@ def draw_face(rig, face, skin, brow):
         # its edge is (brow_soft, pixels: bushy brows are soft)
         tb, bz, th = brow_line(f, face, hw, slant)
         tint = np.clip(_linear(brow) / _linear(skin), 0.0, 1.0)
-        cv.ink(cv.stroke([(at(t), z) for t, z in zip(tb, bz)], th / 2, soft=face.get('brow_soft', 1.8)),
-               tint, face.get('brow_ink', 1.0))
+        along = brow_dense(((cv.X - ex) / (sx * hw) - tb[0]) / (tb[-1] - tb[0]))
+        cv.ink(cv.stroke([(at(t), z) for t, z in zip(tb, bz)], th / 2, soft=face.get('brow_soft', 1.8)) * along,
+               tint, BROW['far'] * face.get('brow_ink', 1.0))
     # the mouth: one line, its corners a little up, a dot's weight at each corner; under it the lower lip (a man's: a
     # light tint and a short shadow under it, a woman's: tinted)
     mw, mt = f['mouth']
@@ -557,17 +571,21 @@ def _blur(a, sigma):
 # their blur over FORMS_MESH, and the fine lines.
 FORMS = {
     'umc': dict(socket=.0027, inner=.0015, dome=.0020, ball=.0010, roll=.0003, slope=.0010, lip_u=.0021, lip_l=.0025,
-                sulcus=.0016, line=.0007, corner=.0007, groove=.0005, chin=.0115),
+                sulcus=.0016, line=.0007, corner=.0007, groove=.0005, chin=.0135),
     'women': dict(socket=.0023, inner=.0012, dome=.0019, ball=.0010, roll=.0003, slope=.0010, lip_u=.0023, lip_l=.0026,
-                  sulcus=.0014, line=.0007, corner=.0006, groove=.0005, chin=.0085),
+                  sulcus=.0014, line=.0007, corner=.0006, groove=.0005, chin=.0105),
 }
-FORMS_TOP, FORMS_BOT = 0.026, -0.024      # the eyes' sheet: from so far over the eye line down to so far under it
+FORMS_TOP, FORMS_BOT = 0.036, -0.024      # the eyes' sheet: from so far over the eye line down to so far under it
+#                                          (over the brows: the forehead's own faces reach out of the atlas' cell
+#                                          and point at the blank one, so a brow on them was cut off)
+SOCKET_TOP = 0.026                        # the socket's skin begins to fall back so far over the eye line
+SOCKET_OUT = 0.0075                       # and so far beyond the outer corner
 FORMS_NOSE = 0.0075                       # the mouth's sheet begins so far under the nose's foot
 #                                          and ends `chin` under the lower lip (a woman's chin is shorter), or higher
 #                                          where the face turns under the jaw before that (sheets' `floor`)
 FORMS_MESH = 0.0010                       # what the sheets hold: forms no finer than about this (the blur's sigma, m)
 EYE_COLS = (-1.62, -1.30, -1.06, -0.85, -0.55, -0.20, 0.15, 0.50, 0.80, 1.02)    # of the eye's half width, from its middle
-EYE_OUT = (0.0035, 0.0075)                 # then, beyond the outer corner: m
+EYE_OUT = (0.0035, 0.0075, 0.0120)         # then, beyond the outer corner: m (the last under the brow's tail)
 MOUTH_COLS = (0.0, 0.12, 0.27, 0.45, 0.63, 0.80, 0.93, 1.04)      # of the mouth's half width; then, beyond the corner:
 MOUTH_OUT = (0.0035, 0.0065, 0.0100)                               # m
 
@@ -606,10 +624,10 @@ def forms(rig, face, X, Z):
         zt, zb = top(T), bot(T)
         zc = (top(0.0) + bot(0.0)) / 2
         # the socket: all of the skin round the eye, from under the brow down to the cheek, and beside the nose
-        bx = _smooth(-1.72, -1.02, T) * _smooth(1.0 + (EYE_OUT[-1] - 0.001) / hw, 0.55, T)
+        bx = _smooth(-1.72, -1.02, T) * _smooth(1.0 + (SOCKET_OUT - 0.001) / hw, 0.55, T)
         # (under the eye it runs out slowly into the cheek: a slope there looks up and takes the sky's light as a
         # pale band)
-        bz = _smooth(FORMS_TOP - 0.002, 0.010, Z) * _smooth(FORMS_BOT + 0.001, float(bot(0.0)) + 0.001, Z)
+        bz = _smooth(SOCKET_TOP - 0.002, 0.010, Z) * _smooth(FORMS_BOT + 0.001, float(bot(0.0)) + 0.001, Z)
         h -= F['socket'] * deep * bx * bz
         h -= F['inner'] * deep * _gauss(X, Z, ex - sx * 1.10 * hw, 0.0035, 0.0060, 0.0085)
         # the lids over the ball; a single eyelid is full up to the brow
@@ -858,13 +876,16 @@ def draw_near(rig, face, skin, brow, seed=0, n=NEAR):
         to = np.clip(_linear(brow) / _linear(skin), 0.0, 1.0)
         weight = face.get('brow_ink', 1.0)
         line = [(at(t), z) for t, z in zip(tb, bz)]
-        tint(mul, cv.stroke(line, bth / 2 * 0.94, soft=face.get('brow_soft', 1.8) * fine), to, 0.92 * weight)
+        along = brow_dense(((X - ex) / (sx * hw) - tb[0]) / (tb[-1] - tb[0]))
+        tint(mul, cv.stroke(line, bth / 2 * 0.90, soft=face.get('brow_soft', 1.8) * fine * 1.7) * along, to, BROW['ground'] * weight)
         bx = np.array([p[0] for p in line])
         ss = np.linspace(0.0, 1.0, len(line))
-        nh = int(230 * (0.75 + 0.25 * face.get('brow', 1.0)) * face.get('brow_len', 1.0))
+        nh = int(BROW['hairs'] * (0.75 + 0.25 * face.get('brow', 1.0)) * face.get('brow_len', 1.0))
         for i in range(nh):
             s = (i + rnd.uniform(0, 1)) / nh
             o = rnd.uniform(-1.0, 1.0)
+            if rnd.uniform(0, 1) > float(brow_dense(s)) ** 0.7:            # (the head's hairs stand apart)
+                continue
             x0, z0, t0 = np.interp(s, ss, bx), np.interp(s, ss, bz), np.interp(s, ss, bth)
             x1, z1 = np.interp(min(1.0, s + 0.04), ss, bx), np.interp(min(1.0, s + 0.04), ss, bz)
             x9, z9 = np.interp(max(0.0, s - 0.04), ss, bx), np.interp(max(0.0, s - 0.04), ss, bz)
@@ -878,11 +899,11 @@ def draw_near(rig, face, skin, brow, seed=0, n=NEAR):
             if s < 0.3 and gz < 0:
                 gz = -gz
             ln = (0.0030 + 0.0016 * rnd.uniform(0, 1)) * (1 - 0.45 * s) * (0.8 + 0.2 * face.get('brow', 1.0))
-            p0 = (x0 - sx * 0.0 + (-az) * 0.0, z0 + o * t0 / 2 * 0.80)
+            p0 = (x0 - sx * 0.0 + (-az) * 0.0, z0 + o * t0 / 2 * 0.92)
             ps = np.linspace(0.0, 1.0, 5)
             strand = [(p0[0] + gx * ln * q + ax * ln * 0.25 * q * q, p0[1] + gz * ln * q * (1 - 0.35 * q)) for q in ps]
             edge = 1 - 0.5 * abs(o) ** 2
-            tint(mul, hair(strand, 0.00016 * (1 - 0.6 * ps), soft=1.2), to, 0.90 * weight * edge * (1 - 0.5 * _smooth(0.85, 1.0, s)))
+            tint(mul, hair(strand, 0.00014 * (1 - 0.6 * ps), soft=1.2), to, 0.86 * weight * edge * (1 - 0.4 * _smooth(0.85, 1.0, s)))
     # the mouth: the line between the lips as the far face draws it, thinner, in its shade; over it the upper lip with
     # its dip, under it the lower lip
     mt = f['mouth'][1] * face.get('mouth_line', 1.0)

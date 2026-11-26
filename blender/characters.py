@@ -157,7 +157,7 @@ PEOPLE = {
                    prints={'body': [dict(name='geuss', of=('LightBrown',), w=.28, z=1.33)]}, cut='wide',
                    fit=dict(start=.19, sleeve=(.008, .014)),
                    neck=.85, shoulders=dict(square=.8, broad=-.004),
-                   face=dict(lid='inner', slant=.0, eye=.96, eye_open=.80, jaw=.95, chin=1.08, gonial=.8, chin_out=1.1, chin_wide=-.06, brow=1.35, brow_tilt=-.05,
+                   face=dict(lid='inner', slant=.0, eye=.96, eye_open=.80, jaw=.95, chin=1.05, taper=.06, gonial=.8, chin_out=1.1, chin_wide=-.06, brow=1.35, brow_tilt=-.05,
                              arch=.3, brow_len=1.02, brow_taper=1.3, brow_soft=1.6, brow_up=-.0012, smile=.0018, mouth=1.24,
                              lip=1.6, nose=1.04, tip_up=.95, tip_round=.9, bridge=.27, nose_w=.98,
                              aegyo=.7, lip_up=.8, lip_ink=1.7, lip_tint=(.80, .44, .45), bow=1.25, iris_tone=.8)),
@@ -182,7 +182,7 @@ PEOPLE = {
                       'oversized navy hoodie, wide khaki cargo trousers, canvas shoes; short hair swept up and back, the sides '
                       'and the back run over with clippers (the scalp shows through), tanned',
                       paint={'body': [neckline(('Purple',), drop=.024, ring=.006, lobe=1.5)], 'feet': canvas('Purple', 'White')},
-                      face=dict(lid='mono', slant=.14, jaw=.97, eye=.98, smile=.0027, mouth=1.08, brow=1.5, brow_tilt=.09,
+                      face=dict(lid='mono', slant=.14, jaw=.97, chin=0.98, eye=.98, smile=.0027, mouth=1.08, brow=1.5, brow_tilt=.09,
                                 brow_corner=True, brow_peak=.70, brow_drop=1.2, brow_taper=1.3, brow_soft=1.4, nose=1.04, tip_up=.85,
                                 bridge=.28)),
     # 성구 (the maker's request: the look of an actor and singer born in 1978; from two photographs, 2011 and 2014): a
@@ -196,7 +196,7 @@ PEOPLE = {
                      paint={'body': [neckline(('Purple',), drop=.024, ring=.006, lobe=1.5)], 'feet': trainers('umc', 'Red_Dark')}, cut='wide',
                      prints={'body': [dict(name='yonsei', of=('Purple',), w=.27, z=1.36)]},
                      shoulders=dict(broad=.004), fit=dict(start=.16),
-                     face=dict(lid='double', slant=.03, jaw=1.0, chin=1.2, cheek=1.02, gonial=.55, taper=.14, chin_out=1.25, chin_wide=-.05, eye=1.0, eye_open=.76, mouth=1.25, smile=.0040,
+                     face=dict(lid='double', slant=.03, jaw=1.0, chin=1.0207, cheek=1.02, gonial=.55, taper=.14, chin_out=1.25, chin_wide=-.05, eye=1.0, eye_open=.76, mouth=1.25, smile=.0040,
                                lip=1.2, brow=1.7, arch=.55, brow_len=1.1, brow_peak=.6, brow_up=-.0022, brow_taper=1.5,
                                brow_soft=1.5, nose=1.18, tip_up=.72, tip_round=1.1, bridge=.35, nose_w=1.06,
                                socket=1.4, stubble=1.8, fold=.8, aegyo=.5, lip_up=.55, lip_ink=1.2, iris_tone=.9)),
@@ -208,7 +208,7 @@ PEOPLE = {
                            + bands('Stripe2', ('LightBrown',), [(1.185, 1.245), (1.380, 1.440)], x=(0, .21))
                            + [dict(of=('LightBrown',), to='Collar', x=(0, .10), z=(1.495, None)),
                               neckline(('Collar', 'LightBrown'), drop=.034, vee=1.3, lobe=4.0)]}, cut='wide',
-                    face=dict(lid='inner', slant=.10, jaw=.97, smile=.0012, mouth=.98, lip=1.35, brow=1.55, arch=.5, brow_tilt=.04,
+                    face=dict(lid='inner', slant=.10, jaw=.97, chin=1.01, smile=.0012, mouth=.98, lip=1.35, brow=1.55, arch=.5, brow_tilt=.04,
                               brow_taper=1.7, brow_len=1.05, brow_gap=-.001, brow_up=-.001, nose=1.10, tip_up=.95, tip_round=.95, bridge=.29,
                               nose_w=1.04)),
     'p06': man('part-side', 'Suit', 'Casual_2', 'Suit',
@@ -216,12 +216,12 @@ PEOPLE = {
                        'Skin': SKIN['a'], 'Hair': HAIR['black']},
                       'navy blazer, light blue shirt, beige cotton trousers (콤비); 2:8 side parting, the fringe swept across',
                       flip=True, fit=False,          # (the maker's word, 2026-11-26: the blazer as the pack cut it)
-                      face=dict(lid='inner', slant=.02, jaw=.95, brow_tilt=-.05, arch=1.1, smile=.0018, brow=.8, brow_len=1.12, brow_gap=.002, brow_taper=.8,
+                      face=dict(lid='inner', slant=.02, jaw=.95, chin=1.02, brow_tilt=-.05, arch=1.1, smile=.0018, brow=.8, brow_len=1.12, brow_gap=.002, brow_taper=.8,
                                 nose=.98, tip_up=1.15, tip_round=.7, wing=.9, bridge=.25, nose_w=.92)),
     'p07': man('thin', 'Suit', 'Suit', 'Suit',
                          {'Suit': '#55595f', 'Tie': '#2f4a7a', 'White': '#eceae4', 'Skin': SKIN['c'], 'Hair': HAIR['grey'],
                           'Brow': '#5a5652'}, 'grey suit, blue tie, thinning grey hair, glasses',
-                         face=dict(lid='inner', slant=-.02, jaw=1.05, eye=.93, brow=1.05, brow_tilt=-.06, smile=.0010, age='old',
+                         face=dict(lid='inner', slant=-.02, jaw=1.05, chin=1.03, eye=.93, brow=1.05, brow_tilt=-.06, smile=.0010, age='old',
                                    glasses=True, brow_drop=1.3, brow_soft=2.4, brow_ink=.9, nose=1.0, tip_up=.8, tip_round=1.2, wing=1.1, bridge=.24, nose_w=1.12,
                                    nose_up=-.0015)),
     'p08': man('crop', 'Worker', 'Suit', 'Worker',
@@ -244,7 +244,7 @@ PEOPLE = {
                          'feet:Sole': '#cfccc4', 'Skin': SKIN['fair'], 'Hair': HAIR['dark']},
                         'pink knit, wide beige trousers, white trainers; short bob, one side behind the ear',
                         paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')},
-                        bust=1.3, face=dict(lid='inner', slant=.03, jaw=1.04, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
+                        bust=1.3, face=dict(lid='inner', slant=.03, jaw=1.04, chin=0.97, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
                                   nose=.72, nose_curve=.85, tip_up=1.45, tip_round=1.25, bridge=.17, nose_w=1.02, nose_up=.002)),
     # 서연 (the film 건축학개론, 2012: a first-year of the college of music in 1996): a round, soft face, large eyes with
     # double lids, straight soft brows, a small nose, a ready smile; long straight hair worn down
@@ -269,7 +269,7 @@ PEOPLE = {
                                 'legs': [dict(of=('LimeGreen',), to='Skirt')],
                                 'head': [dict(of=('Hair',), to='Band', y=(-.090, -.062), z=(1.690, None))]},
                          skirt='denim', shoulders=dict(square=1.1),
-                         face=dict(lid='double', slant=.03, eye=1.08, eye_open=.90, lash=1.25, jaw=.98, cheek=1.05, chin=1.0, taper=.10, gonial=.4, brow=1.3,
+                         face=dict(lid='double', slant=.03, eye=1.08, eye_open=.90, lash=1.25, jaw=.98, cheek=1.05, chin=.98, taper=.10, gonial=.4, brow=1.3,
                                    arch=.25, brow_len=1.0, brow_soft=2.0, brow_up=-.0018, smile=.0026, mouth=1.15, mouth_line=1.3, lip=1.45,
                                    lip_up=.85, lip_ink=1.35, nose=.74, tip_up=1.1, tip_round=.8, wing=.9, bridge=.18, nose_w=.94, nose_up=.0015,
                                    crease=.62, aegyo=1.0, bow=1.35, flush=1.2, lip_tint=(.80, .34, .38), iris_tone=.7)),
@@ -289,7 +289,7 @@ PEOPLE = {
                                               neckline(('LimeGreen',), to='Rib', drop=.036, half=.085, side=.06),
                                               neckline(('Rib',), drop=.020, half=.068, side=.06)]},
                               roomy=1.16, cut='wide',
-                              face=dict(lid='double', slant=.10, eye=.99, jaw=.98, smile=.0022, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
+                              face=dict(lid='double', slant=.10, eye=.99, jaw=.98, chin=1.03, smile=.0022, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
                                         brow_peak=.68, brow_drop=1.0, brow_soft=1.3, nose=.84, tip_round=.9, bridge=.22, nose_w=.95)),
     'p13': woman('pixie', 'Suit', 'Casual', 'Casual',
                             {'Black': '#ecdf9e', 'White': '#f2efe6', 'Orange': JEANS['dark'], 'Grey': '#f0eee8', 'feet:Bar': '#27345a',
@@ -302,7 +302,7 @@ PEOPLE = {
     'p14': woman('perm', 'Suit', 'Suit', 'Suit',
                          {'Black': '#2f3644', 'White': '#eef0f2', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
                          'office staff: navy suit, short permed hair',
-                         paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)]}, face=dict(lid='inner', slant=.0, jaw=1.06, eye=.95, brow_tilt=-.03, smile=.0014, age='mid',
+                         paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)]}, face=dict(lid='inner', slant=.0, jaw=1.06, chin=1.03, eye=.95, brow_tilt=-.03, smile=.0014, age='mid',
                                                                                  brow=.9, arch=1.25, brow_len=.96, brow_soft=1.4, nose=.84, tip_up=.85, tip_round=1.1, bridge=.21, nose_w=1.10)),
     # (added last: the faces' cells go by this order)
     'p15': woman('pony', 'Formal', 'Casual', 'Casual',
@@ -320,7 +320,7 @@ PEOPLE = {
                                             for x in (.193, .249, .305, .361, .417, .473, .529)],
                                           neckline(('LimeGreen',), drop=.030, half=.085, side=.06)],
                                  'feet': trainers('women', 'Grey')},
-                          face=dict(lid='inner', slant=.06, eye=1.04, jaw=1.0, smile=.0027, mouth=1.0, brow=1.0, arch=.9, brow_len=1.0,
+                          face=dict(lid='inner', slant=.06, eye=1.04, jaw=1.0, chin=0.98, smile=.0027, mouth=1.0, brow=1.0, arch=.9, brow_len=1.0,
                                     brow_soft=1.5, nose=.80, tip_up=1.38, tip_round=.7, bridge=.20, nose_w=1.0, nose_up=.001)),
     'p16': man('curtain', 'Adventurer', 'Casual_2', 'Casual_2',
                      {'Green': '#2f5a45', 'LightGreen': '#1f1f24', 'LightBlue': '#b9a67e', 'Red_Dark': '#3a2c24', 'Skin': SKIN['b'],
@@ -336,7 +336,7 @@ PEOPLE = {
                          'denim shirt (청남방) worn open over a white tee, beige cotton trousers, white trainers; hair to the '
                          'shoulders with a straight fringe',
                          paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)], 'feet': trainers('women', 'Grey')},
-                         bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
+                         bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, chin=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
                                    brow_soft=1.6, nose=.78, nose_curve=.88, tip_up=1.12, tip_round=1.05, bridge=.19, nose_w=.98, nose_up=.001)),
 }
 RIGS = {'rig-umc': 'umc', 'rig-women': 'women'}
@@ -2081,6 +2081,15 @@ FACE_FWD = {'umc': 0.0075, 'women': 0.0095}       # how far the face comes forwa
 FACE_EYE = 0.010           # the face stays as it is down to this far under the eye line
 FACE_SIDE = (0.018, 0.062)                         # all of it within so far of the middle, none of it from there
 FACE_DEEP = (0.030, 0.070)                         # and so far behind the upper lip (the throat, the jaw's corners)
+# The mouth against the nose's foot.  On the packs' faces the skin under the nose leans back down to the lip (the
+# women's by 10 degrees: with an underside that rises 8 to 12 the two met at 112, the men's at 103; measured on
+# Koreans in their twenties they meet at 96).  LIP_FWD: the mouth comes forward of the nose's foot, evenly from
+# nothing at the foot down to the upper lip's edge (so the skin there leans forward a little, as on a face), all of
+# it on both lips, and away again under the lower lip over LIP_UNDER (the hollow over the chin is the deeper for
+# it); all of it within LIP_SIDE[0] of the middle, none of it from LIP_SIDE[1] (a face's `lip_fwd`)
+LIP_FWD = {'umc': 0.0, 'women': 0.0055}
+LIP_UNDER = 0.012
+LIP_SIDE = (0.012, 0.046)
 # The jaw (reference/고증 4.9.4).  The packs' lower face is a bowl: from the cheeks it narrows evenly to a small round
 # chin (at the height of the jaw's corners 0.77 of the width over the cheekbones on the men, 0.73 on the women; a
 # grown face keeps about 0.8 and more: a rough figure of the human build, no survey was found), and it runs into the
@@ -2092,7 +2101,7 @@ FACE_DEEP = (0.030, 0.070)                         # and so far behind the upper
 # comes forward (`chin`) and is a little broader (`square`), and the skin behind it under the jaw is lifted
 # (`under`).  A face's own `gonial` and `chin_out` scale `wide` and `chin`, its `chin_wide` is added to `square`.
 JAW = {'umc': dict(rise=0.024, back=0.004, ramus=72, wide=0.085, chin=0.005, square=0.10, under=0.005),
-       'women': dict(rise=0.022, back=0.004, ramus=72, wide=0.06, chin=0.004, square=0.0, under=0.004)}
+       'women': dict(rise=0.022, back=0.004, ramus=72, wide=0.06, chin=0.0055, square=0.0, under=0.004)}
 NOSE_RADIX = 0.4
 NOSE_TIP = {'umc': 0.0165, 'women': 0.0212}       # (the packs' wedges stood 0.0145, 0.0188 off the face)
 NOSE_ROOT = 0.006          # the bridge dies away this far over the eye line (and only there: it is straight up to it)
@@ -2191,8 +2200,11 @@ HAIR_STYLES = {
     'short': dict(tip=_both([(-48, .024), (-28, .014), (-8, .012), (14, .018), (34, .030), (48, .032)], _MEN_EAR),
                   vol=[(-180, .011), (-60, .008), (-20, .014), (20, .012), (60, .008), (180, .011)], top=.026, edge=.004,
                   rows=7, rough=.25, ragged=.005),
-    # short all round with the fringe combed straight down to just over the brows (the film's first-year of 1996)
-    'fringe': dict(tip=_both([(-50, .022), (-36, .010), (-16, .007), (6, .008), (26, .007), (40, .011), (50, .022)], _MEN_EAR),
+    # short all round, the fringe combed down over the forehead and across it to the person's right (the film's
+    # first-year of 1996): its ends on the right brow, a little higher towards the left, and open over the left
+    # eye, where the locks part (the notch at 24)
+    'fringe': dict(tip=_both([(-50, .015), (-42, .002), (-30, .000), (-18, .001), (-6, .003), (6, .006), (12, .009), (18, .016),
+                              (24, .029), (30, .013), (36, .010), (42, .012), (50, .022)], _MEN_EAR),
                    vol=[(0, .017), (40, .015), (70, .009), (180, .010)], top=.027, edge=[(0, .008), (48, .006), (60, .004), (180, .004)],
                    rows=8, rough=.2, ragged=.004),
     'curtain': dict(tip=_parted(0), vol=[(0, .013), (30, .017), (60, .014), (180, .014)], top=.027, edge=.006,
@@ -2438,8 +2450,6 @@ def head_profile(ob, L, face, rig):
     import bmesh
     from mathutils.bvhtree import BVHTree
     fwd = face.get('fwd', FACE_FWD[rig])
-    if not fwd:
-        return
     mw = ob.matrix_world
     inv = mw.inverted()
     bm = bmesh.new()
@@ -2450,12 +2460,20 @@ def head_profile(ob, L, face, rig):
     # the chin's foot: down the middle of the face, where its line turns back under the chin
     zc = _chin_foot(tree, nb)
     y0 = tree.ray_cast(Vector((0, -0.6, nb - 0.012)), Vector((0, 1, 0)))[0].y          # (the upper lip)
+    lip = face.get('lip_fwd', LIP_FWD[rig])
+    _, _, ue, le, _ = faces_mod.lip_edges(rig, face, [0.0])
+    zu, zl = ez + float(ue[0]), ez + float(le[0])           # (the lips' upper and lower edge, in the middle)
     for v, p in zip(bm.verts, cos):
         w = _smooth(ez - FACE_EYE, nb, p.z) if p.z > nb else _smooth(zc - 0.035, zc - 0.004, p.z)
         w *= 1 - _smooth(FACE_SIDE[0], FACE_SIDE[1], abs(p.x))
-        w *= 1 - _smooth(y0 + FACE_DEEP[0], y0 + FACE_DEEP[1], p.y)
-        if w > 0:
-            v.co = inv @ Vector((p.x, p.y - fwd * w, p.z))
+        deep = 1 - _smooth(y0 + FACE_DEEP[0], y0 + FACE_DEEP[1], p.y)
+        g = 0.0
+        if lip and zl - LIP_UNDER < p.z < nb:
+            g = (nb - p.z) / (nb - zu) if p.z > zu else 1 - _smooth(zl, zl - LIP_UNDER, p.z)
+            g *= 1 - _smooth(LIP_SIDE[0], LIP_SIDE[1], abs(p.x))
+        d = (fwd * w + lip * g) * deep
+        if d > 0:
+            v.co = inv @ Vector((p.x, p.y - d, p.z))
     bm.to_mesh(ob.data)
     bm.free()
 
@@ -3061,7 +3079,8 @@ def face_map(head, surf, L, face, rig, cell):
             break
         last = p.y
         z -= 0.002
-    z = nz - (nz - z) / face.get('chin', 1.0)              # (a person's own chin is longer or shorter under the mouth)
+    # (the heights were measured on heads with a chin of `chin0`; a person's own is longer or shorter under the mouth)
+    z = nz - (nz - z) / (face.get('chin', 1.0) * f['chin'] / f['chin0'])
     mz = z + (nz - z) * 0.53                               # the mouth: between the nose and the chin
     if abs(mz - ez0 - f['mouth_dz']) > 0.002 or abs(nz - ez0 - f['nose_dz']) > 0.002:
         raise SystemExit(f'{head.name}: the mouth is {mz - ez0:.4f}, the nose {nz - ez0:.4f} under the eyes; faces.py '
