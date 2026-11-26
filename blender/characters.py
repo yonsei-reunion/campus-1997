@@ -154,8 +154,8 @@ PEOPLE = {
                    paint={'body': [dict(of=('Skin',), to='LightBrown', x=(0, .592)), neckline(('LightBrown',))],
                           'feet': trainers('umc', 'Red_Dark')},
                    prints={'body': [dict(name='geuss', of=('LightBrown',), w=.28, z=1.33)]}, cut='wide',
-                   neck=.85,
-                   face=dict(lid='inner', slant=.0, eye=.96, eye_open=.80, jaw=.95, chin=1.08, brow=1.35, brow_tilt=-.05,
+                   neck=.85, shoulders=dict(square=.8),
+                   face=dict(lid='inner', slant=.0, eye=.96, eye_open=.80, jaw=.95, chin=1.08, gonial=.8, chin_out=1.1, chin_wide=-.06, brow=1.35, brow_tilt=-.05,
                              arch=.3, brow_len=1.02, brow_taper=1.3, brow_soft=1.6, brow_up=-.0012, smile=.0018, mouth=1.24,
                              lip=1.6, nose=1.04, tip_up=.95, tip_round=.9, bridge=.27, nose_w=.98,
                              aegyo=.7, lip_up=.8, lip_ink=1.7, lip_tint=(.80, .44, .45), bow=1.25, iris_tone=.8)),
@@ -193,7 +193,8 @@ PEOPLE = {
                      'the long top swept from a 7:3 parting',
                      paint={'body': [neckline(('Purple',), drop=.024, ring=.006, lobe=1.5)], 'feet': trainers('umc', 'Red_Dark')}, cut='wide',
                      prints={'body': [dict(name='yonsei', of=('Purple',), w=.27, z=1.36)]},
-                     face=dict(lid='double', slant=.03, jaw=1.0, chin=1.14, eye=1.0, eye_open=.76, mouth=1.25, smile=.0040,
+                     shoulders=dict(broad=.006),
+                     face=dict(lid='double', slant=.03, jaw=1.0, chin=1.14, gonial=1.3, chin_out=1.3, chin_wide=.05, eye=1.0, eye_open=.76, mouth=1.25, smile=.0040,
                                lip=1.2, brow=1.7, arch=.55, brow_len=1.1, brow_peak=.6, brow_up=-.0022, brow_taper=1.5,
                                brow_soft=1.5, nose=1.18, tip_up=.72, tip_round=1.1, bridge=.35, nose_w=1.06,
                                socket=1.4, stubble=1.8, fold=.8, aegyo=.5, lip_up=.55, lip_ink=1.2, iris_tone=.9)),
@@ -265,8 +266,8 @@ PEOPLE = {
                                          dict(of=('LimeGreen',), to='Yoke', x=(.553, .570))],
                                 'legs': [dict(of=('LimeGreen',), to='Skirt')],
                                 'head': [dict(of=('Hair',), to='Band', y=(-.090, -.062), z=(1.690, None))]},
-                         skirt='denim',
-                         face=dict(lid='double', slant=.03, eye=1.08, eye_open=.90, lash=1.25, jaw=.98, cheek=1.05, chin=1.0, taper=.10, brow=1.3,
+                         skirt='denim', shoulders=dict(square=1.25),
+                         face=dict(lid='double', slant=.03, eye=1.08, eye_open=.90, lash=1.25, jaw=.98, cheek=1.05, chin=1.0, taper=.10, gonial=.4, brow=1.3,
                                    arch=.25, brow_len=1.0, brow_soft=2.0, brow_up=-.0018, smile=.0026, mouth=1.15, mouth_line=1.3, lip=1.45,
                                    lip_up=.85, lip_ink=1.35, nose=.74, tip_up=1.1, tip_round=.8, wing=.9, bridge=.18, nose_w=.94, nose_up=.0015,
                                    crease=.62, aegyo=1.0, bow=1.35, flush=1.2, lip_tint=(.80, .34, .38), iris_tone=.7)),
@@ -1821,6 +1822,18 @@ FACE_FWD = {'umc': 0.0075, 'women': 0.0095}       # how far the face comes forwa
 FACE_EYE = 0.010           # the face stays as it is down to this far under the eye line
 FACE_SIDE = (0.018, 0.062)                         # all of it within so far of the middle, none of it from there
 FACE_DEEP = (0.030, 0.070)                         # and so far behind the upper lip (the throat, the jaw's corners)
+# The jaw (reference/고증 4.9.4).  The packs' lower face is a bowl: from the cheeks it narrows evenly to a small round
+# chin (at the height of the jaw's corners 0.77 of the width over the cheekbones on the men, 0.73 on the women; a
+# grown face keeps about 0.8 and more: a rough figure of the human build, no survey was found), and it runs into the
+# neck without an edge: no corner under the ear, the chin 3 mm behind the lips, the skin under it falling away to the
+# throat.  head_jaw draws the jaw's lower edge as a line seen from the side: from under the chin back to the corner
+# (`rise` over the chin's foot, `back` of the ears' front edge), from there up to the ear (`ramus` degrees off
+# level).  What lies on that line and just over it is made wider (`wide`: most at the corner, nothing at the chin or
+# over the cheekbones), so that from the front the outline has a corner and the jaw stands off the neck; the chin
+# comes forward (`chin`) and is a little broader (`square`), and the skin behind it under the jaw is lifted
+# (`under`).  A face's own `gonial` and `chin_out` scale `wide` and `chin`, its `chin_wide` is added to `square`.
+JAW = {'umc': dict(rise=0.024, back=0.004, ramus=72, wide=0.085, chin=0.005, square=0.10, under=0.005),
+       'women': dict(rise=0.022, back=0.004, ramus=72, wide=0.06, chin=0.004, square=0.0, under=0.004)}
 NOSE_RADIX = 0.4
 NOSE_TIP = {'umc': 0.0165, 'women': 0.0212}       # (the packs' wedges stood 0.0145, 0.0188 off the face)
 NOSE_ROOT = 0.006          # the bridge dies away this far over the eye line (and only there: it is straight up to it)
@@ -2176,13 +2189,7 @@ def head_profile(ob, L, face, rig):
     tree = BVHTree.FromPolygons(cos, [[v.index for v in f.verts] for f in bm.faces])
     ez, nb = eye_line(L, face), L['nose'][0].z
     # the chin's foot: down the middle of the face, where its line turns back under the chin
-    z, last, zc = nb - 0.02, None, nb - 0.07
-    while z > nb - 0.12:
-        hit = tree.ray_cast(Vector((0, -0.6, z)), Vector((0, 1, 0)))[0]
-        if hit is None or (last is not None and hit.y > last + 0.004):
-            zc = z
-            break
-        last, z = hit.y, z - 0.002
+    zc = _chin_foot(tree, nb)
     y0 = tree.ray_cast(Vector((0, -0.6, nb - 0.012)), Vector((0, 1, 0)))[0].y          # (the upper lip)
     for v, p in zip(bm.verts, cos):
         w = _smooth(ez - FACE_EYE, nb, p.z) if p.z > nb else _smooth(zc - 0.035, zc - 0.004, p.z)
@@ -2190,6 +2197,59 @@ def head_profile(ob, L, face, rig):
         w *= 1 - _smooth(y0 + FACE_DEEP[0], y0 + FACE_DEEP[1], p.y)
         if w > 0:
             v.co = inv @ Vector((p.x, p.y - fwd * w, p.z))
+    bm.to_mesh(ob.data)
+    bm.free()
+
+
+def _chin_foot(tree, nb):
+    """Down the middle of the face, the height where its line turns back under the chin."""
+    z, last = nb - 0.02, None
+    while z > nb - 0.12:
+        hit = tree.ray_cast(Vector((0, -0.6, z)), Vector((0, 1, 0)))[0]
+        if hit is None or (last is not None and hit.y > last + 0.004):
+            return z
+        last, z = hit.y, z - 0.002
+    return nb - 0.07
+
+
+def head_jaw(ob, L, face, rig):
+    """The jaw's edge, its corners under the ears and the chin (see JAW); every point of the head by its place, the
+    ears with the skin they stand on."""
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+    J = JAW[rig]
+    mw = ob.matrix_world
+    inv = mw.inverted()
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    cos = [mw @ v.co for v in bm.verts]
+    tree = BVHTree.FromPolygons(cos, [[v.index for v in f.verts] for f in bm.faces])
+    nb = L['nose'][0].z
+    zc = _chin_foot(tree, nb)
+    y0 = tree.ray_cast(Vector((0, -0.6, nb - 0.012)), Vector((0, 1, 0)))[0].y          # (the upper lip)
+    yc = y0 + 0.014                                             # under the chin: where the edge sets out
+    yg, zg = sum(b[0].y for b in L['ears']) / len(L['ears']) + J['back'], zc + J['rise']
+    up = math.tan(math.radians(J['ramus']))
+    wide, chin = J['wide'] * face.get('gonial', 1.0), J['chin'] * face.get('chin_out', 1.0)
+
+    def edge(y):
+        return zc + J['rise'] * max(0.0, (y - yc) / (yg - yc)) ** 1.15 if y <= yg else zg + (y - yg) * up
+    for v, p in zip(bm.verts, cos):
+        x, y, z = p
+        t = z - edge(y)
+        ax = abs(x)
+        # the corner and the edge running to it: wider on the line and just over it, nothing 3 cm over it (the
+        # cheeks); what is under the line (the neck) and behind the corner stays
+        x *= 1 + wide * _smooth(yc + 0.008, yg - 0.018, y) * _smooth(-0.012, -0.002, t) * (1 - _smooth(0.004, 0.028, t))
+        # the chin: its front out under the lip's hollow, its foot a little broader
+        front = 1 - _smooth(y0 + 0.020, y0 + 0.045, y)
+        knob = _smooth(zc - 0.012, zc + 0.004, z) * (1 - _smooth(zc + 0.010, zc + 0.022, z)) * front
+        y -= chin * knob * (1 - _smooth(0.016, 0.040, ax))
+        x *= 1 + (J['square'] + face.get('chin_wide', 0.0)) * knob * (1 - _smooth(0.030, 0.050, ax))
+        # under the chin: the skin between it and the throat lifted toward the jaw's edge
+        z += (J['under'] * _smooth(yc + 0.006, yc + 0.020, y) * (1 - _smooth(yc + 0.032, yc + 0.050, y)) * (1 - _smooth(0.020, 0.045, ax))
+              * (1 - _smooth(-0.004, 0.004, t)) * _smooth(zc - 0.035, zc - 0.018, z))
+        v.co = inv @ Vector((x, y, z))
     bm.to_mesh(ob.data)
     bm.free()
 
@@ -2866,6 +2926,7 @@ def head_1997(pid, head, body, arm, spec):
     L = head_clean(head, st, face, rig)
     head_soften(head, L)
     head_profile(head, L, face, rig)
+    head_jaw(head, L, face, rig)
     head_nose(head, L, face, rig)
     surf = HeadSurface(head, body, L)
     if spec.get('bridge'):
@@ -3336,6 +3397,149 @@ def neck_seam(mesh, arm, z1):
     bm.free()
 
 
+# ---------- the shoulder line ----------
+# With the arms down, seen from the front (reference/고증 4.13.1): the men's shoulder ran from the neck to over the
+# joint, 6.9 cm above it, and fell from there at 45 degrees to the arm: a round, drooping tip (3.6 cm over the joint
+# where the bone's end is, 3.5 cm outside it).  The women's fell 32 degrees from the neck to a tip 2.2 cm over the
+# joint, and the arm stood out from under it: 37.5 cm across the upper arms.  A shoulder's line runs down from the
+# neck in a hollow, twenty-odd degrees, to the bone's end 4 to 5 cm over the joint, and the arm's muscle rounds the
+# corner under that (rough figures of the human build: no survey was found).
+# The shape is set where it is seen: the arms are put down (`out` degrees off upright, as the standing clips hold
+# them), every point is taken to where its bones carry it, moved there, and brought back to the T pose by the same
+# bones (what the upper arm holds turns with it: a lift made in the T pose swung out as a knob).  The moves are
+# `handles`: (m outside the joint, m over it; m out, m up; reach m), each fading as a bell about its place in the
+# plane seen from the front, front and back alike.  Before that the corner is eased as it stands (`ease`: m outside
+# the joint, m over it, the reach, how often; no point further than `far`): a hood's or a jacket's edge stood up
+# there as a ridge over a groove.  The game's metres.  A person's own `shoulders`: `square` scales what the handles
+# raise (more: a leveller line, a firmer corner), `broad` is added to what they move out.
+SHOULDER = {'umc': dict(out=4, ease=(0.035, 0.045, 0.075, 4), far=0.018, handles=[(0.040, 0.035, 0.004, 0.016, 0.035), (-0.035, 0.085, 0.0, -0.012, 0.040)]),
+            'women': dict(out=14, ease=(0.030, 0.035, 0.065, 3), far=0.012, handles=[(0.030, 0.025, 0.006, 0.010, 0.040), (0.050, -0.035, 0.012, 0.0, 0.050)])}
+
+
+def shoulder_line(parts, arm, rig, s, own=None):
+    S, own = SHOULDER[rig], own or {}
+    handles = [(u0, h0, mu + (own.get('broad', 0.0) if u0 > 0 else 0.0), mh * (own.get('square', 1.0) if mh > 0 else 1.0), sig)
+               for u0, h0, mu, mh, sig in S['handles']]
+    eu, eh, er, times = S['ease']
+    far, knot = S['far'] / s, 0.008 / s
+    P, aw = arm.pose.bones, arm.matrix_world
+    joint = {}
+    for side, sx in (('L', 1), ('R', -1)):
+        ua, la = P['UpperArm.' + side], P['LowerArm.' + side]
+        d = la.head - ua.head
+        rotate_about_head(ua, 'Y', sx * (90 - S['out'] + math.degrees(math.atan2(d.z, abs(d.x)))))
+        joint[sx] = aw @ ua.head
+    bpy.context.view_layer.update()
+    M = {pb.name: pb.matrix @ pb.bone.matrix_local.inverted() for pb in P}
+    reach = max(max(abs(h[0]) + 3 * h[4] for h in handles), abs(eu) + er)
+    for ob in parts:
+        me = ob.data
+        names = {g.index: g.name for g in ob.vertex_groups if g.name in M}
+        to_arm = aw.inverted() @ ob.matrix_world
+        back = to_arm.inverted()
+        at = {}                                      # vertex -> [where the bones carry it, its bones' matrix, the side, u, h]
+        for v in me.vertices:
+            gs = [(names[g.group], g.weight) for g in v.groups if g.group in names and g.weight > 0]
+            tot = sum(w for _, w in gs)
+            if tot < 1e-6:
+                continue
+            B = Matrix.Diagonal((0, 0, 0, 0))
+            for n, w in gs:
+                B += M[n] * (w / tot)
+            p = aw @ (B @ (to_arm @ v.co))
+            sx = 1 if p.x >= 0 else -1
+            u, h = (abs(p.x) - abs(joint[sx].x)) * s, (p.z - joint[sx].z) * s
+            if abs(u) <= reach and abs(h) <= 0.25:
+                at[v.index] = [p, B, sx, u, h]
+        # the corner eased as it stands: where the sleeve leaves the shoulder a top's edge stood up as a ridge over a
+        # groove once the arm was down.  Each point toward the mean of its neighbours, no further than `far` from
+        # where it was; points at one place (a seam, a collar's liner lying in the cloth) count as one and move as
+        # one, or one would come through the other
+        ease = {i: 1 - _smooth(0.5 * er, er, math.hypot(a[3] - eu, a[4] - eh)) for i, a in at.items()}
+        ease = {i: w for i, w in ease.items() if w > 0}
+        if ob.name.endswith('-body') and ease and times:
+            # (at one place: the same millimetre, or joined by an edge shorter than `knot`: a pack's seam is a knot of
+            # small faces)
+            top = {i: i for i in at}
+
+            def root(i):
+                while top[i] != i:
+                    top[i] = top[top[i]]
+                    i = top[i]
+                return i
+            first = {}
+            for i in at:
+                k = tuple(round(c * 1000) for c in at[i][0])
+                top[root(i)] = root(first.setdefault(k, i))
+            for e in me.edges:
+                a, b = e.vertices
+                if a in at and b in at and (at[a][0] - at[b][0]).length < knot:
+                    top[max(root(a), root(b))] = min(root(a), root(b))
+            one = {}
+            for i in at:
+                one.setdefault(root(i), []).append(i)
+            node = {i: root(i) for i in at}
+            near = {node[i]: set() for i in ease}
+            for e in me.edges:
+                a, b = e.vertices
+                if a in at and b in at and node[a] != node[b]:
+                    if node[a] in near:
+                        near[node[a]].add(node[b])
+                    if node[b] in near:
+                        near[node[b]].add(node[a])
+            was = {k: sum((at[i][0] for i in ids), Vector()) / len(ids) for k, ids in one.items()}
+            pos = dict(was)
+            for _ in range(times):
+                to = {k: sum((pos[q] for q in sorted(ks)), Vector()) / len(ks) for k, ks in near.items() if ks}
+                for k, q in to.items():
+                    d = pos[k].lerp(q, 0.5) - was[k]
+                    pos[k] = was[k] + d * min(1.0, far / max(d.length, 1e-9))
+            # (a thin face may turn over as its points move: those points stay, and whatever then turns for that)
+            from mathutils.geometry import normal as face_normal
+            move = {i: (pos[node[i]] - was[node[i]]) * w for i, w in ease.items()}
+            me.calc_loop_triangles()                                       # (by triangle: half a quad may turn alone)
+            faces = [list(f.vertices) for f in me.loop_triangles if all(i in at for i in f.vertices) and any(i in move for i in f.vertices)]
+            unbone = {i: at[i][1].inverted() @ aw.inverted() for f in faces for i in f}      # (back to the T pose)
+            before = [(face_normal([at[i][0] for i in f]), face_normal([unbone[i] @ at[i][0] for i in f])) for f in faces]
+            for _ in range(8):
+                held = set()
+                for f, (n, nt) in zip(faces, before):
+                    to = [at[i][0] + move.get(i, Vector()) for i in f]
+                    # (as it stands, and with the arms out: the same points lie otherwise there)
+                    if n.dot(face_normal(to)) < 0.6 or nt.dot(face_normal([unbone[i] @ q for i, q in zip(f, to)])) < 0.6:
+                        held |= {node[i] for i in f}
+                if not held:
+                    break
+                for i in move:
+                    if node[i] in held:
+                        move[i] = Vector()
+            # (easing draws a round in: what the corner lost on the whole, measured from the joint outward, is given
+            # back to all of it alike, so only the ridge and the groove go)
+            for sx in (1, -1):
+                mine = [i for i in move if at[i][2] == sx]
+                out = {i: Vector((at[i][0].x - joint[sx].x, 0, at[i][0].z - joint[sx].z)).normalized() for i in mine}
+                tot = sum(ease[i] for i in mine)
+                lost = sum(ease[i] * move[i].dot(out[i]) for i in mine) / tot if tot > 1e-9 else 0.0
+                for i in mine:
+                    move[i] = move[i] - out[i] * (lost * ease[i])
+            for i, d in move.items():
+                at[i][0] = at[i][0] + d
+        for i, (p, B, sx, u, h) in at.items():
+            du = dh = 0.0
+            for u0, h0, mu, mh, sig in handles:
+                g = math.exp(-((u - u0) ** 2 + (h - h0) ** 2) / sig ** 2)
+                du += mu * g
+                dh += mh * g
+            if abs(du) + abs(dh) < 2e-5 and i not in ease:
+                continue
+            q = Vector((p.x + sx * du / s, p.y, p.z + dh / s))
+            me.vertices[i].co = back @ (B.inverted() @ (aw.inverted() @ q))
+        me.update()
+    for pb in P:
+        pb.matrix_basis = Matrix.Identity(4)
+    bpy.context.view_layer.update()
+
+
 def build_person(pid, spec):
     rig = spec['rig']
     s = HEIGHT[rig] / TOP[rig]
@@ -3401,6 +3605,7 @@ def build_person(pid, spec):
             bpy.data.objects.remove(o, do_unlink=True)
     clear_anim(arm)
     relax_fingers(arm, parts, rig, s)
+    shoulder_line([o for o in parts if o.name.endswith(('-body', '-head'))], arm, rig, s, spec.get('shoulders'))
     cut = spec.get('cut') or TROUSERS.get(spec['parts']['legs'])
     if cut:
         cut_trousers(next(o for o in parts if o.name.endswith('-legs')), arm, CUTS[rig][cut])
