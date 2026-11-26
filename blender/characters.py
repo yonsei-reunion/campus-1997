@@ -154,7 +154,7 @@ PEOPLE = {
                    paint={'body': [dict(of=('Skin',), to='LightBrown', x=(0, .592)), neckline(('LightBrown',))],
                           'feet': trainers('umc', 'Red_Dark')},
                    prints={'body': [dict(name='geuss', of=('LightBrown',), w=.28, z=1.33)]}, cut='wide',
-                   neck=.85, shoulders=dict(square=.8),
+                   neck=.85, shoulders=dict(square=.8, broad=-.004),
                    face=dict(lid='inner', slant=.0, eye=.96, eye_open=.80, jaw=.95, chin=1.08, gonial=.8, chin_out=1.1, chin_wide=-.06, brow=1.35, brow_tilt=-.05,
                              arch=.3, brow_len=1.02, brow_taper=1.3, brow_soft=1.6, brow_up=-.0012, smile=.0018, mouth=1.24,
                              lip=1.6, nose=1.04, tip_up=.95, tip_round=.9, bridge=.27, nose_w=.98,
@@ -193,8 +193,8 @@ PEOPLE = {
                      'the long top swept from a 7:3 parting',
                      paint={'body': [neckline(('Purple',), drop=.024, ring=.006, lobe=1.5)], 'feet': trainers('umc', 'Red_Dark')}, cut='wide',
                      prints={'body': [dict(name='yonsei', of=('Purple',), w=.27, z=1.36)]},
-                     shoulders=dict(broad=.006),
-                     face=dict(lid='double', slant=.03, jaw=1.0, chin=1.14, gonial=1.3, chin_out=1.3, chin_wide=.05, eye=1.0, eye_open=.76, mouth=1.25, smile=.0040,
+                     shoulders=dict(broad=.004),
+                     face=dict(lid='double', slant=.03, jaw=1.0, chin=1.2, cheek=1.02, gonial=.55, taper=.14, chin_out=1.25, chin_wide=-.05, eye=1.0, eye_open=.76, mouth=1.25, smile=.0040,
                                lip=1.2, brow=1.7, arch=.55, brow_len=1.1, brow_peak=.6, brow_up=-.0022, brow_taper=1.5,
                                brow_soft=1.5, nose=1.18, tip_up=.72, tip_round=1.1, bridge=.35, nose_w=1.06,
                                socket=1.4, stubble=1.8, fold=.8, aegyo=.5, lip_up=.55, lip_ink=1.2, iris_tone=.9)),
@@ -266,7 +266,7 @@ PEOPLE = {
                                          dict(of=('LimeGreen',), to='Yoke', x=(.553, .570))],
                                 'legs': [dict(of=('LimeGreen',), to='Skirt')],
                                 'head': [dict(of=('Hair',), to='Band', y=(-.090, -.062), z=(1.690, None))]},
-                         skirt='denim', shoulders=dict(square=1.25),
+                         skirt='denim', shoulders=dict(square=1.1),
                          face=dict(lid='double', slant=.03, eye=1.08, eye_open=.90, lash=1.25, jaw=.98, cheek=1.05, chin=1.0, taper=.10, gonial=.4, brow=1.3,
                                    arch=.25, brow_len=1.0, brow_soft=2.0, brow_up=-.0018, smile=.0026, mouth=1.15, mouth_line=1.3, lip=1.45,
                                    lip_up=.85, lip_ink=1.35, nose=.74, tip_up=1.1, tip_round=.8, wing=.9, bridge=.18, nose_w=.94, nose_up=.0015,
@@ -3408,20 +3408,27 @@ def neck_seam(mesh, arm, z1):
 # them), every point is taken to where its bones carry it, moved there, and brought back to the T pose by the same
 # bones (what the upper arm holds turns with it: a lift made in the T pose swung out as a knob).  The moves are
 # `handles`: (m outside the joint, m over it; m out, m up; reach m), each fading as a bell about its place in the
-# plane seen from the front, front and back alike.  Before that the corner is eased as it stands (`ease`: m outside
-# the joint, m over it, the reach, how often; no point further than `far`): a hood's or a jacket's edge stood up
-# there as a ridge over a groove.  The game's metres.  A person's own `shoulders`: `square` scales what the handles
-# raise (more: a leveller line, a firmer corner), `broad` is added to what they move out.
-SHOULDER = {'umc': dict(out=4, ease=(0.035, 0.045, 0.075, 4), far=0.018, handles=[(0.040, 0.035, 0.004, 0.016, 0.035), (-0.035, 0.085, 0.0, -0.012, 0.040)]),
-            'women': dict(out=14, ease=(0.030, 0.035, 0.065, 3), far=0.012, handles=[(0.030, 0.025, 0.006, 0.010, 0.040), (0.050, -0.035, 0.012, 0.0, 0.050)])}
+# plane seen from the front, and from front to back over the shoulder's crest only (`crest`: all of it within so far
+# of the joint, nothing from so far: lifted with the crest, a top's edge in front of and behind the arm stood over
+# the sleeve as a shelf).  The game's metres.  A person's own `shoulders`: `square` scales what the handles raise
+# (more: a leveller line, a firmer corner), `broad` is added to what they move out.
+# Kept small: a lift of 1.6 cm at the corner made a jacket's shoulder a peak and a hood's seam a ledge with a dark
+# groove under it, and easing the corner afterwards (by its neighbours in the mesh, or by the distance from the
+# joint's axis) moved the knots of small faces at a seam through each other or pushed the shoulder's front and back
+# out over the sleeve.  The pack's own seams stay as they are.
+SHOULDER = {'umc': dict(out=4, crest=(0.035, 0.085),
+                        handles=[(0.035, 0.035, 0.009, 0.006, 0.045), (-0.035, 0.085, 0.0, -0.008, 0.040)]),
+            'women': dict(out=14, crest=(0.030, 0.075),
+                          handles=[(0.030, 0.025, 0.006, 0.007, 0.045), (0.050, -0.035, 0.010, 0.0, 0.050)])}
+
+
+WAS = 'shoulder_was'          # the vertex attribute of where a point was before shoulder_line, from where it is (occlude)
 
 
 def shoulder_line(parts, arm, rig, s, own=None):
     S, own = SHOULDER[rig], own or {}
     handles = [(u0, h0, mu + (own.get('broad', 0.0) if u0 > 0 else 0.0), mh * (own.get('square', 1.0) if mh > 0 else 1.0), sig)
                for u0, h0, mu, mh, sig in S['handles']]
-    eu, eh, er, times = S['ease']
-    far, knot = S['far'] / s, 0.008 / s
     P, aw = arm.pose.bones, arm.matrix_world
     joint = {}
     for side, sx in (('L', 1), ('R', -1)):
@@ -3430,8 +3437,9 @@ def shoulder_line(parts, arm, rig, s, own=None):
         rotate_about_head(ua, 'Y', sx * (90 - S['out'] + math.degrees(math.atan2(d.z, abs(d.x)))))
         joint[sx] = aw @ ua.head
     bpy.context.view_layer.update()
+    top = {sx: ((aw @ P['Head'].head).z - joint[sx].z) * s for sx in joint}
     M = {pb.name: pb.matrix @ pb.bone.matrix_local.inverted() for pb in P}
-    reach = max(max(abs(h[0]) + 3 * h[4] for h in handles), abs(eu) + er)
+    reach = max(abs(h[0]) + 3 * h[4] for h in handles)
     for ob in parts:
         me = ob.data
         names = {g.index: g.name for g in ob.vertex_groups if g.name in M}
@@ -3451,89 +3459,24 @@ def shoulder_line(parts, arm, rig, s, own=None):
             u, h = (abs(p.x) - abs(joint[sx].x)) * s, (p.z - joint[sx].z) * s
             if abs(u) <= reach and abs(h) <= 0.25:
                 at[v.index] = [p, B, sx, u, h]
-        # the corner eased as it stands: where the sleeve leaves the shoulder a top's edge stood up as a ridge over a
-        # groove once the arm was down.  Each point toward the mean of its neighbours, no further than `far` from
-        # where it was; points at one place (a seam, a collar's liner lying in the cloth) count as one and move as
-        # one, or one would come through the other
-        ease = {i: 1 - _smooth(0.5 * er, er, math.hypot(a[3] - eu, a[4] - eh)) for i, a in at.items()}
-        ease = {i: w for i, w in ease.items() if w > 0}
-        if ob.name.endswith('-body') and ease and times:
-            # (at one place: the same millimetre, or joined by an edge shorter than `knot`: a pack's seam is a knot of
-            # small faces)
-            top = {i: i for i in at}
-
-            def root(i):
-                while top[i] != i:
-                    top[i] = top[top[i]]
-                    i = top[i]
-                return i
-            first = {}
-            for i in at:
-                k = tuple(round(c * 1000) for c in at[i][0])
-                top[root(i)] = root(first.setdefault(k, i))
-            for e in me.edges:
-                a, b = e.vertices
-                if a in at and b in at and (at[a][0] - at[b][0]).length < knot:
-                    top[max(root(a), root(b))] = min(root(a), root(b))
-            one = {}
-            for i in at:
-                one.setdefault(root(i), []).append(i)
-            node = {i: root(i) for i in at}
-            near = {node[i]: set() for i in ease}
-            for e in me.edges:
-                a, b = e.vertices
-                if a in at and b in at and node[a] != node[b]:
-                    if node[a] in near:
-                        near[node[a]].add(node[b])
-                    if node[b] in near:
-                        near[node[b]].add(node[a])
-            was = {k: sum((at[i][0] for i in ids), Vector()) / len(ids) for k, ids in one.items()}
-            pos = dict(was)
-            for _ in range(times):
-                to = {k: sum((pos[q] for q in sorted(ks)), Vector()) / len(ks) for k, ks in near.items() if ks}
-                for k, q in to.items():
-                    d = pos[k].lerp(q, 0.5) - was[k]
-                    pos[k] = was[k] + d * min(1.0, far / max(d.length, 1e-9))
-            # (a thin face may turn over as its points move: those points stay, and whatever then turns for that)
-            from mathutils.geometry import normal as face_normal
-            move = {i: (pos[node[i]] - was[node[i]]) * w for i, w in ease.items()}
-            me.calc_loop_triangles()                                       # (by triangle: half a quad may turn alone)
-            faces = [list(f.vertices) for f in me.loop_triangles if all(i in at for i in f.vertices) and any(i in move for i in f.vertices)]
-            unbone = {i: at[i][1].inverted() @ aw.inverted() for f in faces for i in f}      # (back to the T pose)
-            before = [(face_normal([at[i][0] for i in f]), face_normal([unbone[i] @ at[i][0] for i in f])) for f in faces]
-            for _ in range(8):
-                held = set()
-                for f, (n, nt) in zip(faces, before):
-                    to = [at[i][0] + move.get(i, Vector()) for i in f]
-                    # (as it stands, and with the arms out: the same points lie otherwise there)
-                    if n.dot(face_normal(to)) < 0.6 or nt.dot(face_normal([unbone[i] @ q for i, q in zip(f, to)])) < 0.6:
-                        held |= {node[i] for i in f}
-                if not held:
-                    break
-                for i in move:
-                    if node[i] in held:
-                        move[i] = Vector()
-            # (easing draws a round in: what the corner lost on the whole, measured from the joint outward, is given
-            # back to all of it alike, so only the ridge and the groove go)
-            for sx in (1, -1):
-                mine = [i for i in move if at[i][2] == sx]
-                out = {i: Vector((at[i][0].x - joint[sx].x, 0, at[i][0].z - joint[sx].z)).normalized() for i in mine}
-                tot = sum(ease[i] for i in mine)
-                lost = sum(ease[i] * move[i].dot(out[i]) for i in mine) / tot if tot > 1e-9 else 0.0
-                for i in mine:
-                    move[i] = move[i] - out[i] * (lost * ease[i])
-            for i, d in move.items():
-                at[i][0] = at[i][0] + d
+        was = me.attributes.get(WAS) or me.attributes.new(WAS, 'FLOAT_VECTOR', 'POINT')
         for i, (p, B, sx, u, h) in at.items():
             du = dh = 0.0
+            # (and nothing from under the chin up: the head keeps its shape)
+            crest = (1 - _smooth(S['crest'][0], S['crest'][1], abs(p.y - joint[sx].y) * s)) * (1 - _smooth(top[sx] - 0.05, top[sx] - 0.02, h))
             for u0, h0, mu, mh, sig in handles:
-                g = math.exp(-((u - u0) ** 2 + (h - h0) ** 2) / sig ** 2)
+                # (a lift takes all that stands over its place with it, a move outward all that lies outside it: a
+                # seam's fold moves whole, where a bell on every side raised the fold's edge off the sleeve under it)
+                a, b = (u - u0, min(0.0, h - h0)) if abs(mh) >= abs(mu) else (min(0.0, u - u0), h - h0)
+                g = math.exp(-(a * a + b * b) / sig ** 2) * crest
                 du += mu * g
                 dh += mh * g
-            if abs(du) + abs(dh) < 2e-5 and i not in ease:
+            if abs(du) + abs(dh) < 2e-5:
                 continue
             q = Vector((p.x + sx * du / s, p.y, p.z + dh / s))
+            old = me.vertices[i].co.copy()
             me.vertices[i].co = back @ (B.inverted() @ (aw.inverted() @ q))
+            was.data[i].vector = old - me.vertices[i].co
         me.update()
     for pb in P:
         pb.matrix_basis = Matrix.Identity(4)
@@ -3619,7 +3562,7 @@ OCC_FAR = 0.28                # metres: what is further away shades nothing
 OCC_RAYS = 24
 
 
-def occlude(mesh):
+def occlude(mesh, scale=1.0):
     """How much of the sky each vertex sees past the rest of the person (the hair over the brow and the neck, the chin
     over the throat, sleeves, hems, the legs beside each other): 0 open, 1 shut in, kept on the vertices for the game
     to shade by (web/src/characters.js).  Rays over the hemisphere of the vertex's normal in the rest pose, a hit
@@ -3639,7 +3582,11 @@ def occlude(mesh):
             if n.startswith(('UpperLeg.', 'LowerLeg.', 'Foot.')):
                 w[n.endswith('R')] += g.weight
         leg.append(1 if w[0] > 0.6 else 2 if w[1] > 0.6 else 0)
-    cos = [v.co.copy() for v in me.vertices]
+    # (the shoulders are shaped as they stand with the arms down, shoulder_line: taken back to this pose, what the
+    # arm holds and what the trunk holds of a sleeve's seam lie through each other, and the shade of that stayed on
+    # the seam as a dark band.  The shade is that of the shape before: `scale`, what the mesh was scaled by since)
+    was = me.attributes.get(WAS)
+    cos = [v.co + Vector(was.data[v.index].vector) * scale if was else v.co.copy() for v in me.vertices]
     polys = [p for p in me.polygons if p.material_index not in glass]
     side = [max(leg[v] for v in p.vertices) if len({leg[v] for v in p.vertices} - {0}) < 2 else 0 for p in polys]
     trees = {0: BVHTree.FromPolygons(cos, [tuple(p.vertices) for p in polys])}
@@ -3659,7 +3606,7 @@ def occlude(mesh):
         b = n.cross(t)
         spin = (i * 0.61803 % 1) * 2 * math.pi
         cs, sn = math.cos(spin), math.sin(spin)
-        o = v.co + n * 0.004
+        o = cos[i] + n * 0.004
         shut = 0.0
         for x, y, z in dirs:
             d = n * z + t * (x * cs - y * sn) + b * (x * sn + y * cs)
@@ -3668,6 +3615,8 @@ def occlude(mesh):
                 shut += 1 - hit[3] / OCC_FAR
         vals.append(min(1.0, shut / OCC_RAYS * 1.5))
     att.data.foreach_set('value', vals)
+    if was:
+        me.attributes.remove(was)
 
 
 def weld_skin(mesh):
@@ -3721,7 +3670,7 @@ def finish_person(pid, arm, parts, s, rig, glasses):
             raise SystemExit(f'{pid}: {o.name} is not at the origin')
     me.transform(Matrix.Scale(s, 4))
     scale_rig(arm, s)
-    occlude(mesh)
+    occlude(mesh, s)
     mesh.name = me.name = pid + '-mesh'
     arm.name = pid
     arm.data.name = pid
