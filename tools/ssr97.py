@@ -23,7 +23,8 @@ aerial_resect.py) and the winter ones of 1996 (27/17 · 27/18, tools/aerial_more
 - The 경의선's south side west of the bridge: a white wall on the bank's edge, x -217 .. -110, 8.3 m off the south
   track east of a 4 m jog at x -155.5, 13 m west of it (WALL97).  Its top 37.0 - 37.3 m (27/17 x 27/18 and 26/16 x
   27/18, within 0.1 m), 3.4 m over the bed and 4 m over the bank's surface behind it (33.0 - 33.1 m), its south face
-  down to the town: a retaining wall with a wall standing on it, panelled (the jog's face in 27/17).  In the winter
+  down to the town: a retaining wall with a wall standing on it, panelled (the jog's face in 27/17); east of the jog
+  a grass bank under it down to a lane wall (the 1996 winter pair: BANK97_*).  In the winter
   frames of 1996 the same line is at 32.6 - 34.0 m (three pairs) and in 1998-10 at 36.9 - 37.0 m: the upper wall (a
   noise wall) went up between 1996-12 and 1997-07.  East of the bridge the south slope is trees, no wall.
 - 신촌역's yard, x 140 .. 540: a broad top at the rails' height, from o +34 (y -430) to o -25 (YARD_N, YARD_S: o north
@@ -164,6 +165,16 @@ def footbridge_polys(fb, pad=0.0):
 WALL97 = [(-217.0, -505.4), (-155.5, -503.4), (-155.5, -499.4), (-110.0, -497.8)]
 WALL97_TOP = [37.0, 37.0, 37.2, 37.2]
 WALL97_BENCH = 0.7
+# east of the jog the wall's foot is no retaining wall down to the town but a grass bank (고증 4.8.4 「벽 남쪽의
+# 비탈」): the leafless 1996-11/12 pair 26/16 x 26/17 (24 points at 0.71 - 0.99, x -115 .. -145) falls from 32.4 m 2 - 4 m
+# out of the wall's line to 26.5 m 10 - 12 m out (17 points on the plane below: median +0.5 m, rms 1.1 m, a little
+# fuller up top), the 1998-10 pair the same where no crowns stand; the 2008-08 and 2010-10 roadview the same, a grass
+# bank down to a low wall over the lane (연세로13길).  (x0, x1) along the wall, how far out its toe is, its height there
+# (해발); the lane wall down from it to the town.  West of the jog (x -165 .. -210: 29 - 30 m out to 9 m, roofs or a
+# bank) it stays a wall down to the ground
+BANK97_X = (-150.0, -117.0)
+BANK97_D, BANK97_TOE = 12.0, 26.4
+BANK97_DROP = 0.1                    # the bank's top at the wall's line under the bench
 # 신촌역's yard: how far the top reaches north (+) and south (-) of the rails' middle line, (x, o)
 YARD_N = [(285.0, 0.0), (295.0, 12.6), (330.0, 31.0), (360.0, 34.0), (480.0, 34.0), (520.0, 30.0), (555.0, 12.6), (565.0, 0.0)]
 YARD_S = [(132.0, 0.0), (150.0, -22.0), (160.0, -25.0), (360.0, -25.0), (400.0, -21.0), (440.0, -18.0), (500.0, -18.0),
@@ -172,6 +183,13 @@ YARD_S = [(132.0, 0.0), (150.0, -22.0), (160.0, -25.0), (360.0, -25.0), (400.0, 
 YARD_TRACKS = [(250.0, 505.0, 11.0), (125.0, 500.0, 2.8), (150.0, 520.0, -11.6), (160.0, 375.0, -22.0)]
 YARD_PLATFORMS = [(125.0, 493.0, 0.9, -5.0), (158.0, 325.0, -13.4, -19.4)]
 PLATFORM_UP = 0.5
+# the level crossing from the station's back over the side track and the south main line to the first island platform
+# (고증 4.8.4 「역사에서 승강장으로 건너는 길」): x 414.4 - 419.4 in the leafless 1996 frames 27/17 · 27/18 (a bright strip),
+# 1997-07 27/17 · 27/18 · 27/19 (the platform's south edge broken x 414.75 - 419.75 in all three, the strip's edges over
+# the tracks) and 1999-05 27/16 · 27/17 (painted round): (x0, x1, the platform it reaches), its top over the bed, how
+# far the ramp cuts into the platform, how far the ramp down to the forecourt runs out of the yard's south edge
+YARD_CROSSING = (414.4, 419.4, 0)
+CROSS_UP, CROSS_RAMP, CROSS_FORE = 0.06, 2.0, 2.5
 # the wagons standing on the north siding (o +11) on 1997-07-28 (x0, x1 of each body): roofs 3.7 m over the bed (38.0 m,
 # 27/17 and 27/18 within 0.3 m on that plane), light grey but the two at x 437 - 464 darker; a covered wagon stands there
 # in 1996 too (서울연구원 52044 · 52045: dark brown, from the bridge in 이화여대).  The yard took goods till 2005 (무연탄
@@ -247,12 +265,16 @@ def _o_at(tab, x):
     return float(np.interp(x, xs, os_, left=0.0, right=0.0))
 
 
+_BANK97 = []                         # bank_1997 -> rail_extras: [section, toe out of the wall's foot, its height, the lane's]
+
+
 def bank_1997(secs, sample):
     """bank_fix's sections (rows [x, y, nx, ny, hw, dN, zN, wallN, dS, zS, wallS, top], in place): the south side west
     of the bridge on the white wall's line, its foot on the town's ground; 신촌역's yard level out to YARD_N / YARD_S,
     a wall down to the ground where it stands lower"""
     wl = LineString(WALL97)
-    for r in secs:
+    del _BANK97[:]
+    for k, r in enumerate(secs):
         x, y, nx, ny, hw, top = r[0], r[1], r[2], r[3], r[4], r[11]
         p, n = np.array([x, y]), np.array([nx, ny])
         if WALL97[0][0] <= x <= WALL97[-1][0]:
@@ -263,6 +285,11 @@ def bank_1997(secs, sample):
                 ow = float(np.hypot(q.x - x, q.y - y))
                 foot = p - n * (ow + 0.6)
                 r[8], r[9], r[10] = round(max(0.5, ow - hw), 2), round(top - WALL97_BENCH, 2), round(float(sample(*foot)), 2)
+                if BANK97_X[0] <= x <= BANK97_X[1]:          # (the grass bank below it: rail_extras bank97)
+                    r[10] = round(top - WALL97_BENCH - BANK97_DROP, 2)
+                    toe = p - n * (hw + r[8] + BANK97_D)
+                    _BANK97.append([k, BANK97_D, datum.up(x, y, BANK97_TOE),
+                                    round(float(sample(*(toe - n * 0.6))), 2)])
         for side, tab, i0 in ((1, YARD_N, 5), (-1, YARD_S, 8)):
             o = abs(_o_at(tab, x))
             if o <= hw + 0.5:
@@ -271,6 +298,8 @@ def bank_1997(secs, sample):
             g = float(sample(*e))
             r[i0], r[i0 + 1] = round(o - hw, 2), round(top - 0.05, 2)
             r[i0 + 2] = round(g, 2) if g < top - 0.35 else None
+    for b in (_BANK97[:1] + _BANK97[-1:] if len(_BANK97) > 2 else []):   # (its ends run into the wall down to the town)
+        b[1], b[2] = 0.5, round(secs[b[0]][10] - 0.3, 2)
     return secs
 
 
@@ -295,10 +324,32 @@ def rail_extras(secs, rail_bed):
             f = k / max(1, len(seg) - 1)
             bench = float(rail_bed(q[0])) - WALL97_BENCH
             pts.append([round(q[0], 2), round(q[1], 2), round(bench, 2), datum.up(q[0], q[1], za + (zb - za) * f)])
-    return dict(wall97=pts, yard=dict(tracks=[list(t) for t in YARD_TRACKS],
-                                      platforms=[list(p) + [PLATFORM_UP] for p in YARD_PLATFORMS],
-                                      wagons=[[a, b, WAGON_O, WAGON_TOP] for a, b in YARD_WAGONS],
-                                      things=_yard_things(secs)))
+    return dict(wall97=pts, bank97=[list(b) for b in _BANK97],
+                yard=dict(tracks=[list(t) for t in YARD_TRACKS],
+                          platforms=[list(p) + [PLATFORM_UP] for p in YARD_PLATFORMS],
+                          wagons=[[a, b, WAGON_O, WAGON_TOP] for a, b in YARD_WAGONS],
+                          things=_yard_things(secs), crossings=[_crossing(secs)]))
+
+
+def bank97_poly(secs):
+    """the grass bank's plan (bank_1997's stretch): from the wall's foot out to its toe"""
+    if len(_BANK97) < 2:
+        return Polygon()
+    foot, toe = [], []
+    for k, d2, _, _ in _BANK97:
+        r = secs[k]
+        p, n = np.array(r[:2]), np.array(r[2:4])
+        foot.append(tuple(p - n * (r[4] + r[8])))
+        toe.append(tuple(p - n * (r[4] + r[8] + d2)))
+    return Polygon(foot + toe[::-1]).buffer(0)
+
+
+def _crossing(secs):
+    """campus.json town.rail.yard.crossings: [x0, x1, the platform's south edge o, the yard's south edge o, the deck's
+    top over the bed, the ramp into the platform, the ramp down out of the yard's edge]"""
+    x0, x1, i = YARD_CROSSING
+    r = min(secs, key=lambda s: abs(s[0] - (x0 + x1) / 2))
+    return [x0, x1, YARD_PLATFORMS[i][3], -round(r[4] + r[8], 2), CROSS_UP, CROSS_RAMP, CROSS_FORE]
 
 
 def yard_poly(secs):

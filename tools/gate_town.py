@@ -932,6 +932,10 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
     paints = dict(clear=[zone, inside], asphalt=[road_poly, mouth_a, yonsei, ground_paint],
                   pavers=[walk_n.difference(mouth), walk_s, yonsei_walk, inside],
                   dirt=[bank_paint])
+    # (the grass bank under the wall west of the bridge, tools/ssr97.py bank_1997: grass, no paving under it)
+    b97 = ssr97.bank97_poly(secs)
+    if not b97.is_empty:
+        paints = {k: (v if k == 'clear' else [g.difference(b97) for g in v]) for k, v in paints.items()}
     paths = [dict(kind='primary', w=2 * HW, pts=[[round(float(x), 1), round(float(y), 1)] for x, y in road.P[::3]]),
              dict(kind='tertiary', w=2 * YONSEI_HALF, pts=[[YONSEI_X, round(y_top, 1)], [YONSEI_X, -640.0]])]       # (the map)
     extra = dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, bank_rng=bank_r, paths=paths,

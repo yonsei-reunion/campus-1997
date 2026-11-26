@@ -1154,12 +1154,29 @@ def _track_y(pts, x):
     return pts[-1][1]
 
 
+def _bank97(mb, a, b, da, db, wa, wb, ba, bb, cap_a, cap_b):
+    """the grass bank under the wall on the white retaining wall (tools/ssr97.py bank_1997, the 1996 leafless pair; 고증
+    4.8.4 「벽 남쪽의 비탈」): from the wall's foot (wa, wb) down to its toe out of it (b*: [out, its height, the
+    lane's]), the lane's wall down from the toe; closed at the stretch's ends"""
+    P = lambda s_, o, z: (s_[0] - s_[2] * o, s_[1] - s_[3] * o, z)
+    fa, fb = P(a, a[4] + da, wa), P(b, b[4] + db, wb)
+    ha, hb = P(a, a[4] + da + ba[0], ba[1]), P(b, b[4] + db + bb[0], bb[1])
+    mb.face([fb, fa, ha, hb], 'terrain_drape')
+    la, lb = P(a, a[4] + da + ba[0], ba[2] - 0.5), P(b, b[4] + db + bb[0], bb[2] - 0.5)
+    flat(mb, [la, lb, hb, ha], B_PLAIN, P_CONC)
+    if cap_a:
+        flat(mb, [P(a, a[4] + da, ba[2] - 0.5), la, ha, fa], B_PLAIN, P_CONC)
+    if cap_b:
+        flat(mb, [fb, hb, lb, P(b, b[4] + db, bb[2] - 0.5)], B_PLAIN, P_CONC)
+
+
 def bank():
     """The bank between the sections of campus.json town.rail (tools/gate_town.py bank_fix): the gravel top with the two
     tracks, the slopes down to their feet, a concrete wall where the foot is held up over 성산로's sidewalk; open at
     the bridge.  Named town_bank_<k>: the web app stands the banks' trees on them."""
     R = T['rail']
     S = R['sections']
+    B97 = {b[0]: b[1:] for b in R.get('bank97', [])}
     x0b, x1b = T['bridge']['x'][0], T['bridge']['x'][1]
     mbs = []
     cum = 0.0
@@ -1204,6 +1221,8 @@ def bank():
                     gb = (wb if wb is not None else zb) - 0.5
                     wq = [(fa[0], fa[1], ga), (fb[0], fb[1], gb), fb, fa]
                     flat(mb, wq if side < 0 else wq[::-1], B_PLAIN, P_CONC)
+                if side < 0 and k in B97 and k + 1 in B97:
+                    _bank97(mb, a, b, da, db, wa, wb, B97[k], B97[k + 1], k - 1 not in B97, k + 2 not in B97)
             cum += seg
         if mb.faces:
             mbs.append(mb)
@@ -1236,6 +1255,60 @@ def _at_x(S, x):
     return min(S, key=lambda r: abs(r[0] - x))
 
 
+def _sec_x(S, x):
+    """the rails' section at x along them, between the two nearest (x, y, nx, ny, the bed's top)"""
+    for a, b in zip(S[:-1], S[1:]):
+        if a[0] <= x <= b[0]:
+            t = (x - a[0]) / max(1e-6, b[0] - a[0])
+            return tuple(a[i] + (b[i] - a[i]) * t for i in (0, 1, 2, 3, 11))
+    s_ = _at_x(S, x)
+    return s_[0], s_[1], s_[2], s_[3], s_[11]
+
+
+def _platform_cut(mb, a, b, oa, ob, up, c):
+    """one span of the island platform with the level crossing's ramp let into its south edge (c: yard.crossings)"""
+    x0, x1, _, _, upc, ramp, _ = c
+    t0 = min(1.0, max(0.0, (x0 - a[0]) / (b[0] - a[0])))
+    t1 = min(1.0, max(0.0, (x1 - a[0]) / (b[0] - a[0])))
+    o_r = ob + ramp
+
+    def Pt(t, o, dz):
+        x, y = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+        nx, ny = a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t
+        return (x + nx * o, y + ny * o, a[11] + (b[11] - a[11]) * t + dz)
+    flat(mb, [Pt(0, o_r, up), Pt(1, o_r, up), Pt(1, oa, up), Pt(0, oa, up)], B_PLAIN, P_CONC)
+    flat(mb, [Pt(0, oa, -0.1), Pt(0, oa, up), Pt(1, oa, up), Pt(1, oa, -0.1)], B_PLAIN, P_CONC)        # (its north edge)
+    for u0, u1 in ((0.0, t0), (t1, 1.0)):
+        if u1 - u0 < 1e-3:
+            continue
+        flat(mb, [Pt(u0, ob, up), Pt(u1, ob, up), Pt(u1, o_r, up), Pt(u0, o_r, up)], B_PLAIN, P_CONC)
+        flat(mb, [Pt(u1, ob, -0.1), Pt(u1, ob, up), Pt(u0, ob, up), Pt(u0, ob, -0.1)], B_PLAIN, P_CONC)
+    flat(mb, [Pt(t0, ob, upc), Pt(t1, ob, upc), Pt(t1, o_r, up), Pt(t0, o_r, up)], B_PLAIN, P_CONC)    # (the ramp)
+    flat(mb, [Pt(t1, ob, -0.1), Pt(t1, ob, upc), Pt(t0, ob, upc), Pt(t0, ob, -0.1)], B_PLAIN, P_CONC)
+    flat(mb, [Pt(t0, o_r, up), Pt(t0, ob, up), Pt(t0, ob, upc)], B_PLAIN, P_CONC)                      # (its cheeks)
+    flat(mb, [Pt(t1, o_r, up), Pt(t1, ob, upc), Pt(t1, ob, up)], B_PLAIN, P_CONC)
+
+
+def _crossing(mb, S, c):
+    """the level crossing (tools/ssr97.py YARD_CROSSING; 고증 4.8.4): a concrete deck over the tracks from the island
+    platform's south edge to the yard's, a ramp down out of the yard's edge to the station's forecourt"""
+    x0, x1, ob, oe, upc, _, fore = c
+    s0, s1 = _sec_x(S, x0), _sec_x(S, x1)
+    Q = lambda s_, o, z: (s_[0] + s_[2] * o, s_[1] + s_[3] * o, z)
+    z0, z1 = s0[4] + upc, s1[4] + upc
+    flat(mb, [Q(s0, oe, z0), Q(s1, oe, z1), Q(s1, ob, z1), Q(s0, ob, z0)], B_PLAIN, P_CONC)
+    flat(mb, [Q(s0, ob, s0[4] - 0.1), Q(s0, oe, s0[4] - 0.1), Q(s0, oe, z0), Q(s0, ob, z0)], B_PLAIN, P_CONC)
+    flat(mb, [Q(s1, oe, s1[4] - 0.1), Q(s1, ob, s1[4] - 0.1), Q(s1, ob, z1), Q(s1, oe, z1)], B_PLAIN, P_CONC)
+    r = _at_x(S, (x0 + x1) / 2)
+    foot = r[10] if r[10] is not None else r[9]
+    if foot < r[9] - 0.05:
+        of = oe - fore
+        f0, f1 = foot - (r[11] - s0[4]), foot - (r[11] - s1[4])
+        flat(mb, [Q(s0, of, f0), Q(s1, of, f1), Q(s1, oe, z1), Q(s0, oe, z0)], B_PLAIN, P_CONC)
+        flat(mb, [Q(s0, oe, f0 - 0.3), Q(s0, of, f0 - 0.3), Q(s0, of, f0), Q(s0, oe, z0)], B_PLAIN, P_CONC)
+        flat(mb, [Q(s1, of, f1 - 0.3), Q(s1, oe, f1 - 0.3), Q(s1, oe, z1), Q(s1, of, f1)], B_PLAIN, P_CONC)
+
+
 def yard():
     """신촌역's yard (tools/ssr97.py, the 1997 scans; 고증 4.8): the tracks besides the two main ones on its level top and
     its two island platforms, their tops PLATFORM_UP over the bed; and the wall standing on the white retaining wall
@@ -1256,12 +1329,17 @@ def yard():
                 u0, u1 = cum / (4 * BAY), (cum + seg) / (4 * BAY)
                 mb.face([pa(o - 1.6), pb(o - 1.6), pb(o + 1.6), pa(o + 1.6)], ATLAS, uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
                 cum += seg
-        for x0, x1, oa, ob, up in Y['platforms']:
+        cross = Y.get('crossings', [])
+        for pi, (x0, x1, oa, ob, up) in enumerate(Y['platforms']):
             run = [r for r in S if x0 <= r[0] <= x1]
             for i, (a, b) in enumerate(zip(run[:-1], run[1:])):
                 P = lambda s_, off, z: (s_[0] + s_[2] * off, s_[1] + s_[3] * off, z)
                 ta, tb = a[11] + up, b[11] + up
                 ba, bb = a[11] - 0.1, b[11] - 0.1
+                cut = [c for c in cross if pi == 0 and c[0] < b[0] and c[1] > a[0]]
+                if cut:                                      # (the level crossing's ramp into its south edge)
+                    _platform_cut(mb, a, b, oa, ob, up, cut[0])
+                    continue
                 flat(mb, [P(a, ob, ta), P(b, ob, tb), P(b, oa, tb), P(a, oa, ta)], B_PLAIN, P_CONC)
                 flat(mb, [P(a, oa, ba), P(a, oa, ta), P(b, oa, tb), P(b, oa, bb)], B_PLAIN, P_CONC)      # (its north edge)
                 flat(mb, [P(b, ob, bb), P(b, ob, tb), P(a, ob, ta), P(a, ob, ba)], B_PLAIN, P_CONC)
@@ -1269,6 +1347,8 @@ def yard():
                     if e:
                         q_ = [P(s_, oa, s_[11] - 0.1), P(s_, ob, s_[11] - 0.1), P(s_, ob, z_), P(s_, oa, z_)]
                         flat(mb, q_ if s_ is a else q_[::-1], B_PLAIN, P_CONC)
+        for c in Y.get('crossings', []):
+            _crossing(mb, S, c)
     for x0, x1, o, top in (Y or {}).get('wagons', []):      # (the covered wagons on the north siding: 1997 scans, 52044)
         a_, b_ = _at_x(S, x0), _at_x(S, x1)
         ca, cb = (x0, a_[1] + a_[3] * o), (x1, b_[1] + b_[3] * o)
