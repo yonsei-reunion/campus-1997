@@ -34,7 +34,9 @@ usp = float(A[A.index('--us') + 1]) if '--us' in A else None     # Stimson slid 
 if usp is None: G.remove('us')
 gi = {g: i for i, g in enumerate(G)}; NG = len(G)
 def gv(par, g, d=0.0): return par[gi[g]] if g in gi else d
+ALIAS = dict(H_FS='ST_SE', H_BS='ST_SW', H_FN='ST_NE', H_BN='ST_NW', H_SMID='ST_SAPEX', H_NMID='ST_NAPEX')
 def where(f, par):
+    f = ALIAS.get(f, f)
     if f.startswith('ST_'):
         X, Y = where0(f, par); d = gv(par, 'us'); return (X + d * U[0], Y + d * U[1])
     return where0(f, par)
@@ -77,7 +79,7 @@ def resid(par):
         i = NG + 5 * panos.index(p); x, y, yaw, ax, ay = par[i:i + 5]
         d = rot(yaw, ax, ay) @ RAYS[k]
         X, Y = where(f, par)
-        sg = sig * (2.5 if f == 'CH' else 1.5 if f.startswith(('AP', 'UW')) else 1.0)
+        sg = sig * (2.5 if f == 'CH' else 1.5 if f.startswith(('AP', 'UW', 'SF')) else 1.0)
         out.append(wrap(math.atan2(d[0], d[1]) - math.atan2(X - x, Y - y)) / math.radians(sg * 360 / 4096))
     # priors
     for g in G:

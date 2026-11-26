@@ -1,6 +1,6 @@
-# 스팀슨관 폭: 로드뷰 후방교회 (#247, 끝나지 않음)
+# 스팀슨관 폭: 로드뷰 후방교회 (#247, 가진 자료로는 결론 없음)
 
-`reference/고증/3.5.3_스팀슨관_앞_계단과_길.md` 「서쪽 찻길 로드뷰와 2013년 실측 평면」 · 「앞길 로드뷰」의 판독 도구입니다.
+`reference/고증/3.5.3_스팀슨관_앞_계단과_길.md` 「서쪽 찻길 로드뷰와 2013년 실측 평면」 · 「앞길 로드뷰」 · 「아펜젤러관으로 본 방법 확인」의 판독 도구입니다.
 작업 폴더 `$ST_WORK`(기본 `/tmp/stimson_rv`) 의 `st/` 에 파노라마를 받습니다(저장소에 넣지 않음).
 
 ```sh
@@ -31,4 +31,12 @@ python3 $T/edge.py $T/front_edges.txt edges.png                # 앞길: 남쪽 
 
 - `readings.txt`: 서쪽 찻길(2026-11-25). 장마다 쓸 만한 점이 1 ~ 3개라 그물이 닫히지 않음(남동 · 북서 모서리가 담쟁이 · 가지에 가림)
 - `front.txt` · `front_edges.txt`: 앞길 683 ~ 686(2026-11-26). 남쪽 끝 벽 사이 11.9 ~ 12.2 ± 0.3 m 이나 스캔의 처마로 낸 값과 어긋나 결론 나지 않음
-- 다음: 같은 그물을 폭을 아는 아펜젤러관에 써서 방법을 확인(정원 파노라마 1016786661 · 663 · 687, 앞길 장)
+- `ap.txt` · `ap_edges.txt`: 대조 시험(2026-11-26). `HALL=ap` 로 두면 그물이 아펜젤러관(앞이 서쪽)을 풂. 아펜젤러관 앞 걸음 1016786662 · 663, 판독 이름은 `H_FS` 앞 남쪽 · `H_BS` 뒤 남쪽 · `H_SMID` 박공 가운데, 기준점 `SF_NE`(스팀슨관 북동) · `UW_SW` · `UW_NE` · `STATUE`. 기준점 고르기에 따라 12.2 ~ 13.6 m(실제 12.9)로 갈려 방법이 ±0.7 m 보다 좁히지 못함
+
+```sh
+node tools/roadview/yonsei_ro/paths.mjs 1016786678 $(seq 1016786655 1016786663) >> $ST_WORK/st/paths.jsonl   # 첫 id 는 열리는 것으로
+YRO_WORK=$ST_WORK/st python3 -I tools/roadview/yonsei_ro/fetch.py 2010
+export HALL=ap; mv $ST_WORK/readings.json $ST_WORK/readings_st.json
+python3 $T/batch.py $T/ap.txt x.txt; python3 $T/edge.py $T/ap_edges.txt ape.png
+.venv/bin/python $T/solve.py --up --tsig 1.0 --oneW --only 662,663 [--drop 662:SF_NE,663:SF_NE]
+```
