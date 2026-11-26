@@ -419,29 +419,81 @@ function slung(kit, f, sh, inset, arcDeg, front, back, width, thick, color, roug
   kit.add(strap(pts, outs, width, thick), color, rough, (x, y, z, i) => ws[i >> 2]);
 }
 
+// The plane a bag's face lies in against the back between the heights y0 and y1, at the places xs across: of the
+// lines z(y) that keep `gap` behind the back at every height, the one that lies closest to it on the whole (both
+// its ends as far forward as they may be), leaning no more than BAG_LEAN.  The back is the body as it stands (the
+// shoulder blades come back as the arms hang), seen from the bag: a point of the bag's face moves with the bones
+// `weigh` gives it, so the back is found along the bag's own way out in the standing pose and taken back to the
+// bind pose by the same matrix.  Cloth gives under a loaded bag: a top hanging loose over the hips (its hem 2 cm
+// off the trousers), a hood lying on the shoulders.  So the bag's lower half may press into it by up to BAG_PRESS
+// (most at the foot), its top edge by BAG_PRESS_TOP.  Returns the face's z at the middle height and the lean
+// (radians about x: positive, the foot further back than the top)
+const BAG_GAP = 0.006, BAG_LEAN = 0.32, BAG_PRESS = 0.02, BAG_PRESS_TOP = 0.008;
+function backFace(f, y0, y1, gap, xs, weigh) {
+  const ys = [];
+  for (let y = y0; y <= y1 + 1e-6; y += 0.01) ys.push(y);
+  const out = V(0, 0, -1);
+  const zs = ys.map((y) => {
+    let z = f.zB(y);
+    for (const x of xs) {
+      const M = f.blend(weigh(x, y)), inv = M.clone().invert();
+      const o = V(x, y, (f.zB(y) + f.zF(y)) / 2).applyMatrix4(M);
+      const hit = f.ray(o, out.clone().transformDirection(M), { standing: true });
+      if (hit) z = Math.min(z, hit.p.applyMatrix4(inv).z);
+    }
+    return z - gap + BAG_PRESS * ss((y0 + y1) / 2, y0 + 0.08, y) + BAG_PRESS_TOP * ss(y1 - 0.04, y1, y);
+  });
+  const ym = (y0 + y1) / 2, H = y1 - y0;
+  // candidates: the line through each pair of heights, and level lines; keep those nowhere in front of the back
+  let best = null;
+  const tryLine = (k, c) => {                              // z = c + k (y - ym)
+    if (Math.abs(Math.atan(k)) > BAG_LEAN) return;
+    for (let i = 0; i < ys.length; i++) if (c + k * (ys[i] - ym) > zs[i] + 1e-6) return;
+    if (!best || c > best.c) best = { k, c };
+  };
+  tryLine(0, Math.min(...zs));
+  for (let i = 0; i < ys.length; i++) {
+    for (let j = i + 1; j < ys.length; j++) {
+      const k = (zs[j] - zs[i]) / (ys[j] - ys[i]);
+      tryLine(k, zs[i] + k * (ym - ys[i]));
+    }
+  }
+  return { zIn: best.c, lean: Math.atan(best.k), H };
+}
+
 // a backpack on the back: sling = hanging off one shoulder (side: +1 the left, -1 the right) by that strap only
 function backpack(kit, f, col, trim, s, woman, { mini = false, sling = false, side = -1 } = {}) {
   const { bi } = f;
-  const [w, h, d] = (mini ? [0.22, 0.26, 0.09] : woman ? [0.27, 0.35, 0.12] : [0.3, 0.4, 0.13]).map((v) => v * s);
+  const [w, h, d] = (mini ? [0.22, 0.26, 0.09] : woman ? [0.27, 0.35, 0.11] : [0.3, 0.4, 0.12]).map((v) => v * s);
   const drop = sling ? 0.09 : 0;
   const tilt = sling ? side * 0.22 : 0;                      // (a sling leans out from the shoulder it hangs from)
-  const yT = f.shTop - 0.055 - drop, yB = yT - h;
+  // (its top a hand under the shoulders' top, on the shoulder blades: higher, it stood off the back where that turns
+  // forward to the neck)
+  const yT = f.shTop - 0.085 - drop, yB = yT - h;
   const xc = sling ? side * 0.05 : 0;
-  const zIn = f.backMin(yB - 0.03, yT) - 0.014;              // its face against the back
-  const zc = zIn - d / 2;
+  // its face against the back: a plane that the back (and a top's hem hanging loose over the hips) nowhere comes
+  // through, leaning as it must to touch the back twice: hanging from the straps the bag lies on the shoulder blades
+  // and its foot on the small of the back or the hem.  (A plane upright behind the furthest point stood off the
+  // shoulder blades by the hem's or the hood's depth: 4 to 5 cm.)
   // from the chest at the top to half spine at the bottom: the bag follows the back as it bends
   const weigh = (x, y) => { const t = ss(yB, yT, y); return [[bi.Chest, 0.45 + 0.55 * t], [bi.Torso, 0.55 - 0.55 * t]]; };
+  const { zIn, lean } = backFace(f, yB - 0.03, yT, BAG_GAP, [xc - w * 0.38, xc, xc + w * 0.38], weigh);
+  const zc = zIn - d / 2;
+  const ym = (yT + yB) / 2;
+  const tilt3 = new THREE.Matrix4().makeTranslation(0, ym, zIn).multiply(new THREE.Matrix4().makeRotationX(lean))
+    .multiply(new THREE.Matrix4().makeTranslation(0, -ym, -zIn));
   const rough = mini ? 0.55 : 0.8;
-  const body = placed(pillow(w, h, d, { r: mini ? 0.05 : 0.07, bevel: 0.02, bulge: d * 0.25, taper: 0.14 }), xc, (yT + yB) / 2, zc, 0, tilt);
-  kit.add(body, col, rough, weigh);
+  const body = placed(pillow(w, h, d, { r: mini ? 0.05 : 0.07, bevel: 0.02, bulge: d * 0.2, taper: 0.14 }), xc, (yT + yB) / 2, zc, 0, tilt);
+  kit.add(body.applyMatrix4(tilt3), col, rough, weigh);
   const pocket = placed(pillow(w * 0.68, h * 0.4, 0.05, { r: 0.035, bevel: 0.012, bulge: 0.01 }), 0, 0, 0);
   // (the parts below the bag's middle move out with its lean: a point a below the middle turns to x = a sin(tilt))
-  kit.add(placed(pocket, xc + Math.sin(tilt) * h * 0.2, yB + h * 0.3, zc - d / 2 - 0.022, 0, tilt), trim, rough, weigh);
-  if (!mini) kit.add(placed(pillow(w * 0.96, 0.05, d * 0.9, { r: 0.02, bevel: 0.01 }), xc + Math.sin(tilt) * (h / 2 - 0.02), yB + 0.02, zc, 0, tilt), trim, rough, weigh);
+  kit.add(placed(pocket, xc + Math.sin(tilt) * h * 0.2, yB + h * 0.3, zc - d / 2 - 0.022, 0, tilt).applyMatrix4(tilt3), trim, rough, weigh);
+  if (!mini) kit.add(placed(pillow(w * 0.96, 0.05, d * 0.9, { r: 0.02, bevel: 0.01 }), xc + Math.sin(tilt) * (h / 2 - 0.02), yB + 0.02, zc, 0, tilt).applyMatrix4(tilt3), trim, rough, weigh);
   // shoulder straps: from the bag's top over the shoulder, down the chest, under the arm and back to the bag's lower
   // corner (a sling's one strap the same)
   for (const sx of sling ? [side] : [-1, 1]) {
-    const top = V(xc + sx * 0.07, yT - 0.02, zIn - 0.02), low = V(xc + sx * (w / 2 - 0.035) + Math.sin(tilt) * (h / 2 - 0.07), yB + 0.07, zIn - 0.02);
+    const top = V(xc + sx * 0.07, yT - 0.02, zIn - 0.02).applyMatrix4(tilt3);
+    const low = V(xc + sx * (w / 2 - 0.035) + Math.sin(tilt) * (h / 2 - 0.07), yB + 0.07, zIn - 0.02).applyMatrix4(tilt3);
     slung(kit, f, sx, 0.3, [40, 55, 70, 85, 100, 115, 130, 145],
       { to: low, w: weigh(low.x, low.y), out: V(sx * 0.5, 0, -1),
         face: (t) => V(sx * ss(0.2, 0.65, t), 0, ss(0, 0.3, t) * (1 - ss(0.3, 0.7, t)) - 0.7 * ss(0.7, 1, t)) },
