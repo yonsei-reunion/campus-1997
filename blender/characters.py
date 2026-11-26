@@ -215,7 +215,7 @@ PEOPLE = {
                       {'Suit': '#27304a', 'White': '#dfe7ee', 'Tie': '#dfe7ee', 'LightBlue': '#b9a67e', 'Black': '#3a2a1f',
                        'Skin': SKIN['a'], 'Hair': HAIR['black']},
                       'navy blazer, light blue shirt, beige cotton trousers (콤비); 2:8 side parting, the fringe swept across',
-                      flip=True,
+                      flip=True, fit=False,          # (the maker's word, 2026-11-26: the blazer as the pack cut it)
                       face=dict(lid='inner', slant=.02, jaw=.95, brow_tilt=-.05, arch=1.1, smile=.0018, brow=.8, brow_len=1.12, brow_gap=.002, brow_taper=.8,
                                 nose=.98, tip_up=1.15, tip_round=.7, wing=.9, bridge=.25, nose_w=.92)),
     'p07': man('thin', 'Suit', 'Suit', 'Suit',
