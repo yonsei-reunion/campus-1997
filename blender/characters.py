@@ -139,7 +139,8 @@ def canvas(upper, rubber):
 # brows also brow_len, brow_gap, brow_up, brow_peak, brow_corner, brow_drop, brow_taper, brow_soft (faces.py), of the
 # nose nose, bridge, nose_curve, tip_up, nose_up, tip_round, nose_w, wing (NOSE below); of the head's shape jaw (the lower face's width), chin
 # (its length), cheek (the width at the cheeks), taper (the jaw narrower toward the chin).  paint: parts of the outfit in colours of their own
-# (see '1997 wardrobe').  Of the face from near (faces.py draw_near: the picture of a person's own the game shows
+# (see '1997 wardrobe').  fit: how the top hangs (FIT below: a kind by name, what differs from the outfit's, or False for the
+# pack's tight fit).  Of the face from near (faces.py draw_near: the picture of a person's own the game shows
 # from a metre or so): aegyo, bow, socket, stubble, fold, flush, iris_tone; and of both faces crease (a double
 # eyelid's fold nearer the lashes or further) and lip_tint (the lips' own colour).
 PEOPLE = {
@@ -154,6 +155,7 @@ PEOPLE = {
                    paint={'body': [dict(of=('Skin',), to='LightBrown', x=(0, .592)), neckline(('LightBrown',))],
                           'feet': trainers('umc', 'Red_Dark')},
                    prints={'body': [dict(name='geuss', of=('LightBrown',), w=.28, z=1.33)]}, cut='wide',
+                   fit=dict(start=.19, sleeve=(.008, .014)),
                    neck=.85, shoulders=dict(square=.8, broad=-.004),
                    face=dict(lid='inner', slant=.0, eye=.96, eye_open=.80, jaw=.95, chin=1.08, gonial=.8, chin_out=1.1, chin_wide=-.06, brow=1.35, brow_tilt=-.05,
                              arch=.3, brow_len=1.02, brow_taper=1.3, brow_soft=1.6, brow_up=-.0012, smile=.0018, mouth=1.24,
@@ -193,7 +195,7 @@ PEOPLE = {
                      'the long top swept from a 7:3 parting',
                      paint={'body': [neckline(('Purple',), drop=.024, ring=.006, lobe=1.5)], 'feet': trainers('umc', 'Red_Dark')}, cut='wide',
                      prints={'body': [dict(name='yonsei', of=('Purple',), w=.27, z=1.36)]},
-                     shoulders=dict(broad=.004),
+                     shoulders=dict(broad=.004), fit=dict(start=.16),
                      face=dict(lid='double', slant=.03, jaw=1.0, chin=1.2, cheek=1.02, gonial=.55, taper=.14, chin_out=1.25, chin_wide=-.05, eye=1.0, eye_open=.76, mouth=1.25, smile=.0040,
                                lip=1.2, brow=1.7, arch=.55, brow_len=1.1, brow_peak=.6, brow_up=-.0022, brow_taper=1.5,
                                brow_soft=1.5, nose=1.18, tip_up=.72, tip_round=1.1, bridge=.35, nose_w=1.06,
@@ -234,7 +236,7 @@ PEOPLE = {
                        'loose white tee with YONSEI in blue across the chest, wide light jeans (연청), white trainers; long '
                        'black hair, the top half tied back',
                        paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')}, cut='wide',
-                       prints={'body': [dict(name='yonsei_ink', of=('White',), w=.22, z=1.40)]},
+                       prints={'body': [dict(name='yonsei_ink', of=('White',), w=.22, z=1.40)]}, fit=dict(start=.11),
                        face=dict(lid='inner', slant=.07, eye=1.03, jaw=1.03, smile=.0030, brow=.9, arch=1.35, brow_peak=.58, brow_len=1.05, brow_up=-.002, brow_soft=1.3,
                                  nose=.80, nose_curve=.9, tip_up=1.2, tip_round=.95, bridge=.20, nose_w=.96, nose_up=.001)),
     'p10': woman('tuck', 'Casual', 'Casual', 'Casual',
@@ -242,7 +244,7 @@ PEOPLE = {
                          'feet:Sole': '#cfccc4', 'Skin': SKIN['fair'], 'Hair': HAIR['dark']},
                         'pink knit, wide beige trousers, white trainers; short bob, one side behind the ear',
                         paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')},
-                        bust=1.3, face=dict(lid='inner', slant=.03, jaw=1.04, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
+                        bust=1.3, fit='slim', face=dict(lid='inner', slant=.03, jaw=1.04, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
                                   nose=.72, nose_curve=.85, tip_up=1.45, tip_round=1.25, bridge=.17, nose_w=1.02, nose_up=.002)),
     # 서연 (the film 건축학개론, 2012: a first-year of the college of music in 1996): a round, soft face, large eyes with
     # double lids, straight soft brows, a small nose, a ready smile; long straight hair worn down
@@ -286,7 +288,7 @@ PEOPLE = {
                                               dict(of=('LimeGreen',), to='Rib', x=(0, .082), y=(-.045, None), z=(1.492, None)),
                                               neckline(('LimeGreen',), to='Rib', drop=.036, half=.085, side=.06),
                                               neckline(('Rib',), drop=.020, half=.068, side=.06)]},
-                              roomy=1.16, cut='wide',
+                              roomy=1.16, cut='wide', fit='sweat',
                               face=dict(lid='double', slant=.10, eye=.99, jaw=.98, smile=.0022, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
                                         brow_peak=.68, brow_drop=1.0, brow_soft=1.3, nose=.84, tip_round=.9, bridge=.22, nose_w=.95)),
     'p13': woman('pixie', 'Suit', 'Casual', 'Casual',
@@ -299,7 +301,7 @@ PEOPLE = {
                                       nose=.76, nose_curve=.96, tip_up=1.05, tip_round=1.3, wing=1.1, bridge=.20, nose_w=1.08)),
     'p14': woman('perm', 'Suit', 'Suit', 'Suit',
                          {'Black': '#2f3644', 'White': '#eef0f2', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
-                         'office staff: navy suit, short permed hair',
+                         'office staff: navy suit, short permed hair', fit='jacket',
                          paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)]}, face=dict(lid='inner', slant=.0, jaw=1.06, eye=.95, brow_tilt=-.03, smile=.0014, age='mid',
                                                                                  brow=.9, arch=1.25, brow_len=.96, brow_soft=1.4, nose=.84, tip_up=.85, tip_round=1.1, bridge=.21, nose_w=1.10)),
     # (added last: the faces' cells go by this order)
@@ -317,7 +319,7 @@ PEOPLE = {
                                           *[dict(of=('LimeGreen',), to='Stripe', x=(x - .013, x + .013))
                                             for x in (.193, .249, .305, .361, .417, .473, .529)],
                                           neckline(('LimeGreen',), drop=.030, half=.085, side=.06)],
-                                 'feet': trainers('women', 'Grey')},
+                                 'feet': trainers('women', 'Grey')}, fit=False,
                           face=dict(lid='inner', slant=.06, eye=1.04, jaw=1.0, smile=.0027, mouth=1.0, brow=1.0, arch=.9, brow_len=1.0,
                                     brow_soft=1.5, nose=.80, tip_up=1.38, tip_round=.7, bridge=.20, nose_w=1.0, nose_up=.001)),
     'p16': man('curtain', 'Adventurer', 'Casual_2', 'Casual_2',
@@ -334,7 +336,7 @@ PEOPLE = {
                          'denim shirt (청남방) worn open over a white tee, beige cotton trousers, white trainers; hair to the '
                          'shoulders with a straight fringe',
                          paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)], 'feet': trainers('women', 'Grey')},
-                         bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
+                         bust=1.3, fit='shirt', face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
                                    brow_soft=1.6, nose=.78, nose_curve=.88, tip_up=1.12, tip_round=1.05, bridge=.19, nose_w=.98, nose_up=.001)),
 }
 RIGS = {'rig-umc': 'umc', 'rig-women': 'women'}
@@ -1175,6 +1177,261 @@ def long_sleeves(ob, arm, r0, r1, cuff=0.03):
     for i in cloth:
         me.vertices[i].co = inv @ co[i]
     ob.vertex_groups.remove(group)
+
+
+# ---------- how a top hangs ----------
+# The packs' tops are the body with a colour on it: the cloth follows the chest, the bust and the hollow of the back,
+# is drawn in at the waist and ends at the waistband, and a sleeve is the arm.  Loosened about its middle (ROOMY) it is
+# the same shape a size larger: it still reads as a tight top (쫄티).  Cloth hangs: from the widest place over it
+# straight down, across a hollow and not into it.
+# hang_top, on the built rest pose after the trousers are cut: the outline of the trunk (the top, and the trousers
+# under its hem) round its upright axis, every centimetre of height; pulled tight round (the hull of every level:
+# across the hollow between the breasts and down the spine) and then from above (the hull of every upright line from
+# the armpits down: from the bust or the shoulder blades to the hips).  The top goes `hang` of the way out to that,
+# and `ease` further (m: at the armpits, at the hem; `side` of it at the sides, where the arms hang), every point
+# by what the outermost cloth at its place moves (a tee under an open shirt stays under it).  Its hem is let down
+# to `hem` over the hip joints (the cloth slides down the body from `start` under the shoulder joints: stripes
+# stretch evenly, what is printed on the chest stays as it is) and turned in by `turn`, so that nobody looks up into
+# it.  Nothing moves from the armpits up.  Lengths in the source's units (x 0.93 men, 0.90 women in the game).
+# A person's own `fit`: one of these by name, a dict of what differs from the outfit's, or False: the pack's tight
+# fit (reference/고증 4.11: a few wore theirs so).
+FIT = {
+    'tee': dict(hang=1.0, ease=(.008, .022), side=.5, hem=-.020, start=.07, turn=.022, sleeve=(.006, .024)),
+    'shirt': dict(hang=1.0, ease=(.008, .024), side=.5, hem=-.035, start=.07, turn=.022, sleeve=(.004, .018)),
+    'knit': dict(hang=.75, ease=(.004, .012), side=.5, hem=.030, start=.07, turn=.018, sleeve=(.006, .009)),
+    'slim': dict(hang=.6, ease=(.002, .008), side=.5, hem=.040, start=.07, turn=.016, sleeve=(.002, .008)),
+    'sweat': dict(hang=1.0, ease=(.008, .016), side=.6, hem=.020, start=.07, turn=.020, sleeve=(.010, .016)),
+    'hood': dict(hang=.6, ease=(.0, .004), side=.5, hem=None, start=.07, turn=.020, sleeve=None, cap=False),
+    'jacket': dict(hang=.8, ease=(.004, .016), side=.5, hem=-.050, start=.09, turn=.020, sleeve=(.002, .008)),
+    'cardigan': dict(hang=1.0, ease=(.006, .016), side=.5, hem=.010, start=.09, turn=.020, sleeve=(.004, .012)),
+    'vest': dict(hang=.8, ease=(.004, .012), side=.5, hem=-.010, start=.07, turn=.020, sleeve=(.004, .016)),
+}
+FITS = {('umc', 'Casual_2'): 'tee', ('umc', 'Adventurer'): 'shirt', ('umc', 'Casual_Hoodie'): 'hood', ('umc', 'Suit'): 'jacket',
+        ('umc', 'Worker'): 'vest', ('women', 'Casual'): 'tee', ('women', 'Formal'): 'knit', ('women', 'Suit'): 'cardigan'}
+HANG_RAYS = 96                # directions round the trunk
+HANG_ARM = (0.3, 0.7)         # what the arms hold so much of is a sleeve: none of it moves with the trunk
+
+
+def fit_of(spec):
+    own = spec.get('fit')
+    if own is False:
+        return None
+    C = dict(FIT[FITS[(spec['rig'], spec['parts']['body'])] if not isinstance(own, str) else own])
+    if isinstance(own, dict):
+        C.update(own)
+    return C
+
+
+def _round_hull(rs):
+    """Radii in evenly spaced directions round a middle, pulled tight: the radii of the convex hull of their points."""
+    n = len(rs)
+    pts = sorted((r * math.cos(2 * math.pi * i / n), r * math.sin(2 * math.pi * i / n)) for i, r in enumerate(rs))
+    cross = lambda o, a, b: (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    half = []
+    for seq in (pts, pts[::-1]):
+        h = []
+        for q in seq:
+            while len(h) >= 2 and cross(h[-2], h[-1], q) <= 0:
+                h.pop()
+            h.append(q)
+        half.append(h[:-1])
+    hull = half[0] + half[1]
+    out = []
+    for i, r in enumerate(rs):
+        dx, dy = math.cos(2 * math.pi * i / n), math.sin(2 * math.pi * i / n)
+        best = r
+        for (x0, y0), (x1, y1) in zip(hull, hull[1:] + hull[:1]):
+            ex, ey = x1 - x0, y1 - y0
+            den = dx * ey - dy * ex
+            if abs(den) < 1e-12:
+                continue
+            t = (x0 * ey - y0 * ex) / den
+            u = (x0 * dy - y0 * dx) / den
+            if t > 0 and -1e-9 <= u <= 1 + 1e-9:
+                best = max(best, t)
+        out.append(best)
+    return out
+
+
+def hang_top(body, legs, arm, C):
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+    me, mw = body.data, body.matrix_world.copy()
+    inv = mw.inverted()
+    head = lambda name: arm.matrix_world @ arm.data.bones[name].head_local
+    js, zj = head('UpperArm.L'), head('UpperLeg.L').z
+    skin = _skin_verts(me)
+    arms = {g.index for g in body.vertex_groups if g.name.startswith(('UpperArm.', 'LowerArm.', 'Wrist.'))}
+    held = [sum(g.weight for g in v.groups if g.group in arms) for v in me.vertices]
+    co = [mw @ v.co for v in me.vertices]
+    cloth = [i for i in range(len(co)) if i not in skin and held[i] < HANG_ARM[1]]
+    trunk = [i for i in cloth if held[i] < HANG_ARM[0] and abs(co[i].x) < abs(js.x) + .03]
+    z_top = js.z - .055                             # the armpits
+    z_was = min(co[i].z for i in trunk)             # the hem
+    z_hem = z_was if C['hem'] is None else min(z_was, zj + C['hem'])
+    z_from = js.z - C['start']
+    low = [co[i] for i in trunk if co[i].z < z_top]
+    cy = (min(c.y for c in low) + max(c.y for c in low)) / 2
+    # the outline: rays in toward the axis, on the trunk of the top (not its sleeves) and on the legs
+    # (a sleeve: what the arms hold, and whatever lies out past the shoulder joints at their height - the collar
+    # bones and the chest hold the top of some packs' sleeves)
+    sleeve = lambda c: abs(c.x) > abs(js.x) + .01 and c.z > js.z - .11
+    polys = [tuple(p.vertices) for p in me.polygons if all(held[v] < HANG_ARM[1] and not sleeve(co[v]) for v in p.vertices)]
+    tb = BVHTree.FromPolygons(co, polys)
+    lw = legs.matrix_world
+    tl = BVHTree.FromPolygons([lw @ v.co for v in legs.data.vertices], [tuple(p.vertices) for p in legs.data.polygons])
+    dz, n = 0.01, HANG_RAYS
+    z0 = z_hem - 0.02
+    m = int(math.ceil((z_top + .04 - z0) / dz)) + 1
+    dirs = [(math.cos(2 * math.pi * i / n), math.sin(2 * math.pi * i / n)) for i in range(n)]
+
+    def reach(tree, i, z):
+        dx, dy = dirs[i]
+        hit = tree.ray_cast(Vector((dx, cy + dy, z)), Vector((-dx, -dy, 0)), 1.0)
+        return 1 - hit[3] if hit[0] is not None else 0.0
+    Eb = [[reach(tb, i, z0 + j * dz) for i in range(n)] for j in range(m)]
+    El = [[reach(tl, i, z0 + j * dz) for i in range(n)] for j in range(m)]
+    jt = min(m - 1, int(round((z_top - z0) / dz)))  # (the hull from above begins at the armpits)
+    Ec = [list(row) for row in Eb]
+    if C.get('cap', True):
+        # (the packs' tops widen to their hems, and are widened more there by ROOMY: a top hangs from the chest, the
+        # bust or the shoulder blades, so under them it is no wider than there - but where the hips are)
+        jc = max(0, int((z_top - .12 - z0) / dz))
+        for i in range(n):
+            most = max(Eb[j][i] for j in range(jc, jt + 1))
+            for j in range(jc):
+                Ec[j][i] = min(Eb[j][i], most)
+    E = [[max(a, b) for a, b in zip(ra, rb)] for ra, rb in zip(Ec, El)]
+    # (under the hem the top's own outline is what it is at the hem: a ray there misses, or finds the lid some packs
+    # shut a jacket with from below, well inside its edge - the edge then went out by that much, a brim)
+    for i in range(n):
+        for j in range(min(m - 2, int((z_was + .03 - z0) / dz)), -1, -1):
+            if Eb[j][i] < Eb[j + 1][i] - .012:
+                Eb[j][i] = Eb[j + 1][i]
+    for j in range(m):                               # (a ray that slipped through takes its neighbours')
+        for i in range(n):
+            if E[j][i] < .02:
+                E[j][i] = max(E[j][i - 1], E[j][(i + 1) % n], E[max(0, j - 1)][i], E[min(m - 1, j + 1)][i])
+    R = [_round_hull(row) for row in E]
+    G = [list(row) for row in R]
+    for i in range(n):
+        col = _hull([R[j][i] for j in range(jt + 1)], 1)
+        for j in range(jt + 1):
+            G[j][i] = col[j]
+    for j in range(m):
+        z = z0 + j * dz
+        t = max(0.0, min(1.0, (z_top - z) / max(z_top - z_hem, 1e-4)))
+        for i in range(n):
+            ease = (C['ease'][0] + (C['ease'][1] - C['ease'][0]) * t) * (C['side'] + (1 - C['side']) * abs(dirs[i][1]))
+            G[j][i] = E[j][i] + (G[j][i] - E[j][i]) * C['hang'] + ease
+
+    for _ in range(2):                               # (no crease where the string leaves the body: 2 cm either way)
+        G = [[sum(G[max(0, min(m - 1, j + q))][i] for q in (-2, -1, 0, 1, 2)) / 5 for i in range(n)] for j in range(m)]
+    # (and clear of the trousers by more than a broad face of the top sags between its corners over a round seat)
+    G = [[max(g, l + .012) if l > .02 else g for g, l in zip(rg, rl)] for rg, rl in zip(G, El)]
+
+    def at(grid, th, z):
+        fi = (th / (2 * math.pi) * n) % n
+        fj = max(0.0, min(m - 1.001, (z - z0) / dz))
+        i, j = int(fi), int(fj)
+        a, b = fi - i, fj - j
+        i1 = (i + 1) % n
+        return (grid[j][i] * (1 - a) + grid[j][i1] * a) * (1 - b) + (grid[j + 1][i] * (1 - a) + grid[j + 1][i1] * a) * b
+    drop = z_was - z_hem
+    moved = {}
+    for i in cloth:
+        c = co[i]
+        if c.z > z_top + .02:
+            continue
+        w = (1 - _smooth(*HANG_ARM, held[i])) * (1 - _smooth(z_top - .04, z_top + .02, c.z))
+        if w <= 0 or sleeve(c):
+            continue
+        th, r = math.atan2(c.y - cy, c.x), math.hypot(c.x, c.y - cy)
+        z = c.z - drop * max(0.0, min(1.0, (z_from - c.z) / max(z_from - z_was, 1e-4))) * (1 - _smooth(*HANG_ARM, held[i]))
+        # (where the outermost cloth is at this very place: a ray of its own, as the grid's rows, a centimetre apart,
+        # round a sharp fold off - under the bust's shelf a point was taken for 1 cm inside the cloth and left there)
+        hit = tb.ray_cast(Vector((math.cos(th), cy + math.sin(th), c.z)), Vector((-math.cos(th), -math.sin(th), 0)), 1.0)
+        was = 1 - hit[3] if hit[0] is not None else at(Eb, th, c.z)
+        if was < r - 1e-4:                            # (the point itself is the outermost: a ray can slip past an edge)
+            was = r if r - was < .03 else was
+        if c.z < z_was + .03:                        # (a shirt's tail under a vest's hem is under it, not the outermost)
+            was = max(was, at(Eb, th, c.z))
+        if was < .02:
+            was = at(E, th, c.z)
+        w *= 1 - _smooth(.02, .05, r - was)          # (what stands off the trunk is a sleeve, whatever holds it)
+        if w <= 0:
+            continue
+        r2 = max(.01, r + (at(G, th, z) - was) * w)
+        moved[i] = Vector((r2 * math.cos(th), cy + r2 * math.sin(th), z))
+    for i, c in moved.items():
+        me.vertices[i].co = inv @ c
+    me.update()
+    if not C.get('turn'):
+        return
+    # the hem turned in: a strip from its edge in toward the body, facing down
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bm.verts.ensure_lookup_table()
+    rim = [e for e in bm.edges if e.is_boundary and all(v.index in moved and (mw @ v.co).z < z_hem + .05 for v in e.verts)
+           and e.link_faces[0].material_index < len(me.materials)
+           and not me.materials[e.link_faces[0].material_index].name.startswith('Skin')]
+    if rim:
+        out = bmesh.ops.extrude_edge_only(bm, edges=rim)
+        new = [g for g in out['geom'] if isinstance(g, bmesh.types.BMVert)]
+        for v in new:
+            c = mw @ v.co
+            r = math.hypot(c.x, c.y - cy)
+            f = max(.02, r - C['turn']) / max(r, 1e-6)
+            v.co = inv @ Vector((c.x * f, cy + (c.y - cy) * f, c.z + .004))
+        for f in {f for v in new for f in v.link_faces}:
+            f.normal_update()
+            if (mw.to_3x3() @ f.normal).z > 0:
+                f.normal_flip()
+    bm.to_mesh(me)
+    bm.free()
+    me.update()
+
+
+def ease_sleeves(ob, arm, C):
+    """A modelled sleeve wider (FIT's `sleeve`: m at the shoulder's end of it, and at its hem or its cuff): every
+    point of its cloth away from the arm's axis, the under side all of it and the top a quarter (the arm let down, a
+    sleeve lies on the outside of the arm and hangs off the inside).  Arms painted as sleeves go with them.  (Tried
+    and dropped: every sleeve a round tube of its own about the arm.  It stood off the shoulder as a pad and hung
+    under the forearm as a bag.)"""
+    if not C.get('sleeve'):
+        return
+    e0, e1 = C['sleeve']
+    me, mw = ob.data, ob.matrix_world.copy()
+    inv = mw.inverted()
+    skin = _skin_verts(me)
+    head = lambda name: arm.matrix_world @ arm.data.bones[name].head_local
+    for side in ('L', 'R'):
+        held = {g.index for g in ob.vertex_groups if g.name in ('UpperArm.' + side, 'LowerArm.' + side)}
+        a, b = head('UpperArm.' + side), head('Wrist.' + side)
+        d = (b - a).normalized()
+        pts = {}
+        for v in me.vertices:
+            if v.index in skin:
+                continue
+            w = sum(g.weight for g in v.groups if g.group in held)
+            if w < 0.3:
+                continue
+            p = mw @ v.co
+            t = (p - a).dot(d)
+            q = a + d * t
+            if t > .02 and 1e-4 < (p - q).length < .14:
+                pts[v.index] = (t, q, p, _smooth(0.3, 0.6, w))
+        if len(pts) < 8:
+            continue
+        end = max(x[0] for x in pts.values())
+        long = end > (b - a).length - .08            # (to the wrist: its cuff stays on it)
+        for i, (t, q, p, w) in pts.items():
+            u = (p - q).normalized()
+            e = (e0 + (e1 - e0) * _smooth(.03, end, t)) * _smooth(.02, .10, t) * (.35 + .65 * (1 - u.z) / 2) * w
+            if long:
+                e *= 1 - .7 * _smooth(end - .04, end, t)
+            me.vertices[i].co = inv @ (p + u * e)
+    me.update()
 
 
 # ---------- 1997 cut: wide trousers ----------
@@ -3552,6 +3809,10 @@ def build_person(pid, spec):
     cut = spec.get('cut') or TROUSERS.get(spec['parts']['legs'])
     if cut:
         cut_trousers(next(o for o in parts if o.name.endswith('-legs')), arm, CUTS[rig][cut])
+    fit = fit_of(spec)
+    if fit:
+        ease_sleeves(body, arm, fit)
+        hang_top(body, next(o for o in parts if o.name.endswith('-legs')), arm, fit)
     for a in list(bpy.data.actions):
         bpy.data.actions.remove(a)
     return finish_person(pid, arm, parts, s, 'rig-' + rig, bool(spec.get('face', {}).get('glasses')))

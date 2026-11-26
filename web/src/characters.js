@@ -286,11 +286,11 @@ PERSON_MAT.onBeforeCompile = (sh) => {
       // behind the knee and at the crotch, tops drape and gather at the hem
       float pFolds( vec3 p, float trousers ) {
         float n1 = pNoise( p * vec3( 13.0, 4.0, 13.0 ) ), n2 = pNoise( p * vec3( 5.0, 9.0, 5.0 ) + 7.0 );
-        float legs = max( trousers, step( p.y, 0.93 ) );
+        float legs = max( trousers, step( p.y, 0.45 ) );      // (shoes; a top's hem hangs to the hips: no line across it)
         float stack = sin( p.y * 96.0 + 8.0 * n1 ) * smoothstep( 0.30, 0.08, p.y ) * ( 0.35 + 0.9 * n2 );
         float knee = sin( p.y * 74.0 + 6.0 * n1 + p.x * 20.0 ) * exp( - pow( ( p.y - 0.50 ) / 0.09, 2.0 ) ) * 0.45;
         float crotch = sin( ( p.y + abs( p.x ) * 0.8 ) * 86.0 + 4.0 * n2 ) * exp( - pow( ( p.y - 0.84 ) / 0.07, 2.0 ) ) * 0.6;
-        float top = ( pNoise( p * vec3( 11.0, 17.0, 11.0 ) ) - 0.5 ) * 1.4 + sin( p.y * 64.0 + 5.0 * n1 ) * exp( - pow( ( p.y - 1.02 ) / 0.07, 2.0 ) ) * 0.6;
+        float top = ( pNoise( p * vec3( 11.0, 17.0, 11.0 ) ) - 0.5 ) * 1.4 + sin( p.y * 64.0 + 5.0 * n1 ) * exp( - pow( ( p.y - 0.96 ) / 0.09, 2.0 ) ) * 0.6;
         return 0.0032 * mix( top, stack + knee + crotch + ( n2 - 0.5 ) * 1.4, legs );
       }` : ''}`)
     .replace('#include <roughnessmap_fragment>', `float roughnessFactor = vPart.x;
