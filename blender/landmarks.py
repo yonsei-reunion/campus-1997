@@ -9086,7 +9086,9 @@ def kli():
     stair tower through the front slope; three brick storeys (the top one's windows with pointed heads) over a granite
     storey of broad windows between piers, and under that the storeys the falling ground bares; off the middle a gabled
     granite frame full of canted glass over a gabled granite porch, a paved terrace before it over the car park.  The
-    back and the two ends, which no photo shows, repeat the front's storeys round the scans' rear wing and bays.
+    back repeats the front's storeys round the scans' rear wing and bays, as Kakao's roadview of 2010-12 shows its
+    south-east half: the bays (the stairs') glazed up their faces over closed granite vestibules; the two ends a
+    balcony each storey over granite piers and windows (the same roadview, both ends).
     The frame: o the front wall's north-west corner, u south-east along it, v north-east into the hall; heights over
     the entrance floor (plan['floor'])."""
     b = bld(371403603)
@@ -9287,6 +9289,26 @@ def kli():
     hface(Pj, a_, c_, 0.0, -pd_, F1, GR, up=-1)
     lower(Pf, [k * 2 * pw for k in range(nw_ // 2 + 1)] + [m0])
     lower(Pf, [m1] + [L - k * 2 * pe_ for k in range(se_ // 2, -1, -1)])
+    if pl.get('glass_box'):
+        # the glazed box under the bay (web1127; the 1996 - 1999 scans' plinth and plan, the 2004 photo): glass on a
+        # granite plinth, its ends canted back to the wall, its roof up to the bay's granite band
+        g0, g1, gd, ga0, ga1, zp0, zp1, zr_ = pl['glass_box']
+        prof = [(ga0, 0.0), (g0, gd), (g1, gd), (ga1, 0.0)]
+        for (sa, da), (sb_, db) in zip(prof, prof[1:]):
+            mb.quad(Pf(sa, zp0, da), Pf(sb_, zp0, db), Pf(sb_, zp1, db), Pf(sa, zp1, da), GR)
+            mb.quad(Pf(sa, zp1, da), Pf(sb_, zp1, db), Pf(sb_, zr_ - 0.25, db), Pf(sa, zr_ - 0.25, da), 'glass',
+                    panes=(max(1, round(math.hypot(sb_ - sa, db - da) / 3.0)), 1))
+            mb.quad(Pf(sa, zr_ - 0.25, da), Pf(sb_, zr_ - 0.25, db), Pf(sb_, zr_, db), Pf(sa, zr_, da), FRM)
+            n_ = max(1, round(math.hypot(sb_ - sa, db - da) / 0.9))
+            for k in range(n_ + 1):
+                t_ = k / n_
+                s_, d_ = sa + (sb_ - sa) * t_, da + (db - da) * t_
+                bar(mb, Pf, s_, zp1, s_, zr_ - 0.25, 0.07, d_, d_ + 0.05, FRM)
+            for z_ in (zp1 + 0.05, zp1 + (zr_ - 0.25 - zp1) * 0.62):
+                bar(mb, lambda s, z, dd=0.0, sa=sa, da=da, sb_=sb_, db=db: Pf(sa + (sb_ - sa) * s, z, da + (db - da) * s + dd),
+                    0.0, z_, 1.0, z_, 0.07, 0.0, 0.05, FRM)
+        oface(mb, [Pf(s_, zr_, d_) for s_, d_ in prof], FRM, (0, 0, 1))
+        oface(mb, [Pf(s_, zp0, d_) for s_, d_ in prof], GR, (0, 0, -1))
     for k in pl['pipes']:                                 # the downpipes, counted in windows from the middle block
         for s in (m0 - k * pw, m1 + k * pe_):
             if 0.3 < s < L - 0.3:
@@ -9315,31 +9337,69 @@ def kli():
         pipe(Pb, L - (u0 + u1) / 2, F1 + 0.3, zband - 0.1)
     zc, zt = pl['dormers'][0][3], pl['dormers'][0][4]     # (the dormers' cheeks and ridges)
     rnd = pl.get('round', {})
-    for kb, (u0, u1, d) in enumerate(bays):               # the rear bays: a storey-high window each floor, a gable over them
+    for kb, (u0, u1, d) in enumerate(bays):               # the rear bays (the stairs'): glazed up their faces, a gable over
         Pq = lambda s, z, dd=0.0, u1=u1, d=d: (u1 - s, W + d + dd, z)
         w = u1 - u0
-        zd = rnd['rear_floor'][kb] if rnd else -FB       # (#233: the doors of the lowest storey, the porches' floors)
-        upper(Pq, 0.0, w, 2, band_on=False)
-        flat_wall(mb, Pq, 0.0, w, zband, ze, BR)
-        wall_holes(mb, Pq, 0.0, w, zbot, F1, BR, [(w / 2 - 0.9, w / 2 + 0.9, zd, zd + 2.4)])
+        zd = rnd['rear_floor'][kb] if rnd else -FB       # (the porches' floors: the stairs' landing, web1127)
+        pw_, pdp, pz0, pz1 = pl['rear_porch']
+        # the face (web1127; Kakao roadview 2010-12 of the south-east bay, the north-west one taken to match it):
+        # brick cheeks either side of glazing canted out of it from the porch's roof up to under the eaves' band, the
+        # walls' granite lintel band across it at the entrance storey's head; under it, inside the porch, the door
+        ga, gc, go, ct = 0.5, w - 0.5, 0.45, 0.45
+        gz0, gz1, zl_ = pz1 + 0.15, zband - 0.35, F1 - 1.3
+        wall_holes(mb, Pq, 0.0, w, zbot, ze, BR, [(ga, gc, gz0, zl_), (ga, gc, F1, gz1), (w / 2 - 0.9, w / 2 + 0.9, zd, zd + 2.4)])
         mb.quad(Pq(w / 2 - 0.9, zd, -0.15), Pq(w / 2 + 0.9, zd, -0.15), Pq(w / 2 + 0.9, zd + 2.4, -0.15), Pq(w / 2 - 0.9, zd + 2.4, -0.15), 'glass_door')
-        for s in (w / 2 - 0.9, w / 2, w / 2 + 0.9):
-            bar(mb, Pq, s, zd, s, zd + 2.4, 0.07, -0.15, -0.08, 'frame_dark')
-        for s, sg in ((0.0, -1), (w, 1)):
-            sface(Pq, s, 0.0, -d, zbot, ze, BR, sg)
+        for s_ in (w / 2 - 0.9, w / 2, w / 2 + 0.9):
+            bar(mb, Pq, s_, zd, s_, zd + 2.4, 0.07, -0.15, -0.08, 'frame_dark')
+        prof = [(ga, 0.0), (ga + ct, go), (gc - ct, go), (gc, 0.0)]      # (the glazing's plan: along the face, out of it)
+        for z0_, z1_ in ((gz0, zl_), (F1, gz1)):
+            for (sa, da), (sb_, db) in zip(prof, prof[1:]):
+                mb.quad(Pq(sa, z0_, da), Pq(sb_, z0_, db), Pq(sb_, z1_, db), Pq(sa, z1_, da), 'glass', panes=(1, max(1, round((z1_ - z0_) / 3.6))))
+            nz = max(1, round((z1_ - z0_) / 1.3))
+            for k in range(nz + 1):
+                z_ = z0_ + (z1_ - z0_) * k / nz
+                for (sa, da), (sb_, db) in zip(prof, prof[1:]):
+                    bar(mb, lambda s, z, dd=0.0, sa=sa, da=da, sb_=sb_, db=db: Pq(sa + (sb_ - sa) * s, z, da + (db - da) * s + dd),
+                        0.0, z_, 1.0, z_, 0.07, 0.0, 0.05, FRM)
+            for sa, da in prof:
+                bar(mb, Pq, sa, z0_, sa, z1_, 0.08, da, da + 0.05, FRM)
+            oface(mb, [Pq(sa, z0_, da) for sa, da in prof], CP, (0, 0, 1))
+            oface(mb, [Pq(sa, z1_, da) for sa, da in prof], GR, (0, 0, -1))
+        oface(mb, [Pq(sa, zl_, da) for sa, da in prof], GR, (0, 0, -1))      # (the lintel band across, standing out with the glass)
+        oface(mb, [Pq(sa, F1, da) for sa, da in prof], CP, (0, 0, 1))
+        for (sa, da), (sb_, db) in zip(prof, prof[1:]):
+            mb.quad(Pq(sa, zl_, da), Pq(sb_, zl_, db), Pq(sb_, F1, db), Pq(sa, F1, da), GR)
+        for s_, sg in ((0.0, -1), (w, 1)):
+            sface(Pq, s_, 0.0, -d, zbot, ze, BR, sg)
         Pg = lambda s, z, dd=0.0, u0=u0, u1=u1, d=d: ((u0 + u1) / 2 - s, W + d + dd, z)
         gable_top(Pg, w, ze, zc, zt, W + d, 1)
-        # the low porch behind it: a gabled roof on four granite piers over the door of the storey under the entrance
-        pw_, pdp, pz0, pz1 = pl['rear_porch']
+        # the porch behind it (web1127, the same roadview): a closed granite vestibule under a gabled roof, its face's
+        # opening glazed full height under a gabled head, the door in the glazing at the floor (the landing)
         um = (u0 + u1) / 2
         va, vb = W + d, W + d + pdp
+        h = pw_ / 2
+        oh, zo1, zo2, rc = 0.55 * h, pz0 - 0.3, pz1 - 0.8, 0.5
+        gab = lambda x: pz0 + (pz1 - pz0) * (1.0 - abs(x - um) / h)
         for su in (-1, 1):
-            for vv in (va + 0.3, vb - 0.3):
-                mb.box((um + su * (pw_ / 2 - 0.3), vv, (zbot + pz0) / 2), (0.6, 0.6, pz0 - zbot), GR, skip=('bottom',))
-            oface(mb, [(um + su * pw_ / 2, va, pz0), (um, va, pz1), (um, vb + 0.3, pz1), (um + su * pw_ / 2, vb + 0.3, pz0)], ROOF, (su * 0.5, 0, 1))
-            oface(mb, [(um + su * pw_ / 2, va, pz0 - 0.25), (um, va, pz0 - 0.25), (um, vb + 0.3, pz0 - 0.25), (um + su * pw_ / 2, vb + 0.3, pz0 - 0.25)], 'plaster_white', (0, 0, -1))
-            oface(mb, [(um + su * pw_ / 2, va, pz0 - 0.25), (um + su * pw_ / 2, vb + 0.3, pz0 - 0.25), (um + su * pw_ / 2, vb + 0.3, pz0), (um + su * pw_ / 2, va, pz0)], GR, (su, 0, 0))
-        oface(mb, [(um - pw_ / 2, vb + 0.3, pz0 - 0.25), (um + pw_ / 2, vb + 0.3, pz0 - 0.25), (um + pw_ / 2, vb + 0.3, pz0), (um, vb + 0.3, pz1), (um - pw_ / 2, vb + 0.3, pz0)], GR, (0, 1, 0))
+            x = um + su * h
+            oface(mb, [(x, va, zbot), (x, vb, zbot), (x, vb, pz0), (x, va, pz0)], GR, (su, 0, 0))
+            oface(mb, [(x + su * 0.1, va, pz0), (um, va, pz1), (um, vb + 0.1, pz1), (x + su * 0.1, vb + 0.1, pz0)], ROOF, (su * 0.5, 0, 1))
+            xo = um + su * oh
+            oface(mb, [(x, vb, zbot), (xo, vb, zbot), (xo, vb, gab(xo)), (x, vb, pz0)], GR, (0, 1, 0))
+            oface(mb, [(xo, vb, zd), (xo, vb - rc, zd), (xo, vb - rc, zo1), (xo, vb, zo1)], GR, (-su, 0, 0))     # (the jambs)
+            oface(mb, [(xo, vb, zo1), (xo, vb - rc, zo1), (um, vb - rc, zo2), (um, vb, zo2)], GR, (0, 0, -1))
+            Pfr = lambda s, z, dd=0.0, su=su: (um + su * s, vb + dd, z)
+            bar(mb, Pfr, h + 0.12, pz0 - 0.06, 0.0, pz1 + 0.06, 0.24, -0.12, 0.12, CP, ends=True)
+        oface(mb, [(um - oh, vb, zbot), (um + oh, vb, zbot), (um + oh, vb, zd), (um - oh, vb, zd)], GR, (0, 1, 0))
+        oface(mb, [(um - oh, vb, zo1), (um, vb, zo2), (um + oh, vb, zo1), (um + oh, vb, gab(um + oh)), (um, vb, pz1), (um - oh, vb, gab(um - oh))], GR, (0, 1, 0))
+        gp = [(um - oh, zd), (um + oh, zd), (um + oh, zo1), (um, zo2), (um - oh, zo1)]
+        oface(mb, [(x_, vb - rc, z_) for x_, z_ in gp], 'glass', (0, 1, 0))
+        Pgl = lambda s, z, dd=0.0: (um + s, vb - rc + dd, z)
+        for s_ in (-oh, -oh / 3, oh / 3, oh):
+            bar(mb, Pgl, s_, zd, s_, zo1 if abs(s_) > oh * 0.9 else zo1 + (zo2 - zo1) * (1 - abs(s_) / oh), 0.08, 0.0, 0.06, 'frame_dark')
+        for z_ in (zd + 2.4, zd + 2.4 + (zo1 - zd - 2.4) / 2, zo1):
+            bar(mb, Pgl, -oh, z_, oh, z_, 0.08, 0.0, 0.06, 'frame_dark')
+        mb.quad(Pgl(-0.9, zd, 0.03), Pgl(0.9, zd, 0.03), Pgl(0.9, zd + 2.3, 0.03), Pgl(-0.9, zd + 2.3, 0.03), 'glass_door')
     # the rear wing: a storey over the eaves, its roof's far end hipped; windows as the back's
     r0, r1, rv0, rv1, rze, rzr = R
     um = (r0 + r1) / 2
@@ -9379,7 +9439,28 @@ def kli():
             oface(mb, [P(s, zf - 0.3, d) for s, d in tub], 'plaster_white', (0, 0, -1))
             oface(mb, [P(s, zf, d) for s, d in tub], 'concrete', (0, 0, 1))
             oface(mb, [P(s, zf + 0.75, d) for s, d in tub], 'plaster_white', (0, 0, 1))
-        flat_wall(mb, P, 0.0, W, zbot, F1, BR)
+        # the storeys under the balconies (web1127; Kakao roadview 2010-12 of both ends, reference/고증/3.27 「뒷면과 끝
+        # 면」): granite corner piers and a granite pilaster either side of the middle bay (their outer faces in line
+        # with the balconies'), a granite lintel band over them; a window in the middle bay and one by each corner pier
+        # in each storey the ground bares
+        cpw, ppw, zl_ = 0.9, 0.6, F1 - 0.9
+        pa, pb = sm - bw_ / 2, sm + bw_ / 2
+        ww = 1.5
+        flat_wall(mb, P, 0.0, W, zl_, F1, GR)
+        hface(P, 0.0, W, 0.0, 0.06, zl_, CP, up=-1)
+        flat_wall(mb, P, 0.0, W, zl_ - 0.06, zl_, CP, d=0.06)
+        for a, c in ((0.0, cpw), (pa, pa + ppw), (pb - ppw, pb), (W - cpw, W)):
+            flat_wall(mb, P, a, c, zbot, zl_, GR)
+        for a, c, sc in ((cpw, pa, cpw + 0.35 + ww / 2), (pa + ppw, pb - ppw, sm), (pb, W - cpw, W - cpw - 0.35 - ww / 2)):
+            rows_ = []
+            for zw0, zw1 in ((0.9, zl_ - 0.25), (-FB + 1.0, -1.9), (-FB - FB2 + 1.0, -FB - 1.3)):
+                g = max(gl(*P(sc - ww / 2, 0, 1.0)[:2]), gl(*P(sc + ww / 2, 0, 1.0)[:2]))
+                if g > zw0 - 0.25:
+                    break
+                rows_.append((zw0, zw1))
+            wall_holes(mb, P, a, c, zbot, zl_, BR, [(sc - ww / 2, sc + ww / 2, z0_, z1_) for z0_, z1_ in rows_])
+            for z0_, z1_ in rows_:
+                window(P, sc, ww, z0_, z1_, rows=2, d=-0.12, wall=BR)
         hface(P, 0.0, W, 0.0, 0.06, F1 + 0.02, CP)
         flat_wall(mb, P, 0.0, W, F1 - 0.14, F1 + 0.02, CP, d=0.06)
         zgs = ze + 0.45
@@ -9591,16 +9672,36 @@ def kli():
         oface(mb, [(tw - 0.3, va_, za - 0.6), (tw - 0.3, vb_, zb - 0.6), (tw - 0.3, vb_, zb), (tw - 0.3, va_, za)], 'stone_granite', (-1, 0, 0))
         oface(mb, [(tw - 0.3, va_, za), (tw - 0.3, vb_, zb), (tw, vb_, zb), (tw, va_, za)], CP, (0, 0, 1))
     oface(mb, [(tw - 0.3, we, ywall(we) - 0.35), (tw, we, lowv(we)), (tw, we, ywall(we) + 0.25), (tw - 0.3, we, ywall(we) + 0.25)], 'stone_granite', (0, -1, 0))
-    # the rear porches: the south-east one's floor on the lane's level; the north-west one's down a flight from the
-    # lane between two retaining walls, its floor under the porch's roof at the door of the lowest storey
-    pw_ = pl['rear_porch'][0]
+    # the rear porches (web1127): their floors at the stairs' landing.  The south-east one on a paved step of the yard
+    # (rear_base), a flight of its own in front between low granite cheeks; the north-west one's down a flight from the
+    # lane between two retaining walls to its floor
+    pw_, pdp = pl['rear_porch'][0], pl['rear_porch'][1]
     for kb, (u0, u1, d) in enumerate(bays):
         um, zf = (u0 + u1) / 2, rnd['rear_floor'][kb]
         if kb == 1:
-            mb.box((um, W + d + pl['rear_porch'][1] / 2, zf - 0.6), (pw_, pl['rear_porch'][1], 1.2), 'stone_step', mats={'top': 'stone_step'})
-            mb.box((um, W + d + pl['rear_porch'][1] + 0.18, zf - 0.8), (pw_, 0.36, 1.2), 'stone_step', mats={'top': 'stone_step'})
-            WALK_FACES.append([W_(um - pw_ / 2, W + d, zf), W_(um + pw_ / 2, W + d, zf), W_(um + pw_ / 2, W + d + pl['rear_porch'][1], zf),
-                               W_(um - pw_ / 2, W + d + pl['rear_porch'][1], zf)])
+            va, vb = W + d, W + d + pdp
+            tr, sw = 0.32, 0.55 * pw_ + 0.6
+            # (down to the ground at its foot: the yard's step falls on to the lane, the scans' 49.7 - 50.2 m at v 23.0,
+            # 49.1 - 49.5 m at 26.0; the lower risers stand for the yard's own steps there)
+            for n_s in range(4, 17):
+                zb_ = across(gl, um - sw / 2, um + sw / 2, vb + n_s * tr + 0.1) - 0.03
+                if (zf - zb_) / n_s <= 0.175:
+                    break
+            mb.box((um, (va + vb) / 2, (zf + zb_ - 0.6) / 2), (pw_ - 0.02, vb - va - 0.02, zf - zb_ + 0.6), 'stone_step', mats={'top': 'stone_step'})
+            rs = (zf - zb_) / n_s
+            for k in range(1, n_s + 1):
+                top = zf - k * rs
+                y0 = vb + (k - 1) * tr
+                mb.box((um, y0 + tr / 2 + 0.01, (top + zb_ - 0.6) / 2), (sw, tr + 0.02, top - zb_ + 0.6), 'stone_step')
+            yf = vb + n_s * tr
+            for su in (-1, 1):                            # (the cheeks, sloping down with the flight)
+                xa, xb = um + su * sw / 2, um + su * (sw / 2 + 0.3)
+                for xx, nx in ((xa, -su), (xb, su)):
+                    oface(mb, [(xx, vb, zb_ - 0.3), (xx, yf, zb_ - 0.3), (xx, yf, zb_ + 0.35), (xx, vb, zf + 0.45)], 'stone_granite', (nx, 0, 0))
+                oface(mb, [(xa, vb, zf + 0.45), (xb, vb, zf + 0.45), (xb, yf, zb_ + 0.35), (xa, yf, zb_ + 0.35)], CP, (0, 0.3, 1))
+                oface(mb, [(xa, yf, zb_ - 0.3), (xb, yf, zb_ - 0.3), (xb, yf, zb_ + 0.35), (xa, yf, zb_ + 0.35)], 'stone_granite', (0, 1, 0))
+            WALK_FACES.append([W_(um - pw_ / 2, va, zf), W_(um + pw_ / 2, va, zf), W_(um + pw_ / 2, vb, zf), W_(um - pw_ / 2, vb, zf)])
+            WALK_FACES.append([W_(um - sw / 2, vb, zf), W_(um + sw / 2, vb, zf), W_(um + sw / 2, yf, zb_), W_(um - sw / 2, yf, zb_)])
     P_ = rnd['pit']
     w0, w1, t_ = P_['walls'][0], P_['walls'][1], P_['t']
     zf, ztop = P_['floor'], P_['top_z']

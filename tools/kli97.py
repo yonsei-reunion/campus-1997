@@ -43,6 +43,9 @@ STAIR = (39.38, 44.07, 0.89, 7.0, 23.3, 24.75)                # the brick tower:
 REAR = (35.16, 43.89, 8.7, 16.9, 19.3, 22.0)                  # the rear wing (hipped at its far end)
 NWIN = (11, 19)                    # windows of the walls either side of the middle block (one more in each of its flanks)
 PROJ = (9, 11, 0.65)               # the bay of the south-east wall standing out: from window, to window, how far
+# the glazed box under it (web1127, the 1996-11 · 1997-07 · 1999-05 scans; the 2004 photo): its face (u0, u1), how far
+# out of the wall, its canted ends' feet on the wall (u), the granite plinth's foot and top and the roof's top (해발)
+GLASS_BOX = (55.3, 63.4, 0.9, 54.6, 64.1, 57.4, 58.1, 61.4)
 DORMER = (18.3, 19.7)              # the dormers' cheeks and ridges (77.0, 78.4)
 DORMERS_F = ((11.07, 4.8), (19.86, 4.8), (50.52, 4.8), (59.64, 4.4), (68.06, 4.8))     # (middle, width); the fourth on PROJ
 DORMERS_B = ((11.05, 4.7), (28.55, 4.7), (50.42, 4.7), (68.26, 4.7))
@@ -91,10 +94,14 @@ BACK_CARS = [(-9.4, 'd'), (-7.0, 'w'), (-4.65, 'w'), (0.15, 'd'), (2.55, 'd'), (
 BACK_EMPTY = (-2.25, 14.85, 27.1, 73.9, 76.2)
 LANE = [(-42.0, 28.6), (-11.5, 28.0), (-11.5, BACK_ROW[3]), (78.0, BACK_ROW[3]), (80.0, 28.6), (100.0, 28.6), (100.0, 34.6),
         (-42.0, 34.6)]
-# the north-west rear porch's flight: down from the lane between two retaining walls (u), under the porch roof to the
-# door of the lowest storey; the south-east porch on the lane's level
-PIT = dict(walls=(17.5, 22.5), t=0.25, top_v=25.8, top_z=52.6, floor=49.5, tread=0.32, end_v=26.0)
-REAR_FLOOR = (49.5, 49.55)         # 해발: the two rear porches' floors (doors of the lowest storey)
+# the rear porches (web1127, reference/고증/3.27 「뒷면과 끝 면」): closed granite vestibules whose floors stand at the
+# rear bays' stair landing, a metre and more over the ground before them, not at the lowest storey's floor (49.5).
+# The north-west one's flight comes down from the lane between two retaining walls (u) to its floor: the scans' flight
+# (51.4 m at v 23.0) ends at the porch's face.  The south-east one stands on a paved step of the yard (REAR_BASE, the
+# scans' 49.7 - 50.2 m at v 23.0), its own flight in front (Kakao roadview 2010-12: six to nine risers, its ridge 58.4 m)
+PIT = dict(walls=(17.5, 22.5), t=0.25, top_v=25.8, top_z=52.6, floor=51.3, tread=0.32, end_v=26.0)
+REAR_FLOOR = (51.3, 51.2)          # 해발: the two rear porches' floors
+REAR_BASE = 50.0                   # 해발: the ground before the south-east porch
 # the north-west car park: an aisle from the drive up to the lane, a lined row either side (cars nose in) and a short
 # third row beside the plant yard; (the aisle side's u, the far side's u, the first line's v, the pitch, the stalls)
 NW_AISLE = (-28.0, -20.4, -6.0, 28.6)
@@ -168,6 +175,7 @@ def plan():
     return dict(o=list(O), ang=ANG, L=L, W=W, floor=datum.up(*datum.centroid(outline()), FLOOR),
                 f1=F1, fu=FU, fb=FB, fb2=FB2, z_eaves=EAVES, z_ridge=RIDGE, z_ridge_mid=RIDGE_MID, z_gables=list(GABLES),
                 mid=list(MID), uc=UC, bay=dict(BAY), porch=dict(PORCH), nwin=list(NWIN), proj=list(PROJ),
+                glass_box=[*GLASS_BOX[:5], *[round(z - FLOOR, 3) for z in GLASS_BOX[5:]]],
                 pipes=[3, 7, 13], dormers=d, stair=list(STAIR), rear=list(REAR), rear_bays=[list(q) for q in REAR_BAYS],
                 rear_porch=list(REAR_PORCH), balcony=list(BALCONY),
                 terrace=dict(u0=TERRACE[0], u1=TERRACE[1], wall=TERRACE[2], v0=TERRACE[3], z=round(TERRACE_Z - FLOOR, 3),
@@ -202,9 +210,9 @@ def grade(Hn, X, Y, FIXED, keep, fill, step=5.0):
     z = np.full(X.shape, np.nan)
     back = (U >= -8.0) & (U <= 88.0) & (V >= W / 2) & (V <= 35.0)
     z[back] = np.interp(U[back], BACK_U, BACK_Z) + BACK_FOOT * np.clip((22.0 - V[back]) / (22.0 - W), 0.0, 1.0)
-    a_, b_, d_ = REAR_BAYS[1]                            # (#233: the south-east rear porch's floor stands on the lane's level)
+    a_, b_, d_ = REAR_BAYS[1]                            # (the south-east rear porch's flight stands on REAR_BASE)
     p2 = back & (U > a_ - 5.0) & (U < b_ + 5.0) & (V < W + d_ + REAR_PORCH[1] + 1.5)
-    z[p2] = np.interp(U[p2], BACK_U, BACK_Z)
+    z[p2] = REAR_BASE
     nwf = (U >= -8.0) & (U < TERRACE[0]) & (V >= -8.0) & (V < W / 2)
     z[nwf] = np.interp(U[nwf], NWF_U, NWF_Z)
     # (the north-west car park, and off the hall's north-west end round the plant yard down to the lane: NW_GZ)
@@ -358,7 +366,7 @@ def plan_round():
     porches' floors and the north-west one's flight down from the lane, the plant yard.  Heights over the entrance floor"""
     return dict(wall_end=WALL_END, yard_v=YARD_V, yard_z=round(YARD_Z - FLOOR, 3), bank_v=list(BANK_V),
                 bank_z=[round(z - FLOOR, 3) for z in BANK_Z],
-                rear_floor=[round(z - FLOOR, 3) for z in REAR_FLOOR],
+                rear_floor=[round(z - FLOOR, 3) for z in REAR_FLOOR], rear_base=round(REAR_BASE - FLOOR, 3),
                 pit=dict(walls=list(PIT['walls']), t=PIT['t'], top_v=PIT['top_v'], top_z=round(PIT['top_z'] - FLOOR, 3),
                          floor=round(PIT['floor'] - FLOOR, 3), tread=PIT['tread'], end_v=PIT['end_v'],
                          wall_top=round(53.35 - FLOOR, 3)),
