@@ -3181,7 +3181,9 @@ def head_trim(ob, surf, st, ends):
         j = bisect.bisect_right(cols, w) - 1
         t = (w - cols[j]) / ((cols[j + 1] if j + 1 < NA else 2 * math.pi) - cols[j])
         near = [ends[(j + d) % NA] for d in (-1, 0, 1, 2)]
-        return math.degrees(a), dz, s, min(near), near[1] + (near[2] - near[1]) * t           # (.., least, here)
+        # (.., least, here, the shorter of the two columns either side: where the hem drops steeply between two
+        #  columns, as at the temples of hair worn down, the shell's edge does not follow the line drawn between them)
+        return math.degrees(a), dz, s, min(near), near[1] + (near[2] - near[1]) * t, min(near[1:3])
 
     back = 118 if st.get('ears', True) is True else 100     # (hair over the ears hides the sides of the head too)
     bm = bmesh.new()
@@ -3189,13 +3191,13 @@ def head_trim(ob, surf, st, ends):
     kill = []
     for f in bm.faces:
         info = [where(mw @ v.co) for v in f.verts]
-        if all(s < lo - 0.03 and (dz > 0.0 or (abs(surf.style_azimuth(a)) > back and dz > -0.07)) for a, dz, s, lo, _ in info):
+        if all(s < lo - 0.03 and (dz > 0.0 or (abs(surf.style_azimuth(a)) > back and dz > -0.07)) for a, dz, s, lo, _, _ in info):
             kill.append(f)
         elif f.material_index == hair:
             a = where(mw @ f.calc_center_median())[0]             # (a face any corner of which shows)
-            if (abs(surf.style_azimuth(a)) < 104 or not st.get('nape', True)) and any(s > here - 0.002 for _, _, s, _, here in info):
+            if (abs(surf.style_azimuth(a)) < 104 or not st.get('nape', True)) and any(s > here - 0.002 for _, _, s, _, here, _ in info):
                 f.material_index = skin
-        elif all(s < here - 0.006 and dz > -0.03 for _, dz, s, _, here in info):
+        elif all(s < short - 0.006 and dz > -0.03 for _, dz, s, _, _, short in info):
             f.material_index = hair                               # (skin under the hair: if it pokes through, as hair)
     bmesh.ops.delete(bm, geom=kill, context='FACES')
     bm.to_mesh(me)
