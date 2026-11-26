@@ -1105,3 +1105,11 @@ reference/ 사진 출처
   - 카카오맵 로드뷰 2008년 8월 동쪽 찻길 파노라마 2381341 · 2381343(2026년 마디 1212398644 · 1212398641 의 지난 화면): 부스, 둑의 잔디와 오솔길
   - 동쪽 찻길 서쪽 가의 연석 · 측구 · 노란 선(2026-11-25): 로드뷰 2010년 12월 1016786076 ~ 1016786080 · 2008년 8월 2381339 · 2381341 · 2381343 · 2381346 · 2381421(2026년 마디 1212398635 ~ 1212398647 의 지난 화면). 원본 타일을 이은 정거원통에서 연석에 수직인 세로 줄을 읽음
   - 2025 문집 22쪽 가을 사진(위 「문집」): 박공벽의 창으로 카메라를 다시 풂
+- 루스채플 서쪽 면 곁 · 알렌관 남쪽 면 · 새천년관 공사(2026-11-27, 화면은 저장하지 않고 보며 잼, reference/고증/3.25_루스채플.md 「남서쪽 찻길의 네이버 거리뷰」 · 3.23_청송대.md 「알렌관의 남쪽 면」 · 두 파일의 「남은 한계」)
+  - 네이버 지도 거리뷰(metadataV3 의 id · 자리 · 이웃으로 해마다의 촬영 자취를 따라감. 원본 타일 https://panorama.pstatic.net/image/<id>/512/L/<면>/<열>/<행> 을 이어 다시 그림)
+    - 채플 남서쪽 굽은 길 2010년 9월 24일 a8SrQ6ElyWJM9Z6V4hh5EQ · Mx2l5u3BTVTktnTSV_5WmQ · aAgmA-EWnb3kVa1TlTQW6A, 2012년 6월 vcHZjYCmLa9bGZ9zsn1-5g, 2024년 4월 km9423L9e2mlRP2lydJizQ, 2026년 3월 31일 1i_U3uvDSf2aSsWH4oyyIw · 9N16F3wK41ydkN6n8aI_5w · dnPoEHewPdKg3mjycemMQw(서쪽 찻길 · 채플 북쪽에는 어느 해에도 없음)
+    - 알렌관 서쪽 찻길 · 남쪽 주차장 2010년 9월 24일 mpwv2Sbz2wIQgLeVoiCpxw · Tnaz_im2PY1MzeUUVb1NWA · vRM_KIeZUENMpR7UvlJSbg · _oL0FWj76rY1xFHq3XEy4Q · MWDtYkElKIQoN36-FfKHZQ · h44ovvhJF1w4_DkXo0Pofw · Wnp9B0nbidIB854egKYiOw · R8-0fiQGAY6wu8kcqmVFOw
+    - 같은 길의 다른 해: 2012년 4월 26일 6-ODwdvCKs4VvcpvkyxFVg · u1axaGX61UZnt-7_Mz-hRA(에비슨의생명연구센터 공사 가림막), 2024년 3월 12일 5VVOd7eSws0iox6GZeg0cg(서쪽 마당, 박공 현관), 2025년 3월 14일 s6lW9u-ZCJDXkzKfvGCmww · 2bbTBScJG9poTwgSfpg-3A · 5RI3gQW_4TPrJIGtWiW4mg, 2025년 12월 10일 w7l-zn9ytDUMkE1XGUCnMw 둘레
+  - 카카오맵 로드뷰: 채플 서쪽 찻길 (57, −72) · (60, −60) 15 m 안, 북쪽 (75, −50) · (100, −45) 20 m 안에 파노라마 없음(rv.mjs near)
+  - 연세대학교 영문 건물 안내 https://yonsei.ac.kr/en_sc/1822/subview.do: 새천년관 착공 1997-05-10 · 준공 2000-04-25, 알렌관 1987-02-06(시공사 · 공사 사진 없음)
+  - 찾았으나 없음: 위키미디어 공용(「루스채플」 · 「알렌관」 · 「Yonsei chapel」 · 「Allen Hall Yonsei」), 웹 검색(알렌관 대관 · 행사 사진, 새천년관 공사 · 대우건설 실적)
