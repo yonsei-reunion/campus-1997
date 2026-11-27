@@ -86,6 +86,13 @@ RING = 8.0                                # eased out (harmonic) this far round 
 WAYS_RING = 9.0
 CARS_KEEP = Polygon([(76.0, 380.0), (121.0, 375.0), (121.0, 396.0), (76.0, 396.0)])
 HALL_KEEP_BY_DRIVE = 2.0                  # (the halls' keep where the drive's nodes are: 빌링슬리관's east end stands 5 m off it)
+# 연희관's west wing (its footprint's corners, build_campus.py YH_HALL): the nodes in it and round its west face, north
+# end and court side (not its south front, on 앞길) are eased with the ways.  Kept as the hall's feet, the strip between
+# the drive and the west face held the old drive's level, 3.6 m over the scans at the north-west corner ((65, 390):
+# 59.1 m by the drive's 55.4), a paved ridge that rose 3 m in 4 m off the kerb
+YH_WING = Polygon([(66.81, 393.36), (58.24, 363.56), (68.23, 360.69), (69.17, 363.96), (73.26, 378.18), (76.8, 390.48)])
+YH_WING_RING = 2.5
+YH_WING_FRONT = LineString([(58.24, 363.56), (68.23, 360.69)])
 # The 상뜰's shoulder: west and south of the diamond the lawn is the 상뜰's own level to the top of steep banks down to
 # the drive and the footway (cross sections on the scans, five-metre windows along the line: the footway's north kerb
 # 1.5 m off its middle, the top 6 m off, 2.5 - 3 m up; the drive's east bank from 4 m to 8 m off, its foot the
@@ -191,11 +198,13 @@ def grade(Hn, X, Y, FIXED, halls, fill, sample, keep, flight):
     ways = unary_union([substring(DRIVE, 34.0, S_JOIN).buffer(DRIVE_HALF + WAYS_RING, cap_style='flat'),
                         FOOTWAY.buffer(FOOT_HALF + WAYS_RING - 2.0), EAST_LINK.buffer(LINK_HALF + 5.0)])
     new_free = shapely.contains_xy(ways, X, Y) & ~shapely.contains_xy(CARS_KEEP, X, Y)
-    free = (old_free | new_free) & ~took & ~near & ~stay
+    wing = shapely.contains_xy(YH_WING.buffer(YH_WING_RING).difference(YH_WING_FRONT.buffer(YH_WING_RING, cap_style='square'))
+                               .union(YH_WING), X, Y) & ~took & ~keep & ~shapely.contains_xy(CARS_KEEP, X, Y)
+    free = ((old_free | new_free) & ~took & ~near & ~stay) | wing
     if free.any():
         fill(free)
     d = Hn - H0
     return took | free, dict(yard=int(yd.sum()), drive=int(dr.sum()), footway=int(fw.sum()), **links, shoulder=int(sh.sum()),
-                             eased=int(free.sum()),
+                             eased=int(free.sum()), yh_wing=int(wing.sum()),
                              join=round(float(z_join), 2), flight_foot=round(float(z_flight), 2),
                              moved=(int((np.abs(d) > 0.05).sum()), round(float(d.min()), 1), round(float(d.max()), 1)))
