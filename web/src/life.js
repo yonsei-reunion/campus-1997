@@ -329,6 +329,17 @@ export function makeBanners(banners, lib) {
 // Small talk (talk.js): two walkers coming towards each other near the view now and then stop, face each other, wave
 // and trade a line or two; groups talk among themselves and greet you; a walker you block asks to get by.
 const FAR2 = 190 * 190;
+// Out of view (Crowd.view: the camera's frustum, set by main.js each frame) by more than VIEW_PAD m: hidden, the clip
+// and the bones left as they are. Every person in the scene re-posed some 60 bones a frame wherever they stood
+// (TECH_NOTE 「성능: 로딩 · 게임 중 측정 (2026-11-27)」); the pad keeps those whose shadow falls into the view.
+// In view, the far ones' matrices follow their clip's half rate, and the far seated ones' stand still
+const VIEW_PAD = 9;
+const _vs = new THREE.Sphere();
+// three walks the whole scene graph every frame, and its matrixWorldAutoUpdate does not stop it at a subtree (the
+// children are walked, and forced, all the same): a person held still (holder.frozen) is left out by their holder's
+// own updateMatrixWorld
+const OWN_MW = THREE.Object3D.prototype.updateMatrixWorld;
+function frozenMW(force) { if (!this.frozen) OWN_MW.call(this, force); }
 const TALK_NEAR2 = 45 * 45;        // talk only where it can be seen
 const MAX_TALKS = 4;               // conversations at once round the view
 const height = tallOf;
@@ -581,6 +592,25 @@ export class Crowd {
       // far away: out of the scene graph altogether (hiding it would still update its ~60 bones every frame)
       if (far > FAR2) { if (a.holder.parent) this.scene.remove(a.holder); continue; }
       if (!a.holder.parent) this.scene.add(a.holder);
+      // their world matrices (the holder's and its ~60 bones'): none out of view; past 70 m on the frames their clip
+      // moves on (every other one, below); sitting past 45 m (neither pose nor place changes) once
+      // (no view: the visibility left to whoever set it - the sun-shadow bake hides everybody)
+      let seen = true;
+      if (this.view) {
+        _vs.center.copy(a.holder.position).y += 0.9;
+        _vs.radius = VIEW_PAD;
+        seen = this.view.intersectsSphere(_vs);
+        a.holder.visible = seen;
+      }
+      const still = p.seated && p.posed && far >= 45 * 45;
+      if (a.holder.updateMatrixWorld !== frozenMW) a.holder.updateMatrixWorld = frozenMW;
+      // (25 cm or more from where the matrices last put them - set down at the next path, or come into view after
+      // walking out of it - they follow at once; a half-rate step is ~5 cm)
+      const mw = a.holder.matrixWorld.elements, hp2 = a.holder.position;
+      const moved = (mw[12] - hp2.x) ** 2 + (mw[13] - hp2.y) ** 2 + (mw[14] - hp2.z) ** 2 > 0.0625;
+      a.holder.frozen = !(seen && (moved || (still ? !p.stillDone : far < 70 * 70 || (this.frame & 1) === p.tick)));
+      p.stillDone = still && (p.stillDone || seen);
+      if (!seen) continue;
       if (p.seated) {
         // (the head's turn starts from the pose it had on sitting down each time, not from the frame before: the
         // mixer writes a bone only when its value has changed, and a turn added to the last one would spin the head)

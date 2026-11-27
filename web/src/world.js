@@ -179,6 +179,16 @@ export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShado
   return group;
 }
 
+// An object that never moves, nor anything under it (the halls' and landmarks' cells, the placed kits): its matrices
+// worked out once and left out of the frame's update. three walks the whole scene graph every frame, and
+// matrixWorldAutoUpdate does not stop it at a subtree. Whatever is added under it later must stand where it was
+// made (at the origin, as mergeStatic's meshes do)
+const STILL = function () {};
+export function holdStill(o) {
+  o.updateMatrixWorld(true);
+  o.updateMatrixWorld = STILL;
+}
+
 // ---------------------------------------------------------------------------- instancing
 function instanced(geo, mat, capacity, castShadow) {
   const im = new THREE.InstancedMesh(geo, mat, capacity);

@@ -495,6 +495,10 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 - 게임 중 한 프레임의 CPU: 11.5 ~ 12.5 ms(폰 경로 약 11 ms). 해상도를 1/16로 줄여도 같아서 픽셀 한계가 아님
   - 메인 패스 렌더 10.2 ms. 장면을 비우면 2.1 ms(그 가운데 행렬 갱신 1.6 ms), 건물 · 랜드마크만 숨기면 3.4 ms 빠짐
   - 행렬 갱신 1.2 ~ 2.0 ms: 정적인 것을 얼려도 0.08 ms 만 줄어듦. 대부분 사람의 뼈(1,178 ~ 4,650개)와 그 복제 장면
+  - 같은 날 줄임(`life.js` `VIEW_PAD` · `frozenMW`, `world.js` `holdStill`): 정문 1.5 → 0.66 ms, 언더우드관 앞 2.1 ~ 2.7 → 1.2 ms, 광장 1.9 ~ 2.3 → 0.97 ms
+    - three r170 의 `updateMatrixWorld` 는 `matrixWorldAutoUpdate = false` 여도 자식을 다 돌고 force 를 넘김(장면이 `matrixAutoUpdate` 라 매 프레임 force). 그래서 얼릴 객체는 자기 `updateMatrixWorld` 를 바꿈(위 「0.08 ms」는 이 때문)
+    - 사람: 시야(그림자 몫 9 m 넓힘) 밖은 숨기고 믹서 · 행렬을 건너뜀. 70 m 밖은 행렬도 믹서처럼 두 프레임에 한 번, 45 m 밖에 앉은 사람은 한 번만. 마지막 갱신 자리에서 25 cm 넘게 옮겨졌으면 바로 갱신(그려지는 자리의 어긋남 6 cm 안)
+    - 정적인 것: 칸의 두 묶음(`chunks.groups`)과 KitCuller 의 부품. 해 그림자 굽기 동안은 군중의 시야 판정을 끔
   - 그림자 맵(사람 · 차만 다시 그림) 0.6 ~ 1.0 ms, 차 0.5 ms, 군중 0.3 ~ 0.6 ms
 - draw call · 삼각형(정문, 메인 패스): 1,380 call · 353만(폰 경로 1,390 · 300만)
   - 건물: draw 673 · 96만, 랜드마크: draw 309 · 76만. 그 가운데 400 m 밖이 건물 draw 536 · 68만, 랜드마크 draw 183 · 40만

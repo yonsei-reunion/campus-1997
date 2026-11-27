@@ -8,7 +8,7 @@ import { MaterialLibrary, SEASONS, texturesReady, texCount, updatePcss, uploadEa
 import { loading, fetchCounted } from './loading.js';
 import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materials.js';
 import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeHeight, meshHeight } from './terrain.js';
-import { loadGLB, prefetch, glbMaterials, bindMaterials, InstancedKit, KitCuller, Forest } from './world.js';
+import { loadGLB, prefetch, glbMaterials, bindMaterials, InstancedKit, KitCuller, Forest, holdStill } from './world.js';
 import { chunkIndex, nearUrls, CampusChunks } from './chunks.js';
 import { Grass } from './grass.js';
 import { shrubFar2, far2Ready } from './hedges.js';
@@ -1539,6 +1539,9 @@ async function main() {
   };
   let viewW = 0, viewH = 0;        // 0: size once on the first frame too
   let fixedDt = 0, recording = false;  // trailer recording: the loop is stepped by hand at a fixed frame time
+  const crowdView = new THREE.Frustum(), crowdViewM = new THREE.Matrix4();
+  crowd.view = crowdView;
+  if (townCrowd) townCrowd.view = crowdView;
   const frame = () => {
     // a window resized while the tab was in the background may never send 'resize': check every frame
     if (!recording && (innerWidth !== viewW || innerHeight !== viewH)) { viewW = innerWidth; viewH = innerHeight; dispatchEvent(new Event('resize')); }
@@ -1572,6 +1575,8 @@ async function main() {
     forest.update(focus);
     grass.update(camera.position, tAcc);
     fall.update(camera);
+    camera.updateMatrixWorld();         // (the crowd's view: who is out of it skips their bones, life.js VIEW_PAD)
+    crowdView.setFromProjectionMatrix(crowdViewM.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
     crowd.update(dt, tAcc, started ? player : NOBODY, focus);
     if (townCrowd && (townCrowd.shown || townCrowdNear(focus))) {
       townCrowd.update(dt, tAcc, started ? player : NOBODY, focus);
@@ -1672,11 +1677,15 @@ async function main() {
       kitCull.enabled = false;
       chunks.lodOff = true;                // (the cells' own meshes, not their far stand-ins)
       chunks.updateLod(camera.position);
+      crowd.view = null;                   // (the people stay as the bake hides them, life.js VIEW_PAD)
+      if (townCrowd) townCrowd.view = null;
       try {
         return await bakeSunMap({ renderer, scene, sun, sunDir, shadows, forest, hf: hfNear, walk: walkables, hide: [banners, ...(ball?.balls.map((b) => b.mesh) ?? [])], skip: farScenery });
       } finally {
         kitCull.enabled = true;
         chunks.lodOff = false;
+        crowd.view = crowdView;
+        if (townCrowd) townCrowd.view = crowdView;
       }
     },
     kitCull, chunks, memos,
@@ -1717,6 +1726,10 @@ async function main() {
   };
   chunks.stream(() => { const f = bird.active ? bird.focus : camera.position; return [f.x, -f.z]; });
   chunks.startFar();
+  // what never moves out of the frame's matrix update (world.js holdStill): the cells' two groups (their meshes and
+  // stand-ins stand at the origin) and the kits' parts (they move their instances, never themselves)
+  for (const g of Object.values(chunks.groups)) holdStill(g);
+  for (const st of kitCull.sets) for (const d of [st.near, st.far, st.far2, st.far3]) if (d) for (const m of d.parts) if (m.parent === scene) holdStill(m);
   // then the big textures at full size, where the loading screen had their smaller copies (materials.js laterFull)
   chunks.allIn.then(() => upgradeTextures());
   // the town beyond the gate: its houses, 신촌 로터리's landmarks and signs, the bridge (campus_town.glb, 1.3 MB), down
