@@ -332,6 +332,12 @@
     {"name": "screenshots/north_gate", "doc": "고증 3.21: 북문 밖 고리길에서 동쪽으로 본 북문의 ㄇ 틀 둘과 수위실(카카오 로드뷰 2009년 5월 4611473 쪽)",
      "cam": {"x": -4.0, "y": 909.5, "dh": 1.7, "tx": 18.0, "ty": 915.5, "tdh": 2.5, "fov": 60}, "size": [1400, 800],
      "out": [{"path": "docs/screenshots/north_gate.jpg", "width": 900}]},
+    {"name": "screenshots/church", "doc": "고증 4.8.5: 남서쪽 하늘에서 본 창천교회(reference/1990년대_캠퍼스_항공사진_어제의_신촌캠퍼스.jpg 의 오른쪽 아래와 같은 쪽)",
+     "cam": {"x": -135.0, "y": -660.0, "dh": 115.0, "tx": -30.0, "ty": -534.0, "tdh": 14.0, "fov": 24}, "size": [1400, 1000],
+     "out": [{"path": "docs/screenshots/church.jpg", "width": 900}]},
+    {"name": "screenshots/church_front", "doc": "고증 4.8.5: 앞마당 남서쪽에서 본 창천교회 정면과 남쪽 벽(카카오 로드뷰 2008년 11월 2104118 쪽)",
+     "cam": {"x": -70.0, "y": -558.0, "dh": 1.7, "tx": -47.0, "ty": -536.0, "tdh": 19.0, "fov": 82}, "size": [1000, 1300],
+     "out": [{"path": "docs/screenshots/church_front.jpg", "width": 700}]},
 
     {"name": "anthology/underwood", "doc": "문집 「언더우드관 전경」: 언더우드 동상 뒤에서 정원 축을 따라",
      "cam": {"x": 48.4, "y": 192.7, "dh": 9, "tx": 60.25, "ty": 239.9, "tdh": 0, "fov": 55}, "size": [1388, 747],

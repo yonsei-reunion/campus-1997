@@ -139,6 +139,35 @@ CHURCH_YARD = [
     [(-82.6, -540.4), (-82.6, -561.2), (-49.0, -561.2), (-49.0, -540.4)],
     [(-72.2, -520.5), (-72.2, -540.6), (-49.0, -540.6), (-49.0, -520.5)],
 ]
+# The church's porch stands in that yard before the west front (blender/church.py PORCH: 1.25 m out of the towers'
+# faces, 14.0 m wide, walls 0.5 m thick, three arches 3.3 m wide in its front): the walker goes in under the arches to
+# the doors, round the piers.  The piers' feet in the church's frame (gate_town.CHURCH: u east along the hall from its
+# middle, v north): (u0, u1, v0, v1)
+
+
+def church_porch_piers(ch, out_=1.25, w=14.0, th=0.5, arch=3.3):
+    import math
+    uw, hw = -ch['L'] / 2 - out_, w / 2
+    out = []
+    for k in range(4):                                     # (the front's four)
+        v0 = -hw if k == 0 else -hw + w * k / 3 - (w / 3 - arch) / 2
+        v1 = hw if k == 3 else -hw + w * k / 3 + (w / 3 - arch) / 2
+        out.append((uw, uw + th, v0, v1))
+    for sg in (-1, 1):                                     # (each side's short wall back to the tower's face)
+        out.append((uw, -ch['L'] / 2, min(sg * hw, sg * (hw - th)), max(sg * hw, sg * (hw - th))))
+    c, s_ = math.cos(ch['ang']), math.sin(ch['ang'])
+    P = lambda u, v: (ch['c'][0] + u * c - v * s_, ch['c'][1] + u * s_ + v * c)
+    return [[P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1)] for u0, u1, v0, v1 in out]
+
+
+def church_porch_floor(ch, tow=5.7, front_in=1.15):
+    """the floor under the porch between the two towers, in to the gable wall and its doors (the church's box, which is
+    cut out of the yard, runs from the towers' faces): open to the walker"""
+    import math
+    u0, u1, hv = -ch['L'] / 2 - 0.7, -ch['L'] / 2 + front_in - 0.35, ch['W'] / 2 - tow - 0.35
+    c, s_ = math.cos(ch['ang']), math.sin(ch['ang'])
+    P = lambda u, v: (ch['c'][0] + u * c - v * s_, ch['c'][1] + u * s_ + v * c)
+    return [P(u0, -hv), P(u1, -hv), P(u1, hv), P(u0, hv)]
 
 # 챔프2 오락실 (reference/고증/4.10.8 「챔프2 오락실」): not on 연세로 but one block in along 연세로11길, on the south-west
 # corner where 연세로9길's north - south leg meets it (the three anthology maps: 2019 문집 25쪽 an 오락실 with a joystick

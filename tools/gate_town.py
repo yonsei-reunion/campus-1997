@@ -96,10 +96,17 @@ YONSEI_X = -94.0             # 연세로's middle from the bridge south (고증 
 YONSEI_X_RNG = -96.0         # (where it was: what the random streams decide is decided round it)
 YONSEI_HALF, YONSEI_WALK = 6.5, 5.5    # (13 m of carriageway, 고증 4.10; the rows' fronts 12 m out as before)
 YZEBRA2 = (-572.0, -577.5)   # the zebra over 연세로 south of the bridge (1997 frames 26/16 · 27/17, y)
-# 창천교회 (OSM 324258395: 40 x 23 m, three storeys): its outline's box, the two spires at the west face's corners
-# (1996 photos 52004 · 52006; the 2008 - 2011 roadview's net, 고증 4.8), the old box only for the draws
-CHURCH = dict(c=(-30.3, -533.1), L=40.4, W=22.4, ang=0.0713)
+# 창천교회: the box from its towers' west faces to its east gable and over the towers' outer faces, as the scans of
+# 1997-07-28 have it (26/16 · 27/17 · 27/18 · 27/19, the white copings of the parapets and the towers' rims solved
+# from four frames, 고증 4.8 「창천교회」): 4.45 m longer to the east than OSM's outline (324258395, 40.4 x 22.4 m at
+# (-30.3, -533.1), 0.0713 rad), its middle 1.0 m further south, turned 0.36 deg less.  blender/church.py draws it;
+# the old box only for the draws
+CHURCH = dict(c=(-27.8, -533.9), L=44.4, W=24.15, ang=0.0651)
 CHURCH_RNG = (-50.0, -523.0, 27.0, 13.0)
+# (the hall OSM has east of the church, 18.7 x 17.5 m about (7.2, -531.4), was going up behind a hoarding in the
+# roadview of 2008-11-12 (2104106 · 2104108): not there in 1997, when the scans have a paved yard east of the church's
+# wall; it goes as what stands in the church does, its draws kept)
+CHURCH_EAST = Point(7.2, -531.4).buffer(3.0)
 X0, X1 = -575.0, 700.0       # the banks are built between these
 MODERN = {230178502, 628197716}        # OSM outlines that are the 2006 station building
 # 성산로 서쪽 (대운동장 남서쪽, 고증 4.8.2 · 4.12): the ground along the road as the surface model has it climbs
@@ -727,7 +734,7 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
     # goes: b[6] < 0, blender/town.py still draws its random looks so that the houses after it keep theirs
     fw_ = YONSEI_HALF + YONSEI_WALK
     now = unary_union([Polygon([(YONSEI_X - fw_, y_top), (YONSEI_X + fw_, y_top), (YONSEI_X + fw_, -640), (YONSEI_X - fw_, -640)]),
-                       unary_union([box_(b) for b in rows]).buffer(0.3), _rect(church).buffer(1.0)])
+                       unary_union([box_(b) for b in rows]).buffer(0.3), _rect(church).buffer(1.0), CHURCH_EAST])
     shapely.prepare(now)
     n_moved = 0
     for b in blocks[len(rows) + 1:]:

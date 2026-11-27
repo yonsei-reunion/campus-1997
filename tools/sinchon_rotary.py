@@ -1693,7 +1693,10 @@ def layout(geo, town, extras, ground, taken_z):
     dk_open = unary_union([Polygon(dk['yard']), Polygon(dk['fore'])] + [Polygon(p_) for p_ in yro97.CHURCH_YARD])
     dk_walls = unary_union([Polygon(dk['main']).buffer(0.35), Point(dk['bay'][0], dk['bay'][1]).buffer(dk['bay'][2] + 0.3)]
                            + [_box(b).buffer(0.4) for b in blocks if len(b) == 12 and b[6] > 0 and _box(b).intersects(dk_open)])
-    W_parts.append(dk_open.difference(dk_walls))
+    # (the piers of the church's porch stand in its yard: the arches between them stay open, and the floor behind
+    # them between the towers, which is inside the church's box, in to the doors)
+    ch_piers = unary_union([Polygon(p_).buffer(0.15, join_style=2) for p_ in yro97.church_porch_piers(gt.CHURCH)])
+    W_parts.append(unary_union([dk_open.difference(dk_walls), Polygon(yro97.church_porch_floor(gt.CHURCH))]).difference(ch_piers))
     # 연세로11길 to 챔프2 오락실 (yro97.CHAMP_LANE; 2026-11-28): every house standing in it cut out, the shop's own too
     ch_open = unary_union([Polygon(p_) for p_ in yro97.CHAMP_LANE])
     W_parts.append(ch_open.difference(unary_union([_box(b).buffer(0.4) for b in blocks

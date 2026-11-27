@@ -1846,6 +1846,116 @@ def eng_stone_tex():
 
 eng_stone_tex()
 
+
+# church97.jpg: 창천교회's glazing and carved stone (blender/church.py, materials.json church97; reference/고증/4.8
+# 「창천교회」), a 1024 atlas.  Read off the Kakao roadview of 2008-11-12 and 2009-03-02 (looked at, not kept): the
+# nave's tall lancets are three lights of small leaded panes in dark bronze bars under intersecting tracery, the glass
+# dark with the sky in some panes; the west front's two great lancets the same in five lights; the rose over them blue
+# and green glass round a middle; the ground floor's windows behind bars; the doors dark wood under the porch; the
+# porch's parapet white stone cut in crossing diagonals.  CHURCH97_CELLS: name -> (x, y, w, h) px from the top-left;
+# every lancet cell's top is the arch's point and its arch rises 0.9 of its width (church.py LANCET_RISE).
+CHURCH97_CELLS = dict(nave=(0, 0, 192, 768), west=(192, 0, 256, 768), rose=(448, 0, 256, 256), low=(448, 256, 256, 192),
+                      door=(704, 0, 192, 384), parapet=(448, 448, 576, 128))
+
+
+def church97_tex():
+    if ONLY and 'church97' not in ONLY:
+        return
+    S = 3
+    img = Image.new('RGB', (1024 * S, 1024 * S), (58, 52, 46))
+    d = ImageDraw.Draw(img)
+    rnd = random.Random(1906)
+    BAR = (62, 54, 46)
+
+    def pane_col(sky):
+        g = rnd.uniform(0.0, 1.0)
+        base = np.array([30, 37, 42]) * (0.75 + 0.5 * g)
+        if rnd.random() < sky:                                 # (a pane with the sky in it)
+            base = np.array([96, 112, 124]) * rnd.uniform(0.7, 1.15)
+        elif rnd.random() < 0.04:                              # (a tinted one: amber, green or wine)
+            base = np.array(rnd.choice([(92, 70, 34), (38, 66, 52), (78, 38, 40), (40, 52, 84)])) * rnd.uniform(0.8, 1.1)
+        return tuple(int(v) for v in np.clip(base, 0, 255))
+
+    def lancet(cell, cols, rows, sky):
+        x0, y0, w, h = (v * S for v in cell)
+        rise = 0.9 * w
+        R = (0.25 * w * w + rise * rise) / w
+        ys = y0 + rise                                         # (the springing)
+        lw = max(2, int(w / 64))
+        d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=BAR)
+        ph = (h - rise * 0.35) / rows
+        for i in range(cols):                                  # (the panes, up into the head)
+            for j in range(-int(rise * 0.35 / ph) - 6, rows):
+                a = x0 + w * i / cols + lw
+                b = x0 + w * (i + 1) / cols - lw
+                t = y0 + rise * 0.35 + ph * j + lw * 0.6
+                d.rectangle([a, t, b, t + ph - lw * 1.2], fill=pane_col(sky * (1.0 - 0.6 * (j / rows))))
+        for i in range(cols + 1):                              # (the mullions and from each the two bars of the tracery)
+            xm = x0 + w * i / cols
+            d.line([xm, ys, xm, y0 + h], fill=BAR, width=lw * 2)
+            for cx, a0, a1 in ((xm + R, 180, 270), (xm - R, 270, 360)):
+                d.arc([cx - R, ys - R, cx + R, ys + R], a0, a1, fill=BAR, width=lw * 2 + 1)
+        for k in (0.33, 0.66):                                 # (two heavier transoms)
+            y = ys + (y0 + h - ys) * k
+            d.line([x0, y, x0 + w, y], fill=BAR, width=lw * 2 + 1)
+
+    lancet(CHURCH97_CELLS['nave'], 3, 15, 0.16)
+    lancet(CHURCH97_CELLS['west'], 5, 15, 0.05)
+    # the rose: twelve petals of blue and green round a middle, a ring of small lights outside them
+    x0, y0, w, h = (v * S for v in CHURCH97_CELLS['rose'])
+    cx, cy, r = x0 + w / 2, y0 + h / 2, w / 2
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(226, 224, 216))
+    d.ellipse([cx - r * 0.98, cy - r * 0.98, cx + r * 0.98, cy + r * 0.98], fill=BAR)
+    pal = [(46, 98, 150), (40, 124, 132), (58, 136, 104), (36, 76, 128), (70, 150, 150), (120, 148, 96)]
+    for ring, (r0, r1, n) in enumerate(((0.70, 0.93, 24), (0.26, 0.66, 12))):
+        for k in range(n):
+            a0, a1 = 360 * k / n + 1.5, 360 * (k + 1) / n - 1.5
+            col = tuple(int(v * rnd.uniform(0.8, 1.15)) for v in pal[(k * (5 if ring else 1) + ring) % len(pal)])
+            d.pieslice([cx - r * r1, cy - r * r1, cx + r * r1, cy + r * r1], a0, a1, fill=col)
+        d.ellipse([cx - r * r0, cy - r * r0, cx + r * r0, cy + r * r0], fill=BAR)
+    d.ellipse([cx - r * 0.22, cy - r * 0.22, cx + r * 0.22, cy + r * 0.22], fill=(176, 150, 72))
+    d.ellipse([cx - r * 0.12, cy - r * 0.12, cx + r * 0.12, cy + r * 0.12], fill=(60, 110, 150))
+    # the ground floor's window: dark panes behind upright bars
+    x0, y0, w, h = (v * S for v in CHURCH97_CELLS['low'])
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(40, 40, 40))
+    for i in range(4):
+        for j in range(2):
+            d.rectangle([x0 + w * i / 4 + 2 * S, y0 + h * j / 2 + 2 * S, x0 + w * (i + 1) / 4 - 2 * S, y0 + h * (j + 1) / 2 - 2 * S],
+                        fill=tuple(int(v * rnd.uniform(0.8, 1.2)) for v in (34, 42, 48)))
+    for i in range(1, 16):
+        d.line([x0 + w * i / 16, y0, x0 + w * i / 16, y0 + h], fill=(70, 70, 68), width=S)
+    # the doors: dark boards in two leaves, a row of small lights in each, iron straps
+    x0, y0, w, h = (v * S for v in CHURCH97_CELLS['door'])
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(66, 44, 30))
+    for i in range(12):
+        c = rnd.uniform(0.85, 1.12)
+        d.rectangle([x0 + w * i / 12, y0, x0 + w * (i + 1) / 12 - S, y0 + h], fill=(int(70 * c), int(46 * c), int(31 * c)))
+    for leaf in range(2):
+        a, b = x0 + w * leaf / 2 + 6 * S, x0 + w * (leaf + 1) / 2 - 6 * S
+        d.rectangle([a + 8 * S, y0 + h * 0.10, b - 8 * S, y0 + h * 0.36], fill=(30, 36, 40), outline=(40, 28, 20), width=2 * S)
+        for yy in (0.46, 0.86):
+            d.rectangle([a, y0 + h * yy, b, y0 + h * yy + 5 * S], fill=(28, 26, 26))
+    d.line([x0 + w / 2, y0, x0 + w / 2, y0 + h], fill=(24, 18, 14), width=2 * S)
+    # the porch's parapet: white stone, each of its three bays a panel of crossing diagonals in sunk lines
+    x0, y0, w, h = (v * S for v in CHURCH97_CELLS['parapet'])
+    d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(226, 224, 216))
+    bw = w / 3
+    for k in range(3):
+        a, b, t, bt = x0 + bw * k + 10 * S, x0 + bw * (k + 1) - 10 * S, y0 + 14 * S, y0 + h - 14 * S
+        d.rectangle([a, t, b, bt], outline=(150, 148, 142), width=2 * S)
+        n = 4
+        for i in range(n):
+            xa, xb = a + (b - a) * i / n, a + (b - a) * (i + 1) / n
+            for p, q in (((xa, bt), (xb, t)), ((xa, t), (xb, bt))):
+                d.line([p, q], fill=(158, 156, 150), width=2 * S)
+                d.line([(p[0] + 2 * S, p[1]), (q[0] + 2 * S, q[1])], fill=(240, 239, 233), width=S)
+    out = img.resize((1024, 1024), Image.LANCZOS)
+    out.save(os.path.join(OUT, 'church97.jpg'), quality=92)
+    print('church97')
+
+
+church97_tex()
+
 if ONLY:
     raise SystemExit(0)
 
