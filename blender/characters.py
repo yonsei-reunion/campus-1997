@@ -291,7 +291,7 @@ PEOPLE = {
                                               neckline(('LimeGreen',), to='Rib', drop=.036, half=.085, side=.06),
                                               neckline(('Rib',), drop=.020, half=.068, side=.06)]},
                               roomy=1.16, cut='wide',
-                              face=dict(lid='double', slant=.10, eye=.99, jaw=.96, taper=.22, gonial=.5, chin=1.03, smile=.0024, mouth=1.34, lip=1.5, lip_up=.78, lip_ink=1.35,
+                              face=dict(lid='double', slant=.10, eye=.99, jaw=.96, taper=.22, gonial=.5, chin=0.99, smile=.0024, mouth=1.34, lip=1.5, lip_up=.78, lip_ink=1.35,
                                         bow=1.25, lip_tint=(.58, .23, .25), lash=1.35, aegyo=.4, crease=.8, flush=1.3, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
                                         brow_peak=.68, brow_drop=1.0, brow_soft=1.3, nose=.84, tip_round=.9, bridge=.22, nose_w=.95)),
     'p13': woman('pixie', 'Suit', 'Casual', 'Casual',
@@ -341,7 +341,7 @@ PEOPLE = {
                          'denim shirt (청남방) worn open over a white tee, beige cotton trousers, white trainers; hair to the '
                          'shoulders with a straight fringe',
                          paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)], 'feet': trainers('women', 'Grey')},
-                         bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=.97, taper=.20, gonial=.5, chin=1.01, smile=.0026, mouth=1.24, lip=1.65, lip_up=.80,
+                         bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=.97, taper=.20, gonial=.5, chin=0.99, smile=.0026, mouth=1.24, lip=1.65, lip_up=.80,
                                    lip_ink=1.3, bow=1.3, lip_tint=(.76, .32, .36), lash=1.3, aegyo=.8, crease=.75, flush=1.6, brow=.9, arch=1.1, brow_len=1.0,
                                    brow_soft=1.6, nose=.78, nose_curve=.88, tip_up=1.12, tip_round=1.05, bridge=.19, nose_w=.98, nose_up=.001)),
 }
@@ -2107,7 +2107,7 @@ LIP_SIDE = (0.012, 0.046)
 # comes forward (`chin`) and is a little broader (`square`), and the skin behind it under the jaw is lifted
 # (`under`).  A face's own `gonial` and `chin_out` scale `wide` and `chin`, its `chin_wide` is added to `square`.
 JAW = {'umc': dict(rise=0.024, back=0.004, ramus=72, wide=0.085, chin=0.005, square=0.10, under=0.005),
-       'women': dict(rise=0.022, back=0.004, ramus=72, wide=0.06, chin=0.0055, square=0.0, under=0.004)}
+       'women': dict(rise=0.022, back=0.004, ramus=72, wide=0.06, chin=0.0095, square=0.0, under=0.004)}
 NOSE_RADIX = 0.4
 NOSE_TIP = {'umc': 0.0165, 'women': 0.0212}       # (the packs' wedges stood 0.0145, 0.0188 off the face)
 NOSE_ROOT = 0.006          # the bridge dies away this far over the eye line (and only there: it is straight up to it)
@@ -2117,7 +2117,9 @@ NOSE_EASE = 8              # how often the profile is eased (its joins, the foot
 NOSE_BALL = 0.0056         # the round of the tip: its radius (a tip_round of 1)
 NOSE_TILT_MIN = math.radians(2.5)
 NOSE_TILT, NOSE_TILT_UP = 8.0, 7.0      # the underside's rise from the lip, degrees; and so much more for a tip_up of 2
-NOSE_RIDGE = (0.0120, 0.0120)      # half the bridge's foot on the face: between the eyes, at the tip
+# half the bridge's foot on the face: between the eyes, at the tip (a woman's narrower between the eyes: seen from
+# the front the lit ridge was one band of the same width from the brows to the tip)
+NOSE_RIDGE = {'umc': (0.0120, 0.0120), 'women': (0.0082, 0.0120)}
 NOSE_WING = dict(x=0.0098, rx=0.0072, z=0.0058, up=0.0135, tall=0.52)   # a wing: its middle from the nose's and
 #                         over the underside, its half width, how far up the side it dies away, its height of the tip's
 NOSE_HOLE = dict(x=0.0055, rx=0.0032, h=0.42, rh=0.30, deep=0.0022)     # a nostril: its middle from the nose's, its
@@ -2182,6 +2184,9 @@ def _parted(p, side=_CURTAIN_SIDE, k=1.0, apex=.058):
 
 
 _MEN_EAR = _ear()
+# hair drawn back and tied: over the forehead the shell's edge is where the hair grows from, not where strands end, so
+# it is a line and not a cut's raggedness (2 mm of it left: single hairs; from the temples back as any cut)
+_TIED = [(0, .002), (50, .002), (62, .004)]
 HAIR_STYLES = {
     # tip: [(azimuth, dz)] the hem; azimuth in degrees, 0 = front, 90 = the ear, 180 = back (signed: + is the
     #      person's left; unsigned lists are mirrored).  vol: [(azimuth, m)] off the scalp, `top` at the crown,
@@ -2279,13 +2284,14 @@ HAIR_STYLES = {
                             (101, -.046), (105, -.066), (112, -.080), (135, -.102), (180, -.110)]),
                  vol=[(-180, .010), (-100, .009), (-60, .008), (-20, .012), (20, .010), (60, .008), (100, .009), (180, .010)],
                  top=.015, edge=[(0, .004), (60, .004), (100, .006), (180, .005)], part=(30, .004, 7), rows=8, rough=.08,
-                 ragged=.003, tail=dict(dz=.012, length=.25, r=.034)),
+                 ragged=.003, wisp=_TIED, tail=dict(dz=.012, length=.25, r=.034)),
     'half': dict(tip=_both([(-47, .030), (-35, .042), (-18, .052), (0, .057), (10, .059), (24, .054), (37, .043), (47, .030)],
                            [(57, .016), (62, -.004), (67, -.028), (73, -.036), (78, -.029), (82, -.027), (97, -.027),
                             (101, -.048), (104, -.09), (111, -.22), (135, -.31), (180, -.33)]),
                  vol=[(-180, .016), (-100, .015), (-60, .008), (-20, .013), (20, .011), (60, .008), (100, .015), (180, .016)],
                  top=.016, edge=[(0, .004), (60, .004), (100, .010), (180, .010)], part=(30, .004, 7), fall=.10, sheet=.014,
-                 rows=12, rough=.08, ragged=.004, tail=dict(dz=.0, length=.17, r=.022)),
+                 rows=12, rough=.08, ragged=.004, wisp=_TIED + [(104, .004), (111, WISP['hang']), (180, WISP['hang'])],
+                 tail=dict(dz=.0, length=.17, r=.022)),
     'perm': dict(tip=[(-180, -.105), (-135, -.100), (-90, -.072), (-60, -.062), (-50, -.020), (-30, .008), (0, .024),
                       (15, .038), (26, .048), (34, .026), (42, -.008), (52, -.050), (60, -.062), (90, -.072), (135, -.100), (180, -.105)],
                  vol=[(-180, .021), (-90, .021), (-30, .019), (28, .013), (60, .020), (180, .021)], top=.023, edge=.013,
@@ -2627,7 +2633,7 @@ def nose_shape(fy, ez, nb, face, rig):
         if r in (0, NR):
             z, m = (z1, 0.0) if r == 0 else (nb, 0.0)
         g = _smooth(ez, zt, z)                                # 0 between the eyes .. 1 at the tip and under it
-        w = NOSE_RIDGE[0] + (NOSE_RIDGE[1] * (wide * blunt) ** 0.5 - NOSE_RIDGE[0]) * g
+        w = NOSE_RIDGE[rig][0] + (NOSE_RIDGE[rig][1] * (wide * blunt) ** 0.5 - NOSE_RIDGE[rig][0]) * g
         dz = (z - za) / (W['up'] if z > za else za - nb)
         X = max(w, xa + rx * math.sqrt(max(0.0, 1 - dz * dz)))
         row = []

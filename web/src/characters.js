@@ -160,7 +160,7 @@ const NO_FACE = { value: null }, NO_NEAR = { value: 0 }, NO_GAZE = { value: new 
 // a warm band where the sun's light ends (of the sun's light, at its most); through: the sun behind thin skin (an
 // ear: the model's `thin`, in the attribute `leg` of skin) shines through it red; pore: the height of the skin's
 // grain from very near, m (desktop)
-const SKIN_SUN = { scatter: 0.24, through: 0.85, pore: 0.000035 };
+const SKIN_SUN = { scatter: 0.24, through: 0.32, pore: 0.000035 };
 // the eyes turn to whoever looks at the face from near (the near face only: its picture is read a little to the side
 // in the eye's opening, so the iris moves under the lids). reach: how far the iris goes to the side and up or down, m
 // on the face; turn: the angle at which it is half way there, rad; out: past this angle to the side the eyes give up
@@ -222,7 +222,7 @@ const FINE = !MOBILE;               // the folds of cloth and the strands of hai
 // from its strand's end, how glossy the hair is there, and how far up from the hem single strands end). near: the
 // strands and their ends come in between so many metres to a pixel; gloss: the bands of light between these
 // (sun, sky: how bright the narrow band and the broad one are, of the light that falls on the hair)
-const HAIR = { tip: 0.06, wisp: 0.04, near: [0.006, 0.02], gloss: [0.02, 0.05], sun: [0.035, 0.04], sky: [0.009, 0.012] };
+const HAIR = { tip: 0.06, wisp: 0.04, near: [0.006, 0.02], gloss: [0.02, 0.05], sun: [0.035, 0.04], sky: [0.009, 0.012], deep: 0.22 };
 PERSON_MAT.onBeforeCompile = (sh) => {
   sh.uniforms.uRims = RIMS_TEX;
   sh.uniforms.uBlinkT = windTime;
@@ -514,13 +514,15 @@ PERSON_MAT.onBeforeCompile = (sh) => {
         float sThin = vLeg.z * step( vLeg.x + vLeg.y, 0.005 );
         if ( sThin > 0.0 ) {
           float sFace = dot( - directLight.direction, normalize( vViewPosition ) );          // (looking into the sun: 1)
-          reflectedLight.directDiffuse += sSun * vec3( 1.0, 0.22, 0.10 ) * ( ${SKIN_SUN.through.toFixed(2)} * sThin * smoothstep( 0.25, - 0.35, sN ) * ( 0.35 + 0.65 * smoothstep( - 0.2, 0.8, sFace ) ) );
+          // (the thinnest of it only, the rim: sThin squared; and little of it unless one looks towards the sun)
+          reflectedLight.directDiffuse += sSun * vec3( 1.0, 0.24, 0.13 ) * ( ${SKIN_SUN.through.toFixed(2)} * sThin * sThin * smoothstep( 0.25, - 0.35, sN ) * ( 0.15 + 0.85 * smoothstep( - 0.2, 0.8, sFace ) ) );
         }
       }
       #endif
       {
         // the shut-in places: skin shades warm (the light that gets there has been through skin), the rest grey
-        vec3 pShade = mix( vec3( 1.0 ), mix( vec3( 0.0 ), vec3( 0.62, 0.40, 0.33 ), pSkin ), vPart.z * mix( 1.0, 0.75, pSkin ) );
+        // (hair: a head of it is strands with light between them, its shut-in side is dark but no black hole)
+        vec3 pShade = mix( vec3( 1.0 ), mix( vec3( ${HAIR.deep.toFixed(2)} * pHair ), vec3( 0.62, 0.40, 0.33 ), pSkin ), vPart.z * mix( 1.0, 0.75, pSkin ) );
         reflectedLight.indirectDiffuse *= pShade;
         reflectedLight.indirectSpecular *= 1.0 - vPart.z;
         reflectedLight.directDiffuse *= mix( vec3( 1.0 ), pShade, 0.4 );

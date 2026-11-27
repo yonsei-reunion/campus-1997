@@ -52,8 +52,8 @@ FACE = {
                 brow=(.0246, .0056, .0026, .0028), mouth=(.0215, .0016), mouth_dz=-.0747, nose_dz=-.0521, lash=.0030,
                 lip=.0054, chin=.87, chin0=.74, cheek=1.18),
     'women': dict(eye=(.0174, .0048), lid=dict(mono=.0074, inner=.0085, double=.0096), iris=.0068, gap=.0376, slant=.09,
-                  brow=(.0262, .0056, .0028, .0040), mouth=(.0195, .0015), mouth_dz=-.0793, nose_dz=-.0595, lash=.0036,
-                  lip=.0052, chin=.94, chin0=.78, cheek=1.16),
+                  brow=(.0242, .0056, .0028, .0040), mouth=(.0195, .0015), mouth_dz=-.0793, nose_dz=-.0595, lash=.0036,
+                  lip=.0052, chin=1.05, chin0=.78, cheek=1.16),
 }
 # what the lines do to the skin's (linear) light
 INK = (.030, .022, .022)           # the upper lid and the pupil
@@ -573,7 +573,7 @@ FORMS = {
     'umc': dict(socket=.0027, inner=.0015, dome=.0020, ball=.0010, roll=.0003, slope=.0010, lip_u=.0021, lip_l=.0025,
                 sulcus=.0016, line=.0007, corner=.0007, groove=.0005, chin=.0135),
     'women': dict(socket=.0023, inner=.0012, dome=.0019, ball=.0010, roll=.0003, slope=.0010, lip_u=.0023, lip_l=.0026,
-                  sulcus=.0014, line=.0007, corner=.0006, groove=.0005, chin=.0105),
+                  sulcus=.0014, line=.0007, corner=.0006, groove=.0005, chin=.0120),
 }
 FORMS_TOP, FORMS_BOT = 0.036, -0.024      # the eyes' sheet: from so far over the eye line down to so far under it
 #                                          (over the brows: the forehead's own faces reach out of the atlas' cell
