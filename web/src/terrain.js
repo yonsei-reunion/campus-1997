@@ -99,6 +99,27 @@ export class Heightfield {
   }
 }
 
+// The height of the ground's own mesh at (x, y): the grid's and the patches' triangles (split along (i+1, j)-(i, j+1),
+// as gridGeometry and makeSouthTerrain lay them), what a ray straight down would hit on them; null off the grid and the
+// patches. height() above is bilinear, a few cm off it inside a cell. main.js groundAt asks this instead of casting a
+// ray at the terrain's 300 k triangles tens of thousands of times while the page loads.
+export function meshHeight(hf, x, y) {
+  const e = hf.patchAt(x, y);
+  let fx, fy, n, d;
+  if (e) {
+    fx = (x - e.x0) / e.step; fy = (y - e.y0) / e.step; n = e.nx; d = e.data;
+    if (fx < 0 || fy < 0 || fx > e.nx - 1 || fy > e.ny - 1) return null;
+    fx = Math.min(fx, e.nx - 1.000001); fy = Math.min(fy, e.ny - 1.000001);
+  } else {
+    fx = (x + hf.half) / hf.step; fy = (y + hf.half) / hf.step; n = hf.n; d = hf.data;
+    if (fx < 0 || fy < 0 || fx > n - 1 || fy > n - 1) return null;
+    fx = Math.min(fx, n - 1.000001); fy = Math.min(fy, n - 1.000001);
+  }
+  const i = fx | 0, j = fy | 0, ax = fx - i, ay = fy - j;
+  const a = d[j * n + i], b = d[j * n + i + 1], c = d[(j + 1) * n + i], dd = d[(j + 1) * n + i + 1];
+  return ax + ay <= 1 ? a + (b - a) * ax + (c - a) * ay : dd + (c - dd) * (1 - ax) + (b - dd) * (1 - ay);
+}
+
 // (the far ring's second hole: the patch's rectangle, x0 y0 x1 y1)
 const inRect = (r, x0, y0, x1, y1) => !!r && (Array.isArray(r[0]) ? r.some((q) => inRect(q, x0, y0, x1, y1)) : x0 >= r[0] && x1 <= r[2] && y0 >= r[1] && y1 <= r[3]);
 

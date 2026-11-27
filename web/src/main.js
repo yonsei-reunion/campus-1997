@@ -7,7 +7,7 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { MaterialLibrary, SEASONS, texturesReady, texCount, updatePcss, uploadEarly, upgradeTextures, texturesFull } from './materials.js';
 import { loading, fetchCounted } from './loading.js';
 import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materials.js';
-import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeHeight } from './terrain.js';
+import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeHeight, meshHeight } from './terrain.js';
 import { loadGLB, prefetch, glbMaterials, bindMaterials, InstancedKit, KitCuller, Forest } from './world.js';
 import { chunkIndex, nearUrls, CampusChunks } from './chunks.js';
 import { Grass } from './grass.js';
@@ -333,17 +333,27 @@ async function main() {
   const DOWN = new THREE.Vector3(0, -1, 0), from = new THREE.Vector3();
   // (only the surfaces whose box is over the point: the trees, shrubs, props, cars and every walker's and car's path
   // ask this tens of thousands of times while the page loads)
+  // The ground's own meshes (the near grid and the patches south and north of it) by their triangles' height
+  // (terrain.js meshHeight), no ray: the highest of it and the other surfaces is what the ray from above hit first
   const walkBox = new Map(), under = [];
+  const grounds = new Set([terrain, terrainSouth, terrainNorth]);
+  const others = walkables.filter((m) => !grounds.has(m));
   const groundAt = (x, y) => {
-    ray.set(from.set(x, 600, -y), DOWN);
     under.length = 0;
-    for (const m of walkables) {
+    for (const m of others) {
       let b = walkBox.get(m);
       if (!b) walkBox.set(m, b = new THREE.Box3().setFromObject(m));
       if (x >= b.min.x && x <= b.max.x && -y >= b.min.z && -y <= b.max.z) under.push(m);
     }
-    const h = ray.intersectObjects(under, false);
-    return h.length ? h[0].point.y : hfNear.height(x, y);
+    let top = null;
+    if (under.length) {
+      ray.set(from.set(x, 600, -y), DOWN);
+      const h = ray.intersectObjects(under, false);
+      if (h.length) top = h[0].point.y;
+    }
+    const g = meshHeight(hfNear, x, y);
+    if (g === null) return top ?? hfNear.height(x, y);
+    return top === null ? g : Math.max(top, g);
   };
   // the phone booths: a bank of them (booths within 1.5 m of each other, as by 학생회관 and the gate) stands on one footing
   // at the mean of the ground under their middles, their roofs in one line; set one by one on the ground under each,

@@ -109,11 +109,18 @@ const BANNER_STYLE = {
 };
 const FONT = '"Do Hyeon", "Jua", sans-serif';
 
+// the largest of size, size - 2, ... (not under min) whose text fits maxW. The width goes nearly as the size: one
+// measure guesses the step, a few more settle it (a step at a time it took ~0.3 s of the loading screen's banners)
 function fitFont(x, text, size, maxW, min = 18) {
-  size = Math.round(size);
-  x.font = `${size}px ${FONT}`;
-  while (x.measureText(text).width > maxW && size > min) { size -= 2; x.font = `${size}px ${FONT}`; }
-  return size;
+  const top = Math.round(size);
+  const wAt = (s) => { x.font = `${s}px ${FONT}`; return x.measureText(text).width; };
+  const w = wAt(top);
+  if (w <= maxW || top <= min) return top;
+  let s = Math.max(top - 2 * Math.ceil((top - top * maxW / w) / 2), top - 2 * Math.ceil((top - min) / 2));
+  while (s > min && wAt(s) > maxW) s -= 2;
+  while (s + 2 < top && wAt(s + 2) <= maxW) s += 2;
+  x.font = `${s}px ${FONT}`;
+  return s;
 }
 
 // the title as big as the cloth allows, its letters spread to fill the width (as the 1997 banners are lettered)
