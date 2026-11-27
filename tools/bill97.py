@@ -34,6 +34,8 @@ half.
 
 Nothing here draws from build_campus.py's `rng`; the list items moved off the new asphalt keep their places in the lists.
 """
+import math
+
 import numpy as np
 import shapely
 from shapely.geometry import LineString, Polygon
@@ -228,3 +230,191 @@ def corner_grade(Hn, X, Y, halls):
     dd = Hn - H0
     return on, dict(nodes=int(on.sum()), moved=(int((np.abs(dd) > 0.05).sum()), round(float(dd.min()), 2),
                                                 round(float(dd.max()), 2)))
+
+
+# The yard west of the drive at the corner, its wall and the flight up to the lawn (reference/고증/3.12 「남동 귀퉁이와 연희관
+# 서쪽 옆길의 계단」): on the 1997 scans the drive's asphalt ran west to the foot of the shelf (no west kerb from s 30 to
+# 43), a wall 2 m high along the shelf's edge, a flight 2 m wide up from the yard to a path onto the lawn, and the kerb
+# bending south-west at s 43 - 48 with a planted triangle north of it (the game had OSM's kerb up the drive's west side).
+# The grid cannot hold the yard flat to a 2 m wall: the nodes behind it (NODES_DOWN) go down to the yard's level and the
+# shelf, the path and the triangle are a deck over their cells (build_campus.py dwb_deck); the wall, the flight and its
+# cheeks are faces (med_west quads), the guards colliders.  Late: after everything that read the ground.
+WALL = LineString([(52.9, 382.7), (53.5, 388.9), (53.5, 391.6)])     # (the shelf's edge: its face, the yard east of it)
+STAIR = (53.5, 55.5, 391.6, 397.8)        # (x west, east, y foot, top: the risers' stripes on 27/16 · 27/17)
+STAIR_POLY = shapely.geometry.box(STAIR[0], STAIR[2], STAIR[1], STAIR[3])
+STAIR_N = 14                              # (risers: about 14, 0.2 m by 0.44 m)
+STAIR_TOP = 58.3                          # (해발: the stripes' top end)
+PATH = shapely.geometry.box(STAIR[0], STAIR[3], STAIR[1], 402.5)      # (the plain bright path on to the lawn)
+BEND = LineString([(STAIR[1], 397.1), (58.3, 397.1), (63.6, 400.1)])  # (the yard's north kerb: the planted triangle north of it)
+YARD = Polygon([(52.0, 375.0), *WALL.coords, (STAIR[1], STAIR[2]), *BEND.coords, (70.0, 400.1), (70.0, 375.0)])
+# (painted: asphalt between the wall and OSM's west kerb, not the 연희관 side's paving east of it; lawn north of BEND)
+YARD_PAINT = Polygon([(52.7, 382.3), *WALL.coords, (STAIR[1], STAIR[2]), *BEND.coords, (64.05, 400.0), (63.6, 396.5),
+                      (60.5, 396.0), (58.9, 392.0), (57.0, 386.0), (55.0, 381.0), (53.0, 381.6)]).difference(STAIR_POLY)
+TRI_LAWN = Polygon([(57.6, 397.1), *BEND.coords[1:], (63.95, 401.2), (57.6, 401.2)])
+PAVED = [PATH]                            # (the paving before the foot, 53.9 - 56.3 by 390.5 - 391.6, flush: left asphalt)
+NODES_DOWN = [(50.0, 390.0), (50.0, 395.0), (50.0, 400.0), (55.0, 395.0), (55.0, 400.0)]
+TRI_Z = 57.0                              # (해발: the triangle's node by the path, (55, 400): the scans' 56.4 - 58.1, its top
+#                                           by the path's east cheek, which holds the rest)
+WALL_T, WALL_UP, CHEEK_T, CHEEK_UP = 0.35, 0.15, 0.2, 0.15
+BLEND = 2.0                               # (m in from the deck's outer edge: from the ground to the deck's own surface)
+
+
+def _bil(H, x, y, step=5.0, half_=800.0):
+    fx, fy = (x + half_) / step, (y + half_) / step
+    i, j = int(math.floor(fx)), int(math.floor(fy))
+    a, b = fx - i, fy - j
+    return (H[j, i] * (1 - a) * (1 - b) + H[j, i + 1] * a * (1 - b) + H[j + 1, i] * (1 - a) * b + H[j + 1, i + 1] * a * b)
+
+
+def yard_grade(Hn, X, Y, halls, step=5.0, half_=800.0):
+    """NODES_DOWN to the yard's level (gyoyuk97's profile); the deck's cells (round them), its outline (the cells but the
+    yard, the flight and the halls) and its surface hfun(x, y) (work plane): the shelf and the lawn's bank as corner_grade
+    has them, the path's ramp, the triangle up from its kerb, the ground as it was elsewhere, eased to the ground within
+    BLEND of the deck's outer edge.  Returns (took, cells, poly, hfun, info)"""
+    T = datum.tilt(X, Y)
+    D = Hn - T                                                  # (해발: the ground as it was)
+    ij = lambda x, y: (int(round((y + half_) / step)), int(round((x + half_) / step)))
+    j, i = ij(55.0, 400.0)
+    D[j, i] = TRI_Z                                             # (the triangle by the path, not OSM's slope)
+    took = np.zeros(X.shape, bool)
+    h0 = Hn.copy()
+    for x, y in NODES_DOWN:
+        j, i = ij(x, y)
+        zd = gyoyuk97.drive_z(np.clip(np.array([DRIVE.project(shapely.Point(x, y))]), gyoyuk97.S0, gyoyuk97.S_PROF), 0.0)[0]
+        Hn[j, i] = min(Hn[j, i], zd + T[j, i])
+        took[j, i] = True
+    cells = {(j + a, i + b) for j, i in zip(*np.nonzero(took)) for a in (-1, 0) for b in (-1, 0)}
+    box = lambda j, i: shapely.geometry.box(-half_ + i * step, -half_ + j * step, -half_ + (i + 1) * step, -half_ + (j + 1) * step)
+    cu = unary_union([box(j, i) for j, i in cells])
+    hb = unary_union([h.buffer(k) for h, k in halls])
+    cheek_e = shapely.geometry.box(STAIR[1], STAIR[2], STAIR[1] + CHEEK_T, PATH.bounds[3])   # (the path's and the triangle's
+    #                                                                                          edges apart under the east cheek)
+    poly = cu.difference(YARD).difference(STAIR_POLY).difference(cheek_e).difference(hb)
+    poly = unary_union([g for g in getattr(poly, 'geoms', [poly]) if g.geom_type == 'Polygon' and g.area > 0.05])
+    edge = cu.exterior
+    head = Polygon(list(HEAD.coords) + [(56.0, 380.0), (44.0, 380.0)])
+    shapely.prepare(head)
+    shapely.prepare(YARD)
+    tri = Polygon([(STAIR[1], 397.1), *BEND.coords[1:], (64.0, 405.0), (STAIR[1], 405.0)])
+
+    def g0(x, y):                                               # (해발)
+        return float(_bil(D, x, y, step, half_))
+
+    def path_z(y):
+        zt = g0(54.5, 402.5)
+        return STAIR_TOP + (zt - STAIR_TOP) * float(np.clip((y - STAIR[3]) / (402.5 - STAIR[3]), 0.0, 1.0))
+
+    def yard_z(x, y):                                           # (해발: the yard's ground, now)
+        return float(_bil(Hn, x, y, step, half_) - datum.tilt(x, y))
+
+    def base(x, y):
+        z0 = g0(x, y)
+        p = shapely.Point(x, y)
+        if x <= STAIR[0] + 0.05:                                # (the shelf and the lawn's bank west of the wall and the flight)
+            out = HEAD.distance(p) if head.contains(p) else 0.0
+            zs = SHELF_Z if y >= 386.0 else SHELF_Z - (386.0 - y) * (SHELF_Z - 55.4) / 2.5
+            return max(z0, LAWN_Z - out / HEAD_FALL[0] * HEAD_FALL[1], zs)
+        if tri.contains(p):                                     # (the triangle: up from just under the kerb's top)
+            q = BEND.interpolate(BEND.project(p))
+            zk = yard_z(q.x, q.y) + 0.13
+            return zk + (max(z0, zk) - zk) * float(np.clip(BEND.distance(p) / 1.5, 0.0, 1.0))
+        return z0
+
+    def hfun(x, y):
+        p = shapely.Point(x, y)
+        z = base(x, y)
+        dp = PATH.distance(p)
+        if dp < 1.5 and x <= STAIR[1]:                          # (the path, and the ground west of it eased to it: its east cheek
+            #                                                     holds the triangle's side)
+            z = path_z(min(max(y, STAIR[3]), 402.5)) + (z - path_z(min(max(y, STAIR[3]), 402.5))) * dp / 1.5
+        w = float(np.clip(edge.distance(p) / BLEND, 0.0, 1.0))   # (on the outer edge's grid lines no node went down: g0 is the ground)
+        return float(g0(x, y) + (z - g0(x, y)) * w + datum.tilt(x, y))
+
+    d = Hn - h0
+    info = dict(down=[(float(X[m]), float(Y[m]), round(float(d[m]), 2)) for m in zip(*np.nonzero(took))],
+                cells=len(cells), deck_m2=round(poly.area, 1))
+    return took, cells, poly, hfun, info
+
+
+def yard_walls(top, foot, step=0.5):
+    """The shelf's wall (rubble, a cement coping), the flight (cement) and its two cheeks: [material, four points], the
+    guards (colliders over the wall's and the cheeks' tops where they drop over 0.6 m) and the flight's walk face.
+    top(x, y): the deck (the ground off it), foot(x, y): the ground; work plane"""
+    quads, guards, walk = [], [], []
+    R = lambda x, y, z: [round(float(x), 3), round(float(y), 3), round(float(z), 3)]
+
+    def both(mat, q):
+        quads.append([mat, q])
+        quads.append([mat, [list(c) for c in q[::-1]]])         # (own points: datum moves each once)
+
+    # the wall: its face on WALL, its back WALL_T into the shelf, a coping WALL_UP over the shelf
+    L = WALL.length
+    S = [WALL.interpolate(min(L, k * step)) for k in range(int(math.ceil(L / step)) + 1)]
+    for a, b in zip(S[:-1], S[1:]):
+        t = np.array([b.x - a.x, b.y - a.y]) / math.hypot(b.x - a.x, b.y - a.y)
+        n = np.array([-t[1], t[0]])                             # (left of the run going north: west, the shelf)
+        zt = [top(p.x + n[0] * 0.1, p.y + n[1] * 0.1) for p in (a, b)]
+        zb = [foot(p.x - n[0] * 0.15, p.y - n[1] * 0.15) - 0.05 for p in (a, b)]
+        if max(zt[0] - zb[0], zt[1] - zb[1]) < 0.17:
+            continue
+        F = [(a.x, a.y), (b.x, b.y)]
+        B = [(a.x + n[0] * WALL_T, a.y + n[1] * WALL_T), (b.x + n[0] * WALL_T, b.y + n[1] * WALL_T)]
+        w = [zt[0] + WALL_UP, zt[1] + WALL_UP]
+        quads.append(['stone_rubble', [R(*F[0], zb[0]), R(*F[1], zb[1]), R(*F[1], w[1]), R(*F[0], w[0])]])
+        quads.append(['stone_rubble', [R(*B[1], zt[1] - 0.05), R(*B[0], zt[0] - 0.05), R(*B[0], w[0]), R(*B[1], w[1])]])
+        quads.append(['concrete', [R(*F[0], w[0]), R(*F[1], w[1]), R(*B[1], w[1]), R(*B[0], w[0])]])
+        if min(zt[0] - zb[0], zt[1] - zb[1]) > 0.6:
+            guards.append([[round(c, 3) for c in q] for q in (F[0], F[1], B[1], B[0])])
+    # the flight: STAIR_N risers from the yard at its foot to the path at its top, due north
+    x0, x1, y0, y1 = STAIR
+    z_foot = min(foot(x, y0 - 0.3) for x in np.linspace(x0, x1, 5))
+    z_top = top(0.5 * (x0 + x1), y1 + 0.3)
+    tr = (y1 - y0) / STAIR_N
+    rise = (z_top - z_foot) / STAIR_N
+    for k in range(STAIR_N):
+        y = y0 + k * tr
+        za, zb = z_foot + k * rise - (0.3 if k == 0 else 0.0), z_foot + (k + 1) * rise
+        quads.append(['concrete', [R(x0, y, za), R(x1, y, za), R(x1, y, zb), R(x0, y, zb)]])
+        quads.append(['concrete', [R(x0, y, zb), R(x1, y, zb), R(x1, y + tr, zb), R(x0, y + tr, zb)]])
+    # (walked along the treads' nosings, then the top tread: under the nosings the risers' tops stood at the ankle rays)
+    walk.append([R(x0, y0 - tr, z_foot), R(x1, y0 - tr, z_foot), R(x1, y1 - tr, z_top), R(x0, y1 - tr, z_top)])
+    walk.append([R(x0, y1 - tr, z_top), R(x1, y1 - tr, z_top), R(x1, y1 + 0.05, z_top + 0.02), R(x0, y1 + 0.05, z_top + 0.02)])
+    # the cheeks: CHEEK_UP over the higher of the flight's nosing line and the ground beside it, from under the lower
+    yp = PATH.bounds[3]
+    line = lambda y: (z_foot + rise + (z_top - z_foot - rise) * (y - y0) / (y1 - y0 - tr) if y < y1 - tr else
+                      z_top if y <= y1 else top(0.5 * (x0 + x1), y))        # (on along the path: the east cheek)
+    for xc, s in ((x0, -1.0), (x1, 1.0)):                       # (s: the side away from the flight)
+        ye = y1 if s < 0 else yp
+        ys = [y0 - 0.15] + list(np.arange(y0, ye + 1e-6, step))  # (a little before the first riser: no corner in its face)
+        if ys[-1] < ye - 1e-6:
+            ys.append(ye)
+        xo = xc + s * CHEEK_T
+        side = lambda y: top(xc + s * (CHEEK_T + 0.15), y)     # (the deck beside it, or the yard's ground off it)
+        zc = [max(line(y), side(y)) + CHEEK_UP for y in ys]
+        zl = [min(z_foot, side(y)) - 0.3 for y in ys]
+        for k in range(len(ys) - 1):
+            ya, yb = ys[k], ys[k + 1]
+            inner = [R(xc, ya, zl[k]), R(xc, yb, zl[k + 1]), R(xc, yb, zc[k + 1]), R(xc, ya, zc[k])]
+            outer = [R(xo, ya, zl[k]), R(xo, yb, zl[k + 1]), R(xo, yb, zc[k + 1]), R(xo, ya, zc[k])]
+            quads.append(['concrete', inner if s < 0 else inner[::-1]])
+            quads.append(['concrete', outer[::-1] if s < 0 else outer])
+            cap = [R(min(xc, xo), ya, zc[k]), R(max(xc, xo), ya, zc[k]), R(max(xc, xo), yb, zc[k + 1]), R(min(xc, xo), yb, zc[k + 1])]
+            quads.append(['concrete', cap])
+            if max(zc[k] - CHEEK_UP - min(side(ya), line(ya)), zc[k + 1] - CHEEK_UP - min(side(yb), line(yb))) > 0.6:
+                guards.append([[round(min(xc, xo), 3), round(ya, 3)], [round(max(xc, xo), 3), round(ya, 3)],
+                               [round(max(xc, xo), 3), round(yb, 3)], [round(min(xc, xo), 3), round(yb, 3)]])
+        # (the cheek's ends: closed)
+        for ye, ze, zle in ((ys[0], zc[0], zl[0]), (ys[-1], zc[-1], zl[-1])):
+            both('concrete', [R(xc, ye, zle), R(xo, ye, zle), R(xo, ye, ze), R(xc, ye, ze)])
+    return quads, guards, walk, dict(risers=STAIR_N, rise=round(rise, 3), tread=round(tr, 3), foot=round(z_foot, 2), top=round(z_top, 2))
+
+
+def yard_clear(items, pad=0.8):
+    """List items standing on the flight or the path (with pad m) moved east off them, in their places in the list"""
+    zone = unary_union([STAIR_POLY, PATH]).buffer(pad)
+    n = 0
+    for it in items:
+        if zone.contains(shapely.Point(it[1], it[2])):
+            it[1] = round(STAIR[1] + pad + 1.2 + (it[1] - STAIR[0]) * 0.5, 2)
+            n += 1
+    return n

@@ -10384,6 +10384,7 @@ _ypaint([footprint(ways[kli97.KLI]).buffer(3.6, join_style=2).union(kli97.hall()
          .difference(kli97.LOT_POLY).difference(kli97.WALK_POLY)], _yg)
 _ypaint([kli97.WALK_POLY], _yp)
 _ypaint([bill97.OLD_STRIP], _yg)             # (빌링슬리관 동쪽 면 곁: OSM's asphalt west of the 1997 kerb, the planted strip; bill97)
+_ypaint([bill97.TRI_LAWN], _yg)              # (and the planted triangle north of the yard's bent kerb at the corner; bill97)
 _ypaint([DMG_OLD], _yg)                      # (연대동문길: OSM's asphalt west of the 1997 carriageway; dongmungil97)
 for p_ in paths_out:                         # (the walks along it: their paving again, over the lawn)
     if p_['kind'] in ('footway', 'path', 'pedestrian') and len(p_['pts']) > 1 and LineString(p_['pts']).intersects(DMG_OLD.buffer(1.5)):
@@ -11298,6 +11299,12 @@ _ypaint([BK_COURT], _gw)
 _ypaint([DW_WALL_WALK], _gw)               # (대우관 서쪽 벽 발치: the old line's asphalt along the wall)
 _ypaint([AUD_RAMP_WALK.difference(bline.buffer(ROAD_HALF)).difference(AUD_BANK_POLY)], _gp)   # (its walk: paving)
 _ypaint(jonghap97.PAVED, _gp)                  # (종합관 북쪽 마당: the paved yard and the terrace of the 1997 scans)
+# 빌링슬리관 잔디 남동 귀퉁이 (bill97 YARD_PAINT; reference/고증/3.12 「남동 귀퉁이와 연희관 서쪽 옆길의 계단」): the drive's
+# asphalt west to the shelf's wall, the paving before the flight and the path at its head, no asphalt north of the bent kerb
+_ypaint(bill97.PAVED, _gp)
+_ypaint([bill97.YARD_PAINT], _ga)
+ImageDraw.Draw(_ga).polygon([to_px(x_, y_) for x_, y_ in bill97.TRI_LAWN.exterior.coords], fill=0)
+SPLAT_OPS.append(('poly', '_ga', list(bill97.TRI_LAWN.exterior.coords), 0))
 _gd = ndimage.gaussian_filter(np.array(_gd, np.float32), 1.2)
 spl[..., 1] *= 1.0 - _gd / 255.0
 spl[..., 2] = np.where(_gd > 0, np.minimum(np.maximum(spl[..., 2], _gd), 255.0 - spl[..., 0] - spl[..., 1]), spl[..., 2])
@@ -11397,7 +11404,8 @@ PRUNE_KEEP = unary_union([p_.buffer(3.0) for p_ in _halls]
                          + [Point(e_['o'][0] + e_['v'][0] * e_['len'], e_['o'][1] + e_['v'][1] * e_['len']).buffer(3.0)
                             for e_ in _ents]
                          + [Point(*l_['pos']).buffer(6.0) for l_ in out['landmarks']]
-                         + [bline.buffer(ROAD_HALF + 6.0), TOWN['zone'].buffer(5.0)])
+                         + [bline.buffer(ROAD_HALF + 6.0), TOWN['zone'].buffer(5.0)]
+                         + [bill97.PATH.buffer(0.5)])        # (빌링슬리관 남동 귀퉁이: the path at the flight's head)
 shapely.prepare(PRUNE_KEEP)
 _res = SPLAT['res']
 _pav_ops = [k_ for k_, op_ in enumerate(SPLAT_OPS) if op_[0] == 'line' and op_[1] == 'pavers' and len(op_[2]) > 1]
@@ -11992,6 +12000,7 @@ def curb_runs(F3):
                            [audnorth97.isle_wall_line(_isn).buffer(0.5)] +   # (대강당 북쪽 끝 너머 섬: its wall is the edge)
                            [jk97.bed().buffer(0.6)] +                        # (장기원 기념관 남쪽 화단: its wall is the edge)
                            [jk97.bank_flight_poly()] +                       # (장기원 기념관 동쪽 길 -> 도서관 서쪽 길 돌계단: no kerb across it)
+                           [bill97.WALL.buffer(0.5), bill97.STAIR_POLY.buffer(0.3)] +   # (빌링슬리관 남동 귀퉁이: the wall and the flight are the edge)
                            [appen97.EDGE_LINE.buffer(0.35)] +                # (아펜젤러관 곁 동쪽 찻길: the band west of the asphalt flush)
                            [LineString(xy(q) for q in w_['geometry']).buffer(WID[w_['tags']['highway']] / 2 + 1.5)
                             for w_ in ways.values() if w_.get('tags', {}).get('highway') in ('primary', 'secondary')])
@@ -13246,6 +13255,39 @@ print('장기원 기념관 동쪽 발치: trees, shrubs off the lane', jk97.east
       'walks (cut, gone)', jk97.east_paths(out['paths']), 'decals', jk97.east_decals(out['decals']))
 print('장기원 기념관 동쪽 길 -> 도서관 서쪽 길 돌계단:', jk97._BF[0], 'off it (trees, shrubs, props)',
       [jk97.bank_clear(out[k_]) for k_ in ('trees', 'shrubs', 'props')])
+# 빌링슬리관 잔디 남동 귀퉁이 (tools/bill97.py yard_grade · yard_walls; reference/고증/3.12 「남동 귀퉁이와 연희관 서쪽 옆길의
+# 계단」): the 1997 scans' yard flat to the shelf's 2 m wall and the flight up to the lawn: the nodes behind the wall down to
+# the yard, the shelf, the path at the flight's head and the planted triangle a deck over their cells, the wall, the
+# flight and its cheeks faces.  After everything that read the ground, as 장기원 기념관's above
+_bc_down, _bc_cells, BC97_POLY, BC97_H, BC97_INFO = bill97.yard_grade(Hn, X, Y, [(bill97.HALL_E, 2.0)])
+_bc_d = dwb_deck(_bc_cells, BC97_POLY, BC97_H)
+_bc_n0 = len(out['med_west']['top']['v'])
+out['med_west']['top']['v'] += _bc_d['v']
+out['med_west']['top']['f'] += [[i_ + _bc_n0 for i_ in f_] for f_ in _bc_d['f']]
+shapely.prepare(BC97_POLY)
+_bc_top = lambda x_, y_: BC97_H(x_, y_) + 0.025 if shapely.contains_xy(BC97_POLY, x_, y_) else sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_)
+_bc_quads, _bc_guards, _bc_walk, _bc_fl = bill97.yard_walls(_bc_top, lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
+out['med_west']['quads'] += _bc_quads
+out['med_west']['walk'] += _bc_walk
+out['colliders'] += _bc_guards
+for g_ in getattr(BC97_POLY, 'geoms', [BC97_POLY]):
+    _pu, _pv = zip(*[medwest97.uv(x_, y_) for x_, y_ in g_.exterior.coords])
+    _pus = [round(float(u_), 3) for u_ in np.arange(min(_pu) - 0.5, max(_pu) + 2.5, 2.0)]
+    _pvs = [round(float(v_), 3) for v_ in np.arange(min(_pv) - 0.5, max(_pv) + 2.5, 2.0)]
+    out['med_west']['plates'].append(dict(name='bill_corner', poly=[[round(x_, 3), round(y_, 3)] for x_, y_ in list(g_.exterior.coords)[:-1]],
+                                          holes=[[[round(x_, 3), round(y_, 3)] for x_, y_ in list(r_.coords)[:-1]] for r_ in g_.interiors],
+                                          us=_pus, vs=_pvs, z=[[round(float(BC97_H(*medwest97.xy(u_, v_))) + 0.025, 3) for u_ in _pus] for v_ in _pvs]))
+# (the 제2인문관 site's fence posts on the deck: its surface, not the ground they were stood on before)
+_bc_posts = 0
+for k_ in ('posts', 'hoard'):
+    for p_ in out['jh_site'][k_]:
+        if shapely.contains_xy(BC97_POLY, p_[0], p_[1]):
+            p_[2] = round(BC97_H(p_[0], p_[1]) + 0.025, 3)
+            _bc_posts += 1
+print('빌링슬리관 잔디 남동 귀퉁이 마당 · 옹벽 · 계단:', BC97_INFO, 'deck %d triangles; the ground over it by at most %.3f m' % (
+    len(_bc_d['f']), max(sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_) - z_ for x_, y_, z_ in _bc_d['v'])),
+      'quads %d, guards %d' % (len(_bc_quads), len(_bc_guards)), _bc_fl, 'posts on the deck', _bc_posts,
+      'off the flight (trees, shrubs, props)', [bill97.yard_clear(out[k_]) for k_ in ('trees', 'shrubs', 'props')])
 # 중앙도서관 앞마당의 돋운 화단 (tools/libbeds97.py, reference/고증/3.2-3.3 3.2.1 「돋운 화단」): the 1996 - 1999 scans' beds
 # stand 0.3 - 0.8 m over the paving round them on steep grass banks, the strip before 용재 동상 a little higher with four
 # steps up from the plaza.  The grid stays as it is (at the paving's level); each bed a deck over it in the ground's own
