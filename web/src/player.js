@@ -299,6 +299,7 @@ export class Player {
     this._eye = new THREE.Vector3(); this._eq = new THREE.Quaternion(); this._eul = new THREE.Euler(0, 0, 0, 'YXZ');
     this.fpv = false;                 // first person chosen (setFpv)
     this.onView = null;               // (fpv) => {}: the view was changed (V, the button, the wheel, a pinch)
+    this.onEdge = null;               // () => {}: a step stopped at the edge of the walked world (every frame it is)
     // camera rig
     // up: the look up actually shown (follows -lift, smoothed like the camera's position)
     // fp: how far the camera is into the walker's eyes (0 = behind the walker, 1 = first person), fpT: seconds the way
@@ -585,7 +586,8 @@ export class Player {
     // the edge of the walked world (past the near, south and north terrains: beyond x -100 or y 1,300 in the north,
     // where only the far terrain is drawn): nothing walked under the step even from high up, so it is not taken
     // (the heightfield's clamped edge there stood up to 44 m off the ground drawn)
-    if (g === null && this.groundAt(nx, nz, 400) === null) { nx = this.pos.x; nz = this.pos.z; g = this.groundAt(nx, nz); }
+    // (onEdge: told, so that the stop has a word: the hill drawn on beyond it looked walkable)
+    if (g === null && this.groundAt(nx, nz, 400) === null) { nx = this.pos.x; nz = this.pos.z; g = this.groundAt(nx, nz); this.onEdge?.(); }
     g ??= this.hf.height(nx, -nz);
     if (ny <= g + 0.02 || (this.vy <= 0 && ny < g + 0.35)) { ny = g; this.vy = 0; }
     this.pos.set(nx, ny, nz);

@@ -613,11 +613,17 @@ async function main() {
   {
     const rnd = mulberry(41);
     const SLOTS = [[], [[0], [-0.45], [0.45]], [[-0.42, 0.42], [-0.55, 0.02], [-0.02, 0.55]], [[-0.6, 0, 0.6]]];
+    // no more than SIT_NEAR people sitting within SIT_R m of each other (a row of full benches looked staged: 상뜰
+    // before 상대신관 had eight on four benches side by side). The draws stay, so no other bench changes.
+    const SIT_NEAR = 2, SIT_R = 25, sat = [];
     for (const [kind, x, y, rot] of campus.props) {
       if (kind !== 'bench') continue;
       const r = rnd(), pick = rnd(), jit = rnd();
-      const n = MOBILE ? (r < 0.82 ? 0 : r < 0.94 ? 1 : 2) : r < 0.48 ? 0 : r < 0.72 ? 1 : r < 0.92 ? 2 : 3;
+      let n = MOBILE ? (r < 0.82 ? 0 : r < 0.94 ? 1 : 2) : r < 0.48 ? 0 : r < 0.72 ? 1 : r < 0.92 ? 2 : 3;
+      const near = sat.reduce((s, [sx, sy, k]) => s + (Math.hypot(sx - x, sy - y) < SIT_R ? k : 0), 0);
+      if (near) n = Math.max(0, Math.min(n, SIT_NEAR - near));      // (a bench alone keeps its three)
       if (!n) continue;
+      sat.push([x, y, n]);
       // the bench faces (cos rot, sin rot), its length runs along (-sin rot, cos rot); the seat's top is 0.43 m up
       const slots = SLOTS[n][Math.floor(pick * SLOTS[n].length)], h = groundAt(x, y) + 0.43;
       const fx = Math.cos(rot), fy = Math.sin(rot);
@@ -823,7 +829,25 @@ async function main() {
     }
     return best;
   };
-  const landAt = (x, y) => {
+  // the walked terrains' rectangles (near grid, 신촌 로터리's patch, 무악학사 · 북문's): beyond them only the far
+  // terrain is drawn and nothing is walked. A spot put down out there (the bird's eye view let one land past the north
+  // patch's corner on 안산) is pulled EDGE_IN m inside the nearest of them; under it the walker stood in the void at
+  // the near grid's clamped edge, 44 m under the hill drawn
+  const EDGE_IN = 3;
+  const walkedRects = [[-T.near.half, -T.near.half, T.near.half, T.near.half],
+    ...[T.south, T.north].filter(Boolean).map((p) => [p.x0, p.y0, p.x0 + (p.nx - 1) * p.step, p.y0 + (p.ny - 1) * p.step])];
+  const ontoWalked = (x, y) => {
+    if (walkedRects.some(([x0, y0, x1, y1]) => x > x0 && x < x1 && y > y0 && y < y1)) return [x, y];
+    let best = [x, y], bd = Infinity;
+    for (const [x0, y0, x1, y1] of walkedRects) {
+      const qx = Math.min(Math.max(x, x0 + EDGE_IN), x1 - EDGE_IN), qy = Math.min(Math.max(y, y0 + EDGE_IN), y1 - EDGE_IN);
+      const d = Math.hypot(qx - x, qy - y);
+      if (d < bd) { bd = d; best = [qx, qy]; }
+    }
+    return best;
+  };
+  const landAt = (x0, y0) => {
+    const [x, y] = ontoWalked(x0, y0);
     if (!beyondGate(x, y)) return [...walkOut(x, y), null];
     const q = nearestOpen(x, y);                       // (on 연세로 or the junction: the nearest walk open to the walker)
     if (q) return [...walkOut(q[0], q[1]), null];
@@ -1051,6 +1075,15 @@ async function main() {
   $('#opt-film').addEventListener('change', (e) => setFilm(e.target.checked));
   $('#opt-hq').addEventListener('change', (e) => { post.setHQ(e.target.checked); sun.shadow.mapSize.set(e.target.checked ? 4096 : 2048, e.target.checked ? 4096 : 2048); sun.shadow.map?.dispose(); sun.shadow.map = null; shadows.invalidate(); });
   // first person (src/player.js): V, the HUD button, the wheel or a pinch on past the closest view; remembered
+  // the edge of the walked world (past the near grid and the two patches): a word on why the hill goes no further
+  // (a note on 안산 at the north patch's corner: 「여기가 세상의 끝인가요!」), not more than once in 20 s
+  let edgeSaid = -Infinity;
+  player.onEdge = () => {
+    const t = performance.now();
+    if (t - edgeSaid < 20000) return;
+    edgeSaid = t;
+    ui.toast('여기가 걸을 수 있는 땅의 끝이에요 · 그 너머는 멀리 보이는 풍경이에요', 3500);
+  };
   player.onView = (first) => {
     safeSet('y97-view', first ? 'first' : 'third');
     $('#viewbtn span').textContent = first ? '3인칭' : '1인칭';
