@@ -188,6 +188,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 ### 사람
 
 - Quaternius 의 CC0 모듈러 캐릭터를 `blender/characters.py` 가 부품을 섞고 1997년 옷차림으로 칠해 17명을 만듭니다(sim-office 의 `tools/office-characters.py` 를 고쳐 씀). 키는 실제 크기(남 1.73 m, 여 1.61 m).
+  - 17명의 GLB 는 Draco 로 압축합니다(`characters.py` 가 내보낸 뒤 `tools/draco_glb.mjs --normal 12`: gzip 한 명 207 → 80 KB, 17명 3.4 → 1.4 MB). GLB 를 직접 해석하는 도구(`nose_profile.py` · `lower_face.py` · `metamoa_character.py`)는 `tools/glb_plain.py` 로 풀어서 읽습니다. 리그(`rig-*.glb`)는 그대로
 - 애니메이션은 남녀 리그 파일 둘(`rig-umc.glb` · `rig-women.glb`, 각 약 250 KB)에 들어 있습니다. 서기 · 걷기 · 뛰기 · 앉기는 모션 캡처를 리그에 옮긴 것입니다(`blender/mocap.py`, 자료는 `tools/fetch_mocap.py` 가 `assets_src/mocap/` 에 받음).
   - 여자의 ACCAD 테이크는 어깨를 2.6 cm 내려 두고 섬: `level` 로 쇄골의 평균 회전을 빼고 `posture` 로 목을 세움. Quaternius 의 서 있는 클립(팔짱 · 전화 · 남자의 이야기)은 한 발을 앞에 두고 16° 숙인 자세: `upright` · `stride` 로 세우고 발을 모음(고증 4.13)
   - 「둘러보라」는 연기의 테이크는 고개가 어깨 너머까지 돌아감(남 −123° ~ +105°): `CLIPS` 의 `look`(가슴에 대한 목 · 머리 회전을 줄임) · `calm`(그 회전을 눅임) · `turn`(골반이 도는 폭) · `sway` 로 ±30° 안팎까지 줄임(고증 4.13)
@@ -489,6 +490,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 | 정적 메시 합치기 | 0.35 s | `world.js` `mergeStatic` |
 
 - 사람 모델 17개(`people/p*.glb`)는 Draco 가 아니라 시작 전에 gzip 3.5 MB. Draco(`tools/draco_glb.mjs` 설정)로는 한 명 207 → 80 KB
+  - 같은 날 Draco 로 바꿈(법선 12비트): 시작 전에 받는 GLB 5.8 → 3.6 MB. `people.html` 의 전 · 후 화면 차이 평균 0.01 / 255, 코 측정(`nose_profile.py`)의 각 차이 0.6° 안
 
 - 게임 중 한 프레임의 CPU: 11.5 ~ 12.5 ms(폰 경로 약 11 ms). 해상도를 1/16로 줄여도 같아서 픽셀 한계가 아님
   - 메인 패스 렌더 10.2 ms. 장면을 비우면 2.1 ms(그 가운데 행렬 갱신 1.6 ms), 건물 · 랜드마크만 숨기면 3.4 ms 빠짐

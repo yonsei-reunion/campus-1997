@@ -12,8 +12,9 @@
 길이는 게임 안의 값(모델의 m)이다.
 """
 import sys, json, struct, math
+from glb_plain import read_bytes                # (the people are Draco-compressed: decoded first)
 def load(path):
-    d = open(path, 'rb').read()
+    d = read_bytes(path)
     n = struct.unpack('<I', d[12:16])[0]
     j = json.loads(d[20:20 + n]); b = d[20 + n + 8:]
     def acc(i):

@@ -23,6 +23,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from glb_plain import read_bytes
+
 ROOT = Path(__file__).resolve().parent.parent
 PEOPLE = ROOT / 'web/public/assets/models/people'
 GRID = 5                                  # (blender/faces.py GRID)
@@ -36,7 +39,7 @@ NCOMP = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4, 'MAT4': 16}
 
 
 def read_glb(path):
-    b = path.read_bytes()
+    b = read_bytes(path)                         # (the people are Draco-compressed: glb_plain decodes them first)
     jlen = struct.unpack_from('<I', b, 12)[0]
     g = json.loads(b[20:20 + jlen])
     off = 20 + jlen

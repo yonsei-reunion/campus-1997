@@ -4537,6 +4537,9 @@ def main():
         os.makedirs(OUT, exist_ok=True)
         import shutil
         shutil.copyfile(path, os.path.join(OUT, pid + '.glb'))
+        if pid in PEOPLE:       # Draco (tools/draco_glb.mjs, normals at 12 bits): a person's 207 KB -> 80 KB after gzip
+            import subprocess
+            subprocess.run(['node', os.path.join(ROOT, 'tools', 'draco_glb.mjs'), '--normal', '12', os.path.join(OUT, pid + '.glb')], check=True)
         print(f'{pid}: glb {os.path.getsize(path) // 1024} KB  ({src})' + ('' if not problems else '  PROBLEMS: ' + '; '.join(problems)))
         if problems:
             failed.append(pid)
