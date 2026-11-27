@@ -23,7 +23,7 @@ import { BirdsEye } from './birdseye.js';
 import { SunShadows } from './shadows.js';
 import { TouchControls } from './touch.js';
 import { setupNews } from './news.js';
-import { Memos } from './memos.js';
+import { Memos, siteBoards } from './memos.js';
 import { WalkLabels } from './labels.js';
 import { Bubbles } from './talk.js';
 import { FountainWater } from './water/fountain.js';
@@ -1500,6 +1500,7 @@ async function main() {
   const memoFree = () => started && !paused && !bird.active && !inGame() && !gameBusy() && !ui.memoryOpen && !ui.mapOpen;
   memos.attach({
     scene, camera, player, canvas, walls: player.walls, patch: globalPatch,
+    boards: siteBoards(campus.town?.sites),          // (챔프2 오락실's board for notes: a note there is pinned on it)
     placeAt: (x, y) => ui.placeName(x, y, onRoad(x, y)),
     toast: (t, ms) => ui.toast(t, ms),
     canPick: memoFree,

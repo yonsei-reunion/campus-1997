@@ -22,6 +22,28 @@ const STAKE = 1.3;                 // m: the paper's top edge over the ground on
 const REACH = 3;                   // m: how far ahead a wall takes the note
 const NEAR = 3.2;                  // m: the prompt to read it (main.js onGo sets the walker down 2.7 m off)
 const SEEN = 160, TEXTURED = 45;   // m: drawn within, its writing drawn within
+const BOARD_SIZE = 0.15;           // m: a note pinned on a notice board (the paper's side there)
+const BOARD_IN = 0.035;            // m: the board's frame-side margin kept clear of the notes
+const PINS = [0xd23030, 0x2f62c8, 0xf0c428, 0x2f9e52];
+
+// The notice boards a note may be pinned on: the board for notes by 챔프2 오락실's door (campus.json town.sites kind
+// champ97, drawn by blender/town.py _champ97: the cork on the north face, d.board = from - to west of the north-east
+// corner, bottom - top over the floor, the cork 0.07 m off the wall).  A board: its face's middle (x, y campus, z
+// 해발), width, height, yaw (the way it faces), name.  A note is on a board when it lies on the cork (onBoard): the
+// database keeps it as a wall's note (kind 'wall'), the game draws it small with a pin
+export function siteBoards(sites = []) {
+  const out = [];
+  for (const d of sites) {
+    if (d.kind !== 'champ97' || !d.board || !d.outline) continue;
+    const x1 = Math.max(...d.outline.map((p) => p[0])), y1 = Math.max(...d.outline.map((p) => p[1]));
+    const [b0, b1, z0, z1] = d.board;
+    out.push({ x: x1 - (b0 + b1) / 2, y: y1 + 0.07, z: d.base + (z0 + z1) / 2, w: b1 - b0, h: z1 - z0, yaw: 0, name: `${d.name} 게시판` });
+  }
+  return out;
+}
+// a board's frame: f the way it faces, t along it (to the right of one looking at it), campus
+const frameOf = (b) => ({ f: [Math.sin(b.yaw), Math.cos(b.yaw)], t: [-Math.cos(b.yaw), Math.sin(b.yaw)] });
+const hash = (s) => { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
 export const COLORS = { yellow: '#ffef7a', pink: '#ffbdd3', mint: '#bdf0d9', blue: '#bfdcff', orange: '#ffd08f' };
 const COLOR_NAMES = { yellow: '노랑', pink: '분홍', mint: '민트', blue: '하늘', orange: '주황' };
 const WIND = new THREE.Vector3(0.85, 0, 0.45).normalize();     // (three: blowing to the east and a little south)
@@ -118,8 +140,8 @@ export class Memos {
   // the scene's part: walls, the meshes a note sticks to (player.walls); placeAt(x, y): the place name; onGo(note):
   // walk to it; onOpen() / onClose(): a card of ours opened / closed (main.js stops / lets go of the walker); patch:
   // the scene's atmosphere for our materials; canPick(): a tap on a note may read it now
-  attach({ scene, camera, player, canvas, walls, placeAt, onGo, onOpen, onClose, patch = (m) => m, canPick = () => true, toast }) {
-    Object.assign(this, { scene, camera, player, walls, placeAt, onGo, onOpen, onClose, patch, canPick });
+  attach({ scene, camera, player, canvas, walls, placeAt, onGo, onOpen, onClose, patch = (m) => m, canPick = () => true, toast, boards = [] }) {
+    Object.assign(this, { scene, camera, player, walls, placeAt, onGo, onOpen, onClose, patch, canPick, boards });
     if (toast) this.toast = toast;
     this.group = new THREE.Group();
     this.group.name = 'memos';
@@ -127,6 +149,8 @@ export class Memos {
     this.geo = paperGeometry();
     this.stakeGeo = new THREE.CylinderGeometry(0.018, 0.022, STAKE + 0.08, 6).translate(0, -(STAKE + 0.08) / 2 + 0.06, -0.025);
     this.stakeMat = patch(new THREE.MeshStandardMaterial({ color: 0x8a6a46, roughness: 0.9 }));
+    this.pinGeo = new THREE.SphereGeometry(0.009, 8, 6).scale(1, 1, 0.8).translate(0, -0.014, 0.012);
+    this.pinMats = PINS.map((c) => patch(new THREE.MeshStandardMaterial({ color: c, roughness: 0.4 })));
     this.plain = {};                 // colour → the material of a far note (no writing)
     for (const [k, c] of Object.entries(COLORS)) this.plain[k] = patch(new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, side: THREE.DoubleSide }));
     this.ray = new THREE.Raycaster();
@@ -204,12 +228,22 @@ export class Memos {
     root.rotation.y = Math.PI - n.yaw;                // (the paper's front, local +z, the way it faces)
     root.add(hinge);
     if (n.kind === 'stake') root.add(new THREE.Mesh(this.stakeGeo, this.stakeMat));
+    // on a notice board: small, pinned at its top edge's middle, a little askew
+    const board = n.kind === 'wall' && this.onBoard(n);
+    let tilt = 0;
+    if (board) {
+      const k = hash(n.id || `${n.x},${n.z}`);
+      hinge.scale.setScalar(BOARD_SIZE / SIZE);
+      tilt = ((k % 17) / 16 - 0.5) * 0.3;
+      root.add(new THREE.Mesh(this.pinGeo, this.pinMats[(k >> 5) % PINS.length]));
+    }
     const paper = new THREE.Mesh(this.geo, this.plain[n.color]);
     paper.userData.memo = n.id;
     hinge.add(paper);
     root.userData.memo = n.id;
     this.group.add(root);
-    Object.assign(o, { root, hinge, paper, tex: null, ph: Math.random() * 100 });
+    Object.assign(o, { root, hinge, paper, tex: null, ph: Math.random() * 100, board: !!board, tilt });
+    hinge.rotation.z = tilt;
   }
   _texture(o, on) {
     if (on === !!o.tex) return;
@@ -264,8 +298,8 @@ export class Memos {
       if (!o.close) continue;
       const gust = 0.55 + 0.45 * Math.sin(t * 0.43 + o.ph * 1.7);
       const flap = (0.5 + 0.5 * Math.sin(t * 2.1 + o.ph)) * 0.7 + 0.3 * (0.5 + 0.5 * Math.sin(t * 5.3 + o.ph * 3.1));
-      o.hinge.rotation.x = -(o.n.kind === 'stake' ? 0.06 + 0.22 * gust * flap : 0.02 + 0.11 * gust * flap);
-      o.hinge.rotation.z = o.n.kind === 'stake' ? 0.05 * Math.sin(t * 1.3 + o.ph) * gust : 0;
+      o.hinge.rotation.x = -(o.n.kind === 'stake' ? 0.06 + 0.22 * gust * flap : o.board ? 0.01 + 0.05 * gust * flap : 0.02 + 0.11 * gust * flap);
+      o.hinge.rotation.z = o.n.kind === 'stake' ? 0.05 * Math.sin(t * 1.3 + o.ph) * gust : o.tilt;
     }
     for (let i = this.flying.length - 1; i >= 0; i--) {
       const f = this.flying[i], r = f.o.root;
@@ -315,6 +349,8 @@ export class Memos {
     f.y = 0;
     if (f.lengthSq() < 1e-6) f.set(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
     f.normalize();
+    const pinned = this._boardSpot(p.pos.x, -p.pos.z, p.pos.y, f.x, -f.z);
+    if (pinned) return pinned;
     const from = new THREE.Vector3(p.pos.x, p.pos.y + 1.35, p.pos.z), dir = new THREE.Vector3();
     this.ray.far = REACH;
     let best = null;
@@ -337,6 +373,46 @@ export class Memos {
     const sx = p.pos.x + f.x * 1.2, sz = p.pos.z + f.z * 1.2;
     const g = p.groundAt(sx, sz, p.pos.y + 1.5) ?? p.pos.y;
     return { x: sx, y: -sz, z: g + STAKE, yaw: Math.atan2(-f.x, f.z), kind: 'stake' };
+  }
+
+  // the board a note lies on (its paper on the cork), or null
+  onBoard(n) {
+    for (const b of this.boards || []) {
+      const { f, t } = frameOf(b), dx = n.x - b.x, dy = n.y - b.y;
+      if (Math.abs(n.yaw - b.yaw) > 0.2 || Math.abs(dx * f[0] + dy * f[1]) > 0.08) continue;
+      if (Math.abs(dx * t[0] + dy * t[1]) > b.w / 2 + 0.03) continue;
+      if (n.z > b.z + b.h / 2 + 0.05 || n.z < b.z - b.h / 2 + BOARD_SIZE - 0.05) continue;
+      return b;
+    }
+    return null;
+  }
+  // a board in front of the walker (x, y campus, feet h, looking along (fx, fy)): the note goes on it, at the free place
+  // nearest where the walker looks (one paper's width from the others; all taken: the nearest, over another), or null
+  _boardSpot(x, y, h, fx, fy) {
+    for (const b of this.boards || []) {
+      const { f, t } = frameOf(b), d = (x - b.x) * f[0] + (y - b.y) * f[1], c = -(fx * f[0] + fy * f[1]);
+      if (d < 0.2 || d > REACH + 0.5 || c < 0.5) continue;              // (in front of it, looking at it within 60°)
+      const s = d / c, a = (x + fx * s - b.x) * t[0] + (y + fy * s - b.y) * t[1];
+      if (Math.abs(a) > b.w / 2 + 0.8) continue;
+      // the places: a grid of tops over the cork, the walker's eye line first
+      const S = BOARD_SIZE, aw = b.w / 2 - BOARD_IN - S / 2, top = b.z + b.h / 2 - BOARD_IN, low = b.z - b.h / 2 + BOARD_IN + S;
+      const aim = [Math.max(-aw, Math.min(aw, a)), Math.max(low, Math.min(top, h + 1.5 + S / 2))];
+      const taken = [...this.notes.values()].filter((o) => o.n.id && o.board && this.onBoard(o.n) === b)
+        .map((o) => [(o.n.x - b.x) * t[0] + (o.n.y - b.y) * t[1], o.n.z]);
+      const nx = Math.max(1, Math.floor((2 * aw) / (S * 1.05)) + 1), nz = Math.max(1, Math.floor((top - low) / (S * 1.05)) + 1);
+      let best = null, bd = Infinity, any = null, ad = Infinity;
+      for (let i = 0; i < nx; i++) {
+        for (let j = 0; j < nz; j++) {
+          const q = [nx > 1 ? -aw + (2 * aw * i) / (nx - 1) : 0, nz > 1 ? low + ((top - low) * j) / (nz - 1) : top];
+          const dd = Math.hypot(q[0] - aim[0], q[1] - aim[1]);
+          if (dd < ad) { ad = dd; any = q; }
+          if (dd < bd && taken.every((r) => Math.hypot(r[0] - q[0], r[1] - q[1]) > S * 0.9)) { bd = dd; best = q; }
+        }
+      }
+      const [u, z] = best || any, j = (Math.random() - 0.5) * 0.02;
+      return { x: b.x + t[0] * (u + j) + f[0] * 0.012, y: b.y + t[1] * (u + j) + f[1] * 0.012, z: z + j, yaw: b.yaw, kind: 'wall', board: b.name };
+    }
+    return null;
   }
 
   // ---------------------------------------------------------------- cards
@@ -512,7 +588,7 @@ export class Memos {
     this._spot = s;
     this._spot.place = this.placeAt(s.x, s.y);
     const c = this.writeEl;
-    c.querySelector('.where').textContent = `${s.kind === 'wall' ? '앞의 벽에 붙여요' : '작은 말뚝에 꽂아요'} · ${this._spot.place}`;
+    c.querySelector('.where').textContent = `${s.board ? `${s.board}에 꽂아요` : s.kind === 'wall' ? '앞의 벽에 붙여요' : '작은 말뚝에 꽂아요'} · ${this._spot.place}`;
     const ta = c.querySelector('textarea');
     ta.value = '';
     c.querySelector('.memo-name').value = safeGet(NAME_KEY) || '';
