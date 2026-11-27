@@ -140,8 +140,29 @@ CHURCH_YARD = [
     [(-72.2, -520.5), (-72.2, -540.6), (-49.0, -540.6), (-49.0, -520.5)],
 ]
 
-# sign_yro97's cells of the house itself (not shop boards): the roof's letters, the coloured glass of the wide windows
+# 챔프2 오락실 (reference/고증/4.10.8 「챔프2 오락실」): not on 연세로 but one block in along 연세로11길, on the south-west
+# corner where 연세로9길's north - south leg meets it (the three anthology maps: 2019 문집 25쪽 an 오락실 with a joystick
+# on that corner house, 2021 문집 22쪽 「챔투 오락실」, 2022 문집 30 ~ 31쪽 「챔프 II 오락실」; the 2021 문집's text: 「챔프2라는
+# 오락실 출입구 옆에 붙어있던 메모지 부착 보드」 for leaving where friends would meet).  The scans of 1997-07-28 (26/16 · 27/17
+# · 27/18 in pairs, 0.75 m points): a three-storey roof 9.3 - 10.6 m over the lane (median 9.7) on the corner, x -155.0 .. -149.2,
+# y -571.9 .. -564.2; a low ledge 1.5 - 2.6 m high along its north face and round the north-east corner (out 1.7 m
+# on the north, 1.2 m on the east); west of it a roof 10.7 - 12.5 m high (median 12.0) to x -162.  The Kakao roadview of 2008-11-12 (2104013 · 2104010 ·
+# 2103941): the same corner house in red brick, three storeys, shops on the ground floor; west of it a dark brick house
+# of four.  Boxes: (x west, x east, y south, y north, storeys, metres a storey, wall (WALLS97), shop on the ground floor)
+CHAMP97 = dict(
+    house=(-155.0, -149.2, -571.9, -564.2, 3, 3.2, 0, 1),
+    west=(-162.0, -155.1, -572.0, -565.0, 4, 3.0, 1, 0),      # (its ground floor in 1997 not known: no shop front)
+    shops=[('챔프2 오락실', 1)],
+    # the ledge over the shop fronts: its top over the lane, how far out from the north and the east face, how far it
+    # runs down the east face from the corner (the scans read it there for 1.3 m; further south they do not settle it)
+    ledge=(2.3, 1.7, 1.2, 1.3),
+    # the board for notes by the door on the north face (along it from the north-east corner, m): door, board
+    door=(2.2, 3.8), board=(0.5, 1.7, 0.95, 1.85),         # board: from - to along the face, bottom - top over the lane
+)
+# sign_yro97's cells of the house itself (not shop boards): the roof's letters, the coloured glass of the wide windows;
+# 챔프2 오락실's board for notes: three cells one over the other (54, 58, 62: 512 x 384)
 DOK_CELLS = dict(roof=52, glass=53)
+MEMO_CELLS = (54, 58, 62)
 
 # sign_yro97.png's cells, 4 across: (name as painted, background, letters)
 SIGNS = [
@@ -169,7 +190,7 @@ SIGNS = [
     ('하이클라스', (30, 40, 100), (255, 240, 180)), ('국 민 은 행', (250, 250, 246), (90, 70, 50)),
     ('쌍쌍호프', (120, 30, 20), (255, 220, 120)), ('스페인하우스', (160, 30, 30), (255, 236, 170)),
     ('초 원 각', (190, 30, 30), (255, 226, 120)), ('독수리약국', (252, 252, 250), (30, 130, 70)),
-    ('독수리만화방', (250, 226, 90), (40, 40, 110)),
+    ('독수리만화방', (250, 226, 90), (40, 40, 110)), ('챔프2 오락실', (24, 24, 30), (255, 214, 40)),
 ]
 # the name in a shop's entry -> its cell
 CELL = {'연세식품': 0, '사진관': 1, '알서림': 2, '식품점': 3, '새마을금고': 4, '오락실': 5, '아마데우스': 6, '초원분식': 7,
@@ -178,7 +199,8 @@ CELL = {'연세식품': 0, '사진관': 1, '알서림': 2, '식품점': 3, '새�
         '연희식당': 22, '장미당구장': 23, '쟈뎅': 24, 'Y오락실': 25, '상아탑분식': 26, '상아탑다방': 27, '상아탑당구장': 28,
         '오늘의 책': 29, '기원': 30, '레코드': 31, '신촌반점': 32, '가든당구장': 33, '진미락': 34, '천지문': 35,
         '오비넬라': 36, '뚱보분식': 37, '빌보드': 38, '파블로': 39, '약국': 40, '연세만화랑': 41, '하이클라스': 42,
-        '국민은행': 43, '쌍쌍호프': 44, '스페인하우스': 45, '초원각': 46, '독수리약국': 47, '독수리만화방': 48}
+        '국민은행': 43, '쌍쌍호프': 44, '스페인하우스': 45, '초원각': 46, '독수리약국': 47, '독수리만화방': 48,
+        '챔프2 오락실': 49}
 COLS, CELLS = 4, 64          # the atlas: 4 x 16 cells of 512 x 128 (2048 x 2048); SIGNS from cell 0, DOK_CELLS apart
 
 # 연세로's wall signs, the boards standing out from the shops' walls up the floors (tools/sinchon_rotary.py

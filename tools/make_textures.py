@@ -895,6 +895,45 @@ def yro97_signs():
         col = ((40, 60, 190), (214, 44, 40))[i % 2]
         d.ellipse([px + 28, y0 + 44, px + 100, y0 + 86], fill=(240, 236, 226))
         d.ellipse([px + 35, y0 + 48, px + 93, y0 + 82], fill=col)
+    # 챔프2 오락실's board for notes by its door (yro97.MEMO_CELLS, three cells one over the other: 512 x 384 for a board
+    # 1.2 x 0.9 m; the 2021 anthology: 「메모지 부착 보드」 where friends left where they would meet).  Cork in its frame,
+    # slips of paper pinned over one another; their writing is strokes only (no words: what they said is not known)
+    import random as _r
+    rnd = _r.Random(19970501)
+    k = yro97.MEMO_CELLS[0]
+    x0, y0 = (k % yro97.COLS) * 512, (k // yro97.COLS) * 128
+    H = 128 * len(yro97.MEMO_CELLS)
+    X0, Y0, memo = x0, y0, Image.new('RGB', (512, H), (168, 128, 84))      # (drawn apart: nothing spills into the next cells)
+    d, x0, y0 = ImageDraw.Draw(memo), 0, 0
+    for _ in range(2600):                                   # (the cork's grain)
+        px, py = x0 + rnd.randrange(512), y0 + rnd.randrange(H)
+        g = rnd.randint(-26, 18)
+        d.point((px, py), fill=(168 + g, 128 + g, 84 + g))
+    paper = [(246, 244, 232), (250, 236, 120), (250, 200, 210), (196, 226, 246), (236, 246, 206), (255, 255, 255)]
+    for _ in range(34):
+        w, h = rnd.randint(70, 120), rnd.randint(56, 96)
+        cx, cy = x0 + rnd.randint(30, 482), y0 + rnd.randint(30, H - 30)
+        a = math.radians(rnd.uniform(-14, 14))
+        col = rnd.choice(paper)
+        corners = [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)]
+        P = lambda u, v: (cx + u * math.cos(a) - v * math.sin(a), cy + u * math.sin(a) + v * math.cos(a))
+        d.polygon([P(u + 3, v + 3) for u, v in corners], fill=(120, 88, 56))          # (its shadow on the cork)
+        d.polygon([P(u, v) for u, v in corners], fill=col)
+        ink = rnd.choice([(40, 40, 60), (30, 50, 140), (150, 30, 30)])
+        for ln in range(rnd.randint(2, 4)):                 # (handwriting as strokes)
+            v = -h / 2 + 14 + ln * 15
+            if v > h / 2 - 8:
+                break
+            u = -w / 2 + 8
+            while u < w / 2 - 12:
+                s = rnd.randint(5, 16)
+                d.line([P(u, v + rnd.uniform(-2, 2)), P(min(u + s, w / 2 - 8), v + rnd.uniform(-2, 2))], fill=ink, width=2)
+                u += s + rnd.randint(3, 7)
+        pc = P(0, -h / 2 + 7)
+        pin = rnd.choice([(210, 40, 40), (40, 90, 200), (240, 200, 40), (40, 160, 80)])
+        d.ellipse([pc[0] - 5, pc[1] - 5, pc[0] + 5, pc[1] + 5], fill=pin)
+    d.rectangle([0, 0, 511, H - 1], outline=(110, 80, 50), width=3)
+    img.paste(memo, (X0, Y0))
     img.save(os.path.join(OUT, 'sign_yro97.png'), optimize=True)
     print('sign_yro97')
 

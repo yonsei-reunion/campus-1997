@@ -1149,6 +1149,8 @@ def layout(geo, town, extras, ground, taken_z):
             b[6] = -b[6]
             n_moved += 1
     fronts, n_yro_gone, yro_shops = yro_rows(geo, blocks, ground)    # (연세로's rows house by house, at the end)
+    ch_boards, ch_site = champ97(blocks, ground)                      # (챔프2 오락실 on 연세로11길, after them)
+    yro_shops += ch_boards
     # ---- 연세로's mouth (2026-11-16): 금강제화 and 홍익문고 as landmarks on their rows' boxes, the tower going up on the
     # lot south of 홍익문고 (KUMKANG_1997, HONGIK_FLOORS, TOWER97); what stood inside their outlines goes, its draws kept
     kk_b, hk_b = fronts[-1][-1], fronts[1][-1]
@@ -1194,7 +1196,7 @@ def layout(geo, town, extras, ground, taken_z):
     dk_base = ground(*dk['main'][0])
     town['sites'] = [dict(kind='dok97', name='독수리다방', base=round(dk_base, 2), top=round(dk_base + dk['h'], 2),
                           foot=round(min(dk_z) - 0.3, 2), outline=R2(dk_o), tower=R2(dk['tower']),
-                          tower_h=dk['tower_h'], bay=list(dk['bay']), cells=dict(yro97.DOK_CELLS))]
+                          tower_h=dk['tower_h'], bay=list(dk['bay']), cells=dict(yro97.DOK_CELLS)), ch_site]
     print('연세로 어귀: 금강제화 · 홍익문고 · 공사장 as landmarks, %d boxes inside them gone' % n_mouth_gone)
     # ---- kerbs: the carriageways' edge (gate_town's 연세로 north of y -560 has its own), lane paint, crossings
     kerbs, paint, zebra = [], [], []
@@ -2458,6 +2460,58 @@ def yro_rows(geo, blocks, ground):
             z = min(base + 0.3 + 3.0 * f_ + 0.3, top - h / 2 - 0.05)
             boards.append([round(float(q[0]), 2), round(float(q[1]), 2), round(z, 2), round(fa, 4), round(w, 2), h, yro97.CELL[name]])
     return fronts, n_gone, boards
+
+
+def champ97(blocks, ground):
+    """챔프2 오락실's corner house on 연세로11길 and its west neighbour (tools/yro97.py CHAMP97; 고증 4.10.8), appended to
+    blocks with no draw of the streams before them.  gate_town's box standing over them goes (b[6] < 0, its draws kept)
+    and the part of it clear of them comes back at the end, trimmed along its long side.  Returns the shop's board
+    (as yro_rows' boards) and the site blender/town.py _champ97 draws the ledge, the door and the board for notes from"""
+    ch = yro97.CHAMP97
+    boxes = [ch['house'], ch['west']]
+    pgs = [Polygon([(x0, y0), (x1, y0), (x1, y1), (x0, y1)]) for x0, x1, y0, y1 in (b[:4] for b in boxes)]
+    both = unary_union(pgs)
+    rest, n_gone = [], 0
+    for b in blocks:
+        if b[6] <= 0 or not shapely.intersects(both, _box(b).buffer(-0.2)):
+            continue
+        b[6] = -b[6]
+        n_gone += 1
+        cx, cy, L, W, ang = b[:5]
+        u = np.array([math.cos(ang), math.sin(ang)])
+        # (the long side's span the champ boxes take: keep the larger end clear of them by 0.1 m)
+        us = [float(np.dot(p - (cx, cy), u)) for p in shapely.get_coordinates(both.intersection(_box(b)))]
+        lo, hi = max(-L / 2, min(us)), min(L / 2, max(us))
+        a0, a1 = (-L / 2, lo - 0.1) if lo + L / 2 > L / 2 - hi else (hi + 0.1, L / 2)
+        if a1 - a0 > 3.0:
+            m = (a0 + a1) / 2
+            rest.append([round(float(cx + u[0] * m), 2), round(float(cy + u[1] * m), 2), round(float(a1 - a0), 2)]
+                        + b[3:6] + [-b[6]] + b[7:])
+    out, named = [], []
+    for (x0, x1, y0, y1, lv, sh, wall, shop), shops in zip(boxes, (ch['shops'], [])):
+        # (the front on the north, along 연세로11길: L runs south, away from the lane, as yro_rows' rows from 연세로)
+        b = [round((x0 + x1) / 2, 2), round((y0 + y1) / 2, 2), round(y1 - y0, 2), round(x1 - x0, 2),
+             round(-math.pi / 2, 4), 0.0, int(lv), YRO_WALL + int(wall), 3, 0, int(shop), 0, sh, 1]      # (1: a bare roof, no stair head)
+        b[5] = round(min(ground(x_, y_) for x_, y_ in list(_box(b).exterior.coords)[:4]) - 0.3, 2)
+        out.append(b)
+        named.append((b, shops))
+    blocks += rest + out
+    hb = out[0]
+    floor = hb[5] + 0.3
+    boards = []
+    for b, shops in named:
+        cx, cy, L, W, ang, base, lv = b[:7]
+        for name, f_ in shops:
+            w = min(W - 0.8, 5.0)
+            h = round(min(1.25, w / 4), 2)
+            boards.append([round(cx, 2), round(cy + L / 2 + 0.14, 2), round(base + 0.3 + 3.3, 2), round(math.pi / 2, 4),
+                           round(w, 2), h, yro97.CELL[name]])
+    x0, x1, y0, y1 = ch['house'][:4]
+    site = dict(kind='champ97', name='챔프2 오락실', base=round(floor, 2), top=round(floor + hb[6] * hb[12], 2),
+                foot=hb[5], outline=[[x0, y0], [x1, y0], [x1, y1], [x0, y1]], ledge=list(ch['ledge']),
+                door=list(ch['door']), board=list(ch['board']), cells=list(yro97.MEMO_CELLS))
+    print('챔프2 오락실: %d box(es) gone, %d trimmed back' % (n_gone, len(rest)))
+    return boards, site
 
 
 def yro_wall_signs(blocks):

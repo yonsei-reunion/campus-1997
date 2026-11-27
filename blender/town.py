@@ -69,6 +69,9 @@ def house(mb, b, rnd):
     # (a 13th field: metres a storey, for 신촌 로터리's landmarks whose tops the 1997 photos give: the same storeys and
     # draws, taller: tools/sinchon_rotary.py LM_TOP)
     sh = b[12] if len(b) > 12 else STOREY
+    # (a 14th field: 1 = no stair head on the roof, where the 1997 scans read a bare one: 챔프2 오락실 and its neighbour,
+    # tools/sinchon_rotary.py champ97; the draw is still taken)
+    bare = len(b) > 13 and b[13]
     c, s = math.cos(ang), math.sin(ang)
     P = lambda u, v: (cx + u * c - v * s, cy + u * s + v * c)
     q = [P(-L / 2, -W / 2), P(L / 2, -W / 2), P(L / 2, W / 2), P(-L / 2, W / 2)]        # counter-clockwise
@@ -136,7 +139,7 @@ def house(mb, b, rnd):
                 flat(mb, [(t[i][0], t[i][1], top), (t[(i + 1) % 4][0], t[(i + 1) % 4][1], top), (tc[0], tc[1], tip)], B_ROOF, 1, 4)
         return
     flat(mb, [(p[0], p[1], zt) for p in q], B_ROOF, roof, 4)
-    if lv >= 3 and rnd.random() < 0.55:            # the stair head
+    if lv >= 3 and rnd.random() < 0.55 and not bare:   # the stair head
         hx, hy = rnd.uniform(-L / 4, L / 4), rnd.uniform(-W / 5, W / 5)
         h = [P(hx - 1.6, hy - 1.4), P(hx + 1.6, hy - 1.4), P(hx + 1.6, hy + 1.4), P(hx - 1.6, hy + 1.4)]
         for i in range(4):
@@ -799,6 +802,37 @@ def _bar(mb, p, q, w, mat):
         mb.face([tuple(p + e0), tuple(p + e1), tuple(q + e1), tuple(q + e0)], mat)
 
 
+def _champ97(mb, d):
+    """챔프2 오락실 on 연세로11길 (tools/yro97.py CHAMP97): the house itself is a block (houses(), its board shops()); here
+    the low ledge along its north face and round the corner over the shop fronts (the 1997 scans: 2.3 m over the lane), the
+    door on the north face and beside it the board the 2021 anthology remembers by the door, notes pinned on it"""
+    xs, ys = [p[0] for p in d['outline']], [p[1] for p in d['outline']]
+    x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+    fl = d['base']
+    zt, on, oe, le = d['ledge']
+    zt += fl
+    th = 0.16
+    mats = {'top': 'roof_flat'}
+    mb.box(((x0 + x1 + oe) / 2, y1 + on / 2, zt - th / 2), (x1 + oe - x0, on, th), 'concrete', mats=mats)
+    mb.box((x1 + oe / 2, y1 - le / 2, zt - th / 2), (oe, le, th), 'concrete', mats=mats)
+    yf = y1 + 0.03                                          # (just off the north face)
+
+    def north(a, b, z0, z1, mat, out=0.0, **kw):          # (a .. b: metres west of the north-east corner)
+        y = yf + out
+        mb.face([(x1 - a, y, z0), (x1 - b, y, z0), (x1 - b, y, z1), (x1 - a, y, z1)], mat, **kw)
+    d0, d1 = d['door']
+    north(d0 - 0.08, d1 + 0.08, fl, fl + 2.28, 'door_frame')
+    north(d0, d1, fl, fl + 2.2, 'glass_door', out=0.01)
+    # the board: cork in a dark wooden frame, the notes on it (sign_yro97's cells d['cells'], one over the other)
+    b0, b1, z0, z1 = d['board']
+    c = d['cells']
+    u0 = (c[0] % 4) / 4
+    v1 = 1 - (c[0] // 4) / 16
+    v0 = v1 - len(c) / 16
+    north(b0 - 0.05, b1 + 0.05, fl + z0 - 0.05, fl + z1 + 0.05, 'wood_dark', out=0.02)
+    north(b0, b1, fl + z0, fl + z1, 'sign_yro97', out=0.04, uvs=[(u0, v0), (u0 + 0.25, v0), (u0 + 0.25, v1), (u0, v1)])
+
+
 def landmarks():
     mb = MeshBuilder('town_landmarks')
     for d in T.get('landmarks', []):
@@ -809,7 +843,7 @@ def landmarks():
             for i in range(len(o)):
                 _quad(mb, o[i], o[(i + 1) % len(o)], d['foot'], d['base'], 'trim_black' if d['kind'] == 'kexim' else 'tile_white')
     for d in T.get('sites', []):               # (연세로's houses with a shape of their own: tools/yro97.py DOK97)
-        dict(dok97=_dok97)[d['kind']](mb, d)
+        dict(dok97=_dok97, champ97=_champ97)[d['kind']](mb, d)
     return mb
 
 
