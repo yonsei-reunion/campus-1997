@@ -932,7 +932,8 @@ const PEOPLE_DIR = 'assets/models/people/', RIGS = ['rig-umc', 'rig-women'];
 export const castFiles = (ids) => [...RIGS, ...ids].map((n) => PEOPLE_DIR + n + '.glb');
 
 export class Cast {
-  constructor() { this.models = {}; this.rigs = {}; this.near = NEAR; this.nearFaces = nearFaces; }      // (the last two: for looking from a console)
+  // lateBags: make() leaves a bag's fitting for wearBag (main.js: the crowd far from the gate, after the loading screen)
+  constructor() { this.models = {}; this.rigs = {}; this.near = NEAR; this.nearFaces = nearFaces; this.lateBags = false; }      // (near, nearFaces: for looking from a console)
 
   async load(ids, onEach) {
     const base = PEOPLE_DIR;
@@ -968,20 +969,13 @@ export class Cast {
     const src = this.models[id];
     const holder = new THREE.Group();
     const root = skeletonClone(src.scene);
-    if (bag) {
-      // (a bag is fitted to the body as it stands, the arms down: the idle's first frame, bags.js fitOf)
-      const stand = () => {
-        const m = new THREE.AnimationMixer(root), clip = this.rigs[src.rig].clips.find((c) => c.name === 'idle');
-        if (clip) { m.clipAction(clip).play(); m.setTime(0); }
-        root.updateMatrixWorld(true);
-        return () => { m.stopAllAction(); m.uncacheRoot(root); root.updateMatrixWorld(true); };
-      };
-      root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = baggedGeometry(o, id, bag, stand); });
-    }
-    const meshes = [];
+    const late = !!bag && this.lateBags;
+    if (bag && !late) root.traverse((o) => { if (o.isSkinnedMesh) o.geometry = baggedGeometry(o, id, bag, this.stander(root, src)); });
+    const meshes = [], bare = late ? new Map() : null;
     root.traverse((o) => { if (o.isSkinnedMesh) meshes.push(o); });
     for (const o of meshes) {
       const full = o.geometry;
+      bare?.set(o, full);          // (the model's own geometry: wearBag fits the bag to it)
       o.geometry = dressed(full, src.ranges, look?.colors, look ? look.glasses : src.glasses, look?.blink, look ? look.print !== false : true);
       o.userData.person = id;
       o.onBeforeRender = faceLod;
@@ -998,13 +992,42 @@ export class Cast {
     for (const c of rig.clips) actions[c.name] = mixer.clipAction(c);
     // (longer legs: longer strides at the same cadence)
     const a = { id, bag, holder, root, mixer, actions, current: null, walkSpeed: rig.walkSpeed * tall, runSpeed: rig.runSpeed * tall, after: null, tall,
-      stand: 'idle', gait: null, walks: {} };
+      stand: 'idle', gait: null, walks: {}, bagLate: late ? { look, bare } : null };
     // the walks, slowest first: clip -> its speed over the ground at this person's size
     for (const n of WALKS) if (actions[n] && rig.speeds[n]) a.walks[n] = rig.speeds[n] * tall;
     if (!Object.keys(a.walks).length) a.walks.walk = a.walkSpeed;
     mixer.addEventListener('finished', () => { const next = a.after || a.stand; a.after = null; play(a, next, { fade: 0.3 }); });
     play(a, 'idle', { fade: 0 });
     return a;
+  }
+
+  // (a bag is fitted to the body as it stands, the arms down: the idle's first frame, bags.js fitOf) puts the bones
+  // of `root` so, and gives back what undoes it
+  stander(root, src) {
+    return () => {
+      const m = new THREE.AnimationMixer(root), clip = this.rigs[src.rig].clips.find((c) => c.name === 'idle');
+      if (clip) { m.clipAction(clip).play(); m.setTime(0); }
+      root.updateMatrixWorld(true);
+      return () => { m.stopAllAction(); m.uncacheRoot(root); root.updateMatrixWorld(true); };
+    };
+  }
+
+  // the bag make() left for later (lateBags) put on: the very geometry make() gives with it, the far twin's too
+  wearBag(a) {
+    const late = a.bagLate;
+    if (!late) return;
+    a.bagLate = null;
+    const src = this.models[a.id], root = a.root, look = late.look, up = root.parent;
+    root.parent = null;            // (fitted in the model's own frame, as make() does before the holder takes it)
+    for (const [o, bare] of late.bare) {
+      o.geometry = bare;
+      const full = baggedGeometry(o, a.id, a.bag, this.stander(root, src));
+      o.geometry = dressed(full, src.ranges, look?.colors, look ? look.glasses : src.glasses, look?.blink, look ? look.print !== false : true);
+      const far = o.parent?.isLOD ? o.parent.levels[1]?.object : null;
+      if (far && src.far && full.index) far.geometry = farTwin(o.geometry, full, src.far);
+    }
+    root.parent = up;
+    root.updateMatrixWorld(true);
   }
 }
 

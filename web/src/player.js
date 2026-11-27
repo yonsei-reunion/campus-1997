@@ -12,13 +12,55 @@
 // and the view together, and the body comes round to where you look as you set off. The walker's own body is not
 // drawn (its shadow still is); the head bobs a little with the steps of the walk clip.
 import * as THREE from 'three';
-import { computeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+import { computeBoundsTree, acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { locomotion } from './characters.js';
 import { clamp, closestOnSegment, wrapAngle } from './util.js';
 import { tallOf } from './who.js';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
-THREE.Mesh.prototype.raycast = acceleratedRaycast;
+// A wall's BVH is built when it is first needed (lazyBVH): a ray through its bounding sphere, a push-out's box reaching
+// it (wallsAround). The near cells' halls took ~0.13 s of the loading screen built all at once
+const _sph = new THREE.Sphere();
+THREE.Mesh.prototype.raycast = function (raycaster, hits) {
+  const g = this.geometry;
+  if (!g.boundsTree && g.userData.lazyBVH) {
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    if (!raycaster.ray.intersectsSphere(_sph.copy(g.boundingSphere).applyMatrix4(this.matrixWorld))) return;
+    g.computeBoundsTree();
+  }
+  acceleratedRaycast.call(this, raycaster, hits);
+};
+export const lazyBVH = (o) => { if (!o.geometry.boundsTree) o.geometry.userData.lazyBVH = true; };
+// The BVHs of big meshes (the ground's: ~0.1 s) built in a worker (bvh.worker.js) on copies of their arrays; a ray
+// that comes first builds the mesh's own here (lazyBVH), and the worker's is then let go. The same tree either way:
+// the index is put in the build's order, as computeBoundsTree does. Resolves when all are in
+export function bvhInWorker(meshes) {
+  let w;
+  try { w = new Worker(new URL('./bvh.worker.js', import.meta.url), { type: 'module' }); } catch { w = null; }
+  const todo = meshes.filter((m) => m && !m.geometry.boundsTree);
+  for (const m of todo) m.geometry.userData.lazyBVH = true;
+  if (!w) return Promise.resolve();
+  // (a worker that fails to start or dies lets them all go: the first ray builds each here then)
+  let fail;
+  const failed = new Promise((r) => { fail = r; });
+  w.addEventListener('error', () => fail());
+  w.addEventListener('messageerror', () => fail());
+  return Promise.race([failed, Promise.all(todo.map((m, id) => new Promise((done) => {
+    const g = m.geometry;
+    const take = (e) => {
+      if (e.data.id !== id) return;
+      w.removeEventListener('message', take);
+      if (!e.data.error && !g.boundsTree) {
+        g.boundsTree = MeshBVH.deserialize(e.data, g);         // (the index set in the build's order)
+        if (!g.boundingBox) g.boundingBox = g.boundsTree.getBoundingBox(new THREE.Box3());
+      }
+      done();
+    };
+    w.addEventListener('message', take);
+    w.postMessage({ id, pos: g.attributes.position.array.slice(), idx: g.index.array.slice() });
+  })))]).finally(() => w.terminate());
+}
+const bvhOf = (g) => { if (!g.boundsTree) g.computeBoundsTree(); return g.boundsTree; };
 
 const RADIUS = 0.32, STEP = 0.55;
 // wall rays, above the feet: the low ones catch kerbs, plinths, planter and flower-bed edges down to ankle height
@@ -438,7 +480,7 @@ export class Player {
       if (!c.box.intersectsSphere(this._wsph[i])) continue;
       const m = this.walls[i];
       lb.copy(c.box).applyMatrix4(c.inv.copy(m.matrixWorld).invert());     // (the box of its corners in the mesh's frame)
-      if (m.geometry.boundsTree ? m.geometry.boundsTree.shapecast(hit) : true) c.list.push(i);
+      if (bvhOf(m.geometry).shapecast(hit)) c.list.push(i);
     }
     return c;
   }

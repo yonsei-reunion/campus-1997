@@ -9,7 +9,7 @@ import { tallOf } from './who.js';
 import { oneMesh, painted, carMaterial } from './carmesh.js';
 
 // ---------------------------------------------------------------- polyline helpers (campus frame)
-const _a = new THREE.Vector2(), _b = new THREE.Vector2();
+const _a = new THREE.Vector2(), _b = new THREE.Vector2(), _tp = new THREE.Vector2(), _td = new THREE.Vector2();
 
 export class Path {
   constructor(pts, heightFn) {
@@ -67,20 +67,24 @@ export class Path {
     return this;
   }
   vmax(s) { return this.lim ? this.lim[Math.max(0, Math.min(this.lim.length - 1, Math.round(s)))] : Infinity; }
-  // The ground under a car's two wheel tracks (half m either side of the line), by the metre: [left, right]
+  // The ground under a car's two wheel tracks (half m either side of the line), by the metre: [left, right]. Each
+  // metre is asked of the ground when a car first comes to it (the lanes' some 30,000 were ~0.3 s of the loading)
   setTracks(half = 0.72) {
-    const n = Math.ceil(this.length) + 2, l = new Float32Array(n), r = new Float32Array(n);
-    const p = new THREE.Vector2(), d = new THREE.Vector2();
-    for (let i = 0; i < n; i++) {
-      this.at(i, p); this.dir(i, d);
-      l[i] = this.heightFn(p.x - d.y * half, p.y + d.x * half);
-      r[i] = this.heightFn(p.x + d.y * half, p.y - d.x * half);
-    }
-    this.tracks = [l, r];
+    const n = Math.ceil(this.length) + 2;
+    this.tracks = [new Float32Array(n).fill(NaN), new Float32Array(n).fill(NaN)];
+    this.half = half;
     return this;
+  }
+  _track(i) {
+    const p = _tp, d = _td, half = this.half;
+    this.at(i, p); this.dir(i, d);
+    this.tracks[0][i] = this.heightFn(p.x - d.y * half, p.y + d.x * half);
+    this.tracks[1][i] = this.heightFn(p.x + d.y * half, p.y - d.x * half);
   }
   track(side, s) {
     const t = this.tracks[side], f = Math.max(0, Math.min(t.length - 1.001, s)), i = f | 0;
+    if (t[i] !== t[i]) this._track(i);
+    if (t[i + 1] !== t[i + 1]) this._track(i + 1);
     return t[i] + (t[i + 1] - t[i]) * (f - i);
   }
   // a parallel line `off` m to the left; off may also be a function of the arc length (a lane bending round an island)

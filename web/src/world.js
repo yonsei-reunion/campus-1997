@@ -121,14 +121,37 @@ function splitByChunk(g, chunk) {
 // of its middle; split: a mesh wider than two chunks is cut by triangle first (the town's kerbs and road paint are one
 // mesh each from the rotary to the campus: unsplit, they were drawn wherever one stood on the campus)
 // lib: the material library, to draw the plain colours with one material (MaterialLibrary.solid)
+// A mesh at the origin (nearly all of the cells'): its geometry as clone() + applyMatrix4(identity) leaves it, the
+// normals made unit as that does, without copying the rest (the copies and the matrix were ~0.25 s of the loading)
+const IDENTITY = new THREE.Matrix4();
+function placedGeometry(o) {
+  const src = o.geometry, n = src.attributes.normal;
+  if (!o.matrixWorld.equals(IDENTITY) || (n && (n.isInterleavedBufferAttribute || !(n.array instanceof Float32Array) || n.itemSize !== 3))) {
+    const g = src.clone();
+    g.applyMatrix4(o.matrixWorld);
+    return g;
+  }
+  const g = new THREE.BufferGeometry();
+  for (const k in src.attributes) g.setAttribute(k, src.attributes[k]);
+  g.setIndex(src.index);
+  if (n) {
+    const a = n.array, u = new Float32Array(a.length);
+    for (let i = 0; i < a.length; i += 3) {
+      const x = a[i], y = a[i + 1], z = a[i + 2], k = 1 / (Math.sqrt(x * x + y * y + z * z) || 1);
+      u[i] = x * k; u[i + 1] = y * k; u[i + 2] = z * k;
+    }
+    g.setAttribute('normal', new THREE.BufferAttribute(u, 3, n.normalized));
+  }
+  return g;
+}
+
 export function mergeStatic(root, { chunk = 160, castShadow = true, receiveShadow = true, name = 'static', split = false, lib = null } = {}) {
   root.updateMatrixWorld(true);
   const buckets = new Map();
   const box = new THREE.Box3(), c = new THREE.Vector3();
   root.traverse((o) => {
     if (!o.isMesh) return;
-    const g = o.geometry.clone();
-    g.applyMatrix4(o.matrixWorld);
+    const g = placedGeometry(o);
     for (const k of Object.keys(g.attributes)) {
       if (!['position', 'normal', 'uv', 'color', 'bake', 'edge'].includes(k)) g.deleteAttribute(k);
     }

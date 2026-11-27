@@ -13,7 +13,7 @@ import { chunkIndex, nearUrls, CampusChunks } from './chunks.js';
 import { Grass } from './grass.js';
 import { shrubFar2, far2Ready } from './hedges.js';
 import { Fall } from './fall.js';
-import { Player, Colliders, pointInPoly } from './player.js';
+import { Player, Colliders, pointInPoly, lazyBVH, bvhInWorker } from './player.js';
 import { UI } from './ui.js';
 import { Post } from './post.js';
 import { Path, makeBanners, Crowd, Traffic, BoothGates, CAR_COLORS } from './life.js';
@@ -272,6 +272,7 @@ async function main() {
   if (terrainSouth) scene.add(terrainSouth);
   const terrainNorth = northPatch ? makeSouthTerrain(hfNear, terrain.material, northPatch) : null;   // (무악학사 · 북문)
   if (terrainNorth) scene.add(terrainNorth);
+  const groundBVH = bvhInWorker([terrain, terrainSouth, terrainNorth]);     // (the walker's ground rays: in by the Player)
   const grass = new Grass(renderer, scene, lib, hfNear, campus, sun);     // blades on the lawn round the camera
   const fall = new Fall(renderer, scene, lib, hfNear, campus, sunMap);   // petals / leaves coming down round it
   const patches = [hfNear.ext && T.south, northPatch && T.north].filter(Boolean);
@@ -322,7 +323,7 @@ async function main() {
   for (const m of [...roadMeshes, ...amph, ...stairWalk, ...townBanks]) walkables.push(m);
   if (terrainSouth) walkables.push(terrainSouth);
   if (terrainNorth) walkables.push(terrainNorth);
-  for (const m of walkables) m.geometry.computeBoundsTree();
+  for (const m of walkables) if (!m.geometry.userData.lazyBVH) m.geometry.computeBoundsTree();
 
   const amphGroup = new THREE.Group();
   for (const m of amph) amphGroup.add(m);
@@ -635,6 +636,7 @@ async function main() {
       lines.push(i === Math.floor((booths.length - 1) / 2) && !MOBILE ? [on, at(1.2, 0.1), at(2.05, -0.12)] : [on]);
     });
   }
+  cast.lateBags = true;             // (the bags fitted further down: the near ones there, the rest after the loading)
   const crowd = new Crowd(scene, cast, [...STUDENTS, ...STUDENTS, 'p07', 'p08', 'p14'], paths, groups, MOBILE ? 40 : 110, 3, { seats, lines });
   for (const p of crowd.people) shadows.addDynamic(p.a.holder);
   // small talk over their heads; what they say follows the month (crowd.season)
@@ -662,6 +664,26 @@ async function main() {
     const y0 = Math.min(...pts.map((q) => q[1])) - reach, y1 = Math.max(...pts.map((q) => q[1])) + reach;
     townCrowdNear = (f) => f.x > x0 && f.x < x1 && -f.z > y0 && -f.z < y1;
   }
+  // The crowd's bags (bags.js, fitted to each body) were ~0.7 s of the loading screen: those within BAG_NEAR of the
+  // gate, where the walk and the title's drift begin, are fitted here; the rest after the loading, the nearest first,
+  // a few ms of each frame (wearBags, in frame). The same geometry either way (characters.js wearBag)
+  cast.lateBags = false;
+  const lateBags = [];
+  {
+    const BAG_NEAR = 120, [sx, sy] = campus.spawn.pos, q = new THREE.Vector2();
+    for (const c of [crowd, townCrowd]) {
+      for (const p of c?.people ?? []) {
+        if (!p.a.bagLate) continue;
+        const at = p.path ? p.path.at(p.s, q) : q.set(p.x, p.y), d = Math.hypot(at.x - sx, at.y - sy);
+        if (d < BAG_NEAR) cast.wearBag(p.a); else lateBags.push([d, p.a]);
+      }
+    }
+    lateBags.sort((a, b) => b[0] - a[0]);        // (popped from the end: the nearest first)
+  }
+  const wearBags = (ms) => {
+    const t0 = performance.now();
+    while (lateBags.length && performance.now() - t0 < ms) cast.wearBag(lateBags.pop()[1]);
+  };
   const lanes = [];
   // one lane each way on the 1997 two-lane road (right-hand traffic); both bend out 0.5 m round the guard booth's
   // island on the centre line (tools/build_campus.py BOOTH: 1.7 m across), the mirrors 0.3 - 0.4 m clear of its kerb
@@ -681,8 +703,18 @@ async function main() {
   // remembers no cars on the drives right beside 언더우드관 and 연희관, where the 2008 roadview's car went.)  One lane
   // for every free stall: the loop with the way into that stall and the way out backwards spliced in (life.js Traffic).
   let westLanes = 0;
+  const groundAt0 = groundAt;
   const bikeLanes = [];                // the loops whole, no stall: the scooters' (life.js Traffic.addBikes)
   {
+    // the lanes share their way out and back and each loop's stretch before its stalls, point for point: the ground
+    // there asked once for the lanes' heights every 2 m (Path)
+    const memo = new Map();
+    const groundAt = (x, y) => {
+      const k = x + ',' + y;
+      let h = memo.get(k);
+      if (h === undefined) memo.set(k, h = groundAt0(x, y));
+      return h;
+    };
     const off = R.median + R.lane * 0.5, TR = campus.traffic;
     const north = center.offset((s) => -(off + 0.5 * roundBooth(s)));            // (a point every 3 m)
     const south = center.offset((s) => off + 0.5 * roundBooth(s));
@@ -715,6 +747,8 @@ async function main() {
       lanes.push(new Path(north, groundAt));
       lanes.push(new Path(south.reverse(), groundAt));
     }
+    memo.clear();
+    for (const l of [...lanes, ...bikeLanes]) l.heightFn = groundAt0;       // (the tracks: asked as the cars go)
   }
   // (more of them: the loop is nearly twice the two lanes' length and slow off 백양로, which still carries a few
   // fewer than it did)
@@ -737,12 +771,13 @@ async function main() {
   const hero = cast.make(heroId, undefined, null, heroScale(heroId));
   scene.add(hero.holder);
   shadows.addDynamic(hero.holder);
+  await groundBVH;
   const player = new Player(camera, canvas, colliders, walkables, hfNear, hero);
   grass.lift = player.lift = (x, y, deck) => curbs.lift(x, y, deck);     // the lawn raised along the kerbs
   player.deckWalk = new Set(stairWalk);                // (the decks' walked faces are with the flights': on them, deck)
   grass.drape = drapeAt;                               // and the blades on the raised ground's meshes
-  for (const name of ['buildings', 'landmarks']) {      // walls for the walker: BVHs built once, shared with the bird's-eye roof picking
-    scene.getObjectByName(name)?.traverse((o) => { if (o.isMesh) { if (!o.geometry.boundsTree) o.geometry.computeBoundsTree(); player.walls.push(o); } });
+  for (const name of ['buildings', 'landmarks']) {      // walls for the walker: BVHs built when first needed (player.js lazyBVH), shared with the bird's-eye roof picking
+    scene.getObjectByName(name)?.traverse((o) => { if (o.isMesh) { lazyBVH(o); player.walls.push(o); } });
   }
   player.teleport(campus.spawn.pos[0], campus.spawn.pos[1], campus.spawn.yaw);
   // 정문 밖: past the line of 성산로's north kerb (tools/gate_town.py town.limit, the walker's barrier's north edge) the
@@ -1543,6 +1578,7 @@ async function main() {
   crowd.view = crowdView;
   if (townCrowd) townCrowd.view = crowdView;
   const frame = () => {
+    if (lateBags.length) wearBags(4);
     // a window resized while the tab was in the background may never send 'resize': check every frame
     if (!recording && (innerWidth !== viewW || innerHeight !== viewH)) { viewW = innerWidth; viewH = innerHeight; dispatchEvent(new Event('resize')); }
     const dt = fixedDt || Math.min(0.05, clock.getDelta());
@@ -1691,7 +1727,7 @@ async function main() {
     kitCull, chunks, memos,
     // every cell of the halls and landmarks in (src/chunks.js), and the textures at full size (materials.js
     // laterFull): the tools that shoot or bake wait for it
-    get campusLoaded() { return chunks.loaded && chunks.farDone && texturesFull(); } };
+    get campusLoaded() { return chunks.loaded && chunks.farDone && texturesFull() && !lateBags.length; } };
   window.__y97.atmos = ATMOS;
   window.__y97.loading = loading;
 
@@ -1719,7 +1755,7 @@ async function main() {
   };
   chunks.onAdd = (meshes) => {
     for (const o of meshes) {
-      o.geometry.computeBoundsTree();
+      lazyBVH(o);
       player.walls.push(o);
     }
     shadows.invalidate();
