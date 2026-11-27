@@ -116,8 +116,10 @@ def pane_count(n, size, target):
 
 
 def window_grid(mb, P, L, z0, nfl, fh, bay, mat_wall, ww=0.6, sill=0.9, head=0.6, depth=0.25,
-                glass='glass', frame='frame_dark', trim=None, mull=1, s_start=0.0, s_end=None, d=0.0):
-    """Punched windows on an edge segment [s_start, s_end] (local wall plane offset d)."""
+                glass='glass', frame='frame_dark', trim=None, mull=1, s_start=0.0, s_end=None, d=0.0, low=None):
+    """Punched windows on an edge segment [s_start, s_end] (local wall plane offset d).  low(w0, w1): the lowest
+    a window spanning [w0, w1] may start (something built in front of the wall below it), or None; a window left
+    shorter than 0.6 m is plain wall."""
     s_end = L if s_end is None else s_end
     span = s_end - s_start
     nb = max(1, int(round(span / bay)))
@@ -131,6 +133,12 @@ def window_grid(mb, P, L, z0, nfl, fh, bay, mat_wall, ww=0.6, sill=0.9, head=0.6
             w0, w1 = s0 + (bw - w) / 2, s0 + (bw + w) / 2
             zs, zh = zf + sill, zf + fh - head
             Q = lambda s, z, dd=0.0: P(s, z, d + dd)
+            zl = low(w0, w1) if low else None
+            if zl is not None and zl > zs:
+                if zh - zl < 0.6:
+                    mb.quad(Q(s0, zf), Q(s1, zf), Q(s1, zf + fh), Q(s0, zf + fh), mat_wall)
+                    continue
+                zs = zl
             mb.quad(Q(s0, zf), Q(s1, zf), Q(s1, zs), Q(s0, zs), mat_wall)
             mb.quad(Q(s0, zh), Q(s1, zh), Q(s1, zf + fh), Q(s0, zf + fh), mat_wall)
             mb.quad(Q(s0, zs), Q(w0, zs), Q(w0, zh), Q(s0, zh), mat_wall)
@@ -2578,7 +2586,13 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
                 tw = tower_w
                 s_t0, s_t1 = Le / 2 - tw / 2, Le / 2 + tw / 2
                 if portal == 'flat':
-                    window_grid(mb, P, Le, plinth, floors, fh, 3.3, wall, ww=0.55, trim='stone_trim', mull=2)
+                    # the door's bay (flat_portal: tower_w + 0.4 wide, its cornice 0.25 m wider, topped at
+                    # plinth + fh + 1.65) stands in front of the windows it overlaps: plain wall beside it below
+                    # that (the door photo), short windows over it.  Before: a 0.5 m sliver of a window beside the
+                    # bay on the ground floor and a notch under the cornice
+                    hb, zt = (tower_w + 0.4) / 2 + 0.25, plinth + fh + 1.65 + 0.1
+                    window_grid(mb, P, Le, plinth, floors, fh, 3.3, wall, ww=0.55, trim='stone_trim', mull=2,
+                                low=lambda w0, w1: zt if w0 - Le / 2 < hb and w1 - Le / 2 > -hb else None)
                 else:
                     window_grid(mb, P, Le, plinth, floors, fh, fbay, wall, ww=fww, trim='stone_trim', mull=fmull, s_start=0, s_end=s_t0)
                     window_grid(mb, P, Le, plinth, floors, fh, fbay, wall, ww=fww, trim='stone_trim', mull=fmull, s_start=s_t1, s_end=Le)

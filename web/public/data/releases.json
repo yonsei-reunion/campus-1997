@@ -63,7 +63,8 @@
             "items": [
               "자리: 2층 창 앞에 뜬 것 → 첫 창과 버팀벽 사이 벽, 1층 창머리 위",
               "색: 벽돌 무늬 → 무늬 없는 탁한 적갈색",
-              "그 밑 돌 덩어리: 현관과 첫 창 사이 → 마름모 밑"
+              "그 밑 돌 덩어리: 현관과 첫 창 사이 → 마름모 밑",
+              "현관 돌출부 곁: 1층 창의 가는 끝 · 처마 밑 2층 창 홈 → 민 벽, 돌출부 위 2층 창은 처마 위부터"
             ]
           },
           {
@@ -83,6 +84,7 @@
           { "src": "assets/news/610_champ2_arcade.jpg", "alt": "연세로11길에서 본 챔프2 오락실 자리, 전 · 후" },
           { "src": "assets/news/611_yeonhui_car.jpg", "alt": "연희관 서쪽 날개 앞길의 세운 차, 전 · 후" },
           { "src": "assets/news/617_annex_diamond.jpg", "alt": "상대별관 현관 양옆의 마름모 타일, 전(왼쪽 둘) · 후(오른쪽 둘)" },
+          { "src": "assets/news/621_annex_bay_sliver.jpg", "alt": "상대별관 현관 돌출부 곁의 가는 창, 전 · 후" },
           { "src": "assets/news/618_church_air.jpg", "alt": "남서쪽 하늘에서 본 창천교회, 전 · 후" },
           { "src": "assets/news/619_church_front.jpg", "alt": "앞마당에서 본 창천교회 정면, 전 · 후" },
           { "src": "assets/news/620_church_photo.jpg", "alt": "1990년대 항공 사진의 창천교회와 게임" }
