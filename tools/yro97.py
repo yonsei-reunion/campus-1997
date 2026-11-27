@@ -159,6 +159,13 @@ CHAMP97 = dict(
     # the board for notes by the door on the north face (along it from the north-east corner, m): door, board
     door=(2.2, 3.8), board=(0.5, 1.7, 0.95, 1.85),         # board: from - to along the face, bottom - top over the lane
 )
+# 연세로11길 open to the walker (2026-11-28, user's request: to walk to 챔프2 오락실): from 연세로's west walk in along
+# the lane to the shop's north face and door, and 9길's leg down its east face.  Like 연세로12길 the game draws no
+# carriageway or kerb for the lane, so it is one open ground; the houses standing in these boxes are cut out of them
+CHAMP_LANE = [
+    [(-156.0, -552.4), (-156.0, -562.6), (-104.5, -562.6), (-104.5, -552.4)],
+    [(-149.0, -562.6), (-149.0, -574.0), (-143.3, -574.0), (-143.3, -562.6)],
+]
 # sign_yro97's cells of the house itself (not shop boards): the roof's letters, the coloured glass of the wide windows;
 # 챔프2 오락실's board for notes: three cells one over the other (54, 58, 62: 512 x 384)
 DOK_CELLS = dict(roof=52, glass=53)

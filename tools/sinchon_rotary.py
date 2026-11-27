@@ -1694,6 +1694,10 @@ def layout(geo, town, extras, ground, taken_z):
     dk_walls = unary_union([Polygon(dk['main']).buffer(0.35), Point(dk['bay'][0], dk['bay'][1]).buffer(dk['bay'][2] + 0.3)]
                            + [_box(b).buffer(0.4) for b in blocks if len(b) == 12 and b[6] > 0 and _box(b).intersects(dk_open)])
     W_parts.append(dk_open.difference(dk_walls))
+    # 연세로11길 to 챔프2 오락실 (yro97.CHAMP_LANE; 2026-11-28): every house standing in it cut out, the shop's own too
+    ch_open = unary_union([Polygon(p_) for p_ in yro97.CHAMP_LANE])
+    W_parts.append(ch_open.difference(unary_union([_box(b).buffer(0.4) for b in blocks
+                                                   if b[6] > 0 and _box(b).intersects(ch_open.buffer(0.4))])))
     Wk = unary_union(W_parts).buffer(0.05).buffer(-0.05)
     walk_open, walk_holes, barrier = [], [], []
     kn_ = extras['kerb_n'][np.argsort(extras['kerb_n'][:, 0])]
