@@ -12,7 +12,7 @@
 // The listener is the camera. The context starts on the first click (browsers allow no sound before one) and
 // sleeps while the tab is hidden. 「소리」 in the pause card turns it off (remembered).
 import * as THREE from 'three';
-import { MOBILE, safeGet, safeSet, versioned } from './util.js';
+import { MOBILE, safeGet, safeSet, versioned, sharedBlob } from './util.js';
 
 const AC = window.AudioContext || window.webkitAudioContext;
 const VOLUME = 0.9;
@@ -109,7 +109,7 @@ export class Sound {
 
   async _loadGround() {
     try {
-      const img = await createImageBitmap(await (await fetch(versioned('assets/textures/ground_splat.png'))).blob());
+      const img = await createImageBitmap(await sharedBlob(versioned('assets/textures/ground_splat.png')));
       const c = document.createElement('canvas');
       c.width = this.gw; c.height = this.gh;
       const x = c.getContext('2d', { willReadFrequently: true });

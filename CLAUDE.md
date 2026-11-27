@@ -84,6 +84,7 @@
 
 - 다시 만드는 순서는 `TECH_NOTE.md` 「에셋 파이프라인」에 있다. 요약하면 `tools/build_campus.py` → `blender/build.py -- landmarks` → `-- buildings` → `-- landmarks` → `node tools/bake_sun_shadows.mjs <포트>` 이다.
 - `campus.json` 은 두 벌이다. `data/campus.json` 은 Blender 가, `web/public/data/campus.json` 은 웹이 읽는다. 둘 다 `build_campus.py` 가 쓰니 자리 · 회전 값은 json 이 아니라 `build_campus.py` 에서 고친다.
+  - 웹 사본에는 Blender 만 읽는 키(`build_campus.py` 의 `BLENDER_ONLY`: `med_west` · 덱 · `rnd_ghosts` 등)가 없다. 그 키를 읽는 도구는 `data/campus.json` 을 읽고, 게임이 새로 읽게 되면 목록에서 뺀다.
 - `build_campus.py` 의 무작위 심기는 전역 `rng` 하나를 쓴다. 그래서 새 땅 · 길 하나가 캠퍼스 전체 나무를 옮길 수 있다.
   - 새 땅은 `PAV_PRE` / `ASPH_PRE` 뒤에 넣고, `rng` 를 뽑는 횟수를 지킨다.
   - 1997년에 없던 건물은 `GONE_1997` 로 뺀다. 그러면 `rnd_ghosts` 가 Blender 쪽 난수를 지킨다.

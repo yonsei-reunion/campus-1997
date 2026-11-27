@@ -228,15 +228,15 @@ export function makeNearTerrain(hf, campus, lib) {
   const T = (n, srgb = true) => loadTex(P + n, { srgb });
   const { gdN, apN, gfD } = groundPacks();
   const uniforms = {
-    uSplat: { value: loadTex('assets/textures/ground_splat.png', { srgb: false, repeat: false, mobileMax: 2048 }) },
+    uSplat: { value: loadTex('assets/textures/ground_splat.png', { srgb: false, repeat: false, mobileMax: 2048 , share: true }) },
     // worn, dry lawn (the east lawn and the 화단섬 of the May 1997 photo): same rectangle, 1 m texels
     // (its G and B: where the paving is of another kind, PAVE_GLSL below)
-    uDry: { value: loadTex('assets/textures/ground_dry.png', { srgb: false, repeat: false }) },
+    uDry: { value: loadTex('assets/textures/ground_dry.png', { srgb: false, repeat: false , share: true }) },
     uPaveAng: { value: new THREE.Vector2(...(campus.pave?.ang ?? [0, 0])) },
     uRect: { value: new THREE.Vector4(S.x0, S.y0, S.x1, S.y1) },
     // 신촌 로터리's own map past the campus's (tools/sinchon_rotary.py town_splat): R asphalt, G paving, B the subway's
     // stairwells (dark), the rest of its rectangle the ground's own (the round island's lawn)
-    uTSplat: { value: campus.tsplat ? loadTex('assets/textures/ground_splat_town.png', { srgb: false, repeat: false }) : null },
+    uTSplat: { value: campus.tsplat ? loadTex('assets/textures/ground_splat_town.png', { srgb: false, repeat: false , share: true }) : null },
     uTRect: { value: campus.tsplat ? new THREE.Vector4(campus.tsplat.x0, campus.tsplat.y0, campus.tsplat.x1, campus.tsplat.y1) : new THREE.Vector4(0, 0, -1, -1) },
     // 무악학사 · 북문's map (tools/muak.py pack): beside the town's in the same texture; uTAtlas: the town's width and
     // height in it, the north map's left edge, width and height (fractions)

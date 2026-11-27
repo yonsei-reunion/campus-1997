@@ -54,7 +54,7 @@ export function litterMagnolias(uniforms, trees) {
 export function litterUniforms(loadTex) {
   tiles = Object.fromEntries(Object.entries(TILE).map(([s, url]) => [s, loadTex(url)]));
   return {
-    uLeaf: { value: loadTex('assets/textures/ground_leaves.png', { srgb: false, repeat: false }) },
+    uLeaf: { value: loadTex('assets/textures/ground_leaves.png', { srgb: false, repeat: false , share: true }) },
     uLitter: { value: tiles.summer },
     uLeafRect: { value: new THREE.Vector4(0, 0, 1, 1) },
     uFall: { value: new THREE.Vector3() },

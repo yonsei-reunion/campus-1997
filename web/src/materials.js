@@ -1,6 +1,6 @@
 // Shared PBR material library, built from data/materials.json (same file Blender uses).
 import * as THREE from 'three';
-import { MOBILE, versioned, mulberry, phoneCopy, smallCopy } from './util.js';
+import { MOBILE, versioned, mulberry, phoneCopy, smallCopy, sharedBlob } from './util.js';
 import { LITTER_MATS, litterUniforms, litterEdit, litterSeason } from './litter.js';
 import { wallTone, edgeWear } from './walltone.js';
 import { shrubTexture, hedgeMaps, hedgeEdit, HEDGE_KEY, SHRUB_LEAVES, cardEdit, CARD_KEY } from './hedges.js';
@@ -158,7 +158,7 @@ const BITMAPS = (() => {
 // A texture whose image comes from url (already versioned), at most `max` on its longest side (else full size).
 // An ImageBitmap carries its own orientation and colour handling (WebGL's unpack flags do not apply to it): flipped
 // and colour-managed here as three would have the <img> uploaded, the alpha never premultiplied.
-export function imageTexture(url, { srgb = true, flipY = false, max = Infinity } = {}, onLoad, onError) {
+export function imageTexture(url, { srgb = true, flipY = false, max = Infinity, share = false } = {}, onLoad, onError) {
   if (!BITMAPS) {
     return texLoader.load(url, (t) => {
       if (max < Infinity) { t.image = shrinkImage(t.image, max); t.needsUpdate = true; }
@@ -169,7 +169,7 @@ export function imageTexture(url, { srgb = true, flipY = false, max = Infinity }
   t.flipY = false;
   const opts = { imageOrientation: flipY ? 'flipY' : 'none', premultiplyAlpha: 'none',
     colorSpaceConversion: srgb ? 'default' : 'none' };
-  fetch(url).then((r) => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.blob(); })
+  (share ? sharedBlob(url) : fetch(url).then((r) => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.blob(); }))
     .then((b) => createImageBitmap(b, opts))
     .then(async (img) => {
       if (Math.max(img.width, img.height) > max) {          // (shrunk off the main thread too)
@@ -187,7 +187,8 @@ export function imageTexture(url, { srgb = true, flipY = false, max = Infinity }
 }
 
 // NOTE: flipY=false everywhere -> matches glTF UV convention (v=0 at the top of the image)
-export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobileMax = MOBILE_MAX_TEX } = {}) {
+// share: a map that other parts also read on the CPU (util.js sharedBlob: one download for all)
+export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobileMax = MOBILE_MAX_TEX, share = false } = {}) {
   const key = url + srgb + flipY;
   if (!cache.has(key)) {
     let done;
@@ -195,7 +196,7 @@ export function loadTex(url, { srgb = true, repeat = true, flipY = false, mobile
     pending.add(pr);
     texCount.asked++;
     const { first, full } = firstUrl(url, mobileMax);
-    const t = imageTexture(versioned(first), { srgb, flipY, max: MOBILE ? mobileMax : Infinity }, (tx) => {
+    const t = imageTexture(versioned(first), { srgb, flipY, max: MOBILE ? mobileMax : Infinity, share }, (tx) => {
       // clones share the image Source but keep their own version -> bump them once data exists
       for (const c of waiting.get(tx) || []) c.needsUpdate = true;
       waiting.delete(tx);

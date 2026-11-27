@@ -13534,8 +13534,18 @@ _t = min(out['trees'], key=lambda q_: math.hypot(q_[1] - appen97.TREE_MOVE[0][0]
 assert _t[0] == 'zelkova' and math.hypot(_t[1] - appen97.TREE_MOVE[0][0], _t[2] - appen97.TREE_MOVE[0][1]) < 0.1, _t
 _t[1], _t[2] = appen97.TREE_MOVE[1]            # (잔디 터 남쪽 광장의 큰 나무: onto the 1996 winter frames' trunk, in its place)
 datum.to_sea(out, DATUM)
-for p in (os.path.join(ROOT, 'data/campus.json'), os.path.join(ROOT, 'web/public/data/campus.json')):
-    json.dump(out, open(p, 'w'), ensure_ascii=False, separators=(',', ':'))
+# what only Blender reads (meshes and decks it builds into the GLBs, the planting's ghosts, the datum): left out of the
+# browser's copy, about 40 % of its gzip (med_west alone 0.29 MB). A key the game starts to read comes off this list;
+# tools that need one of these read data/campus.json
+BLENDER_ONLY = {'med_west', 'eng1_yard', 'parking', 'stimson_front', 'appenzeller_front', 'road_paint', 'daewoo_back',
+                'daewoo_front', 'kb_bank', 'kli97', 'aud_bank', 'yeonhui', 'rnd_ghosts', 'centennial_terrace', 'datum',
+                'dongmun', 'centennial_sw', 'eng2_plaza', 'seomun', 'underwood_steps', 'jh_site', 'centennial_block',
+                'chapel97', 'library_terrace', 'music_stair', 'yj_bank_stair', 'aud_flight', 'hangeul_tower',
+                'yard_hoops', 'aud_north', 'north_toll', 'yj_bank_wall', 'eng_stone', 'sang', 'gyoyuk_floor',
+                'seongam_floor'}
+json.dump(out, open(os.path.join(ROOT, 'data/campus.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
+json.dump({k_: v_ for k_, v_ in out.items() if k_ not in BLENDER_ONLY},
+          open(os.path.join(ROOT, 'web/public/data/campus.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
 _fx = -tf['half'] + np.arange(tf['n']) * tf['step']
 for k_, h_ in (('near', Hn - DATUM.D['near']), ('south', HS - DATUM.D['south']), ('north', HN - DATUM.D['north']),
                ('far', Hf - datum.tilt(*np.meshgrid(_fx, _fx)))):

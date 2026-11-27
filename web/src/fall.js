@@ -18,7 +18,7 @@
 import * as THREE from 'three';
 import { patchShader, pcss, globalPatch, windTime } from './materials.js';
 import { FALL } from './litter.js';
-import { MOBILE, mulberry, versioned } from './util.js';
+import { MOBILE, mulberry, versioned, sharedBlob } from './util.js';
 import { HF_DZ } from './bakedshadow.js';
 
 const R = MOBILE ? 12 : 20;            // radius round the camera, m
@@ -263,7 +263,7 @@ const FALL_MAIN = /* glsl */`
   }`;
 
 async function pixels(url, w, h, draw) {
-  const img = await createImageBitmap(await (await fetch(versioned(url))).blob());
+  const img = await createImageBitmap(await sharedBlob(versioned(url)));
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   const x = c.getContext('2d', { willReadFrequently: true });

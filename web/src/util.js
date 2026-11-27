@@ -46,6 +46,20 @@ export const MOBILE = matchMedia('(pointer: coarse)').matches || /[?&]touch\b/.t
 // A phone's copy of a big texture (tools/mobile_textures.py), when there is one no larger than `max`, the size the phone
 // shrinks that texture to anyway: the phone then downloads only what it uploads.
 const PHONE = __PHONE__;
+// one download for a file that several parts read (the ground maps: the terrain's textures and the CPU copies that
+// grass, falling leaves, footsteps and the map read from them). They asked at the same time and each fetched it whole
+// (about 1.6 MB twice). The blob stays 30 s after it came, for a reader that asks a little later.
+const blobs = new Map();
+export function sharedBlob(url) {
+  let p = blobs.get(url);
+  if (!p) {
+    p = fetch(url).then((r) => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.blob(); });
+    blobs.set(url, p);
+    p.then(() => setTimeout(() => blobs.delete(url), 30000), () => blobs.delete(url));
+  }
+  return p;
+}
+
 export function phoneCopy(url, max) {
   const c = MOBILE && PHONE[url.replace(/^\.\//, '')];
   return c && c[1] <= max ? c[0] : url;

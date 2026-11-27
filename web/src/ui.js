@@ -1,6 +1,6 @@
 // HUD, minimap, campus map with teleport, memory cards and the stamp collection.
 import { pointInPoly } from './player.js';
-import { $, safeGet, safeSet, versioned } from './util.js';
+import { $, safeGet, safeSet, versioned, sharedBlob } from './util.js';
 
 const FOOT = new Set(['footway', 'path', 'steps', 'pedestrian']);
 
@@ -37,9 +37,9 @@ export class UI {
     this.mapCanvas = this._renderMap();
     // 무악학사 · 북문's roads are in no path of campus.json: drawn from the terrain's own map of the north once it is in
     if (campus.tsplat?.north) {
-      const img = new Image();
-      img.onload = () => { this.mapCanvas = this._renderMap(img); if (this.mapOpen) this._drawBig(...(this._bigAt || [])); };
-      img.src = versioned('assets/textures/ground_splat_town.png');
+      sharedBlob(versioned('assets/textures/ground_splat_town.png')).then((b) => createImageBitmap(b)).then((img) => {
+        this.mapCanvas = this._renderMap(img); if (this.mapOpen) this._drawBig(...(this._bigAt || []));
+      }).catch(() => {});
     }
     this._bindMap();
     $('#memory .close').onclick = () => this.closeMemory();

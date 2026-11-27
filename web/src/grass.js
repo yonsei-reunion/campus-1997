@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { loadTex } from './materials.js';
 import { groundPacks } from './terrain.js';
 import { MAG_GLSL } from './litter.js';
-import { MOBILE, mulberry, versioned } from './util.js';
+import { MOBILE, mulberry, versioned, sharedBlob } from './util.js';
 
 const R = MOBILE ? 18 : 25;          // radius round the camera, m
 const CELL = 4;                      // the refill grid, m
@@ -116,7 +116,7 @@ function surface(hf, x, y) {
 }
 
 async function pixels(url, w, h, draw) {
-  const img = await createImageBitmap(await (await fetch(versioned(url))).blob());
+  const img = await createImageBitmap(await sharedBlob(versioned(url)));
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   const x = c.getContext('2d', { willReadFrequently: true });
@@ -160,7 +160,7 @@ export class Grass {
       // the terrain's own textures (loadTex hands back the same objects): the clump's colour is the ground's
       // (the lawn's brightness: the alpha of the packed forest floor, terrain.js groundPacks)
       gfD: { value: groundPacks().gfD }, dD: { value: loadTex(P + 'raked_dirt/diff.jpg') },
-      uDry: { value: loadTex('assets/textures/ground_dry.png', { srgb: false, repeat: false }) },
+      uDry: { value: loadTex('assets/textures/ground_dry.png', { srgb: false, repeat: false , share: true }) },
       uGrass: lib.uniforms.uGrass,
       uLeaf: lib.uniforms.uLeaf, uLeafRect: lib.uniforms.uLeafRect, uFall: lib.uniforms.uFall,
       uMag: lib.uniforms.uMag, uMagFall: lib.uniforms.uMagFall,

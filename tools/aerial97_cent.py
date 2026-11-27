@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import aerial97 as A                                    # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_C = json.load(open(os.path.join(ROOT, 'web/public/data/campus.json')))
+_C = json.load(open(os.path.join(ROOT, 'data/campus.json')))     # (centennial_block: not in the web copy)
 _K = _C['centennial_block']
 TF, TS = np.array(_K['t_front']), np.array(_K['t_side'])
 C0 = np.array([-26.43, -256.11])            # 틀의 원점(게임 몸체를 옮겨도 기록의 u, v 가 그대로이게 묶어 둠)
