@@ -155,6 +155,48 @@ const BITMAPS = (() => {
   return !(safari && safari < 17) && !(firefox && firefox < 98);
 })();
 
+// The image of url as an ImageBitmap, fetched and decoded in decode.worker.js (decoding a blob on the page waits for
+// its main thread to read it in, held by the loading's long steps); on the page where no worker starts, for a map
+// that other parts also read on the CPU (share: util.js sharedBlob), and again for those a dead worker had.
+let decoder;                     // the worker (null: none)
+const decoding = new Map();      // id -> { res, again }
+let decodeId = 0;
+async function decodeHere(url, share, opts, max) {
+  const b = await (share ? sharedBlob(url) : fetch(url).then((r) => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.blob(); }));
+  let img = await createImageBitmap(b, opts);
+  if (Math.max(img.width, img.height) > max) {          // (shrunk off the main thread too)
+    const s = max / Math.max(img.width, img.height);
+    const small = await createImageBitmap(img, { resizeWidth: Math.max(1, Math.round(img.width * s)),
+      resizeHeight: Math.max(1, Math.round(img.height * s)), resizeQuality: 'high' });
+    img.close();
+    img = small;
+  }
+  return img;
+}
+function decode(url, share, opts, max) {
+  if (decoder === undefined) {
+    try {
+      decoder = new Worker(new URL('./decode.worker.js', import.meta.url), { type: 'module' });
+      decoder.onmessage = ({ data }) => {
+        const d = decoding.get(data.id);
+        decoding.delete(data.id);
+        if (data.error) d.rej(new Error(data.error)); else d.res(data.img);
+      };
+      decoder.onerror = () => {
+        decoder = null;
+        for (const d of decoding.values()) d.again();
+        decoding.clear();
+      };
+    } catch { decoder = null; }
+  }
+  if (share || !decoder) return decodeHere(url, share, opts, max);
+  return new Promise((res, rej) => {
+    const id = decodeId++;
+    decoding.set(id, { res, rej, again: () => decodeHere(url, share, opts, max).then(res, rej) });
+    decoder.postMessage({ id, url: new URL(url, location.href).href, opts, max });
+  });
+}
+
 // A texture whose image comes from url (already versioned), at most `max` on its longest side (else full size).
 // An ImageBitmap carries its own orientation and colour handling (WebGL's unpack flags do not apply to it): flipped
 // and colour-managed here as three would have the <img> uploaded, the alpha never premultiplied.
@@ -169,20 +211,11 @@ export function imageTexture(url, { srgb = true, flipY = false, max = Infinity, 
   t.flipY = false;
   const opts = { imageOrientation: flipY ? 'flipY' : 'none', premultiplyAlpha: 'none',
     colorSpaceConversion: srgb ? 'default' : 'none' };
-  (share ? sharedBlob(url) : fetch(url).then((r) => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.blob(); }))
-    .then((b) => createImageBitmap(b, opts))
-    .then(async (img) => {
-      if (Math.max(img.width, img.height) > max) {          // (shrunk off the main thread too)
-        const s = max / Math.max(img.width, img.height);
-        const small = await createImageBitmap(img, { resizeWidth: Math.max(1, Math.round(img.width * s)),
-          resizeHeight: Math.max(1, Math.round(img.height * s)), resizeQuality: 'high' });
-        img.close();
-        img = small;
-      }
-      t.image = img;
-      t.needsUpdate = true;
-      onLoad?.(t);
-    }).catch((e) => { console.warn('texture not loaded:', e?.message ?? e); onError?.(e); });
+  decode(url, share, opts, max).then((img) => {
+    t.image = img;
+    t.needsUpdate = true;
+    onLoad?.(t);
+  }).catch((e) => { console.warn('texture not loaded:', e?.message ?? e); onError?.(e); });
   return t;
 }
 

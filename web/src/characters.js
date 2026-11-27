@@ -1084,14 +1084,20 @@ function inStep(from, act) {
   return act;
 }
 
-// Render a small portrait of each hero for the title screen (idle pose, three-quarter view).
-export function portraits(cast, ids, w = 150, h = 190) {
-  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-  r.setSize(w, h);
-  r.outputColorSpace = THREE.SRGBColorSpace;
-  r.toneMapping = THREE.AgXToneMapping;
-  const out = {};
-  for (const id of ids) {
+// Small portraits of the heroes for the title card (idle pose, three-quarter view), drawn in the page's idle moments,
+// ~20 ms of them at a time: thirteen at once were 0.24 s of the loading's main thread (2026-11-27; their own WebGL
+// context compiles the shaders and takes up each person's textures anew). Where the page never rests before the start
+// button (a fast network), they come in within a second after it. onOne(id, url) as each is drawn; a promise of all.
+export function portraits(cast, ids, onOne, w = 150, h = 190) {
+  const idle = window.requestIdleCallback ? (f) => requestIdleCallback(f, { timeout: 50 }) : (f) => setTimeout(f, 0);
+  let r = null;
+  const one = (id) => {
+    if (!r) {
+      r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+      r.setSize(w, h);
+      r.outputColorSpace = THREE.SRGBColorSpace;
+      r.toneMapping = THREE.AgXToneMapping;
+    }
     const sc = new THREE.Scene();
     sc.add(new THREE.HemisphereLight(0xffffff, 0x8a7a66, 2.2));
     const d = new THREE.DirectionalLight(0xffffff, 2.4);
@@ -1105,10 +1111,24 @@ export function portraits(cast, ids, w = 150, h = 190) {
     const cam = new THREE.PerspectiveCamera(24, w / h, 0.1, 50);
     cam.position.set(0, top * 0.62, 5.2);
     cam.lookAt(0, top * 0.5, 0);
+    // (the blink's clock as it stood before the game ran: the eyes open, as when they were drawn during the loading)
+    const t = windTime.value;
+    windTime.value = 0;
     r.render(sc, cam);
-    out[id] = r.domElement.toDataURL('image/png');
-  }
-  r.dispose();
-  r.forceContextLoss();          // free the extra WebGL context now, not when it is garbage collected
-  return out;
+    windTime.value = t;
+    // (not toBlob: Chrome encodes its PNG in the main thread's idle moments, 1.5 s apart after the start button)
+    onOne(id, r.domElement.toDataURL('image/png'));
+  };
+  const left = [...ids];
+  return new Promise((done) => {
+    const some = () => {
+      const t0 = performance.now();
+      while (left.length && (performance.now() - t0 < 20)) one(left.shift());
+      if (left.length) { idle(some); return; }
+      r?.dispose();
+      r?.forceContextLoss();          // free the extra WebGL context now, not when it is garbage collected
+      done();
+    };
+    idle(some);
+  });
 }

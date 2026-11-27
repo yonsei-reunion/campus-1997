@@ -856,8 +856,8 @@ async function main() {
   const inGame = () => !!(shootout?.on || race?.on || games.some((g) => g.on()));
   const gameBusy = () => games.some((g) => g.busy?.());
   const stopGames = (except = null) => { for (const g of games) if (g !== except) g.stop(); };
-  // hero picker on the title card (portraits rendered from the real models)
-  const pics = portraits(cast, HEROES);
+  // hero picker on the title card (portraits rendered from the real models, characters.js portraits: drawn in the
+  // page's idle moments, the one picked first)
   const pickEl = $('#hero-pick');
   const pickHero = (id) => {
     heroId = id;
@@ -872,11 +872,15 @@ async function main() {
     const b = document.createElement('button');
     b.dataset.id = id;
     b.title = HERO[id].college;
-    b.innerHTML = `<img src="${pics[id]}" alt=""><span><b>${HERO[id].name}</b>${HERO[id].short}</span>`;
+    b.innerHTML = `<img alt=""><span><b>${HERO[id].name}</b>${HERO[id].short}</span>`;
     b.addEventListener('click', () => pickHero(id));
     pickEl.appendChild(b);
   }
   pickHero(heroId);
+  let portraitsIn = false;
+  portraits(cast, [heroId, ...HEROES.filter((id) => id !== heroId)], (id, url) => {
+    pickEl.querySelector(`button[data-id=${id}] img`).src = url;
+  }).finally(() => { portraitsIn = true; });
   // (a phone shows the heroes in one row that scrolls sideways, style.css: the one picked in sight, the fade gone at the end)
   const pickEnd = () => pickEl.classList.toggle('end', pickEl.scrollLeft + pickEl.clientWidth >= pickEl.scrollWidth - 2);
   pickEl.addEventListener('scroll', pickEnd, { passive: true });
@@ -1725,9 +1729,9 @@ async function main() {
       }
     },
     kitCull, chunks, memos,
-    // every cell of the halls and landmarks in (src/chunks.js), and the textures at full size (materials.js
-    // laterFull): the tools that shoot or bake wait for it
-    get campusLoaded() { return chunks.loaded && chunks.farDone && texturesFull() && !lateBags.length; } };
+    // every cell of the halls and landmarks in (src/chunks.js), the textures at full size (materials.js laterFull),
+    // the late bags and the heroes' portraits: the tools that shoot or bake wait for it
+    get campusLoaded() { return chunks.loaded && chunks.farDone && texturesFull() && !lateBags.length && portraitsIn; } };
   window.__y97.atmos = ATMOS;
   window.__y97.loading = loading;
 
