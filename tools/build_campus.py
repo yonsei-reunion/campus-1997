@@ -6705,6 +6705,10 @@ print('연희동 땅: nodes %(nodes)d (eased %(eased)d), median %(median)+.2f m 
 _st_took, STATION_GRADE = ssr97.station_grade(Hn, X, Y, FIXED, harmonic_fill)
 FIXED[_st_took] = True
 print('옛 신촌역 앞마당:', STATION_GRADE)
+# 창천교회 둘레의 땅 (gate_town.church_ground, reference/고증/4.8.5 「땅」): the lane north of the church and the yard east
+# of it down onto the scans' ground (the survey's surface stood 0.4 - 1.3 m over it there); late, as the town's ground
+CHURCH_GRADE = gate_town.church_ground(Hn, X, Y, FIXED)
+print('창천교회 둘레 땅:', CHURCH_GRADE)
 TOWN_PLAN = gate_town.plan(Hn, NEAR_HALF, NEAR_STEP, GATE_C, along_raw(GATE_S, 0.0)[2], (_gate_c - _gate_w, _gate_c + _gate_w), ground_h,
                            keep_nodes=near_buildings(1.5))
 TOWN_SECS = gate_town.bank_fix(TOWN_PLAN, Hn, ground_h, y1997=True)

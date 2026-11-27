@@ -128,7 +128,7 @@ python3 tools/snapshots_compose.py --sheet /tmp/sheet.jpg   # 사진 | 게임 �
 ### 정문 밖
 
 - 성산로, 경의선 철둑과 연세로 굴다리, 창천동(고증 4.8). 자리는 `tools/gate_town.py`(`build_campus.py` 가 부름), 모양은 `blender/town.py`, 차는 `web/src/town.js`.
-- 창천교회(고증 4.8.5): 자리와 크기는 `gate_town.CHURCH` 의 상자(1997년 7월 스캔), 모양은 `blender/church.py`(`town.landmarks` 가 부름. 높이 · 치수는 그 파일 머리의 상수), 창 · 장미창 · 문 · 현관 난간 무늬는 아틀라스 `church97.jpg`(`make_textures.py church97`, 칸은 `CHURCH97_CELLS` = `church.CELLS`). 동네 상자가 뽑던 난수는 `town.house` 가 그대로 뽑습니다. 현관 기둥은 `yro97.church_porch_piers` 로 걷는 곳에서 뺍니다.
+- 창천교회(고증 4.8.5): 자리와 크기는 `gate_town.CHURCH` 의 상자(1997년 7월 스캔), 모양은 `blender/church.py`(`town.landmarks` 가 부름. 높이 · 치수는 그 파일 머리의 상수), 창 · 장미창 · 문 · 현관 난간 무늬는 아틀라스 `church97.jpg`(`make_textures.py church97`, 칸은 `CHURCH97_CELLS` = `church.CELLS`). 동네 상자가 뽑던 난수는 `town.house` 가 그대로 뽑습니다. 현관 기둥은 `yro97.church_porch_piers` 로 걷는 곳에서 뺍니다. 교회 동쪽의 집(`yro97.CHURCH_EAST97`)은 동네 집을 빼고 목록 끝에 새로 두며, 교회 북쪽 길 · 동쪽 마당의 땅은 동네 땅을 놓은 바로 뒤 `gate_town.church_ground` 가 스캔 높이로 내립니다.
 - 철도 선형과 창천동의 길 · 건물 외곽선은 `tools/fetch_gate_osm.py` 가 받은 `data/raw/osm_gate_south.json`(OSM API 의 상자 하나).
 - 동네 집 1,600여 동은 상자와 모임지붕뿐이고 아틀라스 한 장(`town_atlas.jpg`: 띠 하나가 벽 한 층, 가로로 반복)으로 그립니다. 320 m 칸마다 한 메시.
 - 철둑 비탈은 땅의 재질(`terrain_drape`)로 그리고, 둑 메시(`town_bank_*`)는 걷는 면 목록에 넣어 둑의 나무가 그 위에 섭니다.

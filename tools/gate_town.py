@@ -107,6 +107,23 @@ CHURCH_RNG = (-50.0, -523.0, 27.0, 13.0)
 # roadview of 2008-11-12 (2104106 · 2104108): not there in 1997, when the scans have a paved yard east of the church's
 # wall; it goes as what stands in the church does, its draws kept)
 CHURCH_EAST = Point(7.2, -531.4).buffer(3.0)
+# The ground round the church on the scans (reference/고증/4.8.5 「땅」; the surveyor's pairs of 1996 - 1999, 0.3 m apart
+# between the years): the survey's surface (tools/town97.py) stands over it along the lane north of the church
+# (0.4 - 1.3 m by the wall) and on the yard east of it (0.5 - 1.0 m); the front yard (-0.11 m in twelve points) and the
+# lane south of it (0) agree and stay.  (x, y, scans - surface, m): the measured points, then those that hold the
+# field to nothing where it agrees or was not measured (the front yard's edge, the south lane, the houses east and
+# south-east, the bank's foot)
+CHURCH_GROUND = [
+    (-30.0, -520.0, -0.77), (-30.0, -518.0, -0.37), (-15.0, -518.0, -1.27), (-10.0, -519.0, -0.93), (-10.0, -517.5, -1.07),
+    (-10.0, -516.0, -1.0), (-10.0, -515.0, -0.76), (-30.0, -512.5, -0.35), (-20.0, -512.5, -0.35), (-10.0, -512.5, -0.35),
+    (2.0, -528.0, -0.79), (4.0, -530.0, -0.72), (8.0, -530.0, -0.57), (8.0, -525.0, -0.97), (12.0, -530.0, -0.86),
+    (16.0, -530.0, -0.9), (16.0, -520.0, -0.98), (20.0, -530.0, -0.52), (20.0, -525.0, -0.76), (20.0, -520.0, -1.0),
+    (0.0, -530.0, -0.85), (24.5, -525.0, -0.75),
+    (-52.0, -546.0, 0.0), (-52.0, -536.0, -0.1), (-52.0, -526.0, -0.1), (-50.0, -519.0, -0.15),
+    (-45.0, -551.0, 0.0), (-25.0, -551.0, 0.0), (-5.0, -552.0, 0.0), (5.0, -552.0, 0.0), (15.0, -548.0, 0.0), (30.0, -545.0, 0.0),
+    (38.0, -535.0, 0.0), (38.0, -525.0, 0.0), (38.0, -515.0, 0.0),
+    (-45.0, -506.0, 0.0), (-25.0, -506.0, 0.0), (-5.0, -506.0, 0.0), (15.0, -506.0, 0.0), (35.0, -506.0, 0.0)]
+CHURCH_GROUND_BOX = (-53.0, 40.0, -556.0, -504.0)      # (x0, x1, y0, y1: the field eases to nothing over 5 m inside it)
 X0, X1 = -575.0, 700.0       # the banks are built between these
 MODERN = {230178502, 628197716}        # OSM outlines that are the 2006 station building
 # 성산로 서쪽 (대운동장 남서쪽, 고증 4.8.2 · 4.12): the ground along the road as the surface model has it climbs
@@ -367,6 +384,24 @@ def sec_off(o, hn):
     o, hn = np.asarray(o, float), np.asarray(hn, float)
     b = (hn + HW) / (2.0 * HW)
     return np.where(o > HW, o + (hn - HW), np.where(o < -HW, o, -HW + (o + HW) * b))
+
+
+def church_ground(Hn, X, Y, keep=None):
+    """the nodes round 창천교회 down onto the scans' ground (CHURCH_GROUND: an inverse-distance field of the measured
+    differences, softened over 3 m, eased out at the box's edges).  Late, as the town's ground itself: before the
+    rails' bank and the houses read it.  Returns a summary"""
+    x0, x1, y0, y1 = CHURCH_GROUND_BOX
+    m = (X > x0) & (X < x1) & (Y > y0) & (Y < y1)
+    if keep is not None:
+        m &= ~keep
+    P = np.array(CHURCH_GROUND)
+    d2 = (X[m][:, None] - P[:, 0]) ** 2 + (Y[m][:, None] - P[:, 1]) ** 2
+    w = 1.0 / (d2 + 9.0) ** 1.5
+    d = (w * P[:, 2]).sum(1) / w.sum(1)
+    edge = np.minimum.reduce([X[m] - x0, x1 - X[m], Y[m] - y0, y1 - Y[m]])
+    d *= np.clip(edge / 5.0, 0.0, 1.0)
+    Hn[m] += d
+    return dict(nodes=int(m.sum()), low=round(float(d.min()), 2), high=round(float(d.max()), 2), mean=round(float(d.mean()), 2))
 
 
 def plan(Hn, half, step, gate, heading, wall, sample, old=False, keep_nodes=None):

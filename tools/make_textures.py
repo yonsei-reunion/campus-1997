@@ -1901,20 +1901,34 @@ def church97_tex():
 
     lancet(CHURCH97_CELLS['nave'], 3, 15, 0.16)
     lancet(CHURCH97_CELLS['west'], 5, 15, 0.05)
-    # the rose: twelve petals of blue and green round a middle, a ring of small lights outside them
+    # the rose (the 1996 photo from the railway, 52191): pale blue and white glass in a grid of bars, a darker figure
+    # in its middle
     x0, y0, w, h = (v * S for v in CHURCH97_CELLS['rose'])
     cx, cy, r = x0 + w / 2, y0 + h / 2, w / 2
     d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(226, 224, 216))
     d.ellipse([cx - r * 0.98, cy - r * 0.98, cx + r * 0.98, cy + r * 0.98], fill=BAR)
-    pal = [(46, 98, 150), (40, 124, 132), (58, 136, 104), (36, 76, 128), (70, 150, 150), (120, 148, 96)]
-    for ring, (r0, r1, n) in enumerate(((0.70, 0.93, 24), (0.26, 0.66, 12))):
-        for k in range(n):
-            a0, a1 = 360 * k / n + 1.5, 360 * (k + 1) / n - 1.5
-            col = tuple(int(v * rnd.uniform(0.8, 1.15)) for v in pal[(k * (5 if ring else 1) + ring) % len(pal)])
-            d.pieslice([cx - r * r1, cy - r * r1, cx + r * r1, cy + r * r1], a0, a1, fill=col)
-        d.ellipse([cx - r * r0, cy - r * r0, cx + r * r0, cy + r * r0], fill=BAR)
-    d.ellipse([cx - r * 0.22, cy - r * 0.22, cx + r * 0.22, cy + r * 0.22], fill=(176, 150, 72))
-    d.ellipse([cx - r * 0.12, cy - r * 0.12, cx + r * 0.12, cy + r * 0.12], fill=(60, 110, 150))
+    n = 9
+    for i in range(n):
+        for j in range(n):
+            a, t = x0 + w * i / n, y0 + h * j / n
+            if math.hypot(a + w / n / 2 - cx, t + h / n / 2 - cy) > r * 1.05:
+                continue
+            g = rnd.uniform(0.82, 1.1)
+            col = rnd.choice([(150, 186, 208), (176, 204, 216), (206, 218, 220), (128, 170, 200), (150, 190, 178)])
+            if math.hypot(a + w / n / 2 - cx, t + h / n / 2 - cy) < r * 0.3:
+                col = rnd.choice([(92, 120, 150), (120, 128, 110), (150, 140, 96)])
+            d.rectangle([a + S, t + S, a + w / n - S, t + h / n - S], fill=tuple(int(v * g) for v in col))
+    for k in (1, 2):                                           # (the heavier bars of the grid)
+        d.line([x0 + w * k / 3, y0, x0 + w * k / 3, y0 + h], fill=BAR, width=3 * S)
+        d.line([x0, y0 + h * k / 3, x0 + w, y0 + h * k / 3], fill=BAR, width=3 * S)
+    # (what lies outside the round glass in the cell: the bars' colour, never seen)
+    mask = Image.new('L', img.size, 0)
+    ImageDraw.Draw(mask).ellipse([cx - r * 0.97, cy - r * 0.97, cx + r * 0.97, cy + r * 0.97], fill=255)
+    ring = Image.new('RGB', img.size, BAR)
+    box = (int(x0), int(y0), int(x0 + w), int(y0 + h))
+    cell = Image.composite(img.crop(box), ring.crop(box), mask.crop(box))
+    img.paste(cell, box[:2])
+    d = ImageDraw.Draw(img)
     # the ground floor's window: dark panes behind upright bars
     x0, y0, w, h = (v * S for v in CHURCH97_CELLS['low'])
     d.rectangle([x0, y0, x0 + w - 1, y0 + h - 1], fill=(40, 40, 40))

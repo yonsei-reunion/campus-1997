@@ -30,24 +30,36 @@ CELLS = dict(nave=(0, 0, 192, 768), west=(192, 0, 256, 768), rose=(448, 0, 256, 
              door=(704, 0, 192, 384), parapet=(448, 448, 576, 128))        # (make_textures.py CHURCH97_CELLS)
 
 # heights over the front yard (m; the yard 21.2 m over the sea in the scans).  From the scans: the long walls' coping
-# 22.65, the gables' coping 28.4, the towers' rim 28.2, the crosses' arms 47.25, the ridge 27.1 (26.3 - 27.8).  The rest
-# from the roadview's two levelled west views (2009-03 and 2008-08, 0.1 - 0.6 m apart), which give the scans' three
-# within 0.4 m with the camera 2.5 m over the road
-Z_STR1, Z_STR2, Z_SHAFT = 12.0, 22.0, 28.4          # the towers' two string courses and the cornice on the shaft
-Z_TURRET, Z_LANT, Z_TIP, Z_ARM, Z_CROSS = 31.2, 35.2, 45.6, 47.25, 48.0
+# 22.65, the gables' coping 28.4, the crosses' arms 47.25, the ridge 27.1 (26.3 - 27.8), a white rim on the towers 28.2.
+# The rest between them from three views that agree within 0.5 m (reference/고증/4.8.5 「1996년 사진으로 읽은 것」): the
+# 1996 photo taken on the railway west of the bridge (52191: the gable's point the scans' 28.4, 11.2 px a metre by the
+# string courses' spacing) and the roadview's two levelled west views (2009-03 and 2008-08: the front 24.15 m across)
+Z_STR1, Z_STR2, Z_SHAFT = 11.5, 22.0, 28.6          # the towers' two string courses and the cornice on the shaft
+# (the lantern 4.9 m tall and its corner turrets 3.3 m: 52191, and 52172 from 그레이스백화점's roof; the roadview's first
+# reading of 7 m took the lantern for as far back as the spire's point)
+Z_TURRET, Z_LANT, Z_TIP, Z_ARM, Z_CROSS = 31.9, 33.5, 45.6, 47.25, 48.0
 Z_PAR = 22.65                                       # the long walls' parapet
 Z_RIDGE, Z_GABLE, Z_GABLE0 = 27.6, 28.4, 23.1       # the ridge; the gables' coping at the point and at the corners
 TOW_V, TOW_U = 5.7, 5.8                             # a tower across the front and along the hall
 FRONT_IN = 1.15                                     # the gable wall behind the towers' west faces
 NAVE_IN = 0.575                                     # the long walls behind the towers' outer faces (0.7 north, 0.45 south)
 BAYS, BAY0, PITCH = 7, 4.5, 5.57                    # the piers: the first from the tower's east face, then apart
-WIN = (7.6, 15.9, 1.75, 1.1)                        # the nave's lancets: sill, point, width over the frame, off the bay's middle
-ROWS = ((7.4, 10.3), (12.3, 15.3), (17.6, 20.5))    # the towers' pairs of small lancets; three more under the cornice
-ROW3 = (22.7, 26.2, 26.7)
-PORCH = dict(out=1.25, w=14.0, arch=(3.3, 3.0, 5.4), roof=6.3, par=8.5, pin=10.1)
-ARCH = dict(w=9.8, z0=6.3, spring=18.2, top=24.3)   # the great white arch
-BIG = (9.0, 18.3, 3.4, 0.75)                        # its two lancets: sill, point, width, the stone between them
-ROSE = (19.9, 1.4)                                  # the rose: middle, radius of the glass
+WIN = (7.2, 15.7, 1.75, 1.1)                        # the nave's lancets: sill, point, width over the frame, off the bay's middle
+ROWS = ((8.0, 10.9), (12.9, 15.9), (17.9, 20.9))    # the towers' pairs of small lancets; three more under the cornice
+ROW3 = (23.3, 25.9, 26.5)
+# the porch (the scans' west frames of 1996 - 1999: its foot 1.25 m before the towers' faces, 14.7 m long, its middle
+# 0.45 m south of the hall's; four pinnacles 4.63 m apart, the end ones 0.41 m in from its ends; the line the scans
+# read at 6.8 m is the cornice the pinnacles' posts stand on, the parapet's top and the pinnacles' tips are the 1996
+# photo's; a darker strip 0.85 m wide lies before it on the yard)
+PORCH = dict(out=1.25, w=14.7, c=-0.45, pitch=4.627, end=0.41, arch=(3.3, 3.3, 5.8), roof=6.8, par=8.8, pin=9.8, apron=0.85)
+# what stands on the ground beside the hall in the scans (campus x, y): two round machines 1.6 m across and 2.0 m high
+# off the north-east corner (the first's top 24.6 m over the sea in six pairs, the second taken for its like), a white
+# box 2.4 x 2.2 m and 2.0 m high off the south-east corner (1996 - 1999)
+ROUND = [(-2.4, -520.2), (-0.2, -520.2)]
+SHED = (-3.9, -544.6, 2.4, 2.2, 2.0)
+ARCH = dict(w=9.8, z0=6.7, spring=18.0, top=24.0)   # the great white arch
+BIG = (8.9, 18.9, 3.4, 0.75)                        # its two lancets: sill, point, width, the stone between them
+ROSE = (19.8, 1.3)                                  # the rose: middle, radius of the glass
 
 
 def _cell(name, u0=0.0, u1=1.0, v0=0.0, v1=1.0, pad=2.0):
@@ -211,21 +223,24 @@ class Church:
         for cu, cv in corners:
             du, dv = (1 if cu > uc else -1), (1 if cv > vc else -1)
             self.box(cu - du * 0.35, cv - dv * 0.35, zb, Z_SHAFT, 1.1, 1.1, BR, skip=('bottom', 'top'))
-            self.pinnacle(cu - du * 0.35, cv - dv * 0.35, Z_SHAFT, Z_TURRET, 0.45, 1.5)
-        for z, h, o in ((Z_STR1 - 0.08, 0.16, 0.28), (Z_STR2 - 0.08, 0.16, 0.28), (Z_SHAFT - 0.3, 0.4, 0.34)):
+            self.pinnacle(cu - du * 0.35, cv - dv * 0.35, Z_SHAFT, Z_TURRET, 0.45, 1.8)
+        for z, h, o in ((Z_STR1 - 0.08, 0.16, 0.28), (Z_STR2 - 0.08, 0.16, 0.28), (Z_SHAFT - 0.06, 0.12, 0.4)):
             self.box(uc, vc, z, z + h, TOW_U + 2 * o, TOW_V + 2 * o, ST)
+        # (the cornice: brick corbelled out under a thin stone line, as the 1996 photo from the railway has it)
+        self.box(uc, vc, Z_SHAFT - 0.75, Z_SHAFT - 0.4, TOW_U + 0.5, TOW_V + 0.5, BR, skip=('top',))
+        self.box(uc, vc, Z_SHAFT - 0.4, Z_SHAFT - 0.06, TOW_U + 0.68, TOW_V + 0.68, BR, skip=('top',))
         # the lantern: an open arch each way, a small pinnacle on each corner, the spire and the cross
         hl = 1.75
         lc = [(uc - hl, vc - hl), (uc + hl, vc - hl), (uc + hl, vc + hl), (uc - hl, vc + hl)]
         for i in range(4):
             pl, Lw = self.plane(lc[i], lc[(i + 1) % 4])
-            op = _arch(Lw / 2 - 0.7, Lw / 2 + 0.7, Z_SHAFT + 0.9, Z_LANT - 1.4)
+            op = _arch(Lw / 2 - 0.7, Lw / 2 + 0.7, Z_SHAFT + 0.7, Z_LANT - 0.9)
             self.poly(pl, [[(0, Z_SHAFT), (Lw, Z_SHAFT), (Lw, Z_LANT), (0, Z_LANT)], op[::-1]], BR)
             self.rim(pl, op, 0.0, -0.3, BR)
             self.mb.face([pl(p[0], p[1], -0.3) for p in op], DK)
-            self.pinnacle(*lc[i], Z_LANT - 1.6, Z_LANT + 0.4, 0.26, 1.0)
+            self.pinnacle(*lc[i], Z_LANT - 1.6, Z_LANT + 0.1, 0.28, 1.2)
         self.box(uc, vc, Z_LANT, Z_LANT + 0.18, 2 * hl + 0.3, 2 * hl + 0.3, ST, skip=('bottom',))
-        r, n = 1.4, 8
+        r, n = 1.45, 8
         ring = [(uc + r * math.cos(2 * math.pi * (k + 0.5) / n), vc + r * math.sin(2 * math.pi * (k + 0.5) / n)) for k in range(n)]
         for k in range(n):
             a, b = ring[k], ring[(k + 1) % n]
@@ -255,9 +270,9 @@ class Church:
                 o_ = 0.92 if su == mids[0] else off
                 for m in (mid - o_, mid + o_):
                     holes.append(self.glazed(pl, _arch(m - ww / 2, m + ww / 2, z0w, z1w), 'nave'))
-                    lo = [(m - 0.85, g + 1.8), (m + 0.85, g + 1.8), (m + 0.85, g + 3.1), (m - 0.85, g + 3.1)]
-                    if g + 3.1 < z0w - 3.0:
-                        holes.append(self.glazed(pl, lo, 'low', frame=0.1, proud=0.04, rec=0.15))
+                    t_ = min(g + 3.1, z0w - 2.8)                       # (under the pierced panel where the ground is high)
+                    lo = [(m - 0.85, t_ - 1.3), (m + 0.85, t_ - 1.3), (m + 0.85, t_), (m - 0.85, t_)]
+                    holes.append(self.glazed(pl, lo, 'low', frame=0.1, proud=0.04, rec=0.15))
                     for r in range(11):                                # (the pierced brick panel under the sill)
                         for c_ in range(3):
                             if (r + c_) % 2:
@@ -275,7 +290,7 @@ class Church:
             self.box(um, side * (ve - 0.15), Z_PAR, Z_PAR + 0.14, Lw, 0.5, ST, skip=('bottom',))
             for su in piers:
                 self.box(su, side * (ve + 0.05), zb, Z_PAR, 1.3, 0.6, BR, skip=('bottom', 'top'))
-                self.pinnacle(su, side * (ve + 0.05), Z_PAR, Z_PAR + 0.8, 0.42, 0.7, cap_mat=ST)
+                self.pinnacle(su, side * (ve + 0.05), Z_PAR, Z_PAR + 0.5, 0.5, 1.4, cap_mat=ST)
             for su in mids:
                 self.box(su, side * (ve - 0.12), Z_PAR + 0.14, Z_PAR + 0.6, 0.5, 0.5, BR, skip=('bottom',), mats={'top': ST})
         # the roof: slates from the gutters behind the parapets to the ridge
@@ -318,7 +333,7 @@ class Church:
         big = _arch(mid - A['w'] / 2, mid + A['w'] / 2, A['z0'], A['top'], rise=A['top'] - A['spring'], n=10)
         ve = W / 2 - NAVE_IN
         zg = Z_GABLE - 0.16 - (Z_GABLE - Z_GABLE0) * vt / ve                # (the rake where it meets the towers)
-        slit = _arch(mid - 0.28, mid + 0.28, 25.0, 26.4)
+        slit = _arch(mid - 0.28, mid + 0.28, 24.3, 25.7)
         self.poly(pl, [[(0, zb), (Lw, zb), (Lw, zg), (mid, Z_GABLE - 0.16), (0, zg)], big[::-1], slit[::-1]], BR)
         self.rim(pl, slit, 0.0, -0.2, BR)
         self.mb.face([pl(p[0], p[1], -0.2) for p in slit], DK)
@@ -342,7 +357,7 @@ class Church:
         self.gable_coping(ug, vt, zg, out=-1)
         # the doors under the porch
         for k in (-1, 0, 1):
-            m = mid + k * PORCH['w'] / 3
+            m = mid - PORCH['c'] + k * PORCH['pitch']
             d = [(m - 1.1, 0.04), (m + 1.1, 0.04), (m + 1.1, 3.5), (m - 1.1, 3.5)]
             u0, u1, v0, v1 = _cell('door')
             self.mb.face([pl(p[0], p[1], 0.05) for p in d], GL, uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
@@ -350,13 +365,14 @@ class Church:
         self.porch(ug)
 
     def porch(self, ug):
-        """the porch: a front wall of three arches 1.25 m before the towers' faces, wider than the gap between them,
+        """the porch: a front wall of three arches 1.25 m before the towers' faces, longer than the gap between them,
         a short wall at each end back to the tower's face; its roof, the parapet over it, the pinnacles"""
         L = self.L
         p = PORCH
-        hw, uw, ut = p['w'] / 2, -L / 2 - p['out'], -L / 2
+        hw, c, uw, ut = p['w'] / 2, p['c'], -L / 2 - p['out'], -L / 2
         aw, zs, za = p['arch']
         th = 0.5                                                        # (the walls' thickness)
+        piers = [p['end'] + p['pitch'] * k for k in range(4)]           # (along the front from its north end)
 
         def arcade(pl, Lw, mids, w, back=False, out=0.0):
             """a wall from the floor to the parapet's top with pointed openings down to the floor"""
@@ -370,36 +386,47 @@ class Church:
             self.poly(pl, [loop], ST, out=out, back=back)
             return ops
 
-        faces = [((uw, hw), (uw, -hw), [p['w'] * (k + 0.5) / 3 for k in range(3)], 3),           # west
-                 ((uw, -hw), (ut, -hw), [], 1), ((ut, hw), (uw, hw), [], 1)]
-        for a, b, mids, n in faces:
+        faces = [((uw, c + hw), (uw, c - hw), [(a_ + b_) / 2 for a_, b_ in zip(piers, piers[1:])], list(zip(piers, piers[1:]))),   # west
+                 ((uw, c - hw), (ut, c - hw), [], [(-0.1, p['out'] + 0.1)]), ((ut, c + hw), (uw, c + hw), [], [(-0.1, p['out'] + 0.1)])]
+        for a, b, mids, panels in faces:
             pl, Lw = self.plane(a, b)
             ops = arcade(pl, Lw, mids, aw)
             arcade(pl, Lw, mids, aw, back=True, out=-th)
             for op in ops:
                 self.rim(pl, op[1:] + op[:1], 0.0, -th, ST, closed=False)
-            for k in range(n):                                          # (the parapet's cut stone: the atlas cell over each bay)
-                s0, s1 = Lw * k / n + 0.2, Lw * (k + 1) / n - 0.2
-                u0, u1, v0, v1 = _cell('parapet', u0=k / 3 + 0.01, u1=(k + (1 if n == 3 else 0.27)) / 3 - 0.01)
-                self.mb.face([pl(s0, p['roof'] + 0.35, 0.03), pl(s1, p['roof'] + 0.35, 0.03), pl(s1, p['par'] - 0.2, 0.03), pl(s0, p['par'] - 0.2, 0.03)],
-                             GL, uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
+            for k, (s0, s1) in enumerate(panels):                       # (the parapet's cut stone: the atlas cell between the pinnacles)
+                u0, u1, v0, v1 = _cell('parapet', u0=k / 3 + 0.01, u1=(k + (1 if len(panels) == 3 else 0.27)) / 3 - 0.01)
+                self.mb.face([pl(s0 + 0.35, p['roof'] + 0.35, 0.03), pl(s1 - 0.35, p['roof'] + 0.35, 0.03), pl(s1 - 0.35, p['par'] - 0.2, 0.03),
+                              pl(s0 + 0.35, p['par'] - 0.2, 0.03)], GL, uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
         um = (uw + ug) / 2
-        self.box(um, 0.0, p['roof'] - 0.2, p['roof'], ug - uw - 0.1, p['w'] - 0.1, ST)                     # (the roof and the ceiling)
+        self.box(um, c, p['roof'] - 0.2, p['roof'], ug - uw - 0.1, p['w'] - 0.1, ST)                       # (the roof and the ceiling)
         # (the floor: stone flush with the yard, so that the walker's feet stay on it; tools/yro97.py church_porch_piers
-        # keeps the walker out of the piers)
-        self.box(um - 0.3, 0.0, -0.5, 0.04, ug - uw + 0.6, p['w'] + 0.5, ST, skip=('bottom',))
+        # keeps the walker out of the piers; before it the darker strip of the scans)
+        self.box(um - 0.05, c, -0.5, 0.04, ug - uw + 0.1, p['w'], ST, skip=('bottom',))
+        self.box(uw - p['apron'] / 2, c, -0.5, 0.03, p['apron'], p['w'], 'stone_step', skip=('bottom',))
         for z0, z1, o in ((p['roof'] - 0.12, p['roof'] + 0.12, 0.12), (p['par'], p['par'] + 0.14, 0.1)):     # (the cornice, the coping)
-            self.box(uw + th / 2, 0.0, z0, z1, th + 2 * o, p['w'] + 2 * o, ST)
+            self.box(uw + th / 2, c, z0, z1, th + 2 * o, p['w'] + 2 * o, ST)
             for sgn in (-1, 1):
-                self.box((uw + th + ut) / 2, sgn * (hw - th / 2), z0, z1, ut - uw - th, th + 2 * o, ST)
-        for k in range(4):                                              # (the four pinnacles over the piers)
-            self.pinnacle(uw + th / 2, -hw + 0.3 + (p['w'] - 0.6) * k / 3, p['par'] - 0.4, p['par'] + 0.45, 0.33, p['pin'] - p['par'] - 0.57, mat=ST)
+                self.box((uw + th + ut) / 2, c + sgn * (hw - th / 2), z0, z1, ut - uw - th, th + 2 * o, ST)
+        for s_ in piers:                                                # (the four pinnacles, their posts up from the cornice)
+            self.pinnacle(uw + th / 2, c + hw - s_, p['roof'] + 0.12, p['par'] + 0.45, 0.33, p['pin'] - p['par'] - 0.57, mat=ST)
+
+    def beside(self):
+        """the round machines off the north-east corner and the white box off the south-east one, on the ground"""
+        for x, y in ROUND:
+            g = self.ground(x, y)
+            self.mb.cylinder((x, y), 0.8, g - 0.2, g + 2.0, 'paint_white', seg=14, mat_cap='metal_dark')
+            self.mb.cylinder((x, y), 0.55, g + 2.0, g + 2.12, 'metal_dark', seg=10)
+        x, y, sx, sy, h = SHED
+        g = self.ground(x, y)
+        self.mb.box((x, y, g + h / 2 - 0.1), (sx, sy, h + 0.2), 'paint_white', rotz=self.ang, skip=('bottom',))
 
     def build(self):
         self.tower(-1)
         self.tower(1)
         self.nave()
         self.front()
+        self.beside()
 
 
 def church97(mb, b, ground):

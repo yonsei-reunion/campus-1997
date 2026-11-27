@@ -1151,6 +1151,7 @@ def layout(geo, town, extras, ground, taken_z):
     fronts, n_yro_gone, yro_shops = yro_rows(geo, blocks, ground)    # (연세로's rows house by house, at the end)
     ch_boards, ch_site = champ97(blocks, ground)                      # (챔프2 오락실 on 연세로11길, after them)
     yro_shops += ch_boards
+    n_ce = church_east97(blocks, ground)                              # (the houses east of 창천교회 as the scans have them)
     # ---- 연세로's mouth (2026-11-16): 금강제화 and 홍익문고 as landmarks on their rows' boxes, the tower going up on the
     # lot south of 홍익문고 (KUMKANG_1997, HONGIK_FLOORS, TOWER97); what stood inside their outlines goes, its draws kept
     kk_b, hk_b = fronts[-1][-1], fronts[1][-1]
@@ -2467,6 +2468,26 @@ def yro_rows(geo, blocks, ground):
             z = min(base + 0.3 + 3.0 * f_ + 0.3, top - h / 2 - 0.05)
             boards.append([round(float(q[0]), 2), round(float(q[1]), 2), round(z, 2), round(fa, 4), round(w, 2), h, yro97.CELL[name]])
     return fronts, n_gone, boards
+
+
+def church_east97(blocks, ground):
+    """the houses east of 창천교회 as they stood in July 1997 (tools/yro97.py CHURCH_EAST97; 고증 4.8.5): the town's house
+    each stands for goes (b[6] < 0, its draws kept) and the scans' comes at the end of the blocks, drawing after every
+    stream before it; a house with none to stand for is new.  Returns how many went"""
+    out, n_gone = [], 0
+    for cx, cy, L, W, ang, lv, hip, near, wall, roof in yro97.CHURCH_EAST97:
+        old = None
+        if near is not None:
+            old = next((b for b in blocks if b[6] > 0 and math.hypot(b[0] - near[0], b[1] - near[1]) < 0.5), None)
+            if old is not None:
+                old[6] = -old[6]
+                n_gone += 1
+        b = [cx, cy, L, W, ang, 0.0, int(lv), old[7] if wall is None and old else int(wall or 2),
+             old[8] if roof is None and old else int(roof if roof is not None else 3), int(hip), 0, 0]
+        b[5] = round(min(ground(x_, y_) for x_, y_ in list(_box(b).exterior.coords)[:4]) - 0.3, 2)
+        out.append(b)
+    blocks += out
+    return n_gone
 
 
 def champ97(blocks, ground):

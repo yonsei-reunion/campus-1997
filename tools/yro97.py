@@ -140,25 +140,40 @@ CHURCH_YARD = [
     [(-72.2, -520.5), (-72.2, -540.6), (-49.0, -540.6), (-49.0, -520.5)],
 ]
 # The church's porch stands in that yard before the west front (blender/church.py PORCH: 1.25 m out of the towers'
-# faces, 14.0 m wide, walls 0.5 m thick, three arches 3.3 m wide in its front): the walker goes in under the arches to
-# the doors, round the piers.  The piers' feet in the church's frame (gate_town.CHURCH: u east along the hall from its
-# middle, v north): (u0, u1, v0, v1)
+# faces, 14.7 m long with its middle 0.45 m south of the hall's, walls 0.5 m thick, three arches 3.3 m wide between four
+# piers 4.627 m apart): the walker goes in under the arches to the doors, round the piers.  The piers' feet in the
+# church's frame (gate_town.CHURCH: u east along the hall from its middle, v north): (u0, u1, v0, v1)
 
 
-def church_porch_piers(ch, out_=1.25, w=14.0, th=0.5, arch=3.3):
+def church_porch_piers(ch, out_=1.25, w=14.7, c0=-0.45, th=0.5, arch=3.3, pitch=4.627, end=0.41):
     import math
     uw, hw = -ch['L'] / 2 - out_, w / 2
     out = []
-    for k in range(4):                                     # (the front's four)
-        v0 = -hw if k == 0 else -hw + w * k / 3 - (w / 3 - arch) / 2
-        v1 = hw if k == 3 else -hw + w * k / 3 + (w / 3 - arch) / 2
+    for k in range(4):                                     # (the front's four, from the north end)
+        m = c0 + hw - end - pitch * k
+        v1 = c0 + hw if k == 0 else m + (pitch - arch) / 2
+        v0 = c0 - hw if k == 3 else m - (pitch - arch) / 2
         out.append((uw, uw + th, v0, v1))
-    for sg in (-1, 1):                                     # (each side's short wall back to the tower's face)
-        out.append((uw, -ch['L'] / 2, min(sg * hw, sg * (hw - th)), max(sg * hw, sg * (hw - th))))
+    for sg in (-1, 1):                                     # (each end's short wall back to the tower's face)
+        e = c0 + sg * hw
+        out.append((uw, -ch['L'] / 2, min(e, e - sg * th), max(e, e - sg * th)))
     c, s_ = math.cos(ch['ang']), math.sin(ch['ang'])
     P = lambda u, v: (ch['c'][0] + u * c - v * s_, ch['c'][1] + u * s_ + v * c)
     return [[P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1)] for u0, u1, v0, v1 in out]
 
+
+# East of the church in July 1997 (reference/고증/4.8.5 「교회 동쪽」; the scans' roofs in thirteen pairs of 1996 - 1999):
+# a paved yard from the church's east wall to x 17.5, in it a small flat-roofed house two storeys high (its roof
+# 28.0 m over the sea, 5.9 m over the yard); east of the yard a tiled house of one storey where the town had two
+# (eaves 24.5, ridge 26.7 m), south-east of it houses of three and four storeys where the town had one and two (roofs
+# 30.3 · 32.1 and 34.4 m).  (x, y, length, width, the long side's way rad, storeys, hipped, the town's house it
+# stands for (x, y) or None, wall, roof): the house it stands for goes with its draws kept, these come at the end
+CHURCH_EAST97 = [
+    (10.1, -539.7, 8.5, 7.5, 0.12, 2, 0, None, 1, 3),
+    (24.6, -525.0, 15.0, 4.8, -1.5932, 1, 1, (23.67, -524.05), None, None),
+    (15.51, -548.99, 12.18, 6.14, -0.3926, 3, 0, (15.51, -548.99), None, 3),
+    (28.77, -546.01, 17.52, 7.7, 3.1416, 4, 0, (28.77, -546.01), None, None),
+]
 
 def church_porch_floor(ch, tow=5.7, front_in=1.15):
     """the floor under the porch between the two towers, in to the gable wall and its doors (the church's box, which is
