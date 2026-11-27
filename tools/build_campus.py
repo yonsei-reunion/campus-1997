@@ -7427,6 +7427,11 @@ _bl_keep = shapely.contains_xy(Polygon(SANG_DIAMOND).buffer(3.0), X, Y)
 _bl_took, BILL97_GRADE = bill97.grade(Hn, X, Y, FIXED, [(bill97.HALL_E, 2.0)], _bl_keep, harmonic_fill)
 FIXED[_bl_took] = True
 print('빌링슬리관 동쪽 찻길:', BILL97_GRADE)
+# (and the lawn's south-east corner between widang97's bank and this one's strip, bill97.corner_grade: 2026-11-28, a
+# player's note 「여기도 과도하게 울퉁불퉁한데?」; reference/고증/3.12 「남동 귀퉁이와 연희관 서쪽 옆길의 계단」)
+_bc_took, BILL97_CORNER = bill97.corner_grade(Hn, X, Y, [(bill97.HALL_E, 2.0)])
+FIXED[_bc_took] = True
+print('빌링슬리관 잔디 남동 귀퉁이:', BILL97_CORNER)
 DAEWOO['bank'] = bill97.bank_pts()           # (the 상뜰's boulder bank behind the 1997 east kerb, 6.8 m out of OSM's line)
 DAEWOO['bank_east'] = bill97.bank_east_pts()   # (and its course along the south bank east of the south flight)
 # 교육관 서쪽 찻길 (widang97.drive_grade; 2026-11-17, jh): the drive along its west side on the scans' level over its

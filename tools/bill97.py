@@ -185,3 +185,46 @@ def bank_east_pts(out=6.8):
         p = q + fd * (kt + 4.0 + t)
         pts.append([*p, *(p - fn * 0.4), 1.0])
     return [[round(float(v), 2) for v in p] for p in pts]
+
+
+
+# The lawn's south-east corner (reference/고증/3.12 「남동 귀퉁이와 연희관 서쪽 옆길의 계단」): between widang97.bank_grade
+# (its band stops at x 47) and grade above (from s 46) the nodes kept the slope of OSM's days, the corner dropping to the
+# drive's level 4 m inside the lawn and a ramp north of it, the asphalt at the corner's kerb lifted by nodes 1 - 2 m
+# behind it.  The scans (1996-12 leafless and 1997-07): the lawn's head rounds in towards the south-east (HEAD), a bank
+# 2.5 m down to a shelf (57.4 m, x 49 - 53) and 2 m on the yard (55.1 m).
+# The game's kerb round the corner (campus.json curbs, the lawn on its left going along): the south road's north kerb, the
+# drive's west kerb, the corner, the 1997 west kerb north
+KERB_C = LineString([(44.5, 384.9), (46.1, 384.4), (47.0, 384.1), (49.3, 383.5), (51.1, 382.9), (52.3, 382.5), (52.7, 382.5),
+                     (53.0, 382.9), (53.9, 385.3), (55.4, 389.5), (56.6, 393.1), (57.9, 396.5), (58.6, 398.9), (59.0, 399.4),
+                     (59.7, 399.4), (61.2, 398.9), (63.3, 398.2), (63.8, 398.9), (64.4, 401.3), (65.1, 404.4)])
+CORNER = Polygon(list(KERB_C.coords) + [(56.0, 404.4), (47.5, 404.4), (47.5, 380.0)]).buffer(0)
+CORNER_X = 47.5                    # (west of here widang97's band)
+HEAD = LineString([(44.0, 387.5), (46.0, 390.0), (47.5, 394.0), (48.5, 397.0), (48.0, 400.0), (52.0, 402.5), (56.0, 405.0)])
+LAWN_Z = 60.1                      # (해발: the lawn west of HEAD, 60.0 - 60.2 m)
+HEAD_FALL = (2.5, 2.7)             # (the bank under HEAD: m out, m down)
+SHELF_Z = 57.4                     # (해발: the shelf, 56.9 - 57.7 m)
+CORNER_W = (2.5, 5.0)              # (m behind the game's kerb: the drive's level to here, the scans' ground from here)
+
+
+def corner_grade(Hn, X, Y, halls):
+    """The corner's nodes on the lawn's side of KERB_C east of CORNER_X: the scans' ground (the lawn west of HEAD, its
+    bank down to the shelf) CORNER_W[1] m behind the game's kerb and on, the drive's level (gyoyuk97's profile at the
+    kerb's foot on DRIVE) CORNER_W[0] m behind it, eased between; the halls' feet stay.  Returns the nodes set and a
+    summary"""
+    H0 = Hn.copy()
+    P = shapely.points(X, Y)
+    T = datum.tilt(X, Y)
+    stay = shapely.contains_xy(unary_union([h.buffer(k) for h, k in halls]), X, Y)
+    on = shapely.contains_xy(CORNER, X, Y) & (X >= CORNER_X) & ~stay
+    d = shapely.distance(KERB_C, P)
+    foot = shapely.line_interpolate_point(KERB_C, shapely.line_locate_point(KERB_C, P))
+    zd = gyoyuk97.drive_z(np.clip(shapely.line_locate_point(DRIVE, foot), gyoyuk97.S0, gyoyuk97.S_PROF), 0.0)
+    out = np.where(shapely.contains_xy(Polygon(list(HEAD.coords) + [(56.0, 380.0), (44.0, 380.0)]), X, Y),
+                   shapely.distance(HEAD, P), 0.0)          # (m out of HEAD on the drive's side)
+    zg = np.maximum(LAWN_Z - out / HEAD_FALL[0] * HEAD_FALL[1], SHELF_Z)
+    k = np.clip((d - CORNER_W[0]) / (CORNER_W[1] - CORNER_W[0]), 0.0, 1.0)
+    Hn[on] = (zd + (zg - zd) * k)[on] + T[on]
+    dd = Hn - H0
+    return on, dict(nodes=int(on.sum()), moved=(int((np.abs(dd) > 0.05).sum()), round(float(dd.min()), 2),
+                                                round(float(dd.max()), 2)))
