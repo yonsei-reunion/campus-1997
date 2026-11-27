@@ -574,6 +574,21 @@ async function main() {
     { lawn: campus.curb_lawn, ground: terrain.material, drape: drapeAt });
   await castLoaded;
 
+  // The halls' and landmarks' shaders (most of the frame's programs) compiled in the background while the crowd and
+  // the cars are made, where the browser can (KHR_parallel_shader_compile): they held the first frame some 1.8 s
+  // after the textures (TECH_NOTE 「성능: 로딩 · 게임 중 측정 (2026-11-27)」). Patched first as the cells set in later
+  // are (chunks.js onPrepare: the library's materials have the atmosphere's already), so that the programs are the
+  // frame's; the scene's own compile below takes them as they are
+  if (renderer.extensions.has('KHR_parallel_shader_compile')) {
+    const warm0 = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+    const groups = Object.values(chunks.groups);
+    for (const g of groups) sunMap.patchScene(g);
+    renderer.setRenderTarget(warm0);
+    const early = groups.map((g) => renderer.compileAsync(g, camera, scene));
+    renderer.setRenderTarget(null);
+    Promise.all(early).catch(() => {}).finally(() => warm0.dispose());
+  }
+
   // ---------------------------------------------------------------- life
   progress('학생들이 등교하는 중…', 40);
   const R = campus.baekyangro;
