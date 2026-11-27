@@ -237,14 +237,16 @@ PEOPLE = {
                        'black hair, the top half tied back',
                        paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')}, cut='wide',
                        prints={'body': [dict(name='yonsei_ink', of=('White',), w=.22, z=1.40)]}, 
-                       face=dict(lid='inner', slant=.07, eye=1.03, jaw=1.03, smile=.0030, brow=.9, arch=1.35, brow_peak=.58, brow_len=1.05, brow_up=-.002, brow_soft=1.3,
+                       face=dict(lid='inner', slant=.07, eye=1.03, jaw=.99, taper=.18, gonial=.6, smile=.0030, mouth=1.28, lip=1.5, lip_up=.74, lip_ink=1.3, bow=1.2,
+                                 lip_tint=(.86, .38, .34), lash=1.2, aegyo=.8, flush=1.7, brow=.9, arch=1.35, brow_peak=.58, brow_len=1.05, brow_up=-.002, brow_soft=1.3,
                                  nose=.80, nose_curve=.9, tip_up=1.2, tip_round=.95, bridge=.20, nose_w=.96, nose_up=.001)),
     'p10': woman('tuck', 'Casual', 'Casual', 'Casual',
                         {'White': '#e7a7b6', 'Orange': '#cdb994', 'Grey': '#f0eee8', 'feet:Bar': '#8d8f92', 'feet:Lace': '#d6d3cc',
                          'feet:Sole': '#cfccc4', 'Skin': SKIN['fair'], 'Hair': HAIR['dark']},
                         'pink knit, wide beige trousers, white trainers; short bob, one side behind the ear',
                         paint={'body': [neckline(('White',), drop=.030, half=.085, side=.06)], 'feet': trainers('women', 'Grey')},
-                        bust=1.3, face=dict(lid='inner', slant=.03, jaw=1.04, chin=0.97, brow_tilt=-.04, smile=.0030, mouth=.96, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
+                        bust=1.3, face=dict(lid='inner', slant=.03, jaw=1.01, taper=.12, gonial=.7, chin=0.97, brow_tilt=-.04, smile=.0030, mouth=1.18, lip=1.6, lip_up=.72,
+                                  lip_ink=1.3, bow=1.35, lip_tint=(.84, .34, .42), lash=1.15, aegyo=1.0, flush=2.0, brow=1.25, arch=.4, brow_len=.88, brow_taper=1.5,
                                   nose=.72, nose_curve=.85, tip_up=1.45, tip_round=1.25, bridge=.17, nose_w=1.02, nose_up=.002)),
     # 서연 (the film 건축학개론, 2012: a first-year of the college of music in 1996): a round, soft face, large eyes with
     # double lids, straight soft brows, a small nose, a ready smile; long straight hair worn down
@@ -289,7 +291,8 @@ PEOPLE = {
                                               neckline(('LimeGreen',), to='Rib', drop=.036, half=.085, side=.06),
                                               neckline(('Rib',), drop=.020, half=.068, side=.06)]},
                               roomy=1.16, cut='wide',
-                              face=dict(lid='double', slant=.10, eye=.99, jaw=.98, chin=1.03, smile=.0022, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
+                              face=dict(lid='double', slant=.10, eye=.99, jaw=.96, taper=.22, gonial=.5, chin=1.03, smile=.0024, mouth=1.34, lip=1.5, lip_up=.78, lip_ink=1.35,
+                                        bow=1.25, lip_tint=(.58, .23, .25), lash=1.35, aegyo=.4, crease=.8, flush=1.3, brow=.85, arch=1.6, brow_tilt=.05, brow_up=-.0015, brow_corner=True,
                                         brow_peak=.68, brow_drop=1.0, brow_soft=1.3, nose=.84, tip_round=.9, bridge=.22, nose_w=.95)),
     'p13': woman('pixie', 'Suit', 'Casual', 'Casual',
                             {'Black': '#ecdf9e', 'White': '#f2efe6', 'Orange': JEANS['dark'], 'Grey': '#f0eee8', 'feet:Bar': '#27345a',
@@ -297,7 +300,8 @@ PEOPLE = {
                             'pastel yellow cardigan over a white tee, dark jeans (진청), white trainers; a short cut swept back over '
                             'the ears, metal glasses',
                             paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)], 'feet': trainers('women', 'Grey')},
-                            face=dict(lid='inner', slant=.05, jaw=1.03, smile=.0024, glasses=True, brow=1.5, arch=.8, brow_taper=1.4, brow_soft=2.2,
+                            face=dict(lid='inner', slant=.05, jaw=1.0, taper=.14, gonial=.65, smile=.0026, mouth=1.24, lip=1.4, lip_up=.66, lip_ink=1.1,
+                                      lip_tint=(.84, .45, .43), aegyo=.6, flush=1.5, glasses=True, brow=1.5, arch=.8, brow_taper=1.4, brow_soft=2.2,
                                       nose=.76, nose_curve=.96, tip_up=1.05, tip_round=1.3, wing=1.1, bridge=.20, nose_w=1.08)),
     'p14': woman('perm', 'Suit', 'Suit', 'Suit',
                          {'Black': '#2f3644', 'White': '#eef0f2', 'Skin': SKIN['b'], 'Hair': HAIR['dark']},
@@ -320,7 +324,8 @@ PEOPLE = {
                                             for x in (.193, .249, .305, .361, .417, .473, .529)],
                                           neckline(('LimeGreen',), drop=.030, half=.085, side=.06)],
                                  'feet': trainers('women', 'Grey')},
-                          face=dict(lid='inner', slant=.06, eye=1.04, jaw=1.0, chin=0.98, smile=.0027, mouth=1.0, brow=1.0, arch=.9, brow_len=1.0,
+                          face=dict(lid='inner', slant=.06, eye=1.04, jaw=.98, cheek=1.02, taper=.18, gonial=.55, chin=0.98, smile=.0030, mouth=1.30, lip=1.45, lip_up=.70,
+                                    lip_ink=1.3, bow=1.15, lip_tint=(.90, .40, .28), lash=1.2, aegyo=.9, flush=1.9, brow=1.0, arch=.9, brow_len=1.0,
                                     brow_soft=1.5, nose=.80, tip_up=1.38, tip_round=.7, bridge=.20, nose_w=1.0, nose_up=.001)),
     'p16': man('curtain', 'Adventurer', 'Casual_2', 'Casual_2',
                      {'Green': '#2f5a45', 'LightGreen': '#1f1f24', 'LightBlue': '#b9a67e', 'Red_Dark': '#3a2c24', 'Skin': SKIN['b'],
@@ -336,7 +341,8 @@ PEOPLE = {
                          'denim shirt (청남방) worn open over a white tee, beige cotton trousers, white trainers; hair to the '
                          'shoulders with a straight fringe',
                          paint={'body': [neckline(('White',), drop=.045, half=.058, side=.07)], 'feet': trainers('women', 'Grey')},
-                         bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=1.01, chin=1.01, smile=.0026, mouth=1.02, brow=.9, arch=1.1, brow_len=1.0,
+                         bust=1.3, face=dict(lid='double', slant=.06, eye=1.06, jaw=.97, taper=.20, gonial=.5, chin=1.01, smile=.0026, mouth=1.24, lip=1.65, lip_up=.80,
+                                   lip_ink=1.3, bow=1.3, lip_tint=(.76, .32, .36), lash=1.3, aegyo=.8, crease=.75, flush=1.6, brow=.9, arch=1.1, brow_len=1.0,
                                    brow_soft=1.6, nose=.78, nose_curve=.88, tip_up=1.12, tip_round=1.05, bridge=.19, nose_w=.98, nose_up=.001)),
 }
 RIGS = {'rig-umc': 'umc', 'rig-women': 'women'}
