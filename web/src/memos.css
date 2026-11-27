@@ -101,4 +101,6 @@
 }
 /* (the mini games keep the HUD to themselves) */
 body.shootout #memobtn, body.racing #memobtn, body.photoquiz #memobtn, body.paging #memobtn, body.cheering #memobtn, body.classing #memobtn,
-body.bdaygame #memobtn { display: none !important; }
+body.bdaygame #memobtn,
+body.shootout #memolistbtn, body.racing #memolistbtn, body.photoquiz #memolistbtn, body.paging #memolistbtn, body.cheering #memolistbtn,
+body.classing #memolistbtn, body.bdaygame #memolistbtn { display: none !important; }

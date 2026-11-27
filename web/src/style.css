@@ -276,13 +276,15 @@ a.newsbtn { display: inline-block; text-decoration: none; }
 #hudbtns button { pointer-events: auto; border: 0; border-radius: 10px; padding: 8px 6px; white-space: nowrap;
   background: var(--paper); color: var(--ink); font-family: var(--title); font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; }
 #hudbtns #menubtn { grid-column: 1 / -1; font-size: 17px; background: var(--yellow); }
+#hudbtns #birdbtn { grid-column: 1 / -1; }          /* (쪽지 쓰기 · 목록 side by side above it) */
 body.birds #hudbtns #birdbtn { grid-column: 1 / -1; font-size: 17px; }
 #hudbtns #homebtn { grid-column: 1 / -1; font-size: 15px; padding: 6px; background: rgba(255,253,246,.82); }
 #hudbtns kbd { display: inline-block; background: var(--ink); color: #fff; border-radius: 5px; padding: 0 5px; font-family: inherit; font-size: 12px; margin-left: 3px; }
 html.touch #hudbtns kbd { display: none; }
 #hudbtns .wide { font: inherit; }
+#hudbtns .narrow { display: none; font: inherit; }        /* (a phone's short label in place of .wide) */
 body.birds #birdbtn { background: var(--yellow); }
-body.birds #mapbtn, body.birds #menubtn, body.birds #viewbtn, body.birds #memobtn, body.birds #homebtn { display: none; }
+body.birds #mapbtn, body.birds #menubtn, body.birds #viewbtn, body.birds #memobtn, body.birds #memolistbtn, body.birds #homebtn { display: none; }
 body.birds #prompt { display: none; }
 #tourbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); display: grid; gap: 6px; justify-items: center; pointer-events: none; }
 #tourbar .tour-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; background: rgba(14, 22, 34, .85); color: #fff; border-radius: 12px; padding: 7px 12px; pointer-events: auto; }
@@ -395,6 +397,7 @@ body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(-
   #hudbtns { top: calc(196px + var(--st)); width: 120px; }
   #hudbtns button, #hudbtns #menubtn { font-size: 15px; padding: 9px 4px; }
   #hudbtns kbd, #hudbtns .wide { display: none; }
+  #hudbtns .narrow { display: inline; }
   #prompt { font-size: 15px; }
   .mg-grid { grid-template-columns: 1fr 1fr; }
   #game-url-pause-text { display: none; }
@@ -418,6 +421,7 @@ body.game-shoot #shoot-start { padding: 14px; font-size: 18px; background: var(-
   #hudbtns { top: calc(122px + var(--st)); width: 104px; gap: 5px; }
   #hudbtns button, #hudbtns #menubtn { font-size: 14px; padding: 7px 3px; }
   #hudbtns kbd, #hudbtns .wide { display: none; }
+  #hudbtns .narrow { display: inline; }
   #place { top: calc(10px + var(--st)); padding: 5px 12px 6px; }
   #place b { font-size: 17px; }
   #toast { top: 12%; font-size: 17px; }

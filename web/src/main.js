@@ -1529,6 +1529,9 @@ async function main() {
   });
   ui.memos = memos;
   const writeMemo = () => { if (memoFree()) memos.openWrite(); };
+  // the list from the walk itself (L or the HUD's 「쪽지 목록」), not only from the title and settings cards
+  const listMemos = () => { if (memoFree()) memos.openList(); };
+  $('#memolistbtn').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); listMemos(); });
   $('#memobtn').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); writeMemo(); });
   $('#memo-pause').addEventListener('click', (e) => { e.stopPropagation(); e.currentTarget.blur(); memos.openList(); });
   // (others' notes: the list again now and then while walking; the ones gone blow away)
@@ -1552,6 +1555,7 @@ async function main() {
     if (e.code === 'KeyE' || e.code === 'Enter') openNearby();
     else if (e.code === 'KeyM') toggleMap();
     else if (e.code === 'KeyN' && !e.repeat) { e.preventDefault(); writeMemo(); }
+    else if (e.code === 'KeyL' && !e.repeat) { e.preventDefault(); listMemos(); }
     else if (e.code === 'KeyF') toggleFilm();
     else if (e.code === 'KeyV' && !e.repeat) player.setFpv(!player.fpv);
     else if (SEASON_KEYS[e.code]) setSeason(SEASON_KEYS[e.code]);
