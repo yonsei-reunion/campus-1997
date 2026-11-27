@@ -95,6 +95,9 @@ const CAR_FAR = 20;     // parked cars farther than this from the camera: their 
 // ... and farther than this, their lightest (440 triangles a car against 3,950): from the bird's-eye view over the gate
 // some 1,170 cars were in view, 4.5 M triangles of the lighter models (#226)
 const CAR_FAR2 = 60;
+// ... and farther than this, the lightest made lighter still (hedges.js shrubFar2 on it: some 110 triangles): from the
+// gate 1,220 cars were drawn at their lightest, 540 k triangles (TECH_NOTE 「성능: 로딩 · 게임 중 측정 (2026-11-27)」)
+const CAR_FAR3 = 150;
 // phones: no parked car drawn farther than this (the 1997 aerial scans put 506 on the campus; from the gate some 460
 // were in view, 1.6 M triangles of the lighter models, most of them behind 백양로's trees)
 const CAR_MAX_MOBILE = 250;
@@ -476,11 +479,12 @@ async function main() {
     // (campus.json names each car's model and its colour in PARKED_COLORS: tools/build_campus.py, the cars' last pass)
     const carCount = countBy(campus.cars, (c) => c[0]);
     // (and their lighter models, blender/build.py car_*_far and car_*_far2: farther than CAR_FAR, CAR_FAR2 from the camera)
-    const farKits = {}, far2Kits = {};
+    const farKits = {}, far2Kits = {}, far3Kits = {};
     for (const [k, n] of Object.entries(carCount)) {
       carKits[k] = new InstancedKit(P['car_' + k].scene, lib, n, { colors: true });
       farKits[k] = new InstancedKit(P[`car_${k}_far`].scene, lib, n, { colors: true });
       far2Kits[k] = new InstancedKit(P[`car_${k}_far2`].scene, lib, n, { colors: true });
+      if (far2) far3Kits[k] = new InstancedKit(shrubFar2(P[`car_${k}_far2`].scene), lib, n, { colors: true });
     }
     // each car stands on its four tyres: where they meet the ground (model frame, +X forward, three -Z left) ...
     const tyres = {};
@@ -510,12 +514,14 @@ async function main() {
       carKits[k].add(m4, col);
       farKits[k].add(m4, col);
       far2Kits[k].add(m4, col);
+      far3Kits[k]?.add(m4, col);
       colliders.addCircle(x + Math.cos(ang) * 1.2, y + Math.sin(ang) * 1.2, 1.0);
       colliders.addCircle(x - Math.cos(ang) * 1.2, y - Math.sin(ang) * 1.2, 1.0);
     });
     for (const k in carKits) {
-      for (const kit of [carKits[k], farKits[k], far2Kits[k]]) { kit.commit(); kit.addTo(scene); }
+      for (const kit of [carKits[k], farKits[k], far2Kits[k], far3Kits[k]]) { if (!kit) continue; kit.commit(); kit.addTo(scene); }
       carSets.push(kitCull.add(carKits[k].parts, { far: farKits[k].parts, dist: CAR_FAR, far2: far2Kits[k].parts, dist2: CAR_FAR2,
+        far3: far3Kits[k]?.parts ?? null, dist3: CAR_FAR3,
         max: MOBILE ? CAR_MAX_MOBILE : 0 }));
     }
   }
