@@ -1082,5 +1082,6 @@
  "roof_seam_grey": {"_doc": "대우관 날개의 회색 금속판 지붕 (2004년 사진의 무딘 중간 회색, 고증 3.6 「날개 뒤 끝 박공과 지붕」): 하늘을 덜 비추게 metal 을 낮춤", "color": [0.17, 0.18, 0.19], "rough": 0.85, "metal": 0.1},
  "stone_verde": {"_doc": "중앙도서관 1층 칸 뒷벽의 짙은 초록 돌 (2004년 사진, blender/landmarks.py library; 고증 3.2-3.3 「1층 칸」)", "color": [0.07, 0.1, 0.09], "rough": 0.6},
  "booth_skyblue": {"_doc": "공중전화 부스의 하늘색 칠한 틀 (1996 ~ 2000년 가을 사진, blender/props.py payphone_booth; 고증 3.5)", "color": [0.2, 0.47, 0.66], "rough": 0.45, "metal": 0.15},
- "payphone_sign": {"_doc": "그 부스 앞 · 옆 위의 남색 간판 띠: 흰 글씨와 둥근 표 (tools/make_textures.py payphone_sign)", "image": "payphone_sign.png", "rough": 0.5}
+ "payphone_sign": {"_doc": "그 부스 앞 · 옆 위의 남색 간판 띠: 흰 글씨와 둥근 표 (tools/make_textures.py payphone_sign)", "image": "payphone_sign.png", "rough": 0.5},
+ "tile_red_dull": {"_doc": "상대별관 현관 양옆 벽의 작은 마름모 타일: 무늬 없는 탁한 적갈색 (reference/대우관_별관_정면_현관.jpg, blender/landmarks.py flat_portal)", "color": [0.2, 0.075, 0.068], "rough": 0.75}
 }

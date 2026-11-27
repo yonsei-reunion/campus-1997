@@ -1571,5 +1571,14 @@
   "_doc": "그 부스 앞 · 옆 위의 남색 간판 띠: 흰 글씨와 둥근 표 (tools/make_textures.py payphone_sign)",
   "image": "payphone_sign.png",
   "rough": 0.5
+ },
+ "tile_red_dull": {
+  "_doc": "상대별관 현관 양옆 벽의 작은 마름모 타일: 무늬 없는 탁한 적갈색 (reference/대우관_별관_정면_현관.jpg, blender/landmarks.py flat_portal)",
+  "color": [
+   0.2,
+   0.075,
+   0.068
+  ],
+  "rough": 0.75
  }
 }

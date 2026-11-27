@@ -2355,7 +2355,7 @@ def side_steps(mb, y_face, zl, gfn, sg, hw, y_wall, wall='stone_rubble', mat='st
     return yo
 
 
-def flat_portal(mb, W, plinth, fh, wall, bw=7.4, gfn=None):
+def flat_portal(mb, W, plinth, fh, wall, bw=7.4, gfn=None, pier=None):
     """대우관 별관's front door (reference/대우관_별관_정면_현관.jpg): a squared, slightly projecting central bay
     in pale stone, a rectangular glass double door deep in a recess under a flat lintel carrying a round medallion,
     stepped pilasters, red diamond tiles beside it, rusticated blocks on the wall corners, and two flights of steps with
@@ -2390,12 +2390,18 @@ def flat_portal(mb, W, plinth, fh, wall, bw=7.4, gfn=None):
     mb.face([(x, yf - 0.02, z) for x, z in ring][::-1], 'stone_trim')
     ring2 = [(0.72 * x, cz + 0.72 * (z - cz)) for x, z in ring]
     mb.face([(x, yf - 0.05, z) for x, z in ring2][::-1], 'plaster_cream')
-    # red diamond tiles and rusticated corner blocks on the wall either side of the bay
+    # dull red diamond tiles and rusticated blocks on the wall either side of the bay, one column in the photo: the
+    # blocks up the ground floor in the pier beyond the first window out from the bay, the tile over them in the band
+    # between the ground floor's heads and the next floor's sills.  pier: that column's distance from the door
+    # (gothic(): the middle of the plain wall between the window and the next buttress).  Before: the tile 2.1 m
+    # beside the bay at the next floor's mid-height, in front of that floor's window and facing into the wall, and
+    # the blocks between the bay and the first window
+    pier = pier or bw / 2 + 4.5
     for sg in (-1, 1):
-        dx, dz = sg * (bw / 2 + 2.1), zb - 0.1
-        mb.face([(dx, y0 - 0.03, dz - 0.32), (dx + 0.32, y0 - 0.03, dz), (dx, y0 - 0.03, dz + 0.32), (dx - 0.32, y0 - 0.03, dz)][::-1], 'brick_red')
+        dx, dz, r = sg * pier, plinth + fh + 0.15, 0.3
+        mb.face([(dx, y0 - 0.03, dz - r), (dx + r, y0 - 0.03, dz), (dx, y0 - 0.03, dz + r), (dx - r, y0 - 0.03, dz)], 'tile_red_dull')
         for k in range(5):
-            mb.box((sg * (bw / 2 + 0.7), y0 - 0.05, plinth + 0.5 + k * 0.62), (0.8 if k % 2 else 0.55, 0.12, 0.5), 'stone_trim')
+            mb.box((dx, y0 - 0.05, plinth + 0.5 + k * 0.62), (0.8 if k % 2 else 0.55, 0.12, 0.5), 'stone_trim')
     # two flights with the road between them (reference/고증/3.6.6 「두 계단과 찻길」: the 1997 aerial photos' original
     # scans, 26/15 · 26/14 seeing the wall's foot): the upper one from the door between the planters down to the road,
     # eight risers (the photos' riser lines 1.80 - 4.49 m off the wall, 0.38 m apart, after a 0.5 m landing); across the
@@ -2664,7 +2670,11 @@ def gothic(name, b, front, floors, tower_w=8.5, tower_extra=8.0, ivy=1.0, wings=
                           holes=win_holes(Le, plinth, floors, fh, 4.0, ww=0.55),
                           top=lambda s, Le=Le: Hw + (Le / 2 - abs(s - Le / 2)) * 1.1 - 0.4)
     if portal == 'flat':
-        flat_portal(mb, W, plinth, fh, wall, bw=tower_w + 0.4, gfn=local_ground(mb))
+        wb, nbut = L / max(1, round(L / 3.3)), int(round(L / 6.6))      # the front's window bay and buttresses
+        w_out = 2 * wb + 0.55 * wb / 2                                       # outer jamb of the first window out
+        b_in = min((abs(k * L / nbut - L / 2) for k in range(1, nbut) if abs(k * L / nbut - L / 2) > w_out),
+                   default=w_out + 1.7) - 0.35
+        flat_portal(mb, W, plinth, fh, wall, bw=tower_w + 0.4, gfn=local_ground(mb), pier=(w_out + b_in) / 2)
         mb.z_base = z0
         return [mb, iv]
     # --- central tower
