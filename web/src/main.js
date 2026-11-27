@@ -1568,6 +1568,7 @@ async function main() {
     shadows.update(focus, bird.active ? focus.y : camera.position.y - 10, span);
     if (MOBILE) for (const s of carSets) s.m2 = bird.active ? 0 : CAR_MAX_MOBILE ** 2;   // (the tour shows them all)
     kitCull.update(camera);
+    chunks.updateLod(camera.position);      // (the far cells' stand-ins: farlod.js)
     updatePcss(sun, post.hq);    // contact-hardening shadows on the desktop HQ path only
     if (bird.active) {
       ui.drawMinimap(bird.cur.x, bird.cur.y, bird.mapYaw);
@@ -1638,16 +1639,19 @@ async function main() {
     bakeSunMap: async () => {
       kitCull.whole();
       kitCull.enabled = false;
+      chunks.lodOff = true;                // (the cells' own meshes, not their far stand-ins)
+      chunks.updateLod(camera.position);
       try {
         return await bakeSunMap({ renderer, scene, sun, sunDir, shadows, forest, hf: hfNear, walk: walkables, hide: [banners, ...(ball?.balls.map((b) => b.mesh) ?? [])], skip: farScenery });
       } finally {
         kitCull.enabled = true;
+        chunks.lodOff = false;
       }
     },
     kitCull, chunks, memos,
     // every cell of the halls and landmarks in (src/chunks.js), and the textures at full size (materials.js
     // laterFull): the tools that shoot or bake wait for it
-    get campusLoaded() { return chunks.loaded && texturesFull(); } };
+    get campusLoaded() { return chunks.loaded && chunks.farDone && texturesFull(); } };
   window.__y97.atmos = ATMOS;
   window.__y97.loading = loading;
 
@@ -1681,6 +1685,7 @@ async function main() {
     shadows.invalidate();
   };
   chunks.stream(() => { const f = bird.active ? bird.focus : camera.position; return [f.x, -f.z]; });
+  chunks.startFar();
   // then the big textures at full size, where the loading screen had their smaller copies (materials.js laterFull)
   chunks.allIn.then(() => upgradeTextures());
   // the town beyond the gate: its houses, 신촌 로터리's landmarks and signs, the bridge (campus_town.glb, 1.3 MB), down

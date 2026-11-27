@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { loadGLB, prefetch, glbMaterials, bindMaterials, mergeStatic } from './world.js';
 import { drapeTerrain } from './terrain.js';
 import { texturesReady } from './materials.js';
+import { cellStandIn, FAR_IN, FAR_OUT } from './farlod.js';
 
 export const NEAR_R = 250;                // m from the gate (and from wherever the walk is set down) to the cell's box
 const AHEAD = 3;                          // files coming down at once behind the loading screen
@@ -56,6 +57,59 @@ export class CampusChunks {
     this.camera = null;
     this.left = this.files.length;
     this.allIn = new Promise((r) => { this._allIn = r; });
+    // the cells' stand-ins from far off (farlod.js): made one at a time once startFar() is called (after the loading
+    // screen: the textures' means need the images), swapped in by distance in updateLod()
+    this.farQueue = [];
+    this.farOn = false;
+    this.farBusy = false;
+    this.lodOff = false;          // every cell drawn whole (tools/bake_sun_shadows.mjs)
+  }
+
+  get farDone() { return !this.farBusy && !this.farQueue.length; }
+
+  startFar() {
+    this.farOn = true;
+    this._nextFar();
+  }
+
+  _nextFar() {
+    if (!this.farOn || this.farBusy || !this.farQueue.length) return;
+    this.farBusy = true;
+    const f = this.farQueue.shift();
+    (async () => {
+      for (let tries = 0; tries < 20; tries++) {
+        await texturesReady(f.meshes);
+        try {
+          const r = await cellStandIn(f.meshes, this.lib, f.file);
+          if (r) {
+            this.onPrepare?.(r.group);
+            this.groups[f.kind].add(r.group);
+            f.far = { ...r, on: false };
+          }
+          return;
+        } catch (e) {
+          if (e.message !== 'later') throw e;
+          await new Promise((ok) => setTimeout(ok, 1000));
+        }
+      }
+    })().catch((e) => console.warn('campus cell stand-in', f.file, e))
+      .finally(() => { this.farBusy = false; setTimeout(() => this._nextFar(), 0); });
+  }
+
+  // each cell drawn whole, or as its stand-in past FAR_IN m from the camera (pos: three's frame); the height over the
+  // halls' roofs counts too (the bird's-eye view)
+  updateLod(pos) {
+    const x = pos.x, y = -pos.z, up = Math.max(0, pos.y - 80);
+    for (const f of this.files) {
+      const st = f.far;
+      if (!st) continue;
+      const d = Math.hypot(away(f, x, y), up);
+      const on = !this.lodOff && (st.on ? d > FAR_OUT : d > FAR_IN);
+      if (on === st.on) continue;
+      st.on = on;
+      st.group.visible = on;
+      for (const m of st.shown) m.visible = !on;
+    }
   }
 
   get loaded() { return this.left === 0; }
@@ -155,6 +209,7 @@ export class CampusChunks {
     }
     for (const m of meshes) this.groups[f.kind].add(m);
     f.in = true;
+    if (f.cell) { f.meshes = meshes; this.farQueue.push(f); this._nextFar(); }
     if (this.late) this.onAdd?.(meshes);
     if (--this.left === 0) this._allIn();
   }
