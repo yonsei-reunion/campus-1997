@@ -22,6 +22,7 @@ import { Cast, PEOPLE, STUDENTS, HEROES, HERO, heroScale, portraits, castFiles, 
 import { BirdsEye } from './birdseye.js';
 import { SunShadows } from './shadows.js';
 import { TouchControls } from './touch.js';
+import { AutoScale } from './autoscale.js';
 import { setupNews } from './news.js';
 import { Memos, siteBoards } from './memos.js';
 import { WalkLabels } from './labels.js';
@@ -175,7 +176,8 @@ async function main() {
 
   // ---------------------------------------------------------------- renderer / scene
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  const scale0 = Math.min(devicePixelRatio, 1.5);       // (and down from there where the frames are slow: autoScale below)
+  renderer.setPixelRatio(scale0);
   renderer.setSize(innerWidth, innerHeight);
   renderer.toneMapping = THREE.AgXToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -1624,7 +1626,16 @@ async function main() {
   const crowdView = new THREE.Frustum(), crowdViewM = new THREE.Matrix4();
   crowd.view = crowdView;
   if (townCrowd) townCrowd.view = crowdView;
+  // the render scale, down a step where the walk's frames are slow and a smaller picture is faster (autoscale.js)
+  // (computers only for now: a phone's steps and threshold are not settled, TECH_NOTE.md; floor = start leaves it off)
+  const autoScale = new AutoScale(scale0, MOBILE ? scale0 : 0.8, 40, (r) => {
+    renderer.setPixelRatio(r);
+    post.composer.setPixelRatio(r);
+    renderer.setSize(innerWidth, innerHeight);
+    post.setSize(innerWidth, innerHeight);
+  }, () => { if (!autoScale.said) ui.toast('화면이 느려서 해상도를 낮췄어요', 3500); autoScale.said = true; });      // (once)
   const frame = () => {
+    if (!recording) autoScale.frame((started || bird.active) && !paused && !document.hidden);
     if (lateBags.length) wearBags(4);
     // a window resized while the tab was in the background may never send 'resize': check every frame
     if (!recording && (innerWidth !== viewW || innerHeight !== viewH)) { viewW = innerWidth; viewH = innerHeight; dispatchEvent(new Event('resize')); }
@@ -1743,7 +1754,7 @@ async function main() {
     step(dt = 1 / 30) { fixedDt = dt; frame(); fixedDt = 0; },
     stop() {
       recording = false;
-      renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+      renderer.setPixelRatio(autoScale.scale);
       post.composer.setPixelRatio(renderer.getPixelRatio());
       viewW = viewH = 0;
       clock.getDelta();
@@ -1771,7 +1782,7 @@ async function main() {
         if (townCrowd) townCrowd.view = crowdView;
       }
     },
-    kitCull, chunks, memos,
+    kitCull, chunks, memos, autoScale,
     // every cell of the halls and landmarks in (src/chunks.js), the textures at full size (materials.js laterFull),
     // the late bags, the heroes' portraits and the board's photos: the tools that shoot or bake wait for it
     get campusLoaded() { return chunks.loaded && chunks.farDone && texturesFull() && !lateBags.length && portraitsIn && boardIn; } };
