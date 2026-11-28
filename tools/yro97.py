@@ -182,6 +182,14 @@ CHURCH_EAST97 = [
     (36.2, -525.65, 7.7, 9.58, -0.009, 4, 0, (34.99, -522.05), None, 3, 35.7),
     (42.85, -526.2, 5.6, 10.51, -0.009, 4, 0, None, 2, 3, 35.7),
     (40.6, -524.85, 2.8, 7.3, -0.009, 5, 0, None, 2, 3, 37.6),
+    # (#259) the six storeys 4.1 m east of it (1996 - 1999 scans, the same outline in every year): 6.5 x 6.4 m under a
+    # coping 41.1 m over the sea (window rows 2.9 m apart over a shop's floor, the east wall blind), a light flat roof,
+    # the stair's head in its north-west corner 42.5 m; it stands for the town's two-storey box 3 m west of it.  Its
+    # neighbours east (a hipped house of one storey, its ridge 25.5 - 26.0 m) and south (24.7 m) where the town had two
+    (53.15, -521.49, 6.5, 6.4, -0.004, 6, 0, (49.72, -521.74), 2, 3, 41.1),
+    (51.3, -519.65, 2.8, 3.1, -0.004, 7, 0, None, 2, 3, 42.5),
+    (66.09, -525.47, 10.63, 8.42, -1.5787, 1, 1, (66.09, -525.47), None, None),
+    (48.84, -528.35, 7.07, 5.98, 3.096, 1, 1, (48.84, -528.35), None, None),
 ]
 
 def church_porch_floor(ch, tow=5.7, front_in=1.15):

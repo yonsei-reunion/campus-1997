@@ -817,10 +817,23 @@ def landmarks():
                 _quad(mb, o[i], o[(i + 1) % len(o)], d['foot'], d['base'], 'trim_black' if d['kind'] == 'kexim' else 'tile_white')
     for d in T.get('sites', []):               # (연세로's houses with a shape of their own: tools/yro97.py DOK97)
         dict(dok97=_dok97, champ97=_champ97)[d['kind']](mb, d)
-    for b in T['blocks']:                      # (창천교회: the block's own place and size, the looks of blender/church.py)
-        if b[9] == 2 and b[6] > 0:
-            church.church97(mb, b, ground)
+    global _CHURCH_BANK
+    _CHURCH_BANK = MeshBuilder('town_bank_church')
+    for b in T['blocks']:                      # (창천교회: the block's own place and size, the looks of blender/church.py;
+        if b[9] == 2 and b[6] > 0:             # its porch's floor and steps and the south terrace's deck walked on, #259)
+            church.church97(mb, b, ground, _CHURCH_BANK, T.get('church_deck'), ground_top)
+    if T.get('church_bus'):                    # (the church's bus in its front yard, #259)
+        church.church_bus(mb, T['church_bus'], ground)
     return mb
+
+
+_CHURCH_BANK = None
+
+
+def church_bank():
+    """the church's walked parts (landmarks() fills them): a town_bank mesh, so that the walker stands on it and the
+    terrace's deck takes the ground's material"""
+    return _CHURCH_BANK or MeshBuilder('town_bank_church')
 
 
 def signs():
@@ -1959,7 +1972,7 @@ def island():
 def build():
     if not T:
         return []
-    return houses() + [landmarks(), signs(), signs2(), shops(), entrances(), bridge(), poles(), road(), stops(), yard(), footbridges(), station97(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner(), yro_roofs()]
+    return houses() + [landmarks(), church_bank(), signs(), signs2(), shops(), entrances(), bridge(), poles(), road(), stops(), yard(), footbridges(), station97(), rot_dirsign(), rot_fence()] + bank() + [island(), yro_signs(), yro_banner(), yro_roofs()]
 
 
 # ----------------------------------------------------------------------------- the city bus

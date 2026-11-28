@@ -128,7 +128,61 @@ CHURCH_GROUND_BOX = (-53.0, 40.0, -556.0, -504.0)      # (x0, x1, y0, y1: the fi
 # 1.0 m over the game's ground in three flights (1996 · 1997 · 1999), its step down to the lane at y -551.5 .. -553 not
 # read.  Only the grid's two rows between the wall and the lane go up (scan - game by x, eased to nothing at its ends),
 # after the field: the lane's row and the yards east and west keep theirs
-CHURCH_TERRACE = dict(rows=(-545.0, -550.0), dz=[(-23.0, 0.0), (-18.0, 0.5), (-12.0, 0.72), (-8.0, 0.62), (-4.0, 1.0), (0.0, 0.35), (4.0, 0.0)])
+CHURCH_TERRACE = dict(rows=(-545.0,), dz=[(-23.0, 0.0), (-18.0, 0.5), (-12.0, 0.72), (-8.0, 0.62), (-4.0, 1.0), (0.0, 0.35), (4.0, 0.0)])
+# (#259) the terrace itself: a deck in the ground's material from the church's south wall out to a low retaining wall
+# along the lane (the dark line of the scans at y -550.8 .. -551.5 and the bright walk south of it; the 2008-11
+# roadview 2104106 - 2104118 has a raised bed there behind a red brick wall, the walk 0.7 - 1.2 m under it).  The edge
+# runs with the church (the lane's kerb west of it is parallel to the hall within 0.2 deg).  (u0, u1 in the church's
+# frame: x -20.4 .. -0.4 at the edge; v of the edge; the deck's height over the lane's ground by u: the scans'
+# terrace (21.6 - 22.3 m) less the lane (21.0 m); ramp: m at the west and east ends where it eases to the ground)
+CHURCH_TERRACE_DECK = dict(u=(7.0, 27.0), v=-18.6, h=[(7.0, 0.7), (11.0, 0.7), (17.0, 0.78), (21.0, 0.8), (25.0, 1.2), (27.0, 1.2)],
+                           ramp=(2.5, 2.0), wall=0.3)
+# (#259) the front yard's bright paving (고증 4.8.5 「앞마당」, 1996 - 1999 scans): a rectangle square with the church,
+# its west edge u -33.7, south v -8.5, north v +8.2 (approximate: under a crown's shade), east to the towers' faces; and
+# 연세로12길's north kerb (y = -557.8 + 0.068 (x + 64) from x -64 to -48, bent at (-68.5, -557.75) north-west to
+# (-75.9, -549.9) with a bright walk 1.75 m wide on its north-east side)
+CHURCH_FORE = (-33.7, -22.2, -8.5, 8.2)
+# (#259) the church's bus in the yard between 사진관's house and the paving (고증 4.8.5 「앞마당」: a white roof 7.5 x 2.2 m,
+# 2.5 m over the ground, the same place and way in 1996-11, 1997-07, 1998-10 and 1999-05): a 25-seat bus of the 1990s.
+# (x, y of the roof's middle, its long way: bearing 152 deg as the scans read it, the nose taken to the south-south-east,
+# the lane's side; length, width, roof over the ground)
+CHURCH_BUS = (-66.4, -526.4, round(math.radians(90.0 - 152.0), 4), 7.5, 2.2, 2.5)
+LANE12_KERB = [(-75.9, -549.9), (-68.5, -557.75), (-64.0, -557.8), (-48.0, -556.71)]
+LANE12_WALK = 1.75
+
+
+def church_frame(u, v, ch=CHURCH):
+    c, s = math.cos(ch['ang']), math.sin(ch['ang'])
+    return ch['c'][0] + u * c - v * s, ch['c'][1] + u * s + v * c
+
+
+def no_holes(g):
+    """g cut into pieces with no holes (the ground map's painter draws the outer rings only): split along a north - south
+    line through each hole"""
+    from shapely.ops import split
+    out, todo = [], list(getattr(g, 'geoms', [g]))
+    while todo:
+        p = todo.pop()
+        if p.geom_type != 'Polygon' or p.is_empty:
+            continue
+        if not p.interiors:
+            out.append(p)
+            continue
+        x = Polygon(p.interiors[0]).representative_point().x
+        y0, y1 = p.bounds[1] - 1.0, p.bounds[3] + 1.0
+        todo += list(split(p, LineString([(x, y0), (x, y1)])).geoms)
+    return shapely.geometry.MultiPolygon(out)
+
+
+def church_fore_paint():
+    """the front yard's paving and the walk behind the lane's bent kerb (#259): pavers"""
+    u0, u1, v0, v1 = CHURCH_FORE
+    fore = Polygon([church_frame(u, v) for u, v in ((u0, v0), (u1, v0), (u1, v1), (u0, v1))])
+    a, b = LANE12_KERB[0], LANE12_KERB[1]
+    walk = LineString([a, b]).buffer(LANE12_WALK, single_sided=True, cap_style=2)      # (left of a -> b: north-east)
+    d = CHURCH_TERRACE_DECK                             # (and the south terrace's deck: paved)
+    ter = Polygon([church_frame(u, v) for u, v in ((d['u'][0], d['v']), (d['u'][1], d['v']), (d['u'][1], -11.0), (d['u'][0], -11.0))])
+    return [fore, walk, ter]
 X0, X1 = -575.0, 700.0       # the banks are built between these
 MODERN = {230178502, 628197716}        # OSM outlines that are the 2006 station building
 # 성산로 서쪽 (대운동장 남서쪽, 고증 4.8.2 · 4.12): the ground along the road as the surface model has it climbs
@@ -864,6 +918,7 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
         return out
     mx = [q[0] for q in kerb_n if mouth.buffer(0.5).contains(Point(*q))]       # (where the mouth meets the kerb's line)
     kerbs = runs(kerb_n, [(min(mx) - 1.5, max(mx) + 1.5)]) + runs(kerb_s, [(BRIDGE[0] + 0.4, BRIDGE[1] - 0.4)])
+    kerbs.append(R2(LANE12_KERB))                       # (연세로12길's north kerb by 창천교회's front yard, #259)
     # ---- lanes for the cars (west -> east on the south side), the kerb lanes for the buses
     lanes = []
     drive = (sx > -500) & (sx < 345)
@@ -981,14 +1036,16 @@ def layout(pl, secs, ground, taken, e_curb0, secs_rng=None, wall_rng=None):
                   s=[list(p) for p in TRACK_S if X0 <= p[0] <= X1], shoulder=SHOULDER, sections=secs),
         bridge=dict(x=list(BRIDGE), pier=YONSEI_X, yonsei=[YONSEI_X, YONSEI_HALF, YONSEI_WALK]),
         paint=paint, zebra=zebra, kerbs=kerbs, lanes=lanes, stops=stops, blocks=blocks, signs=signs,
-        church=church[:5], names=names[1] + names[-1], filled=n_fill, moved=n_moved, limit=R2(limit))
-    paints = dict(clear=[zone, inside], asphalt=[road_poly, mouth_a, yonsei, ground_paint],
-                  pavers=[walk_n.difference(mouth), walk_s, yonsei_walk, inside],
+        church=church[:5], church_deck=CHURCH_TERRACE_DECK, church_bus=list(CHURCH_BUS), names=names[1] + names[-1], filled=n_fill, moved=n_moved, limit=R2(limit))
+    ch_paved = unary_union(church_fore_paint())           # (창천교회's paving, #259: the asphalt of the town's ground is drawn over
+    paints = dict(clear=[zone, inside], asphalt=[road_poly, mouth_a, yonsei, ground_paint.difference(ch_paved)],   # paving)
+                  pavers=[walk_n.difference(mouth), walk_s, yonsei_walk, inside] + church_fore_paint(),
                   dirt=[bank_paint])
     # (the grass bank under the wall west of the bridge, tools/ssr97.py bank_1997: grass, no paving under it)
     b97 = ssr97.bank97_poly(secs)
     if not b97.is_empty:
         paints = {k: (v if k == 'clear' else [g.difference(b97) for g in v]) for k, v in paints.items()}
+    paints['asphalt'][3] = no_holes(paints['asphalt'][3])     # (the town's ground round the church's paving: no holes)
     paths = [dict(kind='primary', w=2 * HW, pts=[[round(float(x), 1), round(float(y), 1)] for x, y in road.P[::3]]),
              dict(kind='tertiary', w=2 * YONSEI_HALF, pts=[[YONSEI_X, round(y_top, 1)], [YONSEI_X, -640.0]])]       # (the map)
     extra = dict(trees=trees, shrubs=shrubs, props=props, colliders=barrier, paints=paints, zone=zone, bank=bank, bank_rng=bank_r, paths=paths,

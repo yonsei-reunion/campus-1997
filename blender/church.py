@@ -50,8 +50,10 @@ ROW3 = (23.3, 25.9, 26.5)
 # the porch (the scans' west frames of 1996 - 1999: its foot 1.25 m before the towers' faces, 14.7 m long, its middle
 # 0.45 m south of the hall's; four pinnacles 4.63 m apart, the end ones 0.41 m in from its ends; the line the scans
 # read at 6.8 m is the cornice the pinnacles' posts stand on, the parapet's top and the pinnacles' tips are the 1996
-# photo's; a darker strip 0.85 m wide lies before it on the yard)
-PORCH = dict(out=1.25, w=14.7, c=-0.45, pitch=4.627, end=0.41, arch=(3.3, 3.3, 5.8), roof=6.8, par=8.8, pin=9.8, apron=0.85)
+# photo's; a darker strip 0.85 m wide lies before it on the yard: the stone steps of the photo of about 2005, two or
+# three over the porch's width.  #259: the floor 0.45 m over the yard, three risers of 0.15 m in that strip)
+PORCH = dict(out=1.25, w=14.7, c=-0.45, pitch=4.627, end=0.41, arch=(3.3, 3.3, 5.8), roof=6.8, par=8.8, pin=9.8, apron=0.85,
+             floor=0.45, risers=3)
 # what stands on the ground beside the hall in the scans (campus x, y): two round machines 1.6 m across and 2.0 m high
 # off the north-east corner (the first's top 24.6 m over the sea in six pairs, the second taken for its like), a white
 # box 2.4 x 2.2 m and 2.0 m high off the south-east corner (1996 - 1999)
@@ -358,10 +360,11 @@ class Church:
         # the doors under the porch
         for k in (-1, 0, 1):
             m = mid - PORCH['c'] + k * PORCH['pitch']
-            d = [(m - 1.1, 0.04), (m + 1.1, 0.04), (m + 1.1, 3.5), (m - 1.1, 3.5)]
+            f = PORCH['floor']
+            d = [(m - 1.1, f + 0.04), (m + 1.1, f + 0.04), (m + 1.1, f + 3.5), (m - 1.1, f + 3.5)]
             u0, u1, v0, v1 = _cell('door')
             self.mb.face([pl(p[0], p[1], 0.05) for p in d], GL, uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
-            self.box(ug - 0.08, -(m - mid), 3.5, 3.72, 0.16, 2.6, ST)
+            self.box(ug - 0.08, -(m - mid), f + 3.5, f + 3.72, 0.16, 2.6, ST)
         self.porch(ug)
 
     def porch(self, ug):
@@ -400,16 +403,91 @@ class Church:
                               pl(s0 + 0.35, p['par'] - 0.2, 0.03)], GL, uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
         um = (uw + ug) / 2
         self.box(um, c, p['roof'] - 0.2, p['roof'], ug - uw - 0.1, p['w'] - 0.1, ST)                       # (the roof and the ceiling)
-        # (the floor: stone flush with the yard, so that the walker's feet stay on it; tools/yro97.py church_porch_piers
-        # keeps the walker out of the piers; before it the darker strip of the scans)
-        self.box(um - 0.05, c, -0.5, 0.04, ug - uw + 0.1, p['w'], ST, skip=('bottom',))
-        self.box(uw - p['apron'] / 2, c, -0.5, 0.03, p['apron'], p['w'], 'stone_step', skip=('bottom',))
+        # (the floor and the steps before it: in the walked mesh, walk_parts; tools/yro97.py church_porch_piers keeps
+        # the walker out of the piers)
         for z0, z1, o in ((p['roof'] - 0.12, p['roof'] + 0.12, 0.12), (p['par'], p['par'] + 0.14, 0.1)):     # (the cornice, the coping)
             self.box(uw + th / 2, c, z0, z1, th + 2 * o, p['w'] + 2 * o, ST)
             for sgn in (-1, 1):
                 self.box((uw + th + ut) / 2, c + sgn * (hw - th / 2), z0, z1, ut - uw - th, th + 2 * o, ST)
         for s_ in piers:                                                # (the four pinnacles, their posts up from the cornice)
             self.pinnacle(uw + th / 2, c + hw - s_, p['roof'] + 0.12, p['par'] + 0.45, 0.33, p['pin'] - p['par'] - 0.57, mat=ST)
+
+    def walk_parts(self, wb):
+        """what the walker stands on (#259), into wb (blender/town.py: a mesh named town_bank_church): the porch's floor
+        PORCH['floor'] over the yard from the steps in to the doors, the steps in the scans' darker strip before it"""
+        p = PORCH
+        L = self.L
+        uw, ug = -L / 2 - p['out'], -L / 2 + FRONT_IN
+        n, f, a = p['risers'], p['floor'], p['apron']
+        P = lambda u, v, z: self.P(u, v, z)
+
+        def slab(u0, u1, v0, v1, z0, z1, mat, top_only_sides=False):
+            c = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+            wb.face([P(u, v, z1) for u, v in c], mat)
+            for i in range(4):
+                (ua, va), (ub, vb) = c[i], c[(i + 1) % 4]
+                wb.face([P(ua, va, z0), P(ub, vb, z0), P(ub, vb, z1), P(ua, va, z1)], mat)
+
+        v0, v1 = p['c'] - p['w'] / 2, p['c'] + p['w'] / 2
+        slab(uw - 0.02, ug + 0.05, v0, v1, -0.5, f + 0.03, ST)
+        for k in range(n):                                              # (the lowest first: from the strip's outer edge)
+            slab(uw - a + k * a / n, uw, v0, v1, -0.5, (k + 1) * f / n + 0.03, 'stone_step')
+
+    def terrace(self, wb, deck, ground_top):
+        """the paved terrace along the south wall (#259; tools/gate_town.py CHURCH_TERRACE_DECK): a deck in the ground's
+        own material into wb (its height over the lane's ground by u, eased to the ground at both ends), and its low
+        retaining wall of red brick with a cement coping along the lane into the church's mesh"""
+        u0, u1 = deck['u']
+        ve, vw = deck['v'], -self.W / 2 + NAVE_IN - 0.15                  # (the edge; in under the long wall)
+        hu, hz = zip(*deck['h'])
+        rw, re = deck['ramp']
+        T = deck['wall']
+
+        def interp(x):
+            if x <= hu[0]:
+                return hz[0]
+            for (xa, za), (xb, zb) in zip(deck['h'][:-1], deck['h'][1:]):
+                if x <= xb:
+                    return za + (zb - za) * (x - xa) / (xb - xa)
+            return hz[-1]
+
+        def gz(u, v):
+            return ground_top(*self.xy(u, v))
+
+        def z(u, v):
+            lane = gz(u, ve - 2.5)
+            t = min(1.0, (u - u0) / rw, (u1 - u) / re)
+            t = max(0.0, t)
+            t = t * t * (3 - 2 * t)
+            top = max(lane + interp(u), gz(u, v) + 0.03)
+            return gz(u, v) + 0.02 + (top - gz(u, v) - 0.02) * t
+
+        us = [u0 + k * 0.5 for k in range(int((u1 - u0) / 0.5) + 1)]
+        vs = [ve + (vw - ve) * k / 6 for k in range(7)]
+        Z = [[z(u, v) for u in us] for v in vs]
+        for j in range(len(vs) - 1):
+            for i in range(len(us) - 1):
+                wb.face([(*self.xy(us[i], vs[j]), Z[j][i]), (*self.xy(us[i + 1], vs[j]), Z[j][i + 1]),
+                         (*self.xy(us[i + 1], vs[j + 1]), Z[j + 1][i + 1]), (*self.xy(us[i], vs[j + 1]), Z[j + 1][i])], 'terrain_drape', smooth=True)
+        self.deck_z = lambda u, v: z(u, v) if u0 <= u <= u1 and ve <= v <= vw else None
+        # the wall: its face on the edge, its back T into the terrace, a cement coping 0.08 m over the deck
+        for i in range(len(us) - 1):
+            ua, ub = us[i], us[i + 1]
+            ta, tb = z(ua, ve), z(ub, ve)
+            ba, bb = gz(ua, ve - 0.2) - 0.1, gz(ub, ve - 0.2) - 0.1
+            if max(ta - ba, tb - bb) < 0.25:
+                continue
+            ca, cb = ta + 0.08, tb + 0.08
+            F = lambda u, zz: (*self.xy(u, ve), zz)
+            B = lambda u, zz: (*self.xy(u, ve + T), zz)
+            self.mb.face([F(ua, ba), F(ub, bb), F(ub, cb - 0.06), F(ua, ca - 0.06)], 'brick_red')
+            self.mb.face([F(ua, ca - 0.06), F(ub, cb - 0.06), F(ub, cb), F(ua, ca)], 'concrete')
+            self.mb.face([F(ua, ca), F(ub, cb), B(ub, cb), B(ua, ca)], 'concrete')
+        for ue, sg in ((us[0], 1), (us[-1], -1)):                         # (the wall's two ends)
+            t_, b_ = z(ue, ve) + 0.08, gz(ue, ve - 0.2) - 0.1
+            if t_ - b_ > 0.25:
+                q = [(*self.xy(ue, ve), b_), (*self.xy(ue, ve + T), b_), (*self.xy(ue, ve + T), t_), (*self.xy(ue, ve), t_)]
+                self.mb.face(q[::-1] if sg > 0 else q, 'brick_red')
 
     def beside(self):
         """the round machines off the north-east corner and the white box off the south-east one, on the ground"""
@@ -419,6 +497,11 @@ class Church:
             self.mb.cylinder((x, y), 0.55, g + 2.0, g + 2.12, 'metal_dark', seg=10)
         x, y, sx, sy, h = SHED
         g = self.ground(x, y)
+        dz = getattr(self, 'deck_z', None)
+        if dz:                                                          # (on the terrace's deck, #259)
+            u = (x - self.o[0]) * self.c + (y - self.o[1]) * self.s
+            v = -(x - self.o[0]) * self.s + (y - self.o[1]) * self.c
+            g = max(g, dz(u, v) or g)
         self.mb.box((x, y, g + h / 2 - 0.1), (sx, sy, h + 0.2), 'paint_white', rotz=self.ang, skip=('bottom',))
 
     def build(self):
@@ -429,5 +512,79 @@ class Church:
         self.beside()
 
 
-def church97(mb, b, ground):
-    Church(mb, b, ground).build()
+def church97(mb, b, ground, wb=None, deck=None, ground_top=None):
+    ch = Church(mb, b, ground)
+    if wb is not None:
+        ch.walk_parts(wb)
+        if deck:
+            ch.terrace(wb, deck, ground_top or ground)
+    ch.build()
+    return ch
+
+
+def church_bus(mb, bus, ground):
+    """the church's bus (#259; tools/gate_town.py CHURCH_BUS): a 25-seat bus of the 1990s, a flat-fronted white box
+    with a rounded roof, a band of side windows, the door at the front on the right; static, on the ground"""
+    x, y, ang, L, W, H = bus
+    c, s = math.cos(ang), math.sin(ang)
+    hw, xf, xr = W / 2 - 0.05, L / 2, -L / 2
+    g = min(ground(x + c * dx - s * dy, y + s * dx + c * dy) for dx in (xf - 1.3, xr + 1.6) for dy in (-hw, hw))
+    P = lambda a, b_, z: (x + a * c - b_ * s, y + a * s + b_ * c, g + z)
+    Z0, Z1, Z2, Z3, ZR, sh = 0.32, 0.55, 1.2, 2.12, H, 0.16          # skirt, band, sill, window head, roof, shoulder
+    rake = 0.18                                                         # (the windscreen leans back by this at its top)
+
+    def ring(z, inset=0.0, front=0.0):
+        return [(xf - inset - front, -hw + inset), (xf - inset - front, hw - inset), (xr + inset, hw - inset), (xr + inset, -hw + inset)]
+
+    def skin(z0, z1, mat, i0=0.0, i1=0.0, f0=0.0, f1=0.0):
+        a, b_ = ring(z0, i0, f0), ring(z1, i1, f1)
+        for i in range(4):
+            mb.face([P(*a[i], z0), P(*a[(i + 1) % 4], z0), P(*b_[(i + 1) % 4], z1), P(*b_[i], z1)], mat)
+
+    skin(Z0, Z1, 'trim_black')
+    skin(Z1, Z2, 'paint_white')
+    skin(Z2, Z3, 'paint_white', f1=rake)
+    skin(Z3, ZR, 'paint_white', 0.0, sh, rake, rake + sh)
+    top = ring(ZR, sh, rake + sh)
+    mb.face([P(*q, ZR) for q in top], 'paint_white')
+    bot = ring(Z0)
+    mb.face([P(*q, Z0) for q in bot[::-1]], 'trim_black')
+    # the windows: a band down each side, the windscreen, the rear window (0.01 m proud)
+    n = 5
+    for sgn in (-1, 1):
+        for i in range(n):
+            a0 = xr + 0.35 + i * (L - 2.1) / n
+            a1 = a0 + (L - 2.1) / n - 0.12
+            q = [P(a0, sgn * (hw + 0.01), Z2 + 0.08), P(a1, sgn * (hw + 0.01), Z2 + 0.08), P(a1, sgn * (hw + 0.01), Z3 - 0.08), P(a0, sgn * (hw + 0.01), Z3 - 0.08)]
+            mb.face(q if sgn < 0 else q[::-1], 'glass_car')
+    zt, zb_ = Z3 - 0.06, Z1 + 0.45
+    fa = lambda z: xf + 0.01 - rake * (z - Z2) / (Z3 - Z2) if z > Z2 else xf + 0.01
+    mb.face([P(fa(zb_), -hw + 0.1, zb_), P(fa(zb_), hw - 0.1, zb_), P(fa(zt), hw - 0.1, zt), P(fa(zt), -hw + 0.1, zt)], 'glass_car')
+    q = [P(xr - 0.01, -hw + 0.25, Z2 + 0.1), P(xr - 0.01, hw - 0.25, Z2 + 0.1), P(xr - 0.01, hw - 0.25, Z3 - 0.1), P(xr - 0.01, -hw + 0.25, Z3 - 0.1)]
+    mb.face(q[::-1], 'glass_car')
+    # the door at the front on the right (the kerb's side), lamps, bumpers
+    d0 = xf - 1.25
+    mb.face([P(d0, -hw - 0.012, Z0 + 0.05), P(d0 + 0.85, -hw - 0.012, Z0 + 0.05), P(d0 + 0.85, -hw - 0.012, Z3 - 0.05), P(d0, -hw - 0.012, Z3 - 0.05)], 'glass_car')
+    for sgn in (-1, 1):
+        y0, y1 = sgn * (hw - 0.5), sgn * (hw - 0.15)
+        q = [P(xf + 0.012, min(y0, y1), 0.6), P(xf + 0.012, max(y0, y1), 0.6), P(xf + 0.012, max(y0, y1), 0.78), P(xf + 0.012, min(y0, y1), 0.78)]
+        mb.face(q, 'light_white')
+        q = [P(xr - 0.012, min(y0, y1), 0.75), P(xr - 0.012, max(y0, y1), 0.75), P(xr - 0.012, max(y0, y1), 0.95), P(xr - 0.012, min(y0, y1), 0.95)]
+        mb.face(q[::-1], 'light_red')
+    for xe in (xf + 0.06, xr - 0.06):
+        cx_, cy_, cz_ = P(xe, 0.0, 0.42)
+        mb.box((cx_, cy_, cz_), (0.12, W, 0.18), 'trim_black', rotz=ang)
+    # the wheels: 0.42 m, the front axle 1.3 m behind the nose, the rear 1.6 m before the tail (twin tyres)
+    r, ww, seg = 0.42, 0.26, 12
+    for ax_ in (xf - 1.3, xr + 1.6):
+        for sgn in (-1, 1):
+            yo = sgn * (hw - ww / 2 + 0.02)
+            ring_ = [(ax_ + r * math.cos(2 * math.pi * i / seg), r + r * math.sin(2 * math.pi * i / seg)) for i in range(seg)]
+            for i in range(seg):
+                (a0, z0), (a1, z1) = ring_[i], ring_[(i + 1) % seg]
+                q = [P(a0, yo - ww / 2, z0), P(a1, yo - ww / 2, z1), P(a1, yo + ww / 2, z1), P(a0, yo + ww / 2, z0)]
+                mb.face(q[::-1], 'rubber', smooth=True)
+            cap = [P(a_, yo + sgn * ww / 2, z_) for a_, z_ in ring_]
+            mb.face(cap[::-1] if sgn > 0 else cap, 'rubber')
+            hub = [P(ax_ + (a_ - ax_) * 0.55, yo + sgn * (ww / 2 + 0.01), r + (z_ - r) * 0.55) for a_, z_ in ring_]
+            mb.face(hub[::-1] if sgn > 0 else hub, 'metal')
