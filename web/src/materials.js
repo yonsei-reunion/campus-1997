@@ -956,6 +956,10 @@ export class MaterialLibrary {
       });
       if (d.clearcoat) { m.clearcoat = d.clearcoat; m.clearcoatRoughness = d.clearcoatRough ?? 0.08; }
       if (d.opacity !== undefined) { m.transparent = true; m.opacity = d.opacity; m.depthWrite = false; }
+      // a see-through sheet with both sides showing (a wire fence, a goal's net: flat faces, one side in view): drawn
+      // once. three draws such a material twice, back faces then front, switching its side each time, which also
+      // makes it look its program up twice per mesh every frame
+      if (d.opacity !== undefined && d.side === 'double' && d.sheet) m.forceSinglePass = true;
       if (d.emissive) {
         m.emissive = new THREE.Color(...d.emissive);
         m.emissiveIntensity = d.emissiveIntensity ?? 1;

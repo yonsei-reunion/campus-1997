@@ -245,9 +245,6 @@ export class Birds {
       }
     }
     // meshes
-    this.mat = birdMaterial();
-    sunMap?.patch(this.mat, 1);
-    globalPatch(this.mat);
     this.mesh = {};
     for (const kind of Object.keys(KINDS)) {
       const n = this.birds.filter((b) => b.kind === kind).length;
@@ -256,7 +253,12 @@ export class Birds {
       const pose = new THREE.InstancedBufferAttribute(new Float32Array(n * 4), 4);
       pose.setUsage(THREE.DynamicDrawUsage);
       geo.setAttribute('aPose', pose);
-      const im = new THREE.InstancedMesh(geo, this.mat, n);
+      // (a material of its own per kind: the pigeons carry a colour per bird and the magpies none, and one material
+      // drawn both ways looks its program up again at every switch)
+      const mat = birdMaterial();
+      sunMap?.patch(mat, 1);
+      globalPatch(mat);
+      const im = new THREE.InstancedMesh(geo, mat, n);
       im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       if (kind === 'pigeon') im.setColorAt(0, _c.setRGB(1, 1, 1));
       im.frustumCulled = false;

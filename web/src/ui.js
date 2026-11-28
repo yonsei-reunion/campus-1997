@@ -155,6 +155,11 @@ export class UI {
 
   drawMinimap(px, py, yaw) {
     const cv = this.minimap, x = this.minimapCtx, map = this.mapCanvas;
+    // (as it was last drawn: the walker standing still, the same map and stamps)
+    const was = this._mini ||= {};
+    if (was.map === map && was.got === this.collected.size && Math.abs(px - was.x) < 0.03 && Math.abs(py - was.y) < 0.03
+      && Math.abs(yaw - was.yaw) < 0.002) return;
+    was.map = map; was.got = this.collected.size; was.x = px; was.y = py; was.yaw = yaw;
     const W = cv.width, H = cv.height;
     x.save();
     x.clearRect(0, 0, W, H);
