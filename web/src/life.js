@@ -840,6 +840,21 @@ function carLooks(root, far, far2, color) {
   return looks;
 }
 
+// The walkers by squares of WCELL m (grid: a Map kept from frame to frame, its lists emptied here): a car then looks
+// at the walkers of the squares round it, not at every walker on the campus (each car against each of them was a
+// third of Traffic.update's own time). The same walkers pass its 12 m test as before.
+const WCELL = 24;
+function walkerGrid(grid, walkers) {
+  for (const a of grid.values()) a.length = 0;
+  for (const w of walkers) {
+    const k = (Math.floor(w.x / WCELL) + 512) * 1024 + Math.floor(w.y / WCELL) + 512;
+    let a = grid.get(k);
+    if (!a) grid.set(k, a = []);
+    a.push(w);
+  }
+  return grid;
+}
+
 export class Traffic {
   // single: the first `single` lanes take one car each (a stall a car cannot pass by: main.js)
   // lighter: { kind: [far gltf, far2 gltf] } (their looks from off: carLooks above)
@@ -970,6 +985,7 @@ export class Traffic {
   update(dt, player, camPos = null, walkers = null, view = null) {
     if (this._hidden) return;
     const p = this.p ||= new THREE.Vector2(), d = this.d ||= new THREE.Vector2(), q = this.q ||= new THREE.Vector2();
+    const grid = walkers ? walkerGrid(this._wg ||= new Map(), walkers) : null;
     for (const c of this.cars) {
       const L = c.lane;
       if (c.looks) this._look(c, view);
@@ -1012,11 +1028,20 @@ export class Traffic {
       if (ahead > 0 && ahead < reach + 10 && lateral < 2.0) target = ahead < reach ? 0 : c.speed * (ahead - reach) / 10;
       if (walkers && !(c.pushOn > 0)) {
         const near = c.len / 2 + 2.2;
-        for (const w of walkers) {
-          const wx = w.x - p.x, wy = w.y - p.y;
-          if (wx > 12 || wx < -12 || wy > 12 || wy < -12) continue;
-          const a = wx * d.x + wy * d.y;
-          if (a > 0 && a < near + 5 && Math.abs(-wx * d.y + wy * d.x) < 1.5) target = Math.min(target, a < near ? 0 : c.speed * (a - near) / 5);
+        // (the walkers of the squares within 12 m of the car: walkerGrid below)
+        const i0 = Math.floor((p.x - 12) / WCELL), i1 = Math.floor((p.x + 12) / WCELL);
+        const j0 = Math.floor((p.y - 12) / WCELL), j1 = Math.floor((p.y + 12) / WCELL);
+        for (let i = i0; i <= i1; i++) {
+          for (let j = j0; j <= j1; j++) {
+            const cell = grid.get((i + 512) * 1024 + j + 512);
+            if (!cell) continue;
+            for (const w of cell) {
+              const wx = w.x - p.x, wy = w.y - p.y;
+              if (wx > 12 || wx < -12 || wy > 12 || wy < -12) continue;
+              const a = wx * d.x + wy * d.y;
+              if (a > 0 && a < near + 5 && Math.abs(-wx * d.y + wy * d.x) < 1.5) target = Math.min(target, a < near ? 0 : c.speed * (a - near) / 5);
+            }
+          }
         }
         // (somebody standing in the way for long: on round them, slowly)
         c.waited = target === 0 && c.v < 0.2 ? (c.waited || 0) + dt : 0;
@@ -1101,7 +1126,9 @@ export class Traffic {
         c.root.rotation.z = c.pitch;
         c.root.rotation.x = c.roll;
       } else c.root.position.set(p.x, L.h(c.s), -p.y);
-      for (const w of c.wheels) w.rotation.z -= g * (c.v * dt) / c.radius;
+      // (the wheels turn in the full model alone: the lighter looks have none to turn, and setting 124 wheels'
+      // angles every frame was a quarter of this function's time)
+      if (!c.looks || c.look === 0) for (const w of c.wheels) w.rotation.z -= g * (c.v * dt) / c.radius;
       if (c.driver) {
         const near = this._seated(c, camPos);
         const h = c.driver.holder;
