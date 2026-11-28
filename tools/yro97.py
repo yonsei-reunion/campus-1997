@@ -167,12 +167,21 @@ def church_porch_piers(ch, out_=1.25, w=14.7, c0=-0.45, th=0.5, arch=3.3, pitch=
 # 28.0 m over the sea, 5.9 m over the yard); east of the yard a tiled house of one storey where the town had two
 # (eaves 24.5, ridge 26.7 m), south-east of it houses of three and four storeys where the town had one and two (roofs
 # 30.3 · 32.1 and 34.4 m).  (x, y, length, width, the long side's way rad, storeys, hipped, the town's house it
-# stands for (x, y) or None, wall, roof): the house it stands for goes with its draws kept, these come at the end
+# stands for (x, y) or None, wall, roof[, its roof's top over the sea: storeys that high, no stair head drawn]): the
+# house it stands for goes with its draws kept, these come at the end.  Roofs by the scans' brightness (#258): the
+# small house and the two four-storey ones a light grey slab (3, as bright as the yard's paving), the tiled house
+# darker than the church's slate (1, blue-grey tiles: the colour aerial's dark grey)
+# The four-storey house north-east of the yard (#258, 1996 - 1999 scans; the town's two-storey box stood 4 m west and
+# 4 m north of it): two blocks under one coping 35.7 m over the sea (13.3 m over the lane, three rows of windows over a
+# band at 25.5 m), the east one 1 m further south, and the stair's band between them 37.6 m high (its south end not read)
 CHURCH_EAST97 = [
     (10.1, -539.7, 8.5, 7.5, 0.12, 2, 0, None, 1, 3),
     (24.6, -525.0, 15.0, 4.8, -1.5932, 1, 1, (23.67, -524.05), None, None),
     (15.51, -548.99, 12.18, 6.14, -0.3926, 3, 0, (15.51, -548.99), None, 3),
-    (28.77, -546.01, 17.52, 7.7, 3.1416, 4, 0, (28.77, -546.01), None, None),
+    (28.77, -546.01, 17.52, 7.7, 3.1416, 4, 0, (28.77, -546.01), None, 3),
+    (36.2, -525.65, 7.7, 9.58, -0.009, 4, 0, (34.99, -522.05), None, 3, 35.7),
+    (42.85, -526.2, 5.6, 10.51, -0.009, 4, 0, None, 2, 3, 35.7),
+    (40.6, -524.85, 2.8, 7.3, -0.009, 5, 0, None, 2, 3, 37.6),
 ]
 
 def church_porch_floor(ch, tow=5.7, front_in=1.15):

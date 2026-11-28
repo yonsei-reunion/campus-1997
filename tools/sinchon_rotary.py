@@ -2475,7 +2475,7 @@ def church_east97(blocks, ground):
     each stands for goes (b[6] < 0, its draws kept) and the scans' comes at the end of the blocks, drawing after every
     stream before it; a house with none to stand for is new.  Returns how many went"""
     out, n_gone = [], 0
-    for cx, cy, L, W, ang, lv, hip, near, wall, roof in yro97.CHURCH_EAST97:
+    for cx, cy, L, W, ang, lv, hip, near, wall, roof, *top in yro97.CHURCH_EAST97:
         old = None
         if near is not None:
             old = next((b for b in blocks if b[6] > 0 and math.hypot(b[0] - near[0], b[1] - near[1]) < 0.5), None)
@@ -2485,6 +2485,8 @@ def church_east97(blocks, ground):
         b = [cx, cy, L, W, ang, 0.0, int(lv), old[7] if wall is None and old else int(wall or 2),
              old[8] if roof is None and old else int(roof if roof is not None else 3), int(hip), 0, 0]
         b[5] = round(min(ground(x_, y_) for x_, y_ in list(_box(b).exterior.coords)[:4]) - 0.3, 2)
+        if top:                                        # (the roof's top over the sea: metres a storey to reach it, bare roof)
+            b += [round((datum.up(cx, cy, top[0]) - b[5] - 0.3) / lv, 3), 1]
         out.append(b)
     blocks += out
     return n_gone

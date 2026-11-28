@@ -10132,6 +10132,8 @@ for x_, y_, h_, s_, w_ in _kl_cars:
 _dmg_cars = dongmungil97.clear(cars)
 for x_, y_, h_, s_, w_ in dongmungil97.CARS:
     c97_new(x_, y_, math.radians(h_), s_, w_)
+for x_, y_, h_, s_, w_ in cars97.CHURCH_CARS:          # (창천교회 둘레, #258: at the list's very end)
+    c97_new(x_, y_, math.radians(h_), s_, w_)
 cars += CARS97_NEW
 # (what stood in a car moved or put in: a tree steps aside out of it in its place in the list, a shrub or a prop goes;
 # a car in a hall's footprint is only told)
@@ -13584,6 +13586,14 @@ out['shrubs'] += appen97.yard_shrubs()         # (아펜젤러관 남쪽 마당�
 _t = min(out['trees'], key=lambda q_: math.hypot(q_[1] - appen97.TREE_MOVE[0][0], q_[2] - appen97.TREE_MOVE[0][1]))
 assert _t[0] == 'zelkova' and math.hypot(_t[1] - appen97.TREE_MOVE[0][0], _t[2] - appen97.TREE_MOVE[0][1]) < 0.1, _t
 _t[1], _t[2] = appen97.TREE_MOVE[1]            # (잔디 터 남쪽 광장의 큰 나무: onto the 1996 winter frames' trunk, in its place)
+# 창천교회 앞마당의 나무 둘 (reference/고증/4.8.5 「앞마당」, #258): late, no draws, at the trees' very end.  The south-west
+# one by the lane: its first fork in three 1996 winter frames and its crown in three of 1997 within 0.6 m, top 7.6 m
+# over the ground, crown 3.5 m across the radius; the one by the south-west tower: its crown's middle in 1996 and 1997
+# (its trunk not read, under the crown 1.3 m off the tower's west face), top 5.7 m.  The kind not known (leafless in
+# winter): zelkova's form at those heights has the crowns' radii
+CHURCH_TREES97 = [('zelkova', -58.3, -553.8, round(7.6 / SPECIES_H['zelkova'], 2), 1.3),
+                  ('zelkova', -50.5, -546.9, round(5.7 / SPECIES_H['zelkova'], 2), 4.1)]
+out['trees'] += [list(t_) for t_ in CHURCH_TREES97]
 datum.to_sea(out, DATUM)
 # what only Blender reads (meshes and decks it builds into the GLBs, the planting's ghosts, the datum): left out of the
 # browser's copy, about 40 % of its gzip (med_west alone 0.29 MB). A key the game starts to read comes off this list;

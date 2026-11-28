@@ -124,6 +124,11 @@ CHURCH_GROUND = [
     (38.0, -535.0, 0.0), (38.0, -525.0, 0.0), (38.0, -515.0, 0.0),
     (-45.0, -506.0, 0.0), (-25.0, -506.0, 0.0), (-5.0, -506.0, 0.0), (15.0, -506.0, 0.0), (35.0, -506.0, 0.0)]
 CHURCH_GROUND_BOX = (-53.0, 40.0, -556.0, -504.0)      # (x0, x1, y0, y1: the field eases to nothing over 5 m inside it)
+# The paved terrace between the church's south wall and 연세로12길 (reference/고증/4.8.5 「땅과 측량 면의 차」, #258): 0.5 -
+# 1.0 m over the game's ground in three flights (1996 · 1997 · 1999), its step down to the lane at y -551.5 .. -553 not
+# read.  Only the grid's two rows between the wall and the lane go up (scan - game by x, eased to nothing at its ends),
+# after the field: the lane's row and the yards east and west keep theirs
+CHURCH_TERRACE = dict(rows=(-545.0, -550.0), dz=[(-23.0, 0.0), (-18.0, 0.5), (-12.0, 0.72), (-8.0, 0.62), (-4.0, 1.0), (0.0, 0.35), (4.0, 0.0)])
 X0, X1 = -575.0, 700.0       # the banks are built between these
 MODERN = {230178502, 628197716}        # OSM outlines that are the 2006 station building
 # 성산로 서쪽 (대운동장 남서쪽, 고증 4.8.2 · 4.12): the ground along the road as the surface model has it climbs
@@ -401,7 +406,13 @@ def church_ground(Hn, X, Y, keep=None):
     edge = np.minimum.reduce([X[m] - x0, x1 - X[m], Y[m] - y0, y1 - Y[m]])
     d *= np.clip(edge / 5.0, 0.0, 1.0)
     Hn[m] += d
-    return dict(nodes=int(m.sum()), low=round(float(d.min()), 2), high=round(float(d.max()), 2), mean=round(float(d.mean()), 2))
+    xs, dzs = zip(*CHURCH_TERRACE['dz'])
+    t = np.any([np.abs(Y - r) < 0.1 for r in CHURCH_TERRACE['rows']], axis=0) & (X > xs[0]) & (X < xs[-1])
+    if keep is not None:
+        t &= ~keep
+    Hn[t] += np.interp(X[t], xs, dzs)
+    return dict(nodes=int(m.sum()), low=round(float(d.min()), 2), high=round(float(d.max()), 2), mean=round(float(d.mean()), 2),
+                terrace=int(t.sum()))
 
 
 def plan(Hn, half, step, gate, heading, wall, sample, old=False, keep_nodes=None):
