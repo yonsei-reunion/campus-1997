@@ -7,7 +7,7 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { MaterialLibrary, SEASONS, texturesReady, texCount, updatePcss, uploadEarly, upgradeTextures, texturesFull } from './materials.js';
 import { loading, fetchCounted } from './loading.js';
 import { ATMOS, globalPatch, setupAtmosphere, updateAtmosphere } from './materials.js';
-import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeHeight, meshHeight } from './terrain.js';
+import { Heightfield, makeNearTerrain, makeSouthTerrain, makeFarTerrain, makeFarForest, makeSummitTower, makeCity, makeSky, drapeHeight, meshHeight, nearTiles } from './terrain.js';
 import { loadGLB, prefetch, glbMaterials, bindMaterials, InstancedKit, KitCuller, Forest, holdStill } from './world.js';
 import { chunkIndex, nearUrls, CampusChunks } from './chunks.js';
 import { Grass } from './grass.js';
@@ -267,7 +267,10 @@ async function main() {
   const sunMap = new SunMap(hfNear, { walls: !renderer.shadowMap.enabled }).load();
   const terrain = makeNearTerrain(hfNear, campus, lib);
   sunMap.patch(terrain.material, 0);
-  scene.add(terrain);
+  // (drawn in tiles, the ones out of view left out; `terrain` itself is the walker's and the rays' mesh, not drawn)
+  const terrainTiles = nearTiles(terrain, hfNear);
+  scene.add(terrainTiles);
+  holdStill(terrainTiles);
   const terrainSouth = hfNear.ext ? makeSouthTerrain(hfNear, terrain.material) : null;   // (신촌 로터리)
   if (terrainSouth) scene.add(terrainSouth);
   const terrainNorth = northPatch ? makeSouthTerrain(hfNear, terrain.material, northPatch) : null;   // (무악학사 · 북문)

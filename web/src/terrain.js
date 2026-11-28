@@ -171,6 +171,48 @@ function gridGeometry(hf, { skirt = 0, hole = 0, hole2 = null, colorFn = null } 
   return g;
 }
 
+// A ground mesh drawn in tiles, so that three leaves out the ones out of view: the near grid's 207 k triangles went
+// to the GPU whole every frame, of which a walker's view holds 14 - 51 %. Each tile is a mesh of its own triangles
+// over the mesh's own vertex buffers (no second copy on the GPU), with its own box and sphere (three's own would be
+// the whole grid's). The mesh itself (the walker's rays, the BVH, the sun bake's walked surface) is no longer drawn:
+// the BVH puts its index in another order (player.js bvhInWorker), the tiles' are their own.
+//   cellOf(v): the grid cell [i, j] of vertex v, or null for a vertex off the grid (a skirt's lower edge);
+//   nx, ny: cells across and up; cells: a tile's side in cells
+export function tiled(mesh, cellOf, nx, ny, cells = 64) {
+  const g = mesh.geometry, pos = g.attributes.position, src = g.index.array;
+  const tx = Math.ceil(nx / cells), ty = Math.ceil(ny / cells);
+  const lists = Array.from({ length: tx * ty }, () => []);
+  for (let t = 0; t < src.length; t += 3) {
+    let i = Infinity, j = Infinity;                     // (a triangle's cell: its vertices' lowest column and row)
+    for (let k = 0; k < 3; k++) {
+      const c = cellOf(src[t + k]);
+      if (c) { i = Math.min(i, c[0]); j = Math.min(j, c[1]); }
+    }
+    lists[Math.min(ty - 1, Math.floor(j / cells)) * tx + Math.min(tx - 1, Math.floor(i / cells))].push(src[t], src[t + 1], src[t + 2]);
+  }
+  const group = new THREE.Group();
+  group.name = mesh.name;
+  const v = new THREE.Vector3();
+  for (const list of lists) {
+    if (!list.length) continue;
+    const tg = new THREE.BufferGeometry();
+    for (const [name, a] of Object.entries(g.attributes)) tg.setAttribute(name, a);
+    tg.setIndex(new THREE.BufferAttribute(pos.count > 65535 ? new Uint32Array(list) : new Uint16Array(list), 1));
+    const box = new THREE.Box3();
+    for (const k of list) box.expandByPoint(v.fromBufferAttribute(pos, k));
+    tg.boundingBox = box;
+    tg.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
+    const tile = new THREE.Mesh(tg, mesh.material);
+    tile.name = mesh.name;
+    tile.receiveShadow = mesh.receiveShadow;
+    tile.castShadow = mesh.castShadow;
+    group.add(tile);
+  }
+  return group;
+}
+// (the near grid's: its vertices row by row, hf.n a side, then the skirt's)
+export const nearTiles = (mesh, hf) => tiled(mesh, (v) => (v < hf.n * hf.n ? [v % hf.n, (v / hf.n) | 0] : null), hf.n - 1, hf.n - 1);
+
 // The patch south of the grid (Heightfield.setPatch): the same triangles (split along (i+1, j)-(i, j+1)) in the near
 // terrain's material, a skirt down its outer edges; its top row is the grid's bottom row, so no seam (the north patch:
 // its bottom row the grid's top row)
