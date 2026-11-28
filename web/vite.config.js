@@ -64,25 +64,57 @@ function phoneCopies() {
   return out;
 }
 
-export default defineConfig(({ command }) => ({
-  base: './',
-  plugins: [{
-    name: 'drop-whole-halls',
-    apply: 'build',
-    writeBundle(out) { outDir = out.dir; },
-    closeBundle() { for (const f of WHOLE) rmSync(join(outDir, f), { force: true }); },
-  }],
-  server: { port: 5197 },
-  build: {
-    chunkSizeWarningLimit: 2000,
-    assetsInlineLimit: 0,
-    // the game, the 새 소식 page (it shares src/notes.js with the game's news panel) and the 캠퍼스 사람들 page (the
-    // cast alone, src/people.js)
-    rollupOptions: { input: { main: 'index.html', news: 'news.html', people: 'people.html' } },
-  },
-  define: {
-    __BUILD__: JSON.stringify(command === 'serve' ? 'dev' : buildId()),
-    __ASSETS__: JSON.stringify(command === 'serve' ? {} : assetHashes()),
-    __PHONE__: JSON.stringify(phoneCopies()),
-  },
-}));
+// The first files main.js asks for (src/main.js main()), named in index.html so that they come down beside the scripts
+// rather than after them: main.js fetches the same URLs (src/util.js versioned()) and takes these answers.
+const FIRST = ['data/campus.json', 'data/materials.json', 'data/sky.json', 'data/entrances.json', 'data/terrain_near.bin',
+  'data/terrain_far.bin', 'data/terrain_south.bin', 'data/terrain_north.bin', 'assets/models/campus/chunks.json',
+  'assets/models/campus/landmarks_base.glb', 'assets/models/campus/buildings_base.glb', 'assets/models/baekyangro.glb',
+  'assets/models/campus_town_ground.glb', 'assets/hdri/env_1k_nosun.hdr'];
+
+export default defineConfig(({ command }) => {
+  const hashes = command === 'serve' ? {} : assetHashes();
+  return {
+    base: './',
+    plugins: [{
+      name: 'drop-whole-halls',
+      apply: 'build',
+      writeBundle(out) { outDir = out.dir; },
+      closeBundle() { for (const f of WHOLE) rmSync(join(outDir, f), { force: true }); },
+    }, {
+      // @fontsource's faces name a .woff after each .woff2: every browser that runs the game (WebGL 2) reads woff2, so
+      // the second source only doubles the style sheet the page waits for (and the build's font files)
+      name: 'woff2-only',
+      enforce: 'pre',
+      transform(code, id) {
+        if (!/@fontsource[\\/].*\.css(\?|$)/.test(id)) return null;
+        return { code: code.replace(/,\s*url\([^)]*\.woff\)\s*format\(['"]woff['"]\)/g, ''), map: null };
+      },
+    }, {
+      name: 'preload-first',
+      apply: 'build',
+      transformIndexHtml: {
+        order: 'post',
+        handler(html, ctx) {
+          if (!/(^|\/)index\.html$/.test(ctx.filename)) return html;
+          return FIRST.filter((f) => hashes[f] && !hashes[f].includes(':')).map((f) => ({
+            tag: 'link', injectTo: 'head',
+            attrs: { rel: 'preload', as: 'fetch', crossorigin: 'anonymous', href: `${f}?v=${hashes[f]}` },
+          }));
+        },
+      },
+    }],
+    server: { port: 5197 },
+    build: {
+      chunkSizeWarningLimit: 2000,
+      assetsInlineLimit: 0,
+      // the game, the 새 소식 page (it shares src/notes.js with the game's news panel) and the 캠퍼스 사람들 page (the
+      // cast alone, src/people.js)
+      rollupOptions: { input: { main: 'index.html', news: 'news.html', people: 'people.html' } },
+    },
+    define: {
+      __BUILD__: JSON.stringify(command === 'serve' ? 'dev' : buildId()),
+      __ASSETS__: JSON.stringify(hashes),
+      __PHONE__: JSON.stringify(phoneCopies()),
+    },
+  };
+});

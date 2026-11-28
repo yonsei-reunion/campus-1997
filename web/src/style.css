@@ -31,7 +31,7 @@ html.touch .pc-only, html:not(.touch) .touch-only { display: none !important; }
 .intro-bg {
   position: absolute; inset: 0;
   background: linear-gradient(180deg, rgba(127, 211, 207, .55), rgba(255, 231, 106, .55)),
-              url('/assets/photos/baekyangro_1997_pano.jpg') center 35% / cover;
+              url('/assets/photos/baekyangro_1997_pano_bg.webp') center 35% / cover;   /* (the card's photo at 1400 px) */
   filter: saturate(1.05);
 }
 .intro-card {

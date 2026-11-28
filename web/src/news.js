@@ -5,7 +5,8 @@ import { noteSection } from './notes.js';
 
 export async function setupNews(onOpen = () => {}, onClose = () => {}) {
   let notes = [];
-  try { notes = await fetch(versioned('data/releases.json')).then((r) => r.json()); } catch { return; }
+  // (behind the campus's own first files on the line: the dot and the panel can wait for them)
+  try { notes = await fetch(versioned('data/releases.json'), { priority: 'low' }).then((r) => r.json()); } catch { return; }
   if (!notes.length) return;
   const latest = notes[0].date;
   const dots = document.querySelectorAll('.newsbtn i');

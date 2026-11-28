@@ -27,6 +27,9 @@ infinite PSNR; the painted barks were so until 2026-11-24), keeps its JPG (recor
 again until the JPG changes).
 
   python tools/webp_textures.py --pbr        the PBR maps only (missing or stale)
+
+The clipped shrubs' surfaces (hedge_<name>.jpg and its normal map) get theirs by the same rule from the painted
+image itself: tools/make_shrub_textures.py calls src_webp() as it saves each JPG.
 """
 import glob, hashlib, io, json, os, sys
 import numpy as np
@@ -88,25 +91,21 @@ def _psnr(a, b):
     return 99.0 if m == 0 else 10 * np.log10(255 ** 2 / m)
 
 
-def pbr_webp(jpg, rec=None):
-    """A PBR map's WebP from its source, as good as the JPG (see above). Returns the WebP's path, or None where the
-    JPG stays (then any old WebP and its record go)."""
+def src_webp(jpg, source, rec=None):
+    """A JPG's WebP made from the image the JPG was saved from (a PIL image of the same size), at the lowest quality
+    whose PSNR to that source is no lower than the JPG's: as good as the JPG, in fewer bytes. Returns the WebP's path,
+    or None where the JPG stays (no source, or no WebP as good is smaller: then any old WebP goes, and the JPG is
+    recorded as jpg:<sha1> so that it is not tried again until it changes)."""
     own = rec is None
     if own:
         rec = _load()
     key, out = _key(jpg), jpg[:-4] + '.webp'
-    setn, name = os.path.basename(os.path.dirname(jpg)), os.path.basename(jpg)[:-4]
-    src = os.path.join(SRC, setn, name.split('_')[0] + '.jpg')
     best = None
-    if os.path.exists(src):
-        J = Image.open(jpg)
-        mode = 'L' if name.startswith('rough') else 'RGB'
-        J = J.convert(mode)
-        S = Image.open(src).convert(mode)
-        if S.size != J.size:
-            S = S.resize(J.size, Image.LANCZOS)
+    if source is not None:
+        mode = source.mode if source.mode in ('L', 'RGB') else 'RGB'
+        S = source.convert(mode)
         ref = np.asarray(S)
-        aim = _psnr(ref, np.asarray(J))
+        aim = _psnr(ref, np.asarray(Image.open(jpg).convert(mode)))
         qs = list(range(50, 101, 2))
         lo, hi = 0, len(qs) - 1
         while lo <= hi:                                 # (PSNR rises with the quality)
@@ -129,6 +128,19 @@ def pbr_webp(jpg, rec=None):
     if own:
         _save(rec)
     return out
+
+
+def pbr_webp(jpg, rec=None):
+    """A PBR map's WebP from its Poly Haven source (see above). Returns the WebP's path, or None where the JPG stays."""
+    setn, name = os.path.basename(os.path.dirname(jpg)), os.path.basename(jpg)[:-4]
+    src = os.path.join(SRC, setn, name.split('_')[0] + '.jpg')
+    S = None
+    if os.path.exists(src):
+        S = Image.open(src).convert('L' if name.startswith('rough') else 'RGB')
+        size = Image.open(jpg).size
+        if S.size != size:
+            S = S.resize(size, Image.LANCZOS)
+    return src_webp(jpg, S, rec)
 
 
 def main(args):

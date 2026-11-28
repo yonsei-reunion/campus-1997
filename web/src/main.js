@@ -568,7 +568,9 @@ async function main() {
   const posters = makeGatePosters(campus.statues.gate, groundAt);     // 정문 흰 담의 대자보 (src/posters.js)
   posters.userData.setSeason(season);
   scene.add(posters);
-  scene.add(makeBoard(campus.landmarks.find((l) => l.id === 'events'), groundAt));
+  const board = makeBoard(campus.landmarks.find((l) => l.id === 'events'), groundAt);
+  let boardIn = false;                       // its photos pinned up (after the loading screen: makeBoard)
+  scene.add(board);
   const decals = new Decals(scene, campus.decals || [], walkables, hfNear, sunMap);   // manholes, oil, patches (src/decals.js)
   const drapeAt = drapeHeight(drapes);                 // the raised ground's meshes (the terraces' decks, the banks)
   const curbs = new Curbs(scene, campus.curbs || [], hfNear, walkables.slice(1), lib,     // kerbs along the paving (src/curbs.js)
@@ -1768,8 +1770,8 @@ async function main() {
     },
     kitCull, chunks, memos,
     // every cell of the halls and landmarks in (src/chunks.js), the textures at full size (materials.js laterFull),
-    // the late bags and the heroes' portraits: the tools that shoot or bake wait for it
-    get campusLoaded() { return chunks.loaded && chunks.farDone && texturesFull() && !lateBags.length && portraitsIn; } };
+    // the late bags, the heroes' portraits and the board's photos: the tools that shoot or bake wait for it
+    get campusLoaded() { return chunks.loaded && chunks.farDone && texturesFull() && !lateBags.length && portraitsIn && boardIn; } };
   window.__y97.atmos = ATMOS;
   window.__y97.loading = loading;
 
@@ -1786,6 +1788,7 @@ async function main() {
   $('#cheer-start').disabled = false;
   $('#class-start').disabled = false;
   $('#bday-start').disabled = false;
+  board.userData.pin().then(() => { boardIn = true; });
   // the rest of the halls and landmarks, the nearest to the view first (src/chunks.js); each set in once its
   // textures are in and its shaders compiled: then the walker's walls, the sun's shadows and the atmosphere take it
   chunks.renderer = renderer;
@@ -1886,6 +1889,7 @@ function clearEntrances(shrubs, zones) {
 // 학생회관 앞 게시판 with the 1997 photos pinned up (the memory spot whose card is 「그때 우리는」)
 function makeBoard(l, groundAt) {
   const g = new THREE.Group();
+  g.userData.pin = () => Promise.resolve();
   if (!l) return g;
   const W = 1600, H = 900;
   const c = document.createElement('canvas');
@@ -1897,7 +1901,6 @@ function makeBoard(l, groundAt) {
   tex.colorSpace = THREE.SRGBColorSpace;
   const photos = (l.photo || []).map((p) => 'assets/' + p);
   const posters = [['대동제', '#c0392b'], ['총학생회', '#1d3f9a'], ['동아리 신입회원 모집', '#2e7d32'], ['아카라카 응원 연습', '#1d3f9a']];
-  let i = 0;
   const rnd = mulberry(11);
   posters.forEach(([t, col], k) => {
     x.save();
@@ -1909,10 +1912,18 @@ function makeBoard(l, groundAt) {
     x.fillText('1997. 5. 대강당 앞', 20, 120); x.fillText('많은 참여 바랍니다', 20, 160);
     x.restore();
   });
-  photos.forEach((src) => {
+  // The photos come down once the loading screen is over (0.8 MB the first scene does not show: the board stands
+  // 400 m up 백양로) and are pinned up together, in the card's order: one upload of the canvas.
+  g.userData.pin = () => Promise.all(photos.map((src) => new Promise((res) => {
     const img = new Image();
-    img.onload = () => {
-      const k = i++;
+    img.onload = () => res(img);
+    img.onerror = () => res(null);
+    img.fetchPriority = 'low';
+    img.src = versioned(src);
+  }))).then((imgs) => {
+    let k = 0;
+    for (const img of imgs) {
+      if (!img) continue;
       x.save();
       x.translate(160 + (k % 3) * 470, 300 + Math.floor(k / 3) * 300 - (k % 2) * 160);
       x.rotate((rnd() - 0.5) * 0.12);
@@ -1920,9 +1931,9 @@ function makeBoard(l, groundAt) {
       x.drawImage(img, 0, 0, 380, 250);
       x.fillStyle = '#d33'; x.beginPath(); x.arc(190, -2, 9, 0, 7); x.fill();
       x.restore();
-      tex.needsUpdate = true;
-    };
-    img.src = versioned(src);
+      k++;
+    }
+    if (k) tex.needsUpdate = true;
   });
   const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
   const board = new THREE.Mesh(new THREE.BoxGeometry(4.0, 2.25, 0.12), [mat, mat, mat, mat, mat, new THREE.MeshStandardMaterial({ color: '#5a4a3a' })]);

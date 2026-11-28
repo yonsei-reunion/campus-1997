@@ -7,7 +7,8 @@ leaves and bare twigs deep inside and dark.
 
 Outputs (web/public/assets/textures):
   hedge_<name>.jpg, hedge_<name>_nor.jpg   the clipped surface, a seamless tile (TILE m), and its normal map: the
-                                           shrub bodies take them in world space from three sides (web/src/hedges.js)
+                                           shrub bodies take them in world space from three sides (web/src/hedges.js);
+                                           a .webp beside each is what the game downloads
   leaf_<name>.png                          2x2 atlas of sprig cards (RGBA, alpha-tested) that stand out of the body
 Names (the month each is worn: web/src/hedges.js shrubTexture):
   boxwood        회양목 · 주목, all year
@@ -28,7 +29,7 @@ import math, os, random, sys, zlib
 import numpy as np
 from PIL import Image
 from scipy import ndimage
-from webp_textures import to_webp
+from webp_textures import to_webp, src_webp
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 OUT = os.path.join(ROOT, 'web/public/assets/textures')
@@ -242,7 +243,11 @@ def save_surface(name, cv, strength):
     nrm = normal_map(cv, strength)
     im = Image.fromarray(rgb, 'RGB').resize((SIZE, SIZE), Image.LANCZOS)
     im.save(os.path.join(OUT, f'hedge_{name}.jpg'), quality=90)
-    Image.fromarray(nrm, 'RGB').resize((SIZE, SIZE), Image.LANCZOS).save(os.path.join(OUT, f'hedge_{name}_nor.jpg'), quality=92)
+    nim = Image.fromarray(nrm, 'RGB').resize((SIZE, SIZE), Image.LANCZOS)
+    nim.save(os.path.join(OUT, f'hedge_{name}_nor.jpg'), quality=92)
+    # the copies the game downloads, as good as the JPGs against these very images (tools/webp_textures.py)
+    src_webp(os.path.join(OUT, f'hedge_{name}.jpg'), im)
+    src_webp(os.path.join(OUT, f'hedge_{name}_nor.jpg'), nim)
     print('surface', name, 'mean srgb', np.array(im).reshape(-1, 3).mean(0).astype(int))
 
 
