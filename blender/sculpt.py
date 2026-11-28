@@ -25,6 +25,7 @@ from common import ROOT, material
 
 TEX_DIR = os.path.join(ROOT, 'web', 'public', 'assets', 'textures', 'statues')
 MESH_DIR = os.path.join(ROOT, 'data', 'statues')
+SRC_DIR = os.path.join(ROOT, 'assets_src', 'statues')        # the maps before the JPEG's loss (not in the repository)
 
 
 # ----------------------------------------------------------------------------- mesh access
@@ -374,6 +375,12 @@ def _save(arr, path, srgb):
     except Exception:
         pass
     img.save_render(path, scene=sc)
+    # the same picture without the JPEG's loss, beside the other sources: tools/webp_textures.py makes the WebP the
+    # game downloads from it (as good as the JPG against this picture, in fewer bytes; run it after `-- statues`)
+    os.makedirs(SRC_DIR, exist_ok=True)
+    s.file_format = 'PNG'
+    s.color_mode, s.color_depth = 'RGB', '8'
+    img.save_render(os.path.join(SRC_DIR, os.path.basename(path)[:-4] + '.png'), scene=sc)
     s.file_format, s.quality, s.color_mode = old
     sc.view_settings.view_transform = vt
     try:

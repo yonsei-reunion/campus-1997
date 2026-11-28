@@ -30,6 +30,10 @@ again until the JPG changes).
 
 The clipped shrubs' surfaces (hedge_<name>.jpg and its normal map) get theirs by the same rule from the painted
 image itself: tools/make_shrub_textures.py calls src_webp() as it saves each JPG.
+The bronzes' maps (statues/<name>_{col,nor,orm}.jpg) likewise, from the pictures blender/sculpt.py keeps beside the
+other sources as it saves the JPGs (assets_src/statues/<name>_<map>.png): run this after `blender/build.py -- statues`.
+A JPG with no such source here keeps its WebP while its sha1 still matches the record, and goes out as the JPG once it
+has been re-baked without this being run.
 """
 import glob, hashlib, io, json, os, sys
 import numpy as np
@@ -43,6 +47,8 @@ FACES = os.path.join(ROOT, 'web/public/assets/models/people/faces/*.png')     # 
 LOSSLESS = ('sun_shadow.png', 'sun_ground.png')
 PBR = os.path.join(TEX, 'pbr/*/*.jpg')
 SRC = os.path.join(ROOT, 'assets_src/textures')
+STATUES = os.path.join(TEX, 'statues/*.jpg')
+STATUE_SRC = os.path.join(ROOT, 'assets_src/statues')        # blender/sculpt.py _save: each map before the JPEG's loss
 
 
 def _sha1(path):
@@ -143,6 +149,13 @@ def pbr_webp(jpg, rec=None):
     return src_webp(jpg, S, rec)
 
 
+def statue_webp(jpg, rec=None):
+    """A bronze's map's WebP from the picture blender/sculpt.py saved it from. Returns its path, or None where the JPG
+    stays (no source here: `blender/build.py -- statues` writes them)."""
+    src = os.path.join(STATUE_SRC, os.path.basename(jpg)[:-4] + '.png')
+    return src_webp(jpg, Image.open(src).convert('RGB') if os.path.exists(src) else None, rec)
+
+
 def main(args):
     rec = _load()
     if args and not args[0].startswith('--'):
@@ -150,14 +163,16 @@ def main(args):
     else:
         files = sorted(glob.glob(PBR))
         if '--pbr' not in args:
-            files = sorted(p for pat in PATTERNS + LOSSLESS for p in glob.glob(os.path.join(TEX, pat))) + sorted(glob.glob(FACES)) + files
+            files = (sorted(p for pat in PATTERNS + LOSSLESS for p in glob.glob(os.path.join(TEX, pat))) + sorted(glob.glob(FACES))
+                     + sorted(glob.glob(STATUES)) + files)
         if '--all' not in args:
             stale = lambda p: rec.get(_key(p)) != 'jpg:' + _sha1(p) and (
                 not os.path.exists(p[:-4] + '.webp') or rec.get(_key(p)) != _sha1(p))
             files = [p for p in files if stale(p)]
     before = after = 0
     for p in files:
-        out = pbr_webp(p, rec) if p.endswith('.jpg') else (to_webp(p, rec) or p[:-4] + '.webp')
+        jpg = statue_webp if os.path.basename(os.path.dirname(p)) == 'statues' else pbr_webp
+        out = jpg(p, rec) if p.endswith('.jpg') else (to_webp(p, rec) or p[:-4] + '.webp')
         if out:
             before += os.path.getsize(p)
             after += os.path.getsize(out)

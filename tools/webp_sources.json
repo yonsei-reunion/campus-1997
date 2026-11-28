@@ -180,6 +180,18 @@
  "assets/textures/pbr/wood_planks_dirt/diff.jpg": "8e6cfa70e43db1b34b28e15e2b41667f859eda39",
  "assets/textures/pbr/wood_planks_dirt/nor.jpg": "9ed289fb2fc90c9e7b01506025bad68e7b7c2dad",
  "assets/textures/pbr/wood_planks_dirt/rough.jpg": "7ae06e23796458b880ef9f8b7105123e977c5a9c",
+ "assets/textures/statues/eagle_col.jpg": "jpg:e09d33850e4bd69d5d7197bc0dafdb60ebb15ea3",
+ "assets/textures/statues/eagle_nor.jpg": "7be7ced30f94afc0ee5e053e22d58f698189b8cb",
+ "assets/textures/statues/eagle_orm.jpg": "jpg:3a5436e95c0483c81d4538b8287a7808541106fe",
+ "assets/textures/statues/oesol_col.jpg": "98dd5c812fb1f3c6a80c581da36c03138dea19f4",
+ "assets/textures/statues/oesol_nor.jpg": "82a6e32b4e9d905542e821d21e9153e84aa213a3",
+ "assets/textures/statues/oesol_orm.jpg": "471a17d990872aa93b385f8c9e4f16cc34d49e57",
+ "assets/textures/statues/underwood_col.jpg": "bc9363cd5ddf26a0c698f152f621a46db9081a05",
+ "assets/textures/statues/underwood_nor.jpg": "8bdff33ac0a6bdee625dc89434c9e45d28532177",
+ "assets/textures/statues/underwood_orm.jpg": "c798649e4d6e7fa6a0c23897e488139130afee8a",
+ "assets/textures/statues/yongjae_col.jpg": "6b65f6ad862efa6b54379112fd259fc9b5a1ed8d",
+ "assets/textures/statues/yongjae_nor.jpg": "029c483fd110f00a22e56833edf0f6f3111253fe",
+ "assets/textures/statues/yongjae_orm.jpg": "67a2db961971d7631958d739ec70f0d4e5665c4c",
  "assets/textures/sun_ground.png": "2ee0d7d9623687db2ddf9ffbf3011341088dc88a",
  "assets/textures/sun_shadow.png": "a94079b130042728ee9d19828b70052cc48739dc"
 }
