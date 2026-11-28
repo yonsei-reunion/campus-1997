@@ -13272,6 +13272,10 @@ _bc_quads, _bc_guards, _bc_walk, _bc_fl = bill97.yard_walls(_bc_top, lambda x_, 
 out['med_west']['quads'] += _bc_quads
 out['med_west']['walk'] += _bc_walk
 out['colliders'] += _bc_guards
+# (and the small booth on the yard, #255: bill97.BOOTH)
+_bb_quads, _bb_guard = bill97.yard_booth(lambda x_, y_: sample(Hn, NEAR_HALF, NEAR_STEP, x_, y_))
+out['med_west']['quads'] += _bb_quads
+out['colliders'].append(_bb_guard)
 for g_ in getattr(BC97_POLY, 'geoms', [BC97_POLY]):
     _pu, _pv = zip(*[medwest97.uv(x_, y_) for x_, y_ in g_.exterior.coords])
     _pus = [round(float(u_), 3) for u_ in np.arange(min(_pu) - 0.5, max(_pu) + 2.5, 2.0)]

@@ -409,6 +409,53 @@ def yard_walls(top, foot, step=0.5):
     return quads, guards, walk, dict(risers=STAIR_N, rise=round(rise, 3), tread=round(tr, 3), foot=round(z_foot, 2), top=round(z_top, 2))
 
 
+# The small box on the yard (#255; the 1997-07-28 scans 27/15 · 27/16 · 27/17, a rectangle fitted to its roof's edges in
+# each frame and the corners' rays crossed): 1.35 x 1.64 m, its long side 15 deg east of north (with 연희관), a flat roof
+# 57.42 m over the sea, 2.15 m over the yard (55.25), eaves within 0.2 m, mid grey a little brighter than the asphalt.
+# There in 1998-10 and 1999-05 too (1996's winter has it in 연희관's shade).  Taken for a guard's booth: grey walls, a
+# window each way, a door on the yard's side
+BOOTH = [(57.84, 396.05), (59.14, 395.68), (58.74, 394.08), (57.41, 394.47)]     # (north-west, north-east, south-east, south-west)
+BOOTH_H = 2.15
+
+
+def yard_booth(foot):
+    """the booth: [material, four points] quads (each both ways) and its collider.  foot(x, y): the ground, work plane"""
+    quads = []
+    R = lambda x, y, z: [round(float(x), 3), round(float(y), 3), round(float(z), 3)]
+    P = [np.array(p, float) for p in BOOTH[::-1]]                 # (counter-clockwise from above: SW, SE, NE, NW)
+    c = sum(P) / 4
+    g = min(foot(*p) for p in P)
+    zr = g + BOOTH_H
+
+    def both(mat, q):
+        quads.append([mat, [R(*v) for v in q]])
+        quads.append([mat, [R(*v) for v in q[::-1]]])
+
+    for i in range(4):
+        a, b = P[i], P[(i + 1) % 4]
+        L = float(np.linalg.norm(b - a))
+        t = (b - a) / L
+        n = np.array([t[1], -t[0]])                              # (outward)
+        both('plaster_grey', [(*a, g - 0.15), (*b, g - 0.15), (*b, zr - 0.12), (*a, zr - 0.12)])
+        # a window in each wall, the door in the east one (the yard's side): dark glass 0.01 m proud
+        o = n * 0.012
+        if i == 1:
+            m0, m1, z0, z1 = 0.25, 0.25 + 0.75, g + 0.03, g + 1.95
+        else:
+            m0, m1, z0, z1 = 0.22, L - 0.22, g + 1.0, g + 1.75
+        q = [a + t * m0 + o, a + t * m1 + o]
+        both('glass_car', [(*q[0], z0), (*q[1], z0), (*q[1], z1), (*q[0], z1)])
+    # the roof slab: 0.12 m thick, 0.08 m over the walls
+    E = [c + (p - c) * (1.0 + 0.08 / float(np.linalg.norm(p - c)) * 1.4) for p in P]
+    both('roof_cement', [(*p, zr) for p in E])
+    for i in range(4):
+        a, b = E[i], E[(i + 1) % 4]
+        both('concrete', [(*a, zr - 0.12), (*b, zr - 0.12), (*b, zr), (*a, zr)])
+    both('concrete', [(*p, zr - 0.12) for p in E])
+    guard = [[round(float(p[0]), 3), round(float(p[1]), 3)] for p in P]
+    return quads, guard
+
+
 def yard_clear(items, pad=0.8):
     """List items standing on the flight or the path (with pad m) moved east off them, in their places in the list"""
     zone = unary_union([STAIR_POLY, PATH]).buffer(pad)
